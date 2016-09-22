@@ -1,0 +1,20 @@
+{
+	"_comment1" : "Any long-format command line argument ",
+	"_comment2" : "may be used in this JSON configuration file",
+
+	"api-bind" : "127.0.0.1:4048",
+
+	"url" : "stratum+tcp://mine.xpool.ca:1131",
+	"user" : "XeVrkPrWB7pDbdFLfKhF1Z3xpqhsx6wkH3",
+	"pass" : "cpuminer",
+
+	"algo" : "x11",
+	"threads" : 0,
+	"cpu-priority" : 0,
+	"cpu-affinity" : -1,
+
+	"benchmark" : false,
+	"debug" : false,
+	"protocol": false,
+	"quiet" : false
+}

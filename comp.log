@@ -1,0 +1,50 @@
+make  all-recursive
+make[1]: Entering directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev'
+Making all in compat
+make[2]: Entering directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev/compat'
+Making all in jansson
+make[3]: Entering directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev/compat/jansson'
+make[3]: Nothing to be done for `all'.
+make[3]: Leaving directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev/compat/jansson'
+make[3]: Entering directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev/compat'
+make[3]: Nothing to be done for `all-am'.
+make[3]: Leaving directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev/compat'
+make[2]: Leaving directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev/compat'
+make[2]: Entering directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev'
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT cpuminer-cpu-miner.o -MD -MP -MF .deps/cpuminer-cpu-miner.Tpo -c -o cpuminer-cpu-miner.o `test -f 'cpu-miner.c' || echo './'`cpu-miner.c
+mv -f .deps/cpuminer-cpu-miner.Tpo .deps/cpuminer-cpu-miner.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT cpuminer-util.o -MD -MP -MF .deps/cpuminer-util.Tpo -c -o cpuminer-util.o `test -f 'util.c' || echo './'`util.c
+mv -f .deps/cpuminer-util.Tpo .deps/cpuminer-util.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT cpuminer-algo-gate-api.o -MD -MP -MF .deps/cpuminer-algo-gate-api.Tpo -c -o cpuminer-algo-gate-api.o `test -f 'algo-gate-api.c' || echo './'`algo-gate-api.c
+mv -f .deps/cpuminer-algo-gate-api.Tpo .deps/cpuminer-algo-gate-api.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/shavite/cpuminer-shavite.o -MD -MP -MF algo/shavite/.deps/cpuminer-shavite.Tpo -c -o algo/shavite/cpuminer-shavite.o `test -f 'algo/shavite/shavite.c' || echo './'`algo/shavite/shavite.c
+mv -f algo/shavite/.deps/cpuminer-shavite.Tpo algo/shavite/.deps/cpuminer-shavite.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/keccak/cpuminer-keccak.o -MD -MP -MF algo/keccak/.deps/cpuminer-keccak.Tpo -c -o algo/keccak/cpuminer-keccak.o `test -f 'algo/keccak/keccak.c' || echo './'`algo/keccak/keccak.c
+mv -f algo/keccak/.deps/cpuminer-keccak.Tpo algo/keccak/.deps/cpuminer-keccak.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/cpuminer-axiom.o -MD -MP -MF algo/.deps/cpuminer-axiom.Tpo -c -o algo/cpuminer-axiom.o `test -f 'algo/axiom.c' || echo './'`algo/axiom.c
+mv -f algo/.deps/cpuminer-axiom.Tpo algo/.deps/cpuminer-axiom.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/blake/cpuminer-blake.o -MD -MP -MF algo/blake/.deps/cpuminer-blake.Tpo -c -o algo/blake/cpuminer-blake.o `test -f 'algo/blake/blake.c' || echo './'`algo/blake/blake.c
+mv -f algo/blake/.deps/cpuminer-blake.Tpo algo/blake/.deps/cpuminer-blake.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/blake/cpuminer-blake2.o -MD -MP -MF algo/blake/.deps/cpuminer-blake2.Tpo -c -o algo/blake/cpuminer-blake2.o `test -f 'algo/blake/blake2.c' || echo './'`algo/blake/blake2.c
+mv -f algo/blake/.deps/cpuminer-blake2.Tpo algo/blake/.deps/cpuminer-blake2.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/blake/cpuminer-blakecoin.o -MD -MP -MF algo/blake/.deps/cpuminer-blakecoin.Tpo -c -o algo/blake/cpuminer-blakecoin.o `test -f 'algo/blake/blakecoin.c' || echo './'`algo/blake/blakecoin.c
+mv -f algo/blake/.deps/cpuminer-blakecoin.Tpo algo/blake/.deps/cpuminer-blakecoin.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/blake/cpuminer-decred.o -MD -MP -MF algo/blake/.deps/cpuminer-decred.Tpo -c -o algo/blake/cpuminer-decred.o `test -f 'algo/blake/decred.c' || echo './'`algo/blake/decred.c
+mv -f algo/blake/.deps/cpuminer-decred.Tpo algo/blake/.deps/cpuminer-decred.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/blake/cpuminer-pentablake.o -MD -MP -MF algo/blake/.deps/cpuminer-pentablake.Tpo -c -o algo/blake/cpuminer-pentablake.o `test -f 'algo/blake/pentablake.c' || echo './'`algo/blake/pentablake.c
+mv -f algo/blake/.deps/cpuminer-pentablake.Tpo algo/blake/.deps/cpuminer-pentablake.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/bmw/cpuminer-bmw256.o -MD -MP -MF algo/bmw/.deps/cpuminer-bmw256.Tpo -c -o algo/bmw/cpuminer-bmw256.o `test -f 'algo/bmw/bmw256.c' || echo './'`algo/bmw/bmw256.c
+mv -f algo/bmw/.deps/cpuminer-bmw256.Tpo algo/bmw/.deps/cpuminer-bmw256.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/cpuminer-c11.o -MD -MP -MF algo/.deps/cpuminer-c11.Tpo -c -o algo/cpuminer-c11.o `test -f 'algo/c11.c' || echo './'`algo/c11.c
+mv -f algo/.deps/cpuminer-c11.Tpo algo/.deps/cpuminer-c11.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/cpuminer-cryptolight.o -MD -MP -MF algo/.deps/cpuminer-cryptolight.Tpo -c -o algo/cpuminer-cryptolight.o `test -f 'algo/cryptolight.c' || echo './'`algo/cryptolight.c
+mv -f algo/.deps/cpuminer-cryptolight.Tpo algo/.deps/cpuminer-cryptolight.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/cryptonight/cpuminer-cryptonight-common.o -MD -MP -MF algo/cryptonight/.deps/cpuminer-cryptonight-common.Tpo -c -o algo/cryptonight/cpuminer-cryptonight-common.o `test -f 'algo/cryptonight/cryptonight-common.c' || echo './'`algo/cryptonight/cryptonight-common.c
+mv -f algo/cryptonight/.deps/cpuminer-cryptonight-common.Tpo algo/cryptonight/.deps/cpuminer-cryptonight-common.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/cpuminer-drop.o -MD -MP -MF algo/.deps/cpuminer-drop.Tpo -c -o algo/cpuminer-drop.o `test -f 'algo/drop.c' || echo './'`algo/drop.c
+mv -f algo/.deps/cpuminer-drop.Tpo algo/.deps/cpuminer-drop.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/cpuminer-fresh.o -MD -MP -MF algo/.deps/cpuminer-fresh.Tpo -c -o algo/cpuminer-fresh.o `test -f 'algo/fresh.c' || echo './'`algo/fresh.c
+mv -f algo/.deps/cpuminer-fresh.Tpo algo/.deps/cpuminer-fresh.Po
+gcc -std=gnu99 -DHAVE_CONFIG_H -I.  -Iyes/include -Iyes/include -fno-strict-aliasing -I./compat/jansson -I. -Iyes/include -Iyes/include -Wno-pointer-sign -Wno-pointer-to-int-cast   -O3 -march=native  -Iyes/include -Iyes/include -MT algo/groestl/cpuminer-groestl.o -MD -MP -MF algo/groestl/.deps/cpuminer-groestl.Tpo -c -o algo/groestl/cpuminer-groestl.o `test -f 'algo/groestl/groestl.c' || echo './'`algo/groestl/groestl.c
+make[2]: Leaving directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev'
+make[1]: Leaving directory `/home/coin/devel/cpuminer/cpuminer/3.1.10/cpuminer-opt-3.1.10-dev'

@@ -1,0 +1,248 @@
+#include "miner.h"
+#include "algo-gate-api.h"
+#include "sph_blake.h"
+
+#include <string.h>
+#include <stdint.h>
+#include <memory.h>
+
+#ifndef min
+#define min(a,b) (a>b ? b : a)
+#endif
+#ifndef max 
+#define max(a,b) (a<b ? b : a)
+#endif
+
+#define DECRED_NBITS_INDEX 29
+#define DECRED_NTIME_INDEX 34
+#define DECRED_NONCE_INDEX 35
+#define DECRED_XNONCE_INDEX 36
+#define DECRED_DATA_SIZE 192
+#define DECRED_WORK_COMPARE_SIZE 140
+
+static __thread sph_blake256_context blake_mid;
+static __thread bool ctx_midstate_done = false;
+
+void decred_hash(void *state, const void *input)
+{
+        #define MIDSTATE_LEN 128
+        sph_blake256_context ctx;
+
+        uint8_t *ending = (uint8_t*) input;
+        ending += MIDSTATE_LEN;
+
+        if (!ctx_midstate_done) {
+                sph_blake256_init(&blake_mid);
+                sph_blake256(&blake_mid, input, MIDSTATE_LEN);
+                ctx_midstate_done = true;
+        }
+        memcpy(&ctx, &blake_mid, sizeof(blake_mid));
+
+        sph_blake256(&ctx, ending, (180 - MIDSTATE_LEN));
+        sph_blake256_close(&ctx, state);
+}
+
+void decred_hash_simple(void *state, const void *input)
+{
+        sph_blake256_context ctx;
+        sph_blake256_init(&ctx);
+        sph_blake256(&ctx, input, 180);
+        sph_blake256_close(&ctx, state);
+}
+
+int scanhash_decred(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done)
+{
+        uint32_t _ALIGN(128) endiandata[48];
+        uint32_t _ALIGN(128) hash32[8];
+        uint32_t *pdata = work->data;
+        uint32_t *ptarget = work->target;
+
+        #define DCR_NONCE_OFT32 35
+
+        const uint32_t first_nonce = pdata[DCR_NONCE_OFT32];
+        const uint32_t HTarget = opt_benchmark ? 0x7f : ptarget[7];
+
+        uint32_t n = first_nonce;
+
+        ctx_midstate_done = false;
+
+#if 1
+        memcpy(endiandata, pdata, 180);
+#else
+        for (int k=0; k < (180/4); k++)
+                be32enc(&endiandata[k], pdata[k]);
+#endif
+
+#ifdef DEBUG_ALGO
+        if (!thr_id) applog(LOG_DEBUG,"[%d] Target=%08x %08x", thr_id, ptarget[6], ptarget[7]);
+#endif
+
+        do {
+                //be32enc(&endiandata[DCR_NONCE_OFT32], n);
+                endiandata[DCR_NONCE_OFT32] = n;
+                decred_hash(hash32, endiandata);
+
+                if (hash32[7] <= HTarget && fulltest(hash32, ptarget)) {
+                        work_set_target_ratio(work, hash32);
+                        *hashes_done = n - first_nonce + 1;
+#ifdef DEBUG_ALGO
+                        applog(LOG_BLUE, "Nonce : %08x %08x", n, swab32(n));
+                        applog_hash(ptarget);
+                        applog_compare_hash(hash32, ptarget);
+#endif
+                        pdata[DCR_NONCE_OFT32] = n;
+                        return 1;
+                }
+
+                n++;
+
+        } while (n < max_nonce && !work_restart[thr_id].restart);
+
+        *hashes_done = n - first_nonce + 1;
+        pdata[DCR_NONCE_OFT32] = n;
+        return 0;
+}
+
+uint32_t *decred_get_nonceptr( uint32_t *work_data )
+{
+   return &work_data[ DECRED_NONCE_INDEX ];
+}
+
+// does decred need a custom stratum_get_g_work to fix nicehash
+//  bad extranonce2 size?
+// 
+// does decred need a custom init_nonce?
+// does it need to increment nonce, seems not because gen_work_now always
+// returns true
+
+void decred_calc_network_diff( struct work* work )
+{
+   // sample for diff 43.281 : 1c05ea29
+   // todo: endian reversed on longpoll could be zr5 specific...
+   uint32_t nbits = work->data[ DECRED_NBITS_INDEX ];
+   uint32_t bits = ( nbits & 0xffffff );
+   int16_t shift = ( swab32(nbits) & 0xff ); // 0x1c = 28
+   int m;
+   net_diff = (double)0x0000ffff / (double)bits;
+
+   for ( m = shift; m < 29; m++ )
+       net_diff *= 256.0;
+   for ( m = 29; m < shift; m++ )
+       net_diff /= 256.0;
+   if ( shift == 28 )
+       net_diff *= 256.0; // testnet
+   if ( opt_debug_diff )
+       applog( LOG_DEBUG, "net diff: %f -> shift %u, bits %08x", net_diff,
+               shift, bits);
+}
+
+void decred_decode_extradata( struct work* work, uint64_t* net_blocks )
+{
+   // some random extradata to make the work unique
+   work->data[ DECRED_XNONCE_INDEX ] = (rand()*4);
+   work->height = work->data[32];
+   if (!have_longpoll && work->height > *net_blocks + 1)
+   {
+      char netinfo[64] = { 0 };
+      if (opt_showdiff && net_diff > 0.)
+      {
+         if (net_diff != work->targetdiff)
+	    sprintf(netinfo, ", diff %.3f, target %.1f", net_diff,
+                   work->targetdiff);
+	 else
+	     sprintf(netinfo, ", diff %.3f", net_diff);
+       }
+       applog(LOG_BLUE, "%s block %d%s", algo_names[opt_algo], work->height,
+                       netinfo);
+       *net_blocks = work->height - 1;
+   }
+}
+
+void decred_be_build_stratum_request( char *req, struct work *work,
+                                      struct stratum_ctx *sctx )
+{
+   unsigned char *xnonce2str;
+   uint32_t ntime, nonce;
+   char ntimestr[9], noncestr[9];
+
+   be32enc( &ntime, work->data[ DECRED_NTIME_INDEX ] );
+   be32enc( &nonce, work->data[ DECRED_NONCE_INDEX ] );
+   bin2hex( ntimestr, (char*)(&ntime), sizeof(uint32_t) );
+   bin2hex( noncestr, (char*)(&nonce), sizeof(uint32_t) );
+   xnonce2str = abin2hex( (char*)( &work->data[ DECRED_XNONCE_INDEX ] ),
+                                     sctx->xnonce1_size );
+   snprintf( req, JSON_BUF_LEN,
+        "{\"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\"], \"id\":4}",
+         rpc_user, work->job_id, xnonce2str, ntimestr, noncestr );
+   free(xnonce2str);
+}
+
+// data shared between gen_merkle_root and build_extraheader.
+uint32_t decred_extraheader[32] = { 0 };
+int decred_headersize = 0;
+
+void decred_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
+{
+   // getwork over stratum, getwork merkle + header passed in coinb1
+   memcpy(merkle_root, sctx->job.coinbase, 32);
+   decred_headersize = min((int)sctx->job.coinbase_size - 32, 
+                  sizeof(decred_extraheader) );
+   memcpy( decred_extraheader, &sctx->job.coinbase[32], decred_headersize);
+}
+
+void decred_build_extraheader( struct work* work, struct stratum_ctx* sctx )
+{
+   uint32_t* extradata = (uint32_t*) sctx->xnonce1;
+   int i;
+   for ( i = 0; i < 8; i++ ) // prevhash
+      work->data[1 + i] = swab32( work->data[1 + i] );
+   for ( i = 0; i < 8; i++ ) // merkle
+      work->data[9 + i] = swab32( work->data[9 + i] );
+   for ( i = 0; i < decred_headersize/4; i++ ) // header
+      work->data[17 + i] = decred_extraheader[i];
+   // extradata
+   for ( i = 0; i < sctx->xnonce1_size/4; i++ )
+      work->data[ DECRED_XNONCE_INDEX + i ] = extradata[i];
+   for ( i = DECRED_XNONCE_INDEX + sctx->xnonce1_size/4; i < 45; i++ )
+      work->data[i] = 0;
+   work->data[37] = (rand()*4) << 8;
+   sctx->bloc_height = work->data[32];
+   //applog_hex(work->data, 180);
+   //applog_hex(&work->data[36], 36);
+}
+
+bool decred_prevent_dupes( struct work* work, struct stratum_ctx* stratum,
+                           int thr_id )
+{
+   if ( have_stratum && strcmp(stratum->job.job_id, work->job_id)  )
+      // need to regen g_work..
+      return true;
+   // extradata: prevent duplicates
+   work->data[ DECRED_XNONCE_INDEX     ] += 1;
+   work->data[ DECRED_XNONCE_INDEX + 1 ] |= thr_id;
+   return false;
+}
+
+bool register_decred_algo( algo_gate_t* gate )
+{
+  gate->optimizations         = SSE2_OPT;
+  gate->scanhash              = (void*)&scanhash_decred;
+  gate->hash                  = (void*)&decred_hash;
+  gate->hash_alt              = (void*)&decred_hash;
+  gate->get_nonceptr          = (void*)&decred_get_nonceptr;
+  gate->get_max64             = (void*)&get_max64_0x3fffffLL;
+  gate->display_extra_data    = (void*)&decred_decode_extradata;
+  gate->build_stratum_request = (void*)&decred_be_build_stratum_request;
+  gate->gen_merkle_root       = (void*)&decred_gen_merkle_root;
+  gate->build_extraheader     = (void*)&decred_build_extraheader;
+  gate->prevent_dupes         = (void*)&decred_prevent_dupes;
+  gate->nbits_index           = DECRED_NBITS_INDEX;
+  gate->ntime_index           = DECRED_NTIME_INDEX;
+  gate->nonce_index           = DECRED_NONCE_INDEX;
+  gate->work_data_size        = DECRED_DATA_SIZE;
+  gate->work_cmp_size         = DECRED_WORK_COMPARE_SIZE; 
+  allow_mininginfo            = false;
+  have_gbt                    = false;
+  return true;
+}
+

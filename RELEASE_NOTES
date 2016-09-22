@@ -1,0 +1,81 @@
+
+cpuminer-opt-3.1 release notes
+--------------i----------------
+
+cpuminer-opt combines the best of minerd (x11), cp3u (quark) and
+cpuminer-multi (multi-algo support plus non-kernel related
+enhancements). Additional credits to Lucas Jones, elmad, palmd,
+djm34, pooler, Jeff Garzik, Wolf0 and probably others.
+
+The core of cpuminer-opt remains cpuminer-multi and is the base for
+this fork.
+
+All of the code is believed to be open and free. If anyone has a
+claim to any of it post your case in the Bitcoin Talk forum,
+link below.
+
+Features
+--------
+
+V3.1 introduces a new mining engine called algo_gate. This fetaure
+is not visible to the users excetp for the additional 5% performance
+increase in all algos. This feature is of interest mostly to
+developpers.
+
+cpuminer provides accelerated hashing on AES-NI capable CPUs in
+x11, x13, x14, x15, quark & qubit algorithms. It also currently
+provides acceleration for SSE2 capable CPUs on quark and qubit
+algorithms only. Other algorithms are available but unchanged from
+cpuminer-multi-1.2pre and in various states of functionality.
+V3.0 pprovides improved hash rates for many algos. See the 
+release annoucent for details.
+
+Requirements
+------------
+
+A 64 bit CPU with SSE2 support and any of the popular 64 bit
+Linux distributions. Standard development tools, libcurl-devel,
+the preferred SSL development package of your distribution.
+
+Limitations
+-----------
+
+v3.0 is source code only that can be compiled on Linux.
+Windows support is not yet available, but planned.
+
+Compiling
+---------
+
+After unpacking the tarball change ito the cpuminer directory and
+execute these commands. Note that O3 is actually the upper case
+letter O.
+
+./autogen.sh 
+./configure CFLAGS="-O3 -march=native" --with-crypto --with-curl
+make
+
+libcurl-devel and an development packages are required to be
+installed to build this application and are available in most
+Linux repositories.
+
+To compile on older CPUs without AES_NI support use the following
+CFLAGS options: "-O3 -march=native -DNO_AES_NI"
+
+Bugs
+----
+
+Users are encouraged to post their bug reports on the Bitcoin Talk
+forum at:
+
+https://bitcointalk.org/index.php?topic=1326803.0
+
+Donations
+---------
+
+I do not do this for money but I have a donation address if users
+are so inclined.
+
+bitcoin:12tdvfF7KmAsihBXQXynT6E6th2c2pByTT?label=donations
+
+Happy mining!
+
