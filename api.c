@@ -135,6 +135,8 @@ static char *getsummary(char *params)
 	time_t ts = time(NULL);
 	double uptime = difftime(ts, startup);
 	double accps = (60.0 * accepted_count) / (uptime ? uptime : 1.0);
+        double diff = net_diff > 0. ? net_diff : stratum_diff;
+        char diff_str[16];
 
 	struct cpu_info cpu = { 0 };
 #ifdef USE_MONITORING
@@ -146,14 +148,20 @@ static char *getsummary(char *params)
 
 	get_currentalgo(algo, sizeof(algo));
 
+        // if diff is integer don't display decimals
+        if ( diff == trunc( diff ) )
+            sprintf( diff_str, "%.0f", diff);
+        else
+            sprintf( diff_str, "%.6f", diff);
+
 	*buffer = '\0';
 	sprintf(buffer, "NAME=%s;VER=%s;API=%s;"
 		"ALGO=%s;CPUS=%d;KHS=%.2f;ACC=%d;REJ=%d;"
-		"ACCMN=%.3f;DIFF=%.6f;TEMP=%.1f;FAN=%d;FREQ=%d;"
+		"ACCMN=%.3f;DIFF=%s;TEMP=%.1f;FAN=%d;FREQ=%d;"
 		"UPTIME=%.0f;TS=%u|",
 		PACKAGE_NAME, PACKAGE_VERSION, APIVERSION,
 		algo, opt_n_threads, (double)global_hashrate / 1000.0,
-		accepted_count, rejected_count, accps, net_diff > 0. ? net_diff : stratum_diff,
+		accepted_count, rejected_count, accps, diff_str,
 		cpu.cpu_temp, cpu.cpu_fan, cpu.cpu_clock,
 		uptime, (uint32_t) ts);
 	return buffer;

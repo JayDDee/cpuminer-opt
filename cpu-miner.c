@@ -1623,7 +1623,6 @@ static void *miner_thread( void *userdata )
        struct timeval tv_start, tv_end, diff;
        int64_t max64;
        int nonce_found = 0;
-
        if ( algo_gate.do_this_thread( thr_id ) )
        {
           if (have_stratum)
@@ -2051,8 +2050,7 @@ out:
 	return ret;
 }
 
-void std_stratum_get_g_work( struct stratum_ctx *sctx, struct work *g_work,
-                             int thr_id )
+void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 {
    unsigned char merkle_root[64] = { 0 };
    int i;
@@ -2092,33 +2090,27 @@ void std_stratum_get_g_work( struct stratum_ctx *sctx, struct work *g_work,
    }
    /* set target */
    algo_gate.set_target( g_work, sctx->job.diff );
+
+   if ( stratum_diff != sctx->job.diff )
+   {
+     char sdiff[32] = { 0 };
+     // store for api stats
+     stratum_diff = sctx->job.diff;
+     if ( opt_showdiff && g_work->targetdiff != stratum_diff )
+     {
+        snprintf( sdiff, 32, " (%.5f)", g_work->targetdiff );
+        applog( LOG_WARNING, "Stratum difficulty set to %g%s", stratum_diff,
+                        sdiff );
+     }
+   }
 }
 
-void jr2_stratum_get_g_work( struct stratum_ctx *sctx, struct work *g_work,
-                             int thr_id )
+void jr2_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 {
    pthread_mutex_lock( &sctx->work_lock );
    work_free( g_work );
    work_copy( g_work, &sctx->work );
    pthread_mutex_unlock( &sctx->work_lock );
-}
-
-static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work,
-                              int thr_id )
-{
-      algo_gate.stratum_get_g_work( sctx, g_work, thr_id );
-      if ( stratum_diff != sctx->job.diff )
-      {
-        char sdiff[32] = { 0 };
-        // store for api stats
-        stratum_diff = sctx->job.diff;
-        if ( opt_showdiff && g_work->targetdiff != stratum_diff )
-        {
-           snprintf( sdiff, 32, " (%.5f)", g_work->targetdiff );
-           applog( LOG_WARNING, "Stratum difficulty set to %g%s", stratum_diff,
-                           sdiff );
-        }
-      }
 }
 
 static void *stratum_thread(void *userdata )
@@ -2180,7 +2172,7 @@ static void *stratum_thread(void *userdata )
 	     (!g_work_time || strcmp(stratum.job.job_id, g_work.job_id)) )
 	{
 	   pthread_mutex_lock(&g_work_lock);
-	   stratum_gen_work(&stratum, &g_work, 0 );
+           algo_gate.stratum_gen_work( &stratum, &g_work );
 	   time(&g_work_time);
 	   pthread_mutex_unlock(&g_work_lock);
 

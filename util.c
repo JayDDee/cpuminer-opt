@@ -1622,19 +1622,19 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 		free(blob);
 
 		jobj_binary(job, "target", &target, 4);
-		if(rpc2_target != target) {
-			double hashrate = 0.0;
-                        pthread_mutex_lock(&stats_lock);
-			for (int i = 0; i < opt_n_threads; i++)
-				hashrate += thr_hashrates[i];
-                        pthread_mutex_unlock(&stats_lock);
-			double difficulty = (((double) 0xffffffff) / target);
-			if (!opt_quiet) {
-				// xmr pool diff can change a lot...
-				applog(LOG_WARNING, "Stratum difficulty set to %g", difficulty);
-			}
-			stratum_diff = difficulty;
-			rpc2_target = target;
+		if(rpc2_target != target)
+                {
+   		   double hashrate = 0.0;
+                   pthread_mutex_lock(&stats_lock);
+		   for (int i = 0; i < opt_n_threads; i++)
+		      hashrate += thr_hashrates[i];
+                   pthread_mutex_unlock(&stats_lock);
+		   double diff = trunc( ( ((double)0xffffffff) / target ) );
+		   if (!opt_quiet)
+		      // xmr pool diff can change a lot...
+		      applog(LOG_WARNING, "Stratum difficulty set to %g", diff);
+		   stratum_diff = diff;
+		   rpc2_target = target;
 		}
 
 		if (rpc2_job_id) free(rpc2_job_id);

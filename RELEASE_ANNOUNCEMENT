@@ -1,4 +1,4 @@
-Release 3.4.7 of cpuminer-opt is available for download with support for
+Release 3.4.8 of cpuminer-opt is available for download with support for
 Windows.
 
 cpuminer-opt now supports 38 algorithms on CPUs with at least SSE2
@@ -10,10 +10,10 @@ CPUs with AES_NI for even greater performance, including the Intel
 Westbridge and newer and AMD equivalent. See the performance
 comparison below.
 
-New in 3.4.7
+New in 3.4.8
 
-- fixed benchmark, except for x11evo
-- added CPU temperature to share submission report
+- fixed API display of diff for cryptonight
+- cleaned up some cpuminer-multi artifacts
 
 Users with non-SSE2 CPUs or who want to mine algos not supported by
 cpuminer-opt may find cpuminer-multi by TPruvot useful.

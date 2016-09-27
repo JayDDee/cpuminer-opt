@@ -115,7 +115,7 @@ void init_algo_gate( algo_gate_t* gate )
    gate->wait_for_diff           = (void*)&std_wait_for_diff;
    gate->get_max64               = (void*)&get_max64_0x1fffffLL;
    gate->gen_merkle_root         = (void*)&sha256d_gen_merkle_root;
-   gate->stratum_get_g_work      = (void*)&std_stratum_get_g_work;
+   gate->stratum_gen_work        = (void*)&std_stratum_gen_work;
    gate->build_stratum_request   = (void*)&std_le_build_stratum_request;
    gate->set_target              = (void*)&std_set_target;
    gate->submit_getwork_result   = (void*)&std_submit_getwork_result;
@@ -218,7 +218,7 @@ bool register_json_rpc2( algo_gate_t *gate )
   gate->wait_for_diff           = (void*)&do_nothing;
   gate->get_new_work            = (void*)&jr2_get_new_work;
   gate->get_nonceptr            = (void*)&jr2_get_nonceptr;
-  gate->stratum_get_g_work      = (void*)&jr2_stratum_get_g_work;
+  gate->stratum_gen_work        = (void*)&jr2_stratum_gen_work;
   gate->build_stratum_request   = (void*)&jr2_build_stratum_request;
   gate->submit_getwork_result   = (void*)&jr2_submit_getwork_result;
   gate->longpoll_rpc_call       = (void*)&jr2_longpoll_rpc_call;
