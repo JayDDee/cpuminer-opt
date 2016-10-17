@@ -492,6 +492,7 @@ enum algos {
         ALGO_LUFFA,       
         ALGO_LYRA2RE,       
         ALGO_LYRA2REV2,   
+        ALGO_LYRA2Z,
         ALGO_M7M,
         ALGO_MYR_GR,      
         ALGO_NEOSCRYPT,
@@ -546,6 +547,7 @@ static const char *algo_names[] = {
         "luffa",
         "lyra2re",
         "lyra2rev2",
+        "lyra2z",
         "m7m",
         "myr-gr",
         "neoscrypt",
@@ -573,6 +575,7 @@ static const char *algo_names[] = {
         "x15",
         "x17",
         "yescrypt",
+        "lyra2z",
         "zr5",
         "\0"
 };
@@ -654,6 +657,7 @@ Options:\n\
                           luffa        Luffa\n\
                           lyra2re      lyra2\n\
                           lyra2rev2    lyrav2\n\
+                          lyra2z       Zcoin (XZC)\n\
                           m7m          Magi (XMG)\n\
                           myr-gr       Myriad-Groestl\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\
@@ -700,6 +704,7 @@ Options:\n\
       --randomize       Randomize scan range start to reduce duplicates\n\
   -f, --diff-factor     Divide req. difficulty by this factor (std is 1.0)\n\
   -m, --diff-multiplier Multiply difficulty by this factor (std is 1.0)\n\
+      --hide-diff       Do not display changes in difficulty\n\
   -n, --nfactor         neoscrypt N-Factor\n\
       --coinbase-addr=ADDR  payout address for solo mining\n\
       --coinbase-sig=TEXT  data to insert in the coinbase when possible\n\
@@ -763,6 +768,7 @@ static struct option const options[] = {
         { "diff-factor", 1, NULL, 'f' },
         { "diff", 1, NULL, 'f' }, // deprecated (alias)
         { "diff-multiplier", 1, NULL, 'm' },
+        { "hide-diff", 0, NULL, 1013 },
         { "help", 0, NULL, 'h' },
         { "nfactor", 1, NULL, 'n' },
         { "no-gbt", 0, NULL, 1011 },
@@ -783,7 +789,6 @@ static struct option const options[] = {
         { "retry-pause", 1, NULL, 'R' },
         { "randomize", 0, NULL, 1024 },
         { "scantime", 1, NULL, 's' },
-        { "show-diff", 0, NULL, 1013 },
 #ifdef HAVE_SYSLOG_H
         { "syslog", 0, NULL, 'S' },
 #endif

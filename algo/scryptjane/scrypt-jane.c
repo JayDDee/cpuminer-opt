@@ -231,11 +231,6 @@ void scryptjanehash(void *output, const void *input )
 	scrypt_free(&YX);
 }
 
-void scryptjane_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
-}
-
 bool register_scryptjane_algo( algo_gate_t* gate )
 {
     gate->scanhash   = (void*)&scanhash_scryptjane;

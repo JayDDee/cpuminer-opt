@@ -1,7 +1,7 @@
 //   Some tools to help using AVX and AVX2
 
 #include <inttypes.h>
-//#include <immintrin.h>
+#include <immintrin.h>
 
 // Use these overlays to access the same data in memory as different types
 //
@@ -15,7 +15,7 @@
 
 typedef union
 {
-#if defined __AVX__
+#if defined __AVX2__
 __m256i   v256;
 #endif
 __m128i   v128[ 2];
@@ -49,47 +49,85 @@ uint8_t   v8 [16];
 
 #if defined __AVX2__
 
-// Rotate bits in 4 uint64
+// Rotate bits in 4 uint64  (3 instructions)
 // __m256i mm256_rotr_64( __256i, int )
-#define  mm256_rotr_64(w,c) _mm256_or_si256(_mm256_srli_epi64(w, c), \
-                                            _mm256_slli_epi64(w, 64 - c))
-//static inline __m256i mm256_rotr_64 ( __m256i w, int c)
-//{
-//   return _mm256_or_si256( _mm256_srli_epi64( w, c ),
-//                           _mm256_slli_epi64( w, 64 - c ) );
-//}
-// Rotate uint64 by one uint64
-//__m256i mm256_rotl256_1x64( _mm256i, int )
-#define mm256_rotl256_1x64(s) _mm256_permute4x64_epi64( s, 0x39 )
-#define mm256_rotr256_1x64(s) _mm256_permute4x64_epi64( s, 0x93 )
-//static inline __m256i mm256_rotl256_1x64( __m256i s ) 
-//{ 
-//   return _mm256_permute4x64_epi64( s, 0x39 );
-//}
-//static inline __m256i mm256_rotr256_1x64( __m256i s )
-//{
-//   return _mm256_permute4x64_epi64( s, 0x93 );
-//}
+#define  mm256_rotr_64( w, c ) \
+    _mm256_or_si256( _mm256_srli_epi64(w, c), _mm256_slli_epi64(w, 64 - c) )
+
+#define  mm256_rotl_64( w, c ) \
+    _mm256_or_si256( _mm256_slli_epi64(w, c), _mm256_srli_epi64(w, 64 - c) )
 
 // swap hi and lo 128 bits in 256 bit vector
 //  __m256i mm256_swap128( __m256i )
-#define mm256_swap128(s) _mm256_permute2f128_si256( s, s, 1 )
-//static inline __m256i mm256_swap128( __m256i s )
-//{
-//    return _mm256_permute2f128_si256( s, s, 1 );
-//}
+#define mm256_swap128( w ) \
+    _mm256_permute2f128_si256( w, w, 1 )
 
-#endif
+// Rotate 256 bits by 64 bits (4 uint64 by one uint64)
+//__m256i mm256_rotl256_1x64( _mm256i, int )
+#define mm256_rotl256_1x64( w ) \
+     _mm256_permute4x64_epi64( w, 0x39 )
+
+#define mm256_rotr256_1x64( w ) \
+     _mm256_permute4x64_epi64( w, 0x93 )
+
+// shift 256 bits by n*64 bits (4 uint64 by n uint64)
+#define mm256_slli256_1x64( w ) \
+    _mm256_and_si256( mm256_rotl256_1x64( w ), \
+                      _mm256_set_epi64x( 0, \
+                                         0xffffffffffffffffull, \
+                                         0xffffffffffffffffull, \
+                                         0xffffffffffffffffull ) )
+//                      _mm256_set_epi64x( 0xffffffffffffffffull, \
+//                                         0xffffffffffffffffull, \
+//                                         0xffffffffffffffffull, \
+//                                         0 ) )
+
+
+#define mm256_slli256_2x64( w ) \
+    _mm256_and_si256( mm256_swap128( w ), \
+                      _mm256_set_epi64x( 0xffffffffffffffffull, \
+                                         0xffffffffffffffffull, \
+                                         0, \
+                                         0 ) )
+
+#define mm256_slli256_3x64( w ) \
+    _mm256_and_si256( mm256_rotr256_1x64( w ), \
+                      _mm256_set_epi64x( 0xffffffffffffffffull, \
+                                         0, \
+                                         0, \
+                                         0 ) )
+
+#define mm256_srli256_1x64( w ) \
+    _mm256_and_si256( mm256_rotr256_1x64( w ), \
+                      _mm256_set_epi64x( 0, \
+                                         0xffffffffffffffffull, \
+                                         0xffffffffffffffffull, \
+                                         0xffffffffffffffffull ) )
+
+#define mm256_srli256_2x64( w ) \
+    _mm256_and_si256( mm256_swap128( w ), \
+                      _mm256_set_epi64x( 0, \
+                                         0, \
+                                         0xffffffffffffffffull, \
+                                         0xffffffffffffffffull ))
+
+#define mm256_srli256_3x64( w ) \
+    _mm256_and_si256( mm256_rotl256_1x64( w ), \
+                      _mm256_set_epi64x( 0xffffffffffffffffull, \
+                                         0, \
+                                         0, \
+                                         0 ) )
+//                      _mm256_set_epi64x( 0, \
+//                                         0, \
+//                                         0, \
+//                                         0xffffffffffffffffull ) )
+
+#endif  // AVX2
 
 // rotate bits in 2 uint64
 // _m128i mm_rotr_64( __m128i, int )
 #define  mm_rotr_64(w,c) _mm_or_si128(_mm_srli_epi64(w, c), \
                                       _mm_slli_epi64(w, 64 - c))
-//static inline __m128i  mm_rotr_64( __m128i w, int c )
-//{
-//      _mm_or_si128( _mm_srli_epi64( w, c ), 
-//                    _mm_slli_epi64( w, 64 - c ) );
-//}
 
 // swap 128 bit source vectors
 // void mm128_swap128( __m128i, __m128i )

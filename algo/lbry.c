@@ -142,7 +142,7 @@ int scanhash_lbry( int thr_id, struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-void lbry_calc_network_diff(struct work *work)
+double lbry_calc_network_diff( struct work *work )
 {
         // sample for diff 43.281 : 1c05ea29
         // todo: endian reversed on longpoll could be zr5 specific...
@@ -159,7 +159,7 @@ void lbry_calc_network_diff(struct work *work)
    if (opt_debug_diff)
       applog(LOG_DEBUG, "net diff: %f -> shift %u, bits %08x", d, shift, bits);
 
-   net_diff = d;
+   return d;
 }
 
 // std_le should work but it doesn't

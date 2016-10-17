@@ -49,19 +49,11 @@ int64_t yescrypt_get_max64 ()
   return 0x1ffLL;
 }
 
-
-void yescrypt_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
-}
-
-
 bool register_yescrypt_algo ( algo_gate_t* gate )
 {
    gate->scanhash   = (void*)&scanhash_yescrypt;
    gate->hash       = (void*)&yescrypt_hash;
    gate->hash_alt   = (void*)&yescrypthash;
-//   gate->set_target = (void*)&yescrypt_set_target;
    gate->set_target = (void*)&scrypt_set_target;
    gate->get_max64  = (void*)&yescrypt_get_max64;
    return true;

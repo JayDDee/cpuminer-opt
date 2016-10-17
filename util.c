@@ -1630,7 +1630,7 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 		      hashrate += thr_hashrates[i];
                    pthread_mutex_unlock(&stats_lock);
 		   double diff = trunc( ( ((double)0xffffffff) / target ) );
-		   if (!opt_quiet)
+		   if ( opt_showdiff )
 		      // xmr pool diff can change a lot...
 		      applog(LOG_WARNING, "Stratum difficulty set to %g", diff);
 		   stratum_diff = diff;

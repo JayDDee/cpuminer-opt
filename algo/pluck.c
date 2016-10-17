@@ -487,24 +487,19 @@ int64_t pluck_get_max64 ()
   return 0x1ffLL;
 }
 
-void pluck_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
-}
-
-bool pluck_miner_thread_init( )
+bool pluck_miner_thread_init( int thr_id )
 { 
   scratchbuf = malloc( 128 * 1024 ); 
   if ( scratchbuf )
     return true;
-  applog( LOG_ERR, "Pluck buffer allocation failed");
+  applog( LOG_ERR, "Thread %u: Pluck buffer allocation failed", thr_id );
   return false;
 }
 
 bool register_pluck_algo( algo_gate_t* gate )
 {
   algo_not_tested();
-  gate->miner_thread_init = (void*)& pluck_miner_thread_init;
+  gate->miner_thread_init = (void*)&pluck_miner_thread_init;
   gate->scanhash         = (void*)&scanhash_pluck;
   gate->hash             = (void*)&pluck_hash;
   gate->set_target       = (void*)&scrypt_set_target;

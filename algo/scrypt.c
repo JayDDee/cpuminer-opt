@@ -774,12 +774,12 @@ int64_t scrypt_get_max64()
      return max64;
 }
 
-bool scrypt_miner_thread_init()
+bool scrypt_miner_thread_init( int thr_id )
 {
  scratchbuf = scrypt_buffer_alloc( opt_scrypt_n );  
  if ( scratchbuf )
    return true;
- applog( LOG_ERR, "Scrypt buffer allocation failed" );
+ applog( LOG_ERR, "Thread %u: Scrypt buffer allocation failed", thr_id );
  return false; 
 }
 

@@ -115,7 +115,7 @@ void ( *hash_alt ) ( void*, const void*, uint32_t );
 void ( *hash_suw ) ( void*, const void* );
 
 //optional, safe to use default in most cases
-bool ( *miner_thread_init )      ();
+bool ( *miner_thread_init )      ( int );
 void ( *stratum_gen_work )       ( struct stratum_ctx*, struct work* );
 void ( *get_new_work )           ( struct work*, struct work*, int, uint32_t*,
                                    bool );
@@ -129,7 +129,7 @@ bool ( *submit_getwork_result )  ( CURL*, struct work* );
 void ( *gen_merkle_root )        ( char*, struct stratum_ctx* );
 void ( *build_stratum_request )  ( char*, struct work*, struct stratum_ctx* );
 void ( *set_work_data_endian )   ( struct work* );
-void ( *calc_network_diff )      ( struct work* );
+double ( *calc_network_diff )    ( struct work* );
 void ( *build_extraheader )      ( struct work*, struct stratum_ctx* );
 bool ( *prevent_dupes )          ( struct work*, struct stratum_ctx*, int );
 void ( *resync_threads )         ( struct work* );
@@ -229,7 +229,7 @@ void jr2_build_stratum_request   ( char *req, struct work *work );
 // default is do_nothing;
 void swab_work_data( struct work *work );
 
-void std_calc_network_diff( struct work *work );
+double std_calc_network_diff( struct work *work );
 
 void std_build_extraheader( struct work *work, struct stratum_ctx *sctx );
 

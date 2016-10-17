@@ -233,11 +233,6 @@ void drop_get_new_work( struct work* work, struct work* g_work, int thr_id,
        ++(*nonceptr);
 }
 
-void drop_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
-}
- 
 void drop_display_pok( struct work* work ) 
 {
       if ( work->data[0] & 0x00008000 ) 

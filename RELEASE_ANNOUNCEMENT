@@ -12,7 +12,9 @@ comparison below.
 
 New in 3.4.8
 
+- added zcoin support, optimized for AVX2 but no increase in performance
 - fixed API display of diff for cryptonight
+- --show-diff is now the default, use "--hide-diff" to disable
 - cleaned up some cpuminer-multi artifacts
 
 Users with non-SSE2 CPUs or who want to mine algos not supported by
