@@ -1417,6 +1417,8 @@ int64_t get_max64_0x40LL()     { return 0x40LL;     }
 int64_t get_max64_0x3ffff()    { return 0x3ffff;    }
 int64_t get_max64_0x3fffffLL() { return 0x3fffffLL; }
 int64_t get_max64_0x1ffff()    { return 0x1ffff;    }
+int64_t get_max64_0xffffLL()   { return 0xffffLL;   };
+
 
 void sha256d_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 {

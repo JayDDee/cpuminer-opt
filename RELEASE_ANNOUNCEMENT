@@ -1,6 +1,3 @@
-Release 3.4.8 of cpuminer-opt is available for download with support for
-Windows.
-
 cpuminer-opt now supports 38 algorithms on CPUs with at least SSE2
 capabilities including Intel Core2, Nehalem and AMD equivalent. See the
 performance chart below for details.
@@ -10,12 +7,11 @@ CPUs with AES_NI for even greater performance, including the Intel
 Westbridge and newer and AMD equivalent. See the performance
 comparison below.
 
-New in 3.4.8
+New in 3.4.9
 
-- added zcoin support, optimized for AVX2 but no increase in performance
-- fixed API display of diff for cryptonight
-- --show-diff is now the default, use "--hide-diff" to disable
-- cleaned up some cpuminer-multi artifacts
+- fixed zr5
+- added xevan algo (Bitsend, BSD) with 10% improvement
+- added lyra2zoin (Zoin, ZOI) fully optimized but YMMV
 
 Users with non-SSE2 CPUs or who want to mine algos not supported by
 cpuminer-opt may find cpuminer-multi by TPruvot useful.

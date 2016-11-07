@@ -212,6 +212,7 @@ int64_t get_max64_0x40LL();
 int64_t get_max64_0x3ffff();
 int64_t get_max64_0x3fffffLL();
 int64_t get_max64_0x1ffff();
+int64_t get_max64_0xffffLL();
 
 void std_set_target   ( struct work *work, double job_diff );
 void scrypt_set_target( struct work *work, double job_diff );

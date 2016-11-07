@@ -493,6 +493,7 @@ enum algos {
         ALGO_LYRA2RE,       
         ALGO_LYRA2REV2,   
         ALGO_LYRA2Z,
+        ALGO_LYRA2ZOIN,
         ALGO_M7M,
         ALGO_MYR_GR,      
         ALGO_NEOSCRYPT,
@@ -519,6 +520,7 @@ enum algos {
         ALGO_X14,        
         ALGO_X15,       
         ALGO_X17,
+        ALGO_XEVAN,
         ALGO_YESCRYPT,
         ALGO_ZR5,
         ALGO_COUNT
@@ -548,6 +550,7 @@ static const char *algo_names[] = {
         "lyra2re",
         "lyra2rev2",
         "lyra2z",
+        "lyra2zoin",
         "m7m",
         "myr-gr",
         "neoscrypt",
@@ -574,8 +577,8 @@ static const char *algo_names[] = {
         "x14",
         "x15",
         "x17",
+        "xevan",
         "yescrypt",
-        "lyra2z",
         "zr5",
         "\0"
 };
@@ -658,6 +661,7 @@ Options:\n\
                           lyra2re      lyra2\n\
                           lyra2rev2    lyrav2\n\
                           lyra2z       Zcoin (XZC)\n\
+                          lyra2zoin    Zoin (ZOI)\n\
                           m7m          Magi (XMG)\n\
                           myr-gr       Myriad-Groestl\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\
@@ -685,6 +689,7 @@ Options:\n\
                           x14          X14\n\
                           x15          X15\n\
                           x17\n\
+                          xevan        Bitsend\n\
                           yescrypt\n\
                           zr5          Ziftr\n\
   -o, --url=URL         URL of mining server\n\

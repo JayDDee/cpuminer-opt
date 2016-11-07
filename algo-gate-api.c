@@ -170,6 +170,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_LYRA2RE:     register_lyra2re_algo    ( gate ); break;
      case ALGO_LYRA2REV2:   register_lyra2rev2_algo  ( gate ); break;
      case ALGO_LYRA2Z:      register_zcoin_algo      ( gate ); break;
+     case ALGO_LYRA2ZOIN:   register_zoin_algo       ( gate ); break;
      case ALGO_M7M:         register_m7m_algo        ( gate ); break;
      case ALGO_MYR_GR:      register_myriad_algo     ( gate ); break;
      case ALGO_NEOSCRYPT:   register_neoscrypt_algo  ( gate ); break;
@@ -196,6 +197,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_X14:         register_x14_algo        ( gate ); break;
      case ALGO_X15:         register_x15_algo        ( gate ); break;
      case ALGO_X17:         register_x17_algo        ( gate ); break;
+     case ALGO_XEVAN:       register_xevan_algo      ( gate ); break;
      case ALGO_YESCRYPT:    register_yescrypt_algo   ( gate ); break;
      case ALGO_ZR5:         register_zr5_algo        ( gate ); break;
 
@@ -270,6 +272,7 @@ const char* const algo_alias_map[][2] =
   { "yes",               "yescrypt"    },
   { "ziftr",             "zr5"         },
   { "zcoin",             "lyra2z"      },
+  { "zoin",              "lyra2zoin"   },
   { NULL,                NULL          }   
 };
 

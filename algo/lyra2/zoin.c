@@ -3,18 +3,17 @@
 #include "algo-gate-api.h"
 #include "lyra2.h"
 
-void zcoin_hash(void *state, const void *input, uint32_t height)
+void zoin_hash(void *state, const void *input, uint32_t height)
 {
 
 	uint32_t _ALIGN(256) hash[16];
 
-        LYRA2Z(hash, 32, input, 80, input, 80, 2, height, 256);
+        LYRA2Z(hash, 32, input, 80, input, 80, 2, 330, 256);
 
 	memcpy(state, hash, 32);
 }
 
-//int scanhash_zcoin(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done, uint32_t height)
-int scanhash_zcoin( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_zoin( int thr_id, struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done )
 {
 	uint32_t _ALIGN(128) hash[8];
@@ -33,7 +32,7 @@ int scanhash_zcoin( int thr_id, struct work *work, uint32_t max_nonce,
 
 	do {
 		be32enc(&endiandata[19], nonce);
-		zcoin_hash( hash, endiandata, work->height );
+		zoin_hash( hash, endiandata, work->height );
 
 		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
 			work_set_target_ratio(work, hash);
@@ -50,28 +49,26 @@ int scanhash_zcoin( int thr_id, struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-//int64_t get_max64_0xffffLL() { return 0xffffLL; };
-
-void zcoin_set_target( struct work* work, double job_diff )
+void zoin_set_target( struct work* work, double job_diff )
 {
  work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
 }
 
-bool zcoin_get_work_height( struct work* work, struct stratum_ctx* sctx )
+bool zoin_get_work_height( struct work* work, struct stratum_ctx* sctx )
 {
    work->height = sctx->bloc_height;
    return false;
 }
 
-bool register_zcoin_algo( algo_gate_t* gate )
+bool register_zoin_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  gate->scanhash   = (void*)&scanhash_zcoin;
-  gate->hash       = (void*)&zcoin_hash;
-  gate->hash_alt   = (void*)&zcoin_hash;
+  gate->scanhash   = (void*)&scanhash_zoin;
+  gate->hash       = (void*)&zoin_hash;
+  gate->hash_alt   = (void*)&zoin_hash;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
-  gate->set_target = (void*)&zcoin_set_target;
-  gate->prevent_dupes = (void*)&zcoin_get_work_height;
+  gate->set_target = (void*)&zoin_set_target;
+  gate->prevent_dupes = (void*)&zoin_get_work_height;
   return true;
 };
 

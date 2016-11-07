@@ -106,6 +106,7 @@ cpuminer_SOURCES = \
   algo/lyra2/lyra2rev2.c \
   algo/lyra2/lyra2re.c \
   algo/lyra2/zcoin.c \
+  algo/lyra2/zoin.c \
   algo/keccak/sse2/keccak.c \
   algo/m7m.c \
   algo/neoscrypt.c \
@@ -134,6 +135,7 @@ cpuminer_SOURCES = \
   algo/x14/x14.c \
   algo/x15/x15.c \
   algo/x17/x17.c \
+  algo/xevan.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/yescrypt-common.c \
   algo/yescrypt/sha256_Y.c\
