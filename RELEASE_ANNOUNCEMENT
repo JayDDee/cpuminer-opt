@@ -7,11 +7,9 @@ CPUs with AES_NI for even greater performance, including the Intel
 Westbridge and newer and AMD equivalent. See the performance
 comparison below.
 
-New in 3.4.9
+New in 3.4.10
 
-- fixed zr5
-- added xevan algo (Bitsend, BSD) with 10% improvement
-- added lyra2zoin (Zoin, ZOI) fully optimized but YMMV
+- xevan AES optimized +35%
 
 Users with non-SSE2 CPUs or who want to mine algos not supported by
 cpuminer-opt may find cpuminer-multi by TPruvot useful.
