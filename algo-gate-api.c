@@ -72,7 +72,8 @@ void *return_null () { return NULL;  }
 
 void algo_not_tested()
 {
-  applog(LOG_WARNING,"Algo %s has not been tested live. It may not work",algo_names[opt_algo]);
+  applog( LOG_WARNING,"Algo %s has not been tested live. It may not work",
+          algo_names[opt_algo] );
   applog(LOG_WARNING,"and bad things may happen. Use at your own risk.");
 }
 
@@ -248,8 +249,8 @@ void exec_hash_function( int algo, void *output, const void *pdata )
 #define ALIAS  (0)
 
 // The only difference between the alias and the proper algo name is the
-// proper name must be unique and defined in ALGO_NAMES, there may be
-// multiple aliases but are not defined in ALGO_NAMES.
+// proper name s the one that is defined in ALGO_NAMES, there may be
+// multiple aliases that map to the same proper name.
 // New aliases can be added anywhere in the array as long as NULL is last.
 // Alphabetic order of alias is recommended.
 const char* const algo_alias_map[][2] =

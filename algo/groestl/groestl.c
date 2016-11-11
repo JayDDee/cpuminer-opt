@@ -6,21 +6,18 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "sph_groestl.h"
-
-// local override
-#define NO_AES_NI
-
-#ifndef NO_AES_NI
+#ifdef NO_AES_NI
+  #include "sph_groestl.h"
+#else
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
 
 typedef struct
 {
-#ifndef NO_AES_NI
-    hashState_groestl groestl1, groestl2;
-#else
+#ifdef NO_AES_NI
     sph_groestl512_context groestl;
+#else
+    hashState_groestl groestl1, groestl2;
 #endif
 
 } groestl_ctx_holder;
@@ -29,11 +26,11 @@ static groestl_ctx_holder groestl_ctx;
 
 void init_groestl_ctx()
 {
-#ifndef NO_AES_NI
+#ifdef NO_AES_NI
+    sph_groestl512_init( &groestl_ctx.groestl );
+#else
     init_groestl( &groestl_ctx.groestl1 );
     init_groestl( &groestl_ctx.groestl2 );
-#else
-    sph_groestl512_init( &groestl_ctx.groestl );
 #endif
 }
 
@@ -45,18 +42,18 @@ void groestlhash(void *output, const void *input)
 
 //     memset(&hash[0], 0, sizeof(hash));
 
-#ifndef NO_AES_NI
-     update_groestl( &ctx.groestl1, (char*)input, 80 );
-     final_groestl( &ctx.groestl1,(char*)hash);
-
-     update_groestl( &ctx.groestl2, (char*)hash, 64 );
-     final_groestl( &ctx.groestl2, (char*)hash);
-#else
+#ifdef NO_AES_NI
      sph_groestl512(&ctx.groestl, input, 80);
      sph_groestl512_close(&ctx.groestl, hash);
 
      sph_groestl512(&ctx.groestl, hash, 64);
      sph_groestl512_close(&ctx.groestl, hash);
+#else
+     update_groestl( &ctx.groestl1, (char*)input, 640 );
+     final_groestl( &ctx.groestl1,(char*)hash);
+
+     update_groestl( &ctx.groestl2, (char*)hash, 512 );
+     final_groestl( &ctx.groestl2, (char*)hash);
 #endif
 	memcpy(output, hash, 32);
  }
@@ -106,6 +103,7 @@ void groestl_set_target( struct work* work, double job_diff )
 bool register_groestl_algo( algo_gate_t* gate )
 {
     init_groestl_ctx();
+    gate->optimizations   = SSE2_OPT | AES_OPT;
     gate->scanhash        = (void*)&scanhash_groestl;
     gate->hash            = (void*)&groestlhash;
     gate->hash_alt        = (void*)&groestlhash;

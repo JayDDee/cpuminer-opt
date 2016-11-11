@@ -13,13 +13,14 @@
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/luffa/sph_luffa.h"
-#include "algo/simd/sph_simd.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha3/sph_sha2.h"
 #include "algo/haval/sph-haval.h"
+#include "algo/simd/sse2/nist.h"
+#include "algo/cubehash/sse2/cubehash_sse2.h"
 
 #ifdef NO_AES_NI
   #include "algo/groestl/sph_groestl.h"
@@ -29,9 +30,6 @@
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
 
-#include "algo/cubehash/sse2/cubehash_sse2.h"
-#include "algo/simd/sse2/nist.h"
-
 typedef struct {
         sph_blake512_context    blake;
         sph_bmw512_context      bmw;
@@ -39,11 +37,9 @@ typedef struct {
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
         sph_luffa512_context    luffa;
-//        hashState_luffa         luffa;
         cubehashParam           cubehash;
         sph_shavite512_context  shavite;
-//        sph_simd512_context     simd;
-    hashState_sd            simd;
+        hashState_sd            simd;
         sph_hamsi512_context    hamsi;
         sph_fugue512_context    fugue;
         sph_shabal512_context   shabal;
@@ -69,11 +65,9 @@ void init_xevan_ctx()
         sph_jh512_init(&xevan_ctx.jh);
         sph_keccak512_init(&xevan_ctx.keccak);
         sph_luffa512_init(&xevan_ctx.luffa);
-//        init_luffa( &xevan_ctx.luffa, 512 );
         cubehashInit( &xevan_ctx.cubehash, 512, 16, 32 );
         sph_shavite512_init( &xevan_ctx.shavite );
-//        sph_simd512_init(&xevan_ctx.simd);
-     init_sd( &xevan_ctx.simd, 512 );
+        init_sd( &xevan_ctx.simd, 512 );
         sph_hamsi512_init( &xevan_ctx.hamsi );
         sph_fugue512_init( &xevan_ctx.fugue );
         sph_shabal512_init( &xevan_ctx.shabal );
@@ -270,17 +264,13 @@ void xevan_set_target( struct work* work, double job_diff )
  work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
 }
 
-//int64_t xevan_get_max64() { return 0xffffLL; }
-
 bool register_xevan_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   init_xevan_ctx();
-  gate->scanhash = (void*)&scanhash_xevan;
-  gate->hash     = (void*)&xevan_hash;
-//  gate->hash_alt = (void*)&xevanhash_alt;
+  gate->scanhash   = (void*)&scanhash_xevan;
+  gate->hash       = (void*)&xevan_hash;
   gate->set_target = (void*)&xevan_set_target;
-//  gate->get_max64  = (void*)&xevan_get_max64;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
   return true;
 };

@@ -7,9 +7,10 @@ CPUs with AES_NI for even greater performance, including the Intel
 Westbridge and newer and AMD equivalent. See the performance
 comparison below.
 
-New in 3.4.10
+New in 3.4.11
 
-- xevan AES optimized +35%
+- groestl algo AES optimized +200%
+- myr-gr algo AES optimized +100%
 
 Users with non-SSE2 CPUs or who want to mine algos not supported by
 cpuminer-opt may find cpuminer-multi by TPruvot useful.
