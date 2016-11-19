@@ -8,7 +8,7 @@ void zcoin_hash(void *state, const void *input, uint32_t height)
 
 	uint32_t _ALIGN(256) hash[16];
 
-        LYRA2Z(hash, 32, input, 80, input, 80, 2, height, 256);
+        LYRA2Z(hash, 32, input, 80, input, 80, 2, 8192, 256);
 
 	memcpy(state, hash, 32);
 }
