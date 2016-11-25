@@ -9,6 +9,8 @@
 
 make clean || echo clean
 
+mkdir m4
+
 rm -f config.status
 ./autogen.sh || echo done
 
