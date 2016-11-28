@@ -1,4 +1,4 @@
-cpuminer-opt now supports 38 algorithms on CPUs with at least SSE2
+cpuminer-opt now supports over 40 algorithms on CPUs with at least SSE2
 capabilities including Intel Core2, Nehalem and AMD equivalent. See the
 performance chart below for details.
 
@@ -7,10 +7,10 @@ CPUs with AES_NI for even greater performance, including the Intel
 Westbridge and newer and AMD equivalent. See the performance
 comparison below.
 
-New in 3.4.11
+New in 3.4.12
 
-- groestl algo AES optimized +200%
-- myr-gr algo AES optimized +100%
+- lyra2z (zcoin) modified for blocks after 8192
+- fixed scryptjane to support various N factors
 
 Users with non-SSE2 CPUs or who want to mine algos not supported by
 cpuminer-opt may find cpuminer-multi by TPruvot useful.

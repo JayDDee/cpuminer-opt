@@ -259,6 +259,7 @@ const char* const algo_alias_map[][2] =
   { "blake256r8",        "blakecoin"   },
   { "blake256r8vnl",     "vanilla"     },
   { "blake256r14",       "blake"       },
+  { "cryptonote",        "cryptonight" },
   { "cryptonight-light", "cryptolight" },
   { "dmd-gr",            "groestl"     },
   { "droplp",            "drop"        },

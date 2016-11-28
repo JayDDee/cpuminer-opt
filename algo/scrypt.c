@@ -48,6 +48,7 @@ static const uint32_t finalblk[16] = {
 };
 
 static __thread char *scratchbuf;
+int scratchbuf_size = 0;
 
 static inline void HMAC_SHA256_80_init(const uint32_t *key,
 	uint32_t *tstate, uint32_t *ostate)
@@ -726,29 +727,29 @@ extern int scanhash_scrypt( int thr_id, struct work *work, uint32_t max_nonce,
 #if defined(HAVE_SHA256_4WAY)
 		if (throughput == 4)
 			scrypt_1024_1_1_256_4way(data, hash, midstate,
-                             scratchbuf, opt_scrypt_n);
+                             scratchbuf, scratchbuf_size );
 		else
 #endif
 #if defined(HAVE_SCRYPT_3WAY) && defined(HAVE_SHA256_4WAY)
 		if (throughput == 12)
 			scrypt_1024_1_1_256_12way(data, hash, midstate,
-                              scratchbuf, opt_scrypt_n);
+                              scratchbuf, scratchbuf_size );
 		else
 #endif
 #if defined(HAVE_SCRYPT_6WAY)
 		if (throughput == 24)
 			scrypt_1024_1_1_256_24way(data, hash, midstate,
-                               scratchbuf, opt_scrypt_n);
+                               scratchbuf, scratchbuf_size );
 		else
 #endif
 #if defined(HAVE_SCRYPT_3WAY)
 		if (throughput == 3)
 			scrypt_1024_1_1_256_3way(data, hash, midstate,
-                                scratchbuf, opt_scrypt_n);
+                                scratchbuf, scratchbuf_size );
 		else
 #endif
 		scrypt_1024_1_1_256(data, hash, midstate, scratchbuf,
-                                opt_scrypt_n);
+                                scratchbuf_size );
 		
 		for (i = 0; i < throughput; i++) {
 			if (unlikely(hash[i * 8 + 7] <= Htarg && fulltest(hash + i * 8, ptarget))) {
@@ -764,19 +765,11 @@ extern int scanhash_scrypt( int thr_id, struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-int64_t scrypt_get_max64()
-{
-     int64_t max64 = opt_scrypt_n < 16 ? 0x3ffff : 0x3fffff / opt_scrypt_n;
-     if ( opt_nfactor > 3)
-         max64 >>= ( opt_nfactor - 3);
-     else if ( opt_nfactor > 16)
-         max64 = 0xF;
-     return max64;
-}
+int64_t scrypt_get_max64() { return 0xfff; }
 
 bool scrypt_miner_thread_init( int thr_id )
 {
- scratchbuf = scrypt_buffer_alloc( opt_scrypt_n );  
+ scratchbuf = scrypt_buffer_alloc( scratchbuf_size );  
  if ( scratchbuf )
    return true;
  applog( LOG_ERR, "Thread %u: Scrypt buffer allocation failed", thr_id );
@@ -791,8 +784,10 @@ bool register_scrypt_algo( algo_gate_t* gate )
   gate->hash_alt         = (void*)&scrypt_1024_1_1_256_24way;
   gate->set_target       = (void*)&scrypt_set_target;
   gate->get_max64        = (void*)&scrypt_get_max64;
-  if ( opt_nfactor == 0 )
-    opt_nfactor = 6;
-  return true;
+
+  if ( !opt_scrypt_n )
+     scratchbuf_size = 1024;
+  else
+     scratchbuf_size = opt_scrypt_n;
 };
 

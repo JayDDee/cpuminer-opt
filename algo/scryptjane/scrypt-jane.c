@@ -45,6 +45,8 @@
 #define scrypt_maxr scrypt_r_32kb /* 32kb */
 #define scrypt_maxp 25  /* (1 << 25) = ~33 million */
 
+uint64_t sj_N;
+
 typedef struct scrypt_aligned_alloc_t {
 	uint8_t *mem, *ptr;
 } scrypt_aligned_alloc;
@@ -140,7 +142,8 @@ int scanhash_scryptjane( int thr_id, struct work *work, uint32_t max_nonce,
 {
 	scrypt_aligned_alloc YX, V;
 	uint8_t *X, *Y;
-	uint32_t N, chunk_bytes;
+//        uint32_t N, chunk_bytes;
+	uint32_t chunk_bytes;
 	const uint32_t r = SCRYPT_R;
 	const uint32_t p = SCRYPT_P;
 
@@ -162,10 +165,14 @@ int scanhash_scryptjane( int thr_id, struct work *work, uint32_t max_nonce,
 	//	//scrypt_fatal_error("scrypt: N out of range");
 	//}
 
-	N = (1 << ( opt_scrypt_n + 1));
+// opt_scrypt_n default is 1024 which makes no sense in this context
+// and results in N = 2, but it seems to work on Nicehash scryptjanenf16
+// (leocoin). Need to test with proper NF 16 for functionality and performance.
+// Also test yacoin (NF 18).
+//	N = (1 << ( opt_scrypt_n + 1));
 
 	chunk_bytes = SCRYPT_BLOCK_BYTES * r * 2;
-	if (!scrypt_alloc((uint64_t)N * chunk_bytes, &V)) return 1;
+	if (!scrypt_alloc( sj_N * chunk_bytes, &V ) ) return 1;
 	if (!scrypt_alloc((p + 1) * chunk_bytes, &YX)) {
 		scrypt_free(&V);
 		return 1;
@@ -181,7 +188,7 @@ int scanhash_scryptjane( int thr_id, struct work *work, uint32_t max_nonce,
 
 		scrypt_N_1_1((unsigned char *)endiandata, 80,
 			(unsigned char *)endiandata, 80,
-			N, (unsigned char *)hash, 32, X, Y, V.ptr);
+			sj_N, (unsigned char *)hash, 32, X, Y, V.ptr);
 
 		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
 			pdata[19] = nonce;
@@ -208,14 +215,13 @@ void scryptjanehash(void *output, const void *input )
 	scrypt_aligned_alloc YX, V;
 	uint8_t *X, *Y;
 	uint32_t chunk_bytes;
-	uint32_t N = (1 << ( opt_scrypt_n + 1));
 	const uint32_t r = SCRYPT_R;
 	const uint32_t p = SCRYPT_P;
 
 	memset(output, 0, 32);
 
 	chunk_bytes = SCRYPT_BLOCK_BYTES * r * 2;
-	if (!scrypt_alloc((uint64_t)N * chunk_bytes, &V)) return;
+	if (!scrypt_alloc( sj_N * chunk_bytes, &V ) ) return;
 	if (!scrypt_alloc((p + 1) * chunk_bytes, &YX)) {
 		scrypt_free(&V);
 		return;
@@ -225,7 +231,7 @@ void scryptjanehash(void *output, const void *input )
 	X = Y + chunk_bytes;
 
 	scrypt_N_1_1((unsigned char*)input, 80, (unsigned char*)input, 80,
-		N, (unsigned char*)output, 32, X, Y, V.ptr);
+		sj_N, (unsigned char*)output, 32, X, Y, V.ptr);
 
 	scrypt_free(&V);
 	scrypt_free(&YX);
@@ -238,8 +244,23 @@ bool register_scryptjane_algo( algo_gate_t* gate )
     gate->hash_alt   = (void*)&scryptjanehash;
     gate->set_target = (void*)&scrypt_set_target;
     gate->get_max64  = (void*)&get_max64_0x40LL;
-    if ( opt_nfactor == 0 )
-       opt_nfactor = 16;
+
+    // figure out if arg in N or Nfactor
+    if ( !opt_scrypt_n )
+    {
+      applog( LOG_ERR, "The N factor must be specified in the form algo:nf");
+      return false;
+    }
+    else if ( opt_scrypt_n < 32 )
+    {
+      // arg is Nfactor, calculate N
+      sj_N = 1 << ( opt_scrypt_n + 1 );
+    }
+    else
+    {
+      // arg is N
+      sj_N = opt_scrypt_n;
+    }
     return true;
 }
 

@@ -1056,7 +1056,6 @@ int scanhash_neoscrypt( int thr_id, struct work *work,
     while (pdata[19] < max_nonce && !work_restart[thr_id].restart)
     {
         neoscrypt((uint8_t *) hash, (uint8_t *) pdata );
-                     //          , 0x80000020 | (opt_nfactor << 8) );
 
         /* Quick hash check */
         if (hash[7] <= Htarg && fulltest_le(hash, ptarget)) {
@@ -1071,15 +1070,7 @@ int scanhash_neoscrypt( int thr_id, struct work *work,
     return 0;
 }
 
-int64_t get_neoscrypt_max64()
-{
-     int64_t max64 = opt_scrypt_n < 16 ? 0x3ffff : 0x3fffff / opt_scrypt_n;
-     if ( opt_nfactor > 3)
-         max64 >>= ( opt_nfactor - 3);
-     else if ( opt_nfactor > 16)
-         max64 = 0xF;
-     return max64;
-}
+int64_t get_neoscrypt_max64() { return 0x3ffff; }
 
 void neoscrypt_wait_for_diff( struct stratum_ctx *stratum )
 {

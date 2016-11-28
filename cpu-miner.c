@@ -100,9 +100,8 @@ int opt_timeout = 300;
 static int opt_scantime = 5;
 static const bool opt_time = true;
 enum algos opt_algo = ALGO_NULL;
-int opt_scrypt_n = 1024;
+int opt_scrypt_n = 0;
 int opt_pluck_n = 128;
-unsigned int opt_nfactor = 0;
 int opt_n_threads = 0;
 int64_t opt_affinity = -1L;
 int opt_priority = 0;
@@ -2321,7 +2320,7 @@ void parse_arg(int key, char *arg )
                         {
 				char *ep;
 				v = strtol(arg+v+1, &ep, 10);
-				if (*ep || v & (v-1) || v < 2)
+                                if (*ep || v < 2)
 					continue;
 				opt_algo = (enum algos) i;
 				opt_scrypt_n = v;
@@ -2360,8 +2359,6 @@ void parse_arg(int key, char *arg )
 	case 1030: /* --api-remote */
 		opt_api_remote = 1;
 		break;
-    case 'n':
-		break;
 	case 'B':
 		opt_background = true;
 		use_colors = false;
@@ -2386,8 +2383,6 @@ void parse_arg(int key, char *arg )
 		}
 		break;
 	}
-	case 'C':
-		break;
 	case 'q':
 		opt_quiet = true;
 		break;

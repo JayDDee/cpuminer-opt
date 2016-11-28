@@ -620,7 +620,6 @@ extern double net_hashrate;
 extern int opt_pluck_n;
 extern int opt_scrypt_n;
 extern double opt_diff_factor;
-extern unsigned int opt_nfactor;
 extern bool opt_randomize;
 extern bool allow_mininginfo;
 extern time_t g_work_time;
@@ -645,16 +644,16 @@ Options:\n\
                           blakecoin    blake256r8\n\
                           blake2s      Blake-2 S\n\
                           bmw          BMW 256\n\
-                          c11          flax\n\
+                          c11          Flax\n\
                           cryptolight  Cryptonight-light\n\
-                          cryptonight  Monero (XMR)\n\
+                          cryptonight  cryptonote, Monero (XMR)\n\
                           decred\n\
                           drop         Dropcoin\n\
                           fresh        Fresh\n\
                           groestl      groestl\n\
                           heavy        Heavy\n\
                           hmq1725      Espers\n\
-                          hodl         hodlcoin\n\
+                          hodl         Hodlcoin\n\
                           keccak       Keccak\n\
                           lbry         LBC, LBRY Credits\n\
                           luffa        Luffa\n\
@@ -671,13 +670,12 @@ Options:\n\
                           quark        Quark\n\
                           qubit        Qubit\n\
                           scrypt       scrypt(1024, 1, 1) (default)\n\
-                          scryptjane\n\
                           scrypt:N     scrypt(N, 1, 1)\n\
+                          scryptjane:nf\n\
                           sha256d      SHA-256d\n\
                           shavite3     Shavite3\n\
                           skein        Skein+Sha (Skeincoin)\n\
                           skein2       Double Skein (Woodcoin)\n\
-                          s3           S3\n\
                           vanilla      blake256r8vnl (VCash)\n\
                           veltor\n\
                           whirlpool\n\
@@ -710,7 +708,6 @@ Options:\n\
   -f, --diff-factor     Divide req. difficulty by this factor (std is 1.0)\n\
   -m, --diff-multiplier Multiply difficulty by this factor (std is 1.0)\n\
       --hide-diff       Do not display changes in difficulty\n\
-  -n, --nfactor         neoscrypt N-Factor\n\
       --coinbase-addr=ADDR  payout address for solo mining\n\
       --coinbase-sig=TEXT  data to insert in the coinbase when possible\n\
       --no-longpoll     disable long polling support\n\
@@ -775,7 +772,6 @@ static struct option const options[] = {
         { "diff-multiplier", 1, NULL, 'm' },
         { "hide-diff", 0, NULL, 1013 },
         { "help", 0, NULL, 'h' },
-        { "nfactor", 1, NULL, 'n' },
         { "no-gbt", 0, NULL, 1011 },
         { "no-getwork", 0, NULL, 1010 },
         { "no-longpoll", 0, NULL, 1003 },
