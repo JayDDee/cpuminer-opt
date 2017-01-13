@@ -19,10 +19,7 @@
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifdef NO_AES_NI
-  #include "algo/groestl/sse2/grso.h"
-  #include "algo/groestl/sse2/grso-macro.c"
-#else
+#ifndef NO_AES_NI
  #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
 
@@ -36,37 +33,36 @@
       #define DATA_ALIGNXY(x,y) __declspec(align(y)) x
 #endif
 
-#ifndef NO_AES_NI
-hashState_groestl quark_groestl_ctx;
+#ifdef NO_AES_NI
+    sph_groestl512_context quark_ctx;
+#else
+    hashState_groestl      quark_ctx;
 #endif
 
 void init_quark_ctx()
 {
-#ifndef NO_AES_NI
- init_groestl( &quark_groestl_ctx );
+#ifdef NO_AES_NI
+   sph_groestl512_init( &quark_ctx );
+#else
+   init_groestl( &quark_ctx );
 #endif
 }
 
 inline static void quarkhash(void *state, const void *input)
 {
-#ifdef NO_AES_NI
-  grsoState sts_grs;
-#else
-  hashState_groestl ctx;
-  memcpy(&ctx, &quark_groestl_ctx, sizeof(quark_groestl_ctx));
-#endif
-
-    /* shared  temp space */
-    /* hash is really just 64bytes but it used to hold both hash and final round constants passed 64 */
-
     unsigned char hashbuf[128];
     size_t hashptr;
     sph_u64 hashctA;
     sph_u64 hashctB;
-
     int i;
-
     unsigned char hash[128];
+#ifdef NO_AES_NI
+    sph_groestl512_context ctx;
+#else
+    hashState_groestl ctx;
+#endif
+
+    memcpy( &ctx, &quark_ctx, sizeof(ctx) );
 
     // Blake
     DECL_BLK;
@@ -117,13 +113,13 @@ inline static void quarkhash(void *state, const void *input)
           {
 
 #ifdef NO_AES_NI
-           GRS_I;
-           GRS_U;
-           GRS_C;
+             sph_groestl512_init( &ctx );
+             sph_groestl512 ( &ctx, hash, 64 );
+             sph_groestl512_close( &ctx, hash );
 #else
-           reinit_groestl( &ctx );
-           update_groestl(&ctx, (char*)hash,512);
-           final_groestl(&ctx, (char*)hash);
+             reinit_groestl( &ctx );
+             update_groestl( &ctx, (char*)hash, 512 );
+             final_groestl( &ctx, (char*)hash );
 #endif
 
           } while(0); continue;

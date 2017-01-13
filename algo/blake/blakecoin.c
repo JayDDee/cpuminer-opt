@@ -12,40 +12,36 @@ void blakecoin_close(void *cc, void *dst);
 #include <memory.h>
 #include <openssl/sha.h>
 
-/* Move init out of loop, so init once externally,
- * and then use one single memcpy */
-static sph_blake256_context blake_mid;
-static bool ctx_midstate_done = false;
+// context management is staged for efficiency.
+// 1. global initial ctx cached on startup
+// 2. per-thread midstate ctx cache refreshed every scan
+// 3. local ctx for final hash calculation
 
-static void init_blake_hash(void)
+static          sph_blake256_context blake_init_ctx;
+static __thread sph_blake256_context blake_mid_ctx;
+
+static void blake_midstate_init( const void* input )
 {
-	blakecoin_init(&blake_mid);
-	ctx_midstate_done = true;
+    // copy cached initial state
+    memcpy( &blake_mid_ctx, &blake_init_ctx, sizeof blake_mid_ctx );
+    blakecoin( &blake_mid_ctx, input, 64 );
 }
 
-void blakecoinhash(void *state, const void *input)
+void blakecoinhash( void *state, const void *input )
 {
 	sph_blake256_context ctx;
-
 	uint8_t hash[64];
-	uint8_t *ending = (uint8_t*) input;
-	ending += 64;
+	uint8_t *ending = (uint8_t*) input + 64;
 
-	// do one memcopy to get a fresh context
-	if (!ctx_midstate_done) {
-		init_blake_hash();
-		blakecoin(&blake_mid, input, 64);
-	}
-	memcpy(&ctx, &blake_mid, sizeof(blake_mid));
-
-	blakecoin(&ctx, ending, 16);
-	blakecoin_close(&ctx, hash);
-
-	memcpy(state, hash, 32);
+        // copy cached midstate
+        memcpy( &ctx, &blake_mid_ctx, sizeof ctx );
+	blakecoin( &ctx, ending, 16 );
+	blakecoin_close( &ctx, hash );
+	memcpy( state, hash, 32 );
 }
 
-int scanhash_blakecoin(int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done)
+int scanhash_blakecoin( int thr_id, struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done )
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
@@ -57,16 +53,14 @@ int scanhash_blakecoin(int thr_id, struct work *work, uint32_t max_nonce,
 
 	uint32_t n = first_nonce;
 
-	ctx_midstate_done = false;
-
 	if (opt_benchmark)
 		HTarget = 0x7f;
 
 	// we need big endian data...
-//        be32enc_array( endiandata, pdata, 19 );
         for (int kk=0; kk < 19; kk++) 
                 be32enc(&endiandata[kk], ((uint32_t*)pdata)[kk]);
 
+        blake_midstate_init( endiandata );
 
 #ifdef DEBUG_ALGO
 	applog(LOG_DEBUG,"[%d] Target=%08x %08x", thr_id, ptarget[6], ptarget[7]);
@@ -117,6 +111,7 @@ bool register_vanilla_algo( algo_gate_t* gate )
     gate->hash     = (void*)&blakecoinhash;
     gate->hash_alt = (void*)&blakecoinhash;
     gate->get_max64 = (void*)&blakecoin_get_max64;
+    blakecoin_init( &blake_init_ctx );
     return true;
 }
 

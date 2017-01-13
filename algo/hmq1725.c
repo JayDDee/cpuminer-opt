@@ -23,10 +23,7 @@
 #include "algo/sha2/sph-sha2.h"
 #include "algo/haval/sph-haval.h"
 
-#ifdef NO_AES_NI
-  #include "algo/groestl/sse2/grso.h"
-  #include "algo/groestl/sse2/grso-macro.c"
-#else
+#ifndef NO_AES_NI
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
@@ -34,38 +31,31 @@
 #include "algo/luffa/sse2/luffa_for_sse2.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 #include "algo/simd/sse2/nist.h"
-//#include "algo/blake/sse2/blake.c"
-//#include "algo/keccak/sse2/keccak.c"
-//#include "algo/bmw/sse2/bmw.c"
-//#include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
 typedef struct {
-  sph_blake512_context       blake1, blake2;
-  sph_bmw512_context         bmw1, bmw2, bmw3;
-  sph_skein512_context       skein1, skein2;
-  sph_jh512_context          jh1, jh2;
-  sph_keccak512_context      keccak1, keccak2;
-//  sph_luffa512_context       luffa1, luffa2;
-  hashState_luffa            luffa1, luffa2;
-//  sph_cubehash512_context    cube1, cube2;
-  cubehashParam              cube;
-  sph_shavite512_context     shavite1, shavite2;
-//  sph_simd512_context        simd1, simd2;
-  hashState_sd               simd1, simd2;
-  sph_hamsi512_context       hamsi1;
-  sph_fugue512_context       fugue1, fugue2;
-  sph_shabal512_context      shabal1;
-  sph_whirlpool_context      whirlpool1, whirlpool2, whirlpool3, whirlpool4;
-  sph_sha512_context         sha1, sha2;
-  sph_haval256_5_context     haval1, haval2;
+  sph_blake512_context    blake1, blake2;
+  sph_bmw512_context      bmw1, bmw2, bmw3;
+  sph_skein512_context    skein1, skein2;
+  sph_jh512_context       jh1, jh2;
+  sph_keccak512_context   keccak1, keccak2;
+  hashState_luffa         luffa1, luffa2;
+  cubehashParam           cube;
+  sph_shavite512_context  shavite1, shavite2;
+  hashState_sd            simd1, simd2;
+  sph_hamsi512_context    hamsi1;
+  sph_fugue512_context    fugue1, fugue2;
+  sph_shabal512_context   shabal1;
+  sph_whirlpool_context   whirlpool1, whirlpool2, whirlpool3, whirlpool4;
+  sph_sha512_context      sha1, sha2;
+  sph_haval256_5_context  haval1, haval2;
 
 #ifdef NO_AES_NI
-    sph_groestl512_context  groestl1, groestl2;
-    sph_echo512_context     echo1, echo2;
+  sph_groestl512_context  groestl1, groestl2;
+  sph_echo512_context     echo1, echo2;
 #else
-     hashState_echo          echo1, echo2;
-     hashState_groestl       groestl1, groestl2;
+  hashState_echo          echo1, echo2;
+  hashState_groestl       groestl1, groestl2;
 #endif
 
 } hmq1725_ctx_holder;
@@ -90,19 +80,14 @@ void init_hmq1725_ctx()
     sph_keccak512_init(&hmq1725_ctx.keccak1);
     sph_keccak512_init(&hmq1725_ctx.keccak2);
 
-//    sph_luffa512_init(&hmq1725_ctx.luffa1);
-//    sph_luffa512_init(&hmq1725_ctx.luffa2);
      init_luffa( &hmq1725_ctx.luffa1, 512 );
      init_luffa( &hmq1725_ctx.luffa2, 512 );
 
-//    sph_cubehash512_init(&hmq1725_ctx.cubehash1);
      cubehashInit( &hmq1725_ctx.cube, 512, 16, 32 );
 
     sph_shavite512_init(&hmq1725_ctx.shavite1);
     sph_shavite512_init(&hmq1725_ctx.shavite2);
 
-//    sph_simd512_init(&hmq1725_ctx.simd1);
-//    sph_simd512_init(&hmq1725_ctx.simd2);
      init_sd( &hmq1725_ctx.simd1, 512 );
      init_sd( &hmq1725_ctx.simd2, 512 );
 
@@ -135,46 +120,18 @@ void init_hmq1725_ctx()
      init_groestl( &hmq1725_ctx.groestl1 );
      init_groestl( &hmq1725_ctx.groestl2 );
 #endif
-
 }
 
 extern void hmq1725hash(void *state, const void *input)
 {
-   hmq1725_ctx_holder ctx;
-   memcpy(&ctx, &hmq1725_ctx, sizeof(hmq1725_ctx));
-
-     size_t hashptr;
-//        DATA_ALIGNXY(sph_u64 hashctA,8);
-//        DATA_ALIGNXY(sph_u64 hashctB,8);
-
-//        DATA_ALIGNXY(unsigned char hash[128],16);
-     unsigned char hashbuf[128];
-     sph_u64 hashctA;
-     sph_u64 hashctB;
-
     const uint32_t mask = 24;
+    uint32_t hashA[25], hashB[25];
+    hmq1725_ctx_holder ctx;
 
-//these uint512 in the c++ source of the client are backed by an array of uint32
-    uint32_t hashA[25], hashB[25];	
-	
-//        unsigned char hash[128]; // uint32_t hashA[16], hashB[16];
-//        #define hashA hash
-//        #define hashB (hash+64)
+    memcpy(&ctx, &hmq1725_ctx, sizeof(hmq1725_ctx));
 
     sph_bmw512 (&ctx.bmw1, input, 80);    //0
     sph_bmw512_close(&ctx.bmw1, hashA);   //1
-/*
-     DECL_BMW;
-     BMW_I;
-     BMW_U;
-     #define M(x)    sph_dec64le_aligned(data + 8 * (x))
-     #define H(x)    (h[x])
-     #define dH(x)   (dh[x])
-     BMW_C;
-     #undef M
-     #undef H
-     #undef dH
-*/
 
     sph_whirlpool (&ctx.whirlpool1, hashA, 64);    //0
     sph_whirlpool_close(&ctx.whirlpool1, hashB);   //1
@@ -182,8 +139,8 @@ extern void hmq1725hash(void *state, const void *input)
     if ( hashB[0] & mask )   //1
     {
 #ifdef NO_AES_NI
-        sph_groestl512 (&ctx.groestl1, hashB, 64); //1
-        sph_groestl512_close(&ctx.groestl1, hashA); //2
+     sph_groestl512 (&ctx.groestl1, hashB, 64); //1
+     sph_groestl512_close(&ctx.groestl1, hashA); //2
 #else
      update_groestl( &ctx.groestl1, (char*)hashB, 512 );
      final_groestl( &ctx.groestl1, (char*)hashA );
@@ -191,8 +148,8 @@ extern void hmq1725hash(void *state, const void *input)
     }
     else
     {
-        sph_skein512 (&ctx.skein1, hashB, 64); //1
-        sph_skein512_close(&ctx.skein1, hashA); //2
+      sph_skein512 (&ctx.skein1, hashB, 64); //1
+      sph_skein512_close(&ctx.skein1, hashA); //2
     }
 	
     sph_jh512 (&ctx.jh1, hashA, 64); //3
@@ -212,13 +169,9 @@ extern void hmq1725hash(void *state, const void *input)
         sph_bmw512_close(&ctx.bmw2, hashB);   //5
     }
     
-//    sph_luffa512 (&ctx.luffa1, hashB, 64); //5
-//    sph_luffa512_close(&ctx.luffa1, hashA); //6
      update_luffa( &ctx.luffa1, (BitSequence*)hashB, 512 );
      final_luffa( &ctx.luffa1, (BitSequence*)hashA );
 
-//    sph_cubehash512 (&ctx.cubehash1, hashA, 64); //6
-//    sph_cubehash512_close(&ctx.cubehash1, hashB); //7
      cubehashUpdate( &ctx.cube, (BitSequence *)hashA, 64 );
      cubehashDigest( &ctx.cube, (BitSequence *)hashB );
 
@@ -233,14 +186,11 @@ extern void hmq1725hash(void *state, const void *input)
         sph_jh512_close(&ctx.jh2, hashA); //8
     }
 
-
     sph_shavite512 (&ctx.shavite1, hashA, 64); //3
     sph_shavite512_close(&ctx.shavite1, hashB); //4
 
-//    sph_simd512 (&ctx.simd1, hashB, 64); //2
-//    sph_simd512_close(&ctx.simd1, hashA); //3
-     update_sd( &ctx.simd1, (BitSequence *)hashB, 512 );
-     final_sd( &ctx.simd1, (BitSequence *)hashA );
+    update_sd( &ctx.simd1, (BitSequence *)hashB, 512 );
+    final_sd( &ctx.simd1, (BitSequence *)hashA );
 
     if ( hashA[0] & mask ) //4
     {
@@ -258,8 +208,8 @@ extern void hmq1725hash(void *state, const void *input)
     sph_echo512 (&ctx.echo1, hashB, 64); //5
     sph_echo512_close(&ctx.echo1, hashA); //6
 #else
-     update_echo ( &ctx.echo1, (BitSequence *)hashB, 512 );
-     final_echo( &ctx.echo1, (BitSequence *)hashA );
+    update_echo ( &ctx.echo1, (BitSequence *)hashB, 512 );
+    final_echo( &ctx.echo1, (BitSequence *)hashA );
 #endif
 
     sph_blake512 (&ctx.blake2, hashA, 64); //6
@@ -272,8 +222,6 @@ extern void hmq1725hash(void *state, const void *input)
     }
     else
     {
-//        sph_luffa512 (&ctx.luffa2, hashB, 64); //7
-//        sph_luffa512_close(&ctx.luffa2, hashA); //8
      update_luffa( &ctx.luffa2, (BitSequence *)hashB, 512 );
      final_luffa( &ctx.luffa2, (BitSequence *)hashA );
     }
@@ -287,8 +235,8 @@ extern void hmq1725hash(void *state, const void *input)
     if ( hashA[0] & mask ) //4
     {
 #ifdef NO_AES_NI
-        sph_echo512 (&ctx.echo2, hashA, 64); //
-        sph_echo512_close(&ctx.echo2, hashB); //5
+     sph_echo512 (&ctx.echo2, hashA, 64); //
+     sph_echo512_close(&ctx.echo2, hashB); //5
 #else
      update_echo ( &ctx.echo2, (BitSequence *)hashA, 512 );
      final_echo( &ctx.echo2, (BitSequence *)hashB );
@@ -296,8 +244,6 @@ extern void hmq1725hash(void *state, const void *input)
     }
     else
     {
-//        sph_simd512 (&ctx.simd2, hashA, 64); //4
-//        sph_simd512_close(&ctx.simd2, hashB);   //5
      update_sd( &ctx.simd2, (BitSequence *)hashA, 512 );
      final_sd( &ctx.simd2, (BitSequence *)hashB );
     }
@@ -323,8 +269,8 @@ extern void hmq1725hash(void *state, const void *input)
     sph_groestl512 (&ctx.groestl2, hashA, 64); //3
     sph_groestl512_close(&ctx.groestl2, hashB); //4
 #else
-     update_groestl( &ctx.groestl2, (char*)hashA, 512 );
-     final_groestl( &ctx.groestl2, (char*)hashB );
+    update_groestl( &ctx.groestl2, (char*)hashA, 512 );
+    final_groestl( &ctx.groestl2, (char*)hashB );
 #endif
 
     sph_sha512 (&ctx.sha2, hashB, 64); //2 

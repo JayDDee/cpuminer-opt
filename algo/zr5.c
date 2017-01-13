@@ -32,12 +32,10 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "algo/groestl/sph_groestl.h"
 #include "algo/keccak/sph_keccak.h"
 
-#ifdef NO_AES_NI
-  #include "algo/groestl/sse2/grso.h"
-  #include "algo/groestl/sse2/grso-macro.c"
-#else
+#ifndef NO_AES_NI
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
@@ -61,17 +59,21 @@
 #define POK_DATA_MASK 0xFFFF0000
 
 typedef struct {
-  #ifndef NO_AES_NI
-   hashState_groestl       groestl;
+  #ifdef NO_AES_NI
+    sph_groestl512_context  groestl;
+  #else
+    hashState_groestl       groestl;
   #endif
-  sph_keccak512_context    keccak;
+    sph_keccak512_context    keccak;
 } zr5_ctx_holder;
 
 zr5_ctx_holder zr5_ctx;
 
 void init_zr5_ctx()
 {
-  #ifndef NO_AES_NI
+  #ifdef NO_AES_NI
+     sph_groestl512_init( &zr5_ctx.groestl );
+  #else
      init_groestl( &zr5_ctx.groestl );
   #endif
      sph_keccak512_init(&zr5_ctx.keccak);
@@ -87,10 +89,6 @@ DATA_ALIGN16(sph_u64 hashctA);
 DATA_ALIGN16(sph_u64 hashctB);
 
 //memset(hash, 0, 128);
-
-#ifdef NO_AES_NI
-  grsoState sts_grs;
-#endif
 
 static const int arrOrder[][4] =
 {
@@ -123,9 +121,8 @@ static const int arrOrder[][4] =
 		break;
          case 1:
             #ifdef NO_AES_NI
-		{GRS_I;
-		GRS_U;
-		GRS_C; }
+                sph_groestl512 (&ctx.groestl, hash, 64);
+                sph_groestl512_close(&ctx.groestl, hash);
             #else
                 update_groestl( &ctx.groestl, (char*)hash,512);
                 final_groestl( &ctx.groestl, (char*)hash);

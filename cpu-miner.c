@@ -2031,7 +2031,7 @@ bool jr2_stratum_handle_response( json_t *val )
 
 static bool stratum_handle_response( char *buf )
 {
-	json_t *val, *res_val, *id_val;
+	json_t *val, *id_val;
 	json_error_t err;
 	bool ret = false;
 
@@ -2041,7 +2041,7 @@ static bool stratum_handle_response( char *buf )
            applog(LOG_INFO, "JSON decode failed(%d): %s", err.line, err.text);
 	   goto out;
 	}
-	res_val = json_object_get( val, "result" );
+        json_object_get( val, "result" );
 	id_val = json_object_get( val, "id" );
 	if ( !id_val || json_is_null(id_val) )
 		goto out;
@@ -2477,9 +2477,9 @@ void parse_arg(int key, char *arg )
 				show_usage_and_exit(1);
 			}
 			free(rpc_url);
-			rpc_url = (char*) malloc(strlen(hp) + 8);
-			sprintf(rpc_url, "http://%s", hp);
-			short_url = &rpc_url[sizeof("http://")-1];
+			rpc_url = (char*) malloc( strlen(hp) + 15 );
+			sprintf( rpc_url, "stratum+tcp://%s", hp );
+			short_url = &rpc_url[ sizeof("stratum+tcp://") - 1 ];
 		}
 		have_stratum = !opt_benchmark && !strncasecmp(rpc_url, "stratum", 7);
 		break;

@@ -1,81 +1,204 @@
+Change Log
+----------
 
-cpuminer-opt-3.1 release notes
---------------i----------------
+v3.5.0
 
-cpuminer-opt combines the best of minerd (x11), cp3u (quark) and
-cpuminer-multi (multi-algo support plus non-kernel related
-enhancements). Additional credits to Lucas Jones, elmad, palmd,
-djm34, pooler, Jeff Garzik, Wolf0 and probably others.
+Fixed blakecoin and vanilla increasing rejects with number of threads.
+Removed support for SSE2 Groestl functions. SSE2 groestl remains available
+  in v3.4.12 and the legacy branch.
+It is no longer necessary to specify stratum+tcp:// in the url, it is assumed
+  and is the only supported protocol.
 
-The core of cpuminer-opt remains cpuminer-multi and is the base for
-this fork.
+v3.4.12
 
-All of the code is believed to be open and free. If anyone has a
-claim to any of it post your case in the Bitcoin Talk forum,
-link below.
+lyra2z (zcoin) modified for blocks after 8192
+fixed scryptjane to support various N factors
 
-Features
---------
+v3.4.11
 
-V3.1 introduces a new mining engine called algo_gate. This fetaure
-is not visible to the users excetp for the additional 5% performance
-increase in all algos. This feature is of interest mostly to
-developpers.
+groestl algo AES optimized +200%
+myr-gr algo AES optimized +100%
 
-cpuminer provides accelerated hashing on AES-NI capable CPUs in
-x11, x13, x14, x15, quark & qubit algorithms. It also currently
-provides acceleration for SSE2 capable CPUs on quark and qubit
-algorithms only. Other algorithms are available but unchanged from
-cpuminer-multi-1.2pre and in various states of functionality.
-V3.0 pprovides improved hash rates for many algos. See the 
-release annoucent for details.
+v3.4.10
 
-Requirements
-------------
+xevan AES optimized +35%
 
-A 64 bit CPU with SSE2 support and any of the popular 64 bit
-Linux distributions. Standard development tools, libcurl-devel,
-the preferred SSL development package of your distribution.
+v3.4.9
 
-Limitations
------------
+fixed zr5, broken in v3.4.8
+added xevan algo (Bitsend, BSD) with 10% improvement
+added lyra2zoin (Zoin, ZOI) fully optimized but YMMV
 
-v3.0 is source code only that can be compiled on Linux.
-Windows support is not yet available, but planned.
+v3.4.8
 
-Compiling
----------
+added zcoin support, optimized for AVX2 but no increase in performance
+fixed API display of diff for cryptonight
+--show-diff is now the default, use "--hide-diff" to disable
+cleaned up some cpuminer-multi artifacts
 
-After unpacking the tarball change ito the cpuminer directory and
-execute these commands. Note that O3 is actually the upper case
-letter O.
+v3.4.7
 
-./autogen.sh 
-./configure CFLAGS="-O3 -march=native" --with-crypto --with-curl
+fixed benchmark, except for x11evo
+added CPU temperature to share submission report (Linux only)
+
+v3.4.6
+
+For users:
+- cryptolight algo is now supported with AES optimizations
+- display format changed for share submissions
+    - colour keyed "Accepted" or "Rejected" status.
+    - reject count and rate displayed when share is rejected.
+
+For developers:
+
+- code restructuring for detecting new work
+    - cleaned up detection and handling of new work
+    - removed call to stratum_gen_work from niner_thread.
+    - eliminated gen_work_now gate function.
+    - renamed gate function init_nonce to get_new_work.
+    - renamed gate function alloc_scratchbuf to miner_thread_init,
+      removed all scracthbuf references from miner_thread and moved
+      implementation to the local algo files of those algos that need it.
+    - moved most gate targets from algo-gate.c to cpu-miner.c removing
+      most mining related code from algo-gate-api.c.
+
+v3.4.5
+
+fixed stale share rejects mining cryptonight at Nicehash
+fixed compile error on Westmere CPUs
+
+v3.4.4
+
+fixed compile errors on Westmere CPUs, this is an interim fix that
+  will compile without AES on Westmere
+added support for cryptonight at Nicehash, some rejects may be produced
+  at Nicehash only.
+
+v3.4.3
+
+imported optimized m7m, +42%
+
+v3.4.2
+
+added veltor algo
+tweaked lyra2 AVX/AVX2 code for small improvement.
+
+v3.4.1
+
+big AVX2 optmizations for lyra2 +35%, lyra2v2 +11%, AVX also faster
+fixed hmq1725
+
+v3.4.0
+
+fixed Windows compile error introduced in v3.3.9
+fixed x11gost, broken in v3.3.7
+AVX2 optimizations improving many algos:
+   - Lyra2RE  +3%
+   - Lyra2REv2  +19%
+   - x11gost (sib) +6%
+   - x11evo +2.4%
+   - c11 +6.9%
+   - x11 +5%
+   - x13 +5%
+   - x14 +3.6%
+   - x15 +2.4%
+   - x17 +2.8%
+   - qubit +8.4%
+
+
+Compile Instructions
+--------------------
+
+Building on linux prerequisites:
+
+It is assumed users know how to install packages on their system and
+be able to compile standard source packages. This is basic Linux and
+beyond the scope of cpuminer-opt. 
+
+
+
+Make sure you have the basic development packages installed.
+Here is a good start:
+
+http://askubuntu.com/questions/457526/how-to-install-cpuminer-in-ubuntu
+
+Install any additional dependencies needed by cpuminer-opt. The list below
+are some of the ones that may not be in the default install and need to
+be installed manually. There may be others, read the error messages they
+will give a clue as to the missing package.
+
+The folliwing command should install everything you need on Debian based
+packages:
+
+sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev automake
+
+Building on Linux, see below for Windows.
+
+Dependencies
+
+build-essential  (for Ubuntu, Development Tools package group on Fedora)
+automake
+libjansson-dev
+libgmp-dev
+libcurl4-openssl-dev
+libssl-dev
+pthreads
+zlib
+
+tar xvzf [file.tar.gz]
+cd [file]
+
+Run build.sh to build on Linux or execute the following commands.
+
+./autogen.sh
+CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11" ./configure --with-curl
 make
 
-libcurl-devel and an development packages are required to be
-installed to build this application and are available in most
-Linux repositories.
+Start mining.
 
-To compile on older CPUs without AES_NI support use the following
-CFLAGS options: "-O3 -march=native -DNO_AES_NI"
+./cpuminer -a algo ...
 
-Bugs
-----
+Building on Windows prerequisites:
 
-Users are encouraged to post their bug reports on the Bitcoin Talk
-forum at:
+msys
+mingw_w64
+Visual C++ redistributable 2008 X64
+openssl, not sure about this
 
-https://bitcointalk.org/index.php?topic=1326803.0
+Install msys and mingw_w64, only needed once.
 
-Donations
----------
+Unpack msys into C:\msys or your preferred directory.
 
-I do not do this for money but I have a donation address if users
-are so inclined.
+Install mingw__w64 from win-builds.
+Follow instructions, check "msys or cygwin" and "x86_64" and accept default
+existing msys instalation.
 
-bitcoin:12tdvfF7KmAsihBXQXynT6E6th2c2pByTT?label=donations
+Open a msys shell by double clicking on msys.bat.
+Note that msys shell uses linux syntax for file specifications, "C:\" is
+mounted at "/c/".
 
-Happy mining!
+Add mingw bin directory to PATH variable
+PATH="/c/msys/opt/windows_64/bin/:$PATH"
 
+Instalation complete, compile cpuminer-opt
+
+Unpack cpuminer-opt source files using tar from msys shell, or using 7zip
+or similar Windows program.
+
+In msys shell cd to miner directory.
+cd /c/path/to/cpuminer-opt
+
+Run winbuild.sh to build on Windows or execute the following commands.
+
+./autogen.sh
+CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" ./configure --with-curl
+make
+
+The following tips may be useful for older AMD CPUs.
+
+Some users with AMD CPUs without AES_NI have reported problems compiling
+with build.sh or "-march=native". Problems have included compile errors
+and poor performance. These users are recommended to compile manually
+specifying "-march=btver1" on the configure command line.
+
+Support for even older x86_64 without AES_NI or SSE2 is not availble.

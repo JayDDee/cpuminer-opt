@@ -29,10 +29,7 @@
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifdef NO_AES_NI
-  #include "algo/groestl/sse2/grso.h"
-  #include "algo/groestl/sse2/grso-macro.c"
-#else
+#ifndef NO_AES_NI
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
@@ -79,9 +76,6 @@ static void x13hash(void *output, const void *input)
       
         x13_ctx_holder ctx;
         memcpy( &ctx, &x13_ctx, sizeof(x13_ctx) );
-#ifdef NO_AES_NI
-        grsoState sts_grs;
-#endif
 
         // X11 algos
 
@@ -116,12 +110,8 @@ static void x13hash(void *output, const void *input)
         //---groetl----
 
 #ifdef NO_AES_NI
-// use GRS if possible
-          GRS_I;
-          GRS_U;
-          GRS_C;
-//        sph_groestl512 (&ctx.groestl, hash, 64);
-//        sph_groestl512_close(&ctx.groestl, hash);
+        sph_groestl512 (&ctx.groestl, hash, 64);
+        sph_groestl512_close(&ctx.groestl, hash);
 #else
         update_groestl( &ctx.groestl, (char*)hash,512);
         final_groestl( &ctx.groestl, (char*)hash);

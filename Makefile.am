@@ -77,8 +77,6 @@ cpuminer_SOURCES = \
   algo/fresh.c \
   algo/groestl/groestl.c \
   algo/groestl/myr-groestl.c \
-  algo/groestl/sse2/grso.c\
-  algo/groestl/sse2/grso-asm.c\
   algo/groestl/aes_ni/hash-groestl.c \
   algo/groestl/aes_ni/hash-groestl256.c \
   algo/haval/haval.c\

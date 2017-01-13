@@ -331,6 +331,7 @@ bool   has_sse();
 void   cpu_bestcpu_feature( char *outbuf, size_t maxsz );
 void   cpu_getname(char *outbuf, size_t maxsz);
 void   cpu_getmodelid(char *outbuf, size_t maxsz);
+void   cpu_brand_string( char* s );
 
 float cpu_temp( int core );
 

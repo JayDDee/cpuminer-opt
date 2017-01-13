@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "algo/groestl/sph_groestl.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/echo/sph_echo.h"
@@ -19,10 +20,7 @@
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifdef NO_AES_NI
-  #include "algo/groestl/sse2/grso.h"
-  #include "algo/groestl/sse2/grso-macro.c"
-#else
+#ifndef NO_AES_NI
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
@@ -34,6 +32,7 @@ typedef struct {
      cubehashParam           cube;
      hashState_sd            simd;
 #ifdef NO_AES_NI
+     sph_groestl512_context  groestl;
      sph_echo512_context     echo;
 #else
      hashState_echo          echo;
@@ -51,6 +50,7 @@ void init_sib_ctx()
      cubehashInit( &sib_ctx.cube, 512, 16, 32 );
      init_sd( &sib_ctx.simd, 512 );
 #ifdef NO_AES_NI
+     sph_groestl512_init( &sib_ctx.groestl );
      sph_echo512_init( &sib_ctx.echo );
 #else
      init_echo( &sib_ctx.echo, 512 );
@@ -59,16 +59,11 @@ void init_sib_ctx()
 
 }
 
-
 void sibhash(void *output, const void *input)
 {
      unsigned char hash[128]; // uint32_t hashA[16], hashB[16];
      #define hashA hash
      #define hashB hash+64
-
-     #ifdef NO_AES_NI
-        grsoState sts_grs;
-     #endif
 
      size_t hashptr;
      unsigned char hashbuf[128];
@@ -95,12 +90,11 @@ void sibhash(void *output, const void *input)
      #undef dH
 
      #ifdef NO_AES_NI
-          GRS_I;
-          GRS_U;
-          GRS_C;
+        sph_groestl512 (&ctx.groestl, hash, 64);
+        sph_groestl512_close(&ctx.groestl, hash);
      #else
-          update_groestl( &ctx.groestl, (char*)hash,512);
-          final_groestl( &ctx.groestl, (char*)hash);
+        update_groestl( &ctx.groestl, (char*)hash,512);
+        final_groestl( &ctx.groestl, (char*)hash);
      #endif
 
      DECL_SKN;

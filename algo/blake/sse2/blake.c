@@ -317,7 +317,6 @@ static const sph_u64 blkIV512[8] = {
 
 
 #define COMPRESS64   do { \
-                int r; \
                 int b=0; \
 		sph_u64 M0, M1, M2, M3, M4, M5, M6, M7; \
 		sph_u64 M8, M9, MA, MB, MC, MD, ME, MF; \

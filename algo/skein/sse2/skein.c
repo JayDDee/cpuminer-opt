@@ -371,7 +371,6 @@ extern "C"{
 
 #define DECL_SKN \
 	sph_u64 sknh0, sknh1, sknh2, sknh3, sknh4, sknh5, sknh6, sknh7; \
-	unsigned char sknbuf[64]; \
 
 #define sknREAD_STATE_BIG(sc)   do { \
 		sknh0 = (sc)->sknh0; \
@@ -424,7 +423,6 @@ do { \
 do { \
 	unsigned char *buf; \
 	size_t ptr; \
-	unsigned first; \
         size_t len = 64; \
         const void *data = hash; \
 	buf = hashbuf; \
@@ -441,7 +439,6 @@ do { \
 	unsigned char *buf; \
 	size_t ptr; \
 	unsigned et; \
-	int i; \
  \
 	buf = hashbuf; \
 	ptr = hashptr; \

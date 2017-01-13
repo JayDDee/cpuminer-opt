@@ -18,10 +18,7 @@
 #include "algo/simd/sph_simd.h"
 #include "algo/echo/sph_echo.h"
 
-#ifdef NO_AES_NI
-//  #include "algo/echo/sph_echo.h"
-//  #include "algo/groestl/sph_groestl.h"
-#else
+#ifndef NO_AES_NI
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif

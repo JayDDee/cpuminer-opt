@@ -31,10 +31,7 @@
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifdef NO_AES_NI
-  #include "algo/groestl/sse2/grso.h"
-  #include "algo/groestl/sse2/grso-macro.c"
-#else
+#ifndef NO_AES_NI
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
@@ -86,10 +83,6 @@ static void x15hash(void *output, const void *input)
         x15_ctx_holder ctx;
         memcpy( &ctx, &x15_ctx, sizeof(x15_ctx) );
 
-#ifdef NO_AES_NI
-        grsoState sts_grs;
-#endif
-
         unsigned char hashbuf[128];
         size_t hashptr;
         sph_u64 hashctA;
@@ -120,14 +113,11 @@ static void x15hash(void *output, const void *input)
         //---groestl----
 
 #ifdef NO_AES_NI
-        GRS_I;
-        GRS_U;
-        GRS_C;
-//        sph_groestl512(&ctx.groestl, hash, 64);
-//       sph_groestl512_close(&ctx.groestl, hash);
+        sph_groestl512(&ctx.groestl, hash, 64);
+        sph_groestl512_close(&ctx.groestl, hash);
 #else
-          update_groestl( &ctx.groestl, (char*)hash,512);
-          final_groestl( &ctx.groestl, (char*)hash);
+        update_groestl( &ctx.groestl, (char*)hash,512);
+        final_groestl( &ctx.groestl, (char*)hash);
 #endif
 
         //---skein4---

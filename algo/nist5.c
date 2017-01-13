@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "algo/blake/sph_blake.h"
+#include "algo/groestl/sph_groestl.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
@@ -16,15 +17,14 @@
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifdef NO_AES_NI
-  #include "algo/groestl/sse2/grso.h"
-  #include "algo/groestl/sse2/grso-macro.c"
-#else
+#ifndef NO_AES_NI
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
 
 typedef struct {
-#ifndef NO_AES_NI
+#ifdef NO_AES_NI
+    sph_groestl512_context groestl;
+#else
     hashState_groestl      groestl;
 #endif
 } nist5_ctx_holder;
@@ -33,16 +33,15 @@ nist5_ctx_holder nist5_ctx;
 
 void init_nist5_ctx()
 {
-#ifndef NO_AES_NI
+#ifdef NO_AES_NI
+     sph_groestl512_init( &nist5_ctx.groestl );
+#else
      init_groestl( &nist5_ctx.groestl );
 #endif
 }
 
 void nist5hash(void *output, const void *input)
 {
-#ifdef NO_AES_NI
-     grsoState sts_grs;
-#endif
      size_t hashptr;
      unsigned char hashbuf[128];
      sph_u64 hashctA;
@@ -54,16 +53,14 @@ void nist5hash(void *output, const void *input)
      nist5_ctx_holder ctx;
      memcpy( &ctx, &nist5_ctx, sizeof(nist5_ctx) );
 
-
      DECL_BLK;
      BLK_I;
      BLK_W;
      BLK_C;
 
      #ifdef NO_AES_NI
-       GRS_I;
-       GRS_U;
-       GRS_C;
+       sph_groestl512 (&ctx.groestl, hash, 64);
+       sph_groestl512_close(&ctx.groestl, hash);
      #else
        update_groestl( &ctx.groestl, (char*)hash,512);
        final_groestl( &ctx.groestl, (char*)hash);

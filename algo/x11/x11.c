@@ -17,10 +17,7 @@
 #include "algo/simd/sph_simd.h"
 #include "algo/echo/sph_echo.h"
 
-#ifdef NO_AES_NI
-  #include "algo/groestl/sse2/grso.h"
-  #include "algo/groestl/sse2/grso-macro.c"
-#else
+#ifndef NO_AES_NI
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
@@ -40,7 +37,7 @@ typedef struct {
     hashState_sd            simd;
     sph_shavite512_context  shavite;
 #ifdef NO_AES_NI
-//    sph_groestl512_context  groestl;
+    sph_groestl512_context  groestl;
     sph_echo512_context     echo;
 #else
     hashState_echo          echo;
@@ -57,7 +54,7 @@ void init_x11_ctx()
      sph_shavite512_init( &x11_ctx.shavite );
      init_sd( &x11_ctx.simd, 512 );
 #ifdef NO_AES_NI
-//     sph_groestl512_init( &x11_ctx.groestl );
+     sph_groestl512_init( &x11_ctx.groestl );
      sph_echo512_init( &x11_ctx.echo );
 #else
      init_echo( &x11_ctx.echo, 512 );
@@ -92,13 +89,8 @@ static void x11_hash( void *state, const void *input )
      #undef dH
 
 #ifdef NO_AES_NI
-     grsoState sts_grs;
-     GRS_I;
-     GRS_U;
-     GRS_C;
-
-//     sph_groestl512 (&ctx.groestl, hash, 64);
-//     sph_groestl512_close(&ctx.groestl, hash);
+     sph_groestl512 (&ctx.groestl, hash, 64);
+     sph_groestl512_close(&ctx.groestl, hash);
 #else
      update_groestl( &ctx.groestl, (char*)hash, 512 );
      final_groestl( &ctx.groestl, (char*)hash );
