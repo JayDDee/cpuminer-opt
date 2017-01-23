@@ -123,7 +123,7 @@ uint32_t *( *get_nonceptr )      ( uint32_t* );
 void ( *display_extra_data )     ( struct work*, uint64_t* );
 void ( *wait_for_diff )          ( struct stratum_ctx* );
 int64_t ( *get_max64 )           ();
-bool ( *work_decode )            ( const struct json_t*, struct work* );
+bool ( *work_decode )            ( const json_t*, struct work* );
 void ( *set_target)              ( struct work*, double );
 bool ( *submit_getwork_result )  ( CURL*, struct work* );
 void ( *gen_merkle_root )        ( char*, struct stratum_ctx* );

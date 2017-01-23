@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+v3.5.1
+
+Bastion 9% faster with AES, benchkmark still not working.
+Worked around git automatically removing m4 directory.
+Fixed occasional compile error in algo-gate.h.
+
 v3.5.0
 
 Fixed blakecoin and vanilla increasing rejects with number of threads.
