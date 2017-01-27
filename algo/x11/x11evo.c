@@ -76,12 +76,14 @@ uint32_t getCurrentAlgoSeq(uint32_t current_time, uint32_t base_time)
 	return (current_time - base_time) / (60 * 60 * 24);
 }
 
+/*
 void swap( uint8_t *a, uint8_t *b )
 {
 	uint8_t __tmp = *a;
 	*a = *b;
 	*b = __tmp;
 }
+*/
 
 void initPerm( uint8_t n[], uint8_t count )
 {
@@ -102,10 +104,10 @@ int nextPerm( uint8_t n[], uint32_t count )
 
 	if ( tail > 0 )
             for ( j = count - 1; j>tail && n[j] <= n[tail - 1]; j-- );
-	         swap( &n[tail - 1], &n[j] );
+	         swap_vars( n[tail - 1], n[j] );
 
 	for ( i = tail, j = count - 1; i<j; i++, j-- )
-		swap( &n[i], &n[j] );
+		swap_vars( n[i], n[j] );
 
 	return ( tail != 0 );
 }

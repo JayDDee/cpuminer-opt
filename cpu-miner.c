@@ -741,7 +741,7 @@ static int share_result( int result, struct work *work, const char *reason )
    else
         sres = (result ? "Accepted" : "Rejected" );
 
-   // Contrary to convention 100% means zero rejects, exactly 100%. 
+   // Contrary to rounding convention 100% means zero rejects, exactly 100%. 
    // Rates > 99% and < 100% (rejects>0) display 99.9%.
    if ( result )
    {
@@ -763,11 +763,20 @@ static int share_result( int result, struct work *work, const char *reason )
    scale_hash_for_display ( &hashcount, hc_units );
    scale_hash_for_display ( &hashrate, hr_units );
    if ( hc_units[0] )
+   {
       sprintf(hc, "%.2f", hashcount );
+      if ( hashrate < 10 )
+         // very low hashrate, add digits
+         sprintf(hr, "%.4f", hashrate );
+      else
+         sprintf(hr, "%.2f", hashrate );
+   }
    else
+   {
       // no fractions of a hash
       sprintf(hc, "%.0f", hashcount );
-   sprintf(hr, "%.2f", hashrate );
+      sprintf(hr, "%.2f", hashrate );
+   }
 
 #if ((defined(_WIN64) || defined(__WINDOWS__)))
    applog( LOG_NOTICE, "%s %lu/%lu (%s%%), %s %sH, %s %sH/s",

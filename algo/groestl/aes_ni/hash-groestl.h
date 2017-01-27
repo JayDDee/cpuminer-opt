@@ -88,6 +88,8 @@ typedef unsigned char BitSequence_gr;
 typedef unsigned long long DataLength_gr;
 typedef enum { SUCCESS_GR = 0, FAIL_GR = 1, BAD_HASHBITLEN_GR = 2} HashReturn_gr;
 
+// Use area128 overlay for buffer to facilitate fast copying
+
 typedef struct {
   __attribute__ ((aligned (32))) u64 chaining[SIZE/8];      /* actual state */
   __attribute__ ((aligned (32))) BitSequence_gr buffer[SIZE];  /* data buffer */

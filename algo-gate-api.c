@@ -187,6 +187,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_SKEIN:       register_skein_algo      ( gate ); break;
      case ALGO_SKEIN2:      register_skein2_algo     ( gate ); break;
      case ALGO_S3:          register_s3_algo         ( gate ); break;
+     case ALGO_TIMETRAVEL:  register_timetravel_algo ( gate ); break;
      case ALGO_VANILLA:     register_vanilla_algo    ( gate ); break;
      case ALGO_VELTOR:      register_veltor_algo     ( gate ); break;
      case ALGO_WHIRLPOOL:   register_whirlpool_algo  ( gate ); break;

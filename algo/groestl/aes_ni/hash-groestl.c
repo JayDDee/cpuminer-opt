@@ -139,6 +139,8 @@ HashReturn_gr reinit_groestl(hashState_groestl* ctx)
   /* set other variables */
   ctx->buf_ptr = 0;
   ctx->block_counter = 0;
+
+// not used
   ctx->bits_in_last_byte = 0;
 
   return SUCCESS_GR;
@@ -148,10 +150,17 @@ HashReturn_gr reinit_groestl(hashState_groestl* ctx)
 /* update state with databitlen bits of input */
 HashReturn_gr update_groestl(hashState_groestl* ctx,
 		  const BitSequence_gr* input,
-		  DataLength_gr databitlen) {
+	  DataLength_gr databitlen) {
+
   int index = 0;
   int msglen = (int)(databitlen/8);
-  int rem = (int)(databitlen%8);
+  int rem = (int)(databitlen%8);  // not used
+
+// The only data length used is either 64 bytes (512 bits,
+// or 80 bytes (640 bits). The sph version of groestl used a byte
+// size for the data length, so odd bits aren't supported there.
+// No need to support them here either, change the arg to bytes
+// for consistency.     
 
   /* non-integral number of message bytes can only be supplied in the
      last call to this function */
@@ -160,6 +169,8 @@ HashReturn_gr update_groestl(hashState_groestl* ctx,
   /* if the buffer contains data that has not yet been digested, first
      add data to buffer until full */
 
+//// This  code can never run, it is indeed dead. buf_ptr is initialized
+//// to 0 in init_groestl and hasn't been changed yet
 // The following block of code never gets hit when hashing x11 or quark
 // leave it here in case it might be needed.
 //  if (ctx->buf_ptr)
@@ -187,6 +198,10 @@ HashReturn_gr update_groestl(hashState_groestl* ctx,
 
   /* digest bulk of message */
   Transform(ctx, input+index, msglen-index);
+
+// index is always zero here, the following line sets it == msglen
+// meaning the next while test will always fail. it's all part of
+// supporting odd bits.
   index += ((msglen-index)/ctx->statesize)*ctx->statesize;
 
   /* store remaining data in buffer */
@@ -194,7 +209,11 @@ HashReturn_gr update_groestl(hashState_groestl* ctx,
   {
     ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
   }
+// buf_ptr should be msglen now.
 
+//// This code isn't quite dead but but would only run if datalen
+/// is not a multiple of 8. As a result bits_in_last_byte is never
+//// modified from its initial zero.
 // Another block that doesn't get used by x11 or quark
 //  /* if non-integral number of bytes have been supplied, store
 //     remaining bits in last byte, together with information about
@@ -223,8 +242,13 @@ HashReturn_gr final_groestl(hashState_groestl* ctx,
     ctx->buffer[(int)ctx->buf_ptr-1] ^= 0x1<<(7-BILB);
     BILB = 0;
   }
+//This sets the first pad byte 
   else ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
 
+//  buf_ptr is left == msglen after update_groestl, 64 (bytes).
+//  It has now been incrememnted to 65. The test below should fail
+//  with 64 and 80 and require 1 pad block. Why does 64 bit need a pad block?
+//  length padding?
   /* pad with '0'-bits */
   if (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
     /* padding requires two blocks */
@@ -235,6 +259,19 @@ HashReturn_gr final_groestl(hashState_groestl* ctx,
     Transform(ctx, ctx->buffer, ctx->statesize);
     ctx->buf_ptr = 0;
   }
+
+// the padding can be vectorized, including the first pad byte above
+// 64 bit: buffer[64..79] = {0x80000000,0,0,0}
+//         buffer[80..95] = {0,0,0,0}
+//         buffer[96..111] = {0,0,0,0}
+//         buffer[112..128 = {0,0,length padding}
+// 80 bit: buffer[64..79] = unchanged
+//         buffer[80..95] = {0x800000000,0,0,0}
+//         buffer[96..111] = {0,0,0,0}
+//         buffer[112..128 = {0,0,length padding}
+
+
+// this will pad up to 120 bytes
   while (ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN) {
     ctx->buffer[(int)ctx->buf_ptr++] = 0;
   }
@@ -257,6 +294,7 @@ HashReturn_gr final_groestl(hashState_groestl* ctx,
     output[j] = s[i];
   }
 
+// the following is redundant as init_groestl will reset to zero.
   /* zeroise relevant variables and deallocate memory */
   
   for (i = 0; i < ctx->columns; i++) {

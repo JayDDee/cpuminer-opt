@@ -120,6 +120,9 @@ static inline uint32_t swab32(uint32_t v)
 #endif
 }
 
+// Swap any two variables of the same type without using a temp
+#define swap_vars(a,b) a^=b; b^=a; a^=b;
+
 #ifdef HAVE_SYS_ENDIAN_H
 #include <sys/endian.h>
 #endif
@@ -510,6 +513,7 @@ enum algos {
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
         ALGO_S3,          
+        ALGO_TIMETRAVEL,
         ALGO_VANILLA,
         ALGO_VELTOR,
         ALGO_WHIRLPOOL,
@@ -567,6 +571,7 @@ static const char *algo_names[] = {
         "skein",
         "skein2",
         "s3",
+        "timetravel",
         "vanilla",
         "veltor",
         "whirlpool",
@@ -677,6 +682,7 @@ Options:\n\
                           shavite3     Shavite3\n\
                           skein        Skein+Sha (Skeincoin)\n\
                           skein2       Double Skein (Woodcoin)\n\
+                          timetravel   Machinecoin\n\
                           vanilla      blake256r8vnl (VCash)\n\
                           veltor\n\
                           whirlpool\n\
