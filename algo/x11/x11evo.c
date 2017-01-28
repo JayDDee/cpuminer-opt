@@ -200,7 +200,7 @@ static inline void x11evo_hash( void *state, const void *input )
 	      sph_keccak512_close( &ctx.keccak, (char*)hash );
 	      break;
 	    case 6:
-              update_luffa( &ctx.luffa, (char*)hash, 512 );
+              update_luffa( &ctx.luffa, (char*)hash, 64 );
               final_luffa( &ctx.luffa, (char*)hash );
 	      break;
 	    case 7:

@@ -12,7 +12,7 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/sph_luffa.h"
+#include "algo/luffa/sse2/luffa_for_sse2.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
@@ -36,7 +36,7 @@ typedef struct {
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
-        sph_luffa512_context    luffa;
+        hashState_luffa         luffa;
         cubehashParam           cubehash;
         sph_shavite512_context  shavite;
         hashState_sd            simd;
@@ -64,7 +64,7 @@ void init_xevan_ctx()
         sph_skein512_init(&xevan_ctx.skein);
         sph_jh512_init(&xevan_ctx.jh);
         sph_keccak512_init(&xevan_ctx.keccak);
-        sph_luffa512_init(&xevan_ctx.luffa);
+        init_luffa( &xevan_ctx.luffa, 512 );
         cubehashInit( &xevan_ctx.cubehash, 512, 16, 32 );
         sph_shavite512_init( &xevan_ctx.shavite );
         init_sd( &xevan_ctx.simd, 512 );
@@ -116,8 +116,10 @@ void xevan_hash(void *output, const void *input)
 	sph_keccak512(&ctx.keccak, hash, dataLen);
 	sph_keccak512_close(&ctx.keccak, hash);
 
-	sph_luffa512(&ctx.luffa, hash, dataLen);
-	sph_luffa512_close(&ctx.luffa, hash);
+        update_luffa( &ctx.luffa, (const BitSequence*)hash, dataLen );
+        final_luffa( &ctx.luffa, (BitSequence*)hash );
+//	sph_luffa512(&ctx.luffa, hash, dataLen);
+//	sph_luffa512_close(&ctx.luffa, hash);
 
         cubehashUpdate( &ctx.cubehash, (const byte*) hash, dataLen );
         cubehashDigest( &ctx.cubehash, (byte*)hash);
@@ -181,8 +183,8 @@ void xevan_hash(void *output, const void *input)
 	sph_keccak512(&ctx.keccak, hash, dataLen);
 	sph_keccak512_close(&ctx.keccak, hash);
 
-	sph_luffa512(&ctx.luffa, hash, dataLen);
-	sph_luffa512_close(&ctx.luffa, hash);
+        update_luffa( &ctx.luffa, (const BitSequence*)hash, dataLen );
+        final_luffa( &ctx.luffa, (BitSequence*)hash );
 
         cubehashUpdate( &ctx.cubehash, (const byte*) hash, dataLen );
         cubehashDigest( &ctx.cubehash, (byte*)hash);

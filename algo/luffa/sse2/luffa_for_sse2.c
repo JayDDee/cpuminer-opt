@@ -208,7 +208,7 @@ static void finalization512(hashState_luffa *state, uint32 *b);
 
 
 /* initial values of chaining variables */
-static const uint32 IV[40] = {
+static const uint32 IV[40] __attribute((aligned(16))) = {
     0xdbf78465,0x4eaa6fb4,0x44b051e0,0x6d251e69,
     0xdef610bb,0xee058139,0x90152df4,0x6e292011,
     0xde099fa3,0x70eee9a0,0xd9d2f256,0xc3b44b95,
@@ -222,7 +222,7 @@ static const uint32 IV[40] = {
 };
 
 /* Round Constants */
-static const uint32 CNS_INIT[128] = {
+static const uint32 CNS_INIT[128] __attribute((aligned(16))) = {
     0xb213afa5,0xfc20d9d2,0xb6de10ed,0x303994a6,
     0xe028c9bf,0xe25e72c1,0x01685f3d,0xe0337818,
     0xc84ebe95,0x34552e25,0x70f47aae,0xc0e65299,
@@ -257,6 +257,7 @@ static const uint32 CNS_INIT[128] = {
     0x00000000,0x00000000,0x00000000,0xfc053c31
 };
 
+
 __m128i CNS128[32];
 __m128i ALLONE;
 __m128i MASK;
@@ -265,58 +266,64 @@ HashReturn init_luffa(hashState_luffa *state, int hashbitlen)
 {
     int i;
     state->hashbitlen = hashbitlen;
-
     /* set the lower 32 bits to '1' */
     MASK= _mm_set_epi32(0x00000000, 0x00000000, 0x00000000, 0xffffffff);
-
     /* set all bits to '1' */
     ALLONE = _mm_set_epi32(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
-
     /* set the 32-bit round constant values to the 128-bit data field */
     for ( i=0; i<32; i++ )
-        CNS128[i] = _mm_loadu_si128( (__m128i*)&CNS_INIT[i*4] );
-
+        CNS128[i] = _mm_load_si128( (__m128i*)&CNS_INIT[i*4] );
     for ( i=0; i<10; i++ ) 
-	state->chainv[i] = _mm_loadu_si128( (__m128i*)&IV[i*4] );
-
-    state->bitlen[0] = 0;
-    state->bitlen[1] = 0;
-    state->rembitlen = 0;
-
-    memset(state->buffer, 0, sizeof state->buffer );
-
+	state->chainv[i] = _mm_load_si128( (__m128i*)&IV[i*4] );
+//    memset(state->buffer, 0, sizeof state->buffer );
     return SUCCESS;
 }
 
-HashReturn update_luffa(hashState_luffa *state, const BitSequence *data, DataLength databitlen)
+HashReturn update_luffa( hashState_luffa *state, const BitSequence *data,
+                         size_t len )
 {
     HashReturn ret=SUCCESS;
-    int i;
+    int i, j;
+    int rem = len % 32;
+    int blocks = (int)( len / 32 );
     uint8 *p = (uint8*)state->buffer;
 
-    for ( i=0; i<8; i++ )
+    // full blocks
+    for ( j = 0; j < blocks; j++ )
+    {
+       state->buffer[0] = BYTES_SWAP32( ((uint32*)data)[0] );
+       state->buffer[1] = BYTES_SWAP32( ((uint32*)data)[1] );
+       state->buffer[2] = BYTES_SWAP32( ((uint32*)data)[2] );
+       state->buffer[3] = BYTES_SWAP32( ((uint32*)data)[3] );
+       state->buffer[4] = BYTES_SWAP32( ((uint32*)data)[4] );
+       state->buffer[5] = BYTES_SWAP32( ((uint32*)data)[5] );
+       state->buffer[6] = BYTES_SWAP32( ((uint32*)data)[6] );
+       state->buffer[7] = BYTES_SWAP32( ((uint32*)data)[7] );
+
+       rnd512( state );
+       data += MSG_BLOCK_BYTE_LEN;
+    }
+
+    // remaining partial block, if any
+    for ( i = 0; i < rem/4; i++ )
        state->buffer[i] = BYTES_SWAP32( ((uint32*)data)[i] );
-    rnd512( state ); 
-    data += MSG_BLOCK_BYTE_LEN; 
-    state->rembitlen = 0;
-    for ( i=0; i<8; i++ )
-       state->buffer[i] = BYTES_SWAP32(((uint32*)data)[i]);
-    rnd512(state); 
-    data += MSG_BLOCK_BYTE_LEN; 
-    memset(p+1, 0, 31*sizeof(uint8));
-    p[0] = 0x80;
-    for ( i=0; i<8; i++ )
+
+    // padding of partial block
+    memset( p+rem+1, 0, (31-rem)*sizeof(uint8) );
+    p[rem] = 0x80;
+    for ( i = rem/4; i < 8; i++ )
        state->buffer[i] = BYTES_SWAP32(state->buffer[i]);
+
     rnd512(state);
+
     return ret;
 }
-   
 
 HashReturn final_luffa(hashState_luffa *state, BitSequence *hashval) 
 {
-
     finalization512(state, (uint32*) hashval);
-  
+    if ( state->hashbitlen > 512 )
+        finalization512( state, (uint32*)( hashval+128 ) );
     return SUCCESS;
 }
 
@@ -348,8 +355,8 @@ static void rnd512(hashState_luffa *state)
 
     MULT2( t[0], t[1]);
 
-    msg[0] = _mm_loadu_si128 ( (__m128i*)&state->buffer[0] );
-    msg[1] = _mm_loadu_si128 ( (__m128i*)&state->buffer[4] );
+    msg[0] = _mm_load_si128 ( (__m128i*)&state->buffer[0] );
+    msg[1] = _mm_load_si128 ( (__m128i*)&state->buffer[4] );
     msg[0] = _mm_shuffle_epi32( msg[0], 27 );
     msg[1] = _mm_shuffle_epi32( msg[1], 27 );
 
@@ -457,10 +464,14 @@ static void rnd512(hashState_luffa *state)
                 chainv[1],chainv[3],chainv[5],chainv[7],
                 x[4], x[5], x[6], x[7] );
 
-    for ( i=0; i<8 ; i++ )
-    {
-        STEP_PART( &x[0], &CNS128[i*2], &tmp[0] );
-    }
+    STEP_PART( &x[0], &CNS128[ 0], &tmp[0] );
+    STEP_PART( &x[0], &CNS128[ 2], &tmp[0] );
+    STEP_PART( &x[0], &CNS128[ 4], &tmp[0] );
+    STEP_PART( &x[0], &CNS128[ 6], &tmp[0] );
+    STEP_PART( &x[0], &CNS128[ 8], &tmp[0] );
+    STEP_PART( &x[0], &CNS128[10], &tmp[0] );
+    STEP_PART( &x[0], &CNS128[12], &tmp[0] );
+    STEP_PART( &x[0], &CNS128[14], &tmp[0] );
 
     MIXTON1024( x[0], x[1], x[2], x[3],
                 chainv[0], chainv[2], chainv[4],chainv[6],
@@ -468,11 +479,22 @@ static void rnd512(hashState_luffa *state)
                 chainv[1],chainv[3],chainv[5],chainv[7]);
 
     /* Process last 256-bit block */
-    for ( i=0; i<8; i++ )
-    {
-        STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[16+2*i],
-                    CNS128[17+2*i], tmp[0], tmp[1] );
-    }
+    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[16], CNS128[17],
+                tmp[0], tmp[1] );
+    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[18], CNS128[19],
+                tmp[0], tmp[1] );
+    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[20], CNS128[21],
+                tmp[0], tmp[1] );
+    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[22], CNS128[23],
+                tmp[0], tmp[1] );
+    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[24], CNS128[25],
+                tmp[0], tmp[1] );
+    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[26], CNS128[27],
+                tmp[0], tmp[1] );
+    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[28], CNS128[29],
+                tmp[0], tmp[1] );
+    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[30], CNS128[31],
+                tmp[0], tmp[1] );
 
     return;
 }
@@ -486,7 +508,7 @@ static void finalization512(hashState_luffa *state, uint32 *b)
 {
     __m128i* chainv = state->chainv;
     __m128i t[2];
-    uint32 hash[8];
+    uint32 hash[8] __attribute((aligned(16)));
     int i;
 
     /*---- blank round with m=0 ----*/
@@ -507,10 +529,17 @@ static void finalization512(hashState_luffa *state, uint32 *b)
     t[0] = _mm_shuffle_epi32(t[0], 27);
     t[1] = _mm_shuffle_epi32(t[1], 27);
 
-    _mm_storeu_si128((__m128i*)&hash[0], t[0]);
-    _mm_storeu_si128((__m128i*)&hash[4], t[1]);
+    _mm_store_si128((__m128i*)&hash[0], t[0]);
+    _mm_store_si128((__m128i*)&hash[4], t[1]);
 
-    for (i=0;i<8;i++) b[i] = BYTES_SWAP32(hash[i]);
+    b[0] = BYTES_SWAP32(hash[0]);
+    b[1] = BYTES_SWAP32(hash[1]);
+    b[2] = BYTES_SWAP32(hash[2]);
+    b[3] = BYTES_SWAP32(hash[3]);
+    b[4] = BYTES_SWAP32(hash[4]);
+    b[5] = BYTES_SWAP32(hash[5]);
+    b[6] = BYTES_SWAP32(hash[6]);
+    b[7] = BYTES_SWAP32(hash[7]);
 
     memset(state->buffer, 0, sizeof state->buffer );
     rnd512(state);
@@ -529,10 +558,17 @@ static void finalization512(hashState_luffa *state, uint32 *b)
     t[0] = _mm_shuffle_epi32(t[0], 27);
     t[1] = _mm_shuffle_epi32(t[1], 27);
 
-    _mm_storeu_si128((__m128i*)&hash[0], t[0]);
-    _mm_storeu_si128((__m128i*)&hash[4], t[1]);
+    _mm_store_si128((__m128i*)&hash[0], t[0]);
+    _mm_store_si128((__m128i*)&hash[4], t[1]);
 
-    for (i=0;i<8;i++) b[8+i] = BYTES_SWAP32(hash[i]);
+    b[ 8] = BYTES_SWAP32(hash[0]);
+    b[ 9] = BYTES_SWAP32(hash[1]);
+    b[10] = BYTES_SWAP32(hash[2]);
+    b[11] = BYTES_SWAP32(hash[3]);
+    b[12] = BYTES_SWAP32(hash[4]);
+    b[13] = BYTES_SWAP32(hash[5]);
+    b[14] = BYTES_SWAP32(hash[6]);
+    b[15] = BYTES_SWAP32(hash[7]);
 
     return;
 }

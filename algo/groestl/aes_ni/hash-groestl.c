@@ -49,9 +49,8 @@
 
 
 /* digest up to len bytes of input (full blocks only) */
-void Transform(hashState_groestl *ctx,
-	       const u8 *in, 
-	       unsigned long long len) {
+void Transform( hashState_groestl *ctx, const u8 *in, unsigned long long len )
+{
     /* increment block counter */
     ctx->block_counter += len/SIZE;
 
@@ -67,7 +66,8 @@ void Transform(hashState_groestl *ctx,
 }
 
 /* given state h, do h <- P(h)+h */
-void OutputTransformation(hashState_groestl *ctx) {
+void OutputTransformation( hashState_groestl *ctx )
+{
     /* determine variant */
 #if (LENGTH <= 256)
     OF512((u64*)ctx->chaining);
@@ -79,7 +79,8 @@ void OutputTransformation(hashState_groestl *ctx) {
 }
 
 /* initialise context */
-HashReturn_gr init_groestl(hashState_groestl* ctx) {
+HashReturn_gr init_groestl( hashState_groestl* ctx )
+{
   u8 i = 0;
   /* output size (in bits) must be a positive integer less than or
      equal to 512, and divisible by 8 */
@@ -114,14 +115,12 @@ HashReturn_gr init_groestl(hashState_groestl* ctx) {
   /* set other variables */
   ctx->buf_ptr = 0;
   ctx->block_counter = 0;
-  ctx->bits_in_last_byte = 0;
 
   return SUCCESS_GR;
 }
 
-
-HashReturn_gr reinit_groestl(hashState_groestl* ctx)
- {
+HashReturn_gr reinit_groestl( hashState_groestl* ctx )
+{
   int i;
   for (i=0; i<SIZE/8; i++)
     ctx->chaining[i] = 0;
@@ -140,146 +139,63 @@ HashReturn_gr reinit_groestl(hashState_groestl* ctx)
   ctx->buf_ptr = 0;
   ctx->block_counter = 0;
 
-// not used
-  ctx->bits_in_last_byte = 0;
-
   return SUCCESS_GR;
 }
 
-
 /* update state with databitlen bits of input */
-HashReturn_gr update_groestl(hashState_groestl* ctx,
-		  const BitSequence_gr* input,
-	  DataLength_gr databitlen) {
+HashReturn_gr update_groestl( hashState_groestl* ctx,
+	                      const BitSequence_gr* input,
+	                      DataLength_gr databitlen )
+{
 
   int index = 0;
   int msglen = (int)(databitlen/8);
   int rem = (int)(databitlen%8);  // not used
 
-// The only data length used is either 64 bytes (512 bits,
-// or 80 bytes (640 bits). The sph version of groestl used a byte
-// size for the data length, so odd bits aren't supported there.
-// No need to support them here either, change the arg to bytes
-// for consistency.     
-
-  /* non-integral number of message bytes can only be supplied in the
-     last call to this function */
-  if (ctx->bits_in_last_byte) return FAIL_GR;
-
-  /* if the buffer contains data that has not yet been digested, first
-     add data to buffer until full */
-
-//// This  code can never run, it is indeed dead. buf_ptr is initialized
-//// to 0 in init_groestl and hasn't been changed yet
-// The following block of code never gets hit when hashing x11 or quark
-// leave it here in case it might be needed.
-//  if (ctx->buf_ptr)
-//  {
-//    while (ctx->buf_ptr < ctx->statesize && index < msglen)
-//    {
-//      ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
-//    }
-//    if (ctx->buf_ptr < ctx->statesize)
-//    {
-//      /* buffer still not full, return */
-//      if (rem)
-//      {
-//        ctx->bits_in_last_byte = rem;
-//        ctx->buffer[(int)ctx->buf_ptr++] = input[index];
-//      }
-//      return SUCCESS_GR;
-//    }
-//    /* digest buffer */
-//    ctx->buf_ptr = 0;
-//    printf("error\n");
-//    Transform(ctx, ctx->buffer, ctx->statesize);
-// end dead code
-//  }
-
   /* digest bulk of message */
-  Transform(ctx, input+index, msglen-index);
+  Transform( ctx, input+index, msglen-index );
 
-// index is always zero here, the following line sets it == msglen
-// meaning the next while test will always fail. it's all part of
-// supporting odd bits.
+  // this line makes no sense, index = 0 before and after
+  // but removing this line breaks the hash.
   index += ((msglen-index)/ctx->statesize)*ctx->statesize;
 
   /* store remaining data in buffer */
   while (index < msglen)
-  {
     ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
-  }
-// buf_ptr should be msglen now.
-
-//// This code isn't quite dead but but would only run if datalen
-/// is not a multiple of 8. As a result bits_in_last_byte is never
-//// modified from its initial zero.
-// Another block that doesn't get used by x11 or quark
-//  /* if non-integral number of bytes have been supplied, store
-//     remaining bits in last byte, together with information about
-//     number of bits */
-//  if (rem)
-//  {
-//    ctx->bits_in_last_byte = rem;
-//    ctx->buffer[(int)ctx->buf_ptr++] = input[index];
-//  }
 
   return SUCCESS_GR;
 }
 
-#define BILB ctx->bits_in_last_byte
-
 /* finalise: process remaining data (including padding), perform
    output transformation, and write hash result to 'output' */
-HashReturn_gr final_groestl(hashState_groestl* ctx,
-		 BitSequence_gr* output) {
+HashReturn_gr final_groestl( hashState_groestl* ctx,
+	                     BitSequence_gr* output )
+{
   int i, j = 0, hashbytelen = LENGTH/8;
   u8 *s = (BitSequence_gr*)ctx->chaining;
 
-  /* pad with '1'-bit and first few '0'-bits */
-  if (BILB) {
-    ctx->buffer[(int)ctx->buf_ptr-1] &= ((1<<BILB)-1)<<(8-BILB);
-    ctx->buffer[(int)ctx->buf_ptr-1] ^= 0x1<<(7-BILB);
-    BILB = 0;
-  }
-//This sets the first pad byte 
-  else ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
+  ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
 
-//  buf_ptr is left == msglen after update_groestl, 64 (bytes).
-//  It has now been incrememnted to 65. The test below should fail
-//  with 64 and 80 and require 1 pad block. Why does 64 bit need a pad block?
-//  length padding?
   /* pad with '0'-bits */
-  if (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
+  if ( ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN )
+  {
     /* padding requires two blocks */
-    while (ctx->buf_ptr < ctx->statesize) {
+    while ( ctx->buf_ptr < ctx->statesize )
       ctx->buffer[(int)ctx->buf_ptr++] = 0;
-    }
     /* digest first padding block */
-    Transform(ctx, ctx->buffer, ctx->statesize);
+    Transform( ctx, ctx->buffer, ctx->statesize );
     ctx->buf_ptr = 0;
   }
 
-// the padding can be vectorized, including the first pad byte above
-// 64 bit: buffer[64..79] = {0x80000000,0,0,0}
-//         buffer[80..95] = {0,0,0,0}
-//         buffer[96..111] = {0,0,0,0}
-//         buffer[112..128 = {0,0,length padding}
-// 80 bit: buffer[64..79] = unchanged
-//         buffer[80..95] = {0x800000000,0,0,0}
-//         buffer[96..111] = {0,0,0,0}
-//         buffer[112..128 = {0,0,length padding}
-
-
-// this will pad up to 120 bytes
-  while (ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN) {
+  // this will pad up to 120 bytes
+  while (ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN)
     ctx->buffer[(int)ctx->buf_ptr++] = 0;
-  }
 
   /* length padding */
   ctx->block_counter++;
   ctx->buf_ptr = ctx->statesize;
-  while (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
+  while (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN)
+  {
     ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
     ctx->block_counter >>= 8;
   }
@@ -290,22 +206,8 @@ HashReturn_gr final_groestl(hashState_groestl* ctx,
   OutputTransformation(ctx);
 
   /* store hash result in output */
-  for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++) {
+  for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++)
     output[j] = s[i];
-  }
-
-// the following is redundant as init_groestl will reset to zero.
-  /* zeroise relevant variables and deallocate memory */
-  
-  for (i = 0; i < ctx->columns; i++) {
-    ctx->chaining[i] = 0;
-  }
-  
-  for (i = 0; i < ctx->statesize; i++) {
-    ctx->buffer[i] = 0;
-  }
-//  free(ctx->chaining);
-//  free(ctx->buffer);
 
   return SUCCESS_GR;
 }

@@ -6,9 +6,6 @@
 #include <string.h>
 #include <stdio.h>
 
-// Optimized luffa doesn't find blocks with qubit
-#define LUFFA_SSE2_BROKEN
-
 #include "algo/luffa/sph_luffa.h"
 #include "algo/cubehash/sph_cubehash.h"
 #include "algo/shavite/sph_shavite.h"
@@ -26,11 +23,7 @@
 
 typedef struct
 {
-#ifdef LUFFA_SSE2_BROKEN
-        sph_luffa512_context    luffa;
-#else
-         hashState_luffa         luffa;
-#endif
+        hashState_luffa         luffa;
         cubehashParam           cubehash;
         sph_shavite512_context  shavite;
         hashState_sd            simd;
@@ -45,11 +38,7 @@ qubit_ctx_holder qubit_ctx;
 
 void init_qubit_ctx()
 {
-#ifdef LUFFA_SSE2_BROKEN
-        sph_luffa512_init(&qubit_ctx.luffa);
-#else
         init_luffa(&qubit_ctx.luffa,512);
-#endif
         cubehashInit(&qubit_ctx.cubehash,512,16,32);
         sph_shavite512_init(&qubit_ctx.shavite);
         init_sd(&qubit_ctx.simd,512);
@@ -68,14 +57,8 @@ void qubithash(void *output, const void *input)
         qubit_ctx_holder ctx;
         memcpy( &ctx, &qubit_ctx, sizeof(qubit_ctx) );
 
-#ifdef LUFFA_SSE2_BROKEN
-        sph_luffa512 (&ctx.luffa, input, 80);
-        sph_luffa512_close(&ctx.luffa, (void*) hash);
-#else
-//        init_luffa(&qubit_ctx.luffa,512);
         update_luffa( &ctx.luffa, (const BitSequence*)input, 80 );
         final_luffa( &ctx.luffa, (BitSequence*)hash);
-#endif
 
         cubehashUpdate( &ctx.cubehash, (const byte*) hash,64);
         cubehashDigest( &ctx.cubehash, (byte*)hash);

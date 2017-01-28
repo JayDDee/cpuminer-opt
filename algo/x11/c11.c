@@ -115,7 +115,7 @@ void c11hash( void *output, const void *input )
      SKN_U;
      SKN_C;
 
-     update_luffa( &ctx.luffa, (const BitSequence*)hash,512);
+     update_luffa( &ctx.luffa, (const BitSequence*)hash,64);
      final_luffa( &ctx.luffa, (BitSequence*)hash+64);
 
      cubehashUpdate( &ctx.cube, (const byte*) hash+64,64);

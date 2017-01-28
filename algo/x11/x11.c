@@ -111,7 +111,7 @@ static void x11_hash( void *state, const void *input )
 
 //   asm volatile ("emms");
 
-     update_luffa( &ctx.luffa, (const BitSequence*)hash, 512 );
+     update_luffa( &ctx.luffa, (const BitSequence*)hash, 64 );
      final_luffa( &ctx.luffa, (BitSequence*)hash+64 );
 
      cubehashUpdate( &ctx.cube, (const byte*) hash+64, 64 );

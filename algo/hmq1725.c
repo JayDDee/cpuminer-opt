@@ -169,7 +169,7 @@ extern void hmq1725hash(void *state, const void *input)
         sph_bmw512_close(&ctx.bmw2, hashB);   //5
     }
     
-     update_luffa( &ctx.luffa1, (BitSequence*)hashB, 512 );
+     update_luffa( &ctx.luffa1, (BitSequence*)hashB, 64 );
      final_luffa( &ctx.luffa1, (BitSequence*)hashA );
 
      cubehashUpdate( &ctx.cube, (BitSequence *)hashA, 64 );
@@ -222,7 +222,7 @@ extern void hmq1725hash(void *state, const void *input)
     }
     else
     {
-     update_luffa( &ctx.luffa2, (BitSequence *)hashB, 512 );
+     update_luffa( &ctx.luffa2, (BitSequence *)hashB, 64 );
      final_luffa( &ctx.luffa2, (BitSequence *)hashA );
     }
 

@@ -113,7 +113,7 @@ void sibhash(void *output, const void *input)
      sph_gost512(&ctx.gost, hashA, 64);
      sph_gost512_close(&ctx.gost, hashB);
 
-     update_luffa( &ctx.luffa, (const BitSequence*)hashB,512);
+     update_luffa( &ctx.luffa, (const BitSequence*)hashB,64);
      final_luffa( &ctx.luffa, (BitSequence*)hashA);
 
      cubehashUpdate( &ctx.cube, (const byte*) hashA,64);

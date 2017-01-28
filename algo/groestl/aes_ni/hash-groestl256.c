@@ -57,11 +57,7 @@ void Transform256(hashState_groestl256 *ctx,
 
     /* digest message, one block at a time */
     for (; len >= SIZE; len -= SIZE, in += SIZE)
-//#if LENGTH<=256
       TF512((u64*)ctx->chaining, (u64*)in);
-//#else
-//      TF1024((u64*)ctx->chaining, (u64*)in);
-//#endif
 
     asm volatile ("emms");
 }
@@ -69,11 +65,7 @@ void Transform256(hashState_groestl256 *ctx,
 /* given state h, do h <- P(h)+h */
 void OutputTransformation256(hashState_groestl256 *ctx) {
     /* determine variant */
-//#if (LENGTH <= 256)
     OF512((u64*)ctx->chaining);
-//#else
-//    OF1024((u64*)ctx->chaining);
-//#endif
 
     asm volatile ("emms");
 }
@@ -83,18 +75,12 @@ HashReturn_gr init_groestl256(hashState_groestl256* ctx) {
   u8 i = 0;
   /* output size (in bits) must be a positive integer less than or
      equal to 512, and divisible by 8 */
-//  if (LENGTH <= 0 || (LENGTH%8) || LENGTH > 512)
-//    return BAD_HASHBITLEN_GR;
 
   /* set number of state columns and state size depending on
      variant */
   ctx->columns = COLS;
   ctx->statesize = SIZE;
-//#if (LENGTH <= 256)
     ctx->v = SHoRT;
-//#else
-//    ctx->v = LoNG;
-//#endif
 
   SET_CONSTANTS();
 
@@ -107,7 +93,6 @@ HashReturn_gr init_groestl256(hashState_groestl256* ctx) {
     return FAIL_GR;
 
   /* set initial value */
-//  ctx->chaining[ctx->columns-1] = U64BIG((u64)LENGTH);
   ctx->chaining[ctx->columns-1] = U64BIG((u64)256);
 
   INIT256(ctx->chaining);
@@ -115,7 +100,6 @@ HashReturn_gr init_groestl256(hashState_groestl256* ctx) {
   /* set other variables */
   ctx->buf_ptr = 0;
   ctx->block_counter = 0;
-  ctx->bits_in_last_byte = 0;
 
   return SUCCESS_GR;
 }
@@ -133,7 +117,6 @@ HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
     return FAIL_GR;
 
   /* set initial value */
-//  ctx->chaining[ctx->columns-1] = U64BIG((u64)LENGTH);
   ctx->chaining[ctx->columns-1] = 256;
 
   INIT256(ctx->chaining);
@@ -141,111 +124,61 @@ HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
   /* set other variables */
   ctx->buf_ptr = 0;
   ctx->block_counter = 0;
-  ctx->bits_in_last_byte = 0;
 
   return SUCCESS_GR;
 }
 
 
 /* update state with databitlen bits of input */
-HashReturn_gr update_groestl256(hashState_groestl256* ctx,
-		  const BitSequence_gr* input,
-		  DataLength_gr databitlen) {
+HashReturn_gr update_groestl256( hashState_groestl256* ctx,
+		                 const BitSequence_gr* input,
+		                 DataLength_gr databitlen )
+{
   int index = 0;
   int msglen = (int)(databitlen/8);
   int rem = (int)(databitlen%8);
 
-  /* non-integral number of message bytes can only be supplied in the
-     last call to this function */
-  if (ctx->bits_in_last_byte) return FAIL_GR;
-
-  /* if the buffer contains data that has not yet been digested, first
-     add data to buffer until full */
-
-// The following block of code never gets hit when hashing x11 or quark
-// leave it here in case it might be needed.
-//  if (ctx->buf_ptr)
-//  {
-//    while (ctx->buf_ptr < ctx->statesize && index < msglen)
-//    {
-//      ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
-//    }
-//    if (ctx->buf_ptr < ctx->statesize)
-//    {
-//      /* buffer still not full, return */
-//      if (rem)
-//      {
-//        ctx->bits_in_last_byte = rem;
-//        ctx->buffer[(int)ctx->buf_ptr++] = input[index];
-//      }
-//      return SUCCESS_GR;
-//    }
-//    /* digest buffer */
-//    ctx->buf_ptr = 0;
-//    printf("error\n");
-//    Transform(ctx, ctx->buffer, ctx->statesize);
-// end dead code
-//  }
-
   /* digest bulk of message */
-  Transform256(ctx, input+index, msglen-index);
+  Transform256( ctx, input+index, msglen-index );
+
   index += ((msglen-index)/ctx->statesize)*ctx->statesize;
 
   /* store remaining data in buffer */
   while (index < msglen)
-  {
     ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
-  }
-
-// Another block that doesn't get used by x11 or quark
-//  /* if non-integral number of bytes have been supplied, store
-//     remaining bits in last byte, together with information about
-//     number of bits */
-//  if (rem)
-//  {
-//    ctx->bits_in_last_byte = rem;
-//    ctx->buffer[(int)ctx->buf_ptr++] = input[index];
-//  }
 
   return SUCCESS_GR;
 }
 
-#define BILB ctx->bits_in_last_byte
 
 /* finalise: process remaining data (including padding), perform
    output transformation, and write hash result to 'output' */
-HashReturn_gr final_groestl256(hashState_groestl256* ctx,
-		 BitSequence_gr* output) {
-//  int i, j = 0, hashbytelen = LENGTH/8;
+HashReturn_gr final_groestl256( hashState_groestl256* ctx,
+		                BitSequence_gr* output )
+{
   int i, j = 0, hashbytelen = 256/8;
   u8 *s = (BitSequence_gr*)ctx->chaining;
 
-  /* pad with '1'-bit and first few '0'-bits */
-  if (BILB) {
-    ctx->buffer[(int)ctx->buf_ptr-1] &= ((1<<BILB)-1)<<(8-BILB);
-    ctx->buffer[(int)ctx->buf_ptr-1] ^= 0x1<<(7-BILB);
-    BILB = 0;
-  }
-  else ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
+  ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
 
   /* pad with '0'-bits */
-  if (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
+  if ( ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN )
+  {
     /* padding requires two blocks */
-    while (ctx->buf_ptr < ctx->statesize) {
+    while ( ctx->buf_ptr < ctx->statesize )
       ctx->buffer[(int)ctx->buf_ptr++] = 0;
-    }
     /* digest first padding block */
-    Transform256(ctx, ctx->buffer, ctx->statesize);
+    Transform256( ctx, ctx->buffer, ctx->statesize );
     ctx->buf_ptr = 0;
   }
-  while (ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN) {
+  while ( ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN )
     ctx->buffer[(int)ctx->buf_ptr++] = 0;
-  }
 
   /* length padding */
   ctx->block_counter++;
   ctx->buf_ptr = ctx->statesize;
-  while (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN) {
+  while ( ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN )
+  {
     ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
     ctx->block_counter >>= 8;
   }
@@ -256,21 +189,8 @@ HashReturn_gr final_groestl256(hashState_groestl256* ctx,
   OutputTransformation256(ctx);
 
   /* store hash result in output */
-  for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++) {
+  for ( i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++ )
     output[j] = s[i];
-  }
-
-  /* zeroise relevant variables and deallocate memory */
-  
-  for (i = 0; i < ctx->columns; i++) {
-    ctx->chaining[i] = 0;
-  }
-  
-  for (i = 0; i < ctx->statesize; i++) {
-    ctx->buffer[i] = 0;
-  }
-//  free(ctx->chaining);
-//  free(ctx->buffer);
 
   return SUCCESS_GR;
 }

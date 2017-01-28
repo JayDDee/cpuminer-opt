@@ -11,7 +11,6 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#include "algo/luffa/sph_luffa.h"
 #include "algo/luffa/sse2/luffa_for_sse2.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 
@@ -27,7 +26,6 @@
 #define HASH_FUNC_COUNT 8
 #define HASH_FUNC_COUNT_PERMUTATIONS 40320
 
-//static int permutation[HASH_FUNC_COUNT] = { 0 };
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread int permutation[HASH_FUNC_COUNT] = { 0 };
 
@@ -84,15 +82,13 @@ typedef struct {
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
-        sph_luffa512_context    luffa;
-//        hashState_luffa         luffa;
+        hashState_luffa         luffa;
         cubehashParam           cube;
-// ctx optimization doesn't work for groestl, do it the old way
-//#ifdef NO_AES_NI
-//        sph_groestl512_context  groestl;
-//#else
-//        hashState_groestl       groestl;
-//#endif
+#ifdef NO_AES_NI
+        sph_groestl512_context  groestl;
+#else
+        hashState_groestl       groestl;
+#endif
 } tt_ctx_holder;
 
 tt_ctx_holder tt_ctx;
@@ -104,14 +100,13 @@ void init_tt_ctx()
         sph_skein512_init( &tt_ctx.skein );
         sph_jh512_init( &tt_ctx.jh );
         sph_keccak512_init( &tt_ctx.keccak );
-        sph_luffa512_init( &tt_ctx.luffa );
-//        init_luffa( &tt_ctx.luffa, 512 );
+        init_luffa( &tt_ctx.luffa, 512 );
         cubehashInit( &tt_ctx.cube, 512, 16, 32 );
-//#ifdef NO_AES_NI
-//        sph_groestl512_init( &tt_ctx.groestl );
-//#else
-//        init_groestl( &tt_ctx.groestl );
-//#endif
+#ifdef NO_AES_NI
+        sph_groestl512_init( &tt_ctx.groestl );
+#else
+        init_groestl( &tt_ctx.groestl );
+#endif
 };
 
 void timetravel_hash(void *output, const void *input)
@@ -120,17 +115,9 @@ void timetravel_hash(void *output, const void *input)
    uint32_t *hashA, *hashB;
    uint32_t dataLen = 64;
    uint32_t *work_data = (uint32_t *)input;
-   const uint32_t timestamp = work_data[17];
    tt_ctx_holder ctx;
    memcpy( &ctx, &tt_ctx, sizeof(tt_ctx) );
    int i;
-
-// workaround for initializing groestl ctx
-#ifdef NO_AES_NI
-   sph_groestl512_context  ctx_groestl;
-#else
-   hashState_groestl       ctx_groestl;
-#endif
 
    for ( i = 0; i < HASH_FUNC_COUNT; i++ )
    {
@@ -149,51 +136,39 @@ void timetravel_hash(void *output, const void *input)
 	switch ( permutation[i] )
         {
 	   case 0:
-//		sph_blake512_init( &ctx.blake );
 		sph_blake512( &ctx.blake, hashA, dataLen );
 		sph_blake512_close( &ctx.blake, hashB );
 		break;
 	   case 1:
-//		sph_bmw512_init( &ctx.bmw );
 		sph_bmw512( &ctx.bmw, hashA, dataLen );
 		sph_bmw512_close( &ctx.bmw, hashB );
 		break;
 	   case 2:
 #ifdef NO_AES_NI
-		sph_groestl512_init( &ctx_groestl );
-		sph_groestl512( &ctx_groestl, hashA, dataLen );
-		sph_groestl512_close( &ctx_groestl, hashB );
+		sph_groestl512( &ctx.groestl, hashA, dataLen );
+		sph_groestl512_close( &ctx.groestl, hashB );
 #else
-                init_groestl( &ctx_groestl );
-                update_groestl( &ctx_groestl, (char*)hashA, dataLen*8 );
-                final_groestl( &ctx_groestl, (char*)hashB );
+                update_groestl( &ctx.groestl, (char*)hashA, dataLen*8 );
+                final_groestl( &ctx.groestl, (char*)hashB );
 #endif
 		break;
 	   case 3:
-//		sph_skein512_init( &ctx.skein );
 		sph_skein512( &ctx.skein, hashA, dataLen );
 		sph_skein512_close( &ctx.skein, hashB );
 		break;
 	   case 4:
-//		sph_jh512_init( &ctx.jh );
 		sph_jh512( &ctx.jh, hashA, dataLen );
 		sph_jh512_close( &ctx.jh, hashB);
 		break;
 	   case 5:
-//		sph_keccak512_init( &ctx.keccak );
 		sph_keccak512( &ctx.keccak, hashA, dataLen );
 		sph_keccak512_close( &ctx.keccak, hashB );
 		break;
 	   case 6:
-//              sph_luffa512_init( &ctx.luffa );
-                sph_luffa512 ( &ctx.luffa, hashA, dataLen );
-                sph_luffa512_close( &ctx.luffa, hashB );
-//                init_luffa( &ctx.luffa, 512 );
-//                update_luffa( &ctx.luffa, (const BitSequence*)hashA, dataLen*8 );
-//                final_luffa( &ctx.luffa, (BitSequence*)hashB );
+                update_luffa( &ctx.luffa, (const BitSequence*)hashA, dataLen );
+                final_luffa( &ctx.luffa, (BitSequence*)hashB );
 		break;
 	   case 7:
-//                cubehashInit( &ctx.cube, 512, 16, 32 );
                 cubehashUpdate( &ctx.cube, (const byte*) hashA, dataLen );
                 cubehashDigest( &ctx.cube, (byte*)hashB );
 		break;

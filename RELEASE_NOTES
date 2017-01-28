@@ -1,9 +1,18 @@
+Compile instruction for Linux and Windows are at the bottom of this file.
+
 Change Log
 ----------
 
+v3.5.3
+
+More optimizations
+  Timetravel +16%
+  Xevan       +3%
+  Qubit      +12%
+
 V3.5.2
 
-Timetrave (machinecoin) added and optimized.
+Timetravel (machinecoin) added and optimized.
 
 v3.5.1
 
@@ -124,8 +133,6 @@ Building on linux prerequisites:
 It is assumed users know how to install packages on their system and
 be able to compile standard source packages. This is basic Linux and
 beyond the scope of cpuminer-opt. 
-
-
 
 Make sure you have the basic development packages installed.
 Here is a good start:

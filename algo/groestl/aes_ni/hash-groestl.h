@@ -95,18 +95,18 @@ typedef struct {
   __attribute__ ((aligned (32))) BitSequence_gr buffer[SIZE];  /* data buffer */
   u64 block_counter;        /* message block counter */
   int buf_ptr;              /* data buffer pointer */
-  int bits_in_last_byte;    /* no. of message bits in last byte of
-                               data buffer */
   int columns;              /* no. of columns in state */
   int statesize;            /* total no. of bytes in state */
   Var v;                    /* LONG or SHORT */
 } hashState_groestl;
 
-HashReturn_gr init_groestl(hashState_groestl*);
-HashReturn_gr reinit_groestl(hashState_groestl*);
-HashReturn_gr update_groestl(hashState_groestl*, const BitSequence_gr*, DataLength_gr);
-HashReturn_gr final_groestl(hashState_groestl*, BitSequence_gr*);
-HashReturn_gr hash_groestl(int, const BitSequence_gr*, DataLength_gr, BitSequence_gr*);
+HashReturn_gr init_groestl( hashState_groestl* );
+HashReturn_gr reinit_groestl( hashState_groestl* );
+HashReturn_gr update_groestl( hashState_groestl*, const BitSequence_gr*,
+                              DataLength_gr );
+HashReturn_gr final_groestl( hashState_groestl*, BitSequence_gr* );
+HashReturn_gr hash_groestl( int, const BitSequence_gr*, DataLength_gr,
+                            BitSequence_gr* );
 /* NIST API end   */
 
 #endif /* __hash_h */

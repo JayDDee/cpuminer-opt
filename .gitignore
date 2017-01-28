@@ -29,7 +29,8 @@ config.sub
 mingw32-config.cache
 
 */.dirstamp
-
+*/*/.dirstamp
+*/*/*/.dirstamp
 *.iml
 
 *.vcxproj.user

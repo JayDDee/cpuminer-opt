@@ -139,7 +139,7 @@ static void x14hash(void *output, const void *input)
         KEC_C;
 
         //--- luffa7
-        update_luffa( &ctx.luffa, (const BitSequence*)hash,512);
+        update_luffa( &ctx.luffa, (const BitSequence*)hash,64);
         final_luffa( &ctx.luffa, (BitSequence*)hashB);
 
         // 8 Cube

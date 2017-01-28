@@ -47,7 +47,7 @@ void bastionhash(void *output, const void *input)
 	HEFTY1(input, 80, hash);
 
         init_luffa( &ctx_luffa, 512 );
-        update_luffa( &ctx_luffa, hash, 512 );
+        update_luffa( &ctx_luffa, hash, 64 );
         final_luffa( &ctx_luffa, hash );
 
 	if (hash[0] & 0x8)
@@ -86,7 +86,7 @@ void bastionhash(void *output, const void *input)
 #endif
 	} else {
                 init_luffa( &ctx_luffa, 512 );
-                update_luffa( &ctx_luffa, hash, 512 );
+                update_luffa( &ctx_luffa, hash, 64 );
                 final_luffa( &ctx_luffa, hash );
 	}
 
@@ -124,7 +124,7 @@ void bastionhash(void *output, const void *input)
 		sph_hamsi512_close(&ctx_hamsi, hash);
 	} else {
                 init_luffa( &ctx_luffa, 512 );
-                update_luffa( &ctx_luffa, hash, 512 );
+                update_luffa( &ctx_luffa, hash, 64 );
                 final_luffa( &ctx_luffa, hash );
 	}
 
