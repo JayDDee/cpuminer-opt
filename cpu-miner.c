@@ -2912,10 +2912,10 @@ int main(int argc, char *argv[])
         {
            exit(1);
         }
-*/
+
         if ( !check_cpu_capability() )
            exit(1);
-
+*/
         if ( opt_algo == ALGO_NULL )
         {
             fprintf(stderr, "%s: no algo supplied\n", argv[0]);
@@ -2961,6 +2961,9 @@ int main(int argc, char *argv[])
 
         // All options must be set before starting the gate
         if ( !register_algo_gate( opt_algo, &algo_gate ) )
+           exit(1);
+
+        if ( !check_cpu_capability() )
            exit(1);
 
 	pthread_mutex_init(&stats_lock, NULL);
