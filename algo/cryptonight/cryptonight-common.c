@@ -35,9 +35,8 @@ void do_groestl_hash(const void* input, size_t len, char* output) {
     groestl(input, len * 8, (uint8_t*)output);
 #else
     hashState_groestl256 ctx;
-    init_groestl256( &ctx );
-    update_groestl256( &ctx, input, len * 8 );
-    final_groestl256( &ctx, output );
+    init_groestl256( &ctx, 32 );
+    update_and_final_groestl256( &ctx, output, input, len * 8 );
 #endif
 }
 

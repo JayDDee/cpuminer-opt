@@ -36,7 +36,7 @@ void init_nist5_ctx()
 #ifdef NO_AES_NI
      sph_groestl512_init( &nist5_ctx.groestl );
 #else
-     init_groestl( &nist5_ctx.groestl );
+     init_groestl( &nist5_ctx.groestl, 64 );
 #endif
 }
 

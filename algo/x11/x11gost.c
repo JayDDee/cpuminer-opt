@@ -54,7 +54,7 @@ void init_sib_ctx()
      sph_echo512_init( &sib_ctx.echo );
 #else
      init_echo( &sib_ctx.echo, 512 );
-     init_groestl( &sib_ctx.groestl );
+     init_groestl( &sib_ctx.groestl, 64 );
 #endif
 
 }
@@ -181,4 +181,5 @@ bool register_sib_algo( algo_gate_t* gate )
     gate->hash     = (void*)&sibhash;
     gate->hash_alt = (void*)&sibhash;
     gate->get_max64 = (void*)&get_max64_0x3ffff;
+    return true;
 }

@@ -23,9 +23,6 @@ static void transform( cubehashParam *sp )
 #ifdef __AVX2__
 
     __m256i x0, x1, x2, x3, y0, y1;
-#ifdef  UNUSED
-    __m256i y2, y3;
-#endif
 
     x0 = _mm256_load_si256( 0 + sp->x );
     x1 = _mm256_load_si256( 2 + sp->x );   
@@ -65,12 +62,8 @@ static void transform( cubehashParam *sp )
     _mm256_store_si256( 4 + sp->x, x2 );
     _mm256_store_si256( 6 + sp->x, x3 );
 
-#elif defined OPTIMIZE_SSE2
-
+#else
     __m128i x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3;
-#ifdef	UNUSED
-    __m128i y4, y5, y6, y7;
-#endif
 
     x0 = _mm_load_si128(0 + sp->x);
     x1 = _mm_load_si128(1 + sp->x);
@@ -133,67 +126,31 @@ static void transform( cubehashParam *sp )
     _mm_store_si128(6 + sp->x, x6);
     _mm_store_si128(7 + sp->x, x7);
 
-#else	/* OPTIMIZE_SSE2 */
-// Tis code probably not used, sph used instead for uniptoimized mining.
-
-#define ROTATE(a,b) (((a) << (b)) | ((a) >> (32 - b)))
-
-    uint32_t y[16];
-    int i;
-
-    for (r = 0; r < rounds; ++r) {
-
-	for (i = 0; i < 16; ++i) sp->x[i + 16] += sp->x[i];
-
-	for (i = 0; i < 16; ++i) sp->x[i] = ROTATE(y[i],7);
-
-	for (i = 0; i < 16; ++i) sp->x[i] ^= sp->x[i + 16];
-
-	for (i = 0; i < 16; ++i) y[i ^ 2] = sp->x[i + 16];
-
-	for (i = 0; i < 16; ++i) sp->x[i + 16] = y[i];
-
-	for (i = 0; i < 16; ++i) sp->x[i + 16] += sp->x[i];
-
-	for (i = 0; i < 16; ++i) y[i ^ 4] = sp->x[i];
-
-	for (i = 0; i < 16; ++i) sp->x[i] = ROTATE(y[i],11);
-
-	for (i = 0; i < 16; ++i) sp->x[i] ^= sp->x[i + 16];
-
-	for (i = 0; i < 16; ++i) y[i ^ 1] = sp->x[i + 16];
-
-	for (i = 0; i < 16; ++i) sp->x[i + 16] = y[i];
-
-    }
-#endif	
+#endif
 }  // transform
 
 int cubehashInit(cubehashParam *sp, int hashbitlen, int rounds, int blockbytes)
 {
     int i;
 
-    if (hashbitlen < 8) return BAD_HASHBITLEN;
-    if (hashbitlen > 512) return BAD_HASHBITLEN;
-    if (hashbitlen != 8 * (hashbitlen / 8)) return BAD_HASHBITLEN;
+    if ( hashbitlen < 8 ) return BAD_HASHBITLEN;
+    if ( hashbitlen > 512 ) return BAD_HASHBITLEN;
+    if ( hashbitlen != 8 * (hashbitlen / 8) ) return BAD_HASHBITLEN;
 
     /* Sanity checks */
-    if (rounds <= 0 || rounds > 32) rounds = CUBEHASH_ROUNDS;
-    if (blockbytes <= 0 || blockbytes >= 256) blockbytes = CUBEHASH_BLOCKBYTES;
+    if ( rounds <= 0 || rounds > 32 )
+         rounds = CUBEHASH_ROUNDS;
+    if ( blockbytes <= 0 || blockbytes >= 256)
+         blockbytes = CUBEHASH_BLOCKBYTES;
 
     sp->hashbitlen = hashbitlen;
     sp->rounds = rounds;
     sp->blockbytes = blockbytes;
-#if defined(OPTIMIZE_SSE2)
-    for (i = 0; i < 8; ++i) sp->x[i] = _mm_set_epi32(0, 0, 0, 0);
+    for ( i = 0; i < 8; ++i )
+         sp->x[i] = _mm_set_epi32(0, 0, 0, 0);
     sp->x[0] = _mm_set_epi32(0, sp->rounds, sp->blockbytes, hashbitlen / 8);
-#else
-    for (i = 0; i < 32; ++i) sp->x[i] = 0;
-    sp->x[0] = hashbitlen / 8;
-    sp->x[1] = sp->blockbytes;
-    sp->x[2] = sp->rounds;
-#endif
-    for (i = 0; i < 10; ++i) transform(sp);
+    for ( i = 0; i < 10; ++i )
+         transform(sp);
     sp->pos = 0;
     return SUCCESS;
 }
@@ -204,65 +161,104 @@ cubehashReset(cubehashParam *sp)
     return cubehashInit(sp, sp->hashbitlen, sp->rounds, sp->blockbytes);
 }
 
-int cubehashUpdate(cubehashParam *sp, const byte *data, size_t size)
+int cubehashUpdate( cubehashParam *sp, const byte *data, size_t size )
 {
     uint64_t databitlen = 8 * size;
 
     /* caller promises us that previous data had integral number of bytes */
     /* so sp->pos is a multiple of 8 */
 
-    while (databitlen >= 8) {
-#if defined(OPTIMIZE_SSE2)
-	((unsigned char *) sp->x)[sp->pos / 8] ^= *data;
-#else
-	uint32_t u = *data;
-	u <<= 8 * ((sp->pos / 8) % 4);
-	sp->x[sp->pos / 32] ^= u;
-#endif
+    while ( databitlen >= 8 )
+    {
+	( (unsigned char *)sp->x )[sp->pos/8] ^= *data;
 	data += 1;
 	databitlen -= 8;
 	sp->pos += 8;
-	if (sp->pos == 8 * sp->blockbytes) {
-	    transform(sp);
+	if ( sp->pos == 8 * sp->blockbytes )
+        {
+	    transform( sp );
 	    sp->pos = 0;
 	}
     }
-    if (databitlen > 0) {
-#if defined(OPTIMIZE_SSE2)
-	((unsigned char *) sp->x)[sp->pos / 8] ^= *data;
-#else
-	uint32_t u = *data;
-	u <<= 8 * ((sp->pos / 8) % 4);
-	sp->x[sp->pos / 32] ^= u;
-#endif
+    if ( databitlen > 0 )
+    {
+	( (unsigned char *)sp->x )[sp->pos/8] ^= *data;
 	sp->pos += databitlen;
     }
     return SUCCESS;
 }
 
-int cubehashDigest(cubehashParam *sp, byte *digest)
+int cubehashDigest( cubehashParam *sp, byte *digest )
 {
     int i;
 
-#if defined(OPTIMIZE_SSE2)
-    ((unsigned char *) sp->x)[sp->pos / 8] ^= (128 >> (sp->pos % 8));
+    ( (unsigned char *)sp->x )[sp->pos/8] ^= ( 128 >> (sp->pos % 8) );
     transform(sp);
-    sp->x[7] = _mm_xor_si128(sp->x[7], _mm_set_epi32(1, 0, 0, 0));
-    for (i = 0; i < 10; ++i) transform(sp);
-    for (i = 0; i < sp->hashbitlen / 8; ++i)
-	digest[i] = ((unsigned char *) sp->x)[i];
-#else
-    uint32_t u;
 
-    u = (128 >> (sp->pos % 8));
-    u <<= 8 * ((sp->pos / 8) % 4);
-    sp->x[sp->pos / 32] ^= u;
+    sp->x[7] = _mm_xor_si128(sp->x[7], _mm_set_epi32(1, 0, 0, 0));
     transform(sp);
-    sp->x[31] ^= 1;
-    for (i = 0; i < 10; ++i) transform(sp);
-    for (i = 0; i < sp->hashbitlen / 8; ++i)
-	digest[i] = sp->x[i / 4] >> (8 * (i % 4));
-#endif
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+
+    for ( i = 0; i < sp->hashbitlen / 8; ++i )
+	digest[i] = ((unsigned char *) sp->x)[i];
 
     return SUCCESS;
 }
+
+int cubehashUpdateDigest( cubehashParam *sp, byte *digest,
+                          const byte *data, size_t size )
+{
+    uint64_t databitlen = 8 * size;
+    int hashlen128 = sp->hashbitlen/128;
+    int i;
+
+    /* caller promises us that previous data had integral number of bytes */
+    /* so sp->pos is a multiple of 8 */
+
+    while ( databitlen >= 8 )
+    {
+        ( (unsigned char *)sp->x )[sp->pos/8] ^= *data;
+        data += 1;
+        databitlen -= 8;
+        sp->pos += 8;
+        if ( sp->pos == 8 * sp->blockbytes )
+        {
+            transform(sp);
+            sp->pos = 0;
+        }
+    }
+    if ( databitlen > 0 )
+    {
+        ( (unsigned char *)sp->x )[sp->pos/8] ^= *data;
+        sp->pos += databitlen;
+    }
+
+    ( (unsigned char *)sp->x )[sp->pos/8] ^= ( 128 >> (sp->pos % 8) );
+    transform( sp );
+
+    sp->x[7] = _mm_xor_si128( sp->x[7], _mm_set_epi32(1,0,0,0) );
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+    transform(sp);
+
+    for ( i = 0; i < hashlen128; i++ )
+       ( (__m128i*)digest )[i] = ( (__m128i*)sp->x )[i];
+
+    return SUCCESS;
+}
+

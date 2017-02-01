@@ -53,6 +53,8 @@ HashReturn final_echo(hashState_echo *state, BitSequence *hashval);
 
 HashReturn hash_echo(int hashbitlen, const BitSequence *data, DataLength databitlen, BitSequence *hashval);
 
+HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
+                              const BitSequence *data, DataLength databitlen );
 
 #endif // HASH_API_H
 

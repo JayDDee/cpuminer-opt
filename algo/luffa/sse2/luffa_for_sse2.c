@@ -327,6 +327,50 @@ HashReturn final_luffa(hashState_luffa *state, BitSequence *hashval)
     return SUCCESS;
 }
 
+HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
+              const BitSequence* data, size_t inlen )
+{
+    HashReturn ret=SUCCESS;
+    int i, j;
+    int rem = inlen % 32;
+    int blocks = (int)( inlen / 32 );
+    uint8 *p = (uint8*)state->buffer;
+
+    // full blocks
+    for ( j = 0; j < blocks; j++ )
+    {
+       state->buffer[0] = BYTES_SWAP32( ((uint32*)data)[0] );
+       state->buffer[1] = BYTES_SWAP32( ((uint32*)data)[1] );
+       state->buffer[2] = BYTES_SWAP32( ((uint32*)data)[2] );
+       state->buffer[3] = BYTES_SWAP32( ((uint32*)data)[3] );
+       state->buffer[4] = BYTES_SWAP32( ((uint32*)data)[4] );
+       state->buffer[5] = BYTES_SWAP32( ((uint32*)data)[5] );
+       state->buffer[6] = BYTES_SWAP32( ((uint32*)data)[6] );
+       state->buffer[7] = BYTES_SWAP32( ((uint32*)data)[7] );
+
+       rnd512( state );
+       data += MSG_BLOCK_BYTE_LEN;
+    }
+
+    // remaining partial block, if any
+    for ( i = 0; i < rem/4; i++ )
+       state->buffer[i] = BYTES_SWAP32( ((uint32*)data)[i] );
+
+    // padding of partial block
+    memset( p+rem+1, 0, (31-rem)*sizeof(uint8) );
+    p[rem] = 0x80;
+    for ( i = rem/4; i < 8; i++ )
+       state->buffer[i] = BYTES_SWAP32(state->buffer[i]);
+
+    rnd512( state );
+
+    finalization512( state, (uint32*) output );
+    if ( state->hashbitlen > 512 )
+        finalization512( state, (uint32*)( output+128 ) );
+    return SUCCESS;
+
+}
+
 /***************************************************/
 /* Round function         */
 /* state: hash context    */

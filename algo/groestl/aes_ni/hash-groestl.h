@@ -15,34 +15,11 @@
 #endif
 #include <stdlib.h>
 
-/* eBash API begin */
-/*
-#include "crypto_hash.h"
-#ifdef crypto_hash_BYTES
-
-#include <crypto_uint8.h>
-#include <crypto_uint32.h>
-#include <crypto_uint64.h>
-typedef crypto_uint8 u8;
-typedef crypto_uint32 u32;
-typedef crypto_uint64 u64;
-#endif
- * /
-/* eBash API end */
-
 #define LENGTH (512)
 
 #include "brg_endian.h"
 #define NEED_UINT_64T
 #include "brg_types.h"
-
-#ifdef IACA_TRACE
-  #include IACA_MARKS
-#endif
-
-#ifndef LENGTH
-#define LENGTH (256)
-#endif
 
 /* some sizes (number of bytes) */
 #define ROWS (8)
@@ -80,10 +57,6 @@ typedef crypto_uint64 u64;
    (ROTL64(a,56) & li_64(FF000000FF000000)))
 #endif /* IS_LITTLE_ENDIAN */
 
-typedef enum { LoNG, SHoRT } Var;
-
-/* NIST API begin */
-
 typedef unsigned char BitSequence_gr;
 typedef unsigned long long DataLength_gr;
 typedef enum { SUCCESS_GR = 0, FAIL_GR = 1, BAD_HASHBITLEN_GR = 2} HashReturn_gr;
@@ -91,22 +64,28 @@ typedef enum { SUCCESS_GR = 0, FAIL_GR = 1, BAD_HASHBITLEN_GR = 2} HashReturn_gr
 // Use area128 overlay for buffer to facilitate fast copying
 
 typedef struct {
-  __attribute__ ((aligned (32))) u64 chaining[SIZE/8];      /* actual state */
-  __attribute__ ((aligned (32))) BitSequence_gr buffer[SIZE];  /* data buffer */
+  __attribute__ ((aligned (32))) u64 chaining[SIZE/8];        // actual state
+  __attribute__ ((aligned (32))) BitSequence_gr buffer[SIZE]; // data buffer
   u64 block_counter;        /* message block counter */
+  int hashlen;              // bytes
   int buf_ptr;              /* data buffer pointer */
-  int columns;              /* no. of columns in state */
-  int statesize;            /* total no. of bytes in state */
-  Var v;                    /* LONG or SHORT */
 } hashState_groestl;
 
-HashReturn_gr init_groestl( hashState_groestl* );
+//HashReturn_gr init_groestl( hashState_groestl* );
+
+HashReturn_gr init_groestl( hashState_groestl*, int );
+
 HashReturn_gr reinit_groestl( hashState_groestl* );
+
 HashReturn_gr update_groestl( hashState_groestl*, const BitSequence_gr*,
                               DataLength_gr );
+
 HashReturn_gr final_groestl( hashState_groestl*, BitSequence_gr* );
+
 HashReturn_gr hash_groestl( int, const BitSequence_gr*, DataLength_gr,
                             BitSequence_gr* );
-/* NIST API end   */
+
+HashReturn_gr update_and_final_groestl( hashState_groestl*,
+                       BitSequence_gr*, const BitSequence_gr*, DataLength_gr );
 
 #endif /* __hash_h */

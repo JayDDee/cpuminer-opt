@@ -48,16 +48,20 @@ void lyra2rev2_hash( void *state, const void *input )
 	sph_keccak256( &ctx.keccak, hashA, 32 );
 	sph_keccak256_close(&ctx.keccak, hashB);
 
-        cubehashUpdate( &ctx.cube1, (const byte*) hashB,32 );
-        cubehashDigest( &ctx.cube1, (byte*)hashA );
+        cubehashUpdateDigest( &ctx.cube1, (byte*) hashA,
+                              (const byte*) hashB, 32 );
+//        cubehashUpdate( &ctx.cube1, (const byte*) hashB,32 );
+//        cubehashDigest( &ctx.cube1, (byte*)hashA );
 
 	LYRA2( hashA, 32, hashA, 32, hashA, 32, 1, 4, 4 );
 
 	sph_skein256( &ctx.skein, hashA, 32 );
 	sph_skein256_close( &ctx.skein, hashB );
 
-        cubehashUpdate( &ctx.cube2, (const byte*) hashB,32 );
-        cubehashDigest( &ctx.cube2, (byte*)hashA );
+        cubehashUpdateDigest( &ctx.cube2, (byte*) hashA, 
+                              (const byte*) hashB, 32 );
+//        cubehashUpdate( &ctx.cube2, (const byte*) hashB,32 );
+//        cubehashDigest( &ctx.cube2, (byte*)hashA );
 
 	sph_bmw256( &ctx.bmw, hashA, 32 );
 	sph_bmw256_close( &ctx.bmw, hashB );

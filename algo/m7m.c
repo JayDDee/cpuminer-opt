@@ -64,9 +64,9 @@ double GaussianQuad_N2(const double x1, const double x2)
     double x[6], w[6];
     //gauleg(a2, b2, x, w);
     
-    int m,j;
+//    int m;
     double z1, z, xm, xl, pp, p3, p2, p1;
-    m=3;
+//    m=3;
     xm=0.5*(x2+x1);
     xl=0.5*(x2-x1);
     for(int i=1;i<=3;i++)
@@ -165,7 +165,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
     //uint8_t *bdata = 0;
     uint8_t bdata[8192];
     int rc = 0, i, digits;
-    int bytes, nnNonce2;
+    int bytes;
     size_t p = sizeof(unsigned long), a = 64/p, b = 32/p;
 
     m7m_ctx_holder ctx1, ctx2;
@@ -183,49 +183,6 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
     sph_tiger( &ctx1.tiger, data, M7_MIDSTATE_LEN );
     sph_ripemd160( &ctx1.ripemd, data, M7_MIDSTATE_LEN );
 
-/*
-    sph_sha256_context       ctx_final_sha256;
-
-    sph_sha256_context       ctx_sha256;
-    sph_sha512_context       ctx_sha512;
-    sph_keccak512_context    ctx_keccak;
-    sph_whirlpool_context    ctx_whirlpool;
-    sph_haval256_5_context   ctx_haval;
-    sph_tiger_context        ctx_tiger;
-    sph_ripemd160_context    ctx_ripemd;
-    
-    sph_sha256_init(&ctx_final_sha256);
-    
-    sph_sha256_init(&ctx_sha256);
-    sph_sha256 (&ctx_sha256, data, M7_MIDSTATE_LEN);
-    
-    sph_sha512_init(&ctx_sha512);
-    sph_sha512 (&ctx_sha512, data, M7_MIDSTATE_LEN);
-    
-    sph_keccak512_init(&ctx_keccak);
-    sph_keccak512 (&ctx_keccak, data, M7_MIDSTATE_LEN);
-
-    sph_whirlpool_init(&ctx_whirlpool);
-    sph_whirlpool (&ctx_whirlpool, data, M7_MIDSTATE_LEN);
-    
-    sph_haval256_5_init(&ctx_haval);
-    sph_haval256_5 (&ctx_haval, data, M7_MIDSTATE_LEN);
-
-    sph_tiger_init(&ctx_tiger);
-    sph_tiger (&ctx_tiger, data, M7_MIDSTATE_LEN);
-
-    sph_ripemd160_init(&ctx_ripemd);
-    sph_ripemd160 (&ctx_ripemd, data, M7_MIDSTATE_LEN);
-
-    sph_sha256_context       ctx2_sha256;
-    sph_sha512_context       ctx2_sha512;
-    sph_keccak512_context    ctx2_keccak;
-    sph_whirlpool_context    ctx2_whirlpool;
-    sph_haval256_5_context   ctx2_haval;
-    sph_tiger_context        ctx2_tiger;
-    sph_ripemd160_context    ctx2_ripemd;
-*/
-	
     mpz_t magipi, magisw, product, bns0, bns1;
     mpf_t magifpi, magifpi0, mpt1, mpt2, mptmp, mpten;
     
@@ -419,7 +376,7 @@ int scanhash_m7m_hash_t(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
     //uint8_t *bdata = 0;
     uint8_t bdata[8192];
     int rc = 0, i, digits;
-    int bytes, nnNonce2;
+    int bytes;
     size_t p = sizeof(unsigned long), a = 64/p, b = 32/p;
 
     memcpy(data, pdata, 80);

@@ -530,7 +530,7 @@ enum algos {
         ALGO_ZR5,
         ALGO_COUNT
 };
-static const char *algo_names[] = {
+static const char* const algo_names[] = {
         NULL,
         "argon2",
         "axiom",
@@ -588,6 +588,8 @@ static const char *algo_names[] = {
         "zr5",
         "\0"
 };
+
+char* algo_name( enum algos a );
 
 extern enum algos opt_algo;
 extern bool opt_debug;

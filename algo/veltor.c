@@ -29,30 +29,20 @@ void init_veltor_ctx()
 
 void veltorhash(void *output, const void *input)
 {
-//	sph_skein512_context	ctx_skein;
-//	sph_gost512_context 	ctx_gost;
-//	sph_shabal512_context ctx_shabal;
-//	sph_shavite512_context     ctx_shavite;
-
-	//these uint512 in the c++ source of the client are backed by an array of uint32
 	uint32_t _ALIGN(64) hashA[16], hashB[16];
 
      veltor_ctx_holder ctx;
      memcpy( &ctx, &veltor_ctx, sizeof(veltor_ctx) );
 
-//	sph_skein512_init(&ctx_skein);
 	sph_skein512(&ctx.skein, input, 80);
 	sph_skein512_close(&ctx.skein, hashA);
 
-//        sph_shavite512_init(&ctx_shavite);
         sph_shavite512(&ctx.shavite, hashA, 64);
         sph_shavite512_close(&ctx.shavite, hashB);
 
-//        sph_shabal512_init(&ctx_shabal);
         sph_shabal512(&ctx.shabal, hashB, 64);
         sph_shabal512_close(&ctx.shabal, hashA);
 
-//	sph_gost512_init(&ctx_gost);
 	sph_gost512(&ctx.gost, hashA, 64);
 	sph_gost512_close(&ctx.gost, hashB);
 

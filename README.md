@@ -4,7 +4,7 @@ Jeff garzik, ig0tik3d, elmad, palmd, and Optiminer, with additional
 optimizations by Jay D Dee.
 
 All of the code is believed to be open and free. If anyone has a
-claim to any of it post your case in the icpuminer-opt Bitcoin Talk forum
+claim to any of it post your case in the cpuminer-opt Bitcoin Talk forum
 or by email.
 
 https://bitcointalk.org/index.php?topic=1326803.0
@@ -55,6 +55,7 @@ Supported Algorithms
                           shavite3     Shavite3
                           skein        Skein+Sha (Skeincoin)
                           skein2       Double Skein (Woodcoin)
+                          timetravel   Machinecoin (MAC)
                           vanilla      blake256r8vnl (VCash)
                           veltor
                           whirlpool

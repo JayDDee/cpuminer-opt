@@ -55,8 +55,14 @@ typedef struct {
  */
 
 HashReturn init_sd(hashState_sd *state, int hashbitlen);
+
 HashReturn update_sd(hashState_sd *state, const BitSequence *data, DataLength databitlen);
+
 HashReturn final_sd(hashState_sd *state, BitSequence *hashval);
+
+HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
+                            const BitSequence *data, DataLength databitlen );
+
 //HashReturn Hash(int hashbitlen, const BitSequence *data, DataLength databitlen,
 //                BitSequence *hashval);
 

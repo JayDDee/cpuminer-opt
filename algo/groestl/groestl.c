@@ -29,8 +29,8 @@ void init_groestl_ctx()
 #ifdef NO_AES_NI
     sph_groestl512_init( &groestl_ctx.groestl );
 #else
-    init_groestl( &groestl_ctx.groestl1 );
-    init_groestl( &groestl_ctx.groestl2 );
+    init_groestl( &groestl_ctx.groestl1, 64 );
+    init_groestl( &groestl_ctx.groestl2, 64 );
 #endif
 }
 

@@ -29,7 +29,7 @@ void init_myrgr_ctx()
 #ifdef NO_AES_NI
      sph_groestl512_init( &myrgr_ctx.groestl );
 #else
-     init_groestl (&myrgr_ctx.groestl );
+     init_groestl (&myrgr_ctx.groestl, 64 );
 #endif
      sph_sha256_init(&myrgr_ctx.sha);
 }

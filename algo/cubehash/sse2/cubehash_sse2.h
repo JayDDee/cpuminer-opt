@@ -57,6 +57,9 @@ int cubehashUpdate(cubehashParam* sp, const byte *data, size_t size);
 //BEECRYPTAPI
 int cubehashDigest(cubehashParam* sp, byte *digest);
 
+int cubehashUpdateDigest( cubehashParam *sp, byte *digest, const byte *data,
+                          size_t size );
+
 #ifdef __cplusplus
 }
 #endif

@@ -31,7 +31,7 @@ static void combine_hashes(uint32_t *out, uint32_t *hash1, uint32_t *hash2, uint
 
 extern void heavyhash(unsigned char* output, const unsigned char* input, int len)
 {
-/*    unsigned char hash1[32];
+    unsigned char hash1[32];
     HEFTY1(input, len, hash1);
 
 // HEFTY1 is new, so take an extra security measure to eliminate
@@ -77,7 +77,7 @@ extern void heavyhash(unsigned char* output, const unsigned char* input, int len
 
     uint32_t *final = (uint32_t *)output;
     combine_hashes(final, (uint32_t *)hash2, hash3, hash4, hash5);
-*/
+
 }
 
 int scanhash_heavy(int thr_id, uint32_t *pdata, const uint32_t *ptarget,

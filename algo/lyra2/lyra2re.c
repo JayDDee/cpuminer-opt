@@ -33,7 +33,7 @@ void init_lyra2re_ctx()
 #ifdef NO_AES_NI
         sph_groestl256_init(&lyra2re_ctx.groestl);
 #else
-        init_groestl256( &lyra2re_ctx.groestl );
+        init_groestl256( &lyra2re_ctx.groestl, 32 );
 #endif
 }
 
@@ -62,8 +62,7 @@ void lyra2re_hash(void *state, const void *input)
 	sph_groestl256( &ctx.groestl, hashB, 32 );
 	sph_groestl256_close( &ctx.groestl, hashA );
 #else
-        update_groestl256( &ctx.groestl, hashB, 256 );
-        final_groestl256( &ctx.groestl, hashA );
+        update_and_final_groestl256( &ctx.groestl, hashA, hashB, 256 );
 #endif
 
 	memcpy(state, hashA, 32);

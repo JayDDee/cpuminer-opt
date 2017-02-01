@@ -6,8 +6,10 @@
  * This code is placed in the public domain
  */
 
+#include <memory.h>
 #include "hash-groestl.h"
 #include "miner.h"
+#include "avxdefs.h"
 
 #ifndef NO_AES_NI
 
@@ -53,15 +55,9 @@ void Transform( hashState_groestl *ctx, const u8 *in, unsigned long long len )
 {
     /* increment block counter */
     ctx->block_counter += len/SIZE;
-
     /* digest message, one block at a time */
-    for (; len >= SIZE; len -= SIZE, in += SIZE)
-#if LENGTH<=256
-      TF512((u64*)ctx->chaining, (u64*)in);
-#else
-      TF1024((u64*)ctx->chaining, (u64*)in);
-#endif
-
+    for ( ; len >= SIZE; len -= SIZE, in += SIZE )
+        TF1024( (u64*)ctx->chaining, (u64*)in );
     asm volatile ("emms");
 }
 
@@ -69,73 +65,57 @@ void Transform( hashState_groestl *ctx, const u8 *in, unsigned long long len )
 void OutputTransformation( hashState_groestl *ctx )
 {
     /* determine variant */
-#if (LENGTH <= 256)
-    OF512((u64*)ctx->chaining);
-#else
-    OF1024((u64*)ctx->chaining);
-#endif
-
+    OF1024( (u64*)ctx->chaining );
     asm volatile ("emms");
 }
 
 /* initialise context */
-HashReturn_gr init_groestl( hashState_groestl* ctx )
+HashReturn_gr init_groestl( hashState_groestl* ctx, int hashlen )
 {
   u8 i = 0;
-  /* output size (in bits) must be a positive integer less than or
-     equal to 512, and divisible by 8 */
-  if (LENGTH <= 0 || (LENGTH%8) || LENGTH > 512)
-    return BAD_HASHBITLEN_GR;
 
-  /* set number of state columns and state size depending on
-     variant */
-  ctx->columns = COLS;
-  ctx->statesize = SIZE;
-#if (LENGTH <= 256)
-    ctx->v = SHoRT;
-#else
-    ctx->v = LoNG;
-#endif
+  ctx->hashlen = hashlen;
 
   SET_CONSTANTS();
 
-  for (i=0; i<SIZE/8; i++)
+  for ( i = 0; i < SIZE / 8; i++ )
     ctx->chaining[i] = 0;
-  for (i=0; i<SIZE; i++)
+  for ( i = 0; i < SIZE; i++ )
     ctx->buffer[i] = 0;
 
   if (ctx->chaining == NULL || ctx->buffer == NULL)
     return FAIL_GR;
 
   /* set initial value */
-  ctx->chaining[ctx->columns-1] = U64BIG((u64)LENGTH);
-
+  ctx->chaining[COLS-1] = U64BIG((u64)LENGTH);
   INIT(ctx->chaining);
-
-  /* set other variables */
   ctx->buf_ptr = 0;
   ctx->block_counter = 0;
 
   return SUCCESS_GR;
 }
 
+/*
+HashReturn_gr init_groestl( hashState_groestl* ctx )
+{
+  return Xinit_groestl( ctx, 64 );
+}
+*/
+
 HashReturn_gr reinit_groestl( hashState_groestl* ctx )
 {
   int i;
-  for (i=0; i<SIZE/8; i++)
+  for ( i = 0; i < SIZE / 8; i++ )
     ctx->chaining[i] = 0;
-  for (i=0; i<SIZE; i++)
+  for ( i = 0; i < SIZE; i++ )
     ctx->buffer[i] = 0;
 
   if (ctx->chaining == NULL || ctx->buffer == NULL)
     return FAIL_GR;
 
   /* set initial value */
-  ctx->chaining[ctx->columns-1] = U64BIG((u64)LENGTH);
-
-  INIT(ctx->chaining);
-
-  /* set other variables */
+  ctx->chaining[COLS-1] = U64BIG( (u64)LENGTH );
+  INIT( ctx->chaining );
   ctx->buf_ptr = 0;
   ctx->block_counter = 0;
 
@@ -147,21 +127,16 @@ HashReturn_gr update_groestl( hashState_groestl* ctx,
 	                      const BitSequence_gr* input,
 	                      DataLength_gr databitlen )
 {
-
-  int index = 0;
-  int msglen = (int)(databitlen/8);
-  int rem = (int)(databitlen%8);  // not used
+  int i;
+  const int msglen = (int)(databitlen/8);
 
   /* digest bulk of message */
-  Transform( ctx, input+index, msglen-index );
-
-  // this line makes no sense, index = 0 before and after
-  // but removing this line breaks the hash.
-  index += ((msglen-index)/ctx->statesize)*ctx->statesize;
+  Transform( ctx, input, msglen );
 
   /* store remaining data in buffer */
-  while (index < msglen)
-    ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
+  i = ( msglen / SIZE ) * SIZE;
+  while ( i < msglen )
+    ctx->buffer[(int)ctx->buf_ptr++] = input[i++];
 
   return SUCCESS_GR;
 }
@@ -171,43 +146,97 @@ HashReturn_gr update_groestl( hashState_groestl* ctx,
 HashReturn_gr final_groestl( hashState_groestl* ctx,
 	                     BitSequence_gr* output )
 {
-  int i, j = 0, hashbytelen = LENGTH/8;
-  u8 *s = (BitSequence_gr*)ctx->chaining;
+  int i, j;
 
   ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
-
   /* pad with '0'-bits */
-  if ( ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN )
+  if ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
   {
     /* padding requires two blocks */
-    while ( ctx->buf_ptr < ctx->statesize )
+    while ( ctx->buf_ptr < SIZE )
       ctx->buffer[(int)ctx->buf_ptr++] = 0;
     /* digest first padding block */
-    Transform( ctx, ctx->buffer, ctx->statesize );
+    Transform( ctx, ctx->buffer, SIZE );
     ctx->buf_ptr = 0;
   }
 
   // this will pad up to 120 bytes
-  while (ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN)
+  while ( ctx->buf_ptr < SIZE - LENGTHFIELDLEN )
     ctx->buffer[(int)ctx->buf_ptr++] = 0;
 
   /* length padding */
   ctx->block_counter++;
-  ctx->buf_ptr = ctx->statesize;
-  while (ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN)
+  ctx->buf_ptr = SIZE;
+  while ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
   {
     ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
     ctx->block_counter >>= 8;
   }
 
   /* digest final padding block */
-  Transform(ctx, ctx->buffer, ctx->statesize);
+  Transform( ctx, ctx->buffer, SIZE );
   /* perform output transformation */
-  OutputTransformation(ctx);
+  OutputTransformation( ctx );
 
-  /* store hash result in output */
-  for (i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++)
-    output[j] = s[i];
+  // store hash result in output 
+  for ( i = ( SIZE - ctx->hashlen) / 16, j = 0; i < SIZE / 16; i++, j++ )
+       casti_m128i( output, j ) = casti_m128i( ctx->chaining , i );
+
+  return SUCCESS_GR;
+}
+
+HashReturn_gr update_and_final_groestl( hashState_groestl* ctx,
+      BitSequence_gr* output, const BitSequence_gr* input,
+      DataLength_gr databitlen )
+{
+  const int inlen = (int)(databitlen/8);  // need bytes
+  int i, j;
+
+  /* digest bulk of message */
+  Transform( ctx, input, inlen );
+
+  /* store remaining data in buffer */
+  i = ( inlen / SIZE ) * SIZE;
+  while ( i < inlen )
+     ctx->buffer[(int)ctx->buf_ptr++] = input[i++];
+
+  // start of final
+
+  ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
+
+  /* pad with '0'-bits */
+  if ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
+  {
+    /* padding requires two blocks */
+    while ( ctx->buf_ptr < SIZE )
+      ctx->buffer[(int)ctx->buf_ptr++] = 0;
+    memset( ctx->buffer + ctx->buf_ptr, 0, SIZE - ctx->buf_ptr );
+    
+    /* digest first padding block */
+    Transform( ctx, ctx->buffer, SIZE );
+    ctx->buf_ptr = 0;
+  }
+
+  // this will pad up to 120 bytes
+  memset( ctx->buffer + ctx->buf_ptr, 0, SIZE - ctx->buf_ptr - LENGTHFIELDLEN );
+
+  /* length padding */
+  ctx->block_counter++;
+  ctx->buf_ptr = SIZE;
+  while (ctx->buf_ptr > SIZE - LENGTHFIELDLEN)
+  {
+    ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
+    ctx->block_counter >>= 8;
+  }
+
+  /* digest final padding block */
+  Transform( ctx, ctx->buffer, SIZE );
+  /* perform output transformation */
+  OutputTransformation( ctx );
+
+  // store hash result in output 
+  for ( i = ( SIZE - ctx->hashlen) / 16, j = 0; i < SIZE / 16; i++, j++ )
+       casti_m128i( output, j ) = casti_m128i( ctx->chaining , i );
 
   return SUCCESS_GR;
 }
@@ -221,7 +250,7 @@ HashReturn_gr hash_groestl(int hashbitlen,
   hashState_groestl context;
 
   /* initialise */
-  if ((ret = init_groestl(&context)) != SUCCESS_GR)
+  if ((ret = init_groestl( &context, hashbitlen/8 )) != SUCCESS_GR)
     return ret;
 
   /* process message */

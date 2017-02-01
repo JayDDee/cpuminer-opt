@@ -80,16 +80,16 @@ void init_hmq1725_ctx()
     sph_keccak512_init(&hmq1725_ctx.keccak1);
     sph_keccak512_init(&hmq1725_ctx.keccak2);
 
-     init_luffa( &hmq1725_ctx.luffa1, 512 );
-     init_luffa( &hmq1725_ctx.luffa2, 512 );
+    init_luffa( &hmq1725_ctx.luffa1, 512 );
+    init_luffa( &hmq1725_ctx.luffa2, 512 );
 
-     cubehashInit( &hmq1725_ctx.cube, 512, 16, 32 );
+    cubehashInit( &hmq1725_ctx.cube, 512, 16, 32 );
 
     sph_shavite512_init(&hmq1725_ctx.shavite1);
     sph_shavite512_init(&hmq1725_ctx.shavite2);
 
-     init_sd( &hmq1725_ctx.simd1, 512 );
-     init_sd( &hmq1725_ctx.simd2, 512 );
+    init_sd( &hmq1725_ctx.simd1, 512 );
+    init_sd( &hmq1725_ctx.simd2, 512 );
 
     sph_hamsi512_init(&hmq1725_ctx.hamsi1);
 
@@ -117,8 +117,8 @@ void init_hmq1725_ctx()
 #else
      init_echo( &hmq1725_ctx.echo1, 512 );
      init_echo( &hmq1725_ctx.echo2, 512 );
-     init_groestl( &hmq1725_ctx.groestl1 );
-     init_groestl( &hmq1725_ctx.groestl2 );
+     init_groestl( &hmq1725_ctx.groestl1, 64 );
+     init_groestl( &hmq1725_ctx.groestl2, 64 );
 #endif
 }
 

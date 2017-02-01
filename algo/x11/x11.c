@@ -58,7 +58,7 @@ void init_x11_ctx()
      sph_echo512_init( &x11_ctx.echo );
 #else
      init_echo( &x11_ctx.echo, 512 );
-     init_groestl( &x11_ctx.groestl );
+     init_groestl( &x11_ctx.groestl, 64 );
 #endif
 }
 

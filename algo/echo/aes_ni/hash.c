@@ -561,6 +561,128 @@ HashReturn final_echo(hashState_echo *state, BitSequence *hashval)
 	return SUCCESS;
 }
 
+HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
+                              const BitSequence *data, DataLength databitlen )
+{
+   unsigned int uByteLength, uBlockCount, uRemainingBytes;
+
+   uByteLength = (unsigned int)(databitlen / 8);
+
+   if( (state->uBufferBytes + uByteLength) >= state->uBlockLength )
+   {
+        if( state->uBufferBytes != 0 )
+        {
+           // Fill the buffer
+           memcpy( state->buffer + state->uBufferBytes,
+                   (void*)data, state->uBlockLength - state->uBufferBytes );
+
+           // Process buffer
+           Compress( state, state->buffer, 1 );
+           state->processed_bits += state->uBlockLength * 8;
+
+           data += state->uBlockLength - state->uBufferBytes;
+           uByteLength -= state->uBlockLength - state->uBufferBytes;
+        }
+
+        // buffer now does not contain any unprocessed bytes
+
+        uBlockCount = uByteLength / state->uBlockLength;
+        uRemainingBytes = uByteLength % state->uBlockLength;
+
+        if( uBlockCount > 0 )
+        {
+           Compress( state, data, uBlockCount );
+           state->processed_bits += uBlockCount * state->uBlockLength * 8;
+           data += uBlockCount * state->uBlockLength;
+        }
+
+        if( uRemainingBytes > 0 )
+        memcpy(state->buffer, (void*)data, uRemainingBytes);
+
+        state->uBufferBytes = uRemainingBytes;
+   }
+   else
+   {
+        memcpy( state->buffer + state->uBufferBytes, (void*)data, uByteLength );
+        state->uBufferBytes += uByteLength;
+   }
+
+   __m128i remainingbits;
+
+   // Add remaining bytes in the buffer
+   state->processed_bits += state->uBufferBytes * 8;
+
+   remainingbits = _mm_set_epi32( 0, 0, 0, state->uBufferBytes * 8 );
+
+   // Pad with 0x80
+   state->buffer[state->uBufferBytes++] = 0x80;
+   // Enough buffer space for padding in this block?
+   if( (state->uBlockLength - state->uBufferBytes) >= 18 )
+   {
+        // Pad with zeros
+        memset( state->buffer + state->uBufferBytes, 0, state->uBlockLength - (state->uBufferBytes + 18) );
+
+        // Hash size
+        *( (unsigned short*)(state->buffer + state->uBlockLength - 18) ) = state->uHashSize;
+
+        // Processed bits
+        *( (DataLength*)(state->buffer + state->uBlockLength - 16) ) =
+                   state->processed_bits;
+        *( (DataLength*)(state->buffer + state->uBlockLength - 8) ) = 0;
+
+        // Last block contains message bits?
+        if( state->uBufferBytes == 1 )
+        {
+           state->k = _mm_xor_si128( state->k, state->k );
+           state->k = _mm_sub_epi64( state->k, state->const1536 );
+        }
+        else
+        {
+           state->k = _mm_add_epi64( state->k, remainingbits );
+           state->k = _mm_sub_epi64( state->k, state->const1536 );
+        }
+
+        // Compress
+        Compress( state, state->buffer, 1 );
+   }
+   else
+   {
+        // Fill with zero and compress
+        memset( state->buffer + state->uBufferBytes, 0,
+                state->uBlockLength - state->uBufferBytes );
+        state->k = _mm_add_epi64( state->k, remainingbits );
+        state->k = _mm_sub_epi64( state->k, state->const1536 );
+        Compress( state, state->buffer, 1 );
+
+        // Last block
+        memset( state->buffer, 0, state->uBlockLength - 18 );
+
+        // Hash size
+        *( (unsigned short*)(state->buffer + state->uBlockLength - 18) ) =
+                 state->uHashSize;
+
+        // Processed bits
+        *( (DataLength*)(state->buffer + state->uBlockLength - 16) ) =
+                   state->processed_bits;
+        *( (DataLength*)(state->buffer + state->uBlockLength - 8) ) = 0;
+        // Compress the last block
+        state->k = _mm_xor_si128( state->k, state->k );
+        state->k = _mm_sub_epi64( state->k, state->const1536 );
+        Compress( state, state->buffer, 1) ;
+   }
+
+   // Store the hash value
+   _mm_storeu_si128( (__m128i*)hashval + 0, state->state[0][0] );
+   _mm_storeu_si128( (__m128i*)hashval + 1, state->state[1][0] );
+
+   if( state->uHashSize == 512 )
+   {
+        _mm_storeu_si128( (__m128i*)hashval + 2, state->state[2][0] );
+        _mm_storeu_si128( (__m128i*)hashval + 3, state->state[3][0] );
+
+   }
+   return SUCCESS;
+}
 
 
 HashReturn hash_echo(int hashbitlen, const BitSequence *data, DataLength databitlen, BitSequence *hashval)

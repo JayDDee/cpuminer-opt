@@ -34,6 +34,22 @@ uint16_t  v16[ 8];
 uint8_t   v8 [16];
 } area128;
 
+// For cheating with pointer types
+
+// p = any aligned pointer
+// returns p as pointer to vector type
+#define castp_m256i(p) ((__m256i*)(p))
+#define castp_m128i(p) ((__m128i*)(p))
+
+// p = any aligned pointer
+// returns *p, watch your pointer arithmetic
+#define cast_m256i(p) (*((__m256i*)(p)))
+#define cast_m128i(p) (*((__m128i*)(p)))
+
+// p = any aligned pointer, i = scaled array index
+// returns p[i]
+#define casti_m256i(p,i) (((__m256i*)(p))[(i)])
+#define casti_m128i(p,i) (((__m128i*)(p))[(i)])
 
 // useful instrinsics to move data between regs
 
@@ -77,11 +93,11 @@ uint8_t   v8 [16];
                                          0xffffffffffffffffull, \
                                          0xffffffffffffffffull, \
                                          0xffffffffffffffffull ) )
-//                      _mm256_set_epi64x( 0xffffffffffffffffull, \
-//                                         0xffffffffffffffffull, \
-//                                         0xffffffffffffffffull, \
-//                                         0 ) )
-
+/*                      _mm256_set_epi64x( 0xffffffffffffffffull, \
+                                         0xffffffffffffffffull, \
+                                         0xffffffffffffffffull, \
+                                         0 ) )
+*/
 
 #define mm256_slli256_2x64( w ) \
     _mm256_and_si256( mm256_swap128( w ), \
@@ -117,10 +133,11 @@ uint8_t   v8 [16];
                                          0, \
                                          0, \
                                          0 ) )
-//                      _mm256_set_epi64x( 0, \
-//                                         0, \
-//                                         0, \
-//                                         0xffffffffffffffffull ) )
+/*                      _mm256_set_epi64x( 0, \
+                                         0, \
+                                         0, \
+                                         0xffffffffffffffffull ) )
+*/
 
 #endif  // AVX2
 

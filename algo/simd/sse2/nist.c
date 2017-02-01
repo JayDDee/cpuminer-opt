@@ -114,9 +114,9 @@ HashReturn init_sd(hashState_sd *state, int hashbitlen) {
   return r;
 }
 
-
-
-HashReturn update_sd(hashState_sd *state, const BitSequence *data, DataLength databitlen) {
+HashReturn update_sd( hashState_sd *state, const BitSequence *data,
+                      DataLength databitlen )
+{
   unsigned current;
   unsigned int bs = state->blocksize;
   static int align = -1;
@@ -130,46 +130,49 @@ HashReturn update_sd(hashState_sd *state, const BitSequence *data, DataLength da
   current = state->count_low & (bs - 1);
 #endif
   
-  if (current & 7) {
-    /*
-     * The number of hashed bits is not a multiple of 8.
-     * Very painfull to implement and not required by the NIST API.
-     */
+  if ( current & 7 )
+  {
+    // The number of hashed bits is not a multiple of 8.
+    // Very painfull to implement and not required by the NIST API.
     return FAIL;
   }
 
-  while (databitlen > 0) {
-    if (IS_ALIGNED(data,align) && current == 0 && databitlen >= bs) {
-      /* 
-       * We can hash the data directly from the input buffer.
-       */
+  while ( databitlen > 0 )
+  {
+    if ( IS_ALIGNED(data,align) && current == 0 && databitlen >= bs )
+    {
+       // We can hash the data directly from the input buffer.
       SIMD_Compress(state, data, 0);
       databitlen -= bs;
       data += bs/8;
       IncreaseCounter(state, bs);
-    } else {
-      /* 
-       * Copy a chunk of data to the buffer
-       */
+    }
+    else
+    {
+       // Copy a chunk of data to the buffer
       unsigned int len = bs - current;
-      if (databitlen < len) {
-        memcpy(state->buffer+current/8, data, (databitlen+7)/8);
-        IncreaseCounter(state, databitlen);        
+      if ( databitlen < len )
+      {
+        memcpy( state->buffer+current/8, data, (databitlen+7)/8 );
+        IncreaseCounter( state, databitlen );        
         return SUCCESS;
-      } else {
-        memcpy(state->buffer+current/8, data, len/8);
-        IncreaseCounter(state,len);
+      }
+      else
+      {
+        memcpy( state->buffer+current/8, data, len/8 );
+        IncreaseCounter( state,len );
         databitlen -= len;
         data += len/8;
         current = 0;
-        SIMD_Compress(state, state->buffer, 0);
+        SIMD_Compress( state, state->buffer, 0 );
       }
     }
   }
   return SUCCESS;
 }
 
-HashReturn final_sd(hashState_sd *state, BitSequence *hashval) {
+HashReturn final_sd( hashState_sd *state, BitSequence *hashval )
+{
 #ifdef HAS_64
   u64 l;
   int current = state->count & (state->blocksize - 1);
@@ -181,56 +184,53 @@ HashReturn final_sd(hashState_sd *state, BitSequence *hashval) {
   BitSequence bs[64];
   int isshort = 1;
 
-  /* 
-   * If there is still some data in the buffer, hash it
-   */
-  if (current) {
-    /* 
-     * We first need to zero out the end of the buffer.
-     */
-    if (current & 7) {
-      BitSequence mask = 0xff >> (current&7);
+  // If there is still some data in the buffer, hash it
+  if ( current )
+  {
+    // We first need to zero out the end of the buffer.
+    if ( current & 7 )
+    {
+      BitSequence mask = 0xff >> ( current & 7 );
       state->buffer[current/8] &= ~mask;
     }
-    current = (current+7)/8;
-    memset(state->buffer+current, 0, state->blocksize/8 - current);
-    SIMD_Compress(state, state->buffer, 0);
+    current = ( current+7 ) / 8;
+    memset( state->buffer+current, 0, state->blocksize/8 - current );
+    SIMD_Compress( state, state->buffer, 0 );
   }
 
-  /* 
-   * Input the message length as the last block
-   */
-  memset(state->buffer, 0, state->blocksize/8);
+  //* Input the message length as the last block
+  memset( state->buffer, 0, state->blocksize / 8 );
 #ifdef HAS_64
   l = state->count;
-  for (i=0; i<8; i++) {
+  for ( i=0; i<8; i++ )
+  {
     state->buffer[i] = l & 0xff;
     l >>= 8;
   }
-  if (state->count < 16384)
+  if ( state->count < 16384 )
     isshort = 2;
 #else
   l = state->count_low;
-  for (i=0; i<4; i++) {
+  for ( i=0; i<4; i++ )
+  {
     state->buffer[i] = l & 0xff;
     l >>= 8;
   }
   l = state->count_high;
-  for (i=0; i<4; i++) {
+  for ( i=0; i<4; i++ )
+  {
     state->buffer[4+i] = l & 0xff;
     l >>= 8;
   }
-  if (state->count_high == 0 && state->count_low < 16384)
+  if ( state->count_high == 0 && state->count_low < 16384 )
     isshort = 2;
 #endif
 
-  SIMD_Compress(state, state->buffer, isshort);
-    
-
-  /*
-   * Decode the 32-bit words into a BitSequence
-   */
-  for (i=0; i<2*state->n_feistels; i++) {
+  SIMD_Compress( state, state->buffer, isshort );
+  
+  // Decode the 32-bit words into a BitSequence
+  for ( i=0; i < 2*state->n_feistels; i++ )
+  {
     u32 x = state->A[i];
     bs[4*i  ] = x&0xff;
     x >>= 8;
@@ -241,16 +241,123 @@ HashReturn final_sd(hashState_sd *state, BitSequence *hashval) {
     bs[4*i+3] = x&0xff;
   }
 
-  memcpy(hashval, bs, state->hashbitlen/8);
-  if (state->hashbitlen%8) {
-    BitSequence mask = 0xff << (8 - (state->hashbitlen%8));
+  memcpy( hashval, bs, state->hashbitlen / 8 );
+  if ( state->hashbitlen % 8 )
+  {
+    BitSequence mask = 0xff << ( 8 - (state->hashbitlen % 8) );
     hashval[state->hashbitlen/8 + 1] = bs[state->hashbitlen/8 + 1] & mask;
   }
-//free(state->buffer);
-//free(state->A);
   return SUCCESS;
 }
 
+HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
+                            const BitSequence *data, DataLength databitlen )
+{
+  int current, i;
+  unsigned int bs = state->blocksize;
+  static int align = -1;
+  BitSequence out[64];
+  int isshort = 1;
+  u64 l;
+
+  if (align == -1)
+    align = RequiredAlignment();
+
+#ifdef HAS_64
+  current = state->count & (bs - 1);
+#else
+  current = state->count_low & (bs - 1);
+#endif
+
+  if ( current & 7 )
+  {
+    // The number of hashed bits is not a multiple of 8.
+    // Very painfull to implement and not required by the NIST API.
+    return FAIL;
+  }
+
+  while ( databitlen > 0 )
+  {
+    if ( IS_ALIGNED(data,align) && current == 0 && databitlen >= bs )
+    {
+       // We can hash the data directly from the input buffer.
+      SIMD_Compress(state, data, 0);
+      databitlen -= bs;
+      data += bs/8;
+      IncreaseCounter(state, bs);
+    }
+    else
+    {
+       // Copy a chunk of data to the buffer
+      unsigned int len = bs - current;
+      if ( databitlen < len )
+      {
+        memcpy( state->buffer+current/8, data, (databitlen+7)/8 );
+        IncreaseCounter( state, databitlen );
+        return SUCCESS;
+      }
+      else
+      {
+        memcpy( state->buffer+current/8, data, len/8 );
+        IncreaseCounter( state,len );
+        databitlen -= len;
+        data += len/8;
+        current = 0;
+        SIMD_Compress( state, state->buffer, 0 );
+      }
+    }
+  }
+
+  current = state->count & (state->blocksize - 1);
+
+  // If there is still some data in the buffer, hash it
+  if ( current )
+  {
+    // We first need to zero out the end of the buffer.
+    if ( current & 7 )
+    {
+      BitSequence mask = 0xff >> ( current & 7 );
+      state->buffer[current/8] &= ~mask;
+    }
+    current = ( current+7 ) / 8;
+    memset( state->buffer+current, 0, state->blocksize/8 - current );
+    SIMD_Compress( state, state->buffer, 0 );
+  }
+
+  //* Input the message length as the last block
+  memset( state->buffer, 0, state->blocksize / 8 );
+  l = state->count;
+  for ( i=0; i<8; i++ )
+  {
+    state->buffer[i] = l & 0xff;
+    l >>= 8;
+  }
+  if ( state->count < 16384 )
+    isshort = 2;
+
+  SIMD_Compress( state, state->buffer, isshort );
+
+  // Decode the 32-bit words into a BitSequence
+  for ( i=0; i < 2*state->n_feistels; i++ )
+  {
+    u32 x = state->A[i];
+    out[4*i  ] = x&0xff;
+    x >>= 8;
+    out[4*i+1] = x&0xff;
+    x >>= 8;
+    out[4*i+2] = x&0xff;
+    x >>= 8;
+    out[4*i+3] = x&0xff;
+  }
+
+  memcpy( hashval, out, state->hashbitlen / 8 );
+  if ( state->hashbitlen % 8 )
+  {
+    BitSequence mask = 0xff << ( 8 - (state->hashbitlen % 8) );
+    hashval[state->hashbitlen/8 + 1] = out[state->hashbitlen/8 + 1] & mask;
+  }
+  return SUCCESS;
+}
 
 
 /*HashReturn Hash(int hashbitlen, const BitSequence *data, DataLength databitlen,

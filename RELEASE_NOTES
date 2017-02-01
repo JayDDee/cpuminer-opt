@@ -3,6 +3,14 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 Change Log
 ----------
 
+v3.5.4
+
+x11evo fixed (broken in v3.5.2) and optimized 23% faster
+Small improvements of 1% to 3% on many algos including timetravel,
+   xevan and cryptonight.
+More code cleanup and compiler warning reduction.
+Improved checking for missing command line arguments.
+
 v3.5.3
 
 More optimizations

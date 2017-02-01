@@ -105,7 +105,7 @@ void init_tt_ctx()
 #ifdef NO_AES_NI
         sph_groestl512_init( &tt_ctx.groestl );
 #else
-        init_groestl( &tt_ctx.groestl );
+        init_groestl( &tt_ctx.groestl, 64 );
 #endif
 };
 
@@ -148,8 +148,9 @@ void timetravel_hash(void *output, const void *input)
 		sph_groestl512( &ctx.groestl, hashA, dataLen );
 		sph_groestl512_close( &ctx.groestl, hashB );
 #else
-                update_groestl( &ctx.groestl, (char*)hashA, dataLen*8 );
-                final_groestl( &ctx.groestl, (char*)hashB );
+                update_and_final_groestl( &ctx.groestl, (char*)hashB,
+                                          (char*)hashA, dataLen*8 );
+
 #endif
 		break;
 	   case 3:
@@ -165,12 +166,12 @@ void timetravel_hash(void *output, const void *input)
 		sph_keccak512_close( &ctx.keccak, hashB );
 		break;
 	   case 6:
-                update_luffa( &ctx.luffa, (const BitSequence*)hashA, dataLen );
-                final_luffa( &ctx.luffa, (BitSequence*)hashB );
+                update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
+                                        (const BitSequence*)hashA, dataLen );
 		break;
 	   case 7:
-                cubehashUpdate( &ctx.cube, (const byte*) hashA, dataLen );
-                cubehashDigest( &ctx.cube, (byte*)hashB );
+                cubehashUpdateDigest( &ctx.cube, (byte*)hashB,
+                                      (const byte*) hashA, dataLen );
 		break;
 	   default:
 		break;

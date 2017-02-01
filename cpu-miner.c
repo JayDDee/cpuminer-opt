@@ -106,8 +106,8 @@ int opt_n_threads = 0;
 int64_t opt_affinity = -1L;
 int opt_priority = 0;
 int num_cpus;
-char *rpc_url;
-char *rpc_userpass;
+char *rpc_url = NULL;;
+char *rpc_userpass = NULL;
 char *rpc_user, *rpc_pass;
 char *short_url = NULL;
 static unsigned char pk_script[25] = { 0 };
@@ -223,6 +223,11 @@ static void affine_to_cpu_mask(int id, unsigned long mask) {
 static inline void drop_policy(void) { }
 static void affine_to_cpu_mask(int id, unsigned long mask) { }
 #endif
+
+// not very useful, just index the arrray directly.
+// but declaring this fuinction in miner.h eliminates
+// an annoying compiler warning for not using a static.
+char* algo_name( enum algos a ) {return algo_names[a];}
 
 void get_currentalgo(char* buf, int sz)
 {
@@ -2375,18 +2380,21 @@ void parse_arg(int key, char *arg )
 	case 'c': {
 		json_error_t err;
 		json_t *config;
-		if (arg && strstr(arg, "://")) {
+                
+		if (arg && strstr(arg, "://"))
 			config = json_load_url(arg, &err);
-		} else {
+                else
 			config = JSON_LOADF(arg, &err);
-		}
-		if (!json_is_object(config)) {
+		if (!json_is_object(config))
+                {
 			if (err.line < 0)
 				fprintf(stderr, "%s\n", err.text);
 			else
 				fprintf(stderr, "%s:%d: %s\n",
 					arg, err.line, err.text);
-		} else {
+		}
+                else
+                {
 			parse_config(config, arg);
 			json_decref(config);
 		}
@@ -2682,24 +2690,26 @@ void parse_config(json_t *config, char *ref)
 
 static void parse_cmdline(int argc, char *argv[])
 {
-	int key;
+   int key;
 
-	while (1) {
+   while (1)
+   {
 #if HAVE_GETOPT_LONG
-		key = getopt_long(argc, argv, short_options, options, NULL);
+	key = getopt_long(argc, argv, short_options, options, NULL);
 #else
-		key = getopt(argc, argv, short_options);
+	key = getopt(argc, argv, short_options);
 #endif
-		if (key < 0)
-			break;
+	if (key < 0)
+		break;
 
-		parse_arg(key, optarg);
-	}
-	if (optind < argc) {
-		fprintf(stderr, "%s: unsupported non-option argument -- '%s'\n",
-			argv[0], argv[optind]);
-		show_usage_and_exit(1);
-	}
+	parse_arg(key, optarg);
+   }
+   if (optind < argc)
+   {
+	fprintf(stderr, "%s: unsupported non-option argument -- '%s'\n",
+		argv[0], argv[optind]);
+        show_usage_and_exit(1);
+   }
 }
 
 #ifndef WIN32
@@ -2896,16 +2906,29 @@ int main(int argc, char *argv[])
         if (!opt_n_threads)
                 opt_n_threads = num_cpus;
 
+/*
         // All options must be set before starting the gate
         if ( !register_algo_gate( opt_algo, &algo_gate ) )
         {
            exit(1);
         }
+*/
         if ( !check_cpu_capability() )
            exit(1);
 
+        if ( opt_algo == ALGO_NULL )
+        {
+            fprintf(stderr, "%s: no algo supplied\n", argv[0]);
+            show_usage_and_exit(1);
+        }
 	if ( !opt_benchmark )
         {
+            if ( !short_url )
+            {
+               fprintf(stderr, "%s: no URL supplied\n", argv[0]);
+               show_usage_and_exit(1);
+            }
+/*
             if ( !rpc_url )
             {
 		// try default config file in binary folder
@@ -2924,6 +2947,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s: no URL supplied\n", argv[0]);
 		show_usage_and_exit(1);
             }
+*/
 	}
 
 	if (!rpc_userpass)
@@ -2934,6 +2958,10 @@ int main(int argc, char *argv[])
                 else
                    return 1;
 	}
+
+        // All options must be set before starting the gate
+        if ( !register_algo_gate( opt_algo, &algo_gate ) )
+           exit(1);
 
 	pthread_mutex_init(&stats_lock, NULL);
 	pthread_mutex_init(&g_work_lock, NULL);

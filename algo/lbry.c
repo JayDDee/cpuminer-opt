@@ -151,7 +151,7 @@ double lbry_calc_network_diff( struct work *work )
    uint32_t nbits = swab32( work->data[ LBRY_NBITS_INDEX ] );
    uint32_t bits = (nbits & 0xffffff);
    int16_t shift = (swab32(nbits) & 0xff); // 0x1c = 28
-   uint64_t diffone = 0x0000FFFF00000000ull;
+//   uint64_t diffone = 0x0000FFFF00000000ull;
    double d = (double)0x0000ffff / (double)bits;
 
    for (int m=shift; m < 29; m++) d *= 256.0;

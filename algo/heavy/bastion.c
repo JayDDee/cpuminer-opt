@@ -36,12 +36,12 @@ void bastionhash(void *output, const void *input)
 	sph_fugue512_context ctx_fugue;
 	sph_whirlpool_context ctx_whirlpool;
 	sph_shabal512_context ctx_shabal;
-	sph_skein512_context ctx_skein;
+//	sph_skein512_context ctx_skein;
 	sph_hamsi512_context ctx_hamsi;
 
         unsigned char hashbuf[128] __attribute__ ((aligned (16)));
         sph_u64 hashctA;
-        sph_u64 hashctB;
+//        sph_u64 hashctB;
         size_t hashptr;
 
 	HEFTY1(input, 80, hash);

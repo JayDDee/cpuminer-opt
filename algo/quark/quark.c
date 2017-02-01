@@ -44,7 +44,7 @@ void init_quark_ctx()
 #ifdef NO_AES_NI
    sph_groestl512_init( &quark_ctx );
 #else
-   init_groestl( &quark_ctx );
+   init_groestl( &quark_ctx, 64 );
 #endif
 }
 

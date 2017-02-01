@@ -62,7 +62,7 @@ void init_x14_ctx()
         sph_echo512_init(&x14_ctx.echo);
 #else
         init_echo(&x14_ctx.echo, 512);
-        init_groestl(&x14_ctx.groestl);
+        init_groestl(&x14_ctx.groestl, 64 );
 #endif
         init_luffa(&x14_ctx.luffa,512);
         cubehashInit(&x14_ctx.cubehash,512,16,32);

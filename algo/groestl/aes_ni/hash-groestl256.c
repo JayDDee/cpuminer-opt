@@ -6,8 +6,10 @@
  * This code is placed in the public domain
  */
 
+#include <memory.h>
 #include "hash-groestl256.h"
 #include "miner.h"
+#include "avxdefs.h"
 
 #ifndef NO_AES_NI
 
@@ -71,16 +73,11 @@ void OutputTransformation256(hashState_groestl256 *ctx) {
 }
 
 /* initialise context */
-HashReturn_gr init_groestl256(hashState_groestl256* ctx) {
+HashReturn_gr init_groestl256( hashState_groestl256* ctx, int hashlen )
+{
   u8 i = 0;
-  /* output size (in bits) must be a positive integer less than or
-     equal to 512, and divisible by 8 */
 
-  /* set number of state columns and state size depending on
-     variant */
-  ctx->columns = COLS;
-  ctx->statesize = SIZE;
-    ctx->v = SHoRT;
+  ctx->hashlen = hashlen;
 
   SET_CONSTANTS();
 
@@ -93,7 +90,7 @@ HashReturn_gr init_groestl256(hashState_groestl256* ctx) {
     return FAIL_GR;
 
   /* set initial value */
-  ctx->chaining[ctx->columns-1] = U64BIG((u64)256);
+  ctx->chaining[COLS-1] = U64BIG((u64)256);
 
   INIT256(ctx->chaining);
 
@@ -103,7 +100,6 @@ HashReturn_gr init_groestl256(hashState_groestl256* ctx) {
 
   return SUCCESS_GR;
 }
-
 
 HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
  {
@@ -117,7 +113,7 @@ HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
     return FAIL_GR;
 
   /* set initial value */
-  ctx->chaining[ctx->columns-1] = 256;
+  ctx->chaining[COLS-1] = 256;
 
   INIT256(ctx->chaining);
 
@@ -128,83 +124,124 @@ HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
   return SUCCESS_GR;
 }
 
-
-/* update state with databitlen bits of input */
 HashReturn_gr update_groestl256( hashState_groestl256* ctx,
-		                 const BitSequence_gr* input,
-		                 DataLength_gr databitlen )
+                   const BitSequence_gr* input, DataLength_gr databitlen )
 {
-  int index = 0;
-  int msglen = (int)(databitlen/8);
-  int rem = (int)(databitlen%8);
+  const int msglen = (int)(databitlen/8);  // bytes
+  int i;
 
   /* digest bulk of message */
-  Transform256( ctx, input+index, msglen-index );
-
-  index += ((msglen-index)/ctx->statesize)*ctx->statesize;
+  Transform256( ctx, input, msglen );
 
   /* store remaining data in buffer */
-  while (index < msglen)
-    ctx->buffer[(int)ctx->buf_ptr++] = input[index++];
+  i = ( msglen / SIZE ) * SIZE;
+  while ( i < msglen )
+     ctx->buffer[(int)ctx->buf_ptr++] = input[i++];
 
   return SUCCESS_GR;
 }
 
-
-/* finalise: process remaining data (including padding), perform
-   output transformation, and write hash result to 'output' */
 HashReturn_gr final_groestl256( hashState_groestl256* ctx,
-		                BitSequence_gr* output )
+                                BitSequence_gr* output )
 {
-  int i, j = 0, hashbytelen = 256/8;
-  u8 *s = (BitSequence_gr*)ctx->chaining;
-
   ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
 
   /* pad with '0'-bits */
-  if ( ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN )
+  if ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
   {
     /* padding requires two blocks */
-    while ( ctx->buf_ptr < ctx->statesize )
+    while ( ctx->buf_ptr < SIZE )
       ctx->buffer[(int)ctx->buf_ptr++] = 0;
     /* digest first padding block */
-    Transform256( ctx, ctx->buffer, ctx->statesize );
+    Transform256( ctx, ctx->buffer, SIZE );
     ctx->buf_ptr = 0;
   }
-  while ( ctx->buf_ptr < ctx->statesize-LENGTHFIELDLEN )
+  while ( ctx->buf_ptr < SIZE - LENGTHFIELDLEN )
     ctx->buffer[(int)ctx->buf_ptr++] = 0;
 
   /* length padding */
   ctx->block_counter++;
-  ctx->buf_ptr = ctx->statesize;
-  while ( ctx->buf_ptr > ctx->statesize-LENGTHFIELDLEN )
+  ctx->buf_ptr = SIZE;
+  while ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
   {
     ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
     ctx->block_counter >>= 8;
   }
 
   /* digest final padding block */
-  Transform256(ctx, ctx->buffer, ctx->statesize);
+  Transform256( ctx, ctx->buffer, SIZE );
   /* perform output transformation */
-  OutputTransformation256(ctx);
+  OutputTransformation256( ctx );
 
   /* store hash result in output */
-  for ( i = ctx->statesize-hashbytelen; i < ctx->statesize; i++,j++ )
-    output[j] = s[i];
+  for ( int i = ( (SIZE - ctx->hashlen) / 16 ), j = 0; i < SIZE/16; i++, j++ )
+       casti_m128i( output, j ) = casti_m128i( ctx->chaining, i );
+
+  return SUCCESS_GR;
+}
+
+HashReturn_gr update_and_final_groestl256( hashState_groestl256* ctx,
+                   BitSequence_gr* output,  const BitSequence_gr* input,
+                   DataLength_gr databitlen )
+{
+  const int msglen = (int)(databitlen/8);  // bytes
+  int i, j;
+
+  /* digest bulk of message */
+  Transform256( ctx, input, msglen );
+
+  /* store remaining data in buffer */
+  i = ( msglen / SIZE ) * SIZE;
+  while ( i < msglen )
+     ctx->buffer[(int)ctx->buf_ptr++] = input[i++];
+
+  // start of final
+  ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
+
+  /* pad with '0'-bits */
+  if ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
+  {
+    /* padding requires two blocks */
+    while ( ctx->buf_ptr < SIZE )
+      ctx->buffer[(int)ctx->buf_ptr++] = 0;
+    /* digest first padding block */
+    Transform256( ctx, ctx->buffer, SIZE );
+    ctx->buf_ptr = 0;
+  }
+  while ( ctx->buf_ptr < SIZE - LENGTHFIELDLEN )
+    ctx->buffer[(int)ctx->buf_ptr++] = 0;
+
+  /* length padding */
+  ctx->block_counter++;
+  ctx->buf_ptr = SIZE;
+  while ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
+  {
+    ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
+    ctx->block_counter >>= 8;
+  }
+
+  /* digest final padding block */
+  Transform256( ctx, ctx->buffer, SIZE );
+  /* perform output transformation */
+  OutputTransformation256( ctx );
+
+  /* store hash result in output */
+  for ( i = ( (SIZE - ctx->hashlen) / 16 ), j = 0; i < SIZE/16; i++, j++ )
+       casti_m128i( output, j ) = casti_m128i( ctx->chaining, i );
 
   return SUCCESS_GR;
 }
 
 /* hash bit sequence */
 HashReturn_gr hash_groestl256(int hashbitlen,
-		const BitSequence_gr* data, 
-		DataLength_gr databitlen,
-		BitSequence_gr* hashval) {
+                const BitSequence_gr* data,
+                DataLength_gr databitlen,
+                BitSequence_gr* hashval) {
   HashReturn_gr ret;
   hashState_groestl256 context;
 
   /* initialise */
-  if ((ret = init_groestl256(&context)) != SUCCESS_GR)
+  if ((ret = init_groestl256(&context, hashbitlen/8)) != SUCCESS_GR)
     return ret;
 
   /* process message */

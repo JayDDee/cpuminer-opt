@@ -74,7 +74,7 @@ void init_zr5_ctx()
   #ifdef NO_AES_NI
      sph_groestl512_init( &zr5_ctx.groestl );
   #else
-     init_groestl( &zr5_ctx.groestl );
+     init_groestl( &zr5_ctx.groestl, 64 );
   #endif
      sph_keccak512_init(&zr5_ctx.keccak);
 }  

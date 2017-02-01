@@ -61,7 +61,7 @@ void init_c11_ctx()
      sph_echo512_init( &c11_ctx.echo );
 #else
      init_echo( &c11_ctx.echo, 512 );
-     init_groestl( &c11_ctx.groestl );
+     init_groestl( &c11_ctx.groestl, 64 );
 #endif
 }
 
