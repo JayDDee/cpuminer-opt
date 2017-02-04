@@ -3,6 +3,12 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 Change Log
 ----------
 
+v3.5.5
+
+x11evo fixed on Windows but at reduced performance.
+Changed benchmark stats collection default to false and
+  added proper user and password checks to enable it.
+
 v3.5.4
 
 x11evo fixed (broken in v3.5.2) and optimized 23% faster

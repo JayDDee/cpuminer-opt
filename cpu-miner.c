@@ -132,7 +132,7 @@ uint32_t rpc2_target = 0;
 char *rpc2_job_id = NULL;
 double opt_diff_factor = 1.0;
 uint32_t zr5_pok = 0;
-bool opt_stratum_stats = true;
+bool opt_stratum_stats = false;
 
 uint32_t accepted_count = 0L;
 uint32_t rejected_count = 0L;
@@ -3065,6 +3065,10 @@ int main(int argc, char *argv[])
 	thr->q = tq_new();
 	if (!thr->q)
 		return 1;
+
+       if ( rpc_pass && rpc_user )
+          opt_stratum_stats = ( strstr( rpc_pass, "stats" ) != NULL )
+                           || ( strcmp( rpc_user, "benchmark" ) == 0 );
 
 	/* start work I/O thread */
 	if (thread_create(thr, workio_thread))

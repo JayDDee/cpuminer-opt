@@ -136,20 +136,26 @@ void getAlgoString( char *str, uint32_t count )
 	//applog(LOG_DEBUG, "nextPerm %s", str);
 }
 
+// Broken on Windows
+#if !((defined(__WINDOWS__)) || (defined(__WIN64)))
 static __thread uint32_t saved_ntime = UINT32_MAX;
+#endif
 
 void evocoin_twisted_code( char *result, char *code )
 {
     uint32_t h32, *be32 = get_stratum_job_ntime();
-   
+#if !((defined(__WINDOWS__)) || (defined(__WIN64)))
     if ( *be32 != saved_ntime )
     {
+#endif
         h32 = be32toh(*be32);
 	uint32_t count = getCurrentAlgoSeq(h32, INITIAL_DATE);
 	getAlgoString(code, count);
 	sprintf(result, "_%d_%s_", count, code);
+#if !((defined(__WINDOWS__)) || (defined(__WIN64)))
         saved_ntime = *be32;
     }
+#endif
 }
 
 static inline void x11evo_hash( void *state, const void *input )

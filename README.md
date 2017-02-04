@@ -94,8 +94,9 @@ Errata
 ------
 
 cpuminer-opt does not work mining Decred algo at Nicehash and produces
-only "invalid extranonce2 size" rejects. It works at Zpool.
+only "invalid extranonce2 size" rejects.
 
+x11evo optimizations not available on Windows.
 Benchmark testing does not work for x11evo.
 
 Bugs
