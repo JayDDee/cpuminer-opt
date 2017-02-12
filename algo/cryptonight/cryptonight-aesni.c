@@ -3,6 +3,7 @@
 #include "cryptonight.h"
 #include "miner.h"
 #include "crypto/c_keccak.h"
+#include "avxdefs.h"
 
 void aesni_parallel_noxor(uint8_t *long_state, uint8_t *text, uint8_t *ExpandedKey);
 void aesni_parallel_xor(uint8_t *text, uint8_t *ExpandedKey, uint8_t *long_state);
@@ -147,6 +148,11 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
 	_mm_store_si128(&(longoutput[(i >> 4) + 7]), xmminput[7]);
     }
 
+//     cast_m128i( ctx.a ) = _mm_xor_si128( casti_m128i( ctx.state.k, 0 ) ,
+//                                          casti_m128i( ctx.state.k, 2 ) );
+//     cast_m128i( ctx.b ) = _mm_xor_si128( casti_m128i( ctx.state.k, 1 ),
+//                                          casti_m128i( ctx.state.k, 3 ) );
+
      ctx.a[0] = ((uint64_t *)ctx.state.k)[0] ^ ((uint64_t *)ctx.state.k)[4];
      ctx.b[0] = ((uint64_t *)ctx.state.k)[2] ^ ((uint64_t *)ctx.state.k)[6];
      ctx.a[1] = ((uint64_t *)ctx.state.k)[1] ^ ((uint64_t *)ctx.state.k)[5];
@@ -196,9 +202,12 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
 	  a[1] += lo;
 	}
 	uint64_t *dst = (uint64_t*)&ctx.long_state[c[0] & 0x1FFFF0];
+
+//        cast_m128i( dst ) = cast_m128i( a ); 
 	dst[0] = a[0];
 	dst[1] = a[1];
 
+//        cast_m128i( a ) = _mm_xor_si128( cast_m128i( a ), cast_m128i( b ) );
 	a[0] ^= b[0];
 	a[1] ^= b[1];
 	b_x = c_x;

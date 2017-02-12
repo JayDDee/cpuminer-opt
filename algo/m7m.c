@@ -175,13 +175,13 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 
     memcpy(data, pdata, 80);
 
-    sph_sha256( &ctx1.sha256, data, M7_MIDSTATE_LEN );
-    sph_sha512( &ctx1.sha512, data, M7_MIDSTATE_LEN );
-    sph_keccak512( &ctx1.keccak, data, M7_MIDSTATE_LEN );
+    sph_sha256( &ctx1.sha256,       data, M7_MIDSTATE_LEN );
+    sph_sha512( &ctx1.sha512,       data, M7_MIDSTATE_LEN );
+    sph_keccak512( &ctx1.keccak,    data, M7_MIDSTATE_LEN );
     sph_whirlpool( &ctx1.whirlpool, data, M7_MIDSTATE_LEN );
-    sph_haval256_5( &ctx1.haval, data, M7_MIDSTATE_LEN );
-    sph_tiger( &ctx1.tiger, data, M7_MIDSTATE_LEN );
-    sph_ripemd160( &ctx1.ripemd, data, M7_MIDSTATE_LEN );
+    sph_haval256_5( &ctx1.haval,    data, M7_MIDSTATE_LEN );
+    sph_tiger( &ctx1.tiger,         data, M7_MIDSTATE_LEN );
+    sph_ripemd160( &ctx1.ripemd,    data, M7_MIDSTATE_LEN );
 
     mpz_t magipi, magisw, product, bns0, bns1;
     mpf_t magifpi, magifpi0, mpt1, mpt2, mptmp, mpten;
@@ -228,40 +228,11 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
         sph_ripemd160( &ctx2.ripemd, data_p64, 80 - M7_MIDSTATE_LEN );
         sph_ripemd160_close( &ctx2.ripemd, (void*)(bhash[6]) );
 
-/*
-        ctx2_sha256 = ctx_sha256;
-        sph_sha256 (&ctx2_sha256, data_p64, 80 - M7_MIDSTATE_LEN);
-        sph_sha256_close(&ctx2_sha256, (void*)(bhash[0]));
-
-        ctx2_sha512 = ctx_sha512;
-        sph_sha512 (&ctx2_sha512, data_p64, 80 - M7_MIDSTATE_LEN);
-        sph_sha512_close(&ctx2_sha512, (void*)(bhash[1]));
-        
-        ctx2_keccak = ctx_keccak;
-        sph_keccak512 (&ctx2_keccak, data_p64, 80 - M7_MIDSTATE_LEN);
-        sph_keccak512_close(&ctx2_keccak, (void*)(bhash[2]));
-
-        ctx2_whirlpool = ctx_whirlpool;
-        sph_whirlpool (&ctx2_whirlpool, data_p64, 80 - M7_MIDSTATE_LEN);
-        sph_whirlpool_close(&ctx2_whirlpool, (void*)(bhash[3]));
-        
-        ctx2_haval = ctx_haval;
-        sph_haval256_5 (&ctx2_haval, data_p64, 80 - M7_MIDSTATE_LEN);
-        sph_haval256_5_close(&ctx2_haval, (void*)(bhash[4]));
-
-        ctx2_tiger = ctx_tiger;
-        sph_tiger (&ctx2_tiger, data_p64, 80 - M7_MIDSTATE_LEN);
-        sph_tiger_close(&ctx2_tiger, (void*)(bhash[5]));
-
-        ctx2_ripemd = ctx_ripemd;
-        sph_ripemd160 (&ctx2_ripemd, data_p64, 80 - M7_MIDSTATE_LEN);
-        sph_ripemd160_close(&ctx2_ripemd, (void*)(bhash[6]));
-*/
-
 	mpz_import(bns0, a, -1, p, -1, 0, bhash[0]);
         mpz_set(bns1, bns0);
 	mpz_set(product, bns0);
-	for(int i=1; i < 7; i++){
+	for ( i=1; i < 7; i++ )
+        {
 	    mpz_import(bns0, a, -1, p, -1, 0, bhash[i]);
 	    mpz_add(bns1, bns1, bns0);
             mpz_mul(product, product, bns0);
@@ -275,11 +246,6 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
         sph_sha256( &ctxf_sha256, bdata, bytes );
         sph_sha256_close( &ctxf_sha256, (void*)(hash) );
 
-/*
-        sph_sha256 (&ctx_final_sha256, bdata, bytes);
-        sph_sha256_close(&ctx_final_sha256, (void*)(hash));
-*/
-
         digits=(int)((sqrt((double)(n/2))*(1.+EPS))/9000+75);
         mp_bitcnt_t prec = (long int)(digits*BITS_PER_DIGIT+16);
 	mpf_set_prec_raw(magifpi, prec);
@@ -291,7 +257,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 	mpzscale = 1;
         mpz_set_ui(magisw, usw_);
 	    
-        for(i = 0; i < 5; i++)
+        for ( i = 0; i < 5; i++ )
         {	
             mpf_set_d(mpt1, 0.25*mpzscale);
 	    mpf_sub(mpt1, mpt1, mpt2);
@@ -314,23 +280,22 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 
             sph_sha256( &ctxf_sha256, bdata, bytes );
             sph_sha256_close( &ctxf_sha256, (void*)(hash) );
-			
-/*
-            sph_sha256 (&ctx_final_sha256, bdata, bytes);
-            sph_sha256_close(&ctx_final_sha256, (void*)(hash));
-*/
 	}
 
 	const unsigned char *hash_ = (const unsigned char *)hash;
 	const unsigned char *target_ = (const unsigned char *)ptarget;
-	for (i = 31; i >= 0; i--) {
-	      if (hash_[i] != target_[i]) {
+	for ( i = 31; i >= 0; i-- )
+        {
+	      if ( hash_[i] != target_[i] )
+              {
 		rc = hash_[i] < target_[i];
 		break;
 	      }
 	}
-        if (unlikely(rc)) {
-            if (opt_debug) {
+        if ( unlikely(rc) )
+        {
+            if ( opt_debug )
+            {
                 bin2hex(hash_str, (unsigned char *)hash, 32);
                 bin2hex(target_str, (unsigned char *)ptarget, 32);
                 bin2hex(data_str, (unsigned char *)data, 80);
@@ -343,20 +308,22 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
             goto out;
 	  }
     } while (n < max_nonce && !work_restart[thr_id].restart);
+
      pdata[19] = n;
+
 out:
-	mpf_set_prec_raw(magifpi, prec0);
-	mpf_set_prec_raw(magifpi0, prec0);
-	mpf_set_prec_raw(mptmp, prec0);
-	mpf_set_prec_raw(mpt1, prec0);
-	mpf_set_prec_raw(mpt2, prec0);
-	mpf_clear(magifpi);
-	mpf_clear(magifpi0);
-	mpf_clear(mpten);
-	mpf_clear(mptmp);
-	mpf_clear(mpt1);
-	mpf_clear(mpt2);
-	mpz_clears(magipi, magisw, product, bns0, bns1, NULL);
+     mpf_set_prec_raw(magifpi, prec0);
+     mpf_set_prec_raw(magifpi0, prec0);
+     mpf_set_prec_raw(mptmp, prec0);
+     mpf_set_prec_raw(mpt1, prec0);
+     mpf_set_prec_raw(mpt2, prec0);
+     mpf_clear(magifpi);
+     mpf_clear(magifpi0);
+     mpf_clear(mpten);
+     mpf_clear(mptmp);
+     mpf_clear(mpt1);
+     mpf_clear(mpt2);
+     mpz_clears(magipi, magisw, product, bns0, bns1, NULL);
 
     *hashes_done = n - first_nonce + 1;
     return rc;

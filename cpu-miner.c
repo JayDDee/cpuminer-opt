@@ -2156,79 +2156,85 @@ static void *stratum_thread(void *userdata )
 	   }
 	}
 
-	while (!stratum.curl)
-        {
-	   pthread_mutex_lock(&g_work_lock);
-	   g_work_time = 0;
-	   pthread_mutex_unlock(&g_work_lock);
-	   restart_threads();
-           if (!stratum_connect(&stratum, stratum.url)
-              || !stratum_subscribe(&stratum)
-              || !stratum_authorize(&stratum, rpc_user, rpc_pass))
-           {
-               stratum_disconnect(&stratum);
-               if (opt_retries >= 0 && ++failures > opt_retries)
-               {
-                     applog(LOG_ERR, "...terminating workio thread");
-	             tq_push(thr_info[work_thr_id].q, NULL);
-	             goto out;
-	       }
-	       if (!opt_benchmark)
-	          applog(LOG_ERR, "...retry after %d seconds", opt_fail_pause);
- 
-	       sleep(opt_fail_pause);
-           }
+  while ( !stratum.curl )
+  {
+     pthread_mutex_lock(&g_work_lock);
+     g_work_time = 0;
+     pthread_mutex_unlock(&g_work_lock);
+     restart_threads();
+     if (!stratum_connect(&stratum, stratum.url)
+         || !stratum_subscribe(&stratum)
+         || !stratum_authorize(&stratum, rpc_user, rpc_pass))
+     {
+         stratum_disconnect(&stratum);
+         if (opt_retries >= 0 && ++failures > opt_retries)
+         {
+              applog(LOG_ERR, "...terminating workio thread");
+              tq_push(thr_info[work_thr_id].q, NULL);
+              goto out;
+         }
+         if (!opt_benchmark)
+            applog(LOG_ERR, "...retry after %d seconds", opt_fail_pause);
+            sleep(opt_fail_pause);
+     }
 
-	   if (jsonrpc_2)
-           {
-		work_free(&g_work);
-		work_copy(&g_work, &stratum.work);
-	   }
-	}
+     if (jsonrpc_2)
+     {
+	work_free(&g_work);
+	work_copy(&g_work, &stratum.work);
+     }
+  }
 
-        if (stratum.job.job_id &&
-             (!g_work_time || strcmp(stratum.job.job_id, g_work.job_id)) )
-	{
-	   pthread_mutex_lock(&g_work_lock);
-           algo_gate.stratum_gen_work( &stratum, &g_work );
-	   time(&g_work_time);
-	   pthread_mutex_unlock(&g_work_lock);
+  if (stratum.job.job_id &&
+         (!g_work_time || strcmp(stratum.job.job_id, g_work.job_id)) )
+  {
+      pthread_mutex_lock(&g_work_lock);
+      algo_gate.stratum_gen_work( &stratum, &g_work );
+      time(&g_work_time);
+      pthread_mutex_unlock(&g_work_lock);
+      restart_threads();
 
-           if (stratum.job.clean || jsonrpc_2)
-           {
-		static uint32_t last_bloc_height;
-		if (!opt_quiet && last_bloc_height != stratum.bloc_height)
-                {
-	           last_bloc_height = stratum.bloc_height;
-		   if (net_diff > 0.)
-		 	applog(LOG_BLUE, "%s block %d, diff %.3f",
-                           algo_names[opt_algo], stratum.bloc_height, net_diff);
-		   else
-			applog(LOG_BLUE, "%s %s block %d", short_url,
-                           algo_names[opt_algo], stratum.bloc_height);
-		}
-		restart_threads();
-	   }
-           else if (opt_debug && !opt_quiet)
-           {
+      if (stratum.job.clean || jsonrpc_2)
+      {
+         static uint32_t last_bloc_height;
+         if ( last_bloc_height != stratum.bloc_height )
+         {
+            last_bloc_height = stratum.bloc_height;
+            if ( !opt_quiet )
+            {
+               if (net_diff > 0.)
+	           applog(LOG_BLUE, "%s block %d, diff %.3f",
+                       algo_names[opt_algo], stratum.bloc_height, net_diff);
+	       else
+	           applog(LOG_BLUE, "%s %s block %d", short_url,
+                       algo_names[opt_algo], stratum.bloc_height);
+	    }
+	 }
+         restart_threads();
+       }
+       else if (opt_debug && !opt_quiet)
+       {
 		applog(LOG_BLUE, "%s asks job %d for block %d", short_url,
 		strtoul(stratum.job.job_id, NULL, 16), stratum.bloc_height);
-     	   }
-	}
+       }
+   }
 
-	if (!stratum_socket_full(&stratum, opt_timeout)) {
-		applog(LOG_ERR, "Stratum connection timeout");
-		s = NULL;
-	} else
-		s = stratum_recv_line(&stratum);
-	if (!s) {
-		stratum_disconnect(&stratum);
-		applog(LOG_ERR, "Stratum connection interrupted");
-		continue;
-	}
-	if (!stratum_handle_method(&stratum, s))
-		stratum_handle_response(s);
-	free(s);
+   if ( !stratum_socket_full( &stratum, opt_timeout ) )
+   {
+	applog(LOG_ERR, "Stratum connection timeout");
+	s = NULL;
+   }
+   else
+	s = stratum_recv_line(&stratum);
+   if ( !s )
+   {
+	stratum_disconnect(&stratum);
+	applog(LOG_ERR, "Stratum connection interrupted");
+	continue;
+   }
+   if (!stratum_handle_method(&stratum, s))
+	stratum_handle_response(s);
+   free(s);
    }
 out:
 	return NULL;

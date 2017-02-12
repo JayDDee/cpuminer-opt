@@ -8,10 +8,11 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/bmw/sph_bmw.h"
-
 #include "algo/cubehash/sse2/cubehash_sse2.h" 
-
 #include "lyra2.h"
+#include "avxdefs.h"
+
+__thread uint64_t* l2v2_wholeMatrix;
 
 typedef struct {
         cubehashParam           cube1;
@@ -23,7 +24,8 @@ typedef struct {
 
 } lyra2v2_ctx_holder;
 
-lyra2v2_ctx_holder lyra2v2_ctx;
+static lyra2v2_ctx_holder lyra2v2_ctx;
+static __thread sph_blake256_context l2v2_blake_mid;
 
 void init_lyra2rev2_ctx()
 {
@@ -35,14 +37,23 @@ void init_lyra2rev2_ctx()
         sph_bmw256_init( &lyra2v2_ctx.bmw );
 }
 
+void l2v2_blake256_midstate( const void* input )
+{
+    memcpy( &l2v2_blake_mid, &lyra2v2_ctx.blake, sizeof l2v2_blake_mid );
+    sph_blake256( &l2v2_blake_mid, input, 64 );
+}
+
 void lyra2rev2_hash( void *state, const void *input )
 {
         lyra2v2_ctx_holder ctx;
         memcpy( &ctx, &lyra2v2_ctx, sizeof(lyra2v2_ctx) );
-
 	uint32_t _ALIGN(128) hashA[8], hashB[8];
 
-	sph_blake256( &ctx.blake, input, 80 );
+        const int midlen = 64;            // bytes
+        const int tail   = 80 - midlen;   // 16
+
+        memcpy( &ctx.blake, &l2v2_blake_mid, sizeof l2v2_blake_mid );
+	sph_blake256( &ctx.blake, (uint8_t*)input + midlen, tail );
 	sph_blake256_close( &ctx.blake, hashA );
 
 	sph_keccak256( &ctx.keccak, hashA, 32 );
@@ -50,18 +61,14 @@ void lyra2rev2_hash( void *state, const void *input )
 
         cubehashUpdateDigest( &ctx.cube1, (byte*) hashA,
                               (const byte*) hashB, 32 );
-//        cubehashUpdate( &ctx.cube1, (const byte*) hashB,32 );
-//        cubehashDigest( &ctx.cube1, (byte*)hashA );
 
-	LYRA2( hashA, 32, hashA, 32, hashA, 32, 1, 4, 4 );
+	LYRA2REV2( l2v2_wholeMatrix, hashA, 32, hashA, 32, hashA, 32, 1, 4, 4 );
 
 	sph_skein256( &ctx.skein, hashA, 32 );
 	sph_skein256_close( &ctx.skein, hashB );
 
         cubehashUpdateDigest( &ctx.cube2, (byte*) hashA, 
                               (const byte*) hashB, 32 );
-//        cubehashUpdate( &ctx.cube2, (const byte*) hashB,32 );
-//        cubehashDigest( &ctx.cube2, (byte*)hashA );
 
 	sph_bmw256( &ctx.bmw, hashA, 32 );
 	sph_bmw256_close( &ctx.bmw, hashB );
@@ -84,6 +91,8 @@ int scanhash_lyra2rev2(int thr_id, struct work *work,
 		((uint32_t*)ptarget)[7] = 0x0000ff;
 
         swab32_array( endiandata, pdata, 20 );
+
+        l2v2_blake256_midstate( endiandata );
 
 	do {
 		be32enc(&endiandata[19], nonce);
@@ -112,10 +121,33 @@ void lyra2rev2_set_target( struct work* work, double job_diff )
  work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
 }
 
+
+bool lyra2rev2_thread_init()
+{
+   const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols
+   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+
+   int i = (int64_t)ROW_LEN_BYTES * 4; // nRows;
+   l2v2_wholeMatrix = _mm_malloc( i, 64 );
+
+   if ( l2v2_wholeMatrix == NULL )
+     return false;
+
+#if defined (__AVX2__)
+   memset_zero_m256i( (__m256i*)l2v2_wholeMatrix, i/32 );
+#elif defined(__AVX__)
+   memset_zero_m128i( (__m128i*)l2v2_wholeMatrix, i/16 );
+#else
+   memset( l2v2_wholeMatrix, 0, i );
+#endif
+   return true;
+}
+
 bool register_lyra2rev2_algo( algo_gate_t* gate )
 {
   init_lyra2rev2_ctx();
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
+  gate->miner_thread_init = (void*)&lyra2rev2_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2rev2;
   gate->hash       = (void*)&lyra2rev2_hash;
   gate->hash_alt   = (void*)&lyra2rev2_hash;

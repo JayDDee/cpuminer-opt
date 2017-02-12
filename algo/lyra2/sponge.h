@@ -51,24 +51,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 #if defined __AVX2__
 // only available with avx2
 
-// init vectors from memory
-// returns void, updates defines and inits implicit args a, b, c, d
-#define LYRA_INIT_AVX2 \
-   __m256i a[4]; \
-   a[0] = _mm256_load_si256( (__m256i*)(&v[ 0]) ); \
-   a[1] = _mm256_load_si256( (__m256i*)(&v[ 4]) ); \
-   a[2] = _mm256_load_si256( (__m256i*)(&v[ 8]) ); \
-   a[3] = _mm256_load_si256( (__m256i*)(&v[12]) );
-
-// save to memory
-// returns void
-#define LYRA_CLOSE_AVX2 \
-   _mm256_store_si256( (__m256i*)(&v[ 0]), a[0] ); \
-   _mm256_store_si256( (__m256i*)(&v[ 4]), a[1] ); \
-   _mm256_store_si256( (__m256i*)(&v[ 8]), a[2] ); \
-   _mm256_store_si256( (__m256i*)(&v[12]), a[3] );
-
-// process 4 rows in parallel
+// process 4 columns in parallel
 // returns void, updates all args
 #define G_4X64(a,b,c,d) \
    a = _mm256_add_epi64( a, b ); \
@@ -107,28 +90,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 #else
 // only available with avx
 
-#define LYRA_INIT_AVX \
-   __m128i a0[4], a1[4]; \
-   a0[0] = _mm_load_si128( (__m128i*)(&v[ 0]) ); \
-   a1[0] = _mm_load_si128( (__m128i*)(&v[ 2]) ); \
-   a0[1] = _mm_load_si128( (__m128i*)(&v[ 4]) ); \
-   a1[1] = _mm_load_si128( (__m128i*)(&v[ 6]) ); \
-   a0[2] = _mm_load_si128( (__m128i*)(&v[ 8]) ); \
-   a1[2] = _mm_load_si128( (__m128i*)(&v[10]) ); \
-   a0[3] = _mm_load_si128( (__m128i*)(&v[12]) ); \
-   a1[3] = _mm_load_si128( (__m128i*)(&v[14]) );
-
-#define LYRA_CLOSE_AVX \
-   _mm_store_si128( (__m128i*)(&v[ 0]), a0[0] ); \
-   _mm_store_si128( (__m128i*)(&v[ 2]), a1[0] ); \
-   _mm_store_si128( (__m128i*)(&v[ 4]), a0[1] ); \
-   _mm_store_si128( (__m128i*)(&v[ 6]), a1[1] ); \
-   _mm_store_si128( (__m128i*)(&v[ 8]), a0[2] ); \
-   _mm_store_si128( (__m128i*)(&v[10]), a1[2] ); \
-   _mm_store_si128( (__m128i*)(&v[12]), a0[3] ); \
-   _mm_store_si128( (__m128i*)(&v[14]), a1[3] );
-
-// process 2 rows in parallel
+// process 2 columns in parallel
 // returns void, all args updated
 #define G_2X64(a,b,c,d) \
    a = _mm_add_epi64( a, b ); \
@@ -140,67 +102,34 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    c = _mm_add_epi64( c, d ); \
    b = mm_rotr_64( _mm_xor_si128( b, c ), 63 );
 
-#define LYRA_ROUND_AVX \
-   G_2X64( a0[0], a0[1], a0[2], a0[3] ); \
-   G_2X64( a1[0], a1[1], a1[2], a1[3] ); \
-   mm128_rotl256_1x64( a0[1], a1[1] ); \
-   mm128_swap128( a0[2], a1[2] ); \
-   mm128_rotr256_1x64( a0[3], a1[3] ); \
-   G_2X64( a0[0], a0[1], a0[2], a0[3] ); \
-   G_2X64( a1[0], a1[1], a1[2], a1[3] ); \
-   mm128_rotr256_1x64( a0[1], a1[1] ); \
-   mm128_swap128( a0[2], a1[2] ); \
-   mm128_rotl256_1x64( a0[3], a1[3] );
+#define LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   G_2X64( s0, s2, s4, s6 ); \
+   G_2X64( s1, s3, s5, s7 ); \
+   mm128_rotl256_1x64( s2, s3 ); \
+   mm128_swap128( s4, s5 ); \
+   mm128_rotr256_1x64( s6, s7 ); \
+   G_2X64( s0, s2, s4, s6 ); \
+   G_2X64( s1, s3, s5, s7 ); \
+   mm128_rotr256_1x64( s2, s3 ); \
+   mm128_swap128( s4, s5 ); \
+   mm128_rotl256_1x64( s6, s7 );
+
+#define LYRA_12_ROUNDS_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+   LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
+
 
 #endif // AVX2
-
-/*
-#if defined __AVX__
-// can coexist with AVX2
-
-// rotate each uint64 c bits
-// _m128i
-#define  mm_rotr_64(w,c) _mm_or_si128(_mm_srli_epi64(w, c), \
-                                      _mm_slli_epi64(w, 64 - c))
-
-// swap 128 bit source vectors, equivalent of rotating 256 bits by 128 bits
-// void
-#define mm128_swap128(s0, s1) s0 = _mm_xor_si128(s0, s1); \
-                              s1 = _mm_xor_si128(s0, s1); \
-                              s0 = _mm_xor_si128(s0, s1);
-
-// swap uint64 in 128 bit source vector, equivalent of rotating 128 bits by
-// 64 bits (8 bytes)
-// __m128i
-#define mm128_swap64(s) _mm_or_si128( _mm_slli_si128( s, 8 ), \
-                                      _mm_srli_si128( s, 8 ) )
-
-// rotate 2 128 bit vectors as one 256 vector by 1 uint64, very inefficient
-// returns void, args updated
-#define mm128_rotl256_1x64(s0, s1) do { \
-   __m128i t; \
-   s0 = mm128_swap64( s0); \
-   s1 = mm128_swap64( s1); \
-   t = _mm_or_si128( _mm_and_si128( s0, _mm_set_epi64x(0ull,0xffffffffffffffffull) ), \
-                     _mm_and_si128( s1, _mm_set_epi64x(0xffffffffffffffffull,0ull) ) ); \
-   s1 = _mm_or_si128( _mm_and_si128( s0, _mm_set_epi64x(0xffffffffffffffffull,0ull) ), \
-                      _mm_and_si128( s1, _mm_set_epi64x(0ull,0xffffffffffffffffull) ) ); \
-   s0 = t; \
-} while(0)
-
-#define mm128_rotr256_1x64(s0, s1) do { \
-   __m128i t; \
-   s0 = mm128_swap64( s0); \
-   s1 = mm128_swap64( s1); \
-   t = _mm_or_si128( _mm_and_si128( s0, _mm_set_epi64x(0xffffffffffffffffull,0ull) ), \
-                        _mm_and_si128( s1, _mm_set_epi64x(0ull,0xffffffffffffffffull) ) ); \
-   s1 = _mm_or_si128( _mm_and_si128( s0, _mm_set_epi64x(0ull,0xffffffffffffffffull) ), \
-                      _mm_and_si128( s1, _mm_set_epi64x(0xffffffffffffffffull,0ull) ) ); \
-   s0 = t; \
-} while(0)
-
-#endif   // AVX
-*/
 
 // Scalar
 //Blake2b's G function

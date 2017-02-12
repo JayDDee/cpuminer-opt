@@ -85,10 +85,11 @@ performance.
 
 2. 64 bit Linux OS. Ubuntu and Fedora based distributions, including Mint and
 Centos are known to work and have all dependencies in their repositories.
-Others may work but may require more effort. 64 bit Windows OS is now supported
-with mingw_w64 and msys.
+Others may work but may require more effort.
+64 bit Windows OS is supported with mingw_w64 and msys or pre-built binaries.
 
-3. Stratum pool, cpuminer-opt only supports stratum minning.
+3. Stratum pool, cpuminer-opt only supports stratum minning. Some algos
+may work wallet mining but there are no guarantees.
 
 Errata
 ------
@@ -96,7 +97,6 @@ Errata
 cpuminer-opt does not work mining Decred algo at Nicehash and produces
 only "invalid extranonce2 size" rejects.
 
-x11evo optimizations not available on Windows.
 Benchmark testing does not work for x11evo.
 
 Bugs

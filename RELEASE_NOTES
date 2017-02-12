@@ -3,6 +3,18 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 Change Log
 ----------
 
+v3.5.6
+
+Updated Lyra2z for new zcoin algo post block 2050.
+Cleanup up Lyra2 code and increased performance
+  - Lyra2REv2 +11%
+  - Lyra2RE +6%
+  - Lyra2Z (zcoin) +12%
+Fixed performance of x11evo on Windows to match Linux.
+Timetravel 3% to 5% faster
+Whirlpool algo 15% faster.
+Removed aclocal.m4 from .gitignore.
+
 v3.5.5
 
 x11evo fixed on Windows but at reduced performance.

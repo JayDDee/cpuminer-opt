@@ -275,7 +275,7 @@ HashReturn init_luffa(hashState_luffa *state, int hashbitlen)
         CNS128[i] = _mm_load_si128( (__m128i*)&CNS_INIT[i*4] );
     for ( i=0; i<10; i++ ) 
 	state->chainv[i] = _mm_load_si128( (__m128i*)&IV[i*4] );
-//    memset(state->buffer, 0, sizeof state->buffer );
+    memset(state->buffer, 0, sizeof state->buffer );
     return SUCCESS;
 }
 
