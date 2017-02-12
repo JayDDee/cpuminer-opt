@@ -11,7 +11,6 @@ autom4te.cache
 Makefile
 Makefile.in
 INSTALL
-aclocal.m4
 configure
 configure.lineno
 depcomp
