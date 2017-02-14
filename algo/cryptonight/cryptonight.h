@@ -6,11 +6,13 @@
 #include "miner.h"
 
 #define MEMORY         (1 << 21) /* 2 MiB */
+#define MEMORY_M128I   (MEMORY >> 4) // 2 MiB / 16 = 128 ki * __m128i
 #define ITER           (1 << 20)
 #define AES_BLOCK_SIZE  16
 #define AES_KEY_SIZE    32 /*16*/
 #define INIT_SIZE_BLK   8
 #define INIT_SIZE_BYTE (INIT_SIZE_BLK * AES_BLOCK_SIZE)	// 128
+#define INIT_SIZE_M128I (INIT_SIZE_BYTE >> 4) // 8
 
 
 #pragma pack(push, 1)

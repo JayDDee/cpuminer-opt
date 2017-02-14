@@ -133,6 +133,9 @@ int LYRA2REV2( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    ptrByte += nBlocksInput * BLOCK_LEN_BLAKE2_SAFE_BYTES - 1; //sets the pointer to the correct position: end of incomplete block
    *ptrByte ^= 0x01; //last byte of padding: at the end of the last incomplete block
 
+// from here on it's all simd acces to state and matrix
+// define vector pointers and adjust sizes and pointer offsets
+
    //================= Initializing the Sponge State ====================//
    //Sponge state: 16 uint64_t, BLOCK_LEN_INT64 words of them for the bitrate (b) and the remainder for the capacity (c)
 
