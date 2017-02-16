@@ -2,6 +2,12 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 
 Change Log
 ----------
+v3.5.8
+
+Lyra2RE fixed on Windows, broken in v3.5.6.
+Ported AES cryptonight optimizations from v3.5.7 to non-AES version
+  with little improvement.
+Marginal improvements to xevan and veltor.
 
 v3.5.7
 

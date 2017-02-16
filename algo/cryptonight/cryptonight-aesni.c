@@ -126,25 +126,24 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
     //    aesni_parallel_noxor(&ctx->long_state[i], ctx->text, ExpandedKey);
     
     // prefetch expkey, all of xmminput and enough longoutput for 4 loops
-    _mm_prefetch( expkey,       _MM_HINT_T0 );
-    _mm_prefetch( expkey   + 4, _MM_HINT_T0 );
-    _mm_prefetch( expkey   + 8, _MM_HINT_T0 );
     _mm_prefetch( xmminput,     _MM_HINT_T0 );
     _mm_prefetch( xmminput + 4, _MM_HINT_T0 );
-
-    for ( i = 0; i < 64; i += 8 )
+    for ( i = 0; i < 64; i += 16 )
     {
        _mm_prefetch( longoutput + i,      _MM_HINT_T0 );
        _mm_prefetch( longoutput + i +  4, _MM_HINT_T0 );
        _mm_prefetch( longoutput + i +  8, _MM_HINT_T0 );
        _mm_prefetch( longoutput + i + 12, _MM_HINT_T0 );
     }
+    _mm_prefetch( expkey,     _MM_HINT_T0 );
+    _mm_prefetch( expkey + 4, _MM_HINT_T0 );
+    _mm_prefetch( expkey + 8, _MM_HINT_T0 );
 
     for ( i = 0; likely( i < MEMORY_M128I ); i += INIT_SIZE_M128I )
     {
         // prefetch 4 loops ahead,
-        _mm_prefetch( longoutput + i + 64, _MM_HINT_T0 );
-        _mm_prefetch( longoutput + i + 68, _MM_HINT_T0 );
+        __builtin_prefetch( longoutput + i + 64, 1, 0 );
+        __builtin_prefetch( longoutput + i + 68, 1, 0 );
 
 	for (j = 0; j < 10; j++ )
 	{
@@ -191,7 +190,7 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
     for(i = 0; __builtin_expect(i < 0x80000, 1); i++)
     {	  
         uint64_t c[2];
-        _mm_prefetch( &ctx.long_state[c[0] & 0x1FFFF0], _MM_HINT_T0 );
+        __builtin_prefetch( &ctx.long_state[c[0] & 0x1FFFF0], 0, 1 );
 
 	__m128i c_x = _mm_load_si128( 
                               (__m128i *)&ctx.long_state[a[0] & 0x1FFFF0]);
@@ -232,7 +231,7 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
 	a[0] ^= b[0];
 	a[1] ^= b[1];
 	b_x = c_x;
-	_mm_prefetch( &ctx.long_state[a[0] & 0x1FFFF0], _MM_HINT_T0 );
+	__builtin_prefetch( &ctx.long_state[a[0] & 0x1FFFF0], 0, 3 );
     }
 
     memcpy( ctx.text, ctx.state.init, INIT_SIZE_BYTE );
@@ -243,6 +242,7 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
     //    aesni_parallel_xor(&ctx->text, ExpandedKey, &ctx->long_state[i]);
     
     // prefetch expkey, all of xmminput and enough longoutput for 4 loops
+
     _mm_prefetch( xmminput,     _MM_HINT_T0 );
     _mm_prefetch( xmminput + 4, _MM_HINT_T0 );
     for ( i = 0; i < 64; i += 16 )

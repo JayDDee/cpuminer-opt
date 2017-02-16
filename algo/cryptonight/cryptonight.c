@@ -5,6 +5,7 @@
 // Modified for CPUminer by Lucas Jones
 
 #include "miner.h"
+#include <memory.h>
 
 #if defined(__arm__) || defined(_MSC_VER)
 #ifndef NOASM
@@ -175,11 +176,27 @@ void cryptonight_hash_ctx(void* output, const void* input, int len)
 {
 	hash_process(&ctx.state.hs, (const uint8_t*) input, len);
 	ctx.aes_ctx = (oaes_ctx*) oaes_alloc();
+
+    __builtin_prefetch( ctx.text,             0, 3 );
+    __builtin_prefetch( ctx.text       +  64, 0, 3 );
+    __builtin_prefetch( ctx.long_state,       1, 0 );
+    __builtin_prefetch( ctx.long_state +  64, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 128, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 192, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 256, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 320, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 384, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 448, 1, 0 );
+
 	size_t i, j;
 	memcpy(ctx.text, ctx.state.init, INIT_SIZE_BYTE);
 
 	oaes_key_import_data(ctx.aes_ctx, ctx.state.hs.b, AES_KEY_SIZE);
 	for (i = 0; likely(i < MEMORY); i += INIT_SIZE_BYTE) {
+
+    __builtin_prefetch( ctx.long_state + i + 512, 1, 0 );
+    __builtin_prefetch( ctx.long_state + i + 576, 1, 0 );
+
 		aesb_pseudo_round_mut(&ctx.text[AES_BLOCK_SIZE * 0], ctx.aes_ctx->key->exp_data);
 		aesb_pseudo_round_mut(&ctx.text[AES_BLOCK_SIZE * 1], ctx.aes_ctx->key->exp_data);
 		aesb_pseudo_round_mut(&ctx.text[AES_BLOCK_SIZE * 2], ctx.aes_ctx->key->exp_data);
@@ -213,9 +230,24 @@ void cryptonight_hash_ctx(void* output, const void* input, int len)
 		mul_sum_xor_dst(ctx.b, ctx.a, &ctx.long_state[e2i(ctx.b)]);
 	}
 
+    __builtin_prefetch( ctx.text,             0, 3 );
+    __builtin_prefetch( ctx.text       +  64, 0, 3 );
+    __builtin_prefetch( ctx.long_state,       1, 0 );
+    __builtin_prefetch( ctx.long_state +  64, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 128, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 192, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 256, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 320, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 384, 1, 0 );
+    __builtin_prefetch( ctx.long_state + 448, 1, 0 );
+
 	memcpy(ctx.text, ctx.state.init, INIT_SIZE_BYTE);
 	oaes_key_import_data(ctx.aes_ctx, &ctx.state.hs.b[32], AES_KEY_SIZE);
 	for (i = 0; likely(i < MEMORY); i += INIT_SIZE_BYTE) {
+
+    __builtin_prefetch( ctx.long_state + i + 512, 1, 0 );
+    __builtin_prefetch( ctx.long_state + i + 576, 1, 0 );
+
 		xor_blocks(&ctx.text[0 * AES_BLOCK_SIZE], &ctx.long_state[i + 0 * AES_BLOCK_SIZE]);
 		aesb_pseudo_round_mut(&ctx.text[0 * AES_BLOCK_SIZE], ctx.aes_ctx->key->exp_data);
 		xor_blocks(&ctx.text[1 * AES_BLOCK_SIZE], &ctx.long_state[i + 1 * AES_BLOCK_SIZE]);

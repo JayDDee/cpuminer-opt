@@ -71,20 +71,6 @@ int LYRA2REV2( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    // for Lyra2REv2, nCols = 4, v1 was using 8
    const int64_t BLOCK_LEN = (nCols == 4) ? BLOCK_LEN_BLAKE2_SAFE_INT64
                                           : BLOCK_LEN_BLAKE2_SAFE_BYTES;
-/*
-   i = (int64_t)ROW_LEN_BYTES * nRows;
-   uint64_t *wholeMatrix = _mm_malloc( i, 64 );
-   if (wholeMatrix == NULL)
-      return -1;
-
-#if defined (__AVX2__)
-   memset_zero_m256i( (__m256i*)wholeMatrix, i/32 );
-#elif defined(__AVX__)
-   memset_zero_m128i( (__m128i*)wholeMatrix, i/16 );
-#else
-   memset(wholeMatrix, 0, i);
-#endif
-*/
    uint64_t *ptrWord = wholeMatrix;
 
    //=== Getting the password + salt + basil padded with 10*1 ==========//
@@ -219,13 +205,12 @@ int LYRA2REV2( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    //Squeezes the key
    squeeze(state, K, (unsigned int) kLen);
 
-   //================== Freeing the memory =============================//
-//   free(wholeMatrix);
-
    return 0;
 }
 
-int LYRA2Z( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd, uint64_t pwdlen, const void *salt, uint64_t saltlen, uint64_t timeCost, uint64_t nRows, uint64_t nCols )
+int LYRA2Z( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
+            uint64_t pwdlen, const void *salt, uint64_t saltlen,
+            uint64_t timeCost, uint64_t nRows, uint64_t nCols )
 {
     //========================== Basic variables ============================//
     uint64_t _ALIGN(256) state[16];
@@ -244,27 +229,14 @@ int LYRA2Z( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd, uint
 
     const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * nCols;
     const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
-/*
-   i = (int64_t)ROW_LEN_BYTES * nRows;
-   uint64_t *wholeMatrix = _mm_malloc( i, 64 );
 
-    if (wholeMatrix == NULL)
-      return -1;
-
-#if defined (__AVX2__)
-   memset_zero_m256i( (__m256i*)wholeMatrix, i/32 );
-#elif defined(__AVX__)
-   memset_zero_m128i( (__m128i*)wholeMatrix, i/16 );
-#else
-   memset(wholeMatrix, 0, i);
-#endif
-*/
     //==== Getting the password + salt + basil padded with 10*1 ============//
     //OBS.:The memory matrix will temporarily hold the password: not for saving memory,
     //but this ensures that the password copied locally will be overwritten as soon as possible
 
     //First, we clean enough blocks for the password, salt, basil and padding
-    uint64_t nBlocksInput = ( ( saltlen + pwdlen + 6 * sizeof (uint64_t) ) / BLOCK_LEN_BLAKE2_SAFE_BYTES) + 1;
+    uint64_t nBlocksInput = ( ( saltlen + pwdlen + 6 *
+                       sizeof (uint64_t) ) / BLOCK_LEN_BLAKE2_SAFE_BYTES ) + 1;
     byte *ptrByte = (byte*) wholeMatrix;
     memset( ptrByte, 0, nBlocksInput * BLOCK_LEN_BLAKE2_SAFE_BYTES );
 
@@ -366,17 +338,15 @@ int LYRA2Z( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd, uint
 
     //========================= Wrap-up Phase ===============================//
     //Absorbs the last block of the memory matrix
-        absorbBlock(state, &wholeMatrix[rowa*ROW_LEN_INT64]);
+    absorbBlock(state, &wholeMatrix[rowa*ROW_LEN_INT64]);
 
     //Squeezes the key
     squeeze( state, K, kLen );
 
-    //====================== Freeing the memory =============================//
-//        _mm_free(state);
-//        _mm_free( wholeMatrix );
     return 0;
 }
 
+// Lyra2RE doesn't like the new wholeMatrix implementation
 int LYRA2RE( void *K, uint64_t kLen, const void *pwd,
              uint64_t pwdlen, const void *salt, uint64_t saltlen,
              uint64_t timeCost, const uint64_t nRows, const uint64_t nCols )
@@ -548,7 +518,7 @@ int LYRA2RE( void *K, uint64_t kLen, const void *pwd,
    squeeze(state, K, (unsigned int) kLen);
 
    //================== Freeing the memory =============================//
-   free(wholeMatrix);
+   _mm_free(wholeMatrix);
 
    return 0;
 }

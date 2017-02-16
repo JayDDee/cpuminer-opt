@@ -12,6 +12,9 @@
 #include "lyra2.h"
 #include "avxdefs.h"
 
+// This gets allocated when miner_thread starts up and is never freed.
+// It's not a leak because the only way to allocate it again is to exit
+// the thread and that only occurs when the entire program exits.
 __thread uint64_t* l2v2_wholeMatrix;
 
 typedef struct {
