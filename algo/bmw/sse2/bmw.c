@@ -485,6 +485,7 @@ do { \
     sph_enc64le(out + 8 * u, h1[v]); \
 } while (0) 
 
+/*
 static void
 compress_big(const unsigned char *data, const sph_u64 h[16], sph_u64 dh[16])
 {
@@ -499,6 +500,7 @@ compress_big(const unsigned char *data, const sph_u64 h[16], sph_u64 dh[16])
 #undef H
 #undef dH
 }
+*/
 
 static const sph_u64 final_b[16] = {
 	SPH_C64(0xaaaaaaaaaaaaaaa0), SPH_C64(0xaaaaaaaaaaaaaaa1),

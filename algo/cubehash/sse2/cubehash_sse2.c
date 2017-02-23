@@ -24,10 +24,10 @@ static void transform( cubehashParam *sp )
 
     __m256i x0, x1, x2, x3, y0, y1;
 
-    x0 = _mm256_load_si256( 0 + sp->x );
-    x1 = _mm256_load_si256( 2 + sp->x );   
-    x2 = _mm256_load_si256( 4 + sp->x );
-    x3 = _mm256_load_si256( 6 + sp->x );
+    x0 = _mm256_load_si256( (__m256i*)sp->x     );
+    x1 = _mm256_load_si256( (__m256i*)sp->x + 1 );   
+    x2 = _mm256_load_si256( (__m256i*)sp->x + 2 );
+    x3 = _mm256_load_si256( (__m256i*)sp->x + 3 );
 
     for ( r = 0; r < rounds; ++r )
     { 
@@ -57,22 +57,22 @@ static void transform( cubehashParam *sp )
         x3 = _mm256_shuffle_epi32( x3, 0xb1 );
     }
 
-    _mm256_store_si256( 0 + sp->x, x0 );
-    _mm256_store_si256( 2 + sp->x, x1 );
-    _mm256_store_si256( 4 + sp->x, x2 );
-    _mm256_store_si256( 6 + sp->x, x3 );
+    _mm256_store_si256( (__m256i*)sp->x,     x0 );
+    _mm256_store_si256( (__m256i*)sp->x + 1, x1 );
+    _mm256_store_si256( (__m256i*)sp->x + 2, x2 );
+    _mm256_store_si256( (__m256i*)sp->x + 3, x3 );
 
 #else
     __m128i x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3;
 
-    x0 = _mm_load_si128(0 + sp->x);
-    x1 = _mm_load_si128(1 + sp->x);
-    x2 = _mm_load_si128(2 + sp->x);
-    x3 = _mm_load_si128(3 + sp->x);
-    x4 = _mm_load_si128(4 + sp->x);
-    x5 = _mm_load_si128(5 + sp->x);
-    x6 = _mm_load_si128(6 + sp->x);
-    x7 = _mm_load_si128(7 + sp->x);
+    x0 = _mm_load_si128( (__m128i*)sp->x     );
+    x1 = _mm_load_si128( (__m128i*)sp->x + 1 );
+    x2 = _mm_load_si128( (__m128i*)sp->x + 2 );
+    x3 = _mm_load_si128( (__m128i*)sp->x + 3 );
+    x4 = _mm_load_si128( (__m128i*)sp->x + 4 );
+    x5 = _mm_load_si128( (__m128i*)sp->x + 5 );
+    x6 = _mm_load_si128( (__m128i*)sp->x + 6 );
+    x7 = _mm_load_si128( (__m128i*)sp->x + 7 );
 
     for (r = 0; r < rounds; ++r) {
 	x4 = _mm_add_epi32(x0, x4);
@@ -117,14 +117,14 @@ static void transform( cubehashParam *sp )
 	x7 = _mm_shuffle_epi32(x7, 0xb1);
     }
 
-    _mm_store_si128(0 + sp->x, x0);
-    _mm_store_si128(1 + sp->x, x1);
-    _mm_store_si128(2 + sp->x, x2);
-    _mm_store_si128(3 + sp->x, x3);
-    _mm_store_si128(4 + sp->x, x4);
-    _mm_store_si128(5 + sp->x, x5);
-    _mm_store_si128(6 + sp->x, x6);
-    _mm_store_si128(7 + sp->x, x7);
+    _mm_store_si128( (__m128i*)sp->x,     x0 );
+    _mm_store_si128( (__m128i*)sp->x + 1, x1 );
+    _mm_store_si128( (__m128i*)sp->x + 2, x2 );
+    _mm_store_si128( (__m128i*)sp->x + 3, x3 );
+    _mm_store_si128( (__m128i*)sp->x + 4, x4 );
+    _mm_store_si128( (__m128i*)sp->x + 5, x5 );
+    _mm_store_si128( (__m128i*)sp->x + 6, x6 );
+    _mm_store_si128( (__m128i*)sp->x + 7, x7 );
 
 #endif
 }  // transform

@@ -47,14 +47,14 @@
 # endif
 #endif
 
-/*
+
 #ifndef min
-#define min(a,b) (a>b ? b : a)
+#define min(a,b) (a>b ? (b) :(a))
 #endif
 #ifndef max 
-#define max(a,b) (a<b ? b : a)
+#define max(a,b) (a<b ? (b) : (a))
 #endif
-*/
+
 
 //#ifdef HAVE_ALLOCA_H
 //# include <alloca.h>
@@ -479,12 +479,14 @@ enum algos {
         ALGO_BASTION,
         ALGO_BLAKE,       
         ALGO_BLAKECOIN,   
+//        ALGO_BLAKE2B,
         ALGO_BLAKE2S,     
         ALGO_BMW,        
         ALGO_C11,         
         ALGO_CRYPTOLIGHT, 
         ALGO_CRYPTONIGHT, 
         ALGO_DECRED,
+        ALGO_DEEP,
         ALGO_DROP,        
         ALGO_FRESH,       
         ALGO_GROESTL,     
@@ -537,12 +539,14 @@ static const char* const algo_names[] = {
         "bastion",
         "blake",
         "blakecoin",
+//        "blake2b",
         "blake2s",
         "bmw",
         "c11",
         "cryptolight",
         "cryptonight",
         "decred",
+        "deep",
         "drop",
         "fresh",
         "groestl",
@@ -589,7 +593,7 @@ static const char* const algo_names[] = {
         "\0"
 };
 
-char* algo_name( enum algos a );
+const char* algo_name( enum algos a );
 
 extern enum algos opt_algo;
 extern bool opt_debug;
@@ -650,12 +654,14 @@ Options:\n\
                           bastion\n\
                           blake        Blake-256 (SFR)\n\
                           blakecoin    blake256r8\n\
+"/*                          blake2b      Sia\n*/"\
                           blake2s      Blake-2 S\n\
                           bmw          BMW 256\n\
                           c11          Flax\n\
                           cryptolight  Cryptonight-light\n\
                           cryptonight  cryptonote, Monero (XMR)\n\
                           decred\n\
+                          deep         Deepcoin (DCN)\n\
                           drop         Dropcoin\n\
                           fresh        Fresh\n\
                           groestl      groestl\n\

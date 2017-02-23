@@ -53,7 +53,7 @@ void lyra2re_hash(void *state, const void *input)
         memcpy(&ctx, &lyra2re_ctx, sizeof(lyra2re_ctx));
 
 //        uint32_t _ALIGN(128) hashA[8], hashB[8];
-	uint32_t _ALIGN(128) hash[32];
+	uint8_t _ALIGN(128) hash[32*8];
         #define hashA hash
         #define hashB hash+16
 
@@ -61,7 +61,7 @@ void lyra2re_hash(void *state, const void *input)
         const int tail   = 80 - midlen;   // 16
 
         memcpy( &ctx.blake, &lyra2_blake_mid, sizeof lyra2_blake_mid );
-        sph_blake256( &ctx.blake, input + 64, 16 );
+        sph_blake256( &ctx.blake, input + midlen, tail );
 
 //	sph_blake256(&ctx.blake, input, 80);
 	sph_blake256_close(&ctx.blake, hashA);

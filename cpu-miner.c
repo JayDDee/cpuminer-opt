@@ -227,7 +227,7 @@ static void affine_to_cpu_mask(int id, unsigned long mask) { }
 // not very useful, just index the arrray directly.
 // but declaring this fuinction in miner.h eliminates
 // an annoying compiler warning for not using a static.
-char* algo_name( enum algos a ) {return algo_names[a];}
+const char* algo_name( enum algos a ) {return algo_names[a];}
 
 void get_currentalgo(char* buf, int sz)
 {
@@ -1432,7 +1432,7 @@ int64_t get_max64_0x3fffffLL() { return 0x3fffffLL; }
 int64_t get_max64_0x1ffff()    { return 0x1ffff;    }
 int64_t get_max64_0xffffLL()   { return 0xffffLL;   };
 
-
+// default
 void sha256d_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 {
   sha256d(merkle_root, sctx->job.coinbase, (int) sctx->job.coinbase_size);
@@ -1468,14 +1468,6 @@ void swab_work_data( struct work *work )
    int nonce_index = algo_gate.nonce_index;
    for ( int i = 0; i < nonce_index; i++ )
       work->data[i] = swab32( work->data[i] );
-}
-
-void std_build_extraheader( struct work* work, struct stratum_ctx* sctx )
-{
-   work->data[ algo_gate.ntime_index ] = le32dec(sctx->job.ntime);
-   work->data[ algo_gate.nbits_index ] = le32dec(sctx->job.nbits);
-   work->data[20] = 0x80000000;
-   work->data[31] = 0x00000280;
 }
 
 double std_calc_network_diff( struct work* work )
@@ -1549,6 +1541,17 @@ void jr2_get_new_work( struct work* work, struct work* g_work, int thr_id,
    }
    else
        ++(*nonceptr);
+}
+
+bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
+                           int thr_id )
+{
+   if ( have_stratum && !work->data[0] && !opt_benchmark )
+   {
+      sleep(1);
+      return false;
+   }
+   return true;
 }
 
 static void *miner_thread( void *userdata )
@@ -1676,8 +1679,9 @@ static void *miner_thread( void *userdata )
        } // do_this_thread
        algo_gate.resync_threads( &work );
 
-       // prevent dupes is called on every loop and has useful args so it
-       // is being used by zcoin to pass along the work height.
+       if ( !algo_gate.ready_to_mine( &work, &stratum, thr_id ) )
+          continue;
+/*
        if ( algo_gate.prevent_dupes( &work, &stratum, thr_id ) )
           continue;
        // prevent scans before a job is received
@@ -1686,6 +1690,7 @@ static void *miner_thread( void *userdata )
           sleep(1);
           continue;
        }
+*/
        // conditional mining
        if (!wanna_mine(thr_id))
        {
@@ -2068,23 +2073,16 @@ out:
 	return ret;
 }
 
-void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
+void std_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
-   unsigned char merkle_root[64] = { 0 };
-   int i;
+   uchar merkle_root[64] = { 0 };
    size_t t;
-
-   pthread_mutex_lock( &sctx->work_lock );
-   free( g_work->job_id );
-   g_work->job_id = strdup( sctx->job.job_id );
-   g_work->xnonce2_len = sctx->xnonce2_size;
-   g_work->xnonce2 = (uchar*) realloc( g_work->xnonce2, sctx->xnonce2_size );
-   memcpy( g_work->xnonce2, sctx->job.xnonce2, sctx->xnonce2_size );
+   int i;
 
    algo_gate.gen_merkle_root( merkle_root, sctx );
-   /* Increment extranonce2 */
+   // Increment extranonce2
    for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
-   /* Assemble block header */
+   // Assemble block header
    memset( g_work->data, 0, sizeof(g_work->data) );
    g_work->data[0] = le32dec( sctx->job.version );
    for ( i = 0; i < 8; i++ )
@@ -2092,7 +2090,23 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    for ( i = 0; i < 8; i++ )
       g_work->data[9 + i] = be32dec( (uint32_t *) merkle_root + i );
 
+   g_work->data[ algo_gate.ntime_index ] = le32dec(sctx->job.ntime);
+   g_work->data[ algo_gate.nbits_index ] = le32dec(sctx->job.nbits);
+   g_work->data[20] = 0x80000000;
+   g_work->data[31] = 0x00000280;
+}
+
+void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
+{
+   pthread_mutex_lock( &sctx->work_lock );
+   free( g_work->job_id );
+   g_work->job_id = strdup( sctx->job.job_id );
+   g_work->xnonce2_len = sctx->xnonce2_size;
+   g_work->xnonce2 = (uchar*) realloc( g_work->xnonce2, sctx->xnonce2_size );
+   memcpy( g_work->xnonce2, sctx->job.xnonce2, sctx->xnonce2_size );
+
    algo_gate.build_extraheader( g_work, sctx );
+
    net_diff = algo_gate.calc_network_diff( g_work );
    algo_gate.set_work_data_endian( g_work );
    pthread_mutex_unlock( &sctx->work_lock );
@@ -2105,7 +2119,7 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
                     g_work->job_id, xnonce2str, swab32( g_work->data[17] ) );
        free( xnonce2str );
    }
-   /* set target */
+
    algo_gate.set_target( g_work, sctx->job.diff );
 
    if ( stratum_diff != sctx->job.diff )
@@ -2144,98 +2158,100 @@ static void *stratum_thread(void *userdata )
     {
 	int failures = 0;
 
-	if (stratum_need_reset) {
+	if ( stratum_need_reset )
+        {
            stratum_need_reset = false;
-	   stratum_disconnect(&stratum);
-	   if (strcmp(stratum.url, rpc_url)) {
-		free(stratum.url);
-		stratum.url = strdup(rpc_url);
+	   stratum_disconnect( &stratum );
+	   if ( strcmp( stratum.url, rpc_url ) )
+           {
+		free( stratum.url );
+		stratum.url = strdup( rpc_url );
 		applog(LOG_BLUE, "Connection changed to %s", short_url);
-	   } else if (!opt_quiet) {
-		applog(LOG_DEBUG, "Stratum connection reset");
 	   }
+           else if ( !opt_quiet )
+		applog(LOG_DEBUG, "Stratum connection reset");
 	}
 
-  while ( !stratum.curl )
-  {
-     pthread_mutex_lock(&g_work_lock);
-     g_work_time = 0;
-     pthread_mutex_unlock(&g_work_lock);
-     restart_threads();
-     if (!stratum_connect(&stratum, stratum.url)
-         || !stratum_subscribe(&stratum)
-         || !stratum_authorize(&stratum, rpc_user, rpc_pass))
-     {
-         stratum_disconnect(&stratum);
-         if (opt_retries >= 0 && ++failures > opt_retries)
-         {
-              applog(LOG_ERR, "...terminating workio thread");
-              tq_push(thr_info[work_thr_id].q, NULL);
-              goto out;
-         }
-         if (!opt_benchmark)
-            applog(LOG_ERR, "...retry after %d seconds", opt_fail_pause);
-            sleep(opt_fail_pause);
-     }
+        while ( !stratum.curl )
+        {
+           pthread_mutex_lock( &g_work_lock );
+           g_work_time = 0;
+           pthread_mutex_unlock( &g_work_lock );
+           restart_threads();
+           if ( !stratum_connect( &stratum, stratum.url )
+                || !stratum_subscribe( &stratum )
+                || !stratum_authorize( &stratum, rpc_user, rpc_pass ) )
+           {
+              stratum_disconnect( &stratum );
+              if (opt_retries >= 0 && ++failures > opt_retries)
+              {
+                 applog(LOG_ERR, "...terminating workio thread");
+                 tq_push(thr_info[work_thr_id].q, NULL);
+                 goto out;
+              }
+              if (!opt_benchmark)
+                  applog(LOG_ERR, "...retry after %d seconds", opt_fail_pause);
+              sleep(opt_fail_pause);
+           }
 
-     if (jsonrpc_2)
-     {
-	work_free(&g_work);
-	work_copy(&g_work, &stratum.work);
-     }
-  }
+           if (jsonrpc_2)
+           {
+              work_free(&g_work);
+	      work_copy(&g_work, &stratum.work);
+           }
+        }
 
-  if (stratum.job.job_id &&
-         (!g_work_time || strcmp(stratum.job.job_id, g_work.job_id)) )
-  {
-      pthread_mutex_lock(&g_work_lock);
-      algo_gate.stratum_gen_work( &stratum, &g_work );
-      time(&g_work_time);
-      pthread_mutex_unlock(&g_work_lock);
-      restart_threads();
+        if ( stratum.job.job_id &&
+             ( !g_work_time || strcmp( stratum.job.job_id, g_work.job_id ) ) )
+        {
+           pthread_mutex_lock(&g_work_lock);
+           algo_gate.stratum_gen_work( &stratum, &g_work );
+           time(&g_work_time);
+           pthread_mutex_unlock(&g_work_lock);
+//           restart_threads();
 
-      if (stratum.job.clean || jsonrpc_2)
-      {
-         static uint32_t last_bloc_height;
-         if ( last_bloc_height != stratum.bloc_height )
-         {
-            last_bloc_height = stratum.bloc_height;
-            if ( !opt_quiet )
-            {
-               if (net_diff > 0.)
-	           applog(LOG_BLUE, "%s block %d, diff %.3f",
-                       algo_names[opt_algo], stratum.bloc_height, net_diff);
-	       else
-	           applog(LOG_BLUE, "%s %s block %d", short_url,
-                       algo_names[opt_algo], stratum.bloc_height);
-	    }
-	 }
-         restart_threads();
-       }
-       else if (opt_debug && !opt_quiet)
-       {
+           if (stratum.job.clean || jsonrpc_2)
+           {
+              static uint32_t last_bloc_height;
+              if ( last_bloc_height != stratum.bloc_height )
+              {
+                 last_bloc_height = stratum.bloc_height;
+                 if ( !opt_quiet )
+                 {
+                    if (net_diff > 0.)
+	               applog(LOG_BLUE, "%s block %d, diff %.3f",
+                           algo_names[opt_algo], stratum.bloc_height, net_diff);
+                    else
+	               applog(LOG_BLUE, "%s %s block %d", short_url,
+                           algo_names[opt_algo], stratum.bloc_height);
+	         }
+              }
+              restart_threads();
+           }
+           else if (opt_debug && !opt_quiet)
+           {
 		applog(LOG_BLUE, "%s asks job %d for block %d", short_url,
 		strtoul(stratum.job.job_id, NULL, 16), stratum.bloc_height);
-       }
-   }
+           }
+        }  // stratum.job.job_id
 
-   if ( !stratum_socket_full( &stratum, opt_timeout ) )
-   {
-	applog(LOG_ERR, "Stratum connection timeout");
-	s = NULL;
-   }
-   else
-	s = stratum_recv_line(&stratum);
-   if ( !s )
-   {
-	stratum_disconnect(&stratum);
-	applog(LOG_ERR, "Stratum connection interrupted");
-	continue;
-   }
-   if (!stratum_handle_method(&stratum, s))
-	stratum_handle_response(s);
-   free(s);
-   }
+       if ( !stratum_socket_full( &stratum, opt_timeout ) )
+       {
+          applog(LOG_ERR, "Stratum connection timeout");
+	  s = NULL;
+       }
+       else
+           s = stratum_recv_line(&stratum);
+       if ( !s )
+       {
+          stratum_disconnect(&stratum);
+	  applog(LOG_ERR, "Stratum connection interrupted");
+	  continue;
+       }
+       if (!stratum_handle_method(&stratum, s))
+          stratum_handle_response(s);
+       free(s);
+   }  // loop
 out:
 	return NULL;
 }

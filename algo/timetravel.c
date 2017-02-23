@@ -147,17 +147,17 @@ void timetravel_hash(void *output, const void *input)
     switch ( permutation[i] )
     {
       case 0:
-//        if ( i == 0 )
-//        {
-//           memcpy( &ctx.blake, &tt_mid.blake, sizeof tt_mid.blake );
-//           sph_blake256( &ctx.blake, input + midlen, tail );
-//           sph_blake256_close( &ctx.blake, hashB );
-//        }
-//        else
-//        {
+        if ( i == 0 )
+        {
+           memcpy( &ctx.blake, &tt_mid.blake, sizeof tt_mid.blake );
+           sph_blake512( &ctx.blake, input + midlen, tail );
+           sph_blake512_close( &ctx.blake, hashB );
+        }
+        else
+        {
           sph_blake512( &ctx.blake, hashA, dataLen );
           sph_blake512_close( &ctx.blake, hashB );
-//        }
+        }
         break;
      case 1:
         if ( i == 0 )
@@ -239,28 +239,29 @@ void timetravel_hash(void *output, const void *input)
         }
         break;
      case 6:
-//        if ( i == 0 )
-//        {
-//           memcpy( &ctx.luffa, &tt_mid.luffa, sizeof tt_mid.luffa );
-//           update_and_final_luffa( &ctx.luffa, hashB,
-//                                   input + 64, 16 );
-//        }
-//        else
-//        {
+        if ( i == 0 )
+        {
+           memcpy( &ctx.luffa, &tt_mid.luffa, sizeof tt_mid.luffa );
+           update_and_final_luffa( &ctx.luffa, hashB,
+                                   input + 64, 16 );
+        }
+        else
+        {
            update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
-                                   hashA, dataLen );
-//        }
+                                   (const BitSequence *)hashA, dataLen );
+        }
         break;
      case 7:
         if ( i == 0 )
         {
            memcpy( &ctx.cube, &tt_mid.cube, sizeof tt_mid.cube );
-           cubehashUpdateDigest( &ctx.cube, hashB,
-                                 input + midlen, tail );
+           cubehashUpdateDigest( &ctx.cube, (byte*)hashB,
+                                 (const byte*)input + midlen, tail );
         }
         else
         {
-           cubehashUpdateDigest( &ctx.cube, hashB, hashA, dataLen );
+           cubehashUpdateDigest( &ctx.cube, (byte*)hashB, (const byte*)hashA,
+                                 dataLen );
         }
         break;
      default:
@@ -306,8 +307,8 @@ int scanhash_timetravel( int thr_id, struct work *work, uint32_t max_nonce,
       switch ( permutation[0] )
       {
          case 0:
-//           memcpy( &tt_mid.blake, &tt_ctx.blake, sizeof(tt_mid.blake) );
-//           sph_blake256( &tt_mid.blake, endiandata, 64 );
+           memcpy( &tt_mid.blake, &tt_ctx.blake, sizeof(tt_mid.blake) );
+           sph_blake512( &tt_mid.blake, endiandata, 64 );
            break;
         case 1:
            memcpy( &tt_mid.bmw, &tt_ctx.bmw, sizeof(tt_mid.bmw) );
@@ -335,13 +336,12 @@ int scanhash_timetravel( int thr_id, struct work *work, uint32_t max_nonce,
            sph_keccak512( &tt_mid.keccak, endiandata, 64 );
            break;
         case 6:
-//           init_luffa( &tt_mid.luffa, 512 );
-//           memcpy( &tt_mid.luffa, &tt_ctx.luffa, sizeof(tt_mid.luffa ) );
-//           update_luffa( &tt_mid.luffa, endiandata, 64 );
+           memcpy( &tt_mid.luffa, &tt_ctx.luffa, sizeof(tt_mid.luffa ) );
+           update_luffa( &tt_mid.luffa, endiandata, 64 );
            break;
         case 7:
            memcpy( &tt_mid.cube, &tt_ctx.cube, sizeof(tt_mid.cube ) );
-           cubehashUpdate( &tt_mid.cube, endiandata, 64 );
+           cubehashUpdate( &tt_mid.cube, (const byte*)endiandata, 64 );
            break;
         default:
            break;
@@ -373,23 +373,6 @@ void timetravel_set_target( struct work* work, double job_diff )
  work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
 }
 
-// set_data_endian is a reasonable gate to use, it's called upon receipt
-// of new work (new ntime) and has the right arg to access it.
-void timetravel_calc_perm( struct work *work )
-{
-   // We want to permute algorithms. To get started we
-   // initialize an array with a sorted sequence of unique
-   // integers where every integer represents its own algorithm.
-   int ntime, steps, i;
-   be32enc( &ntime, work->data[ STD_NTIME_INDEX ] );
-   steps = ( ntime - HASH_FUNC_BASE_TIMESTAMP )
-                         % HASH_FUNC_COUNT_PERMUTATIONS;
-   for ( i = 0; i < HASH_FUNC_COUNT; i++ ) 
-        permutation[i] = i;
-   for ( i = 0; i < steps; i++ ) 
-        next_permutation( permutation, permutation + HASH_FUNC_COUNT );
-}
-
 bool register_timetravel_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
@@ -398,7 +381,6 @@ bool register_timetravel_algo( algo_gate_t* gate )
   gate->hash       = (void*)&timetravel_hash;
   gate->set_target = (void*)&timetravel_set_target;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
-//  gate->set_work_data_endian = (void*)&timetravel_calc_perm;
   return true;
 };
 

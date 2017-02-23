@@ -105,7 +105,6 @@ inline bool set_excl ( set_t a, set_t b ) { return (a & b) == 0; }
 
 typedef struct
 {
-//migrate to use work instead of pdata & ptarget, see decred for example.
 // mandatory functions, must be overwritten
 int ( *scanhash ) ( int, struct work*, uint32_t, uint64_t* );
 
@@ -127,11 +126,12 @@ bool ( *work_decode )            ( const json_t*, struct work* );
 void ( *set_target)              ( struct work*, double );
 bool ( *submit_getwork_result )  ( CURL*, struct work* );
 void ( *gen_merkle_root )        ( char*, struct stratum_ctx* );
+void ( *build_extraheader )      ( struct work*, struct stratum_ctx* );
 void ( *build_stratum_request )  ( char*, struct work*, struct stratum_ctx* );
 void ( *set_work_data_endian )   ( struct work* );
 double ( *calc_network_diff )    ( struct work* );
-void ( *build_extraheader )      ( struct work*, struct stratum_ctx* );
-bool ( *prevent_dupes )          ( struct work*, struct stratum_ctx*, int );
+//bool ( *prevent_dupes )          ( struct work*, struct stratum_ctx*, int );
+bool ( *ready_to_mine )          ( struct work*, struct stratum_ctx*, int );
 void ( *resync_threads )         ( struct work* );
 bool ( *do_this_thread )         ( int );
 json_t* (*longpoll_rpc_call)     ( CURL*, int*, char* );
@@ -165,8 +165,8 @@ void algo_not_implemented();
 // conventions results in different behaviour for pointers with different
 // target sizes requiring customized casting to make it work consistently.
 // Rant mode: yet another thing I hate about c/c++. Array indexes should
-// be scaled, pointer offsets should always be bytes. Noconfusion and no hidden
-// math.
+// be scaled, pointer offsets should always be bytes. No confusion and no
+// hidden math.
 
 #define STD_NTIME_INDEX 17
 #define STD_NBITS_INDEX 18
@@ -227,7 +227,7 @@ void std_le_build_stratum_request( char *req, struct work *work );
 void std_be_build_stratum_request( char *req, struct work *work );
 void jr2_build_stratum_request   ( char *req, struct work *work );
 
-// default is do_nothing;
+// set_work_data_endian target, default is do_nothing;
 void swab_work_data( struct work *work );
 
 double std_calc_network_diff( struct work *work );
@@ -239,6 +239,9 @@ json_t* jr2_longpoll_rpc_call( CURL *curl, int *err );
 
 bool std_stratum_handle_response( json_t *val );
 bool jr2_stratum_handle_response( json_t *val );
+
+bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
+                        int thr_id );
 
 // Gate admin functions
 

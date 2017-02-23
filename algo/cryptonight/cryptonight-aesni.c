@@ -202,7 +202,7 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
 	_mm_store_si128((__m128i *)&ctx.long_state[a[0] & 0x1FFFF0], b_x);
 
 	uint64_t *nextblock = (uint64_t *)&ctx.long_state[c[0] & 0x1FFFF0];
-	uint64_t b[2];
+//	uint64_t b[2];
 	b[0] = nextblock[0];
 	b[1] = nextblock[1];
 

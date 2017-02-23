@@ -2,6 +2,14 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 
 Change Log
 ----------
+
+V3.5.9
+
+Reduced stack usage for hmq1725 and small speedup.
+Added Deep algo optimized for AES and AVX2
+Rewrite of SSE2 Luffa, midstate now supported in deep, qubit & timetravel
+Small changes to algo-gate.
+
 v3.5.8
 
 Lyra2RE fixed on Windows, broken in v3.5.6.

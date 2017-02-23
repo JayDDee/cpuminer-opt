@@ -5,13 +5,14 @@
 #include <string.h>
 #include <stdint.h>
 #include <memory.h>
-
+/*
 #ifndef min
 #define min(a,b) (a>b ? b : a)
 #endif
 #ifndef max 
 #define max(a,b) (a<b ? b : a)
 #endif
+*/
 
 #define DECRED_NBITS_INDEX 29
 #define DECRED_NTIME_INDEX 34
@@ -179,9 +180,10 @@ void decred_be_build_stratum_request( char *req, struct work *work,
    free(xnonce2str);
 }
 
+/*
 // data shared between gen_merkle_root and build_extraheader.
-uint32_t decred_extraheader[32] = { 0 };
-int decred_headersize = 0;
+__thread uint32_t decred_extraheader[32] = { 0 };
+__thread int decred_headersize = 0;
 
 void decred_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 {
@@ -191,31 +193,57 @@ void decred_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
                   sizeof(decred_extraheader) );
    memcpy( decred_extraheader, &sctx->job.coinbase[32], decred_headersize);
 }
-
-void decred_build_extraheader( struct work* work, struct stratum_ctx* sctx )
+*/
+void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
+   uchar merkle_root[64] = { 0 };
+   uint32_t extraheader[32] = { 0 };
+   int headersize = 0;
    uint32_t* extradata = (uint32_t*) sctx->xnonce1;
+   size_t t;
    int i;
-   for ( i = 0; i < 8; i++ ) // prevhash
-      work->data[1 + i] = swab32( work->data[1 + i] );
-   for ( i = 0; i < 8; i++ ) // merkle
-      work->data[9 + i] = swab32( work->data[9 + i] );
-   for ( i = 0; i < decred_headersize/4; i++ ) // header
-      work->data[17 + i] = decred_extraheader[i];
+
+   // getwork over stratum, getwork merkle + header passed in coinb1
+   memcpy(merkle_root, sctx->job.coinbase, 32);
+   headersize = min((int)sctx->job.coinbase_size - 32,
+                  sizeof(extraheader) );
+   memcpy( extraheader, &sctx->job.coinbase[32], headersize );
+
+   // Increment extranonce2 
+   for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
+
+   // Assemble block header 
+   memset( g_work->data, 0, sizeof(g_work->data) );
+   g_work->data[0] = le32dec( sctx->job.version );
+   for ( i = 0; i < 8; i++ )
+      g_work->data[1 + i] = swab32(
+                              le32dec( (uint32_t *) sctx->job.prevhash + i ) );
+   for ( i = 0; i < 8; i++ )
+      g_work->data[9 + i] = swab32( be32dec( (uint32_t *) merkle_root + i ) );
+
+//   for ( i = 0; i < 8; i++ ) // prevhash
+//      g_work->data[1 + i] = swab32( g_work->data[1 + i] );
+//   for ( i = 0; i < 8; i++ ) // merkle
+//      g_work->data[9 + i] = swab32( g_work->data[9 + i] );
+
+   for ( i = 0; i < headersize/4; i++ ) // header
+      g_work->data[17 + i] = extraheader[i];
    // extradata
    for ( i = 0; i < sctx->xnonce1_size/4; i++ )
-      work->data[ DECRED_XNONCE_INDEX + i ] = extradata[i];
+      g_work->data[ DECRED_XNONCE_INDEX + i ] = extradata[i];
    for ( i = DECRED_XNONCE_INDEX + sctx->xnonce1_size/4; i < 45; i++ )
-      work->data[i] = 0;
-   work->data[37] = (rand()*4) << 8;
-   sctx->bloc_height = work->data[32];
+      g_work->data[i] = 0;
+   g_work->data[37] = (rand()*4) << 8;
+   sctx->bloc_height = g_work->data[32];
    //applog_hex(work->data, 180);
    //applog_hex(&work->data[36], 36);
 }
 
+/*
 bool decred_prevent_dupes( struct work* work, struct stratum_ctx* stratum,
                            int thr_id )
 {
+return false;
    if ( have_stratum && strcmp(stratum->job.job_id, work->job_id)  )
       // need to regen g_work..
       return true;
@@ -224,6 +252,25 @@ bool decred_prevent_dupes( struct work* work, struct stratum_ctx* stratum,
    work->data[ DECRED_XNONCE_INDEX + 1 ] |= thr_id;
    return false;
 }
+*/
+
+bool decred_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
+                           int thr_id )
+{
+   if ( have_stratum && strcmp(stratum->job.job_id, work->job_id)  )
+      // need to regen g_work..
+      return false;
+   if ( have_stratum && !work->data[0] && !opt_benchmark )
+   {
+      sleep(1);
+      return false;
+   }      
+   // extradata: prevent duplicates
+   work->data[ DECRED_XNONCE_INDEX     ] += 1;
+   work->data[ DECRED_XNONCE_INDEX + 1 ] |= thr_id;
+   return true;
+}
+
 
 bool register_decred_algo( algo_gate_t* gate )
 {
@@ -235,9 +282,10 @@ bool register_decred_algo( algo_gate_t* gate )
   gate->get_max64             = (void*)&get_max64_0x3fffffLL;
   gate->display_extra_data    = (void*)&decred_decode_extradata;
   gate->build_stratum_request = (void*)&decred_be_build_stratum_request;
-  gate->gen_merkle_root       = (void*)&decred_gen_merkle_root;
+//  gate->gen_merkle_root       = (void*)&decred_gen_merkle_root;
   gate->build_extraheader     = (void*)&decred_build_extraheader;
-  gate->prevent_dupes         = (void*)&decred_prevent_dupes;
+//  gate->prevent_dupes         = (void*)&decred_prevent_dupes;
+  gate->ready_to_mine         = (void*)&decred_ready_to_mine;
   gate->nbits_index           = DECRED_NBITS_INDEX;
   gate->ntime_index           = DECRED_NTIME_INDEX;
   gate->nonce_index           = DECRED_NONCE_INDEX;

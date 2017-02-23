@@ -20,19 +20,8 @@
 
 #include <string.h>
 #include <emmintrin.h>
+#include "avxdefs.h"
 #include "luffa_for_sse2.h"
-
-#ifdef HASH_BIG_ENDIAN
-# define BYTES_SWAP32(x) x
-#else
-# define BYTES_SWAP32(x) \
-    ((x << 24) | ((x & 0x0000ff00) << 8) | ((x & 0x00ff0000) >> 8) | (x >> 24))
-#endif /* HASH_BIG_ENDIAN */
-
-/* BYTES_SWAP256(x) stores each 32-bit word of 256 bits data in little-endian convention */
-#define BYTES_SWAP256(x) { \
-    int _i = 8; while(_i--){x[_i] = BYTES_SWAP32(x[_i]);} \
-}
 
 #define MULT2(a0,a1) do \
 { \
@@ -200,11 +189,10 @@
     NMLTOM1024(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3);
 
 
-static void Update512(hashState_luffa *state, const BitSequence *data, DataLength databitlen);
+static void rnd512( hashState_luffa *state, __m128i msg1, __m128i msg0 );
+//static void rnd512( hashState_luffa *state );
 
-static void rnd512(hashState_luffa *state);
-
-static void finalization512(hashState_luffa *state, uint32 *b);
+static void finalization512( hashState_luffa *state, uint32 *b );
 
 
 /* initial values of chaining variables */
@@ -282,45 +270,44 @@ HashReturn init_luffa(hashState_luffa *state, int hashbitlen)
 HashReturn update_luffa( hashState_luffa *state, const BitSequence *data,
                          size_t len )
 {
-    HashReturn ret=SUCCESS;
-    int i, j;
-    int rem = len % 32;
-    int blocks = (int)( len / 32 );
-    uint8 *p = (uint8*)state->buffer;
+    int i;
+    int blocks = (int)len / 32;
+    state-> rembytes = (int)len % 32;
 
     // full blocks
-    for ( j = 0; j < blocks; j++ )
+    for ( i = 0; i < blocks; i++ )
     {
-       state->buffer[0] = BYTES_SWAP32( ((uint32*)data)[0] );
-       state->buffer[1] = BYTES_SWAP32( ((uint32*)data)[1] );
-       state->buffer[2] = BYTES_SWAP32( ((uint32*)data)[2] );
-       state->buffer[3] = BYTES_SWAP32( ((uint32*)data)[3] );
-       state->buffer[4] = BYTES_SWAP32( ((uint32*)data)[4] );
-       state->buffer[5] = BYTES_SWAP32( ((uint32*)data)[5] );
-       state->buffer[6] = BYTES_SWAP32( ((uint32*)data)[6] );
-       state->buffer[7] = BYTES_SWAP32( ((uint32*)data)[7] );
-
-       rnd512( state );
+       rnd512( state, mm_byteswap_epi32( casti_m128i( data, 1 ) ),
+                      mm_byteswap_epi32( casti_m128i( data, 0 ) ) );
        data += MSG_BLOCK_BYTE_LEN;
     }
 
-    // remaining partial block, if any
-    for ( i = 0; i < rem/4; i++ )
-       state->buffer[i] = BYTES_SWAP32( ((uint32*)data)[i] );
+    // 16 byte partial block exists for 80 byte len
+    // store in buffer for transform in final for midstate to work
+    if ( state->rembytes  )
+    {
+      // remaining data bytes
+      casti_m128i( state->buffer, 0 ) = mm_byteswap_epi32( cast_m128i( data ) );
+      // padding of partial block
+      casti_m128i( state->buffer, 1 ) =
+            _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+    }
 
-    // padding of partial block
-    memset( p+rem+1, 0, (31-rem)*sizeof(uint8) );
-    p[rem] = 0x80;
-    for ( i = rem/4; i < 8; i++ )
-       state->buffer[i] = BYTES_SWAP32(state->buffer[i]);
-
-    rnd512(state);
-
-    return ret;
+    return SUCCESS;
 }
 
 HashReturn final_luffa(hashState_luffa *state, BitSequence *hashval) 
 {
+    // transform pad block
+    if ( state->rembytes )
+      // not empty, data is in buffer
+      rnd512( state, casti_m128i( state->buffer, 1 ),
+                     casti_m128i( state->buffer, 0 ) );
+    else
+      // empty pad block, constant data
+      rnd512( state, _mm_setzero_si128(),
+                     _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
+
     finalization512(state, (uint32*) hashval);
     if ( state->hashbitlen > 512 )
         finalization512( state, (uint32*)( hashval+128 ) );
@@ -330,79 +317,66 @@ HashReturn final_luffa(hashState_luffa *state, BitSequence *hashval)
 HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
               const BitSequence* data, size_t inlen )
 {
-    HashReturn ret=SUCCESS;
-    int i, j;
-    int rem = inlen % 32;
+// Optimized for integrals of 16 bytes, good for 64 and 80 byte len
+    int i;
     int blocks = (int)( inlen / 32 );
-    uint8 *p = (uint8*)state->buffer;
+    state->rembytes = inlen % 32;
 
     // full blocks
-    for ( j = 0; j < blocks; j++ )
+    for ( i = 0; i < blocks; i++ )
     {
-       state->buffer[0] = BYTES_SWAP32( ((uint32*)data)[0] );
-       state->buffer[1] = BYTES_SWAP32( ((uint32*)data)[1] );
-       state->buffer[2] = BYTES_SWAP32( ((uint32*)data)[2] );
-       state->buffer[3] = BYTES_SWAP32( ((uint32*)data)[3] );
-       state->buffer[4] = BYTES_SWAP32( ((uint32*)data)[4] );
-       state->buffer[5] = BYTES_SWAP32( ((uint32*)data)[5] );
-       state->buffer[6] = BYTES_SWAP32( ((uint32*)data)[6] );
-       state->buffer[7] = BYTES_SWAP32( ((uint32*)data)[7] );
-
-       rnd512( state );
+       rnd512( state, mm_byteswap_epi32( casti_m128i( data, 1 ) ),
+                      mm_byteswap_epi32( casti_m128i( data, 0 ) ) );
        data += MSG_BLOCK_BYTE_LEN;
     }
 
-    // remaining partial block, if any
-    for ( i = 0; i < rem/4; i++ )
-       state->buffer[i] = BYTES_SWAP32( ((uint32*)data)[i] );
-
-    // padding of partial block
-    memset( p+rem+1, 0, (31-rem)*sizeof(uint8) );
-    p[rem] = 0x80;
-    for ( i = rem/4; i < 8; i++ )
-       state->buffer[i] = BYTES_SWAP32(state->buffer[i]);
-
-    rnd512( state );
+    // 16 byte partial block exists for 80 byte len
+    if ( state->rembytes  )
+      // remaining 16 data bytes + 16 bytes padding
+       rnd512( state, _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ),
+                      mm_byteswap_epi32( cast_m128i( data ) ) );
+    else
+      // empty pad block
+      rnd512( state, _mm_setzero_si128(), 
+                     _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
 
     finalization512( state, (uint32*) output );
     if ( state->hashbitlen > 512 )
         finalization512( state, (uint32*)( output+128 ) );
-    return SUCCESS;
 
+    return SUCCESS;
 }
 
 /***************************************************/
 /* Round function         */
 /* state: hash context    */
 
-
-static void rnd512(hashState_luffa *state)
+static void rnd512( hashState_luffa *state, __m128i msg1, __m128i msg0 )
 {
     __m128i t[2];
     __m128i *chainv = state->chainv;
-    __m128i msg[2];
     __m128i tmp[2];
     __m128i x[8];
-    int i;
+
+//    _mm_prefetch( chainv,     _MM_HINT_T0 );
+//    _mm_prefetch( chainv + 4, _MM_HINT_T0 );
 
     t[0] = chainv[0];
     t[1] = chainv[1];
 
-    t[0] = _mm_xor_si128(t[0], chainv[2]);
-    t[1] = _mm_xor_si128(t[1], chainv[3]);
-    t[0] = _mm_xor_si128(t[0], chainv[4]);
-    t[1] = _mm_xor_si128(t[1], chainv[5]);
-    t[0] = _mm_xor_si128(t[0], chainv[6]);
-    t[1] = _mm_xor_si128(t[1], chainv[7]);
-    t[0] = _mm_xor_si128(t[0], chainv[8]);
-    t[1] = _mm_xor_si128(t[1], chainv[9]);
+    t[0] = _mm_xor_si128( t[0], chainv[2] );
+    t[1] = _mm_xor_si128( t[1], chainv[3] );
+    t[0] = _mm_xor_si128( t[0], chainv[4] );
+    t[1] = _mm_xor_si128( t[1], chainv[5] );
+    t[0] = _mm_xor_si128( t[0], chainv[6] );
+    t[1] = _mm_xor_si128( t[1], chainv[7] );
+    t[0] = _mm_xor_si128( t[0], chainv[8] );
+    t[1] = _mm_xor_si128( t[1], chainv[9] );
 
-    MULT2( t[0], t[1]);
+    MULT2( t[0], t[1] );
 
-    msg[0] = _mm_load_si128 ( (__m128i*)&state->buffer[0] );
-    msg[1] = _mm_load_si128 ( (__m128i*)&state->buffer[4] );
-    msg[0] = _mm_shuffle_epi32( msg[0], 27 );
-    msg[1] = _mm_shuffle_epi32( msg[1], 27 );
+    msg0 = _mm_shuffle_epi32( msg0, 27 );
+    msg1 = _mm_shuffle_epi32( msg1, 27 );
 
     chainv[0] = _mm_xor_si128( chainv[0], t[0] );
     chainv[1] = _mm_xor_si128( chainv[1], t[1] );
@@ -468,30 +442,30 @@ static void rnd512(hashState_luffa *state)
 
     MULT2( chainv[0], chainv[1] );
 
-    chainv[0] = _mm_xor_si128( _mm_xor_si128( chainv[0], t[0] ), msg[0] );
-    chainv[1] = _mm_xor_si128( _mm_xor_si128( chainv[1], t[1] ), msg[1] );
+    chainv[0] = _mm_xor_si128( _mm_xor_si128( chainv[0], t[0] ), msg0 );
+    chainv[1] = _mm_xor_si128( _mm_xor_si128( chainv[1], t[1] ), msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
 
-    chainv[2] = _mm_xor_si128( chainv[2], msg[0] );
-    chainv[3] = _mm_xor_si128( chainv[3], msg[1] );
+    chainv[2] = _mm_xor_si128( chainv[2], msg0 );
+    chainv[3] = _mm_xor_si128( chainv[3], msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
 
-    chainv[4] = _mm_xor_si128( chainv[4], msg[0] );
-    chainv[5] = _mm_xor_si128( chainv[5], msg[1] );
+    chainv[4] = _mm_xor_si128( chainv[4], msg0 );
+    chainv[5] = _mm_xor_si128( chainv[5], msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
 
-    chainv[6] = _mm_xor_si128( chainv[6], msg[0] );
-    chainv[7] = _mm_xor_si128( chainv[7], msg[1] );
+    chainv[6] = _mm_xor_si128( chainv[6], msg0 );
+    chainv[7] = _mm_xor_si128( chainv[7], msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
 
-    chainv[8] = _mm_xor_si128( chainv[8], msg[0] );
-    chainv[9] = _mm_xor_si128( chainv[9], msg[1] );
+    chainv[8] = _mm_xor_si128( chainv[8], msg0 );
+    chainv[9] = _mm_xor_si128( chainv[9], msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
 
     chainv[3] = _mm_or_si128( _mm_slli_epi32(chainv[3], 1),
                               _mm_srli_epi32(chainv[3], 31) );
@@ -548,16 +522,16 @@ static void rnd512(hashState_luffa *state)
 /* state: hash context    */
 /* b[8]: hash values      */
 
-static void finalization512(hashState_luffa *state, uint32 *b)
+static void finalization512( hashState_luffa *state, uint32 *b )
 {
+    uint32 hash[8] __attribute((aligned(64)));
     __m128i* chainv = state->chainv;
     __m128i t[2];
-    uint32 hash[8] __attribute((aligned(16)));
-    int i;
 
     /*---- blank round with m=0 ----*/
-    memset(state->buffer, 0, sizeof state->buffer );
-    rnd512(state);
+    rnd512( state, _mm_setzero_si128(), _mm_setzero_si128() );
+
+//    _mm_prefetch( b, _MM_HINT_T0 );
 
     t[0] = chainv[0];
     t[1] = chainv[1];
@@ -576,17 +550,10 @@ static void finalization512(hashState_luffa *state, uint32 *b)
     _mm_store_si128((__m128i*)&hash[0], t[0]);
     _mm_store_si128((__m128i*)&hash[4], t[1]);
 
-    b[0] = BYTES_SWAP32(hash[0]);
-    b[1] = BYTES_SWAP32(hash[1]);
-    b[2] = BYTES_SWAP32(hash[2]);
-    b[3] = BYTES_SWAP32(hash[3]);
-    b[4] = BYTES_SWAP32(hash[4]);
-    b[5] = BYTES_SWAP32(hash[5]);
-    b[6] = BYTES_SWAP32(hash[6]);
-    b[7] = BYTES_SWAP32(hash[7]);
+    casti_m128i( b, 0 ) = mm_byteswap_epi32( casti_m128i( hash, 0 ) );
+    casti_m128i( b, 1 ) = mm_byteswap_epi32( casti_m128i( hash, 1 ) );
 
-    memset(state->buffer, 0, sizeof state->buffer );
-    rnd512(state);
+    rnd512( state, _mm_setzero_si128(), _mm_setzero_si128() );
 
     t[0] = chainv[0];
     t[1] = chainv[1];
@@ -605,14 +572,8 @@ static void finalization512(hashState_luffa *state, uint32 *b)
     _mm_store_si128((__m128i*)&hash[0], t[0]);
     _mm_store_si128((__m128i*)&hash[4], t[1]);
 
-    b[ 8] = BYTES_SWAP32(hash[0]);
-    b[ 9] = BYTES_SWAP32(hash[1]);
-    b[10] = BYTES_SWAP32(hash[2]);
-    b[11] = BYTES_SWAP32(hash[3]);
-    b[12] = BYTES_SWAP32(hash[4]);
-    b[13] = BYTES_SWAP32(hash[5]);
-    b[14] = BYTES_SWAP32(hash[6]);
-    b[15] = BYTES_SWAP32(hash[7]);
+    casti_m128i( b, 2 ) = mm_byteswap_epi32( casti_m128i( hash, 0 ) );
+    casti_m128i( b, 3 ) = mm_byteswap_epi32( casti_m128i( hash, 1 ) );
 
     return;
 }

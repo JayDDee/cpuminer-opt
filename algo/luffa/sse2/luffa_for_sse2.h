@@ -51,6 +51,7 @@ typedef struct {
 //    uint64 bitlen[2]; /* Message length in bits */
 //    uint32 rembitlen; /* Length of buffer data to be hashed */
     int hashbitlen;
+    int rembytes;
 } hashState_luffa;
 
 HashReturn init_luffa( hashState_luffa *state, int hashbitlen );

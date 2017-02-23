@@ -67,7 +67,7 @@ int LYRA2REV2( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    //Tries to allocate enough space for the whole memory matrix
 
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * nCols;
-   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+//   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
    // for Lyra2REv2, nCols = 4, v1 was using 8
    const int64_t BLOCK_LEN = (nCols == 4) ? BLOCK_LEN_BLAKE2_SAFE_INT64
                                           : BLOCK_LEN_BLAKE2_SAFE_BYTES;
@@ -228,7 +228,7 @@ int LYRA2Z( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
     //Tries to allocate enough space for the whole memory matrix
 
     const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * nCols;
-    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+//    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
 
     //==== Getting the password + salt + basil padded with 10*1 ============//
     //OBS.:The memory matrix will temporarily hold the password: not for saving memory,
