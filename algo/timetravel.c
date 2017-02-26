@@ -186,17 +186,17 @@ void timetravel_hash(void *output, const void *input)
            sph_groestl512_close( &ctx.groestl, hashB );
         }
 #else
-        if ( i == 0 )
-        {
-           memcpy( &ctx.groestl, &tt_mid.groestl, sizeof tt_mid.groestl );
-           update_and_final_groestl( &ctx.groestl, (char*)hashB,
-                                    (char*)input + midlen, tail*8 );
-        }
-        else
-        {
+//        if ( i == 0 )
+//        {
+//           memcpy( &ctx.groestl, &tt_mid.groestl, sizeof tt_mid.groestl );
+//           update_and_final_groestl( &ctx.groestl, (char*)hashB,
+//                                    (char*)input + midlen, tail*8 );
+//        }
+//        else
+//        {
            update_and_final_groestl( &ctx.groestl, (char*)hashB,
                                     (char*)hashA, dataLen*8 );
-        }
+//        }
 #endif
         break;
      case 3:
@@ -319,8 +319,8 @@ int scanhash_timetravel( int thr_id, struct work *work, uint32_t max_nonce,
            memcpy( &tt_mid.groestl, &tt_ctx.groestl, sizeof(tt_mid.groestl ) );
            sph_groestl512( &tt_mid.groestl, endiandata, 64 );
 #else
-           memcpy( &tt_mid.groestl, &tt_ctx.groestl, sizeof(tt_mid.groestl ) );
-           update_groestl( &tt_mid.groestl, (char*)endiandata, 64*8 );
+//         memcpy( &tt_mid.groestl, &tt_ctx.groestl, sizeof(tt_mid.groestl ) );
+//         update_groestl( &tt_mid.groestl, (char*)endiandata, 64*8 );
 #endif
            break;
         case 3:

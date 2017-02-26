@@ -13,6 +13,7 @@
 // _mm256_load_si256( v.v256, p );
 //  a = v.v64[0];
 //  a = v.64[0] + v.v64[1];
+// how does endian affect overlay?
 
 typedef union
 {

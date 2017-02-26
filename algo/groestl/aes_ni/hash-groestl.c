@@ -6,6 +6,9 @@
  * This code is placed in the public domain
  */
 
+// Optimized for hash and data length that are integrals of __m128i 
+
+
 #include <memory.h>
 #include "hash-groestl.h"
 #include "miner.h"
@@ -49,196 +52,191 @@
   #endif
 #endif
 
-
-/* digest up to len bytes of input (full blocks only) */
-void Transform( hashState_groestl *ctx, const u8 *in, unsigned long long len )
-{
-    /* increment block counter */
-    ctx->block_counter += len/SIZE;
-    /* digest message, one block at a time */
-    for ( ; len >= SIZE; len -= SIZE, in += SIZE )
-        TF1024( (u64*)ctx->chaining, (u64*)in );
-    asm volatile ("emms");
-}
-
-/* given state h, do h <- P(h)+h */
-void OutputTransformation( hashState_groestl *ctx )
-{
-    /* determine variant */
-    OF1024( (u64*)ctx->chaining );
-    asm volatile ("emms");
-}
-
-/* initialise context */
 HashReturn_gr init_groestl( hashState_groestl* ctx, int hashlen )
 {
-  u8 i = 0;
+  int i;
 
   ctx->hashlen = hashlen;
-
   SET_CONSTANTS();
-
-  for ( i = 0; i < SIZE / 8; i++ )
-    ctx->chaining[i] = 0;
-  for ( i = 0; i < SIZE; i++ )
-    ctx->buffer[i] = 0;
 
   if (ctx->chaining == NULL || ctx->buffer == NULL)
     return FAIL_GR;
 
-  /* set initial value */
-  ctx->chaining[COLS-1] = U64BIG((u64)LENGTH);
+  for ( i = 0; i < SIZE512; i++ )
+  {
+     ctx->chaining[i] = _mm_setzero_si128();
+     ctx->buffer[i]   = _mm_setzero_si128();
+  }
+  ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
   INIT(ctx->chaining);
   ctx->buf_ptr = 0;
-  ctx->block_counter = 0;
+  ctx->rem_ptr = 0;
 
   return SUCCESS_GR;
 }
-
-/*
-HashReturn_gr init_groestl( hashState_groestl* ctx )
-{
-  return Xinit_groestl( ctx, 64 );
-}
-*/
 
 HashReturn_gr reinit_groestl( hashState_groestl* ctx )
 {
   int i;
-  for ( i = 0; i < SIZE / 8; i++ )
-    ctx->chaining[i] = 0;
-  for ( i = 0; i < SIZE; i++ )
-    ctx->buffer[i] = 0;
 
   if (ctx->chaining == NULL || ctx->buffer == NULL)
     return FAIL_GR;
 
-  /* set initial value */
-  ctx->chaining[COLS-1] = U64BIG( (u64)LENGTH );
-  INIT( ctx->chaining );
+  for ( i = 0; i < SIZE512; i++ )
+  {
+     ctx->chaining[i] = _mm_setzero_si128();
+     ctx->buffer[i]   = _mm_setzero_si128();
+  }
+  ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
+  INIT(ctx->chaining);
   ctx->buf_ptr = 0;
-  ctx->block_counter = 0;
+  ctx->rem_ptr = 0;
 
   return SUCCESS_GR;
 }
+//// midstate is broken
+// To use midstate:
+// 1. midstate must process all full blocks.
+// 2. tail must be less than a full block and may not straddle a
+//    block boundary.
+// 3. midstate and tail each must be multiples of 128 bits.
+// 4. For best performance midstate length is a multiple of block size.
+// 5. Midstate will work at reduced impact than full hash, if total hash
+//    (midstate + tail) is less than 1 block.
+//    This, unfortunately, is the case with all current users.
+// 6. the morefull blocks the bigger the gain
 
-/* update state with databitlen bits of input */
-HashReturn_gr update_groestl( hashState_groestl* ctx,
-	                      const BitSequence_gr* input,
-	                      DataLength_gr databitlen )
+// use only for midstate precalc
+HashReturn_gr update_groestl( hashState_groestl* ctx, const void* input,
+                              DataLength_gr databitlen )
 {
-  int i;
-  const int msglen = (int)(databitlen/8);
+   __m128i* in = (__m128i*)input;
+   const int len = (int)databitlen / 128;  // bits to __m128i
+   const int blocks = len / SIZE512;    // __M128i to blocks
+   int rem = ctx->rem_ptr;
+   int i;
 
-  /* digest bulk of message */
-  Transform( ctx, input, msglen );
+   ctx->blk_count  = blocks;
+   ctx->databitlen = databitlen;
 
-  /* store remaining data in buffer */
-  i = ( msglen / SIZE ) * SIZE;
-  while ( i < msglen )
-    ctx->buffer[(int)ctx->buf_ptr++] = input[i++];
+   // digest any full blocks 
+   for ( i = 0; i < blocks; i++ )
+       TF1024( ctx->chaining, &in[ i * SIZE512 ] );
+   // adjust buf_ptr to last block
+   ctx->buf_ptr = blocks * SIZE512;
 
-  return SUCCESS_GR;
+   // copy any remaining data to buffer for final hash, it may already
+   // contain data from a previous update for a midstate precalc
+   for ( i = 0; i < len % SIZE512; i++ )
+       ctx->buffer[ rem + i ] = in[ ctx->buf_ptr + i ];
+   // adjust rem_ptr for possible  new data
+   ctx->rem_ptr += i;
+
+   return SUCCESS_GR;
 }
 
-/* finalise: process remaining data (including padding), perform
-   output transformation, and write hash result to 'output' */
-HashReturn_gr final_groestl( hashState_groestl* ctx,
-	                     BitSequence_gr* output )
+// deprecated do not use
+HashReturn_gr final_groestl( hashState_groestl* ctx, void* output )
 {
-  int i, j;
+   const int len = (int)ctx->databitlen / 128;  // bits to __m128i 
+   const int blocks = ctx->blk_count + 1;       // adjust for final block
 
-  ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
-  /* pad with '0'-bits */
-  if ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
-  {
-    /* padding requires two blocks */
-    while ( ctx->buf_ptr < SIZE )
-      ctx->buffer[(int)ctx->buf_ptr++] = 0;
-    /* digest first padding block */
-    Transform( ctx, ctx->buffer, SIZE );
-    ctx->buf_ptr = 0;
-  }
+   const int rem_ptr = ctx->rem_ptr;      // end of data start of padding
+   const int hashlen_m128i = ctx->hashlen / 16;  // bytes to __m128i
+   const int hash_offset = SIZE512 - hashlen_m128i;  // where in buffer
+   int i;
 
-  // this will pad up to 120 bytes
-  while ( ctx->buf_ptr < SIZE - LENGTHFIELDLEN )
-    ctx->buffer[(int)ctx->buf_ptr++] = 0;
+   // first pad byte = 0x80, last pad byte = block count
+   // everything in between is zero
 
-  /* length padding */
-  ctx->block_counter++;
-  ctx->buf_ptr = SIZE;
-  while ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
-  {
-    ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
-    ctx->block_counter >>= 8;
-  }
+   if ( rem_ptr == len - 1 )
+   {
+       // only 128 bits left in buffer, all padding at once
+       ctx->buffer[rem_ptr] = _mm_set_epi8( blocks,0,0,0, 0,0,0,0,
+                                                  0,0,0,0, 0,0,0,0x80 );
+   }
+   else
+   {
+       // add first padding
+       ctx->buffer[rem_ptr] = _mm_set_epi8( 0,0,0,0, 0,0,0,0,
+                                            0,0,0,0, 0,0,0,0x80 );
+       // add zero padding
+       for ( i = rem_ptr + 1; i < SIZE512 - 1; i++ )
+           ctx->buffer[i] = _mm_setzero_si128();
 
-  /* digest final padding block */
-  Transform( ctx, ctx->buffer, SIZE );
-  /* perform output transformation */
-  OutputTransformation( ctx );
+       // add length padding, second last byte is zero unless blocks > 255
+       ctx->buffer[i] = _mm_set_epi8( blocks, blocks>>8, 0,0, 0,0,0,0,
+                                           0,         0 ,0,0, 0,0,0,0 );
+   }
 
-  // store hash result in output 
-  for ( i = ( SIZE - ctx->hashlen) / 16, j = 0; i < SIZE / 16; i++, j++ )
-       casti_m128i( output, j ) = casti_m128i( ctx->chaining , i );
+   // digest final padding block and do output transform
+   TF1024( ctx->chaining, ctx->buffer );
+   OF1024( ctx->chaining );
 
-  return SUCCESS_GR;
+   // store hash result in output 
+   for ( i = 0; i < hashlen_m128i; i++ )
+      casti_m128i( output, i ) = ctx->chaining[ hash_offset + i];
+
+   return SUCCESS_GR;
 }
 
-HashReturn_gr update_and_final_groestl( hashState_groestl* ctx,
-      BitSequence_gr* output, const BitSequence_gr* input,
-      DataLength_gr databitlen )
+HashReturn_gr update_and_final_groestl( hashState_groestl* ctx, void* output,
+                                const void* input, DataLength_gr databitlen )
 {
-  const int inlen = (int)(databitlen/8);  // need bytes
-  int i, j;
+   const int len = (int)databitlen / 128;
+   const int hashlen_m128i = ctx->hashlen / 16;   // bytes to __m128i
+   const int hash_offset = SIZE512 - hashlen_m128i;
+   int rem = ctx->rem_ptr;
+   int blocks = len / SIZE512;
+   __m128i* in = (__m128i*)input;
+   int i, i0;
 
-  /* digest bulk of message */
-  Transform( ctx, input, inlen );
+   // --- update ---
 
-  /* store remaining data in buffer */
-  i = ( inlen / SIZE ) * SIZE;
-  while ( i < inlen )
-     ctx->buffer[(int)ctx->buf_ptr++] = input[i++];
+   // digest any full blocks, process directly from input 
+   for ( i = 0; i < blocks; i++ )
+      TF1024( ctx->chaining, &in[ i * SIZE512 ] );
+   ctx->buf_ptr = blocks * SIZE512;
 
-  // start of final
+   // copy any remaining data to buffer, it may already contain data
+   // from a previous update for a midstate precalc
+   for ( i = 0; i < len % SIZE512; i++ )
+       ctx->buffer[ rem + i ] = in[ ctx->buf_ptr + i ];
+   i += rem;    // use i as rem_ptr in final
 
-  ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
+   //--- final ---
 
-  /* pad with '0'-bits */
-  if ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
-  {
-    /* padding requires two blocks */
-    while ( ctx->buf_ptr < SIZE )
-      ctx->buffer[(int)ctx->buf_ptr++] = 0;
-    memset( ctx->buffer + ctx->buf_ptr, 0, SIZE - ctx->buf_ptr );
-    
-    /* digest first padding block */
-    Transform( ctx, ctx->buffer, SIZE );
-    ctx->buf_ptr = 0;
-  }
+   blocks++;      // adjust for final block
 
-  // this will pad up to 120 bytes
-  memset( ctx->buffer + ctx->buf_ptr, 0, SIZE - ctx->buf_ptr - LENGTHFIELDLEN );
+   if ( i == len -1 )
+   {        
+       // only 128 bits left in buffer, all padding at once
+       ctx->buffer[i] = _mm_set_epi8( blocks,0,0,0, 0,0,0,0,
+                                           0,0,0,0, 0,0,0,0x80 );
+   }   
+   else
+   {
+       // add first padding
+       ctx->buffer[i] = _mm_set_epi8( 0,0,0,0, 0,0,0,0, 
+                                      0,0,0,0, 0,0,0,0x80 );
+       // add zero padding
+       for ( i += 1; i < SIZE512 - 1; i++ )
+           ctx->buffer[i] = _mm_setzero_si128();
 
-  /* length padding */
-  ctx->block_counter++;
-  ctx->buf_ptr = SIZE;
-  while (ctx->buf_ptr > SIZE - LENGTHFIELDLEN)
-  {
-    ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
-    ctx->block_counter >>= 8;
-  }
+       // add length padding, second last byte is zero unless blocks > 255
+       ctx->buffer[i] = _mm_set_epi8( blocks, blocks>>8, 0,0, 0,0,0,0, 
+                                           0,         0 ,0,0, 0,0,0,0 );
+   }
 
-  /* digest final padding block */
-  Transform( ctx, ctx->buffer, SIZE );
-  /* perform output transformation */
-  OutputTransformation( ctx );
+   // digest final padding block and do output transform
+   TF1024( ctx->chaining, ctx->buffer );
+   OF1024( ctx->chaining );
 
-  // store hash result in output 
-  for ( i = ( SIZE - ctx->hashlen) / 16, j = 0; i < SIZE / 16; i++, j++ )
-       casti_m128i( output, j ) = casti_m128i( ctx->chaining , i );
+   // store hash result in output 
+   for ( i = 0; i < hashlen_m128i; i++ )
+      casti_m128i( output, i ) = ctx->chaining[ hash_offset + i ];
 
-  return SUCCESS_GR;
+   return SUCCESS_GR;
 }
 
 /* hash bit sequence */

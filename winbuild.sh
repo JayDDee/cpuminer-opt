@@ -7,7 +7,7 @@
 
 # Linux build
 
-make clean || echo clean
+make distclean || echo clean
 
 rm -f config.status
 ./autogen.sh || echo done

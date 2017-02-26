@@ -132,8 +132,8 @@ __thread hmq1725_ctx_holder h_ctx;
 extern void hmq1725hash(void *state, const void *input)
 {
     const uint32_t mask = 24;
-    uint32_t hashA[16] __attribute__((aligned(64)));
-    uint32_t hashB[16] __attribute__((aligned(64)));
+    uint32_t hashA[32] __attribute__((aligned(64)));
+    uint32_t hashB[32] __attribute__((aligned(64)));
     const int midlen = 64;            // bytes
     const int tail   = 80 - midlen;   // 16
 

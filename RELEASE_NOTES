@@ -2,6 +2,15 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 
 Change Log
 ----------
+v3.5.10
+
+Some AVX2 optimizations introduced for Luffa, shorter chained algos such
+  as Qubit and Deep should see the biggest gains, but many other algos should
+  also see improvement, longer chains like xevan not so much.
+Rewrite of Groestl AES, now 100% vectorized, small improvement.
+build.sh and winbuild.sh initialize with distclean instead of clean.
+Implemented a workaround for a compile error in hodl code when compiling
+  with gcc 6.3.
 
 V3.5.9
 
