@@ -34,7 +34,7 @@ typedef struct
 #endif
 } deep_ctx_holder;
 
-deep_ctx_holder deep_ctx;
+deep_ctx_holder deep_ctx __attribute((aligned(64)));
 static __thread hashState_luffa deep_luffa_mid;
 
 void init_deep_ctx()
@@ -59,7 +59,7 @@ void deep_hash(void *output, const void *input)
         unsigned char hash[128] __attribute((aligned(64)));
         #define hashB hash+64
 
-        deep_ctx_holder ctx;
+        deep_ctx_holder ctx __attribute((aligned(64)));
         memcpy( &ctx, &deep_ctx, sizeof(deep_ctx) );
 
         const int midlen = 64;            // bytes

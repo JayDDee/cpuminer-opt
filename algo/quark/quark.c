@@ -55,7 +55,7 @@ inline static void quarkhash(void *state, const void *input)
     sph_u64 hashctA;
     sph_u64 hashctB;
     int i;
-    unsigned char hash[128];
+    unsigned char hash[128] __attribute__ ((aligned (32)));
 #ifdef NO_AES_NI
     sph_groestl512_context ctx;
 #else
@@ -118,8 +118,9 @@ inline static void quarkhash(void *state, const void *input)
              sph_groestl512_close( &ctx, hash );
 #else
              reinit_groestl( &ctx );
-             update_groestl( &ctx, (char*)hash, 512 );
-             final_groestl( &ctx, (char*)hash );
+             update_and_final_groestl( &ctx, (char*)hash, (char*)hash, 512 );
+//             update_groestl( &ctx, (char*)hash, 512 );
+//             final_groestl( &ctx, (char*)hash );
 #endif
 
           } while(0); continue;

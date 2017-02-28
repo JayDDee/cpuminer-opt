@@ -58,8 +58,8 @@ typedef struct {
 #endif
 } hmq1725_ctx_holder;
 
-static hmq1725_ctx_holder hmq1725_ctx;
-static __thread sph_bmw512_context hmq_bmw_mid;
+static hmq1725_ctx_holder hmq1725_ctx __attribute__ ((aligned (64)));
+static __thread sph_bmw512_context hmq_bmw_mid __attribute__ ((aligned (64)));
 
 void init_hmq1725_ctx()
 {
@@ -127,7 +127,7 @@ void hmq_bmw512_midstate( const void* input )
     sph_bmw512( &hmq_bmw_mid, input, 64 );
 }
 
-__thread hmq1725_ctx_holder h_ctx;
+__thread hmq1725_ctx_holder h_ctx __attribute__ ((aligned (64)));
 
 extern void hmq1725hash(void *state, const void *input)
 {
@@ -307,8 +307,8 @@ extern void hmq1725hash(void *state, const void *input)
 int scanhash_hmq1725( int thr_id, struct work *work, int32_t max_nonce,
                       uint64_t *hashes_done )
 {
-        uint32_t endiandata[20] __attribute__((aligned(64)));
-        uint32_t hash64[8] __attribute__((aligned(32)));
+        uint32_t endiandata[32] __attribute__((aligned(64)));
+        uint32_t hash64[8] __attribute__((aligned(64)));
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;

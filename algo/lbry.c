@@ -24,7 +24,7 @@ typedef struct {
 } lbryhash_context_holder;
 
 /* no need to copy, because close reinit the context */
-static  lbryhash_context_holder ctx;
+static  lbryhash_context_holder ctx __attribute__ ((aligned (64)));
 
 void init_lbry_contexts(void *dummy)
 {
@@ -35,9 +35,9 @@ void init_lbry_contexts(void *dummy)
 
 void lbry_hash(void* output, const void* input)
 {
-        sph_sha256_context      ctx_sha256;
-        sph_sha512_context      ctx_sha512;
-        sph_ripemd160_context   ctx_ripemd;
+        sph_sha256_context      ctx_sha256 __attribute__ ((aligned (64)));
+        sph_sha512_context      ctx_sha512 __attribute__ ((aligned (64)));
+        sph_ripemd160_context   ctx_ripemd __attribute__ ((aligned (64)));
 	uint32_t _ALIGN(64) hashA[16];
         uint32_t _ALIGN(64) hashB[16];
         uint32_t _ALIGN(64) hashC[16];
@@ -83,8 +83,8 @@ int scanhash_lbry( int thr_id, struct work *work, uint32_t max_nonce,
 	const uint32_t first_nonce = pdata[27];
 	const uint32_t Htarg = ptarget[7];
 
-	uint32_t hash64[8] __attribute__((aligned(32)));
-	uint32_t endiandata[32];
+	uint32_t hash64[8] __attribute__((aligned(64)));
+	uint32_t endiandata[32] __attribute__ ((aligned (64)));
 
 	uint64_t htmax[] = {
 		0,

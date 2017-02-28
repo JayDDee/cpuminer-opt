@@ -10,6 +10,7 @@
 
 #include "algo/blake/sph_blake2b.h"
 
+
 static __thread sph_blake2b_ctx s_midstate;
 static __thread sph_blake2b_ctx s_ctx;
 #define MIDLEN 76
@@ -18,7 +19,7 @@ static __thread sph_blake2b_ctx s_ctx;
 void blake2b_hash(void *output, const void *input)
 {
 	uint8_t _ALIGN(A) hash[32];
-	sph_blake2b_ctx ctx;
+	sph_blake2b_ctx ctx __attribute__ ((aligned (64)));
 
 	sph_blake2b_init(&ctx, 32, NULL, 0);
 	sph_blake2b_update(&ctx, input, 80);
@@ -129,6 +130,8 @@ void blake2b_be_build_stratum_request( char *req, struct work *work )
    free( xnonce2str );
 }
 
+#define min(a,b) (a>b ? (b) :(a))
+
 // merkle root handled here, no need for gen_merkle_root gate target
 void blake2b_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
@@ -160,6 +163,8 @@ void blake2b_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
     for ( i = 0; i < 8; i++ )
        g_work->data[12+i] = ( (uint32_t*)merkle_root )[i];
 }
+
+#undef min
 
 void blake2b_get_new_work( struct work* work, struct work* g_work, int thr_id,
                            uint32_t* end_nonce_ptr, bool clean_job )

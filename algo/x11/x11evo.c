@@ -49,7 +49,7 @@ typedef struct {
     sph_shavite512_context  shavite;
 } x11evo_ctx_holder;
 
-static x11evo_ctx_holder x11evo_ctx;
+static x11evo_ctx_holder x11evo_ctx __attribute__ ((aligned (64)));
 
 void init_x11evo_ctx()
 {
@@ -160,8 +160,8 @@ static void evo_twisted_code(uint32_t ntime, char *permstr)
 
 static inline void x11evo_hash( void *state, const void *input )
 {
-   uint32_t hash[16];
-   x11evo_ctx_holder ctx;
+   uint32_t hash[16] __attribute__ ((aligned (64)));
+   x11evo_ctx_holder ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &x11evo_ctx, sizeof(x11evo_ctx) );
 
    if ( s_seq == -1 )
@@ -227,8 +227,7 @@ static inline void x11evo_hash( void *state, const void *input )
 	      sph_shavite512_close( &ctx.shavite, (char*)hash );
 	      break;
 	    case 9:
-              update_sd( &ctx.simd, (char*)hash, 512 );
-              final_sd( &ctx.simd, (char*)hash );
+              update_final_sd( &ctx.simd, (char*)hash, (const char*)hash, 512 );
 	      break;
 	    case 10:
 #ifdef NO_AES_NI
@@ -250,7 +249,7 @@ int scanhash_x11evo( int thr_id, struct work* work, uint32_t max_nonce,
                      unsigned long *hashes_done )
 {
         uint32_t endiandata[20] __attribute__((aligned(64)));
-        uint32_t hash64[8] __attribute__((aligned(32)));
+        uint32_t hash64[8] __attribute__((aligned(64)));
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;

@@ -13,7 +13,7 @@ static __thread blake2s_state s_ctx;
 void blake2s_hash(void *output, const void *input)
 {
 	unsigned char _ALIGN(64) hash[BLAKE2S_OUTBYTES];
-	blake2s_state blake2_ctx;
+	blake2s_state blake2_ctx __attribute__ ((aligned (64)));
 
 	blake2s_init(&blake2_ctx, BLAKE2S_OUTBYTES);
 	blake2s_update(&blake2_ctx, input, 80);

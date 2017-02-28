@@ -64,7 +64,7 @@ void init_x11_ctx()
 
 static void x11_hash( void *state, const void *input )
 {
-     unsigned char hash[128] __attribute__ ((aligned (16)));
+     unsigned char hash[128] __attribute__ ((aligned (32)));
      unsigned char hashbuf[128] __attribute__ ((aligned (16)));
      sph_u64 hashctA;
      sph_u64 hashctB;
@@ -92,8 +92,9 @@ static void x11_hash( void *state, const void *input )
      sph_groestl512 (&ctx.groestl, hash, 64);
      sph_groestl512_close(&ctx.groestl, hash);
 #else
-     update_groestl( &ctx.groestl, (char*)hash, 512 );
-     final_groestl( &ctx.groestl, (char*)hash );
+     update_and_final_groestl( &ctx.groestl, (char*)hash, (char*)hash, 512 );
+//     update_groestl( &ctx.groestl, (char*)hash, 512 );
+//     final_groestl( &ctx.groestl, (char*)hash );
 #endif
 
      DECL_SKN;

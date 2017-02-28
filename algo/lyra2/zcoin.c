@@ -22,9 +22,9 @@ void zcoin_midstate( const void* input )
 //void zcoin_hash(void *state, const void *input, uint32_t height)
 void zcoin_hash(void *state, const void *input )
 {
-        uint32_t _ALIGN(256) hash[16];
+        uint32_t _ALIGN(64) hash[16];
 
-        sph_blake256_context ctx_blake;
+        sph_blake256_context ctx_blake __attribute__ ((aligned (64)));
 
         memcpy( &ctx_blake, &zcoin_blake_mid, sizeof zcoin_blake_mid );
         sph_blake256( &ctx_blake, input + 64, 16 );
@@ -38,8 +38,8 @@ void zcoin_hash(void *state, const void *input )
 int scanhash_zcoin( int thr_id, struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done )
 {
-	uint32_t _ALIGN(128) hash[8];
-	uint32_t _ALIGN(128) endiandata[20];
+	uint32_t _ALIGN(64) hash[8];
+	uint32_t _ALIGN(64) endiandata[20];
 	uint32_t *pdata = work->data;
 	uint32_t *ptarget = work->target;
 	const uint32_t Htarg = ptarget[7];

@@ -27,7 +27,7 @@ static __thread bool ctx_midstate_done = false;
 void decred_hash(void *state, const void *input)
 {
         #define MIDSTATE_LEN 128
-        sph_blake256_context ctx;
+        sph_blake256_context ctx __attribute__ ((aligned (64)));
 
         uint8_t *ending = (uint8_t*) input;
         ending += MIDSTATE_LEN;
@@ -53,8 +53,8 @@ void decred_hash_simple(void *state, const void *input)
 
 int scanhash_decred(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done)
 {
-        uint32_t _ALIGN(128) endiandata[48];
-        uint32_t _ALIGN(128) hash32[8];
+        uint32_t _ALIGN(64) endiandata[48];
+        uint32_t _ALIGN(64) hash32[8];
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 
@@ -194,6 +194,10 @@ void decred_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
    memcpy( decred_extraheader, &sctx->job.coinbase[32], decred_headersize);
 }
 */
+
+
+#define min(a,b) (a>b ? (b) :(a))
+
 void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
    uchar merkle_root[64] = { 0 };
@@ -239,20 +243,7 @@ void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    //applog_hex(&work->data[36], 36);
 }
 
-/*
-bool decred_prevent_dupes( struct work* work, struct stratum_ctx* stratum,
-                           int thr_id )
-{
-return false;
-   if ( have_stratum && strcmp(stratum->job.job_id, work->job_id)  )
-      // need to regen g_work..
-      return true;
-   // extradata: prevent duplicates
-   work->data[ DECRED_XNONCE_INDEX     ] += 1;
-   work->data[ DECRED_XNONCE_INDEX + 1 ] |= thr_id;
-   return false;
-}
-*/
+#undef min
 
 bool decred_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
                            int thr_id )
@@ -282,9 +273,7 @@ bool register_decred_algo( algo_gate_t* gate )
   gate->get_max64             = (void*)&get_max64_0x3fffffLL;
   gate->display_extra_data    = (void*)&decred_decode_extradata;
   gate->build_stratum_request = (void*)&decred_be_build_stratum_request;
-//  gate->gen_merkle_root       = (void*)&decred_gen_merkle_root;
   gate->build_extraheader     = (void*)&decred_build_extraheader;
-//  gate->prevent_dupes         = (void*)&decred_prevent_dupes;
   gate->ready_to_mine         = (void*)&decred_ready_to_mine;
   gate->nbits_index           = DECRED_NBITS_INDEX;
   gate->ntime_index           = DECRED_NTIME_INDEX;

@@ -55,8 +55,9 @@ typedef struct {
 #endif
 } xevan_ctx_holder;
 
-xevan_ctx_holder xevan_ctx;
-static __thread sph_blake512_context xevan_blake_mid;
+xevan_ctx_holder xevan_ctx __attribute__ ((aligned (64)));
+static __thread sph_blake512_context xevan_blake_mid
+                                        __attribute__ ((aligned (64)));
 
 void init_xevan_ctx()
 {
@@ -94,7 +95,7 @@ void xevan_hash(void *output, const void *input)
 {
         uint32_t _ALIGN(64) hash[32]; // 128 bytes required
 	const int dataLen = 128;
-        xevan_ctx_holder ctx;
+        xevan_ctx_holder ctx __attribute__ ((aligned (64)));
         memcpy( &ctx, &xevan_ctx, sizeof(xevan_ctx) );
 
         const int midlen = 64;            // bytes
@@ -102,8 +103,6 @@ void xevan_hash(void *output, const void *input)
 
         memcpy( &ctx.blake, &xevan_blake_mid, sizeof xevan_blake_mid );
         sph_blake512( &ctx.blake, input + midlen, tail );
-
-//	sph_blake512(&ctx.blake, input, 80);
 	sph_blake512_close(&ctx.blake, hash);
 
 	memset(&hash[16], 0, 64);

@@ -99,8 +99,8 @@ typedef struct {
 #endif
 } tt_ctx_holder;
 
-tt_ctx_holder tt_ctx;
-__thread tt_ctx_holder tt_mid;
+tt_ctx_holder tt_ctx __attribute__ ((aligned (64)));
+__thread tt_ctx_holder tt_mid __attribute__ ((aligned (64)));
 
 void init_tt_ctx()
 {
@@ -120,15 +120,16 @@ void init_tt_ctx()
 
 void timetravel_hash(void *output, const void *input)
 {
-   uint32_t _ALIGN(64) hash[128]; // 16 bytes * HASH_FUNC_COUNT
+   uint32_t hash[128] __attribute__ ((aligned (64)));
    uint32_t *hashA, *hashB;
+   tt_ctx_holder ctx __attribute__ ((aligned (64)));
    uint32_t dataLen = 64;
    uint32_t *work_data = (uint32_t *)input;
-   tt_ctx_holder ctx;
-   memcpy( &ctx, &tt_ctx, sizeof(tt_ctx) );
    int i;
    const int midlen = 64;            // bytes
    const int tail   = 80 - midlen;   // 16
+
+   memcpy( &ctx, &tt_ctx, sizeof(tt_ctx) );
 
    for ( i = 0; i < HASH_FUNC_COUNT; i++ )
    {

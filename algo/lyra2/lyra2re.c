@@ -49,11 +49,10 @@ void lyra2_blake256_midstate( const void* input )
 
 void lyra2re_hash(void *state, const void *input)
 {
-        lyra2re_ctx_holder ctx;
+        lyra2re_ctx_holder ctx __attribute__ ((aligned (64))) ;
         memcpy(&ctx, &lyra2re_ctx, sizeof(lyra2re_ctx));
 
-//        uint32_t _ALIGN(128) hashA[8], hashB[8];
-	uint8_t _ALIGN(128) hash[32*8];
+	uint8_t _ALIGN(64) hash[32*8];
         #define hashA hash
         #define hashB hash+16
 
@@ -63,7 +62,6 @@ void lyra2re_hash(void *state, const void *input)
         memcpy( &ctx.blake, &lyra2_blake_mid, sizeof lyra2_blake_mid );
         sph_blake256( &ctx.blake, input + midlen, tail );
 
-//	sph_blake256(&ctx.blake, input, 80);
 	sph_blake256_close(&ctx.blake, hashA);
 
 	sph_keccak256(&ctx.keccak, hashA, 32);
@@ -91,7 +89,7 @@ int scanhash_lyra2re(int thr_id, struct work *work,
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	uint32_t _ALIGN(64) endiandata[20];
-        uint32_t hash[8] __attribute__((aligned(32)));
+        uint32_t hash[8] __attribute__((aligned(64)));
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
         const uint32_t Htarg = ptarget[7];

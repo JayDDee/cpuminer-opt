@@ -1,7 +1,6 @@
 // don't compile on CPU with AES
-#ifndef NO_AES_NI
-
 #include "miner.h"
+
 #include "hodl-gate.h"
 #include "hodl_uint256.h"
 #include "hodl_arith_uint256.h"
@@ -169,5 +168,3 @@ void GetPsuedoRandomData( char* mainMemoryPsuedoRandomData, uint32_t *pdata,
     uint256 midHash = Hash(BEGIN(pblock.nVersion), END(pblock.nNonce));
     SHA512Filler( mainMemoryPsuedoRandomData, thr_id, midHash);
   }
-
-#endif

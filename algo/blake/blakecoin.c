@@ -30,7 +30,7 @@ static void blake_midstate_init( const void* input )
 void blakecoinhash( void *state, const void *input )
 {
 	sph_blake256_context ctx;
-	uint8_t hash[64];
+	uint8_t hash[64] __attribute__ ((aligned (32)));
 	uint8_t *ending = (uint8_t*) input + 64;
 
         // copy cached midstate

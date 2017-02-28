@@ -17,8 +17,9 @@ typedef struct {
      sph_shabal512_context   shabal;
 } veltor_ctx_holder;
 
-veltor_ctx_holder veltor_ctx;
-static __thread sph_skein512_context veltor_skein_mid;
+veltor_ctx_holder veltor_ctx __attribute__ ((aligned (64)));
+static __thread sph_skein512_context veltor_skein_mid
+                               __attribute__ ((aligned (64)));
 
 void init_veltor_ctx()
 {
@@ -38,8 +39,8 @@ void veltorhash(void *output, const void *input)
 {
 	uint32_t _ALIGN(64) hashA[16], hashB[16];
 
-     veltor_ctx_holder ctx;
-     memcpy( &ctx, &veltor_ctx, sizeof(veltor_ctx) );
+        veltor_ctx_holder ctx __attribute__ ((aligned (64)));
+        memcpy( &ctx, &veltor_ctx, sizeof(veltor_ctx) );
 
         const int midlen = 64;            // bytes
         const int tail   = 80 - midlen;   // 16
@@ -47,7 +48,6 @@ void veltorhash(void *output, const void *input)
         memcpy( &ctx.skein, &veltor_skein_mid, sizeof veltor_skein_mid );
         sph_skein512( &ctx.skein, input + midlen, tail );
 
-//	sph_skein512(&ctx.skein, input, 80);
 	sph_skein512_close(&ctx.skein, hashA);
 
         sph_shavite512(&ctx.shavite, hashA, 64);

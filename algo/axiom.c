@@ -6,11 +6,11 @@
 
 #include "algo/shabal/sph_shabal.h"
 
-static __thread uint32_t _ALIGN(128) M[65536][8];
+static __thread uint32_t _ALIGN(64) M[65536][8];
 
 void axiomhash(void *output, const void *input)
 {
-	sph_shabal256_context ctx;
+	sph_shabal256_context ctx __attribute__ ((aligned (64)));
 	const int N = 65536;
 
 	sph_shabal256_init(&ctx);
@@ -34,7 +34,7 @@ void axiomhash(void *output, const void *input)
 		sph_shabal256(&ctx, M[p], 32);
 		sph_shabal256(&ctx, M[j], 32);
 #else
-		uint8_t _ALIGN(128) hash[64];
+		uint8_t _ALIGN(64) hash[64];
 		memcpy(hash, M[p], 32);
 		memcpy(&hash[32], M[j], 32);
 		sph_shabal256(&ctx, hash, 64);
@@ -49,8 +49,8 @@ int scanhash_axiom(int thr_id, struct work *work,
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
-	uint32_t _ALIGN(128) hash64[8];
-	uint32_t _ALIGN(128) endiandata[20];
+	uint32_t _ALIGN(64) hash64[8];
+	uint32_t _ALIGN(64) endiandata[20];
 
 	const uint32_t Htarg = ptarget[7];
 	const uint32_t first_nonce = pdata[19];

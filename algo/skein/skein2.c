@@ -21,7 +21,7 @@ void skein2hash(void *output, const void *input)
 {
 	sph_skein512_context ctx_skein;
 
-	uint32_t hash[16];
+	uint32_t hash[16] __attribute__ ((aligned (64)));
 
 	sph_skein512_init(&ctx_skein);
 	sph_skein512(&ctx_skein, input, 80);
@@ -40,8 +40,8 @@ int scanhash_skein2(int thr_id, struct work *work,
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
-	uint32_t _ALIGN(64) hash64[8];
-	uint32_t _ALIGN(64) endiandata[20];
+	uint32_t hash64[8] __attribute__ ((aligned (64)));
+	uint32_t endiandata[20] __attribute__ ((aligned (64)));
 	const uint32_t Htarg = ptarget[7];
 	const uint32_t first_nonce = pdata[19];
 	uint32_t n = first_nonce;

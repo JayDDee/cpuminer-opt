@@ -2,6 +2,13 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 
 Change Log
 ----------
+
+v3.5.11
+
+- fixed hmq1725 crash on Ubuntu 16.04
+- fixed compile error in hodl.cpp with gcc 6.3
+- fixed x11 crash on Windows with AVX2
+
 v3.5.10
 
 Some AVX2 optimizations introduced for Luffa, shorter chained algos such

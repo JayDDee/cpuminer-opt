@@ -70,21 +70,21 @@ void qubithash(void *output, const void *input)
         update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                 (const BitSequence*)input + midlen, tail );
 
-        cubehashUpdate( &ctx.cubehash, (const byte*) hash,64);
-        cubehashDigest( &ctx.cubehash, (byte*)hash);
+        cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
+                              (const byte*) hash, 64 );
 
         sph_shavite512( &ctx.shavite, hash, 64);
         sph_shavite512_close( &ctx.shavite, hash);
 
-        update_sd( &ctx.simd, (const BitSequence *)hash,512);
-        final_sd( &ctx.simd, (BitSequence *)hash);
+        update_final_sd( &ctx.simd, (BitSequence *)hash,
+                         (const BitSequence*)hash,  512 );
 
 #ifdef NO_AES_NI
         sph_echo512 (&ctx.echo, (const void*) hash, 64);
         sph_echo512_close(&ctx.echo, (void*) hash);
 #else
-        update_echo ( &ctx.echo, (const BitSequence *) hash, 512);
-        final_echo( &ctx.echo, (BitSequence *) hash);
+        update_final_echo( &ctx.echo, (BitSequence *) hash,
+                     (const BitSequence *) hash, 512 );
 #endif
 
         asm volatile ("emms");
@@ -128,7 +128,7 @@ int scanhash_qubit(int thr_id, struct work *work,
 		uint32_t max_nonce, uint64_t *hashes_done)
 {
         uint32_t endiandata[20] __attribute__((aligned(64)));
-        uint32_t hash64[8] __attribute__((aligned(32)));
+        uint32_t hash64[8] __attribute__((aligned(64)));
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;

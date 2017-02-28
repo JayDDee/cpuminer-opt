@@ -46,11 +46,11 @@ void nist5hash(void *output, const void *input)
      unsigned char hashbuf[128];
      sph_u64 hashctA;
      sph_u64 hashctB;
-     unsigned char hash[128];
+     unsigned char hash[128] __attribute__ ((aligned (64))) ;
      #define hashA hash
      #define hashB hash+64
 
-     nist5_ctx_holder ctx;
+     nist5_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &nist5_ctx, sizeof(nist5_ctx) );
 
      DECL_BLK;
@@ -62,8 +62,8 @@ void nist5hash(void *output, const void *input)
        sph_groestl512 (&ctx.groestl, hash, 64);
        sph_groestl512_close(&ctx.groestl, hash);
      #else
-       update_groestl( &ctx.groestl, (char*)hash,512);
-       final_groestl( &ctx.groestl, (char*)hash);
+       update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                 (const char*)hash, 512 );
      #endif
 
      DECL_JH;

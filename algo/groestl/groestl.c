@@ -34,13 +34,11 @@ void init_groestl_ctx()
 #endif
 }
 
-void groestlhash(void *output, const void *input)
+void groestlhash( void *output, const void *input )
 {
-     uint32_t _ALIGN(32) hash[16];
-     groestl_ctx_holder ctx;
+     uint32_t hash[16] __attribute__ ((aligned (64)));
+     groestl_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &groestl_ctx, sizeof(groestl_ctx) );
-
-//     memset(&hash[0], 0, sizeof(hash));
 
 #ifdef NO_AES_NI
      sph_groestl512(&ctx.groestl, input, 80);
@@ -49,21 +47,21 @@ void groestlhash(void *output, const void *input)
      sph_groestl512(&ctx.groestl, hash, 64);
      sph_groestl512_close(&ctx.groestl, hash);
 #else
-     update_groestl( &ctx.groestl1, (char*)input, 640 );
-     final_groestl( &ctx.groestl1,(char*)hash);
+     update_and_final_groestl( &ctx.groestl1, (char*)hash,
+                               (const char*)input, 640 );
 
-     update_groestl( &ctx.groestl2, (char*)hash, 512 );
-     final_groestl( &ctx.groestl2, (char*)hash);
+     update_and_final_groestl( &ctx.groestl1, (char*)hash,
+                               (const char*)hash, 512 );
 #endif
-	memcpy(output, hash, 32);
+     memcpy(output, hash, 32);
  }
 
-int scanhash_groestl(int thr_id, struct work *work,
-	uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_groestl( int thr_id, struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done )
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
-        uint32_t _ALIGN(64) endiandata[20];
+        uint32_t endiandata[20] __attribute__ ((aligned (64)));
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
 
@@ -74,7 +72,7 @@ int scanhash_groestl(int thr_id, struct work *work,
 
 	do {
 		const uint32_t Htarg = ptarget[7];
-		uint32_t hash[8];
+		uint32_t hash[8] __attribute__ ((aligned (64)));
 		be32enc(&endiandata[19], nonce);
 		groestlhash(hash, endiandata);
 

@@ -23,10 +23,11 @@ Supported Algorithms
                           blakecoin    blake256r8
                           blake2s      Blake-2 S
                           bmw          BMW 256
-                          c11          Flax
+                          c11          Chaincoin
                           cryptolight  Cryptonight-light
                           cryptonight  cryptonote, Monero (XMR)
                           decred
+                          deep         Deepcoin (DCN)
                           drop         Dropcoin
                           fresh        Fresh
                           groestl      groestl
@@ -37,7 +38,7 @@ Supported Algorithms
                           lbry         LBC, LBRY Credits
                           luffa        Luffa
                           lyra2re      lyra2
-                          lyra2rev2    lyrav2
+                          lyra2rev2    lyrav2, Vertcoin
                           lyra2z       Zcoin (XZC)
                           lyra2zoin    Zoin (ZOI)
                           m7m          Magi (XMG)
@@ -60,7 +61,7 @@ Supported Algorithms
                           veltor
                           whirlpool
                           whirlpoolx
-                          x11          X11
+                          x11          Dash
                           x11evo       Revolvercoin
                           x11gost      sib (SibCoin)
                           x13          X13

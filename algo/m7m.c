@@ -154,21 +154,21 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 {
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
-    uint32_t data[32] __attribute__((aligned(128)));
+    uint32_t data[32] __attribute__((aligned(64)));
     uint32_t *data_p64 = data + (M7_MIDSTATE_LEN / sizeof(data[0]));
-    uint32_t hash[8] __attribute__((aligned(32)));
-    uint8_t bhash[7][64] __attribute__((aligned(32)));
+    uint32_t hash[8] __attribute__((aligned(64)));
+    uint8_t bhash[7][64] __attribute__((aligned(64)));
     uint32_t n = pdata[19] - 1;
     uint32_t usw_, mpzscale;
     const uint32_t first_nonce = pdata[19];
     char data_str[161], hash_str[65], target_str[65];
     //uint8_t *bdata = 0;
-    uint8_t bdata[8192];
+    uint8_t bdata[8192] __attribute__ ((aligned (64)));
     int rc = 0, i, digits;
     int bytes;
     size_t p = sizeof(unsigned long), a = 64/p, b = 32/p;
 
-    m7m_ctx_holder ctx1, ctx2;
+    m7m_ctx_holder ctx1, ctx2 __attribute__ ((aligned (64)));
     memcpy( &ctx1, &m7m_ctx, sizeof(m7m_ctx) );
     sph_sha256_context ctxf_sha256;
     memcpy( &ctxf_sha256, &m7m_ctx_final_sha256, sizeof(ctxf_sha256) );
