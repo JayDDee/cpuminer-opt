@@ -489,6 +489,7 @@ enum algos {
         ALGO_DEEP,
         ALGO_DROP,        
         ALGO_FRESH,       
+	ALGO_SHA256T,
         ALGO_GROESTL,     
         ALGO_HEAVY,
         ALGO_HMQ1725,
@@ -549,6 +550,7 @@ static const char* const algo_names[] = {
         "deep",
         "drop",
         "fresh",
+	"sha256t",
         "groestl",
         "heavy",
         "hmq1725",
@@ -664,6 +666,7 @@ Options:\n\
                           deep         Deepcoin (DCN)\n\
                           drop         Dropcoin\n\
                           fresh        Fresh\n\
+			  sha256t      SHA256T\n\
                           groestl      groestl\n\
                           heavy        Heavy\n\
                           hmq1725      Espers\n\
