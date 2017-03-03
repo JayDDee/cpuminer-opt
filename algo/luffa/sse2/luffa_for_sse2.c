@@ -38,6 +38,15 @@
 _mm256_set_epi32( 0, 0, 0, 0, 0, 0, 0, 0x00800800 ) ) )
 
 #endif  // __AVX2__
+
+#define MULT2(a0,a1) do \
+{ \
+  __m128i b =  _mm_xor_si128( a0, _mm_shuffle_epi32( _mm_and_si128(a1,MASK), 16 ) ); \
+  a0 = _mm_or_si128( _mm_srli_si128(b,4), _mm_slli_si128(a1,12) ); \
+  a1 = _mm_or_si128( _mm_srli_si128(a1,4), _mm_slli_si128(b,12) );  \
+} while(0)
+
+/*
 #define MULT2(a0,a1) do \
 { \
   __m128i b; \
@@ -46,6 +55,7 @@ _mm256_set_epi32( 0, 0, 0, 0, 0, 0, 0, 0x00800800 ) ) )
   a0 = _mm_or_si128( _mm_srli_si128(a0,4), _mm_slli_si128(a1,12) ); \
   a1 = _mm_or_si128( _mm_srli_si128(a1,4), _mm_slli_si128(b,12) );  \
 } while(0)
+*/
 
 #define STEP_PART(x,c,t)\
     SUBCRUMB(*x,*(x+1),*(x+2),*(x+3),*t);\

@@ -499,7 +499,7 @@ enum algos {
         ALGO_LYRA2RE,       
         ALGO_LYRA2REV2,   
         ALGO_LYRA2Z,
-        ALGO_LYRA2ZOIN,
+        ALGO_LYRA2Z330,
         ALGO_M7M,
         ALGO_MYR_GR,      
         ALGO_NEOSCRYPT,
@@ -511,6 +511,7 @@ enum algos {
         ALGO_SCRYPT,
         ALGO_SCRYPTJANE,
         ALGO_SHA256D,
+        ALGO_SHA256T,
         ALGO_SHAVITE3,    
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
@@ -559,7 +560,7 @@ static const char* const algo_names[] = {
         "lyra2re",
         "lyra2rev2",
         "lyra2z",
-        "lyra2zoin",
+        "lyra2z330",
         "m7m",
         "myr-gr",
         "neoscrypt",
@@ -571,6 +572,7 @@ static const char* const algo_names[] = {
         "scrypt",
         "scryptjane",
         "sha256d",
+        "sha256t",
         "shavite3",
         "skein",
         "skein2",
@@ -674,7 +676,7 @@ Options:\n\
                           lyra2re      lyra2\n\
                           lyra2rev2    lyrav2, Vertcoin\n\
                           lyra2z       Zcoin (XZC)\n\
-                          lyra2zoin    Zoin (ZOI)\n\
+                          lyra2z330    Zoin (ZOI)\n\
                           m7m          Magi (XMG)\n\
                           myr-gr       Myriad-Groestl\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\
@@ -686,7 +688,8 @@ Options:\n\
                           scrypt       scrypt(1024, 1, 1) (default)\n\
                           scrypt:N     scrypt(N, 1, 1)\n\
                           scryptjane:nf\n\
-                          sha256d      SHA-256d\n\
+                          sha256d      Double SHA-256\n\
+                          sha256t      Triple SHA-256, Onecoin (OC)\n\
                           shavite3     Shavite3\n\
                           skein        Skein+Sha (Skeincoin)\n\
                           skein2       Double Skein (Woodcoin)\n\

@@ -189,7 +189,7 @@ HashReturn_gr update_and_final_groestl( hashState_groestl* ctx, void* output,
    int rem = ctx->rem_ptr;
    int blocks = len / SIZE512;
    __m128i* in = (__m128i*)input;
-   int i, i0;
+   int i;
 
    // --- update ---
 

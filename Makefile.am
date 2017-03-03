@@ -119,6 +119,7 @@ cpuminer_SOURCES = \
   algo/scrypt.c \
   algo/scryptjane/scrypt-jane.c \
   algo/sha2/sha2.c \
+  algo/sha2/sha256t.c \
   algo/simd/sse2/nist.c \
   algo/simd/sse2/vector.c \
   algo/skein/skein.c \

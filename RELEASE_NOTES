@@ -3,11 +3,17 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 Change Log
 ----------
 
+v3.5.12
+
+New algo sha256t for Onecoin (OC), 29% faster than ocminer version.
+lyra2zoin algo renamed to lyra2z330, lyra2zoin and zoin still work
+  as aliases.
+
 v3.5.11
 
-- fixed hmq1725 crash on Ubuntu 16.04
-- fixed compile error in hodl.cpp with gcc 6.3
-- fixed x11 crash on Windows with AVX2
+Fixed hmq1725 crash on Ubuntu 16.04
+Fixed compile error in hodl.cpp with gcc 6.3
+Fixed x11 crash on Windows with AVX2
 
 v3.5.10
 

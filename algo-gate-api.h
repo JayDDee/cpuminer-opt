@@ -130,7 +130,6 @@ void ( *build_extraheader )      ( struct work*, struct stratum_ctx* );
 void ( *build_stratum_request )  ( char*, struct work*, struct stratum_ctx* );
 void ( *set_work_data_endian )   ( struct work* );
 double ( *calc_network_diff )    ( struct work* );
-//bool ( *prevent_dupes )          ( struct work*, struct stratum_ctx*, int );
 bool ( *ready_to_mine )          ( struct work*, struct stratum_ctx*, int );
 void ( *resync_threads )         ( struct work* );
 bool ( *do_this_thread )         ( int );
