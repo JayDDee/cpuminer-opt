@@ -84,7 +84,7 @@ bool zoin_thread_init()
    return true;
 }
 
-bool register_zoin_algo( algo_gate_t* gate )
+bool register_lyra2z330_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   gate->miner_thread_init = (void*)&zoin_thread_init;

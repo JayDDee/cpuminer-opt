@@ -179,7 +179,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_LYRA2RE:     register_lyra2re_algo    ( gate ); break;
      case ALGO_LYRA2REV2:   register_lyra2rev2_algo  ( gate ); break;
      case ALGO_LYRA2Z:      register_zcoin_algo      ( gate ); break;
-     case ALGO_LYRA2ZOIN:   register_zoin_algo       ( gate ); break;
+     case ALGO_LYRA2Z330:   register_lyra2z330_algo ( gate ); break;
      case ALGO_M7M:         register_m7m_algo        ( gate ); break;
      case ALGO_MYR_GR:      register_myriad_algo     ( gate ); break;
      case ALGO_NEOSCRYPT:   register_neoscrypt_algo  ( gate ); break;
@@ -191,6 +191,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_SCRYPT:      register_scrypt_algo     ( gate ); break;
      case ALGO_SCRYPTJANE:  register_scryptjane_algo ( gate ); break;
      case ALGO_SHA256D:     register_sha256d_algo    ( gate ); break;
+     case ALGO_SHA256T:     register_sha256t_algo    ( gate ); break;
      case ALGO_SHAVITE3:    register_shavite_algo    ( gate ); break;
      case ALGO_SKEIN:       register_skein_algo      ( gate ); break;
      case ALGO_SKEIN2:      register_skein2_algo     ( gate ); break;
@@ -281,13 +282,14 @@ const char* const algo_alias_map[][2] =
   { "jane",              "scryptjane"  }, 
   { "lyra2",             "lyra2re"     },
   { "lyra2v2",           "lyra2rev2"   },
+  { "lyra2zoin",         "lyra2z330"   },
   { "myriad",            "myr-gr"      },
   { "neo",               "neoscrypt"   },
   { "sib",               "x11gost"     },
   { "yes",               "yescrypt"    },
   { "ziftr",             "zr5"         },
   { "zcoin",             "lyra2z"      },
-  { "zoin",              "lyra2zoin"   },
+  { "zoin",              "lyra2z330"   },
   { NULL,                NULL          }   
 };
 

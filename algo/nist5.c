@@ -17,7 +17,10 @@
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifndef NO_AES_NI
+#ifdef NO_AES_NI
+  #include "algo/groestl/sse2/grso.h"
+  #include "algo/groestl/sse2/grso-macro.c"
+#else
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
 
@@ -43,7 +46,7 @@ void init_nist5_ctx()
 void nist5hash(void *output, const void *input)
 {
      size_t hashptr;
-     unsigned char hashbuf[128];
+     unsigned char hashbuf[128] __attribute__ ((aligned (32)));
      sph_u64 hashctA;
      sph_u64 hashctB;
      unsigned char hash[128];
@@ -59,8 +62,12 @@ void nist5hash(void *output, const void *input)
      BLK_C;
 
      #ifdef NO_AES_NI
-       sph_groestl512 (&ctx.groestl, hash, 64);
-       sph_groestl512_close(&ctx.groestl, hash);
+       grsoState sts_grs;
+       GRS_I;
+       GRS_U;
+       GRS_C;
+//       sph_groestl512 (&ctx.groestl, hash, 64);
+//       sph_groestl512_close(&ctx.groestl, hash);
      #else
        update_groestl( &ctx.groestl, (char*)hash,512);
        final_groestl( &ctx.groestl, (char*)hash);

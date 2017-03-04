@@ -35,7 +35,10 @@
 #include "algo/groestl/sph_groestl.h"
 #include "algo/keccak/sph_keccak.h"
 
-#ifndef NO_AES_NI
+#ifdef NO_AES_NI
+  #include "algo/groestl/sse2/grso.h"
+  #include "algo/groestl/sse2/grso-macro.c"
+#else
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
@@ -83,7 +86,7 @@ static void zr5hash(void *state, const void *input)
 {
     
 DATA_ALIGN16(unsigned char hashbuf[128]);
-DATA_ALIGN16(unsigned char hash[128]);
+unsigned char hash[128] __attribute__ ((aligned (32)));
 DATA_ALIGN16(size_t hashptr);
 DATA_ALIGN16(sph_u64 hashctA);
 DATA_ALIGN16(sph_u64 hashctB);
@@ -121,8 +124,14 @@ static const int arrOrder[][4] =
 		break;
          case 1:
             #ifdef NO_AES_NI
-                sph_groestl512 (&ctx.groestl, hash, 64);
-                sph_groestl512_close(&ctx.groestl, hash);
+                {
+                   grsoState sts_grs;
+                   GRS_I;
+                   GRS_U;
+                   GRS_C;
+                }
+//                sph_groestl512 (&ctx.groestl, hash, 64);
+//                sph_groestl512_close(&ctx.groestl, hash);
             #else
                 update_groestl( &ctx.groestl, (char*)hash,512);
                 final_groestl( &ctx.groestl, (char*)hash);

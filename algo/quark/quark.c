@@ -19,7 +19,10 @@
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifndef NO_AES_NI
+#ifdef NO_AES_NI
+  #include "algo/groestl/sse2/grso.h"
+  #include "algo/groestl/sse2/grso-macro.c"
+#else
  #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
 
@@ -55,7 +58,7 @@ inline static void quarkhash(void *state, const void *input)
     sph_u64 hashctA;
     sph_u64 hashctB;
     int i;
-    unsigned char hash[128];
+    unsigned char hash[128] __attribute__ ((aligned (32)));
 #ifdef NO_AES_NI
     sph_groestl512_context ctx;
 #else
@@ -113,9 +116,13 @@ inline static void quarkhash(void *state, const void *input)
           {
 
 #ifdef NO_AES_NI
-             sph_groestl512_init( &ctx );
-             sph_groestl512 ( &ctx, hash, 64 );
-             sph_groestl512_close( &ctx, hash );
+             grsoState sts_grs;
+             GRS_I;
+             GRS_U;
+             GRS_C;
+//             sph_groestl512_init( &ctx );
+//             sph_groestl512 ( &ctx, hash, 64 );
+//             sph_groestl512_close( &ctx, hash );
 #else
              reinit_groestl( &ctx );
              update_groestl( &ctx, (char*)hash, 512 );

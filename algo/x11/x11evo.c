@@ -160,7 +160,7 @@ static void evo_twisted_code(uint32_t ntime, char *permstr)
 
 static inline void x11evo_hash( void *state, const void *input )
 {
-   uint32_t hash[16];
+   uint32_t hash[16] __attribute__ ((aligned (32)));
    x11evo_ctx_holder ctx;
    memcpy( &ctx, &x11evo_ctx, sizeof(x11evo_ctx) );
 

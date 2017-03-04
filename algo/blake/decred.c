@@ -194,6 +194,9 @@ void decred_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
    memcpy( decred_extraheader, &sctx->job.coinbase[32], decred_headersize);
 }
 */
+
+#define min(a,b) (a>b ? (b) :(a))
+
 void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
    uchar merkle_root[64] = { 0 };
@@ -238,6 +241,8 @@ void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    //applog_hex(work->data, 180);
    //applog_hex(&work->data[36], 36);
 }
+
+#undef min
 
 /*
 bool decred_prevent_dupes( struct work* work, struct stratum_ctx* stratum,

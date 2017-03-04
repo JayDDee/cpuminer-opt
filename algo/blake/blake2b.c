@@ -129,6 +129,8 @@ void blake2b_be_build_stratum_request( char *req, struct work *work )
    free( xnonce2str );
 }
 
+#define min(a,b) (a>b ? (b) :(a))
+
 // merkle root handled here, no need for gen_merkle_root gate target
 void blake2b_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
@@ -160,6 +162,8 @@ void blake2b_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
     for ( i = 0; i < 8; i++ )
        g_work->data[12+i] = ( (uint32_t*)merkle_root )[i];
 }
+
+#undef min
 
 void blake2b_get_new_work( struct work* work, struct work* g_work, int thr_id,
                            uint32_t* end_nonce_ptr, bool clean_job )

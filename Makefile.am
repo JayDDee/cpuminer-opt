@@ -81,7 +81,9 @@ cpuminer_SOURCES = \
   algo/groestl/myr-groestl.c \
   algo/groestl/aes_ni/hash-groestl.c \
   algo/groestl/aes_ni/hash-groestl256.c \
-  algo/haval/haval.c\
+  algo/groestl/sse2/grso.c \
+  algo/groestl/sse2/grso-asm.c \
+  algo/haval/haval.c \
   algo/heavy/heavy.c \
   algo/heavy/bastion.c \
   algo/hmq1725.c \
@@ -119,6 +121,7 @@ cpuminer_SOURCES = \
   algo/scrypt.c \
   algo/scryptjane/scrypt-jane.c \
   algo/sha2/sha2.c \
+  algo/sha2/sha256t.c \
   algo/simd/sse2/nist.c \
   algo/simd/sse2/vector.c \
   algo/skein/skein.c \

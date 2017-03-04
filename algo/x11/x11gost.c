@@ -20,7 +20,10 @@
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifndef NO_AES_NI
+#ifdef NO_AES_NI
+  #include "algo/groestl/sse2/grso.h"
+  #include "algo/groestl/sse2/grso-macro.c"
+#else
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
@@ -61,7 +64,7 @@ void init_sib_ctx()
 
 void sibhash(void *output, const void *input)
 {
-     unsigned char hash[128]; // uint32_t hashA[16], hashB[16];
+     unsigned char hash[128] __attribute__ ((aligned (32)));
      #define hashA hash
      #define hashB hash+64
 
@@ -90,8 +93,12 @@ void sibhash(void *output, const void *input)
      #undef dH
 
      #ifdef NO_AES_NI
-        sph_groestl512 (&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+        grsoState sts_grs;
+        GRS_I;
+        GRS_U;
+        GRS_C;
+//        sph_groestl512 (&ctx.groestl, hash, 64);
+//        sph_groestl512_close(&ctx.groestl, hash);
      #else
         update_groestl( &ctx.groestl, (char*)hash,512);
         final_groestl( &ctx.groestl, (char*)hash);
