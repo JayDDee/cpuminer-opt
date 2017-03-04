@@ -1,25 +1,23 @@
 #
-# Dockerfile for cpuminer
-# usage: docker run creack/cpuminer --url xxxx --user xxxx --pass xxxx
-# ex: docker run creack/cpuminer --url stratum+tcp://ltc.pool.com:80 --user creack.worker1 --pass abcdef
+# Dockerfile for cpuminer-opt
+# usage: docker build -t cpuminer-opt:latest .
+# run: docker run -it --rm cpuminer-opt:latest [ARGS]
+# ex: docker run -it --rm cpuminer-opt:latest -a cryptonight -o cryptonight.eu.nicehash.com:3355 -u 1MiningDW2GKzf4VQfmp4q2XoUvR6iy6PD.worker1 -p x -t 3
 #
-#
 
-FROM		ubuntu:12.10
-MAINTAINER	Guillaume J. Charmes <guillaume@charmes.net>
+FROM ubuntu:16.04
+RUN BUILD_DEPS="build-essential \
+    libssl-dev \
+	  libgmp-dev \
+	  libcurl4-openssl-dev \
+	  libjansson-dev \
+	  automake" && \
 
-RUN		apt-get update -qq
+	  apt-get update && \
+	  apt-get install -y ${BUILD_DEPS}
 
-RUN		apt-get install -qqy automake
-RUN		apt-get install -qqy libcurl4-openssl-dev
-RUN		apt-get install -qqy git
-RUN		apt-get install -qqy make
+COPY . /app/
+RUN	cd /app/ && ./build.sh
 
-RUN		git clone https://github.com/pooler/cpuminer
-
-RUN		cd cpuminer && ./autogen.sh
-RUN		cd cpuminer && ./configure CFLAGS="-O3"
-RUN		cd cpuminer && make
-
-WORKDIR		/cpuminer
-ENTRYPOINT	["./cpuminer"]
+ENTRYPOINT ["/app/cpuminer"]
+CMD ["-h"]
