@@ -77,6 +77,7 @@ cpuminer_SOURCES = \
   algo/drop.c \
   algo/echo/aes_ni/hash.c\
   algo/fresh.c \
+  algo/sha256t.c\
   algo/groestl/groestl.c \
   algo/groestl/myr-groestl.c \
   algo/groestl/aes_ni/hash-groestl.c \
