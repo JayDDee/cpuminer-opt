@@ -23,10 +23,11 @@ Supported Algorithms
                           blakecoin    blake256r8
                           blake2s      Blake-2 S
                           bmw          BMW 256
-                          c11          Flax
+                          c11          Chaincoin
                           cryptolight  Cryptonight-light
                           cryptonight  cryptonote, Monero (XMR)
                           decred
+                          deep         Deepcoin (DCN)
                           drop         Dropcoin
                           fresh        Fresh
                           groestl      groestl
@@ -37,7 +38,7 @@ Supported Algorithms
                           lbry         LBC, LBRY Credits
                           luffa        Luffa
                           lyra2re      lyra2
-                          lyra2rev2    lyrav2
+                          lyra2rev2    lyrav2, Vertcoin
                           lyra2z       Zcoin (XZC)
                           lyra2zoin    Zoin (ZOI)
                           m7m          Magi (XMG)
@@ -60,7 +61,7 @@ Supported Algorithms
                           veltor
                           whirlpool
                           whirlpoolx
-                          x11          X11
+                          x11          Dash
                           x11evo       Revolvercoin
                           x11gost      sib (SibCoin)
                           x13          X13
@@ -85,10 +86,11 @@ performance.
 
 2. 64 bit Linux OS. Ubuntu and Fedora based distributions, including Mint and
 Centos are known to work and have all dependencies in their repositories.
-Others may work but may require more effort. 64 bit Windows OS is now supported
-with mingw_w64 and msys.
+Others may work but may require more effort.
+64 bit Windows OS is supported with mingw_w64 and msys or pre-built binaries.
 
-3. Stratum pool, cpuminer-opt only supports stratum minning.
+3. Stratum pool, cpuminer-opt only supports stratum minning. Some algos
+may work wallet mining but there are no guarantees.
 
 Errata
 ------
@@ -96,7 +98,6 @@ Errata
 cpuminer-opt does not work mining Decred algo at Nicehash and produces
 only "invalid extranonce2 size" rejects.
 
-x11evo optimizations not available on Windows.
 Benchmark testing does not work for x11evo.
 
 Bugs

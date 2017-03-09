@@ -294,7 +294,7 @@ HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
       {
         memcpy( state->buffer+current/8, data, (databitlen+7)/8 );
         IncreaseCounter( state, databitlen );
-        return SUCCESS;
+        break;
       }
       else
       {
@@ -341,13 +341,13 @@ HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
   for ( i=0; i < 2*state->n_feistels; i++ )
   {
     u32 x = state->A[i];
-    out[4*i  ] = x&0xff;
+    out[4*i  ] = x & 0xff;
     x >>= 8;
-    out[4*i+1] = x&0xff;
+    out[4*i+1] = x & 0xff;
     x >>= 8;
-    out[4*i+2] = x&0xff;
+    out[4*i+2] = x & 0xff;
     x >>= 8;
-    out[4*i+3] = x&0xff;
+    out[4*i+3] = x & 0xff;
   }
 
   memcpy( hashval, out, state->hashbitlen / 8 );

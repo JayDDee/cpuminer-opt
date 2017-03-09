@@ -49,7 +49,7 @@ typedef struct {
     sph_shavite512_context  shavite;
 } x11evo_ctx_holder;
 
-static x11evo_ctx_holder x11evo_ctx;
+static x11evo_ctx_holder x11evo_ctx __attribute__ ((aligned (64)));
 
 void init_x11evo_ctx()
 {
@@ -71,9 +71,17 @@ void init_x11evo_ctx()
      sph_shavite512_init( &x11evo_ctx.shavite );
 }
 
+/*
 uint32_t getCurrentAlgoSeq(uint32_t current_time, uint32_t base_time)
 {
 	return (current_time - base_time) / (60 * 60 * 24);
+}
+*/
+
+static inline int getCurrentAlgoSeq( uint32_t current_time )
+{
+        // change once per day
+        return (int) (current_time - INITIAL_DATE) / (60 * 60 * 24);
 }
 
 // swap_vars doesn't work here
@@ -136,41 +144,37 @@ void getAlgoString( char *str, uint32_t count )
 	//applog(LOG_DEBUG, "nextPerm %s", str);
 }
 
-// Broken on Windows
-#if !((defined(__WINDOWS__)) || (defined(__WIN64)))
-static __thread uint32_t saved_ntime = UINT32_MAX;
-#endif
+static char hashOrder[HASH_FUNC_COUNT + 1] = { 0 };
+static __thread uint32_t s_ntime = UINT32_MAX;
+static int s_seq = -1;
 
-void evocoin_twisted_code( char *result, char *code )
+static void evo_twisted_code(uint32_t ntime, char *permstr)
 {
-    uint32_t h32, *be32 = get_stratum_job_ntime();
-#if !((defined(__WINDOWS__)) || (defined(__WIN64)))
-    if ( *be32 != saved_ntime )
-    {
-#endif
-        h32 = be32toh(*be32);
-	uint32_t count = getCurrentAlgoSeq(h32, INITIAL_DATE);
-	getAlgoString(code, count);
-	sprintf(result, "_%d_%s_", count, code);
-#if !((defined(__WINDOWS__)) || (defined(__WIN64)))
-        saved_ntime = *be32;
-    }
-#endif
+        int seq = getCurrentAlgoSeq(ntime);
+        if (s_seq != seq)
+        {
+                getAlgoString(permstr, seq);
+                s_seq = seq;
+        }
 }
 
 static inline void x11evo_hash( void *state, const void *input )
 {
-   uint32_t hash[16];
-   char completeCode[64];
-   char resultCode[HASH_FUNC_COUNT + 1];
-   x11evo_ctx_holder ctx;
+   uint32_t hash[16] __attribute__ ((aligned (64)));
+   x11evo_ctx_holder ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &x11evo_ctx, sizeof(x11evo_ctx) );
-   evocoin_twisted_code( completeCode, resultCode );
+
+   if ( s_seq == -1 )
+   {
+       uint32_t *data = (uint32_t*) input;
+       const uint32_t ntime = data[17];
+       evo_twisted_code(ntime, hashOrder);
+    }
 
    int i;
-   for ( i = 0; i < strlen(resultCode); i++ )
+   for ( i = 0; i < strlen(hashOrder); i++ )
    {
-	char elem = resultCode[i];
+	char elem = hashOrder[i];
 	uint8_t idx;
 	if (elem >= 'A')
 		idx = elem - 'A' + 10;
@@ -196,8 +200,6 @@ static inline void x11evo_hash( void *state, const void *input )
 #else
               update_and_final_groestl( &ctx.groestl, (char*)hash,
                                         (const char*)hash, 512 );
-//              update_groestl( &ctx.groestl, (char*)hash, 512 );
-//              final_groestl( &ctx.groestl, (char*)hash );
 #endif
 	      break;
 	    case 3:
@@ -215,22 +217,17 @@ static inline void x11evo_hash( void *state, const void *input )
 	    case 6:
               update_and_final_luffa( &ctx.luffa, (char*)hash,
                                       (const char*)hash, 64 );
-//              update_luffa( &ctx.luffa, (char*)hash, 64 );
-//              final_luffa( &ctx.luffa, (char*)hash );
 	      break;
 	    case 7:
               cubehashUpdateDigest( &ctx.cube, (char*)hash, 
                                     (const char*)hash, 64 );
-//              cubehashUpdate( &ctx.cube, (char*)hash, 64 );
-//              cubehashDigest( &ctx.cube, (char*)hash );
 	      break;
 	    case 8:
 	      sph_shavite512( &ctx.shavite, (char*)hash, size );
 	      sph_shavite512_close( &ctx.shavite, (char*)hash );
 	      break;
 	    case 9:
-              update_sd( &ctx.simd, (char*)hash, 512 );
-              final_sd( &ctx.simd, (char*)hash );
+              update_final_sd( &ctx.simd, (char*)hash, (const char*)hash, 512 );
 	      break;
 	    case 10:
 #ifdef NO_AES_NI
@@ -239,8 +236,6 @@ static inline void x11evo_hash( void *state, const void *input )
 #else
               update_final_echo( &ctx.echo, (char*)hash,
                                  (const char*)hash, 512 );
-//              update_echo( &ctx.echo, (char*)hash, 512 );
-//              final_echo( &ctx.echo, (char*)hash );
 #endif
 	      break;
 	}
@@ -254,7 +249,7 @@ int scanhash_x11evo( int thr_id, struct work* work, uint32_t max_nonce,
                      unsigned long *hashes_done )
 {
         uint32_t endiandata[20] __attribute__((aligned(64)));
-        uint32_t hash64[8] __attribute__((aligned(32)));
+        uint32_t hash64[8] __attribute__((aligned(64)));
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;
@@ -262,6 +257,13 @@ int scanhash_x11evo( int thr_id, struct work* work, uint32_t max_nonce,
         const uint32_t Htarg = ptarget[7];
 
         swab32_array( endiandata, pdata, 20 );
+
+        int ntime = endiandata[17];
+        if ( ntime != s_ntime  ||  s_seq == -1 )
+        {
+            evo_twisted_code( ntime, hashOrder );
+            s_ntime = ntime;
+        }
 
         uint32_t hmask = 0xFFFFFFFF;
         if ( Htarg  > 0 )

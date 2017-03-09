@@ -49,7 +49,6 @@ typedef struct {
   sph_whirlpool_context   whirlpool1, whirlpool2, whirlpool3, whirlpool4;
   sph_sha512_context      sha1, sha2;
   sph_haval256_5_context  haval1, haval2;
-
 #ifdef NO_AES_NI
   sph_groestl512_context  groestl1, groestl2;
   sph_echo512_context     echo1, echo2;
@@ -57,10 +56,10 @@ typedef struct {
   hashState_echo          echo1, echo2;
   hashState_groestl       groestl1, groestl2;
 #endif
-
 } hmq1725_ctx_holder;
 
-static hmq1725_ctx_holder hmq1725_ctx;
+static hmq1725_ctx_holder hmq1725_ctx __attribute__ ((aligned (64)));
+static __thread sph_bmw512_context hmq_bmw_mid __attribute__ ((aligned (64)));
 
 void init_hmq1725_ctx()
 {
@@ -122,174 +121,185 @@ void init_hmq1725_ctx()
 #endif
 }
 
+void hmq_bmw512_midstate( const void* input )
+{
+    memcpy( &hmq_bmw_mid, &hmq1725_ctx.bmw1, sizeof hmq_bmw_mid );
+    sph_bmw512( &hmq_bmw_mid, input, 64 );
+}
+
+__thread hmq1725_ctx_holder h_ctx __attribute__ ((aligned (64)));
+
 extern void hmq1725hash(void *state, const void *input)
 {
     const uint32_t mask = 24;
-    uint32_t hashA[25], hashB[25];
-    hmq1725_ctx_holder ctx;
+    uint32_t hashA[32] __attribute__((aligned(64)));
+    uint32_t hashB[32] __attribute__((aligned(64)));
+    const int midlen = 64;            // bytes
+    const int tail   = 80 - midlen;   // 16
 
-    memcpy(&ctx, &hmq1725_ctx, sizeof(hmq1725_ctx));
+    memcpy(&h_ctx, &hmq1725_ctx, sizeof(hmq1725_ctx));
 
-    sph_bmw512 (&ctx.bmw1, input, 80);    //0
-    sph_bmw512_close(&ctx.bmw1, hashA);   //1
+    memcpy( &h_ctx.bmw1, &hmq_bmw_mid, sizeof hmq_bmw_mid );
+    sph_bmw512( &h_ctx.bmw1, input + midlen, tail );
+    sph_bmw512_close(&h_ctx.bmw1, hashA);   //1
 
-    sph_whirlpool (&ctx.whirlpool1, hashA, 64);    //0
-    sph_whirlpool_close(&ctx.whirlpool1, hashB);   //1
+    sph_whirlpool (&h_ctx.whirlpool1, hashA, 64);    //0
+    sph_whirlpool_close(&h_ctx.whirlpool1, hashB);   //1
 
     if ( hashB[0] & mask )   //1
     {
 #ifdef NO_AES_NI
-     sph_groestl512 (&ctx.groestl1, hashB, 64); //1
-     sph_groestl512_close(&ctx.groestl1, hashA); //2
+     sph_groestl512 (&h_ctx.groestl1, hashB, 64); //1
+     sph_groestl512_close(&h_ctx.groestl1, hashA); //2
 #else
-     update_groestl( &ctx.groestl1, (char*)hashB, 512 );
-     final_groestl( &ctx.groestl1, (char*)hashA );
+     update_and_final_groestl( &h_ctx.groestl1, (char*)hashA, 
+                               (const char*)hashB, 512 );
 #endif
     }
     else
     {
-      sph_skein512 (&ctx.skein1, hashB, 64); //1
-      sph_skein512_close(&ctx.skein1, hashA); //2
+      sph_skein512 (&h_ctx.skein1, hashB, 64); //1
+      sph_skein512_close(&h_ctx.skein1, hashA); //2
     }
 	
-    sph_jh512 (&ctx.jh1, hashA, 64); //3
-    sph_jh512_close(&ctx.jh1, hashB); //4
+    sph_jh512 (&h_ctx.jh1, hashA, 64); //3
+    sph_jh512_close(&h_ctx.jh1, hashB); //4
 
-    sph_keccak512 (&ctx.keccak1, hashB, 64); //2
-    sph_keccak512_close(&ctx.keccak1, hashA); //3
+    sph_keccak512 (&h_ctx.keccak1, hashB, 64); //2
+    sph_keccak512_close(&h_ctx.keccak1, hashA); //3
 
     if ( hashA[0] & mask ) //4
     {
-        sph_blake512 (&ctx.blake1, hashA, 64); //
-        sph_blake512_close(&ctx.blake1, hashB); //5
+        sph_blake512 (&h_ctx.blake1, hashA, 64); //
+        sph_blake512_close(&h_ctx.blake1, hashB); //5
     }
     else
     {
-        sph_bmw512 (&ctx.bmw2, hashA, 64); //4
-        sph_bmw512_close(&ctx.bmw2, hashB);   //5
+        sph_bmw512 (&h_ctx.bmw2, hashA, 64); //4
+        sph_bmw512_close(&h_ctx.bmw2, hashB);   //5
     }
     
-     update_luffa( &ctx.luffa1, (BitSequence*)hashB, 64 );
-     final_luffa( &ctx.luffa1, (BitSequence*)hashA );
+     update_and_final_luffa( &h_ctx.luffa1, (BitSequence*)hashA, 
+                             (const BitSequence*)hashB, 64 );
 
-     cubehashUpdate( &ctx.cube, (BitSequence *)hashA, 64 );
-     cubehashDigest( &ctx.cube, (BitSequence *)hashB );
+     cubehashUpdateDigest( &h_ctx.cube, (BitSequence *)hashB,
+                           (const BitSequence *)hashA, 64 );
 
     if ( hashB[0] & mask ) //7
     {
-        sph_keccak512 (&ctx.keccak2, hashB, 64); //
-        sph_keccak512_close(&ctx.keccak2, hashA); //8
+        sph_keccak512 (&h_ctx.keccak2, hashB, 64); //
+        sph_keccak512_close(&h_ctx.keccak2, hashA); //8
     }
     else
     {
-        sph_jh512 (&ctx.jh2, hashB, 64); //7
-        sph_jh512_close(&ctx.jh2, hashA); //8
+        sph_jh512 (&h_ctx.jh2, hashB, 64); //7
+        sph_jh512_close(&h_ctx.jh2, hashA); //8
     }
 
-    sph_shavite512 (&ctx.shavite1, hashA, 64); //3
-    sph_shavite512_close(&ctx.shavite1, hashB); //4
+    sph_shavite512 (&h_ctx.shavite1, hashA, 64); //3
+    sph_shavite512_close(&h_ctx.shavite1, hashB); //4
 
-    update_sd( &ctx.simd1, (BitSequence *)hashB, 512 );
-    final_sd( &ctx.simd1, (BitSequence *)hashA );
+    update_final_sd( &h_ctx.simd1, (BitSequence *)hashA,
+                                   (const BitSequence *)hashB, 512 );
 
     if ( hashA[0] & mask ) //4
     {
-        sph_whirlpool (&ctx.whirlpool2, hashA, 64); //
-        sph_whirlpool_close(&ctx.whirlpool2, hashB); //5
+        sph_whirlpool (&h_ctx.whirlpool2, hashA, 64); //
+        sph_whirlpool_close(&h_ctx.whirlpool2, hashB); //5
     }
     else
     {
-        sph_haval256_5 (&ctx.haval1, hashA, 64); //4
-        sph_haval256_5_close(&ctx.haval1, hashB);   //5
+        sph_haval256_5 (&h_ctx.haval1, hashA, 64); //4
+        sph_haval256_5_close(&h_ctx.haval1, hashB);   //5
 	memset(&hashB[8], 0, 32);
     }
 
 #ifdef NO_AES_NI
-    sph_echo512 (&ctx.echo1, hashB, 64); //5
-    sph_echo512_close(&ctx.echo1, hashA); //6
+    sph_echo512 (&h_ctx.echo1, hashB, 64); //5
+    sph_echo512_close(&h_ctx.echo1, hashA); //6
 #else
-    update_echo ( &ctx.echo1, (BitSequence *)hashB, 512 );
-    final_echo( &ctx.echo1, (BitSequence *)hashA );
+    update_final_echo ( &h_ctx.echo1, (BitSequence *)hashA,
+                        (const BitSequence *)hashB, 512 );
 #endif
 
-    sph_blake512 (&ctx.blake2, hashA, 64); //6
-    sph_blake512_close(&ctx.blake2, hashB); //7
+    sph_blake512 (&h_ctx.blake2, hashA, 64); //6
+    sph_blake512_close(&h_ctx.blake2, hashB); //7
 
     if ( hashB[0] & mask ) //7
     {
-        sph_shavite512 (&ctx.shavite2, hashB, 64); //
-        sph_shavite512_close(&ctx.shavite2, hashA); //8
+        sph_shavite512 (&h_ctx.shavite2, hashB, 64); //
+        sph_shavite512_close(&h_ctx.shavite2, hashA); //8
     }
     else
     {
-     update_luffa( &ctx.luffa2, (BitSequence *)hashB, 64 );
-     final_luffa( &ctx.luffa2, (BitSequence *)hashA );
+     update_and_final_luffa( &h_ctx.luffa2, (BitSequence *)hashA,
+                             (const BitSequence *)hashB, 64 );
     }
 
-    sph_hamsi512 (&ctx.hamsi1, hashA, 64); //3
-    sph_hamsi512_close(&ctx.hamsi1, hashB); //4
+    sph_hamsi512 (&h_ctx.hamsi1, hashA, 64); //3
+    sph_hamsi512_close(&h_ctx.hamsi1, hashB); //4
 
-    sph_fugue512 (&ctx.fugue1, hashB, 64); //2   ////
-    sph_fugue512_close(&ctx.fugue1, hashA); //3 
+    sph_fugue512 (&h_ctx.fugue1, hashB, 64); //2   ////
+    sph_fugue512_close(&h_ctx.fugue1, hashA); //3 
 
     if ( hashA[0] & mask ) //4
     {
 #ifdef NO_AES_NI
-     sph_echo512 (&ctx.echo2, hashA, 64); //
-     sph_echo512_close(&ctx.echo2, hashB); //5
+     sph_echo512 (&h_ctx.echo2, hashA, 64); //
+     sph_echo512_close(&h_ctx.echo2, hashB); //5
 #else
-     update_echo ( &ctx.echo2, (BitSequence *)hashA, 512 );
-     final_echo( &ctx.echo2, (BitSequence *)hashB );
+     update_final_echo ( &h_ctx.echo2, (BitSequence *)hashB,
+                         (const BitSequence *)hashA, 512 );
 #endif
     }
     else
     {
-     update_sd( &ctx.simd2, (BitSequence *)hashA, 512 );
-     final_sd( &ctx.simd2, (BitSequence *)hashB );
+     update_final_sd( &h_ctx.simd2, (BitSequence *)hashB,
+                      (const BitSequence *)hashA, 512 );
     }
 
-    sph_shabal512 (&ctx.shabal1, hashB, 64); //5
-    sph_shabal512_close(&ctx.shabal1, hashA); //6
+    sph_shabal512 (&h_ctx.shabal1, hashB, 64); //5
+    sph_shabal512_close(&h_ctx.shabal1, hashA); //6
 
-    sph_whirlpool (&ctx.whirlpool3, hashA, 64); //6
-    sph_whirlpool_close(&ctx.whirlpool3, hashB); //7
+    sph_whirlpool (&h_ctx.whirlpool3, hashA, 64); //6
+    sph_whirlpool_close(&h_ctx.whirlpool3, hashB); //7
 
     if ( hashB[0] & mask ) //7
     {
-        sph_fugue512 (&ctx.fugue2, hashB, 64); //
-        sph_fugue512_close(&ctx.fugue2, hashA); //8
+        sph_fugue512 (&h_ctx.fugue2, hashB, 64); //
+        sph_fugue512_close(&h_ctx.fugue2, hashA); //8
     }
     else
     {
-        sph_sha512 (&ctx.sha1, hashB, 64); //7
-        sph_sha512_close(&ctx.sha1, hashA); //8
+        sph_sha512 (&h_ctx.sha1, hashB, 64); //7
+        sph_sha512_close(&h_ctx.sha1, hashA); //8
     }
 
 #ifdef NO_AES_NI
-    sph_groestl512 (&ctx.groestl2, hashA, 64); //3
-    sph_groestl512_close(&ctx.groestl2, hashB); //4
+    sph_groestl512 (&h_ctx.groestl2, hashA, 64); //3
+    sph_groestl512_close(&h_ctx.groestl2, hashB); //4
 #else
-    update_groestl( &ctx.groestl2, (char*)hashA, 512 );
-    final_groestl( &ctx.groestl2, (char*)hashB );
+    update_and_final_groestl( &h_ctx.groestl2, (char*)hashB,
+                               (const char*)hashA, 512 );
 #endif
 
-    sph_sha512 (&ctx.sha2, hashB, 64); //2 
-    sph_sha512_close(&ctx.sha2, hashA); //3 
+    sph_sha512 (&h_ctx.sha2, hashB, 64); //2 
+    sph_sha512_close(&h_ctx.sha2, hashA); //3 
 
     if ( hashA[0] & mask ) //4
     {
-        sph_haval256_5 (&ctx.haval2, hashA, 64); //
-        sph_haval256_5_close(&ctx.haval2, hashB); //5
+        sph_haval256_5 (&h_ctx.haval2, hashA, 64); //
+        sph_haval256_5_close(&h_ctx.haval2, hashB); //5
 	memset(&hashB[8], 0, 32);
     }
     else
     {
-        sph_whirlpool (&ctx.whirlpool4, hashA, 64); //4
-        sph_whirlpool_close(&ctx.whirlpool4, hashB);   //5
+        sph_whirlpool (&h_ctx.whirlpool4, hashA, 64); //4
+        sph_whirlpool_close(&h_ctx.whirlpool4, hashB);   //5
     }
 
-    sph_bmw512 (&ctx.bmw3, hashB, 64); //5
-    sph_bmw512_close(&ctx.bmw3, hashA); //6
+    sph_bmw512 (&h_ctx.bmw3, hashB, 64); //5
+    sph_bmw512_close(&h_ctx.bmw3, hashA); //6
 
 	memcpy(state, hashA, 32);
 }
@@ -297,8 +307,8 @@ extern void hmq1725hash(void *state, const void *input)
 int scanhash_hmq1725( int thr_id, struct work *work, int32_t max_nonce,
                       uint64_t *hashes_done )
 {
-        uint32_t endiandata[20] __attribute__((aligned(64)));
-        uint32_t hash64[8] __attribute__((aligned(32)));
+        uint32_t endiandata[32] __attribute__((aligned(64)));
+        uint32_t hash64[8] __attribute__((aligned(64)));
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;
@@ -308,6 +318,8 @@ int scanhash_hmq1725( int thr_id, struct work *work, int32_t max_nonce,
 	//we need bigendian data...
         for (int k = 0; k < 32; k++)
                 be32enc(&endiandata[k], pdata[k]);
+
+        hmq_bmw512_midstate( endiandata );
 
 //	if (opt_debug) 
 //	{

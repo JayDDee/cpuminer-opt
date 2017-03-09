@@ -49,187 +49,201 @@
   #endif
 #endif
 
-
-/* digest up to len bytes of input (full blocks only) */
-void Transform256(hashState_groestl256 *ctx,
-	       const u8 *in, 
-	       unsigned long long len) {
-    /* increment block counter */
-    ctx->block_counter += len/SIZE;
-
-    /* digest message, one block at a time */
-    for (; len >= SIZE; len -= SIZE, in += SIZE)
-      TF512((u64*)ctx->chaining, (u64*)in);
-
-    asm volatile ("emms");
-}
-
-/* given state h, do h <- P(h)+h */
-void OutputTransformation256(hashState_groestl256 *ctx) {
-    /* determine variant */
-    OF512((u64*)ctx->chaining);
-
-    asm volatile ("emms");
-}
-
 /* initialise context */
 HashReturn_gr init_groestl256( hashState_groestl256* ctx, int hashlen )
 {
-  u8 i = 0;
+  int i;
 
   ctx->hashlen = hashlen;
-
   SET_CONSTANTS();
-
-  for (i=0; i<SIZE/8; i++)
-    ctx->chaining[i] = 0;
-  for (i=0; i<SIZE; i++)
-    ctx->buffer[i] = 0;
 
   if (ctx->chaining == NULL || ctx->buffer == NULL)
     return FAIL_GR;
 
-  /* set initial value */
-  ctx->chaining[COLS-1] = U64BIG((u64)256);
-
-  INIT256(ctx->chaining);
-
-  /* set other variables */
+  for ( i = 0; i < SIZE256; i++ )
+  {
+     ctx->chaining[i] = _mm_setzero_si128();
+     ctx->buffer[i]   = _mm_setzero_si128();
+  }
+  ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
+  INIT256( ctx->chaining );
   ctx->buf_ptr = 0;
-  ctx->block_counter = 0;
+  ctx->rem_ptr = 0;
 
   return SUCCESS_GR;
 }
+
 
 HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
  {
   int i;
-  for (i=0; i<SIZE/8; i++)
-    ctx->chaining[i] = 0;
-  for (i=0; i<SIZE; i++)
-    ctx->buffer[i] = 0;
 
   if (ctx->chaining == NULL || ctx->buffer == NULL)
     return FAIL_GR;
 
-  /* set initial value */
-  ctx->chaining[COLS-1] = 256;
-
+  for ( i = 0; i < SIZE256; i++ )
+  {
+     ctx->chaining[i] = _mm_setzero_si128();
+     ctx->buffer[i]   = _mm_setzero_si128();
+  }
+  ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
   INIT256(ctx->chaining);
-
-  /* set other variables */
   ctx->buf_ptr = 0;
-  ctx->block_counter = 0;
+  ctx->rem_ptr = 0;
 
   return SUCCESS_GR;
 }
 
-HashReturn_gr update_groestl256( hashState_groestl256* ctx,
-                   const BitSequence_gr* input, DataLength_gr databitlen )
+// Use this only for midstate and never for cryptonight
+HashReturn_gr update_groestl256( hashState_groestl256* ctx, const void* input,
+                                 DataLength_gr databitlen )
 {
-  const int msglen = (int)(databitlen/8);  // bytes
-  int i;
+   __m128i* in = (__m128i*)input;
+   const int len = (int)databitlen / 128;  // bits to __m128i
+   const int blocks = len / SIZE256;    // __M128i to blocks
+   int rem = ctx->rem_ptr;
+   int i;
 
-  /* digest bulk of message */
-  Transform256( ctx, input, msglen );
+   ctx->blk_count = blocks;
+   ctx->databitlen = databitlen;
 
-  /* store remaining data in buffer */
-  i = ( msglen / SIZE ) * SIZE;
-  while ( i < msglen )
-     ctx->buffer[(int)ctx->buf_ptr++] = input[i++];
+   // digest any full blocks 
+   for ( i = 0; i < blocks; i++ )
+       TF512( ctx->chaining, &in[ i * SIZE256 ] );
+   // adjust buf_ptr to last block
+   ctx->buf_ptr = blocks * SIZE256;
 
-  return SUCCESS_GR;
+   // Copy any remainder to buffer
+   for ( i = 0; i < len % SIZE256; i++ )
+       ctx->buffer[ rem + i ] = in[ ctx->buf_ptr + i ];
+   // adjust rem_ptr for new data
+   ctx->rem_ptr += i;
+
+   return SUCCESS_GR;
 }
 
-HashReturn_gr final_groestl256( hashState_groestl256* ctx,
-                                BitSequence_gr* output )
+// don't use this at all
+HashReturn_gr final_groestl256( hashState_groestl256* ctx, void* output )
 {
-  ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
+   const int len = (int)ctx->databitlen / 128;  // bits to __m128i 
+   const int blocks = ctx->blk_count + 1;       // adjust for final block
+   const int rem_ptr = ctx->rem_ptr;      // end of data start of padding
+   const int hashlen_m128i = ctx->hashlen / 16;  // bytes to __m128i
+   const int hash_offset = SIZE256 - hashlen_m128i;  // where in buffer
+   int i;
 
-  /* pad with '0'-bits */
-  if ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
-  {
-    /* padding requires two blocks */
-    while ( ctx->buf_ptr < SIZE )
-      ctx->buffer[(int)ctx->buf_ptr++] = 0;
-    /* digest first padding block */
-    Transform256( ctx, ctx->buffer, SIZE );
-    ctx->buf_ptr = 0;
-  }
-  while ( ctx->buf_ptr < SIZE - LENGTHFIELDLEN )
-    ctx->buffer[(int)ctx->buf_ptr++] = 0;
+   // first pad byte = 0x80, last pad byte = block count
+   // everything in between is zero
 
-  /* length padding */
-  ctx->block_counter++;
-  ctx->buf_ptr = SIZE;
-  while ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
-  {
-    ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
-    ctx->block_counter >>= 8;
-  }
+   if ( rem_ptr == len - 1 )
+   {
+       // all padding at once
+       ctx->buffer[rem_ptr] = _mm_set_epi8( blocks,0,0,0, 0,0,0,0,
+                                                  0,0,0,0, 0,0,0,0x80 );
+   }
+   else
+   {
+       // add first padding
+       ctx->buffer[rem_ptr] = _mm_set_epi8( 0,0,0,0, 0,0,0,0,
+                                            0,0,0,0, 0,0,0,0x80 );
+       // add zero padding
+       for ( i = rem_ptr + 1; i < SIZE256 - 1; i++ )
+           ctx->buffer[i] = _mm_setzero_si128();
+       // add length padding
+       // cheat since we know the block count is trivial, good if block < 256
+       ctx->buffer[i] = _mm_set_epi8( blocks,0,0,0, 0,0,0,0,
+                                           0,0,0,0, 0,0,0,0 );
+   }
 
-  /* digest final padding block */
-  Transform256( ctx, ctx->buffer, SIZE );
-  /* perform output transformation */
-  OutputTransformation256( ctx );
+   // digest final padding block and do output transform
+   TF512( ctx->chaining, ctx->buffer );
+   OF512( ctx->chaining );
 
-  /* store hash result in output */
-  for ( int i = ( (SIZE - ctx->hashlen) / 16 ), j = 0; i < SIZE/16; i++, j++ )
-       casti_m128i( output, j ) = casti_m128i( ctx->chaining, i );
+   // store hash result in output 
+   for ( i = 0; i < hashlen_m128i; i++ )
+      casti_m128i( output, i ) = ctx->chaining[ hash_offset + i];
 
-  return SUCCESS_GR;
+   return SUCCESS_GR;
 }
 
 HashReturn_gr update_and_final_groestl256( hashState_groestl256* ctx,
-                   BitSequence_gr* output,  const BitSequence_gr* input,
-                   DataLength_gr databitlen )
+                   void* output, const void* input, DataLength_gr databitlen )
 {
-  const int msglen = (int)(databitlen/8);  // bytes
-  int i, j;
+   const int len = (int)databitlen / 128;
+   const int hashlen_m128i = ctx->hashlen / 16;   // bytes to __m128i
+   const int hash_offset = SIZE256 - hashlen_m128i;
+   int rem = ctx->rem_ptr;
+   int blocks = len / SIZE256;
+   __m128i* in = (__m128i*)input;
+   int i;
 
-  /* digest bulk of message */
-  Transform256( ctx, input, msglen );
+   // --- update ---
 
-  /* store remaining data in buffer */
-  i = ( msglen / SIZE ) * SIZE;
-  while ( i < msglen )
-     ctx->buffer[(int)ctx->buf_ptr++] = input[i++];
+   // digest any full blocks, process directly from input 
+   for ( i = 0; i < blocks; i++ )
+      TF512( ctx->chaining, &in[ i * SIZE256 ] );
+   ctx->buf_ptr = blocks * SIZE256;
 
-  // start of final
-  ctx->buffer[(int)ctx->buf_ptr++] = 0x80;
+   // cryptonight has 200 byte input, an odd number of __m128i
+   // remainder is only 8 bytes, ie u64.
+   if ( databitlen % 128 !=0 )
+   {
+      // must be cryptonight, copy 64 bits of data
+      *(uint64_t*)(ctx->buffer) = *(uint64_t*)(&in[ ctx->buf_ptr ] );
+      i = -1; // signal for odd length
+   }
+   else   
+   { 
+      // Copy any remaining data to buffer for final transform
+      for ( i = 0; i < len % SIZE256; i++ )
+          ctx->buffer[ rem + i ] = in[ ctx->buf_ptr + i ];
+      i += rem;   // use i as rem_ptr in final
+   }
 
-  /* pad with '0'-bits */
-  if ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
-  {
-    /* padding requires two blocks */
-    while ( ctx->buf_ptr < SIZE )
-      ctx->buffer[(int)ctx->buf_ptr++] = 0;
-    /* digest first padding block */
-    Transform256( ctx, ctx->buffer, SIZE );
-    ctx->buf_ptr = 0;
-  }
-  while ( ctx->buf_ptr < SIZE - LENGTHFIELDLEN )
-    ctx->buffer[(int)ctx->buf_ptr++] = 0;
+   //--- final ---
 
-  /* length padding */
-  ctx->block_counter++;
-  ctx->buf_ptr = SIZE;
-  while ( ctx->buf_ptr > SIZE - LENGTHFIELDLEN )
-  {
-    ctx->buffer[(int)--ctx->buf_ptr] = (u8)ctx->block_counter;
-    ctx->block_counter >>= 8;
-  }
+   // adjust for final block
+   blocks++;
 
-  /* digest final padding block */
-  Transform256( ctx, ctx->buffer, SIZE );
-  /* perform output transformation */
-  OutputTransformation256( ctx );
+   if ( i == len - 1 )
+   {
+       // all padding at once
+       ctx->buffer[i] = _mm_set_epi8( blocks,blocks>>8,0,0, 0,0,0,0,
+                                           0,        0,0,0, 0,0,0,0x80 );
+   }
+   else
+   {
+      if ( i == -1 )
+      {
+         // cryptonight odd length
+         ((uint64_t*)ctx->buffer)[ 1 ] = 0x80ull;
+         // finish the block with zero and length padding as normal
+         i = 0;
+       }
+       else
+       {
+          // add first padding
+          ctx->buffer[i] = _mm_set_epi8( 0,0,0,0, 0,0,0,0,
+                                         0,0,0,0, 0,0,0,0x80 );
+       }
+       // add zero padding
+       for ( i += 1; i < SIZE256 - 1; i++ )
+           ctx->buffer[i] = _mm_setzero_si128();
+       // add length padding
+       // cheat since we know the block count is trivial, good if block < 256
+       ctx->buffer[i] = _mm_set_epi8( blocks,blocks>>8,0,0, 0,0,0,0,
+                                           0,        0,0,0, 0,0,0,0 );
+   }
 
-  /* store hash result in output */
-  for ( i = ( (SIZE - ctx->hashlen) / 16 ), j = 0; i < SIZE/16; i++, j++ )
-       casti_m128i( output, j ) = casti_m128i( ctx->chaining, i );
+   // digest final padding block and do output transform
+   TF512( ctx->chaining, ctx->buffer );
+   OF512( ctx->chaining );
 
-  return SUCCESS_GR;
+   // store hash result in output 
+   for ( i = 0; i < hashlen_m128i; i++ )
+      casti_m128i( output, i ) = ctx->chaining[ hash_offset + i ];
+
+   return SUCCESS_GR;
 }
 
 /* hash bit sequence */

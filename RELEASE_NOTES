@@ -3,6 +3,58 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 Change Log
 ----------
 
+v3.5.12
+
+New algo sha256t for Onecoin (OC), 29% faster than ocminer version.
+lyra2zoin algo renamed to lyra2z330, lyra2zoin and zoin still work
+  as aliases.
+
+v3.5.11
+
+Fixed hmq1725 crash on Ubuntu 16.04
+Fixed compile error in hodl.cpp with gcc 6.3
+Fixed x11 crash on Windows with AVX2
+
+v3.5.10
+
+Some AVX2 optimizations introduced for Luffa, shorter chained algos such
+  as Qubit and Deep should see the biggest gains, but many other algos should
+  also see improvement, longer chains like xevan not so much.
+Rewrite of Groestl AES, now 100% vectorized, small improvement.
+build.sh and winbuild.sh initialize with distclean instead of clean.
+Implemented a workaround for a compile error in hodl code when compiling
+  with gcc 6.3.
+
+V3.5.9
+
+Reduced stack usage for hmq1725 and small speedup.
+Added Deep algo optimized for AES and AVX2
+Rewrite of SSE2 Luffa, midstate now supported in deep, qubit & timetravel
+Small changes to algo-gate.
+
+v3.5.8
+
+Lyra2RE fixed on Windows, broken in v3.5.6.
+Ported AES cryptonight optimizations from v3.5.7 to non-AES version
+  with little improvement.
+Marginal improvements to xevan and veltor.
+
+v3.5.7
+
+Cryptonight 5% faster
+
+v3.5.6
+
+Updated Lyra2z algo for new zcoin algo post block 2050.
+Cleaned up Lyra2 code and increased performance
+  - Lyra2Z (zcoin) +12%
+  - Lyra2REv2 +11%
+  - Lyra2RE +6%
+Fixed x11evo algo performance on Windows.
+Timetravel algo 3% to 5% faster
+Whirlpool algo 15% faster.
+Removed aclocal.m4 from .gitignore.
+
 v3.5.5
 
 x11evo fixed on Windows but at reduced performance.

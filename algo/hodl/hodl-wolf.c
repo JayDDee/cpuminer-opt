@@ -13,35 +13,41 @@
 void GenerateGarbageCore(CacheEntry *Garbage, int ThreadID, int ThreadCount, void *MidHash)
 {
 #ifdef __AVX__
-    uint64_t* TempBufs[SHA512_PARALLEL_N];
+    uint64_t* TempBufs[SHA512_PARALLEL_N] ;
     uint64_t* desination[SHA512_PARALLEL_N];
 
-    for (int i=0; i<SHA512_PARALLEL_N; ++i) {
+    for ( int i=0; i<SHA512_PARALLEL_N; ++i )
+    {
         TempBufs[i] = (uint64_t*)malloc(32);
         memcpy(TempBufs[i], MidHash, 32);
     }
 
     uint32_t StartChunk = ThreadID * (TOTAL_CHUNKS / ThreadCount);
-    for(uint32_t i = StartChunk; i < StartChunk + (TOTAL_CHUNKS / ThreadCount); i+= SHA512_PARALLEL_N) {
-        for(int j=0; j<SHA512_PARALLEL_N; ++j) {
-            ((uint32_t*)TempBufs[j])[0] = i + j;
-            desination[j] = (uint64_t*)((uint8_t *)Garbage + ((i+j) * GARBAGE_CHUNK_SIZE));
+    for ( uint32_t i = StartChunk;
+          i < StartChunk + (TOTAL_CHUNKS / ThreadCount); i+= SHA512_PARALLEL_N )
+    {
+        for ( int j=0; j<SHA512_PARALLEL_N; ++j )
+        {
+            ( (uint32_t*)TempBufs[j] )[0] = i + j;
+            desination[j] = (uint64_t*)( (uint8_t *)Garbage + ( (i+j)
+                            * GARBAGE_CHUNK_SIZE ) );
         }
-        sha512Compute32b_parallel(TempBufs, desination);
+        sha512Compute32b_parallel( TempBufs, desination );
     }
 
-    for (int i=0; i<SHA512_PARALLEL_N; ++i) {
-        free(TempBufs[i]);
-    }
+    for ( int i=0; i<SHA512_PARALLEL_N; ++i )
+        free( TempBufs[i] );
 #else
     uint32_t TempBuf[8];
-    memcpy(TempBuf, MidHash, 32);
+    memcpy( TempBuf, MidHash, 32 );
 
     uint32_t StartChunk = ThreadID * (TOTAL_CHUNKS / ThreadCount);
-    for(uint32_t i = StartChunk; i < StartChunk + (TOTAL_CHUNKS / ThreadCount); ++i)
+    for ( uint32_t i = StartChunk;
+          i < StartChunk + (TOTAL_CHUNKS / ThreadCount); ++i )
     {
         TempBuf[0] = i;
-        SHA512((uint8_t *)TempBuf, 32, ((uint8_t *)Garbage) + (i * GARBAGE_CHUNK_SIZE));
+        SHA512( ( uint8_t *)TempBuf, 32,
+                ( (uint8_t *)Garbage ) + ( i * GARBAGE_CHUNK_SIZE ) );
     }
 #endif
 }

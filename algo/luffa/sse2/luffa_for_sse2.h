@@ -46,11 +46,12 @@
 /*********************************/
 
 typedef struct {
-    uint32 buffer[8] __attribute((aligned(16)));
-    __m128i chainv[10];   /* Chaining values */
+    uint32 buffer[8] __attribute((aligned(32)));
+    __m128i chainv[10] __attribute((aligned(32)));   /* Chaining values */
 //    uint64 bitlen[2]; /* Message length in bits */
 //    uint32 rembitlen; /* Length of buffer data to be hashed */
     int hashbitlen;
+    int rembytes;
 } hashState_luffa;
 
 HashReturn init_luffa( hashState_luffa *state, int hashbitlen );

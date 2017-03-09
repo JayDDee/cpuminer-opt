@@ -49,10 +49,10 @@
 
 /*
 #ifndef min
-#define min(a,b) (a>b ? b : a)
+#define min(a,b) (a>b ? (b) :(a))
 #endif
 #ifndef max 
-#define max(a,b) (a<b ? b : a)
+#define max(a,b) (a<b ? (b) : (a))
 #endif
 */
 
@@ -479,12 +479,14 @@ enum algos {
         ALGO_BASTION,
         ALGO_BLAKE,       
         ALGO_BLAKECOIN,   
+//        ALGO_BLAKE2B,
         ALGO_BLAKE2S,     
         ALGO_BMW,        
         ALGO_C11,         
         ALGO_CRYPTOLIGHT, 
         ALGO_CRYPTONIGHT, 
         ALGO_DECRED,
+        ALGO_DEEP,
         ALGO_DROP,        
         ALGO_FRESH,       
         ALGO_GROESTL,     
@@ -497,7 +499,7 @@ enum algos {
         ALGO_LYRA2RE,       
         ALGO_LYRA2REV2,   
         ALGO_LYRA2Z,
-        ALGO_LYRA2ZOIN,
+        ALGO_LYRA2Z330,
         ALGO_M7M,
         ALGO_MYR_GR,      
         ALGO_NEOSCRYPT,
@@ -509,6 +511,7 @@ enum algos {
         ALGO_SCRYPT,
         ALGO_SCRYPTJANE,
         ALGO_SHA256D,
+        ALGO_SHA256T,
         ALGO_SHAVITE3,    
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
@@ -537,12 +540,14 @@ static const char* const algo_names[] = {
         "bastion",
         "blake",
         "blakecoin",
+//        "blake2b",
         "blake2s",
         "bmw",
         "c11",
         "cryptolight",
         "cryptonight",
         "decred",
+        "deep",
         "drop",
         "fresh",
         "groestl",
@@ -555,7 +560,7 @@ static const char* const algo_names[] = {
         "lyra2re",
         "lyra2rev2",
         "lyra2z",
-        "lyra2zoin",
+        "lyra2z330",
         "m7m",
         "myr-gr",
         "neoscrypt",
@@ -567,6 +572,7 @@ static const char* const algo_names[] = {
         "scrypt",
         "scryptjane",
         "sha256d",
+        "sha256t",
         "shavite3",
         "skein",
         "skein2",
@@ -589,7 +595,7 @@ static const char* const algo_names[] = {
         "\0"
 };
 
-char* algo_name( enum algos a );
+const char* algo_name( enum algos a );
 
 extern enum algos opt_algo;
 extern bool opt_debug;
@@ -650,12 +656,14 @@ Options:\n\
                           bastion\n\
                           blake        Blake-256 (SFR)\n\
                           blakecoin    blake256r8\n\
+"/*                          blake2b      Sia\n*/"\
                           blake2s      Blake-2 S\n\
                           bmw          BMW 256\n\
-                          c11          Flax\n\
+                          c11          Chaincoin\n\
                           cryptolight  Cryptonight-light\n\
                           cryptonight  cryptonote, Monero (XMR)\n\
                           decred\n\
+                          deep         Deepcoin (DCN)\n\
                           drop         Dropcoin\n\
                           fresh        Fresh\n\
                           groestl      groestl\n\
@@ -666,9 +674,9 @@ Options:\n\
                           lbry         LBC, LBRY Credits\n\
                           luffa        Luffa\n\
                           lyra2re      lyra2\n\
-                          lyra2rev2    lyrav2\n\
+                          lyra2rev2    lyrav2, Vertcoin\n\
                           lyra2z       Zcoin (XZC)\n\
-                          lyra2zoin    Zoin (ZOI)\n\
+                          lyra2z330    Zoin (ZOI)\n\
                           m7m          Magi (XMG)\n\
                           myr-gr       Myriad-Groestl\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\
@@ -680,7 +688,8 @@ Options:\n\
                           scrypt       scrypt(1024, 1, 1) (default)\n\
                           scrypt:N     scrypt(N, 1, 1)\n\
                           scryptjane:nf\n\
-                          sha256d      SHA-256d\n\
+                          sha256d      Double SHA-256\n\
+                          sha256t      Triple SHA-256, Onecoin (OC)\n\
                           shavite3     Shavite3\n\
                           skein        Skein+Sha (Skeincoin)\n\
                           skein2       Double Skein (Woodcoin)\n\
@@ -689,7 +698,7 @@ Options:\n\
                           veltor\n\
                           whirlpool\n\
                           whirlpoolx\n\
-                          x11          X11\n\
+                          x11          Dash\n\
                           x11evo       Revolvercoin\n\
                           x11gost      sib (SibCoin)\n\
                           x13          X13\n\

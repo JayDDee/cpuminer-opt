@@ -47,6 +47,21 @@ void hodl_le_build_stratum_request( char* req, struct work* work,
 
 void hodl_build_extraheader( struct work* g_work, struct stratum_ctx *sctx )
 {
+   uchar merkle_root[64] = { 0 };
+   size_t t;
+   int i;
+
+   algo_gate.gen_merkle_root( merkle_root, sctx );
+   // Increment extranonce2
+   for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
+   // Assemble block header
+   memset( g_work->data, 0, sizeof(g_work->data) );
+   g_work->data[0] = le32dec( sctx->job.version );
+   for ( i = 0; i < 8; i++ )
+      g_work->data[1 + i] = le32dec( (uint32_t *) sctx->job.prevhash + i );
+   for ( i = 0; i < 8; i++ )
+      g_work->data[9 + i] = be32dec( (uint32_t *) merkle_root + i );
+
    g_work->data[ algo_gate.ntime_index ] = le32dec( sctx->job.ntime );
    g_work->data[ algo_gate.nbits_index ] = le32dec( sctx->job.nbits );
    g_work->data[22] = 0x80000000;

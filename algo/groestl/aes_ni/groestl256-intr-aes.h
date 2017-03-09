@@ -15,8 +15,8 @@
 __m128i ROUND_CONST_Lx;
 __m128i ROUND_CONST_L0[ROUNDS512];
 __m128i ROUND_CONST_L7[ROUNDS512];
-__m128i ROUND_CONST_P[ROUNDS1024];
-__m128i ROUND_CONST_Q[ROUNDS1024];
+//__m128i ROUND_CONST_P[ROUNDS1024];
+//__m128i ROUND_CONST_Q[ROUNDS1024];
 __m128i TRANSP_MASK;
 __m128i SUBSH_MASK[8];
 __m128i ALL_1B;
@@ -351,9 +351,8 @@ __m128i ALL_FF;
 }/**/
 
 
-void INIT256(u64* h)
+void INIT256( __m128i* chaining )
 {
-  __m128i* const chaining = (__m128i*) h;
   static __m128i xmm0, /*xmm1,*/ xmm2, /*xmm3, xmm4, xmm5,*/ xmm6, xmm7;
   static __m128i /*xmm8, xmm9, xmm10, xmm11,*/ xmm12, xmm13, xmm14, xmm15;
 
@@ -374,10 +373,8 @@ void INIT256(u64* h)
   chaining[3] = xmm7;
 }
 
-void TF512(u64* h, u64* m)
+void TF512( __m128i* chaining, __m128i* message )
 {
-  __m128i* const chaining = (__m128i*) h;
-  __m128i* const message = (__m128i*) m;
   static __m128i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
   static __m128i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
   static __m128i TEMP0;
@@ -449,9 +446,8 @@ void TF512(u64* h, u64* m)
   return;
 }
 
-void OF512(u64* h)
+void OF512( __m128i* chaining )
 {
-  __m128i* const chaining = (__m128i*) h;
   static __m128i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
   static __m128i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
   static __m128i TEMP0;

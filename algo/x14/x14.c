@@ -45,7 +45,7 @@ typedef struct {
         hashState_groestl       groestl;
 #endif
         hashState_luffa         luffa;
-        cubehashParam           cubehash;
+        cubehashParam           cube;
         sph_shavite512_context  shavite;
         hashState_sd            simd;
         sph_hamsi512_context    hamsi;
@@ -65,7 +65,7 @@ void init_x14_ctx()
         init_groestl(&x14_ctx.groestl, 64 );
 #endif
         init_luffa(&x14_ctx.luffa,512);
-        cubehashInit(&x14_ctx.cubehash,512,16,32);
+        cubehashInit(&x14_ctx.cube,512,16,32);
         sph_shavite512_init(&x14_ctx.shavite);
         init_sd(&x14_ctx.simd,512);
         sph_hamsi512_init(&x14_ctx.hamsi);
@@ -75,7 +75,7 @@ void init_x14_ctx()
 
 static void x14hash(void *output, const void *input)
 {
-	unsigned char hash[128]; // uint32_t hashA[16], hashB[16];
+	unsigned char hash[128]; __attribute__ ((aligned (32)))
 	#define hashB hash+64
 
         x14_ctx_holder ctx;
@@ -115,8 +115,8 @@ static void x14hash(void *output, const void *input)
         sph_groestl512 (&ctx.groestl, hash, 64);
         sph_groestl512_close(&ctx.groestl, hash);
 #else
-        update_groestl( &ctx.groestl, (char*)hash,512);
-        final_groestl( &ctx.groestl, (char*)hash);
+        update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                  (const char*)hash, 512 );
 #endif
 
         //---skein4---
@@ -139,29 +139,28 @@ static void x14hash(void *output, const void *input)
         KEC_C;
 
         //--- luffa7
-        update_luffa( &ctx.luffa, (const BitSequence*)hash,64);
-        final_luffa( &ctx.luffa, (BitSequence*)hashB);
+        update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
+                                (const BitSequence*)hash, 64 );
 
         // 8 Cube
-        cubehashUpdate( &ctx.cubehash, (const byte*) hashB,64);
-        cubehashDigest( &ctx.cubehash, (byte*)hash);
+        cubehashUpdateDigest( &ctx.cube, (byte*) hash,
+                              (const*)hashB, 64 );
 
         // 9 Shavite
         sph_shavite512( &ctx.shavite, hash, 64);
         sph_shavite512_close( &ctx.shavite, hashB);
 
         // 10 Simd
-        update_sd( &ctx.simd, (const BitSequence *)hashB,512);
-        final_sd( &ctx.simd, (BitSequence *)hash);
+        update_final_sd( &ctx.simd, (BitSequence *)hash,
+                         (const BitSequence *)hashB, 512 );
 
         //11---echo---
-
 #ifdef NO_AES_NI
         sph_echo512(&ctx.echo, hash, 64);
         sph_echo512_close(&ctx.echo, hashB);
 #else
-        update_echo ( &ctx.echo, (const BitSequence *) hash, 512);
-        final_echo( &ctx.echo, (BitSequence *) hashB);
+        update_final_echo ( &ctx.echo, (BitSequence *)hashB,
+                            (const BitSequence *)hash, 512 );
 #endif
 
         // X13 algos
@@ -267,7 +266,7 @@ int scanhash_x14(int thr_id, struct work *work,
 				uint32_t max_nonce, uint64_t *hashes_done)
 {
         uint32_t endiandata[20] __attribute__((aligned(64)));
-        uint32_t hash64[8] __attribute__((aligned(32)));
+        uint32_t hash64[8] __attribute__((aligned(64)));
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;

@@ -123,7 +123,8 @@ void init_algo_gate( algo_gate_t* gate )
    gate->build_extraheader       = (void*)&std_build_extraheader;
    gate->set_work_data_endian    = (void*)&do_nothing;
    gate->calc_network_diff       = (void*)&std_calc_network_diff;
-   gate->prevent_dupes           = (void*)&return_false;
+//   gate->prevent_dupes           = (void*)&return_false;
+   gate->ready_to_mine           = (void*)&std_ready_to_mine;
    gate->resync_threads          = (void*)&do_nothing;
    gate->do_this_thread          = (void*)&return_true;
    gate->longpoll_rpc_call       = (void*)&std_longpoll_rpc_call;
@@ -159,11 +160,13 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_BASTION:     register_bastion_algo    ( gate ); break;
      case ALGO_BLAKE:       register_blake_algo      ( gate ); break;
      case ALGO_BLAKECOIN:   register_blakecoin_algo  ( gate ); break;
+//     case ALGO_BLAKE2B:     register_blake2b_algo    ( gate ); break;
      case ALGO_BLAKE2S:     register_blake2s_algo    ( gate ); break;
      case ALGO_C11:         register_c11_algo        ( gate ); break;
      case ALGO_CRYPTOLIGHT: register_cryptolight_algo( gate ); break;
      case ALGO_CRYPTONIGHT: register_cryptonight_algo( gate ); break;
      case ALGO_DECRED:      register_decred_algo     ( gate ); break;
+     case ALGO_DEEP:        register_deep_algo       ( gate ); break;
      case ALGO_DROP:        register_drop_algo       ( gate ); break;
      case ALGO_FRESH:       register_fresh_algo      ( gate ); break;
      case ALGO_GROESTL:     register_groestl_algo    ( gate ); break;
@@ -176,7 +179,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_LYRA2RE:     register_lyra2re_algo    ( gate ); break;
      case ALGO_LYRA2REV2:   register_lyra2rev2_algo  ( gate ); break;
      case ALGO_LYRA2Z:      register_zcoin_algo      ( gate ); break;
-     case ALGO_LYRA2ZOIN:   register_zoin_algo       ( gate ); break;
+     case ALGO_LYRA2Z330:   register_lyra2z330_algo  ( gate ); break;
      case ALGO_M7M:         register_m7m_algo        ( gate ); break;
      case ALGO_MYR_GR:      register_myriad_algo     ( gate ); break;
      case ALGO_NEOSCRYPT:   register_neoscrypt_algo  ( gate ); break;
@@ -188,6 +191,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_SCRYPT:      register_scrypt_algo     ( gate ); break;
      case ALGO_SCRYPTJANE:  register_scryptjane_algo ( gate ); break;
      case ALGO_SHA256D:     register_sha256d_algo    ( gate ); break;
+     case ALGO_SHA256T:     register_sha256t_algo    ( gate ); break;
      case ALGO_SHAVITE3:    register_shavite_algo    ( gate ); break;
      case ALGO_SKEIN:       register_skein_algo      ( gate ); break;
      case ALGO_SKEIN2:      register_skein2_algo     ( gate ); break;
@@ -267,6 +271,7 @@ const char* const algo_alias_map[][2] =
 //   alias                proper
   { "blake256r8",        "blakecoin"   },
   { "blake256r8vnl",     "vanilla"     },
+  { "sia",               "blake2b"     },
   { "blake256r14",       "blake"       },
   { "cryptonote",        "cryptonight" },
   { "cryptonight-light", "cryptolight" },
@@ -277,13 +282,14 @@ const char* const algo_alias_map[][2] =
   { "jane",              "scryptjane"  }, 
   { "lyra2",             "lyra2re"     },
   { "lyra2v2",           "lyra2rev2"   },
+  { "lyra2zoin",         "lyra2z330"   },
   { "myriad",            "myr-gr"      },
   { "neo",               "neoscrypt"   },
   { "sib",               "x11gost"     },
   { "yes",               "yescrypt"    },
   { "ziftr",             "zr5"         },
   { "zcoin",             "lyra2z"      },
-  { "zoin",              "lyra2zoin"   },
+  { "zoin",              "lyra2z330"   },
   { NULL,                NULL          }   
 };
 

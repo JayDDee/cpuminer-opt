@@ -24,7 +24,7 @@ typedef struct {
 } lbryhash_context_holder;
 
 /* no need to copy, because close reinit the context */
-static  lbryhash_context_holder ctx;
+static  lbryhash_context_holder ctx __attribute__ ((aligned (64)));
 
 void init_lbry_contexts(void *dummy)
 {
@@ -35,9 +35,9 @@ void init_lbry_contexts(void *dummy)
 
 void lbry_hash(void* output, const void* input)
 {
-        sph_sha256_context      ctx_sha256;
-        sph_sha512_context      ctx_sha512;
-        sph_ripemd160_context   ctx_ripemd;
+        sph_sha256_context      ctx_sha256 __attribute__ ((aligned (64)));
+        sph_sha512_context      ctx_sha512 __attribute__ ((aligned (64)));
+        sph_ripemd160_context   ctx_ripemd __attribute__ ((aligned (64)));
 	uint32_t _ALIGN(64) hashA[16];
         uint32_t _ALIGN(64) hashB[16];
         uint32_t _ALIGN(64) hashC[16];
@@ -83,8 +83,8 @@ int scanhash_lbry( int thr_id, struct work *work, uint32_t max_nonce,
 	const uint32_t first_nonce = pdata[27];
 	const uint32_t Htarg = ptarget[7];
 
-	uint32_t hash64[8] __attribute__((aligned(32)));
-	uint32_t endiandata[32];
+	uint32_t hash64[8] __attribute__((aligned(64)));
+	uint32_t endiandata[32] __attribute__ ((aligned (64)));
 
 	uint64_t htmax[] = {
 		0,
@@ -146,12 +146,10 @@ double lbry_calc_network_diff( struct work *work )
 {
         // sample for diff 43.281 : 1c05ea29
         // todo: endian reversed on longpoll could be zr5 specific...
-//        uint32_t nbits = have_longpoll ? work->data[18] : swab32(work->data[18]);
 
    uint32_t nbits = swab32( work->data[ LBRY_NBITS_INDEX ] );
    uint32_t bits = (nbits & 0xffffff);
    int16_t shift = (swab32(nbits) & 0xff); // 0x1c = 28
-//   uint64_t diffone = 0x0000FFFF00000000ull;
    double d = (double)0x0000ffff / (double)bits;
 
    for (int m=shift; m < 29; m++) d *= 256.0;
@@ -181,13 +179,27 @@ void lbry_le_build_stratum_request( char *req, struct work *work,
    free(xnonce2str);
 }
 
-void lbry_build_extraheader( struct work* work, struct stratum_ctx* sctx )
+void lbry_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
+   unsigned char merkle_root[64] = { 0 };
+   size_t t;
+   int i;
+
+   algo_gate.gen_merkle_root( merkle_root, sctx );
+   // Increment extranonce2 
+   for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
+   // Assemble block header 
+   memset( g_work->data, 0, sizeof(g_work->data) );
+   g_work->data[0] = le32dec( sctx->job.version );
+   for ( i = 0; i < 8; i++ )
+      g_work->data[1 + i] = le32dec( (uint32_t *) sctx->job.prevhash + i );
+   for ( i = 0; i < 8; i++ )
+      g_work->data[9 + i] = be32dec( (uint32_t *) merkle_root + i );
    for ( int i = 0; i < 8; i++ )
-        work->data[17 + i] = ((uint32_t*)sctx->job.claim)[i];
-   work->data[ LBRY_NTIME_INDEX ] = le32dec(sctx->job.ntime);
-   work->data[ LBRY_NBITS_INDEX ] = le32dec(sctx->job.nbits);
-   work->data[28] = 0x80000000;
+        g_work->data[17 + i] = ((uint32_t*)sctx->job.claim)[i];
+   g_work->data[ LBRY_NTIME_INDEX ] = le32dec(sctx->job.ntime);
+   g_work->data[ LBRY_NBITS_INDEX ] = le32dec(sctx->job.nbits);
+   g_work->data[28] = 0x80000000;
 }
 
 void lbry_set_target( struct work* work, double job_diff )

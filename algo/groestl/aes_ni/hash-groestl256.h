@@ -9,6 +9,7 @@
 #ifndef __hash_h
 #define __hash_h
 
+#include <immintrin.h>
 #include <stdio.h>
 #if defined(_WIN64) || defined(__WINDOWS__)
 #include <windows.h>
@@ -40,23 +41,21 @@ typedef crypto_uint64 u64;
   #include IACA_MARKS
 #endif
 
-//#ifndef LENGTH
-//#define LENGTH (256)
-//#endif
+#define LENGTH (256)
 
 /* some sizes (number of bytes) */
 #define ROWS (8)
 #define LENGTHFIELDLEN (ROWS)
 #define COLS512 (8)
-#define COLS1024 (16)
-#define SIZE512 ((ROWS)*(COLS512))
-#define SIZE1024 ((ROWS)*(COLS1024))
+//#define COLS1024 (16)
+#define SIZE_512 ((ROWS)*(COLS512))
+//#define SIZE1024 ((ROWS)*(COLS1024))
 #define ROUNDS512 (10)
-#define ROUNDS1024 (14)
+//#define ROUNDS1024 (14)
 
 //#if LENGTH<=256
 #define COLS (COLS512)
-#define SIZE (SIZE512)
+//#define SIZE (SIZE512)
 #define ROUNDS (ROUNDS512)
 //#else
 //#define COLS (COLS1024)
@@ -89,28 +88,34 @@ typedef enum
     BAD_HASHBITLEN_GR = 2
 } HashReturn_gr;
 
+#define SIZE256 (SIZE_512/16)
+
 typedef struct {
-  __attribute__ ((aligned (32))) u64 chaining[SIZE/8];      /* actual state */
-  __attribute__ ((aligned (32))) BitSequence_gr buffer[SIZE];  /* data buffer */
-  u64 block_counter;        /* message block counter */
+  __attribute__ ((aligned (32))) __m128i chaining[SIZE256];
+  __attribute__ ((aligned (32))) __m128i buffer[SIZE256];
+//  __attribute__ ((aligned (32))) u64 chaining[SIZE/8];      /* actual state */
+//  __attribute__ ((aligned (32))) BitSequence_gr buffer[SIZE];  /* data buffer */
+//  u64 block_counter;        /* message block counter */
   int hashlen;              // bytes
+  int blk_count;
   int buf_ptr;              /* data buffer pointer */
+  int rem_ptr;
+  int databitlen;
 } hashState_groestl256;
 
 HashReturn_gr init_groestl256( hashState_groestl256*, int );
 
-HashReturn_gr reinit_groestl( hashState_groestl256* );
+HashReturn_gr reinit_groestl256( hashState_groestl256* );
 
-HashReturn_gr update_groestl( hashState_groestl256*, const BitSequence_gr*,
+HashReturn_gr update_groestl256( hashState_groestl256*, const void*,
                               DataLength_gr );
 
-HashReturn_gr final_groestl( hashState_groestl256*, BitSequence_gr* );
+HashReturn_gr final_groestl256( hashState_groestl256*, void* );
 
-HashReturn_gr hash_groestl( int, const BitSequence_gr*, DataLength_gr,
+HashReturn_gr hash_groestli256( int, const BitSequence_gr*, DataLength_gr,
                             BitSequence_gr* );
 
-HashReturn_gr update_and_final_groestl256( hashState_groestl256*,
-                        BitSequence_gr*, const BitSequence_gr*,
-                        DataLength_gr );
+HashReturn_gr update_and_final_groestl256( hashState_groestl256*, void*,
+                                           const void*, DataLength_gr );
 
 #endif /* __hash_h */

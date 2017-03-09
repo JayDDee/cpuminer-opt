@@ -25,7 +25,7 @@
 
 void bastionhash(void *output, const void *input)
 {
-	unsigned char _ALIGN(128) hash[64] = { 0 };
+	unsigned char hash[64] __attribute__ ((aligned (64)));
 
 #ifdef NO_AES_NI
         sph_echo512_context     ctx_echo;
@@ -36,7 +36,6 @@ void bastionhash(void *output, const void *input)
 	sph_fugue512_context ctx_fugue;
 	sph_whirlpool_context ctx_whirlpool;
 	sph_shabal512_context ctx_shabal;
-//	sph_skein512_context ctx_skein;
 	sph_hamsi512_context ctx_hamsi;
 
         unsigned char hashbuf[128] __attribute__ ((aligned (16)));
@@ -47,8 +46,10 @@ void bastionhash(void *output, const void *input)
 	HEFTY1(input, 80, hash);
 
         init_luffa( &ctx_luffa, 512 );
-        update_luffa( &ctx_luffa, hash, 64 );
-        final_luffa( &ctx_luffa, hash );
+        update_and_final_luffa( &ctx_luffa, (BitSequence*)hash,
+                                (const BitSequence*)hash, 64 );
+//        update_luffa( &ctx_luffa, hash, 64 );
+//        final_luffa( &ctx_luffa, hash );
 
 	if (hash[0] & 0x8)
 	{
@@ -60,9 +61,6 @@ void bastionhash(void *output, const void *input)
                 SKN_I;
                 SKN_U;
                 SKN_C;
-//		sph_skein512_init(&ctx_skein);
-//		sph_skein512(&ctx_skein, hash, 64);
-//		sph_skein512_close(&ctx_skein, hash);
 	}
 
 	sph_whirlpool_init(&ctx_whirlpool);
@@ -81,13 +79,17 @@ void bastionhash(void *output, const void *input)
 		sph_echo512_close(&ctx_echo, hash);
 #else
                 init_echo( &ctx_echo, 512 );
-                update_echo ( &ctx_echo, hash, 512 );
-                final_echo( &ctx_echo,  hash );
+                update_final_echo ( &ctx_echo,(BitSequence*)hash,
+                                    (const BitSequence*)hash, 512 );
+//                update_echo ( &ctx_echo, hash, 512 );
+//                final_echo( &ctx_echo,  hash );
 #endif
 	} else {
                 init_luffa( &ctx_luffa, 512 );
-                update_luffa( &ctx_luffa, hash, 64 );
-                final_luffa( &ctx_luffa, hash );
+                update_and_final_luffa( &ctx_luffa, (BitSequence*)hash,
+                                        (const BitSequence*)hash, 64 );
+//                update_luffa( &ctx_luffa, hash, 64 );
+//                final_luffa( &ctx_luffa, hash );
 	}
 
 	sph_shabal512_init(&ctx_shabal);
@@ -98,9 +100,6 @@ void bastionhash(void *output, const void *input)
         SKN_I;
         SKN_U;
         SKN_C;
-//	sph_skein512_init(&ctx_skein);
-//	sph_skein512(&ctx_skein, hash, 64);
-//	sph_skein512_close(&ctx_skein, hash);
 
 	if (hash[0] & 0x8)
 	{
@@ -124,8 +123,10 @@ void bastionhash(void *output, const void *input)
 		sph_hamsi512_close(&ctx_hamsi, hash);
 	} else {
                 init_luffa( &ctx_luffa, 512 );
-                update_luffa( &ctx_luffa, hash, 64 );
-                final_luffa( &ctx_luffa, hash );
+                update_and_final_luffa( &ctx_luffa, (BitSequence*)hash,
+                                        (const BitSequence*)hash, 64 );
+//                update_luffa( &ctx_luffa, hash, 64 );
+//                final_luffa( &ctx_luffa, hash );
 	}
 
 	memcpy(output, hash, 32);

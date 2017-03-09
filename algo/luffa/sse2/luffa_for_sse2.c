@@ -20,20 +20,33 @@
 
 #include <string.h>
 #include <emmintrin.h>
+#include "avxdefs.h"
 #include "luffa_for_sse2.h"
 
-#ifdef HASH_BIG_ENDIAN
-# define BYTES_SWAP32(x) x
-#else
-# define BYTES_SWAP32(x) \
-    ((x << 24) | ((x & 0x0000ff00) << 8) | ((x & 0x00ff0000) >> 8) | (x >> 24))
-#endif /* HASH_BIG_ENDIAN */
+#if defined (__AVX2__)
 
-/* BYTES_SWAP256(x) stores each 32-bit word of 256 bits data in little-endian convention */
-#define BYTES_SWAP256(x) { \
-    int _i = 8; while(_i--){x[_i] = BYTES_SWAP32(x[_i]);} \
-}
+#define MULT256(a) \
+  a = _mm256_xor_si256( \
+          _mm256_and_si256( _mm256_srli_si256( a, 4 ), \
+                              _mm256_set_epi32( \
+                                 0, 0xffffffff, 0xffffffff, 0xffffffff, \
+                                 0, 0xffffffff, 0xffffffff, 0xffffffff ) ), \
+          _mm256_permutevar8x32_epi32( \
+               _mm256_and_si256( _mm256_srli_si256( a, 4 ), \
+                                 _mm256_set_epi32( 0xffffffff, 0, 0, 0, \
+                                                   0xffffffff, 0,0, 0 ) ), \
+_mm256_set_epi32( 0, 0, 0, 0, 0, 0, 0, 0x00800800 ) ) )
 
+#endif  // __AVX2__
+
+#define MULT2(a0,a1) do \
+{ \
+  __m128i b =  _mm_xor_si128( a0, _mm_shuffle_epi32( _mm_and_si128(a1,MASK), 16 ) ); \
+  a0 = _mm_or_si128( _mm_srli_si128(b,4), _mm_slli_si128(a1,12) ); \
+  a1 = _mm_or_si128( _mm_srli_si128(a1,4), _mm_slli_si128(b,12) );  \
+} while(0)
+
+/*
 #define MULT2(a0,a1) do \
 { \
   __m128i b; \
@@ -42,6 +55,7 @@
   a0 = _mm_or_si128( _mm_srli_si128(a0,4), _mm_slli_si128(a1,12) ); \
   a1 = _mm_or_si128( _mm_srli_si128(a1,4), _mm_slli_si128(b,12) );  \
 } while(0)
+*/
 
 #define STEP_PART(x,c,t)\
     SUBCRUMB(*x,*(x+1),*(x+2),*(x+3),*t);\
@@ -200,11 +214,14 @@
     NMLTOM1024(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3);
 
 
-static void Update512(hashState_luffa *state, const BitSequence *data, DataLength databitlen);
+//#if defined (__AVX2__)
+//  static void rnd512( hashState_luffa *state, __m256i msg );
+//#else
+  static void rnd512( hashState_luffa *state, __m128i msg1, __m128i msg0 );
+//static void rnd512( hashState_luffa *state );
+//#endif
 
-static void rnd512(hashState_luffa *state);
-
-static void finalization512(hashState_luffa *state, uint32 *b);
+static void finalization512( hashState_luffa *state, uint32 *b );
 
 
 /* initial values of chaining variables */
@@ -275,52 +292,68 @@ HashReturn init_luffa(hashState_luffa *state, int hashbitlen)
         CNS128[i] = _mm_load_si128( (__m128i*)&CNS_INIT[i*4] );
     for ( i=0; i<10; i++ ) 
 	state->chainv[i] = _mm_load_si128( (__m128i*)&IV[i*4] );
-//    memset(state->buffer, 0, sizeof state->buffer );
+    memset(state->buffer, 0, sizeof state->buffer );
     return SUCCESS;
 }
 
 HashReturn update_luffa( hashState_luffa *state, const BitSequence *data,
                          size_t len )
 {
-    HashReturn ret=SUCCESS;
-    int i, j;
-    int rem = len % 32;
-    int blocks = (int)( len / 32 );
-    uint8 *p = (uint8*)state->buffer;
+    int i;
+    int blocks = (int)len / 32;
+    state-> rembytes = (int)len % 32;
 
     // full blocks
-    for ( j = 0; j < blocks; j++ )
+    for ( i = 0; i < blocks; i++ )
     {
-       state->buffer[0] = BYTES_SWAP32( ((uint32*)data)[0] );
-       state->buffer[1] = BYTES_SWAP32( ((uint32*)data)[1] );
-       state->buffer[2] = BYTES_SWAP32( ((uint32*)data)[2] );
-       state->buffer[3] = BYTES_SWAP32( ((uint32*)data)[3] );
-       state->buffer[4] = BYTES_SWAP32( ((uint32*)data)[4] );
-       state->buffer[5] = BYTES_SWAP32( ((uint32*)data)[5] );
-       state->buffer[6] = BYTES_SWAP32( ((uint32*)data)[6] );
-       state->buffer[7] = BYTES_SWAP32( ((uint32*)data)[7] );
-
-       rnd512( state );
+//#if defined (__AVX2__)
+//       rnd512( state, mm256_byteswap_epi32( cast_m256i( data ) ) ),
+//#else
+       rnd512( state, mm_byteswap_epi32( casti_m128i( data, 1 ) ),
+                      mm_byteswap_epi32( casti_m128i( data, 0 ) ) );
+//#endif
        data += MSG_BLOCK_BYTE_LEN;
     }
 
-    // remaining partial block, if any
-    for ( i = 0; i < rem/4; i++ )
-       state->buffer[i] = BYTES_SWAP32( ((uint32*)data)[i] );
+    // 16 byte partial block exists for 80 byte len
+    // store in buffer for transform in final for midstate to work
+    if ( state->rembytes  )
+    {
+      // remaining data bytes
+      casti_m128i( state->buffer, 0 ) = mm_byteswap_epi32( cast_m128i( data ) );
+      // padding of partial block
+      casti_m128i( state->buffer, 1 ) =
+            _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+    }
 
-    // padding of partial block
-    memset( p+rem+1, 0, (31-rem)*sizeof(uint8) );
-    p[rem] = 0x80;
-    for ( i = rem/4; i < 8; i++ )
-       state->buffer[i] = BYTES_SWAP32(state->buffer[i]);
-
-    rnd512(state);
-
-    return ret;
+    return SUCCESS;
 }
 
 HashReturn final_luffa(hashState_luffa *state, BitSequence *hashval) 
 {
+    // transform pad block
+    if ( state->rembytes )
+    {
+      // not empty, data is in buffer
+//#if defined (__AVX2__)
+//      rnd512( state, cast_m256i( state->buffer ) );
+//#else
+      rnd512( state, casti_m128i( state->buffer, 1 ),
+                     casti_m128i( state->buffer, 0 ) );
+//#endif
+    }
+    else
+    {
+      // empty pad block, constant data
+//#if defined (__AVX2__)
+//     rnd512( state, _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+//                                     0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
+//#else
+     rnd512( state, _mm_setzero_si128(),
+                       _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
+//#endif
+    }
+
     finalization512(state, (uint32*) hashval);
     if ( state->hashbitlen > 512 )
         finalization512( state, (uint32*)( hashval+128 ) );
@@ -330,79 +363,188 @@ HashReturn final_luffa(hashState_luffa *state, BitSequence *hashval)
 HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
               const BitSequence* data, size_t inlen )
 {
-    HashReturn ret=SUCCESS;
-    int i, j;
-    int rem = inlen % 32;
+// Optimized for integrals of 16 bytes, good for 64 and 80 byte len
+    int i;
     int blocks = (int)( inlen / 32 );
-    uint8 *p = (uint8*)state->buffer;
+    state->rembytes = inlen % 32;
 
     // full blocks
-    for ( j = 0; j < blocks; j++ )
+    for ( i = 0; i < blocks; i++ )
     {
-       state->buffer[0] = BYTES_SWAP32( ((uint32*)data)[0] );
-       state->buffer[1] = BYTES_SWAP32( ((uint32*)data)[1] );
-       state->buffer[2] = BYTES_SWAP32( ((uint32*)data)[2] );
-       state->buffer[3] = BYTES_SWAP32( ((uint32*)data)[3] );
-       state->buffer[4] = BYTES_SWAP32( ((uint32*)data)[4] );
-       state->buffer[5] = BYTES_SWAP32( ((uint32*)data)[5] );
-       state->buffer[6] = BYTES_SWAP32( ((uint32*)data)[6] );
-       state->buffer[7] = BYTES_SWAP32( ((uint32*)data)[7] );
-
-       rnd512( state );
+//#if defined (__AVX2__)
+//       rnd512( state, mm256_byteswap_epi32( cast_m256i( data ) ) ),
+//#else
+       rnd512( state, mm_byteswap_epi32( casti_m128i( data, 1 ) ),
+                      mm_byteswap_epi32( casti_m128i( data, 0 ) ) );
+//#endif
        data += MSG_BLOCK_BYTE_LEN;
     }
 
-    // remaining partial block, if any
-    for ( i = 0; i < rem/4; i++ )
-       state->buffer[i] = BYTES_SWAP32( ((uint32*)data)[i] );
-
-    // padding of partial block
-    memset( p+rem+1, 0, (31-rem)*sizeof(uint8) );
-    p[rem] = 0x80;
-    for ( i = rem/4; i < 8; i++ )
-       state->buffer[i] = BYTES_SWAP32(state->buffer[i]);
-
-    rnd512( state );
+    // 16 byte partial block exists for 80 byte len
+    if ( state->rembytes  )
+    {
+       // remaining 16 data bytes + 16 bytes padding
+//#if defined (__AVX2__)
+       // use buffer to manage 16 bytes of data in 32 byte world
+//      casti_m128i( state->buffer, 0 ) = mm_byteswap_epi32( cast_m128i( data ) );
+      // padding of partial block
+//      casti_m128i( state->buffer, 1 ) =
+//                   _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+//      rnd512( state, cast_m256i( state->buffer ) );
+//#else
+      rnd512( state, _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ),
+                      mm_byteswap_epi32( cast_m128i( data ) ) );
+//#endif
+    }
+    else
+    {
+      // empty pad block
+//#if defined (__AVX2__)
+//     rnd512( state, _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+//                                     0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
+//#else
+     rnd512( state, _mm_setzero_si128(), 
+                       _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
+//#endif
+    }
 
     finalization512( state, (uint32*) output );
     if ( state->hashbitlen > 512 )
         finalization512( state, (uint32*)( output+128 ) );
-    return SUCCESS;
 
+    return SUCCESS;
 }
 
 /***************************************************/
 /* Round function         */
 /* state: hash context    */
 
+/*
+#if defined (__AVX2__)
 
-static void rnd512(hashState_luffa *state)
+// AVX2 only
+static void rnd512( hashState_luffa *state, __m256i msg )
+{
+  do
+  {
+    area256 t;
+    area256 *chainv;
+    chainv.v256 = (__m256i*)state->chainv;
+    area256 Msg;
+    Msg.v256 = Msg
+//    __m256i t;
+//    __m256i *chainv = (__m256i*)state->chainv;
+
+    t.v256 = chainv[0];
+    t.v256 = _mm256_xor_si256( t.v256, chainv.v256[1] );
+    t.v256 = _mm256_xor_si256( t.v256, chainv.v256[2] );
+    t.v256 = _mm256_xor_si256( t.v256, chainv.v256[3] );
+    t.v256 = _mm256_xor_si256( t.v256, chainv.v256[4] );
+
+    MULT2( t.v128[0], t.v128[1] );
+//    MULT256( t );
+
+    Msg.v256 = _mm256_shuffle_epi32( Msg.v256, 27 );
+
+    chainv.v256[0] = _mm256_xor_si256( chainv.v256[0], t.v256 );
+    chainv.v256[1] = _mm256_xor_si256( chainv.v256[1], t.v256 );
+    chainv.v256[2] = _mm256_xor_si256( chainv.v256[2], t.v256 );
+    chainv.v256[3] = _mm256_xor_si256( chainv.v256[3], t.v256 );
+    chainv.v256[4] = _mm256_xor_si256( chainv.v256[4], t.v256 );
+
+    t.v256 = chainv[0];
+
+    MULT2( chainv.v128[0], chainv.v128[1]);
+//    MULT256( chainv[0] );
+    chainv[0] = _mm256_xor_si256( chainv.v256[0], chainv.v256[1] );
+
+    MULT2( chainv.v128[2], chainv.v128[3]);
+//    MULT256( chainv[1] );
+    chainv.v256[1] = _mm256_xor_si256( chainv.v256[1], chainv.v256[2] );
+
+    MULT2( chainv.v128[4], chainv.v128[5]);
+//    MULT256( chainv[2] );
+    chainv.v256[2] = _mm256_xor_si256( chainv.v256[2], chainv.v256[3] );
+
+    MULT2( chainv.v128[6], chainv.v128[7]);
+//    MULT256( chainv[3] );
+    chainv.v256[3] = _mm256_xor_si256( chainv.v256[3], chainv.v256[4] );
+
+    MULT2( chainv.v128[8], chainv.v128[9]);
+//    MULT256( chainv[4] );
+    chainv.v256[4] = _mm256_xor_si256( chainv.v256[4], chainv.v256[5] );
+
+    t.v256 = chainv.v256[4];
+
+    MULT2( chainv.v128[8], chainv.v128[9]);
+//    MULT256( chainv[4] );
+    chainv.v256[4] = _mm256_xor_si256( chainv.v256[4], chainv.v256[3] );
+    MULT2( chainv.v128[6], chainv.v128[7]);
+//    MULT256( chainv[3] );
+    chainv.v256[3] = _mm256_xor_si256( chainv.v256[3], chainv.v256[2] );
+    MULT2( chainv.v128[4], chainv.v128[5]);
+//    MULT256( chainv[2] );
+    chainv.v256[2] = _mm256_xor_si256( chainv.v256[2], chainv.v256[1] );
+    MULT2( chainv.v128[2], chainv.v128[3]);
+//    MULT256( chainv[1] );
+    chainv.v256[1] = _mm256_xor_si256( chainv.v256[1], chainv.v256[0] );
+    MULT2( chainv.v128[0], chainv.v128[1]);
+//    MULT256( chainv[0] );
+    chainv.v256[0] = _mm256_xor_si256( _mm256_xor_si256( chainv.v256[0], t ), Msg.v256 );
+
+    MULT2( Msg.v128[0], Msg.v128[1] );
+//    MULT256( msg );
+    chainv.v256[1] = _mm256_xor_si256( chainv.v256[1], Msg.v256 );
+    MULT2( Msg.v128[0], Msg.v128[1] );
+//    MULT256( msg );
+    chainv.v256[2] = _mm256_xor_si256( chainv.v256[2], Msg.v256 );
+    MULT2( Msg.v128[0], Msg.v128[1] );
+//    MULT256( msg );
+    chainv.v256[3] = _mm256_xor_si256( chainv.v256[3], Msg.v256 );
+    MULT2( Msg.v128[0], Msg.v128[1] );
+//    MULT256( msg );
+    chainv.v256[4] = _mm256_xor_si256( chainv.v256[4], Msg.v256 );
+    MULT2( Msg.v128[0], Msg.v128[1] );
+//    MULT256( msg );
+  } while (0);
+
+    // new set of __m128i vars for the rest
+    __m128i t[2];
+    __m128i *chainv = state->chainv;
+    __m128i tmp[2];
+    __m128i x[8];
+    __m128i msg0 = Msg.v128[0];
+    __m128i msg1 = Msg.v128[1];
+    // remainder common with SSE2
+#else
+
+
+// SSE2 only
+*/
+
+static void rnd512( hashState_luffa *state, __m128i msg1, __m128i msg0 )
 {
     __m128i t[2];
     __m128i *chainv = state->chainv;
-    __m128i msg[2];
     __m128i tmp[2];
     __m128i x[8];
-    int i;
 
     t[0] = chainv[0];
     t[1] = chainv[1];
 
-    t[0] = _mm_xor_si128(t[0], chainv[2]);
-    t[1] = _mm_xor_si128(t[1], chainv[3]);
-    t[0] = _mm_xor_si128(t[0], chainv[4]);
-    t[1] = _mm_xor_si128(t[1], chainv[5]);
-    t[0] = _mm_xor_si128(t[0], chainv[6]);
-    t[1] = _mm_xor_si128(t[1], chainv[7]);
-    t[0] = _mm_xor_si128(t[0], chainv[8]);
-    t[1] = _mm_xor_si128(t[1], chainv[9]);
+    t[0] = _mm_xor_si128( t[0], chainv[2] );
+    t[1] = _mm_xor_si128( t[1], chainv[3] );
+    t[0] = _mm_xor_si128( t[0], chainv[4] );
+    t[1] = _mm_xor_si128( t[1], chainv[5] );
+    t[0] = _mm_xor_si128( t[0], chainv[6] );
+    t[1] = _mm_xor_si128( t[1], chainv[7] );
+    t[0] = _mm_xor_si128( t[0], chainv[8] );
+    t[1] = _mm_xor_si128( t[1], chainv[9] );
 
-    MULT2( t[0], t[1]);
+    MULT2( t[0], t[1] );
 
-    msg[0] = _mm_load_si128 ( (__m128i*)&state->buffer[0] );
-    msg[1] = _mm_load_si128 ( (__m128i*)&state->buffer[4] );
-    msg[0] = _mm_shuffle_epi32( msg[0], 27 );
-    msg[1] = _mm_shuffle_epi32( msg[1], 27 );
+    msg0 = _mm_shuffle_epi32( msg0, 27 );
+    msg1 = _mm_shuffle_epi32( msg1, 27 );
 
     chainv[0] = _mm_xor_si128( chainv[0], t[0] );
     chainv[1] = _mm_xor_si128( chainv[1], t[1] );
@@ -468,30 +610,34 @@ static void rnd512(hashState_luffa *state)
 
     MULT2( chainv[0], chainv[1] );
 
-    chainv[0] = _mm_xor_si128( _mm_xor_si128( chainv[0], t[0] ), msg[0] );
-    chainv[1] = _mm_xor_si128( _mm_xor_si128( chainv[1], t[1] ), msg[1] );
+    chainv[0] = _mm_xor_si128( _mm_xor_si128( chainv[0], t[0] ), msg0 );
+    chainv[1] = _mm_xor_si128( _mm_xor_si128( chainv[1], t[1] ), msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
 
-    chainv[2] = _mm_xor_si128( chainv[2], msg[0] );
-    chainv[3] = _mm_xor_si128( chainv[3], msg[1] );
+    chainv[2] = _mm_xor_si128( chainv[2], msg0 );
+    chainv[3] = _mm_xor_si128( chainv[3], msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
 
-    chainv[4] = _mm_xor_si128( chainv[4], msg[0] );
-    chainv[5] = _mm_xor_si128( chainv[5], msg[1] );
+    chainv[4] = _mm_xor_si128( chainv[4], msg0 );
+    chainv[5] = _mm_xor_si128( chainv[5], msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
 
-    chainv[6] = _mm_xor_si128( chainv[6], msg[0] );
-    chainv[7] = _mm_xor_si128( chainv[7], msg[1] );
+    chainv[6] = _mm_xor_si128( chainv[6], msg0 );
+    chainv[7] = _mm_xor_si128( chainv[7], msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
 
-    chainv[8] = _mm_xor_si128( chainv[8], msg[0] );
-    chainv[9] = _mm_xor_si128( chainv[9], msg[1] );
+    chainv[8] = _mm_xor_si128( chainv[8], msg0 );
+    chainv[9] = _mm_xor_si128( chainv[9], msg1 );
 
-    MULT2( msg[0], msg[1]);
+    MULT2( msg0, msg1);
+
+//#endif
+
+// common to SSE2 and AVX2
 
     chainv[3] = _mm_or_si128( _mm_slli_epi32(chainv[3], 1),
                               _mm_srli_epi32(chainv[3], 31) );
@@ -539,25 +685,66 @@ static void rnd512(hashState_luffa *state)
                 tmp[0], tmp[1] );
     STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[30], CNS128[31],
                 tmp[0], tmp[1] );
-
-    return;
 }
+
 
 /***************************************************/
 /* Finalization function  */
 /* state: hash context    */
 /* b[8]: hash values      */
 
-static void finalization512(hashState_luffa *state, uint32 *b)
+//*
+#if defined (__AVX2__)
+
+static void finalization512( hashState_luffa *state, uint32 *b )
 {
+    uint32   hash[8] __attribute((aligned(64)));
+    __m256i* chainv = (__m256i*)state->chainv;
+    __m256i  t;
+
+    rnd512( state, _mm_setzero_si128(), _mm_setzero_si128() );
+//    rnd512( state, _mm256_setzero_si256() );
+
+    t = chainv[0];
+    t = _mm256_xor_si256( t, chainv[1] );
+    t = _mm256_xor_si256( t, chainv[2] );
+    t = _mm256_xor_si256( t, chainv[3] );
+    t = _mm256_xor_si256( t, chainv[4] );
+
+    t = _mm256_shuffle_epi32( t, 27 );
+
+    _mm256_store_si256( (__m256i*)hash, t );
+
+    casti_m256i( b, 0 ) = mm256_byteswap_epi32( casti_m256i( hash, 0 ) );
+
+    rnd512( state, _mm_setzero_si128(), _mm_setzero_si128() );
+//    rnd512( state, _mm256_setzero_si256() );
+
+    t = chainv[0];
+    t = _mm256_xor_si256( t, chainv[1] );
+    t = _mm256_xor_si256( t, chainv[2] );
+    t = _mm256_xor_si256( t, chainv[3] );
+    t = _mm256_xor_si256( t, chainv[4] );
+    t = _mm256_shuffle_epi32( t, 27 );
+
+    _mm256_store_si256( (__m256i*)hash, t );
+
+    casti_m256i( b, 1 ) = mm256_byteswap_epi32( casti_m256i( hash, 0 ) );
+}
+
+#else
+
+
+static void finalization512( hashState_luffa *state, uint32 *b )
+{
+    uint32 hash[8] __attribute((aligned(64)));
     __m128i* chainv = state->chainv;
     __m128i t[2];
-    uint32 hash[8] __attribute((aligned(16)));
-    int i;
 
     /*---- blank round with m=0 ----*/
-    memset(state->buffer, 0, sizeof state->buffer );
-    rnd512(state);
+    rnd512( state, _mm_setzero_si128(), _mm_setzero_si128() );
+
+//    _mm_prefetch( b, _MM_HINT_T0 );
 
     t[0] = chainv[0];
     t[1] = chainv[1];
@@ -576,17 +763,10 @@ static void finalization512(hashState_luffa *state, uint32 *b)
     _mm_store_si128((__m128i*)&hash[0], t[0]);
     _mm_store_si128((__m128i*)&hash[4], t[1]);
 
-    b[0] = BYTES_SWAP32(hash[0]);
-    b[1] = BYTES_SWAP32(hash[1]);
-    b[2] = BYTES_SWAP32(hash[2]);
-    b[3] = BYTES_SWAP32(hash[3]);
-    b[4] = BYTES_SWAP32(hash[4]);
-    b[5] = BYTES_SWAP32(hash[5]);
-    b[6] = BYTES_SWAP32(hash[6]);
-    b[7] = BYTES_SWAP32(hash[7]);
+    casti_m128i( b, 0 ) = mm_byteswap_epi32( casti_m128i( hash, 0 ) );
+    casti_m128i( b, 1 ) = mm_byteswap_epi32( casti_m128i( hash, 1 ) );
 
-    memset(state->buffer, 0, sizeof state->buffer );
-    rnd512(state);
+    rnd512( state, _mm_setzero_si128(), _mm_setzero_si128() );
 
     t[0] = chainv[0];
     t[1] = chainv[1];
@@ -605,16 +785,9 @@ static void finalization512(hashState_luffa *state, uint32 *b)
     _mm_store_si128((__m128i*)&hash[0], t[0]);
     _mm_store_si128((__m128i*)&hash[4], t[1]);
 
-    b[ 8] = BYTES_SWAP32(hash[0]);
-    b[ 9] = BYTES_SWAP32(hash[1]);
-    b[10] = BYTES_SWAP32(hash[2]);
-    b[11] = BYTES_SWAP32(hash[3]);
-    b[12] = BYTES_SWAP32(hash[4]);
-    b[13] = BYTES_SWAP32(hash[5]);
-    b[14] = BYTES_SWAP32(hash[6]);
-    b[15] = BYTES_SWAP32(hash[7]);
-
-    return;
+    casti_m128i( b, 2 ) = mm_byteswap_epi32( casti_m128i( hash, 0 ) );
+    casti_m128i( b, 3 ) = mm_byteswap_epi32( casti_m128i( hash, 1 ) );
 }
+#endif
 
 /***************************************************/

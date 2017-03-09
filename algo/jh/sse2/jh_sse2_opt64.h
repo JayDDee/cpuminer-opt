@@ -102,7 +102,7 @@ static DATA_ALIGN16(const unsigned char jhE8_bitslice_roundconstant[42][32])={
 {0x35,0xb4,0x98,0x31,0xdb,0x41,0x15,0x70,0xea,0x1e,0xf,0xbb,0xed,0xcd,0x54,0x9b,0x9a,0xd0,0x63,0xa1,0x51,0x97,0x40,0x72,0xf6,0x75,0x9d,0xbf,0x91,0x47,0x6f,0xe2}};
 
 
-static void jhF8(jhState *state);    /* the compression function F8 */
+//static void jhF8(jhState *state);    /* the compression function F8 */
 
 /*The API functions*/
 
@@ -236,7 +236,8 @@ static void jhF8(jhState *state);    /* the compression function F8 */
       jhSS(jhSx0,jhSx2,jhSx4,jhSx6,jhSx1,jhSx3,jhSx5,jhSx7, jhLOAD(jhE8_bitslice_roundconstant[r]), jhLOAD(jhE8_bitslice_roundconstant[r]+16) ); \
       jhlineartransform_R##nn(jhSx0,jhSx2,jhSx4,jhSx6,jhSx1,jhSx3,jhSx5,jhSx7);
 
-/*the compression function F8 */
+/*
+//the compression function F8
 static void jhF8(jhState *state)
 {
     return;
@@ -257,9 +258,9 @@ static void jhF8(jhState *state)
       y6 = state->x6;
       y7 = state->x7;
 
-      /*xor the 512-bit message with the fist half of the 1024-bit hash state*/
+      //xor the 512-bit message with the fist half of the 1024-bit hash state
 
-      /*perform 42 rounds*/
+      //perform 42 rounds
       for (i = 0; i < 42; i = i+7) {
             jhround_function(00,i);
             jhround_function(01,i+1);
@@ -270,7 +271,7 @@ static void jhF8(jhState *state)
             jhround_function(06,i+6);
       }
 
-      /*xor the 512-bit message with the second half of the 1024-bit hash state*/
+      //xor the 512-bit message with the second half of the 1024-bit hash state
 
       state->x0 = y0;
       state->x1 = y1;
@@ -285,6 +286,7 @@ static void jhF8(jhState *state)
       y7 = jhXOR(y7, jhLOAD(state->buffer+48)),
       state->x7 = y7;
 }
+*/
 
 #define jhF8I \
 do { \

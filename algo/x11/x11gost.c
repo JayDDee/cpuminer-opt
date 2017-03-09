@@ -61,7 +61,7 @@ void init_sib_ctx()
 
 void sibhash(void *output, const void *input)
 {
-     unsigned char hash[128]; // uint32_t hashA[16], hashB[16];
+     unsigned char hash[128] __attribute__ ((aligned (64)));
      #define hashA hash
      #define hashB hash+64
 
@@ -70,7 +70,7 @@ void sibhash(void *output, const void *input)
      sph_u64 hashctA;
      sph_u64 hashctB;
 
-     sib_ctx_holder ctx;
+     sib_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &sib_ctx, sizeof(sib_ctx) );
 
      DECL_BLK;
@@ -89,13 +89,13 @@ void sibhash(void *output, const void *input)
      #undef H
      #undef dH
 
-     #ifdef NO_AES_NI
-        sph_groestl512 (&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
-     #else
-        update_groestl( &ctx.groestl, (char*)hash,512);
-        final_groestl( &ctx.groestl, (char*)hash);
-     #endif
+#ifdef NO_AES_NI
+     sph_groestl512 (&ctx.groestl, hash, 64);
+     sph_groestl512_close(&ctx.groestl, hash);
+#else
+     update_and_final_groestl( &ctx.groestl, (char*)hash,
+                               (const char*)hash, 512 );
+#endif
 
      DECL_SKN;
      SKN_I;
@@ -113,24 +113,24 @@ void sibhash(void *output, const void *input)
      sph_gost512(&ctx.gost, hashA, 64);
      sph_gost512_close(&ctx.gost, hashB);
 
-     update_luffa( &ctx.luffa, (const BitSequence*)hashB,64);
-     final_luffa( &ctx.luffa, (BitSequence*)hashA);
+     update_and_final_luffa( &ctx.luffa, (BitSequence*)hashA,
+                             (const BitSequence*)hashB, 64 );
 
-     cubehashUpdate( &ctx.cube, (const byte*) hashA,64);
-     cubehashDigest( &ctx.cube, (byte*)hashB);
+     cubehashUpdateDigest( &ctx.cube, (byte*) hashB,
+                           (const byte*)hashA, 64 );
 
      sph_shavite512(&ctx.shavite, hashB, 64);
      sph_shavite512_close(&ctx.shavite, hashA);
 
-     update_sd( &ctx.simd, (const BitSequence *)hashA,512);
-     final_sd( &ctx.simd, (BitSequence *)hashB);
+     update_final_sd( &ctx.simd, (BitSequence *)hashB,
+                      (const BitSequence *)hashA, 512 );
 
 #ifdef NO_AES_NI
-	sph_echo512(&ctx.echo, hashB, 64);
-	sph_echo512_close(&ctx.echo, hashA);
+     sph_echo512(&ctx.echo, hashB, 64);
+     sph_echo512_close(&ctx.echo, hashA);
 #else
-     update_echo ( &ctx.echo, (const BitSequence *) hashB, 512);
-     final_echo( &ctx.echo, (BitSequence *) hashA );
+     update_final_echo ( &ctx.echo, (BitSequence *)hashA,
+                         (const BitSequence *)hashB, 512 );
 #endif
 
      memcpy(output, hashA, 32);

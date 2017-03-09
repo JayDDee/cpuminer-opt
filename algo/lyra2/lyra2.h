@@ -37,10 +37,20 @@ typedef unsigned char byte;
         #define BLOCK_LEN_BYTES (BLOCK_LEN_INT64 * 8)    //Block length, in bytes
 #endif
 
-int LYRA2( void *K, uint64_t kLen, const void *pwd, uint64_t pwdlen,
-           const void *salt, uint64_t saltlen, uint64_t timeCost,
-           uint64_t nRows, uint64_t nCols );
-int LYRA2Z( void *K, uint64_t kLen, const void *pwd, uint64_t pwdlen, 
-           const void *salt, uint64_t saltlen, uint64_t timeCost, 
-           uint64_t nRows, uint64_t nCols );
+#define BLOCK_LEN_M256I (BLOCK_LEN_INT64 / 4 )
+#define BLOCK_LEN_M128I (BLOCK_LEN_INT64 / 2 )
+
+int LYRA2RE( void *K, uint64_t kLen, const void *pwd,
+             uint64_t pwdlen, const void *salt, uint64_t saltlen,
+             uint64_t timeCost, uint64_t nRows, uint64_t nCols );
+
+
+int LYRA2REV2( uint64_t*, void *K, uint64_t kLen, const void *pwd,
+               uint64_t pwdlen, const void *salt, uint64_t saltlen,
+               uint64_t timeCost, uint64_t nRows, uint64_t nCols );
+
+int LYRA2Z( uint64_t*, void *K, uint64_t kLen, const void *pwd,
+            uint64_t pwdlen, const void *salt, uint64_t saltlen,
+            uint64_t timeCost, uint64_t nRows, uint64_t nCols );
+
 #endif /* LYRA2_H_ */

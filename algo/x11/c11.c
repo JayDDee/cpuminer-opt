@@ -48,7 +48,7 @@ typedef struct {
      hashState_sd            simd;
 } c11_ctx_holder;
 
-c11_ctx_holder c11_ctx;
+c11_ctx_holder c11_ctx __attribute__ ((aligned (64)));
 
 void init_c11_ctx()
 {
@@ -67,10 +67,10 @@ void init_c11_ctx()
 
 void c11hash( void *output, const void *input )
 {
-        unsigned char hash[128]; // uint32_t hashA[16], hashB[16];
+        unsigned char hash[128] _ALIGN(64); // uint32_t hashA[16], hashB[16];
 //	uint32_t _ALIGN(64) hash[16];
 
-     c11_ctx_holder ctx;
+     c11_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &c11_ctx, sizeof(c11_ctx) );
 
      size_t hashptr;
@@ -98,8 +98,8 @@ void c11hash( void *output, const void *input )
      sph_groestl512 (&ctx.groestl, hash, 64);
      sph_groestl512_close(&ctx.groestl, hash);
 #else
-     update_groestl( &ctx.groestl, (char*)hash,512);
-     final_groestl( &ctx.groestl, (char*)hash);
+     update_and_final_groestl( &ctx.groestl, (char*)hash,
+                               (const char*)hash, 512 );
 #endif
 
      DECL_JH;
@@ -115,24 +115,24 @@ void c11hash( void *output, const void *input )
      SKN_U;
      SKN_C;
 
-     update_luffa( &ctx.luffa, (const BitSequence*)hash,64);
-     final_luffa( &ctx.luffa, (BitSequence*)hash+64);
+     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash+64,
+                             (const BitSequence*)hash, 64 );
 
-     cubehashUpdate( &ctx.cube, (const byte*) hash+64,64);
-     cubehashDigest( &ctx.cube, (byte*)hash);
+     cubehashUpdateDigest( &ctx.cube, (byte*)hash,
+                           (const byte*)hash+64, 64 );
 
      sph_shavite512( &ctx.shavite, hash, 64);
      sph_shavite512_close( &ctx.shavite, hash+64);
 
-     update_sd( &ctx.simd, (const BitSequence *)hash+64,512);
-     final_sd( &ctx.simd, (BitSequence *)hash);
+     update_final_sd( &ctx.simd, (BitSequence *)hash,
+                      (const BitSequence *)hash+64, 512 );
 
 #ifdef NO_AES_NI
      sph_echo512 (&ctx.echo, hash, 64);
      sph_echo512_close(&ctx.echo, hash+64);
 #else
-     update_echo ( &ctx.echo, (const BitSequence *) hash, 512);
-     final_echo( &ctx.echo, (BitSequence *) hash+64 );
+     update_final_echo ( &ctx.echo, (BitSequence *)hash+64,
+                         (const BitSequence *)hash, 512 );
 #endif
 
         memcpy(output, hash+64, 32);
@@ -205,7 +205,7 @@ int scanhash_c11( int thr_id, struct work *work, uint32_t max_nonce,
                   uint64_t *hashes_done )
 {
         uint32_t endiandata[20] __attribute__((aligned(64)));
-        uint32_t hash[8] __attribute__((aligned(32)));
+        uint32_t hash[8] __attribute__((aligned(64)));
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	const uint32_t first_nonce = pdata[19];

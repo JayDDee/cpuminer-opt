@@ -29,6 +29,7 @@ cpuminer_SOURCES = \
   algo/shavite/shavite.c \
   algo/echo/sph_echo.c \
   algo/blake/sph_blake.c \
+  algo/blake/sph_blake2b.c \
   algo/heavy/sph_hefty1.c \
   algo/blake/mod_blakecoin.c \
   algo/luffa/sph_luffa.c \
@@ -62,7 +63,8 @@ cpuminer_SOURCES = \
   algo/argon2/ar2/blake2b.c \
   algo/axiom.c \
   algo/blake/blake.c \
-  algo/blake/blake2.c \
+  algo/blake/blake2b.c \
+  algo/blake/blake2s.c \
   algo/blake/blakecoin.c \
   algo/blake/decred.c \
   algo/blake/pentablake.c \
@@ -112,10 +114,12 @@ cpuminer_SOURCES = \
   algo/pluck.c \
   algo/quark/quark.c \
   algo/qubit/qubit.c \
+  algo/qubit/deep.c \
   algo/ripemd/sph_ripemd.c \
   algo/scrypt.c \
   algo/scryptjane/scrypt-jane.c \
   algo/sha2/sha2.c \
+  algo/sha2/sha256t.c \
   algo/simd/sse2/nist.c \
   algo/simd/sse2/vector.c \
   algo/skein/skein.c \

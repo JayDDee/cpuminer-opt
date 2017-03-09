@@ -1,4 +1,6 @@
+// don't compile on CPU with AES
 #include "miner.h"
+
 #include "hodl-gate.h"
 #include "hodl_uint256.h"
 #include "hodl_arith_uint256.h"
