@@ -323,14 +323,12 @@ void fft128_msg_final(short *a, const unsigned char *x) {
 
   //  v16 *Table = (v16*)FFT128_Final_Table;
   v16 *A = (v16*) a;
-  int i;
-
   v16 msg1 = v16_broadcast(x[0]>128?x[0]-257:x[0]);
   v16 msg2 = v16_broadcast(x[1]>128?x[1]-257:x[1]);
   // v16 msg2 = v16_broadcast(x[1]);
 
 #if 0
-
+  int i;
   for (i=0; i<16; i++) {
     v16 tmp = v16_mul(FFT128_Final_Table[2*i].v16  , msg2);
     v16 sum = v16_add(FFT128_Final_Table[2*i+1].v16, msg1);

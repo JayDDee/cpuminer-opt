@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <memory.h>
+#include <unistd.h>
+
 /*
 #ifndef min
 #define min(a,b) (a>b ? b : a)

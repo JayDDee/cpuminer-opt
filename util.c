@@ -26,6 +26,7 @@
 #include <curl/curl.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <math.h>
 //#include <syslog.h>
 #if defined(WIN32)
 #include <winsock2.h>
@@ -1692,14 +1693,13 @@ static uint32_t getblocheight(struct stratum_ctx *sctx)
 static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 {
 	const char *job_id, *prevhash, *coinb1, *coinb2, *version, *nbits, *stime;
-        const char *claim = NULL, *nreward = NULL;
+        const char *claim = NULL;
 	size_t coinb1_size, coinb2_size;
 	bool clean, ret = false;
 	int merkle_count, i, p = 0;
 	json_t *merkle_arr;
 	uchar **merkle = NULL;
         bool has_claim = opt_algo == ALGO_LBRY;
-        int ntime;
 	job_id = json_string_value(json_array_get(params, p++));
 	prevhash = json_string_value(json_array_get(params, p++));
         if ( has_claim )

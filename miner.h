@@ -656,7 +656,6 @@ Options:\n\
                           bastion\n\
                           blake        Blake-256 (SFR)\n\
                           blakecoin    blake256r8\n\
-"/*                          blake2b      Sia\n*/"\
                           blake2s      Blake-2 S\n\
                           bmw          BMW 256\n\
                           c11          Chaincoin\n\
@@ -666,7 +665,7 @@ Options:\n\
                           deep         Deepcoin (DCN)\n\
                           drop         Dropcoin\n\
                           fresh        Fresh\n\
-                          groestl      groestl\n\
+                          groestl      dmd-gr, Groestl coin\n\
                           heavy        Heavy\n\
                           hmq1725      Espers\n\
                           hodl         Hodlcoin\n\
@@ -676,7 +675,7 @@ Options:\n\
                           lyra2re      lyra2\n\
                           lyra2rev2    lyrav2, Vertcoin\n\
                           lyra2z       Zcoin (XZC)\n\
-                          lyra2z330    Zoin (ZOI)\n\
+                          lyra2z330    Lyra2 330 rows, Zoin (ZOI)\n\
                           m7m          Magi (XMG)\n\
                           myr-gr       Myriad-Groestl\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\

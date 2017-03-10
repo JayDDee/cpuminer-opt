@@ -45,7 +45,6 @@ int scanhash_blake2b( int thr_id, struct work *work, uint32_t max_nonce,
 	uint32_t *ptarget = work->target;
 
 	const uint32_t Htarg = ptarget[7];
-//        const uint32_t first_nonce = pdata[19];
 	const uint32_t first_nonce = pdata[8];
 
 	uint32_t n = first_nonce;
@@ -60,7 +59,6 @@ int scanhash_blake2b( int thr_id, struct work *work, uint32_t max_nonce,
 	//memcpy(&s_ctx, &s_midstate, sizeof(blake2b_ctx));
 
 	do {
-//                be32enc(&endiandata[19], n);
 		be32enc(&endiandata[8], n);
 		//blake2b_hash_end(vhashcpu, endiandata);
 		blake2b_hash(vhashcpu, endiandata);
@@ -68,7 +66,6 @@ int scanhash_blake2b( int thr_id, struct work *work, uint32_t max_nonce,
 		if (vhashcpu[7] < Htarg && fulltest(vhashcpu, ptarget)) {
 			work_set_target_ratio(work, vhashcpu);
 			*hashes_done = n - first_nonce + 1;
-//                        pdata[19] = n;
 			pdata[8] = n;
 			return 1;
 		}
@@ -76,7 +73,6 @@ int scanhash_blake2b( int thr_id, struct work *work, uint32_t max_nonce,
 
 	} while (n < max_nonce && !work_restart[thr_id].restart);
 	*hashes_done = n - first_nonce + 1;
-//        pdata[19] = n;
 	pdata[8] = n;
 
 	return 0;
@@ -174,8 +170,8 @@ void blake2b_get_new_work( struct work* work, struct work* g_work, int thr_id,
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
 
    if ( memcmp( &work->data[ wkcmp_off ], &g_work->data[ wkcmp_off ], wkcmp_sz )
-      && ( clean_job || ( *nonceptr >= *end_nonce_ptr ) ) 
-      || strcmp( work->job_id, g_work->job_id ) )
+      && ( clean_job || ( *nonceptr >= *end_nonce_ptr ) 
+      || strcmp( work->job_id, g_work->job_id ) ) )
    {
       work_free( work );
       work_copy( work, g_work );

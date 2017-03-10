@@ -3,6 +3,12 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 Change Log
 ----------
 
+v3.5.13
+
+Found more speed in Cubehash, algo improvement depends on chain length,
+  deep +8%, timetravel +1% , xevan +1%
+Fixed a getwork bug, solo mining is not yet supported but testing is encouraged
+
 v3.5.12
 
 New algo sha256t for Onecoin (OC), 29% faster than ocminer version.

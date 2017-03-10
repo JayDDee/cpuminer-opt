@@ -43,7 +43,9 @@ uint8_t   v8 [16];
 // n = number of __m256i (32 bytes)
 inline void memset_zero_m256i( __m256i *dst, int n )
 {
-   for ( int i = 0; i < n; i++ ) dst[i] = _mm256_setzero_si256();
+   __m256i zero = _mm256_setzero_si256();
+   for ( int i = 0; i < n; i++ ) dst[i] = zero;
+//   for ( int i = 0; i < n; i++ ) dst[i] = _mm256_xor_si256( dst[i], dst[i] );
 }
 
 inline void memset_m256i( __m256i *dst, const __m256i a,  int n )
@@ -293,7 +295,9 @@ inline __m256i  mm256_byteswap_epi32( __m256i x )
 
 inline void memset_zero_m128i( __m128i *dst,  int n )
 {
-   for ( int i = 0; i < n; i++ ) dst[i] = _mm_setzero_si128();
+   __m128i zero = _mm_setzero_si128();
+   for ( int i = 0; i < n; i++ ) dst[i] = zero;
+//   for ( int i = 0; i < n; i++ ) dst[i] = _mm_xor_si128( dst[i], dst[i] );
 }
 
 inline void memset_m128i( __m128i *dst, const __m128i a,  int n )

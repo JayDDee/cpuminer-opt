@@ -156,8 +156,8 @@ void timetravel_hash(void *output, const void *input)
         }
         else
         {
-          sph_blake512( &ctx.blake, hashA, dataLen );
-          sph_blake512_close( &ctx.blake, hashB );
+           sph_blake512( &ctx.blake, hashA, dataLen );
+           sph_blake512_close( &ctx.blake, hashB );
         }
         break;
      case 1:
@@ -187,6 +187,7 @@ void timetravel_hash(void *output, const void *input)
            sph_groestl512_close( &ctx.groestl, hashB );
         }
 #else
+// groestl midstate is slower
 //        if ( i == 0 )
 //        {
 //           memcpy( &ctx.groestl, &tt_mid.groestl, sizeof tt_mid.groestl );
@@ -243,8 +244,8 @@ void timetravel_hash(void *output, const void *input)
         if ( i == 0 )
         {
            memcpy( &ctx.luffa, &tt_mid.luffa, sizeof tt_mid.luffa );
-           update_and_final_luffa( &ctx.luffa, hashB,
-                                   input + 64, 16 );
+           update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
+                                   (const BitSequence *)input + 64, 16 );
         }
         else
         {
@@ -320,6 +321,7 @@ int scanhash_timetravel( int thr_id, struct work *work, uint32_t max_nonce,
            memcpy( &tt_mid.groestl, &tt_ctx.groestl, sizeof(tt_mid.groestl ) );
            sph_groestl512( &tt_mid.groestl, endiandata, 64 );
 #else
+// groestl midstate is slower
 //         memcpy( &tt_mid.groestl, &tt_ctx.groestl, sizeof(tt_mid.groestl ) );
 //         update_groestl( &tt_mid.groestl, (char*)endiandata, 64*8 );
 #endif

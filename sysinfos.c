@@ -182,7 +182,7 @@ void cpu_getmodelid(char *outbuf, size_t maxsz)
    getenv("PROCESSOR_REVISION"), getenv("NUMBER_OF_PROCESSORS"));
 #else
    FILE *fd = fopen("/proc/cpuinfo", "rb");
-   char *buf = NULL, *p, *eol;
+   char *buf = NULL, *p;
    int cpufam = 0, model = 0, stepping = 0;
    size_t size = 0;
    if (!fd) return;

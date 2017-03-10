@@ -55,13 +55,6 @@ void zoin_set_target( struct work* work, double job_diff )
 {
  work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
 }
-/*
-bool zoin_get_work_height( struct work* work, struct stratum_ctx* sctx )
-{
-   work->height = sctx->bloc_height;
-   return false;
-}
-*/
 
 bool zoin_thread_init()
 {
@@ -93,7 +86,6 @@ bool register_lyra2z330_algo( algo_gate_t* gate )
   gate->hash_alt   = (void*)&zoin_hash;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
   gate->set_target = (void*)&zoin_set_target;
-//  gate->prevent_dupes = (void*)&zoin_get_work_height;
   return true;
 };
 

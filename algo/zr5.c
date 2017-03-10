@@ -37,7 +37,6 @@
 
 #ifndef NO_AES_NI
   #include "algo/groestl/aes_ni/hash-groestl.h"
-  #include "algo/echo/aes_ni/hash_api.h"
 #endif
 
 #include "algo/jh/sse2/jh_sse2_opt64.h"

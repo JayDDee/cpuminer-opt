@@ -30,7 +30,7 @@ Supported Algorithms
                           deep         Deepcoin (DCN)
                           drop         Dropcoin
                           fresh        Fresh
-                          groestl      groestl
+                          groestl      dmd-gr, Groestl coin
                           heavy        Heavy
                           hmq1725      Espers
                           hodl         Hodlcoin
@@ -40,7 +40,7 @@ Supported Algorithms
                           lyra2re      lyra2
                           lyra2rev2    lyrav2, Vertcoin
                           lyra2z       Zcoin (XZC)
-                          lyra2zoin    Zoin (ZOI)
+                          lyra2z330    Lyra2 330 rows, Zoin (ZOI)
                           m7m          Magi (XMG)
                           myr-gr       Myriad-Groestl
                           neoscrypt    NeoScrypt(128, 2, 1)
@@ -52,7 +52,8 @@ Supported Algorithms
                           scrypt       scrypt(1024, 1, 1) (default)
                           scrypt:N     scrypt(N, 1, 1)
                           scryptjane:nf
-                          sha256d      SHA-256d
+                          sha256d      Double SHA-256
+                          sha256t      Triple SHA-256, Onecoin (OC)
                           shavite3     Shavite3
                           skein        Skein+Sha (Skeincoin)
                           skein2       Double Skein (Woodcoin)
@@ -94,6 +95,11 @@ may work wallet mining but there are no guarantees.
 
 Errata
 ------
+
+AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
+supported by cpuminer-opt due to an incompatible implementation of SSE2 on
+these CPUs. Some algos may crash the miner with an invalid instruction.
+Users are recommended to use an unoptimized miner such as cpuminer-multi.
 
 cpuminer-opt does not work mining Decred algo at Nicehash and produces
 only "invalid extranonce2 size" rejects.
