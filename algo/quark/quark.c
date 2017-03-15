@@ -173,83 +173,6 @@ inline static void quarkhash(void *state, const void *input)
   memcpy(state, hash, 32);
 }
 
-void quarkhash_alt(void *state, const void *input)
-{
-        sph_blake512_context    ctx_blake1,
-                                ctx_blake2;
-        sph_bmw512_context      ctx_bmw1,
-                                ctx_bmw2;
-        sph_groestl512_context  ctx_groestl1,
-                                ctx_groestl2;
-        sph_skein512_context    ctx_skein1,
-                                ctx_skein2;
-        sph_jh512_context       ctx_jh1,
-                                ctx_jh2;
-        sph_keccak512_context   ctx_keccak1,
-                                ctx_keccak2;
-
-        sph_blake512_init(&ctx_blake1);
-        sph_bmw512_init(&ctx_bmw1);
-        sph_groestl512_init(&ctx_groestl1);
-        sph_skein512_init(&ctx_skein1);
-        sph_groestl512_init(&ctx_groestl2);
-        sph_jh512_init(&ctx_jh1);
-        sph_blake512_init(&ctx_blake2);
-        sph_bmw512_init(&ctx_bmw2);
-        sph_keccak512_init(&ctx_keccak1);
-        sph_skein512_init(&ctx_skein2);
-        sph_keccak512_init(&ctx_keccak2);
-        sph_jh512_init(&ctx_jh2);
-
-        uint32_t _ALIGN(128) hash[16];
-        uint32_t mask = 8;
-
-
-        sph_blake512 (&ctx_blake1, input, 80);
-        sph_blake512_close (&ctx_blake1, hash); //0
-
-        sph_bmw512 (&ctx_bmw1, hash, 64);
-        sph_bmw512_close(&ctx_bmw1, hash); //1
-
-        if (hash[0] & mask) {
-                sph_groestl512 (&ctx_groestl1, hash, 64);
-                sph_groestl512_close(&ctx_groestl1, hash); //2
-        } else {
-                sph_skein512 (&ctx_skein1, hash, 64);
-                sph_skein512_close(&ctx_skein1, hash); //2
-        }
-
-        sph_groestl512 (&ctx_groestl2, hash, 64);
-        sph_groestl512_close(&ctx_groestl2, hash); //3
-
-        sph_jh512 (&ctx_jh1, hash, 64);
-        sph_jh512_close(&ctx_jh1, hash); //4
-
-        if (hash[0] & mask) {
-                sph_blake512 (&ctx_blake2, hash, 64);
-                sph_blake512_close(&ctx_blake2, hash); //5
-        } else {
-                sph_bmw512 (&ctx_bmw2, hash, 64);
-                sph_bmw512_close(&ctx_bmw2, hash); //5
-        }
-
-        sph_keccak512 (&ctx_keccak1, hash, 64);
-        sph_keccak512_close(&ctx_keccak1, hash); //6
-
-        sph_skein512 (&ctx_skein2, hash, 64);
-        sph_skein512_close(&ctx_skein2, hash); //7
-
-        if (hash[0] & mask) {
-                sph_keccak512 (&ctx_keccak2, hash, 64);
-                sph_keccak512_close(&ctx_keccak2, hash); //8
-        } else {
-                sph_jh512 (&ctx_jh2, hash, 64);
-                sph_jh512_close(&ctx_jh2, hash); //8
-        }
-
-        memcpy(state, hash, 32);
-}
-
 int scanhash_quark( int thr_id, struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done)
 {
@@ -287,7 +210,6 @@ bool register_quark_algo( algo_gate_t* gate )
   gate->optimizations = SSE2_OPT | AES_OPT;
   gate->scanhash         = (void*)&scanhash_quark;
   gate->hash             = (void*)&quarkhash;
-  gate->hash_alt         = (void*)&quarkhash_alt;
   return true;
 };
 

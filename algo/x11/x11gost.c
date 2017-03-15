@@ -179,7 +179,6 @@ bool register_sib_algo( algo_gate_t* gate )
     init_sib_ctx();
     gate->scanhash = (void*)&scanhash_sib;
     gate->hash     = (void*)&sibhash;
-    gate->hash_alt = (void*)&sibhash;
     gate->get_max64 = (void*)&get_max64_0x3ffff;
     return true;
 }

@@ -155,7 +155,6 @@ bool register_nist5_algo( algo_gate_t* gate )
     init_nist5_ctx();
     gate->scanhash = (void*)&scanhash_nist5;
     gate->hash     = (void*)&nist5hash;
-    gate->hash_alt = (void*)&nist5hash;
     return true;
 };
 

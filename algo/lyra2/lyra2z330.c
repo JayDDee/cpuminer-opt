@@ -4,19 +4,20 @@
 #include "lyra2.h"
 #include "avxdefs.h"
 
-__thread uint64_t* zoin_wholeMatrix;
+__thread uint64_t* lyra2z330_wholeMatrix;
 
-void zoin_hash(void *state, const void *input, uint32_t height)
+void lyra2z330_hash(void *state, const void *input, uint32_t height)
 {
 	uint32_t _ALIGN(256) hash[16];
 
-        LYRA2Z( zoin_wholeMatrix, hash, 32, input, 80, input, 80, 2, 330, 256);
+        LYRA2Z( lyra2z330_wholeMatrix, hash, 32, input, 80, input, 80,
+                 2, 330, 256 );
 
 	memcpy(state, hash, 32);
 }
 
-int scanhash_zoin( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done )
+int scanhash_lyra2z330( int thr_id, struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done )
 {
 	uint32_t hash[8] __attribute__ ((aligned (64))); 
 	uint32_t endiandata[20] __attribute__ ((aligned (64)));
@@ -34,7 +35,7 @@ int scanhash_zoin( int thr_id, struct work *work, uint32_t max_nonce,
 
 	do {
 		be32enc(&endiandata[19], nonce);
-		zoin_hash( hash, endiandata, work->height );
+		lyra2z330_hash( hash, endiandata, work->height );
 
 		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
 			work_set_target_ratio(work, hash);
@@ -51,28 +52,28 @@ int scanhash_zoin( int thr_id, struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-void zoin_set_target( struct work* work, double job_diff )
+void lyra2z330_set_target( struct work* work, double job_diff )
 {
  work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
 }
 
-bool zoin_thread_init()
+bool lyra2z330_thread_init()
 {
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 256; // nCols
    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
 
    int i = (int64_t)ROW_LEN_BYTES * 330; // nRows;
-   zoin_wholeMatrix = _mm_malloc( i, 64 );
+   lyra2z330_wholeMatrix = _mm_malloc( i, 64 );
 
-   if ( zoin_wholeMatrix == NULL )
+   if ( lyra2z330_wholeMatrix == NULL )
      return false;
 
 #if defined (__AVX2__)
-   memset_zero_m256i( (__m256i*)zoin_wholeMatrix, i/32 );
+   memset_zero_m256i( (__m256i*)lyra2z330_wholeMatrix, i/32 );
 #elif defined(__AVX__)
-   memset_zero_m128i( (__m128i*)zoin_wholeMatrix, i/16 );
+   memset_zero_m128i( (__m128i*)lyra2z330_wholeMatrix, i/16 );
 #else
-   memset( zoin_wholeMatrix, 0, i );
+   memset( lyra2z330_wholeMatrix, 0, i );
 #endif
    return true;
 }
@@ -80,12 +81,11 @@ bool zoin_thread_init()
 bool register_lyra2z330_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  gate->miner_thread_init = (void*)&zoin_thread_init;
-  gate->scanhash   = (void*)&scanhash_zoin;
-  gate->hash       = (void*)&zoin_hash;
-  gate->hash_alt   = (void*)&zoin_hash;
+  gate->miner_thread_init = (void*)&lyra2z330_thread_init;
+  gate->scanhash   = (void*)&scanhash_lyra2z330;
+  gate->hash       = (void*)&lyra2z330_hash;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
-  gate->set_target = (void*)&zoin_set_target;
+  gate->set_target = (void*)&lyra2z330_set_target;
   return true;
 };
 

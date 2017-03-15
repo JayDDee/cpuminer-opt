@@ -109,7 +109,6 @@ bool register_veltor_algo( algo_gate_t* gate )
     init_veltor_ctx();
     gate->scanhash  = (void*)&scanhash_veltor;
     gate->hash      = (void*)&veltorhash;
-    gate->hash_alt  = (void*)&veltorhash;
     gate->get_max64 = (void*)&get_max64_0x3ffff;
     return true;
 }

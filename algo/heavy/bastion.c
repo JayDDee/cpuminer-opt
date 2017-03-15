@@ -171,7 +171,6 @@ bool register_bastion_algo( algo_gate_t* gate )
   gate->optimizations = SSE2_OPT | AES_OPT;
   gate->scanhash = (void*)&scanhash_bastion;
   gate->hash     = (void*)&bastionhash;
-  gate->hash_alt = (void*)&bastionhash;
   return true;
 };
 

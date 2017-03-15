@@ -1085,7 +1085,6 @@ bool register_neoscrypt_algo( algo_gate_t* gate )
 {
   gate->scanhash              = (void*)&scanhash_neoscrypt;
   gate->hash                  = (void*)&neoscrypt;
-  gate->hash_alt              = (void*)&neoscrypt;
   gate->get_max64             = (void*)&get_neoscrypt_max64;
   gate->set_target            = (void*)&scrypt_set_target;
   gate->wait_for_diff         = (void*)&neoscrypt_wait_for_diff;

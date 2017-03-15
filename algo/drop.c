@@ -245,8 +245,6 @@ bool register_drop_algo( algo_gate_t* gate )
     algo_not_tested();
     gate->scanhash              = (void*)&scanhash_drop;
     gate->hash                  = (void*)&droplp_hash_pok;
-    gate->hash_alt              = (void*)&droplp_hash_pok;
-    gate->hash_suw              = (void*)&droplp_hash_pok;
     gate->get_new_work          = (void*)&drop_get_new_work;
     gate->set_target            = (void*)&scrypt_set_target;
     gate->build_stratum_request = (void*)&std_be_build_stratum_request;

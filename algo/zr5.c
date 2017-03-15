@@ -226,7 +226,6 @@ bool register_zr5_algo( algo_gate_t* gate )
     gate->get_new_work          = (void*)&zr5_get_new_work;
     gate->scanhash              = (void*)&scanhash_zr5;
     gate->hash                  = (void*)&zr5hash;
-    gate->hash_alt              = (void*)&zr5hash;
     gate->get_max64             = (void*)&zr5_get_max64;
     gate->display_extra_data    = (void*)&zr5_display_pok;
     gate->build_stratum_request = (void*)&std_be_build_stratum_request;

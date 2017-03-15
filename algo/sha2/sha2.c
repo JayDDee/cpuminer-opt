@@ -640,7 +640,6 @@ int scanhash_sha256d(int thr_id, struct work *work,
 bool register_sha256d_algo( algo_gate_t* gate )
 {
     gate->scanhash = (void*)&scanhash_sha256d;
-    gate->hash_alt = (void*)&sha256d;
     gate->hash     = (void*)&sha256d;
     return true;
 };

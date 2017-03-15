@@ -303,7 +303,6 @@ bool register_x11evo_algo( algo_gate_t* gate )
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   gate->scanhash  = (void*)&scanhash_x11evo;
   gate->hash      = (void*)&x11evo_hash;
-  gate->hash_alt  = (void*)&x11evo_hash;
   init_x11evo_ctx();
   return true;
 };

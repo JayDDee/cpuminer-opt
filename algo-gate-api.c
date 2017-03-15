@@ -98,17 +98,12 @@ void null_hash_suw()
 {
   applog(LOG_WARNING,"SWERR: null_hash_suw unsafe null function");
 };
-void null_hash_alt()
-{
-  applog(LOG_WARNING,"SWERR: null_hash_alt unsafe null function");
-};
 
 void init_algo_gate( algo_gate_t* gate )
 {
    gate->miner_thread_init       = (void*)&return_true;
    gate->scanhash                = (void*)&null_scanhash;
    gate->hash                    = (void*)&null_hash;
-   gate->hash_alt                = (void*)&null_hash_alt;
    gate->hash_suw                = (void*)&null_hash_suw;
    gate->get_new_work            = (void*)&std_get_new_work;
    gate->get_nonceptr            = (void*)&std_get_nonceptr;
@@ -244,6 +239,7 @@ bool register_json_rpc2( algo_gate_t *gate )
   gate->nonce_index             = JR2_NONCE_INDEX;
   jsonrpc_2 = true;   // still needed
   opt_extranonce = false;
+  have_gbt = false;
   return true;
  }
 
@@ -262,7 +258,7 @@ void exec_hash_function( int algo, void *output, const void *pdata )
 #define ALIAS  (0)
 
 // The only difference between the alias and the proper algo name is the
-// proper name s the one that is defined in ALGO_NAMES, there may be
+// proper name is the one that is defined in ALGO_NAMES, there may be
 // multiple aliases that map to the same proper name.
 // New aliases can be added anywhere in the array as long as NULL is last.
 // Alphabetic order of alias is recommended.

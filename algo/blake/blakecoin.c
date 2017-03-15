@@ -109,7 +109,6 @@ bool register_vanilla_algo( algo_gate_t* gate )
 {
     gate->scanhash = (void*)&scanhash_blakecoin;
     gate->hash     = (void*)&blakecoinhash;
-    gate->hash_alt = (void*)&blakecoinhash;
     gate->get_max64 = (void*)&blakecoin_get_max64;
     blakecoin_init( &blake_init_ctx );
     return true;

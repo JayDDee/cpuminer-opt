@@ -115,7 +115,6 @@ bool register_zcoin_algo( algo_gate_t* gate )
   gate->miner_thread_init = (void*)&zcoin_thread_init;
   gate->scanhash   = (void*)&scanhash_zcoin;
   gate->hash       = (void*)&zcoin_hash;
-  gate->hash_alt   = (void*)&zcoin_hash;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
   gate->set_target = (void*)&zcoin_set_target;
 //  gate->prevent_dupes = (void*)&zcoin_get_work_height;

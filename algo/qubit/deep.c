@@ -156,7 +156,6 @@ bool register_deep_algo( algo_gate_t* gate )
   init_deep_ctx();
   gate->scanhash = (void*)&scanhash_deep;
   gate->hash     = (void*)&deep_hash;
-//  gate->hash_alt = (void*)&qubithash_alt;
   return true;
 };
 

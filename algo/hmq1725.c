@@ -420,7 +420,6 @@ bool register_hmq1725_algo( algo_gate_t* gate )
   gate->set_target       = (void*)&scrypt_set_target;
   gate->scanhash         = (void*)&scanhash_hmq1725;
   gate->hash             = (void*)&hmq1725hash;
-  gate->hash_alt         = (void*)&hmq1725hash;
   return true;
 };
 

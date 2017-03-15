@@ -53,7 +53,6 @@ bool register_yescrypt_algo ( algo_gate_t* gate )
 {
    gate->scanhash   = (void*)&scanhash_yescrypt;
    gate->hash       = (void*)&yescrypt_hash;
-   gate->hash_alt   = (void*)&yescrypthash;
    gate->set_target = (void*)&scrypt_set_target;
    gate->get_max64  = (void*)&yescrypt_get_max64;
    return true;

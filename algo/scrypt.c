@@ -781,7 +781,6 @@ bool register_scrypt_algo( algo_gate_t* gate )
   gate->miner_thread_init =(void*)&scrypt_miner_thread_init;
   gate->scanhash         = (void*)&scanhash_scrypt;
   gate->hash             = (void*)&scrypt_1024_1_1_256_24way;
-  gate->hash_alt         = (void*)&scrypt_1024_1_1_256_24way;
   gate->set_target       = (void*)&scrypt_set_target;
   gate->get_max64        = (void*)&scrypt_get_max64;
 

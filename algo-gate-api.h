@@ -110,7 +110,6 @@ int ( *scanhash ) ( int, struct work*, uint32_t, uint64_t* );
 
 // optional unsafe, must be overwritten if algo uses function
 void ( *hash )     ( void*, const void*, uint32_t ) ;
-void ( *hash_alt ) ( void*, const void*, uint32_t );
 void ( *hash_suw ) ( void*, const void* );
 
 //optional, safe to use default in most cases
@@ -184,7 +183,6 @@ int null_scanhash();
 
 // displays warning
 void null_hash    ();
-void null_hash_alt();
 void null_hash_suw();
 
 // optional safe targets, default listed first unless noted.

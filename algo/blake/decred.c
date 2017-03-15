@@ -270,7 +270,6 @@ bool register_decred_algo( algo_gate_t* gate )
   gate->optimizations         = SSE2_OPT;
   gate->scanhash              = (void*)&scanhash_decred;
   gate->hash                  = (void*)&decred_hash;
-  gate->hash_alt              = (void*)&decred_hash;
   gate->get_nonceptr          = (void*)&decred_get_nonceptr;
   gate->get_max64             = (void*)&get_max64_0x3fffffLL;
   gate->display_extra_data    = (void*)&decred_decode_extradata;

@@ -159,7 +159,6 @@ bool register_lyra2re_algo( algo_gate_t* gate )
 //  gate->miner_thread_init = (void*)&lyra2re_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2re;
   gate->hash       = (void*)&lyra2re_hash;
-  gate->hash_alt   = (void*)&lyra2re_hash;
   gate->get_max64  = (void*)&lyra2re_get_max64;
   gate->set_target = (void*)&lyra2re_set_target;
   return true;

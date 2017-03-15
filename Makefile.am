@@ -106,7 +106,7 @@ cpuminer_SOURCES = \
   algo/lyra2/lyra2rev2.c \
   algo/lyra2/lyra2re.c \
   algo/lyra2/zcoin.c \
-  algo/lyra2/zoin.c \
+  algo/lyra2/lyra2z330.c \
   algo/keccak/sse2/keccak.c \
   algo/m7m.c \
   algo/neoscrypt.c \

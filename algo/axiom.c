@@ -82,7 +82,6 @@ bool register_axiom_algo( algo_gate_t* gate )
 {
     gate->scanhash  = (void*)&scanhash_axiom;
     gate->hash      = (void*)&axiomhash;
-    gate->hash_alt  = (void*)&axiomhash;
     gate->get_max64 = (void*)&get_max64_0x40LL;
     return true;
 }

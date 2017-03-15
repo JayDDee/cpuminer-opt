@@ -110,7 +110,6 @@ bool register_s3_algo( algo_gate_t* gate )
     algo_not_tested();
     gate->scanhash = (void*)&scanhash_s3;
     gate->hash     = (void*)&s3hash;
-    gate->hash_alt = (void*)&s3hash;
 //  gate->get_max64 = &s3_get_max64;
     return true;
 };

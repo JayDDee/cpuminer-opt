@@ -100,7 +100,6 @@ bool register_blake_algo( algo_gate_t* gate )
 {
   gate->scanhash  = (void*)&scanhash_blake;
   gate->hash      = (void*)&blakehash;
-  gate->hash_alt  = (void*)&blakehash;
   gate->get_max64 = (void*)&blake_get_max64;
   return true;
 }
