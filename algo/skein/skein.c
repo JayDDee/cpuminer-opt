@@ -4,21 +4,33 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <openssl/sha.h>
-
 #include "sph_skein.h"
 
+#if defined (SHA_NI)
+#include <openssl/sha.h>
+#else
+#include "algo/sha/sph_sha2.h"
+#endif
+
 typedef struct {
-        sph_skein512_context skein;
-        SHA256_CTX           sha256;
+   sph_skein512_context skein;
+#if defined (SHA_NI)
+   SHA256_CTX         sha256;
+#else
+   sph_sha256_context sha256;
+#endif
 } skein_ctx_holder;
 
 skein_ctx_holder skein_ctx;
 
 void init_skein_ctx()
 {
-        sph_skein512_init(&skein_ctx.skein);
-        SHA256_Init(&skein_ctx.sha256);
+   sph_skein512_init( &skein_ctx.skein );
+#if defined (SHA_NI)
+   SHA256_Init( &skein_ctx.sha256 );
+#else
+   sph_sha256_init( &skein_ctx.sha256 );
+#endif
 }
 
 void skeinhash(void *state, const void *input)
@@ -27,11 +39,16 @@ void skeinhash(void *state, const void *input)
      memcpy( &ctx, &skein_ctx, sizeof(skein_ctx) );
      uint32_t hash[16] __attribute__ ((aligned (64)));
 	
-     sph_skein512(&ctx.skein, input, 80);
-     sph_skein512_close(&ctx.skein, hash);
+     sph_skein512( &ctx.skein, input, 80 );
+     sph_skein512_close( &ctx.skein, hash );
 
-     SHA256_Update(&ctx.sha256, hash, 64);
-     SHA256_Final((unsigned char*) hash, &ctx.sha256);
+#if defined (SHA_NI)
+     SHA256_Update( &ctx.sha256, hash, 64 );
+     SHA256_Final( (unsigned char*) hash, &ctx.sha256 );
+#else
+     sph_sha256( &ctx.sha256, hash, 64 );
+     sph_sha256_close( &ctx.sha256, hash );
+#endif
 
      memcpy(state, hash, 32);
 }
@@ -72,6 +89,7 @@ int64_t skein_get_max64() { return 0x7ffffLL; }
 bool register_skein_algo( algo_gate_t* gate )
 {
     init_skein_ctx();
+    gate->optimizations = SSE2_OPT | SHA_OPT;
     gate->scanhash  = (void*)&scanhash_skein;
     gate->hash      = (void*)&skeinhash;
     gate->get_max64 = (void*)&skein_get_max64;

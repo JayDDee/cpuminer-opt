@@ -2,7 +2,7 @@
 #define SPH_FUGUE_H__
 
 #include <stddef.h>
-#include "algo/sha3/sph_types.h"
+#include "algo/sha/sph_types.h"
 
 #ifdef __cplusplus
 extern "C"{

@@ -9,7 +9,7 @@
 #endif
 
 #include "compat.h"
-#include "algo/sha3/sha3-defs.h"
+#include "algo/sha/sha3-defs.h"
 /*
  * NIST API Specific types.
  */

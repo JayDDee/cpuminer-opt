@@ -225,7 +225,7 @@ static void affine_to_cpu_mask(int id, unsigned long mask) { }
 #endif
 
 // not very useful, just index the arrray directly.
-// but declaring this fuinction in miner.h eliminates
+// but declaring this function in miner.h eliminates
 // an annoying compiler warning for not using a static.
 const char* algo_name( enum algos a ) {return algo_names[a];}
 
@@ -2781,18 +2781,22 @@ bool check_cpu_capability ()
      bool cpu_has_aes  = has_aes_ni();
      bool cpu_has_avx  = has_avx1();
      bool cpu_has_avx2 = has_avx2();
+     bool cpu_has_sha  = has_sha();
      bool sw_has_sse2  = false;
      bool sw_has_aes   = false;
      bool sw_has_avx   = false;
      bool sw_has_avx2  = false;
+     bool sw_has_sha   = false;
      set_t algo_features = algo_gate.optimizations;
      bool algo_has_aes = set_incl( AES_OPT, algo_features );
      bool algo_has_avx = set_incl( AVX_OPT, algo_features );
      bool algo_has_avx2 = set_incl( AVX2_OPT, algo_features );
+     bool algo_has_sha = set_incl( SHA_OPT, algo_features );
      bool use_aes;
      bool use_sse2;
      bool use_avx;
      bool use_avx2;
+     bool use_sha;
 
      #ifdef __AES__
        sw_has_aes = true;
@@ -2806,6 +2810,10 @@ bool check_cpu_capability ()
      #ifdef __AVX2__
          sw_has_avx2 = true;
      #endif
+     #ifdef __SHA__
+         sw_has_sha = true;
+     #endif
+
 
      #if !((__AES__) || (__SSE2__))
          printf("Neither __AES__ nor __SSE2__ defined.\n");
@@ -2819,6 +2827,7 @@ bool check_cpu_capability ()
      if ( cpu_has_aes  ) printf( " AES"  );
      if ( cpu_has_avx  ) printf( " AVX"  );
      if ( cpu_has_avx2 ) printf( " AVX2" );
+     if ( cpu_has_sha  ) printf( " SHA" );
 
      printf("\nSW built on " __DATE__
      #ifdef _MSC_VER
@@ -2835,42 +2844,33 @@ bool check_cpu_capability ()
      if ( sw_has_aes  ) printf( " AES"  );
      if ( sw_has_avx  ) printf( " AVX"  );
      if ( sw_has_avx2 ) printf( " AVX2" );
+     if ( sw_has_sha  ) printf( " SHA" );
 
      // SSE2 defaults to yes regardless
      printf("\nAlgo features: SSE2");
      if ( algo_has_aes ) printf( " AES" );
      if ( algo_has_avx ) printf( " AVX" );
      if ( algo_has_avx2 ) printf( " AVX2" );
+     if ( algo_has_sha ) printf( " SHA" );
      printf("\n");
 
-//     printf("\nAlgo features: %s\n", algo_has_aes ? "SSE2 AES" : "SSE2" );
-
-     use_aes = cpu_has_aes && sw_has_aes && algo_has_aes;
-     // don't use AES algo on non-AES CPU if compiled with AES.
-     use_sse2 = cpu_has_sse2 && sw_has_sse2 && !( sw_has_aes && algo_has_aes );
-     use_avx = use_aes && cpu_has_avx && sw_has_avx && algo_has_avx;
-     use_avx2 = use_avx && cpu_has_avx2 && sw_has_avx2 && algo_has_avx2;
+     use_sse2 = cpu_has_sse2 && sw_has_sse2;
+     use_aes  = cpu_has_aes  && sw_has_aes  && algo_has_aes;
+     use_avx  = cpu_has_avx  && sw_has_avx  && algo_has_avx;
+     use_avx2 = cpu_has_avx2 && sw_has_avx2 && algo_has_avx2;
+     use_sha  = cpu_has_sha  && sw_has_sha  && algo_has_sha;
 
      if ( use_sse2 )
-        printf( "Start mining with SSE2\n\n" );
-     else if ( use_aes )
      {
-        printf( "Start mining with SSE2 AES" );
-        if ( use_avx )
-        {
-           printf( " AVX" );
-           if ( use_avx2 )
-              printf( " AVX2");
-        }
+        printf( "Start mining with SSE2" );
+        if      ( use_aes  ) printf( " AES" );
+        if      ( use_avx2 ) printf( " AVX2" );
+        else if ( use_avx  ) printf( " AVX" );
+        if      ( use_sha  ) printf( " SHA" );
         printf( "\n\n" );
      }
-    
-//     if ( use_aes )
-//        printf( "Start mining with AES-AVX optimizations...\n\n" );
-//     else if ( use_sse2 )
-//        printf( "AES not available, starting mining with SSE2 optimizations...\n\n" );
      else
-        printf( CL_RED "Unsupported CPU or SW configuration, miner will likely crash!\n\n" CL_N );
+        printf( CL_RED "Unsupported CPU, miner will likely crash!\n\n" CL_N );
 
      return true;
 }

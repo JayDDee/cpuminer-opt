@@ -239,7 +239,7 @@ bool register_json_rpc2( algo_gate_t *gate )
   gate->nonce_index             = JR2_NONCE_INDEX;
   jsonrpc_2 = true;   // still needed
   opt_extranonce = false;
-  have_gbt = false;
+//  have_gbt = false;
   return true;
  }
 

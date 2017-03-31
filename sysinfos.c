@@ -247,22 +247,38 @@ void cpu_getmodelid(char *outbuf, size_t maxsz)
 #define ECX_Reg  (2)
 #define EDX_Reg  (3)
 
-#define XSAVE_Flag    (1 << 26) // ECX
-#define OSXSAVE_Flag  (1 << 27)
-#define AVX1_Flag     (1 << 28)
-#define XOP_Flag      (1 << 11)
-#define FMA3_Flag     (1 << 12)
-#define AES_Flag      (1 << 25)
-#define SSE42_Flag    (1 << 20)
+#define XSAVE_Flag    (1<<26) // ECX
+#define OSXSAVE_Flag  (1<<27)
+#define AVX1_Flag     (1<<28)
+#define XOP_Flag      (1<<11)
+#define FMA3_Flag     (1<<12)
+#define AES_Flag      (1<<25)
+#define SSE42_Flag    (1<<20)
 
-#define SSE_Flag      (1 << 25) // EDX
-#define SSE2_Flag     (1 << 26) 
+#define SSE_Flag      (1<<25) // EDX
+#define SSE2_Flag     (1<<26) 
 
-#define AVX2_Flag     (1 << 5) // ADV EBX
+#define AVX2_Flag     (1<< 5) // ADV EBX
+#define SHA_Flag      (1<<29)
 
 // Use this to detect presence of feature
 #define AVX1_mask     (AVX1_Flag|XSAVE_Flag|OSXSAVE_Flag)
 #define FMA3_mask     (FMA3_Flag|AVX1_mask)
+
+
+static inline bool has_sha_()
+{
+#ifdef __arm__
+    return false;
+#else
+    int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, cpu_info );
+    return cpu_info[ EBX_Reg ] & SHA_Flag;
+#endif
+}
+
+bool has_sha() { return has_sha_(); }
+
 
 static inline bool has_sse2_()
 {

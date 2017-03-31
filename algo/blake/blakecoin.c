@@ -93,10 +93,12 @@ int scanhash_blakecoin( int thr_id, struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+/*
 void blakecoin_gen_merkle_root ( char* merkle_root, struct stratum_ctx* sctx )
 {
  SHA256( sctx->job.coinbase, (int)sctx->job.coinbase_size, merkle_root );
 }
+*/
 
 // changed to get_max64_0x3fffffLL in cpuminer-multi-decred
 int64_t blakecoin_get_max64 ()

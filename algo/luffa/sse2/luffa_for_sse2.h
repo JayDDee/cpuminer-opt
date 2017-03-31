@@ -19,7 +19,7 @@
  */
 
 #include <emmintrin.h>
-#include "algo/sha3/sha3-defs.h"
+#include "algo/sha/sha3-defs.h"
 /* The length of digests*/
 #define DIGEST_BIT_LEN_224 224
 #define DIGEST_BIT_LEN_256 256

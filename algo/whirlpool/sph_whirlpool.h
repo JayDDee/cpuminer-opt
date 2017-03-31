@@ -49,7 +49,7 @@
 #define SPH_WHIRLPOOL_H__
 
 #include <stddef.h>
-#include "algo/sha3/sph_types.h"
+#include "algo/sha/sph_types.h"
 
 #if SPH_64
 

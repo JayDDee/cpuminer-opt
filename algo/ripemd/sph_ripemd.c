@@ -263,7 +263,7 @@ sph_ripemd_init(void *cc)
 #define RFUN   ripemd_round
 #define HASH   ripemd
 #define LE32   1
-#include "algo/sha3/md_helper.c"
+#include "algo/sha/md_helper.c"
 #undef RFUN
 #undef HASH
 #undef LE32
@@ -517,7 +517,7 @@ sph_ripemd128_init(void *cc)
 #define RFUN   ripemd128_round
 #define HASH   ripemd128
 #define LE32   1
-#include "algo/sha3/md_helper.c"
+#include "algo/sha/md_helper.c"
 #undef RFUN
 #undef HASH
 #undef LE32
@@ -810,7 +810,7 @@ sph_ripemd160_init(void *cc)
 #define RFUN   ripemd160_round
 #define HASH   ripemd160
 #define LE32   1
-#include "algo/sha3/md_helper.c"
+#include "algo/sha/md_helper.c"
 #undef RFUN
 #undef HASH
 #undef LE32

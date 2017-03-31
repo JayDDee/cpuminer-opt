@@ -3,6 +3,12 @@ Compile instruction for Linux and Windows are at the bottom of this file.
 Change Log
 ----------
 
+v3.6.1
+
+Fixed data alignment issue that broke lyra2rev2 AVX2 on Windows.
+Added preliminary support for HW accelerated SHA.
+Solo mining most algos should now work, cryptonight confirmed exception.
+
 v3.6.0
 
 Preliminary support for solo mining using getwork.

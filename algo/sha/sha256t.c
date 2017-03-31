@@ -6,45 +6,62 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "sph-sha2.h"
+#include "sph_sha2.h"
 
-//#define DEBUG_ALGO
-
-
+#if defined (SHA_NI)
+#include <openssl/sha.h>
+static SHA256_CTX sha256t_ctx __attribute__ ((aligned (64)));
+static __thread SHA256_CTX sha256t_mid  __attribute__ ((aligned (64)));
+#else
 static  sph_sha256_context sha256t_ctx __attribute__ ((aligned (64)));
 static __thread sph_sha256_context sha256t_mid  __attribute__ ((aligned (64)));
+#endif
 
 void sha256t_midstate( const void* input )
 {
     memcpy( &sha256t_mid, &sha256t_ctx, sizeof sha256t_mid );
+#if defined (SHA_NI)
+    SHA256_Update( &sha256t_mid, input, 64 );
+#else
     sph_sha256( &sha256t_mid, input, 64 );
+#endif
 }
 
 void sha256t_hash(void* output, const void* input,  uint32_t len)
 {
-        sph_sha256_context ctx_sha256 __attribute__ ((aligned (64)));
 	uint32_t _ALIGN(64) hashA[16];
-
         const int midlen = 64;            // bytes
         const int tail   = 80 - midlen;   // 16
 
+#if defined (SHA_NI)
+        SHA256_CTX ctx_sha256 __attribute__ ((aligned (64)));
         memcpy( &ctx_sha256, &sha256t_mid, sizeof sha256t_mid );
+
+        SHA256_Update( &ctx_sha256, input + midlen, tail );
+        SHA256_Final( hashA, &ctx_sha256 );
+
+        memcpy( &ctx_sha256, &sha256t_ctx, sizeof sha256t_ctx );
+        SHA256_Update( &ctx_sha256, hashA, 32 );
+        SHA256_Final( hashA, &ctx_sha256 );
+
+        memcpy( &ctx_sha256, &sha256t_ctx, sizeof sha256t_ctx );
+        SHA256_Update( &ctx_sha256, hashA, 32 );
+        SHA256_Final( hashA, &ctx_sha256 );
+#else
+        sph_sha256_context ctx_sha256 __attribute__ ((aligned (64)));
+        memcpy( &ctx_sha256, &sha256t_mid, sizeof sha256t_mid );
+
         sph_sha256( &ctx_sha256, input + midlen, tail );
-
-//        sph_sha256_init(&ctx_sha256);
-//	sph_sha256 (&ctx_sha256, input, 80);
 	sph_sha256_close( &ctx_sha256, hashA );
 
-//        sph_sha256_init(&ctx_sha256);
         memcpy( &ctx_sha256, &sha256t_ctx, sizeof sha256t_ctx );
 	sph_sha256( &ctx_sha256, hashA, 32 );
 	sph_sha256_close( &ctx_sha256, hashA );
 
-//        sph_sha256_init(&ctx_sha256);
         memcpy( &ctx_sha256, &sha256t_ctx, sizeof sha256t_ctx );
 	sph_sha256( &ctx_sha256, hashA, 32 );
 	sph_sha256_close( &ctx_sha256, hashA );
-
+#endif
 	memcpy( output, hashA, 32 );
 }
 
@@ -133,7 +150,12 @@ void sha256t_set_target( struct work* work, double job_diff )
 
 bool register_sha256t_algo( algo_gate_t* gate )
 {
+#if defined (SHA_NI)
+    SHA256_Init( &sha256t_ctx );
+#else
     sph_sha256_init( &sha256t_ctx );
+#endif
+    gate->optimizations = SSE2_OPT | SHA_OPT;
     gate->scanhash   = (void*)&scanhash_sha256t;
     gate->hash       = (void*)&sha256t_hash;
     gate->set_target = (void*)&sha256t_set_target;

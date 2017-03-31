@@ -4,11 +4,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
-#include "sha3/sph_sha2.h"
 #include "ripemd/sph_ripemd.h"
-
-//#define DEBUG_ALGO
+#if defined (SHA_NI)
+ #include <openssl/sha.h>
+#else
+ #include "sha/sph_sha2.h"
+#endif
 
 #define LBRY_NTIME_INDEX 25
 #define LBRY_NBITS_INDEX 26
@@ -18,9 +19,13 @@
 
 /* Move init out of loop, so init once externally, and then use one single memcpy with that bigger memory block */
 typedef struct {
-	sph_sha256_context	sha256;
-	sph_sha512_context	sha512;
-	sph_ripemd160_context	ripemd;
+#if defined (SHA_NI)
+   SHA256_CTX             sha256;
+#else
+   sph_sha256_context     sha256;
+#endif
+   sph_sha512_context     sha512;
+   sph_ripemd160_context  ripemd;
 } lbryhash_context_holder;
 
 /* no need to copy, because close reinit the context */
@@ -28,50 +33,78 @@ static  lbryhash_context_holder ctx __attribute__ ((aligned (64)));
 
 void init_lbry_contexts(void *dummy)
 {
-	sph_sha256_init(&ctx.sha256);
-	sph_sha512_init(&ctx.sha512);
-	sph_ripemd160_init(&ctx.ripemd);
+#if defined (SHA_NI)
+   SHA256_Init( &ctx.sha256 );
+#else
+   sph_sha256_init( &ctx.sha256 );
+#endif
+   sph_sha512_init( &ctx.sha512 );
+   sph_ripemd160_init( &ctx.ripemd );
 }
 
 void lbry_hash(void* output, const void* input)
 {
-        sph_sha256_context      ctx_sha256 __attribute__ ((aligned (64)));
-        sph_sha512_context      ctx_sha512 __attribute__ ((aligned (64)));
-        sph_ripemd160_context   ctx_ripemd __attribute__ ((aligned (64)));
-	uint32_t _ALIGN(64) hashA[16];
-        uint32_t _ALIGN(64) hashB[16];
-        uint32_t _ALIGN(64) hashC[16];
+#if defined (SHA_NI)
+   SHA256_CTX              ctx_sha256 __attribute__ ((aligned (64)));
+#else
+   sph_sha256_context      ctx_sha256 __attribute__ ((aligned (64)));
+#endif
+   sph_sha512_context      ctx_sha512 __attribute__ ((aligned (64)));
+   sph_ripemd160_context   ctx_ripemd __attribute__ ((aligned (64)));
+   uint32_t _ALIGN(64) hashA[16];
+   uint32_t _ALIGN(64) hashB[16];
+   uint32_t _ALIGN(64) hashC[16];
 
-        sph_sha256_init(&ctx_sha256);
-	sph_sha256 (&ctx_sha256, input, 112);
-	sph_sha256_close(&ctx_sha256, hashA);
+#if defined (SHA_NI)
+   SHA256_Init( &ctx_sha256 );
+   SHA256_Update( &ctx_sha256, input, 112 );
+   SHA256_Final( (unsigned char*) hashA, &ctx_sha256 );
 
-        sph_sha256_init(&ctx_sha256);
-	sph_sha256 (&ctx_sha256, hashA, 32);
-	sph_sha256_close(&ctx_sha256, hashA);
+   SHA256_Init( &ctx_sha256 );
+   SHA256_Update( &ctx_sha256, hashA, 32 );
+   SHA256_Final( (unsigned char*) hashA, &ctx_sha256 );
+#else
+   sph_sha256_init( &ctx_sha256 );
+   sph_sha256 ( &ctx_sha256, input, 112 );
+   sph_sha256_close( &ctx_sha256, hashA );
 
-        sph_sha512_init(&ctx_sha512);
-	sph_sha512 (&ctx_sha512, hashA, 32);
-	sph_sha512_close(&ctx_sha512, hashA);
+   sph_sha256_init( &ctx_sha256 );
+   sph_sha256 ( &ctx_sha256, hashA, 32 );
+   sph_sha256_close( &ctx_sha256, hashA );
+#endif
 
-        sph_ripemd160_init(&ctx_ripemd);
-	sph_ripemd160 (&ctx_ripemd, hashA, 32);
-	sph_ripemd160_close(&ctx_ripemd, hashB);
+   sph_sha512_init( &ctx_sha512 );
+   sph_sha512 ( &ctx_sha512, hashA, 32 );
+   sph_sha512_close( &ctx_sha512, hashA );  
 
-        sph_ripemd160_init(&ctx_ripemd);
-	sph_ripemd160 (&ctx_ripemd, hashA+8, 32);
-	sph_ripemd160_close(&ctx_ripemd, hashC);
+   sph_ripemd160_init( &ctx_ripemd );
+   sph_ripemd160 ( &ctx_ripemd, hashA, 32 );
+   sph_ripemd160_close( &ctx_ripemd, hashB );
 
-        sph_sha256_init(&ctx_sha256);
-	sph_sha256 (&ctx_sha256, hashB, 20);
-	sph_sha256 (&ctx_sha256, hashC, 20);
-	sph_sha256_close(&ctx_sha256, hashA);
+   sph_ripemd160_init( &ctx_ripemd );
+   sph_ripemd160 ( &ctx_ripemd, hashA+8, 32 );
+   sph_ripemd160_close( &ctx_ripemd, hashC );
 
-        sph_sha256_init(&ctx_sha256);
-	sph_sha256 (&ctx_sha256, hashA, 32);
-	sph_sha256_close(&ctx_sha256, hashA);
+#if defined (SHA_NI)
+   SHA256_Init( &ctx_sha256 );
+   SHA256_Update( &ctx_sha256, hashB, 20 );
+   SHA256_Update( &ctx_sha256, hashC, 20 );
+   SHA256_Final( (unsigned char*) hashA, &ctx_sha256 );
 
-	memcpy(output, hashA, 32);
+   SHA256_Init( &ctx_sha256 );
+   SHA256_Update( &ctx_sha256, hashA, 32 );
+   SHA256_Final( (unsigned char*) hashA, &ctx_sha256 );
+#else
+   sph_sha256_init( &ctx_sha256 );
+   sph_sha256 ( &ctx_sha256, hashB, 20 );
+   sph_sha256 ( &ctx_sha256, hashC, 20 );
+   sph_sha256_close( &ctx_sha256, hashA );
+
+   sph_sha256_init( &ctx_sha256 );
+   sph_sha256 ( &ctx_sha256, hashA, 32 );
+   sph_sha256_close( &ctx_sha256, hashA );
+#endif
+   memcpy( output, hashA, 32 );
 }
 
 int scanhash_lbry( int thr_id, struct work *work, uint32_t max_nonce,
@@ -211,6 +244,7 @@ int64_t lbry_get_max64() { return 0x1ffffLL; }
 
 bool register_lbry_algo( algo_gate_t* gate )
 {
+  gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash              = (void*)&scanhash_lbry;
   gate->hash                  = (void*)&lbry_hash;
   gate->calc_network_diff     = (void*)&lbry_calc_network_diff;

@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "algo/sha3/sph_types.h"
+#include "algo/sha/sph_types.h"
 #include "sph_blake2b.h"
 
 // Cyclic right rotation.

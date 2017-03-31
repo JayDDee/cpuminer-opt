@@ -3441,19 +3441,19 @@ ROUND_FUN(whirlpool1, old1)
 
 #define RFUN   whirlpool_round
 #define HASH   whirlpool
-#include "algo/sha3/md_helper.c"
+#include "algo/sha/md_helper.c"
 #undef RFUN
 #undef HASH
 
 #define RFUN   whirlpool0_round
 #define HASH   whirlpool0
-#include "algo/sha3/md_helper.c"
+#include "algo/sha/md_helper.c"
 #undef RFUN
 #undef HASH
 
 #define RFUN   whirlpool1_round
 #define HASH   whirlpool1
-#include "algo/sha3/md_helper.c"
+#include "algo/sha/md_helper.c"
 #undef RFUN
 #undef HASH
 

@@ -8,7 +8,7 @@
 #include <string.h>
 #include <float.h>
 #include <math.h>
-#include "algo/sha2/sph-sha2.h"
+#include "algo/sha/sph_sha2.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/tiger/sph_tiger.h"
@@ -540,7 +540,7 @@ void m7m_reverse_endian( struct work *work )
 
 bool register_m7m_algo( algo_gate_t *gate )
 {
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | SHA_OPT;
   init_m7m_ctx();
   gate->scanhash              = (void*)scanhash_m7m_hash;
   gate->build_stratum_request = (void*)&std_be_build_stratum_request;

@@ -71,7 +71,7 @@ extern "C"{
 #endif
 
 #define AES_BIG_ENDIAN   0
-#include "algo/sha3/aes_helper.c"
+#include "algo/sha/aes_helper.c"
 
 #if SPH_ECHO_64
 

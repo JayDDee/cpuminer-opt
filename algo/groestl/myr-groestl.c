@@ -11,7 +11,12 @@
 #else
   #include "aes_ni/hash-groestl.h"
 #endif
-#include "algo/sha3/sph_sha2.h"
+
+#if defined (SHA_NI)
+  #include <openssl/sha.h>
+#else
+  #include "algo/sha/sph_sha2.h"
+#endif
 
 typedef struct {
 #ifdef NO_AES_NI
@@ -19,7 +24,11 @@ typedef struct {
 #else
     hashState_groestl       groestl;
 #endif
-    sph_sha256_context sha;
+#if defined (SHA_NI)
+   SHA256_CTX         sha;
+#else
+   sph_sha256_context sha;
+#endif
 } myrgr_ctx_holder;
 
 myrgr_ctx_holder myrgr_ctx;
@@ -31,28 +40,35 @@ void init_myrgr_ctx()
 #else
      init_groestl (&myrgr_ctx.groestl, 64 );
 #endif
-     sph_sha256_init(&myrgr_ctx.sha);
+#if defined (SHA_NI)
+   SHA256_Init( &myrgr_ctx.sha );
+#else
+   sph_sha256_init( &myrgr_ctx.sha );
+#endif
 }
 
 void myriadhash( void *output, const void *input )
 {
-        myrgr_ctx_holder ctx __attribute__ ((aligned (64)));
-        memcpy( &ctx, &myrgr_ctx, sizeof(myrgr_ctx) );
-
- 	uint32_t hash[16] __attribute__ ((aligned (64))); 
+     myrgr_ctx_holder ctx __attribute__ ((aligned (64)));
+     memcpy( &ctx, &myrgr_ctx, sizeof(myrgr_ctx) );
+     uint32_t hash[16] __attribute__ ((aligned (64))); 
 
 #ifdef NO_AES_NI
-	sph_groestl512(&ctx.groestl, input, 80);
-	sph_groestl512_close(&ctx.groestl, hash);
+     sph_groestl512(&ctx.groestl, input, 80);
+     sph_groestl512_close(&ctx.groestl, hash);
 #else
-        update_and_final_groestl( &ctx.groestl, (char*)input,
-                                  (const char*)input, 640 );
+     update_and_final_groestl( &ctx.groestl, (char*)input,
+                               (const char*)input, 640 );
 #endif
 
-	sph_sha256(&ctx.sha, hash, 64);
-	sph_sha256_close(&ctx.sha, hash);
-
-	memcpy(output, hash, 32);
+#if defined (SHA_NI)
+     SHA256_Update( &ctx.sha, hash, 64 );
+     SHA256_Final( (unsigned char*) hash, &ctx.sha );
+#else
+     sph_sha256(&ctx.sha, hash, 64);
+     sph_sha256_close(&ctx.sha, hash);
+#endif
+     memcpy(output, hash, 32);
 }
 
 int scanhash_myriad( int thr_id, struct work *work, uint32_t max_nonce,
@@ -92,7 +108,7 @@ int scanhash_myriad( int thr_id, struct work *work, uint32_t max_nonce,
 
 bool register_myriad_algo( algo_gate_t* gate )
 {
-    gate->optimizations = SSE2_OPT | AES_OPT;
+    gate->optimizations = SSE2_OPT | AES_OPT | SHA_OPT;
     init_myrgr_ctx();
     gate->scanhash = (void*)&scanhash_myriad;
     gate->hash     = (void*)&myriadhash;

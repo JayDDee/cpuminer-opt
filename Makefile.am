@@ -41,8 +41,8 @@ cpuminer_SOURCES = \
   algo/jh/sph_jh.c \
   algo/keccak/sph_keccak.c \
   algo/keccak/keccak.c\
-  algo/sha3/sph_sha2.c \
-  algo/sha3/sph_sha2big.c \
+  algo/sha/sph_sha2.c \
+  algo/sha/sph_sha2big.c \
   algo/shabal/sph_shabal.c \
   algo/whirlpool/sph_whirlpool.c\
   crypto/blake2s.c \
@@ -118,8 +118,8 @@ cpuminer_SOURCES = \
   algo/ripemd/sph_ripemd.c \
   algo/scrypt.c \
   algo/scryptjane/scrypt-jane.c \
-  algo/sha2/sha2.c \
-  algo/sha2/sha256t.c \
+  algo/sha/sha2.c \
+  algo/sha/sha256t.c \
   algo/simd/sse2/nist.c \
   algo/simd/sse2/vector.c \
   algo/skein/skein.c \

@@ -21,7 +21,7 @@
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/sha3/sph_sha2.h"
+#include "algo/sha/sph_sha2.h"
 #include "algo/haval/sph-haval.h"
 
 #include "algo/luffa/sse2/luffa_for_sse2.h" 

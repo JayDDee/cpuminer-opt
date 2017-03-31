@@ -9,8 +9,7 @@
 #include <immintrin.h>
 #endif
 #include "cubehash_sse2.h"
-#include "algo/sha3/sha3-defs.h"
-//#include "avxdefs.h"
+#include "algo/sha/sha3-defs.h"
 
 static void transform( cubehashParam *sp )
 {

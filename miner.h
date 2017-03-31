@@ -12,6 +12,12 @@
  #endif
 //#endif
 
+#ifdef __SHA__
+ #ifndef NO_SHA_NI
+   #define SHA_NI
+ #endif
+#endif
+
 #ifdef _MSC_VER
 
 #undef USE_ASM  /* to fix */
@@ -323,7 +329,8 @@ double hash_target_ratio( uint32_t* hash, uint32_t* target );
 void   work_set_target_ratio( struct work* work, uint32_t* hash );
 
 void   get_currentalgo( char* buf, int sz );
-bool   has_aes_ni( void );
+bool   has_sha();
+bool   has_aes_ni();
 bool   has_avx1();
 bool   has_avx2();
 bool   has_sse2();
