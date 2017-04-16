@@ -144,7 +144,7 @@ static void x14hash(void *output, const void *input)
 
         // 8 Cube
         cubehashUpdateDigest( &ctx.cube, (byte*) hash,
-                              (const*)hashB, 64 );
+                              (const byte*)hashB, 64 );
 
         // 9 Shavite
         sph_shavite512( &ctx.shavite, hash, 64);

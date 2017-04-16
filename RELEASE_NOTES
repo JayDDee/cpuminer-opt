@@ -1,7 +1,130 @@
-Compile instruction for Linux and Windows are at the bottom of this file.
+cpuminer-opt now supports HW SHA acceleration available on AMD Ryzen CPUs.
+This feature requires recent SW including GCC version 5 or higher and
+openssl version 1.1 or higher. It may also require using "-march=znver1"
+compile flag.
+
+HW SHA support is only available when compiled from source, Windows binaries
+are not yet available.
+
+Compile Instructions
+--------------------
+
+Building on linux prerequisites:
+
+It is assumed users know how to install packages on their system and
+be able to compile standard source packages. This is basic Linux and
+beyond the scope of cpuminer-opt.
+
+Make sure you have the basic development packages installed.
+Here is a good start:
+
+http://askubuntu.com/questions/457526/how-to-install-cpuminer-in-ubuntu
+
+Install any additional dependencies needed by cpuminer-opt. The list below
+are some of the ones that may not be in the default install and need to
+be installed manually. There may be others, read the error messages they
+will give a clue as to the missing package.
+
+The folliwing command should install everything you need on Debian based
+packages:
+
+sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev automake
+
+Building on Linux, see below for Windows.
+
+Dependencies
+
+build-essential  (for Ubuntu, Development Tools package group on Fedora)
+automake
+libjansson-dev
+libgmp-dev
+libcurl4-openssl-dev
+libssl-dev
+pthreads
+zlib
+
+SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and openssl 1.1
+or higher. Additional compile options may also be required such as
+"-march-znver1" or "-msha".
+
+Extract cpuminer source.
+
+tar xvzf cpuminer-opt-x.y.z.tar.gz
+cd cpuminer-opt-x.y.z
+
+Run ./build.sh to build on Linux or execute the following commands.
+
+./autogen.sh
+CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11" ./configure --with-curl
+make
+
+Start mining.
+
+./cpuminer -a algo ...
+
+Building on Windows prerequisites:
+
+msys
+mingw_w64
+Visual C++ redistributable 2008 X64
+openssl, not sure about this
+
+Install msys and mingw_w64, only needed once.
+
+Unpack msys into C:\msys or your preferred directory.
+
+Install mingw_w64 from win-builds.
+Follow instructions, check "msys or cygwin" and "x86_64" and accept default
+existing msys instalation.
+
+Open a msys shell by double clicking on msys.bat.
+Note that msys shell uses linux syntax for file specifications, "C:\" is
+mounted at "/c/".
+
+Add mingw bin directory to PATH variable
+PATH="/c/msys/opt/windows_64/bin/:$PATH"
+
+Instalation complete, compile cpuminer-opt
+
+Unpack cpuminer-opt source files using tar from msys shell, or using 7zip
+or similar Windows program.
+
+In msys shell cd to miner directory.
+cd /c/path/to/cpuminer-opt
+
+Run winbuild.sh to build on Windows or execute the following commands.
+
+./autogen.sh
+CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" ./configure --with-curl
+make
+
+The following tips may be useful for older AMD CPUs.
+
+AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
+supported by cpuminer-opt due to an incompatible implementation of SSE2 on
+these CPUs. Some algos may crash the miner with an invalid instruction.
+Users are recommended to use an unoptimized miner such as cpuminer-multi.
+
+Some users with AMD CPUs without AES_NI have reported problems compiling
+with build.sh or "-march=native". Problems have included compile errors
+and poor performance. These users are recommended to compile manually
+specifying "-march=btver1" on the configure command line.
+
+Support for even older x86_64 without AES_NI or SSE2 is not availble.
+
 
 Change Log
 ----------
+
+v3.6.2
+
+SHA accceleration is now supported on AMD Ryzen CPUs when compiled from source,
+  Windows binaries not yet available.
+Fixed groestl algo.
+Fixed dmd-gr (Diamond) algo.
+Fixed lLbry compile error on Ryzen.
+Added SHA support to m7m algo.
+Hodl support for CPUs without AES has been removed, use legacy version.
 
 v3.6.1
 
@@ -206,98 +329,3 @@ AVX2 optimizations improving many algos:
    - x17 +2.8%
    - qubit +8.4%
 
-
-Compile Instructions
---------------------
-
-Building on linux prerequisites:
-
-It is assumed users know how to install packages on their system and
-be able to compile standard source packages. This is basic Linux and
-beyond the scope of cpuminer-opt. 
-
-Make sure you have the basic development packages installed.
-Here is a good start:
-
-http://askubuntu.com/questions/457526/how-to-install-cpuminer-in-ubuntu
-
-Install any additional dependencies needed by cpuminer-opt. The list below
-are some of the ones that may not be in the default install and need to
-be installed manually. There may be others, read the error messages they
-will give a clue as to the missing package.
-
-The folliwing command should install everything you need on Debian based
-packages:
-
-sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev automake
-
-Building on Linux, see below for Windows.
-
-Dependencies
-
-build-essential  (for Ubuntu, Development Tools package group on Fedora)
-automake
-libjansson-dev
-libgmp-dev
-libcurl4-openssl-dev
-libssl-dev
-pthreads
-zlib
-
-tar xvzf [file.tar.gz]
-cd [file]
-
-Run build.sh to build on Linux or execute the following commands.
-
-./autogen.sh
-CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11" ./configure --with-curl
-make
-
-Start mining.
-
-./cpuminer -a algo ...
-
-Building on Windows prerequisites:
-
-msys
-mingw_w64
-Visual C++ redistributable 2008 X64
-openssl, not sure about this
-
-Install msys and mingw_w64, only needed once.
-
-Unpack msys into C:\msys or your preferred directory.
-
-Install mingw__w64 from win-builds.
-Follow instructions, check "msys or cygwin" and "x86_64" and accept default
-existing msys instalation.
-
-Open a msys shell by double clicking on msys.bat.
-Note that msys shell uses linux syntax for file specifications, "C:\" is
-mounted at "/c/".
-
-Add mingw bin directory to PATH variable
-PATH="/c/msys/opt/windows_64/bin/:$PATH"
-
-Instalation complete, compile cpuminer-opt
-
-Unpack cpuminer-opt source files using tar from msys shell, or using 7zip
-or similar Windows program.
-
-In msys shell cd to miner directory.
-cd /c/path/to/cpuminer-opt
-
-Run winbuild.sh to build on Windows or execute the following commands.
-
-./autogen.sh
-CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" ./configure --with-curl
-make
-
-The following tips may be useful for older AMD CPUs.
-
-Some users with AMD CPUs without AES_NI have reported problems compiling
-with build.sh or "-march=native". Problems have included compile errors
-and poor performance. These users are recommended to compile manually
-specifying "-march=btver1" on the configure command line.
-
-Support for even older x86_64 without AES_NI or SSE2 is not availble.

@@ -4,7 +4,7 @@
 #include "miner.h"
 //#include "algo-gate-api.h"
 #include "hodl-gate.h"
-#include "hodl.h"
+//#include "hodl.h"
 #include "hodl-wolf.h"
 
 #define HODL_NSTARTLOC_INDEX 20
@@ -98,9 +98,11 @@ int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
                    uint64_t *hashes_done )
 {
 #ifdef NO_AES_NI
-  GetPsuedoRandomData( hodl_scratchbuf, work->data, thr_id );
-  pthread_barrier_wait( &hodl_barrier );
-  return scanhash_hodl( thr_id, work, max_nonce, hashes_done );
+  applog( LOG_ERR, "Only CPUs with AES are supported, use legacy version.");
+  return false;
+//  GetPsuedoRandomData( hodl_scratchbuf, work->data, thr_id );
+//  pthread_barrier_wait( &hodl_barrier );
+//  return scanhash_hodl( thr_id, work, max_nonce, hashes_done );
 #else
   GenRandomGarbage( hodl_scratchbuf, work->data, thr_id );
   pthread_barrier_wait( &hodl_barrier );

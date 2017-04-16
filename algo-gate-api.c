@@ -162,6 +162,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_CRYPTONIGHT: register_cryptonight_algo( gate ); break;
      case ALGO_DECRED:      register_decred_algo     ( gate ); break;
      case ALGO_DEEP:        register_deep_algo       ( gate ); break;
+     case ALGO_DMD_GR:      register_dmd_gr_algo     ( gate ); break;
      case ALGO_DROP:        register_drop_algo       ( gate ); break;
      case ALGO_FRESH:       register_fresh_algo      ( gate ); break;
      case ALGO_GROESTL:     register_groestl_algo    ( gate ); break;
@@ -272,7 +273,7 @@ const char* const algo_alias_map[][2] =
   { "blake256r14dcr",    "decred"      },
   { "cryptonote",        "cryptonight" },
   { "cryptonight-light", "cryptolight" },
-  { "dmd-gr",            "groestl"     },
+  { "diamond",           "dmd-gr"      },
   { "droplp",            "drop"        },
   { "espers",            "hmq1725"     },
   { "flax",              "c11"         },

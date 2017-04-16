@@ -340,7 +340,7 @@ int scanhash_timetravel( int thr_id, struct work *work, uint32_t max_nonce,
            break;
         case 6:
            memcpy( &tt_mid.luffa, &tt_ctx.luffa, sizeof(tt_mid.luffa ) );
-           update_luffa( &tt_mid.luffa, endiandata, 64 );
+           update_luffa( &tt_mid.luffa, (const BitSequence*)endiandata, 64 );
            break;
         case 7:
            memcpy( &tt_mid.cube, &tt_ctx.cube, sizeof(tt_mid.cube ) );

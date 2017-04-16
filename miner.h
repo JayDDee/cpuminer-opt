@@ -12,12 +12,6 @@
  #endif
 //#endif
 
-#ifdef __SHA__
- #ifndef NO_SHA_NI
-   #define SHA_NI
- #endif
-#endif
-
 #ifdef _MSC_VER
 
 #undef USE_ASM  /* to fix */
@@ -494,6 +488,7 @@ enum algos {
         ALGO_CRYPTONIGHT, 
         ALGO_DECRED,
         ALGO_DEEP,
+        ALGO_DMD_GR,
         ALGO_DROP,        
         ALGO_FRESH,       
         ALGO_GROESTL,     
@@ -555,6 +550,7 @@ static const char* const algo_names[] = {
         "cryptonight",
         "decred",
         "deep",
+        "dmd-gr",
         "drop",
         "fresh",
         "groestl",
@@ -670,6 +666,7 @@ Options:\n\
                           cryptonight  cryptonote, Monero (XMR)\n\
                           decred\n\
                           deep         Deepcoin (DCN)\n\
+                          dmd-gr       Diamond\n\
                           drop         Dropcoin\n\
                           fresh        Fresh\n\
                           groestl      dmd-gr, Groestl coin\n\

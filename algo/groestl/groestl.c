@@ -15,7 +15,7 @@
 typedef struct
 {
 #ifdef NO_AES_NI
-    sph_groestl512_context groestl;
+    sph_groestl512_context groestl1, groestl2;
 #else
     hashState_groestl groestl1, groestl2;
 #endif
@@ -27,7 +27,8 @@ static groestl_ctx_holder groestl_ctx;
 void init_groestl_ctx()
 {
 #ifdef NO_AES_NI
-    sph_groestl512_init( &groestl_ctx.groestl );
+    sph_groestl512_init( &groestl_ctx.groestl1 );
+    sph_groestl512_init( &groestl_ctx.groestl2 );
 #else
     init_groestl( &groestl_ctx.groestl1, 64 );
     init_groestl( &groestl_ctx.groestl2, 64 );
@@ -41,16 +42,16 @@ void groestlhash( void *output, const void *input )
      memcpy( &ctx, &groestl_ctx, sizeof(groestl_ctx) );
 
 #ifdef NO_AES_NI
-     sph_groestl512(&ctx.groestl, input, 80);
-     sph_groestl512_close(&ctx.groestl, hash);
+     sph_groestl512(&ctx.groestl1, input, 80);
+     sph_groestl512_close(&ctx.groestl1, hash);
 
-     sph_groestl512(&ctx.groestl, hash, 64);
-     sph_groestl512_close(&ctx.groestl, hash);
+     sph_groestl512(&ctx.groestl2, hash, 64);
+     sph_groestl512_close(&ctx.groestl2, hash);
 #else
      update_and_final_groestl( &ctx.groestl1, (char*)hash,
                                (const char*)input, 640 );
 
-     update_and_final_groestl( &ctx.groestl1, (char*)hash,
+     update_and_final_groestl( &ctx.groestl2, (char*)hash,
                                (const char*)hash, 512 );
 #endif
      memcpy(output, hash, 32);
@@ -107,6 +108,13 @@ bool register_groestl_algo( algo_gate_t* gate )
     gate->set_target      = (void*)&groestl_set_target;
     gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
     gate->get_max64       = (void*)&get_max64_0x3ffff;
+    return true;
+};
+
+bool register_dmd_gr_algo( algo_gate_t* gate )
+{
+    register_groestl_algo( gate );
+    gate->gen_merkle_root = (void*)&sha256d_gen_merkle_root;
     return true;
 };
 

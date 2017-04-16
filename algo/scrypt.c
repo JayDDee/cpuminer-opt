@@ -788,5 +788,6 @@ bool register_scrypt_algo( algo_gate_t* gate )
      scratchbuf_size = 1024;
   else
      scratchbuf_size = opt_scrypt_n;
+  return true;
 };
 

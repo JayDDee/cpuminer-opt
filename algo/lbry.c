@@ -5,10 +5,9 @@
 #include <string.h>
 #include <stdio.h>
 #include "ripemd/sph_ripemd.h"
+#include "sha/sph_sha2.h"
 #if defined (SHA_NI)
  #include <openssl/sha.h>
-#else
- #include "sha/sph_sha2.h"
 #endif
 
 #define LBRY_NTIME_INDEX 25
@@ -19,7 +18,7 @@
 
 /* Move init out of loop, so init once externally, and then use one single memcpy with that bigger memory block */
 typedef struct {
-#if defined (SHA_NI)
+#if defined __SHA__
    SHA256_CTX             sha256;
 #else
    sph_sha256_context     sha256;
@@ -33,7 +32,7 @@ static  lbryhash_context_holder ctx __attribute__ ((aligned (64)));
 
 void init_lbry_contexts(void *dummy)
 {
-#if defined (SHA_NI)
+#if defined __SHA__
    SHA256_Init( &ctx.sha256 );
 #else
    sph_sha256_init( &ctx.sha256 );
@@ -44,7 +43,7 @@ void init_lbry_contexts(void *dummy)
 
 void lbry_hash(void* output, const void* input)
 {
-#if defined (SHA_NI)
+#if defined __SHA__
    SHA256_CTX              ctx_sha256 __attribute__ ((aligned (64)));
 #else
    sph_sha256_context      ctx_sha256 __attribute__ ((aligned (64)));
@@ -55,7 +54,7 @@ void lbry_hash(void* output, const void* input)
    uint32_t _ALIGN(64) hashB[16];
    uint32_t _ALIGN(64) hashC[16];
 
-#if defined (SHA_NI)
+#if defined __SHA__
    SHA256_Init( &ctx_sha256 );
    SHA256_Update( &ctx_sha256, input, 112 );
    SHA256_Final( (unsigned char*) hashA, &ctx_sha256 );
@@ -85,7 +84,7 @@ void lbry_hash(void* output, const void* input)
    sph_ripemd160 ( &ctx_ripemd, hashA+8, 32 );
    sph_ripemd160_close( &ctx_ripemd, hashC );
 
-#if defined (SHA_NI)
+#if defined __SHA__
    SHA256_Init( &ctx_sha256 );
    SHA256_Update( &ctx_sha256, hashB, 20 );
    SHA256_Update( &ctx_sha256, hashC, 20 );
