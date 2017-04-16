@@ -119,7 +119,7 @@ uint32_t sw2_(int nnounce)
     return ((uint32_t)(GaussianQuad_N2(0., wmax)*(1.+EPSa)*1.e6));
 }
 
-typedef struct {
+typedef struct{
 #if defined __SHA__
     SHA256_CTX               sha256;
 #else
@@ -382,5 +382,3 @@ bool register_m7m_algo( algo_gate_t *gate )
   gate->work_data_size        = 80;
   return true;
 }
-
-
