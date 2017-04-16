@@ -134,11 +134,11 @@ typedef struct {
 } m7m_ctx_holder;
 
 #if defined __SHA__
-static SHA256_CTX m7m_ctx_final_sha256;
+SHA256_CTX m7m_ctx_final_sha256;
 #else
-static sph_sha256_context m7m_ctx_final_sha256;
+sph_sha256_context m7m_ctx_final_sha256;
 #endif
-static m7m_ctx_holder m7m_ctx;
+m7m_ctx_holder m7m_ctx;
 
 void init_m7m_ctx()
 {
