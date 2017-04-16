@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "ripemd/sph_ripemd.h"
 #include "sha/sph_sha2.h"
-#if defined (SHA_NI)
+#if defined (__SHA__)
  #include <openssl/sha.h>
 #endif
 
