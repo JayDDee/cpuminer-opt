@@ -106,7 +106,7 @@ int opt_n_threads = 0;
 int64_t opt_affinity = -1L;
 int opt_priority = 0;
 int num_cpus;
-char *rpc_url = NULL;;
+char *rpc_url = NULL;
 char *rpc_userpass = NULL;
 char *rpc_user, *rpc_pass;
 char *short_url = NULL;
@@ -2805,7 +2805,7 @@ bool check_cpu_capability ()
          sw_has_sse2 = true;
      #endif
      #ifdef __AVX__
-         sw_has_avx = true;;
+         sw_has_avx = true;
      #endif
      #ifdef __AVX2__
          sw_has_avx2 = true;

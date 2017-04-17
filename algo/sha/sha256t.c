@@ -8,7 +8,7 @@
 
 #include "sph_sha2.h"
 
-#if defined (SHA_NI)
+#if defined (__SHA__)
 #include <openssl/sha.h>
 static SHA256_CTX sha256t_ctx __attribute__ ((aligned (64)));
 static __thread SHA256_CTX sha256t_mid  __attribute__ ((aligned (64)));
@@ -20,7 +20,7 @@ static __thread sph_sha256_context sha256t_mid  __attribute__ ((aligned (64)));
 void sha256t_midstate( const void* input )
 {
     memcpy( &sha256t_mid, &sha256t_ctx, sizeof sha256t_mid );
-#if defined (SHA_NI)
+#if defined (__SHA__)
     SHA256_Update( &sha256t_mid, input, 64 );
 #else
     sph_sha256( &sha256t_mid, input, 64 );
@@ -33,7 +33,7 @@ void sha256t_hash(void* output, const void* input,  uint32_t len)
         const int midlen = 64;            // bytes
         const int tail   = 80 - midlen;   // 16
 
-#if defined (SHA_NI)
+#if defined (__SHA__)
         SHA256_CTX ctx_sha256 __attribute__ ((aligned (64)));
         memcpy( &ctx_sha256, &sha256t_mid, sizeof sha256t_mid );
 
@@ -150,7 +150,7 @@ void sha256t_set_target( struct work* work, double job_diff )
 
 bool register_sha256t_algo( algo_gate_t* gate )
 {
-#if defined (SHA_NI)
+#if defined (__SHA__)
     SHA256_Init( &sha256t_ctx );
 #else
     sph_sha256_init( &sha256t_ctx );

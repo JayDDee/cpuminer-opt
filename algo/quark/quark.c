@@ -101,7 +101,7 @@ inline static void quarkhash(void *state, const void *input)
               #undef M
               #undef H
               #undef dH
-            } while(0); continue;;
+            } while(0); continue;
 
         case 2:
             // dos this entry point represent a second groestl round?

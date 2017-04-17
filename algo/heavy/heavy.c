@@ -41,7 +41,7 @@ extern void heavyhash(unsigned char* output, const unsigned char* input, int len
 //     *
 //     * N.B. '+' is concatenation.
 //
-    unsigned char hash2[32];;
+    unsigned char hash2[32];
     SHA256_CTX ctx;
     SHA256_Init(&ctx);
     SHA256_Update(&ctx, input, len);

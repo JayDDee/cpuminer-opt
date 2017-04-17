@@ -343,7 +343,8 @@ int winansi_vfprintf(FILE *stream, const char *format, va_list list)
 		len = _vscprintf(format, cp);
 #endif
 	va_end(cp);
-
+#pragma GCC diagnostic push // (len > sizeof(small_buf) - 1)
+#pragma GCC diagnostic ignored "-Wsign-compare" // ((int) > (size_t) - 1)
 	if (len > sizeof(small_buf) - 1) {
 		buf = malloc(len + 1);
 		if (!buf)
@@ -355,7 +356,7 @@ int winansi_vfprintf(FILE *stream, const char *format, va_list list)
 			len = _vscprintf(format, list);
 #endif
 	}
-
+#pragma GCC diagnostic pop // "-Wsign-compare"
 	rv = ansi_emulate(buf, stream);
 
 	if (buf != small_buf)

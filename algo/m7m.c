@@ -14,7 +14,7 @@
 #include "algo/tiger/sph_tiger.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/ripemd/sph_ripemd.h"
-#if defined (SHA_NI)
+#if defined (__SHA__)
  #include <openssl/sha.h>
 #endif
 
@@ -119,7 +119,7 @@ uint32_t sw2_(int nnounce)
     return ((uint32_t)(GaussianQuad_N2(0., wmax)*(1.+EPSa)*1.e6));
 }
 
-typedef struct {
+typedef struct{
 #if defined __SHA__
     SHA256_CTX               sha256;
 #else
@@ -134,7 +134,7 @@ typedef struct {
 } m7m_ctx_holder;
 
 #if defined __SHA__
-SHA256_CTX m7m_ctx_final_sha256
+SHA256_CTX m7m_ctx_final_sha256;
 #else
 sph_sha256_context m7m_ctx_final_sha256;
 #endif
@@ -185,7 +185,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
     m7m_ctx_holder ctx1, ctx2 __attribute__ ((aligned (64)));
     memcpy( &ctx1, &m7m_ctx, sizeof(m7m_ctx) );
 #if defined __SHA__
-    SHA256_CTX         ctx_fsha256;
+    SHA256_CTX         ctxf_sha256;
 #else
     sph_sha256_context ctxf_sha256;
 #endif
@@ -270,7 +270,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
         mpz_export((void *)bdata, NULL, -1, 1, 0, 0, product);
 
 #if defined __SHA__
-        SHA256_Update(  &ctxf_sha256, bdata_p64, bytes );
+        SHA256_Update(  &ctxf_sha256, bdata, bytes );
         SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
 #else
         sph_sha256( &ctxf_sha256, bdata, bytes );
@@ -382,5 +382,3 @@ bool register_m7m_algo( algo_gate_t *gate )
   gate->work_data_size        = 80;
   return true;
 }
-
-

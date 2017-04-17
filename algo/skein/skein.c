@@ -6,7 +6,7 @@
 
 #include "sph_skein.h"
 
-#if defined (SHA_NI)
+#if defined (__SHA__)
 #include <openssl/sha.h>
 #else
 #include "algo/sha/sph_sha2.h"
@@ -14,7 +14,7 @@
 
 typedef struct {
    sph_skein512_context skein;
-#if defined (SHA_NI)
+#if defined (__SHA__)
    SHA256_CTX         sha256;
 #else
    sph_sha256_context sha256;
@@ -26,7 +26,7 @@ skein_ctx_holder skein_ctx;
 void init_skein_ctx()
 {
    sph_skein512_init( &skein_ctx.skein );
-#if defined (SHA_NI)
+#if defined (__SHA__)
    SHA256_Init( &skein_ctx.sha256 );
 #else
    sph_sha256_init( &skein_ctx.sha256 );
@@ -42,7 +42,7 @@ void skeinhash(void *state, const void *input)
      sph_skein512( &ctx.skein, input, 80 );
      sph_skein512_close( &ctx.skein, hash );
 
-#if defined (SHA_NI)
+#if defined (__SHA__)
      SHA256_Update( &ctx.sha256, hash, 64 );
      SHA256_Final( (unsigned char*) hash, &ctx.sha256 );
 #else
