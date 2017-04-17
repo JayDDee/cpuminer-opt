@@ -85,9 +85,9 @@ cpuminer_SOURCES = \
   algo/heavy/heavy.c \
   algo/heavy/bastion.c \
   algo/hmq1725.c \
+  algo/hodl/aes.c \
   algo/hodl/hodl-gate.c \
   algo/hodl/hodl-wolf.c \
-  algo/hodl/aes.c \
   algo/hodl/sha512_avx.c \
   algo/hodl/sha512_avx2.c \
   algo/lbry.c \
