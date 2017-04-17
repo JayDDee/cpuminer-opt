@@ -67,7 +67,7 @@ Building on Windows prerequisites:
 msys
 mingw_w64
 Visual C++ redistributable 2008 X64
-openssl, not sure about this
+openssl
 
 Install msys and mingw_w64, only needed once.
 
@@ -84,7 +84,7 @@ mounted at "/c/".
 Add mingw bin directory to PATH variable
 PATH="/c/msys/opt/windows_64/bin/:$PATH"
 
-Instalation complete, compile cpuminer-opt
+Instalation complete, compile cpuminer-opt.
 
 Unpack cpuminer-opt source files using tar from msys shell, or using 7zip
 or similar Windows program.
@@ -116,13 +116,18 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
++v3.6.3
+ +
+ +Fixed all known issues with SHA support on AMD Ryzen CPUs, still no
+ + Windows binaries.
+ 
 v3.6.2
 
 SHA accceleration is now supported on AMD Ryzen CPUs when compiled from source,
   Windows binaries not yet available.
 Fixed groestl algo.
 Fixed dmd-gr (Diamond) algo.
-Fixed lLbry compile error on Ryzen.
+Fixed lbry compile error on Ryzen.
 Added SHA support to m7m algo.
 Hodl support for CPUs without AES has been removed, use legacy version.
 
