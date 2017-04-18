@@ -2302,10 +2302,12 @@ void show_version_and_exit(void)
 
 void show_usage_and_exit(int status)
 {
-	if (status)
+	if (status) {
 		fprintf(stderr, "Try `" PACKAGE_NAME " --help' for more information.\n");
-	else
+	} else {
 		printf(usage);
+		printf(usage2);
+	}
 	exit(status);
 }
 
@@ -2313,6 +2315,14 @@ void strhide(char *s)
 {
 	if (*s) *s++ = 'x';
 	while (*s) *s++ = '\0';
+}
+
+//copied from Wikipedia
+static int popcount64d(uint64_t x) { // Retrieve Hamming Weight
+    int count;
+    for (count=0; x; count++)
+        x &= x - 1;
+    return count;
 }
 
 void parse_arg(int key, char *arg )
@@ -2618,6 +2628,8 @@ void parse_arg(int key, char *arg )
 		if (ul > (1UL<<num_cpus)-1)
 			ul = -1;
 		opt_affinity = ul;
+		/* Override default behaviour and assign threads based on mask */
+		if (!opt_n_threads) opt_n_threads = popcount64d(ul);
 		break;
 	case 1021:
 		v = atoi(arg);
