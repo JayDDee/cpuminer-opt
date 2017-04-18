@@ -133,20 +133,13 @@ typedef struct{
     sph_ripemd160_context    ripemd;
 } m7m_ctx_holder;
 
-#if defined __SHA__
-SHA256_CTX m7m_ctx_final_sha256;
-#else
-sph_sha256_context m7m_ctx_final_sha256;
-#endif
 m7m_ctx_holder m7m_ctx;
 
 void init_m7m_ctx()
 {
 #if defined __SHA__
-    SHA256_Init( &m7m_ctx_final_sha256 );
     SHA256_Init( &m7m_ctx.sha256 );
 #else
-    sph_sha256_init( &m7m_ctx_final_sha256 );
     sph_sha256_init( &m7m_ctx.sha256 );
 #endif
     sph_sha512_init( &m7m_ctx.sha512 );
@@ -189,7 +182,6 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 #else
     sph_sha256_context ctxf_sha256;
 #endif
-    memcpy( &ctxf_sha256, &m7m_ctx_final_sha256, sizeof(ctxf_sha256) );
 
     memcpy(data, pdata, 80);
 
@@ -270,9 +262,11 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
         mpz_export((void *)bdata, NULL, -1, 1, 0, 0, product);
 
 #if defined __SHA__
+	SHA256_Init( &ctxf_sha256 );
         SHA256_Update(  &ctxf_sha256, bdata, bytes );
         SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
 #else
+	sph_sha256_init( &ctxf_sha256 );
         sph_sha256( &ctxf_sha256, bdata, bytes );
         sph_sha256_close( &ctxf_sha256, (void*)(hash) );
 #endif
@@ -310,9 +304,11 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
             mpz_export(bdata, NULL, -1, 1, 0, 0, product);
 
 #if defined __SHA__
+	    SHA256_Init( &ctxf_sha256 );
             SHA256_Update(  &ctxf_sha256, bdata, bytes );
             SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
 #else
+	    sph_sha256_init( &ctxf_sha256 );
             sph_sha256( &ctxf_sha256, bdata, bytes );
             sph_sha256_close( &ctxf_sha256, (void*)(hash) );
 #endif
