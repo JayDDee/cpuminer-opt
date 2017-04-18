@@ -669,7 +669,7 @@ void
 sph_sha256_close(void *cc, void *dst)
 {
 	sha224_close(cc, dst, 8);
-	sph_sha256_init(cc);
+//	sph_sha256_init(cc);
 }
 
 /* see sph_sha2.h */
