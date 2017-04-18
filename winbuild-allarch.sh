@@ -3,6 +3,14 @@
 make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
+CFLAGS="-O3 -march=znver1 -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" ./configure --with-curl
+make -j 4
+strip -s cpuminer.exe
+mv cpuminer.exe cpuminer-znver1.exe
+
+make distclean || echo clean
+rm -f config.status
+./autogen.sh || echo done
 CFLAGS="-O3 -march=core-avx2 -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" ./configure --with-curl
 make -j 4
 strip -s cpuminer.exe
