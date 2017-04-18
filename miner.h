@@ -649,7 +649,6 @@ extern pthread_mutex_t rpc2_login_lock;
 extern pthread_mutex_t applog_lock;
 extern pthread_mutex_t stats_lock;
 
-
 static char const usage[] = "\
 Usage: " PACKAGE_NAME " [OPTIONS]\n\
 Options:\n\
@@ -666,10 +665,10 @@ Options:\n\
                           cryptonight  cryptonote, Monero (XMR)\n\
                           decred\n\
                           deep         Deepcoin (DCN)\n\
-                          dmd-gr       Diamond\n\
+						  dmd-gr       Diamond\n\
                           drop         Dropcoin\n\
                           fresh        Fresh\n\
-                          groestl      dmd-gr, Groestl coin\n\
+                          groestl      Groestl coin\n\
                           heavy        Heavy\n\
                           hmq1725      Espers\n\
                           hodl         Hodlcoin\n\
@@ -730,7 +729,9 @@ Options:\n\
   -m, --diff-multiplier Multiply difficulty by this factor (std is 1.0)\n\
       --hide-diff       Do not display changes in difficulty\n\
       --coinbase-addr=ADDR  payout address for solo mining\n\
-      --coinbase-sig=TEXT  data to insert in the coinbase when possible\n\
+      --coinbase-sig=TEXT  data to insert in the coinbase when possible\n";
+#ifdef HAVE_SYSLOG_H
+ static char const usage2[] = "\
       --no-longpoll     disable long polling support\n\
       --no-getwork      disable getwork support\n\
       --no-gbt          disable getblocktemplate support\n\
@@ -740,12 +741,36 @@ Options:\n\
   -q, --quiet           disable per-thread hashmeter output\n\
       --no-color        disable colored output\n\
   -D, --debug           enable debug output\n\
-  -P, --protocol-dump   verbose dump of protocol-level activities\n"
-#ifdef HAVE_SYSLOG_H
-"\
-  -S, --syslog          use system log for output messages\n"
-#endif
-"\
+  -P, --protocol-dump   verbose dump of protocol-level activities\n\
+  -S, --syslog          use system log for output messages\n\
+  -B, --background      run the miner in the background\n\
+      --benchmark       run in offline benchmark mode\n\
+      --cputest         debug hashes from cpu algorithms\n\
+      --cpu-affinity    set process affinity to cpu core(s), mask 0x3 for cores 0 and 1\n\
+						and creates threads equal to masked cores, mask 0x3 for 2 threads\n\
+						automatic thread numbering is over-ridden by --threads\n\
+      --cpu-priority    set process priority (default: 0 idle, 2 normal to 5 highest)\n\
+  -b, --api-bind        IP/Port for the miner API (default: 127.0.0.1:4048)\n\
+      --api-remote      Allow remote control\n\
+      --max-temp=N      Only mine if cpu temp is less than specified value (linux)\n\
+      --max-rate=N[KMG] Only mine if net hashrate is less than specified value\n\
+      --max-diff=N      Only mine if net difficulty is less than specified value\n\
+  -c, --config=FILE     load a JSON-format configuration file\n\
+  -V, --version         display version information and exit\n\
+  -h, --help            display this help text and exit\n\
+ ";
+#else
+ static char const usage2[] = "\
+      --no-longpoll     disable long polling support\n\
+      --no-getwork      disable getwork support\n\
+      --no-gbt          disable getblocktemplate support\n\
+      --no-stratum      disable X-Stratum support\n\
+      --no-extranonce   disable Stratum extranonce support\n\
+      --no-redirect     ignore requests to change the URL of the mining server\n\
+  -q, --quiet           disable per-thread hashmeter output\n\
+      --no-color        disable colored output\n\
+  -D, --debug           enable debug output\n\
+  -P, --protocol-dump   verbose dump of protocol-level activities\n\
   -B, --background      run the miner in the background\n\
       --benchmark       run in offline benchmark mode\n\
       --cputest         debug hashes from cpu algorithms\n\
@@ -759,7 +784,8 @@ Options:\n\
   -c, --config=FILE     load a JSON-format configuration file\n\
   -V, --version         display version information and exit\n\
   -h, --help            display this help text and exit\n\
-";
+ ";
+#endif
 
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
