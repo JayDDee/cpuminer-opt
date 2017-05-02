@@ -119,6 +119,7 @@ cpuminer_SOURCES = \
   algo/s3.c \
   algo/tiger/sph_tiger.c \
   algo/timetravel.c \
+  algo/timetravel10.c \
   algo/veltor.c \
   algo/whirlpool/whirlpool.c \
   algo/whirlpool/whirlpoolx.c \

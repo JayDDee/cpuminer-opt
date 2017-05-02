@@ -519,6 +519,7 @@ enum algos {
         ALGO_SKEIN2,      
         ALGO_S3,          
         ALGO_TIMETRAVEL,
+        ALGO_TIMETRAVEL10,
         ALGO_VANILLA,
         ALGO_VELTOR,
         ALGO_WHIRLPOOL,
@@ -581,6 +582,7 @@ static const char* const algo_names[] = {
         "skein2",
         "s3",
         "timetravel",
+        "timetravel10",
         "vanilla",
         "veltor",
         "whirlpool",
@@ -696,7 +698,8 @@ Options:\n\
                           shavite3     Shavite3\n\
                           skein        Skein+Sha (Skeincoin)\n\
                           skein2       Double Skein (Woodcoin)\n\
-                          timetravel   Machinecoin\n\
+                          timetravel   timeravel8, Machinecoin (MAC)\n\
+                          timetravel10 Bitcore (BTX)\n\
                           vanilla      blake256r8vnl (VCash)\n\
                           veltor\n\
                           whirlpool\n\

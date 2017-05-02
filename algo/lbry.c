@@ -16,30 +16,6 @@
 #define LBRY_WORK_DATA_SIZE 192
 #define LBRY_WORK_CMP_SIZE 76  // same as default
 
-/* Move init out of loop, so init once externally, and then use one single memcpy with that bigger memory block */
-typedef struct {
-#if defined __SHA__
-   SHA256_CTX             sha256;
-#else
-   sph_sha256_context     sha256;
-#endif
-   sph_sha512_context     sha512;
-   sph_ripemd160_context  ripemd;
-} lbryhash_context_holder;
-
-/* no need to copy, because close reinit the context */
-static  lbryhash_context_holder ctx __attribute__ ((aligned (64)));
-
-void init_lbry_contexts(void *dummy)
-{
-#if defined __SHA__
-   SHA256_Init( &ctx.sha256 );
-#else
-   sph_sha256_init( &ctx.sha256 );
-#endif
-   sph_sha512_init( &ctx.sha512 );
-   sph_ripemd160_init( &ctx.ripemd );
-}
 
 void lbry_hash(void* output, const void* input)
 {

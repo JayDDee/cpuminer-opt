@@ -9,6 +9,11 @@ are not yet available.
 Compile Instructions
 --------------------
 
+Requirements:
+
+Intel Core2 or newer, or AMD Steamroller or newer CPU.
+64 bit Linux or Windows operating system.
+
 Building on linux prerequisites:
 
 It is assumed users know how to install packages on their system and
@@ -25,14 +30,11 @@ are some of the ones that may not be in the default install and need to
 be installed manually. There may be others, read the error messages they
 will give a clue as to the missing package.
 
-The folliwing command should install everything you need on Debian based
-packages:
+The following command should install everything you need on Debian based
+distributions such as Ubuntu:
 
 sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev automake
 
-Building on Linux, see below for Windows.
-
-Dependencies
 
 build-essential  (for Ubuntu, Development Tools package group on Fedora)
 automake
@@ -60,7 +62,7 @@ make
 
 Start mining.
 
-./cpuminer -a algo ...
+./cpuminer -a algo -o url -u username -p password
 
 Building on Windows prerequisites:
 
@@ -115,6 +117,12 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.6.4
+
+Added support for Bitcore (BTX) using the timetravel10 algo, optimized for
+AES and AVX2. 
+"-a bitcore" works as an alias and is less typing that "-a timetravel10".
 
 v3.6.3
 

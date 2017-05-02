@@ -28,9 +28,10 @@ Supported Algorithms
                           cryptonight  cryptonote, Monero (XMR)
                           decred
                           deep         Deepcoin (DCN)
+                          dmd-gr       Diamond-Groestl
                           drop         Dropcoin
                           fresh        Fresh
-                          groestl      dmd-gr, Groestl coin
+                          groestl      Groestl coin
                           heavy        Heavy
                           hmq1725      Espers
                           hodl         Hodlcoin
