@@ -6,6 +6,9 @@ compile flag.
 HW SHA support is only available when compiled from source, Windows binaries
 are not yet available.
 
+cpuminer-opt is a console program, if you're using a mouse you're doing it
+wrong.
+
 Compile Instructions
 --------------------
 
@@ -117,6 +120,11 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.6.5
+
+Cryptonight a little faster.
+Added jha algo (Jackpotcoin) with AES optimizations.
 
 v3.6.4
 

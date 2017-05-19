@@ -35,6 +35,7 @@ Supported Algorithms
                           heavy        Heavy
                           hmq1725      Espers
                           hodl         Hodlcoin
+                          jha          jackpotcoin
                           keccak       Keccak
                           lbry         LBC, LBRY Credits
                           luffa        Luffa
@@ -59,6 +60,7 @@ Supported Algorithms
                           skein        Skein+Sha (Skeincoin)
                           skein2       Double Skein (Woodcoin)
                           timetravel   Machinecoin (MAC)
+                          timetravel10 Bitcore
                           vanilla      blake256r8vnl (VCash)
                           veltor
                           whirlpool

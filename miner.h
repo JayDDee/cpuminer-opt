@@ -495,6 +495,7 @@ enum algos {
         ALGO_HEAVY,
         ALGO_HMQ1725,
         ALGO_HODL,
+        ALGO_JHA,
         ALGO_KECCAK,
         ALGO_LBRY,
         ALGO_LUFFA,       
@@ -558,6 +559,7 @@ static const char* const algo_names[] = {
         "heavy",
         "hmq1725",
         "hodl",
+        "jha",
         "keccak",
         "lbry",
         "luffa",
@@ -675,6 +677,7 @@ Options:\n\
                           heavy        Heavy\n\
                           hmq1725      Espers\n\
                           hodl         Hodlcoin\n\
+                          jha          jackppot (Jackpotcoin)\n\
                           keccak       Keccak\n\
                           lbry         LBC, LBRY Credits\n\
                           luffa        Luffa\n\

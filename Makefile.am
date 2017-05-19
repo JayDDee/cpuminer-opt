@@ -90,6 +90,7 @@ cpuminer_SOURCES = \
   algo/hodl/hodl-wolf.c \
   algo/hodl/sha512_avx.c \
   algo/hodl/sha512_avx2.c \
+  algo/jh/jha.c \
   algo/lbry.c \
   algo/luffa/luffa.c \
   algo/luffa/sse2/luffa_for_sse2.c \
