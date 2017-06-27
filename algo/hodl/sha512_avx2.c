@@ -3,6 +3,9 @@
 //Dependencies
 #include <string.h>
 #include <stdlib.h>
+#ifdef __FreeBSD__
+#include <sys/endian.h>
+#endif
 #include "tmmintrin.h"
 #include "smmintrin.h"
 #include "immintrin.h"
