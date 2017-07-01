@@ -103,6 +103,10 @@ Run winbuild.sh to build on Windows or execute the following commands.
 CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" ./configure --with-curl
 make
 
+Start mining
+
+cpuminer.exe -a algo -o url -u user -p password
+
 The following tips may be useful for older AMD CPUs.
 
 AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
@@ -120,6 +124,17 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.6.6
+
+added tribus algo for Denarius (DNR)
+
+configure removed from .gitignore. This should allow git clone to compile
+on Windows/mingw.
+
+Fixed CPU temperature monitoring on some CPUs (Linux only).
+
+Fixed a compile error on FreeBSD (unsupported YMMV).
 
 v3.6.5
 

@@ -99,22 +99,21 @@ void groestl_set_target( struct work* work, double job_diff )
  work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
 }
 
-bool register_groestl_algo( algo_gate_t* gate )
+bool register_dmd_gr_algo( algo_gate_t* gate )
 {
     init_groestl_ctx();
     gate->optimizations   = SSE2_OPT | AES_OPT;
     gate->scanhash        = (void*)&scanhash_groestl;
     gate->hash            = (void*)&groestlhash;
     gate->set_target      = (void*)&groestl_set_target;
-    gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
     gate->get_max64       = (void*)&get_max64_0x3ffff;
     return true;
 };
 
-bool register_dmd_gr_algo( algo_gate_t* gate )
+bool register_groestl_algo( algo_gate_t* gate )
 {
-    register_groestl_algo( gate );
-    gate->gen_merkle_root = (void*)&sha256d_gen_merkle_root;
+    register_dmd_gr_algo( gate );
+    gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
     return true;
 };
 

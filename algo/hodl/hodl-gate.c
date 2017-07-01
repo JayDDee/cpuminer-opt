@@ -97,13 +97,7 @@ bool hodl_do_this_thread( int thr_id )
 int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
                    uint64_t *hashes_done )
 {
-#ifdef NO_AES_NI
-  applog( LOG_ERR, "Only CPUs with AES are supported, use legacy version.");
-  return false;
-//  GetPsuedoRandomData( hodl_scratchbuf, work->data, thr_id );
-//  pthread_barrier_wait( &hodl_barrier );
-//  return scanhash_hodl( thr_id, work, max_nonce, hashes_done );
-#else
+#ifndef NO_AES_NI
   GenRandomGarbage( hodl_scratchbuf, work->data, thr_id );
   pthread_barrier_wait( &hodl_barrier );
   return scanhash_hodl_wolf( thr_id, work, max_nonce, hashes_done );
@@ -112,6 +106,10 @@ int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
 
 bool register_hodl_algo( algo_gate_t* gate )
 {
+#ifdef NO_AES_NI
+  applog( LOG_ERR, "Only CPUs with AES are supported, use legacy version.");
+  return false;
+#endif
   pthread_barrier_init( &hodl_barrier, NULL, opt_n_threads );
   gate->optimizations         = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   gate->scanhash              = (void*)&hodl_scanhash;
