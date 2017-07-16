@@ -22,7 +22,9 @@
 
 #include <stdint.h>
 
-typedef unsigned char byte;
+//typedef unsigned char byte;
+//`byte` was defined here
+#include "algo/sha/sha3-defs.h"
 
 //Block length required so Blake2's Initialization Vector (IV) is not overwritten (THIS SHOULD NOT BE MODIFIED)
 #define BLOCK_LEN_BLAKE2_SAFE_INT64 8                                   //512 bits (=64 bytes, =8 uint64_t)

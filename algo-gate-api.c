@@ -146,9 +146,12 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
    switch (algo)
    {
 
+#if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
+// #pragma GCC diagnostic push & pop were added in gcc 4.6
 // Ignore warnings for not yet defined register fucntions
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
+#endif
 
      case ALGO_ARGON2:       register_argon2_algo      ( gate ); break;
      case ALGO_AXIOM:        register_axiom_algo       ( gate ); break;
@@ -211,8 +214,10 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_YESCRYPT:     register_yescrypt_algo    ( gate ); break;
      case ALGO_ZR5:          register_zr5_algo         ( gate ); break;
 
+#if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
 // restore warnings
 #pragma GCC diagnostic pop
+#endif
 
     default:
         applog(LOG_ERR,"FAIL: algo_gate registration failed, unknown algo %s.\n", algo_names[opt_algo] );
