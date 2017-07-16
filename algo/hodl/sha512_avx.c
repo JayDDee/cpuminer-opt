@@ -200,11 +200,13 @@ void sha512ProcessBlock(Sha512Context context[2])
     INIT(g, 6)
     INIT(h, 7)
 
+#if (!defined(__GNUC__)) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)))
     int i = 0;
     R512_0; R512_0;
     for(int j=0; j<8; ++j) {
         R512_16;
     }
+#endif
 
     context[0].h[0] += a[0];
     context[0].h[1] += b[0];

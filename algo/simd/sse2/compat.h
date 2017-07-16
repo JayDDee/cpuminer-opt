@@ -1,5 +1,5 @@
-#ifndef __COMPAT_H__
-#define __COMPAT_H__
+#ifndef __ALGO_SIMD_SSE2_COMPAT_H__
+#define __ALGO_SIMD_SSE2_COMPAT_H__
 
 #include <limits.h>
 
@@ -24,7 +24,10 @@
  */
 
 #include <stdint.h>
+#include "algo/groestl/aes_ni/brg_types.h"
 
+#ifndef _BRG_TYPES_H
+ +// `algo/groestl/aes_ni/brg_types.h` defined
 #ifdef UINT32_MAX
 typedef uint32_t u32;
 #else
@@ -32,6 +35,7 @@ typedef uint_fast32_t u32;
 #endif
 
 typedef unsigned long long u64;
+#endif
 
 #define C32(x)    ((u32)(x))
 

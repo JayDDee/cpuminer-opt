@@ -18,6 +18,35 @@
  #include <openssl/sha.h>
 #endif
 
+#if __GNU_MP_VERSION < 5
+// new type for gmp 5+
+// https://gmplib.org/list-archives/gmp-announce/2010-January/000024.html
+typedef unsigned long mp_bitcnt_t;
+
+void mpz_inits(mpz_t x, ...)
+{
+  va_list ap;
+  va_start(ap, x);
+  while (x)
+  {
+    mpz_init(x);
+    x = va_arg(ap, mpz_t);
+  }
+  va_end(ap);
+}
+
+void mpz_clears(mpz_t x, ...)
+{
+  va_list ap;
+  va_start(ap, x);
+  while (x)
+  {
+    mpz_clear(x);
+    x = va_arg(ap, mpz_t);
+  }
+  va_end(ap);
+}
+#endif
 
 #define EPSa DBL_EPSILON
 #define EPS1 DBL_EPSILON

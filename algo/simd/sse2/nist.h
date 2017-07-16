@@ -22,11 +22,6 @@
  // typedef unsigned long DataLength;
 //#endif
 
-// can't find u32 or fft-t
-#include <stdint.h>
-typedef uint32_t u32;
-typedef int fft_t;
-
 
 //typedef enum { SUCCESS = 0, FAIL = 1, BAD_HASHBITLEN = 2} HashReturn;
 
