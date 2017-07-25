@@ -22,15 +22,12 @@
 */
 
 
-
 #include <emmintrin.h>
 #include <stdint.h>
 #include <string.h>
+#include "algo/sha/sha3-defs.h"
 
 typedef __m128i  word128;   /*word128 defines a 128-bit SSE2 word*/
-
-typedef unsigned char BitSequence;
-typedef unsigned long long DataLength;
 typedef enum {jhSUCCESS = 0, jhFAIL = 1, jhBAD_HASHLEN = 2} jhReturn;
 
 /*define data alignment for different C compilers*/

@@ -1,5 +1,5 @@
-#ifndef __COMPAT_H__
-#define __COMPAT_H__
+#ifndef __SIMD_COMPAT_H__
+#define __SIMD_COMPAT_H__
 
 #include <limits.h>
 
@@ -24,14 +24,7 @@
  */
 
 #include <stdint.h>
-
-#ifdef UINT32_MAX
-typedef uint32_t u32;
-#else
-typedef uint_fast32_t u32;
-#endif
-
-typedef unsigned long long u64;
+#include "algo/sha/brg_types.h"
 
 #define C32(x)    ((u32)(x))
 

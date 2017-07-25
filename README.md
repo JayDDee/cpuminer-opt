@@ -40,7 +40,7 @@ Supported Algorithms
                           lbry         LBC, LBRY Credits
                           luffa        Luffa
                           lyra2re      lyra2
-                          lyra2rev2    lyrav2, Vertcoin
+                          lyra2rev2    lyra2v2, Vertcoin
                           lyra2z       Zcoin (XZC)
                           lyra2z330    Lyra2 330 rows, Zoin (ZOI)
                           m7m          Magi (XMG)
@@ -59,8 +59,10 @@ Supported Algorithms
                           shavite3     Shavite3
                           skein        Skein+Sha (Skeincoin)
                           skein2       Double Skein (Woodcoin)
+                          skunk        Signatum (SIGT)
                           timetravel   Machinecoin (MAC)
                           timetravel10 Bitcore
+                          tribus       Denarius (DNR)
                           vanilla      blake256r8vnl (VCash)
                           veltor
                           whirlpool

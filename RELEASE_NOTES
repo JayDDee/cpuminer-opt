@@ -49,7 +49,8 @@ pthreads
 zlib
 
 SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and openssl 1.1
-or higher. Additional compile options may also be required such as
+or higher. Some older versions of openssl may also work, it is known to work
+with Ubuntu 16.04. Additional compile options may also be required such as
 "-march-znver1" or "-msha".
 
 Extract cpuminer source.
@@ -124,6 +125,12 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.6.7
+
+Skunk algo added.
+Tribus a little faster.
+Minor restructuring.
 
 v3.6.6
 

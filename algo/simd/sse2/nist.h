@@ -8,27 +8,11 @@
 #define DATA_ALIGN(x) __declspec(align(16)) x
 #endif
 
-#include "compat.h"
+#include "simd-compat.h"
 #include "algo/sha/sha3-defs.h"
 /*
  * NIST API Specific types.
  */
-
-//typedef unsigned char BitSequence;
-
-//#ifdef HAS_64
- // typedef u64 DataLength;
-//#else
- // typedef unsigned long DataLength;
-//#endif
-
-// can't find u32 or fft-t
-#include <stdint.h>
-typedef uint32_t u32;
-typedef int fft_t;
-
-
-//typedef enum { SUCCESS = 0, FAIL = 1, BAD_HASHBITLEN = 2} HashReturn;
 
 typedef struct {
   unsigned int hashbitlen;

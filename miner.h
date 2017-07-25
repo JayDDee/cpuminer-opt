@@ -518,7 +518,7 @@ enum algos {
         ALGO_SHAVITE3,    
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
-        ALGO_S3,          
+        ALGO_SKUNK,
         ALGO_TIMETRAVEL,
         ALGO_TIMETRAVEL10,
         ALGO_TRIBUS,
@@ -583,7 +583,7 @@ static const char* const algo_names[] = {
         "shavite3",
         "skein",
         "skein2",
-        "s3",
+        "skunk",
         "timetravel",
         "timetravel10",
         "tribus",
@@ -703,6 +703,7 @@ Options:\n\
                           shavite3     Shavite3\n\
                           skein        Skein+Sha (Skeincoin)\n\
                           skein2       Double Skein (Woodcoin)\n\
+                          skunk        Signatum (SIGT)\n\
                           timetravel   timeravel8, Machinecoin (MAC)\n\
                           timetravel10 Bitcore (BTX)\n\
                           tribus       Denarius (DNR)\n\

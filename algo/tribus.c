@@ -24,19 +24,7 @@ typedef struct {
 #endif
 } tribus_ctx_holder;
 
-tribus_ctx_holder tribus_ctx;
-
-void init_tribus_ctx()
-{
-     sph_jh512_init( &tribus_ctx.jh );
-     sph_keccak512_init( &tribus_ctx.keccak );
-
-#ifdef NO_AES_NI
-     sph_echo512_init( &tribus_ctx.echo );
-#else
-     init_echo( &tribus_ctx.echo, 512 );
-#endif
-}
+static __thread tribus_ctx_holder tribus_ctx;
 
 void tribus_hash(void *state, const void *input)
 {
@@ -44,7 +32,7 @@ void tribus_hash(void *state, const void *input)
      tribus_ctx_holder ctx;
      memcpy( &ctx, &tribus_ctx, sizeof(tribus_ctx) );
 
-     sph_jh512( &ctx.jh, input, 80 );
+     sph_jh512( &ctx.jh, input+64, 16 );
      sph_jh512_close( &ctx.jh, (void*) hash );
 
      sph_keccak512( &ctx.keccak, (const void*) hash, 64 );
@@ -93,6 +81,10 @@ int scanhash_tribus(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
 		be32enc(&endiandata[i], pdata[i]);
 	}
 
+        // precalc midstate
+        sph_jh512_init( &tribus_ctx.jh );
+        sph_jh512( &tribus_ctx.jh, endiandata, 64 );
+
 #ifdef DEBUG_ALGO
 	printf("[%d] Htarg=%X\n", thr_id, Htarg);
 #endif
@@ -131,9 +123,21 @@ int scanhash_tribus(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
 	return 0;
 }
 
+bool tribus_thread_init()
+{
+   sph_jh512_init( &tribus_ctx.jh );
+   sph_keccak512_init( &tribus_ctx.keccak );
+#ifdef NO_AES_NI
+   sph_echo512_init( &tribus_ctx.echo );
+#else
+   init_echo( &tribus_ctx.echo, 512 );
+#endif
+  return true;
+}
+
 bool register_tribus_algo( algo_gate_t* gate )
 {
-  init_tribus_ctx();
+  gate->miner_thread_init = (void*)&tribus_thread_init;
   gate->optimizations = SSE2_OPT | AES_OPT;
   gate->get_max64     = (void*)&get_max64_0x1ffff;
   gate->scanhash      = (void*)&scanhash_tribus;

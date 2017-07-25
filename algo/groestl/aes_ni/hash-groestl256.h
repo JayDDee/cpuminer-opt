@@ -35,7 +35,7 @@ typedef crypto_uint64 u64;
 
 #include "brg_endian.h"
 #define NEED_UINT_64T
-#include "brg_types.h"
+#include "algo/sha/brg_types.h"
 
 #ifdef IACA_TRACE
   #include IACA_MARKS

@@ -117,7 +117,7 @@ cpuminer_SOURCES = \
   algo/simd/sse2/vector.c \
   algo/skein/skein.c \
   algo/skein/skein2.c \
-  algo/s3.c \
+  algo/skunk.c \
   algo/tiger/sph_tiger.c \
   algo/timetravel.c \
   algo/timetravel10.c \

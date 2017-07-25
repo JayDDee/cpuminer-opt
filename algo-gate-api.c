@@ -192,7 +192,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_SHAVITE3:     register_shavite_algo     ( gate ); break;
      case ALGO_SKEIN:        register_skein_algo       ( gate ); break;
      case ALGO_SKEIN2:       register_skein2_algo      ( gate ); break;
-     case ALGO_S3:           register_s3_algo          ( gate ); break;
+     case ALGO_SKUNK:        register_skunk_algo       ( gate ); break;
      case ALGO_TIMETRAVEL:   register_timetravel_algo  ( gate ); break;
      case ALGO_TIMETRAVEL10: register_timetravel10_algo( gate ); break;
      case ALGO_TRIBUS:       register_tribus_algo      ( gate ); break;
