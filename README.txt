@@ -1,6 +1,9 @@
 This file is included in the Windows binary package. Compile instructions
 for Linux and Windows can be found in RELEASE_NOTES.
 
+cpuminer is a console program that is executed from a DOS command prompt.
+There is no GUI and no mouse support.
+
 Choose the exe that best matches you CPU's features or use trial and
 error to find the fastest one that doesn't crash. Pay attention to
 the features listed at cpuminer startup to ensure you are mining at

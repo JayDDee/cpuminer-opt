@@ -120,7 +120,7 @@ void init_tt_ctx()
 
 void timetravel_hash(void *output, const void *input)
 {
-   uint32_t hash[128] __attribute__ ((aligned (64)));
+   uint32_t hash[ 16 * HASH_FUNC_COUNT ] __attribute__ ((aligned (64)));
    uint32_t *hashA, *hashB;
    tt_ctx_holder ctx __attribute__ ((aligned (64)));
    uint32_t dataLen = 64;

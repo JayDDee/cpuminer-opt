@@ -119,6 +119,10 @@ forum at:
 
 https://bitcointalk.org/index.php?topic=1326803.0
 
+All problem reports must be accompanied by a proper definition.
+This should include how the problem occurred, the command line and
+output from the miner showing the startup and any errors.
+
 Donations
 ---------
 
