@@ -182,6 +182,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_NEOSCRYPT:    register_neoscrypt_algo   ( gate ); break;
      case ALGO_NIST5:        register_nist5_algo       ( gate ); break;
      case ALGO_PENTABLAKE:   register_pentablake_algo  ( gate ); break;
+     case ALGO_PHI1612:      register_phi1612_algo     ( gate ); break;
      case ALGO_PLUCK:        register_pluck_algo       ( gate ); break;
      case ALGO_QUARK:        register_quark_algo       ( gate ); break;
      case ALGO_QUBIT:        register_qubit_algo       ( gate ); break;
@@ -204,6 +205,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_X11EVO:       register_x11evo_algo      ( gate ); break;
      case ALGO_X11GOST:      register_sib_algo         ( gate ); break;
      case ALGO_X13:          register_x13_algo         ( gate ); break;
+     case ALGO_X13SM3:       register_x13sm3_algo      ( gate ); break;
      case ALGO_X14:          register_x14_algo         ( gate ); break;
      case ALGO_X15:          register_x15_algo         ( gate ); break;
      case ALGO_X17:          register_x17_algo         ( gate ); break;
@@ -278,6 +280,7 @@ const char* const algo_alias_map[][2] =
   { "droplp",            "drop"         },
   { "espers",            "hmq1725"      },
   { "flax",              "c11"          },
+  { "hsr",               "x13sm3"       },
   { "jackpot",           "jha"          },
   { "jane",              "scryptjane"   }, 
   { "lyra2",             "lyra2re"      },
@@ -285,6 +288,7 @@ const char* const algo_alias_map[][2] =
   { "lyra2zoin",         "lyra2z330"    },
   { "myriad",            "myr-gr"       },
   { "neo",               "neoscrypt"    },
+  { "phi",               "phi1612"      },
 //  { "sia",               "blake2b"      },
   { "sib",               "x11gost"      },
   { "timetravel8",       "timetravel"   },

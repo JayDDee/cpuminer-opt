@@ -508,6 +508,7 @@ enum algos {
         ALGO_NEOSCRYPT,
         ALGO_NIST5,       
         ALGO_PENTABLAKE,  
+        ALGO_PHI1612,
         ALGO_PLUCK,       
         ALGO_QUARK,
         ALGO_QUBIT,       
@@ -530,6 +531,7 @@ enum algos {
         ALGO_X11EVO,         
         ALGO_X11GOST,
         ALGO_X13,         
+        ALGO_X13SM3,
         ALGO_X14,        
         ALGO_X15,       
         ALGO_X17,
@@ -573,6 +575,7 @@ static const char* const algo_names[] = {
         "neoscrypt",
         "nist5",
         "pentablake",
+        "phi1612",
         "pluck",
         "quark",
         "qubit",
@@ -595,6 +598,7 @@ static const char* const algo_names[] = {
         "x11evo",
         "x11gost",
         "x13",
+        "x13sm3",
         "x14",
         "x15",
         "x17",
@@ -691,8 +695,9 @@ Options:\n\
                           myr-gr       Myriad-Groestl\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\
                           nist5        Nist5\n\
-                          pluck        Pluck:128 (Supcoin)\n\
                           pentablake   Pentablake\n\
+                          pluck        Pluck:128 (Supcoin)\n\
+                          phi1612      phi, LUX coin\n\
                           quark        Quark\n\
                           qubit        Qubit\n\
                           scrypt       scrypt(1024, 1, 1) (default)\n\
@@ -715,6 +720,7 @@ Options:\n\
                           x11evo       Revolvercoin\n\
                           x11gost      sib (SibCoin)\n\
                           x13          X13\n\
+                          x13sm3       hsr (Hshare)\n\
                           x14          X14\n\
                           x15          X15\n\
                           x17\n\

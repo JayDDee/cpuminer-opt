@@ -9,6 +9,19 @@ are not yet available.
 cpuminer-opt is a console program, if you're using a mouse you're doing it
 wrong.
 
+Security warning
+----------------
+
+Miner programs are often flagged as malware by antivirus programs. This is
+a false positive, they are flagged simply because they are miners. The source
+code is open for anyone to inspect. If you don't trust the software, don't use
+it.
+
+The cryptographic code has been taken from trusted sources but has been
+modified for speed at the expense of accepted security practices. This
+code should not be imported into applications where secure cryptography is
+required.
+
 Compile Instructions
 --------------------
 
@@ -126,9 +139,14 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.6.9
+
+Added phi1612 algo for LUX coin
+Added x13sm3 algo, alias hsr, for Hshare coin
+
 v3.6.8
 
-Fixes timetravel10 on Windows.
+Fixed timetravel10 on Windows.
 
 v3.6.7
 

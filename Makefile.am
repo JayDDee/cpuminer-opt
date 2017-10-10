@@ -44,6 +44,7 @@ cpuminer_SOURCES = \
   algo/sha/sph_sha2.c \
   algo/sha/sph_sha2big.c \
   algo/shabal/sph_shabal.c \
+  algo/sm3/sm3.c \
   algo/whirlpool/sph_whirlpool.c\
   crypto/blake2s.c \
   crypto/oaes_lib.c \
@@ -125,11 +126,13 @@ cpuminer_SOURCES = \
   algo/veltor.c \
   algo/whirlpool/whirlpool.c \
   algo/whirlpool/whirlpoolx.c \
+  algo/x11/phi1612.c \
   algo/x11/x11.c \
   algo/x11/x11evo.c \
   algo/x11/x11gost.c \
   algo/x11/c11.c \
   algo/x13/x13.c \
+  algo/x13/x13sm3.c \
   algo/x14/x14.c \
   algo/x15/x15.c \
   algo/x17/x17.c \
