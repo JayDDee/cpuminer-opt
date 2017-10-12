@@ -139,6 +139,10 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.6.10
+
+Fixed misalignment bug in hsr.
+
 v3.6.9
 
 Added phi1612 algo for LUX coin

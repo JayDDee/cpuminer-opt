@@ -47,8 +47,9 @@ Supported Algorithms
                           myr-gr       Myriad-Groestl
                           neoscrypt    NeoScrypt(128, 2, 1)
                           nist5        Nist5
-                          pluck        Pluck:128 (Supcoin)
                           pentablake   Pentablake
+                          phi1612      phi, LUX coin
+                          pluck        Pluck:128 (Supcoin)
                           quark        Quark
                           qubit        Qubit
                           scrypt       scrypt(1024, 1, 1) (default)
@@ -71,6 +72,7 @@ Supported Algorithms
                           x11evo       Revolvercoin
                           x11gost      sib (SibCoin)
                           x13          X13
+                          x13sm3       hsr (Hshare)
                           x14          X14
                           x15          X15
                           x17

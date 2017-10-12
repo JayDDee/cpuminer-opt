@@ -696,8 +696,8 @@ Options:\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\
                           nist5        Nist5\n\
                           pentablake   Pentablake\n\
-                          pluck        Pluck:128 (Supcoin)\n\
                           phi1612      phi, LUX coin\n\
+                          pluck        Pluck:128 (Supcoin)\n\
                           quark        Quark\n\
                           qubit        Qubit\n\
                           scrypt       scrypt(1024, 1, 1) (default)\n\

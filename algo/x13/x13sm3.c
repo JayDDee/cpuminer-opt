@@ -70,7 +70,7 @@ void init_hsr_ctx()
 
 static void x13sm3hash(void *output, const void *input)
 {
-	unsigned char hash[128]; __attribute__ ((aligned (32)))
+	unsigned char hash[128] __attribute__ ((aligned (32)));
 
         hsr_ctx_holder ctx;
         memcpy(&ctx, &hsr_ctx, sizeof(hsr_ctx));
@@ -157,7 +157,7 @@ static void x13sm3hash(void *output, const void *input)
                             (const BitSequence *)hash, 512 );
 #endif
 
-        uint32_t sm3_hash[32];
+        uint32_t sm3_hash[32] __attribute__ ((aligned (32)));
         memset(sm3_hash, 0, sizeof sm3_hash);
 
         sph_sm3(&ctx.sm3, hash, 64);
