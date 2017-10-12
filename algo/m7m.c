@@ -372,10 +372,11 @@ bool register_m7m_algo( algo_gate_t *gate )
   init_m7m_ctx();
   gate->scanhash              = (void*)scanhash_m7m_hash;
   gate->build_stratum_request = (void*)&std_be_build_stratum_request;
+  gate->work_decode           = (void*)&std_be_work_decode;
+  gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
   gate->set_target            = (void*)&scrypt_set_target;
   gate->get_max64             = (void*)&get_max64_0x1ffff;
   gate->set_work_data_endian  = (void*)&m7m_reverse_endian;
-  gate->work_data_size        = 80;
   return true;
 }
 

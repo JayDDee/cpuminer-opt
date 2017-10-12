@@ -1089,6 +1089,8 @@ bool register_neoscrypt_algo( algo_gate_t* gate )
   gate->set_target            = (void*)&scrypt_set_target;
   gate->wait_for_diff         = (void*)&neoscrypt_wait_for_diff;
   gate->build_stratum_request = (void*)&std_be_build_stratum_request;
+  gate->work_decode           = (void*)&std_be_work_decode;
+  gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
   gate->set_work_data_endian  = (void*)&swab_work_data;
   gate->work_data_size        = 80;
   return true;

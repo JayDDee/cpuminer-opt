@@ -229,6 +229,8 @@ bool register_zr5_algo( algo_gate_t* gate )
     gate->get_max64             = (void*)&zr5_get_max64;
     gate->display_extra_data    = (void*)&zr5_display_pok;
     gate->build_stratum_request = (void*)&std_be_build_stratum_request;
+    gate->work_decode           = (void*)&std_be_work_decode;
+    gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
     gate->set_work_data_endian  = (void*)&swab_work_data;
     gate->work_data_size        = 80;
     gate->work_cmp_size         = 72;

@@ -215,10 +215,12 @@ int64_t get_max64_0xffffLL();
 void std_set_target   ( struct work *work, double job_diff );
 void scrypt_set_target( struct work *work, double job_diff );
 
-bool std_work_decode( const json_t *val, struct work *work );
+bool std_le_work_decode( const json_t *val, struct work *work );
+bool std_be_work_decode( const json_t *val, struct work *work );
 bool jr2_work_decode( const json_t *val, struct work *work );
 
-bool std_submit_getwork_result( CURL *curl, struct work *work );
+bool std_le_submit_getwork_result( CURL *curl, struct work *work );
+bool std_be_submit_getwork_result( CURL *curl, struct work *work );
 bool jr2_submit_getwork_result( CURL *curl, struct work *work );
 
 void std_le_build_stratum_request( char *req, struct work *work );

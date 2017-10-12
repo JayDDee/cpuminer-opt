@@ -279,7 +279,7 @@ void work_copy(struct work *dest, const struct work *src)
 bool jr2_work_decode( const json_t *val, struct work *work )
 { return rpc2_job_decode( val, work ); }
 
-bool std_work_decode( const json_t *val, struct work *work )
+bool std_le_work_decode( const json_t *val, struct work *work )
 {
     int i;
     const int data_size   = algo_gate.work_data_size;
@@ -301,6 +301,31 @@ bool std_work_decode( const json_t *val, struct work *work )
           work->data[i] = le32dec( work->data + i );
     for ( i = 0; i < atarget_sz; i++ )
           work->target[i] = le32dec( work->target + i );
+    return true;
+}
+
+bool std_be_work_decode( const json_t *val, struct work *work )
+{
+    int i;
+    const int data_size   = algo_gate.work_data_size;
+    const int target_size = sizeof(work->target);
+    const int adata_sz    = data_size / 4;
+    const int atarget_sz  = ARRAY_SIZE(work->target);
+
+    if (unlikely( !jobj_binary(val, "data", work->data, data_size) ))
+    {
+       applog(LOG_ERR, "JSON invalid data");
+       return false;
+    }
+    if (unlikely( !jobj_binary(val, "target", work->target, target_size) ))
+    {
+       applog(LOG_ERR, "JSON invalid target");
+       return false;
+    }
+    for ( i = 0; i < adata_sz; i++ )
+          work->data[i] = be32dec( work->data + i );
+    for ( i = 0; i < atarget_sz; i++ )
+          work->target[i] = be32dec( work->target + i );
     return true;
 }
 
@@ -852,7 +877,7 @@ void jr2_build_stratum_request( char *req, struct work *work )
    free( hashhex );
 }
 
-bool std_submit_getwork_result( CURL *curl, struct work *work )
+bool std_le_submit_getwork_result( CURL *curl, struct work *work )
 {
    char req[JSON_BUF_LEN];
    json_t *val, *res, *reason;
@@ -885,6 +910,41 @@ bool std_submit_getwork_result( CURL *curl, struct work *work )
    json_decref( val );
    return true;
 }
+
+bool std_be_submit_getwork_result( CURL *curl, struct work *work )
+{
+   char req[JSON_BUF_LEN];
+   json_t *val, *res, *reason;
+   char* gw_str;
+   int data_size = algo_gate.work_data_size;
+
+   for ( int i = 0; i < data_size / sizeof(uint32_t); i++ )
+     be32enc( &work->data[i], work->data[i] );
+   gw_str = abin2hex( (uchar*)work->data, data_size );
+   if ( unlikely(!gw_str) )
+   {
+      applog(LOG_ERR, "submit_upstream_work OOM");
+      return false;
+   }
+   // build JSON-RPC request 
+   snprintf( req, JSON_BUF_LEN,
+     "{\"method\": \"getwork\", \"params\": [\"%s\"], \"id\":4}\r\n", gw_str );
+   free( gw_str );
+   // issue JSON-RPC request 
+   val = json_rpc_call( curl, rpc_url, rpc_userpass, req, NULL, 0 );
+   if ( unlikely(!val) )
+   {
+       applog(LOG_ERR, "submit_upstream_work json_rpc_call failed");
+       return false;
+   }
+   res = json_object_get( val, "result" );
+   reason = json_object_get( val, "reject-reason" );
+   share_result( json_is_true( res ), work,
+                 reason ? json_string_value( reason ) : NULL );
+   json_decref( val );
+   return true;
+}
+
 
 bool jr2_submit_getwork_result( CURL *curl, struct work *work )
 {

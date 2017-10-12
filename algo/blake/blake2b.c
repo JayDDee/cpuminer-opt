@@ -220,6 +220,8 @@ bool register_blake2b_algo( algo_gate_t* gate )
   gate->hash                  = (void*)&blake2b_hash;
   gate->calc_network_diff     = (void*)&blake2b_calc_network_diff;
   gate->build_stratum_request = (void*)&blake2b_be_build_stratum_request;
+  gate->work_decode           = (void*)&std_be_work_decode;
+  gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
   gate->build_extraheader     = (void*)&blake2b_build_extraheader;
   gate->get_new_work          = (void*)&blake2b_get_new_work;
   gate->get_max64             = (void*)&blake2b_get_max64;

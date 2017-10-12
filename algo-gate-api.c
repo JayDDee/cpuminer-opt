@@ -114,8 +114,8 @@ void init_algo_gate( algo_gate_t* gate )
    gate->stratum_gen_work        = (void*)&std_stratum_gen_work;
    gate->build_stratum_request   = (void*)&std_le_build_stratum_request;
    gate->set_target              = (void*)&std_set_target;
-   gate->work_decode             = (void*)&std_work_decode;
-   gate->submit_getwork_result   = (void*)&std_submit_getwork_result;
+   gate->work_decode             = (void*)&std_le_work_decode;
+   gate->submit_getwork_result   = (void*)&std_le_submit_getwork_result;
    gate->build_extraheader       = (void*)&std_build_extraheader;
    gate->set_work_data_endian    = (void*)&do_nothing;
    gate->calc_network_diff       = (void*)&std_calc_network_diff;
