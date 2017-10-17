@@ -75,7 +75,7 @@ void init_x14_ctx()
 
 static void x14hash(void *output, const void *input)
 {
-	unsigned char hash[128]; __attribute__ ((aligned (32)))
+	unsigned char hash[128] __attribute__ ((aligned (32)));
 	#define hashB hash+64
 
         x14_ctx_holder ctx;

@@ -111,15 +111,7 @@ uint32_t *decred_get_nonceptr( uint32_t *work_data )
    return &work_data[ DECRED_NONCE_INDEX ];
 }
 
-// does decred need a custom stratum_get_g_work to fix nicehash
-//  bad extranonce2 size?
-// 
-// does decred need a custom init_nonce?
-// does it need to increment nonce, seems not because gen_work_now always
-// returns true
-
 double decred_calc_network_diff( struct work* work )
-//void decred_calc_network_diff( struct work* work )
 {
    // sample for diff 43.281 : 1c05ea29
    // todo: endian reversed on longpoll could be zr5 specific...
@@ -235,11 +227,15 @@ void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    for ( i = 0; i < headersize/4; i++ ) // header
       g_work->data[17 + i] = extraheader[i];
    // extradata
+
    for ( i = 0; i < sctx->xnonce1_size/4; i++ )
       g_work->data[ DECRED_XNONCE_INDEX + i ] = extradata[i];
    for ( i = DECRED_XNONCE_INDEX + sctx->xnonce1_size/4; i < 45; i++ )
       g_work->data[i] = 0;
    g_work->data[37] = (rand()*4) << 8;
+   // block header suffix from coinb2 (stake version)
+   memcpy( &g_work->data[44],
+           &sctx->job.coinbase[ sctx->job.coinbase_size-4 ], 4 );
    sctx->bloc_height = g_work->data[32];
    //applog_hex(work->data, 180);
    //applog_hex(&work->data[36], 36);

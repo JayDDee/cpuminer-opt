@@ -279,6 +279,7 @@ void work_copy(struct work *dest, const struct work *src)
 bool jr2_work_decode( const json_t *val, struct work *work )
 { return rpc2_job_decode( val, work ); }
 
+// Default
 bool std_le_work_decode( const json_t *val, struct work *work )
 {
     int i;
@@ -325,7 +326,7 @@ bool std_be_work_decode( const json_t *val, struct work *work )
     for ( i = 0; i < adata_sz; i++ )
           work->data[i] = be32dec( work->data + i );
     for ( i = 0; i < atarget_sz; i++ )
-          work->target[i] = be32dec( work->target + i );
+          work->target[i] = le32dec( work->target + i );
     return true;
 }
 
@@ -1518,12 +1519,12 @@ void scrypt_set_target( struct work* work, double job_diff )
    work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
 }
 
-// set_work_data_endian target, default is do_nothing
-void swab_work_data( struct work *work )
+// Default is do_nothing (assumed LE)
+void set_work_data_big_endian( struct work *work )
 {
    int nonce_index = algo_gate.nonce_index;
    for ( int i = 0; i < nonce_index; i++ )
-      work->data[i] = swab32( work->data[i] );
+        be32enc( work->data + i, work->data[i] );
 }
 
 double std_calc_network_diff( struct work* work )

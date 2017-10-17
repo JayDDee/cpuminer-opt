@@ -361,11 +361,6 @@ out:
     return rc;
 }
 
-void m7m_reverse_endian( struct work *work )
-{
-   swab32_array( work->data, work->data, 20 );
-}
-
 bool register_m7m_algo( algo_gate_t *gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | SHA_OPT;
@@ -376,7 +371,7 @@ bool register_m7m_algo( algo_gate_t *gate )
   gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
   gate->set_target            = (void*)&scrypt_set_target;
   gate->get_max64             = (void*)&get_max64_0x1ffff;
-  gate->set_work_data_endian  = (void*)&m7m_reverse_endian;
+  gate->set_work_data_endian  = (void*)&set_work_data_big_endian;
   return true;
 }
 

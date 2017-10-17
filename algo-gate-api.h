@@ -227,8 +227,8 @@ void std_le_build_stratum_request( char *req, struct work *work );
 void std_be_build_stratum_request( char *req, struct work *work );
 void jr2_build_stratum_request   ( char *req, struct work *work );
 
-// set_work_data_endian target, default is do_nothing;
-void swab_work_data( struct work *work );
+// Default is do_nothing (assumed LE)
+void set_work_data_big_endian( struct work *work );
 
 double std_calc_network_diff( struct work *work );
 
