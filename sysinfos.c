@@ -431,7 +431,7 @@ void cpuid_get_highest_function( char* s )
   }
 }
 
-void cpu_bestfeature(char *outbuf, int maxsz)
+void cpu_bestfeature(char *outbuf, size_t maxsz)
 {
 #ifdef __arm__
 	sprintf(outbuf, "ARM");

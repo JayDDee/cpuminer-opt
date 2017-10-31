@@ -27,7 +27,6 @@
  * online backup system.
  */
 
-#include "miner.h"
 #include "algo-gate-api.h"
 
 #include <stdlib.h>

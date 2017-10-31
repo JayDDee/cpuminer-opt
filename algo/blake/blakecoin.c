@@ -1,4 +1,3 @@
-#include "miner.h"
 #include "algo-gate-api.h"
 #define BLAKE32_ROUNDS 8
 #include "sph_blake.h"

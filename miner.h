@@ -332,7 +332,7 @@ bool   has_xop();
 bool   has_fma3();
 bool   has_sse42();
 bool   has_sse();
-void   cpu_bestcpu_feature( char *outbuf, size_t maxsz );
+void   cpu_bestfeature( char *outbuf, size_t maxsz );
 void   cpu_getname(char *outbuf, size_t maxsz);
 void   cpu_getmodelid(char *outbuf, size_t maxsz);
 void   cpu_brand_string( char* s );
@@ -537,6 +537,7 @@ enum algos {
         ALGO_X17,
         ALGO_XEVAN,
         ALGO_YESCRYPT,
+        ALGO_YESCRYPTR16,
         ALGO_ZR5,
         ALGO_COUNT
 };
@@ -604,6 +605,7 @@ static const char* const algo_names[] = {
         "x17",
         "xevan",
         "yescrypt",
+        "yescryptr16",
         "zr5",
         "\0"
 };
@@ -725,7 +727,8 @@ Options:\n\
                           x15          X15\n\
                           x17\n\
                           xevan        Bitsend\n\
-                          yescrypt\n\
+                          yescrypt     Globlboost-Y (BSTY)\n\
+                          yescryptr16  Yenten (YTN)\n\
                           zr5          Ziftr\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\

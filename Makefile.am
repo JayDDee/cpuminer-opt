@@ -138,7 +138,6 @@ cpuminer_SOURCES = \
   algo/x17/x17.c \
   algo/xevan.c \
   algo/yescrypt/yescrypt.c \
-  algo/yescrypt/yescrypt-common.c \
   algo/yescrypt/sha256_Y.c\
   algo/yescrypt/yescrypt-simd.c\
   algo/zr5.c

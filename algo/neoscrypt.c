@@ -31,7 +31,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "miner.h"
 #include "algo-gate-api.h"
 
 #define USE_CUSTOM_BLAKE2S

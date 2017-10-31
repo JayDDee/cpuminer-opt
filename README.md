@@ -77,7 +77,8 @@ Supported Algorithms
                           x15          X15
                           x17
                           xevan        Bitsend
-                          yescrypt
+                          yescrypt     Globalboost-Y (BSTY)
+                          yescryptr16  Yenten (YTN)
                           zr5          Ziftr
 
 Requirements

@@ -5,7 +5,6 @@
 // Modified for CPUminer by Lucas Jones
 
 #include "cpuminer-config.h"
-//#include "miner.h"
 #include "algo-gate-api.h"
 
 #ifndef NO_AES_NI

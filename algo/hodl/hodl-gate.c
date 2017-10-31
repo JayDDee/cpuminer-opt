@@ -1,10 +1,7 @@
 #include <memory.h>
 #include <stdlib.h>
 
-#include "miner.h"
-//#include "algo-gate-api.h"
 #include "hodl-gate.h"
-//#include "hodl.h"
 #include "hodl-wolf.h"
 
 #define HODL_NSTARTLOC_INDEX 20

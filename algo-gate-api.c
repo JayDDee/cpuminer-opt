@@ -211,6 +211,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_X17:          register_x17_algo         ( gate ); break;
      case ALGO_XEVAN:        register_xevan_algo       ( gate ); break;
      case ALGO_YESCRYPT:     register_yescrypt_algo    ( gate ); break;
+     case ALGO_YESCRYPTR16:  register_yescryptr16_algo ( gate ); break;
      case ALGO_ZR5:          register_zr5_algo         ( gate ); break;
 
 // restore warnings
@@ -294,6 +295,8 @@ const char* const algo_alias_map[][2] =
   { "timetravel8",       "timetravel"   },
   { "yes",               "yescrypt"     },
   { "ziftr",             "zr5"          },
+  { "yenten",            "yescryptr16"  },
+  { "yescryptr8",        "yescrypt"     },
   { "zcoin",             "lyra2z"       },
   { "zoin",              "lyra2z330"    },
   { NULL,                NULL           }   

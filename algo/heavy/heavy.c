@@ -2,7 +2,6 @@
 #include <openssl/sha.h>
 #include <stdint.h>
 
-#include "miner.h"
 #include "algo-gate-api.h"
 #include "sph_hefty1.h"
 #include "algo/keccak/sph_keccak.h"

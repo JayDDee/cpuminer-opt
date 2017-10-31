@@ -139,12 +139,18 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.7.1
+
+Added yescryptr16 algo for Yenten coin
+Added SHA support to yescrypt and yescryptr16
+Small code cleanup
+
 v3.7.0
 
 Fixed x14 misalignment bug.
 Fixed decred stake version bug.
 Getwork fixes for algos that use big endian data encoding: m7m, zr5, neoscrypt,
-blake2b, decred.
+decred.
 
 v3.6.10
 

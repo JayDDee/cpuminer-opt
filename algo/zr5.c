@@ -27,7 +27,6 @@
  */
 
 #include "cpuminer-config.h"
-#include "miner.h"
 #include "algo-gate-api.h"
 #include <string.h>
 #include <stdint.h>

@@ -8,7 +8,6 @@
  * any later version.  See COPYING for more details.
  */
 
-#include "miner.h"
 #include "algo-gate-api.h"
 
 #include <string.h>

@@ -1,5 +1,4 @@
 #include <memory.h>
-#include "miner.h"
 #include "algo-gate-api.h"
 #include "lyra2.h"
 #include "avxdefs.h"

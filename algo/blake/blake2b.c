@@ -3,7 +3,6 @@
  * tpruvot@github 2015-2016
  */
 
-#include "miner.h"
 #include "algo-gate-api.h"
 #include <string.h>
 #include <stdint.h>
@@ -28,6 +27,7 @@ void blake2b_hash(void *output, const void *input)
 	memcpy(output, hash, 32);
 }
 
+/*
 static void blake2b_hash_end(uint32_t *output, const uint32_t *input)
 {
 	s_ctx.outlen = MIDLEN;
@@ -35,6 +35,7 @@ static void blake2b_hash_end(uint32_t *output, const uint32_t *input)
 	sph_blake2b_update(&s_ctx, (uint8_t*) &input[MIDLEN/4], 80 - MIDLEN);
 	sph_blake2b_final(&s_ctx, (uint8_t*) output);
 }
+*/
 
 int scanhash_blake2b( int thr_id, struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done )

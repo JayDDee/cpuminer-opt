@@ -1,4 +1,3 @@
-#include "miner.h"
 #include "algo-gate-api.h"
 #include "sph_blake.h"
 

@@ -32,7 +32,6 @@
 #define POK_BOOL_MASK 0x00008000
 #define POK_DATA_MASK 0xFFFF0000
  
-#include "miner.h"
 #include "algo-gate-api.h"
 
 #include <string.h>

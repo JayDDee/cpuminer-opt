@@ -913,10 +913,10 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	if ((t || flags) && buflen == sizeof(sha256)) {
 		/* Compute ClientKey */
 		{
-			HMAC_SHA256_CTX_Y ctx;
-			HMAC_SHA256_Init_Y(&ctx, buf, buflen);
-			HMAC_SHA256_Update_Y(&ctx, salt, saltlen);
-			HMAC_SHA256_Final_Y((uint8_t *)sha256, &ctx);
+			HMAC_SHA256_CTX ctx;
+			HMAC_SHA256_Init(&ctx, buf, buflen);
+			HMAC_SHA256_Update(&ctx, salt, saltlen);
+			HMAC_SHA256_Final((uint8_t *)sha256, &ctx);
 		}
 		/* Compute StoredKey */
 		{

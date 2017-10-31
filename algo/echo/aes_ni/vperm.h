@@ -53,11 +53,12 @@ extern const unsigned int _k_aesmix4[];
 	x  = _mm_shuffle_epi8(*((__m128i*)table + 0), x);\
 	x  = _mm_xor_si128(x, t1)
 
+#if 0
 // compiled erroneously with 32-bit msc compiler
-	//t2 = _mm_shuffle_epi8(table[0], x);\
-	//x  = _mm_shuffle_epi8(table[1], t1);\
-	//x  = _mm_xor_si128(x, t2)
-
+	t2 = _mm_shuffle_epi8(table[0], x);\
+	x  = _mm_shuffle_epi8(table[1], t1);\
+	x  = _mm_xor_si128(x, t2)
+#endif
 
 // input: x
 // output: t2, t3

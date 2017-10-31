@@ -1,6 +1,5 @@
 #include <memory.h>
 
-#include "miner.h"
 #include "algo/blake/sph_blake.h"
 #include "algo/groestl/sph_groestl.h"
 #include "algo/skein/sph_skein.h"

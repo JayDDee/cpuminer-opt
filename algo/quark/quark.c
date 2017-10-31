@@ -1,5 +1,4 @@
 #include "cpuminer-config.h"
-#include "miner.h"
 #include "algo-gate-api.h"
 
 #include <stdio.h>

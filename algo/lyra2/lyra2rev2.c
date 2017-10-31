@@ -1,6 +1,5 @@
 #include <memory.h>
 
-#include "miner.h"
 #include "algo-gate-api.h"
 
 #include "algo/blake/sph_blake.h"
