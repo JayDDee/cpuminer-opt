@@ -62,8 +62,9 @@ pthreads
 zlib
 
 SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and openssl 1.1
-or higher. Some older versions of openssl may also work, it is known to work
-with Ubuntu 16.04. Additional compile options may also be required such as
+or higher. Reports of improved performiance on Ryzen when using openssl 1.0.2
+have been due to AVX and AVX2 optimizations added to that version.
+Additional improvements are expected on Ryzen with openssl 1.1.
 "-march-znver1" or "-msha".
 
 Extract cpuminer source.
@@ -138,6 +139,17 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.7.2
+
+Fixed yescryptr16
+Changed default sha256 and sha512 to openssl. This should be used when
+compiling with openssl 1.0.2 or higher (Ubuntu 16.04).
+This should increase the hashrate for yescrypt, yescryptr16, m7m, xevan, skein,
+myr-gr & others  when openssl 1.0.2 is installed.
+Users with openssl 1.0.1 (Ubuntu 14.04) may get better perforance by adding
+"-DUSE_SPH_SHA" to CLAGS. 
+Windows binaries are compiled with -DUSE_SPH_SHA and won't get the speedup.
 
 v3.7.1
 

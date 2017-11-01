@@ -37,6 +37,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdlib.h> /* for size_t */
+#include <stdbool.h>
 
 //#define  __SSE4_1__
 
@@ -106,6 +107,9 @@ typedef enum {
 	__YESCRYPT_INIT_SHARED_2 = 0x20000,
 	__YESCRYPT_INIT_SHARED = 0x30000
 } yescrypt_flags_t;
+
+extern bool client_key_hack;    // true for GlobalBoost-Y
+
 
 #define YESCRYPT_KNOWN_FLAGS \
 	(YESCRYPT_RW | YESCRYPT_PARALLEL_SMIX | YESCRYPT_PWXFORM | \

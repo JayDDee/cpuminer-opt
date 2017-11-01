@@ -30,12 +30,8 @@
 #define _SHA256_H_
 
 #include <sys/types.h>
-
 #include <stdint.h>
-
-#if defined __SHA__
-  #include <openssl/sha.h>
-#endif
+#include <openssl/sha.h>
 
 typedef struct SHA256Context {
 	uint32_t state[8];
@@ -51,7 +47,7 @@ typedef struct HMAC_SHA256Context {
 */
 
 typedef struct HMAC_SHA256Context {
-#if defined __SHA__
+#ifndef USE_SPH_SHA
         SHA256_CTX ictx;
         SHA256_CTX octx;
 #else

@@ -366,6 +366,7 @@ static int yescrypt_bsty(const uint8_t * passwd, size_t passwdlen,
 uint64_t YESCRYPT_N;
 uint32_t YESCRYPT_R;
 uint32_t YESCRYPT_P;
+bool client_key_hack;
 
 /* main hash 80 bytes input */
 void yescrypt_hash( const char *input, char *output, uint32_t len )
@@ -425,11 +426,12 @@ int64_t yescryptr16_get_max64()
 
 bool register_yescrypt_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | SHA_OPT;
+   gate->optimizations = SSE2_OPT | AVX_OPT | AVX2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yescrypt;
    gate->hash       = (void*)&yescrypt_hash;
    gate->set_target = (void*)&scrypt_set_target;
    gate->get_max64  = (void*)&yescrypt_get_max64;
+   client_key_hack = true;
    YESCRYPT_N = 2048;
    YESCRYPT_R = 8;
    YESCRYPT_P = 1;
@@ -438,11 +440,12 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 
 bool register_yescryptr16_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | SHA_OPT;
+   gate->optimizations = SSE2_OPT | AVX_OPT | AVX2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yescrypt;
    gate->hash       = (void*)&yescrypt_hash;
    gate->set_target = (void*)&scrypt_set_target;
    gate->get_max64  = (void*)&yescryptr16_get_max64;
+   client_key_hack = false;
    YESCRYPT_N = 4096;   
    YESCRYPT_R = 16;   
    YESCRYPT_P = 1;   

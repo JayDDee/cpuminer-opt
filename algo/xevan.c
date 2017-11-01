@@ -20,7 +20,7 @@
 #include "algo/haval/sph-haval.h"
 #include "algo/simd/sse2/nist.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
-
+#include <openssl/sha.h>
 #ifdef NO_AES_NI
   #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
@@ -43,7 +43,11 @@ typedef struct {
         sph_fugue512_context    fugue;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
+#ifndef USE_SPH_SHA
+        SHA512_CTX              sha512;
+#else
         sph_sha512_context      sha512;
+#endif
         sph_haval256_5_context  haval;
 #ifdef NO_AES_NI
         sph_groestl512_context  groestl;
@@ -73,7 +77,11 @@ void init_xevan_ctx()
         sph_fugue512_init( &xevan_ctx.fugue );
         sph_shabal512_init( &xevan_ctx.shabal );
         sph_whirlpool_init( &xevan_ctx.whirlpool );
+#ifndef USE_SPH_SHA
+        SHA512_Init( &xevan_ctx.sha512 );
+#else
         sph_sha512_init(&xevan_ctx.sha512);
+#endif
         sph_haval256_5_init(&xevan_ctx.haval);
 #ifdef NO_AES_NI
         sph_groestl512_init( &xevan_ctx.groestl );
@@ -158,9 +166,13 @@ void xevan_hash(void *output, const void *input)
 	sph_whirlpool(&ctx.whirlpool, hash, dataLen);
 	sph_whirlpool_close(&ctx.whirlpool, hash);
 
+#ifndef USE_SPH_SHA
+        SHA512_Update( &ctx.sha512, hash, dataLen );
+        SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+#else
 	sph_sha512(&ctx.sha512,(const void*) hash, dataLen);
 	sph_sha512_close(&ctx.sha512,(void*) hash);
-
+#endif
 	sph_haval256_5(&ctx.haval,(const void*) hash, dataLen);
 	sph_haval256_5_close(&ctx.haval, hash);
 
@@ -222,9 +234,13 @@ void xevan_hash(void *output, const void *input)
 	sph_whirlpool(&ctx.whirlpool, hash, dataLen);
 	sph_whirlpool_close(&ctx.whirlpool, hash);
 
+#ifndef USE_SPH_SHA
+        SHA512_Update( &ctx.sha512, hash, dataLen );
+        SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+#else
 	sph_sha512(&ctx.sha512,(const void*) hash, dataLen);
 	sph_sha512_close(&ctx.sha512,(void*) hash);
-
+#endif
 	sph_haval256_5(&ctx.haval,(const void*) hash, dataLen);
 	sph_haval256_5_close(&ctx.haval, hash);
 

@@ -1,15 +1,12 @@
 #include "algo-gate-api.h"
-
 #include <string.h>
 #include <stdint.h>
-
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
 #include "algo/groestl/sph_groestl.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-
 #include "algo/luffa/sph_luffa.h"
 #include "algo/cubehash/sph_cubehash.h"
 #include "algo/shavite/sph_shavite.h"
@@ -21,12 +18,11 @@
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha/sph_sha2.h"
 #include "algo/haval/sph-haval.h"
-
+#include <openssl/sha.h>
 #ifndef NO_AES_NI
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
-
 #include "algo/luffa/sse2/luffa_for_sse2.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 #include "algo/simd/sse2/nist.h"
@@ -46,7 +42,11 @@ typedef struct {
   sph_fugue512_context    fugue1, fugue2;
   sph_shabal512_context   shabal1;
   sph_whirlpool_context   whirlpool1, whirlpool2, whirlpool3, whirlpool4;
+#ifndef USE_SPH_SHA
+  SHA512_CTX              sha1, sha2;
+#else
   sph_sha512_context      sha1, sha2;
+#endif
   sph_haval256_5_context  haval1, haval2;
 #ifdef NO_AES_NI
   sph_groestl512_context  groestl1, groestl2;
@@ -101,9 +101,13 @@ void init_hmq1725_ctx()
     sph_whirlpool_init(&hmq1725_ctx.whirlpool3);
     sph_whirlpool_init(&hmq1725_ctx.whirlpool4);
 
+#ifndef USE_SPH_SHA
+    SHA512_Init( &hmq1725_ctx.sha1 );
+    SHA512_Init( &hmq1725_ctx.sha2 );
+#else
     sph_sha512_init(&hmq1725_ctx.sha1);
     sph_sha512_init(&hmq1725_ctx.sha2);
-
+#endif
     sph_haval256_5_init(&hmq1725_ctx.haval1);
     sph_haval256_5_init(&hmq1725_ctx.haval2);
 
@@ -270,8 +274,13 @@ extern void hmq1725hash(void *state, const void *input)
     }
     else
     {
+#ifndef USE_SPH_SHA
+        SHA512_Update( &h_ctx.sha1, hashB, 64 );
+        SHA512_Final( (unsigned char*) hashA, &h_ctx.sha1 );
+#else
         sph_sha512 (&h_ctx.sha1, hashB, 64); //7
         sph_sha512_close(&h_ctx.sha1, hashA); //8
+#endif
     }
 
 #ifdef NO_AES_NI
@@ -282,8 +291,13 @@ extern void hmq1725hash(void *state, const void *input)
                                (const char*)hashA, 512 );
 #endif
 
+#ifndef USE_SPH_SHA
+    SHA512_Update( &h_ctx.sha2, hashB, 64 );
+    SHA512_Final( (unsigned char*) hashA, &h_ctx.sha2 );
+#else
     sph_sha512 (&h_ctx.sha2, hashB, 64); //2 
     sph_sha512_close(&h_ctx.sha2, hashA); //3 
+#endif
 
     if ( hashA[0] & mask ) //4
     {

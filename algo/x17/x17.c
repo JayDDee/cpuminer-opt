@@ -1,10 +1,8 @@
 #include "algo-gate-api.h"
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
 #include "algo/groestl/sph_groestl.h"
@@ -31,7 +29,7 @@
 #include "algo/keccak/sse2/keccak.c"
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
-
+#include <openssl/sha.h>
 #ifndef NO_AES_NI
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
@@ -53,7 +51,11 @@ typedef struct {
         sph_fugue512_context    fugue;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
+#ifndef USE_SPH_SHA
+        SHA512_CTX              sha512;
+#else
         sph_sha512_context      sha512;
+#endif
         sph_haval256_5_context  haval;
 } x17_ctx_holder;
 
@@ -76,7 +78,11 @@ void init_x17_ctx()
         sph_fugue512_init( &x17_ctx.fugue );
         sph_shabal512_init( &x17_ctx.shabal );
         sph_whirlpool_init( &x17_ctx.whirlpool );
+#ifndef USE_SPH_SHA
+        SHA512_Init( &x17_ctx.sha512 );
+#else
         sph_sha512_init(&x17_ctx.sha512);
+#endif
         sph_haval256_5_init(&x17_ctx.haval);
 };
 
@@ -186,9 +192,13 @@ static void x17hash(void *output, const void *input)
 	sph_whirlpool(&ctx.whirlpool, hash, 64);
 	sph_whirlpool_close(&ctx.whirlpool, hashB);
 
+#ifndef USE_SPH_SHA
+        SHA512_Update( &ctx.sha512, hashB, 64 );
+        SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+#else
         sph_sha512(&ctx.sha512,(const void*) hashB, 64);
         sph_sha512_close(&ctx.sha512,(void*) hash);
-
+#endif
         sph_haval256_5(&ctx.haval,(const void*) hash, 64);
         sph_haval256_5_close(&ctx.haval,hashB);
 

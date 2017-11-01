@@ -5,9 +5,7 @@
 #include <stdio.h>
 #include "ripemd/sph_ripemd.h"
 #include "sha/sph_sha2.h"
-#if defined __SHA__
- #include <openssl/sha.h>
-#endif
+#include <openssl/sha.h>
 
 #define LBRY_NTIME_INDEX 25
 #define LBRY_NBITS_INDEX 26
@@ -18,18 +16,19 @@
 
 void lbry_hash(void* output, const void* input)
 {
-#if defined __SHA__
+#ifndef USE_SPH_SHA
    SHA256_CTX              ctx_sha256 __attribute__ ((aligned (64)));
+   SHA512_CTX              ctx_sha512 __attribute__ ((aligned (64)));
 #else
    sph_sha256_context      ctx_sha256 __attribute__ ((aligned (64)));
-#endif
    sph_sha512_context      ctx_sha512 __attribute__ ((aligned (64)));
+#endif
    sph_ripemd160_context   ctx_ripemd __attribute__ ((aligned (64)));
    uint32_t _ALIGN(64) hashA[16];
    uint32_t _ALIGN(64) hashB[16];
    uint32_t _ALIGN(64) hashC[16];
 
-#if defined __SHA__
+#ifndef USE_SPH_SHA
    SHA256_Init( &ctx_sha256 );
    SHA256_Update( &ctx_sha256, input, 112 );
    SHA256_Final( (unsigned char*) hashA, &ctx_sha256 );
@@ -37,6 +36,10 @@ void lbry_hash(void* output, const void* input)
    SHA256_Init( &ctx_sha256 );
    SHA256_Update( &ctx_sha256, hashA, 32 );
    SHA256_Final( (unsigned char*) hashA, &ctx_sha256 );
+
+   SHA512_Init( &ctx_sha512 );
+   SHA512_Update( &ctx_sha512, hashA, 32 );
+   SHA512_Final( (unsigned char*) hashA, &ctx_sha512 );
 #else
    sph_sha256_init( &ctx_sha256 );
    sph_sha256 ( &ctx_sha256, input, 112 );
@@ -45,11 +48,11 @@ void lbry_hash(void* output, const void* input)
    sph_sha256_init( &ctx_sha256 );
    sph_sha256 ( &ctx_sha256, hashA, 32 );
    sph_sha256_close( &ctx_sha256, hashA );
-#endif
 
    sph_sha512_init( &ctx_sha512 );
    sph_sha512 ( &ctx_sha512, hashA, 32 );
-   sph_sha512_close( &ctx_sha512, hashA );  
+   sph_sha512_close( &ctx_sha512, hashA );
+#endif
 
    sph_ripemd160_init( &ctx_ripemd );
    sph_ripemd160 ( &ctx_ripemd, hashA, 32 );
@@ -59,7 +62,7 @@ void lbry_hash(void* output, const void* input)
    sph_ripemd160 ( &ctx_ripemd, hashA+8, 32 );
    sph_ripemd160_close( &ctx_ripemd, hashC );
 
-#if defined __SHA__
+#ifndef USE_SPH_SHA
    SHA256_Init( &ctx_sha256 );
    SHA256_Update( &ctx_sha256, hashB, 20 );
    SHA256_Update( &ctx_sha256, hashC, 20 );
@@ -218,7 +221,7 @@ int64_t lbry_get_max64() { return 0x1ffffLL; }
 
 bool register_lbry_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | SHA_OPT;
+  gate->optimizations = SSE2_OPT | AVX_OPT | AVX2_OPT | SHA_OPT;
   gate->scanhash              = (void*)&scanhash_lbry;
   gate->hash                  = (void*)&lbry_hash;
   gate->calc_network_diff     = (void*)&lbry_calc_network_diff;
