@@ -955,17 +955,35 @@ static const struct {
 
 #endif
 
+int stp = 0;
 
 #define TH_ELT(t, c0, c1, c2, c3, c4, d0, d1, d2, d3, d4)   do { \
 		DECL64(tt0); \
 		DECL64(tt1); \
 		DECL64(tt2); \
 		DECL64(tt3); \
+uint64_t *ttx = (uint64_t*)&tt0; \
+uint64_t *d0x = (uint64_t*)&d0; \
+uint64_t *d1x = (uint64_t*)&d1; \
+uint64_t *d2x = (uint64_t*)&d2; \
+uint64_t *d3x = (uint64_t*)&d3; \
+uint64_t *d4x = (uint64_t*)&d4; \
 		XOR64(tt0, d0, d1); \
+if (stp)printf("Selt0\n"); { \
+printf("d0=  %016llx\n",*d0x ); \
+printf("d1=  %016llx\n",*d1x ); \
+printf("d2=  %016llx\n",*d2x ); \
+printf("d3=  %016llx\n",*d3x ); \
+printf("d4=  %016llx\n",*d4x ); \
+printf("tt0= %016llx\n", *ttx );} \
 		XOR64(tt1, d2, d3); \
 		XOR64(tt0, tt0, d4); \
 		XOR64(tt0, tt0, tt1); \
+if(stp){ \
+printf("tt0= %016llx\n", *ttx );} \
 		ROL64(tt0, tt0, 1); \
+if(stp){ \
+printf("tt0= %016llx\n", *ttx );} \
 		XOR64(tt2, c0, c1); \
 		XOR64(tt3, c2, c3); \
 		XOR64(tt0, tt0, c4); \
@@ -983,6 +1001,10 @@ static const struct {
 		DECL64(t3); \
 		DECL64(t4); \
 		TH_ELT(t0, b40, b41, b42, b43, b44, b10, b11, b12, b13, b14); \
+if(stp){ printf("Selt0\n"); \
+uint64_t *tx = (uint64_t*)&t0; \
+printf("t0= %016x\n", tx );} \
+stp=0; \
 		TH_ELT(t1, b00, b01, b02, b03, b04, b20, b21, b22, b23, b24); \
 		TH_ELT(t2, b10, b11, b12, b13, b14, b30, b31, b32, b33, b34); \
 		TH_ELT(t3, b20, b21, b22, b23, b24, b40, b41, b42, b43, b44); \
@@ -1391,9 +1413,29 @@ static const struct {
 #define RPAR   )
 
 #define KF_ELT(r, s, k)   do { \
+if(r==0){ stp=10; printf("Sthe0\n");} \
 		THETA LPAR P ## r RPAR; \
+if(stp=1){ \
+uint64_t *W = (uint64_t*)(kc->u.wide); \
+printf("W:   %016x %016x %016x %016x\n", W[0], W[1], W[2], W[3] ); \
+printf("     %016x %016x %016x %016x\n", W[4], W[5], W[6], W[7] ); \
+printf("     %016x %016x %016x %016x\n", W[8], W[9], W[10], W[11] ); \
+printf("     %016x %016x %016x %016x\n", W[12], W[13], W[14], W[15] );} \
+stp=0; \
 		RHO LPAR P ## r RPAR; \
+if(r==0){ printf("Srho0\n"); \
+uint64_t *W = (uint64_t*)(kc->u.wide); \
+printf("W:   %016x %016x %016x %016x\n", W[0], W[1], W[2], W[3] ); \
+printf("     %016x %016x %016x %016x\n", W[4], W[5], W[6], W[7] ); \
+printf("     %016x %016x %016x %016x\n", W[8], W[9], W[10], W[11] ); \
+printf("     %016x %016x %016x %016x\n", W[12], W[13], W[14], W[15] );} \
 		KHI LPAR P ## s RPAR; \
+if(r==0){ printf("Skhi0\n"); \
+uint64_t *W = (uint64_t*)(kc->u.wide); \
+printf("W:   %016x %016x %016x %016x\n", W[0], W[1], W[2], W[3] ); \
+printf("     %016x %016x %016x %016x\n", W[4], W[5], W[6], W[7] ); \
+printf("     %016x %016x %016x %016x\n", W[8], W[9], W[10], W[11] ); \
+printf("     %016x %016x %016x %016x\n", W[12], W[13], W[14], W[15] );} \
 		IOTA(k); \
 	} while (0)
 
@@ -1575,6 +1617,7 @@ keccak_core(sph_keccak_context *kc, const void *data, size_t len, size_t lim)
 
 	buf = kc->buf;
 	ptr = kc->ptr;
+uint64_t *W = (uint64_t*)(kc->u.wide);
 
 	if (len < (lim - ptr)) {
 		memcpy(buf + ptr, data, len);
@@ -1595,7 +1638,15 @@ keccak_core(sph_keccak_context *kc, const void *data, size_t len, size_t lim)
 		len -= clen;
 		if (ptr == lim) {
 			INPUT_BUF(lim);
+printf("Stransform before ptr= %u, len= %u, lim= %u\n",ptr, len, lim); 
+printf("W:   %016x %016x %016x %016x\n", W[0], W[1], W[2], W[3] );
+printf("     %016x %016x %016x %016x\n", W[4], W[5], W[6], W[7] );
+printf("     %016x %016x %016x %016x\n", W[8], W[9], W[10], W[11] );
+printf("     %016x %016x %016x %016x\n", W[12], W[13], W[14], W[15] );
 			KECCAK_F_1600;
+//printf("Stransform after  ptr= %u, len= %u, lim= %u\n",ptr, len, lim);
+//printf("W:   %016x %016x %016x %016x\n", W[0], W[1], W[2], W[3] );
+//printf("     %016x %016x %016x %016x\n", W[4], W[5], W[6], W[7] );
 			ptr = 0;
 		}
 	}
@@ -1645,6 +1696,8 @@ keccak_core(sph_keccak_context *kc, const void *data, size_t len, size_t lim)
 			sph_enc64le_aligned(u.tmp + j, kc->u.wide[j >> 3]); \
 		memcpy(dst, u.tmp, d); \
 }
+//		keccak_init(kc, (unsigned)d << 3); \
+//	} \
 
 #else
 

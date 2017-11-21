@@ -78,6 +78,20 @@ Run ./build.sh to build on Linux or execute the following commands.
 CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11" ./configure --with-curl
 make
 
+Additional optional compile flags, add the following to CFLAGS to activate:
+
+-DUSE_SPH_SHA
+
+SPH may give slightly better performance on algos that use sha256 when using
+openssl 1.0.1 or older. Openssl 1.0.2 adds AVX2 and 1.1 adds SHA and perform
+better than SPH.
+
+-DFOUR_WAY
+
+4 way will give much better performance on supported algos with CPUs
+that have AVX2 and should only be used on CPUs with AVX2. 4 way algo
+support will be added incrementally, see change log below for supported algos.
+ 
 Start mining.
 
 ./cpuminer -a algo -o url -u username -p password
@@ -139,6 +153,17 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.7.3
+
+Added polytimos algo.
+
+Introducing 4-way AVX2 optimization giving up to 4x performance inprovement
+on many compute bound algos. First supported algos: skein, skein2, blake &
+keccak. This feature is only available when compiled from source. See above
+for instcuctions how to enable 4-way during compilation.
+
+Updated Dockerfile.
 
 v3.7.2
 

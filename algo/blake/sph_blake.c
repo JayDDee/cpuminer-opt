@@ -813,6 +813,7 @@ blake32(sph_blake_small_context *sc, const void *data, size_t len)
 
 	buf = sc->buf;
 	ptr = sc->ptr;
+
 	if (len < (sizeof sc->buf) - ptr) {
 		memcpy(buf + ptr, data, len);
 		ptr += len;
@@ -890,9 +891,9 @@ blake32_close(sph_blake_small_context *sc,
 		sph_enc32be_aligned(u.buf + 60, tl);
 		blake32(sc, u.buf, 64);
 	}
-	out = dst;
-	for (k = 0; k < out_size_w32; k ++)
-		sph_enc32be(out + (k << 2), sc->H[k]);
+        out = dst;
+        for (k = 0; k < out_size_w32; k ++)
+                sph_enc32be(out + (k << 2), sc->H[k]);
 }
 
 #if SPH_64

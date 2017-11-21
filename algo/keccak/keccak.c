@@ -50,17 +50,3 @@ int scanhash_keccak(int thr_id, struct work *work,
 	return 0;
 }
 
-void keccak_set_target( struct work* work, double job_diff )
-{
-  work_set_target( work, job_diff / (128.0 * opt_diff_factor) );
-}
-
-bool register_keccak_algo( algo_gate_t* gate )
-{
-  gate->scanhash        = (void*)&scanhash_keccak;
-  gate->hash            = (void*)&keccakhash;
-  gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
-  gate->set_target      = (void*)&keccak_set_target;
-  return true;
-};
-

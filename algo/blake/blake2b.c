@@ -6,12 +6,10 @@
 #include "algo-gate-api.h"
 #include <string.h>
 #include <stdint.h>
-
 #include "algo/blake/sph_blake2b.h"
 
-
-static __thread sph_blake2b_ctx s_midstate;
-static __thread sph_blake2b_ctx s_ctx;
+//static __thread sph_blake2b_ctx s_midstate;
+//static __thread sph_blake2b_ctx s_ctx;
 #define MIDLEN 76
 #define A 64
 

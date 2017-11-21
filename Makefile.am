@@ -23,15 +23,11 @@ cpuminer_SOURCES = \
   sysinfos.c \
   algo-gate-api.c\
   algo/groestl/sph_groestl.c \
-  algo/skein/sph_skein.c \
   algo/bmw/sph_bmw.c \
   algo/shavite/sph_shavite.c \
   algo/shavite/shavite.c \
   algo/echo/sph_echo.c \
-  algo/blake/sph_blake.c \
-  algo/blake/sph_blake2b.c \
   algo/heavy/sph_hefty1.c \
-  algo/blake/mod_blakecoin.c \
   algo/luffa/sph_luffa.c \
   algo/cubehash/sph_cubehash.c \
   algo/simd/sph_simd.c \
@@ -39,8 +35,6 @@ cpuminer_SOURCES = \
   algo/fugue/sph_fugue.c \
   algo/gost/sph_gost.c \
   algo/jh/sph_jh.c \
-  algo/keccak/sph_keccak.c \
-  algo/keccak/keccak.c\
   algo/sha/sph_sha2.c \
   algo/sha/sph_sha2big.c \
   algo/shabal/sph_shabal.c \
@@ -63,9 +57,15 @@ cpuminer_SOURCES = \
   algo/argon2/ar2/ar2-scrypt-jane.c \
   algo/argon2/ar2/blake2b.c \
   algo/axiom.c \
+  algo/blake/sph_blake.c \
+  algo/blake/blake-hash-4way.c \
+  algo/blake/blake-gate.c \
   algo/blake/blake.c \
+  algo/blake/blake-4way.c \
+  algo/blake/sph_blake2b.c \
   algo/blake/blake2b.c \
   algo/blake/blake2s.c \
+  algo/blake/mod_blakecoin.c \
   algo/blake/blakecoin.c \
   algo/blake/decred.c \
   algo/blake/pentablake.c \
@@ -92,6 +92,12 @@ cpuminer_SOURCES = \
   algo/hodl/sha512_avx.c \
   algo/hodl/sha512_avx2.c \
   algo/jh/jha.c \
+  algo/keccak/sph_keccak.c \
+  algo/keccak/keccak.c\
+  algo/keccak/keccak-hash-4way.c \
+  algo/keccak/keccak-4way.c\
+  algo/keccak/keccak-gate.c \
+  algo/keccak/sse2/keccak.c \
   algo/lbry.c \
   algo/luffa/luffa.c \
   algo/luffa/sse2/luffa_for_sse2.c \
@@ -101,11 +107,12 @@ cpuminer_SOURCES = \
   algo/lyra2/lyra2re.c \
   algo/lyra2/zcoin.c \
   algo/lyra2/lyra2z330.c \
-  algo/keccak/sse2/keccak.c \
   algo/m7m.c \
   algo/neoscrypt.c \
   algo/nist5.c \
   algo/pluck.c \
+  algo/polytimos/polytimos-gate.c \
+  algo/polytimos/polytimos.c \
   algo/quark/quark.c \
   algo/qubit/qubit.c \
   algo/qubit/deep.c \
@@ -116,8 +123,14 @@ cpuminer_SOURCES = \
   algo/sha/sha256t.c \
   algo/simd/sse2/nist.c \
   algo/simd/sse2/vector.c \
+  algo/skein/sph_skein.c \
+  algo/skein/skein-hash-4way.c \
   algo/skein/skein.c \
+  algo/skein/skein-4way.c \
+  algo/skein/skein-gate.c \  
   algo/skein/skein2.c \
+  algo/skein/skein2-4way.c \
+  algo/skein/skein2-gate.c \
   algo/skunk.c \
   algo/tiger/sph_tiger.c \
   algo/timetravel.c \

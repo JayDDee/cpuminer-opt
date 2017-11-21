@@ -1698,7 +1698,7 @@ static void *miner_thread( void *userdata )
        uint64_t hashes_done;
        struct timeval tv_start, tv_end, diff;
        int64_t max64;
-       bool nonce_found = false;
+       int nonce_found = 0;
 
        if ( algo_gate.do_this_thread( thr_id ) )
        {
@@ -1792,7 +1792,7 @@ static void *miner_thread( void *userdata )
 
        // Scan for nonce
        nonce_found = (bool) algo_gate.scanhash( thr_id, &work, max_nonce,
-                                               &hashes_done );
+                                                &hashes_done );
 
        // record scanhash elapsed time
        gettimeofday(&tv_end, NULL);
@@ -1805,11 +1805,26 @@ static void *miner_thread( void *userdata )
 		hashes_done / (diff.tv_sec + diff.tv_usec * 1e-6);
 	  pthread_mutex_unlock(&stats_lock);
        }
-       // if nonce found, submit work 
+       // if nonce(s) submit work 
        if ( nonce_found && !opt_benchmark )
        {
-          if ( !submit_work(mythr, &work) )
+          int num_submitted = 0;
+          // look for 4way nonces
+          for ( int n = 0; n < 4; n++ )
+             if ( work.nfound[n] )
+             {
+                 *algo_gate.get_nonceptr( work.data ) = work.nonces[n]; 
+                 if ( !submit_work(mythr, &work) )
+                    break;
+                 num_submitted++;
+             }
+          // must be a ine way algo, nonce is already in work data
+          if ( !num_submitted )
+          {
+             if ( !submit_work(mythr, &work) )
                 break;
+          }
+
           // prevent stale work in solo
           // we can't submit twice a block!
           if (!have_stratum && !have_longpoll)
@@ -1821,6 +1836,8 @@ static void *miner_thread( void *userdata )
           }
        }
        // display hashrate
+
+
        if (!opt_quiet)
        {
           char hc[16];
@@ -1829,6 +1846,7 @@ static void *miner_thread( void *userdata )
           char hr_units[2] = {0,0};
           double hashcount = thr_hashcount[thr_id];
           double hashrate  = thr_hashrates[thr_id];
+//printf("display count= %.3f,  tcount= %.3f, rate= %03f trate= %03f\n", hashcount, thr_hashcount[thr_id], hashrate,thr_hashrates[thr_id] );
           if ( hashcount )
           {
              scale_hash_for_display( &hashcount, hc_units );
@@ -2290,7 +2308,7 @@ static void *stratum_thread(void *userdata )
        if ( !s )
        {
           stratum_disconnect(&stratum);
-	  applog(LOG_ERR, "Stratum connection interrupted");
+//	  applog(LOG_WARNING, "Stratum connection interrupted");
 	  continue;
        }
        if (!stratum_handle_method(&stratum, s))
@@ -2364,7 +2382,8 @@ void show_version_and_exit(void)
 void show_usage_and_exit(int status)
 {
 	if (status)
-		fprintf(stderr, "Try `" PACKAGE_NAME " --help' for more information.\n");
+                fprintf(stderr, "Try `--help' for more information.\n");
+//		fprintf(stderr, "Try `" PACKAGE_NAME " --help' for more information.\n");
 	else
 		printf(usage);
 	exit(status);

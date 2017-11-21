@@ -11,7 +11,11 @@ optimum speed using all the available features.
 
 Architecture names and compile options used are only provided for Intel
 Core series. Pentium and Celeron often have fewer features.
-AMD is YMMV, see previous paragraph.
+
+AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
+supported by cpuminer-opt due to an incompatible implementation of SSE2 on
+these CPUs. Some algos may crash the miner with an invalid instruction.
+Users are recommended to use an unoptimized miner such as cpuminer-multi.
 
 Exe name                  Compile opts       Arch name
 

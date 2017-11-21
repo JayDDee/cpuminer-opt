@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <immintrin.h>
+#include <memory.h>
 
 // Use these overlays to access the same data in memory as different types
 //
@@ -45,7 +46,6 @@ inline void memset_zero_m256i( __m256i *dst, int n )
 {
    __m256i zero = _mm256_setzero_si256();
    for ( int i = 0; i < n; i++ ) dst[i] = zero;
-//   for ( int i = 0; i < n; i++ ) dst[i] = _mm256_xor_si256( dst[i], dst[i] );
 }
 
 inline void memset_m256i( __m256i *dst, const __m256i a,  int n )
@@ -54,7 +54,7 @@ inline void memset_m256i( __m256i *dst, const __m256i a,  int n )
 }
 
 // Optimized copying using vectors. For misaligned data or more ganuularity
-// use __m228i versions or plain memcpy as appropriate.
+// use __m128i versions or plain memcpy as appropriate.
  
 // Copying fixed size
 
@@ -289,6 +289,35 @@ inline __m256i  mm256_byteswap_epi32( __m256i x )
                           _mm256_or_si256( x2, x3 ) );
 }
 
+inline __m256i mm256_byteswap_epi64( __m256i x )
+{
+// x = (x >> 32) | (x << 32)
+  x = _mm256_or_si256( _mm256_srli_epi64( x, 32 ), _mm256_slli_epi64( x, 32 ) );
+
+// x = ( (x & 0xFFFF0000FFFF0000) >> 16 ) | ( (x & 0x0000FFFF0000FFFF) << 16 )
+  x = _mm256_or_si256(
+        _mm256_srli_epi64(
+          _mm256_and_si256( x,
+           _mm256_set_epi64x( 0xFFFF0000FFFF0000, 0xFFFF0000FFFF0000,
+                              0xFFFF0000FFFF0000, 0xFFFF0000FFFF0000 ) ), 16 ),
+        _mm256_slli_epi64(
+          _mm256_and_si256( x,
+           _mm256_set_epi64x( 0x0000FFFF0000FFFF, 0x0000FFFF0000FFFF,
+                              0x0000FFFF0000FFFF, 0x0000FFFF0000FFFF ) ), 16 ));
+
+// x = ( (x & 0xFF00FF00FF00FF00) >> 8 ) | ( (x & 0x00FF00FF00FF00FF) << 16 )
+   x = _mm256_or_si256(
+        _mm256_srli_epi64(
+          _mm256_and_si256( x,
+            _mm256_set_epi64x( 0xFF00FF00FF00FF00, 0xFF00FF00FF00FF00,
+                               0xFF00FF00FF00FF00, 0xFF00FF00FF00FF00 ) ), 8 ),
+        _mm256_slli_epi64(
+          _mm256_and_si256( x,
+            _mm256_set_epi64x( 0x00FF00FF00FF00FF, 0x00FF00FF00FF00FF,
+                               0x00FF00FF00FF00FF, 0x00FF00FF00FF00FF ) ), 8 ));
+  return x;
+}
+
 #endif  // AVX2
 
 // AVX replacements for vectorized data
@@ -492,8 +521,11 @@ inline void mcpy( void* dst, const void* src, int n )
 
 // rotate bits in 2 uint64
 // _m128i mm_rotr_64( __m128i, int )
-#define  mm_rotr_64(w,c) _mm_or_si128(_mm_srli_epi64(w, c), \
-                                      _mm_slli_epi64(w, 64 - c))
+#define mm_rotr_64( w, c ) _mm_or_si128( _mm_srli_epi64( w, c ), \
+                                         _mm_slli_epi64( w, 64-c ) )
+
+#define mm_rotr_32( w, c ) _mm_or_si128( _mm_srli_epi32( w, c ), \
+                                         _mm_slli_epi32( w, 32-c ) )
 
 // swap 128 bit source vectors
 // void mm128_swap128( __m128i, __m128i )
@@ -538,6 +570,7 @@ inline void mcpy( void* dst, const void* src, int n )
    s0 = t; \
 } while(0)
 
+
 // vectored version of BYTES_SWAP32
 inline __m128i  mm_byteswap_epi32( __m128i x )
 {
@@ -551,4 +584,150 @@ inline __m128i  mm_byteswap_epi32( __m128i x )
   __m128i x3 = _mm_srli_epi32( x, 24 );   // x3 = x >> 24
   return _mm_or_si128( _mm_or_si128( x0, x1 ), _mm_or_si128( x2, x3 ) );
 }
+
+// Functions for interleaving buffers for vector processing
+// change size to bits for consistency
+
+#if defined (__AVX2__)
+
+// interleave 4 arrays of 64 bit elements for AVX2 processing
+// bit_len must be multiple of 64
+inline void m256_interleave_4x64( uint64_t *dst, uint64_t *src0,
+              uint64_t *src1, uint64_t *src2, uint64_t *src3, int bit_len )
+{
+   uint64_t *d = dst;
+   for ( int i = 0; i < bit_len>>6; i++, d += 4 )
+   {
+      *d     = *(src0+i);
+      *(d+1) = *(src1+i);     
+      *(d+2) = *(src2+i);
+      *(d+3) = *(src3+i);
+  }
+}
+
+// Deinterleave 4 arrays into indivudual 64 bit arrays for scalar processing
+// bit_len must be multiple 0f 64
+inline void m256_deinterleave_4x64( uint64_t *dst0, uint64_t *dst1,
+                uint64_t *dst2,uint64_t *dst3, uint64_t *src, int bit_len )
+{
+  uint64_t *s = src;
+   for ( int i = 0; i < bit_len>>6; i++, s += 4 )
+  {
+     *(dst0+i) = *s;
+     *(dst1+i) = *(s+1);    
+     *(dst2+i) = *(s+2);   
+     *(dst3+i) = *(s+3);   
+  }
+}
+
+// interleave 8 arrays of 32 bit elements for AVX2 processing
+// bit_len must be multiple of 32
+inline void m256_interleave_8x32( uint32_t *dst, uint32_t *src0,
+     uint32_t *src1, uint32_t *src2, uint32_t *src3, uint32_t *src4,
+     uint32_t *src5, uint32_t *src6, uint32_t *src7, int bit_len )
+{
+   uint32_t *d = dst;;
+   for ( int i = 0; i < bit_len>>5; i++, d += 8 )
+   {
+      *d     = *(src0+i);
+      *(d+1) = *(src1+i);
+      *(d+2) = *(src2+i);
+      *(d+3) = *(src3+i);
+      *(d+4) = *(src4+i);
+      *(d+5) = *(src5+i);
+      *(d+6) = *(src6+i);
+      *(d+7) = *(src7+i);
+  }
+}
+
+// Deinterleave 8 arrays into indivdual buffers for scalar processing
+// bit_len must be multiple of 32
+inline void m256_deinterleave_8x32( uint32_t *dst0, uint32_t *dst1,
+                uint32_t *dst2,uint32_t *dst3, uint32_t *dst4, uint32_t *dst5,
+                uint32_t *dst6,uint32_t *dst7,uint32_t *src, int bit_len )
+{
+  uint32_t *s = src;
+  for ( int i = 0; i < bit_len>>5; i++, s += 8 )
+  {
+     *(dst0+i) = *( s     );
+     *(dst1+i) = *( s + 1 );
+     *(dst2+i) = *( s + 2 );
+     *(dst3+i) = *( s + 3 );
+     *(dst4+i) = *( s + 4 );
+     *(dst5+i) = *( s + 5 ); 
+     *(dst6+i) = *( s + 6 );
+     *(dst7+i) = *( s + 7 );
+  }
+}
+
+// convert 4x32 byte (128 bit) vectors to 4x64 (256 bit) vectors for AVX2
+// bit_len must be multiple of 64
+inline void m256_reinterleave_4x64( uint64_t *dst, uint32_t *src,
+                                         int  bit_len )
+{
+   uint32_t *d = (uint32_t*)dst;
+   for ( int i = 0; i < bit_len >> 5; i += 8 )
+   {
+      *( d + i     ) = *( src + i     );      // 0 <- 0    8 <- 8
+      *( d + i + 1 ) = *( src + i + 4 );      // 1 <- 4    9 <- 12
+      *( d + i + 2 ) = *( src + i + 1 );      // 2 <- 1    10 <- 9
+      *( d + i + 3 ) = *( src + i + 5 );      // 3 <- 5    11 <- 13
+      *( d + i + 4 ) = *( src + i + 2 );      // 4 <- 2    12 <- 10
+      *( d + i + 5 ) = *( src + i + 6 );      // 5 <- 6    13 <- 14
+      *( d + i + 6 ) = *( src + i + 3 );      // 6 <- 3    14 <- 11
+      *( d + i + 7 ) = *( src + i + 7 );      // 7 <- 7    15 <- 15
+     }
+}
+
+// convert 4x64 byte (256 bit) vectors to 4x32 (128 bit) vectors for AVX
+// bit_len must be multiple of 64
+inline void m128_reinterleave_4x32( uint32_t *dst, uint64_t *src,
+                                         int  bit_len )
+{
+   uint32_t *s = (uint32_t*)src;
+   for ( int i = 0; i < bit_len >> 5; i +=8 )
+   {
+      *( dst + i     ) = *( s + i     );
+      *( dst + i + 1 ) = *( s + i + 2 );
+      *( dst + i + 2 ) = *( s + i + 4 );
+      *( dst + i + 3 ) = *( s + i + 6 );
+      *( dst + i + 4 ) = *( s + i + 1 );
+      *( dst + i + 5 ) = *( s + i + 3 );
+      *( dst + i + 6 ) = *( s + i + 5 );
+      *( dst + i + 7 ) = *( s + i + 7 );
+   }
+}
+
+#endif
+
+// interleave 4 arrays of 32 bit elements for AVX processing
+// bit_len must be multiple of 32
+inline void m128_interleave_4x32( uint32_t *dst, uint32_t *src0,
+              uint32_t *src1, uint32_t *src2, uint32_t *src3, int bit_len )
+{
+   uint32_t *d = dst;;
+   for ( int i = 0; i < bit_len >> 5; i++, d += 4 )
+   {
+      *d     = *(src0+i);
+      *(d+1) = *(src1+i);
+      *(d+2) = *(src2+i);
+      *(d+3) = *(src3+i);
+   }
+}
+
+// deinterleave 4 arrays into individual buffers for scalarm processing
+// bit_len must be multiple of 32
+inline void m128_deinterleave_4x32( uint32_t *dst0, uint32_t *dst1,
+                uint32_t *dst2,uint32_t *dst3, uint32_t *src, int bit_len )
+{
+  uint32_t *s = src;
+  for ( int i = 0; i < bit_len >> 5; i++, s += 4 )
+  {
+     *(dst0+i) = *s;
+     *(dst1+i) = *(s+1);
+     *(dst2+i) = *(s+2);
+     *(dst3+i) = *(s+3);
+  }
+}
+
 

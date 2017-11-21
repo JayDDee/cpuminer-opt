@@ -354,6 +354,8 @@ struct work {
 	char *job_id;
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
+        uint32_t nonces[4];
+        bool     nfound[4];
 };
 
 struct stratum_job {
@@ -510,6 +512,7 @@ enum algos {
         ALGO_PENTABLAKE,  
         ALGO_PHI1612,
         ALGO_PLUCK,       
+        ALGO_POLYTIMOS,
         ALGO_QUARK,
         ALGO_QUBIT,       
         ALGO_SCRYPT,
@@ -578,6 +581,7 @@ static const char* const algo_names[] = {
         "pentablake",
         "phi1612",
         "pluck",
+        "polytimos",
         "quark",
         "qubit",
         "scrypt",
@@ -676,7 +680,7 @@ Options:\n\
                           c11          Chaincoin\n\
                           cryptolight  Cryptonight-light\n\
                           cryptonight  cryptonote, Monero (XMR)\n\
-                          decred\n\
+                          decred       Blake256r8dcr\n\
                           deep         Deepcoin (DCN)\n\
                           dmd-gr       Diamond\n\
                           drop         Dropcoin\n\
@@ -697,9 +701,10 @@ Options:\n\
                           myr-gr       Myriad-Groestl\n\
                           neoscrypt    NeoScrypt(128, 2, 1)\n\
                           nist5        Nist5\n\
-                          pentablake   Pentablake\n\
+                          pentablake   5 x blake512\n\
                           phi1612      phi, LUX coin\n\
                           pluck        Pluck:128 (Supcoin)\n\
+                          polytimos\n\
                           quark        Quark\n\
                           qubit        Qubit\n\
                           scrypt       scrypt(1024, 1, 1) (default)\n\

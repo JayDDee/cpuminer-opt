@@ -184,6 +184,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_PENTABLAKE:   register_pentablake_algo  ( gate ); break;
      case ALGO_PHI1612:      register_phi1612_algo     ( gate ); break;
      case ALGO_PLUCK:        register_pluck_algo       ( gate ); break;
+     case ALGO_POLYTIMOS:    register_polytimos_algo   ( gate ); break;
      case ALGO_QUARK:        register_quark_algo       ( gate ); break;
      case ALGO_QUBIT:        register_qubit_algo       ( gate ); break;
      case ALGO_SCRYPT:       register_scrypt_algo      ( gate ); break;

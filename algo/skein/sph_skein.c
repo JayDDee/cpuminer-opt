@@ -39,6 +39,24 @@
 extern "C"{
 #endif
 
+void dump_sph_context( sph_u64 ptr, sph_u64 bcount, uint64_t* buf, 
+  sph_u64 h0, sph_u64 h1, sph_u64 h2, sph_u64 h3, sph_u64 h4, sph_u64 h5,
+  sph_u64 h6, sph_u64 h7 )
+{
+//scalar
+printf("sptr= %llu, bcount= %llu\n", ptr, bcount );
+
+printf("sbuf: %016llx %016llx %016llx %016llx\n", *((uint64_t*)buf),
+       *((uint64_t*)buf+1), *((uint64_t*)buf+2), *((uint64_t*)buf+3) );
+
+printf("      %016llx %016llx %016llx %016llx\n", *((uint64_t*)buf+4),
+       *((uint64_t*)buf+5), *((uint64_t*)buf+6), *((uint64_t*)buf+7) );
+
+printf("sh:%016llx %016llx %016llx %016llx\n", h0, h1, h2, h3 );
+
+printf("   %016llx %016llx %016llx %016llx\n", h4, h5, h6, h7 );
+
+}
 
 #if SPH_SMALL_FOOTPRINT && !defined SPH_SMALL_FOOTPRINT_SKEIN
 #define SPH_SMALL_FOOTPRINT_SKEIN   1
@@ -883,6 +901,7 @@ skein_big_core(sph_skein_big_context *sc, const void *data, size_t len)
 	}
 
 	READ_STATE_BIG(sc);
+
 	first = (bcount == 0) << 7;
 	do {
 		size_t clen;
