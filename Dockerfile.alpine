@@ -1,0 +1,29 @@
+FROM alpine as builder
+
+RUN apk add --no-cache \
+        musl-dev \
+        xz-dev \
+        automake \
+        make \
+        gcc \
+        autoconf \
+        curl-dev \
+        openssl-dev \
+        g++ \
+        gmp-dev \
+  && cd /
+
+COPY . /app/
+RUN cd /app/ && sh build.sh
+
+FROM alpine
+
+RUN apk add --no-cache \
+        openssl \
+        gmp \
+        curl \
+        libstdc++
+
+COPY --from=builder /app/cpuminer .
+ENTRYPOINT ["./cpuminer"]
+CMD ["-h"]
