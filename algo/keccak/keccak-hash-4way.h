@@ -40,6 +40,8 @@
 extern "C"{
 #endif
 
+#ifdef  __AVX2__
+
 #include <stddef.h>
 #include "algo/sha/sph_types.h"
 #include "avxdefs.h"
@@ -61,8 +63,6 @@ extern "C"{
  * can be cloned by copying the context (e.g. with a simple
  * <code>memcpy()</code>).
  */
-
-#ifdef  __AVX2__
 
 typedef struct {
         __m256i buf[144*8];    /* first field, for alignment */

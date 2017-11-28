@@ -914,6 +914,7 @@ jh_core(sph_jh_context *sc, const void *data, size_t len)
 
 	buf = sc->buf;
 	ptr = sc->ptr;
+
 	if (len < (sizeof sc->buf) - ptr) {
 		memcpy(buf + ptr, data, len);
 		ptr += len;

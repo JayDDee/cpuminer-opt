@@ -62,9 +62,9 @@ extern "C"{
 #ifdef __AVX__
 typedef struct {
         __m128i buf[16] __attribute__ ((aligned (64)));
-	size_t ptr;
         __m128i H[8];
         __m128i S[4];    
+        size_t ptr;
 	sph_u32 T0, T1;
 } blake_4way_small_context;
 
@@ -82,13 +82,13 @@ void blake256_4way_addbits_and_close(
 
 typedef struct {
         __m256i buf[16] __attribute__ ((aligned (64)));
-	size_t ptr;
         __m256i H[8];
         __m256i S[4];   
+        size_t ptr;
 	sph_u64 T0, T1;
 } blake_4way_big_context;
 
-typedef blake_4way_big_context blake512_avx2_context;
+typedef blake_4way_big_context blake512_4way_context;
 
 void blake512_4way_init(void *cc);
 void blake512_4way(void *cc, const void *data, size_t len);

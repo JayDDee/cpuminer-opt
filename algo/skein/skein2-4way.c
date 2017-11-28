@@ -1,10 +1,9 @@
-#include "skein-gate.h"
-#include "algo-gate-api.h"
+#include "skein2-gate.h"
 #include <string.h>
 #include <stdint.h>
 #include "skein-hash-4way.h"
 
-#if defined(__AVX2__)
+#if defined(SKEIN2_4WAY)
 
 void skein2hash_4way( void *output, const void *input )
 {
@@ -38,7 +37,7 @@ int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
     // hash is returned deinterleaved
     uint32_t *nonces = work->nonces;
     bool *found = work->nfound;
-    int num_found;
+    int num_found = 0;
 
     swab32_array( endiandata, pdata, 20 );
 
@@ -52,7 +51,6 @@ int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
     do 
     {
        found[0] = found[1] = found[2] = found[3] = false;
-       num_found = 0;
        be32enc( noncep0, n   );
        be32enc( noncep1, n+1 );
        be32enc( noncep2, n+2 );

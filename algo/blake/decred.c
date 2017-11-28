@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "decred-gate.h"
 #include "sph_blake.h"
 
 #include <string.h>
@@ -14,33 +14,33 @@
 #define max(a,b) (a<b ? b : a)
 #endif
 */
-
+/*
 #define DECRED_NBITS_INDEX 29
 #define DECRED_NTIME_INDEX 34
 #define DECRED_NONCE_INDEX 35
 #define DECRED_XNONCE_INDEX 36
 #define DECRED_DATA_SIZE 192
 #define DECRED_WORK_COMPARE_SIZE 140
-
+*/
 static __thread sph_blake256_context blake_mid;
 static __thread bool ctx_midstate_done = false;
 
 void decred_hash(void *state, const void *input)
 {
-        #define MIDSTATE_LEN 128
+//        #define MIDSTATE_LEN 128
         sph_blake256_context ctx __attribute__ ((aligned (64)));
 
         uint8_t *ending = (uint8_t*) input;
-        ending += MIDSTATE_LEN;
+        ending += DECRED_MIDSTATE_LEN;
 
         if (!ctx_midstate_done) {
                 sph_blake256_init(&blake_mid);
-                sph_blake256(&blake_mid, input, MIDSTATE_LEN);
+                sph_blake256(&blake_mid, input, DECRED_MIDSTATE_LEN);
                 ctx_midstate_done = true;
         }
         memcpy(&ctx, &blake_mid, sizeof(blake_mid));
 
-        sph_blake256(&ctx, ending, (180 - MIDSTATE_LEN));
+        sph_blake256(&ctx, ending, (180 - DECRED_MIDSTATE_LEN));
         sph_blake256_close(&ctx, state);
 }
 
@@ -59,9 +59,9 @@ int scanhash_decred(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 
-        #define DCR_NONCE_OFT32 35
+//        #define DCR_NONCE_OFT32 35
 
-        const uint32_t first_nonce = pdata[DCR_NONCE_OFT32];
+        const uint32_t first_nonce = pdata[DECRED_NONCE_INDEX];
         const uint32_t HTarget = opt_benchmark ? 0x7f : ptarget[7];
 
         uint32_t n = first_nonce;
@@ -81,7 +81,7 @@ int scanhash_decred(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
 
         do {
                 //be32enc(&endiandata[DCR_NONCE_OFT32], n);
-                endiandata[DCR_NONCE_OFT32] = n;
+                endiandata[DECRED_NONCE_INDEX] = n;
                 decred_hash(hash32, endiandata);
 
                 if (hash32[7] <= HTarget && fulltest(hash32, ptarget)) {
@@ -92,7 +92,7 @@ int scanhash_decred(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
                         applog_hash(ptarget);
                         applog_compare_hash(hash32, ptarget);
 #endif
-                        pdata[DCR_NONCE_OFT32] = n;
+                        pdata[DECRED_NONCE_INDEX] = n;
                         return 1;
                 }
 
@@ -101,10 +101,11 @@ int scanhash_decred(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
         } while (n < max_nonce && !work_restart[thr_id].restart);
 
         *hashes_done = n - first_nonce + 1;
-        pdata[DCR_NONCE_OFT32] = n;
+        pdata[DECRED_NONCE_INDEX] = n;
         return 0;
 }
 
+/*
 uint32_t *decred_get_nonceptr( uint32_t *work_data )
 {
    return &work_data[ DECRED_NONCE_INDEX ];
@@ -172,7 +173,7 @@ void decred_be_build_stratum_request( char *req, struct work *work,
          rpc_user, work->job_id, xnonce2str, ntimestr, noncestr );
    free(xnonce2str);
 }
-
+*/
 /*
 // data shared between gen_merkle_root and build_extraheader.
 __thread uint32_t decred_extraheader[32] = { 0 };
@@ -188,7 +189,7 @@ void decred_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 }
 */
 
-
+/*
 #define min(a,b) (a>b ? (b) :(a))
 
 void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
@@ -282,4 +283,4 @@ bool register_decred_algo( algo_gate_t* gate )
   have_gbt                    = false;
   return true;
 }
-
+*/

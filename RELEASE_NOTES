@@ -67,6 +67,11 @@ have been due to AVX and AVX2 optimizations added to that version.
 Additional improvements are expected on Ryzen with openssl 1.1.
 "-march-znver1" or "-msha".
 
+Additional instructions for static compilalation can be found here:
+https://lxadm.com/Static_compilation_of_cpuminer
+Static builds should only considered in a homogeneous HW and SW environment.
+Local builds will always have the best performance and compatibility.
+
 Extract cpuminer source.
 
 tar xvzf cpuminer-opt-x.y.z.tar.gz
@@ -95,6 +100,11 @@ support will be added incrementally, see change log below for supported algos.
 Start mining.
 
 ./cpuminer -a algo -o url -u username -p password
+
+Windows
+
+The following in how the Windows binary releases are built. It's old and
+not very good but it works, for me anyway.
 
 Building on Windows prerequisites:
 
@@ -153,6 +163,12 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.7.4
+
+Removed unnecessary build options.
+
+Added 4way support for tribus and nist5.
 
 v3.7.3
 

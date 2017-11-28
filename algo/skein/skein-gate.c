@@ -1,7 +1,4 @@
 #include "skein-gate.h"
-#include "algo-gate-api.h"
-//#include <string.h>
-//#include <stdint.h>
 #include "sph_skein.h"
 #include "skein-hash-4way.h"
 
@@ -9,7 +6,7 @@ int64_t skein_get_max64() { return 0x7ffffLL; }
 
 bool register_skein_algo( algo_gate_t* gate )
 {
-#if defined (FOUR_WAY) &&  defined (__AVX2__)
+#if defined (SKEIN_4WAY)
     gate->optimizations = SSE2_OPT | AVX2_OPT | SHA_OPT;
     gate->scanhash  = (void*)&scanhash_skein_4way;
     gate->hash      = (void*)&skeinhash_4way;

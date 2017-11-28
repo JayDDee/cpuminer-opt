@@ -24,7 +24,8 @@ void whirlpoolx_hash(void *state, const void *input)
 	memcpy(state, hash, 32);
 }
 
-int scanhash_whirlpoolx(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done)
+int scanhash_whirlpoolx( int thr_id, struct work* work, uint32_t max_nonce,
+                         uint64_t *hashes_done)
 {
 	uint32_t _ALIGN(128) endiandata[20];
 	uint32_t* pdata = work->data;
@@ -32,8 +33,8 @@ int scanhash_whirlpoolx(int thr_id, struct work* work, uint32_t max_nonce, unsig
 	const uint32_t first_nonce = pdata[19];
         uint32_t n = first_nonce - 1;
 
-//	if (opt_benchmark)
-//		((uint32_t*)ptarget)[7] = 0x0000ff;
+	if (opt_benchmark)
+		((uint32_t*)ptarget)[7] = 0x0000ff;
 
         for (int i=0; i < 19; i++)
                 be32enc(&endiandata[i], pdata[i]);
@@ -47,7 +48,7 @@ int scanhash_whirlpoolx(int thr_id, struct work* work, uint32_t max_nonce, unsig
 
 		if (vhash[7] <= Htarg && fulltest(vhash, ptarget))
                 {
-//			work_set_target_ratio(work, vhash);
+			work_set_target_ratio(work, vhash);
                        *hashes_done = n - first_nonce + 1;
 			return true;
 		}

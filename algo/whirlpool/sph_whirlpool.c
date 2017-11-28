@@ -3441,19 +3441,19 @@ ROUND_FUN(whirlpool1, old1)
 
 #define RFUN   whirlpool_round
 #define HASH   whirlpool
-#include "algo/sha/md_helper.c"
+#include "md_helper.c"
 #undef RFUN
 #undef HASH
 
 #define RFUN   whirlpool0_round
 #define HASH   whirlpool0
-#include "algo/sha/md_helper.c"
+#include "md_helper.c"
 #undef RFUN
 #undef HASH
 
 #define RFUN   whirlpool1_round
 #define HASH   whirlpool1
-#include "algo/sha/md_helper.c"
+#include "md_helper.c"
 #undef RFUN
 #undef HASH
 
@@ -3463,7 +3463,6 @@ sph_ ## name ## _close(void *cc, void *dst) \
 { \
 	sph_ ## name ## _context *sc; \
 	int i; \
- \
 	name ## _close(cc, dst, 0); \
 	sc = cc; \
 	for (i = 0; i < 8; i ++) \

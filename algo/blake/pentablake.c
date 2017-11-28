@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "pentablake-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -109,12 +109,4 @@ int scanhash_pentablake(int thr_id, struct work *work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 } 
-
-bool register_pentablake_algo( algo_gate_t* gate )
-{
-    gate->scanhash  = (void*)&scanhash_pentablake;
-    gate->hash      = (void*)&pentablakehash;
-    gate->get_max64 = (void*)&get_max64_0x3ffff;
-    return true;
-};
 

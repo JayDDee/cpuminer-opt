@@ -22,24 +22,6 @@ cpuminer_SOURCES = \
   api.c \
   sysinfos.c \
   algo-gate-api.c\
-  algo/groestl/sph_groestl.c \
-  algo/bmw/sph_bmw.c \
-  algo/shavite/sph_shavite.c \
-  algo/shavite/shavite.c \
-  algo/echo/sph_echo.c \
-  algo/heavy/sph_hefty1.c \
-  algo/luffa/sph_luffa.c \
-  algo/cubehash/sph_cubehash.c \
-  algo/simd/sph_simd.c \
-  algo/hamsi/sph_hamsi.c \
-  algo/fugue/sph_fugue.c \
-  algo/gost/sph_gost.c \
-  algo/jh/sph_jh.c \
-  algo/sha/sph_sha2.c \
-  algo/sha/sph_sha2big.c \
-  algo/shabal/sph_shabal.c \
-  algo/sm3/sm3.c \
-  algo/whirlpool/sph_whirlpool.c\
   crypto/blake2s.c \
   crypto/oaes_lib.c \
   crypto/c_keccak.c \
@@ -67,22 +49,34 @@ cpuminer_SOURCES = \
   algo/blake/blake2s.c \
   algo/blake/mod_blakecoin.c \
   algo/blake/blakecoin.c \
+  algo/blake/decred-gate.c \
   algo/blake/decred.c \
+  algo/blake/decred-4way.c \
+  algo/blake/pentablake-gate.c \
+  algo/blake/pentablake-4way.c \
   algo/blake/pentablake.c \
+  algo/bmw/sph_bmw.c \
   algo/bmw/bmw256.c \
-  algo/cubehash/sse2/cubehash_sse2.c\
   algo/cryptonight/cryptolight.c \
   algo/cryptonight/cryptonight-common.c\
   algo/cryptonight/cryptonight-aesni.c\
   algo/cryptonight/cryptonight.c\
+  algo/cubehash/sph_cubehash.c \
+  algo/cubehash/sse2/cubehash_sse2.c\
   algo/drop.c \
+  algo/echo/sph_echo.c \
   algo/echo/aes_ni/hash.c\
   algo/fresh.c \
+  algo/gost/sph_gost.c \
+  algo/groestl/sph_groestl.c \
   algo/groestl/groestl.c \
   algo/groestl/myr-groestl.c \
   algo/groestl/aes_ni/hash-groestl.c \
   algo/groestl/aes_ni/hash-groestl256.c \
+  algo/fugue/sph_fugue.c \
+  algo/hamsi/sph_hamsi.c \
   algo/haval/haval.c\
+  algo/heavy/sph_hefty1.c \
   algo/heavy/heavy.c \
   algo/heavy/bastion.c \
   algo/hmq1725.c \
@@ -91,6 +85,10 @@ cpuminer_SOURCES = \
   algo/hodl/hodl-wolf.c \
   algo/hodl/sha512_avx.c \
   algo/hodl/sha512_avx2.c \
+  algo/jh/sph_jh.c \
+  algo/jh/jh-hash-4way.c \
+  algo/jh/jha-gate.c \
+  algo/jh/jha-4way.c \
   algo/jh/jha.c \
   algo/keccak/sph_keccak.c \
   algo/keccak/keccak.c\
@@ -99,6 +97,7 @@ cpuminer_SOURCES = \
   algo/keccak/keccak-gate.c \
   algo/keccak/sse2/keccak.c \
   algo/lbry.c \
+  algo/luffa/sph_luffa.c \
   algo/luffa/luffa.c \
   algo/luffa/sse2/luffa_for_sse2.c \
   algo/lyra2/lyra2.c \
@@ -109,7 +108,9 @@ cpuminer_SOURCES = \
   algo/lyra2/lyra2z330.c \
   algo/m7m.c \
   algo/neoscrypt.c \
-  algo/nist5.c \
+  algo/nist5/nist5-gate.c \
+  algo/nist5/nist5-4way.c \
+  algo/nist5/nist5.c \
   algo/pluck.c \
   algo/polytimos/polytimos-gate.c \
   algo/polytimos/polytimos.c \
@@ -119,8 +120,14 @@ cpuminer_SOURCES = \
   algo/ripemd/sph_ripemd.c \
   algo/scrypt.c \
   algo/scryptjane/scrypt-jane.c \
+  algo/sha/sph_sha2.c \
+  algo/sha/sph_sha2big.c \
   algo/sha/sha2.c \
   algo/sha/sha256t.c \
+  algo/shabal/sph_shabal.c \
+  algo/shavite/sph_shavite.c \
+  algo/shavite/shavite.c \
+  algo/simd/sph_simd.c \
   algo/simd/sse2/nist.c \
   algo/simd/sse2/vector.c \
   algo/skein/sph_skein.c \
@@ -132,11 +139,18 @@ cpuminer_SOURCES = \
   algo/skein/skein2-4way.c \
   algo/skein/skein2-gate.c \
   algo/skunk.c \
+  algo/sm3/sm3.c \
   algo/tiger/sph_tiger.c \
   algo/timetravel.c \
   algo/timetravel10.c \
-  algo/tribus.c \
+  algo/tribus/tribus-gate.c \
+  algo/tribus/tribus.c \
+  algo/tribus/tribus-4way.c \
   algo/veltor.c \
+  algo/whirlpool/sph_whirlpool.c \
+  algo/whirlpool/whirlpool-hash-4way.c \
+  algo/whirlpool/whirlpool-gate.c \
+  algo/whirlpool/whirlpool-4way.c \
   algo/whirlpool/whirlpool.c \
   algo/whirlpool/whirlpoolx.c \
   algo/x11/phi1612.c \

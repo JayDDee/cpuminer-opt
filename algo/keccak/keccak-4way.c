@@ -6,7 +6,7 @@
 #include "sph_keccak.h"
 #include "keccak-hash-4way.h"
 
-#ifdef __AVX2__
+#ifdef KECCAK_4WAY
 
 void keccakhash_4way(void *state, const void *input)
 {
@@ -21,7 +21,7 @@ void keccakhash_4way(void *state, const void *input)
      keccak256_4way( &ctx, input, 80 );
      keccak256_4way_close( &ctx, vhash );
 
-     m256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     m256_deinterleave_4x64x( hash0, hash1, hash2, hash3, vhash, 512 );
 
      memcpy( state,    hash0, 32 );
      memcpy( state+32, hash1, 32 );
@@ -33,16 +33,16 @@ int scanhash_keccak_4way( int thr_id, struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done)
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
-   uint32_t vdata[20*4] __attribute__ ((aligned (64)));
+   uint32_t vdata[24*4] __attribute__ ((aligned (64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    uint32_t n = pdata[19];
    const uint32_t first_nonce = pdata[19];
-   const uint32_t Htarg = ptarget[7];
+//   const uint32_t Htarg = ptarget[7];
    uint32_t endiandata[20];
    uint32_t *nonces = work->nonces;
    bool *found = work->nfound;
-   int num_found;
+   int num_found = 0;
    uint32_t *noncep0 = vdata + 73;   // 9*8 + 1
    uint32_t *noncep1 = vdata + 75;
    uint32_t *noncep2 = vdata + 77;
@@ -52,11 +52,10 @@ int scanhash_keccak_4way( int thr_id, struct work *work, uint32_t max_nonce,
       be32enc( &endiandata[i], pdata[i] );
 
    uint64_t *edata = (uint64_t*)endiandata;
-   m256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+   m256_interleave_4x64x( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
    do {
       found[0] = found[1] = found[2] = found[3] = false;
-      num_found = 0;
       be32enc( noncep0, n   );
       be32enc( noncep1, n+1 );
       be32enc( noncep2, n+2 );

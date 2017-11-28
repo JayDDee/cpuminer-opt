@@ -983,9 +983,11 @@ blake64_close(sph_blake_big_context *sc,
 			u.buf[111] |= 1;
 		sph_enc64be_aligned(u.buf + 112, th);
 		sph_enc64be_aligned(u.buf + 120, tl);
+
 		blake64(sc, u.buf + ptr, 128 - ptr);
 	} else {
 		memset(u.buf + ptr + 1, 0, 127 - ptr);
+
 		blake64(sc, u.buf + ptr, 128 - ptr);
 		sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00);
 		sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFF);
@@ -994,6 +996,7 @@ blake64_close(sph_blake_big_context *sc,
 			u.buf[111] = 1;
 		sph_enc64be_aligned(u.buf + 112, th);
 		sph_enc64be_aligned(u.buf + 120, tl);
+
 		blake64(sc, u.buf, 128);
 	}
 	out = dst;

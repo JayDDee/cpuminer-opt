@@ -1,5 +1,4 @@
-#include "algo-gate-api.h"
-
+#include "whirlpool-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -58,7 +57,8 @@ void whirlpool_midstate( const void* input )
 }
 
 
-int scanhash_whirlpool(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done)
+int scanhash_whirlpool( int thr_id, struct work* work, uint32_t max_nonce,
+                        uint64_t *hashes_done )
 {
 	uint32_t _ALIGN(128) endiandata[20];
 	uint32_t* pdata = work->data;
@@ -66,8 +66,8 @@ int scanhash_whirlpool(int thr_id, struct work* work, uint32_t max_nonce, unsign
 	const uint32_t first_nonce = pdata[19];
         uint32_t n = first_nonce - 1;
 
-//	if (opt_benchmark)
-//		((uint32_t*)ptarget)[7] = 0x0000ff;
+	if (opt_benchmark)
+		((uint32_t*)ptarget)[7] = 0x0000ff;
 
         for (int i=0; i < 19; i++)
                 be32enc(&endiandata[i], pdata[i]);
@@ -83,7 +83,7 @@ int scanhash_whirlpool(int thr_id, struct work* work, uint32_t max_nonce, unsign
 
 		if (vhash[7] <= Htarg && fulltest(vhash, ptarget))
                 {
-//			work_set_target_ratio(work, vhash);
+			work_set_target_ratio(work, vhash);
                        *hashes_done = n - first_nonce + 1;
 			return true;
 		}
@@ -94,12 +94,4 @@ int scanhash_whirlpool(int thr_id, struct work* work, uint32_t max_nonce, unsign
         pdata[19] = n;
 	return 0;
 }
-
-bool register_whirlpool_algo( algo_gate_t* gate )
-{
-  gate->scanhash  = (void*)&scanhash_whirlpool;
-  gate->hash      = (void*)&whirlpool_hash;
-  init_whirlpool_ctx();
-  return true;
-};
 

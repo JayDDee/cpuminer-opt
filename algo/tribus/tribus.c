@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "tribus-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -24,6 +24,18 @@ typedef struct {
 } tribus_ctx_holder;
 
 static __thread tribus_ctx_holder tribus_ctx;
+
+bool tribus_thread_init()
+{
+   sph_jh512_init( &tribus_ctx.jh );
+   sph_keccak512_init( &tribus_ctx.keccak );
+#ifdef NO_AES_NI
+   sph_echo512_init( &tribus_ctx.echo );
+#else
+   init_echo( &tribus_ctx.echo, 512 );
+#endif
+  return true;
+}
 
 void tribus_hash(void *state, const void *input)
 {
@@ -122,25 +134,4 @@ int scanhash_tribus(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
 	return 0;
 }
 
-bool tribus_thread_init()
-{
-   sph_jh512_init( &tribus_ctx.jh );
-   sph_keccak512_init( &tribus_ctx.keccak );
-#ifdef NO_AES_NI
-   sph_echo512_init( &tribus_ctx.echo );
-#else
-   init_echo( &tribus_ctx.echo, 512 );
-#endif
-  return true;
-}
-
-bool register_tribus_algo( algo_gate_t* gate )
-{
-  gate->miner_thread_init = (void*)&tribus_thread_init;
-  gate->optimizations = SSE2_OPT | AES_OPT;
-  gate->get_max64     = (void*)&get_max64_0x1ffff;
-  gate->scanhash      = (void*)&scanhash_tribus;
-  gate->hash          = (void*)&tribus_hash;
-  return true;
-};
 

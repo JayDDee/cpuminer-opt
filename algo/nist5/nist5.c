@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "nist5-gate.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -147,7 +147,7 @@ int scanhash_nist5(int thr_id, struct work *work,
 	pdata[19] = n;
 	return 0;
 }
-
+/*
 bool register_nist5_algo( algo_gate_t* gate )
 {
     gate->optimizations = SSE2_OPT | AES_OPT;
@@ -156,4 +156,4 @@ bool register_nist5_algo( algo_gate_t* gate )
     gate->hash     = (void*)&nist5hash;
     return true;
 };
-
+*/

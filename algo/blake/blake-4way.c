@@ -1,11 +1,11 @@
-#include "algo-gate-api.h"
+#include "blake-gate.h"
 #include "sph_blake.h"
 #include "blake-hash-4way.h"
 #include <string.h>
 #include <stdint.h>
 #include <memory.h>
 
-#if defined (__AVX__)
+#if defined (BLAKE_4WAY)
 
 void blakehash_4way(void *state, const void *input)
 {
@@ -41,7 +41,7 @@ int scanhash_blake_4way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    uint32_t *nonces = work->nonces;
    bool *found = work->nfound;
-   int num_found;
+   int num_found = 0;
 
 //   if (opt_benchmark)
 //      HTarget = 0x7f;
@@ -55,7 +55,6 @@ int scanhash_blake_4way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t *noncep = vdata + 76;   // 19*4
    do {
       found[0] = found[1] = found[2] = found[3] = false;
-      num_found = 0;
       be32enc( noncep,    n   );
       be32enc( noncep +2, n+1 );
       be32enc( noncep +4, n+2 );

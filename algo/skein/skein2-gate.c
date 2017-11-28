@@ -1,9 +1,6 @@
 #include "skein2-gate.h"
-#include "algo-gate-api.h"
-//#include <string.h>
 #include <stdint.h>
 #include "sph_skein.h"
-//#include "skein-hash-avx2.h"
 
 int64_t skein2_get_max64 ()
 {

@@ -673,19 +673,19 @@ Options:\n\
                           argon2\n\
                           axiom        Shabal-256 MemoHash\n\
                           bastion\n\
-                          blake        Blake-256 (SFR)\n\
+                          blake        blake256r14 (SFR)\n\
                           blakecoin    blake256r8\n\
                           blake2s      Blake-2 S\n\
                           bmw          BMW 256\n\
                           c11          Chaincoin\n\
                           cryptolight  Cryptonight-light\n\
                           cryptonight  cryptonote, Monero (XMR)\n\
-                          decred       Blake256r8dcr\n\
+                          decred       Blake256r14dcr\n\
                           deep         Deepcoin (DCN)\n\
                           dmd-gr       Diamond\n\
                           drop         Dropcoin\n\
                           fresh        Fresh\n\
-                          groestl      dmd-gr, Groestl coin\n\
+                          groestl      Groestl coin\n\
                           heavy        Heavy\n\
                           hmq1725      Espers\n\
                           hodl         Hodlcoin\n\

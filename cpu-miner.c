@@ -1815,14 +1815,30 @@ static void *miner_thread( void *userdata )
              {
                  *algo_gate.get_nonceptr( work.data ) = work.nonces[n]; 
                  if ( !submit_work(mythr, &work) )
+                 {
+                    applog(LOG_WARNING, "Failed to submit share." );
                     break;
+                 }
                  num_submitted++;
              }
-          // must be a ine way algo, nonce is already in work data
+#if FOUR_WAY
+if (num_submitted>1)
+ applog(LOG_NOTICE,  "4 WAY hash, %u nonces submitted," CL_MAG " BONUS!" CL_WHT, num_submitted);
+else
+ applog(LOG_NOTICE,  "4 WAY hash %u nonce submitted", num_submitted);
+#endif
+          // must be a one way algo, nonce is already in work data
           if ( !num_submitted )
           {
              if ( !submit_work(mythr, &work) )
+             {
+                applog(LOG_WARNING, "Failed to submir share.");
                 break;
+             }
+#if FOUR_WAY
+applog(LOG_NOTICE,  "1 WAY hash 1 nonce submitted");
+#endif
+
           }
 
           // prevent stale work in solo
@@ -1836,8 +1852,6 @@ static void *miner_thread( void *userdata )
           }
        }
        // display hashrate
-
-
        if (!opt_quiet)
        {
           char hc[16];
@@ -1846,7 +1860,6 @@ static void *miner_thread( void *userdata )
           char hr_units[2] = {0,0};
           double hashcount = thr_hashcount[thr_id];
           double hashrate  = thr_hashrates[thr_id];
-//printf("display count= %.3f,  tcount= %.3f, rate= %03f trate= %03f\n", hashcount, thr_hashcount[thr_id], hashrate,thr_hashrates[thr_id] );
           if ( hashcount )
           {
              scale_hash_for_display( &hashcount, hc_units );

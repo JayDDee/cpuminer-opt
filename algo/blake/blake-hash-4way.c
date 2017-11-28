@@ -346,7 +346,7 @@ static const sph_u32 CS[16] = {
 #define CBF   SPH_C64(0x636920D871574E69)
 
 #if SPH_COMPACT_BLAKE_64
-
+// not used
 static const sph_u64 CB[16] = {
 	SPH_C64(0x243F6A8885A308D3), SPH_C64(0x13198A2E03707344),
 	SPH_C64(0xA4093822299F31D0), SPH_C64(0x082EFA98EC4E6C89),
@@ -428,7 +428,7 @@ do { \
 } while (0)
 
 #if SPH_COMPACT_BLAKE_64
-
+// not used
 #define ROUND_B_4WAY(r)   do { \
 	GB_4WAY(M[sigma[r][0x0]], M[sigma[r][0x1]], \
 		CB[sigma[r][0x0]], CB[sigma[r][0x1]], V0, V4, V8, VC); \
@@ -449,7 +449,7 @@ do { \
 } while (0)
 
 #else
-
+//current_impl
 #define ROUND_B_4WAY(r)   do { \
 	GB_4WAY(Mx(r, 0), Mx(r, 1), CBx(r, 0), CBx(r, 1), V0, V4, V8, VC); \
 	GB_4WAY(Mx(r, 2), Mx(r, 3), CBx(r, 2), CBx(r, 3), V1, V5, V9, VD); \
@@ -696,6 +696,7 @@ do { \
 
 #if SPH_COMPACT_BLAKE_64
 
+// not used
 #define COMPRESS64_4WAY   do { \
 	__m256i M[16]; \
 	__m256i V0, V1, V2, V3, V4, V5, V6, V7; \
@@ -758,6 +759,8 @@ do { \
 	} while (0)
 
 #else
+
+//current impl
 
 #define COMPRESS64_4WAY   do { \
      __m256i M0, M1, M2, M3, M4, M5, M6, M7; \
@@ -986,7 +989,7 @@ blake64_4way( blake_4way_big_context *sc, const void *data, size_t len)
    size_t ptr;
    DECL_STATE64_4WAY
 
-   const int buf_size = 64;  //  sizeof/8 
+   const int buf_size = 128;  //  sizeof/8 
 
    buf = sc->buf;
    ptr = sc->ptr;
@@ -1037,7 +1040,7 @@ blake64_4way_close( blake_4way_big_context *sc,
    __m256i *out;
 
    ptr = sc->ptr;
-   bit_len = ((unsigned)ptr << 3) + n;
+   bit_len = ((unsigned)ptr << 3);
    z = 0x80 >> n;
    zz = ((ub & -z) | z) & 0xFF;
    u.buf[ptr>>3] = _mm256_set_epi64x( zz, zz, zz, zz );
@@ -1057,9 +1060,9 @@ blake64_4way_close( blake_4way_big_context *sc,
    {
         sc->T0 -= 1024 - bit_len;
    }
-   if ( ptr <= (96 >> 3) )
+   if ( ptr <= 104 )
    {
-       memset_zero_m256i( u.buf + (ptr>>3) + 1, (96-ptr) >> 3 );
+       memset_zero_m256i( u.buf + (ptr>>3) + 1, (104-ptr) >> 3 );
        if ( out_size_w64 == 8 )
           u.buf[(104>>3)] = _mm256_or_si256( u.buf[(104>>3)],
                                     _mm256_set_epi64x( 0x0100000000000000,
@@ -1070,11 +1073,13 @@ blake64_4way_close( blake_4way_big_context *sc,
                                     _mm256_set_epi64x( th, th, th, th ) );
        *(u.buf+(120>>3)) = mm256_byteswap_epi64(
                                     _mm256_set_epi64x( tl, tl, tl, tl ) );
+
        blake64_4way( sc, u.buf + (ptr>>3), 128 - ptr );
    }
    else
   {
-       memset_zero_m256i( u.buf + (ptr>>3) + 1, (127 - ptr) >> 3 );
+       memset_zero_m256i( u.buf + (ptr>>3) + 1, (120 - ptr) >> 3 );
+
        blake64_4way( sc, u.buf + (ptr>>3), 128 - ptr );
        sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00);
        sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFF);
@@ -1089,6 +1094,7 @@ blake64_4way_close( blake_4way_big_context *sc,
                                     _mm256_set_epi64x( th, th, th, th ) );
        *(u.buf+(120>>3)) = mm256_byteswap_epi64(
                                     _mm256_set_epi64x( tl, tl, tl, tl ) );
+
        blake64_4way( sc, u.buf, 128 );
    }
    out = (__m256i*)dst;

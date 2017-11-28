@@ -296,7 +296,6 @@ do { \
   w5 = _mm256_add_epi64( w5, _mm256_add_epi64( SKBI(k,s,5), \
                            _mm256_set_epi64x( SKBT(t,s,0), SKBT(t,s,0), \
                                               SKBT(t,s,0), SKBT(t,s,0) ) ) ); \
-__m256i skbi6 = SKBI(k,s,6); \
   w6 = _mm256_add_epi64( w6, _mm256_add_epi64( SKBI(k,s,6), \
                            _mm256_set_epi64x( SKBT(t,s,1), SKBT(t,s,1), \
                                               SKBT(t,s,1), SKBT(t,s,1) ) ) ); \
@@ -458,20 +457,10 @@ skein_big_core_4way( skein512_4way_context *sc, const void *data,
    unsigned first;
    DECL_STATE_BIG_4WAY
 
-// len is the array size, of data, ie 64 bytes
-// data points to start of 4 element buf
-// ptr is a len offset in bytes
-// buff is an array of 4 elements
-// buff_size is size of one array element
-// One element is 8 bytes (64 bits) scalar but 32 bytes (256 bits) 4way
-// To index buf using ptr it has to be scaled 8 to 1. the amounrt of
-// data to copy is 32 bytes per element instead of 8, or one m256
-
    buf = sc->buf;
    ptr = sc->ptr;
    const int buf_size = 64;   // 64 * _m256i
 
-// 64 byte len, no part block
    if ( len <= buf_size - ptr )
    {
        memcpy_m256i( buf + (ptr>>3), vdata, len>>3 );
@@ -481,8 +470,6 @@ skein_big_core_4way( skein512_4way_context *sc, const void *data,
 
    READ_STATE_BIG( sc );
    first = ( bcount == 0 ) << 7;
-// 64 byte len, only one block, no transform here.
-// 80 byte len, transform first 64 bytes.
    do {
        size_t clen;
 
@@ -512,19 +499,7 @@ skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
 	__m256i *buf;
 	size_t ptr;
 	unsigned et;
-	int i;
 	DECL_STATE_BIG_4WAY
-	/*
-	 * Add bit padding if necessary.
-	 */
-//	if (n != 0) {
-//		unsigned z;
-//		unsigned char x;
-//
-//		z = 0x80 >> n;
-//		x = ((ub & -z) | z) & 0xFF;
-//		skein_big_core(sc, &x, 1);
-//	}
 
 	buf = sc->buf;
 	ptr = sc->ptr;
@@ -543,8 +518,6 @@ skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
 	 * the encoding of "0", over 8 bytes, then padded with zeros).
 	 */
 
-// 64 byte len, process only block
-// 80 byte len, process last part block (16 bytes) padded.
 	READ_STATE_BIG(sc);
 
         memset_zero_m256i( buf + (ptr>>3), (buf_size - ptr) >> 3 );
@@ -555,28 +528,6 @@ skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
         bcount = 0;
         UBI_BIG_4WAY( 510, 8 );
 
-//	for ( i = 0; i < 2; i ++ )
-//        {
-//		UBI_BIG_AVX2( et, ptr );
-//		if (i == 0)
-//                {
-//                        memset_zero_m256i( buf, buf_size >> 3 );
-//			bcount = 0;
-//			et = 510;
-//			ptr = 8;
-//		}
-//	}
-
-// Can LE be assumed? Should be ok SPH_LITTLE_ENDIAN is defined
-/*        _mm256_enc64le( buf, h0 );
-        _mm256_enc64le( buf + 32, h1 );
-        _mm256_enc64le( buf + 64, h2 );
-        _mm256_enc64le( buf + 96, h3 );
-        _mm256_enc64le( buf + 128, h4 );
-        _mm256_enc64le( buf + 160, h5 );
-        _mm256_enc64le( buf + 192, h6 );
-        _mm256_enc64le( buf + 224, h7 );
-*/
         buf[0] = h0;
         buf[1] = h1;
         buf[2] = h2;
@@ -587,7 +538,6 @@ skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
         buf[7] = h7;
 
         memcpy_m256i( dst, buf, out_len >> 3 );
-//	memcpy( dst, buf, out_len * 4 );
 }
 
 static const sph_u64 IV256[] = {

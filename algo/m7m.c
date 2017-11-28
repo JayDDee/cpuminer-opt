@@ -197,6 +197,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
     sph_tiger(      &ctx1.tiger,     data, M7_MIDSTATE_LEN );
     sph_ripemd160(  &ctx1.ripemd,    data, M7_MIDSTATE_LEN );
 
+// the following calculations can be performed once and the results shared
     mpz_t magipi, magisw, product, bns0, bns1;
     mpf_t magifpi, magifpi0, mpt1, mpt2, mptmp, mpten;
     
@@ -220,6 +221,9 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
         memset(bhash, 0, 7 * 64);
 
         memcpy( &ctx2, &ctx1, sizeof(m7m_ctx) );
+
+// with 4 way can a single midstate be shared among lanes?
+// do sinlge round of midstate and inyerleave for final
 
 #ifndef USE_SPH_SHA
         SHA256_Update(  &ctx2.sha256, data_p64, 80 - M7_MIDSTATE_LEN );
@@ -249,6 +253,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
         sph_ripemd160( &ctx2.ripemd, data_p64, 80 - M7_MIDSTATE_LEN );
         sph_ripemd160_close( &ctx2.ripemd, (void*)(bhash[6]) );
 
+// 4 way serial
 	mpz_import(bns0, a, -1, p, -1, 0, bhash[0]);
         mpz_set(bns1, bns0);
 	mpz_set(product, bns0);
@@ -274,6 +279,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
         sph_sha256_close( &ctxf_sha256, (void*)(hash) );
 #endif
 
+// do once and share
         digits=(int)((sqrt((double)(n/2))*(1.+EPS))/9000+75);
         mp_bitcnt_t prec = (long int)(digits*BITS_PER_DIGIT+16);
 	mpf_set_prec_raw(magifpi, prec);
@@ -296,7 +302,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 	    mpz_set_f(magipi, magifpi);
             mpz_add(magipi,magipi,magisw);
             mpz_add(product,product,magipi);
-			
+// share magipi, product and do serial			
 	    mpz_import(bns0, b, -1, p, -1, 0, (void*)(hash));
             mpz_add(bns1, bns1, bns0);
             mpz_mul(product,product,bns1);
@@ -317,6 +323,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 #endif
 	}
 
+// this is the scanhash part
 	const unsigned char *hash_ = (const unsigned char *)hash;
 	const unsigned char *target_ = (const unsigned char *)ptarget;
 	for ( i = 31; i >= 0; i-- )
@@ -346,6 +353,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 
      pdata[19] = n;
 
+// do this in hashm7m
 out:
      mpf_set_prec_raw(magifpi, prec0);
      mpf_set_prec_raw(magifpi0, prec0);

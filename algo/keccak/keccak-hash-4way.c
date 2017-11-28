@@ -372,7 +372,7 @@ static const sph_u64 RC[] = {
 } while (0)
 
 
-static void keccak64_init( keccak64_ctx_m256i *kc, size_t lim )
+static void keccak64_init( keccak64_ctx_m256i *kc, unsigned out_size )
 {
    int i;
    for (i = 0; i < 25; i ++)
@@ -386,7 +386,7 @@ static void keccak64_init( keccak64_ctx_m256i *kc, size_t lim )
    kc->w[17] = mm256_neg1;
    kc->w[20] = mm256_neg1;
    kc->ptr = 0;
-   kc->lim = 200 - (lim >> 2);
+   kc->lim = 200 - (out_size >> 2);
 }
 
 static void
@@ -396,6 +396,7 @@ keccak64_core( keccak64_ctx_m256i *kc, const void *data, size_t len,
     __m256i *buf;
     __m256i *vdata = (__m256i*)data;
     size_t ptr;
+    DECL_STATE
 
     buf = kc->buf;
     ptr = kc->ptr;
@@ -407,6 +408,7 @@ keccak64_core( keccak64_ctx_m256i *kc, const void *data, size_t len,
         return;
     }
 
+    READ_STATE( kc );
     while ( len > 0 )
     {
         size_t clen;
@@ -425,6 +427,7 @@ keccak64_core( keccak64_ctx_m256i *kc, const void *data, size_t len,
             ptr = 0;
         }
     }
+    WRITE_STATE( kc );
     kc->ptr = ptr;
 }
 
@@ -440,12 +443,11 @@ static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
     size_t m256_len = byte_len >> 3;
 
     eb = 0x100  >> 8;
-
-    if ( kc->ptr == (lim - 1) )
+    if ( kc->ptr == (lim - 8) )
     {
-        uint64_t t = eb | 0x80;
+        uint64_t t = eb | 0x8000000000000000;
         u.tmp[0] = _mm256_set_epi64x( t, t, t, t );
-        j = 1;
+        j = 8;
     }
     else
     {

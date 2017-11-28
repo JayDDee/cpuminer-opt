@@ -12,7 +12,7 @@ bool register_keccak_algo( algo_gate_t* gate )
   gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
   gate->set_target      = (void*)&keccak_set_target;
   gate->get_max64       = (void*)&keccak_get_max64;
-#if defined (FOUR_WAY) && defined (__AVX2__)
+#if defined (KECCAK_4WAY)
   gate->optimizations = SSE2_OPT | AVX2_OPT;
   gate->scanhash  = (void*)&scanhash_keccak_4way;
   gate->hash      = (void*)&keccakhash_4way;

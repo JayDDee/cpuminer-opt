@@ -1,4 +1,3 @@
-#include "algo-gate-api.h"
 #include "skein-gate.h"
 #include <string.h>
 #include <stdint.h>
@@ -60,7 +59,7 @@ int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
     // hash is returned deinterleaved
     uint32_t *nonces = work->nonces;
     bool *found = work->nfound;
-    int num_found;
+    int num_found = 0;
 
 // data is 80 bytes, 20 u32 or 4 u64.
 	
@@ -76,7 +75,6 @@ int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
    do
    {
        found[0] = found[1] = found[2] = found[3] = false;
-       num_found = 0;      
        be32enc( noncep0, n   );
        be32enc( noncep1, n+1 );
        be32enc( noncep2, n+2 );

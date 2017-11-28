@@ -1,3 +1,6 @@
+#ifndef AVXDEFS_H__
+#define AVXDEFS_H__
+
 // Some tools to help using AVX and AVX2
 // AVX support is required to include this header file, AVX2 optional.
 
@@ -39,7 +42,23 @@ uint8_t   v8 [16];
 
 #if defined (__AVX2__)
 
-// AVX2 replacements for vectorized data
+// AVX2 implementations of
+//   vector versions of common scalar functions
+//   vector handling, indexing, pointer arithmetic
+//   vector scalar conversion
+//   overlay (union) handling for all integer data types
+
+// vectorize 64 bit data by replication.
+// don't need to repeat the val 4 times.
+inline __m256i mm256_vec_epi64( uint64_t val )
+{
+   return _mm256_set_epi64x( val, val, val, val );
+}
+
+inline __m256i mm256_vec_epi32( uint32_t val )
+{
+   return _mm256_set_epi32( val, val, val, val, val, val, val, val );
+}
 
 // n = number of __m256i (32 bytes)
 inline void memset_zero_m256i( __m256i *dst, int n )
@@ -282,8 +301,8 @@ inline __m256i  mm256_byteswap_epi32( __m256i x )
           _mm256_set_epi32( 0x00ff0000, 0x00ff0000, 0x00ff0000, 0x00ff0000,
                             0x00ff0000, 0x00ff0000, 0x00ff0000, 0x00ff0000 ) );
   __m256i x0 = _mm256_slli_epi32( x, 24 );   // x0 = x << 24
-          x1 = _mm256_slli_epi32( x1, 8 );   // x1 = mask(x) << 8
-          x2 = _mm256_srli_epi32( x2, 8 );   // x2 = mask(x) >> 8
+          x1 = _mm256_slli_epi32( x1, 8 );   // x1 = mask1(x) << 8
+          x2 = _mm256_srli_epi32( x2, 8 );   // x2 = mask2(x) >> 8
   __m256i x3 = _mm256_srli_epi32( x, 24 );   // x3 = x >> 24
   return _mm256_or_si256( _mm256_or_si256( x0, x1 ),
                           _mm256_or_si256( x2, x3 ) );
@@ -317,6 +336,11 @@ inline __m256i mm256_byteswap_epi64( __m256i x )
                                0x00FF00FF00FF00FF, 0x00FF00FF00FF00FF ) ), 8 ));
   return x;
 }
+
+// vectorized version of ~ operator
+#define mm256_bitnot( x ) \
+   _mm256_xor_si256( (x), _mm256_set_epi64x( 0xffffffffffffffff, \
+             0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff ) )
 
 #endif  // AVX2
 
@@ -614,10 +638,63 @@ inline void m256_deinterleave_4x64( uint64_t *dst0, uint64_t *dst1,
    for ( int i = 0; i < bit_len>>6; i++, s += 4 )
   {
      *(dst0+i) = *s;
-     *(dst1+i) = *(s+1);    
-     *(dst2+i) = *(s+2);   
-     *(dst3+i) = *(s+3);   
+     *(dst1+i) = *(s+1);
+     *(dst2+i) = *(s+2);
+     *(dst3+i) = *(s+3);
   }
+}
+
+// optimized versions using AVX2 code
+// only 512 bit and 640 bit length is supported
+// all data must be aligned to256 bits
+// 640 bit data needs padding for overrun to 768
+// no looping
+inline void m256_interleave_4x64x( uint64_t *dst, uint64_t *src0,
+              uint64_t *src1, uint64_t *src2, uint64_t *src3, int bit_len )
+{
+   __m256i* d = (__m256i*)dst;
+
+   d[0] = _mm256_set_epi64x( src3[0], src2[0], src1[0], src0[0] );
+   d[1] = _mm256_set_epi64x( src3[1], src2[1], src1[1], src0[1] );
+   d[2] = _mm256_set_epi64x( src3[2], src2[2], src1[2], src0[2] );
+   d[3] = _mm256_set_epi64x( src3[3], src2[3], src1[3], src0[3] );
+
+   d[4] = _mm256_set_epi64x( src3[4], src2[4], src1[4], src0[4] );
+   d[5] = _mm256_set_epi64x( src3[5], src2[5], src1[5], src0[5] );
+   d[6] = _mm256_set_epi64x( src3[6], src2[6], src1[6], src0[6] );
+   d[7] = _mm256_set_epi64x( src3[7], src2[7], src1[7], src0[7] );
+
+   if ( bit_len == 512 ) return;
+
+   d[8] = _mm256_set_epi64x( src3[8], src2[8], src1[8], src0[8] );
+   d[9] = _mm256_set_epi64x( src3[9], src2[9], src1[9], src0[9] );
+}
+
+inline void m256_deinterleave_4x64x( uint64_t *dst0, uint64_t *dst1,
+                uint64_t *dst2, uint64_t *dst3, uint64_t *src, int bit_len )
+{
+   __m256i* d0 = (__m256i*)dst0;
+   __m256i* d1 = (__m256i*)dst1;
+   __m256i* d2 = (__m256i*)dst2;
+   __m256i* d3 = (__m256i*)dst3;
+
+   d0[0] = _mm256_set_epi64x( src[12], src[ 8], src[ 4], src[ 0] );
+   d1[0] = _mm256_set_epi64x( src[13], src[ 9], src[ 5], src[ 1] );
+   d2[0] = _mm256_set_epi64x( src[14], src[10], src[ 6], src[ 2] );
+   d3[0] = _mm256_set_epi64x( src[15], src[11], src[ 7], src[ 3] );
+
+   d0[1] = _mm256_set_epi64x( src[28], src[24], src[20], src[16] );
+   d1[1] = _mm256_set_epi64x( src[29], src[25], src[21], src[17] );
+   d2[1] = _mm256_set_epi64x( src[30], src[26], src[22], src[18] );
+   d3[1] = _mm256_set_epi64x( src[31], src[27], src[23], src[19] );
+
+   if ( bit_len == 512 ) return;
+
+   // null change to overrun area
+   d0[2] = _mm256_set_epi64x( dst0[44], dst0[40], src[36], src[32] );
+   d1[2] = _mm256_set_epi64x( dst1[45], dst1[41], src[37], src[33] );
+   d2[2] = _mm256_set_epi64x( dst2[46], dst2[42], src[38], src[34] );
+   d3[2] = _mm256_set_epi64x( dst3[47], dst3[43], src[39], src[35] );
 }
 
 // interleave 8 arrays of 32 bit elements for AVX2 processing
@@ -718,7 +795,8 @@ inline void m128_interleave_4x32( uint32_t *dst, uint32_t *src0,
 // deinterleave 4 arrays into individual buffers for scalarm processing
 // bit_len must be multiple of 32
 inline void m128_deinterleave_4x32( uint32_t *dst0, uint32_t *dst1,
-                uint32_t *dst2,uint32_t *dst3, uint32_t *src, int bit_len )
+                uint32_t *dst2,uint32_t *dst3, uint32_t *src,
+                int bit_len )
 {
   uint32_t *s = src;
   for ( int i = 0; i < bit_len >> 5; i++, s += 4 )
@@ -730,4 +808,5 @@ inline void m128_deinterleave_4x32( uint32_t *dst0, uint32_t *dst1,
   }
 }
 
+#endif
 

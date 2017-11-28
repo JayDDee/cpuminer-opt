@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "jha-gate.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -38,7 +38,6 @@ void jha_hash(void *output, const void *input)
 	sph_keccak512_context ctx_keccak;
 	sph_skein512_context ctx_skein;
 
-	sph_keccak512_init(&ctx_keccak);
         memcpy( &ctx_keccak, &jha_kec_mid, sizeof jha_kec_mid );
         sph_keccak512(&ctx_keccak, input+64, 16 );
 	sph_keccak512_close(&ctx_keccak, hash );
@@ -153,13 +152,4 @@ int scanhash_jha(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *ha
 	pdata[19] = n;
 	return 0;
 }
-
-bool register_jha_algo( algo_gate_t* gate )
-{
-  gate->optimizations = SSE2_OPT | AES_OPT;
-  gate->scanhash         = (void*)&scanhash_jha;
-  gate->hash             = (void*)&jha_hash;
-  gate->set_target       = (void*)&scrypt_set_target;
-  return true;
-};
 
