@@ -171,6 +171,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_HODL:         register_hodl_algo        ( gate ); break;
      case ALGO_JHA:          register_jha_algo         ( gate ); break;
      case ALGO_KECCAK:       register_keccak_algo      ( gate ); break;
+     case ALGO_KECCAKC:      register_keccakc_algo     ( gate ); break;
      case ALGO_LBRY:         register_lbry_algo        ( gate ); break;
      case ALGO_LUFFA:        register_luffa_algo       ( gate ); break;
      case ALGO_LYRA2RE:      register_lyra2re_algo     ( gate ); break;
