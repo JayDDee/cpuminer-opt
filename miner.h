@@ -499,6 +499,7 @@ enum algos {
         ALGO_HODL,
         ALGO_JHA,
         ALGO_KECCAK,
+        ALGO_KECCAKC,
         ALGO_LBRY,
         ALGO_LUFFA,       
         ALGO_LYRA2RE,       
@@ -568,6 +569,7 @@ static const char* const algo_names[] = {
         "hodl",
         "jha",
         "keccak",
+        "keccakc",
         "lbry",
         "luffa",
         "lyra2re",
@@ -691,6 +693,7 @@ Options:\n\
                           hodl         Hodlcoin\n\
                           jha          jackppot (Jackpotcoin)\n\
                           keccak       Keccak\n\
+                          keccakc      KeccakC (Creativecoin)\n\
                           lbry         LBC, LBRY Credits\n\
                           luffa        Luffa\n\
                           lyra2re      lyra2\n\
