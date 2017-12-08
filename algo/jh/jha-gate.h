@@ -9,19 +9,17 @@
   #define JHA_4WAY
 #endif
 
-//#if defined JHA_4WAY
-//void jha_hash_4way( void *state, const void *input );
+#if defined JHA_4WAY
+void jha_hash_4way( void *state, const void *input );
 
-//int scanhash_jha_4way( int thr_id, struct work *work, uint32_t max_nonce,
-//                       uint64_t *hashes_done );
-//#else
+int scanhash_jha_4way( int thr_id, struct work *work, uint32_t max_nonce,
+                       uint64_t *hashes_done );
+#endif
 
 void jha_hash( void *state, const void *input );
 
 int scanhash_jha( int thr_id, struct work *work, uint32_t max_nonce,
                      uint64_t *hashes_done );
-
-//#endif
 
 #endif
 

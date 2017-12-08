@@ -95,13 +95,13 @@ extern "C"{
 #define Sb(x0, x1, x2, x3, c) \
 do { \
    __m256i cc = _mm256_set_epi64x( c, c, c, c ); \
-    x3 = mm256_bitnot( x3 ); \
-    x0 = _mm256_xor_si256( x0, _mm256_and_si256( cc, mm256_bitnot( x2 ) ) ); \
+    x3 = mm256_not( x3 ); \
+    x0 = _mm256_xor_si256( x0, _mm256_and_si256( cc, mm256_not( x2 ) ) ); \
     tmp = _mm256_xor_si256( cc, _mm256_and_si256( x0, x1 ) ); \
     x0 = _mm256_xor_si256( x0, _mm256_and_si256( x2, x3 ) ); \
-    x3 = _mm256_xor_si256( x3, _mm256_and_si256( mm256_bitnot( x1 ), x2 ) ); \
+    x3 = _mm256_xor_si256( x3, _mm256_and_si256( mm256_not( x1 ), x2 ) ); \
     x1 = _mm256_xor_si256( x1, _mm256_and_si256( x0, x2 ) ); \
-    x2 = _mm256_xor_si256( x2, _mm256_and_si256( x0, mm256_bitnot( x3 ) ) ); \
+    x2 = _mm256_xor_si256( x2, _mm256_and_si256( x0, mm256_not( x3 ) ) ); \
     x0 = _mm256_xor_si256( x0, _mm256_or_si256( x1, x3 ) ); \
     x3 = _mm256_xor_si256( x3, _mm256_and_si256( x1, x2 ) ); \
     x1 = _mm256_xor_si256( x1, _mm256_and_si256( tmp, x0 ) ); \
@@ -532,7 +532,7 @@ jh_4way_core( jh_4way_context *sc, const void *data, size_t len )
 
    if ( len < (buf_size - ptr) )
    {
-       memcpy_m256i( buf + (ptr>>3), vdata, len>>3 );
+       memcpy_256( buf + (ptr>>3), vdata, len>>3 );
        ptr += len;
        sc->ptr = ptr;
        return;
@@ -546,7 +546,7 @@ jh_4way_core( jh_4way_context *sc, const void *data, size_t len )
        if ( clen > len )
           clen = len;
 
-       memcpy_m256i( buf + (ptr>>3), vdata, clen>>3 );
+       memcpy_256( buf + (ptr>>3), vdata, clen>>3 );
        ptr += clen;
        vdata += (clen>>3);
        len -= clen;
@@ -579,7 +579,7 @@ jh_4way_close( jh_4way_context *sc, unsigned ub, unsigned n, void *dst,
    else
        numz = 112 - sc->ptr;
 
-   memset_zero_m256i( buf+1, (numz>>3) - 1 );   
+   memset_zero_256( buf+1, (numz>>3) - 1 );   
 
    l0 = SPH_T64(sc->block_count << 9) + (sc->ptr << 3);
    l1 = SPH_T64(sc->block_count >> 55);
@@ -593,7 +593,7 @@ jh_4way_close( jh_4way_context *sc, unsigned ub, unsigned n, void *dst,
    for ( u=0; u < 8; u++ )
        buf[u] = sc->H[u+8];
 
-    memcpy_m256i( dst256, buf, 8 );
+    memcpy_256( dst256, buf, 8 );
 }
 
 void

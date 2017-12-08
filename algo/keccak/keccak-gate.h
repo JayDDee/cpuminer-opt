@@ -1,5 +1,5 @@
-#ifndef __KECCAK_GATE_H__
-#define __KECCAK_GATE_H__
+#ifndef KECCAK_GATE_H__
+#define KECCAK_GATE_H__
 
 #include "algo-gate-api.h"
 #include <stdint.h>

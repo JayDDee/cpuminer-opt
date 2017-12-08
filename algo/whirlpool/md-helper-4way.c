@@ -140,7 +140,7 @@ HASH ( void *cc, const void *data, size_t len )
       clen = SPH_BLEN - ptr;
       if ( clen > len )
          clen = len;
-      memcpy_m256i( sc->buf + (ptr>>3), vdata, clen>>3 );
+      memcpy_256( sc->buf + (ptr>>3), vdata, clen>>3 );
       vdata = vdata + (clen>>3);
       ptr += clen;
       len -= clen;
@@ -195,19 +195,19 @@ SPH_XCAT( HASH, _addbits_and_close )(void *cc, 	unsigned ub, unsigned n,
     sc = cc;
     ptr = (unsigned)sc->count & (SPH_BLEN - 1U);
 
-uint64_t *b= (uint64_t*)sc->buf;
-uint64_t *s= (uint64_t*)sc->state;
+//uint64_t *b= (uint64_t*)sc->buf;
+//uint64_t *s= (uint64_t*)sc->state;
 //printf("Vptr 1= %u\n", ptr);
 //printf("VBuf %016llx %016llx %016llx %016llx\n", b[0], b[4], b[8], b[12] );
 //printf("VBuf %016llx %016llx %016llx %016llx\n", b[16], b[20], b[24], b[28] );
 
 #ifdef PW01
-    sc->buf[ptr>>3] = mm256_vec_epi64( 0x100 >> 8 );
+    sc->buf[ptr>>3] = _mm256_set1_epi64x( 0x100 >> 8 );
 //    sc->buf[ptr++] = 0x100 >> 8;
 #else
 // need to overwrite exactly one byte
 //    sc->buf[ptr>>3] = _mm256_set_epi64x( 0, 0, 0, 0x80 );
-    sc->buf[ptr>>3] = mm256_vec_epi64( 0x80 );
+    sc->buf[ptr>>3] = _mm256_set1_epi64x( 0x80 );
 //    ptr++;
 #endif
     ptr += 8;
@@ -218,43 +218,43 @@ uint64_t *s= (uint64_t*)sc->state;
 
     if ( ptr > SPH_MAXPAD )
     {
-         memset_zero_m256i( sc->buf + (ptr>>3), (SPH_BLEN - ptr) >> 3 );
+         memset_zero_256( sc->buf + (ptr>>3), (SPH_BLEN - ptr) >> 3 );
          RFUN( sc->buf, SPH_VAL );
-         memset_zero_m256i( sc->buf, SPH_MAXPAD >> 3 );
+         memset_zero_256( sc->buf, SPH_MAXPAD >> 3 );
     }
     else
     {
-         memset_zero_m256i( sc->buf + (ptr>>3), (SPH_MAXPAD - ptr) >> 3 );
+         memset_zero_256( sc->buf + (ptr>>3), (SPH_MAXPAD - ptr) >> 3 );
     }
 #if defined BE64
 #if defined PLW1
     sc->buf[ SPH_MAXPAD>>3 ] =
-                 mm256_byteswap_epi64( mm256_vec_epi64( sc->count << 3 ) );
+                 mm256_byteswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
 #elif defined PLW4
-    memset_zero_m256i( sc->buf + (SPH_MAXPAD>>3), ( 2 * SPH_WLEN ) >> 3 );
+    memset_zero_256( sc->buf + (SPH_MAXPAD>>3), ( 2 * SPH_WLEN ) >> 3 );
     sc->buf[ (SPH_MAXPAD + 2 * SPH_WLEN ) >> 3 ] =
-                mm256_byteswap_epi64( mm256_vec_epi64( sc->count >> 61 ) );
+                mm256_byteswap_64( _mm256_set1_epi64x( sc->count >> 61 ) );
     sc->buf[ (SPH_MAXPAD + 3 * SPH_WLEN ) >> 3 ] =
-                mm256_byteswap_epi64( mm256_vec_epi64( sc->count << 3 ) );
+                mm256_byteswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
 #else
     sc->buf[ ( SPH_MAXPAD + 2 * SPH_WLEN ) >> 3 ] =
-               mm256_byteswap_epi64( mm256_vec_epi64( sc->count >> 61 ) );
+               mm256_byteswap_64( _mm256_set1_epi64x( sc->count >> 61 ) );
     sc->buf[ ( SPH_MAXPAD + 3 * SPH_WLEN ) >> 3 ] =
-               mm256_byteswap_epi64( mm256_vec_epi64( sc->count << 3 ) );
+               mm256_byteswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
 #endif  // PLW
 #else  // LE64
 #if defined PLW1
-    sc->buf[ SPH_MAXPAD >> 3 ] = mm256_vec_epi64( sc->count << 3 );
+    sc->buf[ SPH_MAXPAD >> 3 ] = _mm256_set1_epi64x( sc->count << 3 );
 #elif defined PLW4
-    sc->buf[ SPH_MAXPAD >> 3 ] = _mm256_vec_epi64( sc->count << 3 );
+    sc->buf[ SPH_MAXPAD >> 3 ] = _mm256_set1_epi64x( sc->count << 3 );
     sc->buf[ ( SPH_MAXPAD + SPH_WLEN ) >> 3 ] =
-                       mm256_vec_epi64( c->count >> 61 );
-    memset_zero_m256i( sc->buf + ( ( SPH_MAXPAD + 2 * SPH_WLEN ) >> 3 ),
+                       _mm256_set1_epi64x( c->count >> 61 );
+    memset_zero_256( sc->buf + ( ( SPH_MAXPAD + 2 * SPH_WLEN ) >> 3 ),
                        2 * SPH_WLEN );
 #else
-    sc->buf[ SPH_MAXPAD >> 3 ] = mm256_vec_epi64( sc->count << 3 );
+    sc->buf[ SPH_MAXPAD >> 3 ] = _mm256_set1_epi64x( sc->count << 3 );
     sc->buf[ ( SPH_MAXPAD + SPH_WLEN ) >> 3 ] =
-                          mm256_vec_epi64( sc->count >> 61 );
+                          _mm256_set1_epi64x( sc->count >> 61 );
 #endif // PLW
 
 #endif // LE64
@@ -276,7 +276,7 @@ uint64_t *s= (uint64_t*)sc->state;
     for ( u = 0; u < rnum; u ++ )
     {
 #if defined BE64
-       ((__m256i*)dst)[u] = mm256_byteswap_epi64( sc->val[u] );
+       ((__m256i*)dst)[u] = mm256_byteswap_64( sc->val[u] );
 #else  // LE64
        ((__m256i*)dst)[u] = sc->val[u];
 #endif

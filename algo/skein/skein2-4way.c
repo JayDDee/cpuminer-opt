@@ -19,13 +19,13 @@ void skein2hash_4way( void *output, const void *input )
    skein512_4way( &ctx, hash, 64 );
    skein512_4way_close( &ctx, hash );
 
-   m256_deinterleave_4x64( out64, out64+4, out64+8, out64+12, hash, 256 );
+   mm256_deinterleave_4x64( out64, out64+4, out64+8, out64+12, hash, 256 );
 }
 
 int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done )
 {
-    uint32_t hash[4*8] __attribute__ ((aligned (64)));
+    uint32_t hash[8*4] __attribute__ ((aligned (64)));
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
     uint32_t endiandata[20] __attribute__ ((aligned (64)));
     uint64_t *edata = (uint64_t*)endiandata;
@@ -41,7 +41,7 @@ int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
     swab32_array( endiandata, pdata, 20 );
 
-    m256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+    mm256_interleave_4x64( vdata, edata, edata, edata, edata, 640 );
 
     uint32_t *noncep0 = vdata + 73;   // 9*8 + 1
     uint32_t *noncep1 = vdata + 75;

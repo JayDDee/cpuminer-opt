@@ -1,11 +1,12 @@
-#if defined(JHA_4WAY)
-
 #include "jha-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "avxdefs.h"
+//#include "avxdefs.h"
+
+#if defined(JHA_4WAY)
+
 #include "algo/blake/blake-hash-4way.h"
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/jh/jh-hash-4way.h"
@@ -15,19 +16,19 @@
 //static __thread keccak512_4way_context jha_kec_mid
 //                                   __attribute__ ((aligned (64)));
 
-void jha_hash_4way( void *output, const void *input )
+void jha_hash_4way( void *out, const void *input )
 {
     uint64_t hash0[8] __attribute__ ((aligned (64)));
     uint64_t hash1[8] __attribute__ ((aligned (64)));
     uint64_t hash2[8] __attribute__ ((aligned (64)));
     uint64_t hash3[8] __attribute__ ((aligned (64)));
     uint64_t vhash[8*4] __attribute__ ((aligned (64)));
-    uint64_t vhasha[8*4] __attribute__ ((aligned (64)));
-    uint64_t vhashb[8*4] __attribute__ ((aligned (64)));
-    __m256i mask;
-    __m256i* vh256 = (__m256i*)vhash;
-    __m256i* vha256 = (__m256i*)vhasha;
-    __m256i* vhb256 = (__m256i*)vhashb;
+    uint64_t vhash0[8*4] __attribute__ ((aligned (64)));
+    uint64_t vhash1[8*4] __attribute__ ((aligned (64)));
+    __m256i mask0, mask1;
+    __m256i* vh = (__m256i*)vhash;
+    __m256i* vh0 = (__m256i*)vhash0;
+    __m256i* vh1 = (__m256i*)vhash1;
 
     blake512_4way_context  ctx_blake;
     hashState_groestl      ctx_groestl;
@@ -40,21 +41,29 @@ void jha_hash_4way( void *output, const void *input )
     keccak512_4way_close( &ctx_keccak, vhash );
 
 //    memcpy( &ctx_keccak, &jha_kec_mid, sizeof jha_kec_mid );
-//    keccak512_4way( &ctx_keccak, input+64, 16 );
+//    keccak512_4way( &ctx_keccak, input + (64<<2), 16 );
 //    keccak512_4way_close( &ctx_keccak, vhash );
 
     // Heavy & Light Pair Loop
     for ( int round = 0; round < 3; round++ )
     {
-       memset_zero_m256i( vha256, 20 );
-       memset_zero_m256i( vhb256, 20 );
+//       memset_zero_256( vh0, 20 );
+//       memset_zero_256( vh1, 20 );
 
-       mask = _mm256_sub_epi64( _mm256_and_si256( vh256[0],
-                        mm256_vec_epi64( 0x1 ) ), mm256_vec_epi64( 0x1 ) );
+      // positive logic, if maski select vhi
+      // going from bit to mask reverses logic such that if the test bit is set
+      // zero will be put in mask0, meaning don't take vh0. mask1 is
+      // inverted so 1 will be put in mask1 meaning take it.
+      mask0 = mm256_negate_64(
+                     _mm256_and_si256( vh[0], _mm256_set1_epi64x( 0x1 ) ) );
+      mask1 = mm256_not( mask0 );
+
+//       mask = _mm256_sub_epi64( _mm256_and_si256( vh[0],
+//                     _mm256_set1_epi64x( 0x1 ) ), _mm256_set1_epi64x( 0x1 ) );
 
        // groestl (serial) v skein
 
-       m256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+       mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
        init_groestl( &ctx_groestl, 64 );
        update_and_final_groestl( &ctx_groestl, (char*)hash0,
@@ -71,58 +80,66 @@ void jha_hash_4way( void *output, const void *input )
        update_and_final_groestl( &ctx_groestl, (char*)hash3,
                                           (char*)hash3, 512 );
 
-       m256_interleave_4x64( vhasha, hash0, hash1, hash2, hash3, 512 );
+       mm256_interleave_4x64( vhash0, hash0, hash1, hash2, hash3, 512 );
 
        // skein
 
        skein512_4way_init( &ctx_skein );
        skein512_4way( &ctx_skein, vhash, 64 );
-       skein512_4way_close( &ctx_skein, vhashb );
+       skein512_4way_close( &ctx_skein, vhash1 );
 
        // merge vectored hash
        for ( int i = 0; i < 8; i++ )
        {
+          vh[i] = _mm256_or_si256( _mm256_and_si256( vh0[i], mask0 ),
+                                   _mm256_and_si256( vh1[i], mask1 ) );
+/*
           vha256[i] = _mm256_maskload_epi64( 
-                                      vhasha + i*4, mm256_bitnot(mask ) );
+                                      vhasha + i*4, mm256_not( mask ) );
           vhb256[i] = _mm256_maskload_epi64(
                                       vhashb + i*4, mask );
           vh256[i]  = _mm256_or_si256( vha256[i], vhb256[i] );
+*/
        }
 
        // blake v jh
 
        blake512_4way_init( &ctx_blake );
        blake512_4way( &ctx_blake, vhash, 64 );
-       blake512_4way_close( &ctx_blake, vhasha );
+       blake512_4way_close( &ctx_blake, vhash0 );
 
        jh512_4way_init( &ctx_jh );
        jh512_4way( &ctx_jh, vhash, 64 );
-       jh512_4way_close( &ctx_jh, vhashb );
+       jh512_4way_close( &ctx_jh, vhash1 );
 
-       // merge vectored hash
+       // merge hash
        for ( int i = 0; i < 8; i++ )
        {
+          vh[i] = _mm256_or_si256( _mm256_and_si256( vh0[i], mask0 ),
+                                   _mm256_and_si256( vh1[i], mask1 ) );
+/*
           vha256[i] = _mm256_maskload_epi64(
-                                      vhasha + i*4, mm256_bitnot(mask ) );
+                                      vhasha + i*4, mm256_not( mask ) );
           vhb256[i] = _mm256_maskload_epi64(
                                       vhashb + i*4, mask );
           vh256[i]  = _mm256_or_si256( vha256[i], vhb256[i] );
+*/
        }
     }
 
-    m256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+    mm256_deinterleave_4x64( out, out+32, out+64, out+96, vhash, 256 );
 
-    memcpy( output,       hash0, 32 );
-    memcpy( output+32,    hash1, 32 );
-    memcpy( output+64,    hash2, 32 );
-    memcpy( output+96,    hash3, 32 );
+//    memcpy( output,       hash0, 32 );
+//    memcpy( output+32,    hash1, 32 );
+//    memcpy( output+64,    hash2, 32 );
+//    memcpy( output+96,    hash3, 32 );
 
 }
 
 int scanhash_jha_4way( int thr_id, struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done )
 {
-     uint32_t hash[4*8] __attribute__ ((aligned (64)));
+     uint32_t hash[8*4] __attribute__ ((aligned (64)));
      uint32_t vdata[20*4] __attribute__ ((aligned (64)));
      uint32_t endiandata[20] __attribute__((aligned(64)));
 	uint32_t *pdata = work->data;
@@ -160,7 +177,7 @@ int scanhash_jha_4way( int thr_id, struct work *work, uint32_t max_nonce,
       be32enc( &endiandata[i], pdata[i] );
 
    uint64_t *edata = (uint64_t*)endiandata;
-   m256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+   mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
    // precalc midstate for keccak
 //   keccak512_4way_init( &jha_kec_mid );

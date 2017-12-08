@@ -1,39 +1,30 @@
 #include "keccak-gate.h"
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-
-#include "sph_keccak.h"
-#include "keccak-hash-4way.h"
 
 #ifdef KECCAK_4WAY
 
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include "sph_keccak.h"
+#include "keccak-hash-4way.h"
+
 void keccakhash_4way(void *state, const void *input)
 {
-     uint64_t hash0[8] __attribute__ ((aligned (64)));
-     uint64_t hash1[8] __attribute__ ((aligned (64)));
-     uint64_t hash2[8] __attribute__ ((aligned (64)));
-     uint64_t hash3[8] __attribute__ ((aligned (64)));
-     uint64_t vhash[8*4] __attribute__ ((aligned (64)));
-     keccak256_4way_context ctx;
+    uint64_t vhash[4*4] __attribute__ ((aligned (64)));
+    keccak256_4way_context ctx;
 
-     keccak256_4way_init( &ctx );
-     keccak256_4way( &ctx, input, 80 );
-     keccak256_4way_close( &ctx, vhash );
+    keccak256_4way_init( &ctx );
+    keccak256_4way( &ctx, input, 80 );
+    keccak256_4way_close( &ctx, vhash );
 
-     m256_deinterleave_4x64x( hash0, hash1, hash2, hash3, vhash, 512 );
-
-     memcpy( state,    hash0, 32 );
-     memcpy( state+32, hash1, 32 );
-     memcpy( state+64, hash2, 32 );
-     memcpy( state+96, hash3, 32 );
+    mm256_deinterleave_4x64( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_keccak_4way( int thr_id, struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done)
 {
-   uint32_t hash[4*8] __attribute__ ((aligned (64)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+   uint32_t hash[8*4] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    uint32_t n = pdata[19];
@@ -52,7 +43,7 @@ int scanhash_keccak_4way( int thr_id, struct work *work, uint32_t max_nonce,
       be32enc( &endiandata[i], pdata[i] );
 
    uint64_t *edata = (uint64_t*)endiandata;
-   m256_interleave_4x64x( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+   mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
    do {
       found[0] = found[1] = found[2] = found[3] = false;

@@ -15,7 +15,7 @@
 // no improvement with midstate
 //static __thread blake512_4way_context ctx_mid;
 
-void nist5hash_4way( void *output, const void *input )
+void nist5hash_4way( void *out, const void *input )
 {
      uint64_t hash0[8] __attribute__ ((aligned (64)));
      uint64_t hash1[8] __attribute__ ((aligned (64)));
@@ -35,7 +35,7 @@ void nist5hash_4way( void *output, const void *input )
      blake512_4way( &ctx_blake, input, 80 );
      blake512_4way_close( &ctx_blake, vhash );
 
-     m256_deinterleave_4x64x( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      init_groestl( &ctx_groestl, 64 );
      update_and_final_groestl( &ctx_groestl, (char*)hash0,
@@ -50,7 +50,7 @@ void nist5hash_4way( void *output, const void *input )
      update_and_final_groestl( &ctx_groestl, (char*)hash3,
                                (const char*)hash3, 512 );
 
-     m256_interleave_4x64x( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      jh512_4way_init( &ctx_jh );
      jh512_4way( &ctx_jh, vhash, 64 );
@@ -64,12 +64,7 @@ void nist5hash_4way( void *output, const void *input )
      skein512_4way( &ctx_skein, vhash, 64 );
      skein512_4way_close( &ctx_skein, vhash );
 
-     m256_deinterleave_4x64x( hash0, hash1, hash2, hash3, vhash, 512 );
-
-     memcpy( output,       hash0, 32 );
-     memcpy( output+32,    hash1, 32 );
-     memcpy( output+64,    hash2, 32 );
-     memcpy( output+96,    hash3, 32 );
+     mm256_deinterleave_4x64( out, out+32, out+64, out+96, vhash, 256 );
 }
 
 int scanhash_nist5_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -109,7 +104,7 @@ int scanhash_nist5_4way( int thr_id, struct work *work, uint32_t max_nonce,
      swab32_array( endiandata, pdata, 20 );
 
      uint64_t *edata = (uint64_t*)endiandata;
-     m256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+     mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
      // precalc midstate
 //     blake512_4way_init( &ctx_mid );

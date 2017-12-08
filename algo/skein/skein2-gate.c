@@ -9,12 +9,12 @@ int64_t skein2_get_max64 ()
 
 bool register_skein2_algo( algo_gate_t* gate )
 {
+  gate->optimizations = FOUR_WAY_OPT;
 #if defined (FOUR_WAY) && defined (__AVX2__)
-  gate->optimizations = SSE2_OPT | AVX2_OPT;
   gate->scanhash  = (void*)&scanhash_skein2_4way;
   gate->hash      = (void*)&skein2hash_4way;
+  four_way_not_tested();
 #else
-  gate->optimizations = SSE2_OPT;
   gate->scanhash  = (void*)&scanhash_skein2;
   gate->hash      = (void*)&skein2hash;
 #endif

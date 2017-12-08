@@ -13,17 +13,17 @@ static __thread bool ctx_midstate_done = false;
 
 void decred_hash_4way( void *state, const void *input )
 {
-     uint32_t hash0[16] __attribute__ ((aligned (64)));
-     uint32_t hash1[16] __attribute__ ((aligned (64)));
-     uint32_t hash2[16] __attribute__ ((aligned (64)));
-     uint32_t hash3[16] __attribute__ ((aligned (64)));
-     uint32_t vhash[16*4] __attribute__ ((aligned (64)));
+     uint32_t vhash[4*4] __attribute__ ((aligned (64)));
+     uint32_t hash0[4] __attribute__ ((aligned (32)));
+     uint32_t hash1[4] __attribute__ ((aligned (32)));
+     uint32_t hash2[4] __attribute__ ((aligned (32)));
+     uint32_t hash3[4] __attribute__ ((aligned (32)));
      blake256_4way_context ctx __attribute__ ((aligned (64)));
 
      sph_blake256_context ctx2 __attribute__ ((aligned (64)));
      uint32_t hash[16] __attribute__ ((aligned (64)));
      uint32_t sin0[45], sin1[45], sin2[45], sin3[45];
-     m128_deinterleave_4x32( sin0, sin1, sin2, sin3, (uint32_t*)input, 180*8 );
+     mm_deinterleave_4x32x( sin0, sin1, sin2, sin3, input, 180*8 );
 
      void *tail = input + DECRED_MIDSTATE_LEN;
      int tail_len = 180 - DECRED_MIDSTATE_LEN; 
@@ -53,7 +53,7 @@ void decred_hash_4way( void *state, const void *input )
      blake256_4way( &ctx, input, 180 );
      blake256_4way_close( &ctx, vhash );
 
-     m128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 /*
         for ( int i = 0; i < 8; i++ )
           if ( hash[i] != hash0[i] )
@@ -79,7 +79,7 @@ int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done)
 {
    uint32_t vdata[45*4] __attribute__ ((aligned (64)));
-   uint32_t hash[4*8] __attribute__ ((aligned (64)));
+   uint32_t hash[4*4] __attribute__ ((aligned (32)));
         uint32_t _ALIGN(64) endiandata[48];
 //        uint32_t _ALIGN(64) hash32[8];
         uint32_t *pdata = work->data;
@@ -97,7 +97,8 @@ int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
 //        memcpy(endiandata, pdata, 180);
 
-   m128_interleave_4x32( vdata, pdata, pdata, pdata, pdata, 180*8 );
+   // use the old way until  new way updated for size.
+   mm_interleave_4x32x( vdata, pdata, pdata, pdata, pdata, 180*8 );
 
    uint32_t *noncep = vdata + DECRED_NONCE_INDEX * 4;
    do {

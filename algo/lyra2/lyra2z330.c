@@ -64,22 +64,12 @@ bool lyra2z330_thread_init()
    int i = (int64_t)ROW_LEN_BYTES * 330; // nRows;
    lyra2z330_wholeMatrix = _mm_malloc( i, 64 );
 
-   if ( lyra2z330_wholeMatrix == NULL )
-     return false;
-
-#if defined (__AVX2__)
-   memset_zero_m256i( (__m256i*)lyra2z330_wholeMatrix, i/32 );
-#elif defined(__AVX__)
-   memset_zero_m128i( (__m128i*)lyra2z330_wholeMatrix, i/16 );
-#else
-   memset( lyra2z330_wholeMatrix, 0, i );
-#endif
-   return true;
+   return lyra2z330_wholeMatrix;
 }
 
 bool register_lyra2z330_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations = AVX_OPT | AVX2_OPT;
   gate->miner_thread_init = (void*)&lyra2z330_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z330;
   gate->hash       = (void*)&lyra2z330_hash;

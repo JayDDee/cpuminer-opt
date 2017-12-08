@@ -144,7 +144,8 @@ bool decred_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
 bool register_decred_algo( algo_gate_t* gate )
 {
 #if defined(DECRED_4WAY)
-  gate->optimizations = SSE2_OPT | AVX_OPT;
+  four_way_not_tested();
+  gate->optimizations = FOUR_WAY_OPT;
   gate->scanhash  = (void*)&scanhash_decred_4way;
   gate->hash      = (void*)&decred_hash_4way;
 #else
@@ -153,9 +154,6 @@ bool register_decred_algo( algo_gate_t* gate )
   gate->hash      = (void*)&decred_hash;
 #endif
 
-//  gate->optimizations         = SSE2_OPT;
-//  gate->scanhash              = (void*)&scanhash_decred;
-//  gate->hash                  = (void*)&decred_hash;
   gate->get_nonceptr          = (void*)&decred_get_nonceptr;
   gate->get_max64             = (void*)&get_max64_0x3fffffLL;
   gate->display_extra_data    = (void*)&decred_decode_extradata;

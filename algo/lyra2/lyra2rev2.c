@@ -132,23 +132,13 @@ bool lyra2rev2_thread_init()
    int i = (int64_t)ROW_LEN_BYTES * 4; // nRows;
    l2v2_wholeMatrix = _mm_malloc( i, 64 );
 
-   if ( l2v2_wholeMatrix == NULL )
-     return false;
-
-#if defined (__AVX2__)
-   memset_zero_m256i( (__m256i*)l2v2_wholeMatrix, i/32 );
-#elif defined (__AVX__)
-   memset_zero_m128i( (__m128i*)l2v2_wholeMatrix, i/16 );
-#else
-   memset( l2v2_wholeMatrix, 0, i );
-#endif
-   return true;
+   return l2v2_wholeMatrix;
 }
 
 bool register_lyra2rev2_algo( algo_gate_t* gate )
 {
   init_lyra2rev2_ctx();
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations = AVX_OPT | AVX2_OPT;
   gate->miner_thread_init = (void*)&lyra2rev2_thread_init;
   gate->scanhash          = (void*)&scanhash_lyra2rev2;
   gate->hash              = (void*)&lyra2rev2_hash;

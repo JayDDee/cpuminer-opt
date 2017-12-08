@@ -130,12 +130,12 @@ inline void squeeze( uint64_t *State, byte *Out, unsigned int len )
     //Squeezes full blocks
     for ( i = 0; i < fullBlocks; i++ )
     {
-       memcpy_m256i( out, state, BLOCK_LEN_M256I );
+       memcpy_256( out, state, BLOCK_LEN_M256I );
        LYRA_ROUND_AVX2( state[0], state[1], state[2], state[3] );
        out += BLOCK_LEN_M256I;
     }
     //Squeezes remaining bytes
-    memcpy_m256i( out, state, ( len_m256i % BLOCK_LEN_M256I ) );
+    memcpy_256( out, state, ( len_m256i % BLOCK_LEN_M256I ) );
 
 #elif defined (__AVX__)
 
@@ -148,13 +148,13 @@ inline void squeeze( uint64_t *State, byte *Out, unsigned int len )
     //Squeezes full blocks
     for ( i = 0; i < fullBlocks; i++ )
     {
-       memcpy_m128i( out, state, BLOCK_LEN_M128I );
+       memcpy_128( out, state, BLOCK_LEN_M128I );
        LYRA_ROUND_AVX( state[0], state[1], state[2], state[3],
                        state[4], state[5], state[6], state[7] );
        out += BLOCK_LEN_M128I;
     }
     //Squeezes remaining bytes
-    memcpy_m128i( out, state, ( len_m128i % BLOCK_LEN_M128I ) );
+    memcpy_128( out, state, ( len_m128i % BLOCK_LEN_M128I ) );
 
 #else
 

@@ -30,13 +30,13 @@ extern void pentablakehash_4way( void *output, const void *input )
      blake512_4way_close( &ctx, vhash );
 
 uint64_t sin0[10], sin1[10], sin2[10], sin3[10];
-m256_deinterleave_4x64( sin0, sin1, sin2, sin3, input, 640 );
+mm256_deinterleave_4x64( sin0, sin1, sin2, sin3, input, 640 );
 sph_blake512_context ctx2_blake;
 sph_blake512_init(&ctx2_blake);
 sph_blake512(&ctx2_blake, sin0, 80);
 sph_blake512_close(&ctx2_blake, (void*) hash);
 
-m256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 uint64_t* hash64 = (uint64_t*)hash;
 for( int i = 0; i < 8; i++ )
 {
@@ -60,7 +60,7 @@ for( int i = 0; i < 8; i++ )
      blake512_4way( &ctx, vhash, 64 );
      blake512_4way_close( &ctx, vhash );
 
-     m256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
      memcpy( output,    hash0, 32 );
      memcpy( output+32, hash1, 32 );
      memcpy( output+64, hash2, 32 );
@@ -141,7 +141,7 @@ int scanhash_pentablake_4way( int thr_id, struct work *work,
     swab32_array( endiandata, pdata, 20 );
 
     uint64_t *edata = (uint64_t*)endiandata;
-    m256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+    mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
     for ( int m=0; m < 6; m++ )
     {

@@ -35,8 +35,9 @@ Supported Algorithms
                           heavy        Heavy
                           hmq1725      Espers
                           hodl         Hodlcoin
-                          jha          jackpotcoin
-                          keccak       Keccak
+                          jha          Jackpotcoin
+                          keccak       Maxcoin
+                          keccakc      Creative coin
                           lbry         LBC, LBRY Credits
                           luffa        Luffa
                           lyra2re      lyra2
@@ -50,7 +51,7 @@ Supported Algorithms
                           pentablake   Pentablake
                           phi1612      phi, LUX coin
                           pluck        Pluck:128 (Supcoin)
-                          polytimos
+                          polytimos    Ninja
                           quark        Quark
                           qubit        Qubit
                           scrypt       scrypt(1024, 1, 1) (default)

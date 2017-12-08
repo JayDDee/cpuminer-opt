@@ -9,18 +9,18 @@
 
 void blakehash_4way(void *state, const void *input)
 {
-     uint32_t hash0[16] __attribute__ ((aligned (64)));
-     uint32_t hash1[16] __attribute__ ((aligned (64)));
-     uint32_t hash2[16] __attribute__ ((aligned (64)));
-     uint32_t hash3[16] __attribute__ ((aligned (64)));
-     uint32_t vhash[16*4] __attribute__ ((aligned (64)));
+     uint32_t vhash[4*4] __attribute__ ((aligned (64)));
+     uint32_t hash0[4] __attribute__ ((aligned (32)));
+     uint32_t hash1[4] __attribute__ ((aligned (32)));
+     uint32_t hash2[4] __attribute__ ((aligned (32)));
+     uint32_t hash3[4] __attribute__ ((aligned (32)));
      blake256_4way_context ctx;
 
      blake256_4way_init( &ctx );
      blake256_4way( &ctx, input, 16 );
      blake256_4way_close( &ctx, vhash );
 
-     m128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
      memcpy( state,    hash0, 32 );
      memcpy( state+32, hash1, 32 );
@@ -32,7 +32,7 @@ int scanhash_blake_4way( int thr_id, struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done )
 {
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t hash[4*8] __attribute__ ((aligned (64)));
+   uint32_t hash[4*4] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -49,7 +49,7 @@ int scanhash_blake_4way( int thr_id, struct work *work, uint32_t max_nonce,
    // we need big endian data...
    swab32_array( endiandata, pdata, 20 );
 
-   m128_interleave_4x32( vdata, endiandata, endiandata, endiandata,
+   mm_interleave_4x32( vdata, endiandata, endiandata, endiandata,
                          endiandata, 640 );
 
    uint32_t *noncep = vdata + 76;   // 19*4

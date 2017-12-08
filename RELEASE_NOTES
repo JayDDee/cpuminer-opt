@@ -164,6 +164,17 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.7.5
+
+New algo keccakc for Creative coin with 4way optimizations
+
+Rewrote some AVX/AVX2 code for more consistent implementation and some
+optimizing.
+
+Enhanced capabilities check to support 4way, mor eprecise reporting of
+features (not all algos use SSE2), and better error messages when using
+an incompatible pre-built version (Windows users).
+
 v3.7.4
 
 Removed unnecessary build options.

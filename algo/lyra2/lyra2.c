@@ -377,7 +377,7 @@ int LYRA2RE( void *K, uint64_t kLen, const void *pwd,
    uint64_t *wholeMatrix = _mm_malloc( i, 64 );
    if (wholeMatrix == NULL)
       return -1;
-
+/*
 #if defined (__AVX2__)
    memset_zero_m256i( (__m256i*)wholeMatrix, i/32 );
 #elif defined(__AVX__)
@@ -385,7 +385,7 @@ int LYRA2RE( void *K, uint64_t kLen, const void *pwd,
 #else
    memset(wholeMatrix, 0, i);
 #endif
-
+*/
    uint64_t *ptrWord = wholeMatrix;
 
    //=== Getting the password + salt + basil padded with 10*1 ==========//

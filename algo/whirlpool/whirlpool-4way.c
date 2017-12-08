@@ -41,7 +41,7 @@ void whirlpool_hash_4way( void *state, const void *input )
      whirlpool1_4way( &ctx, vhash, 64 );
      whirlpool1_4way_close( &ctx, vhash);
 
-     m256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      memcpy( state   , hash0, 32 );
      memcpy( state+32, hash1, 32 );
@@ -74,7 +74,7 @@ int scanhash_whirlpool_4way( int thr_id, struct work* work, uint32_t max_nonce,
       be32enc(&endiandata[i], pdata[i]);
 
    uint64_t *edata = (uint64_t*)endiandata;
-   m256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+   mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
    // midstate
    whirlpool1_4way_init( &whirl_mid );

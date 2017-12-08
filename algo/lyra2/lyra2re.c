@@ -128,34 +128,10 @@ void lyra2re_set_target ( struct work* work, double job_diff )
    work_set_target(work, job_diff / (128.0 * opt_diff_factor) );
 }
 
-/*
-bool lyra2re_thread_init()
-{
-   const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 8; // nCols
-   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
-
-   int i = (int64_t)ROW_LEN_BYTES * 8; // nRows;
-   lyra2re_wholeMatrix = _mm_malloc( i, 64 );
-
-   if ( lyra2re_wholeMatrix == NULL )
-     return false;
-
-#if defined (__AVX2__)
-   memset_zero_m256i( (__m256i*)lyra2re_wholeMatrix, i/32 );
-#elif defined(__AVX__)
-   memset_zero_m128i( (__m128i*)lyra2re_wholeMatrix, i/16 );
-#else
-   memset( lyra2re_wholeMatrix, 0, i );
-#endif
-   return true;
-}
-*/
-
 bool register_lyra2re_algo( algo_gate_t* gate )
 {
   init_lyra2re_ctx();
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-//  gate->miner_thread_init = (void*)&lyra2re_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2re;
   gate->hash       = (void*)&lyra2re_hash;
   gate->get_max64  = (void*)&lyra2re_get_max64;

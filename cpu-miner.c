@@ -2858,47 +2858,52 @@ static int thread_create(struct thr_info *thr, void* func)
 
 static void show_credits()
 {
-	printf("\n         **********  "PACKAGE_NAME" "PACKAGE_VERSION"  *********** \n");
-        printf("     A CPU miner with multi algo support and optimized for CPUs\n");
-        printf("     with AES_NI and AVX extensions.\n");
-	printf("     BTC donation address: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT\n");
-        printf("     Forked from TPruvot's cpuminer-multi with credits\n");
-        printf("     to Lucas Jones, elmad, palmd, djm34, pooler, ig0tik3d,\n");
-        printf("     Wolf0, Jeff Garzik and Optiminer.\n\n");
+   printf("\n         **********  "PACKAGE_NAME" "PACKAGE_VERSION"  *********** \n");
+   printf("     A CPU miner with multi algo support and optimized for CPUs\n");
+   printf("     with AES_NI and AVX2 and SHA extensions.\n");
+   printf("     BTC donation address: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT\n\n");
 }
 
 bool check_cpu_capability ()
 {
      char cpu_brand[0x40];
+     // there is no CPU related feature specific to 4way, just AVX2 and AES
      bool cpu_has_sse2 = has_sse2();
      bool cpu_has_aes  = has_aes_ni();
      bool cpu_has_avx  = has_avx1();
      bool cpu_has_avx2 = has_avx2();
      bool cpu_has_sha  = has_sha();
-     bool sw_has_sse2  = false;
+     // no need to check if sw has sse2,
+     // the code won't compile without it.
+//     bool sw_has_sse2  = false;
      bool sw_has_aes   = false;
      bool sw_has_avx   = false;
      bool sw_has_avx2  = false;
      bool sw_has_sha   = false;
+     bool sw_has_4way  = false;
      set_t algo_features = algo_gate.optimizations;
-     bool algo_has_aes = set_incl( AES_OPT, algo_features );
-     bool algo_has_avx = set_incl( AVX_OPT, algo_features );
-     bool algo_has_avx2 = set_incl( AVX2_OPT, algo_features );
-     bool algo_has_sha = set_incl( SHA_OPT, algo_features );
+     bool algo_has_sse2 = set_incl( SSE2_OPT,     algo_features );
+     bool algo_has_aes  = set_incl( AES_OPT,      algo_features );
+     bool algo_has_avx  = set_incl( AVX_OPT,      algo_features );
+     bool algo_has_avx2 = set_incl( AVX2_OPT,     algo_features );
+     bool algo_has_sha  = set_incl( SHA_OPT,      algo_features );
+     bool algo_has_4way = set_incl( FOUR_WAY_OPT, algo_features );
      bool use_aes;
      bool use_sse2;
      bool use_avx;
      bool use_avx2;
      bool use_sha;
+     bool use_4way;
+     bool use_none;
 
      #ifdef __AES__
        sw_has_aes = true;
      #endif
-     #ifdef __SSE2__
-         sw_has_sse2 = true;
-     #endif
+//     #ifdef __SSE2__
+//         sw_has_sse2 = true;
+//     #endif
      #ifdef __AVX__
-         sw_has_avx = true;;
+         sw_has_avx = true;
      #endif
      #ifdef __AVX2__
          sw_has_avx2 = true;
@@ -2906,64 +2911,104 @@ bool check_cpu_capability ()
      #ifdef __SHA__
          sw_has_sha = true;
      #endif
-
+     #ifdef HASH_4WAY
+         sw_has_4way = true;
+     #endif
 
      #if !((__AES__) || (__SSE2__))
          printf("Neither __AES__ nor __SSE2__ defined.\n");
      #endif
 
      cpu_brand_string( cpu_brand );
-     printf( "CPU: %s\n", cpu_brand );
+     printf( "CPU: %s.\n", cpu_brand );
      
-     printf("CPU features:");
-     if ( cpu_has_sse2 ) printf( " SSE2" );
-     if ( cpu_has_aes  ) printf( " AES"  );
-     if ( cpu_has_avx  ) printf( " AVX"  );
-     if ( cpu_has_avx2 ) printf( " AVX2" );
-     if ( cpu_has_sha  ) printf( " SHA" );
-
-     printf("\nSW built on " __DATE__
+     printf("SW built on " __DATE__
      #ifdef _MSC_VER
          " with VC++ 2013\n");
      #elif defined(__GNUC__)
          " with GCC");
-        printf(" %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+        printf(" %d.%d.%d.\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
      #else
-        printf("\n");
+        printf(".\n");
      #endif
 
-     printf("SW features:");
-     if ( sw_has_sse2 ) printf( " SSE2" );
-     if ( sw_has_aes  ) printf( " AES"  );
-     if ( sw_has_avx  ) printf( " AVX"  );
-     if ( sw_has_avx2 ) printf( " AVX2" );
-     if ( sw_has_sha  ) printf( " SHA" );
+     printf("CPU features:");
+     if ( cpu_has_sse2 )  printf( " SSE2" );
+     if ( cpu_has_aes  )  printf( " AES"  );
+     if ( cpu_has_avx  )  printf( " AVX"  );
+     if ( cpu_has_avx2 )  printf( " AVX2" );
+     if ( cpu_has_sha  )  printf( " SHA"  );
 
-     // SSE2 defaults to yes regardless
-     printf("\nAlgo features: SSE2");
-     if ( algo_has_aes ) printf( " AES" );
-     if ( algo_has_avx ) printf( " AVX" );
-     if ( algo_has_avx2 ) printf( " AVX2" );
-     if ( algo_has_sha ) printf( " SHA" );
-     printf("\n");
+     printf(".\nSW features: SSE2");
+     if ( sw_has_aes  )    printf( " AES"  );
+     if ( sw_has_avx  )    printf( " AVX"  );
+     if ( sw_has_avx2 )    printf( " AVX2" );
+     if ( sw_has_4way )    printf( " 4WAY" );
+     if ( sw_has_sha  )    printf( " SHA"  );
+    
 
-     use_sse2 = cpu_has_sse2 && sw_has_sse2;
+     printf(".\nAlgo features:");
+     if ( algo_has_sse2 )  printf( " SSE2" );
+     if ( algo_has_aes  )  printf( " AES"  );
+     if ( algo_has_avx  )  printf( " AVX"  );
+     if ( algo_has_avx2 )  printf( " AVX2" );
+     if ( algo_has_4way )  printf( " 4WAY" );
+     if ( algo_has_sha  )  printf( " SHA"  );
+     printf(".\n");
+
+     // Check for CPU and build incompatibilities
+     if ( !cpu_has_sse2 )
+     {
+        printf( "A CPU with SSE2 is required to use cpuminer-opt\n" );
+        return false;
+     }
+     if ( sw_has_avx2 && !( cpu_has_avx2 && cpu_has_aes ) )
+     {
+        if ( sw_has_4way && algo_has_4way )
+           printf( "A CPU with AES and AVX2 is required to use 4way!\n" );
+        else if ( algo_has_avx2 )
+           printf( "A CPU with AES and AVX2 is required!\n" );
+        return false;
+     }
+     if ( sw_has_avx && !( cpu_has_avx && cpu_has_aes ) )
+     {
+        printf( "A CPU with AES and AVX2 is required!\n" );
+        return false;
+     }
+     if ( sw_has_aes && algo_has_aes && !cpu_has_aes )
+     {
+        printf( "A CPU with AES is required!\n" );
+        return false;
+     }
+     if ( sw_has_sha && algo_has_sha && !cpu_has_sha )
+     {
+        printf( "A CPU with SHA is required!\n" );
+        return false;
+     }
+
+     // Determine mining options
+     use_sse2 = cpu_has_sse2 && algo_has_sse2;
      use_aes  = cpu_has_aes  && sw_has_aes  && algo_has_aes;
      use_avx  = cpu_has_avx  && sw_has_avx  && algo_has_avx;
      use_avx2 = cpu_has_avx2 && sw_has_avx2 && algo_has_avx2;
      use_sha  = cpu_has_sha  && sw_has_sha  && algo_has_sha;
-
-     if ( use_sse2 )
-     {
-        printf( "Start mining with SSE2" );
-        if      ( use_aes  ) printf( " AES" );
-        if      ( use_avx2 ) printf( " AVX2" );
-        else if ( use_avx  ) printf( " AVX" );
-        if      ( use_sha  ) printf( " SHA" );
-        printf( "\n\n" );
-     }
+     use_4way = cpu_has_avx2 && sw_has_4way && algo_has_4way;
+     use_none = !( use_sse2 || use_aes || use_avx || use_avx2 || use_sha
+                   || use_4way );
+      
+     // Display best options
+     printf( "Start mining with" );
+     if         ( use_none ) printf( " no optimizations" );
      else
-        printf( CL_RED "Unsupported CPU, miner will likely crash!\n\n" CL_N );
+     {
+        if      ( use_aes  ) printf( " AES"  );
+        if      ( use_avx2 ) printf( " AVX2" );
+        else if ( use_avx  ) printf( " AVX"  );
+        else if ( use_sse2 ) printf( " SSE2" );
+        if      ( use_4way ) printf( " 4WAY" );
+        if      ( use_sha  ) printf( " SHA"  );
+     }
+     printf( ".\n\n" );
 
      return true;
 }

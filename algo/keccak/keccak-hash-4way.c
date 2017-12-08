@@ -54,10 +54,6 @@ static const sph_u64 RC[] = {
         kc->w[j ] = _mm256_xor_si256( kc->w[j], buf[j] ); \
 } while (0)
 
-#define mm256_neg1 \
-        (_mm256_set_epi64x( 0xffffffffffffffff, 0xffffffffffffffff, \
-                            0xffffffffffffffff, 0xffffffffffffffff ) )
-
 #define DECL64(x)        __m256i x
 #define MOV64(d, s)      (d = s)
 #define XOR64(d, a, b)   (d = _mm256_xor_si256(a,b))
@@ -403,7 +399,7 @@ keccak64_core( keccak64_ctx_m256i *kc, const void *data, size_t len,
 
     if ( len < (lim - ptr) )
     {
-        memcpy_m256i( buf + (ptr>>3), vdata, len>>3 );
+        memcpy_256( buf + (ptr>>3), vdata, len>>3 );
         kc->ptr = ptr + len;
         return;
     }
@@ -416,7 +412,7 @@ keccak64_core( keccak64_ctx_m256i *kc, const void *data, size_t len,
         clen = (lim - ptr);
         if ( clen > len )
              clen = len;
-        memcpy_m256i( buf + (ptr>>3), vdata, clen>>3 );
+        memcpy_256( buf + (ptr>>3), vdata, clen>>3 );
         ptr += clen;
         vdata = vdata + (clen>>3);
         len -= clen;
@@ -453,7 +449,7 @@ static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
     {
         j = lim - kc->ptr;
         u.tmp[0] = _mm256_set_epi64x( eb, eb, eb, eb );
-        memset_zero_m256i( u.tmp + 1, (j>>3) - 2 );
+        memset_zero_256( u.tmp + 1, (j>>3) - 2 );
         u.tmp[ (j>>3) - 1] = _mm256_set_epi64x( 0x8000000000000000,
                 0x8000000000000000, 0x8000000000000000, 0x8000000000000000);
     }
@@ -467,7 +463,7 @@ static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
     NOT64( kc->w[20], kc->w[20] );
     for ( j = 0; j < m256_len; j++ )
          u.tmp[j] =  kc->w[j]; 
-    memcpy_m256i( dst, u.tmp, m256_len );
+    memcpy_256( dst, u.tmp, m256_len );
 }
 
 void keccak256_4way_init( void *kc )

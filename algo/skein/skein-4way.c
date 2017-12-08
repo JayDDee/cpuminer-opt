@@ -20,7 +20,7 @@ void skeinhash_4way( void *state, const void *input )
      skein512_4way( &ctx_skein, input, 80 );
      skein512_4way_close( &ctx_skein, vhash );
 
-     m256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      SHA256_Init( &ctx_sha256 );
      SHA256_Update( &ctx_sha256, (unsigned char*)hash0, 64 );
@@ -38,21 +38,20 @@ void skeinhash_4way( void *state, const void *input )
      SHA256_Update( &ctx_sha256, (unsigned char*)hash3, 64 );
      SHA256_Final( (unsigned char*)hash3, &ctx_sha256 );
 
-     memcpy(  (char*)state,       (char*)hash0, 32 );
-     memcpy( ((char*)state) + 32, (char*)hash1, 32 );
-     memcpy( ((char*)state) + 64, (char*)hash2, 32 );
-     memcpy( ((char*)state) + 96, (char*)hash3, 32 );
+     memcpy( state,      hash0, 32 );
+     memcpy( state + 32, hash1, 32 );
+     memcpy( state + 64, hash2, 32 );
+     memcpy( state + 96, hash3, 32 );
 }
 
 int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done )
 {
-    uint32_t hash[4*8] __attribute__ ((aligned (64)));
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-    uint32_t endiandata[20] __attribute__ ((aligned (64)));
+    uint32_t hash[8*4] __attribute__ ((aligned (64)));
+    uint32_t edata[20] __attribute__ ((aligned (64)));
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
-    uint64_t *edata = (uint64_t*)endiandata;
     const uint32_t Htarg = ptarget[7];
     const uint32_t first_nonce = pdata[19];
     uint32_t n = first_nonce;
@@ -63,9 +62,9 @@ int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
 // data is 80 bytes, 20 u32 or 4 u64.
 	
-    swab32_array( endiandata, pdata, 20 );
+    swab32_array( edata, pdata, 20 );
  
-    m256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+    mm256_interleave_4x64( vdata, edata, edata, edata, edata, 640 );
 
     uint32_t *noncep0 = vdata + 73;   // 9*8 + 1
     uint32_t *noncep1 = vdata + 75;

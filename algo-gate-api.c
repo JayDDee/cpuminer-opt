@@ -77,6 +77,12 @@ void algo_not_tested()
   applog(LOG_WARNING,"and bad things may happen. Use at your own risk.");
 }
 
+void four_way_not_tested()
+{
+  applog( LOG_WARNING,"Algo %s has not been tested using 4way. It may not", algo_names[opt_algo] );
+  applog( LOG_WARNING,"work or may be slower. Please report your results.");
+}
+
 void algo_not_implemented()
 {
   applog(LOG_ERR,"Algo %s has not been Implemented.",algo_names[opt_algo]);
@@ -124,7 +130,7 @@ void init_algo_gate( algo_gate_t* gate )
    gate->do_this_thread          = (void*)&return_true;
    gate->longpoll_rpc_call       = (void*)&std_longpoll_rpc_call;
    gate->stratum_handle_response = (void*)&std_stratum_handle_response;
-   gate->optimizations           = SSE2_OPT;
+   gate->optimizations           = EMPTY_SET;
    gate->ntime_index             = STD_NTIME_INDEX;
    gate->nbits_index             = STD_NBITS_INDEX;
    gate->nonce_index             = STD_NONCE_INDEX;
@@ -171,11 +177,12 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_HODL:         register_hodl_algo        ( gate ); break;
      case ALGO_JHA:          register_jha_algo         ( gate ); break;
      case ALGO_KECCAK:       register_keccak_algo      ( gate ); break;
+     case ALGO_KECCAKC:      register_keccakc_algo     ( gate ); break;
      case ALGO_LBRY:         register_lbry_algo        ( gate ); break;
      case ALGO_LUFFA:        register_luffa_algo       ( gate ); break;
      case ALGO_LYRA2RE:      register_lyra2re_algo     ( gate ); break;
      case ALGO_LYRA2REV2:    register_lyra2rev2_algo   ( gate ); break;
-     case ALGO_LYRA2Z:       register_zcoin_algo       ( gate ); break;
+     case ALGO_LYRA2Z:       register_lyra2z_algo      ( gate ); break;
      case ALGO_LYRA2Z330:    register_lyra2z330_algo   ( gate ); break;
      case ALGO_M7M:          register_m7m_algo         ( gate ); break;
      case ALGO_MYR_GR:       register_myriad_algo      ( gate ); break;

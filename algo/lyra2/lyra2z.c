@@ -1,40 +1,49 @@
 #include <memory.h>
 #include <mm_malloc.h>
-#include "algo-gate-api.h"
+#include "lyra2z-gate.h"
 #include "lyra2.h"
 #include "algo/blake/sph_blake.h"
 #include "avxdefs.h"
 
-__thread uint64_t* zcoin_wholeMatrix;
+__thread uint64_t* lyra2z_matrix;
 
-static __thread sph_blake256_context zcoin_blake_mid;
-
-
-void zcoin_midstate( const void* input )
+bool lyra2z_thread_init()
 {
-       sph_blake256_init( &zcoin_blake_mid );
-       sph_blake256( &zcoin_blake_mid, input, 64 );
+//   const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 8; // nCols
+//   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+//   int i = (int64_t)ROW_LEN_BYTES * 8; // nRows;
+   const int i = BLOCK_LEN_INT64 * 8 * 8 * 8;
+   lyra2z_matrix = _mm_malloc( i, 64 );
+   return lyra2z_matrix;
+}
+
+static __thread sph_blake256_context lyra2z_blake_mid;
+
+void lyra2z_midstate( const void* input )
+{
+       sph_blake256_init( &lyra2z_blake_mid );
+       sph_blake256( &lyra2z_blake_mid, input, 64 );
 }
 
 // block 2050 new algo, blake plus new lyra parms. new input
 // is power of 2 so normal lyra can be used
 //void zcoin_hash(void *state, const void *input, uint32_t height)
-void zcoin_hash(void *state, const void *input )
+void lyra2z_hash( void *state, const void *input )
 {
         uint32_t _ALIGN(64) hash[16];
 
         sph_blake256_context ctx_blake __attribute__ ((aligned (64)));
 
-        memcpy( &ctx_blake, &zcoin_blake_mid, sizeof zcoin_blake_mid );
+        memcpy( &ctx_blake, &lyra2z_blake_mid, sizeof lyra2z_blake_mid );
         sph_blake256( &ctx_blake, input + 64, 16 );
         sph_blake256_close( &ctx_blake, hash );
 
-        LYRA2Z( zcoin_wholeMatrix, hash, 32, hash, 32, hash, 32, 8, 8, 8);
+        LYRA2Z( lyra2z_matrix, hash, 32, hash, 32, hash, 32, 8, 8, 8);
 
     memcpy(state, hash, 32);
 }
 
-int scanhash_zcoin( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_lyra2z( int thr_id, struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done )
 {
 	uint32_t _ALIGN(64) hash[8];
@@ -52,11 +61,11 @@ int scanhash_zcoin( int thr_id, struct work *work, uint32_t max_nonce,
 		be32enc(&endiandata[i], pdata[i]);
 	}
 
-        zcoin_midstate( endiandata );
+        lyra2z_midstate( endiandata );
 
 	do {
 		be32enc(&endiandata[19], nonce);
-                zcoin_hash( hash, endiandata );
+                lyra2z_hash( hash, endiandata );
 
 		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
 			work_set_target_ratio(work, hash);
@@ -73,50 +82,41 @@ int scanhash_zcoin( int thr_id, struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+/*
 //int64_t get_max64_0xffffLL() { return 0xffffLL; };
 
-void zcoin_set_target( struct work* work, double job_diff )
+void lyra2z_set_target( struct work* work, double job_diff )
 {
  work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
 }
-/*
+
 bool zcoin_get_work_height( struct work* work, struct stratum_ctx* sctx )
 {
    work->height = sctx->bloc_height;
    return false;
 }
-*/
 
-bool zcoin_thread_init()
+
+bool lyra2z_thread_init()
 {
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 8; // nCols
    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
 
    int i = (int64_t)ROW_LEN_BYTES * 8; // nRows;
-   zcoin_wholeMatrix = _mm_malloc( i, 64 );
+   lyra2z_wholeMatrix = _mm_malloc( i, 64 );
 
-   if ( zcoin_wholeMatrix == NULL )
-     return false;
-
-#if defined (__AVX2__)
-   memset_zero_m256i( (__m256i*)zcoin_wholeMatrix, i/32 );
-#elif defined(__AVX__)
-   memset_zero_m128i( (__m128i*)zcoin_wholeMatrix, i/16 );
-#else
-   memset( zcoin_wholeMatrix, 0, i );
-#endif
-   return true;
+   return lyra2z_wholeMatrix;
 }
 
-bool register_zcoin_algo( algo_gate_t* gate )
+bool register_lyra2z_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  gate->miner_thread_init = (void*)&zcoin_thread_init;
-  gate->scanhash   = (void*)&scanhash_zcoin;
-  gate->hash       = (void*)&zcoin_hash;
+  gate->miner_thread_init = (void*)&lyra2z_thread_init;
+  gate->scanhash   = (void*)&scanhash_lyra2z;
+  gate->hash       = (void*)&lyra2z_hash;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
-  gate->set_target = (void*)&zcoin_set_target;
+  gate->set_target = (void*)&lyra2z_set_target;
 //  gate->prevent_dupes = (void*)&zcoin_get_work_height;
   return true;
 };
-
+*/

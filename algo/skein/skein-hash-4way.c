@@ -463,7 +463,7 @@ skein_big_core_4way( skein512_4way_context *sc, const void *data,
 
    if ( len <= buf_size - ptr )
    {
-       memcpy_m256i( buf + (ptr>>3), vdata, len>>3 );
+       memcpy_256( buf + (ptr>>3), vdata, len>>3 );
        sc->ptr = ptr + len;
        return;
    }
@@ -483,7 +483,7 @@ skein_big_core_4way( skein512_4way_context *sc, const void *data,
        clen = buf_size - ptr;
        if ( clen > len )
             clen = len;
-       memcpy_m256i( buf + (ptr>>3), vdata, clen>>3 );
+       memcpy_256( buf + (ptr>>3), vdata, clen>>3 );
        ptr += clen;
        vdata += (clen>>3);
        len -= clen;
@@ -520,11 +520,11 @@ skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
 
 	READ_STATE_BIG(sc);
 
-        memset_zero_m256i( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+        memset_zero_256( buf + (ptr>>3), (buf_size - ptr) >> 3 );
 	et = 352 + ((bcount == 0) << 7);
         UBI_BIG_4WAY( et, ptr );
 
-        memset_zero_m256i( buf, buf_size >> 3 );
+        memset_zero_256( buf, buf_size >> 3 );
         bcount = 0;
         UBI_BIG_4WAY( 510, 8 );
 
@@ -537,7 +537,7 @@ skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
         buf[6] = h6;
         buf[7] = h7;
 
-        memcpy_m256i( dst, buf, out_len >> 3 );
+        memcpy_256( dst, buf, out_len >> 3 );
 }
 
 static const sph_u64 IV256[] = {

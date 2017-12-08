@@ -13,11 +13,12 @@ bool register_blake_algo( algo_gate_t* gate )
 //  gate->scanhash  = (void*)&scanhash_blake_8way;
 //  gate->hash      = (void*)&blakehash_8way;
 #if defined(BLAKE_4WAY)
-  gate->optimizations = SSE2_OPT | AVX_OPT;
+  four_way_not_tested();
+  gate->optimizations = FOUR_WAY_OPT;
   gate->scanhash  = (void*)&scanhash_blake_4way;
   gate->hash      = (void*)&blakehash_4way;
+  four_way_not_tested();
 #else
-  gate->optimizations = SSE2_OPT;
   gate->scanhash  = (void*)&scanhash_blake;
   gate->hash      = (void*)&blakehash;
 #endif
