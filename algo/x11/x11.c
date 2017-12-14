@@ -1,5 +1,5 @@
 #include "cpuminer-config.h"
-#include "algo-gate-api.h"
+#include "x11-gate.h"
 
 #include <string.h>
 #include <stdint.h>
@@ -61,7 +61,7 @@ void init_x11_ctx()
 #endif
 }
 
-static void x11_hash( void *state, const void *input )
+void x11_hash( void *state, const void *input )
 {
      unsigned char hash[128] __attribute__ ((aligned (32)));
      unsigned char hashbuf[128] __attribute__ ((aligned (16)));
@@ -189,7 +189,7 @@ int scanhash_x11( int thr_id, struct work *work, uint32_t max_nonce,
         pdata[19] = n;
         return 0;
 }
-
+/*
 bool register_x11_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
@@ -199,4 +199,4 @@ bool register_x11_algo( algo_gate_t* gate )
   gate->get_max64 = (void*)&get_max64_0x3ffff;
   return true;
 };
-
+*/

@@ -104,7 +104,7 @@ int scanhash_veltor(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
 
 bool register_veltor_algo( algo_gate_t* gate )
 {
-    gate->optimizations = SSE2_OPT; 
+    gate->optimizations = SSE2_OPT | AES_OPT; 
     init_veltor_ctx();
     gate->scanhash  = (void*)&scanhash_veltor;
     gate->hash      = (void*)&veltorhash;

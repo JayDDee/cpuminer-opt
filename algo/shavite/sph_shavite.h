@@ -77,9 +77,9 @@ extern "C"{
  */
 typedef struct {
 #ifndef DOXYGEN_IGNORE
-	unsigned char buf[64];    /* first field, for alignment */
+	unsigned char buf[64] __attribute__ ((aligned (64))); 
+        sph_u32 h[8] __attribute__ ((aligned (32)));
 	size_t ptr;
-	sph_u32 h[8];
 	sph_u32 count0, count1;
 #endif
 } sph_shavite_small_context;
@@ -108,9 +108,9 @@ typedef sph_shavite_small_context sph_shavite256_context;
  */
 typedef struct {
 #ifndef DOXYGEN_IGNORE
-	unsigned char buf[128];    /* first field, for alignment */
+	unsigned char buf[128] __attribute__ ((aligned (64))); 
+        sph_u32 h[16] __attribute__ ((aligned (32)));;
 	size_t ptr;
-	sph_u32 h[16];
 	sph_u32 count0, count1, count2, count3;
 #endif
 } sph_shavite_big_context;
@@ -262,51 +262,37 @@ void sph_shavite384_close(void *cc, void *dst);
 void sph_shavite384_addbits_and_close(
 	void *cc, unsigned ub, unsigned n, void *dst);
 
-/**
- * Initialize a SHAvite-512 context. This process performs no memory allocation.
- *
- * @param cc   the SHAvite-512 context (pointer to a
- *             <code>sph_shavite512_context</code>)
- */
-void sph_shavite512_init(void *cc);
-
-/**
- * Process some data bytes. It is acceptable that <code>len</code> is zero
- * (in which case this function does nothing).
- *
- * @param cc     the SHAvite-512 context
- * @param data   the input data
- * @param len    the input data length (in bytes)
- */
-void sph_shavite512(void *cc, const void *data, size_t len);
-
-/**
- * Terminate the current SHAvite-512 computation and output the result into
- * the provided buffer. The destination buffer must be wide enough to
- * accomodate the result (64 bytes). The context is automatically
- * reinitialized.
- *
- * @param cc    the SHAvite-512 context
- * @param dst   the destination buffer
- */
-void sph_shavite512_close(void *cc, void *dst);
-
-/**
- * Add a few additional bits (0 to 7) to the current computation, then
- * terminate it and output the result in the provided buffer, which must
- * be wide enough to accomodate the result (64 bytes). If bit number i
- * in <code>ub</code> has value 2^i, then the extra bits are those
- * numbered 7 downto 8-n (this is the big-endian convention at the byte
- * level). The context is automatically reinitialized.
- *
- * @param cc    the SHAvite-512 context
- * @param ub    the extra bits
- * @param n     the number of extra bits (0 to 7)
- * @param dst   the destination buffer
- */
-void sph_shavite512_addbits_and_close(
+// Always define sw but only define aesni when available
+// Define fptrs for aesni or sw, not both.
+void sph_shavite512_sw_init(void *cc);
+void sph_shavite512_sw(void *cc, const void *data, size_t len);
+void sph_shavite512_sw_close(void *cc, void *dst);
+void sph_shavite512_sw_addbits_and_close(
 	void *cc, unsigned ub, unsigned n, void *dst);
-	
+
+#ifdef __AES__
+void sph_shavite512_aesni_init(void *cc);
+void sph_shavite512_aesni(void *cc, const void *data, size_t len);
+void sph_shavite512_aesni_close(void *cc, void *dst);
+void sph_shavite512_aesni_addbits_and_close(
+        void *cc, unsigned ub, unsigned n, void *dst);
+
+#define sph_shavite512_init  sph_shavite512_aesni_init
+#define sph_shavite512       sph_shavite512_aesni
+#define sph_shavite512_close sph_shavite512_aesni_close
+#define sph_shavite512_addbits_and_close \
+                             sph_shavite512_aesni_addbits_and_close
+
+#else
+
+#define sph_shavite512_init  sph_shavite512_sw_init
+#define sph_shavite512       sph_shavite512_sw
+#define sph_shavite512_close sph_shavite512_sw_close
+#define sph_shavite512_addbits_and_close \
+                             sph_shavite512_sw_addbits_and_close
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif	

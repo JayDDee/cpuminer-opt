@@ -25,7 +25,7 @@ void jha_hash_4way( void *out, const void *input )
     uint64_t vhash[8*4] __attribute__ ((aligned (64)));
     uint64_t vhash0[8*4] __attribute__ ((aligned (64)));
     uint64_t vhash1[8*4] __attribute__ ((aligned (64)));
-    __m256i mask0, mask1;
+    __m256i mask, mask0, mask1;
     __m256i* vh = (__m256i*)vhash;
     __m256i* vh0 = (__m256i*)vhash0;
     __m256i* vh1 = (__m256i*)vhash1;
@@ -47,38 +47,37 @@ void jha_hash_4way( void *out, const void *input )
     // Heavy & Light Pair Loop
     for ( int round = 0; round < 3; round++ )
     {
-//       memset_zero_256( vh0, 20 );
-//       memset_zero_256( vh1, 20 );
-
-      // positive logic, if maski select vhi
-      // going from bit to mask reverses logic such that if the test bit is set
-      // zero will be put in mask0, meaning don't take vh0. mask1 is
-      // inverted so 1 will be put in mask1 meaning take it.
-      mask0 = mm256_negate_64(
+      // select next function based on bit 0 of previous hash.
+      // Specutively execute both functions and use mask to
+      // select results from correct function for each lane.
+      // hash = mask : vhash0 ? vhash1
+      mask = mm256_negate_64(
                      _mm256_and_si256( vh[0], _mm256_set1_epi64x( 0x1 ) ) );
-      mask1 = mm256_not( mask0 );
 
+// second version
+//      mask0 = mask
+//      mask1 = mm256_not( mask );
+
+// first version
 //       mask = _mm256_sub_epi64( _mm256_and_si256( vh[0],
 //                     _mm256_set1_epi64x( 0x1 ) ), _mm256_set1_epi64x( 0x1 ) );
 
-       // groestl (serial) v skein
+       // groestl (serial) vs skein
 
        mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
        init_groestl( &ctx_groestl, 64 );
        update_and_final_groestl( &ctx_groestl, (char*)hash0,
-                     (char*)hash0, 512 );
-
+                                 (char*)hash0, 512 );
        init_groestl( &ctx_groestl, 64 );
        update_and_final_groestl( &ctx_groestl, (char*)hash1,
-                                          (char*)hash1, 512 );
-
+                                 (char*)hash1, 512 );
        init_groestl( &ctx_groestl, 64 );
        update_and_final_groestl( &ctx_groestl, (char*)hash2,
-                                          (char*)hash2, 512 );
+                                 (char*)hash2, 512 );
        init_groestl( &ctx_groestl, 64 );
        update_and_final_groestl( &ctx_groestl, (char*)hash3,
-                                          (char*)hash3, 512 );
+                                 (char*)hash3, 512 );
 
        mm256_interleave_4x64( vhash0, hash0, hash1, hash2, hash3, 512 );
 
@@ -91,14 +90,20 @@ void jha_hash_4way( void *out, const void *input )
        // merge vectored hash
        for ( int i = 0; i < 8; i++ )
        {
-          vh[i] = _mm256_or_si256( _mm256_and_si256( vh0[i], mask0 ),
-                                   _mm256_and_si256( vh1[i], mask1 ) );
+          // blend should be faster
+          vh[i] = _mm256_blendv_epi8( vh0[i], vh1[i], mask );
+
+// second version
+//          vh[i] = _mm256_or_si256( _mm256_and_si256( vh0[i], mask0 ),
+//                                   _mm256_and_si256( vh1[i], mask1 ) );
+
+// first version
 /*
-          vha256[i] = _mm256_maskload_epi64( 
-                                      vhasha + i*4, mm256_not( mask ) );
-          vhb256[i] = _mm256_maskload_epi64(
-                                      vhashb + i*4, mask );
-          vh256[i]  = _mm256_or_si256( vha256[i], vhb256[i] );
+          vh0[i] = _mm256_maskload_epi64( 
+                                      vhash0 + i*4, mm256_not( mask ) );
+          vh1[i] = _mm256_maskload_epi64(
+                                      vhash1 + i*4, mask );
+          vh[i]  = _mm256_or_si256( vh0[i], vh1[i] );
 */
        }
 

@@ -103,7 +103,7 @@ enum algos opt_algo = ALGO_NULL;
 int opt_scrypt_n = 0;
 int opt_pluck_n = 128;
 int opt_n_threads = 0;
-int64_t opt_affinity = -1L;
+int64_t opt_affinity = -1;
 int opt_priority = 0;
 int num_cpus;
 char *rpc_url = NULL;;
@@ -195,20 +195,27 @@ static inline void drop_policy(void)
 #define pthread_setaffinity_np(tid,sz,s) {} /* only do process affinity */
 #endif
 
-static void affine_to_cpu_mask(int id, unsigned long mask) {
-	cpu_set_t set;
-	CPU_ZERO(&set);
-	for (uint8_t i = 0; i < num_cpus; i++) {
-		// cpu mask
-		if (mask & (1UL<<i)) { CPU_SET(i, &set); }
-	}
-	if (id == -1) {
-		// process affinity
-		sched_setaffinity(0, sizeof(&set), &set);
-	} else {
-		// thread only
-		pthread_setaffinity_np(thr_info[id].pth, sizeof(&set), &set);
-	}
+static void affine_to_cpu_mask( int id, unsigned long long mask )
+{
+   cpu_set_t set;
+   CPU_ZERO(&set);
+   uint8_t ncpus = (num_cpus > 256) ? 256 : num_cpus;       
+
+   for ( uint8_t i = 0; i < ncpus; i++ ) 
+   {
+      // cpu mask
+      if( (ncpus > 64) || ( mask & (1UL << i) ) )  CPU_SET( i, &set );
+   }
+   if ( id == -1 )
+   {
+      // process affinity
+      sched_setaffinity(0, sizeof(&set), &set);
+   }
+   else
+   {
+      // thread only
+      pthread_setaffinity_np(thr_info[id].pth, sizeof(&set), &set);
+   }
 }
 
 #elif defined(WIN32) /* Windows */
@@ -1669,21 +1676,30 @@ static void *miner_thread( void *userdata )
 	   drop_policy();
    }
    // CPU thread affinity
-   if (num_cpus > 1)
+   if ( num_cpus > 64 )
    {
-      if (opt_affinity == -1 && opt_n_threads > 1) 
+      // opt_affinity ignored with more than 64 cpus.
+      if (opt_debug)
+           applog( LOG_DEBUG, "Binding thread %d to cpu %d",
+                   thr_id, thr_id % num_cpus );
+      affine_to_cpu_mask( thr_id, -1 );
+   }
+   else if ( num_cpus > 1 )
+   {
+      if ( (opt_affinity == -1) && (opt_n_threads) > 1 ) 
       {
          if (opt_debug)
-           applog( LOG_DEBUG, "Binding thread %d to cpu %d (mask %x)",
+            applog( LOG_DEBUG, "Binding thread %d to cpu %d (mask %x)",
                    thr_id, thr_id % num_cpus, ( 1 << (thr_id % num_cpus) ) );
-         affine_to_cpu_mask(thr_id, 1UL << (thr_id % num_cpus));
+
+         affine_to_cpu_mask( thr_id, 1 << (thr_id % num_cpus) );
       }
-      else if (opt_affinity != -1L)
+      else if (opt_affinity != -1)
       {
-	 if (opt_debug)
-	      applog( LOG_DEBUG, "Binding thread %d to cpu mask %x",
+         if (opt_debug)
+             applog( LOG_DEBUG, "Binding thread %d to cpu mask %x",
                                  thr_id, opt_affinity);
-	 affine_to_cpu_mask(thr_id, (unsigned long)opt_affinity);
+         affine_to_cpu_mask( thr_id, opt_affinity );
       }
    }
 
@@ -1822,10 +1838,10 @@ static void *miner_thread( void *userdata )
                  num_submitted++;
              }
 #if FOUR_WAY
-if (num_submitted>1)
- applog(LOG_NOTICE,  "4 WAY hash, %u nonces submitted," CL_MAG " BONUS!" CL_WHT, num_submitted);
+if (num_submitted > 1)
+ applog(LOG_NOTICE,  "4 WAY hash nonces submitted: %u" CL_MAG " BONUS!" CL_N, num_submitted);
 else
- applog(LOG_NOTICE,  "4 WAY hash %u nonce submitted", num_submitted);
+ applog(LOG_NOTICE,  "4 WAY hash nonces submitted: %u", num_submitted);
 #endif
           // must be a one way algo, nonce is already in work data
           if ( !num_submitted )
@@ -1836,7 +1852,7 @@ else
                 break;
              }
 #if FOUR_WAY
-applog(LOG_NOTICE,  "1 WAY hash 1 nonce submitted");
+applog(LOG_NOTICE,  "1 WAY hash nonce submitted");
 #endif
 
           }
@@ -2948,12 +2964,16 @@ bool check_cpu_capability ()
     
 
      printf(".\nAlgo features:");
-     if ( algo_has_sse2 )  printf( " SSE2" );
-     if ( algo_has_aes  )  printf( " AES"  );
-     if ( algo_has_avx  )  printf( " AVX"  );
-     if ( algo_has_avx2 )  printf( " AVX2" );
-     if ( algo_has_4way )  printf( " 4WAY" );
-     if ( algo_has_sha  )  printf( " SHA"  );
+     if ( algo_features == EMPTY_SET ) printf( " None" );
+     else
+     {
+        if ( algo_has_sse2 )           printf( " SSE2" );
+        if ( algo_has_aes  )           printf( " AES"  );
+        if ( algo_has_avx  )           printf( " AVX"  );
+        if ( algo_has_avx2 )           printf( " AVX2" );
+        if ( algo_has_4way )           printf( " 4WAY" );
+        if ( algo_has_sha  )           printf( " SHA"  );
+     }
      printf(".\n");
 
      // Check for CPU and build incompatibilities
@@ -3166,13 +3186,22 @@ int main(int argc, char *argv[])
 		SetPriorityClass(GetCurrentProcess(), prio);
 	}
 #endif
-	if (opt_affinity != -1)
-        {
-		if (!opt_quiet)
-			applog(LOG_DEBUG, "Binding process to cpu mask %x", opt_affinity);
-		affine_to_cpu_mask(-1, (unsigned long)opt_affinity);
-	}
 
+   if ( opt_affinity != -1 )
+   {
+      if ( num_cpus > 64 )
+      {
+          applog(LOG_WARNING,"--cpu-affinity argument is not supported with more");
+          applog(LOG_WARNING," than 64 CPUs, using default affinity.");
+          opt_affinity = -1;
+      }
+      else	
+      {
+         if (!opt_quiet)
+            applog(LOG_DEBUG, "Binding process to cpu mask %x", opt_affinity);
+         affine_to_cpu_mask( -1, (unsigned long)opt_affinity );
+      }
+   }
 
 //#ifdef HAVE_SYSLOG_H
 //	if (use_syslog)

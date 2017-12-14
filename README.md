@@ -40,6 +40,7 @@ Supported Algorithms
                           keccakc      Creative coin
                           lbry         LBC, LBRY Credits
                           luffa        Luffa
+                          lyra2h       Hppcoin
                           lyra2re      lyra2
                           lyra2rev2    lyra2v2, Vertcoin
                           lyra2z       Zcoin (XZC)

@@ -1,12 +1,13 @@
 #include "whirlpool-gate.h"
+
+#if defined(__AVX2__)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include "sph_whirlpool.h"
 #include "whirlpool-hash-4way.h"
-
-#if defined(__AVX2__)
 
 static __thread whirlpool_4way_context whirl_mid;
 
@@ -50,7 +51,7 @@ void whirlpool_hash_4way( void *state, const void *input )
 }
 
 int scanhash_whirlpool_4way( int thr_id, struct work* work, uint32_t max_nonce,
-                             unsigned long *hashes_done )
+                             uint64_t *hashes_done )
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
@@ -67,8 +68,8 @@ int scanhash_whirlpool_4way( int thr_id, struct work* work, uint32_t max_nonce,
    uint32_t *noncep2 = vdata + 77;
    uint32_t *noncep3 = vdata + 79;
 
-//   if (opt_benchmark)
-//      ((uint32_t*)ptarget)[7] = 0x0000ff;
+   if (opt_benchmark)
+      ((uint32_t*)ptarget)[7] = 0x0000ff;
 
     for (int i=0; i < 19; i++)
       be32enc(&endiandata[i], pdata[i]);

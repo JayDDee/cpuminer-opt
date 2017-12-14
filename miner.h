@@ -506,6 +506,7 @@ enum algos {
         ALGO_KECCAKC,
         ALGO_LBRY,
         ALGO_LUFFA,       
+        ALGO_LYRA2H,
         ALGO_LYRA2RE,       
         ALGO_LYRA2REV2,   
         ALGO_LYRA2Z,
@@ -576,6 +577,7 @@ static const char* const algo_names[] = {
         "keccakc",
         "lbry",
         "luffa",
+        "lyra2h",
         "lyra2re",
         "lyra2rev2",
         "lyra2z",
@@ -700,6 +702,7 @@ Options:\n\
                           keccakc      Creative Coin\n\
                           lbry         LBC, LBRY Credits\n\
                           luffa        Luffa\n\
+                          lyra2h       Hppcoin\n\
                           lyra2re      lyra2\n\
                           lyra2rev2    lyrav2, Vertcoin\n\
                           lyra2z       Zcoin (XZC)\n\

@@ -3365,6 +3365,8 @@ do { \
 // scalar array of constants "table" and return referenced 64 bit entry.
 #define t_lane( table, inv, row, lane ) \
    table[ _mm256_extract_epi64( t_row( inv, row ), lane ) ]
+//   table[ t_rwo( inv, row )[ lane ] ];
+
 
 // Build a vector from elements of non-contiguous 64 bit data extracted from
 // scalar "table".

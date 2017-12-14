@@ -872,6 +872,7 @@ blake32_close(sph_blake_small_context *sc,
 	} else {
 		sc->T0 -= 512 - bit_len;
 	}
+
 	if (bit_len <= 446) {
 		memset(u.buf + ptr + 1, 0, 55 - ptr);
 		if (out_size_w32 == 8)

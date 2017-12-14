@@ -8,13 +8,13 @@
   #define WHIRLPOOL_4WAY
 #endif
 
-//#if defined (WHIRLPOOL_4WAY) 
+#if defined (WHIRLPOOL_4WAY) 
 
-//void whirlpool_hash_4way(void *state, const void *input);
+void whirlpool_hash_4way(void *state, const void *input);
 
-//int scanhash_whirlpool_4way( int thr_id, struct work *work, uint32_t max_nonce,
-//                              uint64_t *hashes_done );
-//#endif
+int scanhash_whirlpool_4way( int thr_id, struct work *work, uint32_t max_nonce,
+                              uint64_t *hashes_done );
+#else
 
 void whirlpool_hash( void *state, const void *input );
 
@@ -22,3 +22,4 @@ int scanhash_whirlpool( int thr_id, struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done );
 #endif
 
+#endif

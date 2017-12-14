@@ -138,6 +138,10 @@ void init_algo_gate( algo_gate_t* gate )
    gate->work_cmp_size           = STD_WORK_CMP_SIZE;
 }
 
+// Ignore warnings for not yet defined register functions
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
+
 // called by each thread that uses the gate
 bool register_algo_gate( int algo, algo_gate_t *gate )
 {
@@ -151,11 +155,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
 
    switch (algo)
    {
-
-// Ignore warnings for not yet defined register fucntions
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
-
      case ALGO_ARGON2:       register_argon2_algo      ( gate ); break;
      case ALGO_AXIOM:        register_axiom_algo       ( gate ); break;
      case ALGO_BASTION:      register_bastion_algo     ( gate ); break;
@@ -180,6 +179,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_KECCAKC:      register_keccakc_algo     ( gate ); break;
      case ALGO_LBRY:         register_lbry_algo        ( gate ); break;
      case ALGO_LUFFA:        register_luffa_algo       ( gate ); break;
+     case ALGO_LYRA2H:       register_lyra2h_algo      ( gate ); break;
      case ALGO_LYRA2RE:      register_lyra2re_algo     ( gate ); break;
      case ALGO_LYRA2REV2:    register_lyra2rev2_algo   ( gate ); break;
      case ALGO_LYRA2Z:       register_lyra2z_algo      ( gate ); break;
@@ -221,10 +221,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_YESCRYPT:     register_yescrypt_algo    ( gate ); break;
      case ALGO_YESCRYPTR16:  register_yescryptr16_algo ( gate ); break;
      case ALGO_ZR5:          register_zr5_algo         ( gate ); break;
-
-// restore warnings
-#pragma GCC diagnostic pop
-
     default:
         applog(LOG_ERR,"FAIL: algo_gate registration failed, unknown algo %s.\n", algo_names[opt_algo] );
         return false;
@@ -238,6 +234,9 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
   }
   return true;
 }
+
+// restore warnings
+#pragma GCC diagnostic pop
 
 // override std defaults with jr2 defaults
 bool register_json_rpc2( algo_gate_t *gate )

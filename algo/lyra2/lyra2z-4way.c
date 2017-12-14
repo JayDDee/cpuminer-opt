@@ -110,7 +110,8 @@ printf("found 0\n");
           nonces[0] = pdata[19] = n;
           work_set_target_ratio( work, hash );
       }
-/*      if ( (hash+8)[7] <= Htarg && fulltest( hash+8, ptarget ) )
+/*
+      if ( (hash+8)[7] <= Htarg && fulltest( hash+8, ptarget ) )
       {
 printf("found 1\n");          
           found[1] = true;

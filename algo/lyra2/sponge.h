@@ -65,13 +65,13 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 
 #define LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
    G_4X64( s0, s1, s2, s3 ); \
-   s1 = mm256_rotl256_1x64( s1); \
+   s1 = mm256_rotr256_1x64( s1); \
    s2 = mm256_swap_128( s2 ); \
-   s3 = mm256_rotr256_1x64( s3 ); \
+   s3 = mm256_rotl256_1x64( s3 ); \
    G_4X64( s0, s1, s2, s3 ); \
-   s1 = mm256_rotr256_1x64( s1 ); \
+   s1 = mm256_rotl256_1x64( s1 ); \
    s2 = mm256_swap_128( s2 ); \
-   s3 = mm256_rotl256_1x64( s3 );
+   s3 = mm256_rotr256_1x64( s3 );
 
 #define LYRA_12_ROUNDS_AVX2( s0, s1, s2, s3 ) \
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \

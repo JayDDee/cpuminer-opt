@@ -108,6 +108,7 @@ cpuminer_SOURCES = \
   algo/lyra2/lyra2z.c \
   algo/lyra2/lyra2z-4way.c \
   algo/lyra2/lyra2z330.c \
+  algo/lyra2/lyra2h.c \
   algo/m7m.c \
   algo/neoscrypt.c \
   algo/nist5/nist5-gate.c \
@@ -128,6 +129,7 @@ cpuminer_SOURCES = \
   algo/sha/sha256t.c \
   algo/shabal/sph_shabal.c \
   algo/shavite/sph_shavite.c \
+  algo/shavite/sph-shavite-aesni.c \
   algo/shavite/shavite.c \
   algo/simd/sph_simd.c \
   algo/simd/sse2/nist.c \
@@ -155,11 +157,12 @@ cpuminer_SOURCES = \
   algo/whirlpool/whirlpool-4way.c \
   algo/whirlpool/whirlpool.c \
   algo/whirlpool/whirlpoolx.c \
-  algo/x11/phi1612.c \
+  algo/x11/x11-gate.c \
   algo/x11/x11.c \
   algo/x11/x11evo.c \
   algo/x11/x11gost.c \
   algo/x11/c11.c \
+  algo/x11/phi1612.c \
   algo/x13/x13.c \
   algo/x13/x13sm3.c \
   algo/x14/x14.c \

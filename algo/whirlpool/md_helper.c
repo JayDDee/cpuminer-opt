@@ -252,8 +252,8 @@ SPH_XCAT(HASH, _addbits_and_close)(void *cc,
 	current = (unsigned)sc->count_low & (SPH_BLEN - 1U);
 #endif
 
-uint64_t *b= (uint64_t*)sc->buf;
-uint64_t *s= (uint64_t*)sc->state;
+//uint64_t *b= (uint64_t*)sc->buf;
+//uint64_t *s= (uint64_t*)sc->state;
 // printf("Sptr 1= %u\n",current);   
 // printf("SBuf %016llx %016llx %016llx %016llx\n", b[0], b[1], b[2], b[3] );
 // printf("SBuf %016llx %016llx %016llx %016llx\n", b[4], b[5], b[6], b[7] );
