@@ -138,7 +138,7 @@ cpuminer_SOURCES = \
   algo/skein/skein-hash-4way.c \
   algo/skein/skein.c \
   algo/skein/skein-4way.c \
-  algo/skein/skein-gate.c \  
+  algo/skein/skein-gate.c \
   algo/skein/skein2.c \
   algo/skein/skein2-4way.c \
   algo/skein/skein2-gate.c \

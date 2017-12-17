@@ -9,7 +9,7 @@
 #include <immintrin.h>
 #include <memory.h>
 
-
+//
 // 128 bit utilities and shortcuts
 
 // Constant zero
@@ -23,9 +23,51 @@
 
 // Unary negation (-a)
 #define mm_negate_64( a ) _mm_sub_epi64( mm_zero, a )
-
 #define mm_negate_32( a ) _mm_sub_epi32( mm_zero, a )  
 
+//
+// Bit operations, functional but not very efficient
+
+// Return x with bit n set/clear in all elements
+#define mm_bitset_128( x, n ) \
+   _mm_or_si128( _mm_slli_si128( _mm_set_epi64x( 0ULL, 1ULL ), n ) )
+
+#define mm_bitclr_128( x, n ) \
+   _mm_and_si128( x, mm_not( _mm_slli_si128( \
+                                     _mm_set_epi64x( 0ULL, 1ULL ), n ) ) )
+
+#define mm_bitset_64( x, n ) \
+   _mm_or_si128( _mm_slli_epi64( _mm_set1_epi64x( 1ULL ), n ) )
+
+#define mm_bitclr_64( x, n ) \
+   _mm_and_si128( x, mm_not( _mm_slli_epi64( _mm_set1_epi64x( 1ULL ), n ) ) )
+
+#define mm_bitset_32( x, n ) \
+   _mm_or_si128( _mm_slli_epi32( _mm_set1_epi32( 1UL ), n ) )
+
+#define mm_bitclr_32( x, n ) \
+   _mm_and_si128( x, mm_not( _mm_slli_epi32( _mm_set1_epi32( 1UL ), n ) ) )
+
+#define mm_bitset_16( x, n ) \
+   _mm_or_si128( _mm_slli_epi16( _mm_set1_epi16( 1U ), n ) )
+
+#define mm_bitclr_16( x, n ) \
+   _mm_and_si128( x, mm_not( _mm_slli_epi16( _mm_set1_epi16( 1U ), n ) ) )
+
+// return vector of bool
+#define mm_bittest_128( x, n ) \
+   _mm_and_si256( _mm_srli_si128( x, n ), _mm_set_epi64x( 0ULL, 1ULL ) ) 
+
+#define mm_bittest_64( x, n ) \
+   _mm_and_si256( _mm_srli_epi64( x, n ), _mm_set1_epi64x( 1ULL ) ) 
+
+#define mm_bittest_32( x, n ) \
+   _mm_and_si256( _mm_srli_epi32( x, n ), _mm_set1_epi32( 1UL ) ) 
+
+#define mm_bittest_16( x, n ) \
+   _mm_and_si256( _mm_srli_epi16( x, n ), _mm_set1_epi16( 1U ) ) 
+
+//
 // Memory functions
 // n = number of __m128i, bytes/16
 
@@ -51,6 +93,7 @@ inline void memcpy_64( uint64_t* dst, const uint64_t* src, int n )
        dst[i] = src[i];
 }
 
+//
 // Pointer cast
 
 // p = any aligned pointer
@@ -80,23 +123,29 @@ inline void memcpy_64( uint64_t* dst, const uint64_t* src, int n )
 #define mm_rotl_32( w, c ) _mm_or_si128( _mm_slli_epi32( w, c ), \
                                          _mm_srli_epi32( w, 32-c ) )
 
-// Rotate elements in vector
+#define mm_rotr_16( w, c ) _mm_or_si128( _mm_srli_epi16( w, c ), \
+                                         _mm_slli_epi16( w, 16-c ) )
+
+#define mm_rotl_16( w, c ) _mm_or_si128( _mm_slli_epi16( w, c ), \
+                                         _mm_srli_epi16( w, 16-c ) )
+
+//
+// Shuffle vector elements
 
 // Swap upper and lower 64 bits of 128 bit source vector
 #define mm_swap_64(s) _mm_shuffle_epi32( s, 0x4e )
 
 // Rotate 128 vector by 1 32 bit element.
 #define mm_rotr_1x32( w )  _mm_shuffle_epi32( w, 0x39 )
-
 #define mm_rotl_1x32( w )  _mm_shuffle_epi32( w, 0x93 )
 
-// Rotate 256 bits through two 128 bit vectors
+// Shuffle elements across two 128 bit vectors
 
 // Swap 128 bit source vectors in place.
 // void mm128_swap128( __m128i, __m128i )
-#define mm_swap_128(s0, s1) s0 = _mm_xor_si128(s0, s1); \
-                            s1 = _mm_xor_si128(s0, s1); \
-                            s0 = _mm_xor_si128(s0, s1);
+#define mm_swap_128(hi, lo) hi = _mm_xor_si128(hi, lo); \
+                            lo = _mm_xor_si128(hi, lo); \
+                            hi = _mm_xor_si128(hi, lo);
 
 // Rotate two 128 bit vectors in place as one 256 vector by 1 element
 #define mm_rotl256_1x64( s0, s1 ) \
@@ -116,6 +165,30 @@ do { \
  s1 = mm_swap_64( s1 ); \
  t  = _mm_blendv_epi8( s0, s1, _mm_set_epi64x( 0ull, 0xffffffffffffffffull )); \
  s1 = _mm_blendv_epi8( s0, s1, _mm_set_epi64x( 0xffffffffffffffffull, 0ull )); \
+ s0 = t; \
+} while(0)
+
+#define mm_rotl256_1x32( s0, s1 ) \
+do { \
+ __m128i t; \
+ s0 = mm_swap_64( s0 ); \
+ s1 = mm_swap_64( s1 ); \
+ t  = _mm_blendv_epi8( s0, s1, _mm_set_epi32( \
+                 0xfffffffful, 0xfffffffful, 0xfffffffful,          0ul )); \
+ s1 = _mm_blendv_epi8( s0, s1, _mm_set_epi32( \
+                          0ul,          0ul,          0ul, 0xfffffffful )); \
+ s0 = t; \
+} while(0)
+
+#define mm_rotr256_1x32( s0, s1 ) \
+do { \
+ __m128i t; \
+ s0 = mm_swap_64( s0 ); \
+ s1 = mm_swap_64( s1 ); \
+ t  = _mm_blendv_epi8( s0, s1, _mm_set_epi32( \
+                          0ul,          0ul,          0ul, 0xfffffffful )); \
+ s1 = _mm_blendv_epi8( s0, s1, _mm_set_epi32( \
+                 0xfffffffful, 0xfffffffful, 0xfffffffful,          0ul )); \
  s0 = t; \
 } while(0)
 
@@ -148,10 +221,14 @@ do { \
    s0 = t; \
 } while(0)
 
-// Rotate 256 bits through two 128 bit vectors by n*32 bits and return
-// the rotated s0.
+// need a better name, not rot, poke? step?
+// Return s0 with elements shifted right/left and low/high element from
+// s1 shifted into the vacated high/low element of s0.
+// Partially rotate elements in two 128 bit vectors as one 256 bit vector
+// and return the rotated s0.
 // Similar to mm_rotr256_1x32 but only a partial rotation as s1 is not
 // completed. It's faster than a full rotation.
+
 inline __m128i mm_rotr256_32( __m128i s0, __m128i s1, int n )
 {
    return _mm_or_si128( _mm_srli_si128( s0, n<<2 ),
@@ -164,8 +241,25 @@ inline __m128i mm_rotl256_32( __m128i s0, __m128i s1, int n )
                         _mm_srli_si128( s1, 16 - (n<<2) ) );
 }
 
+//
 // Swap bytes in vector elements
-inline __m128i  mm_byteswap_32( __m128i x )
+
+inline __m128i mm_byteswap_32( __m128i x )
+{
+  return _mm_shuffle_epi8( x, _mm_set_epi8(
+                           0x0c, 0x0d, 0x0e, 0x0f, 0x08, 0x09, 0x0a, 0x0b,
+                           0x04, 0x05, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03 ) );
+}
+
+inline __m128i mm_byteswap_64( __m128i x )
+{
+  return _mm_shuffle_epi8( x, _mm_set_epi8(
+                           0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+                           0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 ) );
+}
+
+// older slower
+inline __m128i  mm_byteswap_32x( __m128i x )
 {
   __m128i x1 = _mm_and_si128( x, _mm_set1_epi32( 0x0000ff00 ) );
   __m128i x2 = _mm_and_si128( x, _mm_set1_epi32( 0x00ff0000 ) );
@@ -176,7 +270,7 @@ inline __m128i  mm_byteswap_32( __m128i x )
   return _mm_or_si128( _mm_or_si128( x0, x1 ), _mm_or_si128( x2, x3 ) );
 }
 
-inline __m128i mm_byteswap_64( __m128i x )
+inline __m128i mm_byteswap_64x( __m128i x )
 {
   x = _mm_or_si128( _mm_srli_epi64( x, 32 ), _mm_slli_epi64( x, 32 ));
 
@@ -191,10 +285,10 @@ inline __m128i mm_byteswap_64( __m128i x )
                               _mm_set1_epi64x( 0x00FF00FF00FF00FF ) ), 8 ));
 }
 
-
 #if defined (__AVX2__)
 
-// Utilities and Shortcuts
+//
+// 256 bit utilities and Shortcuts
 
 // Constant zero
 #define mm256_zero _mm256_setzero_si256()
@@ -207,19 +301,55 @@ inline __m128i mm_byteswap_64( __m128i x )
 
 // Unary negation ( -a )
 #define mm256_negate_64( a ) _mm256_sub_epi64( mm256_zero, a )
-
 #define mm256_negate_32( a ) _mm256_sub_epi32( mm256_zero, a )  
 
-// Pack/Unpack two 128 bit vectors into/from one 256 bit vector
-// usefulness tbd
-#define mm256_pack_2x128( hi, lo ) \
-   _mm256_inserti128_si256( _mm256_castsi128_si256( lo ), hi, 0 ) \
+//
+// Bit operations
 
-#define mm256_unpack_2x128( hi, lo, src ) \
-   lo = _mm256_castsi256_si128( src ); \
-   hi = _mm256_castsi256_si128( mm256_swap_128( src ) ); 
+// Return x with bit n set/clear in all elements
+#define mm256_bitset_128( x, n ) \
+   _mm256_or_si256( _mm256_slli_si256( _mm256_set_m128i( 1U, 1U ), n ) )
 
+#define mm256_bitclr_128( x, n ) \
+   _mm256_and_si256( x, mm256_not( \
+                        _mm256_slli_si256( _mm256_set_m128i( 1U, 1U ), n ) ) )
+ 
+#define mm256_bitset_64( x, n ) \
+    _mm256_or_si256( x, _mm256_set1_epi64x( 1ULL << n ) )
 
+#define mm256_bitclr_64( x, n ) \
+    _mm256_and_si256( x, mm256_not( _mm256_set1_epi64x( 1ULL << n ) ) )
+
+#define mm256_bitset_32( x, n ) \
+    _mm256_or_si256( x, _mm256_set1_epi32( 1UL << n ) )
+
+#define mm256_bitclr_32( x, n ) \
+    _mm256_and_si256( x, mm256_not( _mm256_set1_epi32( 1UL << n ) ) )
+
+#define mm256_bitset_16( x, n ) \
+    _mm256_or_si256( x, _mm256_set1_epi16( 1U << n ) )
+
+#define mm256_bitclr_16( x, n ) \
+    _mm256_and_si256( x, mm256_not( _mm256_set1_epi16( 1U << n ) ) )
+
+// return vector of bool
+#define mm256_bittest_128( x, n ) \
+   _mm256_and_si256( _mm256_srli_si256( x, n ), \
+                     _mm256_set_m128i( _mm_set_epi64x( 0ULL, 1ULL ) ) )
+
+#define mm256_bittest_64( x, n ) \
+   _mm256_and_si256( _mm256_srli_epi64( x, n ), \
+                     _mm256_set1_epi64x( 1ULL << n ) )
+
+#define mm256_bittest_32( x, n ) \
+   _mm256_and_si256( _mm256_srli_epi32( x, n ), \
+                     _mm256_set1_epi32( 1UL << n ) )
+
+#define mm256_bittest_16( x, n ) \
+   _mm256_and_si256( _mm256_srli_epi16( x, n ), \
+                     _mm256_set1_epi16( 1U << n ) )
+
+//
 // Memory functions
 // n = number of 256 bit (32 byte) vectors
 
@@ -238,6 +368,7 @@ inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
    for ( int i = 0; i < n; i ++ ) dst[i] = src[i];
 }
 
+//
 // Pointer casting
 
 // p = any aligned pointer
@@ -252,10 +383,11 @@ inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
 // returns p[i]
 #define casti_m256i(p,i) (((__m256i*)(p))[(i)])
 
+//
 // Rotate bits in vector elements
 
 // Rotate bits in 64 bit elements
-// w = packed 64 bit data, n= number of bits to rotate
+// w = packed 64 bit data, c = number of bits to rotate
 #define  mm256_rotr_64( w, c ) \
     _mm256_or_si256( _mm256_srli_epi64(w, c), _mm256_slli_epi64(w, 64 - c) )
 
@@ -271,22 +403,43 @@ inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
 
 // Rotate elements in vector
 
+// Swap 128 bit elements (aka rotate by two 64 bit, four 32 bit elements))
+// Identical functionality but "f" is AVX and "x" iis AVX2, likely faster.
+#define mm256_swap_128( w )      _mm256_permute2x128_si256( w, w, 1 )
+//#define mm256_swap_128( w )      _mm256_permute2f128_si256( w, w, 1 )
+
 // Rotate vector by one 64 bit element (aka two 32 bit elements)
 //__m256i mm256_rotl256_1x64( _mm256i, int )
 #define mm256_rotl256_1x64( w )  _mm256_permute4x64_epi64( w, 0x93 )
-
 #define mm256_rotr256_1x64( w )  _mm256_permute4x64_epi64( w, 0x39 )
-
-// Swap 128 bit elements (aka rotate by two 64 bit, four 32 bit elements))
-#define mm256_swap_128( w )      _mm256_permute2f128_si256( w, w, 1 )
 
 // Rotate by one 32 bit element (aka two 16 bit elements)
 #define mm256_rotl256_1x32( w )  _mm256_shuffle_epi32( w, 0x93 )
-
 #define mm256_rotr256_1x32( w )  _mm256_shuffle_epi32( w, 0x39 )
 
+//
 // Swap bytes in vector elements
+
+inline __m256i mm256_byteswap_64( __m256i x )
+{
+  return _mm256_shuffle_epi8( x, _mm256_set_epi8(
+                            0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+                            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                            0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+                            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 ) );
+}
+
 inline __m256i  mm256_byteswap_32( __m256i x )
+{
+   return _mm256_shuffle_epi8( x, _mm256_set_epi8(
+                           0x0c, 0x0d, 0x0e, 0x0f, 0x08, 0x09, 0x0a, 0x0b,
+                           0x04, 0x05, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03,
+                           0x0c, 0x0d, 0x0e, 0x0f, 0x08, 0x09, 0x0a, 0x0b,
+                           0x04, 0x05, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03 ) );
+}
+
+// older, slower
+inline __m256i  mm256_byteswap_32x( __m256i x )
 {
   __m256i x1 = _mm256_and_si256( x, _mm256_set1_epi32( 0x0000ff00 ) );
   __m256i x2 = _mm256_and_si256( x, _mm256_set1_epi32( 0x00ff0000 ) );
@@ -298,7 +451,7 @@ inline __m256i  mm256_byteswap_32( __m256i x )
                           _mm256_or_si256( x2, x3 ) );
 }
 
-inline __m256i mm256_byteswap_64( __m256i x )
+inline __m256i mm256_byteswap_64x( __m256i x )
 {
   x = _mm256_or_si256( _mm256_srli_epi64( x, 32 ), _mm256_slli_epi64( x, 32 ));
 
@@ -313,8 +466,19 @@ inline __m256i mm256_byteswap_64( __m256i x )
                              _mm256_set1_epi64x( 0x00FF00FF00FF00FF ) ), 8 ));
 }
 
-// Pseudo parallel aes
+
+// Pack/Unpack two 128 bit vectors into/from one 256 bit vector
+// usefulness tbd
+#define mm256_pack_2x128( hi, lo ) \
+   _mm256_inserti128_si256( _mm256_castsi128_si256( lo ), hi, 1 ) \
+
+#define mm256_unpack_2x128( hi, lo, src ) \
+   lo = _mm256_castsi256_si128( src ); \
+   hi = _mm256_castsi256_si128( mm256_swap_128( src ) ); 
+
+// Pseudo parallel AES
 // Probably noticeably slower than using pure 128 bit vectors
+// More efficient if one key for both lanes.
 inline __m256i mm256_aesenc_2x128( __m256i x, __m256i k )
 {
     __m128i hi, lo, khi, klo;
@@ -370,7 +534,8 @@ inline __m256i mm256_aesenc_nokey_2x128( __m256i x )
 // interleave 4 arrays of 32 bit elements for 128 bit processing
 // bit_len must be 256, 512 or 640 bits.
 // Vector indexing doesn't work with 32 bit data.
-inline void mm_interleave_4x32x( void *dst, const void *src0, const void *src1,
+// There's no vector indexing here!!!
+inline void mm_interleave_4x32( void *dst, const void *src0, const void *src1,
                              const void *src2, const void *src3, int bit_len )
 {
    uint32_t *s0 = (uint32_t*)src0;
@@ -408,7 +573,7 @@ inline void mm_interleave_4x32x( void *dst, const void *src0, const void *src1,
 }
 
 // bit_len must be multiple of 32
-inline void mm_interleave_4x32( void *dst, void *src0, void  *src1,
+inline void mm_interleave_4x32x( void *dst, void *src0, void  *src1,
                                  void *src2, void *src3, int bit_len )
 {
    uint32_t *d  = (uint32_t*)dst;
@@ -427,7 +592,8 @@ inline void mm_interleave_4x32( void *dst, void *src0, void  *src1,
 }
 
 // doesn't work with 32 bit elements
-inline void mm_deinterleave_4x32x( void *dst0, void *dst1, void *dst2,
+// no vector indexing here?
+inline void mm_deinterleave_4x32( void *dst0, void *dst1, void *dst2,
                                   void *dst3, const void *src, int bit_len )
 {
    uint32_t *s = (uint32_t*)src;
@@ -469,7 +635,7 @@ inline void mm_deinterleave_4x32x( void *dst0, void *dst1, void *dst2,
 
 // deinterleave 4 arrays into individual buffers for scalarm processing
 // bit_len must be multiple of 32
-inline void mm_deinterleave_4x32( void *dst0, void *dst1, void *dst2,
+inline void mm_deinterleave_4x32x( void *dst0, void *dst1, void *dst2,
                                    void *dst3, const void *src, int bit_len )
 {
   uint32_t *s  = (uint32_t*)src;
@@ -539,6 +705,8 @@ inline void mm256_interleave_4x64x( void *dst, void *src0, void *src1,
 }
 
 // Deinterleave 4 buffers of 64 bit data from the source buffer.
+// bit_len must be  256, 512 or 640 bits.
+// Requires overrun padding for 640 bit len.
 inline void mm256_deinterleave_4x64( void *dst0, void *dst1, void *dst2,
                                      void *dst3, const void *src, int bit_len )
 {
@@ -591,8 +759,7 @@ inline void mm256_deinterleave_4x64x( void *dst0, void *dst1, void *dst2,
 
 // Interleave 8 source buffers containing 32 bit data into the destination
 // vector
-// Doesn't work, vecror indexing doesn't work for 32 bit elements 
-inline void mm256_interleave_8x32x( void *dst, const void *src0,
+inline void mm256_interleave_8x32( void *dst, const void *src0,
       const void *src1, const void *src2, const void *src3, const void *src4,
       const void *src5, const void *src6, const void *src7, int bit_len )
 {
@@ -654,9 +821,10 @@ inline void mm256_interleave_8x32x( void *dst, const void *src0,
                              s3[19], s2[19], s1[19], s0[19] );
 }
 
+// probably obsolete with double pack 2x32->64, 4x64->256.
 // Slower but it works with 32 bit data
 // bit_len must be multiple of 32
-inline void mm256_interleave_8x32( uint32_t *dst, uint32_t *src0,
+inline void mm256_interleave_8x32x( uint32_t *dst, uint32_t *src0,
      uint32_t *src1, uint32_t *src2, uint32_t *src3, uint32_t *src4,
      uint32_t *src5, uint32_t *src6, uint32_t *src7, int bit_len )
 {
@@ -675,7 +843,7 @@ inline void mm256_interleave_8x32( uint32_t *dst, uint32_t *src0,
 }
 
 // Deinterleave 8 buffers of 32 bit data from the source buffer.
-inline void mm256_deinterleave_8x32x( void *dst0, void *dst1, void *dst2,
+inline void mm256_deinterleave_8x32( void *dst0, void *dst1, void *dst2,
               void *dst3, void *dst4, void *dst5, void *dst6, void *dst7,
               const void *src, int bit_len )
 {
@@ -758,7 +926,7 @@ inline void mm256_deinterleave_8x32x( void *dst0, void *dst1, void *dst2,
 
 // Deinterleave 8 arrays into indivdual buffers for scalar processing
 // bit_len must be multiple of 32
-inline void mm256_deinterleave_8x32( uint32_t *dst0, uint32_t *dst1,
+inline void mm256_deinterleave_8x32x( uint32_t *dst0, uint32_t *dst1,
                 uint32_t *dst2,uint32_t *dst3, uint32_t *dst4, uint32_t *dst5,
                 uint32_t *dst6,uint32_t *dst7,uint32_t *src, int bit_len )
 {
@@ -776,6 +944,7 @@ inline void mm256_deinterleave_8x32( uint32_t *dst0, uint32_t *dst1,
   }
 }
 
+// likely of no use.
 // convert 4x32 byte (128 bit) vectors to 4x64 (256 bit) vectors for AVX2
 // bit_len must be multiple of 64
 inline void mm256_reinterleave_4x64( uint64_t *dst, uint32_t *src,

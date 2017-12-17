@@ -164,9 +164,14 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.7.7
+
+Fixed regression caused by 64 CPU support.
+Fixed lyra2h.
+
 v3.7.6
 
-Added kyra2h algo for Hppcoin.
+Added lyra2h algo for Hppcoin.
 Added support for more than 64 CPUs.
 Optimized shavite512 with AES, improves x11 etc.
 
