@@ -96,13 +96,16 @@ algoritms for CPUs with AVX and AVX2, Sandybridge and Haswell respectively.
 Older CPUs are supported by cpuminer-multi by TPruvot but at reduced
 performance.
 
+ARM CPUs are not supported.
+
 2. 64 bit Linux OS. Ubuntu and Fedora based distributions, including Mint and
 Centos are known to work and have all dependencies in their repositories.
 Others may work but may require more effort.
 64 bit Windows OS is supported with mingw_w64 and msys or pre-built binaries.
 
-3. Stratum pool, cpuminer-opt only supports stratum minning. Some algos
-may work wallet mining but there are no guarantees.
+MacOS, OSx is not supported.
+
+3. Stratum pool. Some algos may work wallet mining using getwork.
 
 Errata
 ------

@@ -849,9 +849,9 @@ blake32_4way_init( blake_4way_small_context *sc, const sph_u32 *iv,
 {
         int i;
         for ( i = 0; i < 8; i++ )
-           sc->H[i] = _mm_set_epi32( iv[i], iv[i], iv[i], iv[i] );
+           sc->H[i] = _mm_set1_epi32( iv[i] );
         for ( i = 0; i < 4; i++ )
-           sc->S[i] = _mm_set_epi32( salt[i], salt[i], salt[i], salt[i] );
+           sc->S[i] = _mm_set1_epi32( salt[i] );
 	sc->T0 = sc->T1 = 0;
 	sc->ptr = 0;
 }
@@ -941,10 +941,9 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
 //       memset_zero_128( u.buf + (ptr>>2) + 1, (48 - ptr) >> 2 );
        if (out_size_w32 == 8)
            u.buf[52>>2] = _mm_or_si128( u.buf[52>>2],
-                                    _mm_set_epi32( 0x010000000, 0x01000000,
-                                                   0x010000000, 0x01000000 ) );
-       *(u.buf+(56>>2)) = mm_byteswap_32( _mm_set_epi32( th, th, th, th ) );
-       *(u.buf+(60>>2)) = mm_byteswap_32( _mm_set_epi32( tl, tl, tl, tl ) );
+                                        _mm_set1_epi32( 0x010000000 ) );
+       *(u.buf+(56>>2)) = mm_byteswap_32( _mm_set1_epi32( th ) );
+       *(u.buf+(60>>2)) = mm_byteswap_32( _mm_set1_epi32( tl ) );
        blake32_4way( sc, u.buf + (ptr>>2), 64 - ptr );
    }
    else
@@ -955,10 +954,9 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
 	sc->T1 = SPH_C32(0xFFFFFFFF);
 	memset_zero_128( u.buf, 56>>2 );
        if (out_size_w32 == 8)
-           u.buf[52>>2] = _mm_set_epi32( 0x010000000, 0x01000000,
-                                         0x010000000, 0x01000000 );
-        *(u.buf+(56>>2)) = mm_byteswap_32( _mm_set_epi32( th, th, th, th ) );
-        *(u.buf+(60>>2)) = mm_byteswap_32( _mm_set_epi32( tl, tl, tl, tl ) );
+           u.buf[52>>2] = _mm_set1_epi32( 0x010000000 );
+        *(u.buf+(56>>2)) = mm_byteswap_32( _mm_set1_epi32( th ) );
+        *(u.buf+(60>>2)) = mm_byteswap_32( _mm_set1_epi32( tl ) );
 	blake32_4way( sc, u.buf, 64 );
    }
    out = (__m128i*)dst;

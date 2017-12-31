@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "x13sm3-gate.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -49,7 +49,7 @@ typedef struct {
 
 hsr_ctx_holder hsr_ctx;
 
-void init_hsr_ctx()
+void init_x13sm3_ctx()
 {
 #ifdef NO_AES_NI
         sph_groestl512_init(&hsr_ctx.groestl);
@@ -67,7 +67,7 @@ void init_hsr_ctx()
         sph_fugue512_init(&hsr_ctx.fugue);
 };
 
-static void x13sm3hash(void *output, const void *input)
+void x13sm3_hash(void *output, const void *input)
 {
 	unsigned char hash[128] __attribute__ ((aligned (32)));
 
@@ -213,7 +213,7 @@ int scanhash_x13sm3( int thr_id, struct work *work,
 			do {
 				pdata[19] = ++n;
 				be32enc(&endiandata[19], n);
-				x13sm3hash(hash64, endiandata);
+				x13sm3_hash(hash64, endiandata);
 #ifndef DEBUG_ALGO
 				if ((!(hash64[7] & mask)) && fulltest(hash64, ptarget)) {
 					*hashes_done = n - first_nonce + 1;
@@ -239,14 +239,4 @@ int scanhash_x13sm3( int thr_id, struct work *work,
 	pdata[19] = n;
 	return 0;
 }
-
-bool register_x13sm3_algo( algo_gate_t* gate )
-{
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  init_hsr_ctx();
-  gate->scanhash  = (void*)&scanhash_x13sm3;
-  gate->hash      = (void*)&x13sm3hash;
-  gate->get_max64 = (void*)&get_max64_0x3ffff;
-  return true;
-};
 

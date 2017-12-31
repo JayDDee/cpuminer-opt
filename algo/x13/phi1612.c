@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "phi1612-gate.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -33,7 +33,7 @@ phi_ctx_holder phi_ctx;
 static __thread sph_skein512_context phi_skein_mid
                                            __attribute__ ((aligned (64)));
 
-void init_phi_ctx()
+void init_phi1612_ctx()
 {
      sph_skein512_init( &phi_ctx.skein );
      sph_jh512_init( &phi_ctx.jh );
@@ -53,7 +53,7 @@ void phi_skein_midstate( const void* input )
     sph_skein512( &phi_skein_mid, input, 64 );
 }
 
-void phi1612hash(void *output, const void *input)
+void phi1612_hash(void *output, const void *input)
 {
      unsigned char hash[128] __attribute__ ((aligned (64)));
      phi_ctx_holder ctx __attribute__ ((aligned (64)));
@@ -112,7 +112,7 @@ int scanhash_phi1612( int thr_id, struct work *work, uint32_t max_nonce,
 	do {
 		uint32_t hash[8];
 		be32enc(&endiandata[19], nonce);
-		phi1612hash(hash, endiandata);
+		phi1612_hash(hash, endiandata);
 
 		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
 			pdata[19] = nonce;
@@ -128,12 +128,3 @@ int scanhash_phi1612( int thr_id, struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-bool register_phi1612_algo( algo_gate_t* gate )
-{
-    gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-    init_phi_ctx();
-    gate->scanhash = (void*)&scanhash_phi1612;
-    gate->hash     = (void*)&phi1612hash;
-    gate->get_max64 = (void*)&get_max64_0x3ffff;
-    return true;
-}

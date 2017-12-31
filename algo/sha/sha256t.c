@@ -36,15 +36,15 @@ void sha256t_hash(void* output, const void* input,  uint32_t len)
         memcpy( &ctx_sha256, &sha256t_mid, sizeof sha256t_mid );
 
         SHA256_Update( &ctx_sha256, input + midlen, tail );
-        SHA256_Final( hashA, &ctx_sha256 );
+        SHA256_Final( (unsigned char*)hashA, &ctx_sha256 );
 
         memcpy( &ctx_sha256, &sha256t_ctx, sizeof sha256t_ctx );
         SHA256_Update( &ctx_sha256, hashA, 32 );
-        SHA256_Final( hashA, &ctx_sha256 );
+        SHA256_Final( (unsigned char*)hashA, &ctx_sha256 );
 
         memcpy( &ctx_sha256, &sha256t_ctx, sizeof sha256t_ctx );
         SHA256_Update( &ctx_sha256, hashA, 32 );
-        SHA256_Final( hashA, &ctx_sha256 );
+        SHA256_Final( (unsigned char*)hashA, &ctx_sha256 );
 #else
         sph_sha256_context ctx_sha256 __attribute__ ((aligned (64)));
         memcpy( &ctx_sha256, &sha256t_mid, sizeof sha256t_mid );

@@ -267,9 +267,6 @@ c512(sph_shavite_big_context *sc, const void *msg)
 
 #else
 
-/*
- * This function assumes that "msg" is aligned for 32-bit access.
- */
 static void
 c512( sph_shavite_big_context *sc, const void *msg )
 {
@@ -379,36 +376,36 @@ c512( sph_shavite_big_context *sc, const void *msg )
 
       // round 2, 6, 10
 
-      k00 = _mm_xor_si128( k00, mm_rotr256_32( k12, k13, 1 ) );
+      k00 = _mm_xor_si128( k00, mm_rotr256hi_1x32( k12, k13, 1 ) );
       x = _mm_xor_si128( p3, k00 );
       x = _mm_aesenc_si128( x, mm_zero );
 
-      k01 = _mm_xor_si128( k01, mm_rotr256_32( k13, k00, 1 ) );
+      k01 = _mm_xor_si128( k01, mm_rotr256hi_1x32( k13, k00, 1 ) );
       x = _mm_xor_si128( x, k01 );
       x = _mm_aesenc_si128( x, mm_zero );
 
-      k02 = _mm_xor_si128( k02, mm_rotr256_32( k00, k01, 1 ) );
+      k02 = _mm_xor_si128( k02, mm_rotr256hi_1x32( k00, k01, 1 ) );
       x = _mm_xor_si128( x, k02 );
       x = _mm_aesenc_si128( x, mm_zero );
 
-      k03 = _mm_xor_si128( k03, mm_rotr256_32( k01, k02, 1 ) );
+      k03 = _mm_xor_si128( k03, mm_rotr256hi_1x32( k01, k02, 1 ) );
       x = _mm_xor_si128( x, k03 );
       x = _mm_aesenc_si128( x, mm_zero );
 
       p2 = _mm_xor_si128( p2, x );
-      k10 = _mm_xor_si128( k10, mm_rotr256_32( k02, k03, 1 ) );
+      k10 = _mm_xor_si128( k10, mm_rotr256hi_1x32( k02, k03, 1 ) );
       x = _mm_xor_si128( p1, k10 );
       x = _mm_aesenc_si128( x, mm_zero );
 
-      k11 = _mm_xor_si128( k11, mm_rotr256_32( k03, k10, 1 ) );
+      k11 = _mm_xor_si128( k11, mm_rotr256hi_1x32( k03, k10, 1 ) );
       x = _mm_xor_si128( x, k11 );
       x = _mm_aesenc_si128( x, mm_zero );
 
-      k12 = _mm_xor_si128( k12, mm_rotr256_32( k10, k11, 1 ) );
+      k12 = _mm_xor_si128( k12, mm_rotr256hi_1x32( k10, k11, 1 ) );
       x = _mm_xor_si128( x, k12 );
       x = _mm_aesenc_si128( x, mm_zero );
 
-      k13 = _mm_xor_si128( k13, mm_rotr256_32( k11, k12, 1 ) );
+      k13 = _mm_xor_si128( k13, mm_rotr256hi_1x32( k11, k12, 1 ) );
       x = _mm_xor_si128( x, k13 );
       x = _mm_aesenc_si128( x, mm_zero );
       p0 = _mm_xor_si128( p0, x );
@@ -461,36 +458,36 @@ c512( sph_shavite_big_context *sc, const void *msg )
 
       // round 4, 8, 12
 
-      k00 = _mm_xor_si128( k00, mm_rotr256_32( k12, k13, 1 ) );
+      k00 = _mm_xor_si128( k00, mm_rotr256hi_1x32( k12, k13, 1 ) );
 
       x = _mm_xor_si128( p1, k00 );
       x = _mm_aesenc_si128( x, mm_zero );
-      k01 = _mm_xor_si128( k01, mm_rotr256_32( k13, k00, 1 ) );
+      k01 = _mm_xor_si128( k01, mm_rotr256hi_1x32( k13, k00, 1 ) );
 
       x = _mm_xor_si128( x, k01 );
       x = _mm_aesenc_si128( x, mm_zero );
-      k02 = _mm_xor_si128( k02, mm_rotr256_32( k00, k01, 1 ) );
+      k02 = _mm_xor_si128( k02, mm_rotr256hi_1x32( k00, k01, 1 ) );
 
       x = _mm_xor_si128( x, k02 );
       x = _mm_aesenc_si128( x, mm_zero );
-      k03 = _mm_xor_si128( k03, mm_rotr256_32( k01, k02, 1 ) );
+      k03 = _mm_xor_si128( k03, mm_rotr256hi_1x32( k01, k02, 1 ) );
 
       x = _mm_xor_si128( x, k03 );
       x = _mm_aesenc_si128( x, mm_zero );
       p0 = _mm_xor_si128( p0, x );
-      k10 = _mm_xor_si128( k10, mm_rotr256_32( k02, k03, 1 ) );
+      k10 = _mm_xor_si128( k10, mm_rotr256hi_1x32( k02, k03, 1 ) );
 
       x = _mm_xor_si128( p3, k10 );
       x = _mm_aesenc_si128( x, mm_zero );
-      k11 = _mm_xor_si128( k11, mm_rotr256_32( k03, k10, 1 ) );
+      k11 = _mm_xor_si128( k11, mm_rotr256hi_1x32( k03, k10, 1 ) );
 
       x = _mm_xor_si128( x, k11 );
       x = _mm_aesenc_si128( x, mm_zero );
-      k12 = _mm_xor_si128( k12, mm_rotr256_32( k10, k11, 1 ) );
+      k12 = _mm_xor_si128( k12, mm_rotr256hi_1x32( k10, k11, 1 ) );
 
       x = _mm_xor_si128( x, k12 );
       x = _mm_aesenc_si128( x, mm_zero );
-      k13 = _mm_xor_si128( k13, mm_rotr256_32( k11, k12, 1 ) );
+      k13 = _mm_xor_si128( k13, mm_rotr256hi_1x32( k11, k12, 1 ) );
 
       x = _mm_xor_si128( x, k13 );
       x = _mm_aesenc_si128( x, mm_zero );

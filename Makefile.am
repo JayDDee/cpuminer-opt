@@ -79,7 +79,6 @@ cpuminer_SOURCES = \
   algo/heavy/sph_hefty1.c \
   algo/heavy/heavy.c \
   algo/heavy/bastion.c \
-  algo/hmq1725.c \
   algo/hodl/aes.c \
   algo/hodl/hodl-gate.c \
   algo/hodl/hodl-wolf.c \
@@ -110,7 +109,7 @@ cpuminer_SOURCES = \
   algo/lyra2/lyra2z330.c \
   algo/lyra2/lyra2h.c \
   algo/m7m.c \
-  algo/neoscrypt.c \
+  algo/neoscrypt/neoscrypt.c \
   algo/nist5/nist5-gate.c \
   algo/nist5/nist5-4way.c \
   algo/nist5/nist5.c \
@@ -159,16 +158,36 @@ cpuminer_SOURCES = \
   algo/whirlpool/whirlpoolx.c \
   algo/x11/x11-gate.c \
   algo/x11/x11.c \
-  algo/x11/x11evo.c \
+  algo/x11/x11-4way.c \
+  algo/x11/x11gost-gate.c \
   algo/x11/x11gost.c \
+  algo/x11/x11gost-4way.c \
+  algo/x11/c11-gate.c \
   algo/x11/c11.c \
-  algo/x11/phi1612.c \
+  algo/x11/c11-4way.c \
+  algo/x11/x11evo.c \
+  algo/x13/x13-gate.c \
   algo/x13/x13.c \
+  algo/x13/x13-4way.c \
+  algo/x13/x13sm3-gate.c \
   algo/x13/x13sm3.c \
+  algo/x13/x13sm3-4way.c \
+  algo/x13/phi1612-gate.c \
+  algo/x13/phi1612.c \
+  algo/x13/phi1612-4way.c \
+  algo/x14/x14-gate.c \
   algo/x14/x14.c \
+  algo/x14/x14-4way.c \
+  algo/x15/x15-gate.c \
   algo/x15/x15.c \
+  algo/x15/x15-4way.c \
+  algo/x17/x17-gate.c \
   algo/x17/x17.c \
-  algo/xevan.c \
+  algo/x17/x17-4way.c \
+  algo/x17/xevan-gate.c \
+  algo/x17/xevan.c \
+  algo/x17/xevan-4way.c \
+  algo/x17/hmq1725.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/sha256_Y.c\
   algo/yescrypt/yescrypt-simd.c\

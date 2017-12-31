@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "x13-gate.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -68,7 +68,7 @@ void init_x13_ctx()
         sph_fugue512_init( &x13_ctx.fugue );
 };
 
-static void x13hash(void *output, const void *input)
+void x13hash(void *output, const void *input)
 {
 	unsigned char hash[128] __attribute__ ((aligned (32)));
 	#define hashB hash+64
@@ -249,15 +249,3 @@ int scanhash_x13(int thr_id, struct work *work, uint32_t max_nonce,
   pdata[19] = n;
   return 0;
 }
-
-
-bool register_x13_algo( algo_gate_t* gate )
-{
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  init_x13_ctx();
-  gate->scanhash = (void*)&scanhash_x13;
-  gate->hash     = (void*)&x13hash;
-  gate->get_max64 = (void*)&get_max64_0x3ffff;
-  return true;
-};
-

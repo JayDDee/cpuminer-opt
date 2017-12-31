@@ -27,8 +27,9 @@ Compile Instructions
 
 Requirements:
 
-Intel Core2 or newer, or AMD Steamroller or newer CPU.
-64 bit Linux or Windows operating system.
+Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
+supported.
+64 bit Linux or Windows operating system. Apple is not supported.
 
 Building on linux prerequisites:
 
@@ -164,6 +165,10 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.7.8
+
+Partial 4way optimization for most X algos including c11, xevan, phi, hsr
+
 v3.7.7
 
 Fixed regression caused by 64 CPU support.
@@ -182,7 +187,7 @@ New algo keccakc for Creative coin with 4way optimizations
 Rewrote some AVX/AVX2 code for more consistent implementation and some
 optimizing.
 
-Enhanced capabilities check to support 4way, mor eprecise reporting of
+Enhanced capabilities check to support 4way, more precise reporting of
 features (not all algos use SSE2), and better error messages when using
 an incompatible pre-built version (Windows users).
 

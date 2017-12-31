@@ -4,11 +4,13 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
-#if defined(FOUR_WAY) && defined(__AVX2__) && !defined(NO_AES_NI)
+#if defined(HASH_4WAY) && defined(__AES__)
   #define TRIBUS_4WAY
 #endif
 
 #if defined(TRIBUS_4WAY)
+
+//void init_tribus_4way_ctx();
 
 void tribus_hash_4way( void *state, const void *input );
 

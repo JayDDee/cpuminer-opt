@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "x17-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -86,7 +86,7 @@ void init_x17_ctx()
         sph_haval256_5_init(&x17_ctx.haval);
 };
 
-static void x17hash(void *output, const void *input)
+void x17_hash(void *output, const void *input)
 {
 	unsigned char hash[128] __attribute__ ((aligned (64)));
 	#define hashB hash+64
@@ -248,7 +248,7 @@ int scanhash_x17(int thr_id, struct work *work,
 			do {
 				pdata[19] = ++n;
 				be32enc(&endiandata[19], n);
-				x17hash(hash64, endiandata);
+				x17_hash(hash64, endiandata);
 #ifndef DEBUG_ALGO
 				if (!(hash64[7] & mask))
                                 {
@@ -281,7 +281,7 @@ int scanhash_x17(int thr_id, struct work *work,
 	pdata[19] = n;
 	return 0;
 }
-
+/*
 bool register_x17_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
@@ -290,4 +290,4 @@ bool register_x17_algo( algo_gate_t* gate )
   gate->hash     = (void*)&x17hash;
   return true;
 };
-
+*/

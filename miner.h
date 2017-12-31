@@ -358,8 +358,8 @@ struct work {
 	char *job_id;
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
-        uint32_t nonces[4];
-        bool     nfound[4];
+        uint32_t nonces[8];
+        bool     nfound[8];
 };
 
 struct stratum_job {

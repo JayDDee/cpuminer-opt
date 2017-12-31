@@ -10,8 +10,14 @@
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 
+//hashState_echo tribus_4way_ctx __attribute__ ((aligned (64)));
 static __thread jh512_4way_context ctx_mid;
-
+/*
+void init_tribus_4way_ctx()
+{
+     init_echo( &tribus_4way_ctx, 512 );
+}
+*/
 void tribus_hash_4way(void *state, const void *input)
 {
      uint64_t hash0[8] __attribute__ ((aligned (64)));

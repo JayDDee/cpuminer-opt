@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "x11gost-gate.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -37,28 +37,28 @@ typedef struct {
      hashState_echo          echo;
      hashState_groestl       groestl;
 #endif
-} sib_ctx_holder;
+} x11gost_ctx_holder;
 
-sib_ctx_holder sib_ctx;
+x11gost_ctx_holder x11gost_ctx;
 
-void init_sib_ctx()
+void init_x11gost_ctx()
 {
-     sph_gost512_init(&sib_ctx.gost);
-     sph_shavite512_init(&sib_ctx.shavite);
-     init_luffa( &sib_ctx.luffa, 512 );
-     cubehashInit( &sib_ctx.cube, 512, 16, 32 );
-     init_sd( &sib_ctx.simd, 512 );
+     sph_gost512_init( &x11gost_ctx.gost );
+     sph_shavite512_init( &x11gost_ctx.shavite );
+     init_luffa( &x11gost_ctx.luffa, 512 );
+     cubehashInit( &x11gost_ctx.cube, 512, 16, 32 );
+     init_sd( &x11gost_ctx.simd, 512 );
 #ifdef NO_AES_NI
-     sph_groestl512_init( &sib_ctx.groestl );
-     sph_echo512_init( &sib_ctx.echo );
+     sph_groestl512_init( &x11gost_ctx.groestl );
+     sph_echo512_init( &x11gost_ctx.echo );
 #else
-     init_echo( &sib_ctx.echo, 512 );
-     init_groestl( &sib_ctx.groestl, 64 );
+     init_echo( &x11gost_ctx.echo, 512 );
+     init_groestl( &x11gost_ctx.groestl, 64 );
 #endif
 
 }
 
-void sibhash(void *output, const void *input)
+void x11gost_hash(void *output, const void *input)
 {
      unsigned char hash[128] __attribute__ ((aligned (64)));
      #define hashA hash
@@ -69,8 +69,8 @@ void sibhash(void *output, const void *input)
      sph_u64 hashctA;
      sph_u64 hashctB;
 
-     sib_ctx_holder ctx __attribute__ ((aligned (64)));
-     memcpy( &ctx, &sib_ctx, sizeof(sib_ctx) );
+     x11gost_ctx_holder ctx __attribute__ ((aligned (64)));
+     memcpy( &ctx, &x11gost_ctx, sizeof(x11gost_ctx) );
 
      DECL_BLK;
      BLK_I;
@@ -135,8 +135,8 @@ void sibhash(void *output, const void *input)
      memcpy(output, hashA, 32);
 }
 
-int scanhash_sib(int thr_id, struct work *work,
-	uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_x11gost( int thr_id, struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done)
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
@@ -156,7 +156,7 @@ int scanhash_sib(int thr_id, struct work *work,
 	do {
 		uint32_t hash[8];
 		be32enc(&endiandata[19], nonce);
-		sibhash(hash, endiandata);
+		x11gost_hash(hash, endiandata);
 
 		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
 			pdata[19] = nonce;
@@ -172,12 +172,3 @@ int scanhash_sib(int thr_id, struct work *work,
 	return 0;
 }
 
-bool register_sib_algo( algo_gate_t* gate )
-{
-    gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-    init_sib_ctx();
-    gate->scanhash = (void*)&scanhash_sib;
-    gate->hash     = (void*)&sibhash;
-    gate->get_max64 = (void*)&get_max64_0x3ffff;
-    return true;
-}

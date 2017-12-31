@@ -3345,8 +3345,10 @@ do { \
 #define READ_STATE     MUL8(READ_STATE_W)
 #define ROUND0         MUL8(ROUND0_W)
 #define UPDATE_STATE   MUL8(UPDATE_STATE_W)
-#define BYTE(x, n) \
-   _mm256_and_si256( _mm256_srli_epi64( x, n<<3 ), _mm256_set1_epi64x( 0xFF ) )
+//#define BYTE(x, n) \
+//   _mm256_and_si256( _mm256_srli_epi64( x, n<<3 ), _mm256_set1_epi64x( 0xFF ) )
+#define BYTE(x, n)     ((unsigned)((x) >> (8 * (n))) & 0xFF)
+
 
 // A very complex, but structured, expression with a mix of scalar
 // and vector operations to retrieve specific 64 bit constants from
@@ -3357,23 +3359,51 @@ do { \
 // Extract 64 bit vector elements from "in" representing offsets. Unmask the
 // low byte of each and scale for use as vector indexes.
 // Pack the data in a vector and return it.
+
+/*
 #define t_row( inv, row ) \
    _mm256_and_si256( \
         _mm256_srli_epi64( inv, row << 3 ), _mm256_set1_epi64x( 0xFF ) )
-
-// Extract vector element from "lane" of vector "in[row]" and use it to index
-// scalar array of constants "table" and return referenced 64 bit entry.
-#define t_lane( table, inv, row, lane ) \
-   table[ _mm256_extract_epi64( t_row( inv, row ), lane ) ]
-//   table[ t_rwo( inv, row )[ lane ] ];
-
+*/
 
 // Build a vector from elements of non-contiguous 64 bit data extracted from
 // scalar "table".
+// reference scalar version 1480 kH/s
+/*
+// version 1, extract with gather
+// 955 kH/s
+#define t_lane( inv, row, lane ) \
+    BYTE( _mm256_extract_epi64( inv, lane ), row ) \
+
+
 #define t_vec( table, inv, row ) \
-    _mm256_set_epi64x( t_lane( table, inv, row, 3 ), \
-                t_lane( table, inv, row, 2 ), t_lane( table, inv, row, 1 ), \
-                t_lane( table, inv, row, 0 ) )
+   _mm256_i32gather_epi64( table, _mm_set_epi32( t_lane( inv, row, 3 ), \
+                              t_lane( inv, row, 2 ), t_lane( inv, row, 1 ), \
+                              t_lane( inv, row, 0) ), 1 )
+*/
+/*
+// version 2, extract with set
+// 1100 kH/s 
+#define t_lane( table, inv, row, lane ) \
+   table[ BYTE( _mm256_extract_epi64( inv, lane ), row ) ] \
+
+#define t_vec( table, inv, row ) \
+   _mm256_set_epi64x( t_lane( table, inv, row, 3 ), \
+                 t_lane( table, inv, row, 2 ), t_lane( table, inv, row, 1 ), \
+                 t_lane( table, inv, row, 0 ) )
+*/
+
+// version 3, vector indexing with set
+// 1105 kH/s
+#define t_lane( table, inv, row, lane ) \
+   table[ BYTE( inv[ lane ], row ) ] \
+
+#define t_vec( table, inv, row ) \
+   _mm256_set_epi64x( t_lane( table, inv, row, 3 ), \
+                 t_lane( table, inv, row, 2 ), t_lane( table, inv, row, 1 ), \
+                 t_lane( table, inv, row, 0 ) )
+
+
  
 #if SPH_SMALL_FOOTPRINT_WHIRLPOOL
 

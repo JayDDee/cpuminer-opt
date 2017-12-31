@@ -4,6 +4,7 @@ bool register_whirlpool_algo( algo_gate_t* gate )
 {
 #if defined (WHIRLPOOL_4WAY)
   four_way_not_tested();
+  gate->optimizations = FOUR_WAY_OPT;
   gate->scanhash  = (void*)&scanhash_whirlpool_4way;
   gate->hash      = (void*)&whirlpool_hash_4way;
 #else

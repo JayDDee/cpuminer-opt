@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "xevan-gate.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -285,20 +285,4 @@ int scanhash_xevan(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
-
-void xevan_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
-}
-
-bool register_xevan_algo( algo_gate_t* gate )
-{
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  init_xevan_ctx();
-  gate->scanhash   = (void*)&scanhash_xevan;
-  gate->hash       = (void*)&xevan_hash;
-  gate->set_target = (void*)&xevan_set_target;
-  gate->get_max64  = (void*)&get_max64_0xffffLL;
-  return true;
-};
 

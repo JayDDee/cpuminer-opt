@@ -4,9 +4,11 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
+/*
 #if defined(FOUR_WAY) && defined(__AVX2__)
   #define WHIRLPOOL_4WAY
 #endif
+*/
 
 #if defined (WHIRLPOOL_4WAY) 
 
