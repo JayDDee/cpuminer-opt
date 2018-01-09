@@ -96,33 +96,17 @@ extern "C"{
 do { \
    __m256i cc = _mm256_set_epi64x( c, c, c, c ); \
     x3 = mm256_not( x3 ); \
-    x0 = _mm256_xor_si256( x0, _mm256_and_si256( cc, mm256_not( x2 ) ) ); \
+    x0 = _mm256_xor_si256( x0, _mm256_andnot_si256( x2, cc ) ); \
     tmp = _mm256_xor_si256( cc, _mm256_and_si256( x0, x1 ) ); \
     x0 = _mm256_xor_si256( x0, _mm256_and_si256( x2, x3 ) ); \
-    x3 = _mm256_xor_si256( x3, _mm256_and_si256( mm256_not( x1 ), x2 ) ); \
+    x3 = _mm256_xor_si256( x3, _mm256_andnot_si256( x1, x2 ) ); \
     x1 = _mm256_xor_si256( x1, _mm256_and_si256( x0, x2 ) ); \
-    x2 = _mm256_xor_si256( x2, _mm256_and_si256( x0, mm256_not( x3 ) ) ); \
+    x2 = _mm256_xor_si256( x2, _mm256_andnot_si256( x3, x0 ) ); \
     x0 = _mm256_xor_si256( x0, _mm256_or_si256( x1, x3 ) ); \
     x3 = _mm256_xor_si256( x3, _mm256_and_si256( x1, x2 ) ); \
     x1 = _mm256_xor_si256( x1, _mm256_and_si256( tmp, x0 ) ); \
     x2 = _mm256_xor_si256( x2, tmp ); \
 } while (0)
-
-/*
-#define Sb(x0, x1, x2, x3, c)   do { \
-		x3 = ~x3; \
-		x0 ^= (c) & ~x2; \
-		tmp = (c) ^ (x0 & x1); \
-		x0 ^= x2 & x3; \
-		x3 ^= ~x1 & x2; \
-		x1 ^= x0 & x2; \
-		x2 ^= x0 & ~x3; \
-		x0 ^= x1 | x3; \
-		x3 ^= x1 & x2; \
-		x1 ^= tmp & x0; \
-		x2 ^= tmp; \
-	} while (0)
-*/
 
 #define Lb(x0, x1, x2, x3, x4, x5, x6, x7) \
 do { \
@@ -135,20 +119,6 @@ do { \
     x2 = _mm256_xor_si256( x2, _mm256_xor_si256( x7, x4 ) ); \
     x3 = _mm256_xor_si256( x3, x4 ); \
 } while (0)
-
-
-/*
-#define Lb(x0, x1, x2, x3, x4, x5, x6, x7)   do { \
-		x4 ^= x1; \
-		x5 ^= x2; \
-		x6 ^= x3 ^ x0; \
-		x7 ^= x0; \
-		x0 ^= x5; \
-		x1 ^= x6; \
-		x2 ^= x7 ^ x4; \
-		x3 ^= x4; \
-	} while (0)
-*/
 
 #if SPH_JH_64
 

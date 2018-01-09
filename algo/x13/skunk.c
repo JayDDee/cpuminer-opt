@@ -1,10 +1,8 @@
-#include "algo-gate-api.h"
-
+#include "skunk-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
 #include "algo/gost/sph_gost.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/fugue/sph_fugue.h"
@@ -89,13 +87,4 @@ bool skunk_thread_init()
    sph_fugue512_init( &skunk_ctx.fugue );
    sph_gost512_init( &skunk_ctx.gost );
    return true;
-}
-
-bool register_skunk_algo( algo_gate_t* gate )
-{
-    gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-    gate->miner_thread_init = (void*)&skunk_thread_init;
-    gate->scanhash = (void*)&scanhash_skunk;
-    gate->hash     = (void*)&skunkhash;
-    return true;
 }

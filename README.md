@@ -68,7 +68,7 @@ Supported Algorithms
                           timetravel10 Bitcore
                           tribus       Denarius (DNR)
                           vanilla      blake256r8vnl (VCash)
-                          veltor
+                          veltor       (VLT)
                           whirlpool
                           whirlpoolx
                           x11          Dash
@@ -81,6 +81,7 @@ Supported Algorithms
                           x17
                           xevan        Bitsend
                           yescrypt     Globalboost-Y (BSTY)
+                          yescryptr8   BitZeny (ZNY)\n\
                           yescryptr16  Yenten (YTN)
                           zr5          Ziftr
 

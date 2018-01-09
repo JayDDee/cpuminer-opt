@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "algo/blake/blake-hash-4way.h"
-#include "algo/bmw/sph_bmw.h"
+#include "algo/bmw/bmw-hash-4way.h"
 #include "algo/groestl/aes_ni/hash-groestl.h"
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/jh/jh-hash-4way.h"
@@ -17,17 +17,16 @@
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/sse2/nist.h"
 #include "algo/echo/aes_ni/hash_api.h"
-#include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
-#include "algo/shabal/sph_shabal.h"
+#include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/sph-haval.h"
 #include <openssl/sha.h>
 
 typedef struct {
     blake512_4way_context   blake;
-    sph_bmw512_context      bmw;
+    bmw512_4way_context     bmw;
     hashState_groestl       groestl;
     skein512_4way_context   skein;
     jh512_4way_context      jh;
@@ -39,7 +38,7 @@ typedef struct {
     hashState_echo          echo;
     sph_hamsi512_context    hamsi;
     sph_fugue512_context    fugue;
-    sph_shabal512_context   shabal;
+    shabal512_4way_context  shabal;
     sph_whirlpool_context   whirlpool;
     SHA512_CTX              sha512;
     sph_haval256_5_context  haval;
@@ -50,7 +49,7 @@ x17_4way_ctx_holder x17_4way_ctx __attribute__ ((aligned (64)));
 void init_x17_4way_ctx()
 {
      blake512_4way_init( &x17_4way_ctx.blake );
-     sph_bmw512_init( &x17_4way_ctx.bmw );
+     bmw512_4way_init( &x17_4way_ctx.bmw );
      init_groestl( &x17_4way_ctx.groestl, 64 );
      skein512_4way_init( &x17_4way_ctx.skein );
      jh512_4way_init( &x17_4way_ctx.jh );
@@ -62,8 +61,7 @@ void init_x17_4way_ctx()
      init_echo( &x17_4way_ctx.echo, 512 );
      sph_hamsi512_init( &x17_4way_ctx.hamsi );
      sph_fugue512_init( &x17_4way_ctx.fugue );
-     sph_shabal512_init( &x17_4way_ctx.shabal );
-     sph_whirlpool_init( &x17_4way_ctx.whirlpool );
+     shabal512_4way_init( &x17_4way_ctx.shabal );
      SHA512_Init( &x17_4way_ctx.sha512 );
      sph_haval256_5_init( &x17_4way_ctx.haval );
 };
@@ -82,21 +80,12 @@ void x17_4way_hash( void *state, const void *input )
      blake512_4way( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
+     // 2 Bmw
+     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_close( &ctx.bmw, vhash );
+
      // Serial
      mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
-
-     // 2 Bmw
-     sph_bmw512( &ctx.bmw, hash0, 64 );
-     sph_bmw512_close( &ctx.bmw, hash0 );
-     memcpy( &ctx.bmw, &x17_4way_ctx.bmw, sizeof(sph_bmw512_context) );
-     sph_bmw512( &ctx.bmw, hash1, 64 );
-     sph_bmw512_close( &ctx.bmw, hash1 );
-     memcpy( &ctx.bmw, &x17_4way_ctx.bmw, sizeof(sph_bmw512_context) );
-     sph_bmw512( &ctx.bmw, hash2, 64 );
-     sph_bmw512_close( &ctx.bmw, hash2 );
-     memcpy( &ctx.bmw, &x17_4way_ctx.bmw, sizeof(sph_bmw512_context) );
-     sph_bmw512( &ctx.bmw, hash3, 64 );
-     sph_bmw512_close( &ctx.bmw, hash3 );
 
      // 3 Groestl
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -215,18 +204,11 @@ void x17_4way_hash( void *state, const void *input )
      sph_fugue512( &ctx.fugue, hash3, 64 );
      sph_fugue512_close( &ctx.fugue, hash3 );
 
-     // 14 Shabal
-     sph_shabal512( &ctx.shabal, hash0, 64 );
-     sph_shabal512_close( &ctx.shabal, hash0 );
-     memcpy( &ctx.shabal, &x17_4way_ctx.shabal, sizeof(sph_shabal512_context) );
-     sph_shabal512( &ctx.shabal, hash1, 64 );
-     sph_shabal512_close( &ctx.shabal, hash1 );
-     memcpy( &ctx.shabal, &x17_4way_ctx.shabal, sizeof(sph_shabal512_context) );
-     sph_shabal512( &ctx.shabal, hash2, 64 );
-     sph_shabal512_close( &ctx.shabal, hash2 );
-     memcpy( &ctx.shabal, &x17_4way_ctx.shabal, sizeof(sph_shabal512_context) );
-     sph_shabal512( &ctx.shabal, hash3, 64 );
-     sph_shabal512_close( &ctx.shabal, hash3 );
+     // 14 Shabal, parallel 32 bit
+     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     shabal512_4way( &ctx.shabal, vhash, 64 );
+     shabal512_4way_close( &ctx.shabal, vhash );
+     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
        
      // 15 Whirlpool
      sph_whirlpool( &ctx.whirlpool, hash0, 64 );

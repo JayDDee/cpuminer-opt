@@ -36,7 +36,6 @@
 #include <string.h>
 #include <limits.h>
 
-//#include "sph_blake.h"
 #include "blake-hash-4way.h"
 
 #ifdef __cplusplus
@@ -98,18 +97,6 @@ static const unsigned sigma[16][16] = {
 	{  2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9 }
 };
 
-/*
-  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
- 14 10  4  8  9 15 13  6  1 12  0  2 11  7  5  3
- 11  8 12  0  5  2 15 13 10 14  3  6  7  1  9  4
-  7  9  3  1 13 12 11 14  2  6  5 10  4  0 15  8
-  9  0  5  7  2  4 10 15 14  1 11 12  6  8  3 13
-  2 12  6 10  0 11  8  3  4 13  7  5 15 14  1  9
- 12  5  1 15 14 13  4 10  0  7  6  3  9  2  8 11
- 13 11  7 14 12  1  3  9  5  0 15  4  8  6  2 10
-  6 15 14  9 11  3  0  8 12  2 13  7  1  4 10  5
- 10  2  8  4  7  6  1  5 15 11  9 14  3 12 13  0
-*/
 #endif
 
 #define Z00   0
@@ -914,34 +901,29 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
 
    ptr = sc->ptr;
    bit_len = ((unsigned)ptr << 3);
-//   unsigned z = 0x80 >> n;
-//   unsigned zz = ((ub & -z) | z) & 0xFF;
-//   u.buf[ptr>>2] = _mm_set_epi32( zz, zz, zz, zz );
    u.buf[ptr>>2] = _mm_set1_epi32( 0x80 );
    tl = sc->T0 + bit_len;
    th = sc->T1;
 
    if ( ptr == 0 )
    {
-	sc->T0 = SPH_C32(0xFFFFFE00);
-	sc->T1 = SPH_C32(0xFFFFFFFF);
+	sc->T0 = SPH_C32(0xFFFFFE00UL);
+	sc->T1 = SPH_C32(0xFFFFFFFFUL);
    }
    else if ( sc->T0 == 0 )
    {
-	sc->T0 = SPH_C32(0xFFFFFE00) + bit_len;
+	sc->T0 = SPH_C32(0xFFFFFE00UL) + bit_len;
 	sc->T1 = SPH_T32(sc->T1 - 1);
    } 
    else
 	sc->T0 -= 512 - bit_len;
 
-//   if ( ptr <= 48 )
    if ( ptr <= 52 )
    {
        memset_zero_128( u.buf + (ptr>>2) + 1, (52 - ptr) >> 2 );
-//       memset_zero_128( u.buf + (ptr>>2) + 1, (48 - ptr) >> 2 );
        if (out_size_w32 == 8)
            u.buf[52>>2] = _mm_or_si128( u.buf[52>>2],
-                                        _mm_set1_epi32( 0x010000000 ) );
+                                        _mm_set1_epi32( 0x01000000UL ) );
        *(u.buf+(56>>2)) = mm_byteswap_32( _mm_set1_epi32( th ) );
        *(u.buf+(60>>2)) = mm_byteswap_32( _mm_set1_epi32( tl ) );
        blake32_4way( sc, u.buf + (ptr>>2), 64 - ptr );
@@ -950,11 +932,11 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
    {
 	memset_zero_128( u.buf + (ptr>>2) + 1, (60-ptr) >> 2 );
 	blake32_4way( sc, u.buf + (ptr>>2), 64 - ptr );
-	sc->T0 = SPH_C32(0xFFFFFE00);
-	sc->T1 = SPH_C32(0xFFFFFFFF);
+	sc->T0 = SPH_C32(0xFFFFFE00UL);
+	sc->T1 = SPH_C32(0xFFFFFFFFUL);
 	memset_zero_128( u.buf, 56>>2 );
        if (out_size_w32 == 8)
-           u.buf[52>>2] = _mm_set1_epi32( 0x010000000 );
+           u.buf[52>>2] = _mm_set1_epi32( 0x01000000UL );
         *(u.buf+(56>>2)) = mm_byteswap_32( _mm_set1_epi32( th ) );
         *(u.buf+(60>>2)) = mm_byteswap_32( _mm_set1_epi32( tl ) );
 	blake32_4way( sc, u.buf, 64 );
@@ -962,7 +944,6 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
    out = (__m128i*)dst;
    for ( k = 0; k < out_size_w32; k++ )
         out[k] = mm_byteswap_32( sc->H[k] );
-//        out[k] =  sc->H[k];
 }
 
 #if defined (__AVX2__)
@@ -975,9 +956,9 @@ blake64_4way_init( blake_4way_big_context *sc, const sph_u64 *iv,
 {
         int i;
         for ( i = 0; i < 8; i++ )
-           sc->H[i] = _mm256_set_epi64x( iv[i], iv[i], iv[i], iv[i] );
+           sc->H[i] = _mm256_set1_epi64x( iv[i] );
         for ( i = 0; i < 4; i++ )
-           sc->S[i] = _mm256_set_epi64x( salt[i], salt[i], salt[i], salt[i] );
+           sc->S[i] = _mm256_set1_epi64x( salt[i] );
         sc->T0 = sc->T1 = 0;
         sc->ptr = 0;
 }
@@ -1049,12 +1030,12 @@ blake64_4way_close( blake_4way_big_context *sc,
    th = sc->T1;
    if (ptr == 0 )
    {
-	sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00);
-	sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFF);
+	sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL);
+	sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFFULL);
    }
    else if ( sc->T0 == 0 )
    {
-	sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00) + bit_len;
+	sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL) + bit_len;
 	sc->T1 = SPH_T64(sc->T1 - 1);
    } 
    else
@@ -1066,10 +1047,7 @@ blake64_4way_close( blake_4way_big_context *sc,
        memset_zero_256( u.buf + (ptr>>3) + 1, (104-ptr) >> 3 );
        if ( out_size_w64 == 8 )
           u.buf[(104>>3)] = _mm256_or_si256( u.buf[(104>>3)],
-                                    _mm256_set_epi64x( 0x0100000000000000,
-                                                       0x0100000000000000,
-                                                       0x0100000000000000,
-                                                       0x0100000000000000 ) );
+                                 _mm256_set1_epi64x( 0x0100000000000000ULL ) );
        *(u.buf+(112>>3)) = mm256_byteswap_64(
                                     _mm256_set_epi64x( th, th, th, th ) );
        *(u.buf+(120>>3)) = mm256_byteswap_64(
@@ -1082,15 +1060,11 @@ blake64_4way_close( blake_4way_big_context *sc,
        memset_zero_256( u.buf + (ptr>>3) + 1, (120 - ptr) >> 3 );
 
        blake64_4way( sc, u.buf + (ptr>>3), 128 - ptr );
-       sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00);
-       sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFF);
+       sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL);
+       sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFFULL);
        memset_zero_256( u.buf, 112>>3 ); 
        if ( out_size_w64 == 8 )
-           u.buf[104>>3] = _mm256_set_epi64x( 0x0100000000000000,
-                                              0x0100000000000000,
-                                              0x0100000000000000,
-                                              0x0100000000000000 );
-
+           u.buf[104>>3] = _mm256_set1_epi64x( 0x0100000000000000ULL );
        *(u.buf+(112>>3)) = mm256_byteswap_64(
                                     _mm256_set_epi64x( th, th, th, th ) );
        *(u.buf+(120>>3)) = mm256_byteswap_64(

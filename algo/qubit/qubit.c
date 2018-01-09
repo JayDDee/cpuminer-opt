@@ -1,23 +1,16 @@
 #include "algo-gate-api.h"
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
-#include "algo/luffa/sph_luffa.h"
-#include "algo/cubehash/sph_cubehash.h"
-#include "algo/shavite/sph_shavite.h"
-#include "algo/simd/sph_simd.h"
-#include "algo/echo/sph_echo.h"
-
 #include "algo/luffa/sse2/luffa_for_sse2.h" 
 #include "algo/cubehash/sse2/cubehash_sse2.h" 
 #include "algo/simd/sse2/nist.h"
 #include "algo/shavite/sph_shavite.h"
-
 #ifndef NO_AES_NI
 #include "algo/echo/aes_ni/hash_api.h"
+#else
+#include "algo/echo/sph_echo.h"
 #endif
 
 typedef struct

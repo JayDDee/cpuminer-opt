@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "algo/blake/blake-hash-4way.h"
-#include "algo/bmw/sph_bmw.h"
+#include "algo/bmw/bmw-hash-4way.h"
 #include "algo/groestl/aes_ni/hash-groestl.h"
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/jh/jh-hash-4way.h"
@@ -23,7 +23,7 @@
 
 typedef struct {
     blake512_4way_context   blake;
-    sph_bmw512_context      bmw;
+    bmw512_4way_context     bmw;
     hashState_groestl       groestl;
     skein512_4way_context   skein;
     jh512_4way_context      jh;
@@ -44,7 +44,7 @@ static __thread blake512_4way_context x13sm3_ctx_mid;
 void init_x13sm3_4way_ctx()
 {
      blake512_4way_init( &x13sm3_4way_ctx.blake );
-     sph_bmw512_init( &x13sm3_4way_ctx.bmw );
+     bmw512_4way_init( &x13sm3_4way_ctx.bmw );
      init_groestl( &x13sm3_4way_ctx.groestl, 64 );
      skein512_4way_init( &x13sm3_4way_ctx.skein );
      jh512_4way_init( &x13sm3_4way_ctx.jh );
@@ -76,21 +76,12 @@ void x13sm3_4way_hash( void *state, const void *input )
 //     blake512_4way( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
+     // Bmw
+     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_close( &ctx.bmw, vhash );
+
      // Serial
      mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
-
-     // Bmw
-     sph_bmw512( &ctx.bmw, hash0, 64 );
-     sph_bmw512_close( &ctx.bmw, hash0 );
-     memcpy( &ctx.bmw, &x13sm3_4way_ctx.bmw, sizeof(sph_bmw512_context) );
-     sph_bmw512( &ctx.bmw, hash1, 64 );
-     sph_bmw512_close( &ctx.bmw, hash1 );
-     memcpy( &ctx.bmw, &x13sm3_4way_ctx.bmw, sizeof(sph_bmw512_context) );
-     sph_bmw512( &ctx.bmw, hash2, 64 );
-     sph_bmw512_close( &ctx.bmw, hash2 );
-     memcpy( &ctx.bmw, &x13sm3_4way_ctx.bmw, sizeof(sph_bmw512_context) );
-     sph_bmw512( &ctx.bmw, hash3, 64 );
-     sph_bmw512_close( &ctx.bmw, hash3 );
 
      // Groestl
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );

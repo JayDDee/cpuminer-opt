@@ -38,7 +38,6 @@ cpuminer_SOURCES = \
   algo/argon2/ar2/cores.c \
   algo/argon2/ar2/ar2-scrypt-jane.c \
   algo/argon2/ar2/blake2b.c \
-  algo/axiom.c \
   algo/blake/sph_blake.c \
   algo/blake/blake-hash-4way.c \
   algo/blake/blake-gate.c \
@@ -56,6 +55,7 @@ cpuminer_SOURCES = \
   algo/blake/pentablake-4way.c \
   algo/blake/pentablake.c \
   algo/bmw/sph_bmw.c \
+  algo/bmw/bmw-hash-4way.c \
   algo/bmw/bmw256.c \
   algo/cryptonight/cryptolight.c \
   algo/cryptonight/cryptonight-common.c\
@@ -63,10 +63,8 @@ cpuminer_SOURCES = \
   algo/cryptonight/cryptonight.c\
   algo/cubehash/sph_cubehash.c \
   algo/cubehash/sse2/cubehash_sse2.c\
-  algo/drop.c \
   algo/echo/sph_echo.c \
   algo/echo/aes_ni/hash.c\
-  algo/fresh.c \
   algo/gost/sph_gost.c \
   algo/groestl/sph_groestl.c \
   algo/groestl/groestl.c \
@@ -113,9 +111,8 @@ cpuminer_SOURCES = \
   algo/nist5/nist5-gate.c \
   algo/nist5/nist5-4way.c \
   algo/nist5/nist5.c \
+  algo/nist5/zr5.c \
   algo/pluck.c \
-  algo/polytimos/polytimos-gate.c \
-  algo/polytimos/polytimos.c \
   algo/quark/quark.c \
   algo/qubit/qubit.c \
   algo/qubit/deep.c \
@@ -127,6 +124,7 @@ cpuminer_SOURCES = \
   algo/sha/sha2.c \
   algo/sha/sha256t.c \
   algo/shabal/sph_shabal.c \
+  algo/shabal/shabal-hash-4way.c \
   algo/shavite/sph_shavite.c \
   algo/shavite/sph-shavite-aesni.c \
   algo/shavite/shavite.c \
@@ -141,15 +139,10 @@ cpuminer_SOURCES = \
   algo/skein/skein2.c \
   algo/skein/skein2-4way.c \
   algo/skein/skein2-gate.c \
-  algo/skunk.c \
   algo/sm3/sm3.c \
   algo/tiger/sph_tiger.c \
   algo/timetravel.c \
   algo/timetravel10.c \
-  algo/tribus/tribus-gate.c \
-  algo/tribus/tribus.c \
-  algo/tribus/tribus-4way.c \
-  algo/veltor.c \
   algo/whirlpool/sph_whirlpool.c \
   algo/whirlpool/whirlpool-hash-4way.c \
   algo/whirlpool/whirlpool-gate.c \
@@ -165,6 +158,10 @@ cpuminer_SOURCES = \
   algo/x11/c11-gate.c \
   algo/x11/c11.c \
   algo/x11/c11-4way.c \
+  algo/x11/tribus-gate.c \
+  algo/x11/tribus.c \
+  algo/x11/tribus-4way.c \
+  algo/x11/fresh.c \
   algo/x11/x11evo.c \
   algo/x13/x13-gate.c \
   algo/x13/x13.c \
@@ -175,9 +172,20 @@ cpuminer_SOURCES = \
   algo/x13/phi1612-gate.c \
   algo/x13/phi1612.c \
   algo/x13/phi1612-4way.c \
+  algo/x13/skunk-gate.c \
+  algo/x13/skunk-4way.c \
+  algo/x13/skunk.c \
+  algo/x13/drop.c \
   algo/x14/x14-gate.c \
   algo/x14/x14.c \
   algo/x14/x14-4way.c \
+  algo/x14/veltor-gate.c \
+  algo/x14/veltor.c \
+  algo/x14/veltor-4way.c \
+  algo/x14/polytimos-gate.c \
+  algo/x14/polytimos.c \
+  algo/x14/polytimos-4way.c \
+  algo/x14/axiom.c \
   algo/x15/x15-gate.c \
   algo/x15/x15.c \
   algo/x15/x15-4way.c \
@@ -189,10 +197,8 @@ cpuminer_SOURCES = \
   algo/x17/xevan-4way.c \
   algo/x17/hmq1725.c \
   algo/yescrypt/yescrypt.c \
-  algo/yescrypt/sha256_Y.c\
-  algo/yescrypt/yescrypt-simd.c\
-  algo/zr5.c
-
+  algo/yescrypt/sha256_Y.c \
+  algo/yescrypt/yescrypt-simd.c
 
 disable_flags =
 

@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "veltor-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -34,7 +34,7 @@ void veltor_skein512_midstate( const void* input )
     sph_skein512( &veltor_skein_mid, input, 64 );
 }
 
-void veltorhash(void *output, const void *input)
+void veltor_hash(void *output, const void *input)
 {
 	uint32_t _ALIGN(64) hashA[16], hashB[16];
 
@@ -85,7 +85,7 @@ int scanhash_veltor(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
 
 	do {
 		be32enc(&endiandata[19], nonce);
-		veltorhash(hash, endiandata);
+		veltor_hash(hash, endiandata);
 
 		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
 			work_set_target_ratio(work, hash);
@@ -101,14 +101,3 @@ int scanhash_veltor(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
-
-bool register_veltor_algo( algo_gate_t* gate )
-{
-    gate->optimizations = SSE2_OPT | AES_OPT; 
-    init_veltor_ctx();
-    gate->scanhash  = (void*)&scanhash_veltor;
-    gate->hash      = (void*)&veltorhash;
-    gate->get_max64 = (void*)&get_max64_0x3ffff;
-    return true;
-}
-

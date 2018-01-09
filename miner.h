@@ -546,6 +546,7 @@ enum algos {
         ALGO_X17,
         ALGO_XEVAN,
         ALGO_YESCRYPT,
+        ALGO_YESCRYPTR8,
         ALGO_YESCRYPTR16,
         ALGO_ZR5,
         ALGO_COUNT
@@ -617,6 +618,7 @@ static const char* const algo_names[] = {
         "x17",
         "xevan",
         "yescrypt",
+        "yescryptr8",
         "yescryptr16",
         "zr5",
         "\0"
@@ -741,8 +743,9 @@ Options:\n\
                           x14          X14\n\
                           x15          X15\n\
                           x17\n\
-                          xevan        Bitsend\n\
+                          xevan        Bitsend (BSD)\n\
                           yescrypt     Globlboost-Y (BSTY)\n\
+                          yescryptr8   BitZeny (ZNY)\n\
                           yescryptr16  Yenten (YTN)\n\
                           zr5          Ziftr\n\
   -o, --url=URL         URL of mining server\n\

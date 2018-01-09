@@ -31,6 +31,7 @@ CFLAGS="-O3 -march=core-avx2 -Wall -DFOUR_WAY" ./configure $F
 make
 mv cpuminer.exe release/cpuminer-4way.exe
 
+make clean || echo clean
 CFLAGS="-O3 -march=corei7-avx -msha -Wall" ./configure $F
 make
 strip -s cpuminer.exe
