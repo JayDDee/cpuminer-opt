@@ -35,9 +35,17 @@
 #define mm_one_64    _mm_set1_epi64x( 1ULL )
 #define mm_one_32    _mm_set1_epi32(  1UL )
 #define mm_one_16    _mm_set1_epi16(  1U )
+#define mm_one_8     _mm_set1_epi8(   1U )
 
 // Constant minus 1
 #define mm_neg1      _mm_set1_epi64x( 0xFFFFFFFFFFFFFFFFULL )
+
+// Lane index, useful for byte rotate using shuffle
+#define mm_lanex_64 _mm_set_epi64( 1ULL, 0ULL );
+#define mm_lanex_32 _mm_set_epi32( 3UL, 2UL, 1UL, 0UL );
+#define mm_lanex_16 _mm_set_epi16( 7U, 6U, 5U, 4U, 3U, 2U, 1U, 0U );
+#define mm_lanex_8 _mm_set_epi8( 15U, 14U, 13U, 12U, 11U, 10U , 9U,  8U, \
+                                  7U,  6U,  5U,  4U,  3U,  2U,  1U,  0U );
 
 //
 // Basic operations without equivalent SIMD intrinsic
@@ -326,6 +334,16 @@ inline __m128i mm_byteswap_16( __m128i x )
 
 // Constant minus 1
 #define mm256_neg1           _mm256_set1_epi64x( 0xFFFFFFFFFFFFFFFFULL )
+
+// Lane index, useful for rotate using permutevar
+#define mm256_lane_64 _mm_set_epi64x( 3ULL, 2ULL, 1ULL, 0ULL );
+#define mm256_lane_32 _mm_set_epi32( 7UL, 6UL, 5UL, 4UL, 3UL, 2UL, 1UL, 0UL );
+#define mm256_lane_16 _mm_set_epi16( 15U, 14U, 13U, 12U, 11U, 10U , 9U,  8U, \
+                                      7U,  6U,  5U,  4U,  3U,  2U,  1U,  0U );
+#define mm256_lane_8 _mm_set_epi8( 31U, 30U, 29U, 28U, 27U, 26U, 25U, 24U, \
+                                   23U, 22U, 21U, 20U, 19U, 18U, 17U, 16U, \
+                                   15U, 14U, 13U, 12U, 11U, 10U , 9U,  8U, \
+                                    7U,  6U,  5U,  4U,  3U,  2U,  1U,  0U );
 
 //
 // Basic operations without SIMD equivalent
@@ -1109,7 +1127,7 @@ inline void mm256_deinterleave_8x32x( uint32_t *dst0, uint32_t *dst1,
 }
 
 // Can't do it in place
-inline void mm256_reinterleave_4x64x( void *dst, void *src, int  bit_len )
+inline void mm256_reinterleave_4x64( void *dst, void *src, int  bit_len )
 {
    __m256i* d = (__m256i*)dst;
    uint32_t *s = (uint32_t*)src;
@@ -1146,7 +1164,8 @@ inline void mm256_reinterleave_4x64x( void *dst, void *src, int  bit_len )
 // likely of no use.
 // convert 4x32 byte (128 bit) vectors to 4x64 (256 bit) vectors for AVX2
 // bit_len must be multiple of 64
-inline void mm256_reinterleave_4x64( uint64_t *dst, uint32_t *src,
+// broken
+inline void mm256_reinterleave_4x64x( uint64_t *dst, uint32_t *src,
                                          int  bit_len )
 {
    uint32_t *d = (uint32_t*)dst;
@@ -1200,6 +1219,7 @@ inline void mm256_reinterleave_4x32( void *dst, void *src, int  bit_len )
    // bit_len == 1024
 }
 
+// not used
 inline void mm_reinterleave_4x32( void *dst, void *src, int  bit_len )
 {
    uint32_t *d = (uint32_t*)dst;

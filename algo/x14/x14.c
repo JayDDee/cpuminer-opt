@@ -233,6 +233,7 @@ int scanhash_x14(int thr_id, struct work *work,
 				if (!(hash64[7] & mask)) {
 					printf("[%d]",thr_id);
 					if (fulltest(hash64, ptarget)) {
+                                                work_set_target_ratio( work, hash64 );
 						*hashes_done = n - first_nonce + 1;
 						return true;
 					}

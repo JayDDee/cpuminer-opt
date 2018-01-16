@@ -106,6 +106,7 @@ int scanhash_lyra2re(int thr_id, struct work *work,
                    {
 			pdata[19] = nonce;
 			*hashes_done = pdata[19] - first_nonce;
+                        work_set_target_ratio( work, hash );
 			return 1;
                    }
 		}

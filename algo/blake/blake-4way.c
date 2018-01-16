@@ -1,31 +1,22 @@
 #include "blake-gate.h"
-#include "sph_blake.h"
+
+#if defined (__AVX__)
+
 #include "blake-hash-4way.h"
 #include <string.h>
 #include <stdint.h>
 #include <memory.h>
 
-#if defined (BLAKE_4WAY)
+blake256r14_4way_context blake_ctx;
 
 void blakehash_4way(void *state, const void *input)
 {
-     uint32_t vhash[4*4] __attribute__ ((aligned (64)));
-     uint32_t hash0[4] __attribute__ ((aligned (32)));
-     uint32_t hash1[4] __attribute__ ((aligned (32)));
-     uint32_t hash2[4] __attribute__ ((aligned (32)));
-     uint32_t hash3[4] __attribute__ ((aligned (32)));
-     blake256_4way_context ctx;
-
-     blake256_4way_init( &ctx );
-     blake256_4way( &ctx, input, 16 );
-     blake256_4way_close( &ctx, vhash );
-
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
-
-     memcpy( state,    hash0, 32 );
-     memcpy( state+32, hash1, 32 );
-     memcpy( state+64, hash1, 32 );
-     memcpy( state+96, hash1, 32 );
+     uint32_t vhash[8*4] __attribute__ ((aligned (64)));
+     blake256r14_4way_context ctx;
+     memcpy( &ctx, &blake_ctx, sizeof ctx );
+     blake256r14_4way( &ctx, input + (64<<2), 16 );
+     blake256r14_4way_close( &ctx, vhash );
+     mm_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_blake_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -36,20 +27,23 @@ int scanhash_blake_4way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
-//   uint32_t HTarget = ptarget[7];
+   uint32_t HTarget = ptarget[7];
    uint32_t _ALIGN(32) edata[20];
    uint32_t n = first_nonce;
    uint32_t *nonces = work->nonces;
    bool *found = work->nfound;
    int num_found = 0;
 
-//   if (opt_benchmark)
-//      HTarget = 0x7f;
+   if (opt_benchmark)
+      HTarget = 0x7f;
 
    // we need big endian data...
    swab32_array( edata, pdata, 20 );
 
    mm_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+
+   blake256r14_4way_init( &blake_ctx );
+   blake256r14_4way( &blake_ctx, vdata, 64 );
 
    uint32_t *noncep = vdata + 76;   // 19*4
    do {
@@ -61,45 +55,36 @@ int scanhash_blake_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
       blakehash_4way( hash, vdata );
 
-      if ( hash[7] == 0 )
+      if (  hash[7] <= HTarget && fulltest( hash, ptarget ) )
       {
-         if ( fulltest( hash, ptarget ) )
-         {
-             found[0] = true;
-             num_found++;
-             nonces[0] = n;
-             pdata[19] = n;
-         }
+          found[0] = true;
+          num_found++;
+          nonces[0] = n;
+          pdata[19] = n;
+          work_set_target_ratio( work, hash );
       }
-      if ( (hash+8)[7] == 0 ) 
+      if ( (hash+8)[7] <= HTarget && fulltest( hash+8, ptarget ) )
       {
-         if ( fulltest( hash+8, ptarget ) ) 
-         {
-             found[1] = true;
-             num_found++;
-             nonces[1] = n+1;
-         }
+          found[1] = true;
+          num_found++;
+          nonces[1] = n+1;
+          work_set_target_ratio( work, hash+8 );
       }
-      if ( (hash+16)[7] == 0 )
+      if ( (hash+16)[7] <= HTarget && fulltest( hash+16, ptarget ) )
       {
-          if ( fulltest( hash+8, ptarget ) )
-          {
-              found[2] = true;
-              num_found++;
-              nonces[2] = n+2;
-          }
+           found[2] = true;
+           num_found++;
+           nonces[2] = n+2;
+           work_set_target_ratio( work, hash+16 );
       }
-      if ( (hash+24)[7] == 0 )
+      if ( (hash+24)[7] <= HTarget && fulltest( hash+24, ptarget ) )
       {
-         if ( fulltest( hash+8, ptarget ) )
-         {
-              found[3] = true;
-              num_found++;
-              nonces[3] = n+3;
-         }
+           found[3] = true;
+           num_found++;
+           nonces[3] = n+3;
+           work_set_target_ratio( work, hash+24 );
       }
-       n += 4;
-      *hashes_done = n - first_nonce + 1;
+      n += 4;
 
    } while ( (num_found == 0) && (n < max_nonce) 
              && !work_restart[thr_id].restart );

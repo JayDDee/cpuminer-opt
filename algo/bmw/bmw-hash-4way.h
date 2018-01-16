@@ -46,82 +46,27 @@ extern "C"{
 #include "algo/sha/sph_types.h"
 #include "avxdefs.h"
 
-/**
- * Output size (in bits) for BMW-224.
- */
-#define SPH_SIZE_bmw224   224
-
-/**
- * Output size (in bits) for BMW-256.
- */
 #define SPH_SIZE_bmw256   256
 
-#if SPH_64
-
-/**
- * Output size (in bits) for BMW-384.
- */
-#define SPH_SIZE_bmw384   384
-
-/**
- * Output size (in bits) for BMW-512.
- */
 #define SPH_SIZE_bmw512   512
 
-#endif
-
-/**
- * This structure is a context for BMW-224 and BMW-256 computations:
- * it contains the intermediate values and some data from the last
- * entered block. Once a BMW computation has been performed, the
- * context can be reused for another computation.
- *
- * The contents of this structure are private. A running BMW
- * computation can be cloned by copying the context (e.g. with a simple
- * <code>memcpy()</code>).
- */
 typedef struct {
-#ifndef DOXYGEN_IGNORE
-	unsigned char buf[64];    /* first field, for alignment */
-	size_t ptr;
-	sph_u32 H[16];
-#if SPH_64
-	sph_u64 bit_count;
-#else
-	sph_u32 bit_count_high, bit_count_low;
-#endif
-#endif
+   __m128i buf[64];
+   __m128i H[16];
+   size_t ptr;
+   sph_u32 bit_count;  // assume bit_count fits in 32 bits
 } bmw_4way_small_context;
 
 typedef bmw_4way_small_context bmw256_4way_context;
 
-#if SPH_64
-
-/**
- * This structure is a context for BMW-384 and BMW-512 computations:
- * it contains the intermediate values and some data from the last
- * entered block. Once a BMW computation has been performed, the
- * context can be reused for another computation.
- *
- * The contents of this structure are private. A running BMW
- * computation can be cloned by copying the context (e.g. with a simple
- * <code>memcpy()</code>).
- */
 typedef struct {
-#ifndef DOXYGEN_IGNORE
    __m256i buf[16];
    __m256i H[16];
-
-//	unsigned char buf[128];    /* first field, for alignment */
-	size_t ptr;
-//	sph_u64 H[16];
-	sph_u64 bit_count;
-#endif
+   size_t ptr;
+   sph_u64 bit_count;
 } bmw_4way_big_context;
 
 typedef bmw_4way_big_context bmw512_4way_context;
-
-#endif
 
 void bmw256_4way_init(void *cc);
 
@@ -129,10 +74,8 @@ void bmw256_4way(void *cc, const void *data, size_t len);
 
 void bmw256_4way_close(void *cc, void *dst);
 
-void bmw256_addbits_and_close(
+void bmw256_4way_addbits_and_close(
 	void *cc, unsigned ub, unsigned n, void *dst);
-
-#if SPH_64
 
 void bmw512_4way_init(void *cc);
 
@@ -147,8 +90,6 @@ void bmw512_4way_addbits_and_close(
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
 
 #endif

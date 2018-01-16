@@ -179,6 +179,7 @@ int scanhash_x11( int thr_id, struct work *work, uint32_t max_nonce,
                  if ( fulltest( hash64, ptarget ) )
                  {
                     *hashes_done = n - first_nonce + 1;
+                    work_set_target_ratio( work, hash64 );
                     return true;
                  }
               }
@@ -189,14 +190,3 @@ int scanhash_x11( int thr_id, struct work *work, uint32_t max_nonce,
         pdata[19] = n;
         return 0;
 }
-/*
-bool register_x11_algo( algo_gate_t* gate )
-{
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  init_x11_ctx();
-  gate->scanhash  = (void*)&scanhash_x11;
-  gate->hash      = (void*)&x11_hash;
-  gate->get_max64 = (void*)&get_max64_0x3ffff;
-  return true;
-};
-*/

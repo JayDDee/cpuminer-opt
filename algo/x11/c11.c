@@ -162,7 +162,8 @@ int scanhash_c11( int thr_id, struct work *work, uint32_t max_nonce,
                 {
 			pdata[19] = nonce;
 			*hashes_done = pdata[19] - first_nonce;
-			return 1;
+                        work_set_target_ratio( work, hash );
+ 			return 1;
 		}
 		nonce++;
 	} while ( nonce < max_nonce && !(*restart) );

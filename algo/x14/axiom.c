@@ -65,6 +65,7 @@ int scanhash_axiom(int thr_id, struct work *work,
 		if (hash64[7] < Htarg && fulltest(hash64, ptarget)) {
 			*hashes_done = n - first_nonce + 1;
 			pdata[19] = n;
+                        work_set_target_ratio( work, hash64 );
 			return true;
 		}
 		n++;

@@ -165,6 +165,13 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.7.10
+
+4way optimizations for lyra2rev2, lyra2h, quark, timetravel8, timetravel10
+   x11evo, blakecoin.
+Faster x13sm3 (hsr).
+Added share difficulty to accepted message.
+
 v3.7.9
 
 Partial 4way optimizations for veltor, skunk, polytimos, lyra2z.

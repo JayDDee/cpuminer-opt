@@ -114,7 +114,7 @@ available_implementations() {
 	return flags;
 }
 #endif
-
+/*
 static int
 scrypt_test_mix() {
 	static const uint8_t expected[16] = {
@@ -145,4 +145,4 @@ scrypt_test_mix() {
 
 	return ret;
 }
-
+*/

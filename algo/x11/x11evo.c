@@ -1,5 +1,5 @@
 #include "cpuminer-config.h"
-#include "algo-gate-api.h"
+#include "x11evo-gate.h"
 
 #include <string.h>
 #include <stdint.h>
@@ -25,9 +25,6 @@
 #include "algo/luffa/sse2/luffa_for_sse2.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 #include "algo/simd/sse2/nist.h"
-
-#define INITIAL_DATE 1462060800
-#define HASH_FUNC_COUNT 11
 
 typedef struct {
 #ifdef NO_AES_NI
@@ -70,94 +67,10 @@ void init_x11evo_ctx()
      sph_shavite512_init( &x11evo_ctx.shavite );
 }
 
-/*
-uint32_t getCurrentAlgoSeq(uint32_t current_time, uint32_t base_time)
-{
-	return (current_time - base_time) / (60 * 60 * 24);
-}
-*/
-
-static inline int getCurrentAlgoSeq( uint32_t current_time )
-{
-        // change once per day
-        return (int) (current_time - INITIAL_DATE) / (60 * 60 * 24);
-}
-
-// swap_vars doesn't work here
-void evo_swap( uint8_t *a, uint8_t *b )
-{
-	uint8_t __tmp = *a;
-	*a = *b;
-	*b = __tmp;
-}
-
-void initPerm( uint8_t n[], uint8_t count )
-{
-	int i;
-	for ( i = 0; i<count; i++ )
-		n[i] = i;
-}
-
-int nextPerm( uint8_t n[], uint32_t count )
-{
-	uint32_t tail = 0, i = 0, j = 0;
-
-	if (unlikely( count <= 1 ))
-		return 0;
-
-	for ( i = count - 1; i>0 && n[i - 1] >= n[i]; i-- );
-           tail = i;
-
-	if ( tail > 0 )
-            for ( j = count - 1; j>tail && n[j] <= n[tail - 1]; j-- );
-	         evo_swap( &n[tail - 1], &n[j] );
-
-	for ( i = tail, j = count - 1; i<j; i++, j-- )
-		evo_swap( &n[i], &n[j] );
-
-	return ( tail != 0 );
-}
-
-void getAlgoString( char *str, uint32_t count )
-{
-	uint8_t algoList[HASH_FUNC_COUNT];
-	char *sptr;
-        int j;
-        int k;
-	initPerm( algoList, HASH_FUNC_COUNT );
-
-	for ( k = 0; k < count; k++ )
-		nextPerm( algoList, HASH_FUNC_COUNT );
-
-	sptr = str;
-	for ( j = 0; j < HASH_FUNC_COUNT; j++ )
-        {
-		if ( algoList[j] >= 10 )
-			sprintf( sptr, "%c", 'A' + (algoList[j] - 10) );
-		else
-			sprintf( sptr, "%u", algoList[j] );
-		sptr++;
-	}
-	*sptr = 0;
-
-	//applog(LOG_DEBUG, "nextPerm %s", str);
-}
-
-static char hashOrder[HASH_FUNC_COUNT + 1] = { 0 };
+static char hashOrder[X11EVO_FUNC_COUNT + 1] = { 0 };
 static __thread uint32_t s_ntime = UINT32_MAX;
-static int s_seq = -1;
 
-static void evo_twisted_code(uint32_t ntime, char *permstr)
-{
-        int seq = getCurrentAlgoSeq(ntime);
-        if (s_seq != seq)
-        {
-                getAlgoString(permstr, seq);
-                s_seq = seq;
-        }
-}
-
-static inline void x11evo_hash( void *state, const void *input )
+void x11evo_hash( void *state, const void *input )
 {
    uint32_t hash[16] __attribute__ ((aligned (64)));
    x11evo_ctx_holder ctx __attribute__ ((aligned (64)));
@@ -242,10 +155,10 @@ static inline void x11evo_hash( void *state, const void *input )
     memcpy( state, hash, 32 );
 }
 
-static const uint32_t diff1targ = 0x0000ffff;
+//static const uint32_t diff1targ = 0x0000ffff;
 
 int scanhash_x11evo( int thr_id, struct work* work, uint32_t max_nonce,
-                     unsigned long *hashes_done )
+                     uint64_t *hashes_done )
 {
         uint32_t endiandata[20] __attribute__((aligned(64)));
         uint32_t hash64[8] __attribute__((aligned(64)));
@@ -274,19 +187,20 @@ int scanhash_x11evo( int thr_id, struct work* work, uint32_t max_nonce,
          else if ( Htarg <= 0xFFF )
             hmask = 0xFFFF000;
          else if ( Htarg <= 0xFFFF )
-            hmask = 0xFFFF000;
+           hmask = 0xFFFF000;
         }
 
         do
         {
           pdata[19] = ++n;
           be32enc( &endiandata[19], n );
-          x11evo_hash( hash64, &endiandata );
+          x11evo_hash( hash64, endiandata );
           if ( ( hash64[7] & hmask ) == 0 )
           {
              if ( fulltest( hash64, ptarget ) )
              {
                  *hashes_done = n - first_nonce + 1;
+                 work_set_target_ratio( work, hash64 );
                  return true;
              }
            }
@@ -296,13 +210,3 @@ int scanhash_x11evo( int thr_id, struct work* work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
-
-bool register_x11evo_algo( algo_gate_t* gate )
-{
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  gate->scanhash  = (void*)&scanhash_x11evo;
-  gate->hash      = (void*)&x11evo_hash;
-  init_x11evo_ctx();
-  return true;
-};
-

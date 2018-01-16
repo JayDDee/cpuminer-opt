@@ -1,4 +1,7 @@
 #include "pentablake-gate.h"
+
+#ifdef __AVX2__
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -8,8 +11,6 @@
 #include "sph_blake.h"
 
 //#define DEBUG_ALGO
-
-#ifdef PENTABLAKE_4WAY
 
 extern void pentablakehash_4way( void *output, const void *input )
 {

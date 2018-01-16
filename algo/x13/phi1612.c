@@ -116,6 +116,7 @@ int scanhash_phi1612( int thr_id, struct work *work, uint32_t max_nonce,
 
 		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
 			pdata[19] = nonce;
+                        work_set_target_ratio( work, hash );
 			*hashes_done = pdata[19] - first_nonce;
 			return 1;
 		}

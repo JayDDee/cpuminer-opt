@@ -3345,8 +3345,10 @@ do { \
 #define READ_STATE     MUL8(READ_STATE_W)
 #define ROUND0         MUL8(ROUND0_W)
 #define UPDATE_STATE   MUL8(UPDATE_STATE_W)
-//#define BYTE(x, n) \
-//   _mm256_and_si256( _mm256_srli_epi64( x, n<<3 ), _mm256_set1_epi64x( 0xFF ) )
+/*
+#define BYTE(x, n) \
+   _mm256_and_si256( _mm256_srli_epi64( x, n<<3 ), _mm256_set1_epi64x( 0xFF ) )
+*/
 #define BYTE(x, n)     ((unsigned)((x) >> (8 * (n))) & 0xFF)
 
 

@@ -1,11 +1,8 @@
-#include "algo-gate-api.h"
-
+#include "timetravel10-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "avxdefs.h"
-
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
 #include "algo/jh/sph_jh.h"
@@ -22,68 +19,8 @@
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
 
-// BitCore Genesis Timestamp
-#define HASH_FUNC_BASE_TIMESTAMP 1492973331U
-
-#define HASH_FUNC_COUNT 10
-#define HASH_FUNC_COUNT_PERMUTATIONS 40320
-
 static __thread uint32_t s_ntime = UINT32_MAX;
-static __thread int permutation[HASH_FUNC_COUNT] = { 0 };
-
-inline void tt10_swap( int *a, int *b )
-{
-	int c = *a;
-	*a = *b;
-	*b = c;
-}
-
-inline void reverse( int *pbegin, int *pend )
-{
-   while ( (pbegin != pend) && (pbegin != --pend) )
-   {
-      tt10_swap( pbegin, pend );
-      pbegin++;
-   }
-}
-
-static void next_permutation( int *pbegin, int *pend )
-{
-   if ( pbegin == pend )
-	return;
-
-   int *i = pbegin;
-   ++i;
-   if ( i == pend )
-	return;
-
-   i = pend;
-   --i;
-
-   while (1)
-   {
-	int *j = i;
-	--i;
-
-	if ( *i < *j )
-        {
-           int *k = pend;
-
-	   while ( !(*i < *--k) ) /* do nothing */ ;
-
-	   tt10_swap( i, k );
-	   reverse(j, pend);
-		return; // true
-	}
-
-	if ( i == pbegin )
-        {
-	   reverse(pbegin, pend);
-	   return; // false
-	}
-        // else?
-   }
-}
+static __thread int permutation[TT10_FUNC_COUNT] = { 0 };
 
 typedef struct {
         sph_blake512_context    blake;
@@ -125,7 +62,7 @@ void init_tt10_ctx()
 
 void timetravel10_hash(void *output, const void *input)
 {
-   uint32_t hash[ 16 * HASH_FUNC_COUNT ] __attribute__ ((aligned (64)));
+   uint32_t hash[ 16 * TT10_FUNC_COUNT ] __attribute__ ((aligned (64)));
    uint32_t *hashA, *hashB;
    tt10_ctx_holder ctx __attribute__ ((aligned (64)));
    uint32_t dataLen = 64;
@@ -136,7 +73,7 @@ void timetravel10_hash(void *output, const void *input)
 
    memcpy( &ctx, &tt10_ctx, sizeof(tt10_ctx) );
 
-   for ( i = 0; i < HASH_FUNC_COUNT; i++ )
+   for ( i = 0; i < TT10_FUNC_COUNT; i++ )
    {
         if (i == 0)
         {
@@ -302,7 +239,7 @@ void timetravel10_hash(void *output, const void *input)
     }
   }
 
-	memcpy(output, &hash[16 * (HASH_FUNC_COUNT - 1)], 32);
+	memcpy(output, &hash[16 * (TT10_FUNC_COUNT - 1)], 32);
 }
 
 int scanhash_timetravel10( int thr_id, struct work *work, uint32_t max_nonce,
@@ -328,12 +265,12 @@ int scanhash_timetravel10( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t timestamp = endiandata[17];
    if ( timestamp != s_ntime )
    {
-      const int steps = ( timestamp - HASH_FUNC_BASE_TIMESTAMP )
-                    % HASH_FUNC_COUNT_PERMUTATIONS;
-      for ( i = 0; i < HASH_FUNC_COUNT; i++ )
+      const int steps = ( timestamp - TT10_FUNC_BASE_TIMESTAMP )
+                    % TT10_FUNC_COUNT_PERMUTATIONS;
+      for ( i = 0; i < TT10_FUNC_COUNT; i++ )
          permutation[i] = i;
       for ( i = 0; i < steps; i++ )
-         next_permutation( permutation, permutation + HASH_FUNC_COUNT );
+         tt10_next_permutation( permutation, permutation + TT10_FUNC_COUNT );
       s_ntime = timestamp;
 
       // do midstate precalc for first function
@@ -398,6 +335,7 @@ int scanhash_timetravel10( int thr_id, struct work *work, uint32_t max_nonce,
         {
               work_set_target_ratio( work, hash );
               pdata[19] = nonce;
+              work_set_target_ratio( work, hash );
               *hashes_done = pdata[19] - first_nonce;
               return 1;
          }
@@ -409,20 +347,3 @@ int scanhash_timetravel10( int thr_id, struct work *work, uint32_t max_nonce,
         *hashes_done = pdata[19] - first_nonce + 1;
   return 0;
 }
-
-void timetravel10_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
-}
-
-bool register_timetravel10_algo( algo_gate_t* gate )
-{
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  init_tt10_ctx();
-  gate->scanhash   = (void*)&scanhash_timetravel10;
-  gate->hash       = (void*)&timetravel10_hash;
-  gate->set_target = (void*)&timetravel10_set_target;
-  gate->get_max64  = (void*)&get_max64_0xffffLL;
-  return true;
-};
-

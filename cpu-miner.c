@@ -346,6 +346,7 @@ static bool work_decode( const json_t *val, struct work *work )
     work->targetdiff = target_to_diff( work->target );
     // for api stats, on longpoll pools
     stratum_diff = work->targetdiff;
+    work->sharediff = 0;
     algo_gate.display_extra_data( work, &net_blocks );
     return true;
 }
@@ -755,6 +756,7 @@ static int share_result( int result, struct work *work, const char *reason )
    uint32_t total_submits;
    float rate;
    char rate_s[8] = {0};
+   double sharediff = work ? work->sharediff : stratum.sharediff;
    int i;
 
    pthread_mutex_lock(&stats_lock);
@@ -814,6 +816,8 @@ static int share_result( int result, struct work *work, const char *reason )
       sprintf(hr, "%.2f", hashrate );
    }
 
+   if ( sharediff == 0 )
+   {
 #if ((defined(_WIN64) || defined(__WINDOWS__)))
    applog( LOG_NOTICE, "%s %lu/%lu (%s%%), %s %sH, %s %sH/s",
                        sres, ( result ? accepted_count : rejected_count ),
@@ -824,6 +828,20 @@ static int share_result( int result, struct work *work, const char *reason )
                        total_submits, rate_s, hc, hc_units, hr, hr_units,
                        (uint32_t)cpu_temp(0) );
 #endif
+   }
+   else
+   {
+#if ((defined(_WIN64) || defined(__WINDOWS__)))
+   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g, %s %sH/s",
+                       sres, ( result ? accepted_count : rejected_count ),
+                       total_submits, rate_s, sharediff, hr, hr_units );
+#else
+   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g, %s %sH/s, %dC",
+                       sres, ( result ? accepted_count : rejected_count ),
+                       total_submits, rate_s, sharediff, hr, hr_units,
+                       (uint32_t)cpu_temp(0) );
+#endif
+   }
 
    if (reason)
    {
@@ -1026,6 +1044,7 @@ static bool submit_upstream_work( CURL *curl, struct work *work )
    }
    if ( have_stratum )
    {
+       stratum.sharediff = work->sharediff;
        algo_gate.build_stratum_request( req, work, &stratum );
        if ( unlikely( !stratum_send_line( &stratum, req ) ) )
        {
@@ -1569,7 +1588,7 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
                      uint32_t *end_nonce_ptr, bool clean_job )
 {
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
-   
+
    if ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
       && ( clean_job || ( *nonceptr >= *end_nonce_ptr )
          || ( work->job_id != g_work->job_id ) ) )
@@ -2984,25 +3003,22 @@ bool check_cpu_capability ()
      }
      if ( sw_has_avx2 && !( cpu_has_avx2 && cpu_has_aes ) )
      {
-        if ( sw_has_4way && algo_has_4way )
-           printf( "A CPU with AES and AVX2 is required to use 4way!\n" );
-        else if ( algo_has_avx2 )
-           printf( "A CPU with AES and AVX2 is required!\n" );
+        printf( "The SW build requires a CPU with AES and AVX2!\n" );
         return false;
      }
-     if ( sw_has_avx && !( cpu_has_avx && cpu_has_aes ) )
+     if ( sw_has_avx && !cpu_has_avx )
      {
-        printf( "A CPU with AES and AVX2 is required!\n" );
+        printf( "The SW build requires a CPU with AVX!\n" );
         return false;
      }
-     if ( sw_has_aes && algo_has_aes && !cpu_has_aes )
+     if ( sw_has_aes && !cpu_has_aes )
      {
-        printf( "A CPU with AES is required!\n" );
+        printf( "The SW build requires a CPU with AES!\n" );
         return false;
      }
-     if ( sw_has_sha && algo_has_sha && !cpu_has_sha )
+     if ( sw_has_sha && !cpu_has_sha )
      {
-        printf( "A CPU with SHA is required!\n" );
+        printf( "The SW build requires a CPU with SHA!\n" );
         return false;
      }
 
@@ -3187,6 +3203,9 @@ int main(int argc, char *argv[])
 	}
 #endif
 
+   if ( num_cpus != opt_n_threads )   
+     applog( LOG_INFO,"%u CPU cores available, %u miner threads selected.",
+             num_cpus, opt_n_threads );
    if ( opt_affinity != -1 )
    {
       if ( num_cpus > 64 )

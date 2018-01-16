@@ -22,6 +22,7 @@ void whirlpool_hash( void *state, const void *input );
 
 int scanhash_whirlpool( int thr_id, struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done );
+void init_whirlpool_ctx();
 #endif
 
 #endif

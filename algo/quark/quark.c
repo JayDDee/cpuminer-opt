@@ -1,5 +1,5 @@
 #include "cpuminer-config.h"
-#include "algo-gate-api.h"
+#include "quark-gate.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -47,7 +47,7 @@ void init_quark_ctx()
 #endif
 }
 
-inline static void quarkhash(void *state, const void *input)
+void quark_hash(void *state, const void *input)
 {
     unsigned char hashbuf[128];
     size_t hashptr;
@@ -187,11 +187,12 @@ int scanhash_quark( int thr_id, struct work *work, uint32_t max_nonce,
 	do {
 		pdata[19] = ++n;
 		be32enc(&endiandata[19], n); 
-		quarkhash(hash64, &endiandata);
+		quark_hash(hash64, &endiandata);
                 if ((hash64[7]&0xFFFFFF00)==0)
                 {
                   if (fulltest(hash64, ptarget)) 
                   {
+                    work_set_target_ratio( work, hash64 );
                     *hashes_done = n - first_nonce + 1;
 		    return true;
                   }
@@ -202,13 +203,4 @@ int scanhash_quark( int thr_id, struct work *work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
-
-bool register_quark_algo( algo_gate_t* gate )
-{
-  init_quark_ctx();
-  gate->optimizations = SSE2_OPT | AES_OPT;
-  gate->scanhash         = (void*)&scanhash_quark;
-  gate->hash             = (void*)&quarkhash;
-  return true;
-};
 

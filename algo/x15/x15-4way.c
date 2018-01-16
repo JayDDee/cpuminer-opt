@@ -47,7 +47,6 @@ void init_x15_4way_ctx()
 {
      blake512_4way_init( &x15_4way_ctx.blake );
      bmw512_4way_init( &x15_4way_ctx.bmw );
-     sph_bmw512_init( &x15_4way_ctx.bmw );
      init_groestl( &x15_4way_ctx.groestl, 64 );
      skein512_4way_init( &x15_4way_ctx.skein );
      jh512_4way_init( &x15_4way_ctx.jh );

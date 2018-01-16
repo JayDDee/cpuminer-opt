@@ -70,6 +70,7 @@ int scanhash_skunk( int thr_id, struct work *work, uint32_t max_nonce,
            {
 		pdata[19] = nonce;
 		*hashes_done = pdata[19] - first_nonce;
+                work_set_target_ratio( work, hash );
 		return 1;
 	   }
 	   nonce++;

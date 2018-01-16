@@ -46,8 +46,10 @@ cpuminer_SOURCES = \
   algo/blake/sph_blake2b.c \
   algo/blake/blake2b.c \
   algo/blake/blake2s.c \
+  algo/blake/blakecoin-gate.c \
   algo/blake/mod_blakecoin.c \
   algo/blake/blakecoin.c \
+  algo/blake/blakecoin-4way.c \
   algo/blake/decred-gate.c \
   algo/blake/decred.c \
   algo/blake/decred-4way.c \
@@ -99,13 +101,17 @@ cpuminer_SOURCES = \
   algo/luffa/sse2/luffa_for_sse2.c \
   algo/lyra2/lyra2.c \
   algo/lyra2/sponge.c \
+  algo/lyra2/lyra2rev2-gate.c \
   algo/lyra2/lyra2rev2.c \
+  algo/lyra2/lyra2rev2-4way.c \
   algo/lyra2/lyra2re.c \
   algo/lyra2/lyra2z-gate.c \
   algo/lyra2/lyra2z.c \
   algo/lyra2/lyra2z-4way.c \
   algo/lyra2/lyra2z330.c \
+  algo/lyra2/lyra2h-gate.c \
   algo/lyra2/lyra2h.c \
+  algo/lyra2/lyra2h-4way.c \
   algo/m7m.c \
   algo/neoscrypt/neoscrypt.c \
   algo/nist5/nist5-gate.c \
@@ -113,7 +119,9 @@ cpuminer_SOURCES = \
   algo/nist5/nist5.c \
   algo/nist5/zr5.c \
   algo/pluck.c \
+  algo/quark/quark-gate.c \
   algo/quark/quark.c \
+  algo/quark/quark-4way.c \
   algo/qubit/qubit.c \
   algo/qubit/deep.c \
   algo/ripemd/sph_ripemd.c \
@@ -140,9 +148,8 @@ cpuminer_SOURCES = \
   algo/skein/skein2-4way.c \
   algo/skein/skein2-gate.c \
   algo/sm3/sm3.c \
+  algo/sm3/sm3-hash-4way.c \
   algo/tiger/sph_tiger.c \
-  algo/timetravel.c \
-  algo/timetravel10.c \
   algo/whirlpool/sph_whirlpool.c \
   algo/whirlpool/whirlpool-hash-4way.c \
   algo/whirlpool/whirlpool-gate.c \
@@ -161,8 +168,16 @@ cpuminer_SOURCES = \
   algo/x11/tribus-gate.c \
   algo/x11/tribus.c \
   algo/x11/tribus-4way.c \
+  algo/x11/timetravel-gate.c \
+  algo/x11/timetravel.c \
+  algo/x11/timetravel-4way.c \
+  algo/x11/timetravel10-gate.c \
+  algo/x11/timetravel10.c \
+  algo/x11/timetravel10-4way.c \
   algo/x11/fresh.c \
   algo/x11/x11evo.c \
+  algo/x11/x11evo-4way.c \
+  algo/x11/x11evo-gate.c \
   algo/x13/x13-gate.c \
   algo/x13/x13.c \
   algo/x13/x13-4way.c \

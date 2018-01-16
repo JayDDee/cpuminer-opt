@@ -736,7 +736,7 @@ Options:\n\
                           whirlpool\n\
                           whirlpoolx\n\
                           x11          Dash\n\
-                          x11evo       Revolvercoin\n\
+                          x11evo       Revolvercoin (XRE)\n\
                           x11gost      sib (SibCoin)\n\
                           x13          X13\n\
                           x13sm3       hsr (Hshare)\n\

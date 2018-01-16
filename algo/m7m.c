@@ -346,6 +346,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
                     hash_str,
                     target_str);
             }
+            work_set_target_ratio( work, hash );
             pdata[19] = data[19];
             goto out;
 	  }

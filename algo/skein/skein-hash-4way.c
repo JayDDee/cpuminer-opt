@@ -342,17 +342,6 @@ do { \
 do { \
   sph_u64 t0, t1, t2; \
   __m256i h8; \
-/* can LE be assumed? \
-   dec64le does nothing when SPH_LITTLE endian is set, as it is. \
-  __m256i m0 = _mm256_dec64le( buf ); \
-  __m256i m1 = _mm256_dec64le( buf +  8*4 ); \
-  __m256i m2 = _mm256_dec64le( buf + 16*4 ); \
-  __m256i m3 = _mm256_dec64le( buf + 24*4 ); \
-  __m256i m4 = _mm256_dec64le( buf + 32*4 ); \
-  __m256i m5 = _mm256_dec64le( buf + 40*4 ); \
-  __m256i m6 = _mm256_dec64le( buf + 48*4 ); \
-  __m256i m7 = _mm256_dec64le( buf + 56*4 ); \
-*/ \
   __m256i m0 =  buf[0]; \
   __m256i m1 =  buf[1]; \
   __m256i m2 =  buf[2]; \

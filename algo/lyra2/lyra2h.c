@@ -1,6 +1,6 @@
+#include "lyra2h-gate.h"
 #include <memory.h>
 #include <mm_malloc.h>
-#include "algo-gate-api.h"
 #include "lyra2.h"
 #include "algo/blake/sph_blake.h"
 
@@ -8,8 +8,7 @@ __thread uint64_t* lyra2h_matrix;
 
 bool lyra2h_thread_init()
 {
-   const int i = 16 * 16 * 96;
-   lyra2h_matrix = _mm_malloc( i, 64 );
+   lyra2h_matrix = _mm_malloc( LYRA2H_MATRIX_SIZE, 64 );
    return lyra2h_matrix;
 }
 
@@ -74,20 +73,3 @@ int scanhash_lyra2h( int thr_id, struct work *work, uint32_t max_nonce,
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
-
-void lyra2h_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
-}
-
-bool register_lyra2h_algo( algo_gate_t* gate )
-{
-  gate->optimizations = AVX_OPT | AVX2_OPT;
-  gate->miner_thread_init = (void*)&lyra2h_thread_init;
-  gate->scanhash   = (void*)&scanhash_lyra2h;
-  gate->hash       = (void*)&lyra2h_hash;
-  gate->get_max64  = (void*)&get_max64_0xffffLL;
-  gate->set_target = (void*)&lyra2h_set_target;
-  return true;
-};
-

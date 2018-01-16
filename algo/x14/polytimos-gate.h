@@ -4,7 +4,7 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
-#if defined(HASH_4WAY) && defined(__AES__)
+#if defined(__AVX2__) && defined(__AES__)
   #define POLYTIMOS_4WAY
 #endif
 

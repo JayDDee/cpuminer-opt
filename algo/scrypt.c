@@ -754,6 +754,7 @@ extern int scanhash_scrypt( int thr_id, struct work *work, uint32_t max_nonce,
 			if (unlikely(hash[i * 8 + 7] <= Htarg && fulltest(hash + i * 8, ptarget))) {
 				*hashes_done = n - pdata[19] + 1;
 				pdata[19] = data[i * 20 + 19];
+                                work_set_target_ratio( work, hash );
 				return 1;
 			}
 		}

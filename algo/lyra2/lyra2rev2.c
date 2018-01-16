@@ -1,20 +1,12 @@
+#include "lyra2rev2-gate.h"
 #include <memory.h>
-
-#include "algo-gate-api.h"
-
 #include "algo/blake/sph_blake.h"
 #include "algo/cubehash/sph_cubehash.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/bmw/sph_bmw.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h" 
-#include "lyra2.h"
-#include "avxdefs.h"
-
-// This gets allocated when miner_thread starts up and is never freed.
-// It's not a leak because the only way to allocate it again is to exit
-// the thread and that only occurs when the entire program exits.
-__thread uint64_t* l2v2_wholeMatrix;
+//#include "lyra2.h"
 
 typedef struct {
         cubehashParam           cube1;
@@ -106,6 +98,7 @@ int scanhash_lyra2rev2(int thr_id, struct work *work,
                    if( fulltest(hash, ptarget) )
                    {
 			pdata[19] = nonce;
+                        work_set_target_ratio( work, hash );
 			*hashes_done = pdata[19] - first_nonce;
 		   	return 1;
 		   }
@@ -118,31 +111,4 @@ int scanhash_lyra2rev2(int thr_id, struct work *work,
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
-
-void lyra2rev2_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
-}
-
-bool lyra2rev2_thread_init()
-{
-   const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols
-   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
-
-   int i = (int64_t)ROW_LEN_BYTES * 4; // nRows;
-   l2v2_wholeMatrix = _mm_malloc( i, 64 );
-
-   return l2v2_wholeMatrix;
-}
-
-bool register_lyra2rev2_algo( algo_gate_t* gate )
-{
-  init_lyra2rev2_ctx();
-  gate->optimizations = AVX_OPT | AVX2_OPT;
-  gate->miner_thread_init = (void*)&lyra2rev2_thread_init;
-  gate->scanhash          = (void*)&scanhash_lyra2rev2;
-  gate->hash              = (void*)&lyra2rev2_hash;
-  gate->set_target        = (void*)&lyra2rev2_set_target;
-  return true;
-};
 

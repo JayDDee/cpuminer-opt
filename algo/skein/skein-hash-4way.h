@@ -39,7 +39,9 @@
  */
 
 #ifndef __SKEIN_HASH_4WAY_H__
-#define __SKEIN_HASH_4WAY_H__
+#define __SKEIN_HASH_4WAY_H__ 1
+
+#ifdef __AVX2__
 
 #ifdef __cplusplus
 extern "C"{
@@ -53,14 +55,15 @@ extern "C"{
 #define SPH_SIZE_skein256   256
 #define SPH_SIZE_skein512   512
 
-#ifdef __AVX2__
-
 typedef struct {
         __m256i buf[8] __attribute__ ((aligned (32)));
         __m256i h0, h1, h2, h3, h4, h5, h6, h7;
         size_t ptr;
 	sph_u64 bcount;
-} skein512_4way_context;
+} sph_skein_4way_big_context;
+
+typedef sph_skein_4way_big_context skein512_4way_context;
+typedef sph_skein_4way_big_context skein256_4way_context;
 
 void skein512_4way_init(void *cc);
 void skein512_4way(void *cc, const void *data, size_t len);
@@ -68,26 +71,15 @@ void skein512_4way_close(void *cc, void *dst);
 //void sph_skein512_addbits_and_close(
 //        void *cc, unsigned ub, unsigned n, void *dst);
 
-#endif
-
-#ifdef __AVX__
-
-typedef struct {
-        __m128i buf[8] __attribute__ ((aligned (32)));
-        __m128i h0, h1, h2, h3, h4, h5, h6, h7;
-        size_t ptr;
-        sph_u64 bcount;
-} skein256_4way_context;
-
 void skein256_4way_init(void *cc);
 void skein256_4way(void *cc, const void *data, size_t len);
 void skein256_4way_close(void *cc, void *dst);
 //void sph_skein256_addbits_and_close(
 //	void *cc, unsigned ub, unsigned n, void *dst);
 
-#endif
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif

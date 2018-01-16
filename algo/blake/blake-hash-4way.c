@@ -491,14 +491,9 @@ do { \
 		(state)->T1 = T1; \
 	} while (0)
 
-//#define BLAKE32_ROUNDS 8
-#ifndef BLAKE32_ROUNDS
-#define BLAKE32_ROUNDS 14
-#endif
-
 #if SPH_COMPACT_BLAKE_32
 
-#define COMPRESS32_4WAY   do { \
+#define COMPRESS32_4WAY( rounds )   do { \
 	__m128i M[16]; \
 	__m128i V0, V1, V2, V3, V4, V5, V6, V7; \
 	__m128i V8, V9, VA, VB, VC, VD, VE, VF; \
@@ -539,7 +534,7 @@ do { \
 	M[0xD] = mm_byteswap_32( *(buf + 13) ); \
 	M[0xE] = mm_byteswap_32( *(buf + 14) ); \
 	M[0xF] = mm_byteswap_32( *(buf + 15) ); \
-	for (r = 0; r < BLAKE32_ROUNDS; r ++) \
+	for (r = 0; r < rounds; r ++) \
 		ROUND_S_4WAY(r); \
         H0 = _mm_xor_si128( _mm_xor_si128( \
                                    _mm_xor_si128( S0, V0 ), V8 ), H0 ); \
@@ -563,80 +558,70 @@ do { \
 
 // current impl
 
-#define COMPRESS32_4WAY   do { \
-	__m128i M0, M1, M2, M3, M4, M5, M6, M7; \
-	__m128i M8, M9, MA, MB, MC, MD, ME, MF; \
-	__m128i V0, V1, V2, V3, V4, V5, V6, V7; \
-	__m128i V8, V9, VA, VB, VC, VD, VE, VF; \
-	V0 = H0; \
-	V1 = H1; \
-	V2 = H2; \
-	V3 = H3; \
-	V4 = H4; \
-	V5 = H5; \
-	V6 = H6; \
-	V7 = H7; \
-        V8 = _mm_xor_si128( S0, _mm_set_epi32( CS0, CS0, CS0, CS0 ) ); \
-        V9 = _mm_xor_si128( S1, _mm_set_epi32( CS1, CS1, CS1, CS1 ) ); \
-        VA = _mm_xor_si128( S2, _mm_set_epi32( CS2, CS2, CS2, CS2 ) ); \
-        VB = _mm_xor_si128( S3, _mm_set_epi32( CS3, CS3, CS3, CS3 ) ); \
-        VC = _mm_xor_si128( _mm_set_epi32( T0, T0, T0, T0 ), \
-                            _mm_set_epi32( CS4, CS4, CS4, CS4 ) ); \
-        VD = _mm_xor_si128( _mm_set_epi32( T0, T0, T0, T0 ), \
-                            _mm_set_epi32( CS5, CS5, CS5, CS5 ) ); \
-        VE = _mm_xor_si128( _mm_set_epi32( T1, T1, T1, T1 ), \
-                            _mm_set_epi32( CS6, CS6, CS6, CS6 ) ); \
-        VF = _mm_xor_si128( _mm_set_epi32( T1, T1, T1, T1 ), \
-                            _mm_set_epi32( CS7, CS7, CS7, CS7 ) ); \
-	M0 = mm_byteswap_32( * buf ); \
-	M1 = mm_byteswap_32( *(buf+1) ); \
-	M2 = mm_byteswap_32( *(buf+2) ); \
-	M3 = mm_byteswap_32( *(buf+3) ); \
-	M4 = mm_byteswap_32( *(buf+4) ); \
-	M5 = mm_byteswap_32( *(buf+5) ); \
-	M6 = mm_byteswap_32( *(buf+6) ); \
-	M7 = mm_byteswap_32( *(buf+7) ); \
-	M8 = mm_byteswap_32( *(buf+8) ); \
-	M9 = mm_byteswap_32( *(buf+9) ); \
-	MA = mm_byteswap_32( *(buf+10) ); \
-	MB = mm_byteswap_32( *(buf+11) ); \
-	MC = mm_byteswap_32( *(buf+12) ); \
-	MD = mm_byteswap_32( *(buf+13) ); \
-	ME = mm_byteswap_32( *(buf+14) ); \
-	MF = mm_byteswap_32( *(buf+15) ); \
-	ROUND_S_4WAY(0); \
-	ROUND_S_4WAY(1); \
-	ROUND_S_4WAY(2); \
-	ROUND_S_4WAY(3); \
-	ROUND_S_4WAY(4); \
-	ROUND_S_4WAY(5); \
-	ROUND_S_4WAY(6); \
-	ROUND_S_4WAY(7); \
-	if (BLAKE32_ROUNDS == 14) { \
-	ROUND_S_4WAY(8); \
-	ROUND_S_4WAY(9); \
-	ROUND_S_4WAY(0); \
-	ROUND_S_4WAY(1); \
-	ROUND_S_4WAY(2); \
-	ROUND_S_4WAY(3); \
-	} \
-        H0 = _mm_xor_si128( _mm_xor_si128( \
-                                _mm_xor_si128( V8, V0 ), S0 ), H0 ); \
-        H1 = _mm_xor_si128( _mm_xor_si128( \
-                                _mm_xor_si128( V9, V1 ), S1 ), H1 ); \
-        H2 = _mm_xor_si128( _mm_xor_si128( \
-                                _mm_xor_si128( VA, V2 ), S2 ), H2 ); \
-        H3 = _mm_xor_si128( _mm_xor_si128( \
-                                _mm_xor_si128( VB, V3 ), S3 ), H3 ); \
-        H4 = _mm_xor_si128( _mm_xor_si128( \
-                                _mm_xor_si128( VC, V4 ), S0 ), H4 ); \
-        H5 = _mm_xor_si128( _mm_xor_si128( \
-                                _mm_xor_si128( VD, V5 ), S1 ), H5 ); \
-        H6 = _mm_xor_si128( _mm_xor_si128( \
-                                _mm_xor_si128( VE, V6 ), S2 ), H6 ); \
-        H7 = _mm_xor_si128( _mm_xor_si128( \
-                                _mm_xor_si128( VF, V7 ), S3 ), H7 ); \
-	} while (0)
+#define COMPRESS32_4WAY( rounds ) \
+do { \
+   __m128i M0, M1, M2, M3, M4, M5, M6, M7; \
+   __m128i M8, M9, MA, MB, MC, MD, ME, MF; \
+   __m128i V0, V1, V2, V3, V4, V5, V6, V7; \
+   __m128i V8, V9, VA, VB, VC, VD, VE, VF; \
+   V0 = H0; \
+   V1 = H1; \
+   V2 = H2; \
+   V3 = H3; \
+   V4 = H4; \
+   V5 = H5; \
+   V6 = H6; \
+   V7 = H7; \
+   V8 = _mm_xor_si128( S0, _mm_set_epi32( CS0, CS0, CS0, CS0 ) ); \
+   V9 = _mm_xor_si128( S1, _mm_set_epi32( CS1, CS1, CS1, CS1 ) ); \
+   VA = _mm_xor_si128( S2, _mm_set_epi32( CS2, CS2, CS2, CS2 ) ); \
+   VB = _mm_xor_si128( S3, _mm_set_epi32( CS3, CS3, CS3, CS3 ) ); \
+   VC = _mm_xor_si128( _mm_set1_epi32( T0 ), _mm_set1_epi32( CS4 ) ); \
+   VD = _mm_xor_si128( _mm_set1_epi32( T0 ), _mm_set1_epi32( CS5 ) ); \
+   VE = _mm_xor_si128( _mm_set1_epi32( T1 ), _mm_set1_epi32( CS6 ) ); \
+   VF = _mm_xor_si128( _mm_set1_epi32( T1 ), _mm_set1_epi32( CS7 ) ); \
+   M0 = mm_byteswap_32( * buf ); \
+   M1 = mm_byteswap_32( *(buf+1) ); \
+   M2 = mm_byteswap_32( *(buf+2) ); \
+   M3 = mm_byteswap_32( *(buf+3) ); \
+   M4 = mm_byteswap_32( *(buf+4) ); \
+   M5 = mm_byteswap_32( *(buf+5) ); \
+   M6 = mm_byteswap_32( *(buf+6) ); \
+   M7 = mm_byteswap_32( *(buf+7) ); \
+   M8 = mm_byteswap_32( *(buf+8) ); \
+   M9 = mm_byteswap_32( *(buf+9) ); \
+   MA = mm_byteswap_32( *(buf+10) ); \
+   MB = mm_byteswap_32( *(buf+11) ); \
+   MC = mm_byteswap_32( *(buf+12) ); \
+   MD = mm_byteswap_32( *(buf+13) ); \
+   ME = mm_byteswap_32( *(buf+14) ); \
+   MF = mm_byteswap_32( *(buf+15) ); \
+   ROUND_S_4WAY(0); \
+   ROUND_S_4WAY(1); \
+   ROUND_S_4WAY(2); \
+   ROUND_S_4WAY(3); \
+   ROUND_S_4WAY(4); \
+   ROUND_S_4WAY(5); \
+   ROUND_S_4WAY(6); \
+   ROUND_S_4WAY(7); \
+   if (rounds == 14) \
+   { \
+      ROUND_S_4WAY(8); \
+      ROUND_S_4WAY(9); \
+      ROUND_S_4WAY(0); \
+      ROUND_S_4WAY(1); \
+      ROUND_S_4WAY(2); \
+      ROUND_S_4WAY(3); \
+   } \
+   H0 = _mm_xor_si128( _mm_xor_si128( _mm_xor_si128( V8, V0 ), S0 ), H0 ); \
+   H1 = _mm_xor_si128( _mm_xor_si128( _mm_xor_si128( V9, V1 ), S1 ), H1 ); \
+   H2 = _mm_xor_si128( _mm_xor_si128( _mm_xor_si128( VA, V2 ), S2 ), H2 ); \
+   H3 = _mm_xor_si128( _mm_xor_si128( _mm_xor_si128( VB, V3 ), S3 ), H3 ); \
+   H4 = _mm_xor_si128( _mm_xor_si128( _mm_xor_si128( VC, V4 ), S0 ), H4 ); \
+   H5 = _mm_xor_si128( _mm_xor_si128( _mm_xor_si128( VD, V5 ), S1 ), H5 ); \
+   H6 = _mm_xor_si128( _mm_xor_si128( _mm_xor_si128( VE, V6 ), S2 ), H6 ); \
+   H7 = _mm_xor_si128( _mm_xor_si128( _mm_xor_si128( VF, V7 ), S3 ), H7 ); \
+} while (0)
 
 #endif
 
@@ -832,15 +817,16 @@ static const sph_u32 salt_zero_small[4] = { 0, 0, 0, 0 };
 
 static void
 blake32_4way_init( blake_4way_small_context *sc, const sph_u32 *iv,
-                   const sph_u32 *salt)
+                   const sph_u32 *salt, int rounds )
 {
-        int i;
-        for ( i = 0; i < 8; i++ )
-           sc->H[i] = _mm_set1_epi32( iv[i] );
-        for ( i = 0; i < 4; i++ )
-           sc->S[i] = _mm_set1_epi32( salt[i] );
-	sc->T0 = sc->T1 = 0;
-	sc->ptr = 0;
+   int i;
+   for ( i = 0; i < 8; i++ )
+      sc->H[i] = _mm_set1_epi32( iv[i] );
+   for ( i = 0; i < 4; i++ )
+      sc->S[i] = _mm_set1_epi32( salt[i] );
+   sc->T0 = sc->T1 = 0;
+   sc->ptr = 0;
+   sc->rounds = rounds;
 }
 
 static void
@@ -878,7 +864,7 @@ blake32_4way( blake_4way_small_context *sc, const void *data, size_t len )
            {
 		if ( ( T0 = SPH_T32(T0 + 512) ) < 512 )
 			T1 = SPH_T32(T1 + 1);
-		COMPRESS32_4WAY;
+                COMPRESS32_4WAY( sc->rounds );
 		ptr = 0;
 	   }
 	}
@@ -1079,10 +1065,11 @@ blake64_4way_close( blake_4way_big_context *sc,
 
 #endif
 
+// default 14 rounds, backward copatibility
 void
 blake256_4way_init(void *cc)
 {
-	blake32_4way_init(cc, IV256, salt_zero_small);
+   blake32_4way_init( cc, IV256, salt_zero_small, 14 );
 }
 
 void
@@ -1094,13 +1081,43 @@ blake256_4way(void *cc, const void *data, size_t len)
 void
 blake256_4way_close(void *cc, void *dst)
 {
-	blake256_4way_addbits_and_close(cc, 0, 0, dst);
+        blake32_4way_close(cc, 0, 0, dst, 8);
+}
+
+// 14 rounds blake, decred
+void blake256r14_4way_init(void *cc)
+{
+   blake32_4way_init( cc, IV256, salt_zero_small, 14 );
 }
 
 void
-blake256_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
+blake256r14_4way(void *cc, const void *data, size_t len)
 {
-	blake32_4way_close(cc, ub, n, dst, 8);
+   blake32_4way(cc, data, len);
+}
+
+void
+blake256r14_4way_close(void *cc, void *dst)
+{
+   blake32_4way_close(cc, 0, 0, dst, 8);
+}
+
+// 8 rounds blakecoin, vanilla
+void blake256r8_4way_init(void *cc)
+{
+   blake32_4way_init( cc, IV256, salt_zero_small, 8 );
+}
+
+void
+blake256r8_4way(void *cc, const void *data, size_t len)
+{
+   blake32_4way(cc, data, len);
+}
+
+void
+blake256r8_4way_close(void *cc, void *dst)
+{
+   blake32_4way_close(cc, 0, 0, dst, 8);
 }
 
 #if defined (__AVX2__)

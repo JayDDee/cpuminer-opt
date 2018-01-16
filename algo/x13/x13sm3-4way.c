@@ -17,7 +17,7 @@
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/sse2/nist.h"
 #include "algo/echo/aes_ni/hash_api.h"
-#include "algo/sm3/sph_sm3.h"
+#include "algo/sm3/sm3-hash-4way.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
 
@@ -33,7 +33,7 @@ typedef struct {
     sph_shavite512_context  shavite;
     hashState_sd            simd;
     hashState_echo          echo;
-    sm3_ctx_t               sm3;
+    sm3_4way_ctx_t          sm3;
     sph_hamsi512_context    hamsi;
     sph_fugue512_context    fugue;
 } x13sm3_4way_ctx_holder;
@@ -54,7 +54,7 @@ void init_x13sm3_4way_ctx()
      sph_shavite512_init( &x13sm3_4way_ctx.shavite );
      init_sd( &x13sm3_4way_ctx.simd, 512 );
      init_echo( &x13sm3_4way_ctx.echo, 512 );
-     sm3_init( &x13sm3_4way_ctx.sm3 );
+     sm3_4way_init( &x13sm3_4way_ctx.sm3 );
      sph_hamsi512_init( &x13sm3_4way_ctx.hamsi );
      sph_fugue512_init( &x13sm3_4way_ctx.fugue );
 };
@@ -85,14 +85,11 @@ void x13sm3_4way_hash( void *state, const void *input )
 
      // Groestl
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     memcpy( &ctx.groestl, &x13sm3_4way_ctx.groestl,
-             sizeof(hashState_groestl) );
+     reinit_groestl( &ctx.groestl );
      update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     memcpy( &ctx.groestl, &x13sm3_4way_ctx.groestl, 
-             sizeof(hashState_groestl) );
+     reinit_groestl( &ctx.groestl );
      update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     memcpy( &ctx.groestl, &x13sm3_4way_ctx.groestl, 
-             sizeof(hashState_groestl) );
+     reinit_groestl( &ctx.groestl );
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      // Parallel 4way
@@ -178,6 +175,8 @@ void x13sm3_4way_hash( void *state, const void *input )
                        (const BitSequence *) hash3, 512 );
 
      // SM3
+     uint32_t sm3_vhash[32*4] __attribute__ ((aligned (64)));
+     memset( sm3_vhash, 0, sizeof sm3_vhash );
      uint32_t sm3_hash0[32] __attribute__ ((aligned (32)));
      memset( sm3_hash0, 0, sizeof sm3_hash0 );
      uint32_t sm3_hash1[32] __attribute__ ((aligned (32)));
@@ -187,17 +186,11 @@ void x13sm3_4way_hash( void *state, const void *input )
      uint32_t sm3_hash3[32] __attribute__ ((aligned (32)));
      memset( sm3_hash3, 0, sizeof sm3_hash3 );
 
-     sph_sm3( &ctx.sm3, hash0, 64 );
-     sph_sm3_close( &ctx.sm3, sm3_hash0 );
-     memcpy( &ctx.sm3, &x13sm3_4way_ctx.sm3, sizeof(sm3_ctx_t) );
-     sph_sm3( &ctx.sm3, hash1, 64 );
-     sph_sm3_close( &ctx.sm3, sm3_hash1 );
-     memcpy( &ctx.sm3, &x13sm3_4way_ctx.sm3, sizeof(sm3_ctx_t) );
-     sph_sm3( &ctx.sm3, hash2, 64 );
-     sph_sm3_close( &ctx.sm3, sm3_hash2 );
-     memcpy( &ctx.sm3, &x13sm3_4way_ctx.sm3, sizeof(sm3_ctx_t) );
-     sph_sm3( &ctx.sm3, hash3, 64 );
-     sph_sm3_close( &ctx.sm3, sm3_hash3 );
+     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     sm3_4way( &ctx.sm3, vhash, 64 );
+     sm3_4way_close( &ctx.sm3, sm3_vhash );
+     mm_deinterleave_4x32( sm3_hash0, sm3_hash1, sm3_hash2, sm3_hash3,
+                           sm3_vhash, 1024 );
 
      // Hamsi
      sph_hamsi512( &ctx.hamsi, sm3_hash0, 64 );

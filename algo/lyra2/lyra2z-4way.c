@@ -85,8 +85,8 @@ int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
       be32enc( noncep2, n+2 );
       be32enc( noncep3, n+3 );
 
-      be32enc( &edata[19], n );
       lyra2z_4way_hash( hash, vdata );
+      pdata[19] = n;
 
       if ( hash[7] <= Htarg && fulltest( hash, ptarget ) )
       {

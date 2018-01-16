@@ -35,7 +35,9 @@
  */
 
 #ifndef __BLAKE_HASH_4WAY__
-#define __BLAKE_HASH_4WAY___
+#define __BLAKE_HASH_4WAY__
+
+#ifdef __AVX__
 
 #ifdef __cplusplus
 extern "C"{
@@ -45,38 +47,36 @@ extern "C"{
 #include "algo/sha/sph_types.h"
 #include "avxdefs.h"
 
-/**
- * Output size (in bits) for BLAKE-256.
- */
 #define SPH_SIZE_blake256   256
 
-#if SPH_64
-
-/**
- * Output size (in bits) for BLAKE-512.
- */
 #define SPH_SIZE_blake512   512
 
-#endif
-
-#ifdef __AVX__
 typedef struct {
-        __m128i buf[16] __attribute__ ((aligned (64)));
-        __m128i H[8];
-        __m128i S[4];    
-        size_t ptr;
-	sph_u32 T0, T1;
+   __m128i buf[16] __attribute__ ((aligned (64)));
+   __m128i H[8];
+   __m128i S[4];    
+   size_t ptr;
+   sph_u32 T0, T1;
+   int rounds;   // 14 for blake, 8 for blakecoin & vanilla
 } blake_4way_small_context;
 
+// Default 14 rounds
 typedef blake_4way_small_context blake256_4way_context;
-
 void blake256_4way_init(void *cc);
 void blake256_4way(void *cc, const void *data, size_t len);
 void blake256_4way_close(void *cc, void *dst);
-void blake256_4way_addbits_and_close(
-        void *cc, unsigned ub, unsigned n, void *dst);
 
-#endif
+// 14 rounds, blake, decred
+typedef blake_4way_small_context blake256r14_4way_context;
+void blake256r14_4way_init(void *cc);
+void blake256r14_4way(void *cc, const void *data, size_t len);
+void blake256r14_4way_close(void *cc, void *dst);
+
+// 8 rounds, blakecoin, vanilla
+typedef blake_4way_small_context blake256r8_4way_context;
+void blake256r8_4way_init(void *cc);
+void blake256r8_4way(void *cc, const void *data, size_t len);
+void blake256r8_4way_close(void *cc, void *dst);
 
 #ifdef __AVX2__
 
@@ -100,6 +100,8 @@ void blake512_4way_addbits_and_close(
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif
