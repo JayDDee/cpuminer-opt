@@ -67,7 +67,7 @@ void deep_hash(void *output, const void *input)
                           (const BitSequence *) hash, 512);
 #endif
 
-        asm volatile ("emms");
+        //asm volatile ("emms");
         memcpy(output, hash, 32);
 }
 

@@ -1,6 +1,7 @@
 #ifndef CUBEHASH_SSE2_H__
 #define CUBEHASH_SSE2_H__
 
+#include <stddef.h>
 #include "compat.h"
 #include <stdint.h>
 #include "algo/sha/sha3-defs.h"

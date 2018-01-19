@@ -1,7 +1,10 @@
 #include <memory.h>
+#include <mm_malloc.h>
 #include "algo-gate-api.h"
 #include "lyra2.h"
-#include "avxdefs.h"
+#ifndef NO_AES_NI
+  #include "avxdefs.h"
+#endif
 
 __thread uint64_t* lyra2z330_wholeMatrix;
 

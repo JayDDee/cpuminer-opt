@@ -203,7 +203,7 @@ void x17_hash(void *output, const void *input)
         sph_haval256_5_close(&ctx.haval,hashB);
 
 
-        asm volatile ("emms");
+//        asm volatile ("emms");
 	memcpy(output, hashB, 32);
 }
 

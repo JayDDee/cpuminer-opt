@@ -1,3 +1,5 @@
+#if !defined(__arm__) && !defined(__aarch64__)
+
 #include <x86intrin.h>
 #include <memory.h>
 #include "cryptonight.h"
@@ -331,3 +333,4 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
 
 #endif
 }
+#endif

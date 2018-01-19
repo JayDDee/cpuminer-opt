@@ -24,7 +24,7 @@
 #include "opt.h"
 
 #include "blake2/blake2.h"
-#include "blake2/blamka-round-opt.h"
+#include "blake2/blamka-round-ref.h"
 
 void fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block)
 {
@@ -35,6 +35,8 @@ void fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block)
             state[i], _mm_load_si128(&ref_block[i]));
     }
 
+	printf("Blake2_round use\n");
+	/*
     BLAKE2_ROUND(state[0], state[1], state[2], state[3], state[4], state[5], state[6], state[7]);
     BLAKE2_ROUND(state[8], state[9], state[10], state[11], state[12], state[13], state[14], state[15]);
     BLAKE2_ROUND(state[16], state[17], state[18], state[19], state[20], state[21], state[22], state[23]);
@@ -43,12 +45,13 @@ void fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block)
     BLAKE2_ROUND(state[40], state[41], state[42], state[43], state[44], state[45], state[46], state[47]);
     BLAKE2_ROUND(state[48], state[49], state[50], state[51], state[52], state[53], state[54], state[55]);
     BLAKE2_ROUND(state[56], state[57], state[58], state[59], state[60], state[61], state[62], state[63]);
+    */
     /*for (i = 0; i < 8; ++i) {
         BLAKE2_ROUND(state[8 * i + 0], state[8 * i + 1], state[8 * i + 2],
                      state[8 * i + 3], state[8 * i + 4], state[8 * i + 5],
                      state[8 * i + 6], state[8 * i + 7]);
     }*/
-
+/*
     BLAKE2_ROUND(state[0], state[8], state[16], state[24], state[32], state[40], state[48], state[56]);
     BLAKE2_ROUND(state[1], state[9], state[17], state[25], state[33], state[41], state[49], state[57]);
     BLAKE2_ROUND(state[2], state[10], state[18], state[26], state[34], state[42], state[50], state[58]);
@@ -57,6 +60,7 @@ void fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block)
     BLAKE2_ROUND(state[5], state[13], state[21], state[29], state[37], state[45], state[53], state[61]);
     BLAKE2_ROUND(state[6], state[14], state[22], state[30], state[38], state[46], state[54], state[62]);
     BLAKE2_ROUND(state[7], state[15], state[23], state[31], state[39], state[47], state[55], state[63]);
+    */
     /*for (i = 0; i < 8; ++i) {
         BLAKE2_ROUND(state[8 * 0 + i], state[8 * 1 + i], state[8 * 2 + i],
                      state[8 * 3 + i], state[8 * 4 + i], state[8 * 5 + i],

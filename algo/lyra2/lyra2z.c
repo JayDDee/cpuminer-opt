@@ -3,7 +3,9 @@
 #include "lyra2z-gate.h"
 #include "lyra2.h"
 #include "algo/blake/sph_blake.h"
-#include "avxdefs.h"
+#ifndef NO_AES_NI
+  #include "avxdefs.h"
+#endif
 
 __thread uint64_t* lyra2z_matrix;
 

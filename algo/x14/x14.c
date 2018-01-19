@@ -177,7 +177,7 @@ void x14hash(void *output, const void *input)
 	sph_shabal512_close(&ctx.shabal, hash);
 
 
-        asm volatile ("emms");
+//        asm volatile ("emms");
 	memcpy(output, hash, 32);
 }
 

@@ -15,6 +15,15 @@ bin_PROGRAMS	= cpuminer
 
 dist_man_MANS	= cpuminer.1
 
+#  algo/echo/aes_ni/hash.c\
+#  algo/groestl/aes_ni/hash-groestl.c \
+#  algo/groestl/aes_ni/hash-groestl256.c \
+#  algo/shavite/sph-shavite-aesni.c \
+#  algo/luffa/sse2/luffa_for_sse2.c \
+#  algo/simd/sse2/nist.c \
+#  algo/simd/sse2/vector.c \
+#  algo/yescrypt/yescrypt-simd.c \
+#
 cpuminer_SOURCES = \
   cpu-miner.c \
   util.c \
@@ -66,13 +75,10 @@ cpuminer_SOURCES = \
   algo/cubehash/sph_cubehash.c \
   algo/cubehash/sse2/cubehash_sse2.c\
   algo/echo/sph_echo.c \
-  algo/echo/aes_ni/hash.c\
   algo/gost/sph_gost.c \
   algo/groestl/sph_groestl.c \
   algo/groestl/groestl.c \
   algo/groestl/myr-groestl.c \
-  algo/groestl/aes_ni/hash-groestl.c \
-  algo/groestl/aes_ni/hash-groestl256.c \
   algo/fugue/sph_fugue.c \
   algo/hamsi/sph_hamsi.c \
   algo/haval/haval.c\
@@ -98,7 +104,6 @@ cpuminer_SOURCES = \
   algo/lbry.c \
   algo/luffa/sph_luffa.c \
   algo/luffa/luffa.c \
-  algo/luffa/sse2/luffa_for_sse2.c \
   algo/lyra2/lyra2.c \
   algo/lyra2/sponge.c \
   algo/lyra2/lyra2rev2-gate.c \
@@ -134,11 +139,8 @@ cpuminer_SOURCES = \
   algo/shabal/sph_shabal.c \
   algo/shabal/shabal-hash-4way.c \
   algo/shavite/sph_shavite.c \
-  algo/shavite/sph-shavite-aesni.c \
   algo/shavite/shavite.c \
   algo/simd/sph_simd.c \
-  algo/simd/sse2/nist.c \
-  algo/simd/sse2/vector.c \
   algo/skein/sph_skein.c \
   algo/skein/skein-hash-4way.c \
   algo/skein/skein.c \
@@ -213,7 +215,7 @@ cpuminer_SOURCES = \
   algo/x17/hmq1725.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/sha256_Y.c \
-  algo/yescrypt/yescrypt-simd.c
+  algo/yescrypt/yescrypt-best.c
 
 disable_flags =
 

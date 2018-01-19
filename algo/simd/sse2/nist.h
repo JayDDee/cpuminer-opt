@@ -38,14 +38,22 @@ typedef struct {
  * NIST API
  */
 
-HashReturn init_sd(hashState_sd *state, int hashbitlen);
+static HashReturn init_sd(hashState_sd *state, int hashbitlen) {
+  printf("use udefined init_sd\n");
+}
 
-HashReturn update_sd(hashState_sd *state, const BitSequence *data, DataLength databitlen);
+static HashReturn update_sd(hashState_sd *state, const BitSequence *data, DataLength databitlen) {
+  printf("use udefined upd_sd\n");
+}
 
-HashReturn final_sd(hashState_sd *state, BitSequence *hashval);
+static HashReturn final_sd(hashState_sd *state, BitSequence *hashval) {
+  printf("use udefined final_sd\n");
+}
 
-HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
-                            const BitSequence *data, DataLength databitlen );
+static HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
+                            const BitSequence *data, DataLength databitlen ) {
+  printf("use udefined upd_final_sd\n");
+}
 
 //HashReturn Hash(int hashbitlen, const BitSequence *data, DataLength databitlen,
 //                BitSequence *hashval);

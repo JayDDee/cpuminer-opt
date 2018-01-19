@@ -16,7 +16,7 @@
 #define HWMON_PATH \
  "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input"
 #define HWMON_ALT \
- "/sys/class/hwmon/hwmon1/temp1_input"
+ "/sys/class/thermal/thermal_zone0/temp"
 #define HWMON_ALT2 \
  "/sys/class/hwmon/hwmon0/temp1_input"
 #define HWMON_ALT3 \
@@ -51,7 +51,7 @@ static float linux_cputemp(int core)
 		return tc;
 
 	if (fscanf(fd, "%d", &val))
-		tc = val / 1000.0;
+		tc = val;// / 1000.0;
 	fclose(fd);
 	return tc;
 }
@@ -109,7 +109,7 @@ int cpu_fanpercent()
 	return 0;
 }
 
-#ifndef __arm__
+#if !defined(__arm__) && !defined(__aarch64__)
 static inline void cpuid(int functionnumber, int output[4]) {
 #if defined (_MSC_VER) || defined (__INTEL_COMPILER)
 	// Microsoft or Intel compiler, intrin.h included

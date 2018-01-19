@@ -23,7 +23,7 @@
 #define SPONGE_H_
 
 #include <stdint.h>
-#include "avxdefs.h"
+//#include "avxdefs.h"
 
 #if defined(__GNUC__)
 #define ALIGN __attribute__ ((aligned(32)))

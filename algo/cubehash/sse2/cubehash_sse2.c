@@ -1,7 +1,7 @@
 /* CubeHash 16/32 is recommended for SHA-3 "normal", 16/1 for "formal" */
 #define CUBEHASH_ROUNDS	16
 #define CUBEHASH_BLOCKBYTES 32
-#define OPTIMIZE_SSE2
+//#define OPTIMIZE_SSE2
 #if defined(OPTIMIZE_SSE2)
 #include <emmintrin.h>
 #endif
@@ -185,9 +185,9 @@ int cubehashDigest( cubehashParam *sp, byte *digest )
     int i;
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
-    sp->x[ sp->pos ] = _mm_xor_si128( sp->x[ sp->pos ],
-                                      _mm_set_epi8( 0,0,0,0, 0,0,0,0,
-                                                    0,0,0,0, 0,0,0,0x80 ) );
+//    sp->x[ sp->pos ] = _mm_xor_si128( sp->x[ sp->pos ],
+//                                      _mm_set_epi8( 0,0,0,0, 0,0,0,0,
+//                                                    0,0,0,0, 0,0,0,0x80 ) );
     transform( sp );
 
     sp->x[7] = _mm_xor_si128( sp->x[7], _mm_set_epi32( 1,0,0,0 ) );
@@ -231,9 +231,9 @@ int cubehashUpdateDigest( cubehashParam *sp, byte *digest,
     }
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
-    sp->x[ sp->pos ] = _mm_xor_si128( sp->x[ sp->pos ],
-                                      _mm_set_epi8( 0,0,0,0, 0,0,0,0,
-                                                    0,0,0,0, 0,0,0,0x80 ) );
+//    sp->x[ sp->pos ] = _mm_xor_si128( sp->x[ sp->pos ],
+//                                      _mm_set_epi8( 0,0,0,0, 0,0,0,0,
+//                                                    0,0,0,0, 0,0,0,0x80 ) );
     transform( sp );
 
     sp->x[7] = _mm_xor_si128( sp->x[7], _mm_set_epi32( 1,0,0,0 ) );

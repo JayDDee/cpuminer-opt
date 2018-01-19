@@ -335,8 +335,7 @@ static void neoscrypt_pbkdf2_sha256(const uint8_t *password, size_t password_len
 
 /* NeoScrypt */
 
-#if (ASM)
-
+#if (ASM) && !defined(__arm__) && !defined(__aarch64__)
 extern void neoscrypt_salsa(uint *X, uint rounds);
 extern void neoscrypt_salsa_tangle(uint *X, uint count);
 extern void neoscrypt_chacha(uint *X, uint rounds);
@@ -969,7 +968,7 @@ void neoscrypt(uchar *output, const uchar *password)
         }
     }
 
-#if (ASM)
+#if (ASM) && !defined(__arm__) && !defined(__aarch64__)
     /* Must be called before and after SSE2 Salsa */
     neoscrypt_salsa_tangle(&X[0], r * 2);
 #endif
@@ -990,7 +989,7 @@ void neoscrypt(uchar *output, const uchar *password)
         neoscrypt_blkmix(&X[0], &Y[0], r, mixmode);
     }
 
-#if (ASM)
+#if (ASM)  && !defined(__arm__) && !defined(__aarch64__)
     neoscrypt_salsa_tangle(&X[0], r * 2);
 #endif
 

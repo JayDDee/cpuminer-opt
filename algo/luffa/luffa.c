@@ -6,6 +6,8 @@
 #include <stdio.h>
 
 #include "sph_luffa.h"
+#include "sse2/luffa_for_sse2.h"
+
 
 void luffahash(void *output, const void *input)
 {
@@ -61,3 +63,120 @@ bool register_luffa_algo( algo_gate_t* gate )
     return true;
 };
 
+HashReturn init_luffa(hashState_luffa *state, int hashbitlen)
+{
+	printf("USE UNDEFINED LUFFA\n");
+	/*
+    int i;
+    state->hashbitlen = hashbitlen;
+    // set the lower 32 bits to '1' 
+    MASK= _mm_set_epi32(0x00000000, 0x00000000, 0x00000000, 0xffffffff);
+    // set all bits to '1'
+    ALLONE = _mm_set_epi32(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+    // set the 32-bit round constant values to the 128-bit data field 
+    for ( i=0; i<32; i++ )
+        CNS128[i] = _mm_load_si128( (__m128i*)&CNS_INIT[i*4] );
+    for ( i=0; i<10; i++ ) 
+	state->chainv[i] = _mm_load_si128( (__m128i*)&IV[i*4] );
+    memset(state->buffer, 0, sizeof state->buffer );
+    return SUCCESS;
+    */
+}
+
+HashReturn update_luffa( hashState_luffa *state, const BitSequence *data,
+                         size_t len )
+{
+	printf("USE UNDEFINED LUFFA\n");
+/*
+    int i;
+    int blocks = (int)len / 32;
+    state-> rembytes = (int)len % 32;
+
+    // full blocks
+    for ( i = 0; i < blocks; i++ )
+    {
+       rnd512( state, mm_byteswap_32( casti_m128i( data, 1 ) ),
+                      mm_byteswap_32( casti_m128i( data, 0 ) ) );
+       data += MSG_BLOCK_BYTE_LEN;
+    }
+
+    // 16 byte partial block exists for 80 byte len
+    // store in buffer for transform in final for midstate to work
+    if ( state->rembytes  )
+    {
+      // remaining data bytes
+      casti_m128i( state->buffer, 0 ) = mm_byteswap_32( cast_m128i( data ) );
+      // padding of partial block
+      casti_m128i( state->buffer, 1 ) =
+            _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+    }
+
+    return SUCCESS;
+    */
+}
+
+HashReturn final_luffa(hashState_luffa *state, BitSequence *hashval) 
+{
+	printf("USE UNDEFINED LUFFA\n");
+
+/*
+    // transform pad block
+    if ( state->rembytes )
+    {
+      // not empty, data is in buffer
+      rnd512( state, casti_m128i( state->buffer, 1 ),
+                     casti_m128i( state->buffer, 0 ) );
+    }
+    else
+    {
+      // empty pad block, constant data
+     rnd512( state, _mm_setzero_si128(),
+                       _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
+    }
+
+    finalization512(state, (uint32*) hashval);
+    if ( state->hashbitlen > 512 )
+        finalization512( state, (uint32*)( hashval+128 ) );
+    return SUCCESS;
+    */
+}
+
+HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
+              const BitSequence* data, size_t inlen )
+{
+	printf("USE UNDEFINED LUFFA\n");
+/*
+// Optimized for integrals of 16 bytes, good for 64 and 80 byte len
+    int i;
+    int blocks = (int)( inlen / 32 );
+    state->rembytes = inlen % 32;
+
+    // full blocks
+    for ( i = 0; i < blocks; i++ )
+    {
+       rnd512( state, mm_byteswap_32( casti_m128i( data, 1 ) ),
+                      mm_byteswap_32( casti_m128i( data, 0 ) ) );
+       data += MSG_BLOCK_BYTE_LEN;
+    }
+
+    // 16 byte partial block exists for 80 byte len
+    if ( state->rembytes  )
+    {
+      // padding of partial block
+      rnd512( state, _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ),
+                      mm_byteswap_32( cast_m128i( data ) ) );
+    }
+    else
+    {
+      // empty pad block
+     rnd512( state, _mm_setzero_si128(), 
+                       _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
+    }
+
+    finalization512( state, (uint32*) output );
+    if ( state->hashbitlen > 512 )
+        finalization512( state, (uint32*)( output+128 ) );
+
+    return SUCCESS;
+    */
+}

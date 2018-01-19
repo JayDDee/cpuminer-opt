@@ -48,9 +48,9 @@
  */
 
 #include <string.h>
-#include "sm3-hash-4way.h"
 
 #ifdef __AVX__
+#include "sm3-hash-4way.h"
 
 void sm3_4way_init( sm3_4way_ctx_t *ctx )
 {

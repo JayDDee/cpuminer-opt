@@ -168,7 +168,7 @@ void x13sm3_hash(void *output, const void *input)
         sph_fugue512(&ctx.fugue, hash, 64);
         sph_fugue512_close(&ctx.fugue, hash);
 
-        asm volatile ("emms");
+//        asm volatile ("emms");
 	memcpy(output, hash, 32);
 }
 

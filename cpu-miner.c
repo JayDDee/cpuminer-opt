@@ -1904,8 +1904,8 @@ applog(LOG_NOTICE,  "1 WAY hash nonce submitted");
              else // no fractions of a hash
                 sprintf( hc, "%.0f", hashcount );
              sprintf( hr, "%.2f", hashrate );
-             applog( LOG_INFO, "CPU #%d: %s %sH, %s %sH/s",
-                               thr_id, hc, hc_units, hr, hr_units );
+             applog( LOG_INFO, "CPU #%d: %s %sH, %s %sH/s %dC",
+                               thr_id, hc, hc_units, hr, hr_units, (uint32_t)cpu_temp(0) );
           }
        }
        // Display benchmark total
@@ -2930,6 +2930,11 @@ bool check_cpu_capability ()
      bool use_sha;
      bool use_4way;
      bool use_none;
+
+	 #if defined(__arm__) || defined(__aarch64__)
+     printf( "CPU: ARM or AARCH64 no SSE2!\n" );
+     return true;
+     #endif
 
      #ifdef __AES__
        sw_has_aes = true;

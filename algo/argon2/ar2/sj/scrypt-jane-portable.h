@@ -33,6 +33,9 @@
 	#endif
 #endif
 
+#if defined(__arm__) || defined(__aarch64__)
+	static size_t detect_cpu(void) { return 0; }
+#endif
 
 /* determine compiler */
 #if defined(_MSC_VER)

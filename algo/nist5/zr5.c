@@ -126,21 +126,17 @@ static const int arrOrder[][4] =
                 final_groestl( &ctx.groestl, (char*)hash);
             #endif
 	    break;
-         case 2:
-		{DECL_JH;
-		JH_H;} 
-		break;
+		case 2: 
+			{DECL_JH; JH_H;}
+			break;
          case 3:
-		{DECL_SKN;
-                SKN_I;
-                SKN_U;
-                SKN_C; }
-		break;
+			{DECL_SKN;SKN_I;SKN_U;SKN_C; }
+			break;
          default:
            break;
        }
     }
-	asm volatile ("emms");
+//	asm volatile ("emms");
 	memcpy(state, hash, 32);
 }
 

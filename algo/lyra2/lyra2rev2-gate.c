@@ -1,4 +1,5 @@
 #include "lyra2rev2-gate.h"
+#include <mm_malloc.h>
 
 __thread uint64_t* l2v2_wholeMatrix;
 
