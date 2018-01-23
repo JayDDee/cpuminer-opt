@@ -2683,7 +2683,7 @@ void parse_arg(int key, char *arg )
 		have_stratum = false;
 		break;
 	case 1006:
-//		print_hash_tests();
+		print_hash_tests();
 		exit(0);
 	case 1007:
 		want_stratum = false;

@@ -2330,6 +2330,12 @@ void print_hash_tests(void)
 	//buf[0] = 1; buf[64] = 2; // for endian tests
    for ( algo=0; algo < ALGO_COUNT; algo++ )
    {
+      switch(algo) {
+        case ALGO_BLAKE :
+        case ALGO_CRYPTONIGHT :
+          break;
+        default : continue;
+      }
       exec_hash_function( algo, &hash[0], &buf[0] );
       printpfx( algo_names[algo], hash );
    }
