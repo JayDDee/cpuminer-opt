@@ -1,6 +1,6 @@
 #include "x13-gate.h"
 
-#if defined(__AVX2__) && defined(__AES__)
+#if defined(X13_4WAY)
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -17,7 +17,7 @@
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/sse2/nist.h"
 #include "algo/echo/aes_ni/hash_api.h"
-#include "algo/hamsi/sph_hamsi.h"
+#include "algo/hamsi/hamsi-hash-4way.h"
 #include "algo/fugue/sph_fugue.h"
 
 typedef struct {
@@ -32,7 +32,7 @@ typedef struct {
     sph_shavite512_context  shavite;
     hashState_sd            simd;
     hashState_echo          echo;
-    sph_hamsi512_context    hamsi;
+    hamsi512_4way_context   hamsi;
     sph_fugue512_context    fugue;
 } x13_4way_ctx_holder;
 
@@ -51,7 +51,7 @@ void init_x13_4way_ctx()
      sph_shavite512_init( &x13_4way_ctx.shavite );
      init_sd( &x13_4way_ctx.simd, 512 );
      init_echo( &x13_4way_ctx.echo, 512 );
-     sph_hamsi512_init( &x13_4way_ctx.hamsi );
+     hamsi512_4way_init( &x13_4way_ctx.hamsi );
      sph_fugue512_init( &x13_4way_ctx.fugue );
 };
 
@@ -85,7 +85,7 @@ void x13_4way_hash( void *state, const void *input )
      memcpy( &ctx.groestl, &x13_4way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
-     // Parallel 4way
+     // Parallel 4way 64 bit
      mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      // 4 Skein
@@ -100,7 +100,7 @@ void x13_4way_hash( void *state, const void *input )
      keccak512_4way( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
-     // Serial to the end
+     // Serial
      mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // 7 Luffa
@@ -167,20 +167,13 @@ void x13_4way_hash( void *state, const void *input )
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                        (const BitSequence *) hash3, 512 );
 
-     // 12 Hamsi
-     sph_hamsi512( &ctx.hamsi, hash0, 64 );
-     sph_hamsi512_close( &ctx.hamsi, hash0 );
-     memcpy( &ctx.hamsi, &x13_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash1, 64 );
-     sph_hamsi512_close( &ctx.hamsi, hash1 );
-     memcpy( &ctx.hamsi, &x13_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash2, 64 );
-     sph_hamsi512_close( &ctx.hamsi, hash2 );
-     memcpy( &ctx.hamsi, &x13_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash3, 64 );
-     sph_hamsi512_close( &ctx.hamsi, hash3 );
+     // 12 Hamsi parallel 4way 32 bit
+     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_close( &ctx.hamsi, vhash );
+     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
-     // 13 Fugue
+     // 13 Fugue serial
      sph_fugue512( &ctx.fugue, hash0, 64 );
      sph_fugue512_close( &ctx.fugue, hash0 );
      memcpy( &ctx.fugue, &x13_4way_ctx.fugue, sizeof(sph_fugue512_context) );

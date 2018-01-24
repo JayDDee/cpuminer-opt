@@ -1,7 +1,7 @@
 #include "cpuminer-config.h"
 #include "x11gost-gate.h"
 
-#if defined (__AVX2__) && defined (__AES__)
+#if defined (X11GOST_4WAY)
 
 #include <string.h>
 #include <stdint.h>

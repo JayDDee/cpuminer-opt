@@ -4,7 +4,7 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
-#if defined(HASH_4WAY)
+#if defined(__AVX2__)
   #define SKUNK_4WAY
 #endif
 

@@ -29,6 +29,8 @@ extern "C" {
 #endif
 
 int cubehashInit(cubehashParam* sp, int hashbitlen, int rounds, int blockbytes);
+// reinitialize context with same parameters, much faster.
+int cubehashReinit( cubehashParam* sp );
 
 int cubehashUpdate(cubehashParam* sp, const byte *data, size_t size);
 

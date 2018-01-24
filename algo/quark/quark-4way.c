@@ -1,7 +1,7 @@
 #include "cpuminer-config.h"
 #include "quark-gate.h"
 
-#if defined (__AVX2__) && defined (__AES__)
+#if defined (QUARK_4WAY)
 
 #include <stdio.h>
 #include <string.h>

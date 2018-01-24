@@ -3,7 +3,8 @@
 #include "cryptonight.h"
 #include "miner.h"
 #include "crypto/c_keccak.h"
-#include "avxdefs.h"
+#include <immintrin.h>
+//#include "avxdefs.h"
 
 void aesni_parallel_noxor(uint8_t *long_state, uint8_t *text, uint8_t *ExpandedKey);
 void aesni_parallel_xor(uint8_t *text, uint8_t *ExpandedKey, uint8_t *long_state);

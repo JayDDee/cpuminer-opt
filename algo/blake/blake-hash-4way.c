@@ -78,6 +78,8 @@ static const sph_u64 IV512[8] = {
 
 #if SPH_COMPACT_BLAKE_32 || SPH_COMPACT_BLAKE_64
 
+// Blake-256 4 & 8 way, Blake-512 4way
+
 static const unsigned sigma[16][16] = {
 	{  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
 	{ 14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3 },
@@ -273,6 +275,8 @@ static const unsigned sigma[16][16] = {
 #define Mx_(n)      Mx__(n)
 #define Mx__(n)     M ## n
 
+// Blake-256 4 & 8 way
+
 #define CSx(r, i)   CSx_(Z ## r ## i)
 #define CSx_(n)     CSx__(n)
 #define CSx__(n)    CS ## n
@@ -310,6 +314,8 @@ static const sph_u32 CS[16] = {
 #endif
 
 #if defined(__AVX2__)
+
+// Blake-512 4 way
 
 #define CBx(r, i)   CBx_(Z ## r ## i)
 #define CBx_(n)     CBx__(n)
@@ -400,6 +406,35 @@ do { \
 #endif
 
 #if defined (__AVX2__)
+
+// BLAKE256 8 WAY
+
+#define GS_8WAY( m0, m1, c0, c1, a, b, c, d ) \
+do { \
+   a = _mm256_add_epi32( _mm256_add_epi32( _mm256_xor_si256( \
+                 _mm256_set1_epi32( c1 ), m0 ), b ), a ); \
+   d = mm256_rotr_32( _mm256_xor_si256( d, a ), 16 ); \
+   c = _mm256_add_epi32( c, d ); \
+   b = mm256_rotr_32( _mm256_xor_si256( b, c ), 12 ); \
+   a = _mm256_add_epi32( _mm256_add_epi32( _mm256_xor_si256( \
+                 _mm256_set1_epi32( c0 ), m1 ), b ), a ); \
+   d = mm256_rotr_32( _mm256_xor_si256( d, a ), 8 ); \
+   c = _mm256_add_epi32( c, d ); \
+   b = mm256_rotr_32( _mm256_xor_si256( b, c ), 7 ); \
+} while (0)
+
+#define ROUND_S_8WAY(r)   do { \
+        GS_8WAY(Mx(r, 0), Mx(r, 1), CSx(r, 0), CSx(r, 1), V0, V4, V8, VC); \
+        GS_8WAY(Mx(r, 2), Mx(r, 3), CSx(r, 2), CSx(r, 3), V1, V5, V9, VD); \
+        GS_8WAY(Mx(r, 4), Mx(r, 5), CSx(r, 4), CSx(r, 5), V2, V6, VA, VE); \
+        GS_8WAY(Mx(r, 6), Mx(r, 7), CSx(r, 6), CSx(r, 7), V3, V7, VB, VF); \
+        GS_8WAY(Mx(r, 8), Mx(r, 9), CSx(r, 8), CSx(r, 9), V0, V5, VA, VF); \
+        GS_8WAY(Mx(r, A), Mx(r, B), CSx(r, A), CSx(r, B), V1, V6, VB, VC); \
+        GS_8WAY(Mx(r, C), Mx(r, D), CSx(r, C), CSx(r, D), V2, V7, V8, VD); \
+        GS_8WAY(Mx(r, E), Mx(r, F), CSx(r, E), CSx(r, F), V3, V4, V9, VE); \
+} while (0)
+
+// Blake-512 4 way
 
 #define GB_4WAY(m0, m1, c0, c1, a, b, c, d)   do { \
    a = _mm256_add_epi64( _mm256_add_epi64( _mm256_xor_si256( \
@@ -627,6 +662,125 @@ do { \
 
 #if defined (__AVX2__)
 
+// Blake-256 8 way
+
+#define DECL_STATE32_8WAY \
+   __m256i H0, H1, H2, H3, H4, H5, H6, H7; \
+   __m256i S0, S1, S2, S3; \
+   sph_u32 T0, T1;
+
+#define READ_STATE32_8WAY(state) \
+do { \
+   H0 = (state)->H[0]; \
+   H1 = (state)->H[1]; \
+   H2 = (state)->H[2]; \
+   H3 = (state)->H[3]; \
+   H4 = (state)->H[4]; \
+   H5 = (state)->H[5]; \
+   H6 = (state)->H[6]; \
+   H7 = (state)->H[7]; \
+   S0 = (state)->S[0]; \
+   S1 = (state)->S[1]; \
+   S2 = (state)->S[2]; \
+   S3 = (state)->S[3]; \
+   T0 = (state)->T0; \
+   T1 = (state)->T1; \
+} while (0)
+
+#define WRITE_STATE32_8WAY(state) \
+do { \
+   (state)->H[0] = H0; \
+   (state)->H[1] = H1; \
+   (state)->H[2] = H2; \
+   (state)->H[3] = H3; \
+   (state)->H[4] = H4; \
+   (state)->H[5] = H5; \
+   (state)->H[6] = H6; \
+   (state)->H[7] = H7; \
+   (state)->S[0] = S0; \
+   (state)->S[1] = S1; \
+   (state)->S[2] = S2; \
+   (state)->S[3] = S3; \
+   (state)->T0 = T0; \
+   (state)->T1 = T1; \
+} while (0)
+
+#define COMPRESS32_8WAY( rounds ) \
+do { \
+   __m256i M0, M1, M2, M3, M4, M5, M6, M7; \
+   __m256i M8, M9, MA, MB, MC, MD, ME, MF; \
+   __m256i V0, V1, V2, V3, V4, V5, V6, V7; \
+   __m256i V8, V9, VA, VB, VC, VD, VE, VF; \
+   V0 = H0; \
+   V1 = H1; \
+   V2 = H2; \
+   V3 = H3; \
+   V4 = H4; \
+   V5 = H5; \
+   V6 = H6; \
+   V7 = H7; \
+   V8 = _mm256_xor_si256( S0, _mm256_set1_epi32( CS0 ) ); \
+   V9 = _mm256_xor_si256( S1, _mm256_set1_epi32( CS1 ) ); \
+   VA = _mm256_xor_si256( S2, _mm256_set1_epi32( CS2 ) ); \
+   VB = _mm256_xor_si256( S3, _mm256_set1_epi32( CS3 ) ); \
+   VC = _mm256_xor_si256( _mm256_set1_epi32( T0 ), _mm256_set1_epi32( CS4 ) ); \
+   VD = _mm256_xor_si256( _mm256_set1_epi32( T0 ), _mm256_set1_epi32( CS5 ) ); \
+   VE = _mm256_xor_si256( _mm256_set1_epi32( T1 ), _mm256_set1_epi32( CS6 ) ); \
+   VF = _mm256_xor_si256( _mm256_set1_epi32( T1 ), _mm256_set1_epi32( CS7 ) ); \
+   M0 = mm256_byteswap_32( * buf ); \
+   M1 = mm256_byteswap_32( *(buf+1) ); \
+   M2 = mm256_byteswap_32( *(buf+2) ); \
+   M3 = mm256_byteswap_32( *(buf+3) ); \
+   M4 = mm256_byteswap_32( *(buf+4) ); \
+   M5 = mm256_byteswap_32( *(buf+5) ); \
+   M6 = mm256_byteswap_32( *(buf+6) ); \
+   M7 = mm256_byteswap_32( *(buf+7) ); \
+   M8 = mm256_byteswap_32( *(buf+8) ); \
+   M9 = mm256_byteswap_32( *(buf+9) ); \
+   MA = mm256_byteswap_32( *(buf+10) ); \
+   MB = mm256_byteswap_32( *(buf+11) ); \
+   MC = mm256_byteswap_32( *(buf+12) ); \
+   MD = mm256_byteswap_32( *(buf+13) ); \
+   ME = mm256_byteswap_32( *(buf+14) ); \
+   MF = mm256_byteswap_32( *(buf+15) ); \
+   ROUND_S_8WAY(0); \
+   ROUND_S_8WAY(1); \
+   ROUND_S_8WAY(2); \
+   ROUND_S_8WAY(3); \
+   ROUND_S_8WAY(4); \
+   ROUND_S_8WAY(5); \
+   ROUND_S_8WAY(6); \
+   ROUND_S_8WAY(7); \
+   if (rounds == 14) \
+   { \
+      ROUND_S_8WAY(8); \
+      ROUND_S_8WAY(9); \
+      ROUND_S_8WAY(0); \
+      ROUND_S_8WAY(1); \
+      ROUND_S_8WAY(2); \
+      ROUND_S_8WAY(3); \
+   } \
+   H0 = _mm256_xor_si256( _mm256_xor_si256( _mm256_xor_si256( V8, V0 ), \
+                                                              S0 ), H0 ); \
+   H1 = _mm256_xor_si256( _mm256_xor_si256( _mm256_xor_si256( V9, V1 ), \
+                                                              S1 ), H1 ); \
+   H2 = _mm256_xor_si256( _mm256_xor_si256( _mm256_xor_si256( VA, V2 ), \
+                                                              S2 ), H2 ); \
+   H3 = _mm256_xor_si256( _mm256_xor_si256( _mm256_xor_si256( VB, V3 ), \
+                                                              S3 ), H3 ); \
+   H4 = _mm256_xor_si256( _mm256_xor_si256( _mm256_xor_si256( VC, V4 ), \
+                                                              S0 ), H4 ); \
+   H5 = _mm256_xor_si256( _mm256_xor_si256( _mm256_xor_si256( VD, V5 ), \
+                                                              S1 ), H5 ); \
+   H6 = _mm256_xor_si256( _mm256_xor_si256( _mm256_xor_si256( VE, V6 ), \
+                                                              S2 ), H6 ); \
+   H7 = _mm256_xor_si256( _mm256_xor_si256( _mm256_xor_si256( VF, V7 ), \
+                                                              S3 ), H7 ); \
+} while (0)
+
+
+// Blake-512 4 way
+
 #define DECL_STATE64_4WAY \
 	__m256i H0, H1, H2, H3, H4, H5, H6, H7; \
         __m256i S0, S1, S2, S3; \
@@ -813,7 +967,7 @@ do { \
 
 #endif
 
-static const sph_u32 salt_zero_small[4] = { 0, 0, 0, 0 };
+static const sph_u32 salt_zero_4way_small[4] = { 0, 0, 0, 0 };
 
 static void
 blake32_4way_init( blake_4way_small_context *sc, const sph_u32 *iv,
@@ -933,6 +1087,129 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
 }
 
 #if defined (__AVX2__)
+
+// Blake-256 8 way
+
+static const sph_u32 salt_zero_8way_small[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+static void
+blake32_8way_init( blake_8way_small_context *sc, const sph_u32 *iv,
+                   const sph_u32 *salt, int rounds )
+{
+   int i;
+   for ( i = 0; i < 8; i++ )
+      sc->H[i] = _mm256_set1_epi32( iv[i] );
+   for ( i = 0; i < 4; i++ )
+      sc->S[i] = _mm256_set1_epi32( salt[i] );
+   sc->T0 = sc->T1 = 0;
+   sc->ptr = 0;
+   sc->rounds = rounds;
+}
+
+static void
+blake32_8way( blake_8way_small_context *sc, const void *data, size_t len )
+{
+   __m256i *vdata = (__m256i*)data;
+   __m256i *buf;
+   size_t ptr;
+   const int buf_size = 64;   // number of elements, sizeof/4
+   DECL_STATE32_8WAY
+
+   buf = sc->buf;
+   ptr = sc->ptr;
+   if ( len < buf_size - ptr )
+   {
+        memcpy_256( buf + (ptr>>2), vdata, len>>2 );
+        ptr += len;
+        sc->ptr = ptr;
+        return;
+   }
+
+   READ_STATE32_8WAY(sc);
+   while ( len > 0 )
+   {
+      size_t clen;
+
+      clen = buf_size - ptr;
+      if (clen > len)
+           clen = len;
+      memcpy_256( buf + (ptr>>2), vdata, clen>>2 );
+      ptr += clen;
+      vdata += (clen>>2);
+      len -= clen;
+      if ( ptr == buf_size )
+      {
+          if ( ( T0 = SPH_T32(T0 + 512) ) < 512 )
+                T1 = SPH_T32(T1 + 1);
+          COMPRESS32_8WAY( sc->rounds );
+          ptr = 0;
+      }
+   }
+   WRITE_STATE32_8WAY(sc);
+   sc->ptr = ptr;
+}
+
+static void
+blake32_8way_close( blake_8way_small_context *sc, unsigned ub, unsigned n,
+                    void *dst, size_t out_size_w32 )
+{
+   union {
+        __m256i buf[16];
+        sph_u32 dummy;
+   } u;
+   size_t ptr, k;
+   unsigned bit_len;
+   sph_u32 th, tl;
+   __m256i *out;
+
+   ptr = sc->ptr;
+   bit_len = ((unsigned)ptr << 3);
+   u.buf[ptr>>2] = _mm256_set1_epi32( 0x80 );
+   tl = sc->T0 + bit_len;
+   th = sc->T1;
+
+   if ( ptr == 0 )
+   {
+        sc->T0 = SPH_C32(0xFFFFFE00UL);
+        sc->T1 = SPH_C32(0xFFFFFFFFUL);
+   }
+   else if ( sc->T0 == 0 )
+   {
+        sc->T0 = SPH_C32(0xFFFFFE00UL) + bit_len;
+        sc->T1 = SPH_T32(sc->T1 - 1);
+   }
+   else
+        sc->T0 -= 512 - bit_len;
+
+   if ( ptr <= 52 )
+   {
+       memset_zero_256( u.buf + (ptr>>2) + 1, (52 - ptr) >> 2 );
+       if (out_size_w32 == 8)
+           u.buf[52>>2] = _mm256_or_si256( u.buf[52>>2],
+                                           _mm256_set1_epi32( 0x01000000UL ) );
+       *(u.buf+(56>>2)) = mm256_byteswap_32( _mm256_set1_epi32( th ) );
+       *(u.buf+(60>>2)) = mm256_byteswap_32( _mm256_set1_epi32( tl ) );
+       blake32_8way( sc, u.buf + (ptr>>2), 64 - ptr );
+   }
+   else
+   {
+        memset_zero_256( u.buf + (ptr>>2) + 1, (60-ptr) >> 2 );
+        blake32_8way( sc, u.buf + (ptr>>2), 64 - ptr );
+        sc->T0 = SPH_C32(0xFFFFFE00UL);
+        sc->T1 = SPH_C32(0xFFFFFFFFUL);
+        memset_zero_256( u.buf, 56>>2 );
+       if (out_size_w32 == 8)
+           u.buf[52>>2] = _mm256_set1_epi32( 0x01000000UL );
+        *(u.buf+(56>>2)) = mm256_byteswap_32( _mm256_set1_epi32( th ) );
+        *(u.buf+(60>>2)) = mm256_byteswap_32( _mm256_set1_epi32( tl ) );
+        blake32_8way( sc, u.buf, 64 );
+   }
+   out = (__m256i*)dst;
+   for ( k = 0; k < out_size_w32; k++ )
+        out[k] = mm256_byteswap_32( sc->H[k] );
+}
+
+// Blake-512 4 way
 
 static const sph_u64 salt_zero_big[4] = { 0, 0, 0, 0 };
 
@@ -1065,11 +1342,13 @@ blake64_4way_close( blake_4way_big_context *sc,
 
 #endif
 
+// Blake-256 4 way & 8 way
+
 // default 14 rounds, backward copatibility
 void
 blake256_4way_init(void *cc)
 {
-   blake32_4way_init( cc, IV256, salt_zero_small, 14 );
+   blake32_4way_init( cc, IV256, salt_zero_4way_small, 14 );
 }
 
 void
@@ -1084,10 +1363,31 @@ blake256_4way_close(void *cc, void *dst)
         blake32_4way_close(cc, 0, 0, dst, 8);
 }
 
-// 14 rounds blake, decred
+#if defined(__AVX2__)
+void
+blake256_8way_init(void *cc)
+{
+   blake32_8way_init( cc, IV256, salt_zero_8way_small, 14 );
+}
+
+void
+blake256_8way(void *cc, const void *data, size_t len)
+{
+        blake32_8way(cc, data, len);
+}
+
+void
+blake256_8way_close(void *cc, void *dst)
+{
+        blake32_8way_close(cc, 0, 0, dst, 8);
+}
+
+#endif
+
+// 14 rounds Blake, Decred
 void blake256r14_4way_init(void *cc)
 {
-   blake32_4way_init( cc, IV256, salt_zero_small, 14 );
+   blake32_4way_init( cc, IV256, salt_zero_4way_small, 14 );
 }
 
 void
@@ -1102,10 +1402,31 @@ blake256r14_4way_close(void *cc, void *dst)
    blake32_4way_close(cc, 0, 0, dst, 8);
 }
 
-// 8 rounds blakecoin, vanilla
+#if defined(__AVX2__)
+
+void blake256r14_8way_init(void *cc)
+{
+   blake32_8way_init( cc, IV256, salt_zero_8way_small, 14 );
+}
+
+void
+blake256r14_8way(void *cc, const void *data, size_t len)
+{
+   blake32_8way(cc, data, len);
+}
+
+void
+blake256r14_8way_close(void *cc, void *dst)
+{
+   blake32_8way_close(cc, 0, 0, dst, 8);
+}
+
+#endif
+
+// 8 rounds Blakecoin, Vanilla
 void blake256r8_4way_init(void *cc)
 {
-   blake32_4way_init( cc, IV256, salt_zero_small, 8 );
+   blake32_4way_init( cc, IV256, salt_zero_4way_small, 8 );
 }
 
 void
@@ -1119,6 +1440,29 @@ blake256r8_4way_close(void *cc, void *dst)
 {
    blake32_4way_close(cc, 0, 0, dst, 8);
 }
+
+#if defined (__AVX2__)
+
+void blake256r8_8way_init(void *cc)
+{
+   blake32_8way_init( cc, IV256, salt_zero_8way_small, 8 );
+}
+
+void
+blake256r8_8way(void *cc, const void *data, size_t len)
+{
+   blake32_8way(cc, data, len);
+}
+
+void
+blake256r8_8way_close(void *cc, void *dst)
+{
+   blake32_8way_close(cc, 0, 0, dst, 8);
+}
+
+#endif
+
+// Blake-512 4 way
 
 #if defined (__AVX2__)
 

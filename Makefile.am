@@ -22,7 +22,6 @@ cpuminer_SOURCES = \
   api.c \
   sysinfos.c \
   algo-gate-api.c\
-  crypto/blake2s.c \
   crypto/oaes_lib.c \
   crypto/c_keccak.c \
   crypto/c_groestl.c \
@@ -45,6 +44,7 @@ cpuminer_SOURCES = \
   algo/blake/blake-4way.c \
   algo/blake/sph_blake2b.c \
   algo/blake/blake2b.c \
+  algo/blake/sph-blake2s.c \
   algo/blake/blake2s.c \
   algo/blake/blakecoin-gate.c \
   algo/blake/mod_blakecoin.c \
@@ -75,7 +75,9 @@ cpuminer_SOURCES = \
   algo/groestl/aes_ni/hash-groestl256.c \
   algo/fugue/sph_fugue.c \
   algo/hamsi/sph_hamsi.c \
-  algo/haval/haval.c\
+  algo/hamsi/hamsi-hash-4way.c \
+  algo/haval/haval.c \
+  algo/haval/haval-hash-4way.c \
   algo/heavy/sph_hefty1.c \
   algo/heavy/heavy.c \
   algo/heavy/bastion.c \
@@ -122,6 +124,9 @@ cpuminer_SOURCES = \
   algo/quark/quark-gate.c \
   algo/quark/quark.c \
   algo/quark/quark-4way.c \
+  algo/quark/anime-gate.c \
+  algo/quark/anime.c \
+  algo/quark/anime-4way.c \
   algo/qubit/qubit.c \
   algo/qubit/deep.c \
   algo/ripemd/sph_ripemd.c \
@@ -129,6 +134,7 @@ cpuminer_SOURCES = \
   algo/scryptjane/scrypt-jane.c \
   algo/sha/sph_sha2.c \
   algo/sha/sph_sha2big.c \
+  algo/sha/sha2-hash-4way.c \
   algo/sha/sha2.c \
   algo/sha/sha256t.c \
   algo/shabal/sph_shabal.c \
@@ -210,6 +216,9 @@ cpuminer_SOURCES = \
   algo/x17/xevan-gate.c \
   algo/x17/xevan.c \
   algo/x17/xevan-4way.c \
+  algo/x17/x16r-gate.c \
+  algo/x17/x16r.c \
+  algo/x17/x16r-4way.c \
   algo/x17/hmq1725.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/sha256_Y.c \

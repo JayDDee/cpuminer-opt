@@ -20,29 +20,29 @@ cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
 make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
-CFLAGS="-O3 -march=core-avx2 -msha -Wall -DFOUR_WAY" ./configure $F
+CFLAGS="-O3 -march=core-avx2 -msha -Wall" ./configure $F
 make 
 strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-4way-sha.exe
+mv cpuminer.exe release/cpuminer-avx2-sha.exe
 
-make clean || echo clean
-rm -f config.status
-CFLAGS="-O3 -march=core-avx2 -Wall -DFOUR_WAY" ./configure $F
-make
-mv cpuminer.exe release/cpuminer-4way.exe
+#make clean || echo clean
+#rm -f config.status
+#CFLAGS="-O3 -march=core-avx2 -Wall -DFOUR_WAY" ./configure $F
+#make
+#mv cpuminer.exe release/cpuminer-4way.exe
 
-make clean || echo clean
-CFLAGS="-O3 -march=corei7-avx -msha -Wall" ./configure $F
-make
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-avx-sha.exe
+#make clean || echo clean
+#CFLAGS="-O3 -march=corei7-avx -msha -Wall" ./configure $F
+#make
+#strip -s cpuminer.exe
+#mv cpuminer.exe release/cpuminer-avx-sha.exe
 
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=core-avx2 -Wall" ./configure $F 
 make 
 strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-aes-avx2.exe
+mv cpuminer.exe release/cpuminer-avx2.exe
 
 #make clean || echo clean
 #rm -f config.status
@@ -66,12 +66,12 @@ make
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-aes-sse42.exe
 
-make clean || echo clean
-rm -f config.status
-CFLAGS="-O3 -march=corei7 -Wall" ./configure $F
-make 
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-sse42.exe
+#make clean || echo clean
+#rm -f config.status
+#CFLAGS="-O3 -march=corei7 -Wall" ./configure $F
+#make 
+#strip -s cpuminer.exe
+#mv cpuminer.exe release/cpuminer-sse42.exe
 
 make clean || echo clean
 rm -f config.status

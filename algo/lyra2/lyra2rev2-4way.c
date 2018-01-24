@@ -1,7 +1,7 @@
 #include "lyra2rev2-gate.h"
 #include <memory.h>
 
-#ifdef __AVX2__	
+#if defined (__AVX2__)	
 
 #include "algo/blake/blake-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
@@ -9,7 +9,7 @@
 #include "algo/bmw/bmw-hash-4way.h"
 
 #include "algo/cubehash/sph_cubehash.h"
-#include "algo/bmw/sph_bmw.h"
+//#include "algo/bmw/sph_bmw.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h" 
 
 typedef struct {
@@ -17,8 +17,8 @@ typedef struct {
    keccak256_4way_context    keccak;
    cubehashParam             cube;
    skein256_4way_context     skein;
-        sph_bmw256_context       bmw;
-
+   bmw256_4way_context          bmw;
+//        sph_bmw256_context       bmw;
 } lyra2v2_4way_ctx_holder;
 
 static lyra2v2_4way_ctx_holder l2v2_4way_ctx;
@@ -29,7 +29,8 @@ void init_lyra2rev2_4way_ctx()
    keccak256_4way_init( &l2v2_4way_ctx.keccak );
    cubehashInit( &l2v2_4way_ctx.cube, 256, 16, 32 );
    skein256_4way_init( &l2v2_4way_ctx.skein );
-        sph_bmw256_init( &l2v2_4way_ctx.bmw );
+   bmw256_4way_init( &l2v2_4way_ctx.bmw );
+//        sph_bmw256_init( &l2v2_4way_ctx.bmw );
 }
 
 void lyra2rev2_4way_hash( void *state, const void *input )
@@ -80,23 +81,26 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    cubehashUpdateDigest( &ctx.cube, (byte*) hash3, (const byte*) hash3, 32 );
 
 
-	sph_bmw256( &ctx.bmw, hash0, 32 );
-	sph_bmw256_close( &ctx.bmw, hash0 );
-        memcpy( &ctx.bmw, &l2v2_4way_ctx.bmw, sizeof ctx.bmw );
-        sph_bmw256( &ctx.bmw, hash1, 32 );
-        sph_bmw256_close( &ctx.bmw, hash1 );
-        memcpy( &ctx.bmw, &l2v2_4way_ctx.bmw, sizeof ctx.bmw );
-        sph_bmw256( &ctx.bmw, hash2, 32 );
-        sph_bmw256_close( &ctx.bmw, hash2 );
-        memcpy( &ctx.bmw, &l2v2_4way_ctx.bmw, sizeof ctx.bmw );
-        sph_bmw256( &ctx.bmw, hash3, 32 );
-        sph_bmw256_close( &ctx.bmw, hash3 );
+   // BMW256 4way has a lane corruption problem, only lanes 0 & 2 produce
+   // good hash. As a result this ugly workaround of running bmw256-4way
+   // twice with data shuffled to get all 4 lanes of good hash.
+   // The hash is then shuffled back into the appropriate lanes for output.
+   // Not as fast but still faster than using sph serially. 
 
-
-   memcpy( state,    hash0, 32 );
-   memcpy( state+32, hash1, 32 );
-   memcpy( state+64, hash2, 32 );
-   memcpy( state+96, hash3, 32 );
+   // shift lane 1 data to lane 2.
+   mm_interleave_4x32( vhash, hash0, hash0, hash1, hash1, 256 );
+   bmw256_4way( &ctx.bmw, vhash, 32 );
+   bmw256_4way_close( &ctx.bmw, vhash );
+   uint32_t trash[8] __attribute__ ((aligned (32)));
+   // extract lane 0 as usual and lane2 containing lane 1 hash
+   mm_deinterleave_4x32( state, trash, state+32, trash, vhash, 256 );
+   // shift lane2 data to lane 0 and lane 3 data to lane 2
+   mm_interleave_4x32( vhash, hash2, hash2, hash3, hash3, 256 );
+   bmw256_4way_init( &ctx.bmw );
+   bmw256_4way( &ctx.bmw, vhash, 32 );
+   bmw256_4way_close( &ctx.bmw, vhash );
+   // extract lane 2 hash from lane 0 and lane 3 hash from lane 2.
+   mm_deinterleave_4x32( state+64, trash, state+96, trash, vhash, 256 );
 }
 
 int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -140,6 +144,7 @@ int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
       if ( hash[7] <= Htarg && fulltest( hash, ptarget ) )
       {
+//printf("found0\n");
           found[0] = true;
           num_found++;
           nonces[0] = pdata[19] = n;
@@ -147,6 +152,7 @@ int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
       }
       if ( (hash+8)[7] <= Htarg && fulltest( hash+8, ptarget ) )
       {
+//printf("found1\n");
           found[1] = true;
           num_found++;
           nonces[1] = n+1;
@@ -154,6 +160,7 @@ int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
       }
       if ( (hash+16)[7] <= Htarg && fulltest( hash+16, ptarget ) )
       {
+//printf("found2\n");
           found[2] = true;
           num_found++;
           nonces[2] = n+2;
@@ -161,6 +168,7 @@ int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
       }
       if ( (hash+24)[7] <= Htarg && fulltest( hash+24, ptarget ) )
       {
+//printf("found3\n");
           found[3] = true;
           num_found++;
           nonces[3] = n+3;

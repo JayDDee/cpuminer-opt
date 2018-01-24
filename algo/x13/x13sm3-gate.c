@@ -11,7 +11,7 @@ bool register_x13sm3_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x13sm3;
   gate->hash      = (void*)&x13sm3_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | FOUR_WAY_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   gate->get_max64 = (void*)&get_max64_0x3ffff;
   return true;
 };

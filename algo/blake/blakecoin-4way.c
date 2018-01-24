@@ -1,6 +1,6 @@
 #include "blakecoin-gate.h"
 
-#if defined (__AVX__)
+#if defined (BLAKECOIN_4WAY)
 
 #include "blake-hash-4way.h"
 #include <string.h>

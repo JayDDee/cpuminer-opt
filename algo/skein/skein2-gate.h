@@ -3,7 +3,7 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
-#if defined(FOUR_WAY) && defined(__AVX2__)
+#if defined(__AVX2__)
   #define SKEIN2_4WAY
 #endif
 

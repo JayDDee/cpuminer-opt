@@ -12,9 +12,11 @@
  #endif
 //#endif
 
-#if defined(FOUR_WAY) && defined(__AVX2__)
-  #define HASH_4WAY
-#endif
+//#if defined(FOUR_WAY) && defined(__AVX2__)
+// keep this until all algos remove reference to HASH_4WAY
+//#if defined(__AVX2__)
+//  #define HASH_4WAY
+//#endif
 
 #ifdef _MSC_VER
 
@@ -481,6 +483,7 @@ uint32_t* get_stratum_job_ntime();
 
 enum algos {
         ALGO_NULL,
+        ALGO_ANIME,
         ALGO_ARGON2,
         ALGO_AXIOM,       
         ALGO_BASTION,
@@ -543,6 +546,7 @@ enum algos {
         ALGO_X13SM3,
         ALGO_X14,        
         ALGO_X15,       
+        ALGO_X16R,
         ALGO_X17,
         ALGO_XEVAN,
         ALGO_YESCRYPT,
@@ -553,6 +557,7 @@ enum algos {
 };
 static const char* const algo_names[] = {
         NULL,
+        "anime",
         "argon2",
         "axiom",
         "bastion",
@@ -615,6 +620,7 @@ static const char* const algo_names[] = {
         "x13sm3",
         "x14",
         "x15",
+        "x16r",
         "x17",
         "xevan",
         "yescrypt",
@@ -680,6 +686,7 @@ static char const usage[] = "\
 Usage: " PACKAGE_NAME " [OPTIONS]\n\
 Options:\n\
   -a, --algo=ALGO       specify the algorithm to use\n\
+                          anime        Animecoin (ANI)\n\
                           argon2\n\
                           axiom        Shabal-256 MemoHash\n\
                           bastion\n\
@@ -742,6 +749,7 @@ Options:\n\
                           x13sm3       hsr (Hshare)\n\
                           x14          X14\n\
                           x15          X15\n\
+                          x16r         Ravencoin (RVN)\n\
                           x17\n\
                           xevan        Bitsend (BSD)\n\
                           yescrypt     Globlboost-Y (BSTY)\n\

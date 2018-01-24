@@ -11,7 +11,7 @@ bool register_quark_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_quark;
   gate->hash      = (void*)&quark_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | FOUR_WAY_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   return true;
 };
 

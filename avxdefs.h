@@ -2,16 +2,16 @@
 #define AVXDEFS_H__
 
 // Some tools to help using AVX and AVX2.
-// At this time SSE2 is sufficient for all 128 bit code in this file
-// but could change without notice.
-// 256 bit requires AVX2.
+// SSE2 is required for most 128 vector operations with the exception of
+// _mm_shuffle_epi8, used by byteswap, which needs SSSE3.
+// AVX2 is required for all 256 bit vector operations.
 // AVX512 has more powerful 256 bit instructions but with AVX512 available
 // there is little reason to use them.
 // Proper alignment of data is required, 16 bytes for 128 bit vectors and
 // 32 bytes for 256 bit vectors. 64 byte alignment is recommended for
 // best cache alignment.
 //
-// There exist dupplicates of some functions. In general the first defined
+// There exist duplicates of some functions. In general the first defined
 // is preferred as it is more efficient but also more restrictive and may
 // not be applicable. The less efficient versions are more flexible.
 
@@ -39,13 +39,6 @@
 
 // Constant minus 1
 #define mm_neg1      _mm_set1_epi64x( 0xFFFFFFFFFFFFFFFFULL )
-
-// Lane index, useful for byte rotate using shuffle
-#define mm_lanex_64 _mm_set_epi64( 1ULL, 0ULL );
-#define mm_lanex_32 _mm_set_epi32( 3UL, 2UL, 1UL, 0UL );
-#define mm_lanex_16 _mm_set_epi16( 7U, 6U, 5U, 4U, 3U, 2U, 1U, 0U );
-#define mm_lanex_8 _mm_set_epi8( 15U, 14U, 13U, 12U, 11U, 10U , 9U,  8U, \
-                                  7U,  6U,  5U,  4U,  3U,  2U,  1U,  0U );
 
 //
 // Basic operations without equivalent SIMD intrinsic
@@ -335,16 +328,6 @@ inline __m128i mm_byteswap_16( __m128i x )
 // Constant minus 1
 #define mm256_neg1           _mm256_set1_epi64x( 0xFFFFFFFFFFFFFFFFULL )
 
-// Lane index, useful for rotate using permutevar
-#define mm256_lane_64 _mm_set_epi64x( 3ULL, 2ULL, 1ULL, 0ULL );
-#define mm256_lane_32 _mm_set_epi32( 7UL, 6UL, 5UL, 4UL, 3UL, 2UL, 1UL, 0UL );
-#define mm256_lane_16 _mm_set_epi16( 15U, 14U, 13U, 12U, 11U, 10U , 9U,  8U, \
-                                      7U,  6U,  5U,  4U,  3U,  2U,  1U,  0U );
-#define mm256_lane_8 _mm_set_epi8( 31U, 30U, 29U, 28U, 27U, 26U, 25U, 24U, \
-                                   23U, 22U, 21U, 20U, 19U, 18U, 17U, 16U, \
-                                   15U, 14U, 13U, 12U, 11U, 10U , 9U,  8U, \
-                                    7U,  6U,  5U,  4U,  3U,  2U,  1U,  0U );
-
 //
 // Basic operations without SIMD equivalent
 
@@ -480,7 +463,7 @@ inline bool memcmp_256( __m256i src1, __m256i src2, int n )
 #define mm256_rotr128_1x32( x )  _mm256_shuffle_epi32( x, 0x39 )
 #define mm256_rotl128_1x32( x )  _mm256_shuffle_epi32( x, 0x93 )
 
-// Swap 32 bits in each 64 bit element olf 256 bit vector
+// Swap 32 bits in each 64 bit element of 256 bit vector
 #define mm256_swap64_32( x )     _mm256_shuffle_epi32( x, 0xb1 )
 
 // Less efficient but more versatile. Use only for rotations that are not 

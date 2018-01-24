@@ -10,6 +10,10 @@
 #endif
 #include "cubehash_sse2.h"
 #include "algo/sha/sha3-defs.h"
+#include <stdbool.h>
+#include <unistd.h>
+#include <memory.h>
+#include "avxdefs.h"
 
 static void transform( cubehashParam *sp )
 {
@@ -125,6 +129,18 @@ static void transform( cubehashParam *sp )
 #endif
 }  // transform
 
+// Ccubehash context initializing is very expensive.
+// Cache the intial value for faster reinitializing.
+cubehashParam cube_ctx_cache __attribute__ ((aligned (64)));
+
+int cubehashReinit( cubehashParam *sp )
+{
+   memcpy( sp, &cube_ctx_cache, sizeof(cubehashParam) );
+   return SUCCESS;
+
+}
+
+// Initialize the cache then copy to sp.
 int cubehashInit(cubehashParam *sp, int hashbitlen, int rounds, int blockbytes)
 {
     int i;
@@ -135,24 +151,26 @@ int cubehashInit(cubehashParam *sp, int hashbitlen, int rounds, int blockbytes)
 
     /* Sanity checks */
     if ( rounds <= 0 || rounds > 32 )
-         rounds = CUBEHASH_ROUNDS;
+       rounds = CUBEHASH_ROUNDS;
     if ( blockbytes <= 0 || blockbytes >= 256)
-         blockbytes = CUBEHASH_BLOCKBYTES;
+       blockbytes = CUBEHASH_BLOCKBYTES;
 
     // all sizes of __m128i
-    sp->hashlen   = hashbitlen/128;
-    sp->blocksize = blockbytes/16;
-    sp->rounds    = rounds;
-    sp->pos       = 0;
+    cube_ctx_cache.hashlen   = hashbitlen/128;
+    cube_ctx_cache.blocksize = blockbytes/16;
+    cube_ctx_cache.rounds    = rounds;
+    cube_ctx_cache.pos       = 0;
 
     for ( i = 0; i < 8; ++i )
-         sp->x[i] = _mm_set_epi32(0, 0, 0, 0);
+       cube_ctx_cache.x[i] = _mm_setzero_si128();;
 
-    sp->x[0] = _mm_set_epi32( 0, rounds, blockbytes, hashbitlen / 8 );
+    cube_ctx_cache.x[0] = _mm_set_epi32( 0, rounds, blockbytes,
+                                         hashbitlen / 8 );
 
     for ( i = 0; i < 10; ++i )
-         transform(sp);
-//    sp->pos = 0;
+       transform( &cube_ctx_cache );
+
+    memcpy( sp, &cube_ctx_cache, sizeof(cubehashParam) );
     return SUCCESS;
 }
 

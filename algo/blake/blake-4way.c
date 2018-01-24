@@ -1,6 +1,6 @@
 #include "blake-gate.h"
 
-#if defined (__AVX__)
+#if defined (BLAKE_4WAY)
 
 #include "blake-hash-4way.h"
 #include <string.h>

@@ -1,6 +1,6 @@
 #include "timetravel10-gate.h"
 
-#if defined(__AVX2__) && defined(__AES__)
+#if defined(TIMETRAVEL10_4WAY)
 
 #include <stdlib.h>
 #include <stdint.h>

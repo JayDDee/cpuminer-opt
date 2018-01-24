@@ -2,7 +2,7 @@
 
 bool register_tribus_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | FOUR_WAY_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   gate->get_max64     = (void*)&get_max64_0x1ffff;
 #if defined (TRIBUS_4WAY)
 //  init_tribus_4way_ctx();

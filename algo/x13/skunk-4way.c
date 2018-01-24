@@ -1,6 +1,6 @@
 #include "skunk-gate.h"
 
-#ifdef __AVX2__
+#if defined(SKUNK_4WAY)
 
 #include <stdlib.h>
 #include <stdint.h>

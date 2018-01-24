@@ -1,6 +1,6 @@
 #include "x17-gate.h"
 
-#if defined(__AVX2__) && defined(__AES__)
+#if defined(X17_4WAY)
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -17,12 +17,12 @@
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/sse2/nist.h"
 #include "algo/echo/aes_ni/hash_api.h"
-#include "algo/hamsi/sph_hamsi.h"
+#include "algo/hamsi/hamsi-hash-4way.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/haval/sph-haval.h"
-#include <openssl/sha.h>
+#include "algo/haval/haval-hash-4way.h"
+#include "algo/sha/sha2-hash-4way.h"
 
 typedef struct {
     blake512_4way_context   blake;
@@ -36,12 +36,12 @@ typedef struct {
     sph_shavite512_context  shavite;
     hashState_sd            simd;
     hashState_echo          echo;
-    sph_hamsi512_context    hamsi;
+    hamsi512_4way_context   hamsi;
     sph_fugue512_context    fugue;
     shabal512_4way_context  shabal;
     sph_whirlpool_context   whirlpool;
-    SHA512_CTX              sha512;
-    sph_haval256_5_context  haval;
+    sha512_4way_context     sha512;
+    haval256_5_4way_context haval;
 } x17_4way_ctx_holder;
 
 x17_4way_ctx_holder x17_4way_ctx __attribute__ ((aligned (64)));
@@ -59,11 +59,11 @@ void init_x17_4way_ctx()
      sph_shavite512_init( &x17_4way_ctx.shavite );
      init_sd( &x17_4way_ctx.simd, 512 );
      init_echo( &x17_4way_ctx.echo, 512 );
-     sph_hamsi512_init( &x17_4way_ctx.hamsi );
+     hamsi512_4way_init( &x17_4way_ctx.hamsi );
      sph_fugue512_init( &x17_4way_ctx.fugue );
      shabal512_4way_init( &x17_4way_ctx.shabal );
-     SHA512_Init( &x17_4way_ctx.sha512 );
-     sph_haval256_5_init( &x17_4way_ctx.haval );
+     sha512_4way_init( &x17_4way_ctx.sha512 );
+     haval256_5_4way_init( &x17_4way_ctx.haval );
 };
 
 void x17_4way_hash( void *state, const void *input )
@@ -73,6 +73,7 @@ void x17_4way_hash( void *state, const void *input )
      uint64_t hash2[8] __attribute__ ((aligned (64)));
      uint64_t hash3[8] __attribute__ ((aligned (64)));
      uint64_t vhash[8*4] __attribute__ ((aligned (64)));
+     uint64_t vhash32[8*4] __attribute__ ((aligned (64)));
      x17_4way_ctx_holder ctx;
      memcpy( &ctx, &x17_4way_ctx, sizeof(x17_4way_ctx) );
 
@@ -111,10 +112,9 @@ void x17_4way_hash( void *state, const void *input )
      keccak512_4way( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
-     // Serial to the end
      mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
-     // 7 Luffa
+     // 7 Luffa serial
      update_and_final_luffa( &ctx.luffa, (BitSequence*)hash0,
                              (const BitSequence*)hash0, 64 );
      memcpy( &ctx.luffa, &x17_4way_ctx.luffa, sizeof(hashState_luffa) );
@@ -178,18 +178,11 @@ void x17_4way_hash( void *state, const void *input )
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                        (const BitSequence *) hash3, 512 );
 
-     // 12 Hamsi
-     sph_hamsi512( &ctx.hamsi, hash0, 64 );
-     sph_hamsi512_close( &ctx.hamsi, hash0 );
-     memcpy( &ctx.hamsi, &x17_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash1, 64 );
-     sph_hamsi512_close( &ctx.hamsi, hash1 );
-     memcpy( &ctx.hamsi, &x17_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash2, 64 );
-     sph_hamsi512_close( &ctx.hamsi, hash2 );
-     memcpy( &ctx.hamsi, &x17_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash3, 64 );
-     sph_hamsi512_close( &ctx.hamsi, hash3 );
+     // 12 Hamsi parallel 4way 32 bit
+     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_close( &ctx.hamsi, vhash );
+     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // 13 Fugue
      sph_fugue512( &ctx.fugue, hash0, 64 );
@@ -226,39 +219,17 @@ void x17_4way_hash( void *state, const void *input )
      sph_whirlpool( &ctx.whirlpool, hash3, 64 );
      sph_whirlpool_close( &ctx.whirlpool, hash3 );
 
-     // 16 SHA512 
-     SHA512_Update( &ctx.sha512, hash0, 64 );
-     SHA512_Final( (unsigned char*)hash0, &ctx.sha512 );
-     memcpy( &ctx.sha512, &x17_4way_ctx.sha512, sizeof(SHA512_CTX) );
-     SHA512_Update( &ctx.sha512, hash1, 64 );
-     SHA512_Final( (unsigned char*)hash1, &ctx.sha512 );
-     memcpy( &ctx.sha512, &x17_4way_ctx.sha512, sizeof(SHA512_CTX) );
-     SHA512_Update( &ctx.sha512, hash2, 64 );
-     SHA512_Final( (unsigned char*)hash2, &ctx.sha512 );
-     memcpy( &ctx.sha512, &x17_4way_ctx.sha512, sizeof(SHA512_CTX) );
-     SHA512_Update( &ctx.sha512, hash3, 64 );
-     SHA512_Final( (unsigned char*)hash3, &ctx.sha512 );
+     // 16 SHA512 parallel 64 bit 
+     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     sha512_4way( &ctx.sha512, vhash, 64 );
+     sha512_4way_close( &ctx.sha512, vhash );     
 
-     // 17 Haval
-     sph_haval256_5( &ctx.haval, (const void*)hash0, 64 );
-     sph_haval256_5_close( &ctx.haval, hash0 );
-     memcpy( &ctx.haval, &x17_4way_ctx.haval,
-             sizeof(sph_haval256_5_context) );
-     sph_haval256_5( &ctx.haval, (const void*)hash1, 64 );
-     sph_haval256_5_close( &ctx.haval, hash1 );
-     memcpy( &ctx.haval, &x17_4way_ctx.haval,
-             sizeof(sph_haval256_5_context) );
-     sph_haval256_5( &ctx.haval, (const void*)hash2, 64 );
-     sph_haval256_5_close( &ctx.haval, hash2 );
-     memcpy( &ctx.haval, &x17_4way_ctx.haval,
-             sizeof(sph_haval256_5_context) );
-     sph_haval256_5( &ctx.haval, (const void*)hash3, 64 );
-     sph_haval256_5_close( &ctx.haval, hash3 );
+     // 17 Haval parallel 32 bit
+     mm256_reinterleave_4x32( vhash32, vhash,  512 );
+     haval256_5_4way( &ctx.haval, vhash32, 64 );
+     haval256_5_4way_close( &ctx.haval, vhash );
 
-     memcpy( state,    hash0, 32 );
-     memcpy( state+32, hash1, 32 );
-     memcpy( state+64, hash2, 32 );
-     memcpy( state+96, hash3, 32 );
+     mm_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_x17_4way( int thr_id, struct work *work, uint32_t max_nonce,

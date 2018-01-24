@@ -15,13 +15,13 @@ void bc4w_get_new_work( struct work* work, struct work* g_work, int thr_id,
                      uint32_t *end_nonce_ptr, bool clean_job )
 {
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
-// 
+ 
 //   if ( have_stratum && ( *nonceptr >= *end_nonce_ptr ) )
 //      algo_gate.stratum_gen_work( &stratum, g_work );
 
    if ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size ) 
    || ( *nonceptr >= *end_nonce_ptr )
-   || (  work->job_id != g_work->job_id ) && clean_job  )
+   || ( (  work->job_id != g_work->job_id ) && clean_job ) )
 /*
    if ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
       && ( clean_job || ( *nonceptr >= *end_nonce_ptr )
@@ -47,7 +47,6 @@ bool register_vanilla_algo( algo_gate_t* gate )
 {
 #if defined(BLAKECOIN_4WAY)
 //  four_way_not_tested();
-  gate->optimizations = FOUR_WAY_OPT;
   gate->scanhash  = (void*)&scanhash_blakecoin_4way;
   gate->hash      = (void*)&blakecoin_4way_hash;
 //  gate->get_new_work = (void*)&bc4w_get_new_work;
@@ -57,7 +56,7 @@ bool register_vanilla_algo( algo_gate_t* gate )
   gate->hash     = (void*)&blakecoinhash;
 //  blakecoin_init( &blake_init_ctx );
 #endif
-  gate->optimizations = AVX2_OPT | FOUR_WAY_OPT;
+  gate->optimizations = AVX2_OPT;
   gate->get_max64 = (void*)&blakecoin_get_max64;
   return true;
 }

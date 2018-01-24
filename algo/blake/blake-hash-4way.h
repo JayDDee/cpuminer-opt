@@ -51,6 +51,11 @@ extern "C"{
 
 #define SPH_SIZE_blake512   512
 
+// With AVX only Blake-256 4 way is available.
+// With AVX2 Blake-256 8way & Blake-512 4 way are also available.
+
+// Blake-256 4 way
+
 typedef struct {
    __m128i buf[16] __attribute__ ((aligned (64)));
    __m128i H[8];
@@ -79,6 +84,37 @@ void blake256r8_4way(void *cc, const void *data, size_t len);
 void blake256r8_4way_close(void *cc, void *dst);
 
 #ifdef __AVX2__
+
+// Blake-256 8 way
+
+typedef struct {
+   __m256i buf[16] __attribute__ ((aligned (64)));
+   __m256i H[8];
+   __m256i S[4];
+   size_t ptr;
+   sph_u32 T0, T1;
+   int rounds;   // 14 for blake, 8 for blakecoin & vanilla
+} blake_8way_small_context;
+
+// Default 14 rounds
+typedef blake_8way_small_context blake256_8way_context;
+void blake256_8way_init(void *cc);
+void blake256_8way(void *cc, const void *data, size_t len);
+void blake256_8way_close(void *cc, void *dst);
+
+// 14 rounds, blake, decred
+typedef blake_8way_small_context blake256r14_8way_context;
+void blake256r14_8way_init(void *cc);
+void blake256r14_8way(void *cc, const void *data, size_t len);
+void blake256r14_8way_close(void *cc, void *dst);
+
+// 8 rounds, blakecoin, vanilla
+typedef blake_8way_small_context blake256r8_8way_context;
+void blake256r8_8way_init(void *cc);
+void blake256r8_8way(void *cc, const void *data, size_t len);
+void blake256r8_8way_close(void *cc, void *dst);
+
+// Blake-512 4 way
 
 typedef struct {
         __m256i buf[16] __attribute__ ((aligned (64)));

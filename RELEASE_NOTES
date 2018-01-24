@@ -92,12 +92,6 @@ SPH may give slightly better performance on algos that use sha256 when using
 openssl 1.0.1 or older. Openssl 1.0.2 adds AVX2 and 1.1 adds SHA and perform
 better than SPH.
 
--DFOUR_WAY
-
-4 way will give much better performance on supported algos with CPUs
-that have AVX2 and should only be used on CPUs with AVX2. 4 way algo
-support will be added incrementally, see change log below for supported algos.
- 
 Start mining.
 
 ./cpuminer -a algo -o url -u username -p password
@@ -149,9 +143,9 @@ cpuminer.exe -a algo -o url -u user -p password
 
 The following tips may be useful for older AMD CPUs.
 
-AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
-supported by cpuminer-opt due to an incompatible implementation of SSE2 on
-these CPUs. Some algos may crash the miner with an invalid instruction.
+AMD CPUs older than Steamroller, including Athlon x2 and Phenom II x4, are
+not supported by cpuminer-opt due to an incompatible implementation of SSE2
+on these CPUs. Some algos may crash the miner with an invalid instruction.
 Users are recommended to use an unoptimized miner such as cpuminer-multi.
 
 Some users with AMD CPUs without AES_NI have reported problems compiling
@@ -164,6 +158,14 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.7.11
+
+4way no longer a seperate feature, included in AVX2.
+Added x16r algo for Ravencoin, anime algo for Animecoin.
+More 4way optimizations for X13 and up.
+Tweaked CPU affinity to better support more than 64 CPUs.
+Fixed compile problem on some old AMD CPUs.
 
 v3.7.10
 

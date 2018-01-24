@@ -49,6 +49,11 @@ extern "C"{
 
 // BMW256
 
+// BMW small has a bug not present in big. Lanes 0 & 2 produce valid hash
+// while lanes 1 & 3 produce invalid hash. The cause is not known.
+
+
+
 static const sph_u32 IV256[] = {
 	SPH_C32(0x40414243), SPH_C32(0x44454647),
 	SPH_C32(0x48494A4B), SPH_C32(0x4C4D4E4F),
@@ -116,14 +121,16 @@ static const sph_u64 IV512[] = {
    mm_rotl_32( M[ ( (j) + (off) ) & 0xF ] , \
                 ( ( (j) + (off) ) & 0xF ) + 1 )
 
+// The multiplication in this macro is a possible cause of the lane
+// corruption but a vectorized mullo did not help.
 #define add_elt_s( M, H, j ) \
    _mm_xor_si128( \
       _mm_add_epi32( \
             _mm_sub_epi32( _mm_add_epi32( rol_off_32( M, j, 0 ), \
                                           rol_off_32( M, j, 3 ) ), \
                            rol_off_32( M, j, 10 ) ), \
-            _mm_set1_epi32( ( (j) + 16 ) * 0x05555555UL ) ), \
-    H[ ( (j)+7 ) & 0xF ] )
+            _mm_set1_epi32( ( (j) + 16 ) * 0x05555555UL ) \
+                   ), H[ ( (j)+7 ) & 0xF ] )
 
 
 #define expand1s( qt, M, H, i ) \
@@ -160,7 +167,7 @@ static const sph_u64 IV512[] = {
              _mm_add_epi32( \
                 _mm_add_epi32( qt[ (i)-16 ], rs1( qt[ (i)-15 ] ) ), \
                 _mm_add_epi32( qt[ (i)-14 ], rs2( qt[ (i)-13 ] ) ) ), \
-             _mm_add_epi64( \
+             _mm_add_epi32( \
                 _mm_add_epi32( qt[ (i)-12 ], rs3( qt[ (i)-11 ] ) ), \
                 _mm_add_epi32( qt[ (i)-10 ], rs4( qt[ (i)- 9 ] ) ) ) ), \
          _mm_add_epi32( \
@@ -861,7 +868,27 @@ void compress_big( const __m256i *M, const __m256i H[16], __m256i dH[16] )
 } 
 
 // BMW256
-
+/*
+static const uint32_t final_s[16][4] =
+{
+   { 0xaaaaaaa0, 0xaaaaaaa0, 0xaaaaaaa0, 0xaaaaaaa0 },
+   { 0xaaaaaaa1, 0xaaaaaaa1, 0xaaaaaaa1, 0xaaaaaaa1 },
+   { 0xaaaaaaa2, 0xaaaaaaa2, 0xaaaaaaa2, 0xaaaaaaa2 },
+   { 0xaaaaaaa3, 0xaaaaaaa3, 0xaaaaaaa3, 0xaaaaaaa3 },
+   { 0xaaaaaaa4, 0xaaaaaaa4, 0xaaaaaaa4, 0xaaaaaaa4 },
+   { 0xaaaaaaa5, 0xaaaaaaa5, 0xaaaaaaa5, 0xaaaaaaa5 },
+   { 0xaaaaaaa6, 0xaaaaaaa6, 0xaaaaaaa6, 0xaaaaaaa6 },
+   { 0xaaaaaaa7, 0xaaaaaaa7, 0xaaaaaaa7, 0xaaaaaaa7 },
+   { 0xaaaaaaa8, 0xaaaaaaa8, 0xaaaaaaa8, 0xaaaaaaa8 },
+   { 0xaaaaaaa9, 0xaaaaaaa9, 0xaaaaaaa9, 0xaaaaaaa9 },
+   { 0xaaaaaaaa, 0xaaaaaaaa, 0xaaaaaaaa, 0xaaaaaaaa },
+   { 0xaaaaaaab, 0xaaaaaaab, 0xaaaaaaab, 0xaaaaaaab },
+   { 0xaaaaaaac, 0xaaaaaaac, 0xaaaaaaac, 0xaaaaaaac },
+   { 0xaaaaaaad, 0xaaaaaaad, 0xaaaaaaad, 0xaaaaaaad },
+   { 0xaaaaaaae, 0xaaaaaaae, 0xaaaaaaae, 0xaaaaaaae },
+   { 0xaaaaaaaf, 0xaaaaaaaf, 0xaaaaaaaf, 0xaaaaaaaf }
+};
+*/
 static const __m128i final_s[16] =
 {
    { 0xaaaaaaa0aaaaaaa0, 0xaaaaaaa0aaaaaaa0 },
@@ -901,11 +928,12 @@ bmw32_4way(bmw_4way_small_context *sc, const void *data, size_t len)
    size_t ptr;
    const int buf_size = 64;  // bytes of one lane, compatible with len
 
-   sc->bit_count += (sph_u64)len << 3;
+   sc->bit_count += (sph_u32)len << 3;
    buf = sc->buf;
    ptr = sc->ptr;
    h1 = sc->H;
    h2 = htmp;
+
    while ( len > 0 )
    {
       size_t clen;
@@ -938,13 +966,11 @@ bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
    __m128i *buf;
    __m128i h1[16], h2[16], *h;
    size_t ptr, u, v;
-   unsigned z;
    const int buf_size = 64;  // bytes of one lane, compatible with len
 
    buf = sc->buf;
    ptr = sc->ptr;
-   z = 0x80 >> n;
-   buf[ ptr>>2 ] = _mm_set1_epi32( z );
+   buf[ ptr>>2 ] = _mm_set1_epi32( 0x80 );
    ptr += 4;
    h = sc->H;
 
@@ -956,12 +982,15 @@ bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
       ptr = 0;
       h = h1;
    }
-   memset_zero_128( buf + (ptr>>2), (buf_size - 4 - ptr) >> 2 );
-   buf[ (buf_size - 4) >> 2 ] = _mm_set1_epi32( sc->bit_count + n );
+   memset_zero_128( buf + (ptr>>2), (buf_size - 8 - ptr) >> 2 );
+   buf[ (buf_size - 8) >> 2 ] = _mm_set1_epi32( sc->bit_count + n );
+   buf[ (buf_size - 4) >> 2 ] = mm_zero;
    compress_small( buf, h, h2 );
+
    for ( u = 0; u < 16; u ++ )
       buf[u] = h2[u];
-   compress_small( buf, final_s, h1 );
+   compress_small( buf, (__m128i*)final_s, h1 );
+
    for (u = 0, v = 16 - out_size_w32; u < out_size_w32; u ++, v ++)
       casti_m128i( dst, u ) = h1[v];
 }

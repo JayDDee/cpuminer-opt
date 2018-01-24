@@ -1,7 +1,7 @@
 #include "cpuminer-config.h"
 #include "c11-gate.h"
 
-#if defined (__AVX2__) && defined (__AES__)
+#if defined (C11_4WAY)
 
 #include <string.h>
 #include <stdint.h>

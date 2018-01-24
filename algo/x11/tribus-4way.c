@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#if defined(__AVX2__) && !defined(NO_AES_NI)
+#if defined(TRIBUS_4WAY)
 
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"

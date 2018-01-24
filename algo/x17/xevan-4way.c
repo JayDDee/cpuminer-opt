@@ -1,6 +1,6 @@
 #include "xevan-gate.h"
 
-#if defined(__AVX2__) && defined(__AES__)
+#if defined(XEVAN_4WAY)
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -17,13 +17,12 @@
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 #include "algo/simd/sse2/nist.h"
 #include "algo/echo/aes_ni/hash_api.h"
-#include "algo/hamsi/sph_hamsi.h"
+#include "algo/hamsi/hamsi-hash-4way.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/sha/sph_sha2.h"
-#include "algo/haval/sph-haval.h"
-#include <openssl/sha.h>
+#include "algo/sha/sha2-hash-4way.h"
+#include "algo/haval/haval-hash-4way.h"
 
 typedef struct {
         blake512_4way_context   blake;
@@ -37,12 +36,12 @@ typedef struct {
         sph_shavite512_context  shavite;
         hashState_sd            simd;
         hashState_echo          echo;
-        sph_hamsi512_context    hamsi;
+        hamsi512_4way_context   hamsi;
         sph_fugue512_context    fugue;
         shabal512_4way_context  shabal;
         sph_whirlpool_context   whirlpool;
-        SHA512_CTX              sha512;
-        sph_haval256_5_context  haval;
+        sha512_4way_context     sha512;
+        haval256_5_4way_context haval;
 } xevan_4way_ctx_holder;
 
 xevan_4way_ctx_holder xevan_4way_ctx __attribute__ ((aligned (64)));
@@ -62,12 +61,12 @@ void init_xevan_4way_ctx()
         sph_shavite512_init( &xevan_4way_ctx.shavite );
         init_sd( &xevan_4way_ctx.simd, 512 );
         init_echo( &xevan_4way_ctx.echo, 512 );
-        sph_hamsi512_init( &xevan_4way_ctx.hamsi );
+        hamsi512_4way_init( &xevan_4way_ctx.hamsi );
         sph_fugue512_init( &xevan_4way_ctx.fugue );
         shabal512_4way_init( &xevan_4way_ctx.shabal );
         sph_whirlpool_init( &xevan_4way_ctx.whirlpool );
-        SHA512_Init( &xevan_4way_ctx.sha512 );
-        sph_haval256_5_init( &xevan_4way_ctx.haval );
+        sha512_4way_init( &xevan_4way_ctx.sha512 );
+        haval256_5_4way_init( &xevan_4way_ctx.haval );
 };
 
 void xevan_4way_blake512_midstate( const void* input )
@@ -84,6 +83,7 @@ void xevan_4way_hash( void *output, const void *input )
      uint64_t hash2[16] __attribute__ ((aligned (64)));
      uint64_t hash3[16] __attribute__ ((aligned (64)));
      uint64_t vhash[16<<2] __attribute__ ((aligned (64)));
+     uint64_t vhash32[16<<2] __attribute__ ((aligned (64)));
      const int dataLen = 128;
      const int midlen = 64;            // bytes
      const int tail   = 80 - midlen;   // 16
@@ -193,17 +193,11 @@ void xevan_4way_hash( void *output, const void *input )
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                        (const BitSequence *) hash3, dataLen<<3 );
 
-     sph_hamsi512( &ctx.hamsi, hash0, dataLen );
-     sph_hamsi512_close( &ctx.hamsi, hash0 );
-     memcpy( &ctx.hamsi, &xevan_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash1, dataLen );
-     sph_hamsi512_close( &ctx.hamsi, hash1 );
-     memcpy( &ctx.hamsi, &xevan_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash2, dataLen );
-     sph_hamsi512_close( &ctx.hamsi, hash2 );
-     memcpy( &ctx.hamsi, &xevan_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash3, dataLen );
-     sph_hamsi512_close( &ctx.hamsi, hash3 );
+     // Parallel 32 bit
+     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+     hamsi512_4way( &ctx.hamsi, vhash, dataLen );
+     hamsi512_4way_close( &ctx.hamsi, vhash );
+     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      sph_fugue512( &ctx.fugue, hash0, dataLen );
      sph_fugue512_close( &ctx.fugue, hash0 );
@@ -217,7 +211,7 @@ void xevan_4way_hash( void *output, const void *input )
      sph_fugue512( &ctx.fugue, hash3, dataLen );
      sph_fugue512_close( &ctx.fugue, hash3 );
 
-     // Parallel 4way
+     // Parallel 4way 32 bit
      mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
      shabal512_4way( &ctx.shabal, vhash, dataLen );
      shabal512_4way_close( &ctx.shabal, vhash );
@@ -239,32 +233,14 @@ void xevan_4way_hash( void *output, const void *input )
      sph_whirlpool( &ctx.whirlpool, hash3, dataLen );
      sph_whirlpool_close( &ctx.whirlpool, hash3 );
 
-     SHA512_Update( &ctx.sha512, hash0, dataLen );
-     SHA512_Final( (unsigned char*)hash0, &ctx.sha512 );
-     memcpy( &ctx.sha512, &xevan_4way_ctx.sha512, sizeof(SHA512_CTX) );
-     SHA512_Update( &ctx.sha512, hash1, dataLen );
-     SHA512_Final( (unsigned char*)hash1, &ctx.sha512 );
-     memcpy( &ctx.sha512, &xevan_4way_ctx.sha512, sizeof(SHA512_CTX) );
-     SHA512_Update( &ctx.sha512, hash2, dataLen );
-     SHA512_Final( (unsigned char*)hash2, &ctx.sha512 );
-     memcpy( &ctx.sha512, &xevan_4way_ctx.sha512, sizeof(SHA512_CTX) );
-     SHA512_Update( &ctx.sha512, hash3, dataLen );
-     SHA512_Final( (unsigned char*)hash3, &ctx.sha512 );
+     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+     sha512_4way( &ctx.sha512, vhash, dataLen );
+     sha512_4way_close( &ctx.sha512, vhash );
 
-     sph_haval256_5( &ctx.haval, (const void*)hash0, dataLen );
-     sph_haval256_5_close( &ctx.haval, hash0 );
-     memcpy( &ctx.haval, &xevan_4way_ctx.haval,
-             sizeof(sph_haval256_5_context) );
-     sph_haval256_5( &ctx.haval, (const void*)hash1, dataLen );
-     sph_haval256_5_close( &ctx.haval, hash1 );
-     memcpy( &ctx.haval, &xevan_4way_ctx.haval,
-             sizeof(sph_haval256_5_context) );
-     sph_haval256_5( &ctx.haval, (const void*)hash2, dataLen );
-     sph_haval256_5_close( &ctx.haval, hash2 );
-     memcpy( &ctx.haval, &xevan_4way_ctx.haval,
-             sizeof(sph_haval256_5_context) );
-     sph_haval256_5( &ctx.haval, (const void*)hash3, dataLen );
-     sph_haval256_5_close( &ctx.haval, hash3 );
+     mm256_reinterleave_4x32( vhash32, vhash, dataLen<<3 );
+     haval256_5_4way( &ctx.haval, vhash32, dataLen );
+     haval256_5_4way_close( &ctx.haval, vhash );
+     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
      memset( &vhash[ 4<<2 ], 0, (dataLen-32) << 2 );
@@ -366,17 +342,10 @@ void xevan_4way_hash( void *output, const void *input )
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                        (const BitSequence *) hash3, dataLen<<3 );
 
-     sph_hamsi512( &ctx.hamsi, hash0, dataLen );
-     sph_hamsi512_close( &ctx.hamsi, hash0 );
-     memcpy( &ctx.hamsi, &xevan_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash1, dataLen );
-     sph_hamsi512_close( &ctx.hamsi, hash1 );
-     memcpy( &ctx.hamsi, &xevan_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash2, dataLen );
-     sph_hamsi512_close( &ctx.hamsi, hash2 );
-     memcpy( &ctx.hamsi, &xevan_4way_ctx.hamsi, sizeof(sph_hamsi512_context) );
-     sph_hamsi512( &ctx.hamsi, hash3, dataLen );
-     sph_hamsi512_close( &ctx.hamsi, hash3 );
+     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+     hamsi512_4way( &ctx.hamsi, vhash, dataLen );
+     hamsi512_4way_close( &ctx.hamsi, vhash );
+     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      sph_fugue512( &ctx.fugue, hash0, dataLen );
      sph_fugue512_close( &ctx.fugue, hash0 );
@@ -410,37 +379,16 @@ void xevan_4way_hash( void *output, const void *input )
      sph_whirlpool( &ctx.whirlpool, hash3, dataLen );
      sph_whirlpool_close( &ctx.whirlpool, hash3 );
 
-     SHA512_Update( &ctx.sha512, hash0, dataLen );
-     SHA512_Final( (unsigned char*)hash0, &ctx.sha512 );
-     memcpy( &ctx.sha512, &xevan_4way_ctx.sha512, sizeof(SHA512_CTX) );
-     SHA512_Update( &ctx.sha512, hash1, dataLen );
-     SHA512_Final( (unsigned char*)hash1, &ctx.sha512 );
-     memcpy( &ctx.sha512, &xevan_4way_ctx.sha512, sizeof(SHA512_CTX) );
-     SHA512_Update( &ctx.sha512, hash2, dataLen );
-     SHA512_Final( (unsigned char*)hash2, &ctx.sha512 );
-     memcpy( &ctx.sha512, &xevan_4way_ctx.sha512, sizeof(SHA512_CTX) );
-     SHA512_Update( &ctx.sha512, hash3, dataLen );
-     SHA512_Final( (unsigned char*)hash3, &ctx.sha512 );
+     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+     sha512_4way( &ctx.sha512, vhash, dataLen );
+     sha512_4way_close( &ctx.sha512, vhash );
 
-     sph_haval256_5( &ctx.haval, (const void*)hash0, dataLen );
-     sph_haval256_5_close( &ctx.haval, hash0 );
-     memcpy( &ctx.haval, &xevan_4way_ctx.haval,
-             sizeof(sph_haval256_5_context) );
-     sph_haval256_5( &ctx.haval, (const void*)hash1, dataLen );
-     sph_haval256_5_close( &ctx.haval, hash1 );
-     memcpy( &ctx.haval, &xevan_4way_ctx.haval,
-             sizeof(sph_haval256_5_context) );
-     sph_haval256_5( &ctx.haval, (const void*)hash2, dataLen );
-     sph_haval256_5_close( &ctx.haval, hash2 );
-     memcpy( &ctx.haval, &xevan_4way_ctx.haval,
-             sizeof(sph_haval256_5_context) );
-     sph_haval256_5( &ctx.haval, (const void*)hash3, dataLen );
-     sph_haval256_5_close( &ctx.haval, hash3 );
+     mm256_reinterleave_4x32( vhash32, vhash, dataLen<<3 );
+     haval256_5_4way( &ctx.haval, vhash32, dataLen );
+     haval256_5_4way_close( &ctx.haval, vhash32 );
 
-     memcpy( output,    hash0, 32 );
-     memcpy( output+32, hash1, 32 );
-     memcpy( output+64, hash2, 32 );
-     memcpy( output+96, hash3, 32 );
+     mm_deinterleave_4x32( output, output+32, output+64, output+96,
+                           vhash32, 256 );
 }
 
 int scanhash_xevan_4way( int thr_id, struct work *work, uint32_t max_nonce,

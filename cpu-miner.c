@@ -103,7 +103,11 @@ enum algos opt_algo = ALGO_NULL;
 int opt_scrypt_n = 0;
 int opt_pluck_n = 128;
 int opt_n_threads = 0;
-int64_t opt_affinity = -1;
+#ifdef __GNUC__
+__int128_t opt_affinity = -1LL;
+#else
+int64_t opt_affinity = -1LL;
+#endif
 int opt_priority = 0;
 int num_cpus;
 char *rpc_url = NULL;;
@@ -195,7 +199,11 @@ static inline void drop_policy(void)
 #define pthread_setaffinity_np(tid,sz,s) {} /* only do process affinity */
 #endif
 
+#ifdef __GNUC__
+static void affine_to_cpu_mask( int id, unsigned __int128 mask )
+#else
 static void affine_to_cpu_mask( int id, unsigned long long mask )
+#endif
 {
    cpu_set_t set;
    CPU_ZERO(&set);
@@ -204,7 +212,11 @@ static void affine_to_cpu_mask( int id, unsigned long long mask )
    for ( uint8_t i = 0; i < ncpus; i++ ) 
    {
       // cpu mask
+#ifdef __GNUC__
+      if( ( mask & ( (unsigned __int128)1ULL << i ) ) )  CPU_SET( i, &set );
+#else
       if( (ncpus > 64) || ( mask & (1ULL << i) ) )  CPU_SET( i, &set );
+#endif
    }
    if ( id == -1 )
    {
@@ -787,7 +799,7 @@ static int share_result( int result, struct work *work, const char *reason )
       if ( rate == 100.0 )
          sprintf( rate_s, "%.0f", rate );
       else
-          sprintf( rate_s, "%.1f", ( rate < 99.9 ) ? rate : 99.9 );
+         sprintf( rate_s, "%.1f", ( rate < 99.9 ) ? rate : 99.9 );
    }
    else
    {
@@ -1545,6 +1557,11 @@ void scrypt_set_target( struct work* work, double job_diff )
    work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
 }
 
+void alt_set_target( struct work* work, double job_diff )
+{
+   work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
+}
+
 // Default is do_nothing (assumed LE)
 void set_work_data_big_endian( struct work *work )
 {
@@ -1695,6 +1712,7 @@ static void *miner_thread( void *userdata )
 	   drop_policy();
    }
    // CPU thread affinity
+/*
    if ( num_cpus > 64 )
    {
       // opt_affinity ignored with more than 64 cpus.
@@ -1703,15 +1721,21 @@ static void *miner_thread( void *userdata )
                    thr_id, thr_id % num_cpus );
       affine_to_cpu_mask( thr_id, -1 );
    }
-   else if ( num_cpus > 1 )
+   else
+*/
+   if ( num_cpus > 1 )
    {
-      if ( (opt_affinity == -1) && (opt_n_threads) > 1 ) 
+      if ( (opt_affinity == -1LL) && (opt_n_threads) > 1 ) 
       {
          if (opt_debug)
             applog( LOG_DEBUG, "Binding thread %d to cpu %d (mask %x)",
                    thr_id, thr_id % num_cpus, ( 1ULL << (thr_id % num_cpus) ) );
-
+#ifdef __GNUC__
+         affine_to_cpu_mask( thr_id,
+                             (unsigned __int128)1LL << (thr_id % num_cpus) );
+#else
          affine_to_cpu_mask( thr_id, 1ULL << (thr_id % num_cpus) );
+#endif
       }
       else if (opt_affinity != -1)
       {
@@ -1849,31 +1873,23 @@ static void *miner_thread( void *userdata )
              if ( work.nfound[n] )
              {
                  *algo_gate.get_nonceptr( work.data ) = work.nonces[n]; 
-                 if ( !submit_work(mythr, &work) )
+                 if ( !submit_work( mythr, &work ) )
                  {
-                    applog(LOG_WARNING, "Failed to submit share." );
+                    applog( LOG_WARNING, "Failed to submit share." );
                     break;
                  }
+                 applog( LOG_NOTICE, "Share submitted." );
                  num_submitted++;
              }
-#if FOUR_WAY
-if (num_submitted > 1)
- applog(LOG_NOTICE,  "4 WAY hash nonces submitted: %u" CL_MAG " BONUS!" CL_N, num_submitted);
-else
- applog(LOG_NOTICE,  "4 WAY hash nonces submitted: %u", num_submitted);
-#endif
           // must be a one way algo, nonce is already in work data
           if ( !num_submitted )
           {
-             if ( !submit_work(mythr, &work) )
+             if ( !submit_work( mythr, &work ) )
              {
-                applog(LOG_WARNING, "Failed to submir share.");
+                applog( LOG_WARNING, "Failed to submit share." );
                 break;
              }
-#if FOUR_WAY
-applog(LOG_NOTICE,  "1 WAY hash nonce submitted");
-#endif
-
+             applog( LOG_NOTICE, "Share submitted." );
           }
 
           // prevent stale work in solo
@@ -2915,20 +2931,20 @@ bool check_cpu_capability ()
      bool sw_has_avx   = false;
      bool sw_has_avx2  = false;
      bool sw_has_sha   = false;
-     bool sw_has_4way  = false;
+//     bool sw_has_4way  = false;
      set_t algo_features = algo_gate.optimizations;
      bool algo_has_sse2 = set_incl( SSE2_OPT,     algo_features );
      bool algo_has_aes  = set_incl( AES_OPT,      algo_features );
      bool algo_has_avx  = set_incl( AVX_OPT,      algo_features );
      bool algo_has_avx2 = set_incl( AVX2_OPT,     algo_features );
      bool algo_has_sha  = set_incl( SHA_OPT,      algo_features );
-     bool algo_has_4way = set_incl( FOUR_WAY_OPT, algo_features );
+//     bool algo_has_4way = set_incl( FOUR_WAY_OPT, algo_features );
      bool use_aes;
      bool use_sse2;
      bool use_avx;
      bool use_avx2;
      bool use_sha;
-     bool use_4way;
+//     bool use_4way;
      bool use_none;
 
      #ifdef __AES__
@@ -2946,9 +2962,9 @@ bool check_cpu_capability ()
      #ifdef __SHA__
          sw_has_sha = true;
      #endif
-     #ifdef HASH_4WAY
-         sw_has_4way = true;
-     #endif
+//     #ifdef HASH_4WAY
+//         sw_has_4way = true;
+//     #endif
 
      #if !((__AES__) || (__SSE2__))
          printf("Neither __AES__ nor __SSE2__ defined.\n");
@@ -2978,7 +2994,7 @@ bool check_cpu_capability ()
      if ( sw_has_aes  )    printf( " AES"  );
      if ( sw_has_avx  )    printf( " AVX"  );
      if ( sw_has_avx2 )    printf( " AVX2" );
-     if ( sw_has_4way )    printf( " 4WAY" );
+//     if ( sw_has_4way )    printf( " 4WAY" );
      if ( sw_has_sha  )    printf( " SHA"  );
     
 
@@ -2990,7 +3006,7 @@ bool check_cpu_capability ()
         if ( algo_has_aes  )           printf( " AES"  );
         if ( algo_has_avx  )           printf( " AVX"  );
         if ( algo_has_avx2 )           printf( " AVX2" );
-        if ( algo_has_4way )           printf( " 4WAY" );
+//        if ( algo_has_4way )           printf( " 4WAY" );
         if ( algo_has_sha  )           printf( " SHA"  );
      }
      printf(".\n");
@@ -3028,9 +3044,9 @@ bool check_cpu_capability ()
      use_avx  = cpu_has_avx  && sw_has_avx  && algo_has_avx;
      use_avx2 = cpu_has_avx2 && sw_has_avx2 && algo_has_avx2;
      use_sha  = cpu_has_sha  && sw_has_sha  && algo_has_sha;
-     use_4way = cpu_has_avx2 && sw_has_4way && algo_has_4way;
-     use_none = !( use_sse2 || use_aes || use_avx || use_avx2 || use_sha
-                   || use_4way );
+//     use_4way = cpu_has_avx2 && sw_has_4way && algo_has_4way;
+     use_none = !( use_sse2 || use_aes || use_avx || use_avx2 || use_sha );
+//                   || use_4way );
       
      // Display best options
      printf( "Start mining with" );
@@ -3041,7 +3057,7 @@ bool check_cpu_capability ()
         if      ( use_avx2 ) printf( " AVX2" );
         else if ( use_avx  ) printf( " AVX"  );
         else if ( use_sse2 ) printf( " SSE2" );
-        if      ( use_4way ) printf( " 4WAY" );
+//        if      ( use_4way ) printf( " 4WAY" );
         if      ( use_sha  ) printf( " SHA"  );
      }
      printf( ".\n\n" );

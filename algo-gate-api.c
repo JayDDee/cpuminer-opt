@@ -16,7 +16,7 @@
 #include <memory.h>
 #include <unistd.h>
 #include <openssl/sha.h>
-#include "miner.h"
+//#include "miner.h"
 #include "algo-gate-api.h"
 
 // Define null and standard functions.
@@ -155,6 +155,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
 
    switch (algo)
    {
+     case ALGO_ANIME:        register_anime_algo       ( gate ); break;
      case ALGO_ARGON2:       register_argon2_algo      ( gate ); break;
      case ALGO_AXIOM:        register_axiom_algo       ( gate ); break;
      case ALGO_BASTION:      register_bastion_algo     ( gate ); break;
@@ -216,6 +217,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_X13SM3:       register_x13sm3_algo      ( gate ); break;
      case ALGO_X14:          register_x14_algo         ( gate ); break;
      case ALGO_X15:          register_x15_algo         ( gate ); break;
+     case ALGO_X16R:         register_x16r_algo        ( gate ); break;
      case ALGO_X17:          register_x17_algo         ( gate ); break;
      case ALGO_XEVAN:        register_xevan_algo       ( gate ); break;
      case ALGO_YESCRYPT:     register_yescrypt_algo    ( gate ); break;

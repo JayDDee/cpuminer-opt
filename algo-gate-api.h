@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
-
 #include "miner.h"
 
 /////////////////////////////
@@ -91,7 +90,7 @@ typedef  uint32_t set_t;
 #define AVX_OPT         4
 #define AVX2_OPT        8
 #define SHA_OPT      0x10
-#define FOUR_WAY_OPT 0x20
+//#define FOUR_WAY_OPT 0x20
 
 // return set containing all elements from sets a & b
 inline set_t set_union ( set_t a, set_t b ) { return a | b; }
@@ -213,7 +212,8 @@ int64_t get_max64_0x3fffffLL();
 int64_t get_max64_0x1ffff();
 int64_t get_max64_0xffffLL();
 
-void std_set_target   ( struct work *work, double job_diff );
+void std_set_target(    struct work *work, double job_diff );
+void alt_set_target(    struct work* work, double job_diff );
 void scrypt_set_target( struct work *work, double job_diff );
 
 bool std_le_work_decode( const json_t *val, struct work *work );

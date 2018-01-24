@@ -1,6 +1,6 @@
 #include "pentablake-gate.h"
 
-#ifdef __AVX2__
+#if defined (__AVX2__)
 
 #include <stdlib.h>
 #include <stdint.h>

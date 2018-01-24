@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 
-#if defined(FOUR_WAY) && defined(__AVX2__) && !defined(NO_AES_NI)
+#if defined(__AVX2__) && defined(__AES__)
   #define JHA_4WAY
 #endif
 

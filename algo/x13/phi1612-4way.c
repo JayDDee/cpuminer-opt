@@ -1,6 +1,6 @@
-#include "x13-gate.h"
+#include "phi1612-gate.h"
 
-#if defined(__AVX2__) && defined(__AES__)
+#if defined(PHI1612_4WAY)
 
 #include <stdlib.h>
 #include <stdint.h>
