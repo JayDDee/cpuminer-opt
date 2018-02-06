@@ -63,29 +63,26 @@ void init_x16r_4way_ctx()
 
 void x16r_4way_hash( void* output, const void* input )
 {
-   uint32_t hash0[16] __attribute__ ((aligned (64)));
-   uint32_t hash1[16] __attribute__ ((aligned (64)));
-   uint32_t hash2[16] __attribute__ ((aligned (64)));
-   uint32_t hash3[16] __attribute__ ((aligned (64)));
-   uint32_t vhash[16*4] __attribute__ ((aligned (64)));
-   uint32_t inp0[24] __attribute__ ((aligned (64)));
-   uint32_t inp1[24] __attribute__ ((aligned (64)));
-   uint32_t inp2[24] __attribute__ ((aligned (64)));
-   uint32_t inp3[24] __attribute__ ((aligned (64)));
+   uint32_t hash0[24] __attribute__ ((aligned (64)));
+   uint32_t hash1[24] __attribute__ ((aligned (64)));
+   uint32_t hash2[24] __attribute__ ((aligned (64)));
+   uint32_t hash3[24] __attribute__ ((aligned (64)));
+   uint32_t vhash[24*4] __attribute__ ((aligned (64)));
 
    x16r_4way_ctx_holder ctx;
    
-   void *in0 = (void*) inp0;
-   void *in1 = (void*) inp1;
-   void *in2 = (void*) inp2;
-   void *in3 = (void*) inp3;
+   void *in0 = (void*) hash0;
+   void *in1 = (void*) hash1;
+   void *in2 = (void*) hash2;
+   void *in3 = (void*) hash3;
+
    int size = 80;
 
-   mm256_deinterleave_4x64( inp0, inp1, inp2, inp3, input, 640 );
+   mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, input, 640 );
  
    if ( s_ntime == UINT32_MAX )
    {
-      const uint8_t* tmp = (uint8_t*) inp0;
+      const uint8_t* tmp = (uint8_t*) in0;
       x16r_getAlgoString( &tmp[4], hashOrder );
    }
 
@@ -114,7 +111,7 @@ void x16r_4way_hash( void* output, const void* input )
                blake512_4way( &ctx.blake, vhash, size );
             }
             blake512_4way_close( &ctx.blake, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
          break;
          case BMW:
             bmw512_4way_init( &ctx.bmw );
@@ -126,7 +123,7 @@ void x16r_4way_hash( void* output, const void* input )
                bmw512_4way( &ctx.bmw, vhash, size );
             }
             bmw512_4way_close( &ctx.bmw, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
          break;
          case GROESTL:
                init_groestl( &ctx.groestl, 64 );
@@ -152,7 +149,7 @@ void x16r_4way_hash( void* output, const void* input )
                skein512_4way( &ctx.skein, vhash, size );
             }
             skein512_4way_close( &ctx.skein, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
          break;
          case JH:
             jh512_4way_init( &ctx.jh );
@@ -164,7 +161,7 @@ void x16r_4way_hash( void* output, const void* input )
                jh512_4way( &ctx.jh, vhash, size );
             }
             jh512_4way_close( &ctx.jh, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
          break;
          case KECCAK:
             keccak512_4way_init( &ctx.keccak );
@@ -176,7 +173,7 @@ void x16r_4way_hash( void* output, const void* input )
                keccak512_4way( &ctx.keccak, vhash, size );
             }
             keccak512_4way_close( &ctx.keccak, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
          break;
          case LUFFA:
             init_luffa( &ctx.luffa, 512 );
@@ -253,7 +250,7 @@ void x16r_4way_hash( void* output, const void* input )
              hamsi512_4way_init( &ctx.hamsi );
              hamsi512_4way( &ctx.hamsi, vhash, size );
              hamsi512_4way_close( &ctx.hamsi, vhash );
-             mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+             mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, size<<3 );
          break;
          case FUGUE:
              sph_fugue512_init( &ctx.fugue );
@@ -274,7 +271,7 @@ void x16r_4way_hash( void* output, const void* input )
              shabal512_4way_init( &ctx.shabal );
              shabal512_4way( &ctx.shabal, vhash, size );
              shabal512_4way_close( &ctx.shabal, vhash );
-             mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+             mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, size<<3 );
          break;
          case WHIRLPOOL:
              sph_whirlpool_init( &ctx.whirlpool );
@@ -295,13 +292,9 @@ void x16r_4way_hash( void* output, const void* input )
              sha512_4way_init( &ctx.sha512 );
              sha512_4way( &ctx.sha512, vhash, size );
              sha512_4way_close( &ctx.sha512, vhash );
-             mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+             mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
          break;
       }
-      in0 = (void*) hash0;
-      in1 = (void*) hash1;
-      in2 = (void*) hash2;
-      in3 = (void*) hash3;
       size = 64;
    }
    memcpy( output,    hash0, 32 );
@@ -358,28 +351,28 @@ int scanhash_x16r_4way( int thr_id, struct work *work, uint32_t max_nonce,
       x16r_4way_hash( hash, vdata );
       pdata[19] = n;
 
-      if ( hash[7] <= Htarg && fulltest( hash, ptarget ) )
+      if ( ( hash[7] <= Htarg ) && fulltest( hash, ptarget ) )
       {
          found[0] = true;
          num_found++;
          nonces[0] = n;
          work_set_target_ratio( work, hash );
       }
-      if ( (hash+8)[7] <= Htarg && fulltest( hash, ptarget ) )
+      if ( ( (hash+8)[7] <= Htarg ) && fulltest( hash+8, ptarget ) )
       {
          found[1] = true;
          num_found++;
          nonces[1] = n+1;
          work_set_target_ratio( work, hash+8 );
       }
-      if ( (hash+16)[7] <= Htarg && fulltest( hash, ptarget ) )
+      if ( ( (hash+16)[7] <= Htarg ) && fulltest( hash+16, ptarget ) )
       {
          found[2] = true;
          num_found++;
          nonces[2] = n+2;
          work_set_target_ratio( work, hash+16 );
       }
-      if ( (hash+24)[7] <= Htarg && fulltest( hash, ptarget ) )
+      if ( ( (hash+24)[7] <= Htarg ) && fulltest( hash+24, ptarget ) )
       {
          found[3] = true;
          num_found++;

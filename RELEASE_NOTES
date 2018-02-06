@@ -159,7 +159,7 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
-v3.7.11
+v3.8.0
 
 4way no longer a seperate feature, included in AVX2.
 Added x16r algo for Ravencoin, anime algo for Animecoin.
