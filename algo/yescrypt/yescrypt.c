@@ -424,12 +424,17 @@ int64_t yescryptr16_get_max64()
   return 0xfffLL;
 }
 
-bool register_yescrypt_algo( algo_gate_t* gate )
+void yescrypt_gate_base(algo_gate_t *gate )
 {
-   gate->optimizations = SSE2_OPT | SHA_OPT;
+   gate->optimizations = SSE2_OPT | AVX_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yescrypt;
    gate->hash       = (void*)&yescrypt_hash;
    gate->set_target = (void*)&scrypt_set_target;
+}
+
+bool register_yescrypt_algo( algo_gate_t* gate )
+{
+   yescrypt_gate_base( gate );
    gate->get_max64  = (void*)&yescrypt_get_max64;
    client_key_hack = true;
    YESCRYPT_N = 2048;
@@ -440,10 +445,7 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 
 bool register_yescryptr8_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | SHA_OPT;
-   gate->scanhash   = (void*)&scanhash_yescrypt;
-   gate->hash       = (void*)&yescrypt_hash;
-   gate->set_target = (void*)&scrypt_set_target;
+   yescrypt_gate_base( gate );
    gate->get_max64  = (void*)&yescrypt_get_max64;
    client_key_hack = false;
    YESCRYPT_N = 2048;
@@ -454,10 +456,7 @@ bool register_yescryptr8_algo( algo_gate_t* gate )
 
 bool register_yescryptr16_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | SHA_OPT;
-   gate->scanhash   = (void*)&scanhash_yescrypt;
-   gate->hash       = (void*)&yescrypt_hash;
-   gate->set_target = (void*)&scrypt_set_target;
+   yescrypt_gate_base( gate );
    gate->get_max64  = (void*)&yescryptr16_get_max64;
    client_key_hack = false;
    YESCRYPT_N = 4096;   

@@ -215,18 +215,18 @@ SPH_XCAT( HASH, _addbits_and_close )(void *cc, 	unsigned ub, unsigned n,
 #if defined BE64
 #if defined PLW1
     sc->buf[ SPH_MAXPAD>>3 ] =
-                 mm256_byteswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
+                 mm256_bswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
 #elif defined PLW4
     memset_zero_256( sc->buf + (SPH_MAXPAD>>3), ( 2 * SPH_WLEN ) >> 3 );
     sc->buf[ (SPH_MAXPAD + 2 * SPH_WLEN ) >> 3 ] =
-                mm256_byteswap_64( _mm256_set1_epi64x( sc->count >> 61 ) );
+                mm256_bswap_64( _mm256_set1_epi64x( sc->count >> 61 ) );
     sc->buf[ (SPH_MAXPAD + 3 * SPH_WLEN ) >> 3 ] =
-                mm256_byteswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
+                mm256_bswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
 #else
     sc->buf[ ( SPH_MAXPAD + 2 * SPH_WLEN ) >> 3 ] =
-               mm256_byteswap_64( _mm256_set1_epi64x( sc->count >> 61 ) );
+               mm256_bswap_64( _mm256_set1_epi64x( sc->count >> 61 ) );
     sc->buf[ ( SPH_MAXPAD + 3 * SPH_WLEN ) >> 3 ] =
-               mm256_byteswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
+               mm256_bswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
 #endif  // PLW
 #else  // LE64
 #if defined PLW1
@@ -255,7 +255,7 @@ SPH_XCAT( HASH, _addbits_and_close )(void *cc, 	unsigned ub, unsigned n,
     for ( u = 0; u < rnum; u ++ )
     {
 #if defined BE64
-       ((__m256i*)dst)[u] = mm256_byteswap_64( sc->val[u] );
+       ((__m256i*)dst)[u] = mm256_bswap_64( sc->val[u] );
 #else  // LE64
        ((__m256i*)dst)[u] = sc->val[u];
 #endif

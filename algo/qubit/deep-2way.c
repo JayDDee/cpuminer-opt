@@ -1,0 +1,130 @@
+#include "deep-gate.h"
+
+#if defined(DEEP_2WAY)
+
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+#include "algo/luffa/luffa-hash-2way.h"
+#include "algo/cubehash/sse2/cubehash_sse2.h" 
+#include "algo/shavite/sph_shavite.h"
+#include "algo/echo/aes_ni/hash_api.h"
+
+typedef struct
+{
+        luffa_2way_context      luffa;
+        cubehashParam           cube;
+        sph_shavite512_context  shavite;
+        hashState_echo          echo;
+} deep_2way_ctx_holder;
+
+deep_2way_ctx_holder deep_2way_ctx;
+
+void init_deep_2way_ctx()
+{
+        luffa_2way_init( &deep_2way_ctx.luffa, 512 );
+        cubehashInit(&deep_2way_ctx.cube,512,16,32);
+        sph_shavite512_init(&deep_2way_ctx.shavite);
+        init_echo(&deep_2way_ctx.echo, 512);
+};
+
+void deep_2way_hash( void *output, const void *input )
+{
+     uint64_t hash0[8] __attribute__ ((aligned (64)));
+     uint64_t hash1[8] __attribute__ ((aligned (64)));
+     uint64_t vhash[8*2] __attribute__ ((aligned (64)));
+     deep_2way_ctx_holder ctx;
+
+     memcpy( &ctx, &deep_2way_ctx, sizeof(deep_2way_ctx) );
+     luffa_2way_update( &ctx.luffa, input + (64<<1), 16 );
+     luffa_2way_close( &ctx.luffa, vhash );
+     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+
+     cubehashUpdateDigest( &ctx.cube, (byte*)hash0,
+                           (const byte*) hash0, 64 );
+     memcpy( &ctx.cube, &deep_2way_ctx.cube, sizeof(cubehashParam) );
+     cubehashUpdateDigest( &ctx.cube, (byte*)hash1, (const byte*) hash1, 64 );
+
+     sph_shavite512( &ctx.shavite, hash0, 64 );
+     sph_shavite512_close( &ctx.shavite, hash0 );
+     memcpy( &ctx.shavite, &deep_2way_ctx.shavite,
+             sizeof(sph_shavite512_context) );
+     sph_shavite512( &ctx.shavite, hash1, 64 );
+     sph_shavite512_close( &ctx.shavite, hash1 );
+
+     update_final_echo( &ctx.echo, (BitSequence *)hash0,
+                       (const BitSequence *) hash0, 512 );
+     memcpy( &ctx.echo, &deep_2way_ctx.echo, sizeof(hashState_echo) );
+     update_final_echo( &ctx.echo, (BitSequence *)hash1,
+                       (const BitSequence *) hash1, 512 );
+
+     memcpy( output,    hash0, 32 );
+     memcpy( output+32, hash1, 32 );
+}
+
+int scanhash_deep_2way( int thr_id, struct work *work,uint32_t max_nonce,
+                         uint64_t *hashes_done )
+{
+     uint32_t hash[4*8] __attribute__ ((aligned (64)));
+     uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+     uint32_t endiandata[20] __attribute__((aligned(64)));
+     uint32_t *pdata = work->data;
+     uint32_t *ptarget = work->target;
+     uint32_t n = pdata[19];
+     const uint32_t first_nonce = pdata[19];
+     uint32_t *nonces = work->nonces;
+     bool *found = work->nfound;
+     int num_found = 0;
+     uint32_t *noncep0 = vdata + 32+3;   // 4*8 + 3
+     uint32_t *noncep1 = vdata + 32+7;
+     const uint32_t Htarg = ptarget[7];
+     uint64_t htmax[] = {          0,        0xF,       0xFF,
+                               0xFFF,     0xFFFF, 0x10000000  };
+     uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
+                          0xFFFFF000, 0xFFFF0000,          0  };
+
+     // big endian encode 0..18 uint32_t, 64 bits at a time
+     swab32_array( endiandata, pdata, 20 );
+
+     uint64_t *edata = (uint64_t*)endiandata;
+     mm256_interleave_2x128( (uint64_t*)vdata, edata, edata, 640 );
+
+     luffa_2way_init( &deep_2way_ctx.luffa, 512 );
+     luffa_2way_update( &deep_2way_ctx.luffa, vdata, 64 );
+
+     for ( int m=0; m < 6; m++ ) if ( Htarg <= htmax[m] )
+     {
+        uint32_t mask = masks[m];
+        do
+        {
+            found[0] = found[1] = false;
+            be32enc( noncep0, n   );
+            be32enc( noncep1, n+1 );
+            deep_2way_hash( hash, vdata );
+            pdata[19] = n;
+
+            if ( !( hash[7] & mask ) && fulltest( hash, ptarget) )
+            {
+               found[0] = true;
+               num_found++;
+               nonces[0] = n;
+               work_set_target_ratio( work, hash );
+            }
+            if ( !( (hash+8)[7] & mask ) && fulltest( hash+8, ptarget) )
+            {
+               found[1] = true;
+               num_found++;
+               nonces[1] = n+1;
+               work_set_target_ratio( work, hash+64 );
+            }
+            n += 2;
+         } while ( ( num_found == 0 ) && ( n < max_nonce )
+                   && !work_restart[thr_id].restart );
+         break;
+     }
+     *hashes_done = n - first_nonce + 1;
+     return num_found;
+}
+
+#endif

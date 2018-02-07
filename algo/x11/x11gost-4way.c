@@ -13,10 +13,10 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/gost/sph_gost.h"
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa-hash-2way.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 
 typedef struct {
@@ -27,10 +27,10 @@ typedef struct {
     jh512_4way_context      jh;    
     keccak512_4way_context  keccak;    
     sph_gost512_context     gost;
-    hashState_luffa         luffa;
+    luffa_2way_context      luffa;
     cubehashParam           cube;
     sph_shavite512_context  shavite;
-    hashState_sd            simd;
+    simd_2way_context       simd;
     hashState_echo          echo;
 } x11gost_4way_ctx_holder;
 
@@ -45,10 +45,10 @@ void init_x11gost_4way_ctx()
      jh512_4way_init( &x11gost_4way_ctx.jh );
      keccak512_4way_init( &x11gost_4way_ctx.keccak );
      sph_gost512_init( &x11gost_4way_ctx.gost );
-     init_luffa( &x11gost_4way_ctx.luffa, 512 );
+     luffa_2way_init( &x11gost_4way_ctx.luffa, 512 );
      cubehashInit( &x11gost_4way_ctx.cube, 512, 16, 32 );
      sph_shavite512_init( &x11gost_4way_ctx.shavite );
-     init_sd( &x11gost_4way_ctx.simd, 512 );
+     simd_2way_init( &x11gost_4way_ctx.simd, 512 );
      init_echo( &x11gost_4way_ctx.echo, 512 );
 }
 
@@ -59,6 +59,7 @@ void x11gost_4way_hash( void *state, const void *input )
      uint64_t hash2[8] __attribute__ ((aligned (64)));
      uint64_t hash3[8] __attribute__ ((aligned (64)));
      uint64_t vhash[8*4] __attribute__ ((aligned (64)));
+
      x11gost_4way_ctx_holder ctx;
      memcpy( &ctx, &x11gost_4way_ctx, sizeof(x11gost_4way_ctx) );
 
@@ -109,17 +110,13 @@ void x11gost_4way_hash( void *state, const void *input )
      sph_gost512( &ctx.gost, hash3, 64 );
      sph_gost512_close( &ctx.gost, hash3 );
 
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash0,
-                             (const BitSequence*)hash0, 64 );
-     memcpy( &ctx.luffa, &x11gost_4way_ctx.luffa, sizeof(hashState_luffa) );
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash1,
-                             (const BitSequence*)hash1, 64 );
-     memcpy( &ctx.luffa, &x11gost_4way_ctx.luffa, sizeof(hashState_luffa) );
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash2,
-                             (const BitSequence*)hash2, 64 );
-     memcpy( &ctx.luffa, &x11gost_4way_ctx.luffa, sizeof(hashState_luffa) );
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash3,
-                             (const BitSequence*)hash3, 64 );
+     mm256_interleave_2x128( vhash, hash0, hash1, 512 );
+     luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
+     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+     mm256_interleave_2x128( vhash, hash2, hash3, 512 );
+     luffa_2way_init( &ctx.luffa, 512 );
+     luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
+     mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
 
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );
      memcpy( &ctx.cube, &x11gost_4way_ctx.cube, sizeof(cubehashParam) );
@@ -144,17 +141,12 @@ void x11gost_4way_hash( void *state, const void *input )
      sph_shavite512( &ctx.shavite, hash3, 64 );
      sph_shavite512_close( &ctx.shavite, hash3 );
 
-     update_final_sd( &ctx.simd, (BitSequence *)hash0,
-                      (const BitSequence *)hash0, 512 );
-     memcpy( &ctx.simd, &x11gost_4way_ctx.simd, sizeof(hashState_sd) );
-     update_final_sd( &ctx.simd, (BitSequence *)hash1,
-                      (const BitSequence *)hash1, 512 );
-     memcpy( &ctx.simd, &x11gost_4way_ctx.simd, sizeof(hashState_sd) );
-     update_final_sd( &ctx.simd, (BitSequence *)hash2,
-                      (const BitSequence *)hash2, 512 );
-     memcpy( &ctx.simd, &x11gost_4way_ctx.simd, sizeof(hashState_sd) );
-     update_final_sd( &ctx.simd, (BitSequence *)hash3,
-                      (const BitSequence *)hash3, 512 );
+     mm256_interleave_2x128( vhash, hash0, hash1, 512 );
+     simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
+     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+     mm256_interleave_2x128( vhash, hash2, hash3, 512 );
+     simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
+     mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
 
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
                        (const BitSequence *) hash0, 512 );

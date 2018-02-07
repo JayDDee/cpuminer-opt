@@ -98,8 +98,8 @@ Start mining.
 
 Windows
 
-The following in how the Windows binary releases are built. It's old and
-not very good but it works, for me anyway.
+Precompiled Windows binaries are built on a Linux host using Mingw
+with a more recent compiler than the following Windows hosted procedure.
 
 Building on Windows prerequisites:
 
@@ -131,7 +131,7 @@ or similar Windows program.
 In msys shell cd to miner directory.
 cd /c/path/to/cpuminer-opt
 
-Run winbuild.sh to build on Windows or execute the following commands.
+Run build.sh to build on Windows or execute the following commands.
 
 ./autogen.sh
 CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" ./configure --with-curl
@@ -158,6 +158,16 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.8.1
+
+Fixes x16r on CPUs with only SSE2.
+More Optimizations for X algos, qubit & deep.
+Corrected algo optimizations for scrypt and yescrypt, no new optimizations.
+
+v3.8.0.1
+
+Fixed x16r AVX2 low hash rate.
 
 v3.8.0
 

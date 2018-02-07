@@ -10,10 +10,8 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#include "algo/luffa/sph_luffa.h"
 #include "algo/cubehash/sph_cubehash.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/simd/sph_simd.h"
 #include "algo/echo/sph_echo.h"
 
 #ifndef NO_AES_NI
@@ -21,9 +19,9 @@
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
 
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/nist.h"
 #include "algo/blake/sse2/blake.c"  
 #include "algo/keccak/sse2/keccak.c"
 #include "algo/bmw/sse2/bmw.c"

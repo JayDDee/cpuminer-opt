@@ -16,9 +16,9 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/nist.h"
 #include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
@@ -117,7 +117,7 @@ void x16r_hash( void* output, const void* input )
          case GROESTL:
 #ifdef NO_AES_NI
             sph_groestl512_init( &ctx.groestl );
-            sph_groestl512( &ctx.groestl, in, size<<3 );
+            sph_groestl512( &ctx.groestl, in, size );
             sph_groestl512_close(&ctx.groestl, hash);
 #else
             init_groestl( &ctx.groestl, 64 );

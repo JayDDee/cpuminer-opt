@@ -74,6 +74,18 @@ static const sph_u32 IV512[] = {
 	C32(0xE275EADE), C32(0x502D9FCD), C32(0xB9357178), C32(0x022A4B9A)
 };
 
+// Return hi 128 bits with elements shifted one lane with vacated lane filled
+// with data rotated from lo.
+// Partially rotate elements in two 128 bit vectors as one 256 bit vector
+// and return the rotated high 128 bits.
+// Similar to mm_rotr256_1x32 but only a partial rotation as lo is not
+// completed. It's faster than a full rotation.
+
+static inline __m128i mm_rotr256hi_1x32( __m128i hi, __m128i lo, int n )
+{   return _mm_or_si128( _mm_srli_si128( hi, n<<2 ),
+                        _mm_slli_si128( lo, 16 - (n<<2) ) );
+}
+
 #define AES_ROUND_NOKEY(x0, x1, x2, x3)   do { \
 		sph_u32 t0 = (x0); \
 		sph_u32 t1 = (x1); \
@@ -284,42 +296,42 @@ c512( sph_shavite_big_context *sc, const void *msg )
    // round
    k00 = m[0];
    x = _mm_xor_si128( p1, k00 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
   
    k01 = m[1];
    x = _mm_xor_si128( x, k01 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
 
    k02 = m[2];
    x = _mm_xor_si128( x, k02 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
 
    k03 = m[3];
    x = _mm_xor_si128( x, k03 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
    p0 = _mm_xor_si128( p0, x );
 
    k10 = m[4];
    x = _mm_xor_si128( p3, k10 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
    
    k11 = m[5];
    x = _mm_xor_si128( x, k11 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
 
    k12 = m[6];
    x = _mm_xor_si128( x, k12 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
 
    k13 = m[7];
    x = _mm_xor_si128( x, k13 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
    p2 = _mm_xor_si128( p2, x );
 
    for ( r = 0; r < 3; r ++ )
    {
       // round 1, 5, 9
-      k00 = mm_rotr_1x32( _mm_aesenc_si128( k00, mm_zero ) );
+      k00 = mm_rotr_1x32( _mm_aesenc_si128( k00, m128_zero ) );
       k00 = _mm_xor_si128( k00, k13 ); 
 
       if ( r == 0 )
@@ -327,8 +339,8 @@ c512( sph_shavite_big_context *sc, const void *msg )
                   ~sc->count3, sc->count2, sc->count1, sc->count0 ) ); 
 
       x = _mm_xor_si128( p0, k00 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k01 = mm_rotr_1x32( _mm_aesenc_si128( k01, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k01 = mm_rotr_1x32( _mm_aesenc_si128( k01, m128_zero ) );
       k01 = _mm_xor_si128( k01, k00 );
 
       if ( r == 1 )
@@ -336,34 +348,34 @@ c512( sph_shavite_big_context *sc, const void *msg )
                   ~sc->count0, sc->count1, sc->count2, sc->count3 ) );
 
       x = _mm_xor_si128( x, k01 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k02 = mm_rotr_1x32( _mm_aesenc_si128( k02, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k02 = mm_rotr_1x32( _mm_aesenc_si128( k02, m128_zero ) );
       k02 = _mm_xor_si128( k02, k01 );
 
       x = _mm_xor_si128( x, k02 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k03 = mm_rotr_1x32( _mm_aesenc_si128( k03, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k03 = mm_rotr_1x32( _mm_aesenc_si128( k03, m128_zero ) );
       k03 = _mm_xor_si128( k03, k02 );
 
       x = _mm_xor_si128( x, k03 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       p3 = _mm_xor_si128( p3, x );
-      k10 = mm_rotr_1x32( _mm_aesenc_si128( k10, mm_zero ) );
+      k10 = mm_rotr_1x32( _mm_aesenc_si128( k10, m128_zero ) );
       k10 = _mm_xor_si128( k10, k03 );
 
       x = _mm_xor_si128( p2, k10 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k11 = mm_rotr_1x32( _mm_aesenc_si128( k11, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k11 = mm_rotr_1x32( _mm_aesenc_si128( k11, m128_zero ) );
       k11 = _mm_xor_si128( k11, k10 );
 
       x = _mm_xor_si128( x, k11 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k12 = mm_rotr_1x32( _mm_aesenc_si128( k12, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k12 = mm_rotr_1x32( _mm_aesenc_si128( k12, m128_zero ) );
       k12 = _mm_xor_si128( k12, k11 );
 
       x = _mm_xor_si128( x, k12 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k13 = mm_rotr_1x32( _mm_aesenc_si128( k13, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k13 = mm_rotr_1x32( _mm_aesenc_si128( k13, m128_zero ) );
       k13 = _mm_xor_si128( k13, k12 );
 
       if ( r == 2 )
@@ -371,89 +383,89 @@ c512( sph_shavite_big_context *sc, const void *msg )
                   ~sc->count1, sc->count0, sc->count3, sc->count2 ) );
 
       x = _mm_xor_si128( x, k13 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       p1 = _mm_xor_si128( p1, x );
 
       // round 2, 6, 10
 
       k00 = _mm_xor_si128( k00, mm_rotr256hi_1x32( k12, k13, 1 ) );
       x = _mm_xor_si128( p3, k00 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
 
       k01 = _mm_xor_si128( k01, mm_rotr256hi_1x32( k13, k00, 1 ) );
       x = _mm_xor_si128( x, k01 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
 
       k02 = _mm_xor_si128( k02, mm_rotr256hi_1x32( k00, k01, 1 ) );
       x = _mm_xor_si128( x, k02 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
 
       k03 = _mm_xor_si128( k03, mm_rotr256hi_1x32( k01, k02, 1 ) );
       x = _mm_xor_si128( x, k03 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
 
       p2 = _mm_xor_si128( p2, x );
       k10 = _mm_xor_si128( k10, mm_rotr256hi_1x32( k02, k03, 1 ) );
       x = _mm_xor_si128( p1, k10 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
 
       k11 = _mm_xor_si128( k11, mm_rotr256hi_1x32( k03, k10, 1 ) );
       x = _mm_xor_si128( x, k11 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
 
       k12 = _mm_xor_si128( k12, mm_rotr256hi_1x32( k10, k11, 1 ) );
       x = _mm_xor_si128( x, k12 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
 
       k13 = _mm_xor_si128( k13, mm_rotr256hi_1x32( k11, k12, 1 ) );
       x = _mm_xor_si128( x, k13 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       p0 = _mm_xor_si128( p0, x );
 
       // round 3, 7, 11
 
-      k00 = mm_rotr_1x32( _mm_aesenc_si128( k00, mm_zero ) );
+      k00 = mm_rotr_1x32( _mm_aesenc_si128( k00, m128_zero ) );
       k00 = _mm_xor_si128( k00, k13 );
 
       x = _mm_xor_si128( p2, k00 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
 
-      k01 = mm_rotr_1x32( _mm_aesenc_si128( k01, mm_zero ) );
+      k01 = mm_rotr_1x32( _mm_aesenc_si128( k01, m128_zero ) );
       k01 = _mm_xor_si128( k01, k00 );
 
       x = _mm_xor_si128( x, k01 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k02 = mm_rotr_1x32( _mm_aesenc_si128( k02, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k02 = mm_rotr_1x32( _mm_aesenc_si128( k02, m128_zero ) );
       k02 = _mm_xor_si128( k02, k01 );
 
       x = _mm_xor_si128( x, k02 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k03 = mm_rotr_1x32( _mm_aesenc_si128( k03, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k03 = mm_rotr_1x32( _mm_aesenc_si128( k03, m128_zero ) );
       k03 = _mm_xor_si128( k03, k02 );
 
       x = _mm_xor_si128( x, k03 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       p1 = _mm_xor_si128( p1, x );
-      k10 = mm_rotr_1x32( _mm_aesenc_si128( k10, mm_zero ) );
+      k10 = mm_rotr_1x32( _mm_aesenc_si128( k10, m128_zero ) );
       k10 = _mm_xor_si128( k10, k03 );
 
       x = _mm_xor_si128( p0, k10 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k11 = mm_rotr_1x32( _mm_aesenc_si128( k11, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k11 = mm_rotr_1x32( _mm_aesenc_si128( k11, m128_zero ) );
       k11 = _mm_xor_si128( k11, k10 );
 
       x = _mm_xor_si128( x, k11 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k12 = mm_rotr_1x32( _mm_aesenc_si128( k12, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k12 = mm_rotr_1x32( _mm_aesenc_si128( k12, m128_zero ) );
       k12 = _mm_xor_si128( k12, k11 );
 
       x = _mm_xor_si128( x, k12 );
-      x = _mm_aesenc_si128( x, mm_zero );
-      k13 = mm_rotr_1x32( _mm_aesenc_si128( k13, mm_zero ) );
+      x = _mm_aesenc_si128( x, m128_zero );
+      k13 = mm_rotr_1x32( _mm_aesenc_si128( k13, m128_zero ) );
       k13 = _mm_xor_si128( k13, k12 );
 
       x = _mm_xor_si128( x, k13 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       p3 = _mm_xor_si128( p3, x );
 
       // round 4, 8, 12
@@ -461,83 +473,83 @@ c512( sph_shavite_big_context *sc, const void *msg )
       k00 = _mm_xor_si128( k00, mm_rotr256hi_1x32( k12, k13, 1 ) );
 
       x = _mm_xor_si128( p1, k00 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       k01 = _mm_xor_si128( k01, mm_rotr256hi_1x32( k13, k00, 1 ) );
 
       x = _mm_xor_si128( x, k01 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       k02 = _mm_xor_si128( k02, mm_rotr256hi_1x32( k00, k01, 1 ) );
 
       x = _mm_xor_si128( x, k02 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       k03 = _mm_xor_si128( k03, mm_rotr256hi_1x32( k01, k02, 1 ) );
 
       x = _mm_xor_si128( x, k03 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       p0 = _mm_xor_si128( p0, x );
       k10 = _mm_xor_si128( k10, mm_rotr256hi_1x32( k02, k03, 1 ) );
 
       x = _mm_xor_si128( p3, k10 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       k11 = _mm_xor_si128( k11, mm_rotr256hi_1x32( k03, k10, 1 ) );
 
       x = _mm_xor_si128( x, k11 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       k12 = _mm_xor_si128( k12, mm_rotr256hi_1x32( k10, k11, 1 ) );
 
       x = _mm_xor_si128( x, k12 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       k13 = _mm_xor_si128( k13, mm_rotr256hi_1x32( k11, k12, 1 ) );
 
       x = _mm_xor_si128( x, k13 );
-      x = _mm_aesenc_si128( x, mm_zero );
+      x = _mm_aesenc_si128( x, m128_zero );
       p2 = _mm_xor_si128( p2, x );
    }
 
    // round 13
 
-   k00 = mm_rotr_1x32( _mm_aesenc_si128( k00, mm_zero ) );
+   k00 = mm_rotr_1x32( _mm_aesenc_si128( k00, m128_zero ) );
    k00 = _mm_xor_si128( k00, k13 );
 
    x = _mm_xor_si128( p0, k00 );
-   x = _mm_aesenc_si128( x, mm_zero );
-   k01 = mm_rotr_1x32( _mm_aesenc_si128( k01, mm_zero ) ); 
+   x = _mm_aesenc_si128( x, m128_zero );
+   k01 = mm_rotr_1x32( _mm_aesenc_si128( k01, m128_zero ) ); 
    k01 = _mm_xor_si128( k01, k00 );
 
    x = _mm_xor_si128( x, k01 );
-   x = _mm_aesenc_si128( x, mm_zero );
-   k02 = mm_rotr_1x32( _mm_aesenc_si128( k02, mm_zero ) );
+   x = _mm_aesenc_si128( x, m128_zero );
+   k02 = mm_rotr_1x32( _mm_aesenc_si128( k02, m128_zero ) );
    k02 = _mm_xor_si128( k02, k01 );
 
    x = _mm_xor_si128( x, k02 );
-   x = _mm_aesenc_si128( x, mm_zero );
-   k03 = mm_rotr_1x32( _mm_aesenc_si128( k03, mm_zero ) );
+   x = _mm_aesenc_si128( x, m128_zero );
+   k03 = mm_rotr_1x32( _mm_aesenc_si128( k03, m128_zero ) );
    k03 = _mm_xor_si128( k03, k02 );
 
    x = _mm_xor_si128( x, k03 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
    p3 = _mm_xor_si128( p3, x );
-   k10 = mm_rotr_1x32( _mm_aesenc_si128( k10, mm_zero ) );
+   k10 = mm_rotr_1x32( _mm_aesenc_si128( k10, m128_zero ) );
    k10 = _mm_xor_si128( k10, k03 );
 
    x = _mm_xor_si128( p2, k10 );
-   x = _mm_aesenc_si128( x, mm_zero );
-   k11 = mm_rotr_1x32( _mm_aesenc_si128( k11, mm_zero ) );
+   x = _mm_aesenc_si128( x, m128_zero );
+   k11 = mm_rotr_1x32( _mm_aesenc_si128( k11, m128_zero ) );
    k11 = _mm_xor_si128( k11, k10 );
 
    x = _mm_xor_si128( x, k11 );
-   x = _mm_aesenc_si128( x, mm_zero );
-   k12 = mm_rotr_1x32( _mm_aesenc_si128( k12, mm_zero ) );
+   x = _mm_aesenc_si128( x, m128_zero );
+   k12 = mm_rotr_1x32( _mm_aesenc_si128( k12, m128_zero ) );
    k12 = _mm_xor_si128( k12, _mm_xor_si128( k11, _mm_set_epi32(
                ~sc->count2, sc->count3, sc->count0, sc->count1 ) ) );
 
    x = _mm_xor_si128( x, k12 );
-   x = _mm_aesenc_si128( x, mm_zero );
-   k13 = mm_rotr_1x32( _mm_aesenc_si128( k13, mm_zero ) );
+   x = _mm_aesenc_si128( x, m128_zero );
+   k13 = mm_rotr_1x32( _mm_aesenc_si128( k13, m128_zero ) );
    k13 = _mm_xor_si128( k13, k12 );
 
    x = _mm_xor_si128( x, k13 );
-   x = _mm_aesenc_si128( x, mm_zero );
+   x = _mm_aesenc_si128( x, m128_zero );
    p1 = _mm_xor_si128( p1, x );
 
    h[0] = _mm_xor_si128( h[0], p2 );

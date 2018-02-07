@@ -553,22 +553,22 @@ do { \
                           , _mm_set_epi32( CS6, CS6, CS6, CS6 ) ); \
         VF = _mm_xor_si128( _mm_set_epi32( T1, T1, T1, T1 ), \
                             _mm_set_epi32( CS7, CS7, CS7, CS7 ) ); \
-	M[0x0] = mm_byteswap_32( *(buf +  0) ); \
-	M[0x1] = mm_byteswap_32( *(buf +  1) ); \
-	M[0x2] = mm_byteswap_32( *(buf +  2) ); \
-	M[0x3] = mm_byteswap_32( *(buf +  3) ); \
-	M[0x4] = mm_byteswap_32( *(buf +  4) ); \
-	M[0x5] = mm_byteswap_32( *(buf +  5) ); \
-	M[0x6] = mm_byteswap_32( *(buf +  6) ); \
-	M[0x7] = mm_byteswap_32( *(buf +  7) ); \
-	M[0x8] = mm_byteswap_32( *(buf +  8) ); \
-	M[0x9] = mm_byteswap_32( *(buf +  9) ); \
-	M[0xA] = mm_byteswap_32( *(buf + 10) ); \
-	M[0xB] = mm_byteswap_32( *(buf + 11) ); \
-	M[0xC] = mm_byteswap_32( *(buf + 12) ); \
-	M[0xD] = mm_byteswap_32( *(buf + 13) ); \
-	M[0xE] = mm_byteswap_32( *(buf + 14) ); \
-	M[0xF] = mm_byteswap_32( *(buf + 15) ); \
+	M[0x0] = mm_bswap_32( *(buf +  0) ); \
+	M[0x1] = mm_bswap_32( *(buf +  1) ); \
+	M[0x2] = mm_bswap_32( *(buf +  2) ); \
+	M[0x3] = mm_bswap_32( *(buf +  3) ); \
+	M[0x4] = mm_bswap_32( *(buf +  4) ); \
+	M[0x5] = mm_bswap_32( *(buf +  5) ); \
+	M[0x6] = mm_bswap_32( *(buf +  6) ); \
+	M[0x7] = mm_bswap_32( *(buf +  7) ); \
+	M[0x8] = mm_bswap_32( *(buf +  8) ); \
+	M[0x9] = mm_bswap_32( *(buf +  9) ); \
+	M[0xA] = mm_bswap_32( *(buf + 10) ); \
+	M[0xB] = mm_bswap_32( *(buf + 11) ); \
+	M[0xC] = mm_bswap_32( *(buf + 12) ); \
+	M[0xD] = mm_bswap_32( *(buf + 13) ); \
+	M[0xE] = mm_bswap_32( *(buf + 14) ); \
+	M[0xF] = mm_bswap_32( *(buf + 15) ); \
 	for (r = 0; r < rounds; r ++) \
 		ROUND_S_4WAY(r); \
         H0 = _mm_xor_si128( _mm_xor_si128( \
@@ -615,22 +615,22 @@ do { \
    VD = _mm_xor_si128( _mm_set1_epi32( T0 ), _mm_set1_epi32( CS5 ) ); \
    VE = _mm_xor_si128( _mm_set1_epi32( T1 ), _mm_set1_epi32( CS6 ) ); \
    VF = _mm_xor_si128( _mm_set1_epi32( T1 ), _mm_set1_epi32( CS7 ) ); \
-   M0 = mm_byteswap_32( * buf ); \
-   M1 = mm_byteswap_32( *(buf+1) ); \
-   M2 = mm_byteswap_32( *(buf+2) ); \
-   M3 = mm_byteswap_32( *(buf+3) ); \
-   M4 = mm_byteswap_32( *(buf+4) ); \
-   M5 = mm_byteswap_32( *(buf+5) ); \
-   M6 = mm_byteswap_32( *(buf+6) ); \
-   M7 = mm_byteswap_32( *(buf+7) ); \
-   M8 = mm_byteswap_32( *(buf+8) ); \
-   M9 = mm_byteswap_32( *(buf+9) ); \
-   MA = mm_byteswap_32( *(buf+10) ); \
-   MB = mm_byteswap_32( *(buf+11) ); \
-   MC = mm_byteswap_32( *(buf+12) ); \
-   MD = mm_byteswap_32( *(buf+13) ); \
-   ME = mm_byteswap_32( *(buf+14) ); \
-   MF = mm_byteswap_32( *(buf+15) ); \
+   M0 = mm_bswap_32( * buf ); \
+   M1 = mm_bswap_32( *(buf+1) ); \
+   M2 = mm_bswap_32( *(buf+2) ); \
+   M3 = mm_bswap_32( *(buf+3) ); \
+   M4 = mm_bswap_32( *(buf+4) ); \
+   M5 = mm_bswap_32( *(buf+5) ); \
+   M6 = mm_bswap_32( *(buf+6) ); \
+   M7 = mm_bswap_32( *(buf+7) ); \
+   M8 = mm_bswap_32( *(buf+8) ); \
+   M9 = mm_bswap_32( *(buf+9) ); \
+   MA = mm_bswap_32( *(buf+10) ); \
+   MB = mm_bswap_32( *(buf+11) ); \
+   MC = mm_bswap_32( *(buf+12) ); \
+   MD = mm_bswap_32( *(buf+13) ); \
+   ME = mm_bswap_32( *(buf+14) ); \
+   MF = mm_bswap_32( *(buf+15) ); \
    ROUND_S_4WAY(0); \
    ROUND_S_4WAY(1); \
    ROUND_S_4WAY(2); \
@@ -727,22 +727,22 @@ do { \
    VD = _mm256_xor_si256( _mm256_set1_epi32( T0 ), _mm256_set1_epi32( CS5 ) ); \
    VE = _mm256_xor_si256( _mm256_set1_epi32( T1 ), _mm256_set1_epi32( CS6 ) ); \
    VF = _mm256_xor_si256( _mm256_set1_epi32( T1 ), _mm256_set1_epi32( CS7 ) ); \
-   M0 = mm256_byteswap_32( * buf ); \
-   M1 = mm256_byteswap_32( *(buf+1) ); \
-   M2 = mm256_byteswap_32( *(buf+2) ); \
-   M3 = mm256_byteswap_32( *(buf+3) ); \
-   M4 = mm256_byteswap_32( *(buf+4) ); \
-   M5 = mm256_byteswap_32( *(buf+5) ); \
-   M6 = mm256_byteswap_32( *(buf+6) ); \
-   M7 = mm256_byteswap_32( *(buf+7) ); \
-   M8 = mm256_byteswap_32( *(buf+8) ); \
-   M9 = mm256_byteswap_32( *(buf+9) ); \
-   MA = mm256_byteswap_32( *(buf+10) ); \
-   MB = mm256_byteswap_32( *(buf+11) ); \
-   MC = mm256_byteswap_32( *(buf+12) ); \
-   MD = mm256_byteswap_32( *(buf+13) ); \
-   ME = mm256_byteswap_32( *(buf+14) ); \
-   MF = mm256_byteswap_32( *(buf+15) ); \
+   M0 = mm256_bswap_32( * buf ); \
+   M1 = mm256_bswap_32( *(buf+1) ); \
+   M2 = mm256_bswap_32( *(buf+2) ); \
+   M3 = mm256_bswap_32( *(buf+3) ); \
+   M4 = mm256_bswap_32( *(buf+4) ); \
+   M5 = mm256_bswap_32( *(buf+5) ); \
+   M6 = mm256_bswap_32( *(buf+6) ); \
+   M7 = mm256_bswap_32( *(buf+7) ); \
+   M8 = mm256_bswap_32( *(buf+8) ); \
+   M9 = mm256_bswap_32( *(buf+9) ); \
+   MA = mm256_bswap_32( *(buf+10) ); \
+   MB = mm256_bswap_32( *(buf+11) ); \
+   MC = mm256_bswap_32( *(buf+12) ); \
+   MD = mm256_bswap_32( *(buf+13) ); \
+   ME = mm256_bswap_32( *(buf+14) ); \
+   MF = mm256_bswap_32( *(buf+15) ); \
    ROUND_S_8WAY(0); \
    ROUND_S_8WAY(1); \
    ROUND_S_8WAY(2); \
@@ -848,22 +848,22 @@ do { \
                                _mm256_set_epi64x( CB6, CB6, CB6, CB6 ) ); \
         VF = _mm256_xor_si256( _mm256_set_epi64x( T1, T1, T1, T1 ), \
                                _mm256_set_epi64x( CB7, CB7, CB7, CB7 ) ); \
-	M[0x0] = mm256_byteswap_64( *(buf+0) ); \
-	M[0x1] = mm256_byteswap_64( *(buf+1) ); \
-	M[0x2] = mm256_byteswap_64( *(buf+2) ); \
-	M[0x3] = mm256_byteswap_64( *(buf+3) ); \
-	M[0x4] = mm256_byteswap_64( *(buf+4) ); \
-	M[0x5] = mm256_byteswap_64( *(buf+5) ); \
-	M[0x6] = mm256_byteswap_64( *(buf+6) ); \
-	M[0x7] = mm256_byteswap_64( *(buf+7) ); \
-	M[0x8] = mm256_byteswap_64( *(buf+8) ); \
-	M[0x9] = mm256_byteswap_64( *(buf+9) ); \
-	M[0xA] = mm256_byteswap_64( *(buf+10) ); \
-	M[0xB] = mm256_byteswap_64( *(buf+11) ); \
-	M[0xC] = mm256_byteswap_64( *(buf+12) ); \
-	M[0xD] = mm256_byteswap_64( *(buf+13) ); \
-	M[0xE] = mm256_byteswap_64( *(buf+14) ); \
-	M[0xF] = mm256_byteswap_64( *(buf+15) ); \
+	M[0x0] = mm256_bswap_64( *(buf+0) ); \
+	M[0x1] = mm256_bswap_64( *(buf+1) ); \
+	M[0x2] = mm256_bswap_64( *(buf+2) ); \
+	M[0x3] = mm256_bswap_64( *(buf+3) ); \
+	M[0x4] = mm256_bswap_64( *(buf+4) ); \
+	M[0x5] = mm256_bswap_64( *(buf+5) ); \
+	M[0x6] = mm256_bswap_64( *(buf+6) ); \
+	M[0x7] = mm256_bswap_64( *(buf+7) ); \
+	M[0x8] = mm256_bswap_64( *(buf+8) ); \
+	M[0x9] = mm256_bswap_64( *(buf+9) ); \
+	M[0xA] = mm256_bswap_64( *(buf+10) ); \
+	M[0xB] = mm256_bswap_64( *(buf+11) ); \
+	M[0xC] = mm256_bswap_64( *(buf+12) ); \
+	M[0xD] = mm256_bswap_64( *(buf+13) ); \
+	M[0xE] = mm256_bswap_64( *(buf+14) ); \
+	M[0xF] = mm256_bswap_64( *(buf+15) ); \
 	for (r = 0; r < 16; r ++) \
 		ROUND_B_4WAY(r); \
         H0 = _mm256_xor_si256( _mm256_xor_si256( \
@@ -913,22 +913,22 @@ do { \
                             _mm256_set_epi64x( CB6, CB6, CB6, CB6 ) );  \
      VF = _mm256_xor_si256( _mm256_set_epi64x( T1, T1, T1, T1 ), \
                             _mm256_set_epi64x( CB7, CB7, CB7, CB7 ) );  \
-     M0 = mm256_byteswap_64( *(buf + 0) ); \
-     M1 = mm256_byteswap_64( *(buf + 1) ); \
-     M2 = mm256_byteswap_64( *(buf + 2) ); \
-     M3 = mm256_byteswap_64( *(buf + 3) ); \
-     M4 = mm256_byteswap_64( *(buf + 4) ); \
-     M5 = mm256_byteswap_64( *(buf + 5) ); \
-     M6 = mm256_byteswap_64( *(buf + 6) ); \
-     M7 = mm256_byteswap_64( *(buf + 7) ); \
-     M8 = mm256_byteswap_64( *(buf + 8) ); \
-     M9 = mm256_byteswap_64( *(buf + 9) ); \
-     MA = mm256_byteswap_64( *(buf + 10) ); \
-     MB = mm256_byteswap_64( *(buf + 11) ); \
-     MC = mm256_byteswap_64( *(buf + 12) ); \
-     MD = mm256_byteswap_64( *(buf + 13) ); \
-     ME = mm256_byteswap_64( *(buf + 14) ); \
-     MF = mm256_byteswap_64( *(buf + 15) ); \
+     M0 = mm256_bswap_64( *(buf + 0) ); \
+     M1 = mm256_bswap_64( *(buf + 1) ); \
+     M2 = mm256_bswap_64( *(buf + 2) ); \
+     M3 = mm256_bswap_64( *(buf + 3) ); \
+     M4 = mm256_bswap_64( *(buf + 4) ); \
+     M5 = mm256_bswap_64( *(buf + 5) ); \
+     M6 = mm256_bswap_64( *(buf + 6) ); \
+     M7 = mm256_bswap_64( *(buf + 7) ); \
+     M8 = mm256_bswap_64( *(buf + 8) ); \
+     M9 = mm256_bswap_64( *(buf + 9) ); \
+     MA = mm256_bswap_64( *(buf + 10) ); \
+     MB = mm256_bswap_64( *(buf + 11) ); \
+     MC = mm256_bswap_64( *(buf + 12) ); \
+     MD = mm256_bswap_64( *(buf + 13) ); \
+     ME = mm256_bswap_64( *(buf + 14) ); \
+     MF = mm256_bswap_64( *(buf + 15) ); \
      ROUND_B_4WAY(0); \
      ROUND_B_4WAY(1); \
      ROUND_B_4WAY(2); \
@@ -1064,8 +1064,8 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
        if (out_size_w32 == 8)
            u.buf[52>>2] = _mm_or_si128( u.buf[52>>2],
                                         _mm_set1_epi32( 0x01000000UL ) );
-       *(u.buf+(56>>2)) = mm_byteswap_32( _mm_set1_epi32( th ) );
-       *(u.buf+(60>>2)) = mm_byteswap_32( _mm_set1_epi32( tl ) );
+       *(u.buf+(56>>2)) = mm_bswap_32( _mm_set1_epi32( th ) );
+       *(u.buf+(60>>2)) = mm_bswap_32( _mm_set1_epi32( tl ) );
        blake32_4way( sc, u.buf + (ptr>>2), 64 - ptr );
    }
    else
@@ -1077,13 +1077,13 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
 	memset_zero_128( u.buf, 56>>2 );
        if (out_size_w32 == 8)
            u.buf[52>>2] = _mm_set1_epi32( 0x01000000UL );
-        *(u.buf+(56>>2)) = mm_byteswap_32( _mm_set1_epi32( th ) );
-        *(u.buf+(60>>2)) = mm_byteswap_32( _mm_set1_epi32( tl ) );
+        *(u.buf+(56>>2)) = mm_bswap_32( _mm_set1_epi32( th ) );
+        *(u.buf+(60>>2)) = mm_bswap_32( _mm_set1_epi32( tl ) );
 	blake32_4way( sc, u.buf, 64 );
    }
    out = (__m128i*)dst;
    for ( k = 0; k < out_size_w32; k++ )
-        out[k] = mm_byteswap_32( sc->H[k] );
+        out[k] = mm_bswap_32( sc->H[k] );
 }
 
 #if defined (__AVX2__)
@@ -1187,8 +1187,8 @@ blake32_8way_close( blake_8way_small_context *sc, unsigned ub, unsigned n,
        if (out_size_w32 == 8)
            u.buf[52>>2] = _mm256_or_si256( u.buf[52>>2],
                                            _mm256_set1_epi32( 0x01000000UL ) );
-       *(u.buf+(56>>2)) = mm256_byteswap_32( _mm256_set1_epi32( th ) );
-       *(u.buf+(60>>2)) = mm256_byteswap_32( _mm256_set1_epi32( tl ) );
+       *(u.buf+(56>>2)) = mm256_bswap_32( _mm256_set1_epi32( th ) );
+       *(u.buf+(60>>2)) = mm256_bswap_32( _mm256_set1_epi32( tl ) );
        blake32_8way( sc, u.buf + (ptr>>2), 64 - ptr );
    }
    else
@@ -1200,13 +1200,13 @@ blake32_8way_close( blake_8way_small_context *sc, unsigned ub, unsigned n,
         memset_zero_256( u.buf, 56>>2 );
        if (out_size_w32 == 8)
            u.buf[52>>2] = _mm256_set1_epi32( 0x01000000UL );
-        *(u.buf+(56>>2)) = mm256_byteswap_32( _mm256_set1_epi32( th ) );
-        *(u.buf+(60>>2)) = mm256_byteswap_32( _mm256_set1_epi32( tl ) );
+        *(u.buf+(56>>2)) = mm256_bswap_32( _mm256_set1_epi32( th ) );
+        *(u.buf+(60>>2)) = mm256_bswap_32( _mm256_set1_epi32( tl ) );
         blake32_8way( sc, u.buf, 64 );
    }
    out = (__m256i*)dst;
    for ( k = 0; k < out_size_w32; k++ )
-        out[k] = mm256_byteswap_32( sc->H[k] );
+        out[k] = mm256_bswap_32( sc->H[k] );
 }
 
 // Blake-512 4 way
@@ -1311,9 +1311,9 @@ blake64_4way_close( blake_4way_big_context *sc,
        if ( out_size_w64 == 8 )
           u.buf[(104>>3)] = _mm256_or_si256( u.buf[(104>>3)],
                                  _mm256_set1_epi64x( 0x0100000000000000ULL ) );
-       *(u.buf+(112>>3)) = mm256_byteswap_64(
+       *(u.buf+(112>>3)) = mm256_bswap_64(
                                     _mm256_set_epi64x( th, th, th, th ) );
-       *(u.buf+(120>>3)) = mm256_byteswap_64(
+       *(u.buf+(120>>3)) = mm256_bswap_64(
                                     _mm256_set_epi64x( tl, tl, tl, tl ) );
 
        blake64_4way( sc, u.buf + (ptr>>3), 128 - ptr );
@@ -1328,16 +1328,16 @@ blake64_4way_close( blake_4way_big_context *sc,
        memset_zero_256( u.buf, 112>>3 ); 
        if ( out_size_w64 == 8 )
            u.buf[104>>3] = _mm256_set1_epi64x( 0x0100000000000000ULL );
-       *(u.buf+(112>>3)) = mm256_byteswap_64(
+       *(u.buf+(112>>3)) = mm256_bswap_64(
                                     _mm256_set_epi64x( th, th, th, th ) );
-       *(u.buf+(120>>3)) = mm256_byteswap_64(
+       *(u.buf+(120>>3)) = mm256_bswap_64(
                                     _mm256_set_epi64x( tl, tl, tl, tl ) );
 
        blake64_4way( sc, u.buf, 128 );
    }
    out = (__m256i*)dst;
    for ( k = 0; k < out_size_w64; k++ )
-       out[k] = mm256_byteswap_64( sc->H[k] );
+       out[k] = mm256_bswap_64( sc->H[k] );
 }
 
 #endif

@@ -12,10 +12,10 @@
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa-hash-2way.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/simd-hash-2way.h"
 
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread int permutation[TT10_FUNC_COUNT] = { 0 };
@@ -27,10 +27,10 @@ typedef struct {
     skein512_4way_context   skein;
     jh512_4way_context      jh;
     keccak512_4way_context  keccak;
-    hashState_luffa         luffa;
+    luffa_2way_context      luffa;
     cubehashParam           cube;
     sph_shavite512_context  shavite;
-    hashState_sd            simd;
+    simd_2way_context       simd;
 } tt10_4way_ctx_holder;
 
 tt10_4way_ctx_holder tt10_4way_ctx __attribute__ ((aligned (64)));
@@ -43,10 +43,10 @@ void init_tt10_4way_ctx()
     skein512_4way_init( &tt10_4way_ctx.skein );
     jh512_4way_init( &tt10_4way_ctx.jh );
     keccak512_4way_init( &tt10_4way_ctx.keccak );
-    init_luffa( &tt10_4way_ctx.luffa, 512 );
+    luffa_2way_init( &tt10_4way_ctx.luffa, 512 );
     cubehashInit( &tt10_4way_ctx.cube, 512, 16, 32 );
     sph_shavite512_init( &tt10_4way_ctx.shavite );
-    init_sd( &tt10_4way_ctx.simd, 512 );
+    simd_2way_init( &tt10_4way_ctx.simd, 512 );
 };
 
 void timetravel10_4way_hash(void *output, const void *input)
@@ -145,17 +145,13 @@ void timetravel10_4way_hash(void *output, const void *input)
         case 6:
            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3,
                                     vhashA, dataLen<<3 );
-           update_and_final_luffa( &ctx.luffa, (BitSequence*)hash0,
-                                        (const BitSequence *)hash0, dataLen );
-           memcpy( &ctx.luffa, &tt10_4way_ctx.luffa, sizeof(hashState_luffa) );
-           update_and_final_luffa( &ctx.luffa, (BitSequence*)hash1,
-                                         (const BitSequence*)hash1, dataLen );
-           memcpy( &ctx.luffa, &tt10_4way_ctx.luffa, sizeof(hashState_luffa) );
-           update_and_final_luffa( &ctx.luffa, (BitSequence*)hash2,
-                                         (const BitSequence*)hash2, dataLen );
-           memcpy( &ctx.luffa, &tt10_4way_ctx.luffa, sizeof(hashState_luffa) );
-           update_and_final_luffa( &ctx.luffa, (BitSequence*)hash3,
-                                         (const BitSequence*)hash3, dataLen );
+           mm256_interleave_2x128( vhashA, hash0, hash1, dataLen<<3 );
+           luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, dataLen );
+           mm256_deinterleave_2x128( hash0, hash1, vhashA, dataLen<<3 );
+           mm256_interleave_2x128( vhashA, hash2, hash3, dataLen<<3 );
+           luffa_2way_init( &ctx.luffa, 512 );
+           luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, dataLen );
+           mm256_deinterleave_2x128( hash2, hash3, vhashA, dataLen<<3 );
            if ( i != 9 )           
               mm256_interleave_4x64( vhashB,
                                      hash0, hash1, hash2, hash3, dataLen<<3 );
@@ -199,17 +195,13 @@ void timetravel10_4way_hash(void *output, const void *input)
         case 9:
            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3,
                                     vhashA, dataLen<<3 );
-           update_final_sd( &ctx.simd, (BitSequence *)hash0,
-                            (const BitSequence *)hash0, dataLen<<3 );
-           memcpy( &ctx.simd, &tt10_4way_ctx.simd, sizeof ctx.simd );
-           update_final_sd( &ctx.simd, (BitSequence *)hash1,
-                            (const BitSequence *)hash1, dataLen<<3 );
-           memcpy( &ctx.simd, &tt10_4way_ctx.simd, sizeof ctx.simd );
-           update_final_sd( &ctx.simd, (BitSequence *)hash2,
-                            (const BitSequence *)hash2, dataLen<<3 );
-           memcpy( &ctx.simd, &tt10_4way_ctx.simd, sizeof ctx.simd );
-           update_final_sd( &ctx.simd, (BitSequence *)hash3,
-                            (const BitSequence *)hash3, dataLen<<3 );
+           mm256_interleave_2x128( vhashA, hash0, hash1, dataLen<<3 );
+           simd_2way_update_close( &ctx.simd, vhashA, vhashA, dataLen<<3 );
+           mm256_deinterleave_2x128( hash0, hash1, vhashA, dataLen<<3 );
+           mm256_interleave_2x128( vhashA, hash2, hash3, dataLen<<3 );
+           simd_2way_init( &ctx.simd, 512 );
+           simd_2way_update_close( &ctx.simd, vhashA, vhashA, dataLen<<3 );
+           mm256_deinterleave_2x128( hash2, hash3, vhashA, dataLen<<3 );
            if ( i != 9 )
               mm256_interleave_4x64( vhashB,
                                      hash0, hash1, hash2, hash3, dataLen<<3 );

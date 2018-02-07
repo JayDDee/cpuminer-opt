@@ -44,7 +44,7 @@ void jha_hash_4way( void *out, const void *input )
     for ( int round = 0; round < 3; round++ )
     {
        vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256(
-               vh[0], _mm256_set1_epi64x( 1 ) ), mm256_zero );
+               vh[0], _mm256_set1_epi64x( 1 ) ), m256_zero );
 
        mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
        init_groestl( &ctx_groestl, 64 );

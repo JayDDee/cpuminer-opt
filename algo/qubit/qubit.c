@@ -1,11 +1,11 @@
-#include "algo-gate-api.h"
+#include "qubit-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "algo/luffa/sse2/luffa_for_sse2.h" 
+#include "algo/luffa/luffa_for_sse2.h" 
 #include "algo/cubehash/sse2/cubehash_sse2.h" 
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/nist.h"
 #include "algo/shavite/sph_shavite.h"
 #ifndef NO_AES_NI
 #include "algo/echo/aes_ni/hash_api.h"
@@ -48,7 +48,7 @@ void qubit_luffa_midstate( const void* input )
     update_luffa( &qubit_luffa_mid, input, 64 );
 }
 
-void qubithash(void *output, const void *input)
+void qubit_hash(void *output, const void *input)
 {
         unsigned char hash[128] __attribute((aligned(64)));
         #define hashB hash+64
@@ -115,7 +115,7 @@ int scanhash_qubit(int thr_id, struct work *work,
                 {
 	            pdata[19] = ++n;
 		    be32enc(&endiandata[19], n);
-		    qubithash(hash64, endiandata);
+		    qubit_hash(hash64, endiandata);
 #ifndef DEBUG_ALGO
 		    if (!(hash64[7] & mask))
                     {
@@ -150,13 +150,4 @@ int scanhash_qubit(int thr_id, struct work *work,
 	pdata[19] = n;
 	return 0;
 }
-
-bool register_qubit_algo( algo_gate_t* gate )
-{
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  init_qubit_ctx();
-  gate->scanhash = (void*)&scanhash_qubit;
-  gate->hash     = (void*)&qubithash;
-  return true;
-};
 

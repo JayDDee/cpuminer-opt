@@ -129,7 +129,7 @@ static void transform( cubehashParam *sp )
 #endif
 }  // transform
 
-// Ccubehash context initializing is very expensive.
+// Cubehash context initializing is very expensive.
 // Cache the intial value for faster reinitializing.
 cubehashParam cube_ctx_cache __attribute__ ((aligned (64)));
 

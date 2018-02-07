@@ -15,9 +15,9 @@
 #include "algo/fugue/sph_fugue.h"
 #include "algo/sm3/sph_sm3.h"
 
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/nist.h"
 #include "algo/echo/sse2/sph_echo.h"
 #include "algo/blake/sse2/blake.c"
 #include "algo/bmw/sse2/bmw.c"

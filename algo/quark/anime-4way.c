@@ -60,7 +60,7 @@ void anime_4way_hash( void *state, const void *input )
     blake512_4way_close( &ctx.blake, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
-                                  mm256_zero );
+                                  m256_zero );
 
        mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
        update_and_final_groestl( &ctx.groestl, (char*)hash0,
@@ -97,7 +97,7 @@ void anime_4way_hash( void *state, const void *input )
     jh512_4way_close( &ctx.jh, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
-                                  mm256_zero );
+                                  m256_zero );
 
        blake512_4way_init( &ctx.blake );
        blake512_4way( &ctx.blake, vhash, 64 );
@@ -118,7 +118,7 @@ void anime_4way_hash( void *state, const void *input )
     skein512_4way_close( &ctx.skein, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
-                                  mm256_zero );
+                                  m256_zero );
 
        keccak512_4way_init( &ctx.keccak );
        keccak512_4way( &ctx.keccak, vhash, 64 );

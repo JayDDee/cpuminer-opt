@@ -59,7 +59,7 @@ static const sph_u64 RC[] = {
 #define XOR64(d, a, b)   (d = _mm256_xor_si256(a,b))
 #define AND64(d, a, b)   (d = _mm256_and_si256(a,b))
 #define OR64(d, a, b)    (d = _mm256_or_si256(a,b))
-#define NOT64(d, s)      (d = _mm256_xor_si256(s,mm256_neg1))
+#define NOT64(d, s)      (d = _mm256_xor_si256(s,m256_neg1))
 #define ROL64(d, v, n)   (d = mm256_rotl_64(v, n))
 #define XOR64_IOTA       XOR64
 
@@ -375,12 +375,12 @@ static void keccak64_init( keccak64_ctx_m256i *kc, unsigned out_size )
           kc->w[i] = _mm256_setzero_si256();
 
    // Initialization for the "lane complement".
-   kc->w[ 1] = mm256_neg1;
-   kc->w[ 2] = mm256_neg1;
-   kc->w[ 8] = mm256_neg1;
-   kc->w[12] = mm256_neg1;
-   kc->w[17] = mm256_neg1;
-   kc->w[20] = mm256_neg1;
+   kc->w[ 1] = m256_neg1;
+   kc->w[ 2] = m256_neg1;
+   kc->w[ 8] = m256_neg1;
+   kc->w[12] = m256_neg1;
+   kc->w[17] = m256_neg1;
+   kc->w[20] = m256_neg1;
    kc->ptr = 0;
    kc->lim = 200 - (out_size >> 2);
 }

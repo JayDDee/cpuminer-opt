@@ -100,7 +100,8 @@ cpuminer_SOURCES = \
   algo/lbry.c \
   algo/luffa/sph_luffa.c \
   algo/luffa/luffa.c \
-  algo/luffa/sse2/luffa_for_sse2.c \
+  algo/luffa/luffa_for_sse2.c \
+  algo/luffa/luffa-hash-2way.c \
   algo/lyra2/lyra2.c \
   algo/lyra2/sponge.c \
   algo/lyra2/lyra2rev2-gate.c \
@@ -127,7 +128,11 @@ cpuminer_SOURCES = \
   algo/quark/anime-gate.c \
   algo/quark/anime.c \
   algo/quark/anime-4way.c \
+  algo/qubit/qubit-gate.c \
   algo/qubit/qubit.c \
+  algo/qubit/qubit-2way.c \
+  algo/qubit/deep-gate.c \
+  algo/qubit/deep-2way.c \
   algo/qubit/deep.c \
   algo/ripemd/sph_ripemd.c \
   algo/scrypt.c \
@@ -143,8 +148,9 @@ cpuminer_SOURCES = \
   algo/shavite/sph-shavite-aesni.c \
   algo/shavite/shavite.c \
   algo/simd/sph_simd.c \
-  algo/simd/sse2/nist.c \
-  algo/simd/sse2/vector.c \
+  algo/simd/nist.c \
+  algo/simd/vector.c \
+  algo/simd/simd-hash-2way.c \
   algo/skein/sph_skein.c \
   algo/skein/skein-hash-4way.c \
   algo/skein/skein.c \

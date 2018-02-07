@@ -48,20 +48,20 @@ extern "C"{
 
 #define SPH_SIZE_hamsi512   512
 
+// Partial is only scalar but needs pointer ref for hamsi-helper
+// deprecate partial_len
 typedef struct {
-   __m128i h[16];
-   __m128i partial[2];
+   __m256i h[8];
+   __m256i buf[1];
    size_t partial_len;
    sph_u32 count_high, count_low;
 } hamsi_4way_big_context;
 
 typedef hamsi_4way_big_context hamsi512_4way_context;
 
-void hamsi512_4way_init(void *cc);
-
-void hamsi512_4way(void *cc, const void *data, size_t len);
-
-void hamsi512_4way_close(void *cc, void *dst);
+void hamsi512_4way_init( hamsi512_4way_context *sc );
+void hamsi512_4way( hamsi512_4way_context *sc, const void *data, size_t len );
+void hamsi512_4way_close( hamsi512_4way_context *sc, void *dst );
 
 #ifdef __cplusplus
 }

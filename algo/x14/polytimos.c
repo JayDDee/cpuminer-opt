@@ -8,7 +8,7 @@
 #include "algo/skein/sph_skein.h"
 #include "algo/echo/sph_echo.h"
 #include "algo/fugue//sph_fugue.h"
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/gost/sph_gost.h"
 #ifndef NO_AES_NI

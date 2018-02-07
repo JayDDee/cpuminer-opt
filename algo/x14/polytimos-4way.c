@@ -9,8 +9,7 @@
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/fugue//sph_fugue.h"
-#include "algo/luffa/sse2/luffa_for_sse2.h"
-//#include "algo/shabal/sph_shabal.h"
+#include "algo/luffa/luffa-hash-2way.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/echo/aes_ni/hash_api.h"
 
@@ -18,7 +17,7 @@ typedef struct {
    skein512_4way_context   skein;
    shabal512_4way_context  shabal;
    hashState_echo          echo;
-   hashState_luffa         luffa;
+   luffa_2way_context      luffa;
    sph_fugue512_context    fugue;
    sph_gost512_context     gost;
 } poly_4way_ctx_holder;
@@ -27,12 +26,12 @@ poly_4way_ctx_holder poly_4way_ctx;
 
 void init_polytimos_4way_ctx()
 {
-   skein512_4way_init( &poly_4way_ctx.skein );
-   shabal512_4way_init( &poly_4way_ctx.shabal );
-   init_echo( &poly_4way_ctx.echo, 512  );
-   init_luffa( &poly_4way_ctx.luffa, 512 );
-   sph_fugue512_init( &poly_4way_ctx.fugue );
-   sph_gost512_init( &poly_4way_ctx.gost );
+    skein512_4way_init( &poly_4way_ctx.skein );
+    shabal512_4way_init( &poly_4way_ctx.shabal );
+    init_echo( &poly_4way_ctx.echo, 512  );
+    luffa_2way_init( &poly_4way_ctx.luffa, 512 );
+    sph_fugue512_init( &poly_4way_ctx.fugue );
+    sph_gost512_init( &poly_4way_ctx.gost );
 }
 
 void polytimos_4way_hash( void *output, const void *input )
@@ -67,17 +66,13 @@ void polytimos_4way_hash( void *output, const void *input )
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                        (const BitSequence *) hash3, 512 );
 
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash0,
-                             (const BitSequence*)hash0, 64 );
-     memcpy( &ctx.luffa, &poly_4way_ctx.luffa, sizeof(hashState_luffa) );
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash1,
-                             (const BitSequence*)hash1, 64 );
-     memcpy( &ctx.luffa, &poly_4way_ctx.luffa, sizeof(hashState_luffa) );
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash2,
-                             (const BitSequence*)hash2, 64 );
-     memcpy( &ctx.luffa, &poly_4way_ctx.luffa, sizeof(hashState_luffa) );
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash3,
-                             (const BitSequence*)hash3, 64 );
+     mm256_interleave_2x128( vhash, hash0, hash1, 512 );
+     luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
+     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+     mm256_interleave_2x128( vhash, hash2, hash3, 512 );
+     luffa_2way_init( &ctx.luffa, 512 );
+     luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
+     mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
 
      sph_fugue512( &ctx.fugue, hash0, 64 );
      sph_fugue512_close( &ctx.fugue, hash0 );

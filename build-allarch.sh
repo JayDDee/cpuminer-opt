@@ -3,16 +3,6 @@
 make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
-CFLAGS="-O3 -march=core-avx2 -Wall -DFOUR_WAY" ./configure --with-curl
-make -j 4
-strip -s cpuminer.exe
-mv cpuminer.exe cpuminer-4way.exe
-strip -s cpuminer
-mv cpuminer cpuminer-4way
-
-make clean
-rm -f config.status
-./autogen.sh || echo done
 CFLAGS="-O3 -march=core-avx2 -Wall" ./configure --with-curl
 make -j 4
 strip -s cpuminer.exe

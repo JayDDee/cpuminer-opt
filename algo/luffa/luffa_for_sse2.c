@@ -272,8 +272,8 @@ HashReturn update_luffa( hashState_luffa *state, const BitSequence *data,
     // full blocks
     for ( i = 0; i < blocks; i++ )
     {
-       rnd512( state, mm_byteswap_32( casti_m128i( data, 1 ) ),
-                      mm_byteswap_32( casti_m128i( data, 0 ) ) );
+       rnd512( state, mm_bswap_32( casti_m128i( data, 1 ) ),
+                      mm_bswap_32( casti_m128i( data, 0 ) ) );
        data += MSG_BLOCK_BYTE_LEN;
     }
 
@@ -282,7 +282,7 @@ HashReturn update_luffa( hashState_luffa *state, const BitSequence *data,
     if ( state->rembytes  )
     {
       // remaining data bytes
-      casti_m128i( state->buffer, 0 ) = mm_byteswap_32( cast_m128i( data ) );
+      casti_m128i( state->buffer, 0 ) = mm_bswap_32( cast_m128i( data ) );
       // padding of partial block
       casti_m128i( state->buffer, 1 ) =
             _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
@@ -324,8 +324,8 @@ HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
     // full blocks
     for ( i = 0; i < blocks; i++ )
     {
-       rnd512( state, mm_byteswap_32( casti_m128i( data, 1 ) ),
-                      mm_byteswap_32( casti_m128i( data, 0 ) ) );
+       rnd512( state, mm_bswap_32( casti_m128i( data, 1 ) ),
+                      mm_bswap_32( casti_m128i( data, 0 ) ) );
        data += MSG_BLOCK_BYTE_LEN;
     }
 
@@ -334,7 +334,7 @@ HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
     {
       // padding of partial block
       rnd512( state, _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ),
-                      mm_byteswap_32( cast_m128i( data ) ) );
+                      mm_bswap_32( cast_m128i( data ) ) );
     }
     else
     {
@@ -542,7 +542,7 @@ static void finalization512( hashState_luffa *state, uint32 *b )
 
     _mm256_store_si256( (__m256i*)hash, t );
 
-    casti_m256i( b, 0 ) = mm256_byteswap_32( casti_m256i( hash, 0 ) );
+    casti_m256i( b, 0 ) = mm256_bswap_32( casti_m256i( hash, 0 ) );
 
     rnd512( state, zero, zero );
 
@@ -555,7 +555,7 @@ static void finalization512( hashState_luffa *state, uint32 *b )
 
     _mm256_store_si256( (__m256i*)hash, t );
 
-    casti_m256i( b, 1 ) = mm256_byteswap_32( casti_m256i( hash, 0 ) );
+    casti_m256i( b, 1 ) = mm256_bswap_32( casti_m256i( hash, 0 ) );
 }
 
 #else
@@ -587,8 +587,8 @@ static void finalization512( hashState_luffa *state, uint32 *b )
     _mm_store_si128((__m128i*)&hash[0], t[0]);
     _mm_store_si128((__m128i*)&hash[4], t[1]);
 
-    casti_m128i( b, 0 ) = mm_byteswap_32( casti_m128i( hash, 0 ) );
-    casti_m128i( b, 1 ) = mm_byteswap_32( casti_m128i( hash, 1 ) );
+    casti_m128i( b, 0 ) = mm_bswap_32( casti_m128i( hash, 0 ) );
+    casti_m128i( b, 1 ) = mm_bswap_32( casti_m128i( hash, 1 ) );
 
     rnd512( state, zero, zero );
 
@@ -609,8 +609,8 @@ static void finalization512( hashState_luffa *state, uint32 *b )
     _mm_store_si128((__m128i*)&hash[0], t[0]);
     _mm_store_si128((__m128i*)&hash[4], t[1]);
 
-    casti_m128i( b, 2 ) = mm_byteswap_32( casti_m128i( hash, 0 ) );
-    casti_m128i( b, 3 ) = mm_byteswap_32( casti_m128i( hash, 1 ) );
+    casti_m128i( b, 2 ) = mm_bswap_32( casti_m128i( hash, 0 ) );
+    casti_m128i( b, 3 ) = mm_bswap_32( casti_m128i( hash, 1 ) );
 }
 #endif
 

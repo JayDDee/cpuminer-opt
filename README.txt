@@ -25,3 +25,12 @@ cpuminer-aes-avx.exe   "-march=corei7-avx"         Sandybridge, Ivybridge
 cpuminer-avx2.exe      "-march=core-avx2"          Haswell...
 cpuminer-avx2-sha.exe  "-march=core-avx2 -msha"    Ryzen
 
+If you like this software feel free to donate:
+
+BTC: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT
+ETH: 0x72122edabcae9d3f57eab0729305a425f6fef6d0
+LTC: LdUwoHJnux9r9EKqFWNvAi45kQompHk6e8
+BCH: 1QKYkB6atn4P7RFozyziAXLEnurwnUM1cQ
+BTG: GVUyECtRHeC5D58z9F3nGGfVQndwnsPnHQ
+
+

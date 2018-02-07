@@ -1,9 +1,9 @@
-#include "algo-gate-api.h"
+#include "deep-gate.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "algo/luffa/sse2/luffa_for_sse2.h" 
+#include "algo/luffa/luffa_for_sse2.h" 
 #include "algo/cubehash/sse2/cubehash_sse2.h" 
 #ifndef NO_AES_NI
 #include "algo/echo/aes_ni/hash_api.h"
@@ -138,13 +138,4 @@ int scanhash_deep( int thr_id, struct work *work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
-
-bool register_deep_algo( algo_gate_t* gate )
-{
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
-  init_deep_ctx();
-  gate->scanhash = (void*)&scanhash_deep;
-  gate->hash     = (void*)&deep_hash;
-  return true;
-};
 

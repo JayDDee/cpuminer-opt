@@ -23,9 +23,9 @@
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/nist.h"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 
 typedef struct {

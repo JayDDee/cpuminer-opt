@@ -19,9 +19,9 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa-hash-2way.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
 #include "algo/fugue/sph_fugue.h"
@@ -41,10 +41,10 @@ typedef struct {
     skein512_4way_context   skein;
     jh512_4way_context      jh;
     keccak512_4way_context  keccak;
-    hashState_luffa         luffa;
+    luffa_2way_context      luffa;
     cubehashParam           cube;
     sph_shavite512_context  shavite;
-    hashState_sd            simd;
+    simd_2way_context       simd;
     hamsi512_4way_context   hamsi;
     sph_fugue512_context    fugue;
     shabal512_4way_context  shabal;
@@ -68,6 +68,10 @@ void x16r_4way_hash( void* output, const void* input )
    uint32_t hash2[24] __attribute__ ((aligned (64)));
    uint32_t hash3[24] __attribute__ ((aligned (64)));
    uint32_t vhash[24*4] __attribute__ ((aligned (64)));
+//   uint32_t inp0[24] __attribute__ ((aligned (64)));
+//   uint32_t inp1[24] __attribute__ ((aligned (64)));
+//   uint32_t inp2[24] __attribute__ ((aligned (64)));
+//   uint32_t inp3[24] __attribute__ ((aligned (64)));
 
    x16r_4way_ctx_holder ctx;
    
@@ -75,7 +79,6 @@ void x16r_4way_hash( void* output, const void* input )
    void *in1 = (void*) hash1;
    void *in2 = (void*) hash2;
    void *in3 = (void*) hash3;
-
    int size = 80;
 
    mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, input, 640 );
@@ -111,7 +114,7 @@ void x16r_4way_hash( void* output, const void* input )
                blake512_4way( &ctx.blake, vhash, size );
             }
             blake512_4way_close( &ctx.blake, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case BMW:
             bmw512_4way_init( &ctx.bmw );
@@ -123,7 +126,7 @@ void x16r_4way_hash( void* output, const void* input )
                bmw512_4way( &ctx.bmw, vhash, size );
             }
             bmw512_4way_close( &ctx.bmw, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case GROESTL:
                init_groestl( &ctx.groestl, 64 );
@@ -149,7 +152,7 @@ void x16r_4way_hash( void* output, const void* input )
                skein512_4way( &ctx.skein, vhash, size );
             }
             skein512_4way_close( &ctx.skein, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case JH:
             jh512_4way_init( &ctx.jh );
@@ -161,7 +164,7 @@ void x16r_4way_hash( void* output, const void* input )
                jh512_4way( &ctx.jh, vhash, size );
             }
             jh512_4way_close( &ctx.jh, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case KECCAK:
             keccak512_4way_init( &ctx.keccak );
@@ -173,21 +176,17 @@ void x16r_4way_hash( void* output, const void* input )
                keccak512_4way( &ctx.keccak, vhash, size );
             }
             keccak512_4way_close( &ctx.keccak, vhash );
-            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
+            mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case LUFFA:
-            init_luffa( &ctx.luffa, 512 );
-            update_and_final_luffa( &ctx.luffa, (BitSequence*)hash0,
-                                          (const BitSequence*)in0, size );
-            init_luffa( &ctx.luffa, 512 );
-            update_and_final_luffa( &ctx.luffa, (BitSequence*)hash1,
-                                          (const BitSequence*)in1, size );
-            init_luffa( &ctx.luffa, 512 );
-            update_and_final_luffa( &ctx.luffa, (BitSequence*)hash2,
-                                          (const BitSequence*)in2, size );
-            init_luffa( &ctx.luffa, 512 );
-            update_and_final_luffa( &ctx.luffa, (BitSequence*)hash3,
-                                          (const BitSequence*)in3, size );
+            mm256_interleave_2x128( vhash, in0, in1, size<<3 );
+            luffa_2way_init( &ctx.luffa, 512 );
+            luffa_2way_update_close( &ctx.luffa, vhash, vhash, size );
+            mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+            mm256_interleave_2x128( vhash, in2, in3, size<<3 );
+            luffa_2way_init( &ctx.luffa, 512 );
+            luffa_2way_update_close( &ctx.luffa, vhash, vhash, size);
+            mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
          break;
          case CUBEHASH:
             cubehashReinit( &ctx.cube );
@@ -218,18 +217,14 @@ void x16r_4way_hash( void* output, const void* input )
             sph_shavite512_close( &ctx.shavite, hash3 );
          break;
          case SIMD:
-             init_sd( &ctx.simd, 512 );
-             update_final_sd( &ctx.simd, (BitSequence *)hash0,
-                              (const BitSequence*)in0, size<<3 );
-             init_sd( &ctx.simd, 512 );
-             update_final_sd( &ctx.simd, (BitSequence *)hash1,
-                              (const BitSequence*)in1, size<<3 );
-             init_sd( &ctx.simd, 512 );
-             update_final_sd( &ctx.simd, (BitSequence *)hash2,
-                              (const BitSequence*)in2, size<<3 );
-             init_sd( &ctx.simd, 512 );
-             update_final_sd( &ctx.simd, (BitSequence *)hash3,
-                              (const BitSequence*)in3, size<<3 );
+            mm256_interleave_2x128( vhash, in0, in1, size<<3 );
+            simd_2way_init( &ctx.simd, 512 );
+            simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
+            mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+            mm256_interleave_2x128( vhash, in2, in3, size<<3 );
+            simd_2way_init( &ctx.simd, 512 );
+            simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
+            mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
          break;
          case ECHO:
              init_echo( &ctx.echo, 512 );
@@ -246,11 +241,11 @@ void x16r_4way_hash( void* output, const void* input )
                                 (const BitSequence*)in3, size<<3 );
          break;
          case HAMSI:
-             mm_interleave_4x32( vhash, in0, in1, in2, in3, size<<3 );
+             mm256_interleave_4x64( vhash, in0, in1, in2, in3, size<<3 );
              hamsi512_4way_init( &ctx.hamsi );
              hamsi512_4way( &ctx.hamsi, vhash, size );
              hamsi512_4way_close( &ctx.hamsi, vhash );
-             mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, size<<3 );
+             mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case FUGUE:
              sph_fugue512_init( &ctx.fugue );
@@ -271,7 +266,7 @@ void x16r_4way_hash( void* output, const void* input )
              shabal512_4way_init( &ctx.shabal );
              shabal512_4way( &ctx.shabal, vhash, size );
              shabal512_4way_close( &ctx.shabal, vhash );
-             mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, size<<3 );
+             mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case WHIRLPOOL:
              sph_whirlpool_init( &ctx.whirlpool );
@@ -292,9 +287,13 @@ void x16r_4way_hash( void* output, const void* input )
              sha512_4way_init( &ctx.sha512 );
              sha512_4way( &ctx.sha512, vhash, size );
              sha512_4way_close( &ctx.sha512, vhash );
-             mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, size<<3 );
+             mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
       }
+//      in0 = (void*) hash0;
+//      in1 = (void*) hash1;
+//      in2 = (void*) hash2;
+//      in3 = (void*) hash3;
       size = 64;
    }
    memcpy( output,    hash0, 32 );
@@ -351,28 +350,28 @@ int scanhash_x16r_4way( int thr_id, struct work *work, uint32_t max_nonce,
       x16r_4way_hash( hash, vdata );
       pdata[19] = n;
 
-      if ( ( hash[7] <= Htarg ) && fulltest( hash, ptarget ) )
+      if ( hash[7] <= Htarg && fulltest( hash, ptarget ) )
       {
          found[0] = true;
          num_found++;
          nonces[0] = n;
          work_set_target_ratio( work, hash );
       }
-      if ( ( (hash+8)[7] <= Htarg ) && fulltest( hash+8, ptarget ) )
+      if ( (hash+8)[7] <= Htarg && fulltest( hash+8, ptarget ) )
       {
          found[1] = true;
          num_found++;
          nonces[1] = n+1;
          work_set_target_ratio( work, hash+8 );
       }
-      if ( ( (hash+16)[7] <= Htarg ) && fulltest( hash+16, ptarget ) )
+      if ( (hash+16)[7] <= Htarg && fulltest( hash+16, ptarget ) )
       {
          found[2] = true;
          num_found++;
          nonces[2] = n+2;
          work_set_target_ratio( work, hash+16 );
       }
-      if ( ( (hash+24)[7] <= Htarg ) && fulltest( hash+24, ptarget ) )
+      if ( (hash+24)[7] <= Htarg && fulltest( hash+24, ptarget ) )
       {
          found[3] = true;
          num_found++;

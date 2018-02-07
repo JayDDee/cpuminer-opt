@@ -80,10 +80,10 @@ void *alloca (size_t);
 # endif
 //#endif
 
-//#ifdef HAVE_SYSLOG_H
-//#include <syslog.h>
-//#define LOG_BLUE 0x10 /* unique value */
-//#else
+#ifdef HAVE_SYSLOG_H
+#include <syslog.h>
+#define LOG_BLUE 0x10 /* unique value */
+#else
 enum {
 	LOG_ERR,
 	LOG_WARNING,
@@ -93,7 +93,7 @@ enum {
 	/* custom notices */
 	LOG_BLUE = 0x10,
 };
-//#endif
+#endif
 
 static inline bool is_windows(void)
 {

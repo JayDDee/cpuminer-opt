@@ -63,13 +63,13 @@ MAYBE_INLINE void fft64(void *a) {
   v16* const A = a;
 
   register v16 X0, X1, X2, X3, X4, X5, X6, X7;
-
+/*
 #if V16_SIZE == 8
 #define X(i) A[i]
 #elif V16_SIZE == 4
 #define X(i) A[2*i]
 #endif
-
+*/
 #define X(i) X##i
 
   X0 = A[0];
@@ -623,6 +623,11 @@ void rounds(u32* state, const unsigned char* msg, short* fft) {
   STEP(S(1), S(2), S(3), S(0), S[3], 0, 25,  4, 20);
 
   S[0] = S(0);  S[1] = S(1);  S[2] = S(2);  S[3] = S(3);
+
+#undef ROUND
+#undef STEP
+#undef STEP_1
+#undef STEP_2
 }
 
 
@@ -849,24 +854,32 @@ void rounds512(u32* state, const unsigned char* msg, short* fft) {
    */
 #define PERM_START 0
   ROUND(  2, 10, l,  3, 11, l,  0,  8, l,  1,  9, l, 0, 3,  23, 17, 27, 0);
+#undef PERM_START
 #define PERM_START 4
   ROUND(  3, 11, h,  2, 10, h,  1,  9, h,  0,  8, h, 1, 3,  23, 17, 27, 0);
+#undef PERM_START
 #define PERM_START 1
   ROUND(  7, 15, h,  5, 13, h,  6, 14, l,  4, 12, l, 0, 28, 19, 22, 7,  0);
+#undef PERM_START
 #define PERM_START 5
   ROUND(  4, 12, h,  6, 14, h,  5, 13, l,  7, 15, l, 1, 28, 19, 22, 7,  0);
+#undef PERM_START
 
   /*
    * 4 rounds with code 233
    */
 #define PERM_START 2
   ROUND(  0,  4, h,  1,  5, l,  3,  7, h,  2,  6, l, 0, 29,  9, 15,  5, 1);
+#undef PERM_START
 #define PERM_START 6
   ROUND(  3,  7, l,  2,  6, h,  0,  4, l,  1,  5, h, 1, 29,  9, 15,  5, 1);
+#undef PERM_START
 #define PERM_START 3
   ROUND( 11, 15, l,  8, 12, l,  8, 12, h, 11, 15, h, 0,  4, 13, 10, 25, 1);
+#undef PERM_START
 #define PERM_START 0
   ROUND(  9, 13, h, 10, 14, h, 10, 14, l,  9, 13, l, 1,  4, 13, 10, 25, 1);
+#undef PERM_START
 
 
   /*
@@ -877,9 +890,15 @@ void rounds512(u32* state, const unsigned char* msg, short* fft) {
   STEP(S(3), S(0), S(1), S(2), S[2], S[3], 0, 13, 10, 1);
   STEP(S(2), S(3), S(0), S(1), S[4], S[5], 0, 10, 25, 2);
   STEP(S(1), S(2), S(3), S(0), S[6], S[7], 0, 25,  4, 3);
+#undef PERM_START
 
   S[0] = S0l;  S[1] = S0h;  S[2] = S1l;  S[3] = S1h;
   S[4] = S2l;  S[5] = S2h;  S[6] = S3l;  S[7] = S3h;
+
+#undef ROUND
+#undef STEP
+#undef STEP_1
+#undef STEP_2
 }
 
 void SIMD_Compress(hashState_sd * state, const unsigned char *m, int final) {

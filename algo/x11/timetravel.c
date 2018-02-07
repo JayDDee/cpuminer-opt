@@ -9,7 +9,7 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 #ifdef NO_AES_NI
   #include "algo/groestl/sph_groestl.h"

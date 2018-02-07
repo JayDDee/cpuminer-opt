@@ -99,6 +99,7 @@ int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
   pthread_barrier_wait( &hodl_barrier );
   return scanhash_hodl_wolf( thr_id, work, max_nonce, hashes_done );
 #endif
+  return false;
 }
 
 bool register_hodl_algo( algo_gate_t* gate )

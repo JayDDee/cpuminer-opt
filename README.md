@@ -16,6 +16,7 @@ See file RELEASE_NOTES for change log and compile instructions.
 Supported Algorithms
 --------------------
 
+                          anime        Animecoin
                           argon2
                           axiom        Shabal-256 MemoHash
                           bastion
@@ -78,6 +79,7 @@ Supported Algorithms
                           x13sm3       hsr (Hshare)
                           x14          X14
                           x15          X15
+                          x16r         Ravencoin
                           x17
                           xevan        Bitsend
                           yescrypt     Globalboost-Y (BSTY)
@@ -136,10 +138,13 @@ output from the miner showing the startup and any errors.
 Donations
 ---------
 
-I do not do this for money but I have a donation address if users
-are so inclined.
+cpuminer-opt has no fees of any kind but donations are accepted.
 
-bitcoin:12tdvfF7KmAsihBXQXynT6E6th2c2pByTT?label=donations
+BTC: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT
+ETH: 0x72122edabcae9d3f57eab0729305a425f6fef6d0
+LTC: LdUwoHJnux9r9EKqFWNvAi45kQompHk6e8
+BCH: 1QKYkB6atn4P7RFozyziAXLEnurwnUM1cQ
+BTG: GVUyECtRHeC5D58z9F3nGGfVQndwnsPnHQ
 
 Happy mining!
 

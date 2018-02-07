@@ -12,10 +12,10 @@
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa-hash-2way.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/sm3/sm3-hash-4way.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
@@ -28,10 +28,10 @@ typedef struct {
     skein512_4way_context   skein;
     jh512_4way_context      jh;
     keccak512_4way_context  keccak;
-    hashState_luffa         luffa;
+    luffa_2way_context      luffa;
     cubehashParam           cube;
     sph_shavite512_context  shavite;
-    hashState_sd            simd;
+    simd_2way_context       simd;
     hashState_echo          echo;
     sm3_4way_ctx_t          sm3;
     hamsi512_4way_context   hamsi;
@@ -49,10 +49,10 @@ void init_x13sm3_4way_ctx()
      skein512_4way_init( &x13sm3_4way_ctx.skein );
      jh512_4way_init( &x13sm3_4way_ctx.jh );
      keccak512_4way_init( &x13sm3_4way_ctx.keccak );
-     init_luffa( &x13sm3_4way_ctx.luffa, 512 );
+     luffa_2way_init( &x13sm3_4way_ctx.luffa, 512 );
      cubehashInit( &x13sm3_4way_ctx.cube, 512, 16, 32 );
      sph_shavite512_init( &x13sm3_4way_ctx.shavite );
-     init_sd( &x13sm3_4way_ctx.simd, 512 );
+     simd_2way_init( &x13sm3_4way_ctx.simd, 512 );
      init_echo( &x13sm3_4way_ctx.echo, 512 );
      sm3_4way_init( &x13sm3_4way_ctx.sm3 );
      hamsi512_4way_init( &x13sm3_4way_ctx.hamsi );
@@ -111,17 +111,13 @@ void x13sm3_4way_hash( void *state, const void *input )
      mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // Luffa
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash0,
-                             (const BitSequence*)hash0, 64 );
-     memcpy( &ctx.luffa, &x13sm3_4way_ctx.luffa, sizeof(hashState_luffa) );
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash1,
-                             (const BitSequence*)hash1, 64 );
-     memcpy( &ctx.luffa, &x13sm3_4way_ctx.luffa, sizeof(hashState_luffa) );
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash2,
-                             (const BitSequence*)hash2, 64 );
-     memcpy( &ctx.luffa, &x13sm3_4way_ctx.luffa, sizeof(hashState_luffa) );
-     update_and_final_luffa( &ctx.luffa, (BitSequence*)hash3,
-                             (const BitSequence*)hash3, 64 );
+     mm256_interleave_2x128( vhash, hash0, hash1, 512 );
+     luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
+     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+     mm256_interleave_2x128( vhash, hash2, hash3, 512 );
+     luffa_2way_init( &ctx.luffa, 512 );
+     luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
+     mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
 
      // Cubehash
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );
@@ -149,17 +145,13 @@ void x13sm3_4way_hash( void *state, const void *input )
      sph_shavite512_close( &ctx.shavite, hash3 );
 
      // Simd
-     update_final_sd( &ctx.simd, (BitSequence *)hash0,
-                      (const BitSequence *)hash0, 512 );
-     memcpy( &ctx.simd, &x13sm3_4way_ctx.simd, sizeof(hashState_sd) );
-     update_final_sd( &ctx.simd, (BitSequence *)hash1,
-                      (const BitSequence *)hash1, 512 );
-     memcpy( &ctx.simd, &x13sm3_4way_ctx.simd, sizeof(hashState_sd) );
-     update_final_sd( &ctx.simd, (BitSequence *)hash2,
-                      (const BitSequence *)hash2, 512 );
-     memcpy( &ctx.simd, &x13sm3_4way_ctx.simd, sizeof(hashState_sd) );
-     update_final_sd( &ctx.simd, (BitSequence *)hash3,
-                      (const BitSequence *)hash3, 512 );
+     mm256_interleave_2x128( vhash, hash0, hash1, 512 );
+     simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
+     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+     mm256_interleave_2x128( vhash, hash2, hash3, 512 );
+     simd_2way_init( &ctx.simd, 512 );
+     simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
+     mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
 
      // Echo
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
@@ -190,12 +182,13 @@ void x13sm3_4way_hash( void *state, const void *input )
 
      sm3_4way( &ctx.sm3, vhash, 64 );
      sm3_4way_close( &ctx.sm3, sm3_vhash );
+     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, sm3_vhash, 512 );
 
-     // Hamsi parallel 32 bit
-     hamsi512_4way( &ctx.hamsi, sm3_vhash, 64 );
+     // Hamsi parallel 4x32x2
+     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     hamsi512_4way( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
-
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // Fugue serial
      sph_fugue512( &ctx.fugue, hash0, 64 );

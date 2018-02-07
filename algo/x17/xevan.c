@@ -11,14 +11,14 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/sse2/luffa_for_sse2.h"
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha/sph_sha2.h"
 #include "algo/haval/sph-haval.h"
-#include "algo/simd/sse2/nist.h"
+#include "algo/simd/nist.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h"
 #include <openssl/sha.h>
 #ifdef NO_AES_NI

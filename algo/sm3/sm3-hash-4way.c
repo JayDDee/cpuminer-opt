@@ -125,14 +125,14 @@ void sm3_4way_close( void *cc, void *dst )
       memset_zero_128( block, ( SM3_BLOCK_SIZE - 8 ) >> 2 );
    }
 
-   count[0] = mm_byteswap_32(
+   count[0] = mm_bswap_32(
                   _mm_set1_epi32( ctx->nblocks >> 23 ) );
-   count[1] = mm_byteswap_32( _mm_set1_epi32( ( ctx->nblocks << 9 ) +
+   count[1] = mm_bswap_32( _mm_set1_epi32( ( ctx->nblocks << 9 ) +
                                               ( ctx->num     << 3 ) ) );
    sm3_4way_compress( ctx->digest, block );
 
    for ( i = 0; i < 8 ; i++ )
-     hash[i] = mm_byteswap_32( ctx->digest[i] );
+     hash[i] = mm_bswap_32( ctx->digest[i] );
 }
 
 #define P0(x) _mm_xor_si128( x, _mm_xor_si128( mm_rotl_32( x,  9 ), \
@@ -165,7 +165,7 @@ void sm3_4way_compress( __m128i *digest, __m128i *block )
    int j;
 
    for ( j = 0; j < 16; j++ )
-      W[j] = mm_byteswap_32( block[j] );
+      W[j] = mm_bswap_32( block[j] );
 
    for ( j = 16; j < 68; j++ )
       W[j] = _mm_xor_si128( P1( _mm_xor_si128( _mm_xor_si128( W[ j-16 ],

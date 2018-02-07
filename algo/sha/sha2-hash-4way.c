@@ -129,7 +129,7 @@ sha512_4way_round( __m256i *in, __m256i r[8] )
    __m256i W[80];
 
    for ( i = 0; i < 16; i++ )
-      W[i] = mm256_byteswap_64( in[i] );
+      W[i] = mm256_bswap_64( in[i] );
    for ( i = 16; i < 80; i++ )
       W[i] = _mm256_add_epi64( _mm256_add_epi64( _mm256_add_epi64(
            SSG5_1( W[ i-2 ] ), W[ i-7 ] ), SSG5_0( W[ i-15 ] ) ), W[ i-16 ] );
@@ -224,13 +224,13 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
          memset_zero_256( sc->buf + (ptr>>3), (pad - ptr) >> 3 );
 
     sc->buf[ pad >> 3 ] =
-                 mm256_byteswap_64( _mm256_set1_epi64x( sc->count >> 61 ) );
+                 mm256_bswap_64( _mm256_set1_epi64x( sc->count >> 61 ) );
     sc->buf[ ( pad+8 ) >> 3 ] = 
-                 mm256_byteswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
+                 mm256_bswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
     sha512_4way_round( sc->buf, sc->val );
 
     for ( u = 0; u < 8; u ++ )
-       ((__m256i*)dst)[u] = mm256_byteswap_64( sc->val[u] );
+       ((__m256i*)dst)[u] = mm256_bswap_64( sc->val[u] );
 }
 
 #endif

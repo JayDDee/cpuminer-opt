@@ -984,7 +984,7 @@ bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
    }
    memset_zero_128( buf + (ptr>>2), (buf_size - 8 - ptr) >> 2 );
    buf[ (buf_size - 8) >> 2 ] = _mm_set1_epi32( sc->bit_count + n );
-   buf[ (buf_size - 4) >> 2 ] = mm_zero;
+   buf[ (buf_size - 4) >> 2 ] = m128_zero;
    compress_small( buf, h, h2 );
 
    for ( u = 0; u < 16; u ++ )
