@@ -44,47 +44,19 @@
 #include "sph_types.h"
 #include "avxdefs.h"
 
-#if 0
-
-#define SPH_SIZE_sha224   224
+#if defined(__AVX__)
 
 #define SPH_SIZE_sha256   256
 
 typedef struct {
-#ifndef DOXYGEN_IGNORE
-	unsigned char buf[64];    /* first field, for alignment */
-	sph_u32 val[8];
-#if SPH_64
-	sph_u64 count;
-#else
-	sph_u32 count_high, count_low;
-#endif
-#endif
-} sph_sha224_context;
+   __m128i buf[64>>2];
+   __m128i val[8];
+   uint32_t count_high, count_low;
+} sha256_4way_context;
 
-typedef sph_sha224_context sph_sha256_context;
-
-void sph_sha224_init(void *cc);
-
-void sph_sha224(void *cc, const void *data, size_t len);
-
-void sph_sha224_close(void *cc, void *dst);
-
-void sph_sha224_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst);
-
-void sph_sha224_comp(const sph_u32 msg[16], sph_u32 val[8]);
-
-void sph_sha256_init(void *cc);
-
-void sph_sha256(void *cc, const void *data, size_t len);
-
-void sph_sha256_close(void *cc, void *dst);
-
-void sph_sha256_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst);
-
-void sph_sha256_comp(const sph_u32 msg[16], sph_u32 val[8]);
-
-#endif
+void sha256_4way_init( sha256_4way_context *sc );
+void sha256_4way( sha256_4way_context *sc, const void *data, size_t len );
+void sha256_4way_close( sha256_4way_context *sc, void *dst );
 
 #if defined (__AVX2__)
 
@@ -100,5 +72,6 @@ void sha512_4way_init( sha512_4way_context *sc);
 void sha512_4way( sha512_4way_context *sc, const void *data, size_t len );
 void sha512_4way_close( sha512_4way_context *sc, void *dst );
 
+#endif
 #endif
 #endif

@@ -29,7 +29,7 @@
 //
 // operation;
 //    data:     variable/constant name
-//    function: dexcription of operation
+//    function: deription of operation
 //
 // size: size of element if applicable
 // 
@@ -99,17 +99,17 @@ typedef union m128_v8 m128_v8;
 #define mm_setc1_64( x )     {{  x,  x }}
 
 #define mm_setc_32(  x3, x2, x1, x0 ) {{ x3, x2, x1, x0 }}
-#define mm_setc1_32(  x ) {{  [0 ... 3] = x }}
+#define mm_setc1_32(  x ) {{ x,x,x,x }}
 
 #define mm_setc_16( x7, x6, x5, x4, x3, x2, x1, x0 ) \
                  {{ x7, x6, x5, x4, x3, x2, x1, x0 }}
-#define mm_setc1_16( x ) {{ [0 ... 7] = x }}
+#define mm_setc1_16( x ) {{ x,x,x,x, x,x,x,x }}
 
 #define mm_setc_8( x15, x14, x13, x12, x11, x10, x09, x08, \
                    x07, x06, x05, x04, x03, x02, x01, x00 ) \
                 {{ x15, x14, x13, x12, x11, x10, x09, x08, \
                    x07, x06, x05, x04, x03, x02, x01, x00 }}
-#define mm_setc1_8( x ) {{ [0 ... 15] = x }}
+#define mm_setc1_8( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
 
 // Compile time constants, use only for initializing.
 #define c128_zero      mm_setc1_64( 0ULL )
@@ -582,17 +582,17 @@ typedef union m256_v8 m256_v8;
 // simple constant vectors.
  
 #define mm256_setc_64( x3, x2, x1, x0 ) {{ x3, x2, x1, x0 }}
-#define mm256_setc1_64( x ) {{ [0 ... 3] = x }}
+#define mm256_setc1_64( x ) {{ x,x,x,x }}
 
 #define mm256_setc_32( x7, x6, x5, x4, x3, x2, x1, x0 ) \
                     {{ x7, x6, x5, x4, x3, x2, x1, x0 }}
-#define mm256_setc1_32( x ) {{ [0 ... 7] = x }}
+#define mm256_setc1_32( x ) {{ x,x,x,x, x,x,x,x }}
 
 #define mm256_setc_16( x15, x14, x13, x12, x11, x10, x09, x08, \
                         x07, x06, x05, x04, x03, x02, x01, x00 ) \
                      {{ x15, x14, x13, x12, x11, x10, x09, x08, \
                         x07, x06, x05, x04, x03, x02, x01, x00 }}
-#define mm256_setc1_16( x ) {{ [0 ... 15] = x }}
+#define mm256_setc1_16( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
 
 #define mm256_setc_8( x31, x30, x29, x28, x27, x26, x25, x24, \
                       x23, x22, x21, x20, x19, x18, x17, x16, \
@@ -602,7 +602,8 @@ typedef union m256_v8 m256_v8;
                       x23, x22, x21, x20, x19, x18, x17, x16, \
                       x15, x14, x13, x12, x11, x10, x09, x08, \
                       x07, x06, x05, x04, x03, x02, x01, x00 }}
-#define mm256_setc1_8( x ) {{ [0 ... 31] = x }}
+#define mm256_setc1_8( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, \
+                              x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
 
 // Predefined compile time constant vectors.
 // Use Pseudo constants at run time for all simple constant vectors.

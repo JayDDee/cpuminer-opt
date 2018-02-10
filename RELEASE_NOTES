@@ -159,6 +159,10 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.8.1.1
+
+Fixed Windows AVX2 crash.
+
 v3.8.1
 
 Fixes x16r on CPUs with only SSE2.

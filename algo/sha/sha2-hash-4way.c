@@ -30,12 +30,234 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
+#if defined(__AVX__)
+
 #include <stddef.h>
 #include <string.h>
 
 #include "sha2-hash-4way.h"
 
+// SHA256 4 way 32 bit
+
+static const sph_u32 H256[8] = {
+        SPH_C32(0x6A09E667), SPH_C32(0xBB67AE85),
+        SPH_C32(0x3C6EF372), SPH_C32(0xA54FF53A),
+        SPH_C32(0x510E527F), SPH_C32(0x9B05688C),
+        SPH_C32(0x1F83D9AB), SPH_C32(0x5BE0CD19)
+};
+
+static const sph_u32 K256[80] = {
+        SPH_C32(0x428A2F98), SPH_C32(0x71374491),
+        SPH_C32(0xB5C0FBCF), SPH_C32(0xE9B5DBA5),
+        SPH_C32(0x3956C25B), SPH_C32(0x59F111F1),
+        SPH_C32(0x923F82A4), SPH_C32(0xAB1C5ED5),
+        SPH_C32(0xD807AA98), SPH_C32(0x12835B01),
+        SPH_C32(0x243185BE), SPH_C32(0x550C7DC3),
+        SPH_C32(0x72BE5D74), SPH_C32(0x80DEB1FE),
+        SPH_C32(0x9BDC06A7), SPH_C32(0xC19BF174),
+        SPH_C32(0xE49B69C1), SPH_C32(0xEFBE4786),
+        SPH_C32(0x0FC19DC6), SPH_C32(0x240CA1CC),
+        SPH_C32(0x2DE92C6F), SPH_C32(0x4A7484AA),
+        SPH_C32(0x5CB0A9DC), SPH_C32(0x76F988DA),
+        SPH_C32(0x983E5152), SPH_C32(0xA831C66D),
+        SPH_C32(0xB00327C8), SPH_C32(0xBF597FC7),
+        SPH_C32(0xC6E00BF3), SPH_C32(0xD5A79147),
+        SPH_C32(0x06CA6351), SPH_C32(0x14292967),
+        SPH_C32(0x27B70A85), SPH_C32(0x2E1B2138),
+        SPH_C32(0x4D2C6DFC), SPH_C32(0x53380D13),
+        SPH_C32(0x650A7354), SPH_C32(0x766A0ABB),
+        SPH_C32(0x81C2C92E), SPH_C32(0x92722C85),
+        SPH_C32(0xA2BFE8A1), SPH_C32(0xA81A664B),
+        SPH_C32(0xC24B8B70), SPH_C32(0xC76C51A3),
+        SPH_C32(0xD192E819), SPH_C32(0xD6990624),
+        SPH_C32(0xF40E3585), SPH_C32(0x106AA070),
+        SPH_C32(0x19A4C116), SPH_C32(0x1E376C08),
+        SPH_C32(0x2748774C), SPH_C32(0x34B0BCB5),
+        SPH_C32(0x391C0CB3), SPH_C32(0x4ED8AA4A),
+        SPH_C32(0x5B9CCA4F), SPH_C32(0x682E6FF3),
+        SPH_C32(0x748F82EE), SPH_C32(0x78A5636F),
+        SPH_C32(0x84C87814), SPH_C32(0x8CC70208),
+        SPH_C32(0x90BEFFFA), SPH_C32(0xA4506CEB),
+        SPH_C32(0xBEF9A3F7), SPH_C32(0xC67178F2),
+        SPH_C32(0xCA273ECE), SPH_C32(0xD186B8C7),
+        SPH_C32(0xEADA7DD6), SPH_C32(0xF57D4F7F),
+        SPH_C32(0x06F067AA), SPH_C32(0x0A637DC5),
+        SPH_C32(0x113F9804), SPH_C32(0x1B710B35),
+        SPH_C32(0x28DB77F5), SPH_C32(0x32CAAB7B),
+        SPH_C32(0x3C9EBE0A), SPH_C32(0x431D67C4),
+        SPH_C32(0x4CC5D4BE), SPH_C32(0x597F299C),
+        SPH_C32(0x5FCB6FAB), SPH_C32(0x6C44198C)
+
+};
+
+
+#define CHs(X, Y, Z) \
+   _mm_xor_si128( _mm_and_si128( _mm_xor_si128( Y, Z ), X ), Z ) 
+
+#define MAJs(X, Y, Z) \
+   _mm_or_si128( _mm_and_si128( X, Y ), \
+                    _mm_and_si128( _mm_or_si128( X, Y ), Z ) )
+
+#define BSG2_0(x) \
+   _mm_xor_si128( _mm_xor_si128( \
+        mm_rotr_32(x,  2), mm_rotr_32(x, 13) ), mm_rotr_32( x, 22) )
+
+#define BSG2_1(x) \
+   _mm_xor_si128( _mm_xor_si128( \
+        mm_rotr_32(x,  6), mm_rotr_32(x, 11) ), mm_rotr_32( x, 25) )
+
+#define SSG2_0(x) \
+   _mm_xor_si128( _mm_xor_si128( \
+        mm_rotr_32(x,  7), mm_rotr_32(x, 18) ), _mm_srli_epi32(x, 3) ) 
+
+#define SSG2_1(x) \
+   _mm_xor_si128( _mm_xor_si128( \
+        mm_rotr_32(x, 17), mm_rotr_32(x, 19) ), _mm_srli_epi32(x, 10) )
+
+#define SHA256_4WAY_STEP(A, B, C, D, E, F, G, H, i) \
+do { \
+  __m128i T1, T2; \
+  T1 = _mm_add_epi32( _mm_add_epi32( _mm_add_epi32( \
+       _mm_add_epi32( H, BSG2_1(E) ), CHs(E, F, G) ), \
+                         _mm_set1_epi32( K256[i] ) ), W[i] ); \
+  T2 = _mm_add_epi32( BSG2_0(A), MAJs(A, B, C) ); \
+  D  = _mm_add_epi32( D, T1 ); \
+  H  = _mm_add_epi32( T1, T2 ); \
+} while (0)
+
+static void
+sha256_4way_round( __m128i *in, __m128i r[8] )
+{
+   int i;
+   __m128i A, B, C, D, E, F, G, H;
+   __m128i W[80];
+
+   for ( i = 0; i < 16; i++ )
+      W[i] = mm_bswap_32( in[i] );
+   for ( i = 16; i < 80; i++ )
+      W[i] = _mm_add_epi32( _mm_add_epi32( _mm_add_epi32(
+           SSG2_1( W[ i-2 ] ), W[ i-7 ] ), SSG2_0( W[ i-15 ] ) ), W[ i-16 ] );
+
+   A = r[0];
+   B = r[1];
+   C = r[2];
+   D = r[3];
+   E = r[4];
+   F = r[5];
+   G = r[6];
+   H = r[7];
+
+   for ( i = 0; i < 80; i += 8 )
+   {
+      SHA256_4WAY_STEP( A, B, C, D, E, F, G, H, i + 0 );
+      SHA256_4WAY_STEP( H, A, B, C, D, E, F, G, i + 1 );
+      SHA256_4WAY_STEP( G, H, A, B, C, D, E, F, i + 2 );
+      SHA256_4WAY_STEP( F, G, H, A, B, C, D, E, i + 3 );
+      SHA256_4WAY_STEP( E, F, G, H, A, B, C, D, i + 4 );
+      SHA256_4WAY_STEP( D, E, F, G, H, A, B, C, i + 5 );
+      SHA256_4WAY_STEP( C, D, E, F, G, H, A, B, i + 6 );
+      SHA256_4WAY_STEP( B, C, D, E, F, G, H, A, i + 7 );
+   }
+
+   r[0] = _mm_add_epi32( r[0], A );
+   r[1] = _mm_add_epi32( r[1], B );
+   r[2] = _mm_add_epi32( r[2], C );
+   r[3] = _mm_add_epi32( r[3], D );
+   r[4] = _mm_add_epi32( r[4], E );
+   r[5] = _mm_add_epi32( r[5], F );
+   r[6] = _mm_add_epi32( r[6], G );
+   r[7] = _mm_add_epi32( r[7], H );
+}
+
+void sha256_4way_init( sha256_4way_context *sc )
+{
+   sc->count_high = sc->count_low = 0;
+   sc->val[0] = _mm_set1_epi32( H256[0] );
+   sc->val[1] = _mm_set1_epi32( H256[1] );
+   sc->val[2] = _mm_set1_epi32( H256[2] );
+   sc->val[3] = _mm_set1_epi32( H256[3] );
+   sc->val[4] = _mm_set1_epi32( H256[4] );
+   sc->val[5] = _mm_set1_epi32( H256[5] );
+   sc->val[6] = _mm_set1_epi32( H256[6] );
+   sc->val[7] = _mm_set1_epi32( H256[7] );
+}
+
+void sha256_4way( sha256_4way_context *sc, const void *data, size_t len )
+{
+   __m128i *vdata = (__m128i*)data;
+   size_t ptr;
+   const int buf_size = 64;
+
+   ptr = (unsigned)sc->count_low & (buf_size - 1U);
+   while ( len > 0 )
+   {
+      size_t clen;
+      uint32_t clow, clow2;
+
+      clen = buf_size - ptr;
+      if ( clen > len )
+         clen = len;
+      memcpy_128( sc->buf + (ptr>>2), vdata, clen>>2 );
+      vdata = vdata + (clen>>2);
+      ptr += clen;
+      len -= clen;
+      if ( ptr == buf_size )
+      {
+         sha256_4way_round( sc->buf, sc->val );
+         ptr = 0;
+      }
+      clow = sc->count_low;
+      clow2 = SPH_T32( clow + clen );
+      sc->count_low = clow2;
+      if ( clow2 < clow )
+         sc->count_high++;
+   }
+}
+
+void sha256_4way_close( sha256_4way_context *sc, void *dst )
+{
+    unsigned ptr, u;
+    uint32_t low, high;
+    const int buf_size = 64;
+    const int pad = buf_size - 8;
+
+    ptr = (unsigned)sc->count_low & (buf_size - 1U);
+    sc->buf[ ptr>>2 ] = _mm_set1_epi32( 0x80 );
+    ptr += 4;
+
+    if ( ptr > pad )
+    {
+         memset_zero_128( sc->buf + (ptr>>2), (buf_size - ptr) >> 2 );
+         sha256_4way_round( sc->buf, sc->val );
+         memset_zero_128( sc->buf, pad >> 2 );
+    }
+    else
+         memset_zero_128( sc->buf + (ptr>>2), (pad - ptr) >> 2 );
+
+    low = sc->count_low;
+    high = (sc->count_high << 3) | (low >> 29);
+    low = low << 3;
+
+    sc->buf[ pad >> 2 ] =
+                 mm_bswap_32( _mm_set1_epi32( high ) );
+    sc->buf[ ( pad+4 ) >> 2 ] =
+                 mm_bswap_32( _mm_set1_epi32( low ) );
+    sha256_4way_round( sc->buf, sc->val );
+
+    for ( u = 0; u < 8; u ++ )
+       ((__m128i*)dst)[u] = mm_bswap_32( sc->val[u] );
+}
+
 #if defined(__AVX2__)
+
+// SHA512 4 way 64 bit
+
+static const sph_u64 H512[8] = {
+        SPH_C64(0x6A09E667F3BCC908), SPH_C64(0xBB67AE8584CAA73B),
+        SPH_C64(0x3C6EF372FE94F82B), SPH_C64(0xA54FF53A5F1D36F1),
+        SPH_C64(0x510E527FADE682D1), SPH_C64(0x9B05688C2B3E6C1F),
+        SPH_C64(0x1F83D9ABFB41BD6B), SPH_C64(0x5BE0CD19137E2179)
+};
 
 static const sph_u64 K512[80] = {
 	SPH_C64(0x428A2F98D728AE22), SPH_C64(0x7137449123EF65CD),
@@ -78,13 +300,6 @@ static const sph_u64 K512[80] = {
 	SPH_C64(0x3C9EBE0A15C9BEBC), SPH_C64(0x431D67C49C100D4C),
 	SPH_C64(0x4CC5D4BECB3E42B6), SPH_C64(0x597F299CFC657E2A),
 	SPH_C64(0x5FCB6FAB3AD6FAEC), SPH_C64(0x6C44198C4A475817)
-};
-
-static const sph_u64 H512[8] = {
-	SPH_C64(0x6A09E667F3BCC908), SPH_C64(0xBB67AE8584CAA73B),
-	SPH_C64(0x3C6EF372FE94F82B), SPH_C64(0xA54FF53A5F1D36F1),
-	SPH_C64(0x510E527FADE682D1), SPH_C64(0x9B05688C2B3E6C1F),
-	SPH_C64(0x1F83D9ABFB41BD6B), SPH_C64(0x5BE0CD19137E2179)
 };
 
 #define CH(X, Y, Z) \
@@ -182,7 +397,7 @@ void sha512_4way( sha512_4way_context *sc, const void *data, size_t len )
 {
    __m256i *vdata = (__m256i*)data;
    size_t ptr;
-   int buf_size = 128;
+   const int buf_size = 128;
 
    ptr = (unsigned)sc->count & (buf_size - 1U);
    while ( len > 0 )
@@ -207,8 +422,8 @@ void sha512_4way( sha512_4way_context *sc, const void *data, size_t len )
 void sha512_4way_close( sha512_4way_context *sc, void *dst )
 {
     unsigned ptr, u;
-    int buf_size = 128;
-    int pad = buf_size - 16;
+    const int buf_size = 128;
+    const int pad = buf_size - 16;
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
     sc->buf[ ptr>>3 ] = _mm256_set1_epi64x( 0x80 );
@@ -233,4 +448,5 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
        ((__m256i*)dst)[u] = mm256_bswap_64( sc->val[u] );
 }
 
-#endif
+#endif  // __AVX2__
+#endif  // __AVX__

@@ -116,7 +116,7 @@ int scanhash_deep_2way( int thr_id, struct work *work,uint32_t max_nonce,
                found[1] = true;
                num_found++;
                nonces[1] = n+1;
-               work_set_target_ratio( work, hash+64 );
+               work_set_target_ratio( work, hash+8 );
             }
             n += 2;
          } while ( ( num_found == 0 ) && ( n < max_nonce )

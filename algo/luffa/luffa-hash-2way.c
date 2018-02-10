@@ -251,10 +251,11 @@ __m256i CNS[32];
 /* Round function         */
 /* state: hash context    */
 
-static void rnd512_2way( luffa_2way_context *state, __m256i msg1, __m256i msg0 )
+void rnd512_2way( luffa_2way_context *state, __m256i *msg )
 {
     __m256i t[2];
     __m256i *chainv = state->chainv;
+    __m256i msg0, msg1;
     __m256i tmp[2];
     __m256i x[8];
 
@@ -272,8 +273,8 @@ static void rnd512_2way( luffa_2way_context *state, __m256i msg1, __m256i msg0 )
 
     MULT2( t[0], t[1] );
 
-    msg0 = _mm256_shuffle_epi32( msg0, 27 );
-    msg1 = _mm256_shuffle_epi32( msg1, 27 );
+    msg0 = _mm256_shuffle_epi32( msg[0], 27 );
+    msg1 = _mm256_shuffle_epi32( msg[1], 27 );
 
     chainv[0] = _mm256_xor_si256( chainv[0], t[0] );
     chainv[1] = _mm256_xor_si256( chainv[1], t[1] );
@@ -359,7 +360,6 @@ static void rnd512_2way( luffa_2way_context *state, __m256i msg1, __m256i msg0 )
     chainv[9] = _mm256_or_si256( _mm256_slli_epi32( chainv[9],  4 ),
                                  _mm256_srli_epi32( chainv[9], 28 ) );
 
-
     NMLTOM1024( chainv[0], chainv[2], chainv[4], chainv[6],
                 x[0], x[1], x[2], x[3],
                 chainv[1],chainv[3],chainv[5],chainv[7],
@@ -382,6 +382,7 @@ static void rnd512_2way( luffa_2way_context *state, __m256i msg1, __m256i msg0 )
     /* Process last 256-bit block */
     STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[16], CNS[17],
                 tmp[0], tmp[1] );
+
     STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[18], CNS[19],
                 tmp[0], tmp[1] );
     STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[20], CNS[21],
@@ -404,14 +405,16 @@ static void rnd512_2way( luffa_2way_context *state, __m256i msg1, __m256i msg0 )
 /* state: hash context    */
 /* b[8]: hash values      */
 
-static void finalization512_2way( luffa_2way_context *state, uint32 *b )
+void finalization512_2way( luffa_2way_context *state, uint32 *b )
 {
     uint32 hash[8] __attribute((aligned(64)));
     __m256i* chainv = state->chainv;
     __m256i t[2];
+    __m256i zero[2];
+    zero[0] = zero[1] = _mm256_setzero_si256();
 
     /*---- blank round with m=0 ----*/
-    rnd512_2way( state, m256_zero, m256_zero );
+    rnd512_2way( state, zero );
 
     t[0] = chainv[0];
     t[1] = chainv[1];
@@ -434,7 +437,7 @@ static void finalization512_2way( luffa_2way_context *state, uint32 *b )
     casti_m256i( b, 0 ) = mm256_bswap_32( casti_m256i( hash, 0 ) );
     casti_m256i( b, 1 ) = mm256_bswap_32( casti_m256i( hash, 1 ) );
 
-    rnd512_2way( state, m256_zero, m256_zero );
+    rnd512_2way( state, zero );
 
     t[0] = chainv[0];
     t[1] = chainv[1];
@@ -487,6 +490,7 @@ int luffa_2way_update( luffa_2way_context *state, const void *data,
 {
     __m256i *vdata  = (__m256i*)data;
     __m256i *buffer = (__m256i*)state->buffer;
+    __m256i msg[2];
     int i;
     int blocks = (int)len / 32;
     state-> rembytes = (int)len % 32;
@@ -494,8 +498,9 @@ int luffa_2way_update( luffa_2way_context *state, const void *data,
     // full blocks
     for ( i = 0; i < blocks; i++, vdata+=2 )
     {
-       rnd512_2way( state, mm256_bswap_32( vdata[1] ) ,
-                           mm256_bswap_32( vdata[0] ) );
+       msg[0] = mm256_bswap_32( vdata[ i   ] );
+       msg[1] = mm256_bswap_32( vdata[ i+1 ] );
+       rnd512_2way( state, msg );
     }
 
     // 16 byte partial block exists for 80 byte len
@@ -513,17 +518,19 @@ int luffa_2way_update( luffa_2way_context *state, const void *data,
 int luffa_2way_close( luffa_2way_context *state, void *hashval )
 {
     __m256i *buffer = (__m256i*)state->buffer;
+    __m256i msg[2];
 
     // transform pad block
     if ( state->rembytes )
       // not empty, data is in buffer
-      rnd512_2way( state, buffer[1], buffer[0] );
+      rnd512_2way( state, buffer );
     else
-      // empty pad block, constant data
-      rnd512_2way( state, m256_zero,
-                   _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
-                                    0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
-
+    {     // empty pad block, constant data
+      msg[0] = _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
+                                0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+      msg[1] = m256_zero;
+      rnd512_2way( state, msg );
+    }
     finalization512_2way( state, (uint32*)hashval );
 
     if ( state->hashbitlen > 512 )
@@ -535,28 +542,37 @@ int luffa_2way_update_close( luffa_2way_context *state,
                  void *output, const void *data, size_t inlen )
 {
 // Optimized for integrals of 16 bytes, good for 64 and 80 byte len
-    __m256i *vdata  = (__m256i*)data;
+    const __m256i *vdata  = (__m256i*)data;
+    __m256i msg[2];
     int i;
-    int blocks = (int)( inlen / 32 );
-    state->rembytes = inlen % 32;
+    const int blocks = (int)( inlen >> 5 );
+    state->rembytes = inlen & 0x1F;
 
     // full blocks
     for ( i = 0; i < blocks; i++, vdata+=2 )
-       rnd512_2way( state, mm256_bswap_32( vdata[1] ),
-                           mm256_bswap_32( vdata[0] ) );
+    {
+       msg[0] = mm256_bswap_32( vdata[ 0 ] );
+       msg[1] = mm256_bswap_32( vdata[ 1 ] );
+       rnd512_2way( state, msg );
+    }
 
     // 16 byte partial block exists for 80 byte len
     if ( state->rembytes  )
+    {
        // padding of partial block
-       rnd512_2way( state,
-                    _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
-                                     0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ),
-                    mm256_bswap_32( vdata[0] ) );
+       msg[0] = mm256_bswap_32( vdata[0] );
+       msg[1] = _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
+                                 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+       rnd512_2way( state, msg );
+    }
     else
+    {
        // empty pad block
-       rnd512_2way( state, m256_zero, 
-                    _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
-                                     0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
+       msg[0] = _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
+                                 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+       msg[1] = m256_zero;
+       rnd512_2way( state, msg );
+    }
 
     finalization512_2way( state, (uint32*)output );
     if ( state->hashbitlen > 512 )

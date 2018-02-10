@@ -51,7 +51,9 @@ extern "C"{
 
 // BMW small has a bug not present in big. Lanes 0 & 2 produce valid hash
 // while lanes 1 & 3 produce invalid hash. The cause is not known.
-
+// Some things that could cause it are: using epi64 instead of epi32,
+// a memory write that is the wrong size, an attempt to index a vector
+// like an array (only works for 64 bit elements).  
 
 
 static const sph_u32 IV256[] = {
