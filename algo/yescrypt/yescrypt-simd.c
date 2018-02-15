@@ -33,9 +33,11 @@
  * gcc bug 54349 (fixed for gcc 4.9+).  On 32-bit, it's of direct help.  AVX
  * and XOP are of further help either way.
  */
+/*
 #ifndef __SSE4_1__
 #warning "Consider enabling SSE4.1, AVX, or XOP in the C compiler for significantly better performance"
 #endif
+*/
 
 #include <emmintrin.h>
 #ifdef __XOP__

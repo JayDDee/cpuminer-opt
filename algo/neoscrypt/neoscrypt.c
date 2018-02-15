@@ -85,12 +85,12 @@ typedef unsigned int  uint;
     U32TO8_BE((p) + 4, (uint32_t)((v)      ));
 
 
-typedef uint8_t hash_digest[SCRYPT_HASH_DIGEST_SIZE];
+typedef uint8_t hash_digest[SCRYPT_HASH_DIGEST_SIZE] __attribute__ ((aligned (16)));
 
 
 /* SHA-256 */
 
-static const uint32_t sha256_constants[64] = {
+static const uint32_t sha256_constants[64] __attribute__ ((aligned (16))) = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
     0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
@@ -123,10 +123,10 @@ static const uint32_t sha256_constants[64] = {
 
 
 typedef struct sha256_hash_state_t {
-    uint32_t H[8];
+    uint32_t H[8] __attribute__ ((aligned (16)));
     uint64_t T;
     uint32_t leftover;
-    uint8_t buffer[SCRYPT_HASH_BLOCK_SIZE];
+    uint8_t buffer[SCRYPT_HASH_BLOCK_SIZE] __attribute__ ((aligned (16)));
 } sha256_hash_state;
 
 
@@ -242,7 +242,7 @@ typedef struct sha256_hmac_state_t {
 } sha256_hmac_state;
 
 static void neoscrypt_hmac_init_sha256(sha256_hmac_state *st, const uint8_t *key, size_t keylen) {
-    uint8_t pad[SCRYPT_HASH_BLOCK_SIZE] = {0};
+    uint8_t pad[SCRYPT_HASH_BLOCK_SIZE] __attribute__ ((aligned (16))) = {0};
     size_t i;
 
     neoscrypt_hash_init_sha256(&st->inner);
@@ -570,17 +570,17 @@ typedef struct blake2s_param_t {
 
 /* State block of 180 bytes */
 typedef struct blake2s_state_t {
-    uint  h[8];
+    uint  h[8] __attribute__ ((aligned (16)));
     uint  t[2];
     uint  f[2];
-    uchar buf[2 * BLAKE2S_BLOCK_SIZE];
+    uchar buf[2 * BLAKE2S_BLOCK_SIZE] __attribute__ ((aligned (16)));
     uint  buflen;
 } blake2s_state;
 
 static void blake2s_compress(blake2s_state *S, const void *buf) {
     uint i;
-    uint m[16];
-    uint v[16];
+    uint m[16] __attribute__ ((aligned (16)));
+    uint v[16] __attribute__ ((aligned (16)));
 
     neoscrypt_copy(m, buf, 64);
     neoscrypt_copy(v, S, 32);
@@ -1082,6 +1082,7 @@ void neoscrypt_wait_for_diff( struct stratum_ctx *stratum )
 
 bool register_neoscrypt_algo( algo_gate_t* gate )
 {
+  gate->optimizations         = SSE2_OPT;
   gate->scanhash              = (void*)&scanhash_neoscrypt;
   gate->hash                  = (void*)&neoscrypt;
   gate->get_max64             = (void*)&get_neoscrypt_max64;

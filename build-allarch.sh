@@ -8,7 +8,7 @@ make -j 4
 strip -s cpuminer.exe
 mv cpuminer.exe cpuminer-aes-avx2.exe
 strip -s cpuminer
-mv cpuminer cpuminer-aes-avx2
+mv cpuminer cpuminer-avx2
 
 make clean || echo clean
 rm -f config.status

@@ -96,7 +96,7 @@ int scanhash_blakecoin_4way( int thr_id, struct work *work, uint32_t max_nonce,
    if ( ( n >= max_nonce ) && ( *hashes_done < 10 ) )
    {
       *hashes_done = 0;
-      sleep(1);
+//      sleep(1);
    }
 
    return num_found;

@@ -35,7 +35,7 @@
 
 #define MULT2(a0,a1) \
 do { \
-  __m256i b = _mm256_xor_si256( a0, \
+  register __m256i b = _mm256_xor_si256( a0, \
                    _mm256_shuffle_epi32( _mm256_and_si256(a1,MASK), 16 ) ); \
   a0 = _mm256_or_si256( _mm256_srli_si256(b,4), _mm256_slli_si256(a1,12) ); \
   a1 = _mm256_or_si256( _mm256_srli_si256(a1,4), _mm256_slli_si256(b,12) );  \
@@ -253,42 +253,42 @@ __m256i CNS[32];
 
 void rnd512_2way( luffa_2way_context *state, __m256i *msg )
 {
-    __m256i t[2];
+    __m256i t0, t1;
     __m256i *chainv = state->chainv;
     __m256i msg0, msg1;
     __m256i tmp[2];
     __m256i x[8];
 
-    t[0] = chainv[0];
-    t[1] = chainv[1];
+    t0 = chainv[0];
+    t1 = chainv[1];
 
-    t[0] = _mm256_xor_si256( t[0], chainv[2] );
-    t[1] = _mm256_xor_si256( t[1], chainv[3] );
-    t[0] = _mm256_xor_si256( t[0], chainv[4] );
-    t[1] = _mm256_xor_si256( t[1], chainv[5] );
-    t[0] = _mm256_xor_si256( t[0], chainv[6] );
-    t[1] = _mm256_xor_si256( t[1], chainv[7] );
-    t[0] = _mm256_xor_si256( t[0], chainv[8] );
-    t[1] = _mm256_xor_si256( t[1], chainv[9] );
+    t0 = _mm256_xor_si256( t0, chainv[2] );
+    t1 = _mm256_xor_si256( t1, chainv[3] );
+    t0 = _mm256_xor_si256( t0, chainv[4] );
+    t1 = _mm256_xor_si256( t1, chainv[5] );
+    t0 = _mm256_xor_si256( t0, chainv[6] );
+    t1 = _mm256_xor_si256( t1, chainv[7] );
+    t0 = _mm256_xor_si256( t0, chainv[8] );
+    t1 = _mm256_xor_si256( t1, chainv[9] );
 
-    MULT2( t[0], t[1] );
+    MULT2( t0, t1 );
 
     msg0 = _mm256_shuffle_epi32( msg[0], 27 );
     msg1 = _mm256_shuffle_epi32( msg[1], 27 );
 
-    chainv[0] = _mm256_xor_si256( chainv[0], t[0] );
-    chainv[1] = _mm256_xor_si256( chainv[1], t[1] );
-    chainv[2] = _mm256_xor_si256( chainv[2], t[0] );
-    chainv[3] = _mm256_xor_si256( chainv[3], t[1] );
-    chainv[4] = _mm256_xor_si256( chainv[4], t[0] );
-    chainv[5] = _mm256_xor_si256( chainv[5], t[1] );
-    chainv[6] = _mm256_xor_si256( chainv[6], t[0] );
-    chainv[7] = _mm256_xor_si256( chainv[7], t[1] );
-    chainv[8] = _mm256_xor_si256( chainv[8], t[0] );
-    chainv[9] = _mm256_xor_si256( chainv[9], t[1] );
+    chainv[0] = _mm256_xor_si256( chainv[0], t0 );
+    chainv[1] = _mm256_xor_si256( chainv[1], t1 );
+    chainv[2] = _mm256_xor_si256( chainv[2], t0 );
+    chainv[3] = _mm256_xor_si256( chainv[3], t1 );
+    chainv[4] = _mm256_xor_si256( chainv[4], t0 );
+    chainv[5] = _mm256_xor_si256( chainv[5], t1 );
+    chainv[6] = _mm256_xor_si256( chainv[6], t0 );
+    chainv[7] = _mm256_xor_si256( chainv[7], t1 );
+    chainv[8] = _mm256_xor_si256( chainv[8], t0 );
+    chainv[9] = _mm256_xor_si256( chainv[9], t1 );
 
-    t[0] = chainv[0];
-    t[1] = chainv[1];
+    t0 = chainv[0];
+    t1 = chainv[1];
 
     MULT2( chainv[0], chainv[1]);
     chainv[0] = _mm256_xor_si256( chainv[0], chainv[2] );
@@ -307,11 +307,11 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     chainv[7] = _mm256_xor_si256(chainv[7], chainv[9]);
 
     MULT2( chainv[8], chainv[9]);
-    chainv[8] = _mm256_xor_si256( chainv[8], t[0] );
-    chainv[9] = _mm256_xor_si256( chainv[9], t[1] );
+    chainv[8] = _mm256_xor_si256( chainv[8], t0 );
+    chainv[9] = _mm256_xor_si256( chainv[9], t1 );
 
-    t[0] = chainv[8];
-    t[1] = chainv[9];
+    t0 = chainv[8];
+    t1 = chainv[9];
 
     MULT2( chainv[8], chainv[9]);
     chainv[8] = _mm256_xor_si256( chainv[8], chainv[6] );
@@ -330,8 +330,8 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     chainv[3] = _mm256_xor_si256( chainv[3], chainv[1] );
 
     MULT2( chainv[0], chainv[1] );
-    chainv[0] = _mm256_xor_si256( _mm256_xor_si256( chainv[0], t[0] ), msg0 );
-    chainv[1] = _mm256_xor_si256( _mm256_xor_si256( chainv[1], t[1] ), msg1 );
+    chainv[0] = _mm256_xor_si256( _mm256_xor_si256( chainv[0], t0 ), msg0 );
+    chainv[1] = _mm256_xor_si256( _mm256_xor_si256( chainv[1], t1 ), msg1 );
 
     MULT2( msg0, msg1);
     chainv[2] = _mm256_xor_si256( chainv[2], msg0 );
@@ -380,22 +380,21 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
                 chainv[1],chainv[3],chainv[5],chainv[7]);
 
     /* Process last 256-bit block */
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[16], CNS[17],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[16], CNS[17],
                 tmp[0], tmp[1] );
-
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[18], CNS[19],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[18], CNS[19],
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[20], CNS[21],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[20], CNS[21],
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[22], CNS[23],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[22], CNS[23],
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[24], CNS[25],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[24], CNS[25],
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[26], CNS[27],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[26], CNS[27],
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[28], CNS[29],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[28], CNS[29],
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS[30], CNS[31],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[30], CNS[31],
                 tmp[0], tmp[1] );
 }
 

@@ -14,18 +14,20 @@
  * Institute of Applied Mathematics, Middle East Technical University, Turkey.
  *
  */
+#if defined(__AES__)
 
 #include <memory.h>
 #include "miner.h"
 #include "hash_api.h"
-#include "vperm.h"
-
+//#include "vperm.h"
+#include <immintrin.h>
+/*
 #ifndef NO_AES_NI
 #include <wmmintrin.h>
 #else
 #include <tmmintrin.h>
 #endif
-
+*/
 
 MYALIGN const unsigned int _k_s0F[] = {0x0F0F0F0F, 0x0F0F0F0F, 0x0F0F0F0F, 0x0F0F0F0F};
 MYALIGN const unsigned int _k_ipt[] = {0x5A2A7000, 0xC2B2E898, 0x52227808, 0xCABAE090, 0x317C4D00, 0x4C01307D, 0xB0FDCC81, 0xCD80B1FC};
@@ -246,7 +248,8 @@ void DumpState(__m128i *ps)
 void Compress(hashState_echo *ctx, const unsigned char *pmsg, unsigned int uBlockCount)
 {
 	unsigned int r, b, i, j;
-	__m128i t1, t2, t3, t4, s1, s2, s3, k1, ktemp;
+//      __m128i t1, t2, t3, t4, s1, s2, s3, k1, ktemp;
+	__m128i t1, t2, s2, k1;
 	__m128i _state[4][4], _state2[4][4], _statebackup[4][4]; 
 
 
@@ -396,7 +399,7 @@ HashReturn init_echo(hashState_echo *ctx, int nHashSize)
 {
 	int i, j;
 
-	ctx->k = _mm_xor_si128(ctx->k, ctx->k);
+        ctx->k = _mm_setzero_si128(); 
 	ctx->processed_bits = 0;
 	ctx->uBufferBytes = 0;
 
@@ -742,4 +745,4 @@ HashReturn hash_echo(int hashbitlen, const BitSequence *data, DataLength databit
 	return SUCCESS;
 }
 
-
+#endif

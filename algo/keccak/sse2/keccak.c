@@ -775,10 +775,8 @@ static const sph_u64 RC[] = {
 			KF_ELT( 5,  6, RC[j + 5]); \
 			KF_ELT( 6,  7, RC[j + 6]); \
 			KF_ELT( 7,  8, RC[j + 7]); \
-*/
-
-	//kekDECL_STATE \
-        
+	kekDECL_STATE \
+*/        
 #define DECL_KEC  
 
 

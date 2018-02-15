@@ -13,6 +13,29 @@ mailto://jayddee246@gmail.com
 
 See file RELEASE_NOTES for change log and compile instructions.
 
+Requirements
+------------
+
+1. A x86_64 architecture CPU with a minimum of SSE2 support. This includes
+Intel Core2 and newer and AMD equivalents. In order to take advantage of AES_NI
+optimizations a CPU with AES_NI is required. This includes Intel Westbridge
+and newer and AMD equivalents. Further optimizations are available on some
+algoritms for CPUs with AVX and AVX2, Sandybridge and Haswell respectively.
+
+Older CPUs are supported by cpuminer-multi by TPruvot but at reduced
+performance.
+
+ARM CPUs are not supported.
+
+2. 64 bit Linux OS. Ubuntu and Fedora based distributions, including Mint and
+Centos are known to work and have all dependencies in their repositories.
+Others may work but may require more effort.
+64 bit Windows OS is supported with mingw_w64 and msys or pre-built binaries.
+
+MacOS, OSx is not supported.
+
+3. Stratum pool. Some algos may work wallet mining using getwork.
+
 Supported Algorithms
 --------------------
 
@@ -75,6 +98,7 @@ Supported Algorithms
                           x11          Dash
                           x11evo       Revolvercoin
                           x11gost      sib (SibCoin)
+                          x12          Galaxie Cash (GCH)
                           x13          X13
                           x13sm3       hsr (Hshare)
                           x14          X14
@@ -86,29 +110,6 @@ Supported Algorithms
                           yescryptr8   BitZeny (ZNY)\n\
                           yescryptr16  Yenten (YTN)
                           zr5          Ziftr
-
-Requirements
-------------
-
-1. A x86_64 architecture CPU with a minimum of SSE2 support. This includes
-Intel Core2 and newer and AMD equivalents. In order to take advantage of AES_NI
-optimizations a CPU with AES_NI is required. This includes Intel Westbridge
-and newer and AMD equivalents. Further optimizations are available on some
-algoritms for CPUs with AVX and AVX2, Sandybridge and Haswell respectively.
-
-Older CPUs are supported by cpuminer-multi by TPruvot but at reduced
-performance.
-
-ARM CPUs are not supported.
-
-2. 64 bit Linux OS. Ubuntu and Fedora based distributions, including Mint and
-Centos are known to work and have all dependencies in their repositories.
-Others may work but may require more effort.
-64 bit Windows OS is supported with mingw_w64 and msys or pre-built binaries.
-
-MacOS, OSx is not supported.
-
-3. Stratum pool. Some algos may work wallet mining using getwork.
 
 Errata
 ------

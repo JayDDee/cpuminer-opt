@@ -159,6 +159,13 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.8.2
+
+Fixed and faster myr-gr.
+Added x12 algo (Galaxie Cash), allium algo (Garlicoin).
+Faster lyra2rev2, lbry, skein.
+Large reduction in compiler warnings.
+
 v3.8.1.1
 
 Fixed Windows AVX2 crash.

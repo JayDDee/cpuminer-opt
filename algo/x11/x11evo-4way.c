@@ -43,7 +43,6 @@ void init_x11evo_4way_ctx()
      jh512_4way_init( &x11evo_4way_ctx.jh );
      keccak512_4way_init( &x11evo_4way_ctx.keccak );
      luffa_2way_init( &x11evo_4way_ctx.luffa, 512 );
-     init_luffa( &x11evo_4way_ctx.luffa, 512 );
      cubehashInit( &x11evo_4way_ctx.cube, 512, 16, 32 );
      sph_shavite512_init( &x11evo_4way_ctx.shavite );
      simd_2way_init( &x11evo_4way_ctx.simd, 512 );

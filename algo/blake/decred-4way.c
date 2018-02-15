@@ -12,11 +12,11 @@ static __thread blake256_4way_context blake_mid;
 void decred_hash_4way( void *state, const void *input )
 {
      uint32_t vhash[8*4] __attribute__ ((aligned (64)));
-     uint32_t hash0[8] __attribute__ ((aligned (32)));
-     uint32_t hash1[8] __attribute__ ((aligned (32)));
-     uint32_t hash2[8] __attribute__ ((aligned (32)));
-     uint32_t hash3[8] __attribute__ ((aligned (32)));
-     void *tail = input + ( DECRED_MIDSTATE_LEN << 2 );
+//     uint32_t hash0[8] __attribute__ ((aligned (32)));
+//     uint32_t hash1[8] __attribute__ ((aligned (32)));
+//     uint32_t hash2[8] __attribute__ ((aligned (32)));
+//     uint32_t hash3[8] __attribute__ ((aligned (32)));
+     const void *tail = input + ( DECRED_MIDSTATE_LEN << 2 );
      int tail_len = 180 - DECRED_MIDSTATE_LEN; 
      blake256_4way_context ctx __attribute__ ((aligned (64)));
 

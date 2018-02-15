@@ -1,47 +1,29 @@
 #include "skein-gate.h"
 #include <string.h>
 #include <stdint.h>
-#include <openssl/sha.h>
 #include "skein-hash-4way.h"
+#include "algo/sha/sha2-hash-4way.h"
 
-#if defined (__AVX2__)
+#if defined (SKEIN_4WAY)
 
 void skeinhash_4way( void *state, const void *input )
 {
-     uint64_t hash0[8] __attribute__ ((aligned (64)));
-     uint64_t hash1[8] __attribute__ ((aligned (64)));
-     uint64_t hash2[8] __attribute__ ((aligned (64)));
-     uint64_t hash3[8] __attribute__ ((aligned (64)));
-     uint64_t vhash[8*4] __attribute__ ((aligned (64)));
+     uint64_t vhash64[8*4] __attribute__ ((aligned (64)));
+     uint32_t vhash32[16*4] __attribute__ ((aligned (64)));
      skein512_4way_context ctx_skein;
-     SHA256_CTX            ctx_sha256;
+     sha256_4way_context ctx_sha256;
 
      skein512_4way_init( &ctx_skein );
      skein512_4way( &ctx_skein, input, 80 );
-     skein512_4way_close( &ctx_skein, vhash );
+     skein512_4way_close( &ctx_skein, vhash64 );
 
-     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_reinterleave_4x32( vhash32, vhash64, 512 );
 
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash0, 64 );
-     SHA256_Final( (unsigned char*)hash0, &ctx_sha256 );
+     sha256_4way_init( &ctx_sha256 );
+     sha256_4way( &ctx_sha256, vhash32, 64 );
+     sha256_4way_close( &ctx_sha256, vhash32 );
 
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash1, 64 );
-     SHA256_Final( (unsigned char*)hash1, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash2, 64 );
-     SHA256_Final( (unsigned char*)hash2, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash3, 64 );
-     SHA256_Final( (unsigned char*)hash3, &ctx_sha256 );
-
-     memcpy( state,      hash0, 32 );
-     memcpy( state + 32, hash1, 32 );
-     memcpy( state + 64, hash2, 32 );
-     memcpy( state + 96, hash3, 32 );
+     mm_deinterleave_4x32( state, state+32, state+64, state+96, vhash32, 256 );
 }
 
 int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,

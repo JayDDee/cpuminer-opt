@@ -11,6 +11,10 @@
 // 32 bytes for 256 bit vectors. 64 byte alignment is recommended for
 // best cache alignment.
 //
+// Windows has problems with 256 bit vectors as function arguments passed by 
+// value. Stack alignment is only guaranteed to 16 bytes and 32 is required.
+// Always use pointers for 256 bit arguments.
+//
 // There exist duplicates of some functions. In general the first defined
 // is preferred as it is more efficient but also more restrictive and may
 // not be applicable. The less efficient versions are more flexible.
@@ -93,7 +97,7 @@ union m128_v8 {
 };
 typedef union m128_v8 m128_v8;
 
-// Compile time definition macros, for initializing only.
+// Compile time definition macros, for compile time initializing only.
 // x must be a scalar constant.
 #define mm_setc_64( x1, x0 ) {{ x1, x0 }}
 #define mm_setc1_64( x )     {{  x,  x }}
@@ -111,7 +115,7 @@ typedef union m128_v8 m128_v8;
                    x07, x06, x05, x04, x03, x02, x01, x00 }}
 #define mm_setc1_8( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
 
-// Compile time constants, use only for initializing.
+// Compile time constants, use only for compile time initializing.
 #define c128_zero      mm_setc1_64( 0ULL )
 #define c128_neg1      mm_setc1_64( 0xFFFFFFFFFFFFFFFFULL )
 #define c128_one_128   mm_setc_64(  0ULL, 1ULL )  
@@ -214,6 +218,7 @@ static inline void memset_64( uint64_t *dst, uint64_t a,  int n )
 //
 // Bit operations
 
+// Bitfield extraction/insertion.
 // Return a vector with n bits extracted and right justified from each
 // element of v starting at bit i.
 static inline __m128i mm_bfextract_64( __m128i v, int i, int n )
@@ -262,6 +267,10 @@ static inline __m128i mm_bitextract_16( __m128i v, int i )
 // obsolete, use bfextract with n = 1
 // Return vector with bit i of each element of v as a bool
 // (shifted to position 0)
+#define mm_bittest_64( v, i ) mm_bfextract_64( v, i, 1 )
+#define mm_bittest_32( v, i ) mm_bfextract_32( v, i, 1 )
+#define mm_bittest_16( v, i ) mm_bfextract_16( v, i, 1 )
+/*
 static inline __m128i mm_bittest_64( __m128i v, int i )
 {   return _mm_and_si128( _mm_srli_epi64( v, i ), m128_one_64 ); }
 
@@ -270,6 +279,7 @@ static inline __m128i mm_bittest_32( __m128i v, int i )
 
 static inline __m128i mm_bittest_16( __m128i v, int i )
 {   return _mm_and_si128( _mm_srli_epi16( v, i ), m128_one_64 ); }
+*/
 
 // Return vector with bit i of each element in v set/cleared
 static inline __m128i mm_bitset_64( __m128i v, int i )
@@ -770,6 +780,7 @@ static inline uint8_t mm256_vindex_to_imm8_16( __m256i v, uint8_t n )
 //
 // Bit operations
 
+// Bit field extraction/insertion.
 // Return a vector with bits [i..i+n] extracted and right justified from each
 // element of v.
 static inline __m256i mm256_bfextract_64( __m256i v, int i, int n )
@@ -810,7 +821,6 @@ static inline __m256i mm256_bfinsert_16( __m256i v, __m256i a, int i, int n )
         _mm256_slli_epi16( a, i) );
 }
 
-
 // return bit n in position, all other bits cleared
 #define mm256_bitextract_64 ( x, n ) \
    _mm256_and_si256( _mm256_slli_epi64( m256_one_64, n ), x )
@@ -820,12 +830,18 @@ static inline __m256i mm256_bfinsert_16( __m256i v, __m256i a, int i, int n )
    _mm256_and_si256( _mm256_slli_epi16( m256_one_16, n ), x )
 
 // Return bit n as bool (bit 0)
+#define mm_bittest_64( v, i ) mm_bfextract_64( v, i, 1 )
+#define mm_bittest_32( v, i ) mm_bfextract_32( v, i, 1 )
+#define mm_bittest_16( v, i ) mm_bfextract_16( v, i, 1 )
+
+/*
 #define mm256_bittest_64( x, n ) \
    _mm256_and_si256( m256_one_64, _mm256_srli_epi64( x, n ) )
 #define mm256_bittest_32( x, n ) \
    _mm256_and_si256( m256_one_32, _mm256_srli_epi32( x, n ) )
 #define mm256_bittest_16( x, n ) \
    _mm256_and_si256( m256_one_16, _mm256_srli_epi16( x, n ) )
+*/
 
 // Return x with bit n set/cleared in all elements
 #define mm256_bitset_64( x, n ) \
@@ -1084,7 +1100,41 @@ static inline __m256i mm256_bswap_16( __m256i v )
 
 // Pseudo parallel AES
 // Probably noticeably slower than using pure 128 bit vectors
-inline __m256i mm256_aesenc_2x128( __m256i x, __m256i k )
+// Windows has problems with __m256i args paddes by value.
+// Use pointers to facilitate __m256i to __m128i conversion.
+// When key is used switching keys may reduce performance.
+inline __m256i mm256_aesenc_2x128( void *msg, void *key )
+{
+   ((__m128i*)msg)[0] = _mm_aesenc_si128( ((__m128i*)msg)[0],
+                                          ((__m128i*)key)[0] );
+   ((__m128i*)msg)[1] = _mm_aesenc_si128( ((__m128i*)msg)[1],
+                                          ((__m128i*)key)[1] );
+}
+
+inline __m256i mm256_aesenc_nokey_2x128( void *msg )
+{
+   ((__m128i*)msg)[0] = _mm_aesenc_si128( ((__m128i*)msg)[0], m128_zero );
+   ((__m128i*)msg)[1] = _mm_aesenc_si128( ((__m128i*)msg)[1], m128_zero );
+}
+
+// source msg preserved
+/*
+inline __m256i mm256_aesenc_2x128( void *out, void *msg, void *key )
+{
+   ((__m128i*)out)[0] = _mm_aesenc_si128( ((__m128i*)msg)[0],
+                                          ((__m128i*)key)[0] );
+   ((__m128i*)out)[1] = _mm_aesenc_si128( ((__m128i*)msg)[1],
+                                          ((__m128i*)key)[1] );
+}
+
+inline __m256i mm256_aesenc_nokey_2x128( void *out, void *msg )
+{
+   ((__m128i*)out)[0] = _mm_aesenc_si128( ((__m128i*)msg)[0], m128_zero );
+   ((__m128i*)out)[1] = _mm_aesenc_si128( ((__m128i*)msg)[1], m128_zero );
+}
+*/
+
+inline __m256i mm256_aesenc_2x128_obs( __m256i x, __m256i k )
 {
     __m128i hi, lo, khi, klo;
 
@@ -1095,7 +1145,7 @@ inline __m256i mm256_aesenc_2x128( __m256i x, __m256i k )
     return mm256_pack_2x128( hi, lo );
 }
 
-inline __m256i mm256_aesenc_nokey_2x128( __m256i x )
+inline __m256i mm256_aesenc_nokey_2x128_obs( __m256i x )
 {
     __m128i hi, lo;
 
@@ -1104,6 +1154,7 @@ inline __m256i mm256_aesenc_nokey_2x128( __m256i x )
     hi = _mm_aesenc_si128( hi, m128_zero );
     return mm256_pack_2x128( hi, lo );
 }
+
 
 #endif  // AVX2
 

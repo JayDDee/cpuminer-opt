@@ -54,4 +54,6 @@ int LYRA2Z( uint64_t*, void *K, uint64_t kLen, const void *pwd,
             uint64_t pwdlen, const void *salt, uint64_t saltlen,
             uint64_t timeCost, uint64_t nRows, uint64_t nCols );
 
+int LYRA2(void *K, int64_t kLen, const void *pwd, int32_t pwdlen, const void *salt, int32_t saltlen, int64_t timeCost, const int16_t nRows, const int16_t nCols);
+
 #endif /* LYRA2_H_ */

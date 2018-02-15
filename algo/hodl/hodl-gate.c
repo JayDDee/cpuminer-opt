@@ -95,7 +95,7 @@ int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
                    uint64_t *hashes_done )
 {
 #ifndef NO_AES_NI
-  GenRandomGarbage( hodl_scratchbuf, work->data, thr_id );
+  GenRandomGarbage( (CacheEntry*)hodl_scratchbuf, work->data, thr_id );
   pthread_barrier_wait( &hodl_barrier );
   return scanhash_hodl_wolf( thr_id, work, max_nonce, hashes_done );
 #endif

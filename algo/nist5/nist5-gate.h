@@ -21,6 +21,7 @@ void nist5hash( void *state, const void *input );
 
 int scanhash_nist5( int thr_id, struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done );
+void init_nist5_ctx();
 #endif
 
 #endif

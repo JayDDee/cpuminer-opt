@@ -30,7 +30,7 @@ typedef struct {
 
 poly_ctx_holder poly_ctx;
 
-void init_polytimos_context()
+void init_polytimos_ctx()
 {
 	sph_skein512_init(&poly_ctx.skein);
         sph_shabal512_init(&poly_ctx.shabal);

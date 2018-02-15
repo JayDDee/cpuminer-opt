@@ -483,6 +483,7 @@ uint32_t* get_stratum_job_ntime();
 
 enum algos {
         ALGO_NULL,
+        ALGO_ALLIUM,
         ALGO_ANIME,
         ALGO_ARGON2,
         ALGO_AXIOM,       
@@ -542,6 +543,7 @@ enum algos {
         ALGO_X11,
         ALGO_X11EVO,         
         ALGO_X11GOST,
+        ALGO_X12,
         ALGO_X13,         
         ALGO_X13SM3,
         ALGO_X14,        
@@ -557,6 +559,7 @@ enum algos {
 };
 static const char* const algo_names[] = {
         NULL,
+        "allium",
         "anime",
         "argon2",
         "axiom",
@@ -616,6 +619,7 @@ static const char* const algo_names[] = {
         "x11",
         "x11evo",
         "x11gost",
+        "x12",
         "x13",
         "x13sm3",
         "x14",
@@ -686,6 +690,7 @@ static char const usage[] = "\
 Usage: " PACKAGE_NAME " [OPTIONS]\n\
 Options:\n\
   -a, --algo=ALGO       specify the algorithm to use\n\
+                          allium       Garlicoin (GRLC)\n\
                           anime        Animecoin (ANI)\n\
                           argon2\n\
                           axiom        Shabal-256 MemoHash\n\
@@ -745,6 +750,7 @@ Options:\n\
                           x11          Dash\n\
                           x11evo       Revolvercoin (XRE)\n\
                           x11gost      sib (SibCoin)\n\
+                          x12          Galaxie Cash (GCH)\n\
                           x13          X13\n\
                           x13sm3       hsr (Hshare)\n\
                           x14          X14\n\

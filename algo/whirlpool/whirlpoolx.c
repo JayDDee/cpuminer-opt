@@ -11,15 +11,15 @@ void whirlpoolx_hash(void *state, const void *input)
 	sph_whirlpool_context ctx_whirlpool;
 
 	unsigned char hash[64];
-	unsigned char hash_xored[32];
+//	unsigned char hash_xored[32];
 
 	sph_whirlpool1_init(&ctx_whirlpool);
 	sph_whirlpool1(&ctx_whirlpool, input, 80);
 	sph_whirlpool1_close(&ctx_whirlpool, hash);
 
 	// compress the 48 first bytes of the hash to 32
-	for (int i = 0; i < 32; i++) 
-		hash_xored[i] = hash[i] ^ hash[i + 16];
+//	for (int i = 0; i < 32; i++) 
+//		hash_xored[i] = hash[i] ^ hash[i + 16];
 
 	memcpy(state, hash, 32);
 }

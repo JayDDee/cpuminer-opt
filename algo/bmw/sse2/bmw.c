@@ -477,7 +477,7 @@ do { \
         for (u = 0; u < 16; u ++) \
         sph_enc64le_aligned(data + 8 * u, h2[u]); \
         dh = h1; \
-        h = final_b; \
+        h = (sph_u64*)final_b; \
     } \
     /* end wrapped for break loop */ \
     out = dst; \

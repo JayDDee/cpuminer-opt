@@ -339,13 +339,13 @@ do { \
         jhSbuffer[53] = 0x00, \
         jhSbuffer[54] = 0x00, \
         jhSbuffer[55] = 0x00; \
-        jhSbuffer[56] = ((64*8) >> 56) & 0xff, \
-        jhSbuffer[57] = ((64*8) >> 48) & 0xff, \
-        jhSbuffer[58] = ((64*8) >> 40) & 0xff, \
-        jhSbuffer[59] = ((64*8) >> 32) & 0xff, \
-        jhSbuffer[60] = ((64*8) >> 24) & 0xff, \
-        jhSbuffer[61] = ((64*8) >> 16) & 0xff, \
-        jhSbuffer[62] = ((64*8) >> 8) & 0xff, \
+        jhSbuffer[56] = ((char)((uint64_t)(64*8) >> 56)) & 0xff, \
+        jhSbuffer[57] = ((char)((uint64_t)(64*8) >> 48)) & 0xff, \
+        jhSbuffer[58] = ((char)((uint64_t)(64*8) >> 40)) & 0xff, \
+        jhSbuffer[59] = ((char)((uint64_t)(64*8) >> 32)) & 0xff, \
+        jhSbuffer[60] = ((char)((uint64_t)(64*8) >> 24)) & 0xff, \
+        jhSbuffer[61] = ((char)((uint64_t)(64*8) >> 16)) & 0xff, \
+        jhSbuffer[62] = ((char)((uint64_t)(64*8) >> 8)) & 0xff, \
         jhSbuffer[63] = (64*8) & 0xff; \
         b = true; \
     } \
