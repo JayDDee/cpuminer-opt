@@ -6,12 +6,13 @@
 #
 
 # Build
-FROM ubuntu:16.04 as builder
+FROM debian:stretch-slim as builder
 
 RUN apt-get update \
-  && apt-get install -y \
+  && apt-get install -y --no-install-recommends --no-install-suggests \
     build-essential \
     libssl-dev \
+    zlib1g-dev \
     libgmp-dev \
     libcurl4-openssl-dev \
     libjansson-dev \
@@ -22,10 +23,11 @@ COPY . /app/
 RUN cd /app/ && ./build.sh
 
 # App
-FROM ubuntu:16.04
+FROM debian:stretch-slim
 
 RUN apt-get update \
-  && apt-get install -y \
+  && apt-get install -y --no-install-recommends --no-install-suggests \
+    libssl1.1 \
     libcurl3 \
     libjansson4 \
   && rm -rf /var/lib/apt/lists/*
