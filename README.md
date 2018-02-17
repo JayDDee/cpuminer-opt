@@ -34,11 +34,12 @@ Others may work but may require more effort.
 
 MacOS, OSx is not supported.
 
-3. Stratum pool. Some algos may work wallet mining using getwork.
+3. Stratum pool. Some algos may work wallet mining using getwork or GBT. YMMV.
 
 Supported Algorithms
 --------------------
 
+                          allium       Garlicoin
                           anime        Animecoin
                           argon2
                           axiom        Shabal-256 MemoHash
@@ -107,7 +108,7 @@ Supported Algorithms
                           x17
                           xevan        Bitsend
                           yescrypt     Globalboost-Y (BSTY)
-                          yescryptr8   BitZeny (ZNY)\n\
+                          yescryptr8   BitZeny (ZNY)
                           yescryptr16  Yenten (YTN)
                           zr5          Ziftr
 

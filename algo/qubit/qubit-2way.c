@@ -25,7 +25,6 @@ qubit_2way_ctx_holder qubit_2way_ctx;
 
 void init_qubit_2way_ctx()
 {
-        luffa_2way_init( &qubit_2way_ctx.luffa, 512 );
         cubehashInit(&qubit_2way_ctx.cube,512,16,32);
         sph_shavite512_init(&qubit_2way_ctx.shavite);
         simd_2way_init( &qubit_2way_ctx.simd, 512 );

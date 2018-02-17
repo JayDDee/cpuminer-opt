@@ -68,13 +68,13 @@ int LYRA2REV2( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    //Tries to allocate enough space for the whole memory matrix
 
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * nCols;
-   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+//   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
    // for Lyra2REv2, nCols = 4, v1 was using 8
    const int64_t BLOCK_LEN = (nCols == 4) ? BLOCK_LEN_BLAKE2_SAFE_INT64
                                           : BLOCK_LEN_BLAKE2_SAFE_BYTES;
    uint64_t *ptrWord = wholeMatrix;
 
-   memset( wholeMatrix, 0, ROW_LEN_BYTES * nRows );
+//   memset( wholeMatrix, 0, ROW_LEN_BYTES * nRows );
 
    //=== Getting the password + salt + basil padded with 10*1 ==========//
    //OBS.:The memory matrix will temporarily hold the password: not for saving memory,
@@ -232,9 +232,9 @@ int LYRA2Z( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
     //Tries to allocate enough space for the whole memory matrix
 
     const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * nCols;
-    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+//    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
 
-    memset( wholeMatrix, 0, ROW_LEN_BYTES * nRows );
+//    memset( wholeMatrix, 0, ROW_LEN_BYTES * nRows );
 
     //==== Getting the password + salt + basil padded with 10*1 ============//
     //OBS.:The memory matrix will temporarily hold the password: not for saving memory,
@@ -380,18 +380,17 @@ int LYRA2RE( void *K, uint64_t kLen, const void *pwd, const uint64_t pwdlen,
                                           : BLOCK_LEN_BLAKE2_SAFE_BYTES;
 
    i = (int64_t)ROW_LEN_BYTES * nRows;
-   uint64_t *wholeMatrix = _mm_malloc( i, 32 );
-//   uint64_t *wholeMatrix = _mm_malloc( i, 64 );
+   uint64_t *wholeMatrix = _mm_malloc( i, 64 );
    if (wholeMatrix == NULL)
       return -1;
 
-//#if defined (__AVX2__)
-//   memset_zero_m256i( (__m256i*)wholeMatrix, i<<5 );
-//#elif defined(__AVX__)
-//   memset_zero_m128i( (__m128i*)wholeMatrix, i<<4 );
-//#else
-   memset(wholeMatrix, 0, i);
-//#endif
+#if defined(__AVX2__)
+   memset_zero_256( (__m256i*)wholeMatrix, i>>5 );
+#elif defined(__AVX__)
+   memset_zero_128( (__m128i*)wholeMatrix, i>>4 );   
+#else
+   memset( wholeMatrix, 0, i );
+#endif
 
    uint64_t *ptrWord = wholeMatrix;
 
@@ -413,8 +412,8 @@ int LYRA2RE( void *K, uint64_t kLen, const void *pwd, const uint64_t pwdlen,
    memcpy(ptrByte, salt, saltlen);
    ptrByte += saltlen;
 
-   memset( ptrByte, 0, nBlocksInput * BLOCK_LEN_BLAKE2_SAFE_BYTES
-                       - (saltlen + pwdlen) );
+//   memset( ptrByte, 0, nBlocksInput * BLOCK_LEN_BLAKE2_SAFE_BYTES
+//                       - (saltlen + pwdlen) );
 
    //Concatenates the basil: every integer passed as parameter, in the order they are provided by the interface
    memcpy(ptrByte, &kLen, sizeof(int64_t));

@@ -14,18 +14,20 @@ bool lyra2rev2_thread_init()
 
    int i = (int64_t)ROW_LEN_BYTES * 4; // nRows;
    l2v2_wholeMatrix = _mm_malloc( i, 64 );
-
+#if defined (LYRA2REV2_4WAY)
+   init_lyra2rev2_4way_ctx();;
+#else
+   init_lyra2rev2_ctx();
+#endif
    return l2v2_wholeMatrix;
 }
 
 bool register_lyra2rev2_algo( algo_gate_t* gate )
 {
 #if defined (LYRA2REV2_4WAY)
-  init_lyra2rev2_4way_ctx();
   gate->scanhash  = (void*)&scanhash_lyra2rev2_4way;
   gate->hash      = (void*)&lyra2rev2_4way_hash;
 #else
-  init_lyra2rev2_ctx();
   gate->scanhash  = (void*)&scanhash_lyra2rev2;
   gate->hash      = (void*)&lyra2rev2_hash;
 #endif

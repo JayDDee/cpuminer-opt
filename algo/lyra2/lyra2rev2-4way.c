@@ -19,12 +19,13 @@ typedef struct {
 
 static lyra2v2_4way_ctx_holder l2v2_4way_ctx;
 
-void init_lyra2rev2_4way_ctx()
+bool init_lyra2rev2_4way_ctx()
 {
    keccak256_4way_init( &l2v2_4way_ctx.keccak );
    cubehashInit( &l2v2_4way_ctx.cube, 256, 16, 32 );
    skein256_4way_init( &l2v2_4way_ctx.skein );
    bmw256_4way_init( &l2v2_4way_ctx.bmw );
+   return true;
 }
 
 void lyra2rev2_4way_hash( void *state, const void *input )

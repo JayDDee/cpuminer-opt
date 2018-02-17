@@ -159,6 +159,13 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.8.2.1
+
+Fixed low difficulty rejects with allium.
+Fixed qubit AVX2.
+Restored lyra2z lost hash.
+Fixed build.sh
+
 v3.8.2
 
 Fixed and faster myr-gr.

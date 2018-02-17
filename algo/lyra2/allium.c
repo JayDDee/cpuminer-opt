@@ -12,9 +12,9 @@
 #include "lyra2.h"
 
 typedef struct {
-        cubehashParam            cube;
         sph_blake256_context     blake;
         sph_keccak256_context    keccak;
+        cubehashParam            cube;
         sph_skein256_context     skein;
 #if defined (__AES__)
         hashState_groestl256     groestl;
@@ -23,9 +23,9 @@ typedef struct {
 #endif
 } allium_ctx_holder;
 
-static allium_ctx_holder allium_ctx;
+static __thread allium_ctx_holder allium_ctx;
 
-void init_allium_ctx()
+bool init_allium_ctx()
 {
         sph_keccak256_init( &allium_ctx.keccak );
         cubehashInit( &allium_ctx.cube, 256, 16, 32 );
@@ -35,6 +35,7 @@ void init_allium_ctx()
 #else
         sph_groestl256_init( &allium_ctx.groestl );
 #endif
+        return true;
 }
 
 void allium_hash(void *state, const void *input)

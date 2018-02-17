@@ -1,5 +1,6 @@
 #include "allium-gate.h"
 #include <memory.h>
+#include <mm_malloc.h>
 
 #if defined (ALLIUM_4WAY)	
 
@@ -18,14 +19,15 @@ typedef struct {
 
 } allium_4way_ctx_holder;
 
-static allium_4way_ctx_holder allium_4way_ctx;
+static __thread allium_4way_ctx_holder allium_4way_ctx;
 
-void init_allium_4way_ctx()
+bool init_allium_4way_ctx()
 {
    keccak256_4way_init( &allium_4way_ctx.keccak );
    cubehashInit( &allium_4way_ctx.cube, 256, 16, 32 );
    skein256_4way_init( &allium_4way_ctx.skein );
    init_groestl256( &allium_4way_ctx.groestl, 32 );
+   return true;
 }
 
 void allium_4way_hash( void *state, const void *input )

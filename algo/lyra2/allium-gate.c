@@ -5,11 +5,11 @@ int64_t get_max64_0xFFFFLL() { return 0xFFFFLL; }
 bool register_allium_algo( algo_gate_t* gate )
 {
 #if defined (ALLIUM_4WAY)
-  init_allium_4way_ctx();
+  gate->miner_thread_init = (void*)&init_allium_4way_ctx;
   gate->scanhash  = (void*)&scanhash_allium_4way;
   gate->hash      = (void*)&allium_4way_hash;
 #else
-  init_allium_ctx();
+  gate->miner_thread_init = (void*)&init_allium_ctx;
   gate->scanhash  = (void*)&scanhash_allium;
   gate->hash      = (void*)&allium_hash;
 #endif

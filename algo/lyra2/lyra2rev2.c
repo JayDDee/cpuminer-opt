@@ -21,7 +21,7 @@ typedef struct {
 static lyra2v2_ctx_holder lyra2v2_ctx;
 static __thread sph_blake256_context l2v2_blake_mid;
 
-void init_lyra2rev2_ctx()
+bool init_lyra2rev2_ctx()
 {
         cubehashInit( &lyra2v2_ctx.cube1, 256, 16, 32 );
         cubehashInit( &lyra2v2_ctx.cube2, 256, 16, 32 );
@@ -29,6 +29,7 @@ void init_lyra2rev2_ctx()
         sph_keccak256_init( &lyra2v2_ctx.keccak );
         sph_skein256_init( &lyra2v2_ctx.skein );
         sph_bmw256_init( &lyra2v2_ctx.bmw );
+        return true;
 }
 
 void l2v2_blake256_midstate( const void* input )

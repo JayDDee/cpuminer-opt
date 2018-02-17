@@ -182,6 +182,10 @@ static inline __m128i foo()
 // returns p[i]
 #define casti_m128i(p,i) (((__m128i*)(p))[(i)])
 
+// p = any aligned pointer, o = scaled offset
+// returns p+o
+#define casto_m128i(p,i) (((__m128i*)(p))+(i))
+
 //
 // Memory functions
 // n = number of __m128i, bytes/16
@@ -670,6 +674,10 @@ typedef union m256_v8 m256_v8;
 // p = any aligned pointer, i = scaled array index
 // returns p[i]
 #define casti_m256i(p,i) (((__m256i*)(p))[(i)])
+
+// p = any aligned pointer, o = scaled offset
+// returns p+o
+#define casto_m256i(p,i) (((__m256i*)(p))+(i))
 
 //
 // Memory functions

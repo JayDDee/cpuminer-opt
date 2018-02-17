@@ -491,14 +491,14 @@ int luffa_2way_update( luffa_2way_context *state, const void *data,
     __m256i *buffer = (__m256i*)state->buffer;
     __m256i msg[2];
     int i;
-    int blocks = (int)len / 32;
-    state-> rembytes = (int)len % 32;
+    int blocks = (int)len >> 5;
+    state-> rembytes = (int)len & 0x1F;
 
     // full blocks
     for ( i = 0; i < blocks; i++, vdata+=2 )
     {
-       msg[0] = mm256_bswap_32( vdata[ i   ] );
-       msg[1] = mm256_bswap_32( vdata[ i+1 ] );
+       msg[0] = mm256_bswap_32( vdata[ 0] );
+       msg[1] = mm256_bswap_32( vdata[ 1 ] );
        rnd512_2way( state, msg );
     }
 
@@ -533,7 +533,7 @@ int luffa_2way_close( luffa_2way_context *state, void *hashval )
     finalization512_2way( state, (uint32*)hashval );
 
     if ( state->hashbitlen > 512 )
-        finalization512_2way( state, (uint32*)( hashval+128 ) );
+        finalization512_2way( state, (uint32*)( hashval+32 ) );
     return 0;
 }
 
@@ -575,7 +575,7 @@ int luffa_2way_update_close( luffa_2way_context *state,
 
     finalization512_2way( state, (uint32*)output );
     if ( state->hashbitlen > 512 )
-        finalization512_2way( state, (uint32*)( output+128 ) );
+        finalization512_2way( state, (uint32*)( output+32 ) );
 
     return 0;
 }
