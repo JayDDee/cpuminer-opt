@@ -1,15 +1,12 @@
 #include "lyra2rev2-gate.h"
 #include <memory.h>
 
-#ifdef __AVX2__	
+#if defined (__AVX2__)	
 
 #include "algo/blake/blake-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/bmw/bmw-hash-4way.h"
-
-#include "algo/cubehash/sph_cubehash.h"
-#include "algo/bmw/sph_bmw.h"
 #include "algo/cubehash/sse2/cubehash_sse2.h" 
 
 typedef struct {
@@ -17,19 +14,17 @@ typedef struct {
    keccak256_4way_context    keccak;
    cubehashParam             cube;
    skein256_4way_context     skein;
-        sph_bmw256_context       bmw;
-
+   bmw256_4way_context          bmw;
 } lyra2v2_4way_ctx_holder;
 
 static lyra2v2_4way_ctx_holder l2v2_4way_ctx;
 
 void init_lyra2rev2_4way_ctx()
 {
-//   blake256_4way_init( &l2v2_4way_ctx.blake );
    keccak256_4way_init( &l2v2_4way_ctx.keccak );
    cubehashInit( &l2v2_4way_ctx.cube, 256, 16, 32 );
    skein256_4way_init( &l2v2_4way_ctx.skein );
-        sph_bmw256_init( &l2v2_4way_ctx.bmw );
+   bmw256_4way_init( &l2v2_4way_ctx.bmw );
 }
 
 void lyra2rev2_4way_hash( void *state, const void *input )
@@ -44,7 +39,6 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    memcpy( &ctx, &l2v2_4way_ctx, sizeof(l2v2_4way_ctx) );
 
    blake256_4way( &ctx.blake, input + (64<<2), 16 );
-//   blake256_4way( &ctx.blake, input, 80 );
    blake256_4way_close( &ctx.blake, vhash );
 
    mm256_reinterleave_4x64( vhash64, vhash, 256 );
@@ -53,11 +47,11 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
    cubehashUpdateDigest( &ctx.cube, (byte*) hash0, (const byte*) hash0, 32 );
-   memcpy( &ctx.cube, &l2v2_4way_ctx.cube, sizeof ctx.cube );
+   cubehashReinit( &ctx.cube );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash1, (const byte*) hash1, 32 );
-   memcpy( &ctx.cube, &l2v2_4way_ctx.cube, sizeof ctx.cube );
+   cubehashReinit( &ctx.cube );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash2, (const byte*) hash2, 32 );
-   memcpy( &ctx.cube, &l2v2_4way_ctx.cube, sizeof ctx.cube );
+   cubehashReinit( &ctx.cube );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash3, (const byte*) hash3, 32 );
 
    LYRA2REV2( l2v2_wholeMatrix, hash0, 32, hash0, 32, hash0, 32, 1, 4, 4 );
@@ -70,33 +64,20 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    skein256_4way_close( &ctx.skein, vhash64 );
    mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
-   memcpy( &ctx.cube, &l2v2_4way_ctx.cube, sizeof ctx.cube );
+   cubehashReinit( &ctx.cube );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash0, (const byte*) hash0, 32 );
-   memcpy( &ctx.cube, &l2v2_4way_ctx.cube, sizeof ctx.cube );
+   cubehashReinit( &ctx.cube );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash1, (const byte*) hash1, 32 );
-   memcpy( &ctx.cube, &l2v2_4way_ctx.cube, sizeof ctx.cube );
+   cubehashReinit( &ctx.cube );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash2, (const byte*) hash2, 32 );
-   memcpy( &ctx.cube, &l2v2_4way_ctx.cube, sizeof ctx.cube );
+   cubehashReinit( &ctx.cube );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash3, (const byte*) hash3, 32 );
 
+   mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
+   bmw256_4way( &ctx.bmw, vhash, 32 );
+   bmw256_4way_close( &ctx.bmw, vhash );
 
-	sph_bmw256( &ctx.bmw, hash0, 32 );
-	sph_bmw256_close( &ctx.bmw, hash0 );
-        memcpy( &ctx.bmw, &l2v2_4way_ctx.bmw, sizeof ctx.bmw );
-        sph_bmw256( &ctx.bmw, hash1, 32 );
-        sph_bmw256_close( &ctx.bmw, hash1 );
-        memcpy( &ctx.bmw, &l2v2_4way_ctx.bmw, sizeof ctx.bmw );
-        sph_bmw256( &ctx.bmw, hash2, 32 );
-        sph_bmw256_close( &ctx.bmw, hash2 );
-        memcpy( &ctx.bmw, &l2v2_4way_ctx.bmw, sizeof ctx.bmw );
-        sph_bmw256( &ctx.bmw, hash3, 32 );
-        sph_bmw256_close( &ctx.bmw, hash3 );
-
-
-   memcpy( state,    hash0, 32 );
-   memcpy( state+32, hash1, 32 );
-   memcpy( state+64, hash2, 32 );
-   memcpy( state+96, hash3, 32 );
+   mm_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,

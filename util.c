@@ -2331,6 +2331,7 @@ void print_hash_tests(void)
    for ( algo=0; algo < ALGO_COUNT; algo++ )
    {
       switch(algo) {
+        case ALGO_ALLIUM :
         case ALGO_BLAKE :
         case ALGO_CRYPTONIGHT :
           break;

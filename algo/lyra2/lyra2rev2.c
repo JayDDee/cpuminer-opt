@@ -1,5 +1,6 @@
 #include "lyra2rev2-gate.h"
 #include <memory.h>
+#include <mm_malloc.h>
 #include "algo/blake/sph_blake.h"
 #include "algo/cubehash/sph_cubehash.h"
 #include "algo/keccak/sph_keccak.h"

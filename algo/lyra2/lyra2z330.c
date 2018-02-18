@@ -2,9 +2,7 @@
 #include <mm_malloc.h>
 #include "algo-gate-api.h"
 #include "lyra2.h"
-#ifndef NO_AES_NI
-  #include "avxdefs.h"
-#endif
+//#include "avxdefs.h"
 
 __thread uint64_t* lyra2z330_wholeMatrix;
 

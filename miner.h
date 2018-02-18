@@ -481,6 +481,7 @@ uint32_t* get_stratum_job_ntime();
 
 enum algos {
         ALGO_NULL,
+        ALGO_ALLIUM,
         ALGO_ARGON2,
         ALGO_AXIOM,       
         ALGO_BASTION,
@@ -553,6 +554,7 @@ enum algos {
 };
 static const char* const algo_names[] = {
         NULL,
+        "allium",
         "argon2",
         "axiom",
         "bastion",

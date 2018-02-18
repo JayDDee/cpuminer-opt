@@ -6,9 +6,9 @@
 #include "algo/keccak/sph_keccak.h"
 #include "lyra2.h"
 #include "algo-gate-api.h"
+//#include "avxdefs.h"
 
 #ifndef NO_AES_NI
-  #include "avxdefs.h"
   #include "algo/groestl/aes_ni/hash-groestl256.h"
 #endif
 

@@ -1545,6 +1545,11 @@ void scrypt_set_target( struct work* work, double job_diff )
    work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
 }
 
+void alt_set_target( struct work* work, double job_diff )
+{
+   work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
+}
+
 // Default is do_nothing (assumed LE)
 void set_work_data_big_endian( struct work *work )
 {

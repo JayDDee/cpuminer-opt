@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "lyra2.h"
 
-#if defined(HASH_4WAY)
+#if defined(__AVX2__)
   #define LYRA2REV2_4WAY
 #endif
 
