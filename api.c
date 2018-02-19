@@ -96,6 +96,7 @@ extern char *opt_api_allow;
 extern int opt_api_listen; /* port */
 extern int opt_api_remote;
 extern double global_hashrate;
+extern uint32_t solved_count;
 extern uint32_t accepted_count;
 extern uint32_t rejected_count;
 
@@ -156,12 +157,12 @@ static char *getsummary(char *params)
 
 	*buffer = '\0';
 	sprintf(buffer, "NAME=%s;VER=%s;API=%s;"
-		"ALGO=%s;CPUS=%d;KHS=%.2f;ACC=%d;REJ=%d;"
+		"ALGO=%s;CPUS=%d;KHS=%.2f;SOLV=%u;ACC=%d;REJ=%d;"
 		"ACCMN=%.3f;DIFF=%s;TEMP=%.1f;FAN=%d;FREQ=%d;"
 		"UPTIME=%.0f;TS=%u|",
 		PACKAGE_NAME, PACKAGE_VERSION, APIVERSION,
 		algo, opt_n_threads, (double)global_hashrate / 1000.0,
-		accepted_count, rejected_count, accps, diff_str,
+		solved_count, accepted_count, rejected_count, accps, diff_str,
 		cpu.cpu_temp, cpu.cpu_fan, cpu.cpu_clock,
 		uptime, (uint32_t) ts);
 	return buffer;
