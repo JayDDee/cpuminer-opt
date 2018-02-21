@@ -138,6 +138,7 @@ double opt_diff_factor = 1.0;
 uint32_t zr5_pok = 0;
 bool opt_stratum_stats = false;
 
+uint32_t solved_count = 0L;
 uint32_t accepted_count = 0L;
 uint32_t rejected_count = 0L;
 double *thr_hashrates;
@@ -782,6 +783,7 @@ static int share_result( int result, struct work *work, const char *reason )
    global_hashcount = hashcount;
    global_hashrate = hashrate;
    total_submits = accepted_count + rejected_count;
+   if( net_diff || sharediff > net_diff ) solved_count++;
 
    rate = ( result ? ( 100. * accepted_count / total_submits )  
                    : ( 100. * rejected_count / total_submits ) );
