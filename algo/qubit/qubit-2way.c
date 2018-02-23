@@ -115,6 +115,7 @@ int scanhash_qubit_2way( int thr_id, struct work *work,uint32_t max_nonce,
             }
             if ( !( (hash+8)[7] & mask ) && fulltest( hash+8, ptarget) )
             {
+               pdata[19] = n+1;
                nonces[ num_found++ ] = n+1;
                work_set_target_ratio( work, hash+8 );
             }

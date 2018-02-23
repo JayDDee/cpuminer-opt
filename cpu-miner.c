@@ -140,6 +140,7 @@ bool opt_stratum_stats = false;
 
 uint32_t accepted_count = 0L;
 uint32_t rejected_count = 0L;
+uint32_t solved_count = 0L;
 double *thr_hashrates;
 double *thr_hashcount;
 double global_hashcount = 0;
@@ -769,6 +770,8 @@ static int share_result( int result, struct work *work, const char *reason )
    float rate;
    char rate_s[8] = {0};
    double sharediff = work ? work->sharediff : stratum.sharediff;
+   bool solved = result && (net_diff > 0.0 ) && ( sharediff >= net_diff );
+   char sol[32] = {0};
    int i;
 
    pthread_mutex_lock(&stats_lock);
@@ -778,6 +781,16 @@ static int share_result( int result, struct work *work, const char *reason )
        hashrate += thr_hashrates[i];
    }
    result ? accepted_count++ : rejected_count++;
+/*
+   if ( solved )
+   {
+      solved_count++;
+      if ( use_colors )
+         sprintf( sol, CL_GRN "Solved" CL_WHT " %d", solved_count );      
+      else
+         sprintf( sol, "Solved %d", solved_count ); 
+   }
+*/
    pthread_mutex_unlock(&stats_lock);
    global_hashcount = hashcount;
    global_hashrate = hashrate;
@@ -787,9 +800,13 @@ static int share_result( int result, struct work *work, const char *reason )
                    : ( 100. * rejected_count / total_submits ) );
 
    if (use_colors)
+   {
         sres = (result ? CL_GRN "Accepted" CL_WHT : CL_RED "Rejected" CL_WHT );
+   }
    else
+   {
         sres = (result ? "Accepted" : "Rejected" );
+   }
 
    // Contrary to rounding convention 100% means zero rejects, exactly 100%. 
    // Rates > 99% and < 100% (rejects>0) display 99.9%.
@@ -844,13 +861,13 @@ static int share_result( int result, struct work *work, const char *reason )
    else
    {
 #if ((defined(_WIN64) || defined(__WINDOWS__)))
-   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g, %s %sH/s",
+   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g %s, %s %sH/s",
                        sres, ( result ? accepted_count : rejected_count ),
-                       total_submits, rate_s, sharediff, hr, hr_units );
+                       total_submits, rate_s, sharediff, sol, hr, hr_units );
 #else
-   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g, %s %sH/s, %dC",
+   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g %s, %s %sH/s, %dC",
                        sres, ( result ? accepted_count : rejected_count ),
-                       total_submits, rate_s, sharediff, hr, hr_units,
+                       total_submits, rate_s, sharediff, sol, hr, hr_units,
                        (uint32_t)cpu_temp(0) );
 #endif
    }
@@ -1549,6 +1566,7 @@ void SHA256_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
   }
 }
 
+// default
 void std_set_target( struct work* work, double job_diff )
 {
    work_set_target( work, job_diff / opt_diff_factor );
@@ -1558,7 +1576,7 @@ void scrypt_set_target( struct work* work, double job_diff )
 {
    work_set_target( work, job_diff / (65536.0 * opt_diff_factor) );
 }
-
+// another popular choice.
 void alt_set_target( struct work* work, double job_diff )
 {
    work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
@@ -1608,6 +1626,8 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
 {
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
 
+   // This logic depends on expression short circuiting to prevent tripping
+   // over NULL job_id pointers when benchmarking.
    if ( ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
           && clean_job )
       || ( *nonceptr >= *end_nonce_ptr )
@@ -1874,6 +1894,7 @@ static void *miner_thread( void *userdata )
        // if nonce(s) submit work 
        if ( nonce_found && !opt_benchmark )
        {
+/*
           int num_submitted = 0;
 
           for ( int n = 0; n < nonce_found; n++ )
@@ -1893,13 +1914,14 @@ static void *miner_thread( void *userdata )
           // must be a one way algo, nonce is already in work data
           if ( !num_submitted )
           {
+*/
              if ( !submit_work( mythr, &work ) )
              {
                 applog( LOG_WARNING, "Failed to submit share." );
                 break;
              }
              applog( LOG_NOTICE, "Share submitted." );
-          }
+//          }
 
           // prevent stale work in solo
           // we can't submit twice a block!
@@ -2359,7 +2381,7 @@ static void *stratum_thread(void *userdata )
                  if ( !opt_quiet )
                  {
                     if (net_diff > 0.)
-	               applog(LOG_BLUE, "%s block %d, diff %.3f",
+	               applog(LOG_BLUE, "%s block %d, network diff %.3f",
                            algo_names[opt_algo], stratum.bloc_height, net_diff);
                     else
 	               applog(LOG_BLUE, "%s %s block %d", short_url,

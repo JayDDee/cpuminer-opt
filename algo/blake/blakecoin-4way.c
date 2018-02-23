@@ -53,6 +53,7 @@ int scanhash_blakecoin_4way( int thr_id, struct work *work, uint32_t max_nonce,
       for ( int i = 0; i < 4; i++ )
       if (  (hash+(i<<3))[7] <= HTarget && fulltest( hash+(i<<3), ptarget ) )
       {
+          pdata[19] = n+i;
           nonces[ num_found++ ] = n+i;
           work_set_target_ratio( work, hash+(i<<3) );
       }
@@ -124,6 +125,7 @@ int scanhash_blakecoin_8way( int thr_id, struct work *work, uint32_t max_nonce,
       for ( int i = 0; i < 8; i++ )
       if (  (hash+(i<<3))[7] <= HTarget && fulltest( hash+(i<<3), ptarget ) )
       {
+          pdata[19] = n+i;
           nonces[ num_found++ ] = n+i;
           work_set_target_ratio( work, hash+(i<<3) );
       }

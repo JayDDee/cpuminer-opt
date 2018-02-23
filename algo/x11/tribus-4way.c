@@ -121,6 +121,7 @@ int scanhash_tribus_4way(int thr_id, struct work *work, uint32_t max_nonce, uint
             if ( ( !( (hash+(i<<3))[7] & mask ) )
                  && fulltest( hash+(i<<3), ptarget ) )
             {
+               pdata[19] = n+i;
                nonces[ num_found++ ] = n+i;
                work_set_target_ratio( work, hash+(i<<3) );
             }

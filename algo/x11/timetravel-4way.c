@@ -231,8 +231,9 @@ int scanhash_timetravel_4way( int thr_id, struct work *work, uint32_t max_nonce,
       for ( int i = 0; i < 4; i++ )
       if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
       {
+          pdata[19] = n+i;
           nonces[ num_found++ ] = n+i;
-           work_set_target_ratio( work, hash+(i<<3) );
+          work_set_target_ratio( work, hash+(i<<3) );
       }
       n += 4;
    } while ( ( num_found == 0 ) && ( n < max_nonce ) && !(*restart) );
