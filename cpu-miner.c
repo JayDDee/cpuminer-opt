@@ -432,7 +432,7 @@ static bool get_mininginfo(CURL *curl, struct work *work)
 	return true;
 }
 
-#define BLOCK_VERSION_CURRENT 3
+#define BLOCK_VERSION_CURRENT 4
 
 static bool gbt_work_decode(const json_t *val, struct work *work)
 {
@@ -1608,10 +1608,14 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
 {
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
 
-   if ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
-      && ( clean_job || ( *nonceptr >= *end_nonce_ptr )
-         || ( work->job_id != g_work->job_id ) ) )
+   if ( ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
+          && clean_job )
+      || ( *nonceptr >= *end_nonce_ptr )
+      || ( !opt_benchmark && strcmp( work->job_id, g_work->job_id ) ) )
    {
+     if ( *nonceptr >= *end_nonce_ptr )
+         algo_gate.stratum_gen_work( &stratum, g_work );
+
      work_free( work );
      work_copy( work, g_work );
      *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
@@ -1866,23 +1870,26 @@ static void *miner_thread( void *userdata )
 		hashes_done / (diff.tv_sec + diff.tv_usec * 1e-6);
 	  pthread_mutex_unlock(&stats_lock);
        }
+
        // if nonce(s) submit work 
        if ( nonce_found && !opt_benchmark )
        {
           int num_submitted = 0;
-          // look for 4way nonces
-          for ( int n = 0; n < 4; n++ )
-             if ( work.nfound[n] )
+
+          for ( int n = 0; n < nonce_found; n++ )
+          {
+             *algo_gate.get_nonceptr( work.data ) = work.nonces[n];
+             if ( submit_work( mythr, &work ) )
              {
-                 *algo_gate.get_nonceptr( work.data ) = work.nonces[n]; 
-                 if ( !submit_work( mythr, &work ) )
-                 {
-                    applog( LOG_WARNING, "Failed to submit share." );
-                    break;
-                 }
-                 applog( LOG_NOTICE, "Share submitted." );
-                 num_submitted++;
+                applog( LOG_NOTICE, "Share submitted." );
+                num_submitted++;
              }
+             else
+             {
+                applog( LOG_WARNING, "Failed to submit share." );
+                break;
+             }
+          }
           // must be a one way algo, nonce is already in work data
           if ( !num_submitted )
           {
@@ -1977,15 +1984,19 @@ json_t *std_longpoll_rpc_call( CURL *curl, int *err, char* lp_url )
 {
    json_t *val;
    char *req = NULL;
-   if (have_gbt)
-   {
+//   if (have_gbt)
+//   {
        req = (char*) malloc( strlen(gbt_lp_req) + strlen(lp_id) + 1 );
        sprintf( req, gbt_lp_req, lp_id );
-   }
-   val = json_rpc_call( curl, rpc_url, rpc_userpass, getwork_req, err,
-                        JSON_RPC_LONGPOLL );
-   val = json_rpc_call( curl, lp_url, rpc_userpass, req ? req : getwork_req,
-                        err, JSON_RPC_LONGPOLL);
+//   }
+//TODO this code makes no sense, this first call should be removed.
+// also remove conditional expression in second call, no getwork.
+//   val = json_rpc_call( curl, rpc_url, rpc_userpass, getwork_req, err,
+//                        JSON_RPC_LONGPOLL );
+//   val = json_rpc_call( curl, lp_url, rpc_userpass, req ? req : getwork_req,
+//                        err, JSON_RPC_LONGPOLL);
+   val = json_rpc_call( curl, lp_url, rpc_userpass, req,
+                        err, JSON_RPC_LONGPOLL );
    free(req);
    return val;
 }

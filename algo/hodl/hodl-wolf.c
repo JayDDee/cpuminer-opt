@@ -150,6 +150,9 @@ int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
         int searchNumber = COMPARE_SIZE / opt_n_threads;
         int startLoc = threadNumber * searchNumber;
 
+        if ( opt_debug )
+           applog( LOG_DEBUG,"Hash target= %08lx", ptarget[7] );
+
         for(int32_t k = startLoc; k < startLoc + searchNumber && !work_restart[threadNumber].restart; k++)
         {
            // copy data to first l2 cache

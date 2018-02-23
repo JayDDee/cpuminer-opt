@@ -46,7 +46,9 @@
 
 #if defined(__AVX__)
 
-#define SPH_SIZE_sha256   256
+//#define SPH_SIZE_sha256   256
+
+// SHA-256 4 way
 
 typedef struct {
    __m128i buf[64>>2];
@@ -60,7 +62,21 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst );
 
 #if defined (__AVX2__)
 
-#define SPH_SIZE_sha512   512
+// SHA-256 8 way
+
+typedef struct {
+   __m256i buf[64>>2];
+   __m256i val[8];
+   uint32_t count_high, count_low;
+} sha256_8way_context;
+
+void sha256_8way_init( sha256_8way_context *sc );
+void sha256_8way( sha256_8way_context *sc, const void *data, size_t len );
+void sha256_8way_close( sha256_8way_context *sc, void *dst );
+
+//#define SPH_SIZE_sha512   512
+
+// SHA-512 4 way
 
 typedef struct {
    __m256i buf[128>>3];

@@ -38,7 +38,6 @@ int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const uint32_t HTarget = opt_benchmark ? 0x7f : ptarget[7];
    uint32_t *nonces = work->nonces;
-   bool *found = work->nfound;
    int num_found = 0;
 
    // copy to buffer guaranteed to be aligned.
@@ -52,7 +51,6 @@ int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
    uint32_t *noncep = vdata + DECRED_NONCE_INDEX * 4;
    do {
-      found[0] = found[1] = found[2] = found[3] = false;
       * noncep    = n;
       *(noncep+1) = n+1;
       *(noncep+2) = n+2;
@@ -60,35 +58,11 @@ int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
       decred_hash_4way( hash, vdata );
 
-      if ( hash[7] <= HTarget && fulltest( hash, ptarget ) )
+      for ( int i = 0; i < 4; i++ )
+      if (  (hash+(i<<3))[7] <= HTarget && fulltest( hash+(i<<3), ptarget ) )
       {
-          work_set_target_ratio( work, hash );
-          found[0] = true;
-          num_found++;
-          nonces[0] = n;
-          pdata[DECRED_NONCE_INDEX] = n;
-      }
-      if ( (hash+8)[7] <= HTarget && fulltest( hash+8, ptarget ) )
-      {
-          work_set_target_ratio( work, hash+8 );
-          found[1] = true;
-          num_found++;
-          nonces[1] = n+1;
-      }
-      if ( (hash+16)[7] <= HTarget && fulltest( hash+16, ptarget ) )
-      {
-          work_set_target_ratio( work, hash+16 );
-          found[2] = true;
-          num_found++;
-          nonces[2] = n+2;
-      }
-
-      if ( (hash+24)[7] <= HTarget && fulltest( hash+24, ptarget ) )
-      {
-          work_set_target_ratio( work, hash+24 );
-          found[3] = true;
-          num_found++;
-          nonces[3] = n+3;
+          nonces[ num_found++ ] = n+i;
+          work_set_target_ratio( work, hash+(i<<3) );
       }
       n += 4;
   } while ( (num_found == 0) && (n < max_nonce) 

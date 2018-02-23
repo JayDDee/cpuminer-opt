@@ -110,18 +110,19 @@ extern int cpu_fanpercent(void);
 
 static void cpustatus(int thr_id)
 {
-	if (thr_id >= 0 && thr_id < opt_n_threads) {
-		struct cpu_info *cpu = &thr_info[thr_id].cpu;
-		char buf[512]; *buf = '\0';
+   if ( thr_id >= 0 && thr_id < opt_n_threads )
+   {
+//      struct cpu_info *cpu = &thr_info[thr_id].cpu;
+      char buf[512]; *buf = '\0';
+      char units[4] = {0};
+      double hashrate = thr_hashrates[thr_id];
 
-		cpu->thr_id = thr_id;
-		cpu->khashes = thr_hashrates[thr_id] / 1000.0; //todo: stats_get_speed(thr_id, 0.0) / 1000.0;
-
-		snprintf(buf, sizeof(buf), "CPU=%d;KHS=%.2f|", thr_id, cpu->khashes);
-
-		// append to buffer
-		strcat(buffer, buf);
-	}
+      scale_hash_for_display ( &hashrate, units );
+      snprintf( buf, sizeof(buf), "CPU=%d;%sH/s=%.2f|", thr_id, units,
+                hashrate );
+      // append to buffer
+      strcat( buffer, buf );
+   }
 }
 
 /*****************************************************************************/
@@ -129,42 +130,45 @@ static void cpustatus(int thr_id)
 /**
 * Returns miner global infos
 */
-static char *getsummary(char *params)
+static char *getsummary( char *params )
 {
-	char algo[64]; *algo = '\0';
-	time_t ts = time(NULL);
-	double uptime = difftime(ts, startup);
-	double accps = (60.0 * accepted_count) / (uptime ? uptime : 1.0);
-        double diff = net_diff > 0. ? net_diff : stratum_diff;
-        char diff_str[16];
-
-	struct cpu_info cpu = { 0 };
+   char algo[64]; *algo = '\0';
+   time_t ts = time(NULL);
+   double uptime = difftime(ts, startup);
+   double accps = (60.0 * accepted_count) / (uptime ? uptime : 1.0);
+   double diff = net_diff > 0. ? net_diff : stratum_diff;
+   char diff_str[16];
+   double hashrate = (double)global_hashrate;
+   char units[4] = {0};
+   struct cpu_info cpu = { 0 };
 #ifdef USE_MONITORING
-	cpu.has_monitoring = true;
-	cpu.cpu_temp = cpu_temp(0);
-	cpu.cpu_fan = cpu_fanpercent();
-	cpu.cpu_clock = cpu_clock(0);
+   cpu.has_monitoring = true;
+   cpu.cpu_temp = cpu_temp(0);
+   cpu.cpu_fan = cpu_fanpercent();
+   cpu.cpu_clock = cpu_clock(0);
 #endif
 
-	get_currentalgo(algo, sizeof(algo));
+   get_currentalgo(algo, sizeof(algo));
 
-        // if diff is integer don't display decimals
-        if ( diff == trunc( diff ) )
-            sprintf( diff_str, "%.0f", diff);
-        else
-            sprintf( diff_str, "%.6f", diff);
+   // if diff is integer don't display decimals
+   if ( diff == trunc( diff ) )
+       sprintf( diff_str, "%.0f", diff);
+   else
+       sprintf( diff_str, "%.6f", diff);
 
-	*buffer = '\0';
-	sprintf(buffer, "NAME=%s;VER=%s;API=%s;"
-		"ALGO=%s;CPUS=%d;KHS=%.2f;ACC=%d;REJ=%d;"
-		"ACCMN=%.3f;DIFF=%s;TEMP=%.1f;FAN=%d;FREQ=%d;"
-		"UPTIME=%.0f;TS=%u|",
-		PACKAGE_NAME, PACKAGE_VERSION, APIVERSION,
-		algo, opt_n_threads, (double)global_hashrate / 1000.0,
-		accepted_count, rejected_count, accps, diff_str,
-		cpu.cpu_temp, cpu.cpu_fan, cpu.cpu_clock,
-		uptime, (uint32_t) ts);
-	return buffer;
+   *buffer = '\0';
+   scale_hash_for_display ( &hashrate, units );
+
+   sprintf( buffer, "NAME=%s;VER=%s;API=%s;"
+                    "ALGO=%s;CPUS=%d;%sH/s=%.2f;ACC=%d;REJ=%d;"
+                    "ACCMN=%.3f;DIFF=%s;TEMP=%.1f;FAN=%d;FREQ=%d;"
+                    "UPTIME=%.0f;TS=%u|",
+                    PACKAGE_NAME, PACKAGE_VERSION, APIVERSION,
+                    algo, opt_n_threads, units, hashrate,
+                    accepted_count, rejected_count, accps, diff_str,
+                    cpu.cpu_temp, cpu.cpu_fan, cpu.cpu_clock,
+                    uptime, (uint32_t) ts);
+   return buffer;
 }
 
 /**

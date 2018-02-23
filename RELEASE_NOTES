@@ -134,7 +134,7 @@ cd /c/path/to/cpuminer-opt
 Run build.sh to build on Windows or execute the following commands.
 
 ./autogen.sh
-CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11 -fpermissive" ./configure --with-curl
+CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
 make
 
 Start mining
@@ -158,6 +158,14 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.8.3
+
+More restoration of lost lyra2 hash.
+8 way AVX2 and 4way AVX optimization for blakecoin, vanilla & blake2s.
+8 way AVX2 for lbry.
+Scaled hashrate for API output.
+A couple of GBT fixes.
 
 v3.8.2.1
 

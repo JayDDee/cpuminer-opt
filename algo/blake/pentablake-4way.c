@@ -111,12 +111,8 @@ int scanhash_pentablake_4way( int thr_id, struct work *work,
     const uint32_t first_nonce = pdata[19];
     const uint32_t Htarg = ptarget[7];
     uint32_t *nonces = work->nonces;
-    bool *found = work->nfound;
     int num_found = 0;
-    uint32_t *noncep0 = vdata + 73;   // 9*8 + 1
-    uint32_t *noncep1 = vdata + 75;
-    uint32_t *noncep2 = vdata + 77;
-    uint32_t *noncep3 = vdata + 79;
+    uint32_t *noncep = vdata + 73;   // 9*8 + 1
 
 //    uint32_t _ALIGN(32) hash64[8];
 //    uint32_t _ALIGN(32) endiandata[32];
@@ -150,47 +146,19 @@ int scanhash_pentablake_4way( int thr_id, struct work *work,
         {
            uint32_t mask = masks[m];
            do {
-              found[0] = found[1] = found[2] = found[3] = false;
-              be32enc( noncep0, n   );
-              be32enc( noncep1, n+1 );
-              be32enc( noncep2, n+2 );
-              be32enc( noncep3, n+3 );
+              be32enc( noncep,   n   );
+              be32enc( noncep+2, n+1 );
+              be32enc( noncep+4, n+2 );
+              be32enc( noncep+6, n+3 );
 
               pentablakehash_4way( hash, vdata );
 
-              // return immediately on nonce found, only one submit
-              if ( ( !(hash[7] & mask) ) && fulltest( hash, ptarget ) )
+              for ( int i = 0; i < 4; i++ )
+              if ( !( (hash+(i<<3))[7] & mask )
+                  && fulltest( hash+(i<<3), ptarget ) )
               {
-                  found[0] = true;
-                  num_found++;
-                  nonces[0] = n;
-                  pdata[19] = n;
-                  *hashes_done = n - first_nonce + 1;
-                  return 1;
-              }
-              if ( (! ((hash+8)[7] & mask) ) && fulltest( hash+8, ptarget ) )
-              {
-                  found[1] = true;
-                  num_found++;
-                  nonces[1] = n;
-                  *hashes_done = n - first_nonce + 1;
-                  return 1;
-              }
-              if ( ( !((hash+16)[7] & mask) ) && fulltest( hash+16, ptarget ) )
-              {
-                  found[2] = true;
-                  num_found++;
-                  nonces[2] = n;
-                  *hashes_done = n - first_nonce + 1;
-                  return 1;
-              }
-              if ( ( !((hash+24)[7] & mask) ) && fulltest( hash+24, ptarget ) )
-              {
-                  found[3] = true;
-                  num_found++;
-                  nonces[3] = n;
-                  *hashes_done = n - first_nonce + 1;
-                  return 1;
+                 nonces[ num_found++ ] = n+i;
+                 work_set_target_ratio( work, hash+(i<<3) );
               }
               n += 4;
 

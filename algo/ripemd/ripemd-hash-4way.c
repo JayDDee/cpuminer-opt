@@ -5,25 +5,6 @@
 #include <stddef.h>
 #include <string.h>
 
-/*
- * Round functions for RIPEMD-128 and RIPEMD-160.
- */
-#define F1(x, y, z) \
-   _mm_xor_si128( _mm_xor_si128( x, y ), z )
-
-#define F2(x, y, z) \
-   _mm_xor_si128( _mm_and_si128( _mm_xor_si128( y, z ), x ), z )
-
-#define F3(x, y, z) \
-   _mm_xor_si128( _mm_or_si128( x, mm_not( y ) ), z )
-
-#define F4(x, y, z) \
-   _mm_xor_si128( _mm_and_si128( _mm_xor_si128( x, y ), z ), y )
-
-#define F5(x, y, z) \
-   _mm_xor_si128( x, _mm_or_si128( y, mm_not( z ) ) )
-
-
 static const uint32_t IV[5] =
 { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0 };
 
@@ -41,6 +22,23 @@ static const uint32_t IV[5] =
 #define K23  0x6D703EF3
 #define K24  0x7A6D76E9
 #define K25  0x00000000
+
+// RIPEMD-160 4 way
+
+#define F1(x, y, z) \
+   _mm_xor_si128( _mm_xor_si128( x, y ), z )
+
+#define F2(x, y, z) \
+   _mm_xor_si128( _mm_and_si128( _mm_xor_si128( y, z ), x ), z )
+
+#define F3(x, y, z) \
+   _mm_xor_si128( _mm_or_si128( x, mm_not( y ) ), z )
+
+#define F4(x, y, z) \
+   _mm_xor_si128( _mm_and_si128( _mm_xor_si128( x, y ), z ), y )
+
+#define F5(x, y, z) \
+   _mm_xor_si128( x, _mm_or_si128( y, mm_not( z ) ) )
 
 #define RR(a, b, c, d, e, f, s, r, k) \
 do{ \
@@ -321,3 +319,304 @@ void ripemd160_4way_close( ripemd160_4way_context  *sc, void *dst )
 }
 
 #endif
+
+#if defined(__AVX2__)
+
+// Ripemd-160 8 way
+
+#define F8W_1(x, y, z) \
+   _mm256_xor_si256( _mm256_xor_si256( x, y ), z )
+
+#define F8W_2(x, y, z) \
+   _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( y, z ), x ), z )
+
+#define F8W_3(x, y, z) \
+   _mm256_xor_si256( _mm256_or_si256( x, mm256_not( y ) ), z )
+
+#define F8W_4(x, y, z) \
+   _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( x, y ), z ), y )
+
+#define F8W_5(x, y, z) \
+   _mm256_xor_si256( x, _mm256_or_si256( y, mm256_not( z ) ) )
+
+#define RR_8W(a, b, c, d, e, f, s, r, k) \
+do{ \
+   a = _mm256_add_epi32( mm256_rotl_32( _mm256_add_epi32( _mm256_add_epi32( \
+                _mm256_add_epi32( a, f( b ,c, d ) ), r ), \
+                                 _mm256_set1_epi32( k ) ), s ), e ); \
+   c = mm256_rotl_32( c, 10 );\
+} while (0)
+    
+#define ROUND1_8W(a, b, c, d, e, f, s, r, k)  \
+        RR_8W(a ## 1, b ## 1, c ## 1, d ## 1, e ## 1, f, s, r, K1 ## k)
+
+#define ROUND2_8W(a, b, c, d, e, f, s, r, k)  \
+        RR_8W(a ## 2, b ## 2, c ## 2, d ## 2, e ## 2, f, s, r, K2 ## k)
+
+static void ripemd160_8way_round( ripemd160_8way_context *sc )
+{
+   const __m256i *in = (__m256i*)sc->buf;
+   __m256i *h  = (__m256i*)sc->val;
+   register __m256i A1, B1, C1, D1, E1;
+   register __m256i A2, B2, C2, D2, E2;
+   __m256i tmp;
+
+   A1 = A2 = h[0];
+   B1 = B2 = h[1];
+   C1 = C2 = h[2];
+   D1 = D2 = h[3];
+   E1 = E2 = h[4];
+
+   ROUND1_8W( A, B, C, D, E, F8W_1, 11, in[ 0], 1 );
+   ROUND1_8W( E, A, B, C, D, F8W_1, 14, in[ 1], 1 );
+   ROUND1_8W( D, E, A, B, C, F8W_1, 15, in[ 2], 1 );
+   ROUND1_8W( C, D, E, A, B, F8W_1, 12, in[ 3], 1 );
+   ROUND1_8W( B, C, D, E, A, F8W_1,  5, in[ 4], 1 );
+   ROUND1_8W( A, B, C, D, E, F8W_1,  8, in[ 5], 1 );
+   ROUND1_8W( E, A, B, C, D, F8W_1,  7, in[ 6], 1 );
+   ROUND1_8W( D, E, A, B, C, F8W_1,  9, in[ 7], 1 );
+   ROUND1_8W( C, D, E, A, B, F8W_1, 11, in[ 8], 1 );
+   ROUND1_8W( B, C, D, E, A, F8W_1, 13, in[ 9], 1 );
+   ROUND1_8W( A, B, C, D, E, F8W_1, 14, in[10], 1 );
+   ROUND1_8W( E, A, B, C, D, F8W_1, 15, in[11], 1 );
+   ROUND1_8W( D, E, A, B, C, F8W_1,  6, in[12], 1 );
+   ROUND1_8W( C, D, E, A, B, F8W_1,  7, in[13], 1 );
+   ROUND1_8W( B, C, D, E, A, F8W_1,  9, in[14], 1 );
+   ROUND1_8W( A, B, C, D, E, F8W_1,  8, in[15], 1 );
+
+   ROUND1_8W( E, A, B, C, D, F8W_2,  7, in[ 7], 2 );
+   ROUND1_8W( D, E, A, B, C, F8W_2,  6, in[ 4], 2 );
+   ROUND1_8W( C, D, E, A, B, F8W_2,  8, in[13], 2 );
+   ROUND1_8W( B, C, D, E, A, F8W_2, 13, in[ 1], 2 );
+   ROUND1_8W( A, B, C, D, E, F8W_2, 11, in[10], 2 );
+   ROUND1_8W( E, A, B, C, D, F8W_2,  9, in[ 6], 2 );
+   ROUND1_8W( D, E, A, B, C, F8W_2,  7, in[15], 2 );
+   ROUND1_8W( C, D, E, A, B, F8W_2, 15, in[ 3], 2 );
+   ROUND1_8W( B, C, D, E, A, F8W_2,  7, in[12], 2 );
+   ROUND1_8W( A, B, C, D, E, F8W_2, 12, in[ 0], 2 );
+   ROUND1_8W( E, A, B, C, D, F8W_2, 15, in[ 9], 2 );
+   ROUND1_8W( D, E, A, B, C, F8W_2,  9, in[ 5], 2 );
+   ROUND1_8W( C, D, E, A, B, F8W_2, 11, in[ 2], 2 );
+   ROUND1_8W( B, C, D, E, A, F8W_2,  7, in[14], 2 );
+   ROUND1_8W( A, B, C, D, E, F8W_2, 13, in[11], 2 );
+   ROUND1_8W( E, A, B, C, D, F8W_2, 12, in[ 8], 2 );
+
+   ROUND1_8W( D, E, A, B, C, F8W_3, 11, in[ 3], 3 );
+   ROUND1_8W( C, D, E, A, B, F8W_3, 13, in[10], 3 );
+   ROUND1_8W( B, C, D, E, A, F8W_3,  6, in[14], 3 );
+   ROUND1_8W( A, B, C, D, E, F8W_3,  7, in[ 4], 3 );
+   ROUND1_8W( E, A, B, C, D, F8W_3, 14, in[ 9], 3 );
+   ROUND1_8W( D, E, A, B, C, F8W_3,  9, in[15], 3 );
+   ROUND1_8W( C, D, E, A, B, F8W_3, 13, in[ 8], 3 );
+   ROUND1_8W( B, C, D, E, A, F8W_3, 15, in[ 1], 3 );
+   ROUND1_8W( A, B, C, D, E, F8W_3, 14, in[ 2], 3 );
+   ROUND1_8W( E, A, B, C, D, F8W_3,  8, in[ 7], 3 );
+   ROUND1_8W( D, E, A, B, C, F8W_3, 13, in[ 0], 3 );
+   ROUND1_8W( C, D, E, A, B, F8W_3,  6, in[ 6], 3 );
+   ROUND1_8W( B, C, D, E, A, F8W_3,  5, in[13], 3 );
+   ROUND1_8W( A, B, C, D, E, F8W_3, 12, in[11], 3 );
+   ROUND1_8W( E, A, B, C, D, F8W_3,  7, in[ 5], 3 );
+   ROUND1_8W( D, E, A, B, C, F8W_3,  5, in[12], 3 );
+
+   ROUND1_8W( C, D, E, A, B, F8W_4, 11, in[ 1], 4 );
+   ROUND1_8W( B, C, D, E, A, F8W_4, 12, in[ 9], 4 );
+   ROUND1_8W( A, B, C, D, E, F8W_4, 14, in[11], 4 );
+   ROUND1_8W( E, A, B, C, D, F8W_4, 15, in[10], 4 );
+   ROUND1_8W( D, E, A, B, C, F8W_4, 14, in[ 0], 4 );
+   ROUND1_8W( C, D, E, A, B, F8W_4, 15, in[ 8], 4 );
+   ROUND1_8W( B, C, D, E, A, F8W_4,  9, in[12], 4 );
+   ROUND1_8W( A, B, C, D, E, F8W_4,  8, in[ 4], 4 );
+   ROUND1_8W( E, A, B, C, D, F8W_4,  9, in[13], 4 );
+   ROUND1_8W( D, E, A, B, C, F8W_4, 14, in[ 3], 4 );
+   ROUND1_8W( C, D, E, A, B, F8W_4,  5, in[ 7], 4 );
+   ROUND1_8W( B, C, D, E, A, F8W_4,  6, in[15], 4 );
+   ROUND1_8W( A, B, C, D, E, F8W_4,  8, in[14], 4 );
+   ROUND1_8W( E, A, B, C, D, F8W_4,  6, in[ 5], 4 );
+   ROUND1_8W( D, E, A, B, C, F8W_4,  5, in[ 6], 4 );
+   ROUND1_8W( C, D, E, A, B, F8W_4, 12, in[ 2], 4 );
+
+   ROUND1_8W( B, C, D, E, A, F8W_5,  9, in[ 4], 5 );
+   ROUND1_8W( A, B, C, D, E, F8W_5, 15, in[ 0], 5 );
+   ROUND1_8W( E, A, B, C, D, F8W_5,  5, in[ 5], 5 );
+   ROUND1_8W( D, E, A, B, C, F8W_5, 11, in[ 9], 5 );
+   ROUND1_8W( C, D, E, A, B, F8W_5,  6, in[ 7], 5 );
+   ROUND1_8W( B, C, D, E, A, F8W_5,  8, in[12], 5 );
+   ROUND1_8W( A, B, C, D, E, F8W_5, 13, in[ 2], 5 );
+   ROUND1_8W( E, A, B, C, D, F8W_5, 12, in[10], 5 );
+   ROUND1_8W( D, E, A, B, C, F8W_5,  5, in[14], 5 );
+   ROUND1_8W( C, D, E, A, B, F8W_5, 12, in[ 1], 5 );
+   ROUND1_8W( B, C, D, E, A, F8W_5, 13, in[ 3], 5 );
+   ROUND1_8W( A, B, C, D, E, F8W_5, 14, in[ 8], 5 );
+   ROUND1_8W( E, A, B, C, D, F8W_5, 11, in[11], 5 );
+   ROUND1_8W( D, E, A, B, C, F8W_5,  8, in[ 6], 5 );
+   ROUND1_8W( C, D, E, A, B, F8W_5,  5, in[15], 5 );
+   ROUND1_8W( B, C, D, E, A, F8W_5,  6, in[13], 5 );
+
+   ROUND2_8W( A, B, C, D, E, F8W_5,  8, in[ 5], 1 );
+   ROUND2_8W( E, A, B, C, D, F8W_5,  9, in[14], 1 );
+   ROUND2_8W( D, E, A, B, C, F8W_5,  9, in[ 7], 1 );
+   ROUND2_8W( C, D, E, A, B, F8W_5, 11, in[ 0], 1 );
+   ROUND2_8W( B, C, D, E, A, F8W_5, 13, in[ 9], 1 );
+   ROUND2_8W( A, B, C, D, E, F8W_5, 15, in[ 2], 1 );
+   ROUND2_8W( E, A, B, C, D, F8W_5, 15, in[11], 1 );
+   ROUND2_8W( D, E, A, B, C, F8W_5,  5, in[ 4], 1 );
+   ROUND2_8W( C, D, E, A, B, F8W_5,  7, in[13], 1 );
+   ROUND2_8W( B, C, D, E, A, F8W_5,  7, in[ 6], 1 );
+   ROUND2_8W( A, B, C, D, E, F8W_5,  8, in[15], 1 );
+   ROUND2_8W( E, A, B, C, D, F8W_5, 11, in[ 8], 1 );
+   ROUND2_8W( D, E, A, B, C, F8W_5, 14, in[ 1], 1 );
+   ROUND2_8W( C, D, E, A, B, F8W_5, 14, in[10], 1 );
+   ROUND2_8W( B, C, D, E, A, F8W_5, 12, in[ 3], 1 );
+   ROUND2_8W( A, B, C, D, E, F8W_5,  6, in[12], 1 );
+
+   ROUND2_8W( E, A, B, C, D, F8W_4,  9, in[ 6], 2 );
+   ROUND2_8W( D, E, A, B, C, F8W_4, 13, in[11], 2 );
+   ROUND2_8W( C, D, E, A, B, F8W_4, 15, in[ 3], 2 );
+   ROUND2_8W( B, C, D, E, A, F8W_4,  7, in[ 7], 2 );
+   ROUND2_8W( A, B, C, D, E, F8W_4, 12, in[ 0], 2 );
+   ROUND2_8W( E, A, B, C, D, F8W_4,  8, in[13], 2 );
+   ROUND2_8W( D, E, A, B, C, F8W_4,  9, in[ 5], 2 );
+   ROUND2_8W( C, D, E, A, B, F8W_4, 11, in[10], 2 );
+   ROUND2_8W( B, C, D, E, A, F8W_4,  7, in[14], 2 );
+   ROUND2_8W( A, B, C, D, E, F8W_4,  7, in[15], 2 );
+   ROUND2_8W( E, A, B, C, D, F8W_4, 12, in[ 8], 2 );
+   ROUND2_8W( D, E, A, B, C, F8W_4,  7, in[12], 2 );
+   ROUND2_8W( C, D, E, A, B, F8W_4,  6, in[ 4], 2 );
+   ROUND2_8W( B, C, D, E, A, F8W_4, 15, in[ 9], 2 );
+   ROUND2_8W( A, B, C, D, E, F8W_4, 13, in[ 1], 2 );
+   ROUND2_8W( E, A, B, C, D, F8W_4, 11, in[ 2], 2 );
+
+   ROUND2_8W( D, E, A, B, C, F8W_3,  9, in[15], 3 );
+   ROUND2_8W( C, D, E, A, B, F8W_3,  7, in[ 5], 3 );
+   ROUND2_8W( B, C, D, E, A, F8W_3, 15, in[ 1], 3 );
+   ROUND2_8W( A, B, C, D, E, F8W_3, 11, in[ 3], 3 );
+   ROUND2_8W( E, A, B, C, D, F8W_3,  8, in[ 7], 3 );
+   ROUND2_8W( D, E, A, B, C, F8W_3,  6, in[14], 3 );
+   ROUND2_8W( C, D, E, A, B, F8W_3,  6, in[ 6], 3 );
+   ROUND2_8W( B, C, D, E, A, F8W_3, 14, in[ 9], 3 );
+   ROUND2_8W( A, B, C, D, E, F8W_3, 12, in[11], 3 );
+   ROUND2_8W( E, A, B, C, D, F8W_3, 13, in[ 8], 3 );
+   ROUND2_8W( D, E, A, B, C, F8W_3,  5, in[12], 3 );
+   ROUND2_8W( C, D, E, A, B, F8W_3, 14, in[ 2], 3 );
+   ROUND2_8W( B, C, D, E, A, F8W_3, 13, in[10], 3 );
+   ROUND2_8W( A, B, C, D, E, F8W_3, 13, in[ 0], 3 );
+   ROUND2_8W( E, A, B, C, D, F8W_3,  7, in[ 4], 3 );
+   ROUND2_8W( D, E, A, B, C, F8W_3,  5, in[13], 3 );
+
+   ROUND2_8W( C, D, E, A, B, F8W_2, 15, in[ 8], 4 );
+   ROUND2_8W( B, C, D, E, A, F8W_2,  5, in[ 6], 4 );
+   ROUND2_8W( A, B, C, D, E, F8W_2,  8, in[ 4], 4 );
+   ROUND2_8W( E, A, B, C, D, F8W_2, 11, in[ 1], 4 );
+   ROUND2_8W( D, E, A, B, C, F8W_2, 14, in[ 3], 4 );
+   ROUND2_8W( C, D, E, A, B, F8W_2, 14, in[11], 4 );
+   ROUND2_8W( B, C, D, E, A, F8W_2,  6, in[15], 4 );
+   ROUND2_8W( A, B, C, D, E, F8W_2, 14, in[ 0], 4 );
+   ROUND2_8W( E, A, B, C, D, F8W_2,  6, in[ 5], 4 );
+   ROUND2_8W( D, E, A, B, C, F8W_2,  9, in[12], 4 );
+   ROUND2_8W( C, D, E, A, B, F8W_2, 12, in[ 2], 4 );
+   ROUND2_8W( B, C, D, E, A, F8W_2,  9, in[13], 4 );
+   ROUND2_8W( A, B, C, D, E, F8W_2, 12, in[ 9], 4 );
+   ROUND2_8W( E, A, B, C, D, F8W_2,  5, in[ 7], 4 );
+   ROUND2_8W( D, E, A, B, C, F8W_2, 15, in[10], 4 );
+   ROUND2_8W( C, D, E, A, B, F8W_2,  8, in[14], 4 );
+
+   ROUND2_8W( B, C, D, E, A, F8W_1,  8, in[12], 5 );
+   ROUND2_8W( A, B, C, D, E, F8W_1,  5, in[15], 5 );
+   ROUND2_8W( E, A, B, C, D, F8W_1, 12, in[10], 5 );
+   ROUND2_8W( D, E, A, B, C, F8W_1,  9, in[ 4], 5 );
+   ROUND2_8W( C, D, E, A, B, F8W_1, 12, in[ 1], 5 );
+   ROUND2_8W( B, C, D, E, A, F8W_1,  5, in[ 5], 5 );
+   ROUND2_8W( A, B, C, D, E, F8W_1, 14, in[ 8], 5 );
+   ROUND2_8W( E, A, B, C, D, F8W_1,  6, in[ 7], 5 );
+   ROUND2_8W( D, E, A, B, C, F8W_1,  8, in[ 6], 5 );
+   ROUND2_8W( C, D, E, A, B, F8W_1, 13, in[ 2], 5 );
+   ROUND2_8W( B, C, D, E, A, F8W_1,  6, in[13], 5 );
+   ROUND2_8W( A, B, C, D, E, F8W_1,  5, in[14], 5 );
+   ROUND2_8W( E, A, B, C, D, F8W_1, 15, in[ 0], 5 );
+   ROUND2_8W( D, E, A, B, C, F8W_1, 13, in[ 3], 5 );
+   ROUND2_8W( C, D, E, A, B, F8W_1, 11, in[ 9], 5 );
+   ROUND2_8W( B, C, D, E, A, F8W_1, 11, in[11], 5 );
+
+   tmp =  _mm256_add_epi32( _mm256_add_epi32( h[1], C1 ), D2 );
+   h[1] = _mm256_add_epi32( _mm256_add_epi32( h[2], D1 ), E2 );
+   h[2] = _mm256_add_epi32( _mm256_add_epi32( h[3], E1 ), A2 );
+   h[3] = _mm256_add_epi32( _mm256_add_epi32( h[4], A1 ), B2 );
+   h[4] = _mm256_add_epi32( _mm256_add_epi32( h[0], B1 ), C2 );
+   h[0] = tmp;
+}
+
+
+void ripemd160_8way_init( ripemd160_8way_context *sc )
+{
+   sc->val[0] = _mm256_set1_epi32( IV[0] );
+   sc->val[1] = _mm256_set1_epi32( IV[1] );
+   sc->val[2] = _mm256_set1_epi32( IV[2] );
+   sc->val[3] = _mm256_set1_epi32( IV[3] );
+   sc->val[4] = _mm256_set1_epi32( IV[4] );
+   sc->count_high = sc->count_low = 0;
+}
+
+void ripemd160_8way( ripemd160_8way_context *sc, const void *data, size_t len )
+{
+   __m256i *vdata = (__m256i*)data;
+   size_t ptr;
+   const int block_size = 64;
+
+   ptr = (unsigned)sc->count_low & (block_size - 1U);
+   while ( len > 0 )
+   {
+      size_t clen;
+      uint32_t clow, clow2;
+
+      clen = block_size - ptr;
+      if ( clen > len )
+         clen = len;
+      memcpy_256( sc->buf + (ptr>>2), vdata, clen>>2 );
+      vdata = vdata + (clen>>2);
+      ptr += clen;
+      len -= clen;
+      if ( ptr == block_size )
+      {
+         ripemd160_8way_round( sc );
+         ptr = 0;
+      }
+      clow = sc->count_low;
+      clow2 = clow + clen;
+      sc->count_low = clow2;
+      if ( clow2 < clow )
+         sc->count_high++;
+   }
+}
+
+void ripemd160_8way_close( ripemd160_8way_context  *sc, void *dst )
+{
+   unsigned ptr, u;
+   uint32_t low, high;
+   const int block_size = 64;
+   const int pad = block_size - 8;
+
+   ptr = (unsigned)sc->count_low & ( block_size - 1U);
+   sc->buf[ ptr>>2 ] = _mm256_set1_epi32( 0x80 );
+   ptr += 4;
+
+   if ( ptr > pad )
+   {
+       memset_zero_256( sc->buf + (ptr>>2), (block_size - ptr) >> 2 );
+       ripemd160_8way_round( sc );
+       memset_zero_256( sc->buf, pad>>2 );
+   }
+   else
+       memset_zero_256( sc->buf + (ptr>>2), (pad - ptr) >> 2 );
+
+    low = sc->count_low;
+    high = (sc->count_high << 3) | (low >> 29);
+    low = low << 3;
+    sc->buf[  pad>>2      ] = _mm256_set1_epi32( low  );
+    sc->buf[ (pad>>2) + 1 ] = _mm256_set1_epi32( high );
+    ripemd160_8way_round( sc );
+    for (u = 0; u < 5; u ++)
+        casti_m256i( dst, u ) = sc->val[u];
+}
+
+#endif // __AVX2__
+

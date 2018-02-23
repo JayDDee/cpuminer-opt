@@ -45,7 +45,10 @@ cpuminer_SOURCES = \
   algo/blake/sph_blake2b.c \
   algo/blake/blake2b.c \
   algo/blake/sph-blake2s.c \
+  algo/blake/blake2s-hash-4way.c \
   algo/blake/blake2s.c \
+  algo/blake/blake2s-gate.c \
+  algo/blake/blake2s-4way.c \
   algo/blake/blakecoin-gate.c \
   algo/blake/mod_blakecoin.c \
   algo/blake/blakecoin.c \

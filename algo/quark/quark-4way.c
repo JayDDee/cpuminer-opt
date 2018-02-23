@@ -145,12 +145,8 @@ int scanhash_quark_4way( int thr_id, struct work *work, uint32_t max_nonce,
     uint32_t n = pdata[19];
     const uint32_t first_nonce = pdata[19];
     uint32_t *nonces = work->nonces;
-    bool *found = work->nfound;
     int num_found = 0;
-    uint32_t *noncep0 = vdata + 73;   // 9*8 + 1
-    uint32_t *noncep1 = vdata + 75;
-    uint32_t *noncep2 = vdata + 77;
-    uint32_t *noncep3 = vdata + 79;
+    uint32_t *noncep = vdata + 73;   // 9*8 + 1
 
     swab32_array( endiandata, pdata, 20 );
 
@@ -159,42 +155,20 @@ int scanhash_quark_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
     do
     {
-       found[0] = found[1] = found[2] = found[3] = false;
-       be32enc( noncep0, n   );
-       be32enc( noncep1, n+1 );
-       be32enc( noncep2, n+2 );
-       be32enc( noncep3, n+3 );
+       be32enc( noncep,   n   );
+       be32enc( noncep+2, n+1 );
+       be32enc( noncep+4, n+2 );
+       be32enc( noncep+6, n+3 );
 
        quark_4way_hash( hash, vdata );
        pdata[19] = n;
 
-       if ( ( hash[7] & 0xFFFFFF00 ) == 0 && fulltest( hash, ptarget ) ) 
+       for ( int i = 0; i < 4; i++ )
+       if ( ( ( (hash+(i<<3))[7] & 0xFFFFFF00 ) == 0 )
+            && fulltest( hash+(i<<3), ptarget ) )
        {
-          found[0] = true;
-          num_found++;
-          nonces[0] = n;
-          work_set_target_ratio( work, hash );
-       }
-       if ( ( (hash+8)[7] & 0xFFFFFF00 ) == 0 && fulltest( hash+8, ptarget ) )
-       {
-          found[1] = true;
-          num_found++;
-          nonces[1] = n+1;
-          work_set_target_ratio( work, hash );
-       }
-       if ( ( (hash+16)[7] & 0xFFFFFF00 ) == 0 && fulltest( hash+16, ptarget ) )
-       {
-          found[2] = true;
-          num_found++;
-          nonces[2] = n+2;
-          work_set_target_ratio( work, hash );
-       }
-       if ( ( (hash+24)[7] & 0xFFFFFF00 ) == 0 && fulltest( hash+24, ptarget ) )
-       {
-          found[3] = true;
-          num_found++;
-          nonces[3] = n+3;
-          work_set_target_ratio( work, hash );
+          nonces[ num_found++ ] = n+i;
+          work_set_target_ratio( work, hash+(i<<3) );
        }
        n += 4;
     } while ( ( num_found == 0 ) && ( n < max_nonce )

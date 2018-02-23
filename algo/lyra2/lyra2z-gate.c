@@ -8,7 +8,11 @@ void lyra2z_set_target( struct work* work, double job_diff )
 
 bool register_lyra2z_algo( algo_gate_t* gate )
 {
-#ifdef LYRA2Z_4WAY
+#if defined(LYRA2Z_8WAY)
+  gate->miner_thread_init = (void*)&lyra2z_8way_thread_init;
+  gate->scanhash   = (void*)&scanhash_lyra2z_8way;
+  gate->hash       = (void*)&lyra2z_8way_hash;
+#elif defined(LYRA2Z_4WAY)
   gate->miner_thread_init = (void*)&lyra2z_4way_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z_4way;
   gate->hash       = (void*)&lyra2z_4way_hash;

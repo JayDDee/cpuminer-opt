@@ -35,7 +35,7 @@
  */
 
 #ifndef __BLAKE_HASH_4WAY__
-#define __BLAKE_HASH_4WAY__
+#define __BLAKE_HASH_4WAY__ 1
 
 #ifdef __AVX__
 
@@ -117,11 +117,11 @@ void blake256r8_8way_close(void *cc, void *dst);
 // Blake-512 4 way
 
 typedef struct {
-        __m256i buf[16] __attribute__ ((aligned (64)));
-        __m256i H[8];
-        __m256i S[4];   
-        size_t ptr;
-	sph_u64 T0, T1;
+   __m256i buf[16] __attribute__ ((aligned (64)));
+   __m256i H[8];
+   __m256i S[4];   
+   size_t ptr;
+   sph_u64 T0, T1;
 } blake_4way_big_context;
 
 typedef blake_4way_big_context blake512_4way_context;

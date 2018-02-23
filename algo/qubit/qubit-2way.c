@@ -80,10 +80,8 @@ int scanhash_qubit_2way( int thr_id, struct work *work,uint32_t max_nonce,
      uint32_t n = pdata[19];
      const uint32_t first_nonce = pdata[19];
      uint32_t *nonces = work->nonces;
-     bool *found = work->nfound;
      int num_found = 0;
-     uint32_t *noncep0 = vdata + 32+3;   // 4*8 + 3
-     uint32_t *noncep1 = vdata + 32+7;
+     uint32_t *noncep = vdata + 32+3;   // 4*8 + 3
      const uint32_t Htarg = ptarget[7];
      uint64_t htmax[] = {          0,        0xF,       0xFF,
                                0xFFF,     0xFFFF, 0x10000000  };
@@ -92,7 +90,6 @@ int scanhash_qubit_2way( int thr_id, struct work *work,uint32_t max_nonce,
 
      // big endian encode 0..18 uint32_t, 64 bits at a time
      swab32_array( endiandata, pdata, 20 );
-
 
      uint64_t *edata = (uint64_t*)endiandata;
      mm256_interleave_2x128( (uint64_t*)vdata, edata, edata, 640 );
@@ -105,24 +102,20 @@ int scanhash_qubit_2way( int thr_id, struct work *work,uint32_t max_nonce,
         uint32_t mask = masks[m];
         do
         {
-           found[0] = found[1] = false;
-            be32enc( noncep0, n   );
-            be32enc( noncep1, n+1 );
+            be32enc( noncep,   n   );
+            be32enc( noncep+4, n+1 );
             qubit_2way_hash( hash, vdata );
             pdata[19] = n;
 
+
             if ( !( hash[7] & mask ) && fulltest( hash, ptarget) )
             {
-               found[0] = true;
-               num_found++;
-               nonces[0] = n;
+               nonces[ num_found++ ] = n;
                work_set_target_ratio( work, hash );
             }
             if ( !( (hash+8)[7] & mask ) && fulltest( hash+8, ptarget) )
             {
-               found[1] = true;
-               num_found++;
-               nonces[1] = n+1;
+               nonces[ num_found++ ] = n+1;
                work_set_target_ratio( work, hash+8 );
             }
             n += 2;
