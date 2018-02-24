@@ -433,7 +433,8 @@ static bool get_mininginfo(CURL *curl, struct work *work)
 	return true;
 }
 
-#define BLOCK_VERSION_CURRENT 4
+// hodl needs 4 but leave it at 3 until gbt better understood
+#define BLOCK_VERSION_CURRENT 3
 
 static bool gbt_work_decode(const json_t *val, struct work *work)
 {
@@ -781,16 +782,16 @@ static int share_result( int result, struct work *work, const char *reason )
        hashrate += thr_hashrates[i];
    }
    result ? accepted_count++ : rejected_count++;
-/*
+
    if ( solved )
    {
       solved_count++;
       if ( use_colors )
-         sprintf( sol, CL_GRN "Solved" CL_WHT " %d", solved_count );      
+         sprintf( sol, CL_GRN " Solved" CL_WHT " %d", solved_count );      
       else
-         sprintf( sol, "Solved %d", solved_count ); 
+         sprintf( sol, " Solved %d", solved_count ); 
    }
-*/
+
    pthread_mutex_unlock(&stats_lock);
    global_hashcount = hashcount;
    global_hashrate = hashrate;
@@ -861,11 +862,11 @@ static int share_result( int result, struct work *work, const char *reason )
    else
    {
 #if ((defined(_WIN64) || defined(__WINDOWS__)))
-   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g %s, %s %sH/s",
+   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g%s, %s %sH/s",
                        sres, ( result ? accepted_count : rejected_count ),
                        total_submits, rate_s, sharediff, sol, hr, hr_units );
 #else
-   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g %s, %s %sH/s, %dC",
+   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g%s, %s %sH/s, %dC",
                        sres, ( result ? accepted_count : rejected_count ),
                        total_submits, rate_s, sharediff, sol, hr, hr_units,
                        (uint32_t)cpu_temp(0) );
@@ -1626,22 +1627,24 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
 {
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
 
-   // This logic depends on expression short circuiting to prevent tripping
-   // over NULL job_id pointers when benchmarking.
-   if ( ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
-          && clean_job )
-      || ( *nonceptr >= *end_nonce_ptr )
-      || ( !opt_benchmark && strcmp( work->job_id, g_work->job_id ) ) )
-   {
-     if ( *nonceptr >= *end_nonce_ptr )
-         algo_gate.stratum_gen_work( &stratum, g_work );
+// the job_id check doesn't work as intended, it's a char pointer!
+// For stratum the pointers can be dereferenced and the strings compared,
+// benchmark not, getwork & gbt unsure.
+//    || ( have_straum && strcmp( work->job_id, g_work->job_id ) ) ) )
+// or
+//    || ( !benchmark && strcmp( work->job_id, g_work->job_id ) ) ) )
+// For now leave it as is, it seems stable.
 
+   if ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
+      && ( clean_job || ( *nonceptr >= *end_nonce_ptr )
+         || ( work->job_id != g_work->job_id ) ) )
+   {
      work_free( work );
      work_copy( work, g_work );
      *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
      if ( opt_randomize )
        *nonceptr += ( (rand() *4 ) & UINT32_MAX ) / opt_n_threads;
-     *end_nonce_ptr = ( 0xffffffffU / opt_n_threads ) * (thr_id+1) - 0x20; 
+     *end_nonce_ptr = ( 0xffffffffU / opt_n_threads ) * (thr_id+1) - 0x20;
    }
    else
        ++(*nonceptr);
@@ -1791,6 +1794,8 @@ static void *miner_thread( void *userdata )
           {
               algo_gate.wait_for_diff( &stratum );
  	      pthread_mutex_lock( &g_work_lock );
+              if ( *algo_gate.get_nonceptr( work.data ) >= end_nonce )
+                 algo_gate.stratum_gen_work( &stratum, &g_work );
               algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce,
                                       stratum.job.clean );
               pthread_mutex_unlock( &g_work_lock );
@@ -2006,19 +2011,15 @@ json_t *std_longpoll_rpc_call( CURL *curl, int *err, char* lp_url )
 {
    json_t *val;
    char *req = NULL;
-//   if (have_gbt)
-//   {
+   if (have_gbt)
+   {
        req = (char*) malloc( strlen(gbt_lp_req) + strlen(lp_id) + 1 );
        sprintf( req, gbt_lp_req, lp_id );
-//   }
-//TODO this code makes no sense, this first call should be removed.
-// also remove conditional expression in second call, no getwork.
-//   val = json_rpc_call( curl, rpc_url, rpc_userpass, getwork_req, err,
-//                        JSON_RPC_LONGPOLL );
-//   val = json_rpc_call( curl, lp_url, rpc_userpass, req ? req : getwork_req,
-//                        err, JSON_RPC_LONGPOLL);
-   val = json_rpc_call( curl, lp_url, rpc_userpass, req,
-                        err, JSON_RPC_LONGPOLL );
+   }
+   val = json_rpc_call( curl, rpc_url, rpc_userpass, getwork_req, err,
+                        JSON_RPC_LONGPOLL );
+   val = json_rpc_call( curl, lp_url, rpc_userpass, req ? req : getwork_req,
+                        err, JSON_RPC_LONGPOLL);
    free(req);
    return val;
 }

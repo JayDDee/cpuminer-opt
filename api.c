@@ -98,6 +98,7 @@ extern int opt_api_remote;
 extern double global_hashrate;
 extern uint32_t accepted_count;
 extern uint32_t rejected_count;
+extern uint32_t solved_count;
 
 #define cpu_threads opt_n_threads
 
@@ -138,8 +139,7 @@ static char *getsummary( char *params )
    double accps = (60.0 * accepted_count) / (uptime ? uptime : 1.0);
    double diff = net_diff > 0. ? net_diff : stratum_diff;
    char diff_str[16];
-   double hashrate = (double)global_hashrate;
-   char units[4] = {0};
+   double hrate = (double)global_hashrate;
    struct cpu_info cpu = { 0 };
 #ifdef USE_MONITORING
    cpu.has_monitoring = true;
@@ -157,16 +157,14 @@ static char *getsummary( char *params )
        sprintf( diff_str, "%.6f", diff);
 
    *buffer = '\0';
-   scale_hash_for_display ( &hashrate, units );
-
    sprintf( buffer, "NAME=%s;VER=%s;API=%s;"
-                    "ALGO=%s;CPUS=%d;%sH/s=%.2f;ACC=%d;REJ=%d;"
+                    "ALGO=%s;CPUS=%d;HS=%.2f;KHS=%.2f;ACC=%d;REJ=%d;SOL=%d;"
                     "ACCMN=%.3f;DIFF=%s;TEMP=%.1f;FAN=%d;FREQ=%d;"
                     "UPTIME=%.0f;TS=%u|",
                     PACKAGE_NAME, PACKAGE_VERSION, APIVERSION,
-                    algo, opt_n_threads, units, hashrate,
-                    accepted_count, rejected_count, accps, diff_str,
-                    cpu.cpu_temp, cpu.cpu_fan, cpu.cpu_clock,
+                    algo, opt_n_threads, hrate, hrate/1000.0,
+                    accepted_count, rejected_count, solved_count,
+                    accps, diff_str, cpu.cpu_temp, cpu.cpu_fan, cpu.cpu_clock,
                     uptime, (uint32_t) ts);
    return buffer;
 }
