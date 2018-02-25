@@ -127,7 +127,10 @@ void ( *set_target)              ( struct work*, double );
 bool ( *submit_getwork_result )  ( CURL*, struct work* );
 void ( *gen_merkle_root )        ( char*, struct stratum_ctx* );
 void ( *build_extraheader )      ( struct work*, struct stratum_ctx* );
+void ( *build_block_header )     ( struct work*, uint32_t, uint32_t*,
+                                   uint32_t*, uint32_t, uint32_t );
 void ( *build_stratum_request )  ( char*, struct work*, struct stratum_ctx* );
+char* ( *malloc_txs_request )    ( struct work* );
 void ( *set_work_data_endian )   ( struct work* );
 double ( *calc_network_diff )    ( struct work* );
 bool ( *ready_to_mine )          ( struct work*, struct stratum_ctx*, int );
@@ -228,10 +231,16 @@ void std_le_build_stratum_request( char *req, struct work *work );
 void std_be_build_stratum_request( char *req, struct work *work );
 void jr2_build_stratum_request   ( char *req, struct work *work );
 
+char* std_malloc_txs_request( struct work *work );
+
 // Default is do_nothing (assumed LE)
 void set_work_data_big_endian( struct work *work );
 
 double std_calc_network_diff( struct work *work );
+
+void std_build_block_header( struct work* g_work, uint32_t version,
+                             uint32_t *prevhash, uint32_t *merkle_root,
+                             uint32_t ntime, uint32_t nbits );
 
 void std_build_extraheader( struct work *work, struct stratum_ctx *sctx );
 

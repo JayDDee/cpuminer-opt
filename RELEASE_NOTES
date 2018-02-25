@@ -90,7 +90,8 @@ Additional optional compile flags, add the following to CFLAGS to activate:
 
 SPH may give slightly better performance on algos that use sha256 when using
 openssl 1.0.1 or older. Openssl 1.0.2 adds AVX2 and 1.1 adds SHA and perform
-better than SPH.
+better than SPH. This option is ignored when 4-way is used, even for CPUs
+with SHA.
 
 Start mining.
 
@@ -158,6 +159,12 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.8.3.3
+
+Integrated getblocktemplate with algo_gate.
+Added support for hodl gbt (untested).
+Reworked some recent quick fixes.
 
 v3.8.3.2
 

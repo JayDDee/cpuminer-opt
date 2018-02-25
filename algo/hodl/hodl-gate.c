@@ -42,15 +42,83 @@ void hodl_le_build_stratum_request( char* req, struct work* work,
    free( xnonce2str );
 }
 
-void hodl_build_extraheader( struct work* g_work, struct stratum_ctx *sctx )
+char* hodl_malloc_txs_request( struct work *work )
 {
-   uchar merkle_root[64] = { 0 };
-   size_t t;
+  char* req;
+  json_t *val;
+  char data_str[2 * sizeof(work->data) + 1];
+  int i;
+
+  for ( i = 0; i < ARRAY_SIZE(work->data); i++ )
+    be32enc( work->data + i, work->data[i] );
+
+  bin2hex( data_str, (unsigned char *)work->data, 88 );
+  if ( work->workid )
+  {
+    char *params;
+    val = json_object();
+    json_object_set_new( val, "workid", json_string( work->workid ) );
+    params = json_dumps( val, 0 );
+    json_decref( val );
+    req = malloc( 128 + 2*88 + strlen( work->txs ) + strlen( params ) );
+    sprintf( req,
+     "{\"method\": \"submitblock\", \"params\": [\"%s%s\", %s], \"id\":1}\r\n",
+      data_str, work->txs, params);
+    free( params );
+  }
+  else
+  {
+    req = malloc( 128 + 2*88 + strlen(work->txs));
+    sprintf( req,
+       "{\"method\": \"submitblock\", \"params\": [\"%s%s\"], \"id\":1}\r\n",
+        data_str, work->txs);
+  }
+  return req;
+}
+
+
+void hodl_build_block_header( struct work* g_work, uint32_t version,
+                              uint32_t *prevhash, uint32_t *merkle_tree,
+                              uint32_t ntime, uint32_t nbits )
+{
    int i;
 
-   algo_gate.gen_merkle_root( merkle_root, sctx );
+   memset( g_work->data, 0, sizeof(g_work->data) );
+   g_work->data[0] = version;
+
+   if ( have_stratum )
+      for ( i = 0; i < 8; i++ )
+         g_work->data[1 + i] = le32dec( prevhash + i );
+   else
+      for (i = 0; i < 8; i++)
+         g_work->data[ 8-i ] = le32dec( prevhash + i );
+
+   for ( i = 0; i < 8; i++ )
+      g_work->data[9 + i] = be32dec(  merkle_tree + i );
+
+   g_work->data[ algo_gate.ntime_index ] =  ntime;
+   g_work->data[ algo_gate.nbits_index ] =  nbits;
+   g_work->data[22] = 0x80000000;
+   g_work->data[31] = 0x00000280;
+}
+
+// hodl build_extra_header is redundant, hodl can use std_build_extra_header
+// and call hodl_build_block_header.
+#if 0
+void hodl_build_extraheader( struct work* g_work, struct stratum_ctx *sctx )
+{
+   uchar merkle_tree[64] = { 0 };
+   size_t t;
+//   int i;
+
+   algo_gate.gen_merkle_root( merkle_tree, sctx );
    // Increment extranonce2
    for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
+
+   algo_gate.build_block_header( g_work, le32dec( sctx->job.version ),
+          (uint32_t*) sctx->job.prevhash, (uint32_t*) merkle_tree,
+          le32dec( sctx->job.ntime ), le32dec( sctx->job.nbits ) );
+/*
    // Assemble block header
    memset( g_work->data, 0, sizeof(g_work->data) );
    g_work->data[0] = le32dec( sctx->job.version );
@@ -63,7 +131,9 @@ void hodl_build_extraheader( struct work* g_work, struct stratum_ctx *sctx )
    g_work->data[ algo_gate.nbits_index ] = le32dec( sctx->job.nbits );
    g_work->data[22] = 0x80000000;
    g_work->data[31] = 0x00000280;
+*/
 }
+#endif
 
 // called only by thread 0, saves a backup of g_work
 void hodl_get_new_work( struct work* work, struct work* g_work)
@@ -71,6 +141,22 @@ void hodl_get_new_work( struct work* work, struct work* g_work)
      work_free( &hodl_work );
      work_copy( &hodl_work, g_work );
      hodl_work.data[ algo_gate.nonce_index ] = ( clock() + rand() ) % 9999;
+}
+
+json_t *hodl_longpoll_rpc_call( CURL *curl, int *err, char* lp_url )
+{
+   json_t *val;
+   char *req = NULL;
+
+   if ( have_gbt )
+   {
+      req = malloc( strlen( gbt_lp_req ) + strlen( lp_id ) + 1 );
+      sprintf( req, gbt_lp_req, lp_id );
+   }
+   val = json_rpc_call( curl, lp_url, rpc_userpass,
+                        req ? req : getwork_req, err, JSON_RPC_LONGPOLL );
+   free( req );
+   return val;
 }
 
 // called by every thread, copies the backup to each thread's work.
@@ -112,13 +198,17 @@ bool register_hodl_algo( algo_gate_t* gate )
   gate->optimizations         = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
   gate->scanhash              = (void*)&hodl_scanhash;
   gate->get_new_work          = (void*)&hodl_get_new_work;
+  gate->longpoll_rpc_call     = (void*)&hodl_longpoll_rpc_call;
   gate->set_target            = (void*)&hodl_set_target;
   gate->build_stratum_request = (void*)&hodl_le_build_stratum_request;
-  gate->build_extraheader     = (void*)&hodl_build_extraheader;
+  gate->malloc_txs_request    = (void*)&hodl_malloc_txs_request;
+  gate->build_block_header    = (void*)&hodl_build_block_header;
+//  gate->build_extraheader     = (void*)&hodl_build_extraheader;
   gate->resync_threads        = (void*)&hodl_resync_threads;
   gate->do_this_thread        = (void*)&hodl_do_this_thread;
   gate->work_cmp_size         = 76;
   hodl_scratchbuf = (unsigned char*)malloc( 1 << 30 );
+  allow_getwork = false;
   return ( hodl_scratchbuf != NULL );
 }
 
