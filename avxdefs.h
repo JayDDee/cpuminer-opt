@@ -529,21 +529,52 @@ do { \
 //
 // Swap bytes in vector elements
 static inline __m128i mm_bswap_64( __m128i v )
-{  return _mm_shuffle_epi8( v, _mm_set_epi8(
+{
+#ifdef __SSSE3__
+    return _mm_shuffle_epi8( v, _mm_set_epi8(
                            0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
                            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 ) );
+#else
+    __m128i a = _mm_or_si128(
+        _mm_slli_epi16(v, 8),
+        _mm_srli_epi16(v, 8));
+
+    a = _mm_shufflelo_epi16(a, _MM_SHUFFLE(0, 1, 2, 3));
+    a = _mm_shufflehi_epi16(a, _MM_SHUFFLE(0, 1, 2, 3));
+
+    return a;
+#endif
 }
 
 static inline __m128i mm_bswap_32( __m128i v )
-{  return _mm_shuffle_epi8( v, _mm_set_epi8(
+{
+#ifdef __SSSE3__
+    return _mm_shuffle_epi8( v, _mm_set_epi8(
                            0x0c, 0x0d, 0x0e, 0x0f, 0x08, 0x09, 0x0a, 0x0b,
                            0x04, 0x05, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03 ) );
+#else
+    __m128i a = _mm_or_si128(
+        _mm_slli_epi16(v, 8),
+        _mm_srli_epi16(v, 8));
+
+    a = _mm_shufflelo_epi16(a, _MM_SHUFFLE(2, 3, 0, 1));
+    a = _mm_shufflehi_epi16(a, _MM_SHUFFLE(2, 3, 0, 1));
+
+    return a;
+#endif
 }
 
 static inline __m128i mm_bswap_16( __m128i v )
-{  return _mm_shuffle_epi8( v, _mm_set_epi8(
+{
+#ifdef __SSSE3__
+    return _mm_shuffle_epi8( v, _mm_set_epi8(
                            0x0e, 0x0f, 0x0c, 0x0d, 0x0a, 0x0b, 0x08, 0x09,
                            0x06, 0x07, 0x04, 0x05, 0x02, 0x03, 0x00, 0x01 ) );
+#else	   
+    return _mm_or_si128(
+        _mm_slli_epi16(v, 8),
+        _mm_srli_epi16(v, 8));
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////
