@@ -227,6 +227,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_YESCRYPT:     register_yescrypt_algo    ( gate ); break;
      case ALGO_YESCRYPTR8:   register_yescryptr8_algo  ( gate ); break;
      case ALGO_YESCRYPTR16:  register_yescryptr16_algo ( gate ); break;
+     case ALGO_YESCRYPTR32:  register_yescryptr32_algo ( gate ); break;
      case ALGO_ZR5:          register_zr5_algo         ( gate ); break;
     default:
         applog(LOG_ERR,"FAIL: algo_gate registration failed, unknown algo %s.\n", algo_names[opt_algo] );

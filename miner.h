@@ -553,6 +553,7 @@ enum algos {
         ALGO_YESCRYPT,
         ALGO_YESCRYPTR8,
         ALGO_YESCRYPTR16,
+        ALGO_YESCRYPTR32,
         ALGO_ZR5,
         ALGO_COUNT
 };
@@ -629,6 +630,7 @@ static const char* const algo_names[] = {
         "yescrypt",
         "yescryptr8",
         "yescryptr16",
+        "yescryptr32",
         "zr5",
         "\0"
 };

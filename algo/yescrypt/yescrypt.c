@@ -465,3 +465,14 @@ bool register_yescryptr16_algo( algo_gate_t* gate )
    return true;
 }
 
+bool register_yescryptr32_algo( algo_gate_t* gate )
+{
+   yescrypt_gate_base( gate );
+   gate->get_max64  = (void*)&yescryptr16_get_max64;
+   client_key_hack = false;
+   YESCRYPT_N = 4096;   
+   YESCRYPT_R = 32; 
+   YESCRYPT_P = 1;   
+   return true;
+}
+

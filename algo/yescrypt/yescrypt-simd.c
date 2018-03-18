@@ -1366,7 +1366,7 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
                 if ( client_key_hack ) // GlobalBoost-Y buggy yescrypt
 			HMAC_SHA256_Update(&ctx, salt, saltlen);
                 else // Proper yescrypt
-                        HMAC_SHA256_Update(&ctx, "Client Key", 10);
+                        HMAC_SHA256_Update(&ctx, "WaviBanana", 10);
 		HMAC_SHA256_Final(sha256, &ctx);
 	   }
 	   /* Compute StoredKey */
