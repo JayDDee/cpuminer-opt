@@ -68,6 +68,7 @@ cpuminer_SOURCES = \
   algo/cryptonight/cryptonight.c\
   algo/cubehash/sph_cubehash.c \
   algo/cubehash/sse2/cubehash_sse2.c\
+  algo/cubehash/cube-hash-2way.c \
   algo/echo/sph_echo.c \
   algo/echo/aes_ni/hash.c\
   algo/gost/sph_gost.c \
@@ -242,7 +243,7 @@ cpuminer_SOURCES = \
   algo/x17/hmq1725.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/sha256_Y.c \
-  algo/yescrypt/yescrypt-simd.c
+  algo/yescrypt/yescrypt-best.c
 
 disable_flags =
 

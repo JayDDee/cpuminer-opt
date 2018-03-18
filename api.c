@@ -158,11 +158,12 @@ static char *getsummary( char *params )
 
    *buffer = '\0';
    sprintf( buffer, "NAME=%s;VER=%s;API=%s;"
-                    "ALGO=%s;CPUS=%d;HS=%.2f;KHS=%.2f;ACC=%d;REJ=%d;SOL=%d;"
+                    "ALGO=%s;CPUS=%d;URL=%s;"
+                    "HS=%.2f;KHS=%.2f;ACC=%d;REJ=%d;SOL=%d;"
                     "ACCMN=%.3f;DIFF=%s;TEMP=%.1f;FAN=%d;FREQ=%d;"
                     "UPTIME=%.0f;TS=%u|",
                     PACKAGE_NAME, PACKAGE_VERSION, APIVERSION,
-                    algo, opt_n_threads, hrate, hrate/1000.0,
+                    algo, opt_n_threads, short_url, hrate, hrate/1000.0,
                     accepted_count, rejected_count, solved_count,
                     accps, diff_str, cpu.cpu_temp, cpu.cpu_fan, cpu.cpu_clock,
                     uptime, (uint32_t) ts);

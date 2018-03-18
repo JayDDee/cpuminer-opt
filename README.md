@@ -28,11 +28,12 @@ performance.
 ARM CPUs are not supported.
 
 2. 64 bit Linux OS. Ubuntu and Fedora based distributions, including Mint and
-Centos are known to work and have all dependencies in their repositories.
-Others may work but may require more effort.
+Centos, are known to work and have all dependencies in their repositories.
+Others may work but may require more effort. Older versions such as Centos 6
+don't work due to missing features. 
 64 bit Windows OS is supported with mingw_w64 and msys or pre-built binaries.
 
-MacOS, OSx is not supported.
+MacOS, OSx and Android are not supported.
 
 3. Stratum pool. Some algos may work wallet mining using getwork or GBT. YMMV.
 

@@ -25,7 +25,7 @@
 #include "compat.h"
 
 #include "yescrypt.h"
-
+#include "sha256_Y.h"
 #include "algo-gate-api.h"
 
 #define BYTES2CHARS(bytes) \
@@ -366,7 +366,8 @@ static int yescrypt_bsty(const uint8_t * passwd, size_t passwdlen,
 uint64_t YESCRYPT_N;
 uint32_t YESCRYPT_R;
 uint32_t YESCRYPT_P;
-bool client_key_hack;
+char *yescrypt_client_key = NULL;
+int yescrypt_client_key_len = 0;
 
 /* main hash 80 bytes input */
 void yescrypt_hash( const char *input, char *output, uint32_t len )
@@ -436,7 +437,8 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 {
    yescrypt_gate_base( gate );
    gate->get_max64  = (void*)&yescrypt_get_max64;
-   client_key_hack = true;
+   yescrypt_client_key = NULL;
+   yescrypt_client_key_len = 0;
    YESCRYPT_N = 2048;
    YESCRYPT_R = 8;
    YESCRYPT_P = 1;
@@ -447,7 +449,8 @@ bool register_yescryptr8_algo( algo_gate_t* gate )
 {
    yescrypt_gate_base( gate );
    gate->get_max64  = (void*)&yescrypt_get_max64;
-   client_key_hack = false;
+   yescrypt_client_key = "Client Key";
+   yescrypt_client_key_len = 10;
    YESCRYPT_N = 2048;
    YESCRYPT_R = 8;
    YESCRYPT_P = 1;
@@ -458,10 +461,23 @@ bool register_yescryptr16_algo( algo_gate_t* gate )
 {
    yescrypt_gate_base( gate );
    gate->get_max64  = (void*)&yescryptr16_get_max64;
-   client_key_hack = false;
+   yescrypt_client_key = "Client Key";
+   yescrypt_client_key_len = 10;
    YESCRYPT_N = 4096;   
    YESCRYPT_R = 16;   
    YESCRYPT_P = 1;   
+   return true;
+}
+
+bool register_yescryptr32_algo( algo_gate_t* gate )
+{
+   yescrypt_gate_base( gate );
+   gate->get_max64  = (void*)&yescryptr16_get_max64;
+   yescrypt_client_key = "WaviBanana";
+   yescrypt_client_key_len = 10;
+   YESCRYPT_N = 4096;
+   YESCRYPT_R = 32;
+   YESCRYPT_P = 1;
    return true;
 }
 

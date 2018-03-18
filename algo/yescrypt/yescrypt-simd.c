@@ -1363,10 +1363,11 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	   {
 		HMAC_SHA256_CTX ctx;
 		HMAC_SHA256_Init(&ctx, buf, buflen);
-                if ( client_key_hack ) // GlobalBoost-Y buggy yescrypt
-			HMAC_SHA256_Update(&ctx, salt, saltlen);
-                else // Proper yescrypt
-                        HMAC_SHA256_Update(&ctx, "Client Key", 10);
+                if ( yescrypt_client_key )
+                    HMAC_SHA256_Update( &ctx, (uint8_t*)yescrypt_client_key,
+                                        yescrypt_client_key_len );
+                else
+                    HMAC_SHA256_Update( &ctx, salt, saltlen );
 		HMAC_SHA256_Final(sha256, &ctx);
 	   }
 	   /* Compute StoredKey */

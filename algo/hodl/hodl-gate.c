@@ -76,7 +76,6 @@ char* hodl_malloc_txs_request( struct work *work )
   return req;
 }
 
-
 void hodl_build_block_header( struct work* g_work, uint32_t version,
                               uint32_t *prevhash, uint32_t *merkle_tree,
                               uint32_t ntime, uint32_t nbits )
@@ -88,16 +87,16 @@ void hodl_build_block_header( struct work* g_work, uint32_t version,
 
    if ( have_stratum )
       for ( i = 0; i < 8; i++ )
-         g_work->data[1 + i] = le32dec( prevhash + i );
+         g_work->data[ 1+i ] = le32dec( prevhash + i );
    else
       for (i = 0; i < 8; i++)
          g_work->data[ 8-i ] = le32dec( prevhash + i );
 
    for ( i = 0; i < 8; i++ )
-      g_work->data[9 + i] = be32dec(  merkle_tree + i );
+      g_work->data[ 9+i ] = be32dec( merkle_tree + i );
 
-   g_work->data[ algo_gate.ntime_index ] =  ntime;
-   g_work->data[ algo_gate.nbits_index ] =  nbits;
+   g_work->data[ algo_gate.ntime_index ] = ntime;
+   g_work->data[ algo_gate.nbits_index ] = nbits;
    g_work->data[22] = 0x80000000;
    g_work->data[31] = 0x00000280;
 }
@@ -194,8 +193,13 @@ bool register_hodl_algo( algo_gate_t* gate )
   applog( LOG_ERR, "Only CPUs with AES are supported, use legacy version.");
   return false;
 #endif
+//  if ( TOTAL_CHUNKS % opt_n_threads )
+//  {
+//     applog(LOG_ERR,"Thread count must be power of 2.");
+//     return false;
+//  }
   pthread_barrier_init( &hodl_barrier, NULL, opt_n_threads );
-  gate->optimizations         = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations         = AES_OPT | AVX_OPT | AVX2_OPT;
   gate->scanhash              = (void*)&hodl_scanhash;
   gate->get_new_work          = (void*)&hodl_get_new_work;
   gate->longpoll_rpc_call     = (void*)&hodl_longpoll_rpc_call;

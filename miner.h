@@ -424,7 +424,7 @@ extern size_t rpc2_bloblen;
 extern uint32_t rpc2_target;
 extern char *rpc2_job_id;
 extern char *rpc_user;
-
+extern char *short_url;
 
 json_t *json_rpc2_call(CURL *curl, const char *url, const char *userpass, const char *rpc_req, int *curl_err, int flags);
 bool rpc2_login(CURL *curl);
@@ -553,6 +553,7 @@ enum algos {
         ALGO_YESCRYPT,
         ALGO_YESCRYPTR8,
         ALGO_YESCRYPTR16,
+        ALGO_YESCRYPTR32,
         ALGO_ZR5,
         ALGO_COUNT
 };
@@ -629,6 +630,7 @@ static const char* const algo_names[] = {
         "yescrypt",
         "yescryptr8",
         "yescryptr16",
+        "yescryptr32",
         "zr5",
         "\0"
 };
@@ -764,6 +766,7 @@ Options:\n\
                           yescrypt     Globlboost-Y (BSTY)\n\
                           yescryptr8   BitZeny (ZNY)\n\
                           yescryptr16  Yenten (YTN)\n\
+                          yescryptr32  WAVI\n\
                           zr5          Ziftr\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\

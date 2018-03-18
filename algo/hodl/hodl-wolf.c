@@ -10,23 +10,26 @@
 
 #ifndef NO_AES_NI               
 
-void GenerateGarbageCore(CacheEntry *Garbage, int ThreadID, int ThreadCount, void *MidHash)
+void GenerateGarbageCore( CacheEntry *Garbage, int ThreadID, int ThreadCount,
+     void *MidHash )
 {
-#ifdef __AVX__
-    uint64_t* TempBufs[SHA512_PARALLEL_N] ;
-    uint64_t* desination[SHA512_PARALLEL_N];
+    const int Chunk = TOTAL_CHUNKS / ThreadCount;
+    const uint32_t StartChunk = ThreadID * Chunk;
+    const uint32_t EndChunk   = StartChunk + Chunk;
 
-    for ( int i=0; i<SHA512_PARALLEL_N; ++i )
+#ifdef __AVX__
+    uint64_t* TempBufs[ SHA512_PARALLEL_N ] ;
+    uint64_t* desination[ SHA512_PARALLEL_N ];
+
+    for ( int i=0; i < SHA512_PARALLEL_N; ++i )
     {
-        TempBufs[i] = (uint64_t*)malloc(32);
-        memcpy(TempBufs[i], MidHash, 32);
+        TempBufs[i] = (uint64_t*)malloc( 32 );
+        memcpy( TempBufs[i], MidHash, 32 );
     }
 
-    uint32_t StartChunk = ThreadID * (TOTAL_CHUNKS / ThreadCount);
-    for ( uint32_t i = StartChunk;
-          i < StartChunk + (TOTAL_CHUNKS / ThreadCount); i+= SHA512_PARALLEL_N )
+    for ( uint32_t i = StartChunk; i < EndChunk; i += SHA512_PARALLEL_N )
     {
-        for ( int j=0; j<SHA512_PARALLEL_N; ++j )
+        for ( int j = 0; j < SHA512_PARALLEL_N; ++j )
         {
             ( (uint32_t*)TempBufs[j] )[0] = i + j;
             desination[j] = (uint64_t*)( (uint8_t *)Garbage + ( (i+j)
@@ -35,15 +38,13 @@ void GenerateGarbageCore(CacheEntry *Garbage, int ThreadID, int ThreadCount, voi
         sha512Compute32b_parallel( TempBufs, desination );
     }
 
-    for ( int i=0; i<SHA512_PARALLEL_N; ++i )
+    for ( int i = 0; i < SHA512_PARALLEL_N; ++i )
         free( TempBufs[i] );
 #else
     uint32_t TempBuf[8];
     memcpy( TempBuf, MidHash, 32 );
 
-    uint32_t StartChunk = ThreadID * (TOTAL_CHUNKS / ThreadCount);
-    for ( uint32_t i = StartChunk;
-          i < StartChunk + (TOTAL_CHUNKS / ThreadCount); ++i )
+    for ( uint32_t i = StartChunk; i < EndChunk; ++i )
     {
         TempBuf[0] = i;
         SHA512( ( uint8_t *)TempBuf, 32,

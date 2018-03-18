@@ -1,4 +1,4 @@
-cpuminer-opt now supports HW SHA acceleration available on AMD Ryzen CPUs.
+puminer-opt now supports HW SHA acceleration available on AMD Ryzen CPUs.
 This feature requires recent SW including GCC version 5 or higher and
 openssl version 1.1 or higher. It may also require using "-march=znver1"
 compile flag.
@@ -159,6 +159,13 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.8.4
+
+Added yescrypt32 algo for WAVI coin.
+Added URL to API data.
+Improved detection of __int128 support (linux only)
+Compile support for CPUs without SSSE3 (no binary support)
 
 v3.8.3.3
 

@@ -108,7 +108,8 @@ typedef enum {
 	__YESCRYPT_INIT_SHARED = 0x30000
 } yescrypt_flags_t;
 
-extern bool client_key_hack;    // true for GlobalBoost-Y
+extern char *yescrypt_client_key;
+extern int yescrypt_client_key_len;
 
 
 #define YESCRYPT_KNOWN_FLAGS \

@@ -103,7 +103,7 @@ enum algos opt_algo = ALGO_NULL;
 int opt_scrypt_n = 0;
 int opt_pluck_n = 128;
 int opt_n_threads = 0;
-#ifdef __GNUC__
+#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
 __int128_t opt_affinity = -1LL;
 #else
 int64_t opt_affinity = -1LL;
@@ -200,20 +200,20 @@ static inline void drop_policy(void)
 #define pthread_setaffinity_np(tid,sz,s) {} /* only do process affinity */
 #endif
 
-#ifdef __GNUC__
+#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
 static void affine_to_cpu_mask( int id, unsigned __int128 mask )
 #else
 static void affine_to_cpu_mask( int id, unsigned long long mask )
 #endif
 {
    cpu_set_t set;
-   CPU_ZERO(&set);
+   CPU_ZERO( &set );
    uint8_t ncpus = (num_cpus > 256) ? 256 : num_cpus;       
 
    for ( uint8_t i = 0; i < ncpus; i++ ) 
    {
       // cpu mask
-#ifdef __GNUC__
+#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
       if( ( mask & ( (unsigned __int128)1ULL << i ) ) )  CPU_SET( i, &set );
 #else
       if( (ncpus > 64) || ( mask & (1ULL << i) ) )  CPU_SET( i, &set );
@@ -1792,7 +1792,7 @@ static void *miner_thread( void *userdata )
          if (opt_debug)
             applog( LOG_DEBUG, "Binding thread %d to cpu %d (mask %x)",
                    thr_id, thr_id % num_cpus, ( 1ULL << (thr_id % num_cpus) ) );
-#ifdef __GNUC__
+#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
          affine_to_cpu_mask( thr_id,
                              (unsigned __int128)1LL << (thr_id % num_cpus) );
 #else
