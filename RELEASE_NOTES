@@ -160,9 +160,14 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.8.4.1
+
+Fixed sha256t low difficulty rejects.
+Fixed compile error on CPUs with AVX512.
+
 v3.8.4
 
-Added yescrypt32 algo for WAVI coin.
+Added yescryptr32 algo for WAVI coin.
 Added URL to API data.
 Improved detection of __int128 support (linux only)
 Compile support for CPUs without SSSE3 (no binary support)

@@ -55,23 +55,23 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 // returns void, updates all args
 #define G_4X64(a,b,c,d) \
    a = _mm256_add_epi64( a, b ); \
-   d = mm256_rotr_64( _mm256_xor_si256( d, a), 32 ); \
+   d = mm256_ror_64( _mm256_xor_si256( d, a), 32 ); \
    c = _mm256_add_epi64( c, d ); \
-   b = mm256_rotr_64( _mm256_xor_si256( b, c ), 24 ); \
+   b = mm256_ror_64( _mm256_xor_si256( b, c ), 24 ); \
    a = _mm256_add_epi64( a, b ); \
-   d = mm256_rotr_64( _mm256_xor_si256( d, a ), 16 ); \
+   d = mm256_ror_64( _mm256_xor_si256( d, a ), 16 ); \
    c = _mm256_add_epi64( c, d ); \
-   b = mm256_rotr_64( _mm256_xor_si256( b, c ), 63 );
+   b = mm256_ror_64( _mm256_xor_si256( b, c ), 63 );
 
 #define LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
    G_4X64( s0, s1, s2, s3 ); \
-   s1 = mm256_rotr256_1x64( s1); \
+   s1 = mm256_ror256_1x64( s1); \
    s2 = mm256_swap_128( s2 ); \
-   s3 = mm256_rotl256_1x64( s3 ); \
+   s3 = mm256_rol256_1x64( s3 ); \
    G_4X64( s0, s1, s2, s3 ); \
-   s1 = mm256_rotl256_1x64( s1 ); \
+   s1 = mm256_rol256_1x64( s1 ); \
    s2 = mm256_swap_128( s2 ); \
-   s3 = mm256_rotr256_1x64( s3 );
+   s3 = mm256_ror256_1x64( s3 );
 
 #define LYRA_12_ROUNDS_AVX2( s0, s1, s2, s3 ) \
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
@@ -94,25 +94,25 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 // returns void, all args updated
 #define G_2X64(a,b,c,d) \
    a = _mm_add_epi64( a, b ); \
-   d = mm_rotr_64( _mm_xor_si128( d, a), 32 ); \
+   d = mm_ror_64( _mm_xor_si128( d, a), 32 ); \
    c = _mm_add_epi64( c, d ); \
-   b = mm_rotr_64( _mm_xor_si128( b, c ), 24 ); \
+   b = mm_ror_64( _mm_xor_si128( b, c ), 24 ); \
    a = _mm_add_epi64( a, b ); \
-   d = mm_rotr_64( _mm_xor_si128( d, a ), 16 ); \
+   d = mm_ror_64( _mm_xor_si128( d, a ), 16 ); \
    c = _mm_add_epi64( c, d ); \
-   b = mm_rotr_64( _mm_xor_si128( b, c ), 63 );
+   b = mm_ror_64( _mm_xor_si128( b, c ), 63 );
 
 #define LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
    G_2X64( s0, s2, s4, s6 ); \
    G_2X64( s1, s3, s5, s7 ); \
-   mm_rotr256_1x64( s2, s3 ); \
+   mm_ror256_1x64( s2, s3 ); \
    mm_swap_128( s4, s5 ); \
-   mm_rotl256_1x64( s6, s7 ); \
+   mm_rol256_1x64( s6, s7 ); \
    G_2X64( s0, s2, s4, s6 ); \
    G_2X64( s1, s3, s5, s7 ); \
-   mm_rotl256_1x64( s2, s3 ); \
+   mm_rol256_1x64( s2, s3 ); \
    mm_swap_128( s4, s5 ); \
-   mm_rotr256_1x64( s6, s7 );
+   mm_ror256_1x64( s6, s7 );
 
 #define LYRA_12_ROUNDS_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
    LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \

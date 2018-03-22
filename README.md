@@ -111,6 +111,7 @@ Supported Algorithms
                           yescrypt     Globalboost-Y (BSTY)
                           yescryptr8   BitZeny (ZNY)
                           yescryptr16  Yenten (YTN)
+                          yescryptr32  WAVI
                           zr5          Ziftr
 
 Errata
