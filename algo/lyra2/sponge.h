@@ -87,8 +87,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
 
-#else
-// only available with avx
+#elif defined(__SSE4_2__)
 
 // process 2 columns in parallel
 // returns void, all args updated

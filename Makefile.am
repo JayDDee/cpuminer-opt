@@ -31,12 +31,19 @@ cpuminer_SOURCES = \
   crypto/hash.c \
   crypto/aesb.c \
   crypto/magimath.cpp \
-  algo/argon2/argon2a.c \
-  algo/argon2/ar2/argon2.c \
-  algo/argon2/ar2/opt.c \
-  algo/argon2/ar2/cores.c \
-  algo/argon2/ar2/ar2-scrypt-jane.c \
-  algo/argon2/ar2/blake2b.c \
+  algo/argon2/argon2a/argon2a.c \
+  algo/argon2/argon2a/ar2/argon2.c \
+  algo/argon2/argon2a/ar2/opt.c \
+  algo/argon2/argon2a/ar2/cores.c \
+  algo/argon2/argon2a/ar2/ar2-scrypt-jane.c \
+  algo/argon2/argon2a/ar2/blake2b.c \
+  algo/argon2/argon2d/argon2d-gate.c \
+  algo/argon2/argon2d/blake2/blake2b.c \
+  algo/argon2/argon2d/argon2d/argon2.c \
+  algo/argon2/argon2d/argon2d/core.c \
+  algo/argon2/argon2d/argon2d/opt.c \
+  algo/argon2/argon2d/argon2d/thread.c \
+  algo/argon2/argon2d/argon2d/encoding.c \
   algo/blake/sph_blake.c \
   algo/blake/blake-hash-4way.c \
   algo/blake/blake-gate.c \
@@ -153,6 +160,8 @@ cpuminer_SOURCES = \
   algo/sha/sph_sha2big.c \
   algo/sha/sha2-hash-4way.c \
   algo/sha/sha2.c \
+  algo/sha/sha256t-gate.c \
+  algo/sha/sha256t-4way.c \
   algo/sha/sha256t.c \
   algo/shabal/sph_shabal.c \
   algo/shabal/shabal-hash-4way.c \

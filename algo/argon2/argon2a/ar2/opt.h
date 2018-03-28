@@ -21,7 +21,7 @@
  * @param next_block Pointer to the block to be constructed
  * @pre all block pointers must be valid
  */
-void fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block);
+void ar2_fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block);
 
 /*
  * Generate pseudo-random values to reference blocks in the segment and puts
@@ -31,7 +31,7 @@ void fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block);
  * @param pseudo_rands Pointer to the array of 64-bit values
  * @pre pseudo_rands must point to @a instance->segment_length allocated values
  */
-void generate_addresses(const argon2_instance_t *instance,
+void ar2_generate_addresses(const argon2_instance_t *instance,
                         const argon2_position_t *position,
                         uint64_t *pseudo_rands);
 
@@ -43,7 +43,7 @@ void generate_addresses(const argon2_instance_t *instance,
  * @param position Current position
  * @pre all block pointers must be valid
  */
-void fill_segment(const argon2_instance_t *instance,
+void ar2_fill_segment(const argon2_instance_t *instance,
                   argon2_position_t position);
 
 #endif /* ARGON2_OPT_H */

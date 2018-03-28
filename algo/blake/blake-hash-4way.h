@@ -37,7 +37,7 @@
 #ifndef __BLAKE_HASH_4WAY__
 #define __BLAKE_HASH_4WAY__ 1
 
-#ifdef __AVX__
+#ifdef __SSE4_2__
 
 #ifdef __cplusplus
 extern "C"{
@@ -51,7 +51,7 @@ extern "C"{
 
 #define SPH_SIZE_blake512   512
 
-// With AVX only Blake-256 4 way is available.
+// With SSE4.2 only Blake-256 4 way is available.
 // With AVX2 Blake-256 8way & Blake-512 4 way are also available.
 
 // Blake-256 4 way

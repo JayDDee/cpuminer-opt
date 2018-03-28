@@ -38,7 +38,7 @@
 #include <stddef.h>
 #include "algo/sha/sph_types.h"
 
-#if defined (__AVX__)
+#if defined (__AVX2__)
 
 #include "avxdefs.h"
 

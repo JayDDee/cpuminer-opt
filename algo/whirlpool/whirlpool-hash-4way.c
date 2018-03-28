@@ -3412,7 +3412,7 @@ do { \
 static inline __m256i
 table_skew( __m256i val, int num )
 {
-  return mm256_rotl_64( val, 8*num );
+  return mm256_rol_64( val, 8*num );
 }
 
 #define ROUND_ELT( table, in, i0, i1, i2, i3, i4, i5, i6, i7 ) \

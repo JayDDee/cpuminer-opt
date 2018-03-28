@@ -1,6 +1,6 @@
 #include "ripemd-hash-4way.h"
 
-#if defined(__AVX__)
+#if defined(__SSE4_2__)
 
 #include <stddef.h>
 #include <string.h>
@@ -42,10 +42,10 @@ static const uint32_t IV[5] =
 
 #define RR(a, b, c, d, e, f, s, r, k) \
 do{ \
-   a = _mm_add_epi32( mm_rotl_32( _mm_add_epi32( _mm_add_epi32( \
+   a = _mm_add_epi32( mm_rol_32( _mm_add_epi32( _mm_add_epi32( \
                 _mm_add_epi32( a, f( b ,c, d ) ), r ), \
                                  _mm_set1_epi32( k ) ), s ), e ); \
-   c = mm_rotl_32( c, 10 );\
+   c = mm_rol_32( c, 10 );\
 } while (0)
 
 #define ROUND1(a, b, c, d, e, f, s, r, k)  \
@@ -341,10 +341,10 @@ void ripemd160_4way_close( ripemd160_4way_context  *sc, void *dst )
 
 #define RR_8W(a, b, c, d, e, f, s, r, k) \
 do{ \
-   a = _mm256_add_epi32( mm256_rotl_32( _mm256_add_epi32( _mm256_add_epi32( \
+   a = _mm256_add_epi32( mm256_rol_32( _mm256_add_epi32( _mm256_add_epi32( \
                 _mm256_add_epi32( a, f( b ,c, d ) ), r ), \
                                  _mm256_set1_epi32( k ) ), s ), e ); \
-   c = mm256_rotl_32( c, 10 );\
+   c = mm256_rol_32( c, 10 );\
 } while (0)
     
 #define ROUND1_8W(a, b, c, d, e, f, s, r, k)  \

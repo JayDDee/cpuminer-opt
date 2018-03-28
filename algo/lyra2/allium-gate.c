@@ -13,7 +13,7 @@ bool register_allium_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_allium;
   gate->hash      = (void*)&allium_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX_OPT | AVX2_OPT;
   gate->set_target        = (void*)&alt_set_target;
   gate->get_max64         = (void*)&get_max64_0xFFFFLL;
   return true;

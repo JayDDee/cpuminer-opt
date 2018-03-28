@@ -14,7 +14,7 @@
 #ifndef __BLAKE2S_HASH_4WAY_H__
 #define __BLAKE2S_HASH_4WAY_H__ 1
 
-#if defined(__AVX__)
+#if defined(__SSE4_2__)
 
 #include "avxdefs.h"
 
@@ -107,6 +107,6 @@ int blake2s_8way_final( blake2s_8way_state *S, void *out, uint8_t outlen );
 }
 #endif
 
-#endif  // __AVX__
+#endif  // __SSE4_2__
 
 #endif

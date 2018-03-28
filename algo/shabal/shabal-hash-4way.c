@@ -271,9 +271,9 @@ do { \
    xa0 = _mm_xor_si128( xm, _mm_xor_si128( xb1, _mm_xor_si128(  \
             _mm_andnot_si128( xb3, xb2 ), \
             _mm_mullo_epi32( _mm_xor_si128( xa0, _mm_xor_si128( xc, \
-               _mm_mullo_epi32(  mm_rotl_32( xa1, 15 ), _mm_set1_epi32(5UL) ) \
+               _mm_mullo_epi32(  mm_rol_32( xa1, 15 ), _mm_set1_epi32(5UL) ) \
                    ) ), _mm_set1_epi32(3UL) ) ) ) ); \
-   xb0 = mm_not( _mm_xor_si128( xa0, mm_rotl_32( xb0, 1 ) ) ); \
+   xb0 = mm_not( _mm_xor_si128( xa0, mm_rol_32( xb0, 1 ) ) ); \
 } while (0)
 
 #define PERM_STEP_0   do { \
@@ -335,22 +335,22 @@ do { \
 
 #define APPLY_P \
 do { \
-    B0 = mm_rotr_32( B0, 15 ); \
-    B1 = mm_rotr_32( B1, 15 ); \
-    B2 = mm_rotr_32( B2, 15 ); \
-    B3 = mm_rotr_32( B3, 15 ); \
-    B4 = mm_rotr_32( B4, 15 ); \
-    B5 = mm_rotr_32( B5, 15 ); \
-    B6 = mm_rotr_32( B6, 15 ); \
-    B7 = mm_rotr_32( B7, 15 ); \
-    B8 = mm_rotr_32( B8, 15 ); \
-    B9 = mm_rotr_32( B9, 15 ); \
-    BA = mm_rotr_32( BA, 15 ); \
-    BB = mm_rotr_32( BB, 15 ); \
-    BC = mm_rotr_32( BC, 15 ); \
-    BD = mm_rotr_32( BD, 15 ); \
-    BE = mm_rotr_32( BE, 15 ); \
-    BF = mm_rotr_32( BF, 15 ); \
+    B0 = mm_ror_32( B0, 15 ); \
+    B1 = mm_ror_32( B1, 15 ); \
+    B2 = mm_ror_32( B2, 15 ); \
+    B3 = mm_ror_32( B3, 15 ); \
+    B4 = mm_ror_32( B4, 15 ); \
+    B5 = mm_ror_32( B5, 15 ); \
+    B6 = mm_ror_32( B6, 15 ); \
+    B7 = mm_ror_32( B7, 15 ); \
+    B8 = mm_ror_32( B8, 15 ); \
+    B9 = mm_ror_32( B9, 15 ); \
+    BA = mm_ror_32( BA, 15 ); \
+    BB = mm_ror_32( BB, 15 ); \
+    BC = mm_ror_32( BC, 15 ); \
+    BD = mm_ror_32( BD, 15 ); \
+    BE = mm_ror_32( BE, 15 ); \
+    BF = mm_ror_32( BF, 15 ); \
     PERM_STEP_0; \
     PERM_STEP_1; \
     PERM_STEP_2; \

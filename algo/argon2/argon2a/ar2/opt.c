@@ -26,7 +26,7 @@
 #include "blake2/blake2.h"
 #include "blake2/blamka-round-opt.h"
 
-void fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block)
+void ar2_fill_block(__m128i *state, __m128i const *ref_block, __m128i *next_block)
 {
     __m128i ALIGN(16) block_XY[ARGON2_QWORDS_IN_BLOCK];
     uint32_t i;
@@ -95,7 +95,7 @@ static const uint64_t bad_rands[32] = {
     UINT64_C(8548260058287621283),  UINT64_C(8641748798041936364)
 };
 
-void generate_addresses(const argon2_instance_t *instance,
+void ar2_generate_addresses(const argon2_instance_t *instance,
                         const argon2_position_t *position,
                         uint64_t *pseudo_rands)
 {
@@ -113,7 +113,7 @@ void generate_addresses(const argon2_instance_t *instance,
 #define LANE_LENGTH 16
 #define POS_LANE 0
 
-void fill_segment(const argon2_instance_t *instance,
+void ar2_fill_segment(const argon2_instance_t *instance,
                   argon2_position_t position)
 {
     block *ref_block = NULL, *curr_block = NULL;
@@ -129,7 +129,7 @@ void fill_segment(const argon2_instance_t *instance,
     pseudo_rands = (uint64_t *)malloc(/*sizeof(uint64_t) * 4*/32);
 
     if (data_independent_addressing) {
-        generate_addresses(instance, &position, pseudo_rands);
+        ar2_generate_addresses(instance, &position, pseudo_rands);
     }
 
     i = 0;
@@ -173,12 +173,12 @@ void fill_segment(const argon2_instance_t *instance,
          * lane.
          */
         position.index = i;
-        ref_index = index_alpha(instance, &position, pseudo_rand & 0xFFFFFFFF,1);
+        ref_index = ar2_index_alpha(instance, &position, pseudo_rand & 0xFFFFFFFF,1);
 
         /* 2 Creating a new block */
         ref_block = instance->memory + ref_index;
         curr_block = instance->memory + curr_offset;
-        fill_block(state, (__m128i const *)ref_block->v, (__m128i *)curr_block->v);
+        ar2_fill_block(state, (__m128i const *)ref_block->v, (__m128i *)curr_block->v);
     }
 
     free(pseudo_rands);

@@ -77,26 +77,26 @@ static const sph_u64 IV512[] = {
 #define ss0(x) \
    _mm_xor_si128( _mm_xor_si128( _mm_srli_epi32( (x), 1), \
                                  _mm_slli_epi32( (x), 3) ), \
-                  _mm_xor_si128( mm_rotl_32( (x),  4), \
-                                 mm_rotl_32( (x), 19) ) )
+                  _mm_xor_si128( mm_rol_32( (x),  4), \
+                                 mm_rol_32( (x), 19) ) )
 
 #define ss1(x) \
    _mm_xor_si128( _mm_xor_si128( _mm_srli_epi32( (x), 1), \
                                  _mm_slli_epi32( (x), 2) ), \
-                  _mm_xor_si128( mm_rotl_32( (x),  8), \
-                                 mm_rotl_32( (x), 23) ) )
+                  _mm_xor_si128( mm_rol_32( (x),  8), \
+                                 mm_rol_32( (x), 23) ) )
 
 #define ss2(x) \
    _mm_xor_si128( _mm_xor_si128( _mm_srli_epi32( (x), 2), \
                                  _mm_slli_epi32( (x), 1) ), \
-                  _mm_xor_si128( mm_rotl_32( (x), 12), \
-                                 mm_rotl_32( (x), 25) ) )
+                  _mm_xor_si128( mm_rol_32( (x), 12), \
+                                 mm_rol_32( (x), 25) ) )
 
 #define ss3(x) \
    _mm_xor_si128( _mm_xor_si128( _mm_srli_epi32( (x), 2), \
                                  _mm_slli_epi32( (x), 2) ), \
-                  _mm_xor_si128( mm_rotl_32( (x), 15), \
-                                 mm_rotl_32( (x), 29) ) )
+                  _mm_xor_si128( mm_rol_32( (x), 15), \
+                                 mm_rol_32( (x), 29) ) )
 
 #define ss4(x) \
   _mm_xor_si128( (x), _mm_srli_epi32( (x), 1 ) )
@@ -104,16 +104,16 @@ static const sph_u64 IV512[] = {
 #define ss5(x) \
   _mm_xor_si128( (x), _mm_srli_epi32( (x), 2 ) )
 
-#define rs1(x)    mm_rotl_32( x,  3 ) 
-#define rs2(x)    mm_rotl_32( x,  7 ) 
-#define rs3(x)    mm_rotl_32( x, 13 ) 
-#define rs4(x)    mm_rotl_32( x, 16 ) 
-#define rs5(x)    mm_rotl_32( x, 19 ) 
-#define rs6(x)    mm_rotl_32( x, 23 ) 
-#define rs7(x)    mm_rotl_32( x, 27 ) 
+#define rs1(x)    mm_rol_32( x,  3 ) 
+#define rs2(x)    mm_rol_32( x,  7 ) 
+#define rs3(x)    mm_rol_32( x, 13 ) 
+#define rs4(x)    mm_rol_32( x, 16 ) 
+#define rs5(x)    mm_rol_32( x, 19 ) 
+#define rs6(x)    mm_rol_32( x, 23 ) 
+#define rs7(x)    mm_rol_32( x, 27 ) 
 
 #define rol_off_32( M, j, off ) \
-   mm_rotl_32( M[ ( (j) + (off) ) & 0xF ] , \
+   mm_rol_32( M[ ( (j) + (off) ) & 0xF ] , \
                 ( ( (j) + (off) ) & 0xF ) + 1 )
 
 #define add_elt_s( M, H, j ) \
@@ -178,26 +178,26 @@ static const sph_u64 IV512[] = {
 #define sb0(x) \
    _mm256_xor_si256( _mm256_xor_si256( _mm256_srli_epi64( (x), 1), \
                                        _mm256_slli_epi64( (x), 3) ), \
-                     _mm256_xor_si256( mm256_rotl_64( (x),  4), \
-                                       mm256_rotl_64( (x), 37) ) )
+                     _mm256_xor_si256( mm256_rol_64( (x),  4), \
+                                       mm256_rol_64( (x), 37) ) )
 
 #define sb1(x) \
    _mm256_xor_si256( _mm256_xor_si256( _mm256_srli_epi64( (x), 1), \
                                        _mm256_slli_epi64( (x), 2) ), \
-                     _mm256_xor_si256( mm256_rotl_64( (x), 13), \
-                                       mm256_rotl_64( (x), 43) ) )
+                     _mm256_xor_si256( mm256_rol_64( (x), 13), \
+                                       mm256_rol_64( (x), 43) ) )
 
 #define sb2(x) \
    _mm256_xor_si256( _mm256_xor_si256( _mm256_srli_epi64( (x), 2), \
                                        _mm256_slli_epi64( (x), 1) ), \
-                     _mm256_xor_si256( mm256_rotl_64( (x), 19), \
-                                       mm256_rotl_64( (x), 53) ) )
+                     _mm256_xor_si256( mm256_rol_64( (x), 19), \
+                                       mm256_rol_64( (x), 53) ) )
 
 #define sb3(x) \
    _mm256_xor_si256( _mm256_xor_si256( _mm256_srli_epi64( (x), 2), \
                                        _mm256_slli_epi64( (x), 2) ), \
-                     _mm256_xor_si256( mm256_rotl_64( (x), 28), \
-                                       mm256_rotl_64( (x), 59) ) )
+                     _mm256_xor_si256( mm256_rol_64( (x), 28), \
+                                       mm256_rol_64( (x), 59) ) )
 
 #define sb4(x) \
   _mm256_xor_si256( (x), _mm256_srli_epi64( (x), 1 ) )
@@ -205,17 +205,17 @@ static const sph_u64 IV512[] = {
 #define sb5(x) \
   _mm256_xor_si256( (x), _mm256_srli_epi64( (x), 2 ) )
 
-#define rb1(x)    mm256_rotl_64( x,  5 ) 
-#define rb2(x)    mm256_rotl_64( x, 11 ) 
-#define rb3(x)    mm256_rotl_64( x, 27 ) 
-#define rb4(x)    mm256_rotl_64( x, 32 ) 
-#define rb5(x)    mm256_rotl_64( x, 37 ) 
-#define rb6(x)    mm256_rotl_64( x, 43 ) 
-#define rb7(x)    mm256_rotl_64( x, 53 ) 
+#define rb1(x)    mm256_rol_64( x,  5 ) 
+#define rb2(x)    mm256_rol_64( x, 11 ) 
+#define rb3(x)    mm256_rol_64( x, 27 ) 
+#define rb4(x)    mm256_rol_64( x, 32 ) 
+#define rb5(x)    mm256_rol_64( x, 37 ) 
+#define rb6(x)    mm256_rol_64( x, 43 ) 
+#define rb7(x)    mm256_rol_64( x, 53 ) 
 
 #define rol_off_64( M, j, off ) \
-   mm256_rotl_64( M[ ( (j) + (off) ) & 0xF ] , \
-                   ( ( (j) + (off) ) & 0xF ) + 1 )
+   mm256_rol_64( M[ ( (j) + (off) ) & 0xF ] , \
+                  ( ( (j) + (off) ) & 0xF ) + 1 )
 
 #define add_elt_b( M, H, j ) \
    _mm256_xor_si256( \
@@ -526,42 +526,42 @@ void compress_small( const __m128i *M, const __m128i H[16], __m128i dH[16] )
                                      _mm_slli_epi32( qt[23], 2 ) ) ),
                  _mm_xor_si128( _mm_xor_si128( xl, qt[31] ), qt[ 7] ));
    dH[ 8] = _mm_add_epi32( _mm_add_epi32(
-                 mm_rotl_32( dH[4], 9 ),
+                 mm_rol_32( dH[4], 9 ),
                  _mm_xor_si128( _mm_xor_si128( xh, qt[24] ), M[ 8] )),
                  _mm_xor_si128( _mm_slli_epi32( xl, 8 ),
                                 _mm_xor_si128( qt[23], qt[ 8] ) ) );
    dH[ 9] = _mm_add_epi32( _mm_add_epi32(
-                 mm_rotl_32( dH[5], 10 ),
+                 mm_rol_32( dH[5], 10 ),
                  _mm_xor_si128( _mm_xor_si128( xh, qt[25] ), M[ 9] )),
                  _mm_xor_si128( _mm_srli_epi32( xl, 6 ),
                                 _mm_xor_si128( qt[16], qt[ 9] ) ) );
    dH[10] = _mm_add_epi32( _mm_add_epi32(
-                 mm_rotl_32( dH[6], 11 ),
+                 mm_rol_32( dH[6], 11 ),
                  _mm_xor_si128( _mm_xor_si128( xh, qt[26] ), M[10] )),
                  _mm_xor_si128( _mm_slli_epi32( xl, 6 ),
                                 _mm_xor_si128( qt[17], qt[10] ) ) );
    dH[11] = _mm_add_epi32( _mm_add_epi32(
-                 mm_rotl_32( dH[7], 12 ),
+                 mm_rol_32( dH[7], 12 ),
                  _mm_xor_si128( _mm_xor_si128( xh, qt[27] ), M[11] )),
                  _mm_xor_si128( _mm_slli_epi32( xl, 4 ),
                                 _mm_xor_si128( qt[18], qt[11] ) ) );
    dH[12] = _mm_add_epi32( _mm_add_epi32(
-                 mm_rotl_32( dH[0], 13 ),
+                 mm_rol_32( dH[0], 13 ),
                  _mm_xor_si128( _mm_xor_si128( xh, qt[28] ), M[12] )),
                  _mm_xor_si128( _mm_srli_epi32( xl, 3 ),
                                 _mm_xor_si128( qt[19], qt[12] ) ) );
    dH[13] = _mm_add_epi32( _mm_add_epi32(
-                 mm_rotl_32( dH[1], 14 ),
+                 mm_rol_32( dH[1], 14 ),
                  _mm_xor_si128( _mm_xor_si128( xh, qt[29] ), M[13] )),
                  _mm_xor_si128( _mm_srli_epi32( xl, 4 ),
                                 _mm_xor_si128( qt[20], qt[13] ) ) );
    dH[14] = _mm_add_epi32( _mm_add_epi32(
-                 mm_rotl_32( dH[2], 15 ),
+                 mm_rol_32( dH[2], 15 ),
                  _mm_xor_si128( _mm_xor_si128( xh, qt[30] ), M[14] )),
                  _mm_xor_si128( _mm_srli_epi32( xl, 7 ),
                                 _mm_xor_si128( qt[21], qt[14] ) ) );
    dH[15] = _mm_add_epi32( _mm_add_epi32(
-                 mm_rotl_32( dH[3], 16 ),
+                 mm_rol_32( dH[3], 16 ),
                  _mm_xor_si128( _mm_xor_si128( xh, qt[31] ), M[15] )),
                  _mm_xor_si128( _mm_srli_epi32( xl, 2 ),
                                 _mm_xor_si128( qt[22], qt[15] ) ) );
@@ -819,42 +819,42 @@ void compress_big( const __m256i *M, const __m256i H[16], __m256i dH[16] )
                                         _mm256_slli_epi64( qt[23], 2 ) ) ),
                  _mm256_xor_si256( _mm256_xor_si256( xl, qt[31] ), qt[ 7] ));
    dH[ 8] = _mm256_add_epi64( _mm256_add_epi64(
-                 mm256_rotl_64( dH[4], 9 ),
+                 mm256_rol_64( dH[4], 9 ),
                  _mm256_xor_si256( _mm256_xor_si256( xh, qt[24] ), M[ 8] )),
                  _mm256_xor_si256( _mm256_slli_epi64( xl, 8 ),
                                    _mm256_xor_si256( qt[23], qt[ 8] ) ) );
    dH[ 9] = _mm256_add_epi64( _mm256_add_epi64(
-                 mm256_rotl_64( dH[5], 10 ),
+                 mm256_rol_64( dH[5], 10 ),
                  _mm256_xor_si256( _mm256_xor_si256( xh, qt[25] ), M[ 9] )),
                  _mm256_xor_si256( _mm256_srli_epi64( xl, 6 ),
                                    _mm256_xor_si256( qt[16], qt[ 9] ) ) );
    dH[10] = _mm256_add_epi64( _mm256_add_epi64(
-                 mm256_rotl_64( dH[6], 11 ),
+                 mm256_rol_64( dH[6], 11 ),
                  _mm256_xor_si256( _mm256_xor_si256( xh, qt[26] ), M[10] )),
                  _mm256_xor_si256( _mm256_slli_epi64( xl, 6 ),
                                    _mm256_xor_si256( qt[17], qt[10] ) ) );
    dH[11] = _mm256_add_epi64( _mm256_add_epi64(
-                 mm256_rotl_64( dH[7], 12 ),
+                 mm256_rol_64( dH[7], 12 ),
                  _mm256_xor_si256( _mm256_xor_si256( xh, qt[27] ), M[11] )),
                  _mm256_xor_si256( _mm256_slli_epi64( xl, 4 ),
                                    _mm256_xor_si256( qt[18], qt[11] ) ) );
    dH[12] = _mm256_add_epi64( _mm256_add_epi64(
-                 mm256_rotl_64( dH[0], 13 ),
+                 mm256_rol_64( dH[0], 13 ),
                  _mm256_xor_si256( _mm256_xor_si256( xh, qt[28] ), M[12] )),
                  _mm256_xor_si256( _mm256_srli_epi64( xl, 3 ),
                                    _mm256_xor_si256( qt[19], qt[12] ) ) );
    dH[13] = _mm256_add_epi64( _mm256_add_epi64(
-                 mm256_rotl_64( dH[1], 14 ),
+                 mm256_rol_64( dH[1], 14 ),
                  _mm256_xor_si256( _mm256_xor_si256( xh, qt[29] ), M[13] )),
                  _mm256_xor_si256( _mm256_srli_epi64( xl, 4 ),
                                    _mm256_xor_si256( qt[20], qt[13] ) ) );
    dH[14] = _mm256_add_epi64( _mm256_add_epi64(
-                 mm256_rotl_64( dH[2], 15 ),
+                 mm256_rol_64( dH[2], 15 ),
                  _mm256_xor_si256( _mm256_xor_si256( xh, qt[30] ), M[14] )),
                  _mm256_xor_si256( _mm256_srli_epi64( xl, 7 ),
                                    _mm256_xor_si256( qt[21], qt[14] ) ) );
    dH[15] = _mm256_add_epi64( _mm256_add_epi64(
-                 mm256_rotl_64( dH[3], 16 ),
+                 mm256_rol_64( dH[3], 16 ),
                  _mm256_xor_si256( _mm256_xor_si256( xh, qt[31] ), M[15] )),
                  _mm256_xor_si256( _mm256_srli_epi64( xl, 2 ),
                                    _mm256_xor_si256( qt[22], qt[15] ) ) );

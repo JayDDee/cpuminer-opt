@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include "algo/sha/sph_types.h"
 
-#if defined(__AVX__)
+#if defined(__SSE4_2__)
 
 #include "avxdefs.h"
 
@@ -34,5 +34,5 @@ void ripemd160_8way_close( ripemd160_8way_context *sc, void *dst );
 
 
 #endif // __AVX2__
-#endif // __AVX__
+#endif // __SSE4_2__
 #endif // RIPEMD_HASH_4WAY_H__

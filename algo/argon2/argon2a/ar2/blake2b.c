@@ -107,7 +107,7 @@ static const blake2b_state miou = {
 };
 
 
-int blake2b_init_param(blake2b_state *S, const blake2b_param *P)
+int ar2_blake2b_init_param(blake2b_state *S, const blake2b_param *P)
 {
 	const unsigned char *p = (const unsigned char *)P;
 	unsigned int i;
@@ -133,7 +133,7 @@ void compare_buffs(uint64_t *h, size_t outlen)
 }
 
 /* Sequential blake2b initialization */
-int blake2b_init(blake2b_state *S, size_t outlen)
+int ar2_blake2b_init(blake2b_state *S, size_t outlen)
 {
 	memcpy(S, &miou, sizeof(*S));
 	S->h[0] += outlen;
@@ -147,7 +147,7 @@ void print64(const char *name, const uint64_t *array, uint16_t size)
 	printf("};\n");
 }
 
-int blake2b_init_key(blake2b_state *S, size_t outlen, const void *key, size_t keylen)
+int ar2_blake2b_init_key(blake2b_state *S, size_t outlen, const void *key, size_t keylen)
 {
 	return 0;
 }
@@ -207,7 +207,7 @@ static void blake2b_compress(blake2b_state *S, const uint8_t *block)
 #undef ROUND
 }
 
-int blake2b_update(blake2b_state *S, const void *in, size_t inlen)
+int ar2_blake2b_update(blake2b_state *S, const void *in, size_t inlen)
 {
 	const uint8_t *pin = (const uint8_t *)in;
 	/* Complete current block */
@@ -235,7 +235,7 @@ void my_blake2b_update(blake2b_state *S, const void *in, size_t inlen)
 	S->buflen += (unsigned int)inlen;
 }
 
-int blake2b_final(blake2b_state *S, void *out, size_t outlen)
+int ar2_blake2b_final(blake2b_state *S, void *out, size_t outlen)
 {
 	uint8_t buffer[BLAKE2B_OUTBYTES] = {0};
 	unsigned int i;
@@ -257,48 +257,48 @@ int blake2b_final(blake2b_state *S, void *out, size_t outlen)
 	return 0;
 }
 
-int blake2b(void *out, const void *in, const void *key, size_t keylen)
+int ar2_blake2b(void *out, const void *in, const void *key, size_t keylen)
 {
 	blake2b_state S;
 
-	blake2b_init(&S, 64);
+	ar2_blake2b_init(&S, 64);
 	my_blake2b_update(&S, in, 64);
-	blake2b_final(&S, out, 64);
+	ar2_blake2b_final(&S, out, 64);
 	burn(&S, sizeof(S));
 	return 0;
 }
 
-void blake2b_too(void *pout, const void *in)
+void ar2_blake2b_too(void *pout, const void *in)
 {
 	uint8_t *out = (uint8_t *)pout;
 	uint8_t out_buffer[64];
 	uint8_t in_buffer[64];
 
 	blake2b_state blake_state;
-	blake2b_init(&blake_state, 64);
+	ar2_blake2b_init(&blake_state, 64);
 	blake_state.buflen = blake_state.buf[1] = 4;
 	my_blake2b_update(&blake_state, in, 72);
-	blake2b_final(&blake_state, out_buffer, 64);
+	ar2_blake2b_final(&blake_state, out_buffer, 64);
 	memcpy(out, out_buffer, 32);
 	out += 32;
 
 	register uint8_t i = 29;
 	while (i--) {
 		memcpy(in_buffer, out_buffer, 64);
-		blake2b(out_buffer, in_buffer, NULL, 0);
+		ar2_blake2b(out_buffer, in_buffer, NULL, 0);
 		memcpy(out, out_buffer, 32);
 		out += 32;
 	}
 
 	memcpy(in_buffer, out_buffer, 64);
-	blake2b(out_buffer, in_buffer, NULL, 0);
+	ar2_blake2b(out_buffer, in_buffer, NULL, 0);
 	memcpy(out, out_buffer, 64);
 
 	burn(&blake_state, sizeof(blake_state));
 }
 
 /* Argon2 Team - Begin Code */
-int blake2b_long(void *pout, const void *in)
+int ar2_blake2b_long(void *pout, const void *in)
 {
 	uint8_t *out = (uint8_t *)pout;
 	blake2b_state blake_state;
@@ -306,10 +306,10 @@ int blake2b_long(void *pout, const void *in)
 
 	store32(outlen_bytes, 32);
 
-	blake2b_init(&blake_state, 32);
+	ar2_blake2b_init(&blake_state, 32);
 	my_blake2b_update(&blake_state, outlen_bytes, sizeof(outlen_bytes));
-	blake2b_update(&blake_state, in, 1024);
-	blake2b_final(&blake_state, out, 32);
+	ar2_blake2b_update(&blake_state, in, 1024);
+	ar2_blake2b_final(&blake_state, out, 32);
 	burn(&blake_state, sizeof(blake_state));
 	return 0;
 }

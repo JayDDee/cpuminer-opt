@@ -51,7 +51,7 @@ inline void initState( uint64_t State[/*16*/] )
   state[3] = _mm256_set_epi64x( blake2b_IV[7], blake2b_IV[6],
                                 blake2b_IV[5], blake2b_IV[4] );
 
-#elif defined (__AVX__)
+#elif defined (__SSE4_2__)
 
   __m128i* state = (__m128i*)State;
 
@@ -137,7 +137,7 @@ inline void squeeze( uint64_t *State, byte *Out, unsigned int len )
     //Squeezes remaining bytes
     memcpy_256( out, state, ( len_m256i % BLOCK_LEN_M256I ) );
 
-#elif defined (__AVX__)
+#elif defined (__SSE4_2__)
 
     const int len_m128i = len / 16;
     const int fullBlocks = len_m128i / BLOCK_LEN_M128I;
@@ -186,16 +186,26 @@ inline void absorbBlock( uint64_t *State, const uint64_t *In )
 {
 #if defined (__AVX2__)
 
-    __m256i* state = (__m256i*)State;
-    __m256i* in = (__m256i*)In;
+    register __m256i state0, state1, state2, state3;
+    __m256i *in = (__m256i*)In;
 
-    state[0] = _mm256_xor_si256( state[0], in[0] );
-    state[1] = _mm256_xor_si256( state[1], in[1] );
-    state[2] = _mm256_xor_si256( state[2], in[2] );
+    state0 = _mm256_load_si256( (__m256i*)State     );
+    state1 = _mm256_load_si256( (__m256i*)State + 1 );
+    state2 = _mm256_load_si256( (__m256i*)State + 2 );
+    state3 = _mm256_load_si256( (__m256i*)State + 3 );
 
-    LYRA_12_ROUNDS_AVX2( state[0], state[1], state[2], state[3] );
+    state0 = _mm256_xor_si256( state0, in[0] );
+    state1 = _mm256_xor_si256( state1, in[1] );
+    state2 = _mm256_xor_si256( state2, in[2] );
 
-#elif defined (__AVX__)
+    LYRA_12_ROUNDS_AVX2( state0, state1, state2, state3 );
+
+    _mm256_store_si256( (__m256i*)State,     state0 );
+    _mm256_store_si256( (__m256i*)State + 1, state1 );
+    _mm256_store_si256( (__m256i*)State + 2, state2 );
+    _mm256_store_si256( (__m256i*)State + 3, state3 );
+
+#elif defined (__SSE4_2__)
 
     __m128i* state = (__m128i*)State;
     __m128i* in    = (__m128i*)In;
@@ -245,15 +255,25 @@ inline void absorbBlockBlake2Safe( uint64_t *State, const uint64_t *In )
     //XORs the first BLOCK_LEN_BLAKE2_SAFE_INT64 words of "in" with the current state
 #if defined (__AVX2__)
 
-    __m256i* state = (__m256i*)State;
-    __m256i* in    = (__m256i*)In;
+    register __m256i state0, state1, state2, state3;
+    __m256i *in = (__m256i*)In;
 
-    state[0] = _mm256_xor_si256( state[0], in[0] );
-    state[1] = _mm256_xor_si256( state[1], in[1] );
+    state0 = _mm256_load_si256( (__m256i*)State     );
+    state1 = _mm256_load_si256( (__m256i*)State + 1 );
+    state2 = _mm256_load_si256( (__m256i*)State + 2 );
+    state3 = _mm256_load_si256( (__m256i*)State + 3 );
 
-    LYRA_12_ROUNDS_AVX2( state[0], state[1], state[2], state[3] );
+    state0 = _mm256_xor_si256( state0, in[0] );
+    state1 = _mm256_xor_si256( state1, in[1] );
 
-#elif defined (__AVX__)
+    LYRA_12_ROUNDS_AVX2( state0, state1, state2, state3 );
+
+    _mm256_store_si256( (__m256i*)State,     state0 );
+    _mm256_store_si256( (__m256i*)State + 1, state1 );
+    _mm256_store_si256( (__m256i*)State + 2, state2 );
+    _mm256_store_si256( (__m256i*)State + 3, state3 );
+
+#elif defined (__SSE4_2__)
 
     __m128i* state = (__m128i*)State;
     __m128i* in    = (__m128i*)In;
@@ -301,13 +321,13 @@ inline void reducedSqueezeRow0( uint64_t* State, uint64_t* rowOut,
 
 #if defined (__AVX2__)
 
-    __m256i* state = (__m256i*)State;
-    __m256i  state0 = _mm256_load_si256(  state    );
-    __m256i  state1 = _mm256_load_si256( &state[1] );
-    __m256i  state2 = _mm256_load_si256( &state[2] );
-    __m256i  state3 = _mm256_load_si256( &state[3] );
-
+    register __m256i state0, state1, state2, state3;
     __m256i* out   = (__m256i*)rowOut + ( (nCols-1) * BLOCK_LEN_M256I );
+
+    state0 = _mm256_load_si256( (__m256i*)State     );
+    state1 = _mm256_load_si256( (__m256i*)State + 1 );
+    state2 = _mm256_load_si256( (__m256i*)State + 2 );
+    state3 = _mm256_load_si256( (__m256i*)State + 3 );
 
     for ( i = 0; i < 9; i += 3)
     {
@@ -330,13 +350,12 @@ inline void reducedSqueezeRow0( uint64_t* State, uint64_t* rowOut,
        LYRA_ROUND_AVX2( state0, state1, state2, state3 );
     }
 
-   _mm256_store_si256( state,     state0 );
-   _mm256_store_si256( &state[1], state1 );
-   _mm256_store_si256( &state[2], state2 );
-   _mm256_store_si256( &state[3], state3 );
+    _mm256_store_si256( (__m256i*)State,     state0 );
+    _mm256_store_si256( (__m256i*)State + 1, state1 );
+    _mm256_store_si256( (__m256i*)State + 2, state2 );
+    _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-
-#elif defined (__AVX__)
+#elif defined (__SSE4_2__)
 
     __m128i* state = (__m128i*)State;
     __m128i  state0 = _mm_load_si128(  state    );
@@ -429,14 +448,14 @@ inline void reducedDuplexRow1( uint64_t *State, uint64_t *rowIn,
 
 #if defined (__AVX2__)
 
-    __m256i* state = (__m256i*)State;
-    __m256i  state0 = _mm256_load_si256(  state    );
-    __m256i  state1 = _mm256_load_si256( &state[1] );
-    __m256i  state2 = _mm256_load_si256( &state[2] );
-    __m256i  state3 = _mm256_load_si256( &state[3] );
-
+    register __m256i state0, state1, state2, state3;
     __m256i* in    = (__m256i*)rowIn;
     __m256i* out   = (__m256i*)rowOut + ( (nCols-1) * BLOCK_LEN_M256I );
+
+    state0 = _mm256_load_si256( (__m256i*)State     );
+    state1 = _mm256_load_si256( (__m256i*)State + 1 );
+    state2 = _mm256_load_si256( (__m256i*)State + 2 );
+    state3 = _mm256_load_si256( (__m256i*)State + 3 );
 
     for ( i = 0; i < 9; i += 3)
     {
@@ -470,12 +489,12 @@ inline void reducedDuplexRow1( uint64_t *State, uint64_t *rowIn,
          out -= BLOCK_LEN_M256I;
     }
 
-   _mm256_store_si256( state,     state0 );
-   _mm256_store_si256( &state[1], state1 );
-   _mm256_store_si256( &state[2], state2 );
-   _mm256_store_si256( &state[3], state3 );
+    _mm256_store_si256( (__m256i*)State,     state0 );
+    _mm256_store_si256( (__m256i*)State + 1, state1 );
+    _mm256_store_si256( (__m256i*)State + 2, state2 );
+    _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-#elif defined (__AVX__)
+#elif defined (__SSE4_2__)
 
     __m128i* state = (__m128i*)State;
     __m128i  state0 = _mm_load_si128(  state    );
@@ -608,16 +627,16 @@ inline void reducedDuplexRowSetup( uint64_t *State, uint64_t *rowIn,
 
 #if defined (__AVX2__)
 
-    __m256i* state = (__m256i*)State;
-    __m256i  state0 = _mm256_load_si256(  state    );
-    __m256i  state1 = _mm256_load_si256( &state[1] );
-    __m256i  state2 = _mm256_load_si256( &state[2] );
-    __m256i  state3 = _mm256_load_si256( &state[3] );
-
+    register __m256i state0, state1, state2, state3;
     __m256i* in    = (__m256i*)rowIn;
     __m256i* inout = (__m256i*)rowInOut;
     __m256i* out   = (__m256i*)rowOut + ( (nCols-1) * BLOCK_LEN_M256I );
     __m256i  t0, t1, t2;
+
+    state0 = _mm256_load_si256( (__m256i*)State     );
+    state1 = _mm256_load_si256( (__m256i*)State + 1 );
+    state2 = _mm256_load_si256( (__m256i*)State + 2 );
+    state3 = _mm256_load_si256( (__m256i*)State + 3 );
 
     for ( i = 0; i < 9; i += 3)
     {
@@ -670,12 +689,12 @@ inline void reducedDuplexRowSetup( uint64_t *State, uint64_t *rowIn,
        out   -= BLOCK_LEN_M256I;
     }
 
-   _mm256_store_si256( state,     state0 );
-   _mm256_store_si256( &state[1], state1 );
-   _mm256_store_si256( &state[2], state2 );
-   _mm256_store_si256( &state[3], state3 );
+    _mm256_store_si256( (__m256i*)State,     state0 );
+    _mm256_store_si256( (__m256i*)State + 1, state1 );
+    _mm256_store_si256( (__m256i*)State + 2, state2 );
+    _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-#elif defined (__AVX__)
+#elif defined (__SSE4_2__)
 
     __m128i* in    = (__m128i*)rowIn;
     __m128i* inout = (__m128i*)rowInOut;
@@ -842,16 +861,16 @@ inline void reducedDuplexRow( uint64_t *State, uint64_t *rowIn,
 
 #if defined __AVX2__
 
-   __m256i* state = (__m256i*)State;
-   __m256i  state0 = _mm256_load_si256(  state    );
-   __m256i  state1 = _mm256_load_si256( &state[1] );
-   __m256i  state2 = _mm256_load_si256( &state[2] );
-   __m256i  state3 = _mm256_load_si256( &state[3] );
-
+   register __m256i state0, state1, state2, state3;
    __m256i* in    = (__m256i*)rowIn;
    __m256i* inout = (__m256i*)rowInOut;
    __m256i* out   = (__m256i*)rowOut;
    __m256i  t0, t1, t2;
+
+   state0 = _mm256_load_si256( (__m256i*)State     );
+   state1 = _mm256_load_si256( (__m256i*)State + 1 );
+   state2 = _mm256_load_si256( (__m256i*)State + 2 );
+   state3 = _mm256_load_si256( (__m256i*)State + 3 );
 
    for ( i = 0; i < 9; i += 3)
    {
@@ -906,12 +925,12 @@ inline void reducedDuplexRow( uint64_t *State, uint64_t *rowIn,
        inout += BLOCK_LEN_M256I;
    }
 
-   _mm256_store_si256( state,     state0 );
-   _mm256_store_si256( &state[1], state1 );
-   _mm256_store_si256( &state[2], state2 );
-   _mm256_store_si256( &state[3], state3 );
+   _mm256_store_si256( (__m256i*)State,     state0 );
+   _mm256_store_si256( (__m256i*)State + 1, state1 );
+   _mm256_store_si256( (__m256i*)State + 2, state2 );
+   _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-#elif defined __AVX__
+#elif defined(__SSE4_2__)
 
     __m128i* state = (__m128i*)State;
     __m128i* in    = (__m128i*)rowIn;

@@ -87,10 +87,10 @@ typedef  uint32_t set_t;
 #define EMPTY_SET       0
 #define SSE2_OPT        1
 #define AES_OPT         2  
-#define AVX_OPT         4
-#define AVX2_OPT        8
-#define SHA_OPT      0x10
-//#define FOUR_WAY_OPT 0x20
+#define SSE42_OPT       4
+#define AVX_OPT         8
+#define AVX2_OPT     0x10
+#define SHA_OPT      0x20
 
 // return set containing all elements from sets a & b
 inline set_t set_union ( set_t a, set_t b ) { return a | b; }

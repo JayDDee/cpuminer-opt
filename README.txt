@@ -19,7 +19,7 @@ Users are recommended to use an unoptimized miner such as cpuminer-multi.
 
 Exe name                Compile flags              Arch name
 
-cpuminer-sse2.exe      "-march=core2"              Core2, Nehalem   
+cpuminer-sse2.exe      "-msse2"                    Core2, Nehalem   
 cpuminer-aes-sse42.exe "-maes -msse4.2"            Westmere
 cpuminer-aes-avx.exe   "-march=corei7-avx"         Sandybridge, Ivybridge
 cpuminer-avx2.exe      "-march=core-avx2"          Haswell...

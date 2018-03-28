@@ -99,18 +99,18 @@ static const char *Argon2_ErrorMessage[] = {
 {ARGON2_MISSING_ARGS, */ "Missing arguments", /*},*/
 };
 
-int argon2d(argon2_context *context) { return argon2_core(context, Argon2_d); }
+int argon2d(argon2_context *context) { return ar2_argon2_core(context, Argon2_d); }
 
-int argon2i(argon2_context *context) { return argon2_core(context, Argon2_i); }
+int argon2i(argon2_context *context) { return ar2_argon2_core(context, Argon2_i); }
 
-int verify_d(argon2_context *context, const char *hash)
+int ar2_verify_d(argon2_context *context, const char *hash)
 {
 	int result;
 	/*if (0 == context->outlen || NULL == hash) {
 		return ARGON2_OUT_PTR_MISMATCH;
 	}*/
 
-	result = argon2_core(context, Argon2_d);
+	result = ar2_argon2_core(context, Argon2_d);
 
 	if (ARGON2_OK != result) {
 		return result;
@@ -223,7 +223,7 @@ static size_t to_base64(char *dst, size_t dst_len, const void *src)
  * The output length is always exactly 32 bytes.
  */
 
-int encode_string(char *dst, size_t dst_len, argon2_context *ctx)
+int ar2_encode_string(char *dst, size_t dst_len, argon2_context *ctx)
 {
 #define SS(str)                                                                \
 	do {                                                                       \

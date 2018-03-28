@@ -485,6 +485,8 @@ enum algos {
         ALGO_ALLIUM,
         ALGO_ANIME,
         ALGO_ARGON2,
+        ALGO_ARGON2DCRDS,
+        ALGO_ARGON2DDYN,
         ALGO_AXIOM,       
         ALGO_BASTION,
         ALGO_BLAKE,       
@@ -562,6 +564,8 @@ static const char* const algo_names[] = {
         "allium",
         "anime",
         "argon2",
+        "argon2d-crds",
+        "argon2d-dyn",
         "axiom",
         "bastion",
         "blake",
@@ -697,7 +701,9 @@ Options:\n\
   -a, --algo=ALGO       specify the algorithm to use\n\
                           allium       Garlicoin (GRLC)\n\
                           anime        Animecoin (ANI)\n\
-                          argon2\n\
+                          argon2       Argon2 Coin (AR2)\n\
+                          argon2d-crds Credits (CRDS)\n\
+                          argon2d-dyn  Dynamic (DYN)\n\
                           axiom        Shabal-256 MemoHash\n\
                           bastion\n\
                           blake        blake256r14 (SFR)\n\

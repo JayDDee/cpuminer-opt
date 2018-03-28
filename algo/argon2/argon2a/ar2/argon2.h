@@ -255,7 +255,7 @@ int argon2id(argon2_context *context);
  * specified by the context outlen member
  * @return  Zero if successful, a non zero error code otherwise
  */
-int verify_d(argon2_context *context, const char *hash);
+int ar2_verify_d(argon2_context *context, const char *hash);
 
 /*
  * Get the associated error message for given error code
@@ -283,7 +283,7 @@ const char *error_message(int error_code);
  * The output length is always exactly 32 bytes.
  */
 
-int encode_string(char *dst, size_t dst_len, argon2_context *ctx);
+int ar2_encode_string(char *dst, size_t dst_len, argon2_context *ctx);
 
 #if defined(__cplusplus)
 }

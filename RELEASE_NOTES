@@ -160,6 +160,12 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.8.5
+
+Added argon2d-crds and argon2d-dyn algos.
+sha256t 8 way AVX2 & 4 way SSE4.2 optimized.
+CPUs with SSE4.2 get optimizations previously reserved for AVX.
+
 v3.8.4.1
 
 Fixed sha256t low difficulty rejects.

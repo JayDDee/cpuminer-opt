@@ -17,7 +17,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#if defined(__AVX__)
+#if defined(__SSE4_2__)
 
 static const uint32_t blake2s_IV[8] =
 {
@@ -92,13 +92,13 @@ int blake2s_4way_compress( blake2s_4way_state *S, const __m128i* block )
 #define G4W(r,i,a,b,c,d) \
 do { \
    a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ blake2s_sigma[r][2*i+0] ] ); \
-   d = mm_rotr_32( _mm_xor_si128( d, a ), 16 ); \
+   d = mm_ror_32( _mm_xor_si128( d, a ), 16 ); \
    c = _mm_add_epi32( c, d ); \
-   b = mm_rotr_32( _mm_xor_si128( b, c ), 12 ); \
+   b = mm_ror_32( _mm_xor_si128( b, c ), 12 ); \
    a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ blake2s_sigma[r][2*i+1] ] ); \
-   d = mm_rotr_32( _mm_xor_si128( d, a ),  8 ); \
+   d = mm_ror_32( _mm_xor_si128( d, a ),  8 ); \
    c = _mm_add_epi32( c, d ); \
-   b = mm_rotr_32( _mm_xor_si128( b, c ),  7 ); \
+   b = mm_ror_32( _mm_xor_si128( b, c ),  7 ); \
 } while(0)
 
 #define ROUND4W(r)  \
@@ -210,14 +210,14 @@ int blake2s_8way_compress( blake2s_8way_state *S, const __m256i *block )
 do { \
    a = _mm256_add_epi32( _mm256_add_epi32( a, b ), \
                           m[ blake2s_sigma[r][2*i+0] ] ); \
-   d = mm256_rotr_32( _mm256_xor_si256( d, a ), 16 ); \
+   d = mm256_ror_32( _mm256_xor_si256( d, a ), 16 ); \
    c = _mm256_add_epi32( c, d ); \
-   b = mm256_rotr_32( _mm256_xor_si256( b, c ), 12 ); \
+   b = mm256_ror_32( _mm256_xor_si256( b, c ), 12 ); \
    a = _mm256_add_epi32( _mm256_add_epi32( a, b ), \
                          m[ blake2s_sigma[r][2*i+1] ] ); \
-   d = mm256_rotr_32( _mm256_xor_si256( d, a ),  8 ); \
+   d = mm256_ror_32( _mm256_xor_si256( d, a ),  8 ); \
    c = _mm256_add_epi32( c, d ); \
-   b = mm256_rotr_32( _mm256_xor_si256( b, c ),  7 ); \
+   b = mm256_ror_32( _mm256_xor_si256( b, c ),  7 ); \
 } while(0)
 
 #define ROUND8W(r)  \
@@ -359,4 +359,4 @@ int blake2s( uint8_t *out, const void *in, const void *key, const uint8_t outlen
 }
 #endif
 
-#endif // __AVX__
+#endif // __SSE4_2__

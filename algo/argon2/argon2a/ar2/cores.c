@@ -51,15 +51,15 @@
 #endif
 
 /***************Instance and Position constructors**********/
-void init_block_value(block *b, uint8_t in) { memset(b->v, in, sizeof(b->v)); }
+void ar2_init_block_value(block *b, uint8_t in) { memset(b->v, in, sizeof(b->v)); }
 //inline void init_block_value(block *b, uint8_t in) { memset(b->v, in, sizeof(b->v)); }
 
-void copy_block(block *dst, const block *src) {
+void ar2_copy_block(block *dst, const block *src) {
 //inline void copy_block(block *dst, const block *src) {
     memcpy(dst->v, src->v, sizeof(uint64_t) * ARGON2_WORDS_IN_BLOCK);
 }
 
-void xor_block(block *dst, const block *src) {
+void ar2_xor_block(block *dst, const block *src) {
 //inline void xor_block(block *dst, const block *src) {
     int i;
     for (i = 0; i < ARGON2_WORDS_IN_BLOCK; ++i) {
@@ -67,7 +67,7 @@ void xor_block(block *dst, const block *src) {
     }
 }
 
-static void load_block(block *dst, const void *input) {
+static void ar2_load_block(block *dst, const void *input) {
 //static inline void load_block(block *dst, const void *input) {
     unsigned i;
     for (i = 0; i < ARGON2_WORDS_IN_BLOCK; ++i) {
@@ -75,7 +75,7 @@ static void load_block(block *dst, const void *input) {
     }
 }
 
-static void store_block(void *output, const block *src) {
+static void ar2_store_block(void *output, const block *src) {
 //static inline void store_block(void *output, const block *src) {
     unsigned i;
     for (i = 0; i < ARGON2_WORDS_IN_BLOCK; ++i) {
@@ -84,7 +84,7 @@ static void store_block(void *output, const block *src) {
 }
 
 /***************Memory allocators*****************/
-int allocate_memory(block **memory, uint32_t m_cost) {
+int ar2_allocate_memory(block **memory, uint32_t m_cost) {
     if (memory != NULL) {
         size_t memory_size = sizeof(block) * m_cost;
         if (m_cost != 0 &&
@@ -105,34 +105,34 @@ int allocate_memory(block **memory, uint32_t m_cost) {
     }
 }
 
-void secure_wipe_memory(void *v, size_t n) { memset(v, 0, n); }
+void ar2_secure_wipe_memory(void *v, size_t n) { memset(v, 0, n); }
 //inline void secure_wipe_memory(void *v, size_t n) { memset(v, 0, n); }
 
 /*********Memory functions*/
 
-void clear_memory(argon2_instance_t *instance, int clear) {
+void ar2_clear_memory(argon2_instance_t *instance, int clear) {
 //inline void clear_memory(argon2_instance_t *instance, int clear) {
     if (instance->memory != NULL && clear) {
-        secure_wipe_memory(instance->memory,
+        ar2_secure_wipe_memory(instance->memory,
                            sizeof(block) * /*instance->memory_blocks*/16);
     }
 }
 
-void free_memory(block *memory) { free(memory); }
+void ar2_free_memory(block *memory) { free(memory); }
 //inline void free_memory(block *memory) { free(memory); }
 
-void finalize(const argon2_context *context, argon2_instance_t *instance) {
+void ar2_finalize(const argon2_context *context, argon2_instance_t *instance) {
     if (context != NULL && instance != NULL) {
         block blockhash;
-        copy_block(&blockhash, instance->memory + 15);
+        ar2_copy_block(&blockhash, instance->memory + 15);
 
         /* Hash the result */
         {
             uint8_t blockhash_bytes[ARGON2_BLOCK_SIZE];
-            store_block(blockhash_bytes, &blockhash);
-            blake2b_long(context->out, blockhash_bytes);
-            secure_wipe_memory(blockhash.v, ARGON2_BLOCK_SIZE);
-            secure_wipe_memory(blockhash_bytes, ARGON2_BLOCK_SIZE); /* clear blockhash_bytes */
+            ar2_store_block(blockhash_bytes, &blockhash);
+            ar2_blake2b_long(context->out, blockhash_bytes);
+            ar2_secure_wipe_memory(blockhash.v, ARGON2_BLOCK_SIZE);
+            ar2_secure_wipe_memory(blockhash_bytes, ARGON2_BLOCK_SIZE); /* clear blockhash_bytes */
         }
 
 #ifdef GENKAT
@@ -142,11 +142,11 @@ void finalize(const argon2_context *context, argon2_instance_t *instance) {
         /* Clear memory */
         // clear_memory(instance, 1);
 
-        free_memory(instance->memory);
+        ar2_free_memory(instance->memory);
     }
 }
 
-uint32_t index_alpha(const argon2_instance_t *instance,
+uint32_t ar2_index_alpha(const argon2_instance_t *instance,
                      const argon2_position_t *position, uint32_t pseudo_rand,
                      int same_lane) {
     /*
@@ -207,7 +207,7 @@ uint32_t index_alpha(const argon2_instance_t *instance,
     return absolute_position;
 }
 
-void fill_memory_blocks(argon2_instance_t *instance) {
+void ar2_fill_memory_blocks(argon2_instance_t *instance) {
     uint32_t r, s;
 
     for (r = 0; r < 2; ++r) {
@@ -218,7 +218,7 @@ void fill_memory_blocks(argon2_instance_t *instance) {
             position.lane = 0;
             position.slice = (uint8_t)s;
             position.index = 0;
-            fill_segment(instance, position);
+            ar2_fill_segment(instance, position);
         }
 
 #ifdef GENKAT
@@ -227,19 +227,19 @@ void fill_memory_blocks(argon2_instance_t *instance) {
     }
 }
 
-void fill_first_blocks(uint8_t *blockhash, const argon2_instance_t *instance) {
+void ar2_fill_first_blocks(uint8_t *blockhash, const argon2_instance_t *instance) {
     /* Make the first and second block in each lane as G(H0||i||0) or
        G(H0||i||1) */
     uint8_t blockhash_bytes[ARGON2_BLOCK_SIZE];
     store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH, 0);
     store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH + 4, 0);
-    blake2b_too(blockhash_bytes, blockhash);
-    load_block(&instance->memory[0], blockhash_bytes);
+    ar2_blake2b_too(blockhash_bytes, blockhash);
+    ar2_load_block(&instance->memory[0], blockhash_bytes);
 
     store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH, 1);
-    blake2b_too(blockhash_bytes, blockhash);
-    load_block(&instance->memory[1], blockhash_bytes);
-    secure_wipe_memory(blockhash_bytes, ARGON2_BLOCK_SIZE);
+    ar2_blake2b_too(blockhash_bytes, blockhash);
+    ar2_load_block(&instance->memory[1], blockhash_bytes);
+    ar2_secure_wipe_memory(blockhash_bytes, ARGON2_BLOCK_SIZE);
 }
 
 
@@ -268,7 +268,7 @@ static const blake2b_state base_hash = {
 #define SALTLEN 32
 #define SECRETLEN 0
 #define ADLEN 0
-void initial_hash(uint8_t *blockhash, argon2_context *context,
+void ar2_initial_hash(uint8_t *blockhash, argon2_context *context,
                   argon2_type type) {
 
     uint8_t value[sizeof(uint32_t)];
@@ -280,7 +280,7 @@ void initial_hash(uint8_t *blockhash, argon2_context *context,
                    PWDLEN);
 
 
-    secure_wipe_memory(context->pwd, PWDLEN);
+    ar2_secure_wipe_memory(context->pwd, PWDLEN);
     context->pwdlen = 0;
 
     store32(&value, SALTLEN);
@@ -298,19 +298,19 @@ void initial_hash(uint8_t *blockhash, argon2_context *context,
     blake2b_final(&BlakeHash, blockhash, ARGON2_PREHASH_DIGEST_LENGTH);
 }
 
-int initialize(argon2_instance_t *instance, argon2_context *context) {
+int ar2_initialize(argon2_instance_t *instance, argon2_context *context) {
     /* 1. Memory allocation */
 
 
-    allocate_memory(&(instance->memory), 16);
+    ar2_allocate_memory(&(instance->memory), 16);
 
     /* 2. Initial hashing */
     /* H_0 + 8 extra bytes to produce the first blocks */
     /* Hashing all inputs */
     uint8_t blockhash[ARGON2_PREHASH_SEED_LENGTH];
-    initial_hash(blockhash, context, instance->type);
+    ar2_initial_hash(blockhash, context, instance->type);
     /* Zeroing 8 extra bytes */
-    secure_wipe_memory(blockhash + ARGON2_PREHASH_DIGEST_LENGTH,
+    ar2_secure_wipe_memory(blockhash + ARGON2_PREHASH_DIGEST_LENGTH,
                        ARGON2_PREHASH_SEED_LENGTH -
                            ARGON2_PREHASH_DIGEST_LENGTH);
 
@@ -320,14 +320,14 @@ int initialize(argon2_instance_t *instance, argon2_context *context) {
 
     /* 3. Creating first blocks, we always have at least two blocks in a slice
      */
-    fill_first_blocks(blockhash, instance);
+    ar2_fill_first_blocks(blockhash, instance);
     /* Clearing the hash */
-    secure_wipe_memory(blockhash, ARGON2_PREHASH_SEED_LENGTH);
+    ar2_secure_wipe_memory(blockhash, ARGON2_PREHASH_SEED_LENGTH);
 
     return ARGON2_OK;
 }
 
-int argon2_core(argon2_context *context, argon2_type type) {
+int ar2_argon2_core(argon2_context *context, argon2_type type) {
     argon2_instance_t instance;
     instance.memory = NULL;
     instance.type = type;
@@ -336,14 +336,14 @@ int argon2_core(argon2_context *context, argon2_type type) {
      * blocks
      */
 
-    int result = initialize(&instance, context);
+    int result = ar2_initialize(&instance, context);
     if (ARGON2_OK != result) return result;
 
     /* 4. Filling memory */
-    fill_memory_blocks(&instance);
+    ar2_fill_memory_blocks(&instance);
 
     /* 5. Finalization */
-    finalize(context, &instance);
+    ar2_finalize(context, &instance);
 
     return ARGON2_OK;
 }

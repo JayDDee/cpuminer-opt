@@ -20,7 +20,7 @@ bool register_blake2s_algo( algo_gate_t* gate )
   gate->hash      = (void*)&blake2s_hash;
 #endif
   gate->get_max64 = (void*)&blake2s_get_max64;
-  gate->optimizations = AVX_OPT | AVX2_OPT;
+  gate->optimizations = SSE42_OPT | AVX_OPT | AVX2_OPT;
   return true;
 };
 

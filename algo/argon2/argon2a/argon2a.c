@@ -24,7 +24,7 @@ inline void argon_call(void *out, void *in, void *salt, int type)
 	context.allocate_cbk = NULL;
 	context.free_cbk = NULL;
 
-	argon2_core(&context, type);
+	ar2_argon2_core(&context, type);
 }
 
 void argon2hash(void *output, const void *input)

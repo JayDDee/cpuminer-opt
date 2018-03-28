@@ -22,7 +22,7 @@ bool register_vanilla_algo( algo_gate_t* gate )
   gate->scanhash = (void*)&scanhash_blakecoin;
   gate->hash     = (void*)&blakecoinhash;
 #endif
-  gate->optimizations = AVX_OPT | AVX2_OPT;
+  gate->optimizations = SSE42_OPT | AVX_OPT | AVX2_OPT;
   gate->get_max64 = (void*)&blakecoin_get_max64;
   return true;
 }

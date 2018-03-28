@@ -30,7 +30,7 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
-#if defined (__AVX__)
+#if defined (__SSE4_2__)
 
 #include <stddef.h>
 #include <string.h>
@@ -363,14 +363,14 @@ static const sph_u64 CB[16] = {
 do { \
    a = _mm_add_epi32( _mm_add_epi32( _mm_xor_si128( \
                  _mm_set_epi32( c1, c1, c1, c1 ), m0 ), b ), a ); \
-   d = mm_rotr_32( _mm_xor_si128( d, a ), 16 ); \
+   d = mm_ror_32( _mm_xor_si128( d, a ), 16 ); \
    c = _mm_add_epi32( c, d ); \
-   b = mm_rotr_32( _mm_xor_si128( b, c ), 12 ); \
+   b = mm_ror_32( _mm_xor_si128( b, c ), 12 ); \
    a = _mm_add_epi32( _mm_add_epi32( _mm_xor_si128( \
                  _mm_set_epi32( c0, c0, c0, c0 ), m1 ), b ), a ); \
-   d = mm_rotr_32( _mm_xor_si128( d, a ), 8 ); \
+   d = mm_ror_32( _mm_xor_si128( d, a ), 8 ); \
    c = _mm_add_epi32( c, d ); \
-   b = mm_rotr_32( _mm_xor_si128( b, c ), 7 ); \
+   b = mm_ror_32( _mm_xor_si128( b, c ), 7 ); \
 } while (0)
 
 #if SPH_COMPACT_BLAKE_32
@@ -419,14 +419,14 @@ do { \
 do { \
    a = _mm256_add_epi32( _mm256_add_epi32( _mm256_xor_si256( \
                  _mm256_set1_epi32( c1 ), m0 ), b ), a ); \
-   d = mm256_rotr_32( _mm256_xor_si256( d, a ), 16 ); \
+   d = mm256_ror_32( _mm256_xor_si256( d, a ), 16 ); \
    c = _mm256_add_epi32( c, d ); \
-   b = mm256_rotr_32( _mm256_xor_si256( b, c ), 12 ); \
+   b = mm256_ror_32( _mm256_xor_si256( b, c ), 12 ); \
    a = _mm256_add_epi32( _mm256_add_epi32( _mm256_xor_si256( \
                  _mm256_set1_epi32( c0 ), m1 ), b ), a ); \
-   d = mm256_rotr_32( _mm256_xor_si256( d, a ), 8 ); \
+   d = mm256_ror_32( _mm256_xor_si256( d, a ), 8 ); \
    c = _mm256_add_epi32( c, d ); \
-   b = mm256_rotr_32( _mm256_xor_si256( b, c ), 7 ); \
+   b = mm256_ror_32( _mm256_xor_si256( b, c ), 7 ); \
 } while (0)
 
 #define ROUND_S_8WAY(r)   do { \
@@ -445,14 +445,14 @@ do { \
 #define GB_4WAY(m0, m1, c0, c1, a, b, c, d)   do { \
    a = _mm256_add_epi64( _mm256_add_epi64( _mm256_xor_si256( \
                  _mm256_set_epi64x( c1, c1, c1, c1 ), m0 ), b ), a ); \
-   d = mm256_rotr_64( _mm256_xor_si256( d, a ), 32 ); \
+   d = mm256_ror_64( _mm256_xor_si256( d, a ), 32 ); \
    c = _mm256_add_epi64( c, d ); \
-   b = mm256_rotr_64( _mm256_xor_si256( b, c ), 25 ); \
+   b = mm256_ror_64( _mm256_xor_si256( b, c ), 25 ); \
    a = _mm256_add_epi64( _mm256_add_epi64( _mm256_xor_si256( \
                  _mm256_set_epi64x( c0, c0, c0, c0 ), m1 ), b ), a ); \
-   d = mm256_rotr_64( _mm256_xor_si256( d, a ), 16 ); \
+   d = mm256_ror_64( _mm256_xor_si256( d, a ), 16 ); \
    c = _mm256_add_epi64( c, d ); \
-   b = mm256_rotr_64( _mm256_xor_si256( b, c ), 11 ); \
+   b = mm256_ror_64( _mm256_xor_si256( b, c ), 11 ); \
 } while (0)
 
 #if SPH_COMPACT_BLAKE_64

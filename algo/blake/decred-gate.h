@@ -18,7 +18,7 @@
 //                         uint64_t *hashes_done );
 #endif
 
-#if defined(__AVX2__)
+#if defined(__SSE4_2__)
   #define DECRED_4WAY
 #endif
 

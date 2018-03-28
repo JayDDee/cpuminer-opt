@@ -52,22 +52,22 @@ enum {
 };
 
 /* Streaming API */
-int blake2b_init(blake2b_state *S, size_t outlen);
-int blake2b_init_key(blake2b_state *S, size_t outlen, const void *key,
+int ar2_blake2b_init(blake2b_state *S, size_t outlen);
+int ar2_blake2b_init_key(blake2b_state *S, size_t outlen, const void *key,
 					 size_t keylen);
-int blake2b_init_param(blake2b_state *S, const blake2b_param *P);
-int blake2b_update(blake2b_state *S, const void *in, size_t inlen);
+int ar2_blake2b_init_param(blake2b_state *S, const blake2b_param *P);
+int ar2_blake2b_update(blake2b_state *S, const void *in, size_t inlen);
 void my_blake2b_update(blake2b_state *S, const void *in, size_t inlen);
-int blake2b_final(blake2b_state *S, void *out, size_t outlen);
+int ar2_blake2b_final(blake2b_state *S, void *out, size_t outlen);
 
 /* Simple API */
-int blake2b(void *out, const void *in, const void *key, size_t keylen);
+int ar2_blake2b(void *out, const void *in, const void *key, size_t keylen);
 
 /* Argon2 Team - Begin Code */
-int blake2b_long(void *out, const void *in);
+int ar2_blake2b_long(void *out, const void *in);
 /* Argon2 Team - End Code */
 /* Miouyouyou */
-void blake2b_too(void *out, const void *in);
+void ar2_blake2b_too(void *out, const void *in);
 
 #if defined(__cplusplus)
 }

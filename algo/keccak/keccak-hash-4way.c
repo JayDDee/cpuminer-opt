@@ -60,7 +60,7 @@ static const sph_u64 RC[] = {
 #define AND64(d, a, b)   (d = _mm256_and_si256(a,b))
 #define OR64(d, a, b)    (d = _mm256_or_si256(a,b))
 #define NOT64(d, s)      (d = _mm256_xor_si256(s,m256_neg1))
-#define ROL64(d, v, n)   (d = mm256_rotl_64(v, n))
+#define ROL64(d, v, n)   (d = mm256_rol_64(v, n))
 #define XOR64_IOTA       XOR64
 
 #define TH_ELT(t, c0, c1, c2, c3, c4, d0, d1, d2, d3, d4)   do { \

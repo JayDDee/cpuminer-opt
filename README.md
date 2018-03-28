@@ -42,7 +42,9 @@ Supported Algorithms
 
                           allium       Garlicoin
                           anime        Animecoin
-                          argon2
+                          argon2       Argon2 coin (AR2)
+                          argon2d-crds Credits (CRDS)
+                          argon2d-dyn  Dynamic (DYN)
                           axiom        Shabal-256 MemoHash
                           bastion
                           blake        Blake-256 (SFR)

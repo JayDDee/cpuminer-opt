@@ -40,7 +40,9 @@
 #include <string.h>
 #include "haval-hash-4way.h"
 
-#if defined (__AVX__)
+// won't compile with sse4.2
+//#if defined (__SSE4_2__)
+#if defined(__AVX__)
 
 #ifdef __cplusplus
 extern "C"{
@@ -134,8 +136,8 @@ extern "C"{
 #define STEP(n, p, x7, x6, x5, x4, x3, x2, x1, x0, w, c) \
 do { \
    __m128i t = FP ## n ## _ ## p(x6, x5, x4, x3, x2, x1, x0); \
-   x7 = _mm_add_epi32( _mm_add_epi32( mm_rotr_32( t, 7 ), \
-                                      mm_rotr_32( x7, 11 ) ), \
+   x7 = _mm_add_epi32( _mm_add_epi32( mm_ror_32( t, 7 ), \
+                                      mm_ror_32( x7, 11 ) ), \
                        _mm_add_epi32( w, _mm_set1_epi32( c ) ) ); \
 } while (0)
 

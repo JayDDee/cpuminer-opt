@@ -307,7 +307,7 @@ do { \
 #define TFBIG_MIX_4WAY(x0, x1, rc) \
 do { \
      x0 = _mm256_add_epi64( x0, x1 ); \
-     x1 = _mm256_xor_si256( mm256_rotl_64( x1, rc ), x0 ); \
+     x1 = _mm256_xor_si256( mm256_rol_64( x1, rc ), x0 ); \
 } while (0)
  
 

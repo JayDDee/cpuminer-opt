@@ -30,7 +30,7 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
-#if defined(__AVX__)
+#if defined(__SSE4_2__)
 
 #include <stddef.h>
 #include <string.h>
@@ -98,19 +98,19 @@ static const sph_u32 K256[64] = {
 
 #define BSG2_0(x) \
    _mm_xor_si128( _mm_xor_si128( \
-        mm_rotr_32(x,  2), mm_rotr_32(x, 13) ), mm_rotr_32( x, 22) )
+        mm_ror_32(x,  2), mm_ror_32(x, 13) ), mm_ror_32( x, 22) )
 
 #define BSG2_1(x) \
    _mm_xor_si128( _mm_xor_si128( \
-        mm_rotr_32(x,  6), mm_rotr_32(x, 11) ), mm_rotr_32( x, 25) )
+        mm_ror_32(x,  6), mm_ror_32(x, 11) ), mm_ror_32( x, 25) )
 
 #define SSG2_0(x) \
    _mm_xor_si128( _mm_xor_si128( \
-        mm_rotr_32(x,  7), mm_rotr_32(x, 18) ), _mm_srli_epi32(x, 3) ) 
+        mm_ror_32(x,  7), mm_ror_32(x, 18) ), _mm_srli_epi32(x, 3) ) 
 
 #define SSG2_1(x) \
    _mm_xor_si128( _mm_xor_si128( \
-        mm_rotr_32(x, 17), mm_rotr_32(x, 19) ), _mm_srli_epi32(x, 10) )
+        mm_ror_32(x, 17), mm_ror_32(x, 19) ), _mm_srli_epi32(x, 10) )
 
 #define SHA2s_4WAY_STEP(A, B, C, D, E, F, G, H, i, j) \
 do { \
@@ -311,19 +311,19 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
 
 #define BSG2_0x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-       mm256_rotr_32(x,  2), mm256_rotr_32(x, 13) ), mm256_rotr_32( x, 22) )
+       mm256_ror_32(x,  2), mm256_ror_32(x, 13) ), mm256_ror_32( x, 22) )
 
 #define BSG2_1x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-       mm256_rotr_32(x,  6), mm256_rotr_32(x, 11) ), mm256_rotr_32( x, 25) )
+       mm256_ror_32(x,  6), mm256_ror_32(x, 11) ), mm256_ror_32( x, 25) )
 
 #define SSG2_0x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-       mm256_rotr_32(x,  7), mm256_rotr_32(x, 18) ), _mm256_srli_epi32(x, 3) ) 
+       mm256_ror_32(x,  7), mm256_ror_32(x, 18) ), _mm256_srli_epi32(x, 3) ) 
 
 #define SSG2_1x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-       mm256_rotr_32(x, 17), mm256_rotr_32(x, 19) ), _mm256_srli_epi32(x, 10) )
+       mm256_ror_32(x, 17), mm256_ror_32(x, 19) ), _mm256_srli_epi32(x, 10) )
 
 #define SHA2x_MEXP( a, b, c, d ) \
      _mm256_add_epi32( _mm256_add_epi32( _mm256_add_epi32( \
@@ -644,19 +644,19 @@ static const sph_u64 K512[80] = {
 
 #define BSG5_0(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-        mm256_rotr_64(x, 28), mm256_rotr_64(x, 34) ), mm256_rotr_64(x, 39) )
+        mm256_ror_64(x, 28), mm256_ror_64(x, 34) ), mm256_ror_64(x, 39) )
 
 #define BSG5_1(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-        mm256_rotr_64(x, 14), mm256_rotr_64(x, 18) ), mm256_rotr_64(x, 41) )
+        mm256_ror_64(x, 14), mm256_ror_64(x, 18) ), mm256_ror_64(x, 41) )
 
 #define SSG5_0(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-        mm256_rotr_64(x, 1), mm256_rotr_64(x, 8) ), _mm256_srli_epi64(x, 7) ) 
+        mm256_ror_64(x,  1), mm256_ror_64(x,  8) ), _mm256_srli_epi64(x, 7) ) 
 
 #define SSG5_1(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-        mm256_rotr_64(x, 19), mm256_rotr_64(x, 61) ), _mm256_srli_epi64(x, 6) )
+        mm256_ror_64(x, 19), mm256_ror_64(x, 61) ), _mm256_srli_epi64(x, 6) )
 
 #define SHA3_4WAY_STEP(A, B, C, D, E, F, G, H, i) \
 do { \
@@ -781,4 +781,4 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
 }
 
 #endif  // __AVX2__
-#endif  // __AVX__
+#endif  // __SSE4_2__

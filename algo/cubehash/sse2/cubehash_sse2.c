@@ -22,7 +22,7 @@ static void transform( cubehashParam *sp )
 
 #ifdef __AVX2__
 
-    __m256i x0, x1, x2, x3, y0, y1;
+    register __m256i x0, x1, x2, x3, y0, y1;
 
     x0 = _mm256_load_si256( (__m256i*)sp->x     );
     x1 = _mm256_load_si256( (__m256i*)sp->x + 1 );   
@@ -33,20 +33,19 @@ static void transform( cubehashParam *sp )
     { 
         x2 = _mm256_add_epi32( x0, x2 );
         x3 = _mm256_add_epi32( x1, x3 );
-        y0 = x1;
-        y1 = x0;
-        x0 = _mm256_xor_si256( _mm256_slli_epi32( y0, 7 ),
+        y0 = x0;
+        x0 = _mm256_xor_si256( _mm256_slli_epi32( x1, 7 ),
+                               _mm256_srli_epi32( x1, 25 ) );
+        x1 = _mm256_xor_si256( _mm256_slli_epi32( y0, 7 ),
                                _mm256_srli_epi32( y0, 25 ) );
-        x1 = _mm256_xor_si256( _mm256_slli_epi32( y1, 7 ),
-                               _mm256_srli_epi32( y1, 25 ) );
         x0 = _mm256_xor_si256( x0, x2 );
         x1 = _mm256_xor_si256( x1, x3 );
         x2 = _mm256_shuffle_epi32( x2, 0x4e );
         x3 = _mm256_shuffle_epi32( x3, 0x4e );
         x2 = _mm256_add_epi32( x0, x2 );
         x3 = _mm256_add_epi32( x1, x3 );
-        y0 = _mm256_permute2f128_si256( x0, x0, 1 );
-        y1 = _mm256_permute2f128_si256( x1, x1, 1 );
+        y0 = _mm256_permute4x64_epi64( x0, 0x4e );
+        y1 = _mm256_permute4x64_epi64( x1, 0x4e );
         x0 = _mm256_xor_si256( _mm256_slli_epi32( y0, 11 ),
                                _mm256_srli_epi32( y0, 21 ) );
         x1 = _mm256_xor_si256( _mm256_slli_epi32( y1, 11 ), 

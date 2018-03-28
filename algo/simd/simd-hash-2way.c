@@ -576,14 +576,14 @@ do { \
 do { \
     TTl  = Fl( a,b,c,fun ); \
     TTh  = Fh( a,b,c,fun ); \
-    a##l = mm256_rotl_32( a##l, r ); \
-    a##h = mm256_rotl_32( a##h, r ); \
+    a##l = mm256_rol_32( a##l, r ); \
+    a##h = mm256_rol_32( a##h, r ); \
     w##l = _mm256_add_epi32( w##l, d##l ); \
     w##h = _mm256_add_epi32( w##h, d##h ); \
     TTl  = _mm256_add_epi32( TTl, w##l ); \
     TTh  = _mm256_add_epi32( TTh, w##h ); \
-    TTl  = mm256_rotl_32( TTl, s ); \
-    TTh  = mm256_rotl_32( TTh, s ); \
+    TTl  = mm256_rol_32( TTl, s ); \
+    TTh  = mm256_rol_32( TTh, s ); \
     PERM( z,d,a ); \
 } while(0)
 

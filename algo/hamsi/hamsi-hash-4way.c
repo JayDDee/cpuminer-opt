@@ -601,18 +601,18 @@ do { \
 
 #define L( a, b, c, d ) \
 do { \
-   a = mm256_rotl_32( a, 13 ); \
-   c = mm256_rotl_32( c,  3 ); \
+   a = mm256_rol_32( a, 13 ); \
+   c = mm256_rol_32( c,  3 ); \
    b = _mm256_xor_si256( b, _mm256_xor_si256( a, c ) ); \
    d = _mm256_xor_si256( d, _mm256_xor_si256( c, \
                                               _mm256_slli_epi32( a, 3 ) ) ); \
-   b = mm256_rotl_32( b, 1 ); \
-   d = mm256_rotl_32( d, 7 ); \
+   b = mm256_rol_32( b, 1 ); \
+   d = mm256_rol_32( d, 7 ); \
    a = _mm256_xor_si256( a, _mm256_xor_si256( b, d ) ); \
    c = _mm256_xor_si256( c, _mm256_xor_si256( d, \
                                               _mm256_slli_epi32( b, 7 ) ) ); \
-   a = mm256_rotl_32( a,  5 ); \
-   c = mm256_rotl_32( c, 22 ); \
+   a = mm256_rol_32( a,  5 ); \
+   c = mm256_rol_32( c, 22 ); \
 } while (0)
 
 #define DECL_STATE_BIG \

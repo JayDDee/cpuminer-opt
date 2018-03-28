@@ -50,11 +50,10 @@
 // 
 // Macros vs inline functions.
 //
-// Use macros for statement functions.
-// Use macros when updating multiple arguments.
-// Use inline functions when multiple statements or local variables are used.
-
-//TODO rename rotr/rotl to ror/rol to match AVX512 Intel names.
+// Macros are used for statement functions.
+// Macros are used when updating multiple arguments.
+// Inline functions are used when multiple statements or local variables are
+// needed.
 
 #include <inttypes.h>
 #include <immintrin.h>
@@ -217,15 +216,6 @@ static inline void memset_128( __m128i *dst, const __m128i a,  int n )
 static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 {   for ( int i = 0; i < n; i ++ ) dst[i] = src[i]; }
 
-/* broken
-// Compare data in memory, return true if different
-static inline bool memcmp_128( __m128i src1, __m128i src2, int n )
-{   for ( int i = 0; i < n; i++ )
-      if ( src1[i] != src2[i] ) return true;
-    return false;
-}
-*/
-
 // A couple of 64 bit scalar functions
 // n = bytes/8
 
@@ -244,34 +234,28 @@ static inline void memset_64( uint64_t *dst, uint64_t a,  int n )
 
 // Bitfield extraction/insertion.
 // Return a vector with n bits extracted and right justified from each
-// element of v starting at bit i.
+// element of v starting at bit i, v[ i+n..i ] >> i
 #define mm_bfextract_64( v, i, n ) \
-   _mm_srli_epi64( _mm_slli_epi64( v, 64 - i - n ), 64 - n ) 
+   _mm_srli_epi64( _mm_slli_epi64( v, 64 - ((i)+(n)) ), 64 - (n) ) 
 
 #define mm_bfextract_32( v, i, n ) \
-   _mm_srli_epi32( _mm_slli_epi32( v, 32 - i - n ), 32 - n )
+   _mm_srli_epi32( _mm_slli_epi32( v, 32 - ((i)+(n)) ), 32 - (n) )
 
 #define mm_bfextract_16( v, i, n ) \
-   _mm_srli_epi16( _mm_slli_epi16( v, 16 - i - n ), 16 - n )
+   _mm_srli_epi16( _mm_slli_epi16( v, 16 - ((i)+(n)) ), 16 - (n) )
 
 // Return v with n bits from a inserted starting at bit i.
 #define mm_bfinsert_64( v, a, i, n ) \
-   _mm_or_si128( \
-        _mm_and_si128( v, \
-                 _mm_srli_epi64( _mm_slli_epi64( m128_neg1, 64-n ), 64-i ) ), \
-        _mm_slli_epi64( a, i) )
+   _mm_or_si128( _mm_and_si128( v, _mm_srli_epi64( _mm_slli_epi64( \
+                    m128_neg1, 64-(n) ), 64-(i) ) ), _mm_slli_epi64( a, i ) )
 
 #define mm_bfinsert_32( v, a, i, n ) \
-   _mm_or_si128( \
-         _mm_and_si128( v, \
-                 _mm_srli_epi32( _mm_slli_epi32( m128_neg1, 32-n ), 32-i ) ), \
-         _mm_slli_epi32( a, i) )
+   _mm_or_si128( _mm_and_si128( v, _mm_srli_epi32( _mm_slli_epi32( \
+                    m128_neg1, 32-(n) ), 32-(i) ) ), _mm_slli_epi32( a, i ) )
 
 #define mm_bfinsert_16( v, a, i, n ) \
-   _mm_or_si128( \
-         _mm_and_si128( v, \
-                 _mm_srli_epi16( _mm_slli_epi16( m128_neg1, 16-n ), 16-i ) ), \
-         _mm_slli_epi16( a, i) )
+   _mm_or_si128( _mm_and_si128( v, _mm_srli_epi16( _mm_slli_epi16( \
+                    m128_neg1, 16-(n) ), 16-(i) ) ), _mm_slli_epi16( a, i) )
 
 // Return vector with bit i of each element in v set/cleared
 #define mm_bitset_64( v, i ) \
@@ -311,36 +295,23 @@ static inline void memset_64( uint64_t *dst, uint64_t a,  int n )
 // Never implemented by Intel and since removed from Zen by AMD.
 
 // Rotate bits in vector elements
-//TODO convert to macros and rename
 #define mm_ror_64( v, c ) \
    _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) )
-static inline __m128i mm_rotr_64( __m128i v, int c )
-{ return _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) ); }
 
 #define mm_rol_64( v, c ) \
    _mm_or_si128( _mm_slli_epi64( v, c ), _mm_srli_epi64( v, 64-(c) ) )
-//static inline __m128i mm_rotl_64( __m128i v, int c )
-//{ return _mm_or_si128( _mm_slli_epi64( v, c ), _mm_srli_epi64( v, 64-(c) ) ); }
 
 #define mm_ror_32( v, c ) \
    _mm_or_si128( _mm_srli_epi32( v, c ), _mm_slli_epi32( v, 32-(c) ) )
-static inline __m128i mm_rotr_32( __m128i v, int c )
-{ return _mm_or_si128( _mm_srli_epi32( v, c ), _mm_slli_epi32( v, 32-(c) ) ); }
 
 #define mm_rol_32( v, c ) \
    _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
-static inline __m128i mm_rotl_32( __m128i v, int c ) 
-{ return _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) ); }
 
 #define mm_ror_16( v, c ) \
    _mm_or_si128( _mm_srli_epi16( v, c ), _mm_slli_epi16( v, 16-(c) ) )
-//static inline __m128i mm_rotr_16( __m128i v, int c )
-//{ return _mm_or_si128( _mm_srli_epi16( v, c ), _mm_slli_epi16( v, 16-(c) ) ); }
 
 #define mm_rol_16( v, c ) \
    _mm_or_si128( _mm_slli_epi16( v, c ), _mm_srli_epi16( v, 16-(c) ) )
-//static inline __m128i mm_rotl_16( __m128i v, int c )
-//{ return _mm_or_si128( _mm_slli_epi16( v, c ), _mm_srli_epi16( v, 16-(c) ) ); }
 
 //
 // Rotate elements in vector
@@ -351,17 +322,17 @@ static inline __m128i mm_rotl_32( __m128i v, int c )
 #define mm_rol_1x32( v )   _mm_shuffle_epi32( v, 0x93 )
 
 #define mm_ror_1x16( v, c ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8(  1,  0, 15, 14, 13, 12, 11, 10 \
-                                       9,  8,  7,  6,  5,  4,  3,  2 ) )
+   _mm_shuffle_epi8( v, _mm_set_epi8(  1, 0,15,14,13,12,11,10 \
+                                       9, 8, 7, 6, 5, 4, 3, 2 ) )
 #define mm_rol_1x16( v, c ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8( 13, 12, 11, 10,  9,  8,  7,  6, \
-                                       5,  4,  3,  2,  1,  0, 15, 14 ) )
+   _mm_shuffle_epi8( v, _mm_set_epi8( 13,12,11,10, 9, 8, 7, 6, \
+                                       5, 4, 3, 2, 1, 0,15,14 ) )
 #define mm_ror_1x8( v, c ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8(  0, 15, 14, 13, 12, 11, 10,  9, \
-                                       8,  7,  6,  5,  4,  3,  2,  1 ) )
+   _mm_shuffle_epi8( v, _mm_set_epi8(  0,15,14,13,12,11,10, 9, \
+                                       8, 7, 6, 5, 4, 3, 2, 1 ) )
 #define mm_rol_1x8( v, c ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8( 14, 13, 12, 11, 10,  9,  8,  7, \
-                                       6,  5,  4,  3,  2,  1,  0, 15 ) )
+   _mm_shuffle_epi8( v, _mm_set_epi8( 14,13,12,11,10, 9, 8, 7, \
+                                       6, 5, 4, 3, 2, 1, 0,15 ) )
 
 // Less efficient shift but more versatile. Use only for odd number rotations.
 // Use shuffle above when possible.
@@ -392,7 +363,6 @@ static inline __m128i mm_rotl_32( __m128i v, int c )
 // blend_epi16 is more efficient but requires SSE4.1
 
 #if defined(__SSE4_1__)
-
 
 // No comparable rol.
 #define mm_ror256_1x64( v1, v2 ) \
@@ -740,15 +710,6 @@ static inline void memset_256( __m256i *dst, const __m256i a,  int n )
 static inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
 {   for ( int i = 0; i < n; i ++ ) dst[i] = src[i]; }
 
-/* broken
-// Compare data in memory, return true if different
-static inline bool memcmp_256( __m256i src1, __m256i src2, int n )
-{
-   for ( int i = 0; i < n; i++ )
-      if ( src1[i] != src2[i] ) return true;
-   return false;
-}
-*/
 
 //
 // Bit operations
@@ -768,25 +729,19 @@ static inline bool memcmp_256( __m256i src1, __m256i src2, int n )
 // Return v with bits [i..i+n] of each element replaced with the corresponding
 // bits from a.
 #define mm256_bfinsert_64( v, a, i, n ) \
-   _mm256_or_si256( \
-        _mm256_and_si256( v, \
-                          _mm256_srli_epi64( \
-                             _mm256_slli_epi64( m256_neg1, 64-n ), 64-i ) ), \
-        _mm256_slli_epi64( a, i) )
+   _mm256_or_si256( _mm256_and_si256( v, _mm256_srli_epi64( \
+                        _mm256_slli_epi64( m256_neg1, 64-(n) ), 64-(i) ) ), \
+                    _mm256_slli_epi64( a, i) )
 
 #define mm256_bfinsert_32( v,  a, i, n ) \
-   _mm256_or_si256( \
-        _mm256_and_si256( v, \
-                          _mm256_srli_epi32( \
-                             _mm256_slli_epi32( m256_neg1, 32-n ), 32-i ) ), \
-        _mm256_slli_epi32( a, i) )
+   _mm256_or_si256( _mm256_and_si256( v, _mm256_srli_epi32( \
+                        _mm256_slli_epi32( m256_neg1, 32-(n) ), 32-(i) ) ), \
+                    _mm256_slli_epi32( a, i) )
 
 #define mm256_bfinsert_16( v, a, i, n ) \
-   _mm256_or_si256( \
-        _mm256_and_si256( v, \
-                          _mm256_srli_epi16( \
-                             _mm256_slli_epi16( m256_neg1, 16-n ), 16-i ) ), \
-        _mm256_slli_epi16( a, i) )
+   _mm256_or_si256( _mm256_and_si256( v, _mm256_srli_epi16( \
+                        _mm256_slli_epi16( m256_neg1, 16-(n) ), 16-(i) ) ), \
+                    _mm256_slli_epi16( a, i) )
 
 // return bit n in position, all other bits cleared
 #define mm256_bitextract_64 ( x, n ) \
@@ -829,50 +784,29 @@ static inline bool memcmp_256( __m256i src1, __m256i src2, int n )
 
 //
 // Rotate each element of v by c bits
-//TODO convert to macros and rename
 #define mm256_ror_64( v, c ) \
    _mm256_or_si256( _mm256_srli_epi64( v, c ), \
                     _mm256_slli_epi64( v, 64-(c) ) )
-static inline __m256i mm256_rotr_64( __m256i v, int c )
-{
-   return _mm256_or_si256( _mm256_srli_epi64( v, c ),
-                           _mm256_slli_epi64( v, 64-(c) ) );
-}
 
 #define mm256_rol_64( v, c ) \
    _mm256_or_si256( _mm256_slli_epi64( v, c ), \
                     _mm256_srli_epi64( v, 64-(c) ) )
-static inline __m256i mm256_rotl_64( __m256i v, int c )
-{
-   return _mm256_or_si256( _mm256_slli_epi64( v, c ),
-                           _mm256_srli_epi64( v, 64-(c) ) );
-}
 
 #define mm256_ror_32( v, c ) \
    _mm256_or_si256( _mm256_srli_epi32( v, c ), \
                     _mm256_slli_epi32( v, 32-(c) ) )
-static inline __m256i mm256_rotr_32( __m256i v, int c )
-{
-   return _mm256_or_si256( _mm256_srli_epi32( v, c ),
-                           _mm256_slli_epi32( v, 32-(c) ) );
-}
 
 #define mm256_rol_32( v, c ) \
    _mm256_or_si256( _mm256_slli_epi32( v, c ), \
                            _mm256_srli_epi32( v, 32-(c) ) )
-static inline __m256i mm256_rotl_32( __m256i v, int c )
-{
-   return _mm256_or_si256( _mm256_slli_epi32( v, c ),
-                           _mm256_srli_epi32( v, 32-(c) ) );
-}
 
 #define  mm256_ror_16( v, c ) \
    _mm256_or_si256( _mm256_srli_epi16( v, c ), \
-                    _mm256_slli_epi16( v, 16-(c)) )
+                    _mm256_slli_epi16( v, 16-(c) )
 
 #define mm256_rol_16( v, c ) \
    _mm256_or_si256( _mm256_slli_epi16( v, c ), \
-                    _mm256_srli_epi16( v, 16-(c)) )
+                    _mm256_srli_epi16( v, 16-(c) )
 
 // Rotate bits in each element of v by amount in corresponding element of
 // index vector c
@@ -906,7 +840,7 @@ static inline __m256i mm256_rotl_32( __m256i v, int c )
 // AVX2 has no full vector permute for elements less than 32 bits.
 
 // Swap 128 bit elements in 256 bit vector.
-#define mm256_swap_128( v )      _mm256_permute4x64_epi64( v, 0x4e )
+#define mm256_swap_128( v )     _mm256_permute4x64_epi64( v, 0x4e )
 
 // Rotate 256 bit vector by one 64 bit element
 #define mm256_ror256_1x64( v )  _mm256_permute4x64_epi64( v, 0x39 )
@@ -929,7 +863,7 @@ static inline __m256i mm256_rotl_32( __m256i v, int c )
 // Rotate elements within lanes of 256 bit vector.
 
 // Swap 64 bit elements in each 128 bit lane.
-#define mm256_swap128_64( v )    _mm256_shuffle_epi32( v, 0x4e )
+#define mm256_swap128_64( v )   _mm256_shuffle_epi32( v, 0x4e )
 
 // Rotate each 128 bit lane by one 32 bit element.
 #define mm256_ror128_1x32( v )  _mm256_shuffle_epi32( v, 0x39 )
@@ -944,7 +878,7 @@ static inline __m256i mm256_rotl_32( __m256i v, int c )
                    _mm256_bsrli_epi128( v, 16-(c) ) )
 
 // Swap 32 bit elements in each 64 bit lane
-#define mm256_swap64_32( v )     _mm256_shuffle_epi32( v, 0xb1 )
+#define mm256_swap64_32( v )    _mm256_shuffle_epi32( v, 0xb1 )
 
 
 //
@@ -1050,7 +984,7 @@ inline __m256i mm256_aesenc_nokey_2x128_obs( __m256i x )
 
 //////////////////////////////////////////////////////////////
 
-#if defined(__AVX512F__)
+#if defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512BW__) && defined(__AVX512VBMI__)
 
 // Experimental, not tested.
 
@@ -1120,115 +1054,115 @@ inline __m256i mm256_aesenc_nokey_2x128_obs( __m256i x )
 // Rotate elements in 512 bit vector.
 
 #define mm512_swap_256( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 3,2,1,0, 7,6,5,4 )
+    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 3,2,1,0,  7,6,5,4 )
 
 #define mm512_ror_1x128( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 1,0, 7,6, 5,4, 3,2 )
+    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 1,0,  7,6,  5,4,  3,2 )
 #define mm512_rol_1x128( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 5,4, 3,2, 1,0, 7,6 )
+    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 5,4,  3,2,  1,0,  7,6 )
 
 #define mm512_ror_1x64( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 0, 7, 6, 5, 4, 3, 2, 1 )
+    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 0,7,6,5,4,3,2,1 )
 #define mm512_rol_1x64( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 6, 5, 4, 3, 2, 1, 0, 7 )
+    _mm512_permutexvar_epi64( v, _mm512_set_epi64x( 6,5,4,3,2,1,0,7 )
 
 #define mm512_ror_1x32( v ) \
-  _mm512_permutexvar_epi32( v, _mm512_set_epi32 \
-         (  0, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4 , 3,  2,  1 )
+  _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
+              0,15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1 )
 #define mm512_rol_1x32( v ) \
-  _mm512_permutexvar_epi32( v, _mm512_set_epi32 \
-         ( 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 15 )
+  _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
+             14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 15 )
 
 #define mm512_ror_1x16( v ) \
-   _mm512_permutexvar_epi16( v, _mm512_set_epi16 \
-         (  0, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, \
-           16, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1 )
+   _mm512_permutexvar_epi16( v, _mm512_set_epi16( \
+              0,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17, \
+             16,15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1 )
 #define mm512_rol_1x16( v ) \
-   _mm512_permutexvar_epi16( v, _mm512_set_epi16 \
-         ( 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, \
-           14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 31 )
+   _mm512_permutexvar_epi16( v, _mm512_set_epi16( \
+             30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15, \
+             14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,31 )
 
 #define mm512_ror_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi8 \
-         (  0, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, \
-           48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, \
-           32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, \
-           16, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1 )
+   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
+              0,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49, \
+             48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33, \
+             32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17, \
+             16,15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1 )
 #define mm512_rol_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi8 \
-         ( 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, \
-           46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, \
-           30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, \
-           14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 63 )
+   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
+             62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47, \
+             46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31, \
+             30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15, \
+             14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,63 )
 
 
 //
 // Rotate elements within 256 bit lanes of 512 bit vector.
 
-#define mm512_swap256_128( v )    _mm512_permutex_epi64( v, 0x4e )
+#define mm512_swap256_128( v )   _mm512_permutex_epi64( v, 0x4e )
 
 #define mm512_ror256_1x64( v )   _mm512_permutex_epi64( v, 0x39 )
 #define mm512_rol256_1x64( v )   _mm512_permutex_epi64( v, 0x93 )
 
 #define mm512_ror256_1x32( v ) \
    _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
-           8, 15, 14, 13, 12, 11, 10,  9,     0,  7,  6,  5,  4,  3,  2,  1 )
+             8,15,14,13,12,11,10, 9,   0, 7, 6, 5, 4, 3, 2, 1 )
 #define mm512_rol256_1x32( v ) \
    _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
-          14, 13, 12, 11, 10,  9,  8, 15,     6, 5, 4, 3, 2, 1, 0, 7 )
+            14,13,12,11,10, 9, 8,15,   6, 5, 4, 3, 2, 1, 0, 7 )
 
 #define mm512_ror256_1x16( v ) \
    _mm512_permutexvar_epi16( v, _mm512_set_epi16( \
-          16, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, \
-           0, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1 )
+            16,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17, \
+             0,15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1 )
 #define mm512_rol256_1x16( v ) \
    _mm512_permutexvar_epi16( v, _mm512_set_epi16( \
-          30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 31, \
-          14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 15 )
+            30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,31, \
+            14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,15 )
 
 #define mm512_ror256_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi8 \
-         ( 32, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, \
-           48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, \
-            0, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, \
-           16, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1 )
+   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
+            32,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49, \
+            48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33, \
+             0,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17, \
+            16,15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1 )
 #define mm512_rol256_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi8 \
-         ( 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, \
-           46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 63, \
-           30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, \
-           14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 31 )
+   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
+            62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47, \
+            46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,63, \
+            30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15, \
+            14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,31 )
 
 
 //
-// Rotate elements in 128 bit lanes of 512 bit vector.
+// Rotate elements within 128 bit lanes of 512 bit vector.
 
-#define mm512_swap128_64( v )     _mm512_permutex_epi64( v, 0xb1 )
+#define mm512_swap128_64( v )    _mm512_permutex_epi64( v, 0xb1 )
 
 #define mm512_ror128_1x32( v )   _mm512_shuffle_epi32( v, 0x39 )
 #define mm512_rol128_1x32( v )   _mm512_shuffle_epi32( v, 0x93 )
 
 #define mm512_ror128_1x16( v ) \
-  _mm512_permutexvar_epi16( v, _mm512_set_epi16( \
-         24, 31, 30, 29, 28, 27, 26, 25,    16, 23, 22, 21, 20, 19, 18, 17, \
-          8, 15, 14, 13, 12, 11, 10,  9,     0,  7,  6,  5,  4,  3,  2,  1 )
+   _mm512_permutexvar_epi16( v, _mm512_set_epi16( \
+            24,31,30,29,28,27,26,25,  16,23,22,21,20,19,18,17, \
+             8,15,14,13,12,11,10, 9,   0, 7, 6, 5, 4, 3, 2, 1 )
 #define mm512_rol128_1x16( v ) \
-  _mm512_permutexvar_epi16( v, _mm512_set_epi16( \
-         30, 29, 28, 27, 26, 25, 24, 31,    22, 21, 20, 19, 18, 17, 16, 23, \
-         14, 13, 12, 11, 10,  9,  8, 15,     6,  5,  4,  3,  2,  1,  0,  7 )
+   _mm512_permutexvar_epi16( v, _mm512_set_epi16( \
+            30,29,28,27,26,25,24,31,  22,21,20,19,18,17,16,23, \
+            14,13,12,11,10, 9, 8,15,   6, 5, 4, 3, 2, 1, 0, 7 )
 
 #define mm512_ror128_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi8 \
-         ( 48, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, \
-           32, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, \
-           16, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, \
-            0, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1 )
+   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
+            48,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49, \
+            32,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33, \
+            16,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17, \
+             0,15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1 )
 #define mm512_rol128_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi8 \
-         ( 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 63, \
-           46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 47, \
-           30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 31, \
-           14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1,  0, 15 )
+   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
+            62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,63, \
+            46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,47, \
+            30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,31, \
+            14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,15 )
 
 // Rotate 128 bit lanes by c bytes.  
 #define mm512_ror128_x8( v, c ) \
@@ -1247,24 +1181,24 @@ inline __m256i mm256_aesenc_nokey_2x128_obs( __m256i x )
 
 #define mm512_bswap_64( v ) \
   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
-       56, 57, 58, 59, 60, 61, 62, 63,    48, 49, 50, 51, 52, 53, 54, 55, \
-       40, 41, 42, 43, 44, 45, 46, 47,    32, 33, 34, 35, 36, 37, 38, 39, \
-       24, 25, 26, 27, 28, 29, 30, 31,    16, 17, 18, 19, 20, 21, 22, 23, \
-        8,  9, 10, 11, 12, 13, 14, 15,     0,  1,  2,  3,  4,  5,  6,  7, )
+            56,57,58,59,60,61,62,63,   48,49,50,51,52,53,54,55, \
+            40,41,42,43,44,45,46,47,   32,33,34,35,36,37,38,39, \
+            24,25,26,27,28,29,30,31,   16,17,18,19,20,21,22,23, \
+             8, 9,10,11,12,13,14,15,    0, 1, 2, 3, 4, 5, 6, 7, )
 
 #define mm512_bswap_32( v ) \
   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
-       60,61,62,63,  56,57,58,59,  52,53,54,55,  48,49,50,51, \
-       44,45,46,47,  40,41,42,43,  36,37,38,39,  32,33,34,35, \
-       28,29,30,31,  24,25,26,27,  20,21,22,23,  16,17,18,19, \
-       12,13,14,15,   8, 9,10,11,   4, 5, 6, 7,   0, 1, 2, 3 )
+            60,61,62,63,  56,57,58,59,  52,53,54,55,  48,49,50,51, \
+            44,45,46,47,  40,41,42,43,  36,37,38,39,  32,33,34,35, \
+            28,29,30,31,  24,25,26,27,  20,21,22,23,  16,17,18,19, \
+            12,13,14,15,   8, 9,10,11,   4, 5, 6, 7,   0, 1, 2, 3 )
 
 #define mm512_bswap_16( v ) \
   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
-      62,63,  60,61,  58,59,  56,57,  54,55,  52,53,  50,51,  48,49, \
-      46,47,  44,45,  42,43,  40,41,  38,39,  36,37,  34,35,  32,33, \
-      30,31,  28,29,  26,27,  24,25,  22,23,  20,21,  18,19,  16,17, \
-      14,15,  12,13,  10,11,   8, 9,   6, 7,   4, 5,   2, 3,   0, 1 )
+            62,63,  60,61,  58,59,  56,57,  54,55,  52,53,  50,51,  48,49, \
+            46,47,  44,45,  42,43,  40,41,  38,39,  36,37,  34,35,  32,33, \
+            30,31,  28,29,  26,27,  24,25,  22,23,  20,21,  18,19,  16,17, \
+            14,15,  12,13,  10,11,   8, 9,   6, 7,   4, 5,   2, 3,   0, 1 )
 
 
 #endif   // AVX512F
