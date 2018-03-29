@@ -17,6 +17,7 @@ void x16s_getAlgoString( const uint8_t* prevblock, char *output )
          output[j + 1] = output[j];
       }
       output[0] = oldVal;
+   }
 }
 
 
