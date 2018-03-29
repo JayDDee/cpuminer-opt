@@ -108,6 +108,7 @@ Supported Algorithms
                           x14          X14
                           x15          X15
                           x16r         Ravencoin
+                          x16s         Pigeoncoin
                           x17
                           xevan        Bitsend
                           yescrypt     Globalboost-Y (BSTY)
