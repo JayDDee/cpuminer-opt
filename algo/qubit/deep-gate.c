@@ -11,7 +11,7 @@ bool register_deep_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_deep;
   gate->hash      = (void*)&deep_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   return true;
 };
 

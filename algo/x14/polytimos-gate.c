@@ -2,7 +2,7 @@
 
 bool register_polytimos_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
 #ifdef POLYTIMOS_4WAY
   init_polytimos_4way_ctx();
   gate->scanhash  = (void*)&scanhash_polytimos_4way;

@@ -83,7 +83,8 @@ void ExpandAESKey256(__m128i *keys, const __m128i *KeyBuf)
     keys[14] = tmp1;
 }
 
-#ifdef __AVX__
+#ifdef __SSE4_2__
+//#ifdef __AVX__
 
 #define AESENC(i,j) \
     State[j] = _mm_aesenc_si128(State[j], ExpandedKey[j][i]);

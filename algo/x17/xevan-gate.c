@@ -16,7 +16,7 @@ bool register_xevan_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_xevan;
   gate->hash      = (void*)&xevan_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   gate->set_target = (void*)&xevan_set_target;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
   return true;

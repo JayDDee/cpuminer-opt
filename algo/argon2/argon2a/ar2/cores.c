@@ -295,7 +295,7 @@ void ar2_initial_hash(uint8_t *blockhash, argon2_context *context,
     store32(&value, ADLEN);
     my_blake2b_update(&BlakeHash, (const uint8_t *)&value, sizeof(value));
 
-    blake2b_final(&BlakeHash, blockhash, ARGON2_PREHASH_DIGEST_LENGTH);
+    ar2_blake2b_final(&BlakeHash, blockhash, ARGON2_PREHASH_DIGEST_LENGTH);
 }
 
 int ar2_initialize(argon2_instance_t *instance, argon2_context *context) {

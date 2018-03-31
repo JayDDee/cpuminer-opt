@@ -59,17 +59,28 @@ static const sph_u32 IV512[] = {
 	C32(0xE275EADE), C32(0x502D9FCD), C32(0xB9357178), C32(0x022A4B9A)
 };
 
-// Partially rotate elements in two 128 bit vectors as one 256 bit vector
-// and return the rotated high 128 bits.
+// Partially rotate elements in two 128 bit vectors a & b as one 256 bit vector
+// and return the rotated 128 bit vector a.
+// a[3:0] = { b[0], a[3], a[2], a[1] }
 #if defined(__SSSE3__)
 
-#define mm_ror256hi_1x32( hi, lo )  _mm_alignr_epi8( lo, hi, 4 )
+#define mm_ror256hi_1x32( a, b )  _mm_alignr_epi8( b, a, 4 )
 
 #else  // SSE2
 
-#define mm_ror256hi_1x32( hi, lo ) \
-   _mm_or_si128( _mm_srli_si128( hi,  4 ), \
-                 _mm_slli_si128( lo, 12 ) )
+#define mm_ror256hi_1x32( a, b ) \
+   _mm_or_si128( _mm_srli_si128( a,  4 ), \
+                 _mm_slli_si128( b, 12 ) )
+
+#endif
+
+#if defined(__AVX2__)
+// 2 way version of above
+// a[7:0] = { b[4], a[7], a[6], a[5], b[0], a[3], a[2], a[1] }
+
+#define mm256_ror2x256hi_1x32( a, b ) \
+   _mm256_blend_epi32( mm256_ror256_1x32( a ), \
+                       mm256_rol256_3x32( b ), 0x88 )
 
 #endif
 

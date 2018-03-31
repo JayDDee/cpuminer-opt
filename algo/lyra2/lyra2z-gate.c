@@ -21,7 +21,7 @@ bool register_lyra2z_algo( algo_gate_t* gate )
   gate->scanhash   = (void*)&scanhash_lyra2z;
   gate->hash       = (void*)&lyra2z_hash;
 #endif
-  gate->optimizations = SSE42_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations = SSE42_OPT | AVX2_OPT;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
   gate->set_target = (void*)&lyra2z_set_target;
   return true;

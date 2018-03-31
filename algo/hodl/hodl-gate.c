@@ -199,7 +199,7 @@ bool register_hodl_algo( algo_gate_t* gate )
 //     return false;
 //  }
   pthread_barrier_init( &hodl_barrier, NULL, opt_n_threads );
-  gate->optimizations         = AES_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations         = AES_OPT | SSE42_OPT | AVX2_OPT;
   gate->scanhash              = (void*)&hodl_scanhash;
   gate->get_new_work          = (void*)&hodl_get_new_work;
   gate->longpoll_rpc_call     = (void*)&hodl_longpoll_rpc_call;

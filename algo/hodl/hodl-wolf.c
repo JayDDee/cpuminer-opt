@@ -17,7 +17,8 @@ void GenerateGarbageCore( CacheEntry *Garbage, int ThreadID, int ThreadCount,
     const uint32_t StartChunk = ThreadID * Chunk;
     const uint32_t EndChunk   = StartChunk + Chunk;
 
-#ifdef __AVX__
+#ifdef __SSE4_2__
+//#ifdef __AVX__
     uint64_t* TempBufs[ SHA512_PARALLEL_N ] ;
     uint64_t* desination[ SHA512_PARALLEL_N ];
 
@@ -63,7 +64,8 @@ void Rev256(uint32_t *Dest, const uint32_t *Src)
 int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
                         uint64_t *hashes_done )
 {
-#ifdef __AVX__
+#ifdef __SSE4_2__
+//#ifdef __AVX__
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
     CacheEntry *Garbage = (CacheEntry*)hodl_scratchbuf;

@@ -778,7 +778,7 @@ bool scrypt_miner_thread_init( int thr_id )
 
 bool register_scrypt_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | AVX_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT;
   gate->miner_thread_init =(void*)&scrypt_miner_thread_init;
   gate->scanhash         = (void*)&scanhash_scrypt;
 //  gate->hash             = (void*)&scrypt_1024_1_1_256_24way;

@@ -29,8 +29,12 @@ enum x16r_Algo {
         X16R_HASH_FUNC_COUNT
 };
 
+bool (*x16_r_s_getAlgoString) ( const char*, char* );
+void x16r_getAlgoString( const char* prevblock, char *output );
+void x16s_getAlgoString( const char* prevblock, char *output );
+
 bool register_x16r_algo( algo_gate_t* gate );
-void x16r_getAlgoString( const uint8_t* prevblock, char *output );
+bool register_x16s_algo( algo_gate_t* gate );
 
 #if defined(X16R_4WAY)
 

@@ -86,7 +86,7 @@ void x16r_4way_hash( void* output, const void* input )
    if ( s_ntime == UINT32_MAX )
    {
       const uint8_t* tmp = (uint8_t*) in0;
-      x16r_getAlgoString( &tmp[4], hashOrder );
+      x16_r_s_getAlgoString( &tmp[4], hashOrder );
    }
 
    // Input data is both 64 bit interleaved (input)
@@ -321,10 +321,11 @@ int scanhash_x16r_4way( int thr_id, struct work *work, uint32_t max_nonce,
    for ( int k=0; k < 19; k++ )
       be32enc( &endiandata[k], pdata[k] );
 
-   if ( s_ntime != pdata[17] )
+//   if ( s_ntime != pdata[17] )
+   if ( s_ntime != endiandata[17] )
    {
       uint32_t ntime = swab32(pdata[17]);
-      x16r_getAlgoString( (const char*) (&endiandata[1]), hashOrder );
+      x16_r_s_getAlgoString( (const char*) (&endiandata[1]), hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
               applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );

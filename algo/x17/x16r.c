@@ -43,7 +43,7 @@ typedef struct {
 #endif
         sph_blake512_context    blake;
         sph_bmw512_context      bmw;
-       sph_skein512_context    skein;
+        sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
         hashState_luffa         luffa;
@@ -61,27 +61,7 @@ x16r_ctx_holder x16r_ctx __attribute__ ((aligned (64)));
 
 void init_x16r_ctx()
 {
-//#ifdef NO_AES_NI
-//   sph_groestl512_init(&x16r_ctx.groestl );
-//   sph_echo512_init(&x16r_ctx.echo);
-//#else
-//   init_echo( &x16r_ctx.echo, 512 );
-//   init_groestl( &x16r_ctx.groestl, 64 );
-//#endif
-//   sph_blake512_init( &x16r_ctx.blake );
-//   sph_bmw512_init( &x16r_ctx.bmw );
-//   sph_skein512_init( &x16r_ctx.bmw );
-//   sph_jh512_init( &x16r_ctx.jh );
-//   sph_keccak512_init( &x16r_ctx.keccak );
-//   init_luffa( &x16r_ctx.luffa, 512 );
    cubehashInit( &x16r_ctx.cube, 512, 16, 32 );
-//   sph_shavite512_init( &x16r_ctx.shavite );
-//   init_sd( &x16r_ctx.simd, 512 );
-//   sph_hamsi512_init( &x16r_ctx.hamsi );
-//   sph_fugue512_init( &x16r_ctx.fugue );
-//   sph_shabal512_init( &x16r_ctx.shabal );
-//   sph_whirlpool_init( &x16r_ctx.whirlpool );
-//   SHA512_Init( &x16r_ctx.sha512 );
 };
 
 void x16r_hash( void* output, const void* input )
@@ -94,7 +74,7 @@ void x16r_hash( void* output, const void* input )
    if ( s_ntime == UINT32_MAX )
    {
       const uint8_t* in8 = (uint8_t*) input;
-      x16r_getAlgoString( &in8[4], hashOrder );
+      x16_r_s_getAlgoString( &in8[4], hashOrder );
    }
 
    for ( int i = 0; i < 16; i++ )
@@ -218,10 +198,14 @@ int scanhash_x16r( int thr_id, struct work *work, uint32_t max_nonce,
    for ( int k=0; k < 19; k++ )
       be32enc( &endiandata[k], pdata[k] );
 
+// This code is suspicious. s_ntime is saved after byteswapping pdata[17]
+// but is tested vs unswapped pdata[17]. This should result in calling
+// getAlgoString every pass, but that doesn't seem to be the case.
+// It appears to be working correctly as is.
    if ( s_ntime != pdata[17] )
    {
       uint32_t ntime = swab32(pdata[17]);
-      x16r_getAlgoString( (const char*) (&endiandata[1]), hashOrder );
+      x16_r_s_getAlgoString( (const char*) (&endiandata[1]), hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
               applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );

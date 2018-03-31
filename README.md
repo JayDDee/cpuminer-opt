@@ -107,9 +107,10 @@ Supported Algorithms
                           x13sm3       hsr (Hshare)
                           x14          X14
                           x15          X15
-                          x16r         Ravencoin
+                          x16r         Ravencoin (RVN)
+                          x16s         pigeoncoin (PGN)
                           x17
-                          xevan        Bitsend
+                          xevan        Bitsend (BSD)
                           yescrypt     Globalboost-Y (BSTY)
                           yescryptr8   BitZeny (ZNY)
                           yescryptr16  Yenten (YTN)
@@ -118,6 +119,8 @@ Supported Algorithms
 
 Errata
 ------
+
+Neoscrypt crashes on Windows, use legacy version.
 
 AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
 supported by cpuminer-opt due to an incompatible implementation of SSE2 on

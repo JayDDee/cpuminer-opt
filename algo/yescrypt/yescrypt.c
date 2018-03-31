@@ -427,7 +427,7 @@ int64_t yescryptr16_get_max64()
 
 void yescrypt_gate_base(algo_gate_t *gate )
 {
-   gate->optimizations = SSE2_OPT | AVX_OPT | SHA_OPT;
+   gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yescrypt;
    gate->hash       = (void*)&yescrypt_hash;
    gate->set_target = (void*)&scrypt_set_target;

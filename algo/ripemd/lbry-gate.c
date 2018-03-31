@@ -110,7 +110,7 @@ int64_t lbry_get_max64() { return 0x1ffffLL; }
 
 bool register_lbry_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | AVX_OPT | AVX2_OPT | SHA_OPT;
+  gate->optimizations = AVX2_OPT | SHA_OPT;
 #if defined (LBRY_8WAY)
   gate->scanhash              = (void*)&scanhash_lbry_8way;
   gate->hash                  = (void*)&lbry_8way_hash;

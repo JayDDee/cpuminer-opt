@@ -1,20 +1,13 @@
 #ifndef AVXDEFS_H__
 #define AVXDEFS_H__
 
-// Some tools to help using AVX and AVX2.
+// Some tools to help using SIMD vectors.
 //
-// The baseline requirements for these utilities is AVX for 128 bit vectors
-// and AVX2 for 256 bit vectors. However most of the 128 bit code requires
-// only SSE2 with a couple of exceptions. This provides full support for
-// Intel Core2.
-//
-// SSSE3 is required for mm_shuffle_epi8 used by bswap functions which is
-// included in Core2 but not some AMD architectures.
-//
-// SSE4.1 is required for _mm_blend_epi16 used by some rotate functions.
+// The baseline requirements for these utilities is SSE2 for 128 bit vectors
+// and AVX2 for 256 bit vectors.
 // 
-// Slower versions of these functions are automatically selected at compile
-// time.
+// Some 128 bit functions have SSSE3 or SSE4.2 implementations that are
+// more efficient on capable CPUs.
 //
 // AVX512F has more powerful 256 bit instructions but with 512 bit vectors
 // available there is little reason to use the 256 bit enhancements.
@@ -159,6 +152,11 @@ static inline __m128i foo()
 // These can't be used for compile time initialization.
 // These should be used for all simple vectors. Use above for
 // vector array initializing.
+//
+// _mm_setzero_si128 uses pxor instruction, it's unclear what _mm_set_epi does.
+// If a pseudo constant is used repeatedly in a function it may be worthwhile
+// to define a register variable to represent that constant.
+// register __m128i zero = mm_zero;
 
 // Constant zero
 #define m128_zero      _mm_setzero_si128()
@@ -425,7 +423,7 @@ do { \
  v1 = t; \
 } while(0)
 
-/*
+
 // No comparable rol.
 #define mm_ror256_1x16( v1, v2 ) \
 do { \
@@ -433,8 +431,8 @@ do { \
    v1 = _mm_alignr_epi8( v2, v1, 2 ); \
    v2 = t; \
 } while(0)
-*/
 
+/*
 #define mm_ror256_1x16( v1, v2 ) \
 do { \
  __m128i t; \
@@ -444,6 +442,7 @@ do { \
  v2 = _mm_blend_epi16( v1, v2, 0x01 ); \
  v1 = t; \
 } while(0)
+*/
 
 #define mm_rol256_1x16( v1, v2 ) \
 do { \
@@ -888,6 +887,41 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
 #define mm256_ror512_1x128(v1, v2)  _mm256_permute2x128_si256( v1, v2, 0x39 )
 #define mm256_rol512_1x128(v1, v2)  _mm256_permute2x128_si256( v1, v2, 0x93 )
 
+// No comparable rol.
+#define mm256_ror512_1x64( v1, v2 ) \
+do { \
+   __m256i t = _mm256_alignr_epi8( v1, v2, 8 ); \
+   v1 = _mm256_alignr_epi8( v2, v1, 8 ); \
+   v2 = t; \
+} while(0)
+
+#define mm256_rol512_1x64( v1, v2 ) \
+do { \
+ __m256i t; \
+ v1 = mm256_rol_1x64( v1 ); \
+ v2 = mm256_rol_1x64( v2 ); \
+ t  = _mm256_blend_epi32( v1, v2, 0x03 ); \
+ v2 = _mm256_blend_epi32( v1, v2, 0xFC ); \
+ v1 = t; \
+} while(0)
+
+#define mm256_ror512_1x32( v1, v2 ) \
+do { \
+   __m256i t = _mm256_alignr_epi8( v1, v2, 4 ); \
+   v1 = _mm256_alignr_epi8( v2, v1, 4 ); \
+   v2 = t; \
+} while(0)
+
+#define mm256_rol512_1x32( v1, v2 ) \
+do { \
+ __m256i t; \
+ v1 = mm256_rol_1x32( v1 ); \
+ v2 = mm256_rol_1x32( v2 ); \
+ t  = _mm256_blend_epi32( v1, v2, 0x01 ); \
+ v2 = _mm256_blend_epi32( v1, v2, 0xFE ); \
+ v1 = t; \
+} while(0)
+
 
 //
 // Swap bytes in vector elements
@@ -914,7 +948,7 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
 // usefulness tbd
 // __m128i hi, __m128i lo, returns __m256i
 #define mm256_pack_2x128( hi, lo ) \
-   _mm256_inserti128_si256( _mm256_castsi128_si256( hi ), lo, 0 ) \
+   _mm256_inserti128_si256( _mm256_castsi128_si256( lo ), hi, 1 ) \
 
 // __m128i hi, __m128i lo, __m256i src 
 #define mm256_unpack_2x128( hi, lo, src ) \

@@ -160,6 +160,12 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.8.6
+
+Fixed argon2 regression in v3.8.5.
+Added x16s algo for Pigeoncoin.
+Some code cleanup.
+
 v3.8.5
 
 Added argon2d-crds and argon2d-dyn algos.

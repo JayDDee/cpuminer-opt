@@ -11,13 +11,6 @@ bool register_sha256t_algo( algo_gate_t* gate )
 #else
     gate->scanhash   = (void*)&scanhash_sha256t;
     gate->hash       = (void*)&sha256t_hash;
-/*
-#ifndef USE_SPH_SHA
-    SHA256_Init( &sha256t_ctx );
-#else
-    sph_sha256_init( &sha256t_ctx );
-#endif
-*/
 #endif
     gate->optimizations = SSE42_OPT | AVX2_OPT | SHA_OPT;
     gate->get_max64  = (void*)&get_max64_0x3ffff;

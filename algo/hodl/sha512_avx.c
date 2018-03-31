@@ -1,5 +1,6 @@
 #ifndef __AVX2__
-#ifdef __AVX__
+#ifdef __SSE4_2__
+//#ifdef __AVX__
 
 //Dependencies
 #include <string.h>
