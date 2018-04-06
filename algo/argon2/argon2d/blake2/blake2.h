@@ -4,7 +4,7 @@
  * Copyright 2015
  * Daniel Dinu, Dmitry Khovratovich, Jean-Philippe Aumasson, and Samuel Neves
  *
- * You may use this work under the terms of a Creative Commons CC0 1.0 
+ * You may use this work under the terms of a Creative Commons CC0 1.0
  * License/Waiver or the Apache Public License 2.0, at your option. The terms of
  * these licenses can be found at:
  *
@@ -78,7 +78,7 @@ int blake2b_final(blake2b_state *S, void *out, size_t outlen);
 
 /* Simple API */
 int blake2b(void *out, size_t outlen, const void *in, size_t inlen,
-            const void *key, size_t keylen);
+                         const void *key, size_t keylen);
 
 /* Argon2 Team - Begin Code */
 int blake2b_long(void *out, size_t outlen, const void *in, size_t inlen);

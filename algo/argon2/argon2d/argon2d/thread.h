@@ -4,7 +4,7 @@
  * Copyright 2015
  * Daniel Dinu, Dmitry Khovratovich, Jean-Philippe Aumasson, and Samuel Neves
  *
- * You may use this work under the terms of a Creative Commons CC0 1.0 
+ * You may use this work under the terms of a Creative Commons CC0 1.0
  * License/Waiver or the Apache Public License 2.0, at your option. The terms of
  * these licenses can be found at:
  *
@@ -46,7 +46,7 @@ typedef pthread_t argon2_thread_handle_t;
  * @param func A function pointer for the thread's entry point. Must not be
  * NULL.
  * @param args Pointer that is passed as an argument to @func. May be NULL.
- * @return 0 if @handle and @func are valid pointers and a thread is successfuly
+ * @return 0 if @handle and @func are valid pointers and a thread is successfully
  * created.
  */
 int argon2_thread_create(argon2_thread_handle_t *handle,

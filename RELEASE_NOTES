@@ -13,11 +13,11 @@ Security warning
 ----------------
 
 Miner programs are often flagged as malware by antivirus programs. This is
-a false positive, they are flagged simply because they are miners. The source
-code is open for anyone to inspect. If you don't trust the software, don't use
-it.
+a false positive, they are flagged simply because they are cryptocurrency 
+miners. The source code is open for anyone to inspect. If you don't trust 
+the software, don't use it.
 
-The cryptographic code has been taken from trusted sources but has been
+The cryptographic hashing code has been taken from trusted sources but has been
 modified for speed at the expense of accepted security practices. This
 code should not be imported into applications where secure cryptography is
 required.
@@ -159,6 +159,11 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.8.6.1
+
+Faster argon2d* AVX2.
+Untested AVX-512 for argon2d*, YMMV.
 
 v3.8.6
 

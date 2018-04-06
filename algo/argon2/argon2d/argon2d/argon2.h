@@ -4,7 +4,7 @@
  * Copyright 2015
  * Daniel Dinu, Dmitry Khovratovich, Jean-Philippe Aumasson, and Samuel Neves
  *
- * You may use this work under the terms of a Creative Commons CC0 1.0 
+ * You may use this work under the terms of a Creative Commons CC0 1.0
  * License/Waiver or the Apache Public License 2.0, at your option. The terms of
  * these licenses can be found at:
  *
@@ -29,10 +29,13 @@ extern "C" {
 /* Symbols visibility control */
 #ifdef A2_VISCTL
 #define ARGON2_PUBLIC __attribute__((visibility("default")))
+#define ARGON2_LOCAL __attribute__ ((visibility ("hidden")))
 #elif _MSC_VER
 #define ARGON2_PUBLIC __declspec(dllexport)
+#define ARGON2_LOCAL
 #else
 #define ARGON2_PUBLIC
+#define ARGON2_LOCAL
 #endif
 
 /*
@@ -206,6 +209,8 @@ typedef struct Argon2_Context {
     uint32_t lanes;   /* number of lanes */
     uint32_t threads; /* maximum number of threads */
 
+    uint32_t version; /* version number */
+
     allocate_fptr allocate_cbk; /* pointer to memory allocator */
     deallocate_fptr free_cbk;   /* pointer to memory deallocator */
 
@@ -214,8 +219,17 @@ typedef struct Argon2_Context {
 
 /* Argon2 primitive type */
 typedef enum Argon2_type {
-  Argon2_d = 0
+  Argon2_d = 0,
+  Argon2_i = 1,
+  Argon2_id = 2
 } argon2_type;
+
+/* Version of the algorithm */
+typedef enum Argon2_version {
+    ARGON2_VERSION_10 = 0x10,
+    ARGON2_VERSION_13 = 0x13,
+    ARGON2_VERSION_NUMBER = ARGON2_VERSION_10
+} argon2_version;
 
 /*
  * Function that gives the string representation of an argon2_type.
@@ -233,8 +247,30 @@ ARGON2_PUBLIC const char *argon2_type2string(argon2_type type, int uppercase);
 ARGON2_PUBLIC int argon2_ctx(argon2_context *context, argon2_type type);
 
 /**
- * Hashes a password with Argon2i, producing a raw hash by allocating memory at
- * @hash
+ * Hashes a password with Argon2i, producing an encoded hash
+ * @param t_cost Number of iterations
+ * @param m_cost Sets memory usage to m_cost kibibytes
+ * @param parallelism Number of threads and compute lanes
+ * @param pwd Pointer to password
+ * @param pwdlen Password size in bytes
+ * @param salt Pointer to salt
+ * @param saltlen Salt size in bytes
+ * @param hashlen Desired length of the hash in bytes
+ * @param encoded Buffer where to write the encoded hash
+ * @param encodedlen Size of the buffer (thus max size of the encoded hash)
+ * @pre   Different parallelism levels will give different results
+ * @pre   Returns ARGON2_OK if successful
+ */
+ARGON2_PUBLIC int argon2i_hash_encoded(const uint32_t t_cost,
+                                       const uint32_t m_cost,
+                                       const uint32_t parallelism,
+                                       const void *pwd, const size_t pwdlen,
+                                       const void *salt, const size_t saltlen,
+                                       const size_t hashlen, char *encoded,
+                                       const size_t encodedlen);
+
+/**
+ * Hashes a password with Argon2i, producing a raw hash at @hash
  * @param t_cost Number of iterations
  * @param m_cost Sets memory usage to m_cost kibibytes
  * @param parallelism Number of threads and compute lanes
@@ -247,7 +283,7 @@ ARGON2_PUBLIC int argon2_ctx(argon2_context *context, argon2_type type);
  * @pre   Different parallelism levels will give different results
  * @pre   Returns ARGON2_OK if successful
  */
-ARGON2_PUBLIC int argon2d_hash_raw(const uint32_t t_cost, const uint32_t m_cost,
+ARGON2_PUBLIC int argon2i_hash_raw(const uint32_t t_cost, const uint32_t m_cost,
                                    const uint32_t parallelism, const void *pwd,
                                    const size_t pwdlen, const void *salt,
                                    const size_t saltlen, void *hash,
@@ -261,13 +297,35 @@ ARGON2_PUBLIC int argon2d_hash_encoded(const uint32_t t_cost,
                                        const size_t hashlen, char *encoded,
                                        const size_t encodedlen);
 
+ARGON2_PUBLIC int argon2d_hash_raw(const uint32_t t_cost, const uint32_t m_cost,
+                                   const uint32_t parallelism, const void *pwd,
+                                   const size_t pwdlen, const void *salt,
+                                   const size_t saltlen, void *hash,
+                                   const size_t hashlen);
+
+ARGON2_PUBLIC int argon2id_hash_encoded(const uint32_t t_cost,
+                                        const uint32_t m_cost,
+                                        const uint32_t parallelism,
+                                        const void *pwd, const size_t pwdlen,
+                                        const void *salt, const size_t saltlen,
+                                        const size_t hashlen, char *encoded,
+                                        const size_t encodedlen);
+
+ARGON2_PUBLIC int argon2id_hash_raw(const uint32_t t_cost,
+                                    const uint32_t m_cost,
+                                    const uint32_t parallelism, const void *pwd,
+                                    const size_t pwdlen, const void *salt,
+                                    const size_t saltlen, void *hash,
+                                    const size_t hashlen);
+
 /* generic function underlying the above ones */
 ARGON2_PUBLIC int argon2_hash(const uint32_t t_cost, const uint32_t m_cost,
                               const uint32_t parallelism, const void *pwd,
                               const size_t pwdlen, const void *salt,
                               const size_t saltlen, void *hash,
                               const size_t hashlen, char *encoded,
-                              const size_t encodedlen, argon2_type type);
+                              const size_t encodedlen, argon2_type type,
+                              const uint32_t version);
 
 /**
  * Verifies a password against an encoded string
@@ -276,8 +334,14 @@ ARGON2_PUBLIC int argon2_hash(const uint32_t t_cost, const uint32_t m_cost,
  * @param pwd Pointer to password
  * @pre   Returns ARGON2_OK if successful
  */
+ARGON2_PUBLIC int argon2i_verify(const char *encoded, const void *pwd,
+                                 const size_t pwdlen);
+
 ARGON2_PUBLIC int argon2d_verify(const char *encoded, const void *pwd,
                                  const size_t pwdlen);
+
+ARGON2_PUBLIC int argon2id_verify(const char *encoded, const void *pwd,
+                                  const size_t pwdlen);
 
 /* generic function underlying the above ones */
 ARGON2_PUBLIC int argon2_verify(const char *encoded, const void *pwd,
@@ -294,6 +358,27 @@ ARGON2_PUBLIC int argon2_verify(const char *encoded, const void *pwd,
 ARGON2_PUBLIC int argon2d_ctx(argon2_context *context);
 
 /**
+ * Argon2i: Version of Argon2 that picks memory blocks
+ * independent on the password and salt. Good for side-channels,
+ * but worse w.r.t. tradeoff attacks if only one pass is used.
+ *****
+ * @param  context  Pointer to current Argon2 context
+ * @return  Zero if successful, a non zero error code otherwise
+ */
+ARGON2_PUBLIC int argon2i_ctx(argon2_context *context);
+
+/**
+ * Argon2id: Version of Argon2 where the first half-pass over memory is
+ * password-independent, the rest are password-dependent (on the password and
+ * salt). OK against side channels (they reduce to 1/2-pass Argon2i), and
+ * better with w.r.t. tradeoff attacks (similar to Argon2d).
+ *****
+ * @param  context  Pointer to current Argon2 context
+ * @return  Zero if successful, a non zero error code otherwise
+ */
+ARGON2_PUBLIC int argon2id_ctx(argon2_context *context);
+
+/**
  * Verify if a given password is correct for Argon2d hashing
  * @param  context  Pointer to current Argon2 context
  * @param  hash  The password hash to verify. The length of the hash is
@@ -301,6 +386,25 @@ ARGON2_PUBLIC int argon2d_ctx(argon2_context *context);
  * @return  Zero if successful, a non zero error code otherwise
  */
 ARGON2_PUBLIC int argon2d_verify_ctx(argon2_context *context, const char *hash);
+
+/**
+ * Verify if a given password is correct for Argon2i hashing
+ * @param  context  Pointer to current Argon2 context
+ * @param  hash  The password hash to verify. The length of the hash is
+ * specified by the context outlen member
+ * @return  Zero if successful, a non zero error code otherwise
+ */
+ARGON2_PUBLIC int argon2i_verify_ctx(argon2_context *context, const char *hash);
+
+/**
+ * Verify if a given password is correct for Argon2id hashing
+ * @param  context  Pointer to current Argon2 context
+ * @param  hash  The password hash to verify. The length of the hash is
+ * specified by the context outlen member
+ * @return  Zero if successful, a non zero error code otherwise
+ */
+ARGON2_PUBLIC int argon2id_verify_ctx(argon2_context *context,
+                                      const char *hash);
 
 /* generic function underlying the above ones */
 ARGON2_PUBLIC int argon2_verify_ctx(argon2_context *context, const char *hash,
@@ -325,18 +429,6 @@ ARGON2_PUBLIC const char *argon2_error_message(int error_code);
 ARGON2_PUBLIC size_t argon2_encodedlen(uint32_t t_cost, uint32_t m_cost,
                                        uint32_t parallelism, uint32_t saltlen,
                                        uint32_t hashlen, argon2_type type);
-
-#ifdef __AVX2__
-
-///////////////////////////
-// Wolf's Additions
-///////////////////////////
-
-void WolfArgon2dPoWHash(void *Output, void *Matrix, const void *BlkHdr);
-void WolfArgon2dAllocateCtx(void **Matrix);
-void WolfArgon2dFreeCtx(void *Matrix);
-
-#endif
 
 #if defined(__cplusplus)
 }

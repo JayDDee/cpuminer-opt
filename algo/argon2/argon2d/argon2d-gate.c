@@ -70,7 +70,7 @@ bool register_argon2d_crds_algo( algo_gate_t* gate )
         gate->scanhash = (void*)&scanhash_argon2d_crds;
         gate->hash = (void*)&argon2d_crds_hash;
         gate->set_target = (void*)&scrypt_set_target;
-        gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
+        gate->optimizations = SSE2_OPT | AVX2_OPT;
 }
 
 // Dynamic
@@ -138,6 +138,6 @@ bool register_argon2d_dyn_algo( algo_gate_t* gate )
         gate->scanhash = (void*)&scanhash_argon2d_dyn;
         gate->hash = (void*)&argon2d_dyn_hash;
         gate->set_target = (void*)&scrypt_set_target;
-        gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
+        gate->optimizations = SSE2_OPT | AVX2_OPT;
 }
 

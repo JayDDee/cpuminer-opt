@@ -7,6 +7,11 @@ All of the code is believed to be open and free. If anyone has a
 claim to any of it post your case in the cpuminer-opt Bitcoin Talk forum
 or by email.
 
+Miner programs are often flagged as malware by antivirus programs. This is
+a false positive, they are flagged simply because they are cryptocurrency 
+miners. The source code is open for anyone to inspect. If you don't trust 
+the software, don't use it.
+
 https://bitcointalk.org/index.php?topic=1326803.0
 
 mailto://jayddee246@gmail.com

@@ -1034,7 +1034,7 @@ inline __m256i mm256_aesenc_nokey_2x128_obs( __m256i x )
 //
 // Pseudo constants.
 
-#define m512_zero _mm512_setzero_si512()
+#define m512_zero           _mm512_setzero_si512()
 #define m512_one_512        _mm512_set_epi64x(  0ULL, 0ULL, 0ULL, 0ULL, \
                                                 0ULL, 0ULL, 0ULL, 1ULL )
 #define m512_one_256        _mm512_set4_epi64x( 0ULL, 0ULL, 0ULL, 1ULL )

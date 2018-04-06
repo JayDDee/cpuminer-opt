@@ -4,6 +4,11 @@ for Linux and Windows can be found in RELEASE_NOTES.
 cpuminer is a console program that is executed from a DOS command prompt.
 There is no GUI and no mouse support.
 
+Miner programs are often flagged as malware by antivirus programs. This is
+a false positive, they are flagged simply because they are cryptocurrency 
+miners. The source code is open for anyone to inspect. If you don't trust
+the software, don't use it.
+
 Choose the exe that best matches you CPU's features or use trial and
 error to find the fastest one that doesn't crash. Pay attention to
 the features listed at cpuminer startup to ensure you are mining at
