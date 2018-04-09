@@ -21,14 +21,15 @@ AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
 supported by cpuminer-opt due to an incompatible implementation of SSE2 on
 these CPUs. Some algos may crash the miner with an invalid instruction.
 Users are recommended to use an unoptimized miner such as cpuminer-multi.
+Changes in v3.8.4 may have improved compatibility with some of these CPUs.
 
-Exe name                Compile flags              Arch name
 
-cpuminer-sse2.exe      "-msse2"                    Core2, Nehalem   
-cpuminer-aes-sse42.exe "-maes -msse4.2"            Westmere
-cpuminer-aes-avx.exe   "-march=corei7-avx"         Sandybridge, Ivybridge
-cpuminer-avx2.exe      "-march=core-avx2"          Haswell...
-cpuminer-avx2-sha.exe  "-march=core-avx2 -msha"    Ryzen
+Exe name                Compile flags            Arch name
+
+cpuminer-sse2.exe      "-msse2"                  Core2, Nehalem   
+cpuminer-aes-sse42.exe "-maes -msse4.2"          Westmere, Sandy-Ivybridge
+cpuminer-avx2.exe      "-march=core-avx2"        Haswell, Sky-Kaby-Coffeelake
+cpuminer-avx2-sha.exe  "-march=core-avx2 -msha"  Ryzen
 
 If you like this software feel free to donate:
 

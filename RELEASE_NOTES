@@ -81,7 +81,7 @@ cd cpuminer-opt-x.y.z
 Run ./build.sh to build on Linux or execute the following commands.
 
 ./autogen.sh
-CFLAGS="-O3 -march=native -Wall" CXXFLAGS="$CFLAGS -std=gnu++11" ./configure --with-curl
+CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
 make
 
 Additional optional compile flags, add the following to CFLAGS to activate:
@@ -159,6 +159,15 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.8.7
+
+Added argon2d4096 (alias argon2d-uis) for Unitus (UIS).
+argon2d-crds and argon2d-dyn renamed to argon2d250 and argon2d500 respectively.
+  The old names are recognized as aliases.
+AVX512 is now supported for argon2d algos, Linux only.
+AVX is no longer a reported feature and an AVX Windows binary is no longer
+  provided. Use AES-SSE42 build instead.
 
 v3.8.6.1
 

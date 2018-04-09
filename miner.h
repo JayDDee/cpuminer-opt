@@ -333,6 +333,7 @@ bool   has_sha();
 bool   has_aes_ni();
 bool   has_avx1();
 bool   has_avx2();
+bool   has_avx512f();
 bool   has_sse2();
 bool   has_xop();
 bool   has_fma3();
@@ -485,8 +486,9 @@ enum algos {
         ALGO_ALLIUM,
         ALGO_ANIME,
         ALGO_ARGON2,
-        ALGO_ARGON2DCRDS,
-        ALGO_ARGON2DDYN,
+        ALGO_ARGON2D250,
+        ALGO_ARGON2D500,
+        ALGO_ARGON2D4096,
         ALGO_AXIOM,       
         ALGO_BASTION,
         ALGO_BLAKE,       
@@ -565,8 +567,9 @@ static const char* const algo_names[] = {
         "allium",
         "anime",
         "argon2",
-        "argon2d-crds",
-        "argon2d-dyn",
+        "argon2d250",
+        "argon2d500",
+        "argon2d4096",
         "axiom",
         "bastion",
         "blake",
@@ -704,8 +707,9 @@ Options:\n\
                           allium       Garlicoin (GRLC)\n\
                           anime        Animecoin (ANI)\n\
                           argon2       Argon2 Coin (AR2)\n\
-                          argon2d-crds Credits (CRDS)\n\
-                          argon2d-dyn  Dynamic (DYN)\n\
+                          argon2d250   argon2d-crds, Credits (CRDS)\n\
+                          argon2d500   argon2d-dyn, Dynamic (DYN)\n\
+                          argon2d4096  argon2d-uis, Unitus (UIS)\n\
                           axiom        Shabal-256 MemoHash\n\
                           bastion\n\
                           blake        blake256r14 (SFR)\n\

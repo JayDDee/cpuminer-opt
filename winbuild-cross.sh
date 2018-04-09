@@ -46,12 +46,12 @@ mv cpuminer.exe release/cpuminer-avx2.exe
 #mv cpuminer.exe release/cpuminer-aes-sha.exe
 
 
-make clean || echo clean
-rm -f config.status
-CFLAGS="-O3 -march=corei7-avx -Wall" ./configure $F 
-make 
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-aes-avx.exe
+#make clean || echo clean
+#rm -f config.status
+#CFLAGS="-O3 -march=corei7-avx -Wall" ./configure $F 
+#make 
+#strip -s cpuminer.exe
+#mv cpuminer.exe release/cpuminer-aes-avx.exe
 
 make clean || echo clean
 rm -f config.status

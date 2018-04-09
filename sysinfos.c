@@ -274,6 +274,7 @@ void cpu_getmodelid(char *outbuf, size_t maxsz)
 #define SSE2_Flag     (1<<26) 
 
 #define AVX2_Flag     (1<< 5) // ADV EBX
+#define AVX512F_Flag  (1<<16)
 #define SHA_Flag      (1<<29)
 
 // Use this to detect presence of feature
@@ -350,6 +351,21 @@ static inline bool has_avx2_()
 
 bool has_avx2() { return has_avx2_(); }
 
+static inline bool has_avx512f_()
+{
+#ifdef __arm__
+    return false;
+#else
+    int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, cpu_info );
+    return cpu_info[ EBX_Reg ] & AVX512F_Flag;
+#endif
+}
+
+bool has_avx512f() { return has_avx512f_(); }
+
+
+// AMD only
 static inline bool has_xop_()
 {
 #ifdef __arm__

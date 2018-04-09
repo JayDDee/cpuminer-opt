@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "miner.h"
+#include "avxdefs.h"
+#include "interleave.h"
 
 /////////////////////////////
 ////
@@ -91,6 +93,7 @@ typedef  uint32_t set_t;
 #define AVX_OPT         8
 #define AVX2_OPT     0x10
 #define SHA_OPT      0x20
+#define AVX512_OPT   0x40
 
 // return set containing all elements from sets a & b
 inline set_t set_union ( set_t a, set_t b ) { return a | b; }
