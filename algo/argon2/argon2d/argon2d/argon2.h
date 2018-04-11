@@ -224,12 +224,22 @@ typedef enum Argon2_type {
   Argon2_id = 2
 } argon2_type;
 
+// Version implementation sucks, needs to be changed.
+// It should be set in the ctx before calling the argon2_ctx.
+// It should be a function arg of *hash_raw & *hash_encoded.
+// Then remove initialization from gate register function.
 /* Version of the algorithm */
+/*
 typedef enum Argon2_version {
     ARGON2_VERSION_10 = 0x10,
     ARGON2_VERSION_13 = 0x13,
     ARGON2_VERSION_NUMBER = ARGON2_VERSION_10
 } argon2_version;
+*/
+
+#define ARGON2_VERSION_10 0x10
+#define ARGON2_VERSION_13 0x13
+uint32_t ARGON2_VERSION_NUMBER;
 
 /*
  * Function that gives the string representation of an argon2_type.

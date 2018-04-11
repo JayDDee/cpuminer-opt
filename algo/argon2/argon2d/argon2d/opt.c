@@ -345,15 +345,15 @@ void fill_segment(const argon2_instance_t *instance,
         ref_block =
             instance->memory + instance->lane_length * ref_lane + ref_index;
         curr_block = instance->memory + curr_offset;
-        // if (ARGON2_VERSION_10 == instance->version) {
-        //     /* version 1.2.1 and earlier: overwrite, not XOR */
-        //     fill_block(state, ref_block, curr_block, 0);
-        // } else {
-        //     if(0 == position.pass) {
+         if (ARGON2_VERSION_10 == instance->version) {
+             /* version 1.2.1 and earlier: overwrite, not XOR */
+             fill_block(state, ref_block, curr_block, 0);
+         } else {
+             if(0 == position.pass) {
                 fill_block(state, ref_block, curr_block, 0);
-        //     } else {
-        //         fill_block(state, ref_block, curr_block, 1);
-        //     }
-        // }
+             } else {
+                 fill_block(state, ref_block, curr_block, 1);
+             }
+         }
     }
 }

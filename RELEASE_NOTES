@@ -160,6 +160,11 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.8.7.1
+
+Fixed argon2d-uis low difficulty rejects.
+Fixed argon2d aliases.
+
 v3.8.7
 
 Added argon2d4096 (alias argon2d-uis) for Unitus (UIS).
