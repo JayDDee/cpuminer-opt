@@ -160,6 +160,11 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.8.7.2
+
+Fixed argon2d-dyn regression in v3.8.7.1.
+Changed compile options for aes-sse42 Windows build to -march=westmere
+
 v3.8.7.1
 
 Fixed argon2d-uis low difficulty rejects.

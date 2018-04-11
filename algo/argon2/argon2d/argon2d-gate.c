@@ -28,6 +28,7 @@ void argon2d_crds_hash( void *output, const void *input )
 	context.lanes = 4;    // Degree of Parallelism
 	context.threads = 1;  // Threads
 	context.t_cost = 1;   // Iterations
+        context.version = ARGON2_VERSION_10;
 
 	argon2_ctx( &context, Argon2_d );
 }
@@ -71,7 +72,6 @@ bool register_argon2d_crds_algo( algo_gate_t* gate )
         gate->hash = (void*)&argon2d_crds_hash;
         gate->set_target = (void*)&scrypt_set_target;
         gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
-        ARGON2_VERSION_NUMBER = ARGON2_VERSION_10;
         return true;
 }
 
@@ -98,6 +98,7 @@ void argon2d_dyn_hash( void *output, const void *input )
     context.lanes = 8;     // Degree of Parallelism
     context.threads = 1;   // Threads
     context.t_cost = 2;    // Iterations
+    context.version = ARGON2_VERSION_10;
 
     argon2_ctx( &context, Argon2_d );
 }
@@ -141,9 +142,10 @@ bool register_argon2d_dyn_algo( algo_gate_t* gate )
         gate->hash = (void*)&argon2d_dyn_hash;
         gate->set_target = (void*)&scrypt_set_target;
         gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
-        ARGON2_VERSION_NUMBER = ARGON2_VERSION_10;
         return true;
 }
+
+// Unitus
 
 int scanhash_argon2d4096( int thr_id, struct work *work, uint32_t max_nonce,
                            uint64_t *hashes_done)
@@ -166,7 +168,7 @@ int scanhash_argon2d4096( int thr_id, struct work *work, uint32_t max_nonce,
    do {
       be32enc( &endiandata[19], n );
       argon2d_hash_raw( t_cost, m_cost, parallelism, (char*) endiandata, 80,
-                        (char*) endiandata, 80, (char*) vhash, 32 );
+                 (char*) endiandata, 80, (char*) vhash, 32, ARGON2_VERSION_13 );
       if ( vhash[7] < Htarg && fulltest( vhash, ptarget ) )
       {
          *hashes_done = n - first_nonce + 1;
@@ -191,7 +193,6 @@ bool register_argon2d4096_algo( algo_gate_t* gate )
         gate->set_target = (void*)&scrypt_set_target;
         gate->get_max64  = (void*)&get_max64_0x1ff;
         gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
-        ARGON2_VERSION_NUMBER = ARGON2_VERSION_13;
         return true;
 }
 
