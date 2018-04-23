@@ -498,7 +498,8 @@ enum algos {
         ALGO_BMW,        
         ALGO_C11,         
         ALGO_CRYPTOLIGHT, 
-        ALGO_CRYPTONIGHT, 
+        ALGO_CRYPTONIGHT,
+        ALGO_CRYPTONIGHTV7, 
         ALGO_DECRED,
         ALGO_DEEP,
         ALGO_DMD_GR,
@@ -580,6 +581,7 @@ static const char* const algo_names[] = {
         "c11",
         "cryptolight",
         "cryptonight",
+        "cryptonightv7",
         "decred",
         "deep",
         "dmd-gr",
@@ -704,83 +706,84 @@ static char const usage[] = "\
 Usage: " PACKAGE_NAME " [OPTIONS]\n\
 Options:\n\
   -a, --algo=ALGO       specify the algorithm to use\n\
-                          allium       Garlicoin (GRLC)\n\
-                          anime        Animecoin (ANI)\n\
-                          argon2       Argon2 Coin (AR2)\n\
-                          argon2d250   argon2d-crds, Credits (CRDS)\n\
-                          argon2d500   argon2d-dyn, Dynamic (DYN)\n\
-                          argon2d4096  argon2d-uis, Unitus (UIS)\n\
-                          axiom        Shabal-256 MemoHash\n\
+                          allium        Garlicoin (GRLC)\n\
+                          anime         Animecoin (ANI)\n\
+                          argon2        Argon2 Coin (AR2)\n\
+                          argon2d250    argon2d-crds, Credits (CRDS)\n\
+                          argon2d500    argon2d-dyn, Dynamic (DYN)\n\
+                          argon2d4096   argon2d-uis, Unitus (UIS)\n\
+                          axiom         Shabal-256 MemoHash\n\
                           bastion\n\
-                          blake        blake256r14 (SFR)\n\
-                          blakecoin    blake256r8\n\
-                          blake2s      Blake-2 S\n\
-                          bmw          BMW 256\n\
-                          c11          Chaincoin\n\
-                          cryptolight  Cryptonight-light\n\
-                          cryptonight  cryptonote, Monero (XMR)\n\
-                          decred       Blake256r14dcr\n\
-                          deep         Deepcoin (DCN)\n\
-                          dmd-gr       Diamond\n\
-                          drop         Dropcoin\n\
-                          fresh        Fresh\n\
-                          groestl      Groestl coin\n\
-                          heavy        Heavy\n\
-                          hmq1725      Espers\n\
-                          hodl         Hodlcoin\n\
-                          jha          jackppot (Jackpotcoin)\n\
-                          keccak       Maxcoin\n\
-                          keccakc      Creative Coin\n\
-                          lbry         LBC, LBRY Credits\n\
-                          luffa        Luffa\n\
-                          lyra2h       Hppcoin\n\
-                          lyra2re      lyra2\n\
-                          lyra2rev2    lyrav2, Vertcoin\n\
-                          lyra2z       Zcoin (XZC)\n\
-                          lyra2z330    Lyra2 330 rows, Zoin (ZOI)\n\
-                          m7m          Magi (XMG)\n\
-                          myr-gr       Myriad-Groestl\n\
-                          neoscrypt    NeoScrypt(128, 2, 1)\n\
-                          nist5        Nist5\n\
-                          pentablake   5 x blake512\n\
-                          phi1612      phi, LUX coin\n\
-                          pluck        Pluck:128 (Supcoin)\n\
+                          blake         blake256r14 (SFR)\n\
+                          blakecoin     blake256r8\n\
+                          blake2s       Blake-2 S\n\
+                          bmw           BMW 256\n\
+                          c11           Chaincoin\n\
+                          cryptolight   Cryptonight-light\n\
+                          cryptonight   Cryptonote legacy\n\
+                          cryptonightv7 variant 7, Monero (XMR)\n\
+                          decred        Blake256r14dcr\n\
+                          deep          Deepcoin (DCN)\n\
+                          dmd-gr        Diamond\n\
+                          drop          Dropcoin\n\
+                          fresh         Fresh\n\
+                          groestl       Groestl coin\n\
+                          heavy         Heavy\n\
+                          hmq1725       Espers\n\
+                          hodl          Hodlcoin\n\
+                          jha           jackppot (Jackpotcoin)\n\
+                          keccak        Maxcoin\n\
+                          keccakc       Creative Coin\n\
+                          lbry          LBC, LBRY Credits\n\
+                          luffa         Luffa\n\
+                          lyra2h        Hppcoin\n\
+                          lyra2re       lyra2\n\
+                          lyra2rev2     lyrav2, Vertcoin\n\
+                          lyra2z        Zcoin (XZC)\n\
+                          lyra2z330     Lyra2 330 rows, Zoin (ZOI)\n\
+                          m7m           Magi (XMG)\n\
+                          myr-gr        Myriad-Groestl\n\
+                          neoscrypt     NeoScrypt(128, 2, 1)\n\
+                          nist5         Nist5\n\
+                          pentablake    5 x blake512\n\
+                          phi1612       phi, LUX coin\n\
+                          pluck         Pluck:128 (Supcoin)\n\
                           polytimos\n\
-                          quark        Quark\n\
-                          qubit        Qubit\n\
-                          scrypt       scrypt(1024, 1, 1) (default)\n\
-                          scrypt:N     scrypt(N, 1, 1)\n\
+                          quark         Quark\n\
+                          qubit         Qubit\n\
+                          scrypt        scrypt(1024, 1, 1) (default)\n\
+                          scrypt:N      scrypt(N, 1, 1)\n\
                           scryptjane:nf\n\
-                          sha256d      Double SHA-256\n\
-                          sha256t      Triple SHA-256, Onecoin (OC)\n\
-                          shavite3     Shavite3\n\
-                          skein        Skein+Sha (Skeincoin)\n\
-                          skein2       Double Skein (Woodcoin)\n\
-                          skunk        Signatum (SIGT)\n\
-                          timetravel   timeravel8, Machinecoin (MAC)\n\
-                          timetravel10 Bitcore (BTX)\n\
-                          tribus       Denarius (DNR)\n\
-                          vanilla      blake256r8vnl (VCash)\n\
+                          sha256d       Double SHA-256\n\
+                          sha256t       Triple SHA-256, Onecoin (OC)\n\
+                          shavite3      Shavite3\n\
+                          skein         Skein+Sha (Skeincoin)\n\
+                          skein2        Double Skein (Woodcoin)\n\
+                          skunk         Signatum (SIGT)\n\
+                          timetravel    timeravel8, Machinecoin (MAC)\n\
+                          timetravel10  Bitcore (BTX)\n\
+                          tribus        Denarius (DNR)\n\
+                          vanilla       blake256r8vnl (VCash)\n\
                           veltor\n\
                           whirlpool\n\
                           whirlpoolx\n\
-                          x11          Dash\n\
-                          x11evo       Revolvercoin (XRE)\n\
-                          x11gost      sib (SibCoin)\n\
-                          x12          Galaxie Cash (GCH)\n\
-                          x13          X13\n\
-                          x13sm3       hsr (Hshare)\n\
-                          x14          X14\n\
-                          x15          X15\n\
-                          x16r         Ravencoin (RVN)\n\
-                          x16s         Pigeoncoin (PGN)\n\
+                          x11           Dash\n\
+                          x11evo        Revolvercoin (XRE)\n\
+                          x11gost       sib (SibCoin)\n\
+                          x12           Galaxie Cash (GCH)\n\
+                          x13           X13\n\
+                          x13sm3        hsr (Hshare)\n\
+                          x14            X14\n\
+                          x15           X15\n\
+                          x16r          Ravencoin (RVN)\n\
+                          x16s          Pigeoncoin (PGN)\n\
                           x17\n\
-                          xevan        Bitsend (BSD)\n\
-                          yescrypt     Globlboost-Y (BSTY)\n\
-                          yescryptr8   BitZeny (ZNY)\n\
-                          yescryptr16  Yenten (YTN)\n\
-                          yescryptr32  WAVI\n\
-                          zr5          Ziftr\n\
+                          xevan         Bitsend (BSD)\n\
+                          yescrypt      Globlboost-Y (BSTY)\n\
+                          yescryptr8    BitZeny (ZNY)\n\
+                          yescryptr16   Yenten (YTN)\n\
+                          yescryptr32   WAVI\n\
+                          zr5           Ziftr\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
   -u, --user=USERNAME   username for mining server\n\

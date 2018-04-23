@@ -7,11 +7,11 @@
 #include "cpuminer-config.h"
 #include "algo-gate-api.h"
 
-#ifndef NO_AES_NI
+#if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl256.h"
-#endif
-
+#else
 #include "crypto/c_groestl.h"
+#endif
 #include "crypto/c_blake256.h"
 #include "crypto/c_jh.h"
 #include "crypto/c_skein.h"
@@ -30,12 +30,12 @@ void do_blake_hash(const void* input, size_t len, char* output) {
 }
 
 void do_groestl_hash(const void* input, size_t len, char* output) {
-#ifdef NO_AES_NI
-    groestl(input, len * 8, (uint8_t*)output);
-#else
+#if defined(__AES__)
     hashState_groestl256 ctx;
     init_groestl256( &ctx, 32 );
     update_and_final_groestl256( &ctx, output, input, len * 8 );
+#else
+    groestl(input, len * 8, (uint8_t*)output);
 #endif
 }
 
@@ -52,22 +52,23 @@ void (* const extra_hashes[4])( const void *, size_t, char *) =
 
 void cryptonight_hash( void *restrict output, const void *input, int len )
 {
-
-#ifdef NO_AES_NI
-  cryptonight_hash_ctx ( output, input, len );
-#else 
+#if defined(__AES__)
   cryptonight_hash_aes( output, input, len );
+#else
+  cryptonight_hash_ctx ( output, input, len );
 #endif
 }
 
 void cryptonight_hash_suw( void *restrict output, const void *input )
 {
-#ifdef NO_AES_NI
-  cryptonight_hash_ctx ( output, input, 76 );
-#else
+#if defined(__AES__)
   cryptonight_hash_aes( output, input, 76 );
+#else
+  cryptonight_hash_ctx ( output, input, 76 );
 #endif
 }
+
+bool cryptonightV7 = false;
 
 int scanhash_cryptonight( int thr_id, struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done )
@@ -80,6 +81,11 @@ int scanhash_cryptonight( int thr_id, struct work *work, uint32_t max_nonce,
     const uint32_t first_nonce = n + 1;
     const uint32_t Htarg = ptarget[7];
     uint32_t hash[32 / 4] __attribute__((aligned(32)));
+
+    if (  (  cryptonightV7 && ( *(uint8_t*)pdata <  7 ) )
+       || ( !cryptonightV7 && ( *(uint8_t*)pdata == 7 ) ) )
+          applog(LOG_WARNING,"Cryptonight variant mismatch, shares may be rejected.");
+
     do
     {
        *nonceptr = ++n;
@@ -97,12 +103,25 @@ int scanhash_cryptonight( int thr_id, struct work *work, uint32_t max_nonce,
 
 bool register_cryptonight_algo( algo_gate_t* gate )
 {
+  cryptonightV7 = false;
   register_json_rpc2( gate );
   gate->optimizations = SSE2_OPT | AES_OPT;
   gate->scanhash         = (void*)&scanhash_cryptonight;
   gate->hash             = (void*)&cryptonight_hash;
   gate->hash_suw         = (void*)&cryptonight_hash_suw;  
   gate->get_max64        = (void*)&get_max64_0x40LL;
+  return true;
+};
+
+bool register_cryptonightv7_algo( algo_gate_t* gate )
+{
+  cryptonightV7 = true;
+  register_json_rpc2( gate );
+  gate->optimizations = SSE2_OPT | AES_OPT;
+  gate->scanhash      = (void*)&scanhash_cryptonight;
+  gate->hash          = (void*)&cryptonight_hash;
+  gate->hash_suw      = (void*)&cryptonight_hash_suw;
+  gate->get_max64     = (void*)&get_max64_0x40LL;
   return true;
 };
 

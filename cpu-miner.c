@@ -3002,11 +3002,13 @@ bool check_cpu_capability ()
      bool cpu_has_sse2   = has_sse2();
      bool cpu_has_aes    = has_aes_ni();
      bool cpu_has_sse42  = has_sse42();
+     bool cpu_has_avx    = has_avx1();
      bool cpu_has_avx2   = has_avx2();
      bool cpu_has_sha    = has_sha();
      bool cpu_has_avx512 = has_avx512f();
      bool sw_has_aes    = false;
      bool sw_has_sse42  = false;
+     bool sw_has_avx    = false;
      bool sw_has_avx2   = false;
      bool sw_has_avx512 = false;
      bool sw_has_sha    = false;
@@ -3030,6 +3032,9 @@ bool check_cpu_capability ()
      #endif
      #ifdef __SSE4_2__
          sw_has_sse42 = true;
+     #endif
+     #ifdef __AVX__
+         sw_has_avx = true;
      #endif
      #ifdef __AVX2__
          sw_has_avx2 = true;
@@ -3059,19 +3064,21 @@ bool check_cpu_capability ()
      #endif
 
      printf("CPU features:");
-     if ( cpu_has_sse2   )    printf( " SSE2" );
-     if ( cpu_has_aes    )    printf( " AES"  );
-     if ( cpu_has_sse42  )    printf( " SSE4.2"  );
-     if ( cpu_has_avx2   )    printf( " AVX2" );
+     if ( cpu_has_sse2   )    printf( " SSE2"   );
+     if ( cpu_has_aes    )    printf( " AES"    );
+     if ( cpu_has_sse42  )    printf( " SSE4.2" );
+     if ( cpu_has_avx    )    printf( " AVX"    );
+     if ( cpu_has_avx2   )    printf( " AVX2"   );
      if ( cpu_has_avx512 )    printf( " AVX512" );
-     if ( cpu_has_sha    )    printf( " SHA"  );
+     if ( cpu_has_sha    )    printf( " SHA"    );
 
      printf(".\nSW features: SSE2");
-     if ( sw_has_aes    )     printf( " AES"  );
-     if ( sw_has_sse42  )     printf( " SSE4.2"  );
-     if ( sw_has_avx2   )     printf( " AVX2" );
+     if ( sw_has_aes    )     printf( " AES"    );
+     if ( sw_has_sse42  )     printf( " SSE4.2" );
+     if ( sw_has_avx    )     printf( " AVX"    );
+     if ( sw_has_avx2   )     printf( " AVX2"   );
      if ( sw_has_avx512 )     printf( " AVX512" );
-     if ( sw_has_sha    )     printf( " SHA"  );
+     if ( sw_has_sha    )     printf( " SHA"    );
     
 
      printf(".\nAlgo features:");

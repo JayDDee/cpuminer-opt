@@ -1,14 +1,11 @@
+#if defined(__AES__)
+
 #include <x86intrin.h>
 #include <memory.h>
 #include "cryptonight.h"
 #include "miner.h"
 #include "crypto/c_keccak.h"
 #include <immintrin.h>
-//#include "avxdefs.h"
-
-void aesni_parallel_noxor(uint8_t *long_state, uint8_t *text, uint8_t *ExpandedKey);
-void aesni_parallel_xor(uint8_t *text, uint8_t *ExpandedKey, uint8_t *long_state);
-void that_fucking_loop(uint8_t a[16], uint8_t b[16], uint8_t *long_state);
 
 static inline void ExpandAESKey256_sub1(__m128i *tmp1, __m128i *tmp2)
 {
@@ -25,7 +22,6 @@ static inline void ExpandAESKey256_sub1(__m128i *tmp1, __m128i *tmp2)
 
 static inline void ExpandAESKey256_sub2(__m128i *tmp1, __m128i *tmp3)
 {
-#ifndef NO_AES_NI
 	__m128i tmp2, tmp4;
 	
 	tmp4 = _mm_aeskeygenassist_si128(*tmp1, 0x00);
@@ -37,14 +33,12 @@ static inline void ExpandAESKey256_sub2(__m128i *tmp1, __m128i *tmp3)
 	tmp4 = _mm_slli_si128(tmp4, 0x04);
 	*tmp3 = _mm_xor_si128(*tmp3, tmp4);
 	*tmp3 = _mm_xor_si128(*tmp3, tmp2);
-#endif
 }
 
 // Special thanks to Intel for helping me
 // with ExpandAESKey256() and its subroutines
 static inline void ExpandAESKey256(char *keybuf)
 {
-#ifndef NO_AES_NI
 	__m128i tmp1, tmp2, tmp3, *keys;
 	
 	keys = (__m128i *)keybuf;
@@ -91,7 +85,6 @@ static inline void ExpandAESKey256(char *keybuf)
 	tmp2 = _mm_aeskeygenassist_si128(tmp3, 0x40);
 	ExpandAESKey256_sub1(&tmp1, &tmp2);
 	keys[14] = tmp1;
-#endif
 }
 
 // align to 64 byte cache line
@@ -109,13 +102,19 @@ static __thread cryptonight_ctx ctx;
 
 void cryptonight_hash_aes( void *restrict output, const void *input, int len )
 {
-#ifndef NO_AES_NI
-
     uint8_t ExpandedKey[256] __attribute__((aligned(64)));
     __m128i *longoutput, *expkey, *xmminput;
     size_t i, j;
     
     keccak( (const uint8_t*)input, 76, (char*)&ctx.state.hs.b, 200 );
+
+    if ( cryptonightV7 && len < 43 )
+      return;
+
+    const uint64_t tweak = cryptonightV7 
+                         ? *((const uint64_t*) (((const uint8_t*)input) + 35))
+                           ^ ctx.state.hs.w[24] : 0; 
+
     memcpy( ExpandedKey, ctx.state.hs.b, AES_KEY_SIZE );
     ExpandAESKey256( ExpandedKey );
     memcpy( ctx.text, ctx.state.init, INIT_SIZE_BYTE );
@@ -214,7 +213,15 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
 	_mm_store_si128( (__m128i*)c, c_x );
         b_x = _mm_xor_si128( b_x, c_x );
         nextblock = (uint64_t *)&ctx.long_state[c[0] & 0x1FFFF0];
-	_mm_store_si128( lsa, b_x );
+        _mm_store_si128( lsa, b_x );
+
+        if ( cryptonightV7 )
+        {
+           const uint8_t tmp = ( (const uint8_t*)(lsa) )[11];
+           const uint8_t index = ( ( (tmp >> 3) & 6 ) | (tmp & 1) ) << 1;
+           ((uint8_t*)(lsa))[11] = tmp ^ ( ( 0x75310 >> index) & 0x30 );
+        } 
+
 	b[0] = nextblock[0];
 	b[1] = nextblock[1];
 
@@ -227,10 +234,14 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
 		 : "cc" );
 
         b_x = c_x;
-        nextblock[0] = a[0] + hi;
-        nextblock[1] = a[1] + lo;
-        a[0] = b[0] ^ nextblock[0];
-        a[1] = b[1] ^ nextblock[1];
+
+        a[0] += hi;
+        a[1] += lo;
+        nextblock[0] = a[0];
+        nextblock[1] = cryptonightV7 ? a[1] ^ tweak : a[1];
+        a[0] ^= b[0];
+        a[1] ^= b[1];
+
         lsa = (__m128i*)&ctx.long_state[ a[0] & 0x1FFFF0 ];
         a_x = _mm_load_si128( (__m128i*)a );
         c_x = _mm_load_si128( lsa );
@@ -241,6 +252,14 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
     b_x = _mm_xor_si128( b_x, c_x );
     nextblock = (uint64_t *)&ctx.long_state[c[0] & 0x1FFFF0];
     _mm_store_si128( lsa, b_x );
+
+    if ( cryptonightV7 )
+    {
+       const uint8_t tmp = ( (const uint8_t*)(lsa) )[11];
+       const uint8_t index = ( ( (tmp >> 3) & 6 ) | (tmp & 1) ) << 1;
+       ((uint8_t*)(lsa))[11] = tmp ^ ( ( 0x75310 >> index) & 0x30 );
+    }
+
     b[0] = nextblock[0];
     b[1] = nextblock[1];
 
@@ -251,8 +270,12 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
                "rm" ( b[0] )
              : "cc" );
 
-    nextblock[0] = a[0] + hi;
-    nextblock[1] = a[1] + lo;
+    a[0] += hi;
+    a[1] += lo;
+    nextblock[0] = a[0];
+    nextblock[1] = cryptonightV7 ? a[1] ^ tweak : a[1];
+    a[0] ^= b[0];
+    a[1] ^= b[1];
 
     memcpy( ExpandedKey, &ctx.state.hs.b[32], AES_KEY_SIZE );
     ExpandAESKey256( ExpandedKey );
@@ -330,5 +353,5 @@ void cryptonight_hash_aes( void *restrict output, const void *input, int len )
     keccakf( (uint64_t*)&ctx.state.hs.w, 24 );
     extra_hashes[ctx.state.hs.b[0] & 3](&ctx.state, 200, output);
 
-#endif
 }
+#endif
