@@ -68,13 +68,7 @@ void x16r_4way_hash( void* output, const void* input )
    uint32_t hash2[24] __attribute__ ((aligned (64)));
    uint32_t hash3[24] __attribute__ ((aligned (64)));
    uint32_t vhash[24*4] __attribute__ ((aligned (64)));
-//   uint32_t inp0[24] __attribute__ ((aligned (64)));
-//   uint32_t inp1[24] __attribute__ ((aligned (64)));
-//   uint32_t inp2[24] __attribute__ ((aligned (64)));
-//   uint32_t inp3[24] __attribute__ ((aligned (64)));
-
    x16r_4way_ctx_holder ctx;
-   
    void *in0 = (void*) hash0;
    void *in1 = (void*) hash1;
    void *in2 = (void*) hash2;
@@ -290,10 +284,6 @@ void x16r_4way_hash( void* output, const void* input )
              mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
       }
-//      in0 = (void*) hash0;
-//      in1 = (void*) hash1;
-//      in2 = (void*) hash2;
-//      in3 = (void*) hash3;
       size = 64;
    }
    memcpy( output,    hash0, 32 );
@@ -325,7 +315,7 @@ int scanhash_x16r_4way( int thr_id, struct work *work, uint32_t max_nonce,
    if ( s_ntime != endiandata[17] )
    {
       uint32_t ntime = swab32(pdata[17]);
-      x16_r_s_getAlgoString( (const char*) (&endiandata[1]), hashOrder );
+      x16_r_s_getAlgoString( (const uint8_t*) (&endiandata[1]), hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
               applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );

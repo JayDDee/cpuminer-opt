@@ -3,10 +3,30 @@
 make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
+CFLAGS="-O3 -march=core-avx2 -msha -Wall" ./configure --with-curl
+make -j 4
+strip -s cpuminer.exe
+mv cpuminer.exe cpuminer-avx2-sha.exe
+strip -s cpuminer
+mv cpuminer cpuminer-avx2-sha
+
+make clean || echo clean
+rm -f config.status
+./autogen.sh || echo done
+CFLAGS="-O3 -march=skylake-avx512 -Wall" ./configure --with-curl
+make -j 4
+strip -s cpuminer.exe
+mv cpuminer.exe cpuminer-avx512.exe
+strip -s cpuminer
+mv cpuminer cpuminer-avx512
+
+make clean || echo clean
+rm -f config.status
+./autogen.sh || echo done
 CFLAGS="-O3 -march=core-avx2 -Wall" ./configure --with-curl
 make -j 4
 strip -s cpuminer.exe
-mv cpuminer.exe cpuminer-aes-avx2.exe
+mv cpuminer.exe cpuminer-avx2.exe
 strip -s cpuminer
 mv cpuminer cpuminer-avx2
 

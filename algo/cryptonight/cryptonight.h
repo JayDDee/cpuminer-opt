@@ -45,5 +45,7 @@ int scanhash_cryptonight( int thr_id, struct work *work, uint32_t max_nonce,
 
 void cryptonight_hash_aes( void *restrict output, const void *input, int len );
 
+extern bool cryptonightV7;
+
 #endif
 

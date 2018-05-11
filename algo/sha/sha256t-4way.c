@@ -60,7 +60,7 @@ int scanhash_sha256t_8way( int thr_id, struct work *work,
                                0xFFFF0000,
                                         0 };
 
-   for ( int k = 0; k < 19; k++ )
+   for ( int k = 0; k < 20; k++ )
       be32enc( &edata[k], pdata[k] );
 
    mm256_interleave_8x32( vdata, edata, edata, edata, edata,

@@ -1,6 +1,6 @@
 #include "x16r-gate.h"
 
-void x16r_getAlgoString( const char* prevblock, char *output )
+void x16r_getAlgoString( const uint8_t* prevblock, char *output )
 {
    char *sptr = output;
    for ( int j = 0; j < X16R_HASH_FUNC_COUNT; j++ )
@@ -16,14 +16,13 @@ void x16r_getAlgoString( const char* prevblock, char *output )
    *sptr = '\0';
 }
 
-void x16s_getAlgoString( const char* prevblock, char *output )
+void x16s_getAlgoString( const uint8_t* prevblock, char *output )
 {
-   uint8_t* data = (uint8_t*)prevblock;
    strcpy( output, "0123456789ABCDEF" );
    for ( int i = 0; i < 16; i++ )
    {
       uint8_t b = (15 - i) >> 1; // 16 ascii hex chars, reversed
-      uint8_t algoDigit = (i & 1) ? data[b] & 0xF : data[b] >> 4;
+      uint8_t algoDigit = (i & 1) ? prevblock[b] & 0xF : prevblock[b] >> 4;
       int offset = algoDigit;
       // insert the nth character at the front
       char oldVal = output[offset];

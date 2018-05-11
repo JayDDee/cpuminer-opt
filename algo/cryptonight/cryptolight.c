@@ -325,7 +325,7 @@ int scanhash_cryptolight(int thr_id, struct work *work,
 
 	struct cryptonight_ctx *ctx = (struct cryptonight_ctx*)malloc(sizeof(struct cryptonight_ctx));
 
-#ifndef NO_AES_NI
+#if defined(__AES__)
 		do {
 			*nonceptr = ++n;
 			cryptolight_hash_ctx_aes_ni(hash, pdata, 76, ctx);

@@ -31,11 +31,13 @@ int nextPerm( uint8_t n[], uint32_t count )
       return 0;
 
    for ( i = count - 1; i>0 && n[i - 1] >= n[i]; i-- );
-      tail = i;
+   tail = i;
 
    if ( tail > 0 )
+   {
       for ( j = count - 1; j>tail && n[j] <= n[tail - 1]; j-- );
-           evo_swap( &n[tail - 1], &n[j] );
+      evo_swap( &n[tail - 1], &n[j] );
+   }
 
    for ( i = tail, j = count - 1; i<j; i++, j-- )
       evo_swap( &n[i], &n[j] );

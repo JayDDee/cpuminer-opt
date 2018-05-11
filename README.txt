@@ -28,6 +28,7 @@ Exe name                Compile flags            Arch name
 
 cpuminer-sse2.exe      "-msse2"                  Core2, Nehalem   
 cpuminer-aes-sse42.exe "-march=westmere"         Westmere, Sandy-Ivybridge
+cpuminer-avx.exe       "-march=corei7-avx"       Sandy-Ivybridge
 cpuminer-avx2.exe      "-march=core-avx2"        Haswell, Sky-Kaby-Coffeelake
 cpuminer-avx2-sha.exe  "-march=core-avx2 -msha"  Ryzen
 

@@ -156,7 +156,7 @@ static inline __m128i foo()
 // _mm_setzero_si128 uses pxor instruction, it's unclear what _mm_set_epi does.
 // If a pseudo constant is used repeatedly in a function it may be worthwhile
 // to define a register variable to represent that constant.
-// register __m128i zero = mm_zero;
+// register __m128i zero = mm_setzero_si128();
 
 // Constant zero
 #define m128_zero      _mm_setzero_si128()
@@ -1018,7 +1018,8 @@ inline __m256i mm256_aesenc_nokey_2x128_obs( __m256i x )
 
 //////////////////////////////////////////////////////////////
 
-#if defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512BW__) && defined(__AVX512VBMI__)
+#if defined(__AVX512F__)
+//#if defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512BW__) && defined(__AVX512VBMI__)
 
 // Experimental, not tested.
 

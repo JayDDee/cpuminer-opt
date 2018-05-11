@@ -20,8 +20,8 @@
 #include "crypto/c_jh.h"
 #include "crypto/c_skein.h"
 #include "crypto/int-util.h"
-#include "crypto/hash-ops.h"
-//#include "cryptonight.h"
+//#include "crypto/hash-ops.h"
+#include "cryptonight.h"
 
 #if USE_INT128
 
@@ -51,6 +51,7 @@ typedef __uint128_t uint128_t;
 #define INIT_SIZE_BLK   8
 #define INIT_SIZE_BYTE (INIT_SIZE_BLK * AES_BLOCK_SIZE)
 
+/*
 #pragma pack(push, 1)
 union cn_slow_hash_state {
 	union hash_state hs;
@@ -78,6 +79,7 @@ static void do_skein_hash(const void* input, size_t len, char* output) {
 	int r = skein_hash(8 * HASH_SIZE, input, 8 * len, (uint8_t*)output);
 	assert(likely(SKEIN_SUCCESS == r));
 }
+*/
 
 extern int aesb_single_round(const uint8_t *in, uint8_t*out, const uint8_t *expandedKey);
 extern int aesb_pseudo_round_mut(uint8_t *val, uint8_t *expandedKey);
@@ -120,9 +122,11 @@ static uint64_t mul128(uint64_t multiplier, uint64_t multiplicand, uint64_t* pro
 extern uint64_t mul128(uint64_t multiplier, uint64_t multiplicand, uint64_t* product_hi);
 #endif
 
+/*
 static void (* const extra_hashes[4])(const void *, size_t, char *) = {
 		do_blake_hash, do_groestl_hash, do_jh_hash, do_skein_hash
 };
+*/
 
 static inline size_t e2i(const uint8_t* a) {
 #if !LITE
@@ -132,14 +136,16 @@ static inline size_t e2i(const uint8_t* a) {
 #endif
 }
 
-static inline void mul_sum_xor_dst(const uint8_t* a, uint8_t* c, uint8_t* dst) {
+static inline void mul_sum_xor_dst( const uint8_t* a, uint8_t* c, uint8_t* dst, 
+         const uint64_t tweak )
+{
 	uint64_t hi, lo = mul128(((uint64_t*) a)[0], ((uint64_t*) dst)[0], &hi) + ((uint64_t*) c)[1];
 	hi += ((uint64_t*) c)[0];
 
 	((uint64_t*) c)[0] = ((uint64_t*) dst)[0] ^ hi;
 	((uint64_t*) c)[1] = ((uint64_t*) dst)[1] ^ lo;
 	((uint64_t*) dst)[0] = hi;
-	((uint64_t*) dst)[1] = lo;
+	((uint64_t*) dst)[1] = cryptonightV7 ? lo ^ tweak : lo;
 }
 
 static inline void xor_blocks(uint8_t* a, const uint8_t* b) {
@@ -174,8 +180,16 @@ static __thread cryptonight_ctx ctx;
 
 void cryptonight_hash_ctx(void* output, const void* input, int len)
 {
-	hash_process(&ctx.state.hs, (const uint8_t*) input, len);
-	ctx.aes_ctx = (oaes_ctx*) oaes_alloc();
+//    hash_process(&ctx.state.hs, (const uint8_t*) input, len);
+    keccak( (const uint8_t*)input, 76, (char*)&ctx.state.hs.b, 200 );
+
+    if ( cryptonightV7 && len < 43 )
+      return;
+    const uint64_t tweak = cryptonightV7
+                         ? *((const uint64_t*) (((const uint8_t*)input) + 35))
+                           ^ ctx.state.hs.w[24] : 0;
+
+    ctx.aes_ctx = (oaes_ctx*) oaes_alloc();
 
     __builtin_prefetch( ctx.text,             0, 3 );
     __builtin_prefetch( ctx.text       +  64, 0, 3 );
@@ -211,23 +225,44 @@ void cryptonight_hash_ctx(void* output, const void* input, int len)
 	xor_blocks_dst(&ctx.state.k[0], &ctx.state.k[32], ctx.a);
 	xor_blocks_dst(&ctx.state.k[16], &ctx.state.k[48], ctx.b);
 
-	for (i = 0; likely(i < ITER / 4); ++i) {
-		/* Dependency chain: address -> read value ------+
-		 * written value <-+ hard function (AES or MUL) <+
-		 * next address  <-+
-		 */
-		/* Iteration 1 */
-		j = e2i(ctx.a);
-		aesb_single_round(&ctx.long_state[j], ctx.c, ctx.a);
-		xor_blocks_dst(ctx.c, ctx.b, &ctx.long_state[j]);
-		/* Iteration 2 */
-		mul_sum_xor_dst(ctx.c, ctx.a, &ctx.long_state[e2i(ctx.c)]);
-		/* Iteration 3 */
-		j = e2i(ctx.a);
-		aesb_single_round(&ctx.long_state[j], ctx.b, ctx.a);
-		xor_blocks_dst(ctx.b, ctx.c, &ctx.long_state[j]);
-		/* Iteration 4 */
-		mul_sum_xor_dst(ctx.b, ctx.a, &ctx.long_state[e2i(ctx.b)]);
+	for (i = 0; likely(i < ITER / 4); ++i)
+        {
+           /* Dependency chain: address -> read value ------+
+            * written value <-+ hard function (AES or MUL) <+
+            * next address  <-+
+            */
+           /* Iteration 1 */
+           j = e2i(ctx.a);
+           aesb_single_round(&ctx.long_state[j], ctx.c, ctx.a);
+           xor_blocks_dst(ctx.c, ctx.b, &ctx.long_state[j]);
+
+           if ( cryptonightV7 )
+           {
+              uint8_t *lsa = (uint8_t*)&ctx.long_state[((uint64_t *)(ctx.a))[0] & 0x1FFFF0];
+              const uint8_t tmp = lsa[11];
+              const uint8_t index = ( ( (tmp >> 3) & 6 ) | (tmp & 1) ) << 1;
+              lsa[11] = tmp ^ ( ( 0x75310 >> index) & 0x30 );
+           }
+
+           /* Iteration 2 */
+           mul_sum_xor_dst(ctx.c, ctx.a, &ctx.long_state[e2i(ctx.c)], tweak );
+
+           /* Iteration 3 */
+           j = e2i(ctx.a);
+           aesb_single_round(&ctx.long_state[j], ctx.b, ctx.a);
+           xor_blocks_dst(ctx.b, ctx.c, &ctx.long_state[j]);
+
+           if ( cryptonightV7 )
+           {
+              uint8_t *lsa = (uint8_t*)&ctx.long_state[((uint64_t *)(ctx.a))[0] & 0x1FFFF0];
+              const uint8_t tmp = lsa[11];
+              const uint8_t index = ( ( (tmp >> 3) & 6 ) | (tmp & 1) ) << 1;
+              lsa[11] = tmp ^ ( ( 0x75310 >> index) & 0x30 );
+           }
+
+           /* Iteration 4 */
+           mul_sum_xor_dst(ctx.b, ctx.a, &ctx.long_state[e2i(ctx.b)], tweak );
+
 	}
 
     __builtin_prefetch( ctx.text,             0, 3 );
@@ -266,7 +301,8 @@ void cryptonight_hash_ctx(void* output, const void* input, int len)
 		aesb_pseudo_round_mut(&ctx.text[7 * AES_BLOCK_SIZE], ctx.aes_ctx->key->exp_data);
 	}
 	memcpy(ctx.state.init, ctx.text, INIT_SIZE_BYTE);
-	hash_permutation(&ctx.state.hs);
+//	hash_permutation(&ctx.state.hs);
+        keccakf( (uint64_t*)&ctx.state.hs.w, 24 );
 	/*memcpy(hash, &state, 32);*/
 	extra_hashes[ctx.state.hs.b[0] & 3](&ctx.state, 200, output);
 	oaes_free((OAES_CTX **) &ctx.aes_ctx);

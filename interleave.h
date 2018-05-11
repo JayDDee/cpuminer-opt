@@ -789,8 +789,8 @@ static inline void mm_reinterleave_4x32( void *dst, void *src, int  bit_len )
 
 #endif // __AVX2__
 
-//#if defined(__AVX512F__)
-#if 0
+#if defined(__AVX512F__)
+//#if 0
 
 // Macro functions returning vector.
 // Abstracted typecasting, avoid temp pointers.
@@ -804,7 +804,7 @@ static inline void mm_reinterleave_4x32( void *dst, void *src, int  bit_len )
 
 #define mm512_put_32( s00, s01, s02, s03, s04, s05, s06, s07, \
                       s08, s09, s10, s11, s12, s13, s14, s15 ) \
-  _mm512_set_epi64( *((const uint32_t*)(s15)), *((const uint32_t*)(s14)), \
+  _mm512_set_epi32( *((const uint32_t*)(s15)), *((const uint32_t*)(s14)), \
                     *((const uint32_t*)(s13)), *((const uint32_t*)(s12)), \
                     *((const uint32_t*)(s11)), *((const uint32_t*)(s10)), \
                     *((const uint32_t*)(s09)), *((const uint32_t*)(s08)), \
@@ -931,9 +931,8 @@ static inline void mm256_deinterleave_8x64x256( void *d0, void *d1, void *d2,
 }
 
 // 8 lanes of 512 bits using 64 bit interleaving (typical intermediate hash) 
-static inline void mm512_deinterleave_8x64x512( void *d00, void *d01,
-               void *d02, void *d03, void *d04, void *d05, void *d06,
-               void *d07, const void *s )
+static inline void mm512_deinterleave_8x64x512( void *d0, void *d1, void *d2,
+             void *d3, void *d4, void *d5, void *d6, void *d7, const void *s )
 {
    cast_m512i( d0 ) = mm512_get_64( s, 56, 48, 40, 32, 24, 16,  8,  0 );
    cast_m512i( d1 ) = mm512_get_64( s, 57, 49, 41, 33, 25, 17,  9,  1 );
@@ -941,7 +940,7 @@ static inline void mm512_deinterleave_8x64x512( void *d00, void *d01,
    cast_m512i( d3 ) = mm512_get_64( s, 59, 51, 43, 35, 27, 19, 11,  3 );
    cast_m512i( d4 ) = mm512_get_64( s, 60, 52, 44, 36, 28, 20, 12,  4 );
    cast_m512i( d5 ) = mm512_get_64( s, 61, 53, 45, 37, 29, 21, 13,  5 );
-   cast_m512i( d7 ) = mm512_get_64( s, 62, 54, 46, 38, 30, 22, 14,  6 );
+   cast_m512i( d6 ) = mm512_get_64( s, 62, 54, 46, 38, 30, 22, 14,  6 );
    cast_m512i( d7 ) = mm512_get_64( s, 63, 55, 47, 39, 31, 23, 15,  7 );
 }
 
@@ -953,7 +952,7 @@ static inline void mm512_deinterleave_8x64( void *dst0, void *dst1, void *dst2,
    {
       mm256_deinterleave_8x64x256( dst0, dst1, dst2, dst3,
                                    dst4, dst5, dst6, dst7, src );
-      return
+      return;
    }
 
    mm512_deinterleave_8x64x512( dst0, dst1, dst2, dst3,
@@ -976,7 +975,6 @@ static inline void mm512_deinterleave_8x64( void *dst0, void *dst1, void *dst2,
 static inline void mm512_extract_lane_8x64( void *dst, const void *src,
                                             const int lane, const int bit_len )
 {
-  const uint64_t *s = (const uint64_t*)src;
 
   if ( bit_len <= 256 )
   {
@@ -992,7 +990,7 @@ static inline void mm512_extract_lane_8x64( void *dst, const void *src,
 }
 
 
-static inline void mm512_interleave_16x32( void *dst, const void *s00,
+static inline void mm512_interleave_16x32( void *d, const void *s00,
     const void *s01, const void *s02, const void *s03, const void *s04,
     const void *s05, const void *s06, const void *s07, const void *s08,
     const void *s09, const void *s10, const void *s11, const void *s12,
@@ -1233,7 +1231,7 @@ static inline void mm512_deinterleave_16x32( void *d00, void *d01, void *d02,
       mm256_deinterleave_16x32x256( d00, d01, d02, d03, d04, d05, d06, d07,
                                     d08, d09, d10, d11, d12, d13, d14, d15,
                                     src );
-      return
+      return;
    }
    mm512_deinterleave_16x32x512( d00, d01, d02, d03, d04, d05, d06, d07,
                                  d08, d09, d10, d11, d12, d13, d14, d15, 
@@ -1303,7 +1301,7 @@ static inline void mm512_interleave_4x128( void *d, const void *s0,
 }
 
 static inline void mm512_deinterleave_4x128x128( void *d0, void *d1, void *d2,
-                                void *d3, const void *src, const int bit_len )
+                                void *d3, const void *s )
 {
    cast_m128i( d0 ) = mm_get_64( s, 1, 0 );
    cast_m128i( d1 ) = mm_get_64( s, 3, 2 );
@@ -1312,7 +1310,7 @@ static inline void mm512_deinterleave_4x128x128( void *d0, void *d1, void *d2,
 }
 
 static inline void mm512_deinterleave_4x128x256( void *d0, void *d1, void *d2,
-                                void *d3, const void *src, const int bit_len )
+                                void *d3, const void *s )
 {
    cast_m256i( d0 ) = mm256_get_64( s,  9,  8, 1, 0 );
    cast_m256i( d1 ) = mm256_get_64( s, 11, 10, 3, 2 );
@@ -1321,7 +1319,7 @@ static inline void mm512_deinterleave_4x128x256( void *d0, void *d1, void *d2,
 }
 
 static inline void mm512_deinterleave_4x128x512( void *d0, void *d1, void *d2,
-                                void *d3, const void *src, const int bit_len )
+                                void *d3, const void *s )
 {
    cast_m512i( d0 ) = mm512_get_64( s, 25, 24, 17, 16,  9,  8, 1, 0 );
    cast_m512i( d1 ) = mm512_get_64( s, 27, 26, 19, 18, 11, 10, 3, 2 );
@@ -1334,8 +1332,8 @@ static inline void mm512_deinterleave_4x128( void *dst0, void *dst1, void *dst2,
 {
    if ( bit_len <= 256 )
    {
-      mm256_deinterleave_4x128x256( dst0, dst1, dst2, dst3, src );
-      return
+      mm512_deinterleave_4x128x256( dst0, dst1, dst2, dst3, src );
+      return;
    }
 
    mm512_deinterleave_4x128x512( dst0, dst1, dst2, dst3, src );
@@ -1343,7 +1341,7 @@ static inline void mm512_deinterleave_4x128( void *dst0, void *dst1, void *dst2,
 
    if ( bit_len <= 640 )
    {
-      mm_deinterleave_4x128x128( dst0+128, dst1+128, dst2+128, dst3+128,
+      mm512_deinterleave_4x128x128( dst0+128, dst1+128, dst2+128, dst3+128,
                                  src+512 );
       return;
    }

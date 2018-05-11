@@ -67,7 +67,7 @@ int scanhash_lyra2h_4way( int thr_id, struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
 
-   for ( int i=0; i < 19; i++ )
+   for ( int i=0; i < 20; i++ )
       be32enc( &edata[i], pdata[i] );
 
    mm_interleave_4x32( vdata, edata, edata, edata, edata, 640 );

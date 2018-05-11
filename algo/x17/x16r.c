@@ -205,7 +205,7 @@ int scanhash_x16r( int thr_id, struct work *work, uint32_t max_nonce,
    if ( s_ntime != pdata[17] )
    {
       uint32_t ntime = swab32(pdata[17]);
-      x16_r_s_getAlgoString( (const char*) (&endiandata[1]), hashOrder );
+      x16_r_s_getAlgoString( (const uint8_t*) (&endiandata[1]), hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
               applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );

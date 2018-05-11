@@ -98,7 +98,7 @@ static int opt_fail_pause = 10;
 static int opt_time_limit = 0;
 int opt_timeout = 300;
 static int opt_scantime = 5;
-static const bool opt_time = true;
+//static const bool opt_time = true;
 enum algos opt_algo = ALGO_NULL;
 int opt_scrypt_n = 0;
 int opt_pluck_n = 128;
@@ -1988,7 +1988,9 @@ static void *miner_thread( void *userdata )
           }
        }
        // Display benchmark total
-       if ( opt_benchmark && thr_id == opt_n_threads - 1 )
+       // Update hashrate for API if no shares accepted yet.
+       if ( ( opt_benchmark || !accepted_count ) 
+            && thr_id == opt_n_threads - 1 )
        {
           double hashrate  = 0.;
           double hashcount = 0.;
@@ -1999,27 +2001,30 @@ static void *miner_thread( void *userdata )
           }
           if ( hashcount )
           {
-             char hc[16];
-             char hc_units[2] = {0,0};
-             char hr[16];
-             char hr_units[2] = {0,0};
              global_hashcount = hashcount;
              global_hashrate  = hashrate;
-             scale_hash_for_display( &hashcount, hc_units );
-             scale_hash_for_display( &hashrate,  hr_units );
-             if ( hc_units[0] )
-                sprintf( hc, "%.2f", hashcount );
-             else  // no fractions of a hash
-                sprintf( hc, "%.0f", hashcount );
-             sprintf( hr, "%.2f", hashrate );
+             if ( opt_benchmark )
+             {
+                char hc[16];
+                char hc_units[2] = {0,0};
+                char hr[16];
+                char hr_units[2] = {0,0};
+	        scale_hash_for_display( &hashcount, hc_units );
+                scale_hash_for_display( &hashrate,  hr_units );
+                if ( hc_units[0] )
+                   sprintf( hc, "%.2f", hashcount );
+                else  // no fractions of a hash
+                   sprintf( hc, "%.0f", hashcount );
+                sprintf( hr, "%.2f", hashrate );
 #if ((defined(_WIN64) || defined(__WINDOWS__)))
-             applog( LOG_NOTICE, "Total: %s %sH, %s %sH/s",
+                applog( LOG_NOTICE, "Total: %s %sH, %s %sH/s",
                                   hc, hc_units, hr, hr_units );
 #else
-             applog( LOG_NOTICE, "Total: %s %sH, %s %sH/s, %dC",
+                applog( LOG_NOTICE, "Total: %s %sH, %s %sH/s, %dC",
                          hc, hc_units, hr, hr_units, (uint32_t)cpu_temp(0) );
 #endif
-          }
+             }
+	  }
        }
    }  // miner_thread loop
 
@@ -3002,11 +3007,13 @@ bool check_cpu_capability ()
      bool cpu_has_sse2   = has_sse2();
      bool cpu_has_aes    = has_aes_ni();
      bool cpu_has_sse42  = has_sse42();
+     bool cpu_has_avx    = has_avx1();
      bool cpu_has_avx2   = has_avx2();
      bool cpu_has_sha    = has_sha();
      bool cpu_has_avx512 = has_avx512f();
      bool sw_has_aes    = false;
      bool sw_has_sse42  = false;
+     bool sw_has_avx    = false;
      bool sw_has_avx2   = false;
      bool sw_has_avx512 = false;
      bool sw_has_sha    = false;
@@ -3030,6 +3037,9 @@ bool check_cpu_capability ()
      #endif
      #ifdef __SSE4_2__
          sw_has_sse42 = true;
+     #endif
+     #ifdef __AVX__
+         sw_has_avx = true;
      #endif
      #ifdef __AVX2__
          sw_has_avx2 = true;
@@ -3059,19 +3069,21 @@ bool check_cpu_capability ()
      #endif
 
      printf("CPU features:");
-     if ( cpu_has_sse2   )    printf( " SSE2" );
-     if ( cpu_has_aes    )    printf( " AES"  );
-     if ( cpu_has_sse42  )    printf( " SSE4.2"  );
-     if ( cpu_has_avx2   )    printf( " AVX2" );
+     if ( cpu_has_sse2   )    printf( " SSE2"   );
+     if ( cpu_has_aes    )    printf( " AES"    );
+     if ( cpu_has_sse42  )    printf( " SSE4.2" );
+     if ( cpu_has_avx    )    printf( " AVX"    );
+     if ( cpu_has_avx2   )    printf( " AVX2"   );
      if ( cpu_has_avx512 )    printf( " AVX512" );
-     if ( cpu_has_sha    )    printf( " SHA"  );
+     if ( cpu_has_sha    )    printf( " SHA"    );
 
      printf(".\nSW features: SSE2");
-     if ( sw_has_aes    )     printf( " AES"  );
-     if ( sw_has_sse42  )     printf( " SSE4.2"  );
-     if ( sw_has_avx2   )     printf( " AVX2" );
+     if ( sw_has_aes    )     printf( " AES"    );
+     if ( sw_has_sse42  )     printf( " SSE4.2" );
+     if ( sw_has_avx    )     printf( " AVX"    );
+     if ( sw_has_avx2   )     printf( " AVX2"   );
      if ( sw_has_avx512 )     printf( " AVX512" );
-     if ( sw_has_sha    )     printf( " SHA"  );
+     if ( sw_has_sha    )     printf( " SHA"    );
     
 
      printf(".\nAlgo features:");

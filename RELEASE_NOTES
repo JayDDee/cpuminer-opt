@@ -50,8 +50,7 @@ will give a clue as to the missing package.
 The following command should install everything you need on Debian based
 distributions such as Ubuntu:
 
-sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev automake
-
+sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev automake zlib1g-dev
 
 build-essential  (for Ubuntu, Development Tools package group on Fedora)
 automake
@@ -86,7 +85,7 @@ make
 
 Additional optional compile flags, add the following to CFLAGS to activate:
 
--DUSE_SPH_SHA
+-DUSE_SPH_SHA (deprecated)
 
 SPH may give slightly better performance on algos that use sha256 when using
 openssl 1.0.1 or older. Openssl 1.0.2 adds AVX2 and 1.1 adds SHA and perform
@@ -159,6 +158,16 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 
 Change Log
 ----------
+
+v3.8.8.1
+
+Fixed x16r.
+Removed cryptonight variant check due to false positives.
+API displays hashrate before shares are submitted.
+
+v3.8.8
+
+Added cryptonightv7 for Monero.
 
 v3.8.7.2
 
