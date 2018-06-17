@@ -694,6 +694,7 @@ extern bool allow_mininginfo;
 extern time_t g_work_time;
 extern bool opt_stratum_stats;
 extern int num_cpus;
+extern int num_cpugroups;
 extern int opt_priority;
 
 extern pthread_mutex_t rpc2_job_lock;
