@@ -110,6 +110,7 @@ int64_t opt_affinity = -1LL;
 #endif
 int opt_priority = 0;
 int num_cpus;
+int num_cpugroups = 1;
 char *rpc_url = NULL;;
 char *rpc_userpass = NULL;
 char *rpc_user, *rpc_pass;
@@ -234,10 +235,40 @@ static void affine_to_cpu_mask( int id, unsigned long long mask )
 #elif defined(WIN32) /* Windows */
 static inline void drop_policy(void) { }
 static void affine_to_cpu_mask(int id, unsigned long mask) {
+	BOOL success;
+	DWORD last_error;
 	if (id == -1)
-		SetProcessAffinityMask(GetCurrentProcess(), mask);
+		success = SetProcessAffinityMask(GetCurrentProcess(), mask);
+	else if (num_cpugroups == 1)
+		success = SetThreadAffinityMask(GetCurrentThread(), mask);
 	else
-		SetThreadAffinityMask(GetCurrentThread(), mask);
+	{
+		// Find the correct cpu group
+		int cpu = id % num_cpus;
+		int group;
+		for(group = 0; group < num_cpugroups; group++)
+		{
+			int cpus = GetActiveProcessorCount(group);
+			if (cpu < cpus)
+				break;
+
+			cpu -= cpus;
+		}
+
+		if (opt_debug)
+			applog(LOG_DEBUG, "Binding thread %d to cpu %d on cpu group %d (mask %x)", id, cpu, group, (1ULL << cpu));
+
+		GROUP_AFFINITY affinity;
+		affinity.Group = group;
+		affinity.Mask = 1ULL << cpu;
+		success = SetThreadGroupAffinity(GetCurrentThread(), &affinity, NULL);
+	}
+
+	if (!success)
+	{
+		last_error = GetLastError();
+		applog(LOG_WARNING, "affine_to_cpu_mask for %u returned %x", id, last_error);
+	}
 }
 #else
 static inline void drop_policy(void) { }
@@ -3169,10 +3200,19 @@ int main(int argc, char *argv[])
 	rpc_pass = strdup("");
 	opt_api_allow = strdup("127.0.0.1"); /* 0.0.0.0 for all ips */
 
+	parse_cmdline(argc, argv);
+
 #if defined(WIN32)
-	SYSTEM_INFO sysinfo;
-	GetSystemInfo(&sysinfo);
-	num_cpus = sysinfo.dwNumberOfProcessors;
+	num_cpus = 0;
+	num_cpugroups = GetActiveProcessorGroupCount();
+	for(i = 0; i < num_cpugroups; i++)
+	{
+		int cpus = GetActiveProcessorCount(i);
+		num_cpus += cpus;
+
+		if (opt_debug)
+			applog(LOG_DEBUG, "Found %d cpus on cpu group %d", cpus, i);
+	}
 #elif defined(_SC_NPROCESSORS_CONF)
 	num_cpus = sysconf(_SC_NPROCESSORS_CONF);
 #elif defined(CTL_HW) && defined(HW_NCPU)
@@ -3184,8 +3224,6 @@ int main(int argc, char *argv[])
 #endif
 	if (num_cpus < 1)
 		num_cpus = 1;
-
-	parse_cmdline(argc, argv);
 
         if (!opt_n_threads)
                 opt_n_threads = num_cpus;
