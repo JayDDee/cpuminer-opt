@@ -10,7 +10,7 @@ extracflags="-O3 -Wall -D_REENTRANT -fmerge-all-constants" # -funroll-loops -fva
 # extracflags="$extracflags -Ofast -fuse-linker-plugin -ftree-loop-if-convert-stores" # -flto "
 
 # extracflags="-pg -static -fno-inline-small-functions"
-CFLAGS="-DCURL_STATICLIB -DOPENSSL_NO_ASM -DUSE_ASM $extracflags"
+CFLAGS="-D_WIN32_WINNT=0x0601 -DCURL_STATICLIB -DOPENSSL_NO_ASM -DUSE_ASM $extracflags"
 # CPPFLAGS=""
 
 # icon
