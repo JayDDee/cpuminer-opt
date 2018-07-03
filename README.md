@@ -1,3 +1,11 @@
+ADDED YESPOWER ALGO FOR CRYPLY COIN
+---------
+CRYPLY POOL - http://yenten-pool.ml
+
+*cpuminer.exe -a yespower -o stratum+tcp://yenten-pool.ml:6336 -u WALLET_NUMBER -p c=CRP*
+
+--------------------
+
 cpuminer-opt is a fork of cpuminer-multi by TPruvot with optimizations
 imported from other miners developped by lucas Jones, djm34, Wolf0, pooler,
 Jeff garzik, ig0tik3d, elmad, palmd, and Optiminer, with additional
