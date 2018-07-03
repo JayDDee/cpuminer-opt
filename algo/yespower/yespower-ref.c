@@ -519,7 +519,7 @@ int yespower(yespower_local_t *local,
 	}
 
 	/* 1: (B_0 ... B_{p-1}) <-- PBKDF2(P, S, 1, p * MFLen) */
-	PBKDF2_SHA256((uint8_t *)sha256, sizeof(sha256),
+	PBKDF2_SHA256_P((uint8_t *)sha256, sizeof(sha256),
 	    src, srclen, 1, (uint8_t *)B, B_size);
 
 	blkcpy(sha256, B, sizeof(sha256) / sizeof(sha256[0]));
@@ -529,7 +529,7 @@ int yespower(yespower_local_t *local,
 
 	if (version == YESPOWER_0_5) {
 		/* 5: DK <-- PBKDF2(P, B, 1, dkLen) */
-		PBKDF2_SHA256((uint8_t *)sha256, sizeof(sha256),
+		PBKDF2_SHA256_P((uint8_t *)sha256, sizeof(sha256),
 		    (uint8_t *)B, B_size, 1, (uint8_t *)dst, sizeof(*dst));
 
 		if (pers) {
