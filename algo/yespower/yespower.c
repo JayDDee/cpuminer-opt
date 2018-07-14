@@ -87,6 +87,7 @@ int scanhash_yespower( int thr_id, struct work *work, uint32_t max_nonce,
 
 bool register_yespower_algo( algo_gate_t* gate )
 {
+  gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash   = (void*)&scanhash_yespower;
   gate->hash      = (void*)&yespower_hash;
   gate->set_target = (void*)&scrypt_set_target;
