@@ -3,13 +3,18 @@ ADDED YESPOWER ALGO FOR CRYPLY COIN
 **Recommended POOLS:**
 
 **For low processors - low diff: (<1000 h/s)**
-http://cpu-pool.com
-cpuminer.exe -a yespower -o stratum+tcp://cpu-pool.com:63358 -u WALLET_ADDRESS
 
-**For fast processors - fees - 0.1% **
+http://cpu-pool.com 
+
+*cpuminer.exe -a yespower -o stratum+tcp://cpu-pool.com:63358 -u WALLET_ADDRESS*
+
+**For fast processors - fees - 0.1%**
+
 http://yenten-pool.ml/
-http://cryply-pool.ml/
-cpuminer.exe -a yespower -o stratum+tcp://yenten-pool.ml:6336 -u WALLET_NUMBER -p c=CRP
+
+http://cryply-pool.ml/ 
+
+*cpuminer.exe -a yespower -o stratum+tcp://yenten-pool.ml:6336 -u WALLET_NUMBER -p c=CRP*
 
 Download binary for windows x64 - https://github.com/bubasik/cpuminer-opt-yespower/releases
 
