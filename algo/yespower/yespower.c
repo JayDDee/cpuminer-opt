@@ -31,9 +31,11 @@
 
 #include "algo-gate-api.h"
 
-static const yespower_params_t v1 = {YESPOWER_0_5, 4096, 16, "Client Key", 10};
+int verstring;
 
-static const yespower_params_t v2 = {YESPOWER_0_9, 2048, 32, NULL, 0};
+//static const yespower_params_t v1 = {YESPOWER_0_5, 4096, 16, "Client Key", 10};
+
+//static const yespower_params_t v2 = {YESPOWER_0_9, 2048, 32, NULL, 0};
 
 /*
 int yespower_hash(const char *input, char *output)
@@ -49,7 +51,17 @@ int yespower_hash(const char *input, char *output)
 
 void yespower_hash( const char *input, char *output, uint32_t len )
 {
-   yespower_tls( (yespower_binary_t*)input, len, &v2, (yespower_binary_t*)output );
+   if (verstring==1)
+   { 
+		static const yespower_params_t v1 = {YESPOWER_0_5, 4096, 16, "Client Key", 10};
+		yespower_tls( (yespower_binary_t*)input, len, &v1, (yespower_binary_t*)output ); 
+	}
+   if (verstring==2)
+   {
+	   static const yespower_params_t v2 = {YESPOWER_0_9, 2048, 32, NULL, 0};
+	   yespower_tls( (yespower_binary_t*)input, len, &v2, (yespower_binary_t*)output ); 
+	}
+
 }
 
 int scanhash_yespower( int thr_id, struct work *work, uint32_t max_nonce,
@@ -91,6 +103,16 @@ bool register_yespower_algo( algo_gate_t* gate )
   gate->scanhash   = (void*)&scanhash_yespower;
   gate->hash      = (void*)&yespower_hash;
   gate->set_target = (void*)&scrypt_set_target;
+  verstring=2;
   return true;
 };
 
+bool register_yespowerr16_algo( algo_gate_t* gate )
+{
+  gate->optimizations = SSE2_OPT | SHA_OPT;
+  gate->scanhash   = (void*)&scanhash_yespower;
+  gate->hash      = (void*)&yespower_hash;
+  gate->set_target = (void*)&scrypt_set_target;
+  verstring=1;
+  return true;
+};
