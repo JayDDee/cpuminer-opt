@@ -159,6 +159,8 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+Added sha256q for Pyrite.
+
 v3.8.8.1
 
 Fixed x16r.

@@ -95,6 +95,7 @@ Supported Algorithms
                           scryptjane:nf
                           sha256d       Double SHA-256
                           sha256t       Triple SHA-256, Onecoin (OC)
+			   sha256q       Quadruple SHA-256, Pyrite
                           shavite3      Shavite3
                           skein         Skein+Sha (Skeincoin)
                           skein2        Double Skein (Woodcoin)
