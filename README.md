@@ -1,22 +1,30 @@
-ADDED YESPOWER ALGO FOR CRYPLY COIN
+Ready automatically switches to the new algorithm Yenten Coin
 ---------
-**Recommended POOLS:**
 
-**For low processors - low diff: (<1000 h/s)**
+*Algorithm:  YescryptR16 (will be changed to YespowerR16(yespower-1.0,N=4096,r=16) on and after 30 March 2019*
+
+**Recommended POOLS:**
 
 http://cpu-pool.com 
 
+Yenten
+*cpuminer.exe -a yespowerr16 -o stratum+tcp://cpu-pool.com:63368 -u WALLET_ADDRESS*
+
+Cranepay
 *cpuminer.exe -a yespower -o stratum+tcp://cpu-pool.com:63358 -u WALLET_ADDRESS*
 
 **For fast processors - fees - 0.1%**
 
-http://yenten-pool.ml/
+http://yenten-pool.info/
 
 http://cryply-pool.ml/ 
 
-*cpuminer.exe -a yespower -o stratum+tcp://yenten-pool.ml:6336 -u WALLET_NUMBER -p c=CRP*
+*cpuminer.exe -a yespower -o stratum+tcp://yenten-pool.info:6336 -u WALLET_NUMBER -p c=CRP*
 
 Download binary for windows x64 - https://github.com/bubasik/cpuminer-opt-yespower/releases
+
+For donate: 
+YTN: YXandTfYjFC7fuR8h9aRCo5ZwAz4tvbvDL
 
 --------------------
 
