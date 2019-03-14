@@ -8,9 +8,11 @@ Ready automatically switches to the new algorithm Yenten Coin
 http://cpu-pool.com 
 
 Yenten
+
 *cpuminer.exe -a yespowerr16 -o stratum+tcp://cpu-pool.com:63368 -u WALLET_ADDRESS*
 
 Cranepay
+
 *cpuminer.exe -a yespower -o stratum+tcp://cpu-pool.com:63358 -u WALLET_ADDRESS*
 
 **For fast processors - fees - 0.1%**
