@@ -154,6 +154,8 @@ Supported Algorithms
                           yescryptr8    BitZeny (ZNY)
                           yescryptr16   Yenten (YTN)
                           yescryptr32   WAVI
+                          yespower      Cranepay
+                          yespowerr16   Yenten                          
                           zr5           Ziftr
 
 Errata
