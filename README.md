@@ -2,6 +2,7 @@ Ready automatically switches to the new algorithm Yenten Coin
 ---------
 
 *Algorithm:  YescryptR16 (will be changed to YespowerR16(yespower-1.0,N=4096,r=16) on and after 30 March 2019*
+*Miner automatically switches to the new algorithm.*
 
 **Recommended POOLS:**
 
