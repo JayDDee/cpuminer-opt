@@ -13,7 +13,7 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/luffa/luffa-hash-2way.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
@@ -186,10 +186,10 @@ void x15_4way_hash( void *state, const void *input )
      sph_fugue512_close( &ctx.fugue, hash3 );
 
      // 14 Shabal, parallel 32 bit
-     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
        
      // 15 Whirlpool
      sph_whirlpool( &ctx.whirlpool, hash0, 64 );

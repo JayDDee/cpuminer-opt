@@ -363,14 +363,14 @@ static const sph_u64 CB[16] = {
 do { \
    a = _mm_add_epi32( _mm_add_epi32( _mm_xor_si128( \
                  _mm_set_epi32( c1, c1, c1, c1 ), m0 ), b ), a ); \
-   d = mm_ror_32( _mm_xor_si128( d, a ), 16 ); \
+   d = mm128_ror_32( _mm_xor_si128( d, a ), 16 ); \
    c = _mm_add_epi32( c, d ); \
-   b = mm_ror_32( _mm_xor_si128( b, c ), 12 ); \
+   b = mm128_ror_32( _mm_xor_si128( b, c ), 12 ); \
    a = _mm_add_epi32( _mm_add_epi32( _mm_xor_si128( \
                  _mm_set_epi32( c0, c0, c0, c0 ), m1 ), b ), a ); \
-   d = mm_ror_32( _mm_xor_si128( d, a ), 8 ); \
+   d = mm128_ror_32( _mm_xor_si128( d, a ), 8 ); \
    c = _mm_add_epi32( c, d ); \
-   b = mm_ror_32( _mm_xor_si128( b, c ), 7 ); \
+   b = mm128_ror_32( _mm_xor_si128( b, c ), 7 ); \
 } while (0)
 
 #if SPH_COMPACT_BLAKE_32
@@ -562,22 +562,22 @@ do { \
                           , _mm_set_epi32( CS6, CS6, CS6, CS6 ) ); \
         VF = _mm_xor_si128( _mm_set_epi32( T1, T1, T1, T1 ), \
                             _mm_set_epi32( CS7, CS7, CS7, CS7 ) ); \
-	M[0x0] = mm_bswap_32( *(buf +  0) ); \
-	M[0x1] = mm_bswap_32( *(buf +  1) ); \
-	M[0x2] = mm_bswap_32( *(buf +  2) ); \
-	M[0x3] = mm_bswap_32( *(buf +  3) ); \
-	M[0x4] = mm_bswap_32( *(buf +  4) ); \
-	M[0x5] = mm_bswap_32( *(buf +  5) ); \
-	M[0x6] = mm_bswap_32( *(buf +  6) ); \
-	M[0x7] = mm_bswap_32( *(buf +  7) ); \
-	M[0x8] = mm_bswap_32( *(buf +  8) ); \
-	M[0x9] = mm_bswap_32( *(buf +  9) ); \
-	M[0xA] = mm_bswap_32( *(buf + 10) ); \
-	M[0xB] = mm_bswap_32( *(buf + 11) ); \
-	M[0xC] = mm_bswap_32( *(buf + 12) ); \
-	M[0xD] = mm_bswap_32( *(buf + 13) ); \
-	M[0xE] = mm_bswap_32( *(buf + 14) ); \
-	M[0xF] = mm_bswap_32( *(buf + 15) ); \
+	M[0x0] = mm128_bswap_32( *(buf +  0) ); \
+	M[0x1] = mm128_bswap_32( *(buf +  1) ); \
+	M[0x2] = mm128_bswap_32( *(buf +  2) ); \
+	M[0x3] = mm128_bswap_32( *(buf +  3) ); \
+	M[0x4] = mm128_bswap_32( *(buf +  4) ); \
+	M[0x5] = mm128_bswap_32( *(buf +  5) ); \
+	M[0x6] = mm128_bswap_32( *(buf +  6) ); \
+	M[0x7] = mm128_bswap_32( *(buf +  7) ); \
+	M[0x8] = mm128_bswap_32( *(buf +  8) ); \
+	M[0x9] = mm128_bswap_32( *(buf +  9) ); \
+	M[0xA] = mm128_bswap_32( *(buf + 10) ); \
+	M[0xB] = mm128_bswap_32( *(buf + 11) ); \
+	M[0xC] = mm128_bswap_32( *(buf + 12) ); \
+	M[0xD] = mm128_bswap_32( *(buf + 13) ); \
+	M[0xE] = mm128_bswap_32( *(buf + 14) ); \
+	M[0xF] = mm128_bswap_32( *(buf + 15) ); \
 	for (r = 0; r < rounds; r ++) \
 		ROUND_S_4WAY(r); \
         H0 = _mm_xor_si128( _mm_xor_si128( \
@@ -624,22 +624,22 @@ do { \
    VD = _mm_xor_si128( _mm_set1_epi32( T0 ), _mm_set1_epi32( CS5 ) ); \
    VE = _mm_xor_si128( _mm_set1_epi32( T1 ), _mm_set1_epi32( CS6 ) ); \
    VF = _mm_xor_si128( _mm_set1_epi32( T1 ), _mm_set1_epi32( CS7 ) ); \
-   M0 = mm_bswap_32( * buf ); \
-   M1 = mm_bswap_32( *(buf+1) ); \
-   M2 = mm_bswap_32( *(buf+2) ); \
-   M3 = mm_bswap_32( *(buf+3) ); \
-   M4 = mm_bswap_32( *(buf+4) ); \
-   M5 = mm_bswap_32( *(buf+5) ); \
-   M6 = mm_bswap_32( *(buf+6) ); \
-   M7 = mm_bswap_32( *(buf+7) ); \
-   M8 = mm_bswap_32( *(buf+8) ); \
-   M9 = mm_bswap_32( *(buf+9) ); \
-   MA = mm_bswap_32( *(buf+10) ); \
-   MB = mm_bswap_32( *(buf+11) ); \
-   MC = mm_bswap_32( *(buf+12) ); \
-   MD = mm_bswap_32( *(buf+13) ); \
-   ME = mm_bswap_32( *(buf+14) ); \
-   MF = mm_bswap_32( *(buf+15) ); \
+   M0 = mm128_bswap_32( * buf ); \
+   M1 = mm128_bswap_32( *(buf+1) ); \
+   M2 = mm128_bswap_32( *(buf+2) ); \
+   M3 = mm128_bswap_32( *(buf+3) ); \
+   M4 = mm128_bswap_32( *(buf+4) ); \
+   M5 = mm128_bswap_32( *(buf+5) ); \
+   M6 = mm128_bswap_32( *(buf+6) ); \
+   M7 = mm128_bswap_32( *(buf+7) ); \
+   M8 = mm128_bswap_32( *(buf+8) ); \
+   M9 = mm128_bswap_32( *(buf+9) ); \
+   MA = mm128_bswap_32( *(buf+10) ); \
+   MB = mm128_bswap_32( *(buf+11) ); \
+   MC = mm128_bswap_32( *(buf+12) ); \
+   MD = mm128_bswap_32( *(buf+13) ); \
+   ME = mm128_bswap_32( *(buf+14) ); \
+   MF = mm128_bswap_32( *(buf+15) ); \
    ROUND_S_4WAY(0); \
    ROUND_S_4WAY(1); \
    ROUND_S_4WAY(2); \
@@ -1073,8 +1073,8 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
        if (out_size_w32 == 8)
            buf[52>>2] = _mm_or_si128( buf[52>>2],
                                         _mm_set1_epi32( 0x01000000UL ) );
-       *(buf+(56>>2)) = mm_bswap_32( _mm_set1_epi32( th ) );
-       *(buf+(60>>2)) = mm_bswap_32( _mm_set1_epi32( tl ) );
+       *(buf+(56>>2)) = mm128_bswap_32( _mm_set1_epi32( th ) );
+       *(buf+(60>>2)) = mm128_bswap_32( _mm_set1_epi32( tl ) );
        blake32_4way( sc, buf + (ptr>>2), 64 - ptr );
    }
    else
@@ -1086,13 +1086,13 @@ blake32_4way_close( blake_4way_small_context *sc, unsigned ub, unsigned n,
 	memset_zero_128( buf, 56>>2 );
        if (out_size_w32 == 8)
            buf[52>>2] = _mm_set1_epi32( 0x01000000UL );
-        *(buf+(56>>2)) = mm_bswap_32( _mm_set1_epi32( th ) );
-        *(buf+(60>>2)) = mm_bswap_32( _mm_set1_epi32( tl ) );
+        *(buf+(56>>2)) = mm128_bswap_32( _mm_set1_epi32( th ) );
+        *(buf+(60>>2)) = mm128_bswap_32( _mm_set1_epi32( tl ) );
 	blake32_4way( sc, buf, 64 );
    }
    out = (__m128i*)dst;
    for ( k = 0; k < out_size_w32; k++ )
-        out[k] = mm_bswap_32( sc->H[k] );
+        out[k] = mm128_bswap_32( sc->H[k] );
 }
 
 #if defined (__AVX2__)

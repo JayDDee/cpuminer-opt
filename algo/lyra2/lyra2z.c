@@ -1,6 +1,6 @@
 #include <memory.h>
 #include <mm_malloc.h>
-#include "lyra2z-gate.h"
+#include "lyra2-gate.h"
 #include "lyra2.h"
 #include "algo/blake/sph_blake.h"
 #include "avxdefs.h"

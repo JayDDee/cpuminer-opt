@@ -9,7 +9,7 @@
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/fugue/sph_fugue.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 
 typedef struct {
     skein512_4way_context skein;

@@ -17,7 +17,7 @@ void blakecoin_4way_hash(void *state, const void *input)
      blake256r8_4way( &ctx, input + (64<<2), 16 );
      blake256r8_4way_close( &ctx, vhash );
 
-     mm_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
+     mm128_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_blakecoin_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -37,7 +37,7 @@ int scanhash_blakecoin_4way( int thr_id, struct work *work, uint32_t max_nonce,
       HTarget = 0x7f;
 
    swab32_array( edata, pdata, 20 );
-   mm_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
    blake256r8_4way_init( &blakecoin_4w_ctx );
    blake256r8_4way( &blakecoin_4w_ctx, vdata, 64 );
 

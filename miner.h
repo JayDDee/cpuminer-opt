@@ -362,12 +362,11 @@ struct work {
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
         uint32_t nonces[8];
-};
+} __attribute__ ((aligned (64)));
 
 struct stratum_job {
 	char *job_id;
 	unsigned char prevhash[32];
-        unsigned char claim[32]; // lbry
 	size_t coinbase_size;
 	unsigned char *coinbase;
 	unsigned char *xnonce2;
@@ -378,7 +377,9 @@ struct stratum_job {
 	unsigned char ntime[4];
 	bool clean;
 	double diff;
-};
+        unsigned char extra[64];
+
+} __attribute__ ((aligned (64)));
 
 struct stratum_ctx {
 	char *url;
@@ -403,7 +404,7 @@ struct stratum_ctx {
 	pthread_mutex_t work_lock;
 
 	int bloc_height;
-};
+} __attribute__ ((aligned (64)));
 
 bool stratum_socket_full(struct stratum_ctx *sctx, int timeout);
 bool stratum_send_line(struct stratum_ctx *sctx, char *s);
@@ -517,7 +518,8 @@ enum algos {
         ALGO_LYRA2H,
         ALGO_LYRA2RE,       
         ALGO_LYRA2REV2,   
-        ALGO_LYRA2Z,
+        ALGO_LYRA2REV3,
+	ALGO_LYRA2Z,
         ALGO_LYRA2Z330,
         ALGO_M7M,
         ALGO_MYR_GR,      
@@ -525,6 +527,7 @@ enum algos {
         ALGO_NIST5,       
         ALGO_PENTABLAKE,  
         ALGO_PHI1612,
+	ALGO_PHI2,
         ALGO_PLUCK,       
         ALGO_POLYTIMOS,
         ALGO_QUARK,
@@ -560,6 +563,8 @@ enum algos {
         ALGO_YESCRYPTR8,
         ALGO_YESCRYPTR16,
         ALGO_YESCRYPTR32,
+        ALGO_YESPOWER,
+        ALGO_YESPOWERR16,
         ALGO_ZR5,
         ALGO_COUNT
 };
@@ -599,7 +604,8 @@ static const char* const algo_names[] = {
         "lyra2h",
         "lyra2re",
         "lyra2rev2",
-        "lyra2z",
+        "lyra2rev3",
+	"lyra2z",
         "lyra2z330",
         "m7m",
         "myr-gr",
@@ -607,7 +613,8 @@ static const char* const algo_names[] = {
         "nist5",
         "pentablake",
         "phi1612",
-        "pluck",
+        "phi2",
+	"pluck",
         "polytimos",
         "quark",
         "qubit",
@@ -642,6 +649,8 @@ static const char* const algo_names[] = {
         "yescryptr8",
         "yescryptr16",
         "yescryptr32",
+        "yespower",
+        "yespowerr16",
         "zr5",
         "\0"
 };
@@ -694,6 +703,7 @@ extern bool allow_mininginfo;
 extern time_t g_work_time;
 extern bool opt_stratum_stats;
 extern int num_cpus;
+extern int num_cpugroups;
 extern int opt_priority;
 
 extern pthread_mutex_t rpc2_job_lock;
@@ -738,7 +748,8 @@ Options:\n\
                           luffa         Luffa\n\
                           lyra2h        Hppcoin\n\
                           lyra2re       lyra2\n\
-                          lyra2rev2     lyrav2, Vertcoin\n\
+                          lyra2rev2     lyrav2\n\
+                          lyra2rev3     lyrav2v3, Vertcoin\n\
                           lyra2z        Zcoin (XZC)\n\
                           lyra2z330     Lyra2 330 rows, Zoin (ZOI)\n\
                           m7m           Magi (XMG)\n\
@@ -746,8 +757,9 @@ Options:\n\
                           neoscrypt     NeoScrypt(128, 2, 1)\n\
                           nist5         Nist5\n\
                           pentablake    5 x blake512\n\
-                          phi1612       phi, LUX coin\n\
-                          pluck         Pluck:128 (Supcoin)\n\
+                          phi1612       phi, LUX coin (original algo)\n\
+                          phi2          LUX (new algo)\n\
+			  pluck         Pluck:128 (Supcoin)\n\
                           polytimos\n\
                           quark         Quark\n\
                           qubit         Qubit\n\
@@ -773,7 +785,7 @@ Options:\n\
                           x12           Galaxie Cash (GCH)\n\
                           x13           X13\n\
                           x13sm3        hsr (Hshare)\n\
-                          x14            X14\n\
+                          x14           X14\n\
                           x15           X15\n\
                           x16r          Ravencoin (RVN)\n\
                           x16s          Pigeoncoin (PGN)\n\
@@ -781,9 +793,11 @@ Options:\n\
                           xevan         Bitsend (BSD)\n\
                           yescrypt      Globlboost-Y (BSTY)\n\
                           yescryptr8    BitZeny (ZNY)\n\
-                          yescryptr16   Yenten (YTN)\n\
+                          yescryptr16   Eli\n\
                           yescryptr32   WAVI\n\
-                          zr5           Ziftr\n\
+                          yespower      Cryply\n\
+                          yespowerr16   Yenten (YTN)\n\
+			  zr5           Ziftr\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
   -u, --user=USERNAME   username for mining server\n\

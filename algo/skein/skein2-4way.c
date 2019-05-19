@@ -9,7 +9,6 @@ void skein2hash_4way( void *output, const void *input )
 {
    skein512_4way_context ctx;
    uint64_t hash[8*4] __attribute__ ((aligned (64)));
-   uint64_t *out64 = (uint64_t*)output;
 
    skein512_4way_init( &ctx );
    skein512_4way( &ctx, input, 80 );
@@ -17,15 +16,14 @@ void skein2hash_4way( void *output, const void *input )
 
    skein512_4way_init( &ctx );
    skein512_4way( &ctx, hash, 64 );
-   skein512_4way_close( &ctx, hash );
-
-   mm256_deinterleave_4x64( out64, out64+4, out64+8, out64+12, hash, 256 );
+   skein512_4way_close( &ctx, output );
 }
 
 int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done )
 {
     uint32_t hash[8*4] __attribute__ ((aligned (64)));
+    uint32_t *hash7 = &(hash[25]);
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
     uint32_t endiandata[20] __attribute__ ((aligned (64)));
     uint64_t *edata = (uint64_t*)endiandata;
@@ -34,7 +32,6 @@ int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
     const uint32_t Htarg = ptarget[7];
     const uint32_t first_nonce = pdata[19];
     uint32_t n = first_nonce;
-    // hash is returned deinterleaved
     uint32_t *nonces = work->nonces;
     int num_found = 0;
 
@@ -53,12 +50,18 @@ int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
        skein2hash( hash, vdata );
 
-       for ( int i = 0; i < 4; i++ )
-       if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
+       for ( int lane = 0; lane < 4; lane++ )
+       if ( hash7[ lane ] <= Htarg )
        {
-          pdata[19] = n+i;
-          nonces[ num_found++ ] = n+i;
-          work_set_target_ratio( work, hash+(i<<3) );
+          // deinterleave hash for lane
+          uint32_t lane_hash[8];
+          mm256_extract_lane_4x64( lane_hash, hash, lane, 256 );
+          if ( fulltest( lane_hash, ptarget ) )
+          {
+             pdata[19] = n + lane;
+             nonces[ num_found++ ] = n + lane;
+             work_set_target_ratio( work, lane_hash );
+          }
        }
        n += 4;
     } while ( (num_found == 0) && (n < max_nonce)

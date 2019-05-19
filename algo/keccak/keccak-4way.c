@@ -10,14 +10,10 @@
 
 void keccakhash_4way(void *state, const void *input)
 {
-    uint64_t vhash[4*4] __attribute__ ((aligned (64)));
     keccak256_4way_context ctx;
-
     keccak256_4way_init( &ctx );
     keccak256_4way( &ctx, input, 80 );
-    keccak256_4way_close( &ctx, vhash );
-
-    mm256_deinterleave_4x64( state, state+32, state+64, state+96, vhash, 256 );
+    keccak256_4way_close( &ctx, state );
 }
 
 int scanhash_keccak_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -25,6 +21,8 @@ int scanhash_keccak_4way( int thr_id, struct work *work, uint32_t max_nonce,
 {
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
    uint32_t hash[8*4] __attribute__ ((aligned (32)));
+   uint32_t *hash7 = &(hash[25]);   // 3*8+1
+   uint32_t lane_hash[8];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    uint32_t n = pdata[19];
@@ -49,13 +47,16 @@ int scanhash_keccak_4way( int thr_id, struct work *work, uint32_t max_nonce,
 	
       keccakhash_4way( hash, vdata );
 
-      for ( int i = 0; i < 4; i++ )
-      if ( ( ( (hash+(i<<3))[7] & 0xFFFFFF00 ) == 0 )
-           && fulltest( hash+(i<<3), ptarget ) )
+      for ( int lane = 0; lane < 4; lane++ )
+      if ( ( ( hash7[ lane<<1 ] & 0xFFFFFF00 ) == 0 ) )
       {
-         pdata[19] = n+i;
-         nonces[ num_found++ ] = n+i;
-         work_set_target_ratio( work, hash+(i<<3) );
+          mm256_extract_lane_4x64( lane_hash, hash, lane, 256 );
+          if ( fulltest( lane_hash, ptarget ) )
+          {
+              pdata[19] = n + lane;
+              nonces[ num_found++ ] = n + lane;
+              work_set_target_ratio( work, lane_hash );
+          }
       }
       n += 4;
 

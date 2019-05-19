@@ -74,7 +74,7 @@ cpuminer_SOURCES = \
   algo/cryptonight/cryptonight-aesni.c\
   algo/cryptonight/cryptonight.c\
   algo/cubehash/sph_cubehash.c \
-  algo/cubehash/sse2/cubehash_sse2.c\
+  algo/cubehash/cubehash_sse2.c\
   algo/cubehash/cube-hash-2way.c \
   algo/echo/sph_echo.c \
   algo/echo/aes_ni/hash.c\
@@ -116,20 +116,20 @@ cpuminer_SOURCES = \
   algo/luffa/luffa-hash-2way.c \
   algo/lyra2/lyra2.c \
   algo/lyra2/sponge.c \
-  algo/lyra2/lyra2rev2-gate.c \
+  algo/lyra2/lyra2-gate.c \
   algo/lyra2/lyra2rev2.c \
   algo/lyra2/lyra2rev2-4way.c \
+  algo/lyra2/lyra2rev3.c \
+  algo/lyra2/lyra2rev3-4way.c \
   algo/lyra2/lyra2re.c \
-  algo/lyra2/lyra2z-gate.c \
   algo/lyra2/lyra2z.c \
   algo/lyra2/lyra2z-4way.c \
   algo/lyra2/lyra2z330.c \
-  algo/lyra2/lyra2h-gate.c \
   algo/lyra2/lyra2h.c \
   algo/lyra2/lyra2h-4way.c \
-  algo/lyra2/allium-gate.c \
   algo/lyra2/allium-4way.c \
   algo/lyra2/allium.c \
+  algo/lyra2/phi2.c \
   algo/m7m.c \
   algo/neoscrypt/neoscrypt.c \
   algo/nist5/nist5-gate.c \
@@ -252,7 +252,10 @@ cpuminer_SOURCES = \
   algo/x17/hmq1725.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/sha256_Y.c \
-  algo/yescrypt/yescrypt-best.c
+  algo/yescrypt/yescrypt-best.c \
+  algo/yespower/yespower.c \
+  algo/yespower/sha256.c \
+  algo/yespower/yespower-opt.c
 
 disable_flags =
 

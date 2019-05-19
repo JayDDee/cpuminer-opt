@@ -1,13 +1,13 @@
-#include "lyra2rev2-gate.h"
+#include "lyra2-gate.h"
 #include <memory.h>
 
-#if defined (__AVX2__)	
+#if defined (LYRA2REV2_4WAY)	
 
 #include "algo/blake/blake-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/bmw/bmw-hash-4way.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h" 
+#include "algo/cubehash/cubehash_sse2.h" 
 
 typedef struct {
    blake256_4way_context     blake;
@@ -74,11 +74,11 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    cubehashReinit( &ctx.cube );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash3, (const byte*) hash3, 32 );
 
-   mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
+   mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
    bmw256_4way( &ctx.bmw, vhash, 32 );
    bmw256_4way_close( &ctx.bmw, vhash );
 
-   mm_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
+   mm128_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -101,7 +101,7 @@ int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
    swab32_array( edata, pdata, 20 );
 
-   mm_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
 
    blake256_4way_init( &l2v2_4way_ctx.blake );
    blake256_4way( &l2v2_4way_ctx.blake, vdata, 64 );

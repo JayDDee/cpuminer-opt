@@ -23,7 +23,7 @@ void decred_hash_4way( void *state, const void *input )
      memcpy( &ctx, &blake_mid, sizeof(blake_mid) );
      blake256_4way( &ctx, tail, tail_len );
      blake256_4way_close( &ctx, vhash );
-     mm_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
+     mm128_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -44,7 +44,7 @@ int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
    memcpy( edata, pdata, 180 );
 
    // use the old way until  new way updated for size.
-   mm_interleave_4x32x( vdata, edata, edata, edata, edata, 180*8 );
+   mm128_interleave_4x32x( vdata, edata, edata, edata, edata, 180*8 );
 
    blake256_4way_init( &blake_mid );
    blake256_4way( &blake_mid, vdata, DECRED_MIDSTATE_LEN );

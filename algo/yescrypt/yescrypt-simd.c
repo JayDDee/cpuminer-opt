@@ -1319,7 +1319,7 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	}
 
 	/* 1: (B_0 ... B_{p-1}) <-- PBKDF2(P, S, 1, p * MFLen) */
-	PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, 1, B, B_size);
+	PBKDF2_SHA256_Y(passwd, passwdlen, salt, saltlen, 1, B, B_size);
 
 	if (t || flags)
 		memcpy(sha256, B, sizeof(sha256));
@@ -1349,7 +1349,7 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	}
 
 	/* 5: DK <-- PBKDF2(P, B, 1, dkLen) */
-	PBKDF2_SHA256(passwd, passwdlen, B, B_size, 1, buf, buflen);
+	PBKDF2_SHA256_Y(passwd, passwdlen, B, B_size, 1, buf, buflen);
 
 	/*
 	 * Except when computing classic scrypt, allow all computation so far

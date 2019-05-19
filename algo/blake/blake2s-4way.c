@@ -85,7 +85,8 @@ void blake2s_4way_hash( void *output, const void *input )
    blake2s_4way_update( &ctx, input + (64<<2), 16 );
    blake2s_4way_final( &ctx, vhash, BLAKE2S_OUTBYTES );
 
-   mm_deinterleave_4x32( output, output+32, output+64, output+96, vhash, 256 );
+   mm128_deinterleave_4x32( output, output+32, output+64, output+96,
+		            vhash, 256 );
 }
 
 int scanhash_blake2s_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -104,7 +105,7 @@ int scanhash_blake2s_4way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t *noncep = vdata + 76;   // 19*4
 
    swab32_array( edata, pdata, 20 );
-   mm_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
    blake2s_4way_init( &blake2s_4w_ctx, BLAKE2S_OUTBYTES );
    blake2s_4way_update( &blake2s_4w_ctx, vdata, 64 );
 

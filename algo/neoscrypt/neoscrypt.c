@@ -1080,6 +1080,8 @@ void neoscrypt_wait_for_diff( struct stratum_ctx *stratum )
    }
 }
 
+int neoscrypt_get_work_data_size () { return 80; }
+
 bool register_neoscrypt_algo( algo_gate_t* gate )
 {
   gate->optimizations         = SSE2_OPT;
@@ -1092,7 +1094,7 @@ bool register_neoscrypt_algo( algo_gate_t* gate )
   gate->work_decode           = (void*)&std_be_work_decode;
   gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
   gate->set_work_data_endian  = (void*)&set_work_data_big_endian;
-  gate->work_data_size        = 80;
+  gate->get_work_data_size    = (void*)&neoscrypt_get_work_data_size;
   return true;
 };
 

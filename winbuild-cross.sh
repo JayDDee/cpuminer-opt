@@ -12,8 +12,8 @@ mkdir release
 cp README.txt release/
 cp /usr/x86_64-w64-mingw32/lib/zlib1.dll release/
 cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll release/
-cp /usr/lib/gcc/x86_64-w64-mingw32/5.3-win32/libstdc++-6.dll release/
-cp /usr/lib/gcc/x86_64-w64-mingw32/5.3-win32/libgcc_s_seh-1.dll release/
+cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libstdc++-6.dll release/
+cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libgcc_s_seh-1.dll release/
 cp $LOCAL_LIB/openssl/libcrypto-1_1-x64.dll release/
 cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
 
@@ -21,7 +21,7 @@ make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
 CFLAGS="-O3 -march=core-avx2 -msha -Wall" ./configure $F
-make 
+make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx2-sha.exe
 
@@ -34,7 +34,7 @@ mv cpuminer.exe release/cpuminer-avx2-sha.exe
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=core-avx2 -Wall" ./configure $F 
-make 
+make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx2.exe
 
@@ -49,7 +49,7 @@ mv cpuminer.exe release/cpuminer-avx2.exe
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=corei7-avx -Wall" ./configure $F 
-make 
+make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx.exe
 
@@ -58,7 +58,7 @@ make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=westmere -Wall" ./configure $F
 #CFLAGS="-O3 -maes -msse4.2 -Wall" ./configure $F
-make 
+make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-aes-sse42.exe
 
@@ -80,7 +80,7 @@ mv cpuminer.exe release/cpuminer-aes-sse42.exe
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -msse2 -Wall" ./configure $F
-make
+make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-sse2.exe
 make clean || echo clean

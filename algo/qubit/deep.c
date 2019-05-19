@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "algo/luffa/luffa_for_sse2.h" 
-#include "algo/cubehash/sse2/cubehash_sse2.h" 
+#include "algo/cubehash/cubehash_sse2.h" 
 #ifndef NO_AES_NI
 #include "algo/echo/aes_ni/hash_api.h"
 #else

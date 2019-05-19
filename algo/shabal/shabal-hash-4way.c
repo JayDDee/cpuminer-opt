@@ -248,22 +248,22 @@ do { \
 */
 #define SWAP_BC \
 do { \
-    mm_swap_128( B0, C0 ); \
-    mm_swap_128( B1, C1 ); \
-    mm_swap_128( B2, C2 ); \
-    mm_swap_128( B3, C3 ); \
-    mm_swap_128( B4, C4 ); \
-    mm_swap_128( B5, C5 ); \
-    mm_swap_128( B6, C6 ); \
-    mm_swap_128( B7, C7 ); \
-    mm_swap_128( B8, C8 ); \
-    mm_swap_128( B9, C9 ); \
-    mm_swap_128( BA, CA ); \
-    mm_swap_128( BB, CB ); \
-    mm_swap_128( BC, CC ); \
-    mm_swap_128( BD, CD ); \
-    mm_swap_128( BE, CE ); \
-    mm_swap_128( BF, CF ); \
+    mm128_swap256_128( B0, C0 ); \
+    mm128_swap256_128( B1, C1 ); \
+    mm128_swap256_128( B2, C2 ); \
+    mm128_swap256_128( B3, C3 ); \
+    mm128_swap256_128( B4, C4 ); \
+    mm128_swap256_128( B5, C5 ); \
+    mm128_swap256_128( B6, C6 ); \
+    mm128_swap256_128( B7, C7 ); \
+    mm128_swap256_128( B8, C8 ); \
+    mm128_swap256_128( B9, C9 ); \
+    mm128_swap256_128( BA, CA ); \
+    mm128_swap256_128( BB, CB ); \
+    mm128_swap256_128( BC, CC ); \
+    mm128_swap256_128( BD, CD ); \
+    mm128_swap256_128( BE, CE ); \
+    mm128_swap256_128( BF, CF ); \
 } while (0)
 
 #define PERM_ELT(xa0, xa1, xb0, xb1, xb2, xb3, xc, xm) \
@@ -271,9 +271,9 @@ do { \
    xa0 = _mm_xor_si128( xm, _mm_xor_si128( xb1, _mm_xor_si128(  \
             _mm_andnot_si128( xb3, xb2 ), \
             _mm_mullo_epi32( _mm_xor_si128( xa0, _mm_xor_si128( xc, \
-               _mm_mullo_epi32(  mm_rol_32( xa1, 15 ), _mm_set1_epi32(5UL) ) \
+               _mm_mullo_epi32(  mm128_rol_32( xa1, 15 ), _mm_set1_epi32(5UL) ) \
                    ) ), _mm_set1_epi32(3UL) ) ) ) ); \
-   xb0 = mm_not( _mm_xor_si128( xa0, mm_rol_32( xb0, 1 ) ) ); \
+   xb0 = mm128_not( _mm_xor_si128( xa0, mm128_rol_32( xb0, 1 ) ) ); \
 } while (0)
 
 #define PERM_STEP_0   do { \
@@ -335,22 +335,22 @@ do { \
 
 #define APPLY_P \
 do { \
-    B0 = mm_ror_32( B0, 15 ); \
-    B1 = mm_ror_32( B1, 15 ); \
-    B2 = mm_ror_32( B2, 15 ); \
-    B3 = mm_ror_32( B3, 15 ); \
-    B4 = mm_ror_32( B4, 15 ); \
-    B5 = mm_ror_32( B5, 15 ); \
-    B6 = mm_ror_32( B6, 15 ); \
-    B7 = mm_ror_32( B7, 15 ); \
-    B8 = mm_ror_32( B8, 15 ); \
-    B9 = mm_ror_32( B9, 15 ); \
-    BA = mm_ror_32( BA, 15 ); \
-    BB = mm_ror_32( BB, 15 ); \
-    BC = mm_ror_32( BC, 15 ); \
-    BD = mm_ror_32( BD, 15 ); \
-    BE = mm_ror_32( BE, 15 ); \
-    BF = mm_ror_32( BF, 15 ); \
+    B0 = mm128_ror_32( B0, 15 ); \
+    B1 = mm128_ror_32( B1, 15 ); \
+    B2 = mm128_ror_32( B2, 15 ); \
+    B3 = mm128_ror_32( B3, 15 ); \
+    B4 = mm128_ror_32( B4, 15 ); \
+    B5 = mm128_ror_32( B5, 15 ); \
+    B6 = mm128_ror_32( B6, 15 ); \
+    B7 = mm128_ror_32( B7, 15 ); \
+    B8 = mm128_ror_32( B8, 15 ); \
+    B9 = mm128_ror_32( B9, 15 ); \
+    BA = mm128_ror_32( BA, 15 ); \
+    BB = mm128_ror_32( BB, 15 ); \
+    BC = mm128_ror_32( BC, 15 ); \
+    BD = mm128_ror_32( BD, 15 ); \
+    BE = mm128_ror_32( BE, 15 ); \
+    BF = mm128_ror_32( BF, 15 ); \
     PERM_STEP_0; \
     PERM_STEP_1; \
     PERM_STEP_2; \

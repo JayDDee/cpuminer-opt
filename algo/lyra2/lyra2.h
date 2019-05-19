@@ -50,6 +50,10 @@ int LYRA2REV2( uint64_t*, void *K, uint64_t kLen, const void *pwd,
                uint64_t pwdlen, const void *salt, uint64_t saltlen,
                uint64_t timeCost, uint64_t nRows, uint64_t nCols );
 
+int LYRA2REV3( uint64_t*, void *K, uint64_t kLen, const void *pwd,
+               uint64_t pwdlen, const void *salt, uint64_t saltlen,
+               uint64_t timeCost, uint64_t nRows, uint64_t nCols );
+
 int LYRA2Z( uint64_t*, void *K, uint64_t kLen, const void *pwd,
             uint64_t pwdlen, const void *salt, uint64_t saltlen,
             uint64_t timeCost, uint64_t nRows, uint64_t nCols );

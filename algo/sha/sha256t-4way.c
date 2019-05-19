@@ -4,7 +4,6 @@
 #include <string.h>
 #include <stdio.h>
 #include "sha2-hash-4way.h"
-//#include <openssl/sha.h>
 
 #if defined(SHA256T_8WAY)
 
@@ -25,11 +24,8 @@ void sha256t_8way_hash( void* output, const void* input )
 
    sha256_8way_init( &ctx );
    sha256_8way( &ctx, vhash, 32 );
-   sha256_8way_close( &ctx, vhash );
+   sha256_8way_close( &ctx, output );
 
-   mm256_deinterleave_8x32( output,     output+ 32, output+ 64, output+ 96,
-                            output+128, output+160, output+192, output+224,
-                            vhash, 256 );
 }
 
 int scanhash_sha256t_8way( int thr_id, struct work *work,
@@ -84,14 +80,22 @@ int scanhash_sha256t_8way( int thr_id, struct work *work,
 
          sha256t_8way_hash( hash, vdata );
 
-         for ( int i = 0; i < 8; i++ )
-         if ( ( !( ( hash+(i<<3) )[7] & mask ) )
-              && fulltest( hash+(i<<3), ptarget ) )
-         {
-            pdata[19] = n+i;
-            nonces[ num_found++ ] = n+i;
-            work_set_target_ratio( work, hash+(i<<3) );
-         }
+         uint32_t *hash7 = &(hash[7<<3]); 
+	 
+         for ( int lane = 0; lane < 8; lane++ )
+         if ( !( hash7[ lane ] & mask ) )
+         { 
+            // deinterleave hash for lane
+	    uint32_t lane_hash[8];
+	    mm256_extract_lane_8x32( lane_hash, hash, lane, 256 );
+
+	    if ( fulltest( lane_hash, ptarget ) )
+            {
+	       pdata[19] = n + lane;
+               nonces[ num_found++ ] = n + lane;
+               work_set_target_ratio( work, lane_hash );
+	    }
+	 }
          n += 8;
 
       } while ( (num_found == 0) && (n < max_nonce)
@@ -122,10 +126,8 @@ void sha256t_4way_hash( void* output, const void* input )
 
    sha256_4way_init( &ctx );
    sha256_4way( &ctx, vhash, 32 );
-   sha256_4way_close( &ctx, vhash );
+   sha256_4way_close( &ctx, output );
 
-   mm_deinterleave_4x32( output,     output+ 32, output+ 64, output+ 96,
-                         vhash, 256 );
 }
 
 int scanhash_sha256t_4way( int thr_id, struct work *work,
@@ -133,6 +135,8 @@ int scanhash_sha256t_4way( int thr_id, struct work *work,
 {
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t hash[8*4] __attribute__ ((aligned (32)));
+   uint32_t *hash7 = &(hash[7<<2]);
+   uint32_t lane_hash[8];
    uint32_t edata[20] __attribute__ ((aligned (32)));;
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
@@ -159,7 +163,7 @@ int scanhash_sha256t_4way( int thr_id, struct work *work,
    for ( int k = 0; k < 19; k++ )
       be32enc( &edata[k], pdata[k] );
 
-   mm_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
    sha256_4way_init( &sha256_ctx4 );
    sha256_4way( &sha256_ctx4, vdata, 64 );
 
@@ -175,15 +179,20 @@ int scanhash_sha256t_4way( int thr_id, struct work *work,
 
          sha256t_4way_hash( hash, vdata );
 
-         for ( int i = 0; i < 4; i++ )
-         if ( ( !( ( hash+(i<<3) )[7] & mask ) )
-              && fulltest( hash+(i<<3), ptarget ) )
+         for ( int lane = 0; lane < 4; lane++ )
+         if ( !( hash7[ lane ] & mask ) )
          {
-            pdata[19] = n+i;
-            nonces[ num_found++ ] = n+i;
-            work_set_target_ratio( work, hash+(i<<3) );
+            mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+
+            if ( fulltest( lane_hash, ptarget ) )
+            {
+               pdata[19] = n + lane;
+               nonces[ num_found++ ] = n + lane;
+               work_set_target_ratio( work, lane_hash );
+            }
          }
-         n += 4;
+
+	 n += 4;
 
       } while ( (num_found == 0) && (n < max_nonce)
                 && !work_restart[thr_id].restart );

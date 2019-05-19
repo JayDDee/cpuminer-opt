@@ -6,7 +6,7 @@
 #include "algo/gost/sph_gost.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/fugue/sph_fugue.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 
 typedef struct {
     sph_skein512_context  skein;

@@ -268,7 +268,7 @@ bool register_decred_algo( algo_gate_t* gate )
   gate->hash                  = (void*)&decred_hash;
   gate->get_nonceptr          = (void*)&decred_get_nonceptr;
   gate->get_max64             = (void*)&get_max64_0x3fffffLL;
-  gate->display_extra_data    = (void*)&decred_decode_extradata;
+  gate->decode_extra_data     = (void*)&decred_decode_extradata;
   gate->build_stratum_request = (void*)&decred_be_build_stratum_request;
   gate->work_decode           = (void*)&std_be_work_decode;
   gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;

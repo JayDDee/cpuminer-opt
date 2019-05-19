@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/jh/jh-hash-4way.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/echo/aes_ni/hash_api.h"

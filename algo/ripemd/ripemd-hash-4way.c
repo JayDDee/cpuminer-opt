@@ -32,20 +32,20 @@ static const uint32_t IV[5] =
    _mm_xor_si128( _mm_and_si128( _mm_xor_si128( y, z ), x ), z )
 
 #define F3(x, y, z) \
-   _mm_xor_si128( _mm_or_si128( x, mm_not( y ) ), z )
+   _mm_xor_si128( _mm_or_si128( x, mm128_not( y ) ), z )
 
 #define F4(x, y, z) \
    _mm_xor_si128( _mm_and_si128( _mm_xor_si128( x, y ), z ), y )
 
 #define F5(x, y, z) \
-   _mm_xor_si128( x, _mm_or_si128( y, mm_not( z ) ) )
+   _mm_xor_si128( x, _mm_or_si128( y, mm128_not( z ) ) )
 
 #define RR(a, b, c, d, e, f, s, r, k) \
 do{ \
-   a = _mm_add_epi32( mm_rol_32( _mm_add_epi32( _mm_add_epi32( \
+   a = _mm_add_epi32( mm128_rol_32( _mm_add_epi32( _mm_add_epi32( \
                 _mm_add_epi32( a, f( b ,c, d ) ), r ), \
                                  _mm_set1_epi32( k ) ), s ), e ); \
-   c = mm_rol_32( c, 10 );\
+   c = mm128_rol_32( c, 10 );\
 } while (0)
 
 #define ROUND1(a, b, c, d, e, f, s, r, k)  \

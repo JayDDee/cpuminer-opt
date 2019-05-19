@@ -19,7 +19,7 @@
 #include "algo/sha/sph_sha2.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/simd/nist.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include <openssl/sha.h>
 #ifdef NO_AES_NI
   #include "algo/groestl/sph_groestl.h"

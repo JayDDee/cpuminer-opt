@@ -198,13 +198,13 @@ do { \
 #undef BUTTERFLY_N
 
   // Multiply by twiddle factors
-  X(6) = _mm256_mullo_epi16( X(6), FFT64_Twiddle[0].m256i );
-  X(5) = _mm256_mullo_epi16( X(5), FFT64_Twiddle[1].m256i );
-  X(4) = _mm256_mullo_epi16( X(4), FFT64_Twiddle[2].m256i );
-  X(3) = _mm256_mullo_epi16( X(3), FFT64_Twiddle[3].m256i );
-  X(2) = _mm256_mullo_epi16( X(2), FFT64_Twiddle[4].m256i );
-  X(1) = _mm256_mullo_epi16( X(1), FFT64_Twiddle[5].m256i );
-  X(0) = _mm256_mullo_epi16( X(0), FFT64_Twiddle[6].m256i );
+  X(6) = _mm256_mullo_epi16( X(6), FFT64_Twiddle[0].v256 );
+  X(5) = _mm256_mullo_epi16( X(5), FFT64_Twiddle[1].v256 );
+  X(4) = _mm256_mullo_epi16( X(4), FFT64_Twiddle[2].v256 );
+  X(3) = _mm256_mullo_epi16( X(3), FFT64_Twiddle[3].v256 );
+  X(2) = _mm256_mullo_epi16( X(2), FFT64_Twiddle[4].v256 );
+  X(1) = _mm256_mullo_epi16( X(1), FFT64_Twiddle[5].v256 );
+  X(0) = _mm256_mullo_epi16( X(0), FFT64_Twiddle[6].v256 );
 
   // Transpose the FFT state with a revbin order permutation
   // on the rows and the column.
@@ -319,7 +319,7 @@ void fft128_2way( void *a )
     B[ i ]   = REDUCE_FULL_S( B[ i ] );
     A[ i+8 ] = _mm256_sub_epi16( A[ i ], A[ i+8 ] );
     A[ i+8 ] = REDUCE_FULL_S( A[ i+8 ] );
-    A[ i+8 ] = _mm256_mullo_epi16( A[ i+8 ], FFT128_Twiddle[i].m256i );
+    A[ i+8 ] = _mm256_mullo_epi16( A[ i+8 ], FFT128_Twiddle[i].v256 );
     A[ i+8 ] = REDUCE_FULL_S( A[ i+8 ] );
   }
 
@@ -347,10 +347,10 @@ void fft128_2way_msg( uint16_t *a, const uint8_t *x, int final )
 do { \
     __m256i t = X[i]; \
     A[2*i]   = _mm256_unpacklo_epi8( t, m256_zero ); \
-    A[2*i+8] = _mm256_mullo_epi16( A[2*i], FFT128_Twiddle[2*i].m256i ); \
+    A[2*i+8] = _mm256_mullo_epi16( A[2*i], FFT128_Twiddle[2*i].v256 ); \
     A[2*i+8] = REDUCE(A[2*i+8]); \
     A[2*i+1] = _mm256_unpackhi_epi8( t, m256_zero ); \
-    A[2*i+9] = _mm256_mullo_epi16(A[2*i+1], FFT128_Twiddle[2*i+1].m256i ); \
+    A[2*i+9] = _mm256_mullo_epi16(A[2*i+1], FFT128_Twiddle[2*i+1].v256 ); \
     A[2*i+9] = REDUCE(A[2*i+9]); \
 } while(0)
 
@@ -360,12 +360,12 @@ do { \
     __m256i t = X[i]; \
     __m256i tmp; \
     A[2*i]   = _mm256_unpacklo_epi8( t, m256_zero ); \
-    A[2*i+8] = _mm256_mullo_epi16( A[ 2*i ], FFT128_Twiddle[ 2*i ].m256i ); \
+    A[2*i+8] = _mm256_mullo_epi16( A[ 2*i ], FFT128_Twiddle[ 2*i ].v256 ); \
     A[2*i+8] = REDUCE( A[ 2*i+8 ] ); \
     tmp      = _mm256_unpackhi_epi8( t, m256_zero ); \
     A[2*i+1] = _mm256_add_epi16( tmp, tw ); \
     A[2*i+9] = _mm256_mullo_epi16( _mm256_sub_epi16( tmp, tw ), \
-                                   FFT128_Twiddle[ 2*i+1 ].m256i );\
+                                   FFT128_Twiddle[ 2*i+1 ].v256 );\
     A[2*i+9] = REDUCE( A[ 2*i+9 ] );                       \
 } while(0)
 
@@ -373,9 +373,9 @@ do { \
   UNPACK( 1 );
   UNPACK( 2 );
   if ( final )
-    UNPACK_TWEAK( 3, FinalTweak.m256i );
+    UNPACK_TWEAK( 3, FinalTweak.v256 );
   else
-    UNPACK_TWEAK( 3, Tweak.m256i );
+    UNPACK_TWEAK( 3, Tweak.v256 );
 
 #undef UNPACK
 #undef UNPACK_TWEAK
@@ -398,11 +398,11 @@ do { \
     __m256i t = X[i]; \
     A[ 2*i      ] = _mm256_unpacklo_epi8( t, m256_zero ); \
     A[ 2*i + 16 ] = _mm256_mullo_epi16( A[ 2*i ], \
-                                        FFT256_Twiddle[ 2*i ].m256i ); \
+                                        FFT256_Twiddle[ 2*i ].v256 ); \
     A[ 2*i + 16 ] = REDUCE( A[ 2*i + 16 ] ); \
     A[ 2*i +  1 ] = _mm256_unpackhi_epi8( t, m256_zero ); \
     A[ 2*i + 17 ] = _mm256_mullo_epi16( A[ 2*i + 1 ], \
-                                        FFT256_Twiddle[ 2*i + 1 ].m256i ); \
+                                        FFT256_Twiddle[ 2*i + 1 ].v256 ); \
     A[ 2*i + 17 ] = REDUCE( A[ 2*i + 17 ] ); \
 } while(0)
 
@@ -413,12 +413,12 @@ do { \
     __m256i tmp; \
     A[ 2*i      ] = _mm256_unpacklo_epi8( t, m256_zero ); \
     A[ 2*i + 16 ] = _mm256_mullo_epi16( A[ 2*i ], \
-                                        FFT256_Twiddle[ 2*i ].m256i ); \
+                                        FFT256_Twiddle[ 2*i ].v256 ); \
     A[ 2*i + 16 ] = REDUCE( A[ 2*i + 16 ] ); \
     tmp           = _mm256_unpackhi_epi8( t, m256_zero ); \
     A[ 2*i +  1 ] = _mm256_add_epi16( tmp, tw ); \
     A[ 2*i + 17 ] = _mm256_mullo_epi16( _mm256_sub_epi16( tmp, tw ), \
-                                        FFT256_Twiddle[ 2*i + 1 ].m256i ); \
+                                        FFT256_Twiddle[ 2*i + 1 ].v256 ); \
   } while(0)
 
   UNPACK( 0 );
@@ -429,9 +429,9 @@ do { \
   UNPACK( 5 );
   UNPACK( 6 );
   if ( final )
-    UNPACK_TWEAK( 7, FinalTweak.m256i );
+    UNPACK_TWEAK( 7, FinalTweak.v256 );
   else
-    UNPACK_TWEAK( 7, Tweak.m256i );
+    UNPACK_TWEAK( 7, Tweak.v256 );
 
 #undef UNPACK
 #undef UNPACK_TWEAK
@@ -447,7 +447,7 @@ void rounds512_2way( uint32_t *state, const uint8_t *msg, uint16_t *fft )
   __m256i *S = (__m256i*) state;
   __m256i *M = (__m256i*) msg;
   __m256i *W = (__m256i*) fft;
-  static const m256_v16 code[] = { mm256_setc1_16(185), mm256_setc1_16(233) };
+  static const m256_v16 code[] = { mm256_const1_16(185), mm256_const1_16(233) };
 
   S0l = _mm256_xor_si256( S[0], M[0] );
   S0h = _mm256_xor_si256( S[1], M[1] );
@@ -612,9 +612,9 @@ do { \
     int a = MSG_##u(hh); \
     int b = MSG_##u(ll); \
     w##l = _mm256_unpacklo_epi16( W[a], W[b] ); \
-    w##l = _mm256_mullo_epi16( w##l, code[z].m256i ); \
+    w##l = _mm256_mullo_epi16( w##l, code[z].v256 ); \
     w##h = _mm256_unpackhi_epi16( W[a], W[b]) ; \
-    w##h = _mm256_mullo_epi16( w##h, code[z].m256i ); \
+    w##h = _mm256_mullo_epi16( w##h, code[z].v256 ); \
 } while(0)
 
 #define ROUND( h0,l0,u0,h1,l1,u1,h2,l2,u2,h3,l3,u3,fun,r,s,t,u,z ) \

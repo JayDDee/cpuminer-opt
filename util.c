@@ -1693,24 +1693,36 @@ static uint32_t getblocheight(struct stratum_ctx *sctx)
 static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 {
 	const char *job_id, *prevhash, *coinb1, *coinb2, *version, *nbits, *stime;
-        const char *claim = NULL;
+        const char *extradata = NULL;
 	size_t coinb1_size, coinb2_size;
 	bool clean, ret = false;
 	int merkle_count, i, p = 0;
 	json_t *merkle_arr;
 	uchar **merkle = NULL;
-        bool has_claim = opt_algo == ALGO_LBRY;
+	int jsize = json_array_size(params);
+        bool has_claim = ( opt_algo == ALGO_LBRY ) && ( jsize == 10 );
+        bool has_roots = ( opt_algo == ALGO_PHI2 ) && ( jsize == 10 );
 	job_id = json_string_value(json_array_get(params, p++));
 	prevhash = json_string_value(json_array_get(params, p++));
         if ( has_claim )
         {
-                claim = json_string_value(json_array_get(params, p++));
-                if (!claim || strlen(claim) != 64) 
-                {
-                        applog(LOG_ERR, "Stratum notify: invalid claim parameter");
-                        goto out;
-                }
+            extradata = json_string_value(json_array_get(params, p++));
+            if ( !extradata || strlen( extradata ) != 64 ) 
+            {
+                applog(LOG_ERR, "Stratum notify: invalid claim parameter");
+                goto out;
+            }
         }
+        else if ( has_roots )
+       	{
+            extradata = json_string_value(json_array_get(params, p++));
+            if ( !extradata || strlen( extradata ) != 128 )
+	    {
+                applog(LOG_ERR, "Stratum notify: invalid UTXO root parameter");
+                goto out;
+            }
+        }
+
 	coinb1 = json_string_value(json_array_get(params, p++));
 	coinb2 = json_string_value(json_array_get(params, p++));
 	merkle_arr = json_array_get(params, p++);
@@ -1759,7 +1771,8 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	free(sctx->job.job_id);
 	sctx->job.job_id = strdup(job_id);
 	hex2bin(sctx->job.prevhash, prevhash, 32);
-        if (has_claim) hex2bin(sctx->job.claim, claim, 32);
+        if (has_claim) hex2bin(sctx->job.extra, extradata, 32);
+        if (has_roots) hex2bin(sctx->job.extra, extradata, 64);
 
 	sctx->bloc_height = getblocheight(sctx);
 

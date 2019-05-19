@@ -254,6 +254,7 @@ int cubehashUpdateDigest( cubehashParam *sp, byte *digest,
     transform( sp );
 
     sp->x[7] = _mm_xor_si128( sp->x[7], _mm_set_epi32( 1,0,0,0 ) );
+
     transform( sp );
     transform( sp );
     transform( sp );

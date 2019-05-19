@@ -69,6 +69,8 @@ void do_nothing   () {}
 bool return_true  () { return true;  }
 bool return_false () { return false; }
 void *return_null () { return NULL;  }
+void call_error   () { printf("ERR: Uninitialized function pointer\n"); }
+
 
 void algo_not_tested()
 {
@@ -113,7 +115,8 @@ void init_algo_gate( algo_gate_t* gate )
    gate->hash_suw                = (void*)&null_hash_suw;
    gate->get_new_work            = (void*)&std_get_new_work;
    gate->get_nonceptr            = (void*)&std_get_nonceptr;
-   gate->display_extra_data      = (void*)&do_nothing;
+   gate->work_decode             = (void*)&std_le_work_decode;
+   gate->decode_extra_data       = (void*)&do_nothing;
    gate->wait_for_diff           = (void*)&std_wait_for_diff;
    gate->get_max64               = (void*)&get_max64_0x1fffffLL;
    gate->gen_merkle_root         = (void*)&sha256d_gen_merkle_root;
@@ -121,7 +124,6 @@ void init_algo_gate( algo_gate_t* gate )
    gate->build_stratum_request   = (void*)&std_le_build_stratum_request;
    gate->malloc_txs_request      = (void*)&std_malloc_txs_request;
    gate->set_target              = (void*)&std_set_target;
-   gate->work_decode             = (void*)&std_le_work_decode;
    gate->submit_getwork_result   = (void*)&std_le_submit_getwork_result;
    gate->build_block_header      = (void*)&std_build_block_header;
    gate->build_extraheader       = (void*)&std_build_extraheader;
@@ -132,11 +134,11 @@ void init_algo_gate( algo_gate_t* gate )
    gate->do_this_thread          = (void*)&return_true;
    gate->longpoll_rpc_call       = (void*)&std_longpoll_rpc_call;
    gate->stratum_handle_response = (void*)&std_stratum_handle_response;
+   gate->get_work_data_size      = (void*)&std_get_work_data_size;
    gate->optimizations           = EMPTY_SET;
    gate->ntime_index             = STD_NTIME_INDEX;
    gate->nbits_index             = STD_NBITS_INDEX;
    gate->nonce_index             = STD_NONCE_INDEX;
-   gate->work_data_size          = STD_WORK_DATA_SIZE;
    gate->work_cmp_size           = STD_WORK_CMP_SIZE;
 }
 
@@ -190,6 +192,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_LYRA2H:       register_lyra2h_algo       ( gate ); break;
      case ALGO_LYRA2RE:      register_lyra2re_algo      ( gate ); break;
      case ALGO_LYRA2REV2:    register_lyra2rev2_algo    ( gate ); break;
+     case ALGO_LYRA2REV3:    register_lyra2rev3_algo    ( gate ); break;
      case ALGO_LYRA2Z:       register_lyra2z_algo       ( gate ); break;
      case ALGO_LYRA2Z330:    register_lyra2z330_algo    ( gate ); break;
      case ALGO_M7M:          register_m7m_algo          ( gate ); break;
@@ -198,6 +201,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_NIST5:        register_nist5_algo        ( gate ); break;
      case ALGO_PENTABLAKE:   register_pentablake_algo   ( gate ); break;
      case ALGO_PHI1612:      register_phi1612_algo      ( gate ); break;
+     case ALGO_PHI2:         register_phi2_algo         ( gate ); break;
      case ALGO_PLUCK:        register_pluck_algo        ( gate ); break;
      case ALGO_POLYTIMOS:    register_polytimos_algo    ( gate ); break;
      case ALGO_QUARK:        register_quark_algo        ( gate ); break;
@@ -229,10 +233,18 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_X16S:         register_x16s_algo         ( gate ); break;
      case ALGO_X17:          register_x17_algo          ( gate ); break;
      case ALGO_XEVAN:        register_xevan_algo        ( gate ); break;
+/*    case ALGO_YESCRYPT:     register_yescrypt_05_algo     ( gate ); break;
+     case ALGO_YESCRYPTR8:   register_yescryptr8_05_algo   ( gate ); break;
+     case ALGO_YESCRYPTR16:  register_yescryptr16_05_algo  ( gate ); break;
+     case ALGO_YESCRYPTR32:  register_yescryptr32_05_algo  ( gate ); break;
+*/
      case ALGO_YESCRYPT:     register_yescrypt_algo     ( gate ); break;
      case ALGO_YESCRYPTR8:   register_yescryptr8_algo   ( gate ); break;
      case ALGO_YESCRYPTR16:  register_yescryptr16_algo  ( gate ); break;
      case ALGO_YESCRYPTR32:  register_yescryptr32_algo  ( gate ); break;
+
+     case ALGO_YESPOWER:     register_yespower_algo     ( gate ); break;
+     case ALGO_YESPOWERR16:  register_yespowerr16_algo  ( gate ); break;
      case ALGO_ZR5:          register_zr5_algo          ( gate ); break;
     default:
         applog(LOG_ERR,"FAIL: algo_gate registration failed, unknown algo %s.\n", algo_names[opt_algo] );
@@ -310,6 +322,7 @@ const char* const algo_alias_map[][2] =
   { "jane",              "scryptjane"   }, 
   { "lyra2",             "lyra2re"      },
   { "lyra2v2",           "lyra2rev2"    },
+  { "lyra2v3",           "lyra2rev3"    },
   { "lyra2zoin",         "lyra2z330"    },
   { "myrgr",             "myr-gr"       },
   { "myriad",            "myr-gr"       },

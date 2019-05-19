@@ -13,7 +13,7 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/luffa/luffa-hash-2way.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
@@ -183,21 +183,16 @@ void x14_4way_hash( void *state, const void *input )
      sph_fugue512_close( &ctx.fugue, hash3 );
 
      // 14 Shabal, parallel 32 bit
-     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
      shabal512_4way( &ctx.shabal, vhash, 64 );
-     shabal512_4way_close( &ctx.shabal, vhash );
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
-     
-     memcpy( state,    hash0, 32 );
-     memcpy( state+32, hash1, 32 );
-     memcpy( state+64, hash2, 32 );
-     memcpy( state+96, hash3, 32 );
+     shabal512_4way_close( &ctx.shabal, state );
+
 }
 
 int scanhash_x14_4way( int thr_id, struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done )
 {
-     uint32_t hash[4*8] __attribute__ ((aligned (64)));
+     uint32_t hash[4*16] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
      uint32_t endiandata[20] __attribute__((aligned(64)));
      uint32_t *pdata = work->data;
@@ -233,13 +228,21 @@ int scanhash_x14_4way( int thr_id, struct work *work, uint32_t max_nonce,
             x14_4way_hash( hash, vdata );
             pdata[19] = n;
 
-            for ( int i = 0; i < 4; i++ )
-            if ( ( ( (hash+(i<<3))[7] & mask ) == 0 )
-                 && fulltest( hash+(i<<3), ptarget ) )
+            uint32_t *hash7 = &(hash[7<<2]);
+
+            for ( int lane = 0; lane < 4; lane++ )
+            if ( ( hash7[ lane ] & mask ) == 0 )
             {
-               pdata[19] = n+i;
-               nonces[ num_found++ ] = n+i;
-               work_set_target_ratio( work, hash+(i<<3) );
+               // deinterleave hash for lane
+               uint32_t lane_hash[8];
+               mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+
+               if ( fulltest( lane_hash, ptarget ) )
+               {
+                  pdata[19] = n + lane;
+                  nonces[ num_found++ ] = n + lane;
+                  work_set_target_ratio( work, lane_hash );
+               }
             }
             n += 4;
          } while ( ( num_found == 0 ) && ( n < max_nonce )

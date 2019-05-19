@@ -13,7 +13,7 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/luffa/luffa-hash-2way.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread int permutation[TT8_FUNC_COUNT] = { 0 };

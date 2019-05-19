@@ -21,9 +21,10 @@ void skeinhash_4way( void *state, const void *input )
 
      sha256_4way_init( &ctx_sha256 );
      sha256_4way( &ctx_sha256, vhash32, 64 );
-     sha256_4way_close( &ctx_sha256, vhash32 );
+     sha256_4way_close( &ctx_sha256, state );
 
-     mm_deinterleave_4x32( state, state+32, state+64, state+96, vhash32, 256 );
+     mm128_deinterleave_4x32( state, state+32, state+64, state+96,
+		              vhash32, 256 );
 }
 
 int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -31,6 +32,8 @@ int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
 {
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
     uint32_t hash[8*4] __attribute__ ((aligned (64)));
+    uint32_t lane_hash[8];
+    uint32_t *hash7 = &(hash[7<<2]);
     uint32_t edata[20] __attribute__ ((aligned (64)));
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
@@ -58,12 +61,16 @@ int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
        skeinhash_4way( hash, vdata );
 
-       for ( int i = 0; i < 4; i++ )
-       if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
+       for ( int lane = 0; lane < 4; lane++ )
+       if (  hash7[ lane ] <= Htarg )
        {
-           pdata[19] = n+i;
-           nonces[ num_found++ ] = n+i;
-           work_set_target_ratio( work, hash+(i<<3) );
+          mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+          if ( fulltest( lane_hash, ptarget ) )
+          {
+             pdata[19] = n + lane;
+             nonces[ num_found++ ] = n + lane;
+             work_set_target_ratio( work, lane_hash );
+          }
        }
        n += 4;
     } while ( (num_found == 0) && (n < max_nonce)

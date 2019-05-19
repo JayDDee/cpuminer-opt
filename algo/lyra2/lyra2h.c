@@ -1,4 +1,4 @@
-#include "lyra2h-gate.h"
+#include "lyra2-gate.h"
 #include <memory.h>
 #include <mm_malloc.h>
 #include "lyra2.h"

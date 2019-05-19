@@ -10,12 +10,12 @@
 
 struct _cube_2way_context
 {
+    __m256i h[8];
     int hashlen;           // __m128i
     int rounds;
     int blocksize;         // __m128i
     int pos;               // number of __m128i read into x from current block
-    __m256i h[8] __attribute__ ((aligned (64)));
-};
+} __attribute__ ((aligned (64)));
 
 typedef struct _cube_2way_context cube_2way_context;
 

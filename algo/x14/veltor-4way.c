@@ -54,10 +54,10 @@ void veltor_4way_hash( void *output, const void *input )
      sph_shavite512( &ctx.shavite, hash3, 64 );
      sph_shavite512_close( &ctx.shavite, hash3 );
 
-     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_gost512( &ctx.gost, hash0, 64 );
      sph_gost512_close( &ctx.gost, hash0 );

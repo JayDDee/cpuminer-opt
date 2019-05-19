@@ -1,11 +1,11 @@
-#include "lyra2rev2-gate.h"
+#include "lyra2-gate.h"
 #include <memory.h>
 #include "algo/blake/sph_blake.h"
 #include "algo/cubehash/sph_cubehash.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/bmw/sph_bmw.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h" 
+#include "algo/cubehash/cubehash_sse2.h" 
 //#include "lyra2.h"
 
 typedef struct {

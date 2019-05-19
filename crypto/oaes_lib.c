@@ -27,10 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * ---------------------------------------------------------------------------
  */
-static const char _NR[] = {
+/*
+ * static const char _NR[] = {
   0x4e,0x61,0x62,0x69,0x6c,0x20,0x53,0x2e,0x20,
   0x41,0x6c,0x20,0x52,0x61,0x6d,0x6c,0x69,0x00
 };
+*/
 
 #include <sys/types.h>
 #define NO_OLDNAMES /* timeb is still defined in mingw */

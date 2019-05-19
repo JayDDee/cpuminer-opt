@@ -92,13 +92,13 @@ int blake2s_4way_compress( blake2s_4way_state *S, const __m128i* block )
 #define G4W(r,i,a,b,c,d) \
 do { \
    a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ blake2s_sigma[r][2*i+0] ] ); \
-   d = mm_ror_32( _mm_xor_si128( d, a ), 16 ); \
+   d = mm128_ror_32( _mm_xor_si128( d, a ), 16 ); \
    c = _mm_add_epi32( c, d ); \
-   b = mm_ror_32( _mm_xor_si128( b, c ), 12 ); \
+   b = mm128_ror_32( _mm_xor_si128( b, c ), 12 ); \
    a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ blake2s_sigma[r][2*i+1] ] ); \
-   d = mm_ror_32( _mm_xor_si128( d, a ),  8 ); \
+   d = mm128_ror_32( _mm_xor_si128( d, a ),  8 ); \
    c = _mm_add_epi32( c, d ); \
-   b = mm_ror_32( _mm_xor_si128( b, c ),  7 ); \
+   b = mm128_ror_32( _mm_xor_si128( b, c ),  7 ); \
 } while(0)
 
 #define ROUND4W(r)  \

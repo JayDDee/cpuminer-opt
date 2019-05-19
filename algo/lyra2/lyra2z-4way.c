@@ -1,4 +1,4 @@
-#include "lyra2z-gate.h"
+#include "lyra2-gate.h"
 
 #ifdef LYRA2Z_4WAY
 
@@ -36,7 +36,7 @@ void lyra2z_4way_hash( void *state, const void *input )
      blake256_4way( &ctx_blake, input + (64*4), 16 );
      blake256_4way_close( &ctx_blake, vhash );
 
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
+     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
      LYRA2Z( lyra2z_4way_matrix, hash0, 32, hash0, 32, hash0, 32, 8, 8, 8 );
      LYRA2Z( lyra2z_4way_matrix, hash1, 32, hash1, 32, hash1, 32, 8, 8, 8 );
@@ -70,7 +70,7 @@ int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
    for ( int i=0; i < 20; i++ )
       be32enc( &edata[i], pdata[i] );
 
-   mm_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
 
    lyra2z_4way_midstate( vdata );
 

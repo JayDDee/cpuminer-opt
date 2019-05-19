@@ -81,5 +81,24 @@ strip -s cpuminer
 mv cpuminer cpuminer-sse2
 
 make clean || echo done
+rm -f config.status
+./autogen.sh || echo done
+CFLAGS="-O3 -march=znver1 -Wall" ./configure --with-curl
+make -j 8
+strip -s cpuminer.exe
+mv cpuminer.exe cpuminer-zen.exe
+strip -s cpuminer
+mv cpuminer cpuminer-zen
 
+make clean || echo done
+rm -f config.status
+./autogen.sh || echo done
+CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
+make -j 8
+strip -s cpuminer.exe
+mv cpuminer.exe cpuminer-native.exe
+strip -s cpuminer
+mv cpuminer cpuminer-native
+
+make clean || echo done
 

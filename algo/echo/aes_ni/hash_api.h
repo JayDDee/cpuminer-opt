@@ -30,6 +30,7 @@
 typedef struct
 {
 	__m128i			state[4][4];
+        BitSequence             buffer[192];
 	__m128i			k;
 	__m128i			hashsize;
 	__m128i			const1536;
@@ -39,9 +40,8 @@ typedef struct
 	unsigned int	uBlockLength;
 	unsigned int	uBufferBytes;
 	DataLength		processed_bits;
-	BitSequence		buffer[192];
 
-} hashState_echo;
+} hashState_echo __attribute__ ((aligned (64)));
 
 HashReturn init_echo(hashState_echo *state, int hashbitlen);
 

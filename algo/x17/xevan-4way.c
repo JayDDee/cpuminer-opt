@@ -14,7 +14,7 @@
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/luffa/luffa-hash-2way.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
@@ -201,10 +201,10 @@ void xevan_4way_hash( void *output, const void *input )
      sph_fugue512_close( &ctx.fugue, hash3 );
 
      // Parallel 4way 32 bit
-     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
      shabal512_4way( &ctx.shabal, vhash, dataLen );
      shabal512_4way_close( &ctx.shabal, vhash );
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
+     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      // Serial
      sph_whirlpool( &ctx.whirlpool, hash0, dataLen );
@@ -229,7 +229,7 @@ void xevan_4way_hash( void *output, const void *input )
      mm256_reinterleave_4x32( vhash32, vhash, dataLen<<3 );
      haval256_5_4way( &ctx.haval, vhash32, dataLen );
      haval256_5_4way_close( &ctx.haval, vhash );
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
+     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
      memset( &vhash[ 4<<2 ], 0, (dataLen-32) << 2 );
@@ -339,10 +339,10 @@ void xevan_4way_hash( void *output, const void *input )
      sph_fugue512( &ctx.fugue, hash3, dataLen );
      sph_fugue512_close( &ctx.fugue, hash3 );
 
-     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
      shabal512_4way( &ctx.shabal, vhash, dataLen );
      shabal512_4way_close( &ctx.shabal, vhash );
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
+     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      sph_whirlpool( &ctx.whirlpool, hash0, dataLen );
      sph_whirlpool_close( &ctx.whirlpool, hash0 );
@@ -365,16 +365,15 @@ void xevan_4way_hash( void *output, const void *input )
 
      mm256_reinterleave_4x32( vhash32, vhash, dataLen<<3 );
      haval256_5_4way( &ctx.haval, vhash32, dataLen );
-     haval256_5_4way_close( &ctx.haval, vhash32 );
-
-     mm_deinterleave_4x32( output, output+32, output+64, output+96,
-                           vhash32, 256 );
+     haval256_5_4way_close( &ctx.haval, output );
 }
 
 int scanhash_xevan_4way( int thr_id, struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done )
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
+   uint32_t *hash7 = &(hash[7<<2]);
+   uint32_t lane_hash[8];
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
    uint32_t _ALIGN(64) endiandata[20];
    uint32_t *pdata = work->data;
@@ -405,15 +404,16 @@ int scanhash_xevan_4way( int thr_id, struct work *work, uint32_t max_nonce,
       be32enc( noncep+6, n+3 );
 
       xevan_4way_hash( hash, vdata );
-
-      pdata[19] = n;
-
-      for ( int i = 0; i < 4; i++ )
-      if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
+      for ( int lane = 0; lane < 4; lane++ )
+      if ( hash7[ lane ] <= Htarg )
       {
-         pdata[19] = n+i;
-         nonces[ num_found++ ] = n+i;
-         work_set_target_ratio( work, hash+(i<<3) );
+         mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+	 if ( fulltest( lane_hash, ptarget ) )
+         {
+             pdata[19] = n + lane;
+             nonces[ num_found++ ] = n + lane;
+             work_set_target_ratio( work, lane_hash );
+         }
       }
       n += 4;
    } while ( ( num_found == 0 ) && ( n < max_nonce )

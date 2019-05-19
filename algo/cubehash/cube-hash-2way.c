@@ -92,7 +92,6 @@ int cube_2way_reinit( cube_2way_context *sp )
 {
    memcpy( sp, &cube_2way_ctx_cache, sizeof(cube_2way_context) );
    return 0;
-
 }
 
 int cube_2way_init( cube_2way_context *sp, int hashbitlen, int rounds,
@@ -123,7 +122,7 @@ int cube_2way_init( cube_2way_context *sp, int hashbitlen, int rounds,
 
 int cube_2way_update( cube_2way_context *sp, const void *data, size_t size )
 {
-    const int len = size / 16;
+    const int len = size >> 4;
     const __m256i *in = (__m256i*)data;
     int i;
 
@@ -140,7 +139,6 @@ int cube_2way_update( cube_2way_context *sp, const void *data, size_t size )
            sp->pos = 0;
         }
     }
-
     return 0;
 }
 
@@ -151,25 +149,22 @@ int cube_2way_close( cube_2way_context *sp, void *output )
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->h[ sp->pos ] = _mm256_xor_si256( sp->h[ sp->pos ],
-                    _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0x80,
-                                     0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0x80 ) );
+                                _mm256_set_epi32( 0,0,0,0x80,  0,0,0,0x80 ) );
     transform_2way( sp );
 
-    sp->h[7] = _mm256_xor_si256( sp->h[7], _mm256_set_epi32( 1,0,0,0,
-                                                             1,0,0,0 ) );
-    for ( i = 0; i < 10; ++i )
-       transform_2way( &cube_2way_ctx_cache );
+    sp->h[7] = _mm256_xor_si256( sp->h[7],
+		                 _mm256_set_epi32( 1,0,0,0,  1,0,0,0 ) );
 
-    for ( i = 0; i < sp->hashlen; i++ )
-       hash[i] = sp->h[i];
+    for ( i = 0; i < 10; ++i )           transform_2way( sp );
 
+    for ( i = 0; i < sp->hashlen; i++ )  hash[i] = sp->h[i];
     return 0;
 }
 
 int cube_2way_update_close( cube_2way_context *sp, void *output,
                                const void *data, size_t size )
 {
-    const int len = size / 16;
+    const int len = size >> 4;
     const __m256i *in = (__m256i*)data;
     __m256i *hash = (__m256i*)output;
     int i;
@@ -187,18 +182,15 @@ int cube_2way_update_close( cube_2way_context *sp, void *output,
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->h[ sp->pos ] = _mm256_xor_si256( sp->h[ sp->pos ],
-                    _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0x80,
-                                     0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0x80 ) );
+                    _mm256_set_epi32( 0,0,0,0x80,  0,0,0,0x80 ) );
     transform_2way( sp );
 
     sp->h[7] = _mm256_xor_si256( sp->h[7], _mm256_set_epi32( 1,0,0,0,
                                                              1,0,0,0 ) );
-    for ( i = 0; i < 10; ++i )
-       transform_2way( &cube_2way_ctx_cache );
 
-    for ( i = 0; i < sp->hashlen; i++ )
-       hash[i] = sp->h[i];
+    for ( i = 0; i < 10; ++i )            transform_2way( sp );
 
+    for ( i = 0; i < sp->hashlen; i++ )   hash[i] = sp->h[i];
     return 0;
 }
 

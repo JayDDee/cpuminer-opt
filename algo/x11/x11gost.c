@@ -11,7 +11,7 @@
 #include "algo/echo/sph_echo.h"
 
 #include "algo/luffa/luffa_for_sse2.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
 #include "algo/blake/sse2/blake.c"
 #include "algo/keccak/sse2/keccak.c"

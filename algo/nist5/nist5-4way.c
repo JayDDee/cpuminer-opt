@@ -62,15 +62,15 @@ void nist5hash_4way( void *out, const void *input )
 
      skein512_4way_init( &ctx_skein );
      skein512_4way( &ctx_skein, vhash, 64 );
-     skein512_4way_close( &ctx_skein, vhash );
-
-     mm256_deinterleave_4x64( out, out+32, out+64, out+96, vhash, 256 );
+     skein512_4way_close( &ctx_skein, out );
 }
 
 int scanhash_nist5_4way( int thr_id, struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done)
 {
-     uint32_t hash[4*8] __attribute__ ((aligned (64)));
+     uint32_t hash[4*16] __attribute__ ((aligned (64)));
+     uint32_t *hash7 = &(hash[25]);
+     uint32_t lane_hash[8];
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
      uint32_t endiandata[20] __attribute__((aligned(64)));
      uint32_t *pdata = work->data;
@@ -120,15 +120,16 @@ int scanhash_nist5_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
               nist5hash_4way( hash, vdata );
 
-              pdata[19] = n;
-
-              for ( int i = 0; i < 4; i++ )
-              if ( ( !( (hash+(i<<3))[7] & mask ) == 0 )
-                 && fulltest( hash+(i<<3), ptarget ) )
+              for ( int lane = 0; lane < 4; lane++ )
+              if ( ( hash7[ lane ] & mask ) == 0 )
               {
-                 pdata[19] = n+i;         
-                 nonces[ num_found++ ] = n+i;
-                 work_set_target_ratio( work, hash+(i<<3) );
+                 mm256_extract_lane_4x64( lane_hash, hash, lane, 256 );
+                 if ( fulltest( lane_hash, ptarget ) )
+                 {
+                    pdata[19] = n + lane;
+                    nonces[ num_found++ ] = n + lane;
+                    work_set_target_ratio( work, lane_hash );
+                 }
               }
               n += 4;
            } while ( ( num_found == 0 ) && ( n < max_nonce )

@@ -41,8 +41,6 @@ void lbry_le_build_stratum_request( char *req, struct work *work,
    free(xnonce2str);
 }
 
-// don't use lbry_build_block_header, it can't handle clasim, do it inline
-// in lbry_build_extraheader. The side effect is no gbt support for lbry.
 void lbry_build_block_header( struct work* g_work, uint32_t version,
                              uint32_t *prevhash, uint32_t *merkle_root,
                              uint32_t ntime, uint32_t nbits )
@@ -61,9 +59,6 @@ void lbry_build_block_header( struct work* g_work, uint32_t version,
    for ( i = 0; i < 8; i++ )
       g_work->data[9 + i] = be32dec( merkle_root + i );
 
-//   for ( int i = 0; i < 8; i++ )
-//        g_work->data[17 + i] = claim[i];
-
    g_work->data[ LBRY_NTIME_INDEX ] = ntime;
    g_work->data[ LBRY_NBITS_INDEX ] = nbits;
    g_work->data[28] = 0x80000000;
@@ -80,10 +75,6 @@ void lbry_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
    // Assemble block header 
 
-//   algo_gate.build_block_header( g_work, le32dec( sctx->job.version ),
-//          (uint32_t*) sctx->job.prevhash, (uint32_t*) merkle_root,
-//          le32dec( sctx->job.ntime ), le32dec( sctx->job.nbits ) );
-
    memset( g_work->data, 0, sizeof(g_work->data) );
    g_work->data[0] = le32dec( sctx->job.version );
 
@@ -94,7 +85,7 @@ void lbry_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
       g_work->data[9 + i] = be32dec( (uint32_t *) merkle_root + i );
 
    for ( int i = 0; i < 8; i++ )
-        g_work->data[17 + i] = ((uint32_t*)sctx->job.claim)[i];
+        g_work->data[17 + i] = ((uint32_t*)sctx->job.extra)[i];
 
    g_work->data[ LBRY_NTIME_INDEX ] = le32dec(sctx->job.ntime);
    g_work->data[ LBRY_NBITS_INDEX ] = le32dec(sctx->job.nbits);
@@ -107,6 +98,8 @@ void lbry_set_target( struct work* work, double job_diff )
 }
 
 int64_t lbry_get_max64() { return 0x1ffffLL; }
+
+int lbry_get_work_data_size() { return LBRY_WORK_DATA_SIZE; }
 
 bool register_lbry_algo( algo_gate_t* gate )
 {
@@ -130,7 +123,7 @@ bool register_lbry_algo( algo_gate_t* gate )
   gate->ntime_index           = LBRY_NTIME_INDEX;
   gate->nbits_index           = LBRY_NBITS_INDEX;
   gate->nonce_index           = LBRY_NONCE_INDEX;
-  gate->work_data_size        = LBRY_WORK_DATA_SIZE;
+  gate->get_work_data_size    = (void*)&lbry_get_work_data_size;
   return true;
 }
 

@@ -1,4 +1,4 @@
-#include "allium-gate.h"
+#include "lyra2-gate.h"
 #include <memory.h>
 #include <mm_malloc.h>
 
@@ -7,7 +7,7 @@
 #include "algo/blake/blake-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/skein/skein-hash-4way.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include "algo/groestl/aes_ni/hash-groestl256.h"
 
 typedef struct {
@@ -108,7 +108,7 @@ int scanhash_allium_4way( int thr_id, struct work *work, uint32_t max_nonce,
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
    swab32_array( edata, pdata, 20 );
-   mm_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
    blake256_4way_init( &allium_4way_ctx.blake );
    blake256_4way( &allium_4way_ctx.blake, vdata, 64 );
 

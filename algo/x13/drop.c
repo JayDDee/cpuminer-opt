@@ -238,6 +238,8 @@ void drop_display_pok( struct work* work )
         applog(LOG_BLUE, "POK received: %08xx", work->data[0] );
 }
 
+int drop_get_work_data_size() { return 80; }
+
 // Need to fix POK offset problems like zr5
 bool register_drop_algo( algo_gate_t* gate )
 {
@@ -250,8 +252,8 @@ bool register_drop_algo( algo_gate_t* gate )
     gate->work_decode           = (void*)&std_be_work_decode;
     gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
     gate->set_work_data_endian  = (void*)&set_work_data_big_endian;
-    gate->display_extra_data    = (void*)&drop_display_pok;
-    gate->work_data_size        = 80;
+    gate->decode_extra_data     = (void*)&drop_display_pok;
+    gate->get_work_data_size    = (void*)&drop_get_work_data_size;
     gate->work_cmp_size         = 72;
     return true;
 };

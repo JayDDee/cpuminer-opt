@@ -21,9 +21,8 @@
 #include "algo/shabal/sph_shabal.h"
 
 #include "algo/luffa/luffa_for_sse2.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
-#include "algo/echo/sse2/sph_echo.h"
 #include "algo/blake/sse2/blake.c"
 #include "algo/bmw/sse2/bmw.c"
 #include "algo/keccak/sse2/keccak.c"

@@ -98,19 +98,19 @@ static const sph_u32 K256[64] = {
 
 #define BSG2_0(x) \
    _mm_xor_si128( _mm_xor_si128( \
-        mm_ror_32(x,  2), mm_ror_32(x, 13) ), mm_ror_32( x, 22) )
+        mm128_ror_32(x,  2), mm128_ror_32(x, 13) ), mm128_ror_32( x, 22) )
 
 #define BSG2_1(x) \
    _mm_xor_si128( _mm_xor_si128( \
-        mm_ror_32(x,  6), mm_ror_32(x, 11) ), mm_ror_32( x, 25) )
+        mm128_ror_32(x,  6), mm128_ror_32(x, 11) ), mm128_ror_32( x, 25) )
 
 #define SSG2_0(x) \
    _mm_xor_si128( _mm_xor_si128( \
-        mm_ror_32(x,  7), mm_ror_32(x, 18) ), _mm_srli_epi32(x, 3) ) 
+        mm128_ror_32(x,  7), mm128_ror_32(x, 18) ), _mm_srli_epi32(x, 3) ) 
 
 #define SSG2_1(x) \
    _mm_xor_si128( _mm_xor_si128( \
-        mm_ror_32(x, 17), mm_ror_32(x, 19) ), _mm_srli_epi32(x, 10) )
+        mm128_ror_32(x, 17), mm128_ror_32(x, 19) ), _mm_srli_epi32(x, 10) )
 
 #define SHA2s_4WAY_STEP(A, B, C, D, E, F, G, H, i, j) \
 do { \
@@ -129,22 +129,22 @@ sha256_4way_round( __m128i *in, __m128i r[8] )
    register  __m128i A, B, C, D, E, F, G, H;
    __m128i W[16];
 
-   W[ 0] = mm_bswap_32( in[ 0] );
-   W[ 1] = mm_bswap_32( in[ 1] );
-   W[ 2] = mm_bswap_32( in[ 2] );
-   W[ 3] = mm_bswap_32( in[ 3] );
-   W[ 4] = mm_bswap_32( in[ 4] );
-   W[ 5] = mm_bswap_32( in[ 5] );
-   W[ 6] = mm_bswap_32( in[ 6] );
-   W[ 7] = mm_bswap_32( in[ 7] );
-   W[ 8] = mm_bswap_32( in[ 8] );
-   W[ 9] = mm_bswap_32( in[ 9] );
-   W[10] = mm_bswap_32( in[10] );
-   W[11] = mm_bswap_32( in[11] );
-   W[12] = mm_bswap_32( in[12] );
-   W[13] = mm_bswap_32( in[13] );
-   W[14] = mm_bswap_32( in[14] );
-   W[15] = mm_bswap_32( in[15] );
+   W[ 0] = mm128_bswap_32( in[ 0] );
+   W[ 1] = mm128_bswap_32( in[ 1] );
+   W[ 2] = mm128_bswap_32( in[ 2] );
+   W[ 3] = mm128_bswap_32( in[ 3] );
+   W[ 4] = mm128_bswap_32( in[ 4] );
+   W[ 5] = mm128_bswap_32( in[ 5] );
+   W[ 6] = mm128_bswap_32( in[ 6] );
+   W[ 7] = mm128_bswap_32( in[ 7] );
+   W[ 8] = mm128_bswap_32( in[ 8] );
+   W[ 9] = mm128_bswap_32( in[ 9] );
+   W[10] = mm128_bswap_32( in[10] );
+   W[11] = mm128_bswap_32( in[11] );
+   W[12] = mm128_bswap_32( in[12] );
+   W[13] = mm128_bswap_32( in[13] );
+   W[14] = mm128_bswap_32( in[14] );
+   W[15] = mm128_bswap_32( in[15] );
 
    A = r[0];
    B = r[1];
@@ -289,13 +289,13 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
     low = low << 3;
 
     sc->buf[ pad >> 2 ] =
-                 mm_bswap_32( _mm_set1_epi32( high ) );
+                 mm128_bswap_32( _mm_set1_epi32( high ) );
     sc->buf[ ( pad+4 ) >> 2 ] =
-                 mm_bswap_32( _mm_set1_epi32( low ) );
+                 mm128_bswap_32( _mm_set1_epi32( low ) );
     sha256_4way_round( sc->buf, sc->val );
 
     for ( u = 0; u < 8; u ++ )
-       ((__m128i*)dst)[u] = mm_bswap_32( sc->val[u] );
+       ((__m128i*)dst)[u] = mm128_bswap_32( sc->val[u] );
 }
 
 #if defined(__AVX2__)

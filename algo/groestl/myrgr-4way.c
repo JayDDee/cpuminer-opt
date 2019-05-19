@@ -33,7 +33,7 @@ void myriad_4way_hash( void *output, const void *input )
      myrgr_4way_ctx_holder ctx;
      memcpy( &ctx, &myrgr_4way_ctx, sizeof(myrgr_4way_ctx) );
 
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, input, 640 );
+     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, input, 640 );
 
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 640 );
      memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
@@ -43,12 +43,12 @@ void myriad_4way_hash( void *output, const void *input )
      memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 640 );
 
-     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
      sha256_4way( &ctx.sha, vhash, 64 );
      sha256_4way_close( &ctx.sha, vhash );
 
-     mm_deinterleave_4x32( output, output+32, output+64, output+96,
+     mm128_deinterleave_4x32( output, output+32, output+64, output+96,
                            vhash, 256 );
 }
 
@@ -79,7 +79,7 @@ int scanhash_myriad_4way( int thr_id, struct work *work, uint32_t max_nonce,
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
    swab32_array( edata, pdata, 20 );
-   mm_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
 
    do {
       be32enc( noncep,   n   );

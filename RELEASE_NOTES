@@ -159,6 +159,15 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.9.0
+
+Added support for Windows CPU groups.
+Fixed BIP34 coinbase height.
+Prep work for AVX512.
+Added lyra2rev3 for the vertcoin algo change.
+Added yespower, yespowerr16 (Yenten)
+Added phi2 algo for LUX
+
 v3.8.8.1
 
 Fixed x16r.

@@ -15,7 +15,7 @@
 #include "algo/groestl/aes_ni/hash-groestl.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/luffa/luffa-hash-2way.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/simd-hash-2way.h"
 
 typedef struct {

@@ -83,7 +83,7 @@ extern "C"{
            _mm_xor_si128( _mm_xor_si128( _mm_and_si128( x1, x2 ), \
                                          _mm_or_si128( x4, x6 ) ), x5 ) ), \
         _mm_and_si128( x4, \
-           _mm_xor_si128( _mm_xor_si128( _mm_and_si128( mm_not(x2), x5 ), \
+           _mm_xor_si128( _mm_xor_si128( _mm_and_si128( mm128_not(x2), x5 ), \
                           _mm_xor_si128( x1, x6 ) ), x0 ) ) ), \
      _mm_xor_si128( _mm_and_si128( x2, x6 ), x0 ) )
 
@@ -91,7 +91,7 @@ extern "C"{
 #define F5(x6, x5, x4, x3, x2, x1, x0) \
    _mm_xor_si128( \
        _mm_and_si128( x0, \
-            mm_not( _mm_xor_si128( \
+            mm128_not( _mm_xor_si128( \
                     _mm_and_si128( _mm_and_si128( x1, x2 ), x3 ), x5 ) ) ), \
       _mm_xor_si128( _mm_xor_si128( _mm_and_si128( x1, x4 ), \
                                     _mm_and_si128( x2, x5 ) ), \
@@ -136,8 +136,8 @@ extern "C"{
 #define STEP(n, p, x7, x6, x5, x4, x3, x2, x1, x0, w, c) \
 do { \
    __m128i t = FP ## n ## _ ## p(x6, x5, x4, x3, x2, x1, x0); \
-   x7 = _mm_add_epi32( _mm_add_epi32( mm_ror_32( t, 7 ), \
-                                      mm_ror_32( x7, 11 ) ), \
+   x7 = _mm_add_epi32( _mm_add_epi32( mm128_ror_32( t, 7 ), \
+                                      mm128_ror_32( x7, 11 ) ), \
                        _mm_add_epi32( w, _mm_set1_epi32( c ) ) ); \
 } while (0)
 

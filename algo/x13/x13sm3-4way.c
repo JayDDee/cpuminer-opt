@@ -13,7 +13,7 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/luffa/luffa-hash-2way.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
@@ -166,7 +166,7 @@ void x13sm3_4way_hash( void *state, const void *input )
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                        (const BitSequence *) hash3, 512 );
 
-     mm_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
      // SM3 parallel 32 bit
      uint32_t sm3_vhash[32*4] __attribute__ ((aligned (64)));
@@ -182,7 +182,7 @@ void x13sm3_4way_hash( void *state, const void *input )
 
      sm3_4way( &ctx.sm3, vhash, 64 );
      sm3_4way_close( &ctx.sm3, sm3_vhash );
-     mm_deinterleave_4x32( hash0, hash1, hash2, hash3, sm3_vhash, 512 );
+     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, sm3_vhash, 512 );
 
      // Hamsi parallel 4x32x2
      mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );

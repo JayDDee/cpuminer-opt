@@ -34,14 +34,16 @@
 #include <time.h>
 #include <signal.h>
 #include <memory.h>
-
 #include <curl/curl.h>
 #include <jansson.h>
 #include <openssl/sha.h>
 
+#ifdef WIN32
+#include <winsock2.h>
+#include <windows.h>
+#endif
 
 #ifdef _MSC_VER
-#include <windows.h>
 #include <stdint.h>
 #else
 #include <errno.h>
@@ -109,7 +111,8 @@ __int128_t opt_affinity = -1LL;
 int64_t opt_affinity = -1LL;
 #endif
 int opt_priority = 0;
-int num_cpus;
+int num_cpus = 1;
+int num_cpugroups = 1;
 char *rpc_url = NULL;;
 char *rpc_userpass = NULL;
 char *rpc_user, *rpc_pass;
@@ -233,12 +236,49 @@ static void affine_to_cpu_mask( int id, unsigned long long mask )
 
 #elif defined(WIN32) /* Windows */
 static inline void drop_policy(void) { }
-static void affine_to_cpu_mask(int id, unsigned long mask) {
-	if (id == -1)
-		SetProcessAffinityMask(GetCurrentProcess(), mask);
-	else
-		SetThreadAffinityMask(GetCurrentThread(), mask);
+
+static void affine_to_cpu_mask( int id, unsigned long mask )
+{
+   bool success;
+   unsigned long last_error;    
+//   BOOL success;
+//   DWORD last_error;
+
+   if ( id == -1 )
+	success = SetProcessAffinityMask( GetCurrentProcess(), mask );
+   else if ( num_cpugroups == 1 )
+	success = SetThreadAffinityMask( GetCurrentThread(), mask );
+   else
+   {
+	// Find the correct cpu group
+	int cpu = id % num_cpus;
+	int group;
+	for( group = 0; group < num_cpugroups; group++ )
+	{
+	   int cpus = GetActiveProcessorCount( group );
+ 	   if ( cpu < cpus )
+	      break;
+
+  	   cpu -= cpus;
+         }
+
+	if (opt_debug)
+	applog(LOG_DEBUG, "Binding thread %d to cpu %d on cpu group %d (mask %x)", id, cpu, group, (1ULL << cpu));
+
+	GROUP_AFFINITY affinity;
+	affinity.Group = group;
+	affinity.Mask = 1ULL << cpu;
+	success = SetThreadGroupAffinity( GetCurrentThread(), &affinity, NULL );
+   }
+
+   if (!success)
+   {
+	last_error = GetLastError();
+	applog(LOG_WARNING, "affine_to_cpu_mask for %u returned %x", id, last_error);
+   }
+
 }
+
 #else
 static inline void drop_policy(void) { }
 static void affine_to_cpu_mask(int id, unsigned long mask) { }
@@ -296,6 +336,8 @@ void work_copy(struct work *dest, const struct work *src)
 	}
 }
 
+int std_get_work_data_size() { return STD_WORK_DATA_SIZE; }
+
 bool jr2_work_decode( const json_t *val, struct work *work )
 { return rpc2_job_decode( val, work ); }
 
@@ -303,7 +345,7 @@ bool jr2_work_decode( const json_t *val, struct work *work )
 bool std_le_work_decode( const json_t *val, struct work *work )
 {
     int i;
-    const int data_size   = algo_gate.work_data_size;
+    const int data_size   = algo_gate.get_work_data_size();
     const int target_size = sizeof(work->target);
     const int adata_sz    = data_size / 4;
     const int atarget_sz  = ARRAY_SIZE(work->target);
@@ -328,7 +370,7 @@ bool std_le_work_decode( const json_t *val, struct work *work )
 bool std_be_work_decode( const json_t *val, struct work *work )
 {
     int i;
-    const int data_size   = algo_gate.work_data_size;
+    const int data_size   = algo_gate.get_work_data_size();
     const int target_size = sizeof(work->target);
     const int adata_sz    = data_size / 4;
     const int atarget_sz  = ARRAY_SIZE(work->target);
@@ -360,7 +402,7 @@ static bool work_decode( const json_t *val, struct work *work )
     // for api stats, on longpoll pools
     stratum_diff = work->targetdiff;
     work->sharediff = 0;
-    algo_gate.display_extra_data( work, &net_blocks );
+    algo_gate.decode_extra_data( work, &net_blocks );
     return true;
 }
 
@@ -592,6 +634,11 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
       /* BIP 34: height in coinbase */
       for ( n = work->height; n; n >>= 8 )
          cbtx[cbtx_size++] = n & 0xff;
+      /* If the last byte pushed is >= 0x80, then we need to add
+         another zero byte to signal that the block height is a
+         positive number.  */
+      if (cbtx[cbtx_size - 1] & 0x80)
+         cbtx[cbtx_size++] = 0;
       cbtx[42] = cbtx_size - 43;
       cbtx[41] = cbtx_size - 42; /* scriptsig length */
       le32enc( (uint32_t *)( cbtx+cbtx_size ), 0xffffffff ); /* sequence */
@@ -962,7 +1009,7 @@ bool std_le_submit_getwork_result( CURL *curl, struct work *work )
    char req[JSON_BUF_LEN];
    json_t *val, *res, *reason;
    char* gw_str;
-   int data_size = algo_gate.work_data_size;
+   int data_size = algo_gate.get_work_data_size();
 
    for ( int i = 0; i < data_size / sizeof(uint32_t); i++ )
      le32enc( &work->data[i], work->data[i] );
@@ -996,7 +1043,7 @@ bool std_be_submit_getwork_result( CURL *curl, struct work *work )
    char req[JSON_BUF_LEN];
    json_t *val, *res, *reason;
    char* gw_str;
-   int data_size = algo_gate.work_data_size;
+   int data_size = algo_gate.get_work_data_size();
 
    for ( int i = 0; i < data_size / sizeof(uint32_t); i++ )
      be32enc( &work->data[i], work->data[i] );
@@ -2303,7 +2350,6 @@ void std_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    // Increment extranonce2
    for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
    // Assemble block header
-
    algo_gate.build_block_header( g_work, le32dec( sctx->job.version ),
           (uint32_t*) sctx->job.prevhash, (uint32_t*) merkle_tree,
           le32dec( sctx->job.ntime ), le32dec(sctx->job.nbits) );
@@ -3169,10 +3215,25 @@ int main(int argc, char *argv[])
 	rpc_pass = strdup("");
 	opt_api_allow = strdup("127.0.0.1"); /* 0.0.0.0 for all ips */
 
+        parse_cmdline(argc, argv);
+
 #if defined(WIN32)
-	SYSTEM_INFO sysinfo;
-	GetSystemInfo(&sysinfo);
-	num_cpus = sysinfo.dwNumberOfProcessors;
+//	SYSTEM_INFO sysinfo;
+//	GetSystemInfo(&sysinfo);
+//	num_cpus = sysinfo.dwNumberOfProcessors;
+// What happens if GetActiveProcessorGroupCount called if groups not enabled?
+
+ 	num_cpus = 0;
+	num_cpugroups = GetActiveProcessorGroupCount();
+	for(i = 0; i < num_cpugroups; i++)
+	{
+ 	   int cpus = GetActiveProcessorCount(i);
+	   num_cpus += cpus;
+
+	   if (opt_debug)
+		applog(LOG_DEBUG, "Found %d cpus on cpu group %d", cpus, i);
+	}
+
 #elif defined(_SC_NPROCESSORS_CONF)
 	num_cpus = sysconf(_SC_NPROCESSORS_CONF);
 #elif defined(CTL_HW) && defined(HW_NCPU)
@@ -3185,7 +3246,6 @@ int main(int argc, char *argv[])
 	if (num_cpus < 1)
 		num_cpus = 1;
 
-	parse_cmdline(argc, argv);
 
         if (!opt_n_threads)
                 opt_n_threads = num_cpus;

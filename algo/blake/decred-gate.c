@@ -140,6 +140,7 @@ bool decred_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
    return true;
 }
 
+int decred_get_work_data_size() { return DECRED_DATA_SIZE; }
 
 bool register_decred_algo( algo_gate_t* gate )
 {
@@ -154,7 +155,7 @@ bool register_decred_algo( algo_gate_t* gate )
   gate->optimizations = AVX2_OPT;
   gate->get_nonceptr          = (void*)&decred_get_nonceptr;
   gate->get_max64             = (void*)&get_max64_0x3fffffLL;
-  gate->display_extra_data    = (void*)&decred_decode_extradata;
+  gate->decode_extra_data     = (void*)&decred_decode_extradata;
   gate->build_stratum_request = (void*)&decred_be_build_stratum_request;
   gate->work_decode           = (void*)&std_be_work_decode;
   gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
@@ -163,7 +164,7 @@ bool register_decred_algo( algo_gate_t* gate )
   gate->nbits_index           = DECRED_NBITS_INDEX;
   gate->ntime_index           = DECRED_NTIME_INDEX;
   gate->nonce_index           = DECRED_NONCE_INDEX;
-  gate->work_data_size        = DECRED_DATA_SIZE;
+  gate->get_work_data_size    = (void*)&decred_get_work_data_size;
   gate->work_cmp_size         = DECRED_WORK_COMPARE_SIZE;
   allow_mininginfo            = false;
   have_gbt                    = false;

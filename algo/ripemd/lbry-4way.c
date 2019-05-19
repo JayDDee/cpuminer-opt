@@ -184,7 +184,8 @@ void lbry_4way_hash( void* output, const void* input )
    sha256_4way( &ctx_sha256, vhashA, 32 );
    sha256_4way_close( &ctx_sha256, vhashA );
 
-   mm_deinterleave_4x32( output, output+32, output+64, output+96, vhashA, 256 );
+   mm128_deinterleave_4x32( output, output+32, output+64, output+96,
+		            vhashA, 256 );
 }
 
 int scanhash_lbry_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -209,7 +210,7 @@ int scanhash_lbry_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
    // we need bigendian data...
    swab32_array( edata, pdata, 32 );
-   mm_interleave_4x32( vdata, edata, edata, edata, edata, 1024 );
+   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 1024 );
    sha256_4way_init( &sha256_mid );
    sha256_4way( &sha256_mid, vdata, LBRY_MIDSTATE );
 

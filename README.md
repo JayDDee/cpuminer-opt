@@ -85,7 +85,8 @@ Supported Algorithms
                           neoscrypt     NeoScrypt(128, 2, 1)
                           nist5         Nist5
                           pentablake    Pentablake
-                          phi1612       phi, LUX coin
+                          phi1612       phi, LUX coin (original algo)
+                          phi2          LUX coin (new algo)
                           pluck         Pluck:128 (Supcoin)
                           polytimos     Ninja
                           quark         Quark
@@ -120,8 +121,10 @@ Supported Algorithms
                           xevan         Bitsend (BSD)
                           yescrypt      Globalboost-Y (BSTY)
                           yescryptr8    BitZeny (ZNY)
-                          yescryptr16   Yenten (YTN)
+                          yescryptr16   Eli
                           yescryptr32   WAVI
+                          yespower      Cryply
+                          yespowerr16   Yenten (YTN)
                           zr5           Ziftr
 
 Errata
