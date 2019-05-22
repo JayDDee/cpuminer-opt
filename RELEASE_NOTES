@@ -159,6 +159,10 @@ Support for even older x86_64 without AES_NI or SSE2 is not availble.
 Change Log
 ----------
 
+v3.9.0.1
+
+Isolate Windows CPU groups code when CPU groups support not explicitly defined.
+
 v3.9.0
 
 Added support for Windows CPU groups.

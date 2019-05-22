@@ -246,6 +246,9 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
 
    if ( id == -1 )
 	success = SetProcessAffinityMask( GetCurrentProcess(), mask );
+
+// Are Windows CPU Groups supported?
+#if _WIN32_WINNT==0x0601
    else if ( num_cpugroups == 1 )
 	success = SetThreadAffinityMask( GetCurrentThread(), mask );
    else
@@ -270,6 +273,10 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
 	affinity.Mask = 1ULL << cpu;
 	success = SetThreadGroupAffinity( GetCurrentThread(), &affinity, NULL );
    }
+#else
+   else 
+        success = SetThreadAffinityMask( GetCurrentThread(), mask );
+#endif
 
    if (!success)
    {
@@ -3223,9 +3230,11 @@ int main(int argc, char *argv[])
 //	num_cpus = sysinfo.dwNumberOfProcessors;
 // What happens if GetActiveProcessorGroupCount called if groups not enabled?
 
+// Are Windows CPU Groups supported?
+#if _WIN32_WINNT==0x0601
  	num_cpus = 0;
 	num_cpugroups = GetActiveProcessorGroupCount();
-	for(i = 0; i < num_cpugroups; i++)
+	for(  i = 0; i < num_cpugroups; i++ )
 	{
  	   int cpus = GetActiveProcessorCount(i);
 	   num_cpus += cpus;
@@ -3233,6 +3242,11 @@ int main(int argc, char *argv[])
 	   if (opt_debug)
 		applog(LOG_DEBUG, "Found %d cpus on cpu group %d", cpus, i);
 	}
+#else
+      SYSTEM_INFO sysinfo;
+      GetSystemInfo(&sysinfo);
+      num_cpus = sysinfo.dwNumberOfProcessors;
+#endif
 
 #elif defined(_SC_NPROCESSORS_CONF)
 	num_cpus = sysconf(_SC_NPROCESSORS_CONF);
