@@ -1,0 +1,126 @@
+
+
+Requirements:
+
+Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
+supported.
+64 bit Linux operating system. Apple is not supported.
+
+Building on linux prerequisites:
+
+It is assumed users know how to install packages on their system and
+be able to compile standard source packages. This is basic Linux and
+beyond the scope of cpuminer-opt. Regardless compiling is trivial if you
+follow the instructions.
+
+Make sure you have the basic development packages installed.
+Here is a good start:
+
+http://askubuntu.com/questions/457526/how-to-install-cpuminer-in-ubuntu
+
+Install any additional dependencies needed by cpuminer-opt. The list below
+are some of the ones that may not be in the default install and need to
+be installed manually. There may be others, read the error messages they
+will give a clue as to the missing package.
+
+The following command should install everything you need on Debian based
+distributions such as Ubuntu:
+
+sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev automake zlib1g-dev
+
+build-essential  (Development Tools package group on Fedora)
+automake
+libjansson-dev
+libgmp-dev
+libcurl4-openssl-dev
+libssl-dev
+lib-thread
+zlib1g-dev
+
+SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and
+openssl 1.1.0e or higher. Add one of the following, depending on the
+compiler version, to CFLAGS:
+"-march=native" or "-march=znver1" or "-msha".
+
+Due to poor AVX2 performance on Ryzen users should add -DRYZEN_ to CFLAGS
+to override multiway AVX2 on algos with sha256, and use SHA instead.
+
+Additional instructions for static compilalation can be found here:
+https://lxadm.com/Static_compilation_of_cpuminer
+Static builds should only considered in a homogeneous HW and SW environment.
+Local builds will always have the best performance and compatibility.
+
+Extract cpuminer source.
+
+tar xvzf cpuminer-opt-x.y.z.tar.gz
+cd cpuminer-opt-x.y.z
+
+Run ./build.sh to build on Linux or execute the following commands.
+
+./autogen.sh
+CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
+make
+
+Start mining.
+
+./cpuminer -a algo -o url -u username -p password
+
+Windows
+
+Precompiled Windows binaries are built on a Linux host using Mingw
+with a more recent compiler than the following Windows hosted procedure.
+
+Building on Windows prerequisites:
+
+msys
+mingw_w64
+Visual C++ redistributable 2008 X64
+openssl
+
+Install msys and mingw_w64, only needed once.
+
+Unpack msys into C:\msys or your preferred directory.
+
+Install mingw_w64 from win-builds.
+Follow instructions, check "msys or cygwin" and "x86_64" and accept default
+existing msys instalation.
+
+Open a msys shell by double clicking on msys.bat.
+Note that msys shell uses linux syntax for file specifications, "C:\" is
+mounted at "/c/".
+
+Add mingw bin directory to PATH variable
+PATH="/c/msys/opt/windows_64/bin/:$PATH"
+
+Instalation complete, compile cpuminer-opt.
+
+Unpack cpuminer-opt source files using tar from msys shell, or using 7zip
+or similar Windows program.
+
+In msys shell cd to miner directory.
+cd /c/path/to/cpuminer-opt
+
+Run build.sh to build on Windows or execute the following commands.
+
+./autogen.sh
+CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
+make
+
+Start mining
+
+cpuminer.exe -a algo -o url -u user -p password
+
+The following tips may be useful for older AMD CPUs.
+
+AMD CPUs older than Steamroller, including Athlon x2 and Phenom II x4, are
+not supported by cpuminer-opt due to an incompatible implementation of SSE2
+on these CPUs. Some algos may crash the miner with an invalid instruction.
+Users are recommended to use an unoptimized miner such as cpuminer-multi.
+
+Some users with AMD CPUs without AES_NI have reported problems compiling
+with build.sh or "-march=native". Problems have included compile errors
+and poor performance. These users are recommended to compile manually
+specifying "-march=btver1" on the configure command line.
+
+Support for even older x86_64 without AES_NI or SSE2 is not availble.
+

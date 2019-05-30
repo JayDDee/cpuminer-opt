@@ -48,36 +48,36 @@ void anime_4way_hash( void *state, const void *input )
     __m256i* vhA = (__m256i*)vhashA;
     __m256i* vhB = (__m256i*)vhashB;
     __m256i vh_mask;
-    __m256i bit3_mask; bit3_mask = _mm256_set1_epi64x( 8 );
+    const __m256i bit3_mask = _mm256_set1_epi64x( 8 );
     int i;
     anime_4way_ctx_holder ctx;
     memcpy( &ctx, &anime_4way_ctx, sizeof(anime_4way_ctx) );
 
-    bmw512_4way( &ctx.bmw, vhash, 80 );
+    bmw512_4way( &ctx.bmw, input, 80 );
     bmw512_4way_close( &ctx.bmw, vhash );
 
-    blake512_4way( &ctx.blake, input, 64 );
+    blake512_4way( &ctx.blake, vhash, 64 );
     blake512_4way_close( &ctx.blake, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
                                   m256_zero );
 
-       mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
-       update_and_final_groestl( &ctx.groestl, (char*)hash0,
-                                               (char*)hash0, 512 );
-       reinit_groestl( &ctx.groestl );
-       update_and_final_groestl( &ctx.groestl, (char*)hash1,
-                                               (char*)hash1, 512 );
-       reinit_groestl( &ctx.groestl );
-       update_and_final_groestl( &ctx.groestl, (char*)hash2,
-                                               (char*)hash2, 512 );
-       reinit_groestl( &ctx.groestl );
-       update_and_final_groestl( &ctx.groestl, (char*)hash3,
-                                               (char*)hash3, 512 );
-       mm256_interleave_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+    mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+    update_and_final_groestl( &ctx.groestl, (char*)hash0,
+                                            (char*)hash0, 512 );
+    reinit_groestl( &ctx.groestl );
+    update_and_final_groestl( &ctx.groestl, (char*)hash1,
+                                            (char*)hash1, 512 );
+    reinit_groestl( &ctx.groestl );
+    update_and_final_groestl( &ctx.groestl, (char*)hash2,
+                                            (char*)hash2, 512 );
+    reinit_groestl( &ctx.groestl );
+    update_and_final_groestl( &ctx.groestl, (char*)hash3,
+                                            (char*)hash3, 512 );
+    mm256_interleave_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
-       skein512_4way( &ctx.skein, vhash, 64 );
-       skein512_4way_close( &ctx.skein, vhashB );
+    skein512_4way( &ctx.skein, vhash, 64 );
+    skein512_4way_close( &ctx.skein, vhashB );
 
     for ( i = 0; i < 8; i++ )
        vh[i] = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );
@@ -120,13 +120,13 @@ void anime_4way_hash( void *state, const void *input )
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
                                   m256_zero );
 
-       keccak512_4way_init( &ctx.keccak );
-       keccak512_4way( &ctx.keccak, vhash, 64 );
-       keccak512_4way_close( &ctx.keccak, vhashA );
+    keccak512_4way_init( &ctx.keccak );
+    keccak512_4way( &ctx.keccak, vhash, 64 );
+    keccak512_4way_close( &ctx.keccak, vhashA );
 
-       jh512_4way_init( &ctx.jh );
-       jh512_4way( &ctx.jh, vhash, 64 );
-       jh512_4way_close( &ctx.jh, vhashB );
+    jh512_4way_init( &ctx.jh );
+    jh512_4way( &ctx.jh, vhash, 64 );
+    jh512_4way_close( &ctx.jh, vhashB );
 
     for ( i = 0; i < 8; i++ )
        vh[i] = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );

@@ -109,8 +109,15 @@ inline bool set_excl ( set_t a, set_t b ) { return (a & b) == 0; }
 
 typedef struct
 {
+// special case, only one target, provides a callback for scanhash to
+// submit work with less overhead.
+// bool (*submit_work )             ( struct thr_info*, const struct work* );
+
 // mandatory functions, must be overwritten
-int ( *scanhash ) ( int, struct work*, uint32_t, uint64_t* );
+// Added a 5th arg for the thread_info structure to replace the int thr id
+// in the first arg. Both will co-exist during the trasition.
+//int ( *scanhash ) ( int, struct work*, uint32_t, uint64_t* );
+int ( *scanhash ) ( int, struct work*, uint32_t, uint64_t*, struct thr_info* );
 
 // optional unsafe, must be overwritten if algo uses function
 void ( *hash )     ( void*, const void*, uint32_t ) ;
@@ -187,6 +194,11 @@ void four_way_not_tested();
 
 // allways returns failure
 int null_scanhash();
+
+// The one and only, a callback for scanhash.
+
+
+bool submit_work( struct thr_info *thr, const struct work *work_in );
 
 // displays warning
 void null_hash    ();

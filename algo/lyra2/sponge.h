@@ -91,7 +91,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
 
-#elif defined(__SSE4_2__)
+#elif defined(__SSE2__)
 
 // process 2 columns in parallel
 // returns void, all args updated
@@ -108,14 +108,14 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 #define LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
    G_2X64( s0, s2, s4, s6 ); \
    G_2X64( s1, s3, s5, s7 ); \
-   mm128_ror256_1x64( s2, s3 ); \
-   mm128_swap256_128( s4, s5 ); \
-   mm128_rol256_1x64( s6, s7 ); \
+   mm128_rol1x64_256( s2, s3 ); \
+   mm128_swap128_256( s4, s5 ); \
+   mm128_rol1x64_256( s6, s7 ); \
    G_2X64( s0, s2, s4, s6 ); \
    G_2X64( s1, s3, s5, s7 ); \
-   mm128_rol256_1x64( s2, s3 ); \
-   mm128_swap256_128( s4, s5 ); \
-   mm128_ror256_1x64( s6, s7 );
+   mm128_rol1x64_256( s2, s3 ); \
+   mm128_swap128_256( s4, s5 ); \
+   mm128_ror1x64_256( s6, s7 );
 
 #define LYRA_12_ROUNDS_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
    LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \

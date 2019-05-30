@@ -8,7 +8,6 @@
 
 typedef struct {
         cubehashParam           cube;
-//        cubehashParam           cube2;
         sph_blake256_context     blake;
         sph_bmw256_context       bmw;
 
@@ -20,7 +19,6 @@ static __thread sph_blake256_context l2v3_blake_mid;
 bool init_lyra2rev3_ctx()
 {
         cubehashInit( &lyra2v3_ctx.cube, 256, 16, 32 );
-//        cubehashInit( &lyra2v3_ctx.cube2, 256, 16, 32 );
         sph_blake256_init( &lyra2v3_ctx.blake );
         sph_bmw256_init( &lyra2v3_ctx.bmw );
         return true;
@@ -59,44 +57,51 @@ void lyra2rev3_hash( void *state, const void *input )
 	memcpy( state, hash, 32 );
 }
 
-int scanhash_lyra2rev3(int thr_id, struct work *work,
-	uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_lyra2rev3( int thr_id, struct work *work,
+	uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
-	uint32_t endiandata[20] __attribute__ ((aligned (64)));
-        uint32_t hash[8] __attribute__((aligned(64)));
-	const uint32_t first_nonce = pdata[19];
-	uint32_t nonce = first_nonce;
-        const uint32_t Htarg = ptarget[7];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   uint32_t endiandata[20] __attribute__ ((aligned (64)));
+   uint32_t hash[8] __attribute__((aligned(64)));
+   const uint32_t first_nonce = pdata[19];
+   uint32_t nonce = first_nonce;
+   const uint32_t Htarg = ptarget[7];
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
-	if (opt_benchmark)
-		((uint32_t*)ptarget)[7] = 0x0000ff;
+   if (opt_benchmark)
+	((uint32_t*)ptarget)[7] = 0x0000ff;
 
-        swab32_array( endiandata, pdata, 20 );
+   // need big endian data
+   casti_m128i( endiandata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
+   casti_m128i( endiandata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
+   casti_m128i( endiandata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
+   casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
+   casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
-        l2v3_blake256_midstate( endiandata );
+   l2v3_blake256_midstate( endiandata );
 
-	do {
-		be32enc(&endiandata[19], nonce);
-		lyra2rev3_hash(hash, endiandata);
+   do
+   {
+	be32enc(&endiandata[19], nonce);
+	lyra2rev3_hash(hash, endiandata);
 
-		if (hash[7] <= Htarg )
-                {
-                   if( fulltest(hash, ptarget) )
-                   {
-			pdata[19] = nonce;
-                        work_set_target_ratio( work, hash );
-			*hashes_done = pdata[19] - first_nonce;
-		   	return 1;
-		   }
-                }
-		nonce++;
+	if (hash[7] <= Htarg )
+        {
+            if( fulltest(hash, ptarget) )
+            {
+		pdata[19] = nonce;
+                work_set_target_ratio( work, hash );
+                *hashes_done = pdata[19] - first_nonce;
+		return 1;
+	    }
+         }
+         nonce++;
 
-	} while (nonce < max_nonce && !work_restart[thr_id].restart);
+   } while (nonce < max_nonce && !work_restart[thr_id].restart);
 
-	pdata[19] = nonce;
-	*hashes_done = pdata[19] - first_nonce + 1;
-	return 0;
+   pdata[19] = nonce;
+   *hashes_done = pdata[19] - first_nonce + 1;
+   return 0;
 }
 

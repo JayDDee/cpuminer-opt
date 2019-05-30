@@ -16,10 +16,9 @@
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/sha/sph_sha2.h"
 #include "algo/haval/sph-haval.h"
 #include <openssl/sha.h>
-#ifndef NO_AES_NI
+#if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
@@ -42,18 +41,14 @@ typedef struct {
   sph_fugue512_context    fugue1, fugue2;
   sph_shabal512_context   shabal1;
   sph_whirlpool_context   whirlpool1, whirlpool2, whirlpool3, whirlpool4;
-#ifndef USE_SPH_SHA
   SHA512_CTX              sha1, sha2;
-#else
-  sph_sha512_context      sha1, sha2;
-#endif
   sph_haval256_5_context  haval1, haval2;
-#ifdef NO_AES_NI
-  sph_groestl512_context  groestl1, groestl2;
-  sph_echo512_context     echo1, echo2;
-#else
+#if defined(__AES__)
   hashState_echo          echo1, echo2;
   hashState_groestl       groestl1, groestl2;
+#else
+  sph_groestl512_context  groestl1, groestl2;
+  sph_echo512_context     echo1, echo2;
 #endif
 } hmq1725_ctx_holder;
 
@@ -101,26 +96,22 @@ void init_hmq1725_ctx()
     sph_whirlpool_init(&hmq1725_ctx.whirlpool3);
     sph_whirlpool_init(&hmq1725_ctx.whirlpool4);
 
-#ifndef USE_SPH_SHA
     SHA512_Init( &hmq1725_ctx.sha1 );
     SHA512_Init( &hmq1725_ctx.sha2 );
-#else
-    sph_sha512_init(&hmq1725_ctx.sha1);
-    sph_sha512_init(&hmq1725_ctx.sha2);
-#endif
+
     sph_haval256_5_init(&hmq1725_ctx.haval1);
     sph_haval256_5_init(&hmq1725_ctx.haval2);
 
-#ifdef NO_AES_NI
-     sph_groestl512_init( &hmq1725_ctx.groestl1 );
-     sph_groestl512_init( &hmq1725_ctx.groestl2 );
-     sph_echo512_init( &hmq1725_ctx.echo1 );
-     sph_echo512_init( &hmq1725_ctx.echo2 );
-#else
+#if defined(__AES__)
      init_echo( &hmq1725_ctx.echo1, 512 );
      init_echo( &hmq1725_ctx.echo2, 512 );
      init_groestl( &hmq1725_ctx.groestl1, 64 );
      init_groestl( &hmq1725_ctx.groestl2, 64 );
+#else
+     sph_groestl512_init( &hmq1725_ctx.groestl1 );
+     sph_groestl512_init( &hmq1725_ctx.groestl2 );
+     sph_echo512_init( &hmq1725_ctx.echo1 );
+     sph_echo512_init( &hmq1725_ctx.echo2 );
 #endif
 }
 
@@ -151,12 +142,12 @@ extern void hmq1725hash(void *state, const void *input)
 
     if ( hashB[0] & mask )   //1
     {
-#ifdef NO_AES_NI
+#if defined(__AES__)
+     update_and_final_groestl( &h_ctx.groestl1, (char*)hashA,
+                               (const char*)hashB, 512 );
+#else
      sph_groestl512 (&h_ctx.groestl1, hashB, 64); //1
      sph_groestl512_close(&h_ctx.groestl1, hashA); //2
-#else
-     update_and_final_groestl( &h_ctx.groestl1, (char*)hashA, 
-                               (const char*)hashB, 512 );
 #endif
     }
     else
@@ -217,12 +208,12 @@ extern void hmq1725hash(void *state, const void *input)
 	memset(&hashB[8], 0, 32);
     }
 
-#ifdef NO_AES_NI
-    sph_echo512 (&h_ctx.echo1, hashB, 64); //5
-    sph_echo512_close(&h_ctx.echo1, hashA); //6
-#else
+#if defined(__AES__)
     update_final_echo ( &h_ctx.echo1, (BitSequence *)hashA,
                         (const BitSequence *)hashB, 512 );
+#else
+    sph_echo512 (&h_ctx.echo1, hashB, 64); //5
+    sph_echo512_close(&h_ctx.echo1, hashA); //6
 #endif
 
     sph_blake512 (&h_ctx.blake2, hashA, 64); //6
@@ -247,12 +238,12 @@ extern void hmq1725hash(void *state, const void *input)
 
     if ( hashA[0] & mask ) //4
     {
-#ifdef NO_AES_NI
-     sph_echo512 (&h_ctx.echo2, hashA, 64); //
-     sph_echo512_close(&h_ctx.echo2, hashB); //5
-#else
+#if defined(__AES__)
      update_final_echo ( &h_ctx.echo2, (BitSequence *)hashB,
                          (const BitSequence *)hashA, 512 );
+#else
+     sph_echo512 (&h_ctx.echo2, hashA, 64); //
+     sph_echo512_close(&h_ctx.echo2, hashB); //5
 #endif
     }
     else
@@ -274,30 +265,20 @@ extern void hmq1725hash(void *state, const void *input)
     }
     else
     {
-#ifndef USE_SPH_SHA
         SHA512_Update( &h_ctx.sha1, hashB, 64 );
         SHA512_Final( (unsigned char*) hashA, &h_ctx.sha1 );
-#else
-        sph_sha512 (&h_ctx.sha1, hashB, 64); //7
-        sph_sha512_close(&h_ctx.sha1, hashA); //8
-#endif
     }
 
-#ifdef NO_AES_NI
-    sph_groestl512 (&h_ctx.groestl2, hashA, 64); //3
-    sph_groestl512_close(&h_ctx.groestl2, hashB); //4
-#else
+#if defined(__AES__)
     update_and_final_groestl( &h_ctx.groestl2, (char*)hashB,
                                (const char*)hashA, 512 );
+#else
+    sph_groestl512 (&h_ctx.groestl2, hashA, 64); //3
+    sph_groestl512_close(&h_ctx.groestl2, hashB); //4
 #endif
 
-#ifndef USE_SPH_SHA
     SHA512_Update( &h_ctx.sha2, hashB, 64 );
     SHA512_Final( (unsigned char*) hashA, &h_ctx.sha2 );
-#else
-    sph_sha512 (&h_ctx.sha2, hashB, 64); //2 
-    sph_sha512_close(&h_ctx.sha2, hashA); //3 
-#endif
 
     if ( hashA[0] & mask ) //4
     {

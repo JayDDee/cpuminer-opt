@@ -48,11 +48,11 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
    cubehashUpdateDigest( &ctx.cube, (byte*) hash0, (const byte*) hash0, 32 );
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash1, (const byte*) hash1, 32 );
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash2, (const byte*) hash2, 32 );
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash3, (const byte*) hash3, 32 );
 
    LYRA2REV2( l2v2_wholeMatrix, hash0, 32, hash0, 32, hash0, 32, 1, 4, 4 );
@@ -65,13 +65,13 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    skein256_4way_close( &ctx.skein, vhash64 );
    mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash0, (const byte*) hash0, 32 );
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash1, (const byte*) hash1, 32 );
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash2, (const byte*) hash2, 32 );
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash3, (const byte*) hash3, 32 );
 
    mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 256 );

@@ -4,9 +4,12 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
+// Overide multi way on ryzen, SHA is better.
+#if !defined(RYZEN_)
 // need sha512 2 way AVX x2 or 1 way scalar x4 to support 4way AVX.
 #if defined(__AVX2__)
   #define LBRY_8WAY
+#endif
 #endif
 
 #define LBRY_NTIME_INDEX 25

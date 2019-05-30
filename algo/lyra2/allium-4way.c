@@ -55,11 +55,11 @@ void allium_4way_hash( void *state, const void *input )
    LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
 
    cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*)hash0, 32 );
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*)hash1, (const byte*)hash1, 32 );
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*)hash2, (const byte*)hash2, 32 );
-   cubehashReinit( &ctx.cube );
+   cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*)hash3, (const byte*)hash3, 32 );
 
    LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );

@@ -1,10 +1,10 @@
-puminer-opt now supports HW SHA acceleration available on AMD Ryzen CPUs.
+cpuminer-opt is a console program run from the command line using the
+keyboard, not the mouse.
+
+cpuminer-opt now supports HW SHA acceleration available on AMD Ryzen CPUs.
 This feature requires recent SW including GCC version 5 or higher and
 openssl version 1.1 or higher. It may also require using "-march=znver1"
 compile flag.
-
-HW SHA support is only available when compiled from source, Windows binaries
-are not yet available.
 
 cpuminer-opt is a console program, if you're using a mouse you're doing it
 wrong.
@@ -25,139 +25,61 @@ required.
 Compile Instructions
 --------------------
 
-Requirements:
+See INSTALL_LINUX or INSTALL_WINDOWS fror compile instruuctions
+
+Requirements
+------------
 
 Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
 supported.
+
 64 bit Linux or Windows operating system. Apple is not supported.
-
-Building on linux prerequisites:
-
-It is assumed users know how to install packages on their system and
-be able to compile standard source packages. This is basic Linux and
-beyond the scope of cpuminer-opt.
-
-Make sure you have the basic development packages installed.
-Here is a good start:
-
-http://askubuntu.com/questions/457526/how-to-install-cpuminer-in-ubuntu
-
-Install any additional dependencies needed by cpuminer-opt. The list below
-are some of the ones that may not be in the default install and need to
-be installed manually. There may be others, read the error messages they
-will give a clue as to the missing package.
-
-The following command should install everything you need on Debian based
-distributions such as Ubuntu:
-
-sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev automake zlib1g-dev
-
-build-essential  (for Ubuntu, Development Tools package group on Fedora)
-automake
-libjansson-dev
-libgmp-dev
-libcurl4-openssl-dev
-libssl-dev
-pthreads
-zlib
-
-SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and openssl 1.1
-or higher. Reports of improved performiance on Ryzen when using openssl 1.0.2
-have been due to AVX and AVX2 optimizations added to that version.
-Additional improvements are expected on Ryzen with openssl 1.1.
-"-march-znver1" or "-msha".
-
-Additional instructions for static compilalation can be found here:
-https://lxadm.com/Static_compilation_of_cpuminer
-Static builds should only considered in a homogeneous HW and SW environment.
-Local builds will always have the best performance and compatibility.
-
-Extract cpuminer source.
-
-tar xvzf cpuminer-opt-x.y.z.tar.gz
-cd cpuminer-opt-x.y.z
-
-Run ./build.sh to build on Linux or execute the following commands.
-
-./autogen.sh
-CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
-make
-
-Additional optional compile flags, add the following to CFLAGS to activate:
-
--DUSE_SPH_SHA (deprecated)
-
-SPH may give slightly better performance on algos that use sha256 when using
-openssl 1.0.1 or older. Openssl 1.0.2 adds AVX2 and 1.1 adds SHA and perform
-better than SPH. This option is ignored when 4-way is used, even for CPUs
-with SHA.
-
-Start mining.
-
-./cpuminer -a algo -o url -u username -p password
-
-Windows
-
-Precompiled Windows binaries are built on a Linux host using Mingw
-with a more recent compiler than the following Windows hosted procedure.
-
-Building on Windows prerequisites:
-
-msys
-mingw_w64
-Visual C++ redistributable 2008 X64
-openssl
-
-Install msys and mingw_w64, only needed once.
-
-Unpack msys into C:\msys or your preferred directory.
-
-Install mingw_w64 from win-builds.
-Follow instructions, check "msys or cygwin" and "x86_64" and accept default
-existing msys instalation.
-
-Open a msys shell by double clicking on msys.bat.
-Note that msys shell uses linux syntax for file specifications, "C:\" is
-mounted at "/c/".
-
-Add mingw bin directory to PATH variable
-PATH="/c/msys/opt/windows_64/bin/:$PATH"
-
-Instalation complete, compile cpuminer-opt.
-
-Unpack cpuminer-opt source files using tar from msys shell, or using 7zip
-or similar Windows program.
-
-In msys shell cd to miner directory.
-cd /c/path/to/cpuminer-opt
-
-Run build.sh to build on Windows or execute the following commands.
-
-./autogen.sh
-CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
-make
-
-Start mining
-
-cpuminer.exe -a algo -o url -u user -p password
-
-The following tips may be useful for older AMD CPUs.
-
-AMD CPUs older than Steamroller, including Athlon x2 and Phenom II x4, are
-not supported by cpuminer-opt due to an incompatible implementation of SSE2
-on these CPUs. Some algos may crash the miner with an invalid instruction.
-Users are recommended to use an unoptimized miner such as cpuminer-multi.
-
-Some users with AMD CPUs without AES_NI have reported problems compiling
-with build.sh or "-march=native". Problems have included compile errors
-and poor performance. These users are recommended to compile manually
-specifying "-march=btver1" on the configure command line.
-
-Support for even older x86_64 without AES_NI or SSE2 is not availble.
-
 
 Change Log
 ----------
+
+v3.9.1
+
+Fixed AVX2 version of anime algo.
+
+Added sonoa algo.
+
+Added "-DRYZEN_" compile option for Ryzen to override 4-way hashing when algo 
+contains sha256 and use SHA instead. This is due to a combination of
+the introduction of HW SHA support combined with the poor performance
+of AVX2 on Ryzen. The Windows binaries package replaces cpuminer-avx2-sha
+with cpuminer-zen compiled with the override. Refer to the build instructions
+for more information.
+
+Ongoing restructuring to streamline the process, reduce latency,
+reduce memory usage and unnecessary copying of data. Most of these
+will not result in a notoceably higher reported hashrate as the
+change simply reduces the time wasted that wasn't factored into the
+hash rate reported by the miner. In short, less dead time resulting in
+a higher net hashrate.
+
+One of these measures to reduce latency also results in an enhanced
+share submission message including the share number*, the CPU thread,
+and the vector lane that found the solution. The time difference between
+the share submission and acceptance (or rejection) response indicates
+network ltatency. One other effect of this change is a reduction in hash
+meter messages because the scan function no longer exits when a share is 
+found. Scan cycles will go longer and submit multiple shares per cycle.
+*the share number is antcipated and includes both accepted and rejected
+shares. Because the share is antipated and not synchronized it may be
+incorrect in time of very rapid share submission. Under most conditions
+it should be easy to match the submission with the corresponding response.
+
+Removed "-DUSE_SPH_SHA" option, all users should have a recent version of
+openssl installed: v1.0.2 (Ubuntu 16.04) or better. Ryzen SHA requires
+v1.1.0 or better. Ryzen SHA is not used when hashing multi-way parallel.
+Ryzen SHA is available in the Windows binaries release package.
+
+Improved compile instructions, now in seperate files: INSTALL_LINUX and
+INSTALL_WINDOWS. The Windows instructions are used to build the binaries
+release package. It's built on a Linux system either running as a virtual
+machine or a seperate computer. At this time there is no known way to
+build natively on a Windows system.
 
 v3.9.0.1
 
@@ -171,6 +93,7 @@ Prep work for AVX512.
 Added lyra2rev3 for the vertcoin algo change.
 Added yespower, yespowerr16 (Yenten)
 Added phi2 algo for LUX
+Discontinued support for cryptonight and variants.
 
 v3.8.8.1
 
@@ -354,6 +277,7 @@ Changed default sha256 and sha512 to openssl. This should be used when
 compiling with openssl 1.0.2 or higher (Ubuntu 16.04).
 This should increase the hashrate for yescrypt, yescryptr16, m7m, xevan, skein,
 myr-gr & others  when openssl 1.0.2 is installed.
+Note: -DUSE_SPH_SHA has been removed in v3.9.1.
 Users with openssl 1.0.1 (Ubuntu 14.04) may get better perforance by adding
 "-DUSE_SPH_SHA" to CLAGS. 
 Windows binaries are compiled with -DUSE_SPH_SHA and won't get the speedup.

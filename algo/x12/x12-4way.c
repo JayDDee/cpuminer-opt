@@ -114,11 +114,11 @@ void x12_4way_hash( void *state, const void *input )
 
      // 8 Cubehash
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );
-     cubehashReinit( &ctx.cube );
+     cubehashInit( &ctx.cube, 512, 16, 32 );
      cubehashUpdateDigest( &ctx.cube, (byte*)hash1, (const byte*) hash1, 64 );
-     cubehashReinit( &ctx.cube );
+     cubehashInit( &ctx.cube, 512, 16, 32 );
      cubehashUpdateDigest( &ctx.cube, (byte*)hash2, (const byte*) hash2, 64 );
-     cubehashReinit( &ctx.cube );
+     cubehashInit( &ctx.cube, 512, 16, 32 );
      cubehashUpdateDigest( &ctx.cube, (byte*)hash3, (const byte*) hash3, 64 );
 
      // 9 Shavite

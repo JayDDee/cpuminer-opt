@@ -27,7 +27,7 @@ bool register_lyra2rev3_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_lyra2rev3;
   gate->hash      = (void*)&lyra2rev3_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | SSE42_OPT | AVX2_OPT;
   gate->miner_thread_init = (void*)&lyra2rev3_thread_init;
   gate->set_target        = (void*)&alt_set_target;
   return true;

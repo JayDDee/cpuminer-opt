@@ -17,14 +17,14 @@ bool register_lyra2rev3_algo( algo_gate_t* gate );
 
 void lyra2rev3_4way_hash( void *state, const void *input );
 int scanhash_lyra2rev3_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                             uint64_t *hashes_done );
+                             uint64_t *hashes_done, struct thr_info *mythr );
 bool init_lyra2rev3_4way_ctx();
 
 #else
 
 void lyra2rev3_hash( void *state, const void *input );
 int scanhash_lyra2rev3( int thr_id, struct work *work, uint32_t max_nonce,
-                        uint64_t *hashes_done );
+                        uint64_t *hashes_done, struct thr_info *mythr );
 bool init_lyra2rev3_ctx();
 
 #endif

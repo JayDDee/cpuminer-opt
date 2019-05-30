@@ -47,13 +47,8 @@ typedef struct HMAC_SHA256Context {
 */
 
 typedef struct HMAC_SHA256Context {
-#ifndef USE_SPH_SHA
         SHA256_CTX ictx;
         SHA256_CTX octx;
-#else
-        SHA256_CTX_Y ictx;
-        SHA256_CTX_Y octx;
-#endif
 } HMAC_SHA256_CTX;
 
 void	SHA256_Init_Y(SHA256_CTX_Y *);

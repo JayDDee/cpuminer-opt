@@ -183,16 +183,16 @@ void x16r_4way_hash( void* output, const void* input )
             mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
          break;
          case CUBEHASH:
-            cubehashReinit( &ctx.cube );
+            cubehashInit( &ctx.cube, 512, 16, 32 );
             cubehashUpdateDigest( &ctx.cube, (byte*) hash0,
                                   (const byte*)in0, size );
-            cubehashReinit( &ctx.cube );
+            cubehashInit( &ctx.cube, 512, 16, 32 );
             cubehashUpdateDigest( &ctx.cube, (byte*) hash1,
                                   (const byte*)in1, size );
-            cubehashReinit( &ctx.cube );
+            cubehashInit( &ctx.cube, 512, 16, 32 );
             cubehashUpdateDigest( &ctx.cube, (byte*) hash2,
                                   (const byte*)in2, size );
-            cubehashReinit( &ctx.cube );
+            cubehashInit( &ctx.cube, 512, 16, 32 );
             cubehashUpdateDigest( &ctx.cube, (byte*) hash3,
                                         (const byte*)in3, size );
          break;

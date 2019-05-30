@@ -164,6 +164,8 @@ static inline void be32enc(void *pp, uint32_t x)
 }
 #endif
 
+// Deprecated in favour of mm64_bswap_32
+//
 // This is a poorman's SIMD instruction, use 64 bit instruction to encode 2
 // uint32_t. This function flips endian on two adjacent 32 bit quantities
 // aligned to 64 bits. If source is LE output is BE, and vice versa.
@@ -540,7 +542,8 @@ enum algos {
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
         ALGO_SKUNK,
-        ALGO_TIMETRAVEL,
+        ALGO_SONOA,
+	ALGO_TIMETRAVEL,
         ALGO_TIMETRAVEL10,
         ALGO_TRIBUS,
         ALGO_VANILLA,
@@ -626,7 +629,8 @@ static const char* const algo_names[] = {
         "skein",
         "skein2",
         "skunk",
-        "timetravel",
+        "sonoa",
+	"timetravel",
         "timetravel10",
         "tribus",
         "vanilla",
@@ -705,7 +709,9 @@ extern bool opt_stratum_stats;
 extern int num_cpus;
 extern int num_cpugroups;
 extern int opt_priority;
-
+extern uint32_t accepted_share_count;
+extern uint32_t rejected_share_count;
+extern uint32_t solved_block_count;
 extern pthread_mutex_t rpc2_job_lock;
 extern pthread_mutex_t rpc2_login_lock;
 extern pthread_mutex_t applog_lock;
@@ -772,7 +778,8 @@ Options:\n\
                           skein         Skein+Sha (Skeincoin)\n\
                           skein2        Double Skein (Woodcoin)\n\
                           skunk         Signatum (SIGT)\n\
-                          timetravel    timeravel8, Machinecoin (MAC)\n\
+                          sonoa         Sono\n\
+			  timetravel    timeravel8, Machinecoin (MAC)\n\
                           timetravel10  Bitcore (BTX)\n\
                           tribus        Denarius (DNR)\n\
                           vanilla       blake256r8vnl (VCash)\n\

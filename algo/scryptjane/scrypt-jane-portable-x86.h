@@ -296,6 +296,7 @@ get_xgetbv(uint32_t flags) {
 size_t cpu_detect_mask = (size_t)-1;
 #endif
 
+#if 0
 static size_t
 detect_cpu(void) {
 	union { uint8_t s[12]; uint32_t i[3]; } vendor_string;
@@ -354,6 +355,7 @@ detect_cpu(void) {
 
 	return cpu_flags;
 }
+#endif
 
 #if defined(SCRYPT_TEST_SPEED)
 static const char *

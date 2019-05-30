@@ -70,6 +70,13 @@
   _mm_set_epi32( ((const uint32_t*)(s))[i3], ((const uint32_t*)(s))[i2], \
                  ((const uint32_t*)(s))[i1], ((const uint32_t*)(s))[i0] )
 
+// blend 2 vectors while interleaving: { hi[n], lo[n-1], ... hi[1], lo[0] }
+#define mm128_interleave_blend_64( hi, lo ) \
+                _mm256_blend_epi16( hi, lo, 0x0f )
+#define mm128_interleave_blend_32( hi, lo ) \
+                _mm6_blend_epi16( hi, lo, 0x33 )
+
+
 // 1 sse2 block, 16 bytes * 4 lanes
 static inline void mm128_interleave_4x32x128( void *d, const void *s0,
                        const void *s1, const void *s2, const void *s3 )
@@ -312,6 +319,18 @@ static inline void mm128_deinterleave_4x32x( void *dst0, void *dst1, void *dst2,
                     ((const uint32_t*)(s))[i5], ((const uint32_t*)(s))[i4], \
                     ((const uint32_t*)(s))[i3], ((const uint32_t*)(s))[i2], \
                     ((const uint32_t*)(s))[i1], ((const uint32_t*)(s))[i0] )
+
+
+// Blend 2 vectors alternating hi & lo: { hi[n], lo[n-1], ... hi[1], lo[0] }
+#define mm256_interleave_blend_128( hi, lo ) \
+                _mm256_blend_epi32( hi, lo, 0x0f )
+
+#define mm256_interleave_blend_64( hi, lo ) \
+                _mm256_blend_epi32( hi, lo, 0x33 )
+
+#define mm256_interleave_blend_32( hi, lo ) \
+	        _mm256_blend_epi32( hi, lo, 0x55 )
+
 
 // Used for AVX2 interleaving
 
@@ -751,6 +770,78 @@ static inline void mm256_reinterleave_4x32( void *dst, void *src, int  bit_len )
    // bit_len == 1024
 }
 
+static inline void mm256_reinterleave_4x64_2x128( void *dst0, void *dst1,
+                                              const void *src, int  bit_len )
+{
+   __m256i* d0 = (__m256i*)dst0;
+   __m256i* d1 = (__m256i*)dst1;
+   uint64_t *s = (uint64_t*)src;
+
+   d0[0] = _mm256_set_epi64x( s[ 5], s[ 1], s[ 4], s[ 0] );
+   d1[0] = _mm256_set_epi64x( s[ 7], s[ 3], s[ 6], s[ 2] );
+
+   d0[1] = _mm256_set_epi64x( s[13], s[ 9], s[12], s[ 8] );
+   d1[1] = _mm256_set_epi64x( s[15], s[11], s[14], s[10] );
+
+   if ( bit_len <= 256 ) return;
+
+   d0[2] = _mm256_set_epi64x( s[21], s[17], s[20], s[16] );
+   d1[2] = _mm256_set_epi64x( s[23], s[19], s[22], s[18] );
+
+   d0[3] = _mm256_set_epi64x( s[29], s[25], s[28], s[24] );
+   d1[3] = _mm256_set_epi64x( s[31], s[27], s[30], s[26] );
+
+   if ( bit_len <= 512 ) return;
+
+   d0[4] = _mm256_set_epi64x( s[37], s[33], s[36], s[32] );
+   d1[4] = _mm256_set_epi64x( s[39], s[35], s[38], s[34] );
+
+   d0[5] = _mm256_set_epi64x( s[45], s[41], s[44], s[40] );
+   d1[5] = _mm256_set_epi64x( s[47], s[43], s[46], s[42] );
+
+   d0[6] = _mm256_set_epi64x( s[53], s[49], s[52], s[48] );
+   d1[6] = _mm256_set_epi64x( s[55], s[51], s[54], s[50] );
+
+   d0[7] = _mm256_set_epi64x( s[61], s[57], s[60], s[56] );
+   d1[7] = _mm256_set_epi64x( s[63], s[59], s[62], s[58] );
+}
+
+
+static inline void mm256_reinterleave_2x128_4x64( void *dst, const void *src0,
+	                                      const void *src1, int  bit_len )
+{
+   __m256i* d = (__m256i*)dst;
+   uint64_t *s0 = (uint64_t*)src0;
+   uint64_t *s1 = (uint64_t*)src1;
+
+   d[ 0] = _mm256_set_epi64x( s1[2], s1[0], s0[2], s0[0] );
+   d[ 1] = _mm256_set_epi64x( s1[3], s1[1], s0[3], s0[1] );
+   d[ 2] = _mm256_set_epi64x( s1[6], s1[4], s0[6], s0[4] );
+   d[ 3] = _mm256_set_epi64x( s1[7], s1[5], s0[7], s0[5] );
+
+   if ( bit_len <= 256 ) return;
+
+   d[ 4] = _mm256_set_epi64x( s1[10], s1[ 8], s0[10], s0[ 8] );
+   d[ 5] = _mm256_set_epi64x( s1[11], s1[ 9], s0[11], s0[ 9] );
+   d[ 6] = _mm256_set_epi64x( s1[14], s1[12], s0[14], s0[12] );
+   d[ 7] = _mm256_set_epi64x( s1[15], s1[13], s0[15], s0[13] );
+
+   if ( bit_len <= 512 ) return;
+
+   d[ 8] = _mm256_set_epi64x( s1[18], s1[16], s0[18], s0[16] );
+   d[ 9] = _mm256_set_epi64x( s1[19], s1[17], s0[19], s0[17] );
+   d[10] = _mm256_set_epi64x( s1[22], s1[20], s0[22], s0[20] );
+   d[11] = _mm256_set_epi64x( s1[23], s1[21], s0[23], s0[21] );
+
+   d[12] = _mm256_set_epi64x( s1[26], s1[24], s0[26], s0[24] );
+   d[13] = _mm256_set_epi64x( s1[27], s1[25], s0[27], s0[25] );
+   d[14] = _mm256_set_epi64x( s1[30], s1[28], s0[30], s0[28] );
+   d[15] = _mm256_set_epi64x( s1[31], s1[29], s0[31], s0[29] );
+}
+
+
+
+
 /*
 // not used
 static inline void mm_reinterleave_4x32( void *dst, void *src, int  bit_len )
@@ -850,6 +941,24 @@ static inline void mm256_deinterleave_2x128( void *d0, void *d1, void *s,
                     ((const uint32_t*)(s))[i03], ((const uint32_t*)(s))[i02], \
                     ((const uint32_t*)(s))[i01], ((const uint32_t*)(s))[i00] )
 
+// AVX512 has no blend, can be done with permute2xvar but at what cost?
+// Can also be done with shifting and mask-or'ing for 3 instructins with
+// 1 dependency. Finally it can be done with 1 _mm512_set but with 8 64 bit
+// array index calculations and 8 pointer reads.
+
+// Blend 2 vectors alternating hi & lo: { hi[n], lo[n-1], ... hi[1]. lo[0] }
+#define mm512_interleave_blend_128( hi, lo ) \
+  _mm256_permute2xvar_epi64( hi, lo, _mm512_set_epi64( \
+                            0x7, 0x6, 0x5, 0x4, 0xb, 0xa, 0x9, 0x8 )
+
+#define mm512_interleave_blend_64( hi, lo ) \
+  _mm256_permute2xvar_epi64( hi, lo, _mm512_set_epi64( \
+                            0x7, 0x6, 0xd, 0xc, 0x3, 0x2, 0x9, 0x8 )
+
+#define mm512_interleave_blend_32( hi, lo ) \
+  _mm256_permute2xvar_epi32( hi, lo, _mm512_set_epi32( \
+		            0x0f, 0x1e, 0x0d, 0x1c, 0x0b, 0x1a, 0x09, 0x18, \
+                            0x07, 0x16, 0x05, 0x14, 0x03, 0x12, 0x01, 0x10 )
 //
 
 static inline void mm512_interleave_16x32x512( void *d, const void *s00,

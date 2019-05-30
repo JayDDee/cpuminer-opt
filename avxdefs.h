@@ -27,15 +27,16 @@
 // eliminate some extraneous characters. The main ones are:
 //   - the leading underscore(s) "_" and the "i" are dropped from the prefix,
 //   - "mm64" and "mm128" used for 64 and 128 bit prefix respectively to avoid
-//     the ambiguity of mm,
+//     the ambiguity of "mm",
 //   - the element size does not include additional type specifiers like "epi",
 //   - some macros contain value args that are updated,
 //   - specialized shift and rotate functions that move elements around
 //     use the notation "1x32" to indicate the distance moved as units of
 //     the element size.
+//   
 //     
-// [prefix]_[op][op_size]_[lane_size]
-//
+// prefix_op[esize]_[vec_size] 
+// 
 // prefix: indicates the vector type of the returned value of a function,
 //         the type of the vector args of a function or the type of a data
 //         identifier.
@@ -52,14 +53,14 @@
 //    c512:  512 bit constant vector data
 //    mm512: 512 bit vector intrinsic function
 //
-// op: describes the operation of the function or names the constant
-// identifier.
+// op: describes the operation of the function or names the data identifier.
 // 
-// op_size: optional, used if the size of the operation is different than the
-// size specified in the prefix.
+// op_size: optional, element size of operation
+// vsize: optional, lane size used when a function operates on elements of
+// vectors within lanes.
 //
-// lane_size: optional, used when a function operates on lanes of packed
-// elements within a vector.
+// Ex: mm256_ror1x64_128 rotates each 128 bit lane of a 256 bit vector
+//     right by 64 bits.
 //
 // Macros vs inline functions:
 //
@@ -80,7 +81,7 @@
 // they being passed as arguments it is good practice to always define
 // arguments even if they have the same name. 
 // 
-// General tips for inline functions:
+// General guidelines for inline functions:
 //
 // Inline functions should not have loops, it defeats the purpose of inlining.
 // Inline functions should be short, the benefit is lost and the memory cost
@@ -98,12 +99,21 @@
 #include <memory.h>
 #include <stdbool.h>
 
+// 64 bit seems completely useless
+
 ////////////////////////////////////////////////////////////////
 //
 //         64 bit MMX vectors.
 //
-// There are rumours MMX wil be removed.
-
+// There are rumours MMX wil be removed. Although casting with int64
+// works there is likely some overhead to move the data to An MMX register
+// and back.
+// Byte swap and rotation may be more efficient using an MMX shuffle
+// except that it won't compile due to a "target specific option mismatch"
+// with "inlining failed in call to always inline". MMX was designed for
+// 32 bit CPUs and might not work on 64 bit CPUs where the CPU has full
+// support for 64 bit operations without vectoring.  
+//
 // Universal 64 bit overlay
 union _m64v
 {
@@ -151,51 +161,68 @@ typedef union _m64_v16 m64_v16;
 #define m64_neg1   ( (__m64)0xFFFFFFFFFFFFFFFFULL )
 */
 
+
+#define casti_m64(p,i) (((__m64*)(p))[(i)])
+
+
+// cast all arguments as the're likely uint64_t
+
 // Bitwise not: ~(a)
-#define mm64_not( a ) _mm_xor_si64( a, m64_neg1 )
+#define mm64_not( a ) _mm_xor_si64( (__m64)a, m64_neg1 )
 
 // Unary negate elements
-#define mm64_negate_32( v ) _mm_sub_pi32( m64_zero, v )
-#define mm64_negate_16( v ) _mm_sub_pi16( m64_zero, v )
+#define mm64_negate_32( v ) _mm_sub_pi32( m64_zero, (__m64)v )
+#define mm64_negate_16( v ) _mm_sub_pi16( m64_zero, (__m64)v )
 
 // Rotate bits in packed elements of 64 bit vector
-#define mm64_rotl_32( a, n ) \
-   _mm_or_si64( _mm_slli_pi32( a, n ), _mm_srli_pi32( a, 32-(n) ) )
+#define mm64_rol_32( a, n ) \
+   _mm_or_si64( _mm_slli_pi32( a, n ), _mm_srli_pi32( (__m64)a, 32-(n) ) )
 
-#define mm64_rotr_32( a, n ) \
-   _mm_or_si64( _mm_srli_pi32( a, n ), _mm_slli_pi32( a, 32-(n) ) )
+#define mm64_ror_32( a, n ) \
+   _mm_or_si64( _mm_srli_pi32( a, n ), _mm_slli_pi32( (__m64)a, 32-(n) ) )
 
-#define mm64_rotl_16( a, n ) \
-   _mm_or_si64( _mm_slli_pi16( a, n ), _mm_srli_pi16( a, 16-(n) ) )
+#define mm64_rol_16( a, n ) \
+   _mm_or_si64( _mm_slli_pi16( a, n ), _mm_srli_pi16( (__m64)a, 16-(n) ) )
 
-#define mm64_rotr_16( a, n ) \
-   _mm_or_si64( _mm_srli_pi16( a, n ), _mm_slli_pi16( a, 16-(n) ) )
+#define mm64_ror_16( a, n ) \
+   _mm_or_si64( _mm_srli_pi16( a, n ), _mm_slli_pi16( (__m64)a, 16-(n) ) )
 
 
-// Rotate packed elements accross lanes
+// Rotate packed elements accross lanes. Useful for byte swap and byte
+// rotation.
+
+// _mm_shuffle_pi8 requires SSSE3 while _mm_shuffle_pi16 requires SSE
+// even though these are MMX instructions.
 
 // Swap hi & lo 32 bits.
-#define mm64_swap_32( a )    _mm_shuffle_pi16( a, 0x4e )
+#define mm64_swap32( a )    _mm_shuffle_pi16( (__m64)a, 0x4e )
+
+#define mm64_ror1x16_64( a )  _mm_shuffle_pi16( (__m64)a, 0x39 ) 
+#define mm64_rol1x16_64( a )  _mm_shuffle_pi16( (__m64)a, 0x93 ) 
 
 // Swap hi & lo 16 bits of each 32 bit element
-#define mm64_swap32_16( a )  _mm_shuffle_pi16( a, 0xb1 )
+#define mm64_swap16_32( a )  _mm_shuffle_pi16( (__m64)a, 0xb1 )
 
-#define mm64_ror_1x16( v )   _mm_shuffle_pi16( v, 0x39 )
-#define mm64_rol_1x16( v )   _mm_shuffle_pi16( v, 0x93 )
+#if defined(__SSSE3__)
 
 // Endian byte swap packed elements
 #define mm64_bswap_32( v ) \
-    _mm_shuffle_pi8( v, _mm_set_pi8( 4,5,6,7,  0,1,2,3 ) )
+    _mm_shuffle_pi8( (__m64)v, _mm_set_pi8( 4,5,6,7,  0,1,2,3 ) )
 
 #define mm64_bswap_16( v ) \
-    _mm_shuffle_pi8( v, _mm_set_pi8( 6,7,  4,5,  2,3,  0,1 ) );
+    _mm_shuffle_pi8( (__m64)v, _mm_set_pi8( 6,7,  4,5,  2,3,  0,1 ) );
+
+#endif
 
 // Invert vector: {3,2,1,0} -> {0,1,2,3}
-#define mm64_invert_16( v ) _mm_shuffle_pi16( a, 0x1b )
-	
-#define mm64_invert_8(  v ) \
-    _mm_shuffle_pi8( v, _mm_set_pi8( 0,1,2,3,4,5,6,7 ) );
+#define mm64_invert_16( v ) _mm_shuffle_pi16( (__m64)v, 0x1b )
 
+#if defined(__SSSE3__)
+
+#define mm64_invert_8(  v ) \
+    _mm_shuffle_pi8( (__m64)v, _mm_set_pi8( 0,1,2,3,4,5,6,7 ) );
+
+#endif
 
 // A couple of 64 bit scalar functions. restrictive, data must be aligned and
 // integral. The compiler can probably do just as well with memset.
@@ -268,8 +295,8 @@ typedef union _m128_v8 m128_v8;
 
 // Compile time constant initializers are type agnostic and can have
 // a pointer handle of almost any type. All arguments must be scalar constants.
-// These iniitializers should only be used at compile time to initialize
-// vector arrays. All data reside in memory.
+// up to 64 bits. These iniitializers should only be used at compile time
+// to initialize vector arrays. All data reside in memory.
 
 #define mm128_const_64( x1, x0 ) {{ x1, x0 }}
 #define mm128_const1_64( x )     {{  x,  x }}
@@ -383,7 +410,6 @@ typedef union _m128_v8 m128_v8;
     ((uint32_t*)d)[3] = (uint32_t)s3;
 
 // Scatter data from contiguous memory.
-// All arguments are pointers
 #define mm128_scatter_64( d0, d1, s ) \
    *( (uint64_t*)d0) = ((uint64_t*)s)[0]; \
    *( (uint64_t*)d1) = ((uint64_t*)s)[1]; 
@@ -457,9 +483,6 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 #define mm128_ror_1x32( v )   _mm_shuffle_epi32( v, 0x39 )
 #define mm128_rol_1x32( v )   _mm_shuffle_epi32( v, 0x93 )
 
-#define mm128_swap32_16( v )  _mm_shuffle_epi8( v, \
-                  _mm_set_epi8( 13,12,15,14, 9,8,11,10, 5,4,7,6, 1,0,3,2 )
-
 #define mm128_ror_1x16( v ) \
    _mm_shuffle_epi8( v, _mm_set_epi8(  1, 0,15,14,13,12,11,10 \
                                        9, 8, 7, 6, 5, 4, 3, 2 ) )
@@ -496,9 +519,15 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 //
 // Rotate elements within lanes.
 
-#define mm128_swap64_32( v )  _mm_shuffle_epi32( v, 0xb1 )
+#define mm128_swap32_64( v )  _mm_shuffle_epi32( v, 0xb1 )
 
-#define mm128_swap32_16( v )  _mm_shuffle_epi8( v, \
+#define mm128_ror16_64( v )   _mm_shuffle_epi8( v, \
+	      _mm_set_epi8(  9, 8,15,14,13,12,11,10,  1, 0, 7, 6, 5, 4, 3, 2 )
+#define mm128_rol16_64( v )   _mm_shuffle_epi8( v, \
+              _mm_set_epi8( 13,12,11,10, 9, 8,15,14,  5, 4, 3, 2, 1, 0, 7, 6 )
+
+
+#define mm128_swap16_32( v )  _mm_shuffle_epi8( v, \
                       _mm_set_epi8( 13,12,15,14, 9,8,11,10, 5,4,7,6, 1,0,3,2 )
 
 //
@@ -543,75 +572,134 @@ static inline __m128i mm128_bswap_16( __m128i v )
 #endif // SSSE3 else SSE2
 
 //
-// Concatenate 128 bit vectors v1 & v2 to form a 256 bit vector then rotate it
-// in place. Source arguments are overwritten.
+// Rotate in place concatenated 128 bit vectors as one 256 bit vector.
 
-#define mm128_swap256_128(v1, v2) \
+// Swap 128 bit vectorse.
+
+#define mm128_swap128_256(v1, v2) \
    v1 = _mm_xor_si128(v1, v2); \
    v2 = _mm_xor_si128(v1, v2); \
    v1 = _mm_xor_si128(v1, v2);
 
+// Concatenate v1 & v2 and rotate as one 256 bit vector.
 #if defined(__SSE4_1__)
 
-// There are no SSE2 compatible versions of these functions.
-
-#define mm128_ror256_1x64( v1, v2 ) \
+#define mm128_ror1x64_256( v1, v2 ) \
 do { \
-   __m128i t = _mm_alignr_epi8( v1, v2, 8 ); \
-   v1 = _mm_alignr_epi8( v2, v1, 8 ); \
-   v2 = t; \
+   __m128i t  = _mm_alignr_epi8( v1, v2, 8 ); \
+           v1 = _mm_alignr_epi8( v2, v1, 8 ); \
+           v2 = t; \
 } while(0)
 
-#define mm128_rol256_1x64( v1, v2 ) \
+#define mm128_rol1x64_256( v1, v2 ) \
 do { \
-   __m128i t = _mm_alignr_epi8( v1, v2, 8 ); \
-   v2 = _mm_alignr_epi8( v2, v1, 8 ); \
-   v1 = t; \
+   __m128i t  = _mm_alignr_epi8( v1, v2, 8 ); \
+           v2 = _mm_alignr_epi8( v2, v1, 8 ); \
+           v1 = t; \
 } while(0)
 
-#define mm128_ror256_1x32( v1, v2 ) \
+#define mm128_ror1x32_256( v1, v2 ) \
 do { \
-   __m128i t = _mm_alignr_epi8( v1, v2, 4 ); \
-   v1 = _mm_alignr_epi8( v2, v1, 4 ); \
-   v2 = t; \
+   __m128i t  = _mm_alignr_epi8( v1, v2, 4 ); \
+           v1 = _mm_alignr_epi8( v2, v1, 4 ); \
+           v2 = t; \
 } while(0)
 
-#define mm128_rol256_1x32( v1, v2 ) \
+#define mm128_rol1x32_256( v1, v2 ) \
 do { \
-   __m128i t = _mm_alignr_epi8( v1, v2, 12 ); \
-   v2 = _mm_alignr_epi8( v2, v1, 12 ); \
-   v1 = t; \
+   __m128i t  = _mm_alignr_epi8( v1, v2, 12 ); \
+           v2 = _mm_alignr_epi8( v2, v1, 12 ); \
+           v1 = t; \
 } while(0)
 
-#define mm128_ror256_1x16( v1, v2 ) \
+#define mm128_ror1x16_256( v1, v2 ) \
 do { \
-   __m128i t = _mm_alignr_epi8( v1, v2, 2 ); \
-   v1 = _mm_alignr_epi8( v2, v1, 2 ); \
-   v2 = t; \
+   __m128i t  = _mm_alignr_epi8( v1, v2, 2 ); \
+           v1 = _mm_alignr_epi8( v2, v1, 2 ); \
+           v2 = t; \
 } while(0)
 
-#define mm128_rol256_1x16( v1, v2 ) \
+#define mm128_rol1x16_256( v1, v2 ) \
 do { \
-   __m128i t = _mm_alignr_epi8( v1, v2, 14 ); \
-   v2 = _mm_alignr_epi8( v2, v1, 14 ); \
-   v1 = t; \
+   __m128i t  = _mm_alignr_epi8( v1, v2, 14 ); \
+           v2 = _mm_alignr_epi8( v2, v1, 14 ); \
+           v1 = t; \
 } while(0)
 
-#define mm128_ror256_1x8( v1, v2 ) \
+#define mm128_ror1x8_256( v1, v2 ) \
 do { \
-   __m128i t = _mm_alignr_epi8( v1, v2, 1 ); \
-   v1 = _mm_alignr_epi8( v2, v1, 1 ); \
-   v2 = t; \
+   __m128i t  = _mm_alignr_epi8( v1, v2, 1 ); \
+           v1 = _mm_alignr_epi8( v2, v1, 1 ); \
+           v2 = t; \
 } while(0)
 
-#define mm128_rol256_1x8( v1, v2 ) \
+#define mm128_rol1x8_256( v1, v2 ) \
 do { \
-   __m128i t = _mm_alignr_epi8( v1, v2, 15 ); \
-   v2 = _mm_alignr_epi8( v2, v1, 15 ); \
-   v1 = t; \
+   __m128i t  = _mm_alignr_epi8( v1, v2, 15 ); \
+           v2 = _mm_alignr_epi8( v2, v1, 15 ); \
+           v1 = t; \
 } while(0)
 
-#endif  // SSE4.1
+#else  // SSE2
+
+#define mm128_ror1x64_256( v1, v2 ) \
+do { \
+   __m128i t  = _mm_srli_si128( v1, 8 ) | _mm_slli_si128( v2, 24 ); \
+           v2 = _mm_srli_si128( v2, 8 ) | _mm_slli_si128( v1, 24 ); \
+           v1 = t; \
+} while(0)
+
+#define mm128_rol1x64_256( v1, v2 ) \
+do { \
+   __m128i t  = _mm_slli_si128( v1, 8 ) | _mm_srli_si128( v2, 24 ); \
+           v2 = _mm_slli_si128( v2, 8 ) | _mm_srli_si128( v1, 24 ); \
+           v1 = t; \
+} while(0)
+
+#define mm128_ror1x32_256( v1, v2 ) \
+do { \
+   __m128i t  = _mm_srli_si128( v1, 4 ) | _mm_slli_si128( v2, 28 ); \
+           v2 = _mm_srli_si128( v2, 4 ) | _mm_slli_si128( v1, 28 ); \
+           v1 = t; \
+} while(0)
+
+#define mm128_rol1x32_256( v1, v2 ) \
+do { \
+   __m128i t  = _mm_slli_si128( v1, 4 ) | _mm_srli_si128( v2, 28 ); \
+           v2 = _mm_slli_si128( v2, 4 ) | _mm_srli_si128( v1, 28 ); \
+           v1 = t; \
+} while(0)
+
+#define mm128_ror1x16_256( v1, v2 ) \
+do { \
+   __m128i t  = _mm_srli_si128( v1, 2 ) | _mm_slli_si128( v2, 30 ); \
+           v2 = _mm_srli_si128( v2, 2 ) | _mm_slli_si128( v1, 30 ); \
+           v1 = t; \
+} while(0)
+
+#define mm128_rol1x16_256( v1, v2 ) \
+do { \
+   __m128i t  = _mm_slli_si128( v1, 2 ) | _mm_srli_si128( v2, 30 ); \
+           v2 = _mm_slli_si128( v2, 2 ) | _mm_srli_si128( v1, 30 ); \
+           v1 = t; \
+} while(0)
+
+#define mm128_ror1x8_256( v1, v2 ) \
+do { \
+   __m128i t  = _mm_srli_si128( v1, 1 ) | _mm_slli_si128( v2, 31 ); \
+           v2 = _mm_srli_si128( v2, 1 ) | _mm_slli_si128( v1, 31 ); \
+           v1 = t; \
+} while(0)
+
+#define mm128_rol1x8_256( v1, v2 ) \
+do { \
+   __m128i t  = _mm_slli_si128( v1, 1 ) | _mm_srli_si128( v2, 31 ); \
+           v2 = _mm_slli_si128( v2, 1 ) | _mm_srli_si128( v1, 31 ); \
+           v1 = t; \
+} while(0)
+
+
+#endif  // SSE4.1 else SSE2
 
 #if defined (__AVX2__)
 
@@ -745,6 +833,64 @@ typedef union _m256_v8 m256_v8;
 #define mm256_negate_64( a ) _mm256_sub_epi64( m256_zero, a )
 #define mm256_negate_32( a ) _mm256_sub_epi32( m256_zero, a )  
 #define mm256_negate_16( a ) _mm256_sub_epi16( m256_zero, a )  
+
+//
+// Vector size conversion.
+//
+// Allows operations on either or both halves of a 256 bit vector serially.
+// Handy for parallel AES.
+// Caveats:
+//      _mm256_castsi256_si128 is free and without side effects.
+//      _mm256_castsi128_si256 is also free but leaves the high half undefined.
+//      To avoid side effects use _mm256_inserti128_si256 for the lo half
+//      unless the hi half is to be subsequently overwritten anyway.
+#define mm128_ext_lo128_256( a ) _mm256_castsi256_si128( a )
+#define mm128_ext_hi128_256( a ) _mm256_extracti128_si256( a, 1 )
+
+// input __m128i, returns __m256i
+// To build a 256 bit vector from 2 128 bit vectors lo must be done first.
+// lo alone leaves hi undefined, hi alone leaves lo unchanged.
+// Both cost one clock while preserving the other half..
+// Insert b into specified half of a leaving other half of a unchanged.
+#define mm256_ins_lo128_256( a, b )  _mm256_inserti128_si256( a, b, 0 )   
+#define mm256_ins_hi128_256( a, b )  _mm256_inserti128_si256( a, b, 1 )
+
+// concatenate two 128 bit vectors into one 256 bit vector
+#define mm256_concat_128( hi, lo ) \
+	mm256_ins_hi128_256( _mm256_castsi128_si256( lo ), hi ) 
+
+// Parallel AES, for when x is expected to be in a 256 bit register.
+#define mm256_aesenc_2x128( x ) \
+     mm256_concat_128( \
+	  _mm_aesenc_si128( mm128_ext_hi128_256( x ), m128_zero ), \
+          _mm_aesenc_si128( mm128_ext_lo128_256( x ), m128_zero ) )
+
+#define mm256_aesenckey_2x128( x, k ) \
+     mm256_concat_128( \
+	  _mm_aesenc_si128( mm128_ext_hi128_256( x ), \
+	                    mm128_ext_lo128_256( k ) ), \
+          _mm_aesenc_si128( mm128_ext_hi128_256( x ), \
+		            mm128_ext_lo128_256( k ) ) )
+
+#define mm256_paesenc_2x128( y, x ) do \
+{ \
+  __m256i *X = (__m256i*)x; \
+  __m256i *Y = (__m256i*)y; \
+  y[0] = _mm_aesenc_si128( x[0], m128_zero ); \
+  y[1] = _mm_aesenc_si128( x[1], m128_zero ); \
+} while(0);
+
+// With pointers.
+#define mm256_paesenckey_2x128( y, x, k ) do \
+{ \
+  __m256i *X = (__m256i*)x; \
+  __m256i *Y = (__m256i*)y; \
+  __m256i *K = (__m256i*)ky; \
+  y[0] = _mm_aesenc_si128( x[0], K[0] ); \
+  y[1] = _mm_aesenc_si128( x[1], K[1] ); \
+} while(0);
+
+
 
 //
 // Pointer casting
@@ -973,37 +1119,43 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
 // Rotate elements within lanes of 256 bit vector.
 
 // Swap 64 bit elements in each 128 bit lane.
-#define mm256_swap128_64( v )   _mm256_shuffle_epi32( v, 0x4e )
+#define mm256_swap64_128( v )   _mm256_shuffle_epi32( v, 0x4e )
 
 // Rotate each 128 bit lane by one 32 bit element.
-#define mm256_ror128_1x32( v )  _mm256_shuffle_epi32( v, 0x39 )
-#define mm256_rol128_1x32( v )  _mm256_shuffle_epi32( v, 0x93 )
+#define mm256_ror1x32_128( v )  _mm256_shuffle_epi32( v, 0x39 )
+#define mm256_rol1x32_128( v )  _mm256_shuffle_epi32( v, 0x93 )
 
 // Rotate each 128 bit lane by one 16 bit element.
-#define mm256_rol128_1x16( v ) \
+#define mm256_rol1x16_128( v ) \
        	_mm256_shuffle_epi8( 13,12,11,10, 9,8,7,6, 5,4,3,2, 1,0,15,14 )
-#define mm256_ror128_1x16( v ) \
+#define mm256_ror1x16_128( v ) \
         _mm256_shuffle_epi8( 1,0,15,14, 13,12,11,10, 9,8,7,6, 5,4,3,2 )
 
 // Rotate each 128 bit lane by one byte
-#define mm256_rol128_1x8( v ) \
+#define mm256_rol1x8_128( v ) \
         _mm256_shuffle_epi8( 14, 13,12,11, 10,9,8,7, 6,5,4,3, 2,1,0,15 )
-#define mm256_ror128_1x8( v ) \
+#define mm256_ror1x8_128( v ) \
         _mm256_shuffle_epi8( 0,15,14,13, 12,11,10,9, 8,7,6,5, 4,3,2,1 )
 
 // Rotate each 128 bit lane by c bytes.
-#define mm256_ror128_x8( v, c ) \
+#define mm256_bror_128( v, c ) \
   _mm256_or_si256( _mm256_bsrli_epi128( v, c ), \
                    _mm256_bslli_epi128( v, 16-(c) ) )
-#define mm256_rol128_x8( v, c ) \
+#define mm256_brol_128( v, c ) \
   _mm256_or_si256( _mm256_bslli_epi128( v, c ), \
                    _mm256_bsrli_epi128( v, 16-(c) ) )
 
 // Swap 32 bit elements in each 64 bit lane
-#define mm256_swap64_32( v )    _mm256_shuffle_epi32( v, 0xb1 )
+#define mm256_swap32_64( v )    _mm256_shuffle_epi32( v, 0xb1 )
+
+#define mm256_ror16_64( v ) \
+      _mm256_shuffle_epi8(  9, 8,15,14,13,12,11,10,  1, 0, 7, 6, 5, 4, 3, 2 );
+#define mm256_rol16_64( v ) \
+      _mm256_shuffle_epi8( 13,12,11,10, 9, 8,15,14,  5, 4, 3, 2, 1, 0, 7, 6 );
+
 
 // Swap 16 bit elements in each 32 bit lane
-#define mm256_swap32_16( v )  _mm256_shuffle_epi8( v, \
+#define mm256_swap16_32( v )  _mm256_shuffle_epi8( v, \
         _mm_set_epi8( 13,12,15,14, 9,8,11,10, 5,4,7,6, 1,0,3,2 )
 
 //
@@ -1034,75 +1186,75 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
 // Some of these can use permute but appears to be slower. Maybe a Ryzen
 // issue
 
-#define mm256_swap512_256 (v1, v2) \
+#define mm256_swap256_512 (v1, v2) \
    v1 = _mm256_xor_si256(v1, v2); \
    v2 = _mm256_xor_si256(v1, v2); \
    v1 = _mm256_xor_si256(v1, v2);
 
-#define mm256_ror512_1x128( v1, v2 ) \
+#define mm256_ror1x128_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 16 ); \
    v1 = _mm256_alignr_epi8( v2, v1, 16 ); \
    v2 = t; \
 } while(0)
 
-#define mm256_rol512_1x128( v1, v2 ) \
+#define mm256_rol1x128_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 16 ); \
    v2 = _mm256_alignr_epi8( v2, v1, 16 ); \
    v1 = t; \
 } while(0)
 
-#define mm256_ror512_1x64( v1, v2 ) \
+#define mm256_ror1x64_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 8 ); \
    v1 = _mm256_alignr_epi8( v2, v1, 8 ); \
    v2 = t; \
 } while(0)
 
-#define mm256_rol512_1x64( v1, v2 ) \
+#define mm256_rol1x64_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 24 ); \
    v2 = _mm256_alignr_epi8( v2, v1, 24 ); \
    v1 = t; \
 } while(0)
 
-#define mm256_ror512_1x32( v1, v2 ) \
+#define mm256_ror1x32_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 4 ); \
    v1 = _mm256_alignr_epi8( v2, v1, 4 ); \
    v2 = t; \
 } while(0)
 
-#define mm256_rol512_1x32( v1, v2 ) \
+#define mm256_rol1x32_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 28 ); \
    v2 = _mm256_alignr_epi8( v2, v1, 28 ); \
    v1 = t; \
 } while(0)
 
-#define mm256_ror512_1x16( v1, v2 ) \
+#define mm256_ror1x16_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 2 ); \
    v1 = _mm256_alignr_epi8( v2, v1, 2 ); \
    v2 = t; \
 } while(0)
 
-#define mm256_rol512_1x16( v1, v2 ) \
+#define mm256_rol1x16_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 30 ); \
    v2 = _mm256_alignr_epi8( v2, v1, 30 ); \
    v1 = t; \
 } while(0)
 
-#define mm256_ror512_1x8( v1, v2 ) \
+#define mm256_ror1x8_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 1 ); \
    v1 = _mm256_alignr_epi8( v2, v1, 1 ); \
    v2 = t; \
 } while(0)
 
-#define mm256_rol512_1x8( v1, v2 ) \
+#define mm256_rol1x8_512( v1, v2 ) \
 do { \
    __m256i t = _mm256_alignr_epi8( v1, v2, 31 ); \
    v2 = _mm256_alignr_epi8( v2, v1, 31 ); \
@@ -1449,117 +1601,117 @@ typedef union _m512_v8 m512_v8;
 #define mm512_invert_128( v ) _mm512_permute4f128_epi32( a, 0x1b )
 
 #define mm512_invert_64( v ) \
-     _mm512_permutex_epi64( v, _mm512_set_epi64( 0,1,2,3,4,5,6,7 ) )
+   _mm512_permutex_epi64( v, _mm512_set_epi64( 0,1,2,3,4,5,6,7 ) )
 
 #define mm512_invert_32( v ) \
-     _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
-                     0, 1, 2, 3, 4, 5, 6, 7,   8, 9,10,11,12,13,14,15 ) )
+   _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
+                      0, 1, 2, 3, 4, 5, 6, 7,   8, 9,10,11,12,13,14,15 ) )
 
 
 #define mm512_invert_16( v ) \
-     _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
-                      0x00000001, 0x00020003, 0x00040005, 0x00060007, \
-                      0x00080009, 0x000A000B, 0x000C000D, 0x000E000F, \
-                      0x00100011, 0x00120013, 0x00140015, 0x00160017, \
-                      0x00180019, 0x001A001B, 0x001C001D, 0x001E001F ) )
+   _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
+                       0x00000001, 0x00020003, 0x00040005, 0x00060007, \
+                       0x00080009, 0x000A000B, 0x000C000D, 0x000E000F, \
+                       0x00100011, 0x00120013, 0x00140015, 0x00160017, \
+                       0x00180019, 0x001A001B, 0x001C001D, 0x001E001F ) )
 
 #define mm512_invert_8(  v ) \
-     _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                      0x00010203, 0x04050607, 0x08090A0B, 0x0C0D0E0F, \
-                      0x10111213, 0x14151617, 0x18191A1B, 0x1C1D1E1F, \
-                      0x20212223, 0x24252627, 0x28292A2B, 0x2C2D2E2F, \
-                      0x30313233, 0x34353637, 0x38393A3B, 0x3C3D3E3F ) )
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                       0x00010203, 0x04050607, 0x08090A0B, 0x0C0D0E0F, \
+                       0x10111213, 0x14151617, 0x18191A1B, 0x1C1D1E1F, \
+                       0x20212223, 0x24252627, 0x28292A2B, 0x2C2D2E2F, \
+                       0x30313233, 0x34353637, 0x38393A3B, 0x3C3D3E3F ) )
 
 //
 // Rotate elements within 256 bit lanes of 512 bit vector.
 
 // Swap hi & lo 128 bits in each 256 bit lane
-#define mm512_swap256_128( v )   _mm512_permutex_epi64( v, 0x4e )
+#define mm512_swap128_256( v )   _mm512_permutex_epi64( v, 0x4e )
 
 // Rotate 256 bit lanes by one 64 bit element
-#define mm512_ror256_1x64( v )   _mm512_permutex_epi64( v, 0x39 )
-#define mm512_rol256_1x64( v )   _mm512_permutex_epi64( v, 0x93 )
+#define mm512_ror1x64_256( v )   _mm512_permutex_epi64( v, 0x39 )
+#define mm512_rol1x64_256( v )   _mm512_permutex_epi64( v, 0x93 )
 
 // Rotate 256 bit lanes by one 32 bit element
-#define mm512_ror256_1x32( v ) \
-           _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
-                    8,15,14,13,12,11,10, 9,   0, 7, 6, 5, 4, 3, 2, 1 ) )
-#define mm512_rol256_1x32( v ) \
-           _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
-                   14,13,12,11,10, 9, 8,15,   6, 5, 4, 3, 2, 1, 0, 7 ) )
+#define mm512_ror1x32_256( v ) \
+   _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
+                      8,15,14,13,12,11,10, 9,   0, 7, 6, 5, 4, 3, 2, 1 ) )
+#define mm512_rol1x32_256( v ) \
+   _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
+                     14,13,12,11,10, 9, 8,15,   6, 5, 4, 3, 2, 1, 0, 7 ) )
 
-#define mm512_ror256_1x16( v ) \
-           _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
-                   0x0010001F, 0x001E001D, 0x001C001B, 0x001A0019, \
-                   0x00180017, 0x00160015, 0x00140013, 0x00120011, \
-                   0x0000000F, 0x000E000D, 0x000C000B, 0x000A0009, \
-                   0x00080007, 0x00060005, 0x00040003, 0x00020001 ) )
+#define mm512_ror1x16_256( v ) \
+   _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
+                     0x0010001F, 0x001E001D, 0x001C001B, 0x001A0019, \
+                     0x00180017, 0x00160015, 0x00140013, 0x00120011, \
+                     0x0000000F, 0x000E000D, 0x000C000B, 0x000A0009, \
+                     0x00080007, 0x00060005, 0x00040003, 0x00020001 ) )
 
-#define mm512_rol256_1x16( v ) \
-           _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
-                   0x001E001D, 0x001C001B, 0x001A0019, 0x00180017, \
-	           0x00160015, 0x00140013, 0x00120011, 0x0000000F, \
-	           0x000E000D, 0x000C000B, 0x000A0009, 0x00080007, \
-                   0x00060005, 0x00040003, 0x00020001, 0x0000001F ) )
+#define mm512_rol1x16_256( v ) \
+   _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
+                     0x001E001D, 0x001C001B, 0x001A0019, 0x00180017, \
+	             0x00160015, 0x00140013, 0x00120011, 0x0000000F, \
+  	             0x000E000D, 0x000C000B, 0x000A0009, 0x00080007, \
+                     0x00060005, 0x00040003, 0x00020001, 0x0000001F ) )
 
-#define mm512_ror256_1x8( v ) \
-            _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                   0x203F3E3D, 0x3C3B3A39, 0x38373635, 0x34333231, \
-                   0x302F2E2D, 0x2C2B2A29, 0x28272625, 0x24232221, \
-                   0x001F1E1D, 0x1C1B1A19, 0x18171615, 0x14131211, \
-                   0x100F0E0D, 0x0C0B0A09, 0x08070605, 0x04030201 ) )
+#define mm512_ror1x8_256( v ) \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                     0x203F3E3D, 0x3C3B3A39, 0x38373635, 0x34333231, \
+                     0x302F2E2D, 0x2C2B2A29, 0x28272625, 0x24232221, \
+                     0x001F1E1D, 0x1C1B1A19, 0x18171615, 0x14131211, \
+                     0x100F0E0D, 0x0C0B0A09, 0x08070605, 0x04030201 ) )
  
-#define mm512_rol256_1x8( v ) \
-            _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                   0x3E3D3C3B, 0x3A393837, 0x36353433, 0x3231302F, \
-	           0x2E2D2C2B, 0x2A292827, 0x26252423, 0x2221203F, \
-                   0x1E1D1C1B, 0x1A191817, 0x16151413, 0x1211100F, \
-	           0x0E0D0C0B, 0x0A090807, 0x06050403, 0x0201001F ) )
+#define mm512_rol1x8_256( v ) \
+    _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                     0x3E3D3C3B, 0x3A393837, 0x36353433, 0x3231302F, \
+	             0x2E2D2C2B, 0x2A292827, 0x26252423, 0x2221203F, \
+                     0x1E1D1C1B, 0x1A191817, 0x16151413, 0x1211100F, \
+  	             0x0E0D0C0B, 0x0A090807, 0x06050403, 0x0201001F ) )
 
 //
 // Rotate elements within 128 bit lanes of 512 bit vector.
 
 // Swap hi & lo 64 bits in each 128 bit lane
-#define mm512_swap128_64( v )    _mm512_permutex_epi64( v, 0xb1 )
+#define mm512_swap64_128( v )    _mm512_permutex_epi64( v, 0xb1 )
 
 // Rotate 128 bit lanes by one 32 bit element
-#define mm512_ror128_1x32( v )   _mm512_shuffle_epi32( v, 0x39 )
-#define mm512_rol128_1x32( v )   _mm512_shuffle_epi32( v, 0x93 )
+#define mm512_ror1x32_128( v )   _mm512_shuffle_epi32( v, 0x39 )
+#define mm512_rol1x32_128( v )   _mm512_shuffle_epi32( v, 0x93 )
 
-#define mm512_ror128_1x16( v ) \
-            _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
-                   0x0018001F, 0x001E001D, 0x001C001B, 0x001A0019, \
-	           0x00100017, 0x00160015, 0x00140013, 0x00120011, \
-                   0x0008000F, 0x000E000D, 0x000C000B, 0x000A0009, \
-                   0x00000007, 0x00060005, 0x00040003, 0x00020001 ) )
+#define mm512_ror1x16_128( v ) \
+    _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
+                     0x0018001F, 0x001E001D, 0x001C001B, 0x001A0019, \
+   	             0x00100017, 0x00160015, 0x00140013, 0x00120011, \
+                     0x0008000F, 0x000E000D, 0x000C000B, 0x000A0009, \
+                     0x00000007, 0x00060005, 0x00040003, 0x00020001 ) )
 
-#define mm512_rol128_1x16( v ) \
-            _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
-                   0x001E001D, 0x001C001B, 0x001A0019, 0x0018001F, \
-	           0x00160015, 0x00140013, 0x00120011, 0x00100017, \
-	           0x000E000D, 0x000C000B, 0x000A0009, 0x0008000F, \
-	           0x00060005, 0x00040003, 0x00020001, 0x00000007 ) )
+#define mm512_rol1x16_128( v ) \
+    _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
+                     0x001E001D, 0x001C001B, 0x001A0019, 0x0018001F, \
+	             0x00160015, 0x00140013, 0x00120011, 0x00100017, \
+ 	             0x000E000D, 0x000C000B, 0x000A0009, 0x0008000F, \
+   	             0x00060005, 0x00040003, 0x00020001, 0x00000007 ) )
 
 
-#define mm512_ror128_1x8( v ) \
-            _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                   0x303F3E3D, 0x3C3B3A39, 0x38373635, 0x34333231, \
-                   0x202F2E2D, 0x2C2B2A29, 0x28272625, 0x24232221, \
-                   0x101F1E1D, 0x1C1B1A19, 0x18171615, 0x14131211, \
-                   0x000F0E0D, 0x0C0B0A09, 0x08070605, 0x04030201 ) )
+#define mm512_ror1x8_128( v ) \
+    _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                     0x303F3E3D, 0x3C3B3A39, 0x38373635, 0x34333231, \
+                     0x202F2E2D, 0x2C2B2A29, 0x28272625, 0x24232221, \
+                     0x101F1E1D, 0x1C1B1A19, 0x18171615, 0x14131211, \
+                     0x000F0E0D, 0x0C0B0A09, 0x08070605, 0x04030201 ) )
 
-#define mm512_rol128_1x8( v ) \
-            _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                   0x3E3D3C3B, 0x3A393837, 0x36353433. 0x3231303F, \
-                   0x2E2D2C2B, 0x2A292827, 0x26252423, 0x2221202F, \
-                   0x1E1D1C1B, 0x1A191817, 0x16151413, 0x1211101F, \
-                   0x0E0D0C0B, 0x0A090807, 0x06050403, 0x0201000F ) )
+#define mm512_rol1x8_128( v ) \
+    _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                     0x3E3D3C3B, 0x3A393837, 0x36353433. 0x3231303F, \
+                     0x2E2D2C2B, 0x2A292827, 0x26252423, 0x2221202F, \
+                     0x1E1D1C1B, 0x1A191817, 0x16151413, 0x1211101F, \
+                     0x0E0D0C0B, 0x0A090807, 0x06050403, 0x0201000F ) )
 
 // Rotate 128 bit lanes by c bytes.  
-#define mm512_ror128_x8( v, c ) \
+#define mm512_bror_128( v, c ) \
    _mm512_or_si512( _mm512_bsrli_epi128( v, c ), \
                     _mm512_bslli_epi128( v, 16-(c) ) )
-#define mm512_rol128_x8( v, c ) \
+#define mm512_brol_128( v, c ) \
    _mm512_or_si512( _mm512_bslli_epi128( v, c ), \
                     _mm512_bsrli_epi128( v, 16-(c) ) )
 
@@ -1568,83 +1720,83 @@ typedef union _m512_v8 m512_v8;
 // Rotate elements within 64 bit lanes.
 
 // Swap 32 bit elements in each 64 bit lane
-#define mm512_swap64_32( v )      _mm512_shuffle_epi32( v, 0xb1 )
+#define mm512_swap32_64( v )      _mm512_shuffle_epi32( v, 0xb1 )
 
 // _mm512_set_epi8 doesn't seem to work
  
 // Rotate each 64 bit lane by one 16 bit element.
-#define mm512_ror64_1x16( v ) \
-            _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                   0x39383F3E, 0x3D3C3B3A,   0x31303736, 0x35343332, \
-                   0x29282F2E, 0x2D2C2B2A,   0x21202726, 0x25242322, \
-                   0x19181F1E, 0x1D1C1B1A,   0x11101716, 0x15141312, \
-                   0x09080F0E, 0x0D0C0B0A,   0x01000706, 0x05040302 ) )
+#define mm512_ror1x16_64( v ) \
+    _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                      0x39383F3E, 0x3D3C3B3A,   0x31303736, 0x35343332, \
+                      0x29282F2E, 0x2D2C2B2A,   0x21202726, 0x25242322, \
+                      0x19181F1E, 0x1D1C1B1A,   0x11101716, 0x15141312, \
+                      0x09080F0E, 0x0D0C0B0A,   0x01000706, 0x05040302 ) )
 
-#define mm512_rol64_1x16( v ) \
-            _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                   0x3D3C3B3A, 0x39383F3E,   0x35343332, 0x31303736 \
-                   0x2D2C2B2A, 0x29282F2E,   0x25242322, 0x21202726 \
-                   0x1D1C1B1A, 0x19181F1E,   0x15141312, 0x11101716 \
-                   0x0D0C0B0A, 0x09080F0E,   0x05040302, 0x01000706 ) ) 
+#define mm512_rol1x16_64( v ) \
+    _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                      0x3D3C3B3A, 0x39383F3E,   0x35343332, 0x31303736 \
+                      0x2D2C2B2A, 0x29282F2E,   0x25242322, 0x21202726 \
+                      0x1D1C1B1A, 0x19181F1E,   0x15141312, 0x11101716 \
+                      0x0D0C0B0A, 0x09080F0E,   0x05040302, 0x01000706 ) ) 
 
 // Rotate each 64 bit lane by one byte.
-#define mm512_ror64_1x8( v ) \
-            _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                   0x383F3E3D, 0x3C3B3A39,   0x30373635, 0x34333231, \
-                   0x282F2E2D, 0x2C2B2A29,   0x20272625, 0x24232221, \
-                   0x181F1E1D, 0x1C1B1A19,   0x10171615, 0x14131211, \
-                   0x080F0E0D, 0x0C0B0A09,   0x00070605, 0x0403020 )
+#define mm512_ror1x8_64( v ) \
+    _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                      0x383F3E3D, 0x3C3B3A39,   0x30373635, 0x34333231, \
+                      0x282F2E2D, 0x2C2B2A29,   0x20272625, 0x24232221, \
+                      0x181F1E1D, 0x1C1B1A19,   0x10171615, 0x14131211, \
+                      0x080F0E0D, 0x0C0B0A09,   0x00070605, 0x0403020 )
 
-#define mm512_rol64_1x8( v ) \
-             _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                    0x3E3D3C3B, 0x3A39383F,   0x36353433, 0x32313037, \
-                    0x2E2D2C2B, 0x2A29282F,   0x26252423, 0x22212027, \
-                    0x1E1D1C1B, 0x1A19181F,   0x16151413, 0x12111017, \
-                    0x0E0D0C0B, 0x0A09080F,   0x06050403, 0x02010007 )
+#define mm512_rol1x8_64( v ) \
+    _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                       0x3E3D3C3B, 0x3A39383F,   0x36353433, 0x32313037, \
+                       0x2E2D2C2B, 0x2A29282F,   0x26252423, 0x22212027, \
+                       0x1E1D1C1B, 0x1A19181F,   0x16151413, 0x12111017, \
+                       0x0E0D0C0B, 0x0A09080F,   0x06050403, 0x02010007 )
 
 //
 // Rotate elements within 32 bit lanes.
 
-#define mm512_swap32_16( v ) \
-              _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                     0x001D001C, 0x001F001E, 0x00190018, 0x001B001A, \
-                     0x00150014, 0x00170016, 0x00110010, 0x00130012, \
-                     0x000D000C, 0x000F000E, 0x00190008, 0x000B000A, \
-                     0x00050004, 0x00070006, 0x00110000, 0x00030002 )
+#define mm512_swap16_32( v ) \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                       0x001D001C, 0x001F001E, 0x00190018, 0x001B001A, \
+                       0x00150014, 0x00170016, 0x00110010, 0x00130012, \
+                       0x000D000C, 0x000F000E, 0x00190008, 0x000B000A, \
+                       0x00050004, 0x00070006, 0x00110000, 0x00030002 )
   
-#define mm512_ror32_8( v ) \
-              _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                     0x3C3F3E3D, 0x383B3A39, 0x34373635, 0x30333231, \
-                     0x2C2F2E2D, 0x282B2A29, 0x24272625, 0x20232221, \
-                     0x1C1F1E1D, 0x181B1A19, 0x14171615, 0x10131211, \
-                     0x0C0F0E0D, 0x080B0A09, 0x04070605, 0x00030201 ) )
+#define mm512_ror1x8_32( v ) \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                       0x3C3F3E3D, 0x383B3A39, 0x34373635, 0x30333231, \
+                       0x2C2F2E2D, 0x282B2A29, 0x24272625, 0x20232221, \
+                       0x1C1F1E1D, 0x181B1A19, 0x14171615, 0x10131211, \
+                       0x0C0F0E0D, 0x080B0A09, 0x04070605, 0x00030201 ) )
 
-#define mm512_rol32_8( v ) \
-               _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                      0x3E3D3C3F, 0x3A39383B, 0x36353437, 0x32313033, \
-                      0x2E2D2C2F, 0x2A29282B, 0x26252427, 0x22212023, \
-                      0x1E1D1C1F, 0x1A19181B, 0x16151417, 0x12111013, \
-                      0x0E0D0C0F, 0x0A09080B, 0x06050407, 0x02010003 ) )
+#define mm512_rol1x8_32( v ) \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+                       0x3E3D3C3F, 0x3A39383B, 0x36353437, 0x32313033, \
+                       0x2E2D2C2F, 0x2A29282B, 0x26252427, 0x22212023, \
+                       0x1E1D1C1F, 0x1A19181B, 0x16151417, 0x12111013, \
+                       0x0E0D0C0F, 0x0A09080B, 0x06050407, 0x02010003 ) )
 
 //
 // Swap bytes in vector elements, vectorized bswap.
 
 #define mm512_bswap_64( v ) \
-                _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
                        0x38393A3B, 0x3C3D3E3F,   0x20313233, 0x34353637, \
                        0x28292A2B, 0x2C2D2E2F,   0x20212223, 0x34353637, \
                        0x18191A1B, 0x1C1D1E1F,   0x10111213, 0x14151617, \
                        0x08090A0B, 0x0C0D0E0F,   0x00010203, 0x04050607 ) )
 
 #define mm512_bswap_32( v ) \
-                _mm512_permutexvar_epi8( v, _mm512_set_epi832( \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi832( \
                        0x3C3D3E3F, 0x38393A3B, 0x34353637, 0x30313233, \
                        0x3C3D3E3F, 0x38393A3B, 0x34353637, 0x30313233, \
                        0x3C3D3E3F, 0x38393A3B, 0x34353637, 0x30313233, \
                        0x3C3D3E3F, 0x38393A3B, 0x34353637, 0x30313233 ) )
 
 #define mm512_bswap_16( v ) \
-                _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
                        0x3E3F3C3D, 0x3A3B3839, 0x36373435, 0x32333031, \
                        0x2E2F2C2D, 0x2A2B2829, 0x26272425, 0x22232021, \
                        0x1E1F1C1D, 0x1A1B1819, 0x16171415, 0x12131011, \
@@ -1656,89 +1808,89 @@ typedef union _m512_v8 m512_v8;
 //  These can all be done with 2 permutex2var instructions but they are
 //  slower than either xor or alignr.
 
-#define mm512_swap1024_512(v1, v2) \
+#define mm512_swap512_1024(v1, v2) \
    v1 = _mm512_xor_si512(v1, v2); \
    v2 = _mm512_xor_si512(v1, v2); \
    v1 = _mm512_xor_si512(v1, v2);
 
-#define mm512_ror1024_1x256( v1, v2 ) \
+#define mm512_ror1x256_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi64( v1, v2, 4 ); \
    v1 = _mm512_alignr_epi64( v2, v1, 4 ); \
    v2 = t; \
 } while(0)
 
-#define mm512_rol1024_1x256( v1, v2 ) \
+#define mm512_rol1x256_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi64( v1, v2, 4 ); \
    v2 = _mm512_alignr_epi64( v2, v1, 4 ); \
    v1 = t; \
 } while(0)
 
-#define mm512_ror1024_1x128( v1, v2 ) \
+#define mm512_ror1x128_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi64( v1, v2, 2 ); \
    v1 = _mm512_alignr_epi64( v2, v1, 2 ); \
    v2 = t; \
 } while(0)
 
-#define mm512_rol1024_1x128i( v1, v2 ) \
+#define mm512_rol1x128_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi64( v1, v2, 6 ); \
    v2 = _mm512_alignr_epi64( v2, v1, 6 ); \
    v1 = t; \
 } while(0)
 
-#define mm512_ror1024_1x64( v1, v2 ) \
+#define mm512_ror1x64_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi64( v1, v2, 1 ); \
    v1 = _mm512_alignr_epi64( v2, v1, 1 ); \
    v2 = t; \
 } while(0)
 
-#define mm512_rol1024_1x64( v1, v2 ) \
+#define mm512_rol1x64_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi64( v1, v2, 7 ); \
    v2 = _mm512_alignr_epi64( v2, v1, 7 ); \
    v1 = t; \
 } while(0)
 
-#define mm512_ror1024_1x32( v1, v2 ) \
+#define mm512_ror1x32_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi32( v1, v2, 1 ); \
    v1 = _mm512_alignr_epi32( v2, v1, 1 ); \
    v2 = t; \
 } while(0)
 
-#define mm512_rol1024_1x32( v1, v2 ) \
+#define mm512_rol1x32_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi32( v1, v2, 15 ); \
    v2 = _mm512_alignr_epi32( v2, v1, 15 ); \
    v1 = t; \
 } while(0)
 
-#define mm512_ror1024_1x16( v1, v2 ) \
+#define mm512_ror1x16_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi8( v1, v2, 2 ); \
    v1 = _mm512_alignr_epi8( v2, v1, 2 ); \
    v2 = t; \
 } while(0)
 
-#define mm512_rol1024_1x16( v1, v2 ) \
+#define mm512_rol1x16_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi8( v1, v2, 62 ); \
    v2 = _mm512_alignr_epi8( v2, v1, 62 ); \
    v1 = t; \
 } while(0)
 
-#define mm512_ror1024_1x8( v1, v2 ) \
+#define mm512_ror1x8_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi8( v1, v2, 1 ); \
    v1 = _mm512_alignr_epi8( v2, v1, 1 ); \
    v2 = t; \
 } while(0)
 
-#define mm512_rol1024_1x8( v1, v2 ) \
+#define mm512_rol1x8_1024( v1, v2 ) \
 do { \
    __m512i t = _mm512_alignr_epi8( v1, v2, 63 ); \
    v2 = _mm512_alignr_epi8( v2, v1, 63 ); \
@@ -1747,11 +1899,28 @@ do { \
 
 #endif   // AVX512F
 
+#if 0
 //////////////////////////////////////////////////
 //
 //   Compile test.
 //
 //   Code to test that macros compile.
+
+static inline __m64 mmx_compile_test( __m64 a )
+{
+    __m64 n[4];
+    __m64 m = _mm_set_pi32( 1, 2 );
+    uint64_t i = 3;
+    m = mm64_ror_32( m, 2 );
+    m = _mm_shuffle_pi16( m, 0xaa );
+#if defined(__SSSE3__)
+    m = _mm_shuffle_pi8( m, _mm_set_pi8( 0,1,2,3,4,5,6,7 ) );
+#endif
+    m = _mm_shuffle_pi8( m, (__m64)0x0102030405060708 );
+    i = (uint64_t) mm64_ror_32( (__m64)i, 7 );
+    casti_m64( n, 2 ) = m;
+    return a;
+}
 
 // Don't use universal overlay for initialized globals
 static const m128_v64 m128_v64_ex[4] = { mm128_const1_64( 3), c128_zero,
@@ -1769,7 +1938,7 @@ static inline __m128i sse2_compile_test( __m128i *a )
   w = mm128_bswap_64( *a );           // sse2 vs ssse3
   w = mm128_ror_1x32( x.v128 );
 #if defined(__SSE4_1__)
-  mm128_ror256_1x64( w, x.v128 );     // sse4.1 only
+  mm128_ror1x64_256( w, x.v128 );     // sse4.1 only
 #endif
   return w;
 }
@@ -1794,9 +1963,9 @@ static inline __m256i avx2_compile_test( __m256i *a )
   w = mm256_invert_32( w );
   w = mm256_bswap_64( *a );
   w = mm256_ror_1x32( w );  
-  mm256_ror512_1x64( w, x.v256 );
+  mm256_ror1x64_512( w, x.v256 );
   w = mm256_rolv_64( w, 2 );
-  w = mm256_ror128_x8( w, 5 );
+  w = mm256_bror_128( w, 5 );
   return w;
 }
 
@@ -1818,8 +1987,8 @@ static inline __m512i avx512_compile_test( __m512i *a )
   w = mm512_invert_32( w );
   w = mm512_bswap_64( *a );
   w = mm512_ror_1x32( w );
-  mm512_ror1024_1x64( w, x.v512 );
-  w = mm512_ror128_x8( w, 5 );
+  mm512_ror1x64_1024( w, x.v512 );
+  w = mm512_bror_128( w, 5 );
 
   __m256i y = m256_zero;
   y = mm256_rorv_16( y, 3 );
@@ -1828,6 +1997,8 @@ static inline __m512i avx512_compile_test( __m512i *a )
 }
 
 #endif  // AVX512
+
+#endif  // 0
 
 #endif   // AVXDEFS_H__
 

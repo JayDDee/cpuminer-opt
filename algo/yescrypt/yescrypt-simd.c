@@ -1303,17 +1303,10 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 		S = (uint8_t *)XY + XY_size;
 
 	if (t || flags) {
-#ifndef USE_SPH_SHA
 		SHA256_CTX ctx;
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, passwd, passwdlen);
 		SHA256_Final(sha256, &ctx);
-#else
-                SHA256_CTX_Y ctx;
-                SHA256_Init_Y(&ctx);
-                SHA256_Update_Y(&ctx, passwd, passwdlen);
-                SHA256_Final_Y(sha256, &ctx);
-#endif
 		passwd = sha256;
 		passwdlen = sizeof(sha256);
 	}
@@ -1372,17 +1365,10 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	   }
 	   /* Compute StoredKey */
 	   {
-#ifndef USE_SPH_SHA
 		SHA256_CTX ctx;
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, sha256, sizeof(sha256));
 		SHA256_Final(buf, &ctx);
-#else
-                SHA256_CTX_Y ctx;
-                SHA256_Init_Y(&ctx);
-                SHA256_Update_Y(&ctx, sha256, sizeof(sha256));
-                SHA256_Final_Y(buf, &ctx);
-#endif
 	   }
 	}
 

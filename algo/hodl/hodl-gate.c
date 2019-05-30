@@ -101,39 +101,6 @@ void hodl_build_block_header( struct work* g_work, uint32_t version,
    g_work->data[31] = 0x00000280;
 }
 
-// hodl build_extra_header is redundant, hodl can use std_build_extra_header
-// and call hodl_build_block_header.
-#if 0
-void hodl_build_extraheader( struct work* g_work, struct stratum_ctx *sctx )
-{
-   uchar merkle_tree[64] = { 0 };
-   size_t t;
-//   int i;
-
-   algo_gate.gen_merkle_root( merkle_tree, sctx );
-   // Increment extranonce2
-   for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
-
-   algo_gate.build_block_header( g_work, le32dec( sctx->job.version ),
-          (uint32_t*) sctx->job.prevhash, (uint32_t*) merkle_tree,
-          le32dec( sctx->job.ntime ), le32dec( sctx->job.nbits ) );
-/*
-   // Assemble block header
-   memset( g_work->data, 0, sizeof(g_work->data) );
-   g_work->data[0] = le32dec( sctx->job.version );
-   for ( i = 0; i < 8; i++ )
-      g_work->data[1 + i] = le32dec( (uint32_t *) sctx->job.prevhash + i );
-   for ( i = 0; i < 8; i++ )
-      g_work->data[9 + i] = be32dec( (uint32_t *) merkle_root + i );
-
-   g_work->data[ algo_gate.ntime_index ] = le32dec( sctx->job.ntime );
-   g_work->data[ algo_gate.nbits_index ] = le32dec( sctx->job.nbits );
-   g_work->data[22] = 0x80000000;
-   g_work->data[31] = 0x00000280;
-*/
-}
-#endif
-
 // called only by thread 0, saves a backup of g_work
 void hodl_get_new_work( struct work* work, struct work* g_work)
 {
@@ -179,7 +146,7 @@ bool hodl_do_this_thread( int thr_id )
 int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
                    uint64_t *hashes_done )
 {
-#ifndef NO_AES_NI
+#if defined(__AES__)
   GenRandomGarbage( (CacheEntry*)hodl_scratchbuf, work->data, thr_id );
   pthread_barrier_wait( &hodl_barrier );
   return scanhash_hodl_wolf( thr_id, work, max_nonce, hashes_done );
@@ -189,7 +156,7 @@ int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
 
 bool register_hodl_algo( algo_gate_t* gate )
 {
-#ifdef NO_AES_NI
+#if defined(__AES__)
   applog( LOG_ERR, "Only CPUs with AES are supported, use legacy version.");
   return false;
 #endif
@@ -207,7 +174,6 @@ bool register_hodl_algo( algo_gate_t* gate )
   gate->build_stratum_request = (void*)&hodl_le_build_stratum_request;
   gate->malloc_txs_request    = (void*)&hodl_malloc_txs_request;
   gate->build_block_header    = (void*)&hodl_build_block_header;
-//  gate->build_extraheader     = (void*)&hodl_build_extraheader;
   gate->resync_threads        = (void*)&hodl_resync_threads;
   gate->do_this_thread        = (void*)&hodl_do_this_thread;
   gate->work_cmp_size         = 76;

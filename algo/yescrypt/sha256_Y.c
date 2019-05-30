@@ -299,48 +299,26 @@ HMAC_SHA256_Init(HMAC_SHA256_CTX * ctx, const void * _K, size_t Klen)
 
 	/* If Klen > 64, the key is really SHA256(K). */
 	if (Klen > 64) {
-#ifndef USE_SPH_SHA
 		SHA256_Init(&ctx->ictx);
 		SHA256_Update(&ctx->ictx, K, Klen);
 		SHA256_Final(khash, &ctx->ictx);
-#else
-                SHA256_Init_Y(&ctx->ictx);
-                SHA256_Update_Y(&ctx->ictx, K, Klen);
-                SHA256_Final_Y(khash, &ctx->ictx);
-#endif
 		K = khash;
 		Klen = 32;
 	}
 
 	/* Inner SHA256 operation is SHA256(K xor [block of 0x36] || data). */
-#ifndef USE_SPH_SHA
         SHA256_Init(&ctx->ictx);
-#else
-        SHA256_Init_Y(&ctx->ictx);
-#endif
 	memset(pad, 0x36, 64);
 	for (i = 0; i < Klen; i++)
 		pad[i] ^= K[i];
-#ifndef USE_SPH_SHA
 	SHA256_Update(&ctx->ictx, pad, 64);
-#else
-        SHA256_Update_Y(&ctx->ictx, pad, 64);
-#endif
 
 	/* Outer SHA256 operation is SHA256(K xor [block of 0x5c] || hash). */
-#ifndef USE_SPH_SHA
 	SHA256_Init(&ctx->octx);
-#else
-        SHA256_Init_Y(&ctx->octx);
-#endif
 	memset(pad, 0x5c, 64);
 	for (i = 0; i < Klen; i++)
 		pad[i] ^= K[i];
-#ifndef USE_SPH_SHA
 	SHA256_Update(&ctx->octx, pad, 64);
-#else
-        SHA256_Update_Y(&ctx->octx, pad, 64);
-#endif
 
 	/* Clean the stack. */
 	//memset(khash, 0, 32);
@@ -352,11 +330,7 @@ HMAC_SHA256_Update(HMAC_SHA256_CTX * ctx, const void *in, size_t len)
 {
 
 	/* Feed data to the inner SHA256 operation. */
-#ifndef USE_SPH_SHA
 	SHA256_Update(&ctx->ictx, in, len);
-#else
-        SHA256_Update_Y(&ctx->ictx, in, len);
-#endif
 }
 
 /* Finish an HMAC-SHA256 operation. */
@@ -365,7 +339,6 @@ HMAC_SHA256_Final(unsigned char digest[32], HMAC_SHA256_CTX * ctx)
 {
 	unsigned char ihash[32];
 
-#ifndef USE_SPH_SHA
 	/* Finish the inner SHA256 operation. */
 	SHA256_Final(ihash, &ctx->ictx);
 
@@ -374,16 +347,6 @@ HMAC_SHA256_Final(unsigned char digest[32], HMAC_SHA256_CTX * ctx)
 
 	/* Finish the outer SHA256 operation. */
 	SHA256_Final(digest, &ctx->octx);
-#else
-        /* Finish the inner SHA256 operation. */
-        SHA256_Final_Y(ihash, &ctx->ictx);
-
-        /* Feed the inner hash to the outer SHA256 operation. */
-        SHA256_Update_Y(&ctx->octx, ihash, 32);
-
-        /* Finish the outer SHA256 operation. */
-        SHA256_Final_Y(digest, &ctx->octx);
-#endif
 
 	/* Clean the stack. */
 	//memset(ihash, 0, 32);

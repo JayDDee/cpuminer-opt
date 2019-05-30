@@ -16,7 +16,8 @@ https://bitcointalk.org/index.php?topic=1326803.0
 
 mailto://jayddee246@gmail.com
 
-See file RELEASE_NOTES for change log and compile instructions.
+See file RELEASE_NOTES for change log and INSTALL_LINUX or INSTALL_WINDOWS
+for compile instructions.
 
 Requirements
 ------------
@@ -78,6 +79,7 @@ Supported Algorithms
                           lyra2h        Hppcoin
                           lyra2re       lyra2
                           lyra2rev2     lyra2v2, Vertcoin
+                          lyra2rev3     lyrav2v3, Vertcoin
                           lyra2z        Zcoin (XZC)
                           lyra2z330     Lyra2 330 rows, Zoin (ZOI)
                           m7m           Magi (XMG)
@@ -100,6 +102,7 @@ Supported Algorithms
                           skein         Skein+Sha (Skeincoin)
                           skein2        Double Skein (Woodcoin)
                           skunk         Signatum (SIGT)
+                          sonoa         Sono
                           timetravel    Machinecoin (MAC)
                           timetravel10  Bitcore
                           tribus        Denarius (DNR)
@@ -129,6 +132,8 @@ Supported Algorithms
 
 Errata
 ------
+
+Cryptonight and variants are no longer supported, use another miner.
 
 Neoscrypt crashes on Windows, use legacy version.
 

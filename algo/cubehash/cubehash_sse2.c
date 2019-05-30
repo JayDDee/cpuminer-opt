@@ -14,6 +14,25 @@
 #include <unistd.h>
 #include <memory.h>
 #include "avxdefs.h"
+#include <stdio.h>
+
+// The result of hashing 10 rounds of initial data which is params and 
+// mostly zeros.
+static const uint64_t IV256[] =
+{
+0xCCD6F29FEA2BD4B4, 0x35481EAE63117E71, 0xE5D94E6322512D5B, 0xF4CC12BE7E624131,
+0x42AF2070C2D0B696, 0x3361DA8CD0720C35, 0x8EF8AD8328CCECA4, 0x40E5FBAB4680AC00,
+0x6107FBD5D89041C3, 0xF0B266796C859D41, 0x5FA2560309392549, 0x93CB628565C892FD,
+0x9E4B4E602AF2B5AE, 0x85254725774ABFDD, 0x4AB6AAD615815AEB, 0xD6032C0A9CDAF8AF
+};
+
+static const uint64_t IV512[] =
+{
+0x50F494D42AEA2A61, 0x4167D83E2D538B8B, 0xC701CF8C3FEE2313, 0x50AC5695CC39968E,
+0xA647A8B34D42C787, 0x825B453797CF0BEF, 0xF22090C4EEF864D2, 0xA23911AED0E5CD33,
+0x148FE485FCD398D9, 0xB64445321B017BEF, 0x2FF5781C6A536159, 0x0DBADEA991FA7934,
+0xA5A70E75D65C8A2B, 0xBC796576B1C62456, 0xE7989AF11921C8F7, 0xD43E3B447795D246
+};
 
 static void transform( cubehashParam *sp )
 {
@@ -128,48 +147,37 @@ static void transform( cubehashParam *sp )
 #endif
 }  // transform
 
-// Cubehash context initializing is very expensive.
-// Cache the intial value for faster reinitializing.
-cubehashParam cube_ctx_cache __attribute__ ((aligned (64)));
-
-int cubehashReinit( cubehashParam *sp )
-{
-   memcpy( sp, &cube_ctx_cache, sizeof(cubehashParam) );
-   return SUCCESS;
-
-}
-
-// Initialize the cache then copy to sp.
 int cubehashInit(cubehashParam *sp, int hashbitlen, int rounds, int blockbytes)
 {
-    int i;
+    const uint64_t* iv = hashbitlen == 512 ? IV512 : IV256;
+    sp->hashlen   = hashbitlen/128;
+    sp->blocksize = blockbytes/16;
+    sp->rounds    = rounds;
+    sp->pos       = 0;
+    
+#if defined(__AVX2__)
 
-    if ( hashbitlen < 8 ) return BAD_HASHBITLEN;
-    if ( hashbitlen > 512 ) return BAD_HASHBITLEN;
-    if ( hashbitlen != 8 * (hashbitlen / 8) ) return BAD_HASHBITLEN;
+    __m256i* x = (__m256i*)sp->x;
 
-    /* Sanity checks */
-    if ( rounds <= 0 || rounds > 32 )
-       rounds = CUBEHASH_ROUNDS;
-    if ( blockbytes <= 0 || blockbytes >= 256)
-       blockbytes = CUBEHASH_BLOCKBYTES;
+    x[0] = _mm256_set_epi64x( iv[ 3], iv[ 2], iv[ 1], iv[ 0] );
+    x[1] = _mm256_set_epi64x( iv[ 7], iv[ 6], iv[ 5], iv[ 4] );
+    x[2] = _mm256_set_epi64x( iv[11], iv[10], iv[ 9], iv[ 8] );
+    x[3] = _mm256_set_epi64x( iv[15], iv[14], iv[13], iv[12] );
 
-    // all sizes of __m128i
-    cube_ctx_cache.hashlen   = hashbitlen/128;
-    cube_ctx_cache.blocksize = blockbytes/16;
-    cube_ctx_cache.rounds    = rounds;
-    cube_ctx_cache.pos       = 0;
+#else
 
-    for ( i = 0; i < 8; ++i )
-       cube_ctx_cache.x[i] = _mm_setzero_si128();;
+    __m128i* x = (__m128i*)sp->x;
 
-    cube_ctx_cache.x[0] = _mm_set_epi32( 0, rounds, blockbytes,
-                                         hashbitlen / 8 );
+     x[0] = _mm_set_epi64x( iv[ 1], iv[ 0] );
+     x[1] = _mm_set_epi64x( iv[ 3], iv[ 2] );
+     x[2] = _mm_set_epi64x( iv[ 5], iv[ 4] );
+     x[3] = _mm_set_epi64x( iv[ 7], iv[ 6] );
+     x[4] = _mm_set_epi64x( iv[ 9], iv[ 8] );
+     x[5] = _mm_set_epi64x( iv[11], iv[10] );
+     x[6] = _mm_set_epi64x( iv[13], iv[12] );
+     x[7] = _mm_set_epi64x( iv[15], iv[14] );
 
-    for ( i = 0; i < 10; ++i )
-       transform( &cube_ctx_cache );
-
-    memcpy( sp, &cube_ctx_cache, sizeof(cubehashParam) );
+#endif
     return SUCCESS;
 }
 

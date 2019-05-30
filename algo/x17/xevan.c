@@ -16,17 +16,16 @@
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/sha/sph_sha2.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/simd/nist.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include <openssl/sha.h>
-#ifdef NO_AES_NI
-  #include "algo/groestl/sph_groestl.h"
-  #include "algo/echo/sph_echo.h"
-#else
+#if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
+#else
+  #include "algo/groestl/sph_groestl.h"
+  #include "algo/echo/sph_echo.h"
 #endif
 
 typedef struct {
@@ -43,18 +42,14 @@ typedef struct {
         sph_fugue512_context    fugue;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
-#ifndef USE_SPH_SHA
         SHA512_CTX              sha512;
-#else
-        sph_sha512_context      sha512;
-#endif
         sph_haval256_5_context  haval;
-#ifdef NO_AES_NI
-        sph_groestl512_context  groestl;
-        sph_echo512_context     echo;
-#else
+#if defined(__AES__)
         hashState_echo          echo;
         hashState_groestl       groestl;
+#else
+	sph_groestl512_context  groestl;
+        sph_echo512_context     echo;
 #endif
 } xevan_ctx_holder;
 
@@ -77,18 +72,14 @@ void init_xevan_ctx()
         sph_fugue512_init( &xevan_ctx.fugue );
         sph_shabal512_init( &xevan_ctx.shabal );
         sph_whirlpool_init( &xevan_ctx.whirlpool );
-#ifndef USE_SPH_SHA
         SHA512_Init( &xevan_ctx.sha512 );
-#else
-        sph_sha512_init(&xevan_ctx.sha512);
-#endif
         sph_haval256_5_init(&xevan_ctx.haval);
-#ifdef NO_AES_NI
-        sph_groestl512_init( &xevan_ctx.groestl );
-        sph_echo512_init( &xevan_ctx.echo );
-#else
+#if defined(__AES__)
         init_groestl( &xevan_ctx.groestl, 64 );
         init_echo( &xevan_ctx.echo, 512 );
+#else
+	sph_groestl512_init( &xevan_ctx.groestl );
+        sph_echo512_init( &xevan_ctx.echo );
 #endif
 };
 
@@ -117,12 +108,12 @@ void xevan_hash(void *output, const void *input)
 	sph_bmw512(&ctx.bmw, hash, dataLen);
 	sph_bmw512_close(&ctx.bmw, hash);
 
-#ifdef NO_AES_NI
+#if defined(__AES__)
+        update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                  (const char*)hash, dataLen*8 );
+#else
 	sph_groestl512(&ctx.groestl, hash, dataLen);
 	sph_groestl512_close(&ctx.groestl, hash);
-#else
-        update_and_final_groestl( &ctx.groestl, (char*)hash, 
-                                  (const char*)hash, dataLen*8 );
 #endif
 
 	sph_skein512(&ctx.skein, hash, dataLen);
@@ -146,12 +137,12 @@ void xevan_hash(void *output, const void *input)
         update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, dataLen*8 );
 
-#ifdef NO_AES_NI
+#if defined(__AES__)
+        update_final_echo( &ctx.echo, (BitSequence *) hash,
+                           (const BitSequence *) hash, dataLen*8 );
+#else
 	sph_echo512(&ctx.echo, hash, dataLen);
 	sph_echo512_close(&ctx.echo, hash);
-#else
-        update_final_echo( &ctx.echo, (BitSequence *) hash, 
-                           (const BitSequence *) hash, dataLen*8 );
 #endif
 
 	sph_hamsi512(&ctx.hamsi, hash, dataLen);
@@ -166,13 +157,9 @@ void xevan_hash(void *output, const void *input)
 	sph_whirlpool(&ctx.whirlpool, hash, dataLen);
 	sph_whirlpool_close(&ctx.whirlpool, hash);
 
-#ifndef USE_SPH_SHA
         SHA512_Update( &ctx.sha512, hash, dataLen );
         SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
-#else
-	sph_sha512(&ctx.sha512,(const void*) hash, dataLen);
-	sph_sha512_close(&ctx.sha512,(void*) hash);
-#endif
+
 	sph_haval256_5(&ctx.haval,(const void*) hash, dataLen);
 	sph_haval256_5_close(&ctx.haval, hash);
 
@@ -186,12 +173,12 @@ void xevan_hash(void *output, const void *input)
 	sph_bmw512(&ctx.bmw, hash, dataLen);
 	sph_bmw512_close(&ctx.bmw, hash);
 
-#ifdef NO_AES_NI
-        sph_groestl512(&ctx.groestl, hash, dataLen);
-        sph_groestl512_close(&ctx.groestl, hash);
-#else
+#if defined(__AES__)
         update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const BitSequence*)hash, dataLen*8 );
+#else
+	sph_groestl512(&ctx.groestl, hash, dataLen);
+        sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
 	sph_skein512(&ctx.skein, hash, dataLen);
@@ -214,12 +201,12 @@ void xevan_hash(void *output, const void *input)
         update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, dataLen*8 );
 
-#ifdef NO_AES_NI
-        sph_echo512(&ctx.echo, hash, dataLen);
-        sph_echo512_close(&ctx.echo, hash);
-#else
+#if defined(__AES__)
         update_final_echo( &ctx.echo, (BitSequence *) hash,
                            (const BitSequence *) hash, dataLen*8 );
+#else
+        sph_echo512(&ctx.echo, hash, dataLen);
+        sph_echo512_close(&ctx.echo, hash);
 #endif
 
 	sph_hamsi512(&ctx.hamsi, hash, dataLen);
@@ -234,13 +221,9 @@ void xevan_hash(void *output, const void *input)
 	sph_whirlpool(&ctx.whirlpool, hash, dataLen);
 	sph_whirlpool_close(&ctx.whirlpool, hash);
 
-#ifndef USE_SPH_SHA
         SHA512_Update( &ctx.sha512, hash, dataLen );
         SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
-#else
-	sph_sha512(&ctx.sha512,(const void*) hash, dataLen);
-	sph_sha512_close(&ctx.sha512,(void*) hash);
-#endif
+
 	sph_haval256_5(&ctx.haval,(const void*) hash, dataLen);
 	sph_haval256_5_close(&ctx.haval, hash);
 

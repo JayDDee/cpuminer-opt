@@ -141,9 +141,9 @@ double opt_diff_factor = 1.0;
 uint32_t zr5_pok = 0;
 bool opt_stratum_stats = false;
 
-uint32_t accepted_count = 0L;
-uint32_t rejected_count = 0L;
-uint32_t solved_count = 0L;
+uint32_t accepted_share_count = 0ULL;
+uint32_t rejected_share_count = 0ULL;
+uint32_t solved_block_count = 0ULL;
 double *thr_hashrates;
 double *thr_hashcount;
 double global_hashcount = 0;
@@ -857,24 +857,24 @@ static int share_result( int result, struct work *work, const char *reason )
        hashcount += thr_hashcount[i];
        hashrate += thr_hashrates[i];
    }
-   result ? accepted_count++ : rejected_count++;
+   result ? accepted_share_count++ : rejected_share_count++;
 
    if ( solved )
    {
-      solved_count++;
+      solved_block_count++;
       if ( use_colors )
-         sprintf( sol, CL_GRN " Solved" CL_WHT " %d", solved_count );      
+         sprintf( sol, CL_GRN " Solved" CL_WHT " %d", solved_block_count );   
       else
-         sprintf( sol, " Solved %d", solved_count ); 
+         sprintf( sol, " Solved %d", solved_block_count ); 
    }
 
    pthread_mutex_unlock(&stats_lock);
    global_hashcount = hashcount;
    global_hashrate = hashrate;
-   total_submits = accepted_count + rejected_count;
+   total_submits = accepted_share_count + rejected_share_count;
 
-   rate = ( result ? ( 100. * accepted_count / total_submits )  
-                   : ( 100. * rejected_count / total_submits ) );
+   rate = ( result ? ( 100. * accepted_share_count / total_submits )  
+                   : ( 100. * rejected_share_count / total_submits ) );
 
    if (use_colors)
    {
@@ -889,7 +889,7 @@ static int share_result( int result, struct work *work, const char *reason )
    // Rates > 99% and < 100% (rejects>0) display 99.9%.
    if ( result )
    {
-      rate = 100. * accepted_count / total_submits;
+      rate = 100. * accepted_share_count / total_submits;
       if ( rate == 100.0 )
          sprintf( rate_s, "%.0f", rate );
       else
@@ -897,7 +897,7 @@ static int share_result( int result, struct work *work, const char *reason )
    }
    else
    {
-      rate = 100. * rejected_count / total_submits;
+      rate = 100. * rejected_share_count / total_submits;
       if ( rate < 0.1 )
          sprintf( rate_s, "%.1f", 0.10 );
       else
@@ -926,26 +926,26 @@ static int share_result( int result, struct work *work, const char *reason )
    {
 #if ((defined(_WIN64) || defined(__WINDOWS__)))
    applog( LOG_NOTICE, "%s %lu/%lu (%s%%), %s %sH, %s %sH/s",
-                       sres, ( result ? accepted_count : rejected_count ),
-                       total_submits, rate_s, hc, hc_units, hr, hr_units );
+               sres, ( result ? accepted_share_count : rejected_share_count ),
+               total_submits, rate_s, hc, hc_units, hr, hr_units );
 #else
    applog( LOG_NOTICE, "%s %lu/%lu (%s%%), %s %sH, %s %sH/s, %dC",
-                       sres, ( result ? accepted_count : rejected_count ),
-                       total_submits, rate_s, hc, hc_units, hr, hr_units,
-                       (uint32_t)cpu_temp(0) );
+                sres, ( result ? accepted_share_count : rejected_share_count ),
+                total_submits, rate_s, hc, hc_units, hr, hr_units,
+                (uint32_t)cpu_temp(0) );
 #endif
    }
    else
    {
 #if ((defined(_WIN64) || defined(__WINDOWS__)))
    applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g%s, %s %sH/s",
-                       sres, ( result ? accepted_count : rejected_count ),
-                       total_submits, rate_s, sharediff, sol, hr, hr_units );
+               sres, ( result ? accepted_share_count : rejected_share_count ),
+               total_submits, rate_s, sharediff, sol, hr, hr_units );
 #else
    applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g%s, %s %sH/s, %dC",
-                       sres, ( result ? accepted_count : rejected_count ),
-                       total_submits, rate_s, sharediff, sol, hr, hr_units,
-                       (uint32_t)cpu_temp(0) );
+               sres, ( result ? accepted_share_count : rejected_share_count ),
+               total_submits, rate_s, sharediff, sol, hr, hr_units,
+               (uint32_t)cpu_temp(0) );
 #endif
    }
 
@@ -1544,7 +1544,7 @@ static bool get_work(struct thr_info *thr, struct work *work)
 	return true;
 }
 
-static bool submit_work(struct thr_info *thr, const struct work *work_in)
+bool submit_work(struct thr_info *thr, const struct work *work_in)
 {
 	struct workio_cmd *wc;
 	/* fill out work request message */
@@ -1969,7 +1969,7 @@ static void *miner_thread( void *userdata )
 
        // Scan for nonce
        nonce_found = algo_gate.scanhash( thr_id, &work, max_nonce,
-                                         &hashes_done );
+                                                 &hashes_done, mythr );
 
        // record scanhash elapsed time
        gettimeofday( &tv_end, NULL );
@@ -1998,7 +1998,7 @@ static void *miner_thread( void *userdata )
                 break;
              }
           }
-          else
+	  else
           {  // only 1 nonce, in work ready to submit.
 
              if ( !submit_work( mythr, &work ) )
@@ -2043,7 +2043,7 @@ static void *miner_thread( void *userdata )
        }
        // Display benchmark total
        // Update hashrate for API if no shares accepted yet.
-       if ( ( opt_benchmark || !accepted_count ) 
+       if ( ( opt_benchmark || !accepted_share_count ) 
             && thr_id == opt_n_threads - 1 )
        {
           double hashrate  = 0.;
@@ -2482,15 +2482,15 @@ static void *stratum_thread(void *userdata )
               if ( last_bloc_height != stratum.bloc_height )
               {
                  last_bloc_height = stratum.bloc_height;
-                 if ( !opt_quiet )
-                 {
+//                 if ( !opt_quiet )
+//                 {
                     if (net_diff > 0.)
 	               applog(LOG_BLUE, "%s block %d, network diff %.3f",
                            algo_names[opt_algo], stratum.bloc_height, net_diff);
                     else
 	               applog(LOG_BLUE, "%s %s block %d", short_url,
                            algo_names[opt_algo], stratum.bloc_height);
-	         }
+//	           }
               }
               restart_threads();
            }

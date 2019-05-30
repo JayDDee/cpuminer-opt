@@ -25,7 +25,7 @@
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include <openssl/sha.h>
-#ifndef NO_AES_NI
+#if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
@@ -34,12 +34,12 @@ static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
 
 typedef struct {
-#ifdef NO_AES_NI
-        sph_groestl512_context   groestl;
-        sph_echo512_context      echo;
-#else
+#if defined(__AES__)
         hashState_echo          echo;
         hashState_groestl       groestl;
+#else
+        sph_groestl512_context   groestl;
+        sph_echo512_context      echo;
 #endif
         sph_blake512_context    blake;
         sph_bmw512_context      bmw;
@@ -95,14 +95,14 @@ void x16r_hash( void* output, const void* input )
             sph_bmw512_close(&ctx.bmw, hash);
          break;
          case GROESTL:
-#ifdef NO_AES_NI
-            sph_groestl512_init( &ctx.groestl );
-            sph_groestl512( &ctx.groestl, in, size );
-            sph_groestl512_close(&ctx.groestl, hash);
-#else
+#if defined(__AES__)
             init_groestl( &ctx.groestl, 64 );
             update_and_final_groestl( &ctx.groestl, (char*)hash,
                                       (const char*)in, size<<3 );
+#else
+            sph_groestl512_init( &ctx.groestl );
+            sph_groestl512( &ctx.groestl, in, size );
+            sph_groestl512_close(&ctx.groestl, hash);
 #endif
          break;
          case SKEIN:
@@ -141,14 +141,14 @@ void x16r_hash( void* output, const void* input )
                               (const BitSequence*)in, size<<3 );
          break;
          case ECHO:
-#ifdef NO_AES_NI
-             sph_echo512_init( &ctx.echo );
-             sph_echo512( &ctx.echo, in, size );
-             sph_echo512_close( &ctx.echo, hash );
-#else
+#if defined(__AES__)
              init_echo( &ctx.echo, 512 );
              update_final_echo ( &ctx.echo, (BitSequence *)hash,
                                 (const BitSequence*)in, size<<3 );
+#else
+             sph_echo512_init( &ctx.echo );
+             sph_echo512( &ctx.echo, in, size );
+             sph_echo512_close( &ctx.echo, hash );
 #endif
          break;
          case HAMSI:

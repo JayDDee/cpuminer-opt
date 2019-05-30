@@ -3,7 +3,7 @@
 #include "wolf-aes.h"
 #include "miner.h"
 
-#ifndef NO_AES_NI
+#if defined(__AES__)
 
 static inline void ExpandAESKey256_sub1(__m128i *tmp1, __m128i *tmp2)
 {
@@ -151,7 +151,7 @@ void AES256CBC(__m128i** data, const __m128i** next, __m128i ExpandedKey[][16], 
     }
 }
 
-#else    // NO AVX
+#else    // NO SSE4.2
 
 static inline __m128i AES256Core(__m128i State, const __m128i *ExpandedKey)
 {

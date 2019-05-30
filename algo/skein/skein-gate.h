@@ -3,8 +3,11 @@
 #include <stdint.h>
 #include "algo-gate-api.h"
 
+// Override multi way on ryzen, SHA is better.
+#if !defined(RYZEN_)
 #if defined(__AVX2__)
   #define SKEIN_4WAY
+#endif
 #endif
 
 #if defined(SKEIN_4WAY)

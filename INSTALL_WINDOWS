@@ -1,0 +1,173 @@
+Instructions for compiling cpuminer-opt for Windows.
+
+
+Windows compilation using Visual Studio is not supported. Mingw64 is
+used on a Linux system (bare metal or virtual machine) to cross-compile
+cpuminer-opt executable binaries for Windows.
+
+These instructions were written for Debian and Ubuntu compatible distributions
+but should work on other major distributions as well. However some of the
+package names or file paths may be different.
+
+It is assumed a Linux system is already available and running. And the user
+has enough Linux knowledge to find and install packages and follow these
+instructions.
+
+First it is a good idea to create new user specifically for cross compiling.
+It keeps all mingw stuff contained and isolated from the rest of the system.
+
+Step by step...
+
+1. Install necessary packages from the distribution's repositories.
+
+Refer to Linux compile instructions and install required packages.
+
+Additionally, install mingw-64.
+
+sudo apt-get install mingw-w64
+
+
+2. Create a local library directory for packages to be compiled in the next
+   step. Recommended location is $HOME/usr/lib/
+
+
+3. Download and build other packages for mingw that don't have a mingw64
+   version available in the repositories.
+
+Download the following source code packages from their respective and
+respected download locations, copy them to ~/usr/lib/ and uncompress them. 
+
+openssl
+curl
+gmp
+
+In most cases the latest vesrion is ok but it's safest to download
+the same major and minor version as included in your distribution.
+
+Run the following commands or follow the supplied instructions.
+Do not run "make install" unless you are using ~/usr/lib, which isn't
+recommended.
+
+Some instructions insist on running "make check". If make check fails
+it may still work, YMMV.
+
+You can speed up "make" by using all CPU cores available with "-j n" where
+n is the number of CPU threads you want to use.
+
+openssl:
+
+./Configure mingw64 shared --cross-compile-prefix=x86_64-w64-mingw32
+make
+
+curl:
+
+./configure --with-winssl --with-winidn --host=x86_64-w64-mingw32
+make
+
+gmp:
+
+./configure --host=x86_64-w64-mingw32 
+make
+
+
+
+4. Tweak the environment.
+
+This step is required everytime you login or the commands can be added to
+.bashrc.
+
+Define some local variables to point to local library. 
+
+export LOCAL_LIB="$HOME/usr/lib"
+
+export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs -L$LOCAL_LIB/openssl"
+
+export CONFIGURE_ARGS="--with-curl=$LOCAL_LIB/curl --with-crypto=$LOCAL_LIB/openssl --host=x86_64-w64-mingw32"
+
+Create a release directory and copy some dll files previously built.
+This can be done outside of cpuminer-opt and only needs to be done once.
+If the release directory is in cpuminer-opt directory it needs to be
+recreated every a source package is decompressed.
+
+mkdir release
+cp /usr/x86_64-w64-mingw32/lib/zlib1.dll release/
+cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll release/
+cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libstdc++-6.dll release/
+cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libgcc_s_seh-1.dll release/
+cp $LOCAL_LIB/openssl/libcrypto-1_1-x64.dll release/
+cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
+
+
+
+The following steps need to be done every time a new source package is
+opened.
+
+5. Download cpuminer-opt
+
+Download the latest source code package of cpumuner-opt to your desired
+location. .zip or .tar.gz, your choice.
+
+https://github.com/JayDDee/cpuminer-opt/releases
+
+Decompress and change to the cpuminer-opt directory.
+
+
+
+6. Prepare to compile
+
+Create a link to the locally compiled version of gmp.h
+
+ln -s $LOCAL_LIB/gmp-version/gmp.h ./gmp.h
+
+Edit configure.ac to fix lipthread package name.
+
+sed -i 's/"-lpthread"/"-lpthreadGC2"/g' configure.ac
+
+
+7. Compile
+
+you can use the default compile if you intend to use cpuminer-opt on the
+same CPU and the virtual machine supports that architecture.
+
+./build.sh
+
+Otherwise you can compile manually while setting options in CFLAGS.
+
+Some common options:
+
+To compile for a specific CPU architecture:
+
+CFLAGS="-O3 -march=znver1 -Wall" ./configure --with-curl
+
+This will compile for AMD Ryzen.
+
+You can compile more generically for a set of specific CPU features
+if you know what features you want:
+
+CFLAGS="-O3 -maes -msse4.2 -Wall" ./configure --with-curl
+
+This will compile for an older CPU that does not have AVX.
+
+You can find several examples in build-allarch.sh
+
+If you have a CPU with more than 64 threads and Windows 7 or higher you
+can enable the CPU Groups feature:
+
+-D_WIN32_WINNT==0x0601
+
+Once you have run configure successfully run make with n CPU threads:
+
+make -j n
+
+Copy cpuminer.exe to the release directory, compress and copy the release
+directory to a Windows system and run cpuminer.exe from the command line.
+
+Run cpuminer
+
+In a command windows change directories to the unzipped release folder.
+to get a list of all options:
+
+cpuminer.exe --help
+
+Command options are specific to where you mine. Refer to the pool's
+instructions on how to set them.

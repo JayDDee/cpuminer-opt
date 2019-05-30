@@ -1,4 +1,5 @@
 #ifndef __AVX2__
+
 #ifdef __SSE4_2__
 //#ifdef __AVX__
 

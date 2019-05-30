@@ -1,0 +1,322 @@
+// convert blake256 32 bit to use 64 bit with serial vectoring
+//
+//  cut calls to GS in half
+//
+// combine V
+// v0 = {V0,V1}
+// v1 = {V2,V3}
+// v2 = {V4,V5}
+// v3 = {V6,V7}
+// v4 = {V8,V9}
+// v5 = {VA,VB}
+// v6 = {VC,VD}
+// v7 = {CE,VF}
+//
+// v6x = {VD,VC}      swap(VC,VD)   swap(v6)
+// v7x = {VF,VE}      swap(VE,VF)   swap(v7)
+//
+// V0 = v1v0
+// V1 = v3v2
+// V2 = v5v4
+// V3 = v7v6
+// V4 = v9v8
+// V5 = vbva
+// V6 = vdvc
+// V7 = vfve
+//
+// The rotate in ROUND is to effect straddle and unstraddle for the third
+// and 4th iteration of GS.
+// It concatenates 2 contiguous 256 bit vectors and extracts the middle
+// 256 bits. After the transform they must be restored with only the
+// chosen bits modified in the original 2 vectors.
+// ror1x128 achieves this by putting the chosen bits in arg1, the "low"
+// 256 bit vector and saves the untouched bits temporailly in arg0, the
+// "high" 256 bit vector. Simply reverse the process to restore data back
+// to original positions.
+
+// Use standard 4way when AVX2 is not available use x2 mode with AVX2.
+//
+// Data is organised the same as 32 bit 4 way, in effect serial vectoring
+// on top of parallel vectoring. Same data in the same place just taking
+// two chunks at a time.
+//
+// Transparent to user, x2 mode used when AVX2 detected.
+// Use existing 4way context but revert to scalar types.
+// Same interleave function (128 bit) or x2 with 256 bit?
+// User trsnaparency would have to apply to interleave as well.
+//
+// Use common 4way update and close
+
+/*
+typedef struct {
+   unsigned char buf[64<<2];
+   uint32_t H[8<<2];
+   uint32_t S[4<<2];
+   size_t ptr;
+   uint32_t T0, T1;
+   int rounds;   // 14 for blake, 8 for blakecoin & vanilla
+} blakex2_4way_small_context __attribute__ ((aligned (64)));
+*/
+
+static void
+blake32x2_4way_init( blake_4way_small_context *ctx, const uint32_t *iv,
+                   const uint32_t *salt, int rounds )
+{
+   casti_m128i( ctx->H, 0 ) = _mm_set1_epi32( iv[0] );
+   casti_m128i( ctx->H, 1 ) = _mm_set1_epi32( iv[1] );
+   casti_m128i( ctx->H, 2 ) = _mm_set1_epi32( iv[2] );
+   casti_m128i( ctx->H, 3 ) = _mm_set1_epi32( iv[3] );
+   casti_m128i( ctx->H, 4 ) = _mm_set1_epi32( iv[4] );
+   casti_m128i( ctx->H, 5 ) = _mm_set1_epi32( iv[5] );
+   casti_m128i( ctx->H, 6 ) = _mm_set1_epi32( iv[6] );
+   casti_m128i( ctx->H, 7 ) = _mm_set1_epi32( iv[7] );
+
+   casti_m128i( ctx->S, 0 ) = m128_zero;
+   casti_m128i( ctx->S, 1 ) = m128_zero;
+   casti_m128i( ctx->S, 2 ) = m128_zero;
+   casti_m128i( ctx->S, 3 ) = m128_zero;
+/*
+   sc->S[0] = _mm_set1_epi32( salt[0] );
+   sc->S[1] = _mm_set1_epi32( salt[1] );
+   sc->S[2] = _mm_set1_epi32( salt[2] );
+   sc->S[3] = _mm_set1_epi32( salt[3] );
+*/
+   ctx->T0 = ctx->T1 = 0;
+   ctx->ptr = 0;
+   ctx->rounds = rounds;
+}
+
+static void
+blake32x2( blake_4way_small_context *ctx, const void *data, size_t len )
+{
+   __m128i *buf = (__m256i*)ctx->buf;
+   size_t  bptr = ctx->ptr << 2;
+   size_t  vptr = ctx->ptr >> 3;
+   size_t  blen = len << 2;
+//    unsigned char *buf = ctx->buf;
+//    size_t ptr         = ctx->ptr<<4;  // repurposed
+    DECL_STATE32x2
+
+//    buf = sc->buf;
+//    ptr = sc->ptr;
+
+// adjust len for use with ptr, clen, all absolute bytes.
+//    int blen = len<<2;
+
+    if ( blen < (sizeof ctx->buf) - bptr )
+    {
+        memcpy( buf + vptr, data, blen );
+        ptr += blen;
+        ctx->ptr = bptr >> 2;;
+        return;
+    }
+
+    READ_STATE32( ctx );
+    while ( blen > 0 )
+    {
+        size_t clen;
+
+        clen = ( sizeof sc->buf ) - ptr;
+        if ( clen > blen )
+            clen = blen;
+        memcpy( buf + vptr, data, clen );
+        bptr += clen;
+        vptr = bptr >> 5;
+	data = (const unsigned char *)data + clen;
+        blen -= clen;
+        if ( bptr == sizeof ctx->buf )
+       	{
+           if ( ( T0 = T0 + 512 ) < 512 ) // not needed, will never rollover
+               T1 += 1;
+           COMPRESS32x2_4WAY( ctx->rounds );
+           ptr = 0;
+        }
+    }
+    WRITE_STATE32x2( ctx );
+    ctx->ptr = bptr >> 2;
+}
+
+static void
+blake32x2_4way_close( blake_4way_small_context *ctx, void *dst )
+{
+   __m256i buf[8] __attribute__ ((aligned (64)));
+   size_t   ptr     = ctx->ptr;
+   size_t   vptr    = ctx->ptr>>2;
+   unsigned bit_len = ( (unsigned)ptr << 3 );  // one lane
+   uint32_t th      = ctx->T1;
+   uint32_t tl      = ctx->T0 + bit_len;
+
+   if ( ptr == 0 )
+   {
+        ctx->T0 = 0xFFFFFE00UL;
+        ctx->T1 = 0xFFFFFFFFUL;
+   }
+   else if ( ctx->T0 == 0 )
+   {
+      ctx->T0 = 0xFFFFFE00UL + bit_len;
+      ctx->T1 -= 1;
+   }
+   else
+      ctx->T0 -= 512 - bit_len;
+
+   // memset doesn't do ints
+   buf[ vptr ] = _mm256_set_epi32( 0,0,0,0, 0x80, 0x80, 0x80, 0x80 );
+
+   if ( vptr < 5 )
+   {
+       memset_zero_256( buf + vptr + 1, 6 - vptr  );
+       buf[ 6 ] = _mm256_or_si256( vbuf[ 6 ], _mm256_set_epi32(
+             0x01000000UL,0x01000000UL,0x01000000UL,0x01000000UL, 0,0,0,0 ) ); 
+       buf[ 7 ] = mm256_bswap_32( _mm256_set_epi32( tl,tl,tl,tl,
+			                            th,th,th,th ) );
+       blake32x2_4way( ctx, buf + vptr, 64 - ptr );
+   }
+   else
+   {
+       memset_zero_256( vbuf + vptr + 1, 7 - vptr );
+       blake32x2_4way( ctx,  vbuf + ptr, 64 - ptr );
+       ctx->T0 = 0xFFFFFE00UL;
+       ctx->T1 = 0xFFFFFFFFUL;
+       buf[ 6 ] = mm256_zero;
+       buf[ 6 ] = _mm256_set_epi32( 0,0,0,0,
+		         0x01000000UL,0x01000000UL,0x01000000UL,0x01000000UL );
+       buf[ 7 ] = mm256_bswap_32( _mm256_set_epi32( tl, tl, tl, tl,
+                                                    th, th, th, th );
+       blake32x2_4way( ctx, buf, 64 );
+   }
+
+   casti_m256i( dst, 0 ) = mm256_bswap_32( casti_m256i( ctx->H, 0 ) );
+   casti_m256i( dst, 1 ) = mm256_bswap_32( casti_m256i( ctx->H, 1 ) );
+   casti_m256i( dst, 2 ) = mm256_bswap_32( casti_m256i( ctx->H, 2 ) );
+   casti_m256i( dst, 3 ) = mm256_bswap_32( casti_m256i( ctx->H, 3 ) );
+}
+
+
+
+
+#define DECL_STATE32x2_4WAY \
+   __m256i H0, H1, H2, H3; \
+   __m256i S0, S1; \
+   uint32_t T0, T1;
+
+#define READ_STATE32x2_4WAY(state)  do \
+{ \
+   H0 = casti_m256i( state->H, 0 ); \
+   H1 = casti_m256i( state->H, 1 ); \
+   H2 = casti_m256i( state->H, 2 ); \
+   H3 = casti_m256i( state->H, 3 ); \
+   S0 = casti_m256i( state->S, 0 ); \
+   S1 = casti_m256i( state->S, 1 ); \
+   T0 = state->T0; \
+   T1 = state->T1; \
+
+#define WRITE_STATE32x2_4WAY(state)   do { \
+   casti_m256i( state->H, 0 ) = H0; \
+   casti_m256i( state->H, 1 ) = H1; \
+   casti_m256i( state->H, 2 ) = H2; \
+   casti_m256i( state->H, 3 ) = H3; \
+   casti_m256i( state->S, 0 ) = S0; \
+   casti_m256i( state->S, 1 ) = S1; \
+   state->T0 = T0; \
+   state->T1 = T1; \
+} while (0)
+
+
+#define GSx2_4WAY( m0m2, m1m3, c0c2, c1c3, a, b, c, d ) do \
+{ \
+   a = _mm256_add_epi32( _mm256_add_epi32( _mm256_xor_si256( \
+          _mm256_set_epi32( c1,c3, c1,c3, c1,c3, c1,c3 ), \
+	  _mm256_set_epi32( m0,m2, m0,m2, m0,m2, m0,m2 ) ), b ), a ); \
+   d = mm256_ror_32( _mm_xor_si128( d, a ), 16 ); \
+   c = _mm256_add_epi32( c, d ); \
+   b = mm256_ror_32( _mm256_xor_si256( b, c ), 12 ); \
+   a = _mm256_add_epi32( _mm256_add_epi32( _mm256_xor_si256( \
+          _mm256_set_epi32( c0,c2, c0,c2, c0,c2, c0,c2 ), \
+	  _mm256_set_epi32( m1,m3, m1,m3, m1,m3, m1,m3 ) ), b ), a ); \
+   d = mm256_ror_32( _mm256_xor_si256( d, a ), 8 ); \
+   c = _mm256_add_epi32( c, d ); \
+   b = mm256_ror_32( _mm256_xor_si256( b, c ), 7 ); \
+} while (0)
+
+#define ROUND_Sx2_4WAY(r)   do \
+{ \
+  GS2_4WAY( Mx(r, 0),  Mx(r, 1),  Mx(r, 2),  Mx(r, 3), \
+           CSx(r, 0), CSx(r, 1), CSx(r, 2), CSx(r, 3), V0, V2, V4, V6 ); \
+  GS2_4WAY( Mx(r, 4),  Mx(r, 5),  Mx(r, 6),  Mx(r, 7), \
+           CSx(r, 4), CSx(r, 5), CSx(r, 6), CSx(r, 7), V1, V3, V5, V7 ); \
+  mm256_ror1x128_512( V3, V2 ); \
+  mm256_ror1x128_512( V6, V7 ); \
+  GS2_4WAY( Mx(r, 8),  Mx(r, 9),  Mx(r, A),  Mx(r, B), \
+           CSx(r, 8), CSx(r, 9), CSx(r, A), CSx(r, B), V0, V2, V5, V7 ); \
+  GS2_4WAY( Mx(r, C),  Mx(r, D),  Mx(r, C),  Mx(r, D), \
+           CSx(r, C), CSx(r, D), CSx(r, C), CSx(r, D), V1, V3, V4, V6 ); \
+  mm256_rol1x128_512( V2, V3 ); \
+  mm256_rol1x128_512( V7, V6 ); 
+
+#define COMPRESS32x2_4WAY( rounds ) do \
+{ \
+   __m256i M0, M1, M2, M3, M4, M5, M6, M7; \
+   __m256i V0, V1, V2, V3, V4, V5, V6, V7; \
+   unsigned r; \
+   V0 = H0; \
+   V1 = H1; \
+   V2 = H2; \
+   V3 = H3; \
+   V4 = _mm256_xor_si256( S0, _mm256_set_epi32( CS1, CS1, CS1, CS1, \
+			                        CS0, CS0, CS0, CS0 ) ); \
+   V5 = _mm256_xor_si256( S1, _mm256_set_epi32( CS3, CS3, CS3, CS3, \
+                                                CS2, CS2, CS2, CS2 ) ); \
+   V6 = _mm256_xor_si256( _mm256_set1_epi32( T0 ), \
+                              _mm256_set_epi32( CS5, CS5, CS5, CS5, \
+		                                CS4, CS4, CS4, CS4 ) ); \
+   V7 = _mm256_xor_si256( _mm256_set1_epi32( T1 ), \
+                              _mm256_set_epi32( CS7, CS7, CS7, CS7, \
+                                                CS6, CS6, CS6, CS6 ) ); \
+   M0 = mm256_bswap_32( buf[ 0] ); \
+   M1 = mm256_bswap_32( buf[ 1] ); \
+   M2 = mm256_bswap_32( buf[ 2] ); \
+   M3 = mm256_bswap_32( buf[ 3] ); \
+   M4 = mm256_bswap_32( buf[ 4] ); \
+   M5 = mm256_bswap_32( buf[ 5] ); \
+   M6 = mm256_bswap_32( buf[ 6] ); \
+   M7 = mm256_bswap_32( buf[ 7] ); \
+   ROUND_Sx2_4WAY(0); \
+   ROUND_Sx2_4WAY(1); \
+   ROUND_Sx2_4WAY(2); \
+   ROUND_Sx2_4WAY(3); \
+   ROUND_Sx2_4WAY(4); \
+   ROUND_Sx2_4WAY(5); \
+   ROUND_Sx2_4WAY(6); \
+   ROUND_Sx2_4WAY(7); \
+   if (rounds == 14) \
+   { \
+      ROUND_Sx2_4WAY(8); \
+      ROUND_Sx2_4WAY(9); \
+      ROUND_Sx2_4WAY(0); \
+      ROUND_Sx2_4WAY(1); \
+      ROUND_Sx2_4WAY(2); \
+      ROUND_Sx2_4WAY(3); \
+   } \
+   H0 = _mm256_xor_si256( _mm256_xor_si256( \
+			           _mm256_xor_si256( V8, V0 ), S0 ), H0 ); \
+   H1 = _mm256_xor_si256( _mm256_xor_si256( \
+			           _mm256_xor_si256( V9, V1 ), S1 ), H1 ); \
+   H2 = _mm256_xor_si256( _mm256_xor_si256( \
+			           _mm256_xor_si256( VA, V2 ), S2 ), H2 ); \
+   H3 = _mm256_xor_si256( _mm256_xor_si256( \
+			           _mm256_xor_si256( VB, V3 ), S3 ), H3 ); \
+} while (0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -7,7 +7,6 @@
 #include <string.h>
 #include <float.h>
 #include <math.h>
-#include "algo/sha/sph_sha2.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/tiger/sph_tiger.h"
@@ -117,13 +116,8 @@ uint32_t sw2_(int nnounce)
 }
 
 typedef struct {
-#ifndef USE_SPH_SHA
     SHA256_CTX               sha256;
     SHA512_CTX               sha512;
-#else
-    sph_sha256_context       sha256;
-    sph_sha512_context       sha512;
-#endif
     sph_keccak512_context    keccak;
     sph_whirlpool_context    whirlpool;
     sph_haval256_5_context   haval;
@@ -135,13 +129,8 @@ m7m_ctx_holder m7m_ctx;
 
 void init_m7m_ctx()
 {
-#ifndef USE_SPH_SHA
     SHA256_Init( &m7m_ctx.sha256 );
     SHA512_Init( &m7m_ctx.sha512 );
-#else
-    sph_sha256_init( &m7m_ctx.sha256 );
-    sph_sha512_init( &m7m_ctx.sha512 );
-#endif
     sph_keccak512_init( &m7m_ctx.keccak );
     sph_whirlpool_init( &m7m_ctx.whirlpool );
     sph_haval256_5_init( &m7m_ctx.haval );
@@ -176,28 +165,18 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 
     m7m_ctx_holder ctx1, ctx2 __attribute__ ((aligned (64)));
     memcpy( &ctx1, &m7m_ctx, sizeof(m7m_ctx) );
-#ifndef USE_SPH_SHA
     SHA256_CTX         ctxf_sha256;
-#else
-    sph_sha256_context ctxf_sha256;
-#endif
 
     memcpy(data, pdata, 80);
 
-#ifndef USE_SPH_SHA
     SHA256_Update(  &ctx1.sha256,    data, M7_MIDSTATE_LEN );
     SHA512_Update(  &ctx1.sha512,    data, M7_MIDSTATE_LEN );
-#else
-    sph_sha256(     &ctx1.sha256,    data, M7_MIDSTATE_LEN );
-    sph_sha512(     &ctx1.sha512,    data, M7_MIDSTATE_LEN );
-#endif
     sph_keccak512(  &ctx1.keccak,    data, M7_MIDSTATE_LEN );
     sph_whirlpool(  &ctx1.whirlpool, data, M7_MIDSTATE_LEN );
     sph_haval256_5( &ctx1.haval,     data, M7_MIDSTATE_LEN );
     sph_tiger(      &ctx1.tiger,     data, M7_MIDSTATE_LEN );
     sph_ripemd160(  &ctx1.ripemd,    data, M7_MIDSTATE_LEN );
 
-// the following calculations can be performed once and the results shared
     mpz_t magipi, magisw, product, bns0, bns1;
     mpf_t magifpi, magifpi0, mpt1, mpt2, mptmp, mpten;
     
@@ -222,22 +201,11 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 
         memcpy( &ctx2, &ctx1, sizeof(m7m_ctx) );
 
-// with 4 way can a single midstate be shared among lanes?
-// do sinlge round of midstate and inyerleave for final
-
-#ifndef USE_SPH_SHA
         SHA256_Update(  &ctx2.sha256, data_p64, 80 - M7_MIDSTATE_LEN );
         SHA256_Final( (unsigned char*) (bhash[0]), &ctx2.sha256 );
 
         SHA512_Update(  &ctx2.sha512, data_p64, 80 - M7_MIDSTATE_LEN );
         SHA512_Final( (unsigned char*) (bhash[1]), &ctx2.sha512 );
-#else
-        sph_sha256( &ctx2.sha256, data_p64, 80 - M7_MIDSTATE_LEN );
-        sph_sha256_close( &ctx2.sha256, (void*)(bhash[0]) );
-
-        sph_sha512( &ctx2.sha512, data_p64, 80 - M7_MIDSTATE_LEN );
-        sph_sha512_close( &ctx2.sha512, (void*)(bhash[1]) );
-#endif
         sph_keccak512( &ctx2.keccak, data_p64, 80 - M7_MIDSTATE_LEN );
         sph_keccak512_close( &ctx2.keccak, (void*)(bhash[2]) );
 
@@ -253,7 +221,6 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
         sph_ripemd160( &ctx2.ripemd, data_p64, 80 - M7_MIDSTATE_LEN );
         sph_ripemd160_close( &ctx2.ripemd, (void*)(bhash[6]) );
 
-// 4 way serial
 	mpz_import(bns0, a, -1, p, -1, 0, bhash[0]);
         mpz_set(bns1, bns0);
 	mpz_set(product, bns0);
@@ -269,17 +236,10 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
         bytes = mpz_sizeinbase(product, 256);
         mpz_export((void *)bdata, NULL, -1, 1, 0, 0, product);
 
-#ifndef USE_SPH_SHA
         SHA256_Init( &ctxf_sha256 );
         SHA256_Update(  &ctxf_sha256, bdata, bytes );
         SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
-#else
-        sph_sha256_init( &ctxf_sha256 );
-        sph_sha256( &ctxf_sha256, bdata, bytes );
-        sph_sha256_close( &ctxf_sha256, (void*)(hash) );
-#endif
 
-// do once and share
         digits=(int)((sqrt((double)(n/2))*(1.+EPS))/9000+75);
         mp_bitcnt_t prec = (long int)(digits*BITS_PER_DIGIT+16);
 	mpf_set_prec_raw(magifpi, prec);
@@ -302,7 +262,6 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 	    mpz_set_f(magipi, magifpi);
             mpz_add(magipi,magipi,magisw);
             mpz_add(product,product,magipi);
-// share magipi, product and do serial			
 	    mpz_import(bns0, b, -1, p, -1, 0, (void*)(hash));
             mpz_add(bns1, bns1, bns0);
             mpz_mul(product,product,bns1);
@@ -312,18 +271,11 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
             mpzscale=bytes;
             mpz_export(bdata, NULL, -1, 1, 0, 0, product);
 
-#ifndef USE_SPH_SHA
             SHA256_Init( &ctxf_sha256 );
             SHA256_Update(  &ctxf_sha256, bdata, bytes );
             SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
-#else
-            sph_sha256_init( &ctxf_sha256 );
-            sph_sha256( &ctxf_sha256, bdata, bytes );
-            sph_sha256_close( &ctxf_sha256, (void*)(hash) );
-#endif
 	}
 
-// this is the scanhash part
 	const unsigned char *hash_ = (const unsigned char *)hash;
 	const unsigned char *target_ = (const unsigned char *)ptarget;
 	for ( i = 31; i >= 0; i-- )
@@ -354,7 +306,6 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
 
      pdata[19] = n;
 
-// do this in hashm7m
 out:
      mpf_set_prec_raw(magifpi, prec0);
      mpf_set_prec_raw(magifpi0, prec0);

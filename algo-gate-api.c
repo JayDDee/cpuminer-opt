@@ -214,6 +214,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_SKEIN:        register_skein_algo        ( gate ); break;
      case ALGO_SKEIN2:       register_skein2_algo       ( gate ); break;
      case ALGO_SKUNK:        register_skunk_algo        ( gate ); break;
+     case ALGO_SONOA:        register_sonoa_algo        ( gate ); break;
      case ALGO_TIMETRAVEL:   register_timetravel_algo   ( gate ); break;
      case ALGO_TIMETRAVEL10: register_timetravel10_algo ( gate ); break;
      case ALGO_TRIBUS:       register_tribus_algo       ( gate ); break;
@@ -266,6 +267,10 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
 // override std defaults with jr2 defaults
 bool register_json_rpc2( algo_gate_t *gate )
 {
+  applog(LOG_WARNING,"\nCryptonight algorithm and variants are no longer");
+  applog(LOG_WARNING,"supported by cpuminer-opt. Shares submitted will");
+  applog(LOG_WARNING,"likely be rejected. Proceed at your own risk.\n");
+
   gate->wait_for_diff           = (void*)&do_nothing;
   gate->get_new_work            = (void*)&jr2_get_new_work;
   gate->get_nonceptr            = (void*)&jr2_get_nonceptr;
@@ -354,3 +359,5 @@ void get_algo_alias( char** algo_or_alias )
     }
 }
 
+#undef ALIAS
+#undef PROPER

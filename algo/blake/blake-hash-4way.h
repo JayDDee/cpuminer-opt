@@ -37,7 +37,7 @@
 #ifndef __BLAKE_HASH_4WAY__
 #define __BLAKE_HASH_4WAY__ 1
 
-#ifdef __SSE4_2__
+//#ifdef __SSE4_2__
 
 #ifdef __cplusplus
 extern "C"{
@@ -57,19 +57,22 @@ extern "C"{
 // Blake-256 4 way
 
 typedef struct {
-   __m128i buf[16] __attribute__ ((aligned (64)));
-   __m128i H[8];
-   __m128i S[4];    
+   unsigned char buf[64<<2];
+   uint32_t H[8<<2];
+   uint32_t S[4<<2];
+//   __m128i buf[16] __attribute__ ((aligned (64)));
+//   __m128i H[8];
+//   __m128i S[4];    
    size_t ptr;
-   sph_u32 T0, T1;
+   uint32_t T0, T1;
    int rounds;   // 14 for blake, 8 for blakecoin & vanilla
-} blake_4way_small_context;
+} blake_4way_small_context __attribute__ ((aligned (64)));
 
 // Default 14 rounds
 typedef blake_4way_small_context blake256_4way_context;
-void blake256_4way_init(void *cc);
-void blake256_4way(void *cc, const void *data, size_t len);
-void blake256_4way_close(void *cc, void *dst);
+void blake256_4way_init(void *ctx);
+void blake256_4way(void *ctx, const void *data, size_t len);
+void blake256_4way_close(void *ctx, void *dst);
 
 // 14 rounds, blake, decred
 typedef blake_4way_small_context blake256r14_4way_context;
@@ -132,12 +135,10 @@ void blake512_4way_close(void *cc, void *dst);
 void blake512_4way_addbits_and_close(
 	void *cc, unsigned ub, unsigned n, void *dst);
 
-#endif
+#endif  // AVX2
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
-
-#endif
+#endif  // BLAKE_HASH_4WAY_H__

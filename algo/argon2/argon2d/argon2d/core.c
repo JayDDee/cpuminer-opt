@@ -30,7 +30,7 @@
 #include <string.h>
 
 #include "core.h"
-#include "thread.h"
+#include "argon2d_thread.h"
 #include "../blake2/blake2.h"
 #include "../blake2/blake2-impl.h"
 

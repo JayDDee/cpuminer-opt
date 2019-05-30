@@ -248,22 +248,22 @@ do { \
 */
 #define SWAP_BC \
 do { \
-    mm128_swap256_128( B0, C0 ); \
-    mm128_swap256_128( B1, C1 ); \
-    mm128_swap256_128( B2, C2 ); \
-    mm128_swap256_128( B3, C3 ); \
-    mm128_swap256_128( B4, C4 ); \
-    mm128_swap256_128( B5, C5 ); \
-    mm128_swap256_128( B6, C6 ); \
-    mm128_swap256_128( B7, C7 ); \
-    mm128_swap256_128( B8, C8 ); \
-    mm128_swap256_128( B9, C9 ); \
-    mm128_swap256_128( BA, CA ); \
-    mm128_swap256_128( BB, CB ); \
-    mm128_swap256_128( BC, CC ); \
-    mm128_swap256_128( BD, CD ); \
-    mm128_swap256_128( BE, CE ); \
-    mm128_swap256_128( BF, CF ); \
+    mm128_swap128_256( B0, C0 ); \
+    mm128_swap128_256( B1, C1 ); \
+    mm128_swap128_256( B2, C2 ); \
+    mm128_swap128_256( B3, C3 ); \
+    mm128_swap128_256( B4, C4 ); \
+    mm128_swap128_256( B5, C5 ); \
+    mm128_swap128_256( B6, C6 ); \
+    mm128_swap128_256( B7, C7 ); \
+    mm128_swap128_256( B8, C8 ); \
+    mm128_swap128_256( B9, C9 ); \
+    mm128_swap128_256( BA, CA ); \
+    mm128_swap128_256( BB, CB ); \
+    mm128_swap128_256( BC, CC ); \
+    mm128_swap128_256( BD, CD ); \
+    mm128_swap128_256( BE, CE ); \
+    mm128_swap128_256( BF, CF ); \
 } while (0)
 
 #define PERM_ELT(xa0, xa1, xb0, xb1, xb2, xb3, xc, xm) \

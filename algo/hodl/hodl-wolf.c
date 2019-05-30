@@ -8,7 +8,7 @@
 #include "hodl-wolf.h"
 #include "miner.h"
 
-#ifndef NO_AES_NI               
+#if defined(__AES__)               
 
 void GenerateGarbageCore( CacheEntry *Garbage, int ThreadID, int ThreadCount,
      void *MidHash )
@@ -139,7 +139,7 @@ int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
     return(0);
 
 
-#else  // no AVX
+#else  // no SSE4.2
 
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
@@ -160,7 +160,6 @@ int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
         {
            // copy data to first l2 cache
            memcpy(Cache.dwords, Garbage + k, GARBAGE_SLICE_SIZE);
-#ifndef NO_AES_NI               
            for(int j = 0; j < AES_ITERATIONS; j++)
            {
                 CacheEntry TmpXOR;
@@ -184,7 +183,6 @@ int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
                 AES256CBC( Cache.dqwords, TmpXOR.dqwords, ExpKey,
                         TmpXOR.dqwords[ (GARBAGE_SLICE_SIZE / sizeof(__m128i))
                                                              - 1 ], 256 );                 }
-#endif
            // use last X bits as solution
            if( ( Cache.dwords[ (GARBAGE_SLICE_SIZE >> 2) - 1 ]
                                          & (COMPARE_SIZE - 1) ) < 1000 )
@@ -206,7 +204,7 @@ int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
     *hashes_done = CollisionCount;
     return(0);
 
-#endif
+#endif  // SSE4.2 else
 
 }
 
@@ -218,5 +216,5 @@ void GenRandomGarbage(CacheEntry *Garbage, uint32_t *pdata, int thr_id)
 	GenerateGarbageCore(Garbage, thr_id, opt_n_threads, MidHash);
 }
 
-#endif
+#endif // AES
 

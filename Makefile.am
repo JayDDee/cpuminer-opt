@@ -42,10 +42,11 @@ cpuminer_SOURCES = \
   algo/argon2/argon2d/argon2d/argon2.c \
   algo/argon2/argon2d/argon2d/core.c \
   algo/argon2/argon2d/argon2d/opt.c \
-  algo/argon2/argon2d/argon2d/thread.c \
+  algo/argon2/argon2d/argon2d/argon2d_thread.c \
   algo/argon2/argon2d/argon2d/encoding.c \
   algo/blake/sph_blake.c \
-  algo/blake/blake-hash-4way.c \
+  algo/blake/blake256-hash-4way.c \
+  algo/blake/blake512-hash-4way.c \
   algo/blake/blake-gate.c \
   algo/blake/blake.c \
   algo/blake/blake-4way.c \
@@ -136,6 +137,8 @@ cpuminer_SOURCES = \
   algo/nist5/nist5-4way.c \
   algo/nist5/nist5.c \
   algo/nist5/zr5.c \
+  algo/panama/sph_panama.c \
+  algo/radiogatun/sph_radiogatun.c \
   algo/pluck.c \
   algo/quark/quark-gate.c \
   algo/quark/quark.c \
@@ -167,6 +170,7 @@ cpuminer_SOURCES = \
   algo/shabal/shabal-hash-4way.c \
   algo/shavite/sph_shavite.c \
   algo/shavite/sph-shavite-aesni.c \
+  algo/shavite/shavite-hash-2way.c \
   algo/shavite/shavite.c \
   algo/simd/sph_simd.c \
   algo/simd/nist.c \
@@ -240,16 +244,20 @@ cpuminer_SOURCES = \
   algo/x15/x15-gate.c \
   algo/x15/x15.c \
   algo/x15/x15-4way.c \
+  algo/x16/x16r-gate.c \
+  algo/x16/x16r.c \
+  algo/x16/x16r-4way.c \
   algo/x17/x17-gate.c \
   algo/x17/x17.c \
   algo/x17/x17-4way.c \
   algo/x17/xevan-gate.c \
   algo/x17/xevan.c \
   algo/x17/xevan-4way.c \
-  algo/x17/x16r-gate.c \
-  algo/x17/x16r.c \
-  algo/x17/x16r-4way.c \
   algo/x17/hmq1725.c \
+  algo/x17/sonoa-gate.c \
+  algo/x17/sonoa-4way.c \
+  algo/x17/sonoa.c \
+  algo/x20/x20r.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/sha256_Y.c \
   algo/yescrypt/yescrypt-best.c \
