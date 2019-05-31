@@ -8,6 +8,10 @@
 #include <sys/endian.h>
 #endif 
 
+#if defined(__CYGWIN__)
+#include <endian.h>
+#endif
+
 #include "tmmintrin.h"
 #include "smmintrin.h"
 #include "immintrin.h"

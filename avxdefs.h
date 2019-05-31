@@ -173,6 +173,7 @@ typedef union _m64_v16 m64_v16;
 // Unary negate elements
 #define mm64_negate_32( v ) _mm_sub_pi32( m64_zero, (__m64)v )
 #define mm64_negate_16( v ) _mm_sub_pi16( m64_zero, (__m64)v )
+#define mm64_negate_8(  v ) _mm_sub_pi8(  m64_zero, (__m64)v )
 
 // Rotate bits in packed elements of 64 bit vector
 #define mm64_rol_32( a, n ) \
@@ -206,15 +207,32 @@ typedef union _m64_v16 m64_v16;
 #if defined(__SSSE3__)
 
 // Endian byte swap packed elements
+// A vectorized version of the u64 bswap, use when data already in MMX reg.
+#define mm64_bswap_64( v ) \
+    _mm_shuffle_pi8( (__m64)v, _mm_set_pi8( 0,1,2,3,4,5,6,7 ) )
+
 #define mm64_bswap_32( v ) \
     _mm_shuffle_pi8( (__m64)v, _mm_set_pi8( 4,5,6,7,  0,1,2,3 ) )
 
 #define mm64_bswap_16( v ) \
     _mm_shuffle_pi8( (__m64)v, _mm_set_pi8( 6,7,  4,5,  2,3,  0,1 ) );
 
+#else
+
+#define mm64_bswap_64( v ) \
+       (__m64)__builtin_bswap64( (uint64_t)v )
+
+// Looks clumsy but hopefully it works.
+#define mm64_bswap_32( v ) \
+   _mm_set_pi32( __builtin_bswap32( ((uint32_t*)v)[1] ), \
+                 __builtin_bswap32( ((uint32_t*)v)[0] )  )
+
 #endif
 
 // Invert vector: {3,2,1,0} -> {0,1,2,3}
+// Invert_64 is the same as bswap64
+// Invert_32 is the same as swap32
+
 #define mm64_invert_16( v ) _mm_shuffle_pi16( (__m64)v, 0x1b )
 
 #if defined(__SSSE3__)
@@ -1899,7 +1917,7 @@ do { \
 
 #endif   // AVX512F
 
-#if 0
+#if 1
 //////////////////////////////////////////////////
 //
 //   Compile test.
@@ -1919,6 +1937,7 @@ static inline __m64 mmx_compile_test( __m64 a )
     m = _mm_shuffle_pi8( m, (__m64)0x0102030405060708 );
     i = (uint64_t) mm64_ror_32( (__m64)i, 7 );
     casti_m64( n, 2 ) = m;
+    m = (__m64)__builtin_bswap64( (uint64_t)m );
     return a;
 }
 

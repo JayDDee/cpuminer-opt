@@ -30,7 +30,7 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
-#if defined(__SSE4_2__)
+#if defined(__SSE2__)
 
 #include <stddef.h>
 #include <string.h>
@@ -716,4 +716,4 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
 }
 
 #endif  // __AVX2__
-#endif  // __SSE4_2__
+#endif  // __SSE2__

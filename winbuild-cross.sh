@@ -19,7 +19,7 @@ export CONFIGURE_ARGS="--with-curl=$LOCAL_LIB/curl --with-crypto=$LOCAL_LIB/open
 ln -s $LOCAL_LIB/gmp/gmp.h ./gmp.h
 
 # edit configure to fix pthread lib name for Windows.
-sed -i 's/"-lpthread"/"-lpthreadGC2"/g' configure.ac
+#sed -i 's/"-lpthread"/"-lpthreadGC2"/g' configure.ac
 
 # make release directory and copy selected DLLs.
 mkdir release

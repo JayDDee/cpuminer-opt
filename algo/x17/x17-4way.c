@@ -242,8 +242,6 @@ int scanhash_x17_4way( int thr_id, struct work *work, uint32_t max_nonce,
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];
      const uint32_t first_nonce = pdata[19];
-     uint32_t *nonces = work->nonces;
-     int num_found = 0;
      __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
      /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
      const uint32_t Htarg = ptarget[7];
@@ -277,18 +275,23 @@ int scanhash_x17_4way( int thr_id, struct work *work, uint32_t max_nonce,
               if ( fulltest( lane_hash, ptarget ) )
               {
                  pdata[19] = n + lane;
-                 nonces[ num_found++ ] = n + lane;
                  work_set_target_ratio( work, lane_hash );
+                 if ( submit_work( mythr, work ) )
+                    applog( LOG_NOTICE,
+			     "Share %d submitted by thread %d, lane %d.",
+                             accepted_share_count + rejected_share_count + 1,
+                             thr_id, lane );
+                 else
+                    applog( LOG_WARNING, "Failed to submit share." );
               }
            }
            n += 4;
-        } while ( ( num_found == 0 ) && ( n < max_nonce )
-                   && !work_restart[thr_id].restart );
+        } while ( ( n < max_nonce - 4 ) && !work_restart[thr_id].restart );
         break;
      }
 
      *hashes_done = n - first_nonce + 1;
-     return num_found;
+     return 0;
 }
 
 #endif

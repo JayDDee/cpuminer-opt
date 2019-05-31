@@ -6,7 +6,8 @@
 
 // Override multi way on ryzen, SHA is better.
 #if !defined(RYZEN_)
-#if defined(__SSE4_2__)
+//#if defined(__SSE4_2__)
+#if defined(__SSE2__)
   #define SHA256T_4WAY
 #endif
 #if defined(__AVX2__)
@@ -22,7 +23,7 @@ void sha256t_8way_hash( void *output, const void *input );
 int scanhash_sha256t_8way( int thr_id, struct work *work, uint32_t max_nonce,
                            uint64_t *hashes_done, struct thr_info *mythr );
 
-#elif defined (SHA256T_4WAY)
+#elif defined(SHA256T_4WAY)
 
 void sha256t_4way_hash( void *output, const void *input );
 int scanhash_sha256t_4way( int thr_id, struct work *work, uint32_t max_nonce,

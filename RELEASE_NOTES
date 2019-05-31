@@ -38,6 +38,16 @@ supported.
 Change Log
 ----------
 
+v3.9.1.1
+
+Fixed lyra2v3 AVX and below.
+
+Compiling on Windows using Cygwin now works. Simply use "./build.sh"
+just like on Linux. It isn't portable therefore the binaries package will
+continue to use the existing procedure.
+The Cygwin procedfure will be documented in more detail later and will
+include a list of packages that need to be installed.
+
 v3.9.1
 
 Fixed AVX2 version of anime algo.

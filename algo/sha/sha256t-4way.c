@@ -108,7 +108,9 @@ int scanhash_sha256t_8way( int thr_id, struct work *work, uint32_t max_nonce,
    return 0;
 }
 
-#elif defined(SHA256T_4WAY)
+#endif
+
+#if defined(SHA256T_4WAY)
 
 static __thread sha256_4way_context sha256_ctx4 __attribute__ ((aligned (64)));
 

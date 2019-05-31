@@ -91,7 +91,7 @@ extern "C"{
 #pragma warning (disable: 4146)
 #endif
 
-
+/*
 static const sph_u64 RC[] = {
 	SPH_C64(0x0000000000000001), SPH_C64(0x0000000000008082),
 	SPH_C64(0x800000000000808A), SPH_C64(0x8000000080008000),
@@ -106,7 +106,7 @@ static const sph_u64 RC[] = {
 	SPH_C64(0x8000000080008081), SPH_C64(0x8000000000008080),
 	SPH_C64(0x0000000080000001), SPH_C64(0x8000000080008008)
 };
-
+*/
 #define kekDECL_STATE \
 	sph_u64 keca00, keca01, keca02, keca03, keca04; \
 	sph_u64 keca10, keca11, keca12, keca13, keca14; \
@@ -756,6 +756,20 @@ static const sph_u64 RC[] = {
  * tested faster saving space
 */
 #define KECCAK_F_1600_   do { \
+static const sph_u64 RC[] = { \
+        SPH_C64(0x0000000000000001), SPH_C64(0x0000000000008082), \
+        SPH_C64(0x800000000000808A), SPH_C64(0x8000000080008000), \
+        SPH_C64(0x000000000000808B), SPH_C64(0x0000000080000001), \
+        SPH_C64(0x8000000080008081), SPH_C64(0x8000000000008009), \
+        SPH_C64(0x000000000000008A), SPH_C64(0x0000000000000088), \
+        SPH_C64(0x0000000080008009), SPH_C64(0x000000008000000A), \
+        SPH_C64(0x000000008000808B), SPH_C64(0x800000000000008B), \
+        SPH_C64(0x8000000000008089), SPH_C64(0x8000000000008003), \
+        SPH_C64(0x8000000000008002), SPH_C64(0x8000000000000080), \
+        SPH_C64(0x000000000000800A), SPH_C64(0x800000008000000A), \
+        SPH_C64(0x8000000080008081), SPH_C64(0x8000000000008080), \
+        SPH_C64(0x0000000080000001), SPH_C64(0x8000000080008008) \
+}; \
 		int j; \
 		for (j = 0; j < 24; j += 4) { \
 			KF_ELT( 0,  1, RC[j + 0]); \
@@ -791,7 +805,7 @@ static const sph_u64 RC[] = {
 /* load initial constants */
 #define KEC_I 
 
-static unsigned char keczword[8] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }; 
+//static unsigned char keczword[8] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }; 
 /*
  unsigned char keczword[8] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }; \
 */
@@ -799,6 +813,7 @@ static unsigned char keczword[8] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0
 /* load hash for loop */
 #define KEC_U \
 do { \
+static unsigned char keczword[8] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 }; \
     /*memcpy(hashbuf, hash, 64); */ \
     memcpy(hash + 64, keczword, 8); \
 } while (0); 

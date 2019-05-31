@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <openssl/sha.h>
 
-#if !defined(SHA256T_4WAY)
-
 static __thread SHA256_CTX sha256t_ctx __attribute__ ((aligned (64)));
 
 void sha256t_midstate( const void* input )
@@ -100,4 +98,3 @@ int scanhash_sha256t( int thr_id, struct work *work, uint32_t max_nonce,
    pdata[19] = n;
    return 0;
 }
-#endif

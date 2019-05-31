@@ -57,7 +57,7 @@ bool init_lyra2rev2_ctx();
 
 /////////////////////////
 
-#if defined(__SSE4_2__)
+#if defined(__SSE2__)
   #define LYRA2Z_4WAY
 #endif
 #if defined(__AVX2__)

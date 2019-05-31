@@ -44,7 +44,8 @@
 #include "sph_types.h"
 #include "avxdefs.h"
 
-#if defined(__SSE4_2__)
+#if defined(__SSE2__)
+//#if defined(__SSE4_2__)
 
 //#define SPH_SIZE_sha256   256
 
