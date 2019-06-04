@@ -247,12 +247,12 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
 //   DWORD last_error;
 
    if ( id == -1 )
-	success = SetProcessAffinityMask( GetCurrentProcess(), &mask );
+	success = SetProcessAffinityMask( GetCurrentProcess(), (DWORD_PTR)&mask );
 
 // Are Windows CPU Groups supported?
 #if _WIN32_WINNT==0x0601
    else if ( num_cpugroups == 1 )
-	success = SetThreadAffinityMask( GetCurrentThread(), &mask );
+	success = SetThreadAffinityMask( GetCurrentThread(), (DWORD_PTR)&mask );
    else
    {
 	// Find the correct cpu group
@@ -277,7 +277,7 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
    }
 #else
    else 
-        success = SetThreadAffinityMask( GetCurrentThread(), &mask );
+        success = SetThreadAffinityMask( GetCurrentThread(), (DWORD_PTR)&mask );
 #endif
 
    if (!success)
