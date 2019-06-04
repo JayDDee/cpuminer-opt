@@ -9,7 +9,7 @@
 
 static __thread sha256_8way_context sha256_ctx8 __attribute__ ((aligned (64)));
 
-void sha256t_8way_hash( void* output, const void* input )
+void sha256q_8way_hash( void* output, const void* input )
 {
    uint32_t vhash[8*8] __attribute__ ((aligned (64)));
    sha256_8way_context ctx;
@@ -24,11 +24,14 @@ void sha256t_8way_hash( void* output, const void* input )
 
    sha256_8way_init( &ctx );
    sha256_8way( &ctx, vhash, 32 );
-   sha256_8way_close( &ctx, output );
+   sha256_8way_close( &ctx, vhash );
 
+   sha256_8way_init( &ctx );
+   sha256_8way( &ctx, vhash, 32 );
+   sha256_8way_close( &ctx, output );
 }
 
-int scanhash_sha256t_8way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_sha256q_8way( int thr_id, struct work *work, uint32_t max_nonce,
 	                   uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
@@ -75,7 +78,7 @@ int scanhash_sha256t_8way( int thr_id, struct work *work, uint32_t max_nonce,
 
 	 pdata[19] = n;
 
-         sha256t_8way_hash( hash, vdata );
+         sha256q_8way_hash( hash, vdata );
 
          uint32_t *hash7 = &(hash[7<<3]); 
 	 
@@ -83,7 +86,7 @@ int scanhash_sha256t_8way( int thr_id, struct work *work, uint32_t max_nonce,
          if ( !( hash7[ lane ] & mask ) )
          { 
             // deinterleave hash for lane
-	    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
+	    uint32_t lane_hash[8];
 	    mm256_extract_lane_8x32( lane_hash, hash, lane, 256 );
 
 	    if ( fulltest( lane_hash, ptarget ) )
@@ -114,7 +117,7 @@ int scanhash_sha256t_8way( int thr_id, struct work *work, uint32_t max_nonce,
 
 static __thread sha256_4way_context sha256_ctx4 __attribute__ ((aligned (64)));
 
-void sha256t_4way_hash( void* output, const void* input )
+void sha256q_4way_hash( void* output, const void* input )
 {
    uint32_t vhash[8*4] __attribute__ ((aligned (64)));
    sha256_4way_context ctx;
@@ -129,18 +132,21 @@ void sha256t_4way_hash( void* output, const void* input )
 
    sha256_4way_init( &ctx );
    sha256_4way( &ctx, vhash, 32 );
-   sha256_4way_close( &ctx, output );
+   sha256_4way_close( &ctx, vhash );
 
+   sha256_4way_init( &ctx );
+   sha256_4way( &ctx, vhash, 32 );
+   sha256_4way_close( &ctx, output );
 }
 
-int scanhash_sha256t_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_sha256q_4way( int thr_id, struct work *work, uint32_t max_nonce,
 	                   uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t hash[8*4] __attribute__ ((aligned (32)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t edata[20] __attribute__ ((aligned (32)));;
    uint32_t *hash7 = &(hash[7<<2]);
+   uint32_t lane_hash[8];
+   uint32_t edata[20] __attribute__ ((aligned (32)));;
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
@@ -179,7 +185,7 @@ int scanhash_sha256t_4way( int thr_id, struct work *work, uint32_t max_nonce,
          *noncev = mm128_bswap_32( _mm_set_epi32( n+3,n+2,n+1,n ) );
 	 pdata[19] = n;
 
-         sha256t_4way_hash( hash, vdata );
+         sha256q_4way_hash( hash, vdata );
 
          for ( int lane = 0; lane < 4; lane++ )
          if ( !( hash7[ lane ] & mask ) )

@@ -92,42 +92,50 @@ void phi2_hash(void *state, const void *input)
 	memcpy(state, hash, 32);
 }
 
-int scanhash_phi2(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_phi2( int thr_id, struct work *work, uint32_t max_nonce,
+	           uint64_t *hashes_done, struct thr_info *mythr )
 {
-	uint32_t _ALIGN(128) hash[8];
-	uint32_t _ALIGN(128) endiandata[36];
-	uint32_t *pdata = work->data;
-	uint32_t *ptarget = work->target;
+   uint32_t _ALIGN(128) hash[8];
+   uint32_t _ALIGN(128) endiandata[36];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t Htarg = ptarget[7];
+   const uint32_t first_nonce = pdata[19];
+   uint32_t n = first_nonce;
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
-	const uint32_t Htarg = ptarget[7];
-	const uint32_t first_nonce = pdata[19];
-	uint32_t n = first_nonce;
+   if(opt_benchmark){
+   	ptarget[7] = 0x00ff;
+   }
 
-	if(opt_benchmark){
-		ptarget[7] = 0x00ff;
-	}
+   phi2_has_roots = false;
+   for ( int i=0; i < 36; i++ )
+   {
+	be32enc(&endiandata[i], pdata[i]);
+	if (i >= 20 && pdata[i]) phi2_has_roots = true;
+   }
 
-	phi2_has_roots = false;
-	for (int i=0; i < 36; i++) {
-		be32enc(&endiandata[i], pdata[i]);
-		if (i >= 20 && pdata[i]) phi2_has_roots = true;
-	}
+   do {
+	be32enc( &endiandata[19], n );
+	phi2_hash( hash, endiandata );
 
-	do {
-		be32enc(&endiandata[19], n);
-		phi2_hash(hash, endiandata);
-
-		if (hash[7] < Htarg && fulltest(hash, ptarget)) {
-			work_set_target_ratio(work, hash);
+	if ( hash[7] < Htarg && fulltest( hash, ptarget ) )
+       	{
+           pdata[19] = n;
+           work_set_target_ratio( work, hash );
+           if ( submit_work( mythr, work ) )
+               applog( LOG_NOTICE, "Share %d submitted by thread %d.",
+                            accepted_share_count + rejected_share_count + 1,
+                            thr_id );
+           else
+               applog( LOG_WARNING, "Failed to submit share." );
 			*hashes_done = n - first_nonce + 1;
-			pdata[19] = n;
-			return 1;
-		}
-		n++;
+	}
+	n++;
 
-	} while (n < max_nonce && !work_restart[thr_id].restart);
+   } while ( n < max_nonce && !work_restart[thr_id].restart );
 
-	*hashes_done = n - first_nonce + 1;
-	pdata[19] = n;
-	return 0;
+   *hashes_done = n - first_nonce + 1;
+   pdata[19] = n;
+   return 0;
 }

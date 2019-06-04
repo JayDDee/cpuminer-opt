@@ -74,7 +74,6 @@ int scanhash_lyra2rev3_4way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    const uint32_t Htarg = ptarget[7];
-   int num_found = 0;
    __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
    

@@ -91,7 +91,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
 
-#elif defined(__SSE4_2__)
+#elif defined(__SSE2__)
 
 // process 2 columns in parallel
 // returns void, all args updated
@@ -132,7 +132,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
 
 
-#endif // AVX2 else SSE4_2
+#endif // AVX2 else SSE2
 
 // Scalar
 //Blake2b's G function

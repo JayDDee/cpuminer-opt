@@ -15,16 +15,16 @@ bool register_xevan_algo( algo_gate_t* gate );
 void xevan_4way_hash( void *state, const void *input );
 
 int scanhash_xevan_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done );
+                       uint64_t *hashes_done, struct thr_info *mythr );
 
-void init_xevan_4way_ctx();
+//void init_xevan_4way_ctx();
 
 #endif
 
 void xevan_hash( void *state, const void *input );
 
 int scanhash_xevan( int thr_id, struct work *work, uint32_t max_nonce,
-                  uint64_t *hashes_done );
+                  uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_xevan_ctx();
 

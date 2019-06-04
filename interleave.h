@@ -356,6 +356,36 @@ static inline void mm256_interleave_8x32x256( void *d, const void *s00,
                                        s04+28, s05+28, s06+28, s07+28 );
 }
 
+static inline void mm256_be_interleave_8x32x256( void *d, const void *s00,
+       const void *s01, const void *s02, const void *s03, const void *s04,
+       const void *s05, const void *s06, const void *s07 )
+{
+   casti_m256i( d, 0 ) = mm256_bswap_32( 
+		            mm256_put_32( s00,    s01,    s02,    s03,
+                                          s04,    s05,    s06,    s07    ) );
+   casti_m256i( d, 1 ) = mm256_bswap_32(
+		            mm256_put_32( s00+ 4, s01+ 4, s02+ 4, s03+ 4,
+                                          s04+ 4, s05+ 4, s06+ 4, s07+ 4 ) );
+   casti_m256i( d, 2 ) = mm256_bswap_32(
+	                    mm256_put_32( s00+ 8, s01+ 8, s02+ 8, s03+ 8,
+                                          s04+ 8, s05+ 8, s06+ 8, s07+ 8 ) );
+   casti_m256i( d, 3 ) = mm256_bswap_32(
+	                    mm256_put_32( s00+12, s01+12, s02+12, s03+12,
+                                          s04+12, s05+12, s06+12, s07+12 ) );
+   casti_m256i( d, 4 ) = mm256_bswap_32(
+	                    mm256_put_32( s00+16, s01+16, s02+16, s03+16,
+                                          s04+16, s05+16, s06+16, s07+16 ) );
+   casti_m256i( d, 5 ) = mm256_bswap_32(
+	                    mm256_put_32( s00+20, s01+20, s02+20, s03+20,
+                                          s04+20, s05+20, s06+20, s07+20 ) );
+   casti_m256i( d, 6 ) = mm256_bswap_32(
+	                    mm256_put_32( s00+24, s01+24, s02+24, s03+24,
+                                          s04+24, s05+24, s06+24, s07+24 ) );
+   casti_m256i( d, 7 ) = mm256_bswap_32(
+	                    mm256_put_32( s00+28, s01+28, s02+28, s03+28,
+                                          s04+28, s05+28, s06+28, s07+28 ) );
+}
+
 static inline void mm256_interleave_8x32x128( void *d, const void *s00,
      const void *s01, const void *s02, const void *s03, const void *s04,
      const void *s05, const void *s06, const void *s07 )
@@ -368,6 +398,24 @@ static inline void mm256_interleave_8x32x128( void *d, const void *s00,
                                        s04+ 8, s05+ 8, s06+ 8, s07+ 8 );
    casti_m256i( d, 3 ) = mm256_put_32( s00+12, s01+12, s02+12, s03+12,
                                        s04+12, s05+12, s06+12, s07+12 );
+}
+
+static inline void mm256_be_interleave_8x32x128( void *d, const void *s00,
+       const void *s01, const void *s02, const void *s03, const void *s04,
+       const void *s05, const void *s06, const void *s07 )
+{
+   casti_m256i( d, 0 ) = mm256_bswap_32( 
+		            mm256_put_32( s00,    s01,    s02,    s03,
+                                          s04,    s05,    s06,    s07    ) );
+   casti_m256i( d, 1 ) = mm256_bswap_32(
+	                    mm256_put_32( s00+ 4, s01+ 4, s02+ 4, s03+ 4,
+                                          s04+ 4, s05+ 4, s06+ 4, s07+ 4 ) );
+   casti_m256i( d, 2 ) = mm256_bswap_32(
+	                    mm256_put_32( s00+ 8, s01+ 8, s02+ 8, s03+ 8,
+                                          s04+ 8, s05+ 8, s06+ 8, s07+ 8 ) );
+   casti_m256i( d, 3 ) = mm256_bswap_32(
+	                    mm256_put_32( s00+12, s01+12, s02+12, s03+12,
+                                          s04+12, s05+12, s06+12, s07+12 ) );
 }
 
 // can be called directly for 32 byte hash using AVX2
@@ -394,6 +442,21 @@ static inline void mm256_interleave_4x64x256( void *d, const void *s0,
   casti_m256i( d,3 ) = mm256_put_64( s0+24, s1+24, s2+24, s3+24 );
 }
 
+// bswap the data as it's interleaved.
+// A bit of a missnomer, but be is nice and short.
+static inline void mm256_be_interleave_4x64x256( void *d, const void *s0,
+                       const void *s1, const void *s2, const void *s3 )
+{
+  casti_m256i( d,0 ) = mm256_bswap_32( 
+		             mm256_put_64( s0,    s1,    s2,    s3    ) );
+  casti_m256i( d,1 ) = mm256_bswap_32(
+	                     mm256_put_64( s0+ 8, s1+ 8, s2+ 8, s3+ 8 ) );
+  casti_m256i( d,2 ) = mm256_bswap_32( 
+		             mm256_put_64( s0+16, s1+16, s2+16, s3+16 ) );
+  casti_m256i( d,3 ) = mm256_bswap_32( 
+		             mm256_put_64( s0+24, s1+24, s2+24, s3+24 ) );
+}
+
 static inline void mm256_interleave_4x64x128( void *d, const void *s0,
                        const void *s1, const void *s2, const void *s3 )
 {
@@ -401,6 +464,14 @@ static inline void mm256_interleave_4x64x128( void *d, const void *s0,
   casti_m256i( d,1 ) = mm256_put_64( s0+ 8, s1+ 8, s2+ 8, s3+ 8 );
 }
 
+static inline void mm256_be_interleave_4x64x128( void *d, const void *s0,
+                       const void *s1, const void *s2, const void *s3 )
+{
+  casti_m256i( d,0 ) = mm256_bswap_32( 
+		           mm256_put_64( s0,    s1,    s2,    s3    ) );
+  casti_m256i( d,1 ) = mm256_bswap_32( 
+		           mm256_put_64( s0+ 8, s1+ 8, s2+ 8, s3+ 8 ) );
+}
 
 // 4 lanes of 256 bits using 64 bit interleaving (standard final hash size)
 static inline void mm256_deinterleave_4x64x256( void *d0, void *d1, void *d2,
@@ -492,6 +563,28 @@ static inline void mm256_interleave_8x32( void *d, const void *s0,
    mm256_interleave_8x32x256( d+512, s0+64, s1+64, s2+64, s3+64,
                                      s4+64, s5+64, s6+64, s7+64 );
    mm256_interleave_8x32x256( d+768, s0+96, s1+96, s2+96, s3+96,
+                                     s4+96, s5+96, s6+96, s7+96 );
+   // bit_len == 1024
+}
+
+static inline void mm256_be_interleave_8x32( void *d, const void *s0,
+        const void *s1, const void *s2, const void *s3, const void *s4,
+        const void *s5, const void *s6, const void *s7, int bit_len )
+{
+   mm256_be_interleave_8x32x256( d, s0, s1, s2, s3, s4, s5, s6, s7 );
+   if ( bit_len <= 256 ) return;
+   mm256_be_interleave_8x32x256( d+256, s0+32, s1+32, s2+32, s3+32,
+                                     s4+32, s5+32, s6+32, s7+32 );
+   if ( bit_len <= 512 ) return;
+   if ( bit_len <= 640 )
+   {
+      mm256_be_interleave_8x32x128( d+512, s0+64, s1+64, s2+64, s3+64,
+                                        s4+64, s5+64, s6+64, s7+64 );
+      return;
+   }
+   mm256_be_interleave_8x32x256( d+512, s0+64, s1+64, s2+64, s3+64,
+                                     s4+64, s5+64, s6+64, s7+64 );
+   mm256_be_interleave_8x32x256( d+768, s0+96, s1+96, s2+96, s3+96,
                                      s4+96, s5+96, s6+96, s7+96 );
    // bit_len == 1024
 }
@@ -595,6 +688,23 @@ static inline void mm256_interleave_4x64( void *d, const void *s0,
   mm256_interleave_4x64x256( d+384, s0+96, s1+96, s2+96, s3+96 );
 }
 
+static inline void mm256_be_interleave_4x64( void *d, const void *s0,
+            const void *s1, const void *s2, const void *s3, int bit_len )
+{
+  mm256_be_interleave_4x64x256( d, s0, s1, s2, s3 );
+  if ( bit_len <= 256 ) return;
+  mm256_be_interleave_4x64x256( d+128, s0+32, s1+32, s2+32, s3+32 );
+  if ( bit_len <= 512 ) return;
+  if ( bit_len <= 640 )
+  {
+    mm256_be_interleave_4x64x128( d+256, s0+64, s1+64, s2+64, s3+64 );
+    return;
+  }
+  // bit_len == 1024
+  mm256_be_interleave_4x64x256( d+256, s0+64, s1+64, s2+64, s3+64 );
+  mm256_be_interleave_4x64x256( d+384, s0+96, s1+96, s2+96, s3+96 );
+}
+
 /*
 // Slower version
 // bit_len must be multiple of 64
@@ -676,7 +786,9 @@ static inline void mm256_extract_lane_4x64( void *d, const void *s,
 
 // Convert from 4x32 SSE2 interleaving to 4x64 AVX2.
 // Can't do it in place
-static inline void mm256_reinterleave_4x64( void *dst, void *src, int  bit_len )
+#define mm256_reinterleave_4x64 mm256_reinterleave_4x32_4x64
+static inline void mm256_reinterleave_4x32_4x64( void *dst, void *src,
+	                                         int  bit_len )
 {
    __m256i* d = (__m256i*)dst;
    uint32_t *s = (uint32_t*)src;
@@ -736,7 +848,9 @@ static inline void mm256_reinterleave_4x64x( uint64_t *dst, uint32_t *src,
 
 // Convert 4x64 byte (256 bit) vectors to 4x32 (128 bit) vectors for AVX
 // bit_len must be multiple of 64
-static inline void mm256_reinterleave_4x32( void *dst, void *src, int  bit_len )
+#define mm256_reinterleave_4x32 mm256_reinterleave_4x64_4x32
+static inline void mm256_reinterleave_4x64_4x32( void *dst, void *src,
+	                                         int  bit_len )
 {
    __m256i  *d = (__m256i*)dst;
    uint32_t *s = (uint32_t*)src;
@@ -862,7 +976,8 @@ static inline void mm_reinterleave_4x32( void *dst, void *src, int  bit_len )
 }
 */
 
-static inline void mm256_interleave_2x128( const void *d, const void *s0,
+#define mm256_interleave_2x128 mm256_interleave_1x128
+static inline void mm256_interleave_1x128( const void *d, const void *s0,
 	                                   void *s1, const int bit_len )
 {
   casti_m256i( d, 0 ) = mm256_put_64( s0   , s0+ 8, s1   , s1+ 8 );
@@ -879,7 +994,8 @@ static inline void mm256_interleave_2x128( const void *d, const void *s0,
   // bit_len == 1024
 }
 
-static inline void mm256_deinterleave_2x128( void *d0, void *d1, void *s,
+#define mm256_deinterleave_2x128 mm256_deinterleave_1x128
+static inline void mm256_deinterleave_1x128( void *d0, void *d1, void *s,
                                              int bit_len )
 {
    mm256_deinterleave_2x128x256( d0, d1, 0, s );
@@ -1078,38 +1194,38 @@ static inline void mm512_deinterleave_16x32x512( void *d00, void *d01,
                 void *d12, void *d13, void *d14, void *d15, const int n,
 		const void *s )
 {
- casti_m512i(d00,n) = mm512_get_32( s,   0,  16,  32,  48,  64,  80,  96, 112,
-		                       128, 144, 160, 176, 192, 208, 224, 240 );
- casti_m512i(d01,n) = mm512_get_32( s,   1,  17,  33,  49,  65,  81,  97, 113,
-		                       129, 145, 161, 177, 193, 209, 225, 241 );
- casti_m512i(d02,n) = mm512_get_32( s,   2,  18,  34,  50,  66,  82,  98, 114,
-				       130, 146, 162, 178, 194, 210, 226, 242 );
- casti_m512i(d03,n) = mm512_get_32( s,   3,  19,  35,  51,  67,  83,  99, 115,
-                                       131, 147, 163, 179, 195, 211, 227, 243 );
- casti_m512i(d04,n) = mm512_get_32( s,   4,  20,  36,  52,  68,  84, 100, 116,
-		                       132, 148, 164, 180, 196, 212, 228, 244 );
- casti_m512i(d05,n) = mm512_get_32( s,   5,  21,  37,  53,  69,  85, 101, 117,
-                                       133, 149, 165, 181, 197, 213, 229, 245 );
- casti_m512i(d06,n) = mm512_get_32( s,   6,  22,  38,  54,  70,  86, 102, 118,
-                                       134, 150, 166, 182, 198, 214, 230, 246 );
- casti_m512i(d07,n) = mm512_get_32( s,   7,  23,  39,  55,  71,  87, 103, 119,
-		                       135, 151, 167, 183, 199, 215, 231, 247 );
- casti_m512i(d08,n) = mm512_get_32( s,   8,  24,  40,  56,  72,  88, 104, 120,
-		                       136, 152, 168, 184, 200, 216, 232, 248 );
- casti_m512i(d09,n) = mm512_get_32( s,   9,  25,  41,  57,  73,  89, 105, 121,
-		                       137, 153, 169, 185, 201, 217, 233, 249 );
- casti_m512i(d10,n) = mm512_get_32( s,  10,  26,  42,  58,  74,  90, 106, 122,
-		                       138, 154, 170, 186, 202, 218, 234, 250 );
- casti_m512i(d11,n) = mm512_get_32( s,  11,  27,  43,  59,  75,  91, 107, 123,
-		                       139, 155, 171, 187, 203, 219, 235, 251 );
- casti_m512i(d12,n) = mm512_get_32( s,  12,  28,  44,  60,  76,  92, 108, 124,
-		                       140, 156, 172, 188, 204, 220, 236, 252 );
- casti_m512i(d13,n) = mm512_get_32( s,  13,  29,  45,  61,  77,  93, 109, 125,
-		                       141, 157, 173, 189, 205, 221, 237, 253 );
- casti_m512i(d14,n) = mm512_get_32( s,  14,  30,  46,  62,  78,  94, 110, 126,
-		                       142, 158, 174, 190, 206, 222, 238, 254 );
- casti_m512i(d15,n) = mm512_get_32( s,  15,  31,  47,  63,  79,  95, 111, 127,
-		                       143, 159, 175, 191, 207, 223, 239, 255 );
+   casti_m512i(d00,n) = mm512_get_32( s,  0, 16, 32, 48, 64, 80, 96,112,
+  		                        128,144,160,176,192,208,224,240 );
+   casti_m512i(d01,n) = mm512_get_32( s,  1, 17, 33, 49, 65, 81, 97,113,
+  		                        129,145,161,177,193,209,225,241 );
+   casti_m512i(d02,n) = mm512_get_32( s,  2, 18, 34, 50, 66, 82, 98,114,
+  				        130,146,162,178,194,210,226,242 );
+   casti_m512i(d03,n) = mm512_get_32( s,  3, 19, 35, 51, 67, 83, 99,115,
+                                        131,147,163,179,195,211,227,243 );
+   casti_m512i(d04,n) = mm512_get_32( s,  4, 20, 36, 52, 68, 84,100,116,
+		                        132,148,164,180,196,212,228,244 );
+   casti_m512i(d05,n) = mm512_get_32( s,  5, 21, 37, 53, 69, 85,101,117,
+                                        133,149,165,181,197,213,229,245 );
+   casti_m512i(d06,n) = mm512_get_32( s,  6, 22, 38, 54, 70, 86,102,118,
+                                        134,150,166,182,198,214,230,246 );
+   casti_m512i(d07,n) = mm512_get_32( s,  7, 23, 39, 55, 71, 87,103,119,
+		                        135,151,167,183,199,215,231,247 );
+   casti_m512i(d08,n) = mm512_get_32( s,  8, 24, 40, 56, 72, 88,104,120,
+		                        136,152,168,184,200,216,232,248 );
+   casti_m512i(d09,n) = mm512_get_32( s,  9, 25, 41, 57, 73, 89,105,121,
+		                        137,153,169,185,201,217,233,249 );
+   casti_m512i(d10,n) = mm512_get_32( s, 10, 26, 42, 58, 74, 90,106,122,
+		                        138,154,170,186,202,218,234,250 );
+   casti_m512i(d11,n) = mm512_get_32( s, 11, 27, 43, 59, 75, 91,107,123,
+		                        139,155,171,187,203,219,235,251 );
+   casti_m512i(d12,n) = mm512_get_32( s, 12, 28, 44, 60, 76, 92,108,124,
+		                        140,156,172,188,204,220,236,252 );
+   casti_m512i(d13,n) = mm512_get_32( s, 13, 29, 45, 61, 77, 93,109,125,
+		                        141,157,173,189,205,221,237,253 );
+   casti_m512i(d14,n) = mm512_get_32( s, 14, 30, 46, 62, 78, 94,110,126,
+	                                142,158,174,190,206,222,238,254 );
+   casti_m512i(d15,n) = mm512_get_32( s, 15, 31, 47, 63, 79, 95,111,127,
+           	                        143,159,175,191,207,223,239,255 );
 }
 
 static inline void mm512_interleave_8x64x512( void *d, const void *s0,
@@ -1361,6 +1477,99 @@ static inline void mm512_deinterleave_4x128( void *d0, void *d1, void *d2,
    }
    // bit_len == 1024
    mm512_deinterleave_4x128x512( d0, d1, d2, d3, 1, s+256 );
+}
+
+// input one 8x64 buffer and return 2*4*128
+static inline void mm512_reinterleave_8x64_4x128( void *dst0, void *dst1,
+                                              const void *src, int  bit_len )
+{
+   __m512i* d0 = (__m512i*)dst0;
+   __m512i* d1 = (__m512i*)dst1;
+   uint64_t *s = (uint64_t*)src;
+
+   d0[0] = _mm512_set_epi64( s[ 11], s[  3], s[ 10], s[  2],
+                             s[  9], s[  1], s[  8], s[  0] );
+   d0[1] = _mm512_set_epi64( s[ 27], s[ 19], s[ 26], s[ 18],
+ 		             s[ 25], s[ 17], s[ 24], s[ 16] );
+   d0[2] = _mm512_set_epi64( s[ 15], s[  7], s[ 14], s[  6],
+                             s[ 13], s[  5], s[ 12], s[  4] );
+   d0[3] = _mm512_set_epi64( s[ 31], s[ 23], s[ 30], s[ 22],
+                             s[ 29], s[ 21], s[ 28], s[ 20] );
+   d1[0] = _mm512_set_epi64( s[ 43], s[ 35], s[ 42], s[ 34],
+                             s[ 41], s[ 33], s[ 40], s[ 32] );
+   d1[1] = _mm512_set_epi64( s[ 59], s[ 51], s[ 58], s[ 50],
+                             s[ 57], s[ 49], s[ 56], s[ 48] );
+   d1[2] = _mm512_set_epi64( s[ 47], s[ 39], s[ 46], s[ 38],
+                             s[ 45], s[ 37], s[ 44], s[ 36] );
+   d1[3] = _mm512_set_epi64( s[ 63], s[ 55], s[ 62], s[ 54],
+                              s[ 61], s[ 53], s[ 60], s[ 52] );
+
+   if ( bit_len <= 512 ) return;
+
+   d0[4] = _mm512_set_epi64( s[ 75], s[ 67], s[ 74], s[ 66],
+                             s[ 73], s[ 65], s[ 72], s[ 64] );
+   d0[5] = _mm512_set_epi64( s[ 91], s[ 83], s[ 90], s[ 82],
+                             s[ 89], s[ 81], s[ 88], s[ 80] );
+   d0[6] = _mm512_set_epi64( s[ 79], s[ 71], s[ 78], s[ 70],
+                             s[ 77], s[ 69], s[ 76], s[ 68] );
+   d0[7] = _mm512_set_epi64( s[ 95], s[ 87], s[ 94], s[ 86],
+                             s[ 93], s[ 85], s[ 92], s[ 84] );
+   d1[4] = _mm512_set_epi64( s[107], s[ 99], s[106], s[ 98],
+                             s[105], s[ 97], s[104], s[ 96] );
+   d1[5] = _mm512_set_epi64( s[123], s[115], s[122], s[114],
+                             s[121], s[113], s[120], s[112] );
+   d1[6] = _mm512_set_epi64( s[111], s[103], s[110], s[102],
+                             s[109], s[101], s[108], s[100] );
+   d1[7] = _mm512_set_epi64( s[127], s[119], s[126], s[118],
+                             s[125], s[117], s[124], s[116] );
+
+}
+
+// input 2 4x128  return 8x64
+static inline void mm512_reinterleave_4x128_8x64( void *dst, const void *src0,
+                                              const void *src1, int  bit_len )
+{
+   __m512i* d = (__m512i*)dst;
+   uint64_t *s0 = (uint64_t*)src0;
+   uint64_t *s1 = (uint64_t*)src1;
+
+   d[0] = _mm512_set_epi64( s1[ 6], s1[ 4], s1[ 2], s1[ 0],
+                            s0[ 6], s0[ 4], s0[ 2], s0[ 0] );
+   d[1] = _mm512_set_epi64( s1[ 7], s1[ 5], s1[ 3], s1[ 1],
+                            s0[ 7], s0[ 5], s0[ 3], s0[ 1] );
+   d[2] = _mm512_set_epi64( s1[14], s1[12], s1[10], s1[ 8],
+                            s0[14], s0[12], s0[10], s0[ 8] );
+   d[3] = _mm512_set_epi64( s1[15], s1[13], s1[11], s1[ 9],
+                            s0[15], s0[13], s0[11], s0[ 9] );
+   d[4] = _mm512_set_epi64( s1[22], s1[20], s1[18], s1[16],
+                            s0[22], s0[20], s0[18], s0[16] );
+   d[5] = _mm512_set_epi64( s1[23], s1[21], s1[19], s1[17],
+                            s0[24], s0[21], s0[19], s0[17] );
+   d[6] = _mm512_set_epi64( s1[22], s1[28], s1[26], s1[24],
+                            s0[22], s0[28], s0[26], s0[24] );
+   d[7] = _mm512_set_epi64( s1[31], s1[29], s1[27], s1[25],
+                            s0[31], s0[29], s0[27], s0[25] );
+
+   if ( bit_len <= 512 ) return;
+
+   d[0] = _mm512_set_epi64( s1[38], s1[36], s1[34], s1[32],
+                            s0[38], s0[36], s0[34], s0[32] );
+   d[1] = _mm512_set_epi64( s1[39], s1[37], s1[35], s1[33],
+                            s0[39], s0[37], s0[35], s0[33] );
+   d[2] = _mm512_set_epi64( s1[46], s1[44], s1[42], s1[40],
+                            s0[46], s0[44], s0[42], s0[40] );
+   d[3] = _mm512_set_epi64( s1[47], s1[45], s1[43], s1[41],
+                            s0[47], s0[45], s0[43], s0[41] );
+   d[4] = _mm512_set_epi64( s1[54], s1[52], s1[50], s1[48],
+                            s0[54], s0[52], s0[50], s0[48] );
+   d[5] = _mm512_set_epi64( s1[55], s1[53], s1[51], s1[49],
+                            s0[55], s0[53], s0[51], s0[49] );
+
+   d[6] = _mm512_set_epi64( s1[62], s1[60], s1[58], s1[56],
+                            s0[62], s0[60], s0[58], s0[56] );
+   d[7] = _mm512_set_epi64( s1[63], s1[61], s1[59], s1[57],
+                            s0[63], s0[61], s0[59], s0[57] );
+
 }
 
 static inline void mm512_extract_lane_4x128( void *d, const void *s,

@@ -538,6 +538,7 @@ enum algos {
         ALGO_SCRYPTJANE,
         ALGO_SHA256D,
         ALGO_SHA256T,
+        ALGO_SHA256Q,
         ALGO_SHAVITE3,    
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
@@ -625,6 +626,7 @@ static const char* const algo_names[] = {
         "scryptjane",
         "sha256d",
         "sha256t",
+        "sha256q",
         "shavite3",
         "skein",
         "skein2",
@@ -774,7 +776,8 @@ Options:\n\
                           scryptjane:nf\n\
                           sha256d       Double SHA-256\n\
                           sha256t       Triple SHA-256, Onecoin (OC)\n\
-                          shavite3      Shavite3\n\
+                          sha256q       Quad SHA-256, Pyrite (PYE)\n\
+			  shavite3      Shavite3\n\
                           skein         Skein+Sha (Skeincoin)\n\
                           skein2        Double Skein (Woodcoin)\n\
                           skunk         Signatum (SIGT)\n\

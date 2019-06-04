@@ -50,7 +50,7 @@ void lyra2h_4way_hash( void *state, const void *input )
 }
 
 int scanhash_lyra2h_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done )
+                          uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
@@ -63,6 +63,7 @@ int scanhash_lyra2h_4way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t *nonces = work->nonces;
    int num_found = 0;
    uint32_t *noncep= vdata + 76; // 19*4
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;

@@ -81,8 +81,8 @@ void lyra2re_hash(void *state, const void *input)
 	memcpy(state, hashA, 32);
 }
 
-int scanhash_lyra2re(int thr_id, struct work *work,
-	uint32_t max_nonce,	uint64_t *hashes_done)
+int scanhash_lyra2re( int thr_id, struct work *work, uint32_t max_nonce,
+	              uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
@@ -91,6 +91,7 @@ int scanhash_lyra2re(int thr_id, struct work *work,
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
         const uint32_t Htarg = ptarget[7];
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
         swab32_array( endiandata, pdata, 20 );
 

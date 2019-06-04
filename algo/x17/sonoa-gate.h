@@ -17,7 +17,7 @@ void sonoa_4way_hash( void *state, const void *input );
 int scanhash_sonoa_4way( int thr_id, struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
 
-void init_sonoa_4way_ctx();
+//void init_sonoa_4way_ctx();
 
 #endif
 

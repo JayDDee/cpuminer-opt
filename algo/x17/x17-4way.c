@@ -14,7 +14,6 @@
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/luffa/luffa-hash-2way.h"
 #include "algo/cubehash/cube-hash-2way.h"
-#include "algo/shavite/sph_shavite.h"
 #include "algo/shavite/shavite-hash-2way.h"
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
@@ -222,7 +221,7 @@ void x17_4way_hash( void *state, const void *input )
      sha512_4way_close( &ctx.sha512, vhash );     
 
      // 17 Haval parallel 32 bit
-     mm256_reinterleave_4x32( vhashB, vhash,  512 );
+     mm256_reinterleave_4x64_4x32( vhashB, vhash,  512 );
 
      haval256_5_4way_init( &ctx.haval );
      haval256_5_4way( &ctx.haval, vhashB, 64 );
@@ -258,18 +257,18 @@ int scanhash_x17_4way( int thr_id, struct work *work, uint32_t max_nonce,
      uint64_t *edata = (uint64_t*)endiandata;
      mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
-     for ( int m=0; m < 6; m++ ) if ( Htarg <= htmax[m] )
+     for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
      {
-        uint32_t mask = masks[m];
+        uint32_t mask = masks[ m ];
         do
         {
   	   *noncev = mm256_interleave_blend_32( mm256_bswap_32(
-	                     _mm256_set_epi32( n+3, 0,n+2, 0,n+1, 0, n, 0 ) ),
+	                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ),
 	  		                        *noncev );
            x17_4way_hash( hash, vdata );
 
 	   for ( int lane = 0; lane < 4; lane++ )
-           if ( ( ( hash7[ lane ] & mask ) == 0 ) )
+           if ( ( hash7[ lane ] & mask ) == 0 )
            {
               mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
               if ( fulltest( lane_hash, ptarget ) )

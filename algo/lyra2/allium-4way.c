@@ -90,7 +90,7 @@ void allium_4way_hash( void *state, const void *input )
 }
 
 int scanhash_allium_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                             uint64_t *hashes_done )
+                             uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
@@ -100,40 +100,47 @@ int scanhash_allium_4way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    const uint32_t Htarg = ptarget[7];
-   uint32_t *nonces = work->nonces;
-   int num_found = 0;
-   uint32_t *noncep = vdata + 76; // 19*4
+   __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   swab32_array( edata, pdata, 20 );
+   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
+   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
+   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
+   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
+   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
+
    mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
    blake256_4way_init( &allium_4way_ctx.blake );
    blake256_4way( &allium_4way_ctx.blake, vdata, 64 );
 
    do {
-     be32enc( noncep,   n   );
-     be32enc( noncep+1, n+1 );
-     be32enc( noncep+2, n+2 );
-     be32enc( noncep+3, n+3 );
+     *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );
 
      allium_4way_hash( hash, vdata );
      pdata[19] = n;
 
-     for ( int i = 0; i < 4; i++ )
-     if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
+     for ( int lane = 0; lane < 4; lane++ ) if ( (hash+(lane<<3))[7] <= Htarg )
      {
-         pdata[19] = n+i;
-         nonces[ num_found++ ] = n+i;
-         work_set_target_ratio( work, hash+(i<<3) );
+        if ( fulltest( hash+(lane<<3), ptarget ) )
+        {
+           pdata[19] = n + lane;
+           work_set_target_ratio( work, hash+(lane<<3) );
+           if ( submit_work( mythr, work ) )
+               applog( LOG_NOTICE, "Share %d submitted by thread %d, lane %d.",
+                             accepted_share_count + rejected_share_count + 1,
+                             thr_id, lane );
+           else
+               applog( LOG_WARNING, "Failed to submit share." );
+         }
      }
      n += 4;
-   } while ( (num_found == 0) && (n < max_nonce-4)
-                   && !work_restart[thr_id].restart);
+   } while ( (n < max_nonce-4) && !work_restart[thr_id].restart);
 
    *hashes_done = n - first_nonce + 1;
-   return num_found;
+   return 0;
 }
 
 #endif

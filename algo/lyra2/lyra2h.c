@@ -36,7 +36,7 @@ void lyra2h_hash( void *state, const void *input )
 }
 
 int scanhash_lyra2h( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done )
+                    uint64_t *hashes_done, struct thr_info *mythr )
 {
 	uint32_t _ALIGN(64) hash[8];
 	uint32_t _ALIGN(64) endiandata[20];
@@ -45,6 +45,7 @@ int scanhash_lyra2h( int thr_id, struct work *work, uint32_t max_nonce,
 	const uint32_t Htarg = ptarget[7];
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
 	if (opt_benchmark)
 		ptarget[7] = 0x0000ff;

@@ -847,7 +847,8 @@ static int share_result( int result, struct work *work, const char *reason )
    float rate;
    char rate_s[8] = {0};
    double sharediff = work ? work->sharediff : stratum.sharediff;
-   bool solved = result && (net_diff > 0.0 ) && ( sharediff >= net_diff );
+   bool solved = result && accepted_share_count && (net_diff > 0.0 )
+	         && ( sharediff >= net_diff );
    char sol[32] = {0};
    int i;
 
@@ -857,15 +858,17 @@ static int share_result( int result, struct work *work, const char *reason )
        hashcount += thr_hashcount[i];
        hashrate += thr_hashrates[i];
    }
+   solved = result && ( (uint64_t)hashcount > 0 )  && (net_diff > 0.0 )
+                                             && ( sharediff >= net_diff );
    result ? accepted_share_count++ : rejected_share_count++;
 
    if ( solved )
    {
       solved_block_count++;
       if ( use_colors )
-         sprintf( sol, CL_GRN " Solved" CL_WHT " %d", solved_block_count );   
+         sprintf( sol, CL_GRN " Solved: %d" CL_WHT, solved_block_count );   
       else
-         sprintf( sol, " Solved %d", solved_block_count ); 
+         sprintf( sol, ", Solved: %d", solved_block_count ); 
    }
 
    pthread_mutex_unlock(&stats_lock);

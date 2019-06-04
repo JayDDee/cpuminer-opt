@@ -290,7 +290,7 @@ SHA256_Final_Y(unsigned char digest[32], SHA256_CTX_Y * ctx)
 
 /* Initialize an HMAC-SHA256 operation with the given key. */
 void
-HMAC_SHA256_Init(HMAC_SHA256_CTX * ctx, const void * _K, size_t Klen)
+HMAC_SHA256_Init_Y(HMAC_SHA256_CTX_Y * ctx, const void * _K, size_t Klen)
 {
 	unsigned char pad[64];
 	unsigned char khash[32];
@@ -326,7 +326,7 @@ HMAC_SHA256_Init(HMAC_SHA256_CTX * ctx, const void * _K, size_t Klen)
 
 /* Add bytes to the HMAC-SHA256 operation. */
 void
-HMAC_SHA256_Update(HMAC_SHA256_CTX * ctx, const void *in, size_t len)
+HMAC_SHA256_Update_Y(HMAC_SHA256_CTX_Y * ctx, const void *in, size_t len)
 {
 
 	/* Feed data to the inner SHA256 operation. */
@@ -335,7 +335,7 @@ HMAC_SHA256_Update(HMAC_SHA256_CTX * ctx, const void *in, size_t len)
 
 /* Finish an HMAC-SHA256 operation. */
 void
-HMAC_SHA256_Final(unsigned char digest[32], HMAC_SHA256_CTX * ctx)
+HMAC_SHA256_Final_Y(unsigned char digest[32], HMAC_SHA256_CTX_Y * ctx)
 {
 	unsigned char ihash[32];
 
@@ -361,7 +361,7 @@ void
 PBKDF2_SHA256_Y(const uint8_t * passwd, size_t passwdlen, const uint8_t * salt,
     size_t saltlen, uint64_t c, uint8_t * buf, size_t dkLen)
 {
-	HMAC_SHA256_CTX PShctx, hctx;
+	HMAC_SHA256_CTX_Y PShctx, hctx;
 	uint8_t _ALIGN(128) T[32];
 	uint8_t _ALIGN(128) U[32];
 	uint8_t ivec[4];
@@ -370,8 +370,8 @@ PBKDF2_SHA256_Y(const uint8_t * passwd, size_t passwdlen, const uint8_t * salt,
 	int k;
 
 	/* Compute HMAC state after processing P and S. */
-	HMAC_SHA256_Init(&PShctx, passwd, passwdlen);
-	HMAC_SHA256_Update(&PShctx, salt, saltlen);
+	HMAC_SHA256_Init_Y(&PShctx, passwd, passwdlen);
+	HMAC_SHA256_Update_Y(&PShctx, salt, saltlen);
 
 	/* Iterate through the blocks. */
 	for (i = 0; i * 32 < dkLen; i++) {
@@ -379,18 +379,18 @@ PBKDF2_SHA256_Y(const uint8_t * passwd, size_t passwdlen, const uint8_t * salt,
 		be32enc(ivec, (uint32_t)(i + 1));
 
 		/* Compute U_1 = PRF(P, S || INT(i)). */
-		memcpy(&hctx, &PShctx, sizeof(HMAC_SHA256_CTX));
-		HMAC_SHA256_Update(&hctx, ivec, 4);
-		HMAC_SHA256_Final(U, &hctx);
+		memcpy(&hctx, &PShctx, sizeof(HMAC_SHA256_CTX_Y));
+		HMAC_SHA256_Update_Y(&hctx, ivec, 4);
+		HMAC_SHA256_Final_Y(U, &hctx);
 
 		/* T_i = U_1 ... */
 		memcpy(T, U, 32);
 
 		for (j = 2; j <= c; j++) {
 			/* Compute U_j. */
-			HMAC_SHA256_Init(&hctx, passwd, passwdlen);
-			HMAC_SHA256_Update(&hctx, U, 32);
-			HMAC_SHA256_Final(U, &hctx);
+			HMAC_SHA256_Init_Y(&hctx, passwd, passwdlen);
+			HMAC_SHA256_Update_Y(&hctx, U, 32);
+			HMAC_SHA256_Final_Y(U, &hctx);
 
 			/* ... xor U_j ... */
 			for (k = 0; k < 32; k++)

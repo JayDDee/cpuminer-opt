@@ -25,7 +25,8 @@
 #include "algo/haval/haval-hash-4way.h"
 #include "algo/sha/sha2-hash-4way.h"
 
-typedef struct {
+union _sonoa_4way_context_overlay
+{
     blake512_4way_context   blake;
     bmw512_4way_context     bmw;
     hashState_groestl       groestl;
@@ -43,8 +44,10 @@ typedef struct {
     sph_whirlpool_context   whirlpool;
     sha512_4way_context     sha512;
     haval256_5_4way_context haval;
-} sonoa_4way_ctx_holder;
+};
 
+typedef union _sonoa_4way_context_overlay sonoa_4way_context_overlay;
+/*
 sonoa_4way_ctx_holder sonoa_4way_ctx __attribute__ ((aligned (64)));
 
 void init_sonoa_4way_ctx()
@@ -67,6 +70,7 @@ void init_sonoa_4way_ctx()
      sha512_4way_init( &sonoa_4way_ctx.sha512 );
      haval256_5_4way_init( &sonoa_4way_ctx.haval );
 };
+*/
 
 void sonoa_4way_hash( void *state, const void *input )
 {
@@ -77,19 +81,23 @@ void sonoa_4way_hash( void *state, const void *input )
      uint64_t vhash[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashB[8*4] __attribute__ ((aligned (64)));
-     sonoa_4way_ctx_holder ctx __attribute__ ((aligned (64)));
-        memcpy( &ctx, &sonoa_4way_ctx, sizeof(sonoa_4way_ctx) );
+     sonoa_4way_context_overlay ctx;
+//     sonoa_4way_ctx_holder ctx __attribute__ ((aligned (64)));
+//        memcpy( &ctx, &sonoa_4way_ctx, sizeof(sonoa_4way_ctx) );
 
 // 1
 
+     blake512_4way_init( &ctx.blake );
      blake512_4way( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
+     bmw512_4way_init( &ctx.bmw );
      bmw512_4way( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
+     init_groestl( &ctx.groestl, 64 );
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
      init_groestl( &ctx.groestl, 64 );
      update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
@@ -100,29 +108,36 @@ void sonoa_4way_hash( void *state, const void *input )
 
      mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
+     skein512_4way_init( &ctx.skein );
      skein512_4way( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
+     jh512_4way_init( &ctx.jh );
      jh512_4way( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
+     keccak512_4way_init( &ctx.keccak );
      keccak512_4way( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      mm256_reinterleave_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
+     luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
 
+     cube_2way_init( &ctx.cube, 512, 16, 32 );
      cube_2way_update_close( &ctx.cube, vhashA, vhashA, 64 );
      cube_2way_init( &ctx.cube, 512, 16, 32 );
      cube_2way_update_close( &ctx.cube, vhashB, vhashB, 64 );
 
+     shavite512_2way_init( &ctx.shavite );
      shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
      shavite512_2way_init( &ctx.shavite );
      shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
 
+     simd_2way_init( &ctx.simd, 512 );
      simd_2way_update_close( &ctx.simd, vhashA, vhashA, 512 );
      simd_2way_init( &ctx.simd, 512 );
      simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
@@ -130,6 +145,7 @@ void sonoa_4way_hash( void *state, const void *input )
      mm256_deinterleave_2x128( hash0, hash1, vhashA, 512 );
      mm256_deinterleave_2x128( hash2, hash3, vhashB, 512 );
 
+     init_echo( &ctx.echo, 512 );
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
                        (const BitSequence *) hash0, 512 );
      init_echo( &ctx.echo, 512 );
@@ -215,10 +231,12 @@ void sonoa_4way_hash( void *state, const void *input )
 
      mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
+     hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
 // 3
+
      bmw512_4way_init( &ctx.bmw );
      bmw512_4way( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
@@ -294,6 +312,7 @@ void sonoa_4way_hash( void *state, const void *input )
 
      mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
+     sph_fugue512_init( &ctx.fugue );
      sph_fugue512( &ctx.fugue, hash0, 64 );
      sph_fugue512_close( &ctx.fugue, hash0 );
      sph_fugue512_init( &ctx.fugue );
@@ -399,10 +418,11 @@ void sonoa_4way_hash( void *state, const void *input )
 
      mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
+     shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     mm256_reinterleave_4x64( vhashB, vhash, 512 ); 
+     mm256_reinterleave_4x32_4x64( vhashB, vhash, 512 ); 
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way( &ctx.hamsi, vhashB, 64 );
@@ -438,7 +458,7 @@ void sonoa_4way_hash( void *state, const void *input )
      bmw512_4way( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
-     mm256_reinterleave_4x32( vhashB, vhash,  512 );
+     mm256_reinterleave_4x64_4x32( vhashB, vhash,  512 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhashB, 64 );
@@ -536,6 +556,7 @@ void sonoa_4way_hash( void *state, const void *input )
 
      mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
+     sph_whirlpool_init( &ctx.whirlpool );
      sph_whirlpool( &ctx.whirlpool, hash0, 64 );
      sph_whirlpool_close( &ctx.whirlpool, hash0 );
      sph_whirlpool_init( &ctx.whirlpool );
@@ -663,6 +684,7 @@ void sonoa_4way_hash( void *state, const void *input )
 
      mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
+     sha512_4way_init( &ctx.sha512 );
      sha512_4way( &ctx.sha512, vhash, 64 );
      sha512_4way_close( &ctx.sha512, vhash );
 
@@ -800,11 +822,11 @@ void sonoa_4way_hash( void *state, const void *input )
      sha512_4way( &ctx.sha512, vhash, 64 );
      sha512_4way_close( &ctx.sha512, vhash );
 
-     mm256_reinterleave_4x32( vhashB, vhash,  512 );
+     mm256_reinterleave_4x64_4x32( vhashB, vhash,  512 );
 
+     haval256_5_4way_init( &ctx.haval );
      haval256_5_4way( &ctx.haval, vhashB, 64 );
      haval256_5_4way_close( &ctx.haval, state );
-
 }
 
 int scanhash_sonoa_4way( int thr_id, struct work *work, uint32_t max_nonce,

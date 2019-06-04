@@ -62,6 +62,7 @@
 #warning "Note: building generic code for non-x86.  That's OK."
 #endif
 */
+
 /*
  * The SSE4 code version has fewer instructions than the generic SSE2 version,
  * but all of the instructions are SIMD, thereby wasting the scalar execution
@@ -96,7 +97,7 @@
 #include <string.h>
 
 #include "insecure_memzero.h"
-#include "sha256.h"
+#include "sha256_p.h"
 #include "sysendian.h"
 
 #include "yespower.h"
@@ -528,7 +529,7 @@ static volatile uint64_t Smask2var = Smask2;
 /* 64-bit without AVX.  This relies on out-of-order execution and register
  * renaming.  It may actually be fastest on CPUs with AVX(2) as well - e.g.,
  * it runs great on Haswell. */
-//#warning "Note: using x86-64 inline assembly for pwxform.  That's great."
+#warning "Note: using x86-64 inline assembly for pwxform.  That's great."
 #undef MAYBE_MEMORY_BARRIER
 #define MAYBE_MEMORY_BARRIER \
 	__asm__("" : : : "memory");

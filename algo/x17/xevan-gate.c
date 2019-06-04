@@ -8,7 +8,7 @@ void xevan_set_target( struct work* work, double job_diff )
 bool register_xevan_algo( algo_gate_t* gate )
 {
 #if defined (XEVAN_4WAY)
-  init_xevan_4way_ctx();
+//  init_xevan_4way_ctx();
   gate->scanhash  = (void*)&scanhash_xevan_4way;
   gate->hash      = (void*)&xevan_4way_hash;
 #else

@@ -662,57 +662,57 @@ do { \
 
 #define mm128_ror1x64_256( v1, v2 ) \
 do { \
-   __m128i t  = _mm_srli_si128( v1, 8 ) | _mm_slli_si128( v2, 24 ); \
-           v2 = _mm_srli_si128( v2, 8 ) | _mm_slli_si128( v1, 24 ); \
+   __m128i t  = _mm_srli_si128( v1, 8 ) | _mm_slli_si128( v2, 8 ); \
+           v2 = _mm_srli_si128( v2, 8 ) | _mm_slli_si128( v1, 8 ); \
            v1 = t; \
 } while(0)
 
 #define mm128_rol1x64_256( v1, v2 ) \
 do { \
-   __m128i t  = _mm_slli_si128( v1, 8 ) | _mm_srli_si128( v2, 24 ); \
-           v2 = _mm_slli_si128( v2, 8 ) | _mm_srli_si128( v1, 24 ); \
+   __m128i t  = _mm_slli_si128( v1, 8 ) | _mm_srli_si128( v2, 8 ); \
+           v2 = _mm_slli_si128( v2, 8 ) | _mm_srli_si128( v1, 8 ); \
            v1 = t; \
 } while(0)
 
 #define mm128_ror1x32_256( v1, v2 ) \
 do { \
-   __m128i t  = _mm_srli_si128( v1, 4 ) | _mm_slli_si128( v2, 28 ); \
-           v2 = _mm_srli_si128( v2, 4 ) | _mm_slli_si128( v1, 28 ); \
+   __m128i t  = _mm_srli_si128( v1, 4 ) | _mm_slli_si128( v2, 12 ); \
+           v2 = _mm_srli_si128( v2, 4 ) | _mm_slli_si128( v1, 12 ); \
            v1 = t; \
 } while(0)
 
 #define mm128_rol1x32_256( v1, v2 ) \
 do { \
-   __m128i t  = _mm_slli_si128( v1, 4 ) | _mm_srli_si128( v2, 28 ); \
-           v2 = _mm_slli_si128( v2, 4 ) | _mm_srli_si128( v1, 28 ); \
+   __m128i t  = _mm_slli_si128( v1, 4 ) | _mm_srli_si128( v2, 12 ); \
+           v2 = _mm_slli_si128( v2, 4 ) | _mm_srli_si128( v1, 12 ); \
            v1 = t; \
 } while(0)
 
 #define mm128_ror1x16_256( v1, v2 ) \
 do { \
-   __m128i t  = _mm_srli_si128( v1, 2 ) | _mm_slli_si128( v2, 30 ); \
-           v2 = _mm_srli_si128( v2, 2 ) | _mm_slli_si128( v1, 30 ); \
+   __m128i t  = _mm_srli_si128( v1, 2 ) | _mm_slli_si128( v2, 14 ); \
+           v2 = _mm_srli_si128( v2, 2 ) | _mm_slli_si128( v1, 14 ); \
            v1 = t; \
 } while(0)
 
 #define mm128_rol1x16_256( v1, v2 ) \
 do { \
-   __m128i t  = _mm_slli_si128( v1, 2 ) | _mm_srli_si128( v2, 30 ); \
-           v2 = _mm_slli_si128( v2, 2 ) | _mm_srli_si128( v1, 30 ); \
+   __m128i t  = _mm_slli_si128( v1, 2 ) | _mm_srli_si128( v2, 14 ); \
+           v2 = _mm_slli_si128( v2, 2 ) | _mm_srli_si128( v1, 14 ); \
            v1 = t; \
 } while(0)
 
 #define mm128_ror1x8_256( v1, v2 ) \
 do { \
-   __m128i t  = _mm_srli_si128( v1, 1 ) | _mm_slli_si128( v2, 31 ); \
-           v2 = _mm_srli_si128( v2, 1 ) | _mm_slli_si128( v1, 31 ); \
+   __m128i t  = _mm_srli_si128( v1, 1 ) | _mm_slli_si128( v2, 15 ); \
+           v2 = _mm_srli_si128( v2, 1 ) | _mm_slli_si128( v1, 15 ); \
            v1 = t; \
 } while(0)
 
 #define mm128_rol1x8_256( v1, v2 ) \
 do { \
-   __m128i t  = _mm_slli_si128( v1, 1 ) | _mm_srli_si128( v2, 31 ); \
-           v2 = _mm_slli_si128( v2, 1 ) | _mm_srli_si128( v1, 31 ); \
+   __m128i t  = _mm_slli_si128( v1, 1 ) | _mm_srli_si128( v2, 15 ); \
+           v2 = _mm_slli_si128( v2, 1 ) | _mm_srli_si128( v1, 15 ); \
            v1 = t; \
 } while(0)
 

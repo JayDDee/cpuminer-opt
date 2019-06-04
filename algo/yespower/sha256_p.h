@@ -33,45 +33,24 @@
 #include <stdint.h>
 #include <openssl/sha.h>
 
-typedef struct SHA256Context {
-	uint32_t state[8];
-	uint32_t count[2];
-	unsigned char buf[64];
-} SHA256_CTX_p;
-
-/*
 typedef struct HMAC_SHA256Context {
-	SHA256_CTX_Y ictx;
-	SHA256_CTX_Y octx;
-} HMAC_SHA256_CTX_Y;
-*/
-
-typedef struct HMAC_SHA256Context {
-#if defined(__SHA__)
         SHA256_CTX ictx;
         SHA256_CTX octx;
-#else
-        SHA256_CTX_p ictx;
-        SHA256_CTX_p octx;
-#endif
-} HMAC_SHA256_CTX_p;
+} HMAC_SHA256_CTX;
 
-void	SHA256_Init_p(SHA256_CTX_p *);
-void	SHA256_Update_p(SHA256_CTX_p *, const void *, size_t);
-void	SHA256_Final_p(unsigned char [32], SHA256_CTX_p *);
-void    SHA256_Buf_p(const void * in, size_t len, uint8_t digest[32]);
-void	HMAC_SHA256_Init_p(HMAC_SHA256_CTX_p *, const void *, size_t);
-void	HMAC_SHA256_Update_p(HMAC_SHA256_CTX_p *, const void *, size_t);
-void	HMAC_SHA256_Final_p(unsigned char [32], HMAC_SHA256_CTX_p *);
-void    HMAC_SHA256_Buf_p(const void * K, size_t Klen, const void * in,
-	size_t len, uint8_t digest[32]);
+void SHA256_Buf( const void * in, size_t len, uint8_t digest[32] );
+void HMAC_SHA256_Init( HMAC_SHA256_CTX *, const void *, size_t );
+void HMAC_SHA256_Update( HMAC_SHA256_CTX *, const void *, size_t );
+void HMAC_SHA256_Final( unsigned char [32], HMAC_SHA256_CTX * );
+void HMAC_SHA256_Buf( const void * K, size_t Klen, const void * in,
+                      size_t len, uint8_t digest[32] );
 
 /**
  * PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, c, buf, dkLen):
  * Compute PBKDF2(passwd, salt, c, dkLen) using HMAC-SHA256 as the PRF, and
  * write the output to buf.  The value dkLen must be at most 32 * (2^32 - 1).
  */
-void	PBKDF2_SHA256_p(const uint8_t *, size_t, const uint8_t *, size_t,
-    uint64_t, uint8_t *, size_t);
+void PBKDF2_SHA256( const uint8_t *, size_t, const uint8_t *, size_t,
+                    uint64_t, uint8_t *, size_t);
 
 #endif /* !_SHA256_H_ */

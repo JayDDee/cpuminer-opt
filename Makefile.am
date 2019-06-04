@@ -68,7 +68,8 @@ cpuminer_SOURCES = \
   algo/blake/pentablake-4way.c \
   algo/blake/pentablake.c \
   algo/bmw/sph_bmw.c \
-  algo/bmw/bmw-hash-4way.c \
+  algo/bmw/bmw256-hash-4way.c \
+  algo/bmw/bmw512-hash-4way.c \
   algo/bmw/bmw256.c \
   algo/cryptonight/cryptolight.c \
   algo/cryptonight/cryptonight-common.c\
@@ -166,6 +167,8 @@ cpuminer_SOURCES = \
   algo/sha/sha256t-gate.c \
   algo/sha/sha256t-4way.c \
   algo/sha/sha256t.c \
+  algo/sha/sha256q-4way.c \
+  algo/sha/sha256q.c \
   algo/shabal/sph_shabal.c \
   algo/shabal/shabal-hash-4way.c \
   algo/shavite/sph_shavite.c \
@@ -262,7 +265,7 @@ cpuminer_SOURCES = \
   algo/yescrypt/sha256_Y.c \
   algo/yescrypt/yescrypt-best.c \
   algo/yespower/yespower.c \
-  algo/yespower/sha256.c \
+  algo/yespower/sha256_p.c \
   algo/yespower/yespower-opt.c
 
 disable_flags =

@@ -33,10 +33,19 @@ Requirements
 Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
 supported.
 
-64 bit Linux or Windows operating system. Apple is not supported.
+64 bit Linux or Windows operating system. Apple and Android are not supported.
 
 Change Log
 ----------
+
+v3.9.2
+
+Added sha256q algo.
+Yespower now uses openssl SHA256, but no observable hash rate increase
+on Ryzen.
+Ongoing rearchitecting.
+Lyra2z now hashes 8-way on CPUs with AVX2.
+Lyra2 (all including phi2) now runs optimized code with SSE2.
 
 v3.9.1.1
 
@@ -45,7 +54,7 @@ Fixed lyra2v3 AVX and below.
 Compiling on Windows using Cygwin now works. Simply use "./build.sh"
 just like on Linux. It isn't portable therefore the binaries package will
 continue to use the existing procedure.
-The Cygwin procedfure will be documented in more detail later and will
+The Cygwin procedure will be documented in more detail later and will
 include a list of packages that need to be installed.
 
 v3.9.1

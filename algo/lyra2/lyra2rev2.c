@@ -73,7 +73,7 @@ void lyra2rev2_hash( void *state, const void *input )
 }
 
 int scanhash_lyra2rev2(int thr_id, struct work *work,
-	uint32_t max_nonce, uint64_t *hashes_done)
+	uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr)
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
@@ -82,6 +82,7 @@ int scanhash_lyra2rev2(int thr_id, struct work *work,
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
         const uint32_t Htarg = ptarget[7];
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
 	if (opt_benchmark)
 		((uint32_t*)ptarget)[7] = 0x0000ff;

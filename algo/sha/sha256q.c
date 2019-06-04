@@ -5,24 +5,28 @@
 #include <stdio.h>
 #include <openssl/sha.h>
 
-static __thread SHA256_CTX sha256t_ctx __attribute__ ((aligned (64)));
+static __thread SHA256_CTX sha256q_ctx __attribute__ ((aligned (64)));
 
-void sha256t_midstate( const void* input )
+void sha256q_midstate( const void* input )
 {
-    SHA256_Init( &sha256t_ctx );
-    SHA256_Update( &sha256t_ctx, input, 64 );
+    SHA256_Init( &sha256q_ctx );
+    SHA256_Update( &sha256q_ctx, input, 64 );
 }
 
-void sha256t_hash( void* output, const void* input )
+void sha256q_hash( void* output, const void* input )
 {
    uint32_t _ALIGN(64) hash[16];
    const int midlen = 64;            // bytes
    const int tail   = 80 - midlen;   // 16
 
    SHA256_CTX ctx __attribute__ ((aligned (64)));
-   memcpy( &ctx, &sha256t_ctx, sizeof sha256t_ctx );
+   memcpy( &ctx, &sha256q_ctx, sizeof sha256q_ctx );
 
    SHA256_Update( &ctx, input + midlen, tail );
+   SHA256_Final( (unsigned char*)hash, &ctx );
+
+   SHA256_Init( &ctx );
+   SHA256_Update( &ctx, hash, 32 );
    SHA256_Final( (unsigned char*)hash, &ctx );
 
    SHA256_Init( &ctx );
@@ -36,7 +40,7 @@ void sha256t_hash( void* output, const void* input )
    memcpy( output, hash, 32 );
 }
 
-int scanhash_sha256t( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_sha256q( int thr_id, struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t *pdata = work->data;
@@ -76,7 +80,7 @@ int scanhash_sha256t( int thr_id, struct work *work, uint32_t max_nonce,
    casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
    casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
-   sha256t_midstate( endiandata );
+   sha256q_midstate( endiandata );
 
    for ( int m = 0; m < 6; m++ )
    {
@@ -86,10 +90,9 @@ int scanhash_sha256t( int thr_id, struct work *work, uint32_t max_nonce,
          do {
             pdata[19] = ++n;
             be32enc(&endiandata[19], n);
-            sha256t_hash( hash64, endiandata );
+            sha256q_hash( hash64, endiandata );
             if ( ( !(hash64[7] & mask) ) && fulltest( hash64, ptarget ) )
             {
-               *hashes_done = n - first_nonce + 1;
                work_set_target_ratio( work, hash64 );
                if ( submit_work( mythr, work ) )
                   applog( LOG_NOTICE, "Share %d submitted by thread %d.",
@@ -97,6 +100,7 @@ int scanhash_sha256t( int thr_id, struct work *work, uint32_t max_nonce,
                              thr_id );
                else
                   applog( LOG_WARNING, "Failed to submit share." );
+               *hashes_done = n - first_nonce + 1;
             }
          } while ( n < max_nonce && !work_restart[thr_id].restart );
          break;

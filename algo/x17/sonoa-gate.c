@@ -3,7 +3,7 @@
 bool register_sonoa_algo( algo_gate_t* gate )
 {
 #if defined (SONOA_4WAY)
-  init_sonoa_4way_ctx();
+//  init_sonoa_4way_ctx();
   gate->scanhash  = (void*)&scanhash_sonoa_4way;
   gate->hash      = (void*)&sonoa_4way_hash;
 #else

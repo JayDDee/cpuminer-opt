@@ -346,7 +346,7 @@ void shavite512_2way_update_close( shavite512_2way_context *ctx, void *dst,
       memcpy( buf + ptr, data, clen );
       data = (const unsigned char *)data + clen;
       ptr += clen;
-      len -= clen >> 1;
+      len -= (clen >> 1);
       if ( ptr == sizeof ctx->buf )
       {
          if ( ( ctx->count0 = ctx->count0 + 1024 )  == 0 )
@@ -365,16 +365,8 @@ void shavite512_2way_update_close( shavite512_2way_context *ctx, void *dst,
    }
 
    uint32_t vp = ptr>>5;
-
-   // Terminating byte then zero pad
-   casti_m256i( buf, vp++ ) = _mm256_set_epi32( 0,0,0,0x80, 0,0,0,0x80 );
-
-   // Zero pad full vectors up to count
-   for ( ; vp < 6; vp++ )
-       casti_m256i( buf, vp ) = m256_zero;
-
    // Count = { 0, 16, 64, 80 }. Outsize = 16 u32 = 512 bits = 0x0200
-   // Count is misaligned to 16 bits and straddles a vector.
+   // Count is misaligned to 16 bits and straddles 2 vectors.
    // Use u32 overlay to stage then u16 to load buf.
    union
    {
@@ -386,6 +378,18 @@ void shavite512_2way_update_close( shavite512_2way_context *ctx, void *dst,
    count.u32[1] = ctx->count1;
    count.u32[2] = ctx->count2;
    count.u32[3] = ctx->count3;
+
+   if ( vp == 0 )    // empty buf, xevan.
+   { 
+      casti_m256i( buf, 0 ) = _mm256_set_epi32( 0,0,0,0x80, 0,0,0,0x80 );
+      memset_zero_256( (__m256i*)buf + 1, 5 );
+      ctx->count0 = ctx->count1 = ctx->count2 = ctx->count3 = 0;
+   }
+   else     // half full buf, everyone else.
+   {
+      casti_m256i( buf, vp++ ) = _mm256_set_epi32( 0,0,0,0x80, 0,0,0,0x80 );
+      memset_zero_256( (__m256i*)buf + vp, 6 - vp );
+   }
 
    casti_m256i( buf, 6 ) = _mm256_set_epi16( count.u16[0], 0,0,0,0,0,0,0,
                                              count.u16[0], 0,0,0,0,0,0,0 );

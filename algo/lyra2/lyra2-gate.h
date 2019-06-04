@@ -43,14 +43,14 @@ bool register_lyra2rev2_algo( algo_gate_t* gate );
 
 void lyra2rev2_4way_hash( void *state, const void *input );
 int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                             uint64_t *hashes_done );
+                             uint64_t *hashes_done, struct thr_info *mythr );
 bool init_lyra2rev2_4way_ctx();
 
 #else
 
 void lyra2rev2_hash( void *state, const void *input );
 int scanhash_lyra2rev2( int thr_id, struct work *work, uint32_t max_nonce,
-                        uint64_t *hashes_done );
+                        uint64_t *hashes_done, struct thr_info *mythr );
 bool init_lyra2rev2_ctx();
 
 #endif
@@ -61,7 +61,7 @@ bool init_lyra2rev2_ctx();
   #define LYRA2Z_4WAY
 #endif
 #if defined(__AVX2__)
-//  #define LYRA2Z_8WAY
+  #define LYRA2Z_8WAY
 #endif
 
 
@@ -71,21 +71,21 @@ bool init_lyra2rev2_ctx();
 
 void lyra2z_8way_hash( void *state, const void *input );
 int scanhash_lyra2z_8way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done );
+                          uint64_t *hashes_done, struct thr_info *mythr );
 bool lyra2z_8way_thread_init();
 
 #elif defined(LYRA2Z_4WAY)
 
 void lyra2z_4way_hash( void *state, const void *input );
 int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done );
+                          uint64_t *hashes_done, struct thr_info *mythr );
 bool lyra2z_4way_thread_init();
 
 #else
 
 void lyra2z_hash( void *state, const void *input );
 int scanhash_lyra2z( int thr_id, struct work *work, uint32_t max_nonce,
-                     uint64_t *hashes_done );
+                     uint64_t *hashes_done, struct thr_info *mythr );
 bool lyra2z_thread_init();
 
 #endif
@@ -102,14 +102,14 @@ bool lyra2z_thread_init();
 
 void lyra2h_4way_hash( void *state, const void *input );
 int scanhash_lyra2h_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done );
+                          uint64_t *hashes_done, struct thr_info *mythr );
 bool lyra2h_4way_thread_init();
 
 #else
 
 void lyra2h_hash( void *state, const void *input );
 int scanhash_lyra2h( int thr_id, struct work *work, uint32_t max_nonce,
-                     uint64_t *hashes_done );
+                     uint64_t *hashes_done, struct thr_info *mythr );
 bool lyra2h_thread_init();
 
 #endif
@@ -126,14 +126,14 @@ bool register_allium_algo( algo_gate_t* gate );
 
 void allium_4way_hash( void *state, const void *input );
 int scanhash_allium_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done );
+                          uint64_t *hashes_done, struct thr_info *mythr );
 bool init_allium_4way_ctx();
 
 #else
 
 void allium_hash( void *state, const void *input );
 int scanhash_allium( int thr_id, struct work *work, uint32_t max_nonce,
-                     uint64_t *hashes_done );
+                     uint64_t *hashes_done, struct thr_info *mythr );
 bool init_allium_ctx();
 
 #endif 
@@ -146,7 +146,7 @@ bool register_phi2_algo( algo_gate_t* gate );
 
 void phi2_hash( void *state, const void *input );
 int scanhash_phi2( int thr_id, struct work *work, uint32_t max_nonce,
-                     uint64_t *hashes_done );
+                     uint64_t *hashes_done, struct thr_info *mythr );
 void init_phi2_ctx();
 
 #endif  // LYRA2_GATE_H__
