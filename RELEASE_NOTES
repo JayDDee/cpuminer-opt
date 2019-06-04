@@ -38,6 +38,10 @@ supported.
 Change Log
 ----------
 
+v3.9.2.1
+
+Fixed some day one cpu-affinity issues.
+
 v3.9.2
 
 Added sha256q algo.

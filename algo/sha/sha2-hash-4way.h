@@ -61,6 +61,26 @@ void sha256_4way_init( sha256_4way_context *sc );
 void sha256_4way( sha256_4way_context *sc, const void *data, size_t len );
 void sha256_4way_close( sha256_4way_context *sc, void *dst );
 
+/*
+// SHA-256 7 way hybrid
+// Combines SSE, MMX and scalar data to do 8 + 2 + 1 parallel.
+typedef struct {
+   __m128i  bufx[64>>2];
+   __m128i  valx[8];
+   __m64    bufy[64>>2];
+   __m64    valy[8];
+   uint32_t bufz[64>>2];
+   uint32_t valz[8];
+   uint32_t count_high, count_low;
+} sha256_7way_context;
+
+void sha256_7way_init( sha256_7way_context *ctx );
+void sha256_7way( sha256_7way_context *ctx, const void *datax,
+                         void *datay, void *dataz, size_t len );
+void sha256_7way_close( sha256_7way_context *ctx, void *dstx, void *dstyx,
+                         void *dstz  );
+*/
+
 #if defined (__AVX2__)
 
 // SHA-256 8 way
@@ -88,6 +108,25 @@ typedef struct {
 void sha512_4way_init( sha512_4way_context *sc);
 void sha512_4way( sha512_4way_context *sc, const void *data, size_t len );
 void sha512_4way_close( sha512_4way_context *sc, void *dst );
+
+// SHA-256 11 way hybrid
+// Combines AVX2, MMX and scalar data to do 8 + 2 + 1 parallel.
+typedef struct {
+   __m256i  bufx[64>>2];
+   __m256i  valx[8];
+   __m64    bufy[64>>2];
+   __m64    valy[8];
+   uint32_t bufz[64>>2];
+   uint32_t valz[8];
+   uint32_t count_high, count_low;
+} sha256_11way_context;
+
+void sha256_11way_init( sha256_11way_context *ctx );
+void sha256_11way( sha256_11way_context *ctx, const void *datax,
+	                 void *datay, void *dataz, size_t len );
+void sha256_11way_close( sha256_11way_context *ctx, void *dstx, void *dstyx,
+	                 void *dstz  );
+
 
 #endif
 #endif

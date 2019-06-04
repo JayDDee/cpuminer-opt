@@ -1,6 +1,39 @@
 #include "lyra2-gate.h"
 
 
+// huge pages
+//
+// Use MAP_PRIVATE instead
+// In register algo:
+// replace thread safe whole matrix with a char**
+// alloc huge pages matrixsize * threads
+// make pointers to each thread to each thread, creating an 
+// array[thread][matrix].
+// Each thread can create its own matrix pointer:
+//  my_matrix = the matrix + ( thread_id * matrix_size  )
+//
+// Compiler version check?
+// Fallback?
+//
+// create a generic utility to map & unmap huge pages.
+// ptr = malloc_huge( size );
+// Yespower wrapper checks for 64 byte alignment, seems unnecessary as
+// it should be aligned to the page boundary. It may be desireable to
+// have the matrix size rounded up if necessary to something bigger
+// than 64 byte, say 4 kbytes a small page size.
+
+// Define some constants for indivual parameters and matrix size for
+// each algo. Use the parameter constants where apropriate.
+// Convert algos that don't yet do so to use dynamic alllocation.
+// Alloc huge pages globally. If ok each thread will create a pointer to
+// its chunk. If fail each thread will use use _mm_alloc for itself. 
+
+#define LYRA2REV3_NROWS 4
+#define LYRA2REV3_NCOLS 4
+//#define LYRA2REV3_MATRIX_SIZE ((BLOCK_LEN_BYTES)*(LYRA2REV3_NCOLS)* \
+//                                                 (LYRA2REV3_NROWS)*8)
+#define LYRA2REV3_MATRIX_SIZE ((BLOCK_LEN_BYTES)<<4)
+
 __thread uint64_t* l2v3_wholeMatrix;
 
 bool lyra2rev3_thread_init()

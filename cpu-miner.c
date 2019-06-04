@@ -106,9 +106,11 @@ int opt_scrypt_n = 0;
 int opt_pluck_n = 128;
 int opt_n_threads = 0;
 #if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
-__int128_t opt_affinity = -1LL;
+#define AFFINITY_USES_UINT128 1
+uint128_t opt_affinity = i128_neg1;
 #else
-int64_t opt_affinity = -1LL;
+#define AFFINITY_USES_UINT128 0
+uint64_t opt_affinity = -1LL;
 #endif
 int opt_priority = 0;
 int num_cpus = 1;
@@ -245,12 +247,12 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
 //   DWORD last_error;
 
    if ( id == -1 )
-	success = SetProcessAffinityMask( GetCurrentProcess(), mask );
+	success = SetProcessAffinityMask( GetCurrentProcess(), &mask );
 
 // Are Windows CPU Groups supported?
 #if _WIN32_WINNT==0x0601
    else if ( num_cpugroups == 1 )
-	success = SetThreadAffinityMask( GetCurrentThread(), mask );
+	success = SetThreadAffinityMask( GetCurrentThread(), &mask );
    else
    {
 	// Find the correct cpu group
@@ -275,7 +277,7 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
    }
 #else
    else 
-        success = SetThreadAffinityMask( GetCurrentThread(), mask );
+        success = SetThreadAffinityMask( GetCurrentThread(), &mask );
 #endif
 
    if (!success)
@@ -1842,26 +1844,46 @@ static void *miner_thread( void *userdata )
    }
    else
 */
+
    if ( num_cpus > 1 )
    {
-      if ( (opt_affinity == -1LL) && (opt_n_threads) > 1 ) 
-      {
+#if AFFINITY_USES_UINT128
+       if ( (opt_affinity == i128_neg1 ) && opt_n_threads > 1 )
+       {
+         if ( opt_debug )
+            applog( LOG_DEBUG,
+	  	      "Binding thread %d to cpu %d (mask %016llx %016llx)",
+                      thr_id, thr_id % num_cpus,
+	       	      i128_hi64( i128_neg1 << (thr_id % num_cpus) ),
+		      i128_lo64( i128_neg1 << (thr_id % num_cpus) ) );
+         affine_to_cpu_mask( thr_id,
+                             (uint128_t)1LL << (thr_id % num_cpus) );
+
+       }
+#else
+       if ( (opt_affinity == -1LL) && opt_n_threads > 1 ) 
+       {
          if (opt_debug)
             applog( LOG_DEBUG, "Binding thread %d to cpu %d (mask %x)",
-                   thr_id, thr_id % num_cpus, ( 1ULL << (thr_id % num_cpus) ) );
-#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
-         affine_to_cpu_mask( thr_id,
-                             (unsigned __int128)1LL << (thr_id % num_cpus) );
-#else
+                thr_id, thr_id % num_cpus, L << (thr_id % num_cpus)) ;
          affine_to_cpu_mask( thr_id, 1ULL << (thr_id % num_cpus) );
+       }
 #endif
-      }
-      else if (opt_affinity != -1)
+      else 
       {
+#if AFFINITY_USES_UINT128
          if (opt_debug)
-             applog( LOG_DEBUG, "Binding thread %d to cpu mask %x",
-                                 thr_id, opt_affinity);
-         affine_to_cpu_mask( thr_id, opt_affinity );
+             applog( LOG_DEBUG,
+                      "Binding thread %d to cpu mask %016llx %016llx",
+                      thr_id, i128_hi64( i128_neg1 << (thr_id % num_cpus) ), 
+                              i128_lo64( i128_neg1 << (thr_id % num_cpus) ) );
+#else
+         if (opt_debug)
+             applog( LOG_DEBUG,
+                      "Binding thread %d to cpu mask %016llx %016llx",
+                      thr_id, opt_affinity );
+#endif
+      affine_to_cpu_mask( thr_id, opt_affinity );
       }
    }
 
@@ -2897,13 +2919,19 @@ void parse_arg(int key, char *arg )
 		break;
 	case 1020:
 		p = strstr(arg, "0x");
-		if (p)
-			ul = strtoul(p, NULL, 16);
+		if ( p )
+			ul = strtoull( p, NULL, 16 );
 		else
-			ul = atol(arg);
-		if (ul > (1UL<<num_cpus)-1)
-			ul = -1;
-		opt_affinity = ul;
+			ul = atoll( arg );
+//		if ( ul > ( 1ULL << num_cpus ) - 1ULL )
+//			ul = -1LL;
+#if AFFINITY_USES_UINT128
+// replicate the low 64 bits to make a full 128 bit mask
+		opt_affinity = (uint128_t)(ul);
+                opt_affinity = (opt_affinity << 64 ) | (uint128_t)ul;
+#else
+                opt_affinity = ul;
+#endif
 		break;
 	case 1021:
 		v = atoi(arg);
@@ -3387,6 +3415,8 @@ int main(int argc, char *argv[])
    if ( num_cpus != opt_n_threads )   
      applog( LOG_INFO,"%u CPU cores available, %u miner threads selected.",
              num_cpus, opt_n_threads );
+
+// To be reviewed
    if ( opt_affinity != -1 )
    {
       if ( num_cpus > 64 )

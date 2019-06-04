@@ -99,7 +99,22 @@
 #include <memory.h>
 #include <stdbool.h>
 
-// 64 bit seems completely useless
+// First some integer stuff that mirrors the SIMD utilities
+
+#define ROR_64( x, c ) ((x)>>(c) | ((x)<<(64-(c))))
+#define ROL_64( x, c ) ((x)<<(c) | ((x)>>(64-(c))))
+#define ROR_32( x, c ) ((x)>>(c) | ((x)<<(32-(c))))
+#define ROL_32( x, c ) ((x)<<(c) | ((x)>>(32-(c))))
+#define BSWAP_64( x )  __builtin_bswap64(x)
+#define BSWAP_32( x )  __builtin_bswap32(x)
+
+// __int128
+
+typedef unsigned __int128 uint128_t;
+
+#define i128_neg1        (uint128_t)(-1LL)
+#define i128_hi64( x )   (uint64_t)( (uint128_t)(x) >> 64 )
+#define i128_lo64( x )   (uint64_t)( (uint128_t)(x) << 64 >> 64 )
 
 ////////////////////////////////////////////////////////////////
 //
@@ -163,6 +178,7 @@ typedef union _m64_v16 m64_v16;
 
 
 #define casti_m64(p,i) (((__m64*)(p))[(i)])
+
 
 
 // cast all arguments as the're likely uint64_t
@@ -254,6 +270,12 @@ static inline void memset_zero_64( __m64 *src, int n )
 
 static inline void memset_64( __m64 *dst, const __m64 a,  int n )
 {   for ( int i = 0; i < n; i++ ) dst[i] = a; }
+
+// The b is for broadcast, don't use in hybrid hash, interleave.
+static inline void mem_bcpy_32( __m64 *dst, const uint32_t src, int n )
+{
+   for ( int i = 0; i < n; i++ ) dst[i] = _mm_set1_pi32( src );
+}
 
 
 //////////////////////////////////////////////////////////////////
