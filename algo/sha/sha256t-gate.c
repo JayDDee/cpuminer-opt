@@ -2,7 +2,11 @@
 
 bool register_sha256t_algo( algo_gate_t* gate )
 {
-#if defined(SHA256T_8WAY)
+#if defined(SHA256T_11WAY)
+    gate->optimizations = SSE2_OPT | AVX2_OPT | SHA_OPT;
+    gate->scanhash   = (void*)&scanhash_sha256t_11way;
+    gate->hash       = (void*)&sha256t_11way_hash;
+#elif defined(SHA256T_8WAY)
     gate->optimizations = SSE2_OPT | AVX2_OPT | SHA_OPT;
     gate->scanhash   = (void*)&scanhash_sha256t_8way;
     gate->hash       = (void*)&sha256t_8way_hash;

@@ -122,12 +122,11 @@ typedef struct {
 } sha256_11way_context;
 
 void sha256_11way_init( sha256_11way_context *ctx );
-void sha256_11way( sha256_11way_context *ctx, const void *datax,
-	                 void *datay, void *dataz, size_t len );
+void sha256_11way_update( sha256_11way_context *ctx, const void *datax,
+	                 const void *datay, const void *dataz, size_t len );
 void sha256_11way_close( sha256_11way_context *ctx, void *dstx, void *dstyx,
 	                 void *dstz  );
 
-
-#endif
-#endif
-#endif
+#endif  // __AVX2__
+#endif  // __SSE2__
+#endif  // SHA256_4WAY_H__

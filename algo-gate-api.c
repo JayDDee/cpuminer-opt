@@ -345,9 +345,9 @@ const char* const algo_alias_map[][2] =
   { NULL,                NULL           }   
 };
 
-// if arg is a valid alias for a known algo it is updated with the proper name.
-// No validation of the algo or alias is done, It is the responsinility of the
-// calling function to validate the algo after return.
+// if arg is a valid alias for a known algo it is updated with the proper
+// name. No validation of the algo or alias is done, It is the responsinility
+// of the calling function to validate the algo after return.
 void get_algo_alias( char** algo_or_alias )
 {
   int i;
@@ -362,3 +362,21 @@ void get_algo_alias( char** algo_or_alias )
 
 #undef ALIAS
 #undef PROPER
+
+bool submit_solution( struct work *work, void *hash,
+                      struct thr_info *thr, int lane )
+{
+     work_set_target_ratio( work, hash );
+     if ( submit_work( thr, work ) )
+     {
+         applog( LOG_NOTICE, "Share %d submitted by thread %d, lane %d.",
+                 accepted_share_count + rejected_share_count + 1,
+                 thr->id, lane );
+         return true;
+     }
+     else
+          applog( LOG_WARNING, "Failed to submit share." );
+     return false;
+}
+
+

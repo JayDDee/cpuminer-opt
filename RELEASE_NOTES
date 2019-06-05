@@ -38,7 +38,13 @@ supported.
 Change Log
 ----------
 
-v3.9.2.1
+v3.9.2.3
+
+Another cpu-affinity fix.
+Disabled test code that fails to compile on some CPUs with limited
+AVX512 capabilities.
+
+v3.9.2.2
 
 Fixed some day one cpu-affinity issues.
 

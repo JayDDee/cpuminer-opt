@@ -101,14 +101,14 @@
 
 // First some integer stuff that mirrors the SIMD utilities
 
-#define ROR_64( x, c ) ((x)>>(c) | ((x)<<(64-(c))))
-#define ROL_64( x, c ) ((x)<<(c) | ((x)>>(64-(c))))
-#define ROR_32( x, c ) ((x)>>(c) | ((x)<<(32-(c))))
-#define ROL_32( x, c ) ((x)<<(c) | ((x)>>(32-(c))))
-#define BSWAP_64( x )  __builtin_bswap64(x)
-#define BSWAP_32( x )  __builtin_bswap32(x)
+#define ror_64( x, c ) (((x)>>(c)) | ((x)<<(64-(c))))
+#define rol_64( x, c ) (((x)<<(c)) | ((x)>>(64-(c))))
+#define ror_32( x, c ) (((x)>>(c)) | ((x)<<(32-(c))))
+#define rol_32( x, c ) (((x)<<(c)) | ((x)>>(32-(c))))
+#define bswap_64( x )  __builtin_bswap64(x)
+#define bswap_32( x )  __builtin_bswap32(x)
 
-// __int128
+// 128 bit integer
 
 typedef unsigned __int128 uint128_t;
 
@@ -123,11 +123,7 @@ typedef unsigned __int128 uint128_t;
 // There are rumours MMX wil be removed. Although casting with int64
 // works there is likely some overhead to move the data to An MMX register
 // and back.
-// Byte swap and rotation may be more efficient using an MMX shuffle
-// except that it won't compile due to a "target specific option mismatch"
-// with "inlining failed in call to always inline". MMX was designed for
-// 32 bit CPUs and might not work on 64 bit CPUs where the CPU has full
-// support for 64 bit operations without vectoring.  
+// Byte swap and rotation may be more efficient using an MMX shuffle.
 //
 // Universal 64 bit overlay
 union _m64v
@@ -1939,7 +1935,7 @@ do { \
 
 #endif   // AVX512F
 
-#if 1
+#if 0
 //////////////////////////////////////////////////
 //
 //   Compile test.

@@ -2926,11 +2926,13 @@ void parse_arg(int key, char *arg )
 //		if ( ul > ( 1ULL << num_cpus ) - 1ULL )
 //			ul = -1LL;
 #if AFFINITY_USES_UINT128
-// replicate the low 64 bits to make a full 128 bit mask
-		opt_affinity = (uint128_t)(ul);
-                opt_affinity = (opt_affinity << 64 ) | (uint128_t)ul;
+// replicate the low 64 bits to make a full 128 bit maski if there are more
+// than 64 CPUs, otherwise zero extend the upper half.
+                opt_affinity = (uint128_t)ul;
+                if ( num_cpus > 64 )
+                   opt_affinity = (opt_affinity << 64 ) | (uint128_t)ul;
 #else
-                opt_affinity = ul;
+                   opt_affinity = ul;
 #endif
 		break;
 	case 1021:

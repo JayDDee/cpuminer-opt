@@ -196,8 +196,9 @@ void four_way_not_tested();
 int null_scanhash();
 
 // The one and only, a callback for scanhash.
-
-
+bool submit_solution( struct work *work, void *hash,
+                      struct thr_info *thr, int lane );
+ 
 bool submit_work( struct thr_info *thr, const struct work *work_in );
 
 // displays warning

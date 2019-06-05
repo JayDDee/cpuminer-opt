@@ -9,7 +9,7 @@
 // naming convention for variables and macros
 // VARx: AVX2 8 way 32 bit
 // VARy: MMX 2 way 32 bit
-// VARz: 32 bit integer
+// VARz: scalar integer 32 bit
 
 
 static const uint32_t H256[8] =
@@ -18,7 +18,7 @@ static const uint32_t H256[8] =
         0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
 };
 
-static const uont32_t K256[64] = 
+static const uint32_t K256[64] = 
 {
         0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
         0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
@@ -57,29 +57,25 @@ static const uont32_t K256[64] =
 
 #define MAJz(X, Y, Z)  ( ( (X) & (Y) ) | ( ( (X) | (Y) ) & (Z) ) )
 
-
 #define BSG2_0x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-       mm256_ror_32(x,2), mm256_ror_32(x,13) ), mm256_ror_32( x,22) )
+       mm256_ror_32(x,2), mm256_ror_32(x,13) ), _mm256_srli_epi32(x,22) )
 
 #define BSG2_0y(x) \
    _mm_xor_si64( _mm_xor_si64( \
-       mm64_ror_32(x,2), mm64_ror_32(x,13) ), mm64_ror_32( x,22) )
+       mm64_ror_32(x,2), mm64_ror_32(x,13) ), _mm_srli_pi32(x,22) )
 
-#define BSG2_0z(x)  ( ( ror_32(x,2) ^ ror_32(x,13) ) ^ ror_32(x,22) )
-
+#define BSG2_0z(x)  ( ror_32(x,2) ^ ror_32(x,13)  ^ ((x)>>22) )
 
 #define BSG2_1x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
-       mm256_ror_32(x,6), mm256_ror_32(x,11) ), mm256_ror_32( x,25) )
+       mm256_ror_32(x,6), mm256_ror_32(x,11) ), _mm256_srli_epi32(x,25) )
 
 #define BSG2_1y(x) \
    _mm_xor_si64( _mm_xor_si64( \
-       mm64_ror_32(x,6), mm64_ror_32(x,11) ), mm64_ror_32( x,25) )
+       mm64_ror_32(x,6), mm64_ror_32(x,11) ), _mm_srli_pi32(x,25) )
 
-#define BSG2_1z(x) \
-      (mm256_ror_32(x,6) ^ mm256_ror_32(x,11) ^ mm256_ror_32( x,25) )
-
+#define BSG2_1z(x)   ( ror_32(x,6) ^ ror_32(x,11) ^ ((x)>>25) )
 
 #define SSG2_0x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
@@ -87,30 +83,35 @@ static const uont32_t K256[64] =
 
 #define SSG2_0y(x) \
    _mm_xor_si64( _mm_xor_si64( \
-       mm64_ror_32(x,7), mm64_ror_32(x,18) ), _mm64_srli_pi32(x,3) )
+       mm64_ror_32(x,7), mm64_ror_32(x,18) ), _mm_srli_pi32(x,3) )
 
-#define SSG2_0z(x)  ( ror_32(x,7) ^ ror_32(x,18) ^ ((x)>>3) )
-
+#define SSG2_0z(x)  (( ror_32(x,7) ^ ror_32(x,18) ) ^ ((x)>>3) )
 
 #define SSG2_1x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
        mm256_ror_32(x,17), mm256_ror_32(x,19) ), _mm256_srli_epi32(x,10) )
 
+#define SSG2_1y(x) \
+   _mm_xor_si64( _mm_xor_si64( \
+       mm64_ror_32(x,17), mm64_ror_32(x,19) ), _mm_srli_pi32(x,10) )
+
+#define SSG2_1z(x)   ( ror_32(x,17) ^ ror_32(x,19)  ^ ((x)>>10) )
+
 #define SHA2x_MEXP( a, b, c, d ) \
      _mm256_add_epi32( _mm256_add_epi32( _mm256_add_epi32( \
-                 SSG2_1x( Wx[a] ), Wx[b] ), SSG2_0x( Wx[c] ) ), Wx[d] );
+                 SSG2_1x( Wx[a] ), Wx[b] ), SSG2_0x( Wx[c] ) ), Wx[d] )
 
 #define SHA2y_MEXP( a, b, c, d ) \
      _mm_add_pi32( _mm_add_pi32( _mm_add_pi32( \
-                 SSG2_1y( Wy[a] ), Wy[b] ), SSG2_0y( Wy[c] ) ), Wy[d] );
+                 SSG2_1y( Wy[a] ), Wy[b] ), SSG2_0y( Wy[c] ) ), Wy[d] )
 
 #define SHA2z_MEXP( a, b, c, d ) \
-               ( SSG2_1z( Wz[a] ) + Wz[b] + SSG2_0z( Wz[c] ) + Wz[d] );
+               ( SSG2_1z( Wz[a] ) + Wz[b] + SSG2_0z( Wz[c] ) + Wz[d] )
 
 
 #define SHA2s_11WAY_STEP( Ax, Bx, Cx, Dx, Ex, Fx, Gx, Hx, \
 	                  Ay, By, Cy, Dy, Ey, Fy, Gy, Hy, \
-		          Ax, Bx, Cz, Dz, Ez, Fz, Gz, Hz, i, j) \
+		          Az, Bz, Cz, Dz, Ez, Fz, Gz, Hz, i, j) \
 do { \
   __m256i T1x, T2x; \
   __m64 T1y, T2y; \
@@ -119,22 +120,22 @@ do { \
         _mm256_add_epi32( Hx, BSG2_1x(Ex) ), CHx(Ex, Fx, Gx) ), \
                           _mm256_set1_epi32( K256[( (j)+(i) )] ) ), Wx[i] ); \
   T1y = _mm_add_pi32( _mm_add_pi32( _mm_add_pi32( \
-        _mm_add_pi32( H, BSG2_1x(Ey) ), CHx(Ey, Fy, Gy) ), \
+        _mm_add_pi32( Hy, BSG2_1y(Ey) ), CHy(Ey, Fy, Gy) ), \
                           _mm_set1_pi32( K256[( (j)+(i) )] ) ), Wy[i] ); \
   T1z = Hz + BSG2_1z( Ez ) + CHz( Ez, Fz, Gz ) + K256[ ((j)+(i)) ] + Wz[i]; \
   T2x = _mm256_add_epi32( BSG2_0x(Ax), MAJx(Ax, Bx, Cx) ); \
-  T2y = _mm256_add_epi32( BSG2_0y(Ay), MAJy(Ay, By, Cy) ); \
-  T2z = BSG2_0z( Az ) + MAJz( Az, Bz, Cz ); \ \
+  T2y = _mm_add_pi32( BSG2_0y(Ay), MAJy(Ay, By, Cy) ); \
+  T2z = BSG2_0z( Az ) + MAJz( Az, Bz, Cz ); \
   Dx  = _mm256_add_epi32( Dx,  T1x ); \
-  Dy  = _mm256_add_epi32( Dy,  T1y ); \
+  Dy  = _mm_add_pi32( Dy, T1y ); \
   Dz  = Dz + T1z; \
   Hx  = _mm256_add_epi32( T1x, T2x ); \
-  Hy = _mm256_add_epi32( T1y, T2y ); \
-  Hz = T1z + T2z; \
+  Hy  = _mm_add_pi32( T1y, T2y ); \
+  Hz  = T1z + T2z; \
 } while (0)
 	
-sha256_8way_round( __m256i *inx, __m256i rx[8], __m64 *iny, __m64 *ry[8],
-	           uint32_t inz, uint32_t *rz[8] )
+void sha256_11way_round( __m256i *inx, __m256i rx[8], __m64 *iny, __m64 ry[8],
+                         uint32_t *inz, uint32_t rz[8] )
 {
    __m256i Ax, Bx, Cx, Dx, Ex, Fx, Gx, Hx;
    __m256i Wx[16];
@@ -169,43 +170,43 @@ sha256_8way_round( __m256i *inx, __m256i rx[8], __m64 *iny, __m64 *ry[8],
 
    Wx[ 6] = mm256_bswap_32( inx[ 6] );
    Wy[ 6] =  mm64_bswap_32( iny[ 6] );
-   Wz[ 6] =       bswap_32( inx[ 6] );
+   Wz[ 6] =       bswap_32( inz[ 6] );
 
    Wx[ 7] = mm256_bswap_32( inx[ 7] );
    Wy[ 7] =  mm64_bswap_32( iny[ 7] );
-   Wz[ 7] =       bswap_32( inx[ 7] );
+   Wz[ 7] =       bswap_32( inz[ 7] );
 
    Wx[ 8] = mm256_bswap_32( inx[ 8] );
    Wy[ 8] =  mm64_bswap_32( iny[ 8] );
-   Wz[ 8] =       bswap_32( inx[ 8] );
+   Wz[ 8] =       bswap_32( inz[ 8] );
 
    Wx[ 9] = mm256_bswap_32( inx[ 9] );
    Wy[ 9] =  mm64_bswap_32( iny[ 9] );
-   Wz[ 9] =       bswap_32( inx[ 9] );
+   Wz[ 9] =       bswap_32( inz[ 9] );
 
    Wx[10] = mm256_bswap_32( inx[10] );
    Wy[10] =  mm64_bswap_32( iny[10] );
-   Wz[10] =       bswap_32( inx[10] );
+   Wz[10] =       bswap_32( inz[10] );
 
    Wx[11] = mm256_bswap_32( inx[11] );
    Wy[11] =  mm64_bswap_32( iny[11] );
-   Wz[11] =       bswap_32( inx[11] );
+   Wz[11] =       bswap_32( inz[11] );
 
    Wx[12] = mm256_bswap_32( inx[12] );
    Wy[12] =  mm64_bswap_32( iny[12] );
-   Wz[12] =       bswap_32( inx[12] );
+   Wz[12] =       bswap_32( inz[12] );
 
    Wx[13] = mm256_bswap_32( inx[13] );
    Wy[13] =  mm64_bswap_32( iny[13] );
-   Wz[13] =       bswap_32( inx[13] );
+   Wz[13] =       bswap_32( inz[13] );
 
    Wx[14] = mm256_bswap_32( inx[14] );
    Wy[14] =  mm64_bswap_32( iny[14] );
-   Wz[14] =       bswap_32( inx[14] );
+   Wz[14] =       bswap_32( inz[14] );
 
    Wx[15] = mm256_bswap_32( inx[15] );
    Wy[15] =  mm64_bswap_32( iny[15] );
-   Wz[15] =       bswap_32( inx[15] );
+   Wz[15] =       bswap_32( inz[15] );
 
    SHA2s_11WAY_STEP( Ax, Bx, Cx, Dx, Ex, Fx, Gx, Hx,
                      Ay, By, Cy, Dy, Ey, Fy, Gy, Hy,
@@ -325,52 +326,52 @@ sha256_8way_round( __m256i *inx, __m256i rx[8], __m64 *iny, __m64 *ry[8],
 
       SHA2s_11WAY_STEP( Ax, Bx, Cx, Dx, Ex, Fx, Gx, Hx,
                         Ay, By, Cy, Dy, Ey, Fy, Gy, Hy,
-			Az, By, Cz, Dz, Ez, Fy, Gz, Hz,	 0, j );
+			Az, Bz, Cz, Dz, Ez, Fz, Gz, Hz,	 0, j );
       SHA2s_11WAY_STEP( Hx, Ax, Bx, Cx, Dx, Ex, Fx, Gx,
 		        Hy, Ay, By, Cy, Dy, Ey, Fy, Gy,
-		       	HZ, Az, By, Cz, Dz, Ez, Fy, Gz,  1, j );
+		       	Hz, Az, Bz, Cz, Dz, Ez, Fz, Gz,  1, j );
       SHA2s_11WAY_STEP( Gx, Hx, Ax, Bx, Cx, Dx, Ex, Fx,
 		        Gy, Hy, Ay, By, Cy, Dy, Ey, Fy,
-		       	Gz, HZ, Az, By, Cz, Dz, Ez, Fy,  2, j );
+		       	Gz, Hz, Az, Bz, Cz, Dz, Ez, Fz,  2, j );
       SHA2s_11WAY_STEP( Fx, Gx, Hx, Ax, Bx, Cx, Dx, Ex,
 		        Fy, Gy, Hy, Ay, By, Cy, Dy, Ey,
-		       	Fz, Gz, HZ, Az, By, Cz, Dz, Ez,  3, j );
+		       	Fz, Gz, Hz, Az, Bz, Cz, Dz, Ez,  3, j );
       SHA2s_11WAY_STEP( Ex, Fx, Gx, Hx, Ax, Bx, Cx, Dx,
 		        Ey, Fy, Gy, Hy, Ay, By, Cy, Dy,
-		       	Ez, Fz, Gz, HZ, Az, By, Cz, Dz,  4, j );
+		       	Ez, Fz, Gz, Hz, Az, Bz, Cz, Dz,  4, j );
       SHA2s_11WAY_STEP( Dx, Ex, Fx, Gx, Hx, Ax, Bx, Cx,
 		        Dy, Ey, Fy, Gy, Hy, Ay, By, Cy,
-		       	Dz, Ez, Fz, Gz, HZ, Az, By, Cz,  5, j );
+		       	Dz, Ez, Fz, Gz, Hz, Az, Bz, Cz,  5, j );
       SHA2s_11WAY_STEP( Cx, Dx, Ex, Fx, Gx, Hx, Ax, Bx,
 		        Cy, Dy, Ey, Fy, Gy, Hy, Ay, By,
-		       	Cz, Dz, Ez, Fz, Gz, HZ, Az, By,  6, j );
+		       	Cz, Dz, Ez, Fz, Gz, Hz, Az, Bz,  6, j );
       SHA2s_11WAY_STEP( Bx, Cx, Dx, Ex, Fx, Gx, Hx, Ax,
 		        By, Cy, Dy, Ey, Fy, Gy, Hy, Ay,
-		       	Bz, Cz, Dz, Ez, Fz, Gz, HZ, Az,  7, j );
+		       	Bz, Cz, Dz, Ez, Fz, Gz, Hz, Az,  7, j );
       SHA2s_11WAY_STEP( Ax, Bx, Cx, Dx, Ex, Fx, Gx, Hx,
                         Ay, By, Cy, Dy, Ey, Fy, Gy, Hy,
-                        Az, By, Cz, Dz, Ez, Fy, Gz, Hz,  8, j );
+                        Az, Bz, Cz, Dz, Ez, Fz, Gz, Hz,  8, j );
       SHA2s_11WAY_STEP( Hx, Ax, Bx, Cx, Dx, Ex, Fx, Gx, 
                         Hy, Ay, By, Cy, Dy, Ey, Fy, Gy, 
-                        HZ, Az, By, Cz, Dz, Ez, Fy, Gz,  9, j );
+                        Hz, Az, Bz, Cz, Dz, Ez, Fz, Gz,  9, j );
       SHA2s_11WAY_STEP( Gx, Hx, Ax, Bx, Cx, Dx, Ex, Fx, 
                         Gy, Hy, Ay, By, Cy, Dy, Ey, Fy, 
-                        Gz, HZ, Az, By, Cz, Dz, Ez, Fy, 10, j );
+                        Gz, Hz, Az, Bz, Cz, Dz, Ez, Fz, 10, j );
       SHA2s_11WAY_STEP( Fx, Gx, Hx, Ax, Bx, Cx, Dx, Ex, 
                         Fy, Gy, Hy, Ay, By, Cy, Dy, Ey, 
-                        Fz, Gz, HZ, Az, By, Cz, Dz, Ez, 11, j );
+                        Fz, Gz, Hz, Az, Bz, Cz, Dz, Ez, 11, j );
       SHA2s_11WAY_STEP( Ex, Fx, Gx, Hx, Ax, Bx, Cx, Dx, 
                         Ey, Fy, Gy, Hy, Ay, By, Cy, Dy, 
-                        Ez, Fz, Gz, HZ, Az, By, Cz, Dz, 12, j );
+                        Ez, Fz, Gz, Hz, Az, Bz, Cz, Dz, 12, j );
       SHA2s_11WAY_STEP( Dx, Ex, Fx, Gx, Hx, Ax, Bx, Cx, 
                         Dy, Ey, Fy, Gy, Hy, Ay, By, Cy, 
-                        Dz, Ez, Fz, Gz, HZ, Az, By, Cz, 13, j );
+                        Dz, Ez, Fz, Gz, Hz, Az, Bz, Cz, 13, j );
       SHA2s_11WAY_STEP( Cx, Dx, Ex, Fx, Gx, Hx, Ax, Bx, 
                         Cy, Dy, Ey, Fy, Gy, Hy, Ay, By, 
-                        Cz, Dz, Ez, Fz, Gz, HZ, Az, By, 14, j );
+                        Cz, Dz, Ez, Fz, Gz, Hz, Az, Bz, 14, j );
       SHA2s_11WAY_STEP( Bx, Cx, Dx, Ex, Fx, Gx, Hx, Ax, 
                         By, Cy, Dy, Ey, Fy, Gy, Hy, Ay, 
-                        Bz, Cz, Dz, Ez, Fz, Gz, HZ, Az, 15, j );
+                        Bz, Cz, Dz, Ez, Fz, Gz, Hz, Az, 15, j );
    }
 
    rx[0] = _mm256_add_epi32( rx[0], Ax );
@@ -384,7 +385,7 @@ sha256_8way_round( __m256i *inx, __m256i rx[8], __m64 *iny, __m64 *ry[8],
    rz[3] =                   rz[3]+ Dz;
    rx[4] = _mm256_add_epi32( rx[4], Ex );
    ry[4] =     _mm_add_pi32( ry[4], Ey );
-   rz[4] =                   rz[4], Ez;
+   rz[4] =                   rz[4]+ Ez;
    rx[5] = _mm256_add_epi32( rx[5], Fx );
    ry[5] =     _mm_add_pi32( ry[5], Fy );
    rz[5] =                   rz[5]+ Fz;
@@ -397,7 +398,7 @@ sha256_8way_round( __m256i *inx, __m256i rx[8], __m64 *iny, __m64 *ry[8],
 
 }
 
-void sha256_8way_init( sha256_11way_context *ctx )
+void sha256_11way_init( sha256_11way_context *ctx )
 {
    ctx->count_high = ctx->count_low = 0;
    ctx->valx[0] = _mm256_set1_epi32( H256[0] );
@@ -416,12 +417,12 @@ void sha256_8way_init( sha256_11way_context *ctx )
    ctx->valy[6] =     _mm_set1_pi32( H256[0] );
    ctx->valx[7] = _mm256_set1_epi32( H256[0] );
    ctx->valy[7] =     _mm_set1_pi32( H256[0] );
-   memscpy( ctx->valz, H256, 32 );
+   memcpy( ctx->valz, H256, 32 );
 }
 
 
-void sha256_11way( sha256_11way_context *ctx, const void *datax,
-	          const void *datay, const void *dataz, size_t len )
+void sha256_11way_update( sha256_11way_context *ctx, const void *datax,
+	                  const void *datay, const void *dataz, size_t len )
 {
    __m256i  *vdatax = (__m256i*) datax;
     __m64   *vdatay = (__m64*)   datay;
@@ -440,26 +441,26 @@ void sha256_11way( sha256_11way_context *ctx, const void *datax,
          clen = len;
       memcpy_256( ctx->bufx + (ptr>>2), vdatax + (ptr>>2), clen>>2 );
       memcpy_64 ( ctx->bufy + (ptr>>2), vdatay + (ptr>>2), clen>>2 );
-      memcpy    ( ctx->bufz +  ptr,     sdataz +  ptr,     clen    );
+      memcpy    ( ctx->bufz +  ptr,     idataz +  ptr,     clen    );
       ptr += clen;
       len -= clen;
       if ( ptr == buf_size )
       {
          sha256_11way_round( ctx->bufx, ctx->valx,
 			     ctx->bufy, ctx->valy,
-			     ctx->bufz, ctx->valzx, );
+			     ctx->bufz, ctx->valz );
          ptr = 0;
       }
-      clow = sc->count_low;
+      clow = ctx->count_low;
       clow2 = clow + clen;
-      sc->count_low = clow2;
+      ctx->count_low = clow2;
       if ( clow2 < clow )
-         sc->count_high++;
+         ctx->count_high++;
    }
 }
 
 
-void sha256_11way_close( sha256_11way_context *ctx, void *dstx, void dsty,
+void sha256_11way_close( sha256_11way_context *ctx, void *dstx, void *dsty,
 	                                            void *dstz)
 {
     unsigned ptr, u;
@@ -487,9 +488,9 @@ void sha256_11way_close( sha256_11way_context *ctx, void *dstx, void dsty,
     }
     else
     {
-        memset_zero_256( ctx->bufx + (ptr>>2), (pad - ptr) >> 2 );
-        memset_zero_64(  ctx->bufy + (ptr>>2), (pad - ptr) >> 2 );
-        memset(        ctx->bufz + (ptr>>2), 0 (pad - ptr) >> 2 );
+        memset_zero_256( ctx->bufx + (ptr>>2),    (pad - ptr) >> 2 );
+        memset_zero_64(  ctx->bufy + (ptr>>2),    (pad - ptr) >> 2 );
+        memset(          ctx->bufz + (ptr>>2), 0, (pad - ptr) >> 2 );
     }
 
     low = ctx->count_low;
@@ -511,9 +512,9 @@ void sha256_11way_close( sha256_11way_context *ctx, void *dstx, void dsty,
     ctx->bufz[ ( pad+4 ) >> 2 ] =
                  bswap_32( low );
 
-    sha256_8way_round( ctx->bufx, ctx->valx,
+    sha256_11way_round( ctx->bufx, ctx->valx,
 		       ctx->bufy, ctx->valy,
-		       ctx->bufz, ctx->valz,  );
+		       ctx->bufz, ctx->valz  );
 
     for ( u = 0; u < 8; u ++ )
     {
@@ -523,4 +524,4 @@ void sha256_11way_close( sha256_11way_context *ctx, void *dstx, void dsty,
    }
 }
 
-
+#endif
