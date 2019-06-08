@@ -18,38 +18,41 @@ void lyra2z330_hash(void *state, const void *input, uint32_t height)
 int scanhash_lyra2z330( int thr_id, struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr )
 {
-	uint32_t hash[8] __attribute__ ((aligned (64))); 
-	uint32_t endiandata[20] __attribute__ ((aligned (64)));
-	uint32_t *pdata = work->data;
-	uint32_t *ptarget = work->target;
-	const uint32_t Htarg = ptarget[7];
-	const uint32_t first_nonce = pdata[19];
-	uint32_t nonce = first_nonce;
+   uint32_t hash[8] __attribute__ ((aligned (64))); 
+   uint32_t endiandata[20] __attribute__ ((aligned (64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t Htarg = ptarget[7];
+   const uint32_t first_nonce = pdata[19];
+   uint32_t nonce = first_nonce;
    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
-	if (opt_benchmark)
-		ptarget[7] = 0x0000ff;
 
-	for (int i=0; i < 19; i++) {
-		be32enc(&endiandata[i], pdata[i]);
-	}
+   if (opt_benchmark)
+	ptarget[7] = 0x0000ff;
 
-	do {
-		be32enc(&endiandata[19], nonce);
-		lyra2z330_hash( hash, endiandata, work->height );
-
-		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
-			work_set_target_ratio(work, hash);
-			pdata[19] = nonce;
-			*hashes_done = pdata[19] - first_nonce;
-			return 1;
-		}
-		nonce++;
-
-	} while (nonce < max_nonce && !work_restart[thr_id].restart);
-
-	pdata[19] = nonce;
-	*hashes_done = pdata[19] - first_nonce + 1;
-	return 0;
+   for (int i=0; i < 19; i++)
+      be32enc(&endiandata[i], pdata[i]);
+        
+   do
+   {
+      be32enc(&endiandata[19], nonce);
+      lyra2z330_hash( hash, endiandata, work->height );
+      if ( hash[7] <= Htarg && fulltest(hash, ptarget) )
+      {
+         work_set_target_ratio(work, hash);
+         pdata[19] = nonce;
+         if ( submit_work( mythr, work ) )
+             applog( LOG_NOTICE, "Share %d submitted by thread %d",
+                     accepted_share_count + rejected_share_count + 1,
+                     mythr->id );
+         else
+             applog( LOG_WARNING, "Failed to submit share." );
+      }
+      nonce++;
+   } while (nonce < max_nonce && !work_restart[thr_id].restart);
+   pdata[19] = nonce;
+   *hashes_done = pdata[19] - first_nonce + 1;
+   return 0;
 }
 
 void lyra2z330_set_target( struct work* work, double job_diff )

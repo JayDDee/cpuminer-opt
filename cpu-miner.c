@@ -105,11 +105,11 @@ enum algos opt_algo = ALGO_NULL;
 int opt_scrypt_n = 0;
 int opt_pluck_n = 128;
 int opt_n_threads = 0;
-#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
+// Windows doesn't support 128 bit affinity mask.
+#if defined(__linux) && defined(GCC_INT128)  
 #define AFFINITY_USES_UINT128 1
-uint128_t opt_affinity = i128_neg1;
+uint128_t opt_affinity = -1LL;
 #else
-#define AFFINITY_USES_UINT128 0
 uint64_t opt_affinity = -1LL;
 #endif
 int opt_priority = 0;
@@ -205,7 +205,8 @@ static inline void drop_policy(void)
 #define pthread_setaffinity_np(tid,sz,s) {} /* only do process affinity */
 #endif
 
-#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
+// Linux affinity can use int128.
+#if AFFINITY_USES_UINT128
 static void affine_to_cpu_mask( int id, unsigned __int128 mask )
 #else
 static void affine_to_cpu_mask( int id, unsigned long long mask )
@@ -218,7 +219,7 @@ static void affine_to_cpu_mask( int id, unsigned long long mask )
    for ( uint8_t i = 0; i < ncpus; i++ ) 
    {
       // cpu mask
-#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
+#if AFFINITY_USES_UINT128
       if( ( mask & ( (unsigned __int128)1ULL << i ) ) )  CPU_SET( i, &set );
 #else
       if( (ncpus > 64) || ( mask & (1ULL << i) ) )  CPU_SET( i, &set );
@@ -239,6 +240,7 @@ static void affine_to_cpu_mask( int id, unsigned long long mask )
 #elif defined(WIN32) /* Windows */
 static inline void drop_policy(void) { }
 
+// Windows CPU groups to manage more than 64 CPUs.
 static void affine_to_cpu_mask( int id, unsigned long mask )
 {
    bool success;
@@ -247,12 +249,12 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
 //   DWORD last_error;
 
    if ( id == -1 )
-	success = SetProcessAffinityMask( GetCurrentProcess(), (DWORD_PTR)&mask );
+	success = SetProcessAffinityMask( GetCurrentProcess(), mask );
 
 // Are Windows CPU Groups supported?
 #if _WIN32_WINNT==0x0601
    else if ( num_cpugroups == 1 )
-	success = SetThreadAffinityMask( GetCurrentThread(), (DWORD_PTR)&mask );
+	success = SetThreadAffinityMask( GetCurrentThread(), mask );
    else
    {
 	// Find the correct cpu group
@@ -265,7 +267,7 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
 	      break;
 
   	   cpu -= cpus;
-         }
+   }
 
 	if (opt_debug)
 	applog(LOG_DEBUG, "Binding thread %d to cpu %d on cpu group %d (mask %x)", id, cpu, group, (1ULL << cpu));
@@ -277,7 +279,7 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
    }
 #else
    else 
-        success = SetThreadAffinityMask( GetCurrentThread(), (DWORD_PTR)&mask );
+        success = SetThreadAffinityMask( GetCurrentThread(), mask );
 #endif
 
    if (!success)
@@ -1848,40 +1850,36 @@ static void *miner_thread( void *userdata )
    if ( num_cpus > 1 )
    {
 #if AFFINITY_USES_UINT128
+       // Default affinity
        if ( (opt_affinity == i128_neg1 ) && opt_n_threads > 1 )
-       {
+       {  
          if ( opt_debug )
-            applog( LOG_DEBUG,
-	  	      "Binding thread %d to cpu %d (mask %016llx %016llx)",
-                      thr_id, thr_id % num_cpus,
-	       	      i128_hi64( i128_neg1 << (thr_id % num_cpus) ),
-		      i128_lo64( i128_neg1 << (thr_id % num_cpus) ) );
-         affine_to_cpu_mask( thr_id,
-                             (uint128_t)1LL << (thr_id % num_cpus) );
-
+            applog( LOG_DEBUG, "Binding thread %d to cpu %d.",
+                    thr_id, thr_id % num_cpus,
+	                 i128_hi64( (uint128_t)1ULL << (thr_id % num_cpus) ),
+		              i128_lo64( (uint128_t)1ULL << (thr_id % num_cpus) ) );
+         affine_to_cpu_mask( thr_id, (uint128_t)1ULL << (thr_id % num_cpus) );
        }
 #else
        if ( (opt_affinity == -1LL) && opt_n_threads > 1 ) 
        {
          if (opt_debug)
-            applog( LOG_DEBUG, "Binding thread %d to cpu %d (mask %x)",
-                thr_id, thr_id % num_cpus, L << (thr_id % num_cpus)) ;
+            applog( LOG_DEBUG, "Binding thread %d to cpu %d.",
+                thr_id, thr_id % num_cpus, 1LL << (thr_id % num_cpus)) ;
          affine_to_cpu_mask( thr_id, 1ULL << (thr_id % num_cpus) );
        }
 #endif
-      else 
+      else   // Custom affinity
       {
 #if AFFINITY_USES_UINT128
          if (opt_debug)
-             applog( LOG_DEBUG,
-                      "Binding thread %d to cpu mask %016llx %016llx",
-                      thr_id, i128_hi64( i128_neg1 << (thr_id % num_cpus) ), 
-                              i128_lo64( i128_neg1 << (thr_id % num_cpus) ) );
+             applog( LOG_DEBUG, "Binding thread %d to mask %016llx %016llx",
+                                thr_id, i128_hi64( opt_affinity ), 
+                                        i128_lo64( opt_affinity ) );
 #else
          if (opt_debug)
-             applog( LOG_DEBUG,
-                      "Binding thread %d to cpu mask %016llx %016llx",
-                      thr_id, opt_affinity );
+             applog( LOG_DEBUG, "Binding thread %d to mask %016llx",
+                                 thr_id, opt_affinity );
 #endif
       affine_to_cpu_mask( thr_id, opt_affinity );
       }
@@ -2926,7 +2924,7 @@ void parse_arg(int key, char *arg )
 //		if ( ul > ( 1ULL << num_cpus ) - 1ULL )
 //			ul = -1LL;
 #if AFFINITY_USES_UINT128
-// replicate the low 64 bits to make a full 128 bit maski if there are more
+// replicate the low 64 bits to make a full 128 bit mask if there are more
 // than 64 CPUs, otherwise zero extend the upper half.
                 opt_affinity = (uint128_t)ul;
                 if ( num_cpus > 64 )
@@ -3332,20 +3330,18 @@ int main(int argc, char *argv[])
 	}
 
 	if (!rpc_userpass)
-        {
+   {
 		rpc_userpass = (char*) malloc(strlen(rpc_user) + strlen(rpc_pass) + 2);
-                if (rpc_userpass)
-	           sprintf(rpc_userpass, "%s:%s", rpc_user, rpc_pass);
-                else
-                   return 1;
+      if (rpc_userpass)
+          sprintf(rpc_userpass, "%s:%s", rpc_user, rpc_pass);
+       else
+         return 1;
 	}
 
-        // All options must be set before starting the gate
-        if ( !register_algo_gate( opt_algo, &algo_gate ) )
-           exit(1);
+   // All options must be set before starting the gate
+   if ( !register_algo_gate( opt_algo, &algo_gate ) ) exit(1);
 
-        if ( !check_cpu_capability() )
-           exit(1);
+   if ( !check_cpu_capability() ) exit(1);
 
 	pthread_mutex_init(&stats_lock, NULL);
 	pthread_mutex_init(&g_work_lock, NULL);
@@ -3358,7 +3354,7 @@ int main(int argc, char *argv[])
 	        ? (CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL)
 	        : CURL_GLOBAL_ALL;
 	if (curl_global_init(flags))
-        {
+   {
 		applog(LOG_ERR, "CURL initialization failed");
 		return 1;
 	}

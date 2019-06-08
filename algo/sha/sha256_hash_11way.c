@@ -208,6 +208,15 @@ void sha256_11way_round( __m256i *inx, __m256i rx[8], __m64 *iny, __m64 ry[8],
    Wy[15] =  mm64_bswap_32( iny[15] );
    Wz[15] =       bswap_32( inz[15] );
 
+   Ax = rx[0];     Ay = ry[0];     Az = rz[0];
+   Bx = rx[1];     By = ry[1];     Bz = rz[1];
+   Cx = rx[2];     Cy = ry[2];     Cz = rz[2];
+   Dx = rx[3];     Dy = ry[3];     Dz = rz[3];
+   Ex = rx[4];     Ey = ry[4];     Ez = rz[4];
+   Fx = rx[5];     Fy = ry[5];     Fz = rz[5];
+   Gx = rx[6];     Gy = ry[6];     Gz = rz[6];
+   Hx = rx[7];     Hy = ry[7];     Hz = rz[7];
+
    SHA2s_11WAY_STEP( Ax, Bx, Cx, Dx, Ex, Fx, Gx, Hx,
                      Ay, By, Cy, Dy, Ey, Fy, Gy, Hy,
                      Az, Bz, Cz, Dz, Ez, Fz, Gz, Hz,  0, 0 );

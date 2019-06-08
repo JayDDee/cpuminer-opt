@@ -85,11 +85,11 @@ int scanhash_sha256t_11way( int thr_id, struct work *work, uint32_t max_nonce,
       do
       {
         *noncex = mm256_bswap_32(
-		 _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n ) );
+         _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n ) );
         *noncey = mm64_bswap_32( _mm_set_pi32( n+9, n+8 ) );
         *noncez = bswap_32( n+10 );
 
-       	pdata[19] = n;
+        pdata[19] = n;
 
         sha256t_11way_hash( hashx, hashy, hashz, datax, datay, dataz );
 
@@ -102,28 +102,29 @@ int scanhash_sha256t_11way( int thr_id, struct work *work, uint32_t max_nonce,
             mm256_extract_lane_8x32( lane_hash, hashx, i, 256 );
             if ( fulltest( lane_hash, ptarget ) )
             {
-	       pdata[19] = n + i;
+	            pdata[19] = n + i;
                submit_solution( work, lane_hash, mythr, i );
             }
-	}
+        }
 
-	hash7 = &(hashy[7<<1]);
+        hash7 = &(hashy[7<<1]);
         for( i = 0; i < 2; i++ ) if ( !(hash7[ 0] & mask ) )
+ 
         {
             mm64_extract_lane_2x32( lane_hash, hashy, i, 256 );
-  	    if ( fulltest( lane_hash, ptarget ) )
-            {
+           if ( fulltest( lane_hash, ptarget ) )
+           {
                pdata[19] = n + 8 + i;
                submit_solution( work, lane_hash, mythr, i+8 );
-            }
-	 }
+           }
+	     }
 
-	 if ( !(hashz[7] & mask ) && fulltest( hashz, ptarget ) )
-         {
+        if ( !(hashz[7] & mask ) && fulltest( hashz, ptarget ) )
+        {
             pdata[19] = n+10;
             submit_solution( work, hashz, mythr, 10 );
-         }
-         n += 11;
+        }
+        n += 11;
 
       } while ( (n < max_nonce-12) && !work_restart[thr_id].restart );
       break;

@@ -27,11 +27,15 @@
 // Convert algos that don't yet do so to use dynamic alllocation.
 // Alloc huge pages globally. If ok each thread will create a pointer to
 // its chunk. If fail each thread will use use _mm_alloc for itself. 
+// BLOCK_LEN_BYTES is 768.
 
 #define LYRA2REV3_NROWS 4
 #define LYRA2REV3_NCOLS 4
-//#define LYRA2REV3_MATRIX_SIZE ((BLOCK_LEN_BYTES)*(LYRA2REV3_NCOLS)* \
-//                                                 (LYRA2REV3_NROWS)*8)
+/*
+#define LYRA2REV3_MATRIX_SIZE ((BLOCK_LEN_BYTES)*(LYRA2REV3_NCOLS)* \
+                                                 (LYRA2REV3_NROWS)*8)
+*/
+
 #define LYRA2REV3_MATRIX_SIZE ((BLOCK_LEN_BYTES)<<4)
 
 __thread uint64_t* l2v3_wholeMatrix;

@@ -100,25 +100,67 @@
 #include <stdbool.h>
 
 // First some integer stuff that mirrors the SIMD utilities
+#define ror_64( x, c ) \
+      (uint64_t)( ( (uint64_t)(x) >> (c) ) | ( (uint64_t)(x) << (64-(c)) ) )
+#define rol_64( x, c ) \
+      (uint64_t)( ( (uint64_t)(x) << (c) ) | ( (uint64_t)(x) >> (64-(c)) ) )
+#define ror_32( x, c ) \
+      (uint32_t)( ( (uint32_t)(x) >> (c) ) | ( (uint32_t)(x) << (32-(c)) ) )
+#define rol_32( x, c ) \
+      (uint32_t)( ( (uint32_t)(x) << (c) ) | ( (uint32_t)(x) >> (32-(c)) ) )
+#define ror_16( x, c ) \
+      (uint16_t)( ( (uint16_t)(x) >> (c) ) | ( (uint16_t)(x) << (16-(c)) ) )
+#define rol_16( x, c ) \
+      (uint16_t)( ( (uint16_t)(x) << (c) ) | ( (uint16_t)(x) >> (16-(c)) ) )
+#define ror_8( x, c ) \
+      (uint8_t) ( ( (uint8_t) (x) >> (c) ) | ( (uint8_t) (x) << ( 8-(c)) ) )
+#define rol_8( x, c ) \
+      (uint8_t) ( ( (uint8_t) (x) << (c) ) | ( (uint8_t) (x) >> ( 8-(c)) ) )
 
-#define ror_64( x, c ) (((x)>>(c)) | ((x)<<(64-(c))))
-#define rol_64( x, c ) (((x)<<(c)) | ((x)>>(64-(c))))
-#define ror_32( x, c ) (((x)>>(c)) | ((x)<<(32-(c))))
-#define rol_32( x, c ) (((x)<<(c)) | ((x)>>(32-(c))))
-#define bswap_64( x )  __builtin_bswap64(x)
-#define bswap_32( x )  __builtin_bswap32(x)
+#define bswap_64( x )      __builtin_bswap64(x)
+#define bswap_32( x )      __builtin_bswap32(x)
 
 // 128 bit integer
+//
+// Int128 uses two 64 bit GPRs to hold the data. The main benefits are
+// for 128 bit arithmetic. Vectors are preferred when 128 bit arith
+// is not required. int128 also works better with other integer sizes.
+// Vectors benefit from wider registers. 
+//
+// Use typecasting for conversion to/from 128 bit vector:
+// __m128i v128 = (__m128i)my_int128l
+// __m256i v256 = _mm256_set_m128i( (__m128i)my_int128, (__m128i)my_int128 );
+// my_int128 = (uint128_t)_mm256_extracti128_si256( v256, 1 );
 
+#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
+
+// Test this before using int128.
+#define GCC_INT128 1
+
+// Familiar looking type names
+typedef          __int128  int128_t;
 typedef unsigned __int128 uint128_t;
 
+// No real need or use.
 #define i128_neg1        (uint128_t)(-1LL)
-#define i128_hi64( x )   (uint64_t)( (uint128_t)(x) >> 64 )
-#define i128_lo64( x )   (uint64_t)( (uint128_t)(x) << 64 >> 64 )
+
+// Extract selected 64 bit half of 128 bit integer.
+// A generic macro with a selector argument can't be encoded as a statement
+// function and would require a branch.
+#define i128_hi64( x )    (uint64_t)( (uint128_t)(x) >> 64 )
+#define i128_lo64( x )    (uint64_t)( (uint128_t)(x) << 64 >> 64 )
+
+// Not much need for this but it fills a gap.
+#define ror_128( x, c ) \
+       ( ( (uint128_t)(x) >> (c) ) | ( (uint128_t)(x) << (128-(c)) ) )
+#define rol_128( x, c ) \
+       ( ( (uint128_t)(x) << (c) ) | ( (uint128_t)(x) >> (128-(c)) ) )
+
+#endif  // INT128
 
 ////////////////////////////////////////////////////////////////
 //
-//         64 bit MMX vectors.
+//               64 bit MMX vectors.
 //
 // There are rumours MMX wil be removed. Although casting with int64
 // works there is likely some overhead to move the data to An MMX register

@@ -38,6 +38,10 @@ supported.
 Change Log
 ----------
 
+v3.9.2.4
+
+Yet another affinity fix. Hopefully the last one.
+
 v3.9.2.3
 
 Another cpu-affinity fix.

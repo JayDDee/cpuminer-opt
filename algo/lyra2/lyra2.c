@@ -236,7 +236,7 @@ int LYRA2REV3( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    //Tries to allocate enough space for the whole memory matrix
 
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * nCols;
-   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+//   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
    const int64_t BLOCK_LEN = BLOCK_LEN_BLAKE2_SAFE_INT64;
 /*
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * nCols;

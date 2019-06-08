@@ -194,13 +194,7 @@ int scanhash_lyra2z_8way( int thr_id, struct work *work, uint32_t max_nonce,
       if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
       {
           pdata[19] = n+i;         
-          work_set_target_ratio( work, hash+(i<<3) );
-          if ( submit_work( mythr, work ) )
-              applog( LOG_NOTICE, "Share %d submitted by thread %d, lane %d.",
-                             accepted_share_count + rejected_share_count + 1,
-                             thr_id, i );
-          else
-              applog( LOG_WARNING, "Failed to submit share." );
+          submit_solution( work, hash+(i<<3), mythr, i );
       }
       n += 8;
    } while ( (n < max_nonce-8) && !work_restart[thr_id].restart);

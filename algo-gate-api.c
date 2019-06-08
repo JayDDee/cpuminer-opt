@@ -363,6 +363,7 @@ void get_algo_alias( char** algo_or_alias )
 #undef ALIAS
 #undef PROPER
 
+// only for parallel when there are lanes.
 bool submit_solution( struct work *work, void *hash,
                       struct thr_info *thr, int lane )
 {

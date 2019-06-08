@@ -127,13 +127,7 @@ int scanhash_allium_4way( int thr_id, struct work *work, uint32_t max_nonce,
         if ( fulltest( hash+(lane<<3), ptarget ) )
         {
            pdata[19] = n + lane;
-           work_set_target_ratio( work, hash+(lane<<3) );
-           if ( submit_work( mythr, work ) )
-               applog( LOG_NOTICE, "Share %d submitted by thread %d, lane %d.",
-                             accepted_share_count + rejected_share_count + 1,
-                             thr_id, lane );
-           else
-               applog( LOG_WARNING, "Failed to submit share." );
+           submit_solution( work, hash+(lane<<3), mythr, lane );
          }
      }
      n += 4;
