@@ -1856,8 +1856,8 @@ static void *miner_thread( void *userdata )
          if ( opt_debug )
             applog( LOG_DEBUG, "Binding thread %d to cpu %d.",
                     thr_id, thr_id % num_cpus,
-	                 i128_hi64( (uint128_t)1ULL << (thr_id % num_cpus) ),
-		              i128_lo64( (uint128_t)1ULL << (thr_id % num_cpus) ) );
+	                 u128_hi64( (uint128_t)1ULL << (thr_id % num_cpus) ),
+		              u128_lo64( (uint128_t)1ULL << (thr_id % num_cpus) ) );
          affine_to_cpu_mask( thr_id, (uint128_t)1ULL << (thr_id % num_cpus) );
        }
 #else
@@ -1874,8 +1874,8 @@ static void *miner_thread( void *userdata )
 #if AFFINITY_USES_UINT128
          if (opt_debug)
              applog( LOG_DEBUG, "Binding thread %d to mask %016llx %016llx",
-                                thr_id, i128_hi64( opt_affinity ), 
-                                        i128_lo64( opt_affinity ) );
+                                thr_id, u128_hi64( opt_affinity ), 
+                                        u128_lo64( opt_affinity ) );
 #else
          if (opt_debug)
              applog( LOG_DEBUG, "Binding thread %d to mask %016llx",

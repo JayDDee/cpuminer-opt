@@ -24,7 +24,6 @@
 #include "algo/haval/haval-hash-4way.h"
 #include "algo/sha/sha2-hash-4way.h"
 
-//typedef struct {
 union _x17_4way_context_overlay
 {
     blake512_4way_context   blake;
@@ -47,30 +46,6 @@ union _x17_4way_context_overlay
 };  
 typedef union _x17_4way_context_overlay x17_4way_context_overlay;
 
-/*
-x17_4way_ctx_holder x17_4way_ctx __attribute__ ((aligned (64)));
-
-void init_x17_4way_ctx()
-{
-     blake512_4way_init( &x17_4way_ctx.blake );
-     bmw512_4way_init( &x17_4way_ctx.bmw );
-     init_groestl( &x17_4way_ctx.groestl, 64 );
-     skein512_4way_init( &x17_4way_ctx.skein );
-     jh512_4way_init( &x17_4way_ctx.jh );
-     keccak512_4way_init( &x17_4way_ctx.keccak );
-     luffa_2way_init( &x17_4way_ctx.luffa, 512 );
-     cube_2way_init( &x17_4way_ctx.cube, 512, 16, 32 );
-     shavite512_2way_init( &x17_4way_ctx.shavite );
-     simd_2way_init( &x17_4way_ctx.simd, 512 );
-     init_echo( &x17_4way_ctx.echo, 512 );
-     hamsi512_4way_init( &x17_4way_ctx.hamsi );
-     sph_fugue512_init( &x17_4way_ctx.fugue );
-     shabal512_4way_init( &x17_4way_ctx.shabal );
-     sph_whirlpool_init( &x17_4way_ctx.whirlpool );
-     sha512_4way_init( &x17_4way_ctx.sha512 );
-     haval256_5_4way_init( &x17_4way_ctx.haval );
-};
-*/
 void x17_4way_hash( void *state, const void *input )
 {
      uint64_t hash0[8] __attribute__ ((aligned (64)));
@@ -81,7 +56,6 @@ void x17_4way_hash( void *state, const void *input )
      uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashB[8*4] __attribute__ ((aligned (64)));
      x17_4way_context_overlay ctx;
-//     memcpy( &ctx, &x17_4way_ctx, sizeof(x17_4way_ctx) );
 
      // 1 Blake parallel 4 way 64 bit
      blake512_4way_init( &ctx.blake );
@@ -94,7 +68,7 @@ void x17_4way_hash( void *state, const void *input )
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serialize
-     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // 3 Groestl
      init_groestl( &ctx.groestl, 64 );
@@ -107,7 +81,7 @@ void x17_4way_hash( void *state, const void *input )
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      // Parallellize
-     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      // 4 Skein parallel 4 way 64 bit 
      skein512_4way_init( &ctx.skein );
@@ -125,7 +99,7 @@ void x17_4way_hash( void *state, const void *input )
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // 7 Luffa  parallel 2 way 128 bit
-     mm256_reinterleave_4x64_2x128( vhashA, vhashB, vhash, 512 );
+     mm256_rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
@@ -150,8 +124,8 @@ void x17_4way_hash( void *state, const void *input )
      simd_2way_init( &ctx.simd, 512 );
      simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
 
-     mm256_deinterleave_2x128( hash0, hash1, vhashA, 512 );
-     mm256_deinterleave_2x128( hash2, hash3, vhashB, 512 );
+     mm256_dintrlv_2x128( hash0, hash1, vhashA, 512 );
+     mm256_dintrlv_2x128( hash2, hash3, vhashB, 512 );
 
      // 11 Echo serial
      init_echo( &ctx.echo, 512 );
@@ -168,13 +142,13 @@ void x17_4way_hash( void *state, const void *input )
                        (const BitSequence *) hash3, 512 );
 
      // 12 Hamsi parallel 4 way 64 bit
-     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
-     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // 13 Fugue serial
      sph_fugue512_init( &ctx.fugue );
@@ -191,13 +165,13 @@ void x17_4way_hash( void *state, const void *input )
      sph_fugue512_close( &ctx.fugue, hash3 );
 
      // 14 Shabal, parallel 4 way 32 bit
-     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
        
      // 15 Whirlpool serial
      sph_whirlpool_init( &ctx.whirlpool );
@@ -214,19 +188,18 @@ void x17_4way_hash( void *state, const void *input )
      sph_whirlpool_close( &ctx.whirlpool, hash3 );
 
      // 16 SHA512 parallel 64 bit 
-     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      sha512_4way_init( &ctx.sha512 );
      sha512_4way( &ctx.sha512, vhash, 64 );
      sha512_4way_close( &ctx.sha512, vhash );     
 
      // 17 Haval parallel 32 bit
-     mm256_reinterleave_4x64_4x32( vhashB, vhash,  512 );
+     mm256_rintrlv_4x64_4x32( vhashB, vhash,  512 );
 
      haval256_5_4way_init( &ctx.haval );
      haval256_5_4way( &ctx.haval, vhashB, 64 );
      haval256_5_4way_close( &ctx.haval, state );
-
 }
 
 int scanhash_x17_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -236,7 +209,6 @@ int scanhash_x17_4way( int thr_id, struct work *work, uint32_t max_nonce,
      uint32_t *hash7 = &(hash[7<<2]);
      uint32_t lane_hash[8];
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-     uint32_t endiandata[20] __attribute__((aligned(64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];
@@ -250,38 +222,24 @@ int scanhash_x17_4way( int thr_id, struct work *work, uint32_t max_nonce,
                           0xFFFFF000, 0xFFFF0000,          0  };
 
      // Need big endian data
-     casti_m256i( endiandata, 0 ) = mm256_bswap_32( casti_m256i( pdata, 0 ) );
-     casti_m256i( endiandata, 1 ) = mm256_bswap_32( casti_m256i( pdata, 1 ) );
-     casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
-
-     uint64_t *edata = (uint64_t*)endiandata;
-     mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
-
+     mm256_bswap_intrlv80_4x64( vdata, pdata );
      for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
      {
         uint32_t mask = masks[ m ];
         do
         {
-  	   *noncev = mm256_interleave_blend_32( mm256_bswap_32(
-	                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ),
-	  		                        *noncev );
+           *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+	              _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
            x17_4way_hash( hash, vdata );
 
-	   for ( int lane = 0; lane < 4; lane++ )
+	     for ( int lane = 0; lane < 4; lane++ )
            if ( ( hash7[ lane ] & mask ) == 0 )
            {
               mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
-              if ( fulltest( lane_hash, ptarget ) )
+              if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
               {
                  pdata[19] = n + lane;
-                 work_set_target_ratio( work, lane_hash );
-                 if ( submit_work( mythr, work ) )
-                    applog( LOG_NOTICE,
-			     "Share %d submitted by thread %d, lane %d.",
-                             accepted_share_count + rejected_share_count + 1,
-                             thr_id, lane );
-                 else
-                    applog( LOG_WARNING, "Failed to submit share." );
+                 submit_solution( work, lane_hash, mythr, lane );
               }
            }
            n += 4;

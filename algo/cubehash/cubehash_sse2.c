@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <memory.h>
-#include "avxdefs.h"
+#include "simd-utils.h"
 #include <stdio.h>
 
 // The result of hashing 10 rounds of initial data which is params and 

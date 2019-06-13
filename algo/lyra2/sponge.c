@@ -51,7 +51,7 @@ inline void initState( uint64_t State[/*16*/] )
   state[3] = _mm256_set_epi64x( blake2b_IV[7], blake2b_IV[6],
                                 blake2b_IV[5], blake2b_IV[4] );
 
-#elif defined (__SSE4_2__)
+#elif defined (__SSE2__)
 
   __m128i* state = (__m128i*)State;
 
@@ -137,7 +137,7 @@ inline void squeeze( uint64_t *State, byte *Out, unsigned int len )
     //Squeezes remaining bytes
     memcpy_256( out, state, ( len_m256i % BLOCK_LEN_M256I ) );
 
-#elif defined (__SSE4_2__)
+#elif defined (__SSE2__)
 
     const int len_m128i = len / 16;
     const int fullBlocks = len_m128i / BLOCK_LEN_M128I;
@@ -205,7 +205,7 @@ inline void absorbBlock( uint64_t *State, const uint64_t *In )
     _mm256_store_si256( (__m256i*)State + 2, state2 );
     _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-#elif defined (__SSE4_2__)
+#elif defined (__SSE2__)
 
     __m128i* state = (__m128i*)State;
     __m128i* in    = (__m128i*)In;
@@ -273,7 +273,7 @@ inline void absorbBlockBlake2Safe( uint64_t *State, const uint64_t *In )
     _mm256_store_si256( (__m256i*)State + 2, state2 );
     _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-#elif defined (__SSE4_2__)
+#elif defined (__SSE2__)
 
     __m128i* state = (__m128i*)State;
     __m128i* in    = (__m128i*)In;
@@ -355,7 +355,7 @@ inline void reducedSqueezeRow0( uint64_t* State, uint64_t* rowOut,
     _mm256_store_si256( (__m256i*)State + 2, state2 );
     _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-#elif defined (__SSE4_2__)
+#elif defined (__SSE2__)
 
     __m128i* state = (__m128i*)State;
     __m128i  state0 = _mm_load_si128(  state    );
@@ -494,7 +494,7 @@ inline void reducedDuplexRow1( uint64_t *State, uint64_t *rowIn,
     _mm256_store_si256( (__m256i*)State + 2, state2 );
     _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-#elif defined (__SSE4_2__)
+#elif defined (__SSE2__)
 
     __m128i* state = (__m128i*)State;
     __m128i  state0 = _mm_load_si128(  state    );
@@ -694,7 +694,7 @@ inline void reducedDuplexRowSetup( uint64_t *State, uint64_t *rowIn,
     _mm256_store_si256( (__m256i*)State + 2, state2 );
     _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-#elif defined (__SSE4_2__)
+#elif defined (__SSE2__)
 
     __m128i* in    = (__m128i*)rowIn;
     __m128i* inout = (__m128i*)rowInOut;
@@ -713,9 +713,9 @@ inline void reducedDuplexRowSetup( uint64_t *State, uint64_t *rowIn,
     __m128i* state = (__m128i*)State;
 
     // For the last round in this function not optimized for AVX
-    uint64_t* ptrWordIn = rowIn;        //In Lyra2: pointer to prev
-    uint64_t* ptrWordInOut = rowInOut;  //In Lyra2: pointer to row*
-    uint64_t* ptrWordOut = rowOut + (nCols-1)*BLOCK_LEN_INT64; //In Lyra2: pointer to row
+//    uint64_t* ptrWordIn = rowIn;        //In Lyra2: pointer to prev
+//    uint64_t* ptrWordInOut = rowInOut;  //In Lyra2: pointer to row*
+//    uint64_t* ptrWordOut = rowOut + (nCols-1)*BLOCK_LEN_INT64; //In Lyra2: pointer to row
 
     for ( i = 0; i < nCols; i++ )
     {
@@ -750,6 +750,28 @@ inline void reducedDuplexRowSetup( uint64_t *State, uint64_t *rowIn,
         out[4] = _mm_xor_si128( state[4], in[4] );
         out[5] = _mm_xor_si128( state[5], in[5] );
 
+
+       __m128i t0, t1;
+       t0 = _mm_srli_si128( state[0], 8 );
+       t1 = _mm_srli_si128( state[1], 8 );
+       inout[0] = _mm_xor_si128( inout[0],
+                              _mm_or_si128( _mm_slli_si128( state[0], 8 ),
+                                            _mm_srli_si128( state[5], 8 ) ) );
+       inout[1] = _mm_xor_si128( inout[1],
+                        _mm_or_si128( _mm_slli_si128( state[1], 8 ), t0 ) );
+       t0 = _mm_srli_si128( state[2], 8 );
+       inout[2] = _mm_xor_si128( inout[2],
+                        _mm_or_si128( _mm_slli_si128( state[2], 8 ), t1 ) );
+       t1 = _mm_srli_si128( state[3], 8 );
+       inout[3] = _mm_xor_si128( inout[3],
+                        _mm_or_si128( _mm_slli_si128( state[3], 8 ), t0 ) );
+       t0 = _mm_srli_si128( state[4], 8 );
+       inout[4] = _mm_xor_si128( inout[4],
+                        _mm_or_si128( _mm_slli_si128( state[4], 8 ), t1 ) );
+       inout[5] = _mm_xor_si128( inout[5],
+                        _mm_or_si128( _mm_slli_si128( state[5], 8 ), t0 ) );
+
+/*
         ptrWordInOut[0]  ^= State[11];
         ptrWordInOut[1]  ^= State[0];
         ptrWordInOut[2]  ^= State[1];
@@ -768,7 +790,7 @@ inline void reducedDuplexRowSetup( uint64_t *State, uint64_t *rowIn,
         ptrWordIn += BLOCK_LEN_INT64;
         //Output: goes to previous column
         ptrWordOut -= BLOCK_LEN_INT64;
-
+*/
         inout += BLOCK_LEN_M128I;
         in    += BLOCK_LEN_M128I;
         out   -= BLOCK_LEN_M128I;
@@ -930,7 +952,7 @@ inline void reducedDuplexRow( uint64_t *State, uint64_t *rowIn,
    _mm256_store_si256( (__m256i*)State + 2, state2 );
    _mm256_store_si256( (__m256i*)State + 3, state3 );
 
-#elif defined(__SSE4_2__)
+#elif defined (__SSE2__)
 
     __m128i* state = (__m128i*)State;
     __m128i* in    = (__m128i*)rowIn;

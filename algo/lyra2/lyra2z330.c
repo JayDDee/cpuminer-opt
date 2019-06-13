@@ -1,7 +1,7 @@
 #include <memory.h>
 #include "algo-gate-api.h"
 #include "lyra2.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 __thread uint64_t* lyra2z330_wholeMatrix;
 
@@ -30,14 +30,17 @@ int scanhash_lyra2z330( int thr_id, struct work *work, uint32_t max_nonce,
    if (opt_benchmark)
 	ptarget[7] = 0x0000ff;
 
-   for (int i=0; i < 19; i++)
-      be32enc(&endiandata[i], pdata[i]);
-        
+   casti_m128i( endiandata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
+   casti_m128i( endiandata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
+   casti_m128i( endiandata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
+   casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
+   casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
+   
    do
    {
       be32enc(&endiandata[19], nonce);
       lyra2z330_hash( hash, endiandata, work->height );
-      if ( hash[7] <= Htarg && fulltest(hash, ptarget) )
+      if ( hash[7] <= Htarg && fulltest(hash, ptarget) && !opt_benchmark )
       {
          work_set_target_ratio(work, hash);
          pdata[19] = nonce;

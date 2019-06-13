@@ -44,10 +44,11 @@ void allium_4way_hash( void *state, const void *input )
    blake256_4way( &ctx.blake, input + (64<<2), 16 );
    blake256_4way_close( &ctx.blake, vhash32 );
 
-   mm256_reinterleave_4x64( vhash64, vhash32, 256 );
+   mm256_rintrlv_4x32_4x64( vhash64, vhash32, 256 );
    keccak256_4way( &ctx.keccak, vhash64, 32 );
    keccak256_4way_close( &ctx.keccak, vhash64 );
-   mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
+
+   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
    LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
    LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
@@ -67,26 +68,23 @@ void allium_4way_hash( void *state, const void *input )
    LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
    LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
 
-   mm256_interleave_4x64( vhash64, hash0, hash1, hash2, hash3, 256 );
+   mm256_intrlv_4x64( vhash64, hash0, hash1, hash2, hash3, 256 );
+
    skein256_4way( &ctx.skein, vhash64, 32 );
    skein256_4way_close( &ctx.skein, vhash64 );
-   mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
-   update_and_final_groestl256( &ctx.groestl, hash0, hash0, 256 );
-   memcpy( &ctx.groestl, &allium_4way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash1, hash1, 256 );
-   memcpy( &ctx.groestl, &allium_4way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash2, hash2, 256 );
-   memcpy( &ctx.groestl, &allium_4way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash3, hash3, 256 );
+   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
-   memcpy( state,    hash0, 32 );
-   memcpy( state+32, hash1, 32 );
-   memcpy( state+64, hash2, 32 );
-   memcpy( state+96, hash3, 32 );
+   update_and_final_groestl256( &ctx.groestl, state, hash0, 256 );
+   memcpy( &ctx.groestl, &allium_4way_ctx.groestl,
+           sizeof(hashState_groestl256) );
+   update_and_final_groestl256( &ctx.groestl, state+32, hash1, 256 );
+   memcpy( &ctx.groestl, &allium_4way_ctx.groestl,
+           sizeof(hashState_groestl256) );
+   update_and_final_groestl256( &ctx.groestl, state+64, hash2, 256 );
+   memcpy( &ctx.groestl, &allium_4way_ctx.groestl,
+           sizeof(hashState_groestl256) );
+   update_and_final_groestl256( &ctx.groestl, state+96, hash3, 256 );
 }
 
 int scanhash_allium_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -94,7 +92,6 @@ int scanhash_allium_4way( int thr_id, struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t _ALIGN(64) edata[20];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -106,13 +103,7 @@ int scanhash_allium_4way( int thr_id, struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
-
-   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_bswap_intrlv80_4x32( vdata, pdata );
    blake256_4way_init( &allium_4way_ctx.blake );
    blake256_4way( &allium_4way_ctx.blake, vdata, 64 );
 
@@ -124,7 +115,7 @@ int scanhash_allium_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
      for ( int lane = 0; lane < 4; lane++ ) if ( (hash+(lane<<3))[7] <= Htarg )
      {
-        if ( fulltest( hash+(lane<<3), ptarget ) )
+        if ( fulltest( hash+(lane<<3), ptarget ) && !opt_benchmark )
         {
            pdata[19] = n + lane;
            submit_solution( work, hash+(lane<<3), mythr, lane );

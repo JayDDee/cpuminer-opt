@@ -100,9 +100,9 @@ rm -f config.status
 CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
-mv cpuminer.exe cpuminer-native.exe
+#mv cpuminer.exe cpuminer-native.exe
 strip -s cpuminer
-mv cpuminer cpuminer-native
+#mv cpuminer cpuminer-native
 
-make clean || echo done
+#make clean || echo done
 

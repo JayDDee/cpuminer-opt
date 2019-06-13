@@ -12,7 +12,7 @@
 #include <memory.h>
 #include "hash-groestl.h"
 #include "miner.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 #ifndef NO_AES_NI
 

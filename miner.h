@@ -363,7 +363,7 @@ struct work {
 	char *job_id;
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
-        uint32_t nonces[8];
+        uint32_t nonces[8];    // deprecated
 } __attribute__ ((aligned (64)));
 
 struct stratum_job {

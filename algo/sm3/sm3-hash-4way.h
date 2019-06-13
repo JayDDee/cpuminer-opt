@@ -59,7 +59,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <string.h>
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 #ifdef __cplusplus
 extern "C" {

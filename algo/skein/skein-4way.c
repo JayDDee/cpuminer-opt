@@ -17,13 +17,13 @@ void skeinhash_4way( void *state, const void *input )
      skein512_4way( &ctx_skein, input, 80 );
      skein512_4way_close( &ctx_skein, vhash64 );
 
-     mm256_reinterleave_4x32( vhash32, vhash64, 512 );
+     mm256_rintrlv_4x64_4x32( vhash32, vhash64, 512 );
 
      sha256_4way_init( &ctx_sha256 );
      sha256_4way( &ctx_sha256, vhash32, 64 );
      sha256_4way_close( &ctx_sha256, state );
 
-     mm128_deinterleave_4x32( state, state+32, state+64, state+96,
+     mm128_dintrlv_4x32( state, state+32, state+64, state+96,
 		              vhash32, 256 );
 }
 
@@ -48,7 +48,7 @@ int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
 	
     swab32_array( edata, pdata, 20 );
  
-    mm256_interleave_4x64( vdata, edata, edata, edata, edata, 640 );
+    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
 
     uint32_t *noncep = vdata + 73;   // 9*8 + 1
 

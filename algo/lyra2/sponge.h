@@ -23,7 +23,7 @@
 #define SPONGE_H_
 
 #include <stdint.h>
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 #if defined(__GNUC__)
 #define ALIGN __attribute__ ((aligned(32)))
@@ -59,7 +59,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 // returns void, updates all args
 #define G_4X64(a,b,c,d) \
    a = _mm256_add_epi64( a, b ); \
-   d = mm256_ror_64( _mm256_xor_si256( d, a), 32 ); \
+   d = mm256_ror_64( _mm256_xor_si256( d, a ), 32 ); \
    c = _mm256_add_epi64( c, d ); \
    b = mm256_ror_64( _mm256_xor_si256( b, c ), 24 ); \
    a = _mm256_add_epi64( a, b ); \

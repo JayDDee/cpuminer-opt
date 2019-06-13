@@ -24,7 +24,7 @@
 
 #include <immintrin.h>
 #include "algo/sha/sha3-defs.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 /* The length of digests*/
 #define DIGEST_BIT_LEN_224 224

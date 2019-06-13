@@ -36,17 +36,12 @@ void lyra2z_4way_hash( void *state, const void *input )
      blake256_4way( &ctx_blake, input + (64*4), 16 );
      blake256_4way_close( &ctx_blake, vhash );
 
-     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
+     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
-     LYRA2Z( lyra2z_4way_matrix, hash0, 32, hash0, 32, hash0, 32, 8, 8, 8 );
-     LYRA2Z( lyra2z_4way_matrix, hash1, 32, hash1, 32, hash1, 32, 8, 8, 8 );
-     LYRA2Z( lyra2z_4way_matrix, hash2, 32, hash2, 32, hash2, 32, 8, 8, 8 );
-     LYRA2Z( lyra2z_4way_matrix, hash3, 32, hash3, 32, hash3, 32, 8, 8, 8 );
-
-     memcpy( state,    hash0, 32 );
-     memcpy( state+32, hash1, 32 );
-     memcpy( state+64, hash2, 32 );
-     memcpy( state+96, hash3, 32 );
+     LYRA2Z( lyra2z_4way_matrix, state   , 32, hash0, 32, hash0, 32, 8, 8, 8 );
+     LYRA2Z( lyra2z_4way_matrix, state+32, 32, hash1, 32, hash1, 32, 8, 8, 8 );
+     LYRA2Z( lyra2z_4way_matrix, state+64, 32, hash2, 32, hash2, 32, 8, 8, 8 );
+     LYRA2Z( lyra2z_4way_matrix, state+96, 32, hash3, 32, hash3, 32, 8, 8, 8 );
 }
 
 int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -54,7 +49,6 @@ int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t _ALIGN(64) edata[20];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
@@ -66,13 +60,7 @@ int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
 
-   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
-   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
-
+   mm128_bswap_intrlv80_4x32( vdata, pdata );
    lyra2z_4way_midstate( vdata );
 
    do {
@@ -82,16 +70,11 @@ int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
       pdata[19] = n;
 
       for ( int i = 0; i < 4; i++ )
-      if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
+      if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget )
+           && !opt_benchmark )
       {
           pdata[19] = n+i;         
-          work_set_target_ratio( work, hash+(i<<3) );
-          if ( submit_work( mythr, work ) )
-              applog( LOG_NOTICE, "Share %d submitted by thread %d, lane %d.",
-                             accepted_share_count + rejected_share_count + 1,
-                             thr_id, i );
-          else
-              applog( LOG_WARNING, "Failed to submit share." );
+          submit_solution( work, hash+(i<<3), mythr, i );
       }
       n += 4;
    } while ( (n < max_nonce-4) && !work_restart[thr_id].restart);
@@ -136,8 +119,8 @@ void lyra2z_8way_hash( void *state, const void *input )
      blake256_8way( &ctx_blake, input + (64*8), 16 );
      blake256_8way_close( &ctx_blake, vhash );
 
-     mm256_deinterleave_8x32( hash0, hash1, hash2, hash3,
-                              hash4, hash5, hash6, hash7, vhash, 256 );
+     mm256_dintrlv_8x32( hash0, hash1, hash2, hash3,
+                         hash4, hash5, hash6, hash7, vhash, 256 );
 
      LYRA2Z( lyra2z_8way_matrix, hash0, 32, hash0, 32, hash0, 32, 8, 8, 8 );
      LYRA2Z( lyra2z_8way_matrix, hash1, 32, hash1, 32, hash1, 32, 8, 8, 8 );
@@ -163,7 +146,6 @@ int scanhash_lyra2z_8way( int thr_id, struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*8] __attribute__ ((aligned (64)));
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-   uint32_t _ALIGN(64) edata[20];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
@@ -175,13 +157,7 @@ int scanhash_lyra2z_8way( int thr_id, struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
 
-   casti_m256i( edata, 0 ) = mm256_bswap_32( casti_m256i( pdata, 0 ) );
-   casti_m256i( edata, 1 ) = mm256_bswap_32( casti_m256i( pdata, 1 ) );
-   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
-
-   mm256_interleave_8x32( vdata, edata, edata, edata, edata,
-                                 edata, edata, edata, edata, 640 );
-
+   mm256_bswap_intrlv80_8x32( vdata, pdata );
    lyra2z_8way_midstate( vdata );
 
    do {
@@ -191,7 +167,8 @@ int scanhash_lyra2z_8way( int thr_id, struct work *work, uint32_t max_nonce,
       pdata[19] = n;
 
       for ( int i = 0; i < 8; i++ )
-      if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
+      if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget )
+           && !opt_benchmark )
       {
           pdata[19] = n+i;         
           submit_solution( work, hash+(i<<3), mythr, i );

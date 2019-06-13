@@ -36,17 +36,16 @@ void lyra2h_4way_hash( void *state, const void *input )
      blake256_4way( &ctx_blake, input + (64*4), 16 );
      blake256_4way_close( &ctx_blake, vhash );
 
-     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
+     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
-     LYRA2Z( lyra2h_4way_matrix, hash0, 32, hash0, 32, hash0, 32, 16, 16, 16 );
-     LYRA2Z( lyra2h_4way_matrix, hash1, 32, hash1, 32, hash1, 32, 16, 16, 16 );
-     LYRA2Z( lyra2h_4way_matrix, hash2, 32, hash2, 32, hash2, 32, 16, 16, 16 );
-     LYRA2Z( lyra2h_4way_matrix, hash3, 32, hash3, 32, hash3, 32, 16, 16, 16 );
-
-     memcpy( state,    hash0, 32 );
-     memcpy( state+32, hash1, 32 );
-     memcpy( state+64, hash2, 32 );
-     memcpy( state+96, hash3, 32 );
+     LYRA2Z( lyra2h_4way_matrix, state, 32, hash0, 32, hash0, 32,
+             16, 16, 16 );
+     LYRA2Z( lyra2h_4way_matrix, state+32, 32, hash1, 32, hash1,
+             32, 16, 16, 16 );
+     LYRA2Z( lyra2h_4way_matrix, state+64, 32, hash2, 32, hash2,
+             32, 16, 16, 16 );
+     LYRA2Z( lyra2h_4way_matrix, state+96, 32, hash3, 32, hash3,
+             32, 16, 16, 16 );
 }
 
 int scanhash_lyra2h_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -54,49 +53,36 @@ int scanhash_lyra2h_4way( int thr_id, struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t _ALIGN(64) edata[20];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
-   uint32_t *nonces = work->nonces;
-   int num_found = 0;
-   uint32_t *noncep= vdata + 76; // 19*4
+   __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
 
-   for ( int i=0; i < 20; i++ )
-      be32enc( &edata[i], pdata[i] );
-
-   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
-
+   mm128_bswap_intrlv80_4x32( vdata, pdata );
    lyra2h_4way_midstate( vdata );
 
    do {
-      be32enc( noncep,   n   );
-      be32enc( noncep+1, n+1 );
-      be32enc( noncep+2, n+2 );
-      be32enc( noncep+3, n+3 );
-
-      be32enc( &edata[19], n );
+     *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );
       lyra2h_4way_hash( hash, vdata );
 
       for ( int i = 0; i < 4; i++ )
-      if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
+      if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget )
+           && !opt_benchmark )
       {
           pdata[19] = n+i;         
-          nonces[ num_found++ ] = n+i;
-          work_set_target_ratio( work, hash+(i<<3) );
+          submit_solution( work, hash+(i<<3), mythr, i );
       }
       n += 4;
-   } while ( (num_found == 0) && (n < max_nonce-4)
-                   && !work_restart[thr_id].restart);
+   } while (  (n < max_nonce-4) && !work_restart[thr_id].restart);
 
    *hashes_done = n - first_nonce + 1;
-   return num_found;
+   return 0;
 }
 
 #endif

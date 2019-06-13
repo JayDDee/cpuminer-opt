@@ -49,10 +49,10 @@ void polytimos_4way_hash( void *output, const void *input )
 
      // Need to convert from 64 bit interleaved to 32 bit interleaved.
      uint32_t vhash32[16*4];
-     mm256_reinterleave_4x32( vhash32, vhash, 512 );
+     mm256_rintrlv_4x64_4x32( vhash32, vhash, 512 );
      shabal512_4way( &ctx.shabal, vhash32, 64 );
      shabal512_4way_close( &ctx.shabal, vhash32 );
-     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash32, 512 );
+     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash32, 512 );
 
      update_final_echo ( &ctx.echo, (BitSequence *)hash0,
                          (const BitSequence *)hash0, 512 );
@@ -66,13 +66,13 @@ void polytimos_4way_hash( void *output, const void *input )
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                        (const BitSequence *) hash3, 512 );
 
-     mm256_interleave_2x128( vhash, hash0, hash1, 512 );
+     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
-     mm256_interleave_2x128( vhash, hash2, hash3, 512 );
+     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
+     mm256_intrlv_2x128( vhash, hash2, hash3, 512 );
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
+     mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
 
      sph_fugue512( &ctx.fugue, hash0, 64 );
      sph_fugue512_close( &ctx.fugue, hash0 );

@@ -156,7 +156,7 @@ int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
 
 bool register_hodl_algo( algo_gate_t* gate )
 {
-#if defined(__AES__)
+#if !defined(__AES__)
   applog( LOG_ERR, "Only CPUs with AES are supported, use legacy version.");
   return false;
 #endif

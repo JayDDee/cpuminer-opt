@@ -5,7 +5,9 @@
 #include <stdint.h>
 #include "lyra2.h"
 
-#if defined(__AVX2__)
+//#if defined(__AVX2__)
+
+#if defined(__SSE2__)
   #define LYRA2REV3_4WAY
 #endif
 

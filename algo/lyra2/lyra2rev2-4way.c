@@ -42,10 +42,12 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    blake256_4way( &ctx.blake, input + (64<<2), 16 );
    blake256_4way_close( &ctx.blake, vhash );
 
-   mm256_reinterleave_4x64( vhash64, vhash, 256 );
+   mm256_rintrlv_4x32_4x64( vhash64, vhash, 256 );
+
    keccak256_4way( &ctx.keccak, vhash64, 32 );
    keccak256_4way_close( &ctx.keccak, vhash64 );
-   mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
+
+   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
    cubehashUpdateDigest( &ctx.cube, (byte*) hash0, (const byte*) hash0, 32 );
    cubehashInit( &ctx.cube, 256, 16, 32 );
@@ -60,10 +62,12 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    LYRA2REV2( l2v2_wholeMatrix, hash2, 32, hash2, 32, hash2, 32, 1, 4, 4 );
    LYRA2REV2( l2v2_wholeMatrix, hash3, 32, hash3, 32, hash3, 32, 1, 4, 4 );
 
-   mm256_interleave_4x64( vhash64, hash0, hash1, hash2, hash3, 256 );
+   mm256_intrlv_4x64( vhash64, hash0, hash1, hash2, hash3, 256 );
+
    skein256_4way( &ctx.skein, vhash64, 32 );
    skein256_4way_close( &ctx.skein, vhash64 );
-   mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
+
+   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
    cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash0, (const byte*) hash0, 32 );
@@ -74,11 +78,10 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash3, (const byte*) hash3, 32 );
 
-   mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
-   bmw256_4way( &ctx.bmw, vhash, 32 );
-   bmw256_4way_close( &ctx.bmw, vhash );
+   mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
 
-   mm128_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
+   bmw256_4way( &ctx.bmw, vhash, 32 );
+   bmw256_4way_close( &ctx.bmw, state );
 }
 
 int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -86,49 +89,44 @@ int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t _ALIGN(64) edata[20];
+   uint32_t *hash7 = &(hash[7<<2]);
+   uint32_t lane_hash[8];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    const uint32_t Htarg = ptarget[7];
-   uint32_t *nonces = work->nonces;
-   int num_found = 0;
-   uint32_t *noncep = vdata + 76; // 19*4
+   __m128i *noncev = (__m128i*)vdata + 19;   // aligned
    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   swab32_array( edata, pdata, 20 );
-
-   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_bswap_intrlv80_4x32( vdata, pdata );
 
    blake256_4way_init( &l2v2_4way_ctx.blake );
    blake256_4way( &l2v2_4way_ctx.blake, vdata, 64 );
 
-   do {
-      be32enc( noncep,   n   );
-      be32enc( noncep+1, n+1 );
-      be32enc( noncep+2, n+2 );
-      be32enc( noncep+3, n+3 );
+   do
+   {
+      *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );
 
       lyra2rev2_4way_hash( hash, vdata );
       pdata[19] = n;
 
-      for ( int i = 0; i < 4; i++ )
-      if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
+      for ( int lane = 0; lane < 4; lane++ ) if ( hash7[lane] <= Htarg )
       {
-          pdata[19] = n+i;         
-          nonces[ num_found++ ] = n+i;
-          work_set_target_ratio( work, hash+(i<<3) );
+         mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+         if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
+         {
+            pdata[19] = n + lane;         
+            submit_solution( work, lane_hash, mythr, lane );
+         }
       }
       n += 4;
-   } while ( (num_found == 0) && (n < max_nonce-4)
-                   && !work_restart[thr_id].restart);
-
+   } while ( (n < max_nonce-4) && !work_restart[thr_id].restart);
    *hashes_done = n - first_nonce + 1;
-   return num_found;
+   return 0;
 }
 
 #endif

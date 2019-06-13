@@ -36,7 +36,7 @@
 #ifdef __AES__
 
 #include "sph_shavite.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 #ifdef __cplusplus
 extern "C"{

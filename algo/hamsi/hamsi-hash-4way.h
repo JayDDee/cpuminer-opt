@@ -40,7 +40,7 @@
 
 #if defined (__AVX2__)
 
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 #ifdef __cplusplus
 extern "C"{

@@ -3,7 +3,7 @@
 
 #if defined(__AVX2__)
   
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 typedef struct {
         unsigned char buf[128<<1];

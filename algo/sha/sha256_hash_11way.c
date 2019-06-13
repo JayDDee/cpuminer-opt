@@ -1,3 +1,4 @@
+#if 0
 
 #include <stddef.h>
 #include <string.h>
@@ -65,7 +66,7 @@ static const uint32_t K256[64] =
    _mm_xor_si64( _mm_xor_si64( \
        mm64_ror_32(x,2), mm64_ror_32(x,13) ), _mm_srli_pi32(x,22) )
 
-#define BSG2_0z(x)  ( ror_32(x,2) ^ ror_32(x,13)  ^ ((x)>>22) )
+#define BSG2_0z(x)  ( u32_ror_32(x,2) ^ u32_ror_32(x,13)  ^ ((x)>>22) )
 
 #define BSG2_1x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
@@ -75,7 +76,7 @@ static const uint32_t K256[64] =
    _mm_xor_si64( _mm_xor_si64( \
        mm64_ror_32(x,6), mm64_ror_32(x,11) ), _mm_srli_pi32(x,25) )
 
-#define BSG2_1z(x)   ( ror_32(x,6) ^ ror_32(x,11) ^ ((x)>>25) )
+#define BSG2_1z(x)   ( u32_ror_32(x,6) ^ u32_ror_32(x,11) ^ ((x)>>25) )
 
 #define SSG2_0x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
@@ -85,7 +86,7 @@ static const uint32_t K256[64] =
    _mm_xor_si64( _mm_xor_si64( \
        mm64_ror_32(x,7), mm64_ror_32(x,18) ), _mm_srli_pi32(x,3) )
 
-#define SSG2_0z(x)  (( ror_32(x,7) ^ ror_32(x,18) ) ^ ((x)>>3) )
+#define SSG2_0z(x)  (( u32_ror_32(x,7) ^ u32_ror_32(x,18) ) ^ ((x)>>3) )
 
 #define SSG2_1x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
@@ -95,7 +96,7 @@ static const uint32_t K256[64] =
    _mm_xor_si64( _mm_xor_si64( \
        mm64_ror_32(x,17), mm64_ror_32(x,19) ), _mm_srli_pi32(x,10) )
 
-#define SSG2_1z(x)   ( ror_32(x,17) ^ ror_32(x,19)  ^ ((x)>>10) )
+#define SSG2_1z(x)   ( u32_ror_32(x,17) ^ u32_ror_32(x,19)  ^ ((x)>>10) )
 
 #define SHA2x_MEXP( a, b, c, d ) \
      _mm256_add_epi32( _mm256_add_epi32( _mm256_add_epi32( \
@@ -449,7 +450,7 @@ void sha256_11way_update( sha256_11way_context *ctx, const void *datax,
       if ( clen > len )
          clen = len;
       memcpy_256( ctx->bufx + (ptr>>2), vdatax + (ptr>>2), clen>>2 );
-      memcpy_64 ( ctx->bufy + (ptr>>2), vdatay + (ptr>>2), clen>>2 );
+      memcpy_m64( ctx->bufy + (ptr>>2), vdatay + (ptr>>2), clen>>2 );
       memcpy    ( ctx->bufz +  ptr,     idataz +  ptr,     clen    );
       ptr += clen;
       len -= clen;
@@ -486,19 +487,19 @@ void sha256_11way_close( sha256_11way_context *ctx, void *dstx, void *dsty,
     if ( ptr > pad )
     {
          memset_zero_256( ctx->bufx + (ptr>>2), (buf_size - ptr) >> 2 );
-         memset_zero_64(  ctx->bufy + (ptr>>2), (buf_size - ptr) >> 2 );
+         memset_zero_m64( ctx->bufy + (ptr>>2), (buf_size - ptr) >> 2 );
          memset(      ctx->bufz + (ptr>>2), 0,  (buf_size - ptr) >> 2 );
          sha256_11way_round( ctx->bufx, ctx->valx,
 			     ctx->bufy, ctx->valy,
 			     ctx->bufz, ctx->valz );
          memset_zero_256( ctx->bufx, pad >> 2 );
-         memset_zero_64(  ctx->bufy, pad >> 2 );
+         memset_zero_m64(  ctx->bufy, pad >> 2 );
          memset(      ctx->bufz, 0,  pad >> 2 );
     }
     else
     {
         memset_zero_256( ctx->bufx + (ptr>>2),    (pad - ptr) >> 2 );
-        memset_zero_64(  ctx->bufy + (ptr>>2),    (pad - ptr) >> 2 );
+        memset_zero_m64(  ctx->bufy + (ptr>>2),    (pad - ptr) >> 2 );
         memset(          ctx->bufz + (ptr>>2), 0, (pad - ptr) >> 2 );
     }
 
@@ -534,3 +535,4 @@ void sha256_11way_close( sha256_11way_context *ctx, void *dstx, void *dsty,
 }
 
 #endif
+#endif   // 0

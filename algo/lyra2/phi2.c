@@ -50,11 +50,11 @@ void phi2_hash(void *state, const void *input)
 	unsigned char _ALIGN(128) hashA[64];
 	unsigned char _ALIGN(128) hashB[64];
 
-        phi2_ctx_holder ctx __attribute__ ((aligned (64)));
-        memcpy( &ctx, &phi2_ctx, sizeof(phi2_ctx) );
+  phi2_ctx_holder ctx __attribute__ ((aligned (64)));
+  memcpy( &ctx, &phi2_ctx, sizeof(phi2_ctx) );
 
-        cubehashUpdateDigest( &ctx.cube, (byte*)hashB, (const byte*)input,
-		              phi2_has_roots ? 144 : 80 );
+  cubehashUpdateDigest( &ctx.cube, (byte*)hashB, (const byte*)input,
+                        phi2_has_roots ? 144 : 80 );
 
 	LYRA2RE( &hashA[ 0], 32, &hashB[ 0], 32, &hashB[ 0], 32, 1, 8, 8 );
 	LYRA2RE( &hashA[32], 32, &hashB[32], 32, &hashB[32], 32, 1, 8, 8 );
@@ -63,17 +63,17 @@ void phi2_hash(void *state, const void *input)
 	sph_jh512_close( &ctx.jh, (void*)hash );
 
 	if ( hash[0] & 1 )
-       	{
-           sph_gost512( &ctx.gost, (const void*)hash, 64 );
+  	{
+      sph_gost512( &ctx.gost, (const void*)hash, 64 );
 	   sph_gost512_close( &ctx.gost, (void*)hash );
 	}
-       	else
-       	{
+  	else
+  	{
 #if defined(__AES__)
-           update_final_echo ( &ctx.echo1, (BitSequence *)hash,
-                               (const BitSequence *)hash, 512 );
-           update_final_echo ( &ctx.echo2, (BitSequence *)hash,
-                               (const BitSequence *)hash, 512 );
+      update_final_echo ( &ctx.echo1, (BitSequence *)hash,
+                          (const BitSequence *)hash, 512 );
+      update_final_echo ( &ctx.echo2, (BitSequence *)hash,
+                          (const BitSequence *)hash, 512 );
 #else
 	   sph_echo512( &ctx.echo1, (const void*)hash, 64 );
 	   sph_echo512_close( &ctx.echo1, (void*)hash );

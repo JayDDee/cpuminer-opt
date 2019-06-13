@@ -42,7 +42,7 @@
 
 #include <stddef.h>
 #include "sph_types.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 #if defined(__SSE2__)
 //#if defined(__SSE4_2__)

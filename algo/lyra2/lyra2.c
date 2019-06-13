@@ -566,7 +566,7 @@ int LYRA2RE( void *K, uint64_t kLen, const void *pwd, const uint64_t pwdlen,
 
 #if defined(__AVX2__)
    memset_zero_256( (__m256i*)wholeMatrix, i>>5 );
-#elif defined(__SSE4_2__)
+#elif defined(__SSE2__)
    memset_zero_128( (__m128i*)wholeMatrix, i>>4 );   
 #else
    memset( wholeMatrix, 0, i );

@@ -52,7 +52,7 @@
 
 #include <stddef.h>
 #include "algo/sha/sph_types.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 /**
  * Output size (in bits) for WHIRLPOOL.

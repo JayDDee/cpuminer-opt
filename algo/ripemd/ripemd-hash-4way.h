@@ -6,7 +6,7 @@
 
 #if defined(__SSE4_2__)
 
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 typedef struct
 {

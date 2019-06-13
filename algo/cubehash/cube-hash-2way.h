@@ -4,7 +4,7 @@
 #if defined(__AVX2__)
 
 #include <stdint.h>
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 // 2x128, 2 way parallel SSE2
 

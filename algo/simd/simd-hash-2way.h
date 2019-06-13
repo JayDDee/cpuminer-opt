@@ -5,7 +5,7 @@
 
 #if defined(__AVX2__)
 
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 typedef struct {
   uint32_t A[ 32*2 ] __attribute__((aligned(64)));

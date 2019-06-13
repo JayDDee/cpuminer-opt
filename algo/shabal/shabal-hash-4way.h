@@ -40,7 +40,7 @@
 
 #include <stddef.h>
 #include "algo/sha/sph_types.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 #ifdef __cplusplus
 extern "C"{

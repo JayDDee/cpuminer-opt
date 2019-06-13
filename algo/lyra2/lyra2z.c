@@ -3,7 +3,7 @@
 #include "lyra2-gate.h"
 #include "lyra2.h"
 #include "algo/blake/sph_blake.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 __thread uint64_t* lyra2z_matrix;
 

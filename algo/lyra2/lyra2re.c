@@ -6,7 +6,7 @@
 #include "algo/keccak/sph_keccak.h"
 #include "lyra2.h"
 #include "algo-gate-api.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 #if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl256.h"
 #endif

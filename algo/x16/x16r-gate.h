@@ -2,7 +2,7 @@
 #define X16R_GATE_H__ 1
 
 #include "algo-gate-api.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 #include <stdint.h>
 
 #if defined(__AVX2__) && defined(__AES__)

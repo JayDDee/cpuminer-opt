@@ -24,7 +24,7 @@
 
 #if defined(__AVX2__)
 
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 #define MASK _mm256_set_epi32( 0UL, 0UL, 0UL, 0xffffffffUL, \
                                0UL, 0UL, 0UL, 0xffffffffUL )

@@ -69,7 +69,7 @@ extern "C"{
 
 #include <stddef.h>
 #include "algo/sha/sph_types.h"
-#include "avxdefs.h"
+#include "simd-utils.h"
 
 #define SPH_SIZE_haval256_5   256
 

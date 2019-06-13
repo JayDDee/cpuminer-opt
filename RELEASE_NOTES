@@ -38,6 +38,11 @@ supported.
 Change Log
 ----------
 
+v3.9.2.5
+
+Fixed 2 regressions: hodl AES detection, x16r invalid shares with AVX2.
+More restructuring.
+
 v3.9.2.4
 
 Yet another affinity fix. Hopefully the last one.

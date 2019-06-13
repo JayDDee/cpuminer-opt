@@ -35,7 +35,7 @@ void lyra2rev3_4way_hash( void *state, const void *input )
 
    blake256_4way( &ctx.blake, input, 80 );
    blake256_4way_close( &ctx.blake, vhash );
-   mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
+   mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
    LYRA2REV3( l2v3_wholeMatrix, hash0, 32, hash0, 32, hash0, 32, 1, 4, 4 );
    LYRA2REV3( l2v3_wholeMatrix, hash1, 32, hash1, 32, hash1, 32, 1, 4, 4 );
@@ -55,10 +55,9 @@ void lyra2rev3_4way_hash( void *state, const void *input )
    LYRA2REV3( l2v3_wholeMatrix, hash2, 32, hash2, 32, hash2, 32, 1, 4, 4 );
    LYRA2REV3( l2v3_wholeMatrix, hash3, 32, hash3, 32, hash3, 32, 1, 4, 4 );
 
-   mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
+   mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
    bmw256_4way( &ctx.bmw, vhash, 32 );
    bmw256_4way_close( &ctx.bmw, state );
-
 }
 
 int scanhash_lyra2rev3_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -66,7 +65,6 @@ int scanhash_lyra2rev3_4way( int thr_id, struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[7<<2]);
    uint32_t lane_hash[8];
    uint32_t *pdata = work->data;
@@ -80,15 +78,7 @@ int scanhash_lyra2rev3_4way( int thr_id, struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   // Need big endian data
-   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
-
-   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
-
+   mm128_bswap_intrlv80_4x32( vdata, pdata );
    do
    {
       *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );
@@ -99,16 +89,14 @@ int scanhash_lyra2rev3_4way( int thr_id, struct work *work, uint32_t max_nonce,
       for ( int lane = 0; lane < 4; lane++ ) if ( hash7[lane] <= Htarg )
       {
          mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
-
-         if ( fulltest( lane_hash, ptarget ) )
+         if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
          {
               pdata[19] = n + lane;    
               submit_solution( work, lane_hash, mythr, lane );
-	 }
+	      }
       }
       n += 4;
    } while ( (n < max_nonce-4) && !work_restart[thr_id].restart);
-
    *hashes_done = n - first_nonce + 1;
    return 0;
 }

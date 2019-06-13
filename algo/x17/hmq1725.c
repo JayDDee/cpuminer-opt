@@ -299,7 +299,7 @@ extern void hmq1725hash(void *state, const void *input)
 }
 
 int scanhash_hmq1725( int thr_id, struct work *work, int32_t max_nonce,
-                      uint64_t *hashes_done )
+                      uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t endiandata[32] __attribute__((aligned(64)));
         uint32_t hash64[8] __attribute__((aligned(64)));
@@ -307,6 +307,7 @@ int scanhash_hmq1725( int thr_id, struct work *work, int32_t max_nonce,
         uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;
 	const uint32_t first_nonce = pdata[19];
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 	//const uint32_t Htarg = ptarget[7];
 
 	//we need bigendian data...
