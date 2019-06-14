@@ -272,7 +272,7 @@ do { \
                   _mm_extract_epi64( s1, 0 ), _mm_extract_epi64( s0, 0 ) ); \
   casti_m256i( d,1 ) = _mm256_set_epi64x( \
                   _mm_extract_epi64( s3, 1 ), _mm_extract_epi64( s2, 1 ), \
-                  _mm_extract_epi64( s1, 1 ), _mm_extract_epi32( s0, 1 ) ); \
+                  _mm_extract_epi64( s1, 1 ), _mm_extract_epi64( s0, 1 ) ); \
 } while(0)
 
 #define mm256_bswap_intrlv_4x64_256( d, src ) \
@@ -671,6 +671,13 @@ static inline void mm256_intrlv_2x128( const void *d, const void *s0,
   casti_m256i( d,3 ) = mm256_concat_128( s1hi, s0hi );        
 
   if ( bit_len <= 512 ) return;
+  if ( bit_len <= 640 )
+  {
+     casti_m256i( d,4 ) = mm256_concat_128(
+                           _mm256_castsi256_si128( casti_m256i( s1,2 ) ),
+                           _mm256_castsi256_si128( casti_m256i( s0,2 ) ) );
+     return;
+  }
 
   s0hi = _mm256_extracti128_si256( casti_m256i( s0,2), 1 );
   s1hi = _mm256_extracti128_si256( casti_m256i( s1,2), 1 );

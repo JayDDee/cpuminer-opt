@@ -184,7 +184,7 @@ void x16r_hash( void* output, const void* input )
 }
 
 int scanhash_x16r( int thr_id, struct work *work, uint32_t max_nonce,
-                   uint64_t *hashes_done )
+                   uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t _ALIGN(128) hash32[8];
    uint32_t _ALIGN(128) endiandata[20];
@@ -192,6 +192,7 @@ int scanhash_x16r( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
    uint32_t nonce = first_nonce;
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
 

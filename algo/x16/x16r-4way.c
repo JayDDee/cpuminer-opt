@@ -293,7 +293,7 @@ void x16r_4way_hash( void* output, const void* input )
 }
 
 int scanhash_x16r_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                        uint64_t *hashes_done )
+                        uint64_t *hashes_done, struct thr_info *mythr)
 {
    uint32_t hash[4*16] __attribute__ ((aligned (64)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
@@ -303,6 +303,7 @@ int scanhash_x16r_4way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
+   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
    uint32_t *nonces = work->nonces;
    int num_found = 0;
    uint32_t *noncep = vdata + 73;   // 9*8 + 1

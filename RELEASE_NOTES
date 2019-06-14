@@ -38,6 +38,12 @@ supported.
 Change Log
 ----------
 
+v3.9.3.1
+
+Skippped v3.9.3 due to misidentification of v3.9.2.5 as v3.9.3.
+Fixed x16r algo 25% invalid share reject rate. The bug may have also
+affected other algos.
+
 v3.9.2.5
 
 Fixed 2 regressions: hodl AES detection, x16r invalid shares with AVX2.
