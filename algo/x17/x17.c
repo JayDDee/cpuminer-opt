@@ -34,7 +34,8 @@
   #include "algo/echo/sph_echo.h"
 #endif
 
-typedef struct {
+union _x17_context_overlay
+{
 #if defined(__AES__)
         hashState_groestl       groestl;
         hashState_echo          echo;
@@ -43,7 +44,7 @@ typedef struct {
         sph_echo512_context     echo;
 #endif
         hashState_luffa         luffa;
-        cubehashParam           cubehash;
+        cubehashParam           cube;
         sph_shavite512_context  shavite;
         hashState_sd            simd;
         sph_hamsi512_context    hamsi;
@@ -52,38 +53,14 @@ typedef struct {
         sph_whirlpool_context   whirlpool;
         SHA512_CTX              sha512;
         sph_haval256_5_context  haval;
-} x17_ctx_holder;
-
-x17_ctx_holder x17_ctx __attribute__ ((aligned (64)));
-
-void init_x17_ctx()
-{
-#if defined(__AES__)
-        init_groestl( &x17_ctx.groestl, 64 );
-        init_echo( &x17_ctx.echo, 512 );
-#else
-        sph_groestl512_init(&x17_ctx.groestl );
-        sph_echo512_init(&x17_ctx.echo);
-#endif
-        init_luffa( &x17_ctx.luffa, 512 );
-        cubehashInit( &x17_ctx.cubehash, 512, 16, 32 );
-        sph_shavite512_init( &x17_ctx.shavite );
-        init_sd( &x17_ctx.simd, 512 );
-        sph_hamsi512_init( &x17_ctx.hamsi );
-        sph_fugue512_init( &x17_ctx.fugue );
-        sph_shabal512_init( &x17_ctx.shabal );
-        sph_whirlpool_init( &x17_ctx.whirlpool );
-        SHA512_Init( &x17_ctx.sha512 );
-        sph_haval256_5_init(&x17_ctx.haval);
 };
+typedef union _x17_context_overlay x17_context_overlay;
 
 void x17_hash(void *output, const void *input)
 {
 	unsigned char hash[128] __attribute__ ((aligned (64)));
 	#define hashB hash+64
-
-        x17_ctx_holder ctx __attribute__ ((aligned (64)));
-        memcpy( &ctx, &x17_ctx, sizeof(x17_ctx) );
+   x17_context_overlay ctx;
 
         unsigned char hashbuf[128];
         size_t hashptr;
@@ -115,9 +92,11 @@ void x17_hash(void *output, const void *input)
         //---groestl----
 
 #if defined(__AES__)
+        init_groestl( &ctx.groestl, 64 );
         update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
 #else
+        sph_groestl512_init( &ctx.groestl );
         sph_groestl512( &ctx.groestl, hash, 64 );
         sph_groestl512_close( &ctx.groestl, hash );
 #endif
@@ -142,50 +121,62 @@ void x17_hash(void *output, const void *input)
         KEC_C;
 
         //--- luffa7
+        init_luffa( &ctx.luffa, 512 );
         update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                 (const BitSequence*)hash, 64 );
 
         // 8 Cube
-        cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
+        cubehashInit( &ctx.cube, 512, 16, 32 );
+        cubehashUpdateDigest( &ctx.cube, (byte*) hash,
                               (const byte*)hash, 64 );
 
         // 9 Shavite
+        sph_shavite512_init( &ctx.shavite );
         sph_shavite512( &ctx.shavite, hash, 64);
         sph_shavite512_close( &ctx.shavite, hash);
 
         // 10 Simd
+        init_sd( &ctx.simd, 512 );
         update_final_sd( &ctx.simd, (BitSequence*)hash,
                          (const BitSequence*)hash, 512 );
 
         //11---echo---
 #if defined(__AES__)
+        init_echo( &ctx.echo, 512 );
         update_final_echo ( &ctx.echo, (BitSequence*)hash,
                             (const BitSequence*)hash, 512 );
 #else
-	sph_echo512( &ctx.echo, hash, 64 );
+        sph_echo512_init( &ctx.echo );
+        sph_echo512( &ctx.echo, hash, 64 );
         sph_echo512_close( &ctx.echo, hash );
 #endif
 
         // X13 algos
         // 12 Hamsi
+        sph_hamsi512_init( &ctx.hamsi );
         sph_hamsi512( &ctx.hamsi, hash, 64 );
         sph_hamsi512_close( &ctx.hamsi, hash );
 
         // 13 Fugue
+        sph_fugue512_init( &ctx.fugue );
         sph_fugue512(&ctx.fugue, hash, 64 );
         sph_fugue512_close(&ctx.fugue, hash );
 
         // X14 Shabal
+        sph_shabal512_init( &ctx.shabal );
         sph_shabal512(&ctx.shabal, hash, 64);
         sph_shabal512_close( &ctx.shabal, hash );
        
         // X15 Whirlpool
-	sph_whirlpool( &ctx.whirlpool, hash, 64 );
-	sph_whirlpool_close( &ctx.whirlpool, hash );
+        sph_whirlpool_init( &ctx.whirlpool );
+        sph_whirlpool( &ctx.whirlpool, hash, 64 );
+        sph_whirlpool_close( &ctx.whirlpool, hash );
 
-	SHA512_Update( &ctx.sha512, hash, 64 );
+        SHA512_Init( &ctx.sha512 );
+        SHA512_Update( &ctx.sha512, hash, 64 );
         SHA512_Final( (unsigned char*)hash, &ctx.sha512 );
 
+        sph_haval256_5_init(&ctx.haval);
         sph_haval256_5( &ctx.haval, (const void*)hash, 64 );
         sph_haval256_5_close( &ctx.haval, output );
 }
@@ -234,42 +225,42 @@ int scanhash_x17( int thr_id, struct work *work, uint32_t max_nonce,
 #endif
    for ( int m = 0; m < 6; m++ )
    {
-	if ( Htarg <= htmax[m] )
-	{
-	   uint32_t mask = masks[m];
-	   do
+      if ( Htarg <= htmax[m] )
 	   {
-		pdata[19] = ++n;
-		be32enc( &endiandata[19], n );
-		x17_hash( hash64, endiandata );
+	      uint32_t mask = masks[m];
+	      do
+	      {
+	         pdata[19] = ++n;
+		      be32enc( &endiandata[19], n );
+		      x17_hash( hash64, endiandata );
 #ifndef DEBUG_ALGO
-		if ( !( hash64[7] & mask ) )
-                {
-                   if ( fulltest( hash64, ptarget ) )
-		   {
-		      *hashes_done = n - first_nonce + 1;
-		      return true;
-                   }
-//                 else
-//                      applog(LOG_INFO, "Result does not validate on CPU!");
-                }
+		      if ( !( hash64[7] & mask ) )
+            {
+               if ( fulltest( hash64, ptarget ) )
+		         {
+		            *hashes_done = n - first_nonce + 1;
+		            return true;
+               }
+//             else
+//               applog(LOG_INFO, "Result does not validate on CPU!");
+            }
 #else
-		if ( !( n % 0x1000 ) && !thr_id ) printf(".");
-		if ( !( hash64[7] & mask ) )
+		      if ( !( n % 0x1000 ) && !thr_id ) printf(".");
+		      if ( !( hash64[7] & mask ) )
 	       	{
-		   printf("[%d]",thr_id);
-		   if ( fulltest( hash64, ptarget ) )
-		   {
-                       work_set_target_ratio( work, hash64 );
-		       *hashes_done = n - first_nonce + 1;
-		       return true;
-		   }
-		}
+		         printf("[%d]",thr_id);
+		         if ( fulltest( hash64, ptarget ) )
+		         {
+                 work_set_target_ratio( work, hash64 );
+		           *hashes_done = n - first_nonce + 1;
+		           return true;
+		         }
+		      }
 #endif
-	    } while (n < max_nonce && !work_restart[thr_id].restart);
+	      } while (n < max_nonce && !work_restart[thr_id].restart);
 			// see blake.c if else to understand the loop on htmax => mask
-	    break;
-	}
+	      break;
+	   }
    }
    *hashes_done = n - first_nonce + 1;
    pdata[19] = n;

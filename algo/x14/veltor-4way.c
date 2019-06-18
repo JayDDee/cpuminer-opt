@@ -40,7 +40,7 @@ void veltor_4way_hash( void *output, const void *input )
 
      skein512_4way( &ctx.skein, input, 80 );
      skein512_4way_close( &ctx.skein, vhash );
-     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_shavite512( &ctx.shavite, hash0, 64 );
      sph_shavite512_close( &ctx.shavite, hash0 );
@@ -54,10 +54,10 @@ void veltor_4way_hash( void *output, const void *input )
      sph_shavite512( &ctx.shavite, hash3, 64 );
      sph_shavite512_close( &ctx.shavite, hash3 );
 
-     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
-     mm128_deinterleave_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_gost512( &ctx.gost, hash0, 64 );
      sph_gost512_close( &ctx.gost, hash0 );
@@ -78,7 +78,7 @@ void veltor_4way_hash( void *output, const void *input )
 }
 
 int scanhash_veltor_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done )
+                          uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
@@ -91,6 +91,7 @@ int scanhash_veltor_4way( int thr_id, struct work *work, uint32_t max_nonce,
      uint32_t *nonces = work->nonces;
      int num_found = 0;
      uint32_t *noncep = vdata + 73;   // 9*8 + 1
+     /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
      volatile uint8_t *restart = &(work_restart[thr_id].restart);
 
      if ( opt_benchmark )
@@ -101,7 +102,7 @@ int scanhash_veltor_4way( int thr_id, struct work *work, uint32_t max_nonce,
      }
 
      uint64_t *edata = (uint64_t*)endiandata;
-     mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+     mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
      do
      {
          be32enc( noncep,   n   );

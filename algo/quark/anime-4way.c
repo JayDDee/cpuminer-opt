@@ -48,8 +48,8 @@ void anime_4way_hash( void *state, const void *input )
     __m256i* vhA = (__m256i*)vhashA;
     __m256i* vhB = (__m256i*)vhashB;
     __m256i vh_mask;
+    const uint32_t mask = 8;
     const __m256i bit3_mask = _mm256_set1_epi64x( 8 );
-    int i;
     anime_4way_ctx_holder ctx;
     memcpy( &ctx, &anime_4way_ctx, sizeof(anime_4way_ctx) );
 
@@ -62,27 +62,44 @@ void anime_4way_hash( void *state, const void *input )
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
                                   m256_zero );
 
-    mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
-    update_and_final_groestl( &ctx.groestl, (char*)hash0,
-                                            (char*)hash0, 512 );
-    reinit_groestl( &ctx.groestl );
-    update_and_final_groestl( &ctx.groestl, (char*)hash1,
-                                            (char*)hash1, 512 );
-    reinit_groestl( &ctx.groestl );
-    update_and_final_groestl( &ctx.groestl, (char*)hash2,
-                                            (char*)hash2, 512 );
-    reinit_groestl( &ctx.groestl );
-    update_and_final_groestl( &ctx.groestl, (char*)hash3,
-                                            (char*)hash3, 512 );
-    mm256_interleave_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+    mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
-    skein512_4way( &ctx.skein, vhash, 64 );
-    skein512_4way_close( &ctx.skein, vhashB );
+    if ( hash0[0] & mask )
+    {
+       update_and_final_groestl( &ctx.groestl, (char*)hash0,
+                                               (char*)hash0, 512 );
+    }
+    if ( hash1[0] & mask )
+    {
+       reinit_groestl( &ctx.groestl );
+       update_and_final_groestl( &ctx.groestl, (char*)hash1,
+                                               (char*)hash1, 512 );
+    }
+    if ( hash2[0] & mask )
+    {
+       reinit_groestl( &ctx.groestl );
+       update_and_final_groestl( &ctx.groestl, (char*)hash2,
+                                               (char*)hash2, 512 );
+    }
+    if ( hash3[0] & mask )
+    {
+       reinit_groestl( &ctx.groestl );
+       update_and_final_groestl( &ctx.groestl, (char*)hash3,
+                                               (char*)hash3, 512 );
+    }
 
-    for ( i = 0; i < 8; i++ )
-       vh[i] = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );
+    mm256_intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
-    mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+    if ( mm256_anybits0( vh_mask ) )
+    {
+       skein512_4way( &ctx.skein, vhash, 64 );
+       skein512_4way_close( &ctx.skein, vhashB );
+    }
+
+    mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
+
+    mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+
     reinit_groestl( &ctx.groestl );
     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
     reinit_groestl( &ctx.groestl );
@@ -91,7 +108,8 @@ void anime_4way_hash( void *state, const void *input )
     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
     reinit_groestl( &ctx.groestl );
     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-    mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+
+    mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
     jh512_4way( &ctx.jh, vhash, 64 );
     jh512_4way_close( &ctx.jh, vhash );
@@ -99,16 +117,20 @@ void anime_4way_hash( void *state, const void *input )
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
                                   m256_zero );
 
+    if ( mm256_anybits1( vh_mask ) )
+    {
        blake512_4way_init( &ctx.blake );
        blake512_4way( &ctx.blake, vhash, 64 );
        blake512_4way_close( &ctx.blake, vhashA );
-
+    }
+    if ( mm256_anybits0( vh_mask ) )
+    {
        bmw512_4way_init( &ctx.bmw );
        bmw512_4way( &ctx.bmw, vhash, 64 );
        bmw512_4way_close( &ctx.bmw, vhashB );
+    }
 
-    for ( i = 0; i < 8; i++ )
-       vh[i] = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );
+    mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
     keccak512_4way( &ctx.keccak, vhash, 64 );
     keccak512_4way_close( &ctx.keccak, vhash );
@@ -120,33 +142,35 @@ void anime_4way_hash( void *state, const void *input )
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
                                   m256_zero );
 
-    keccak512_4way_init( &ctx.keccak );
-    keccak512_4way( &ctx.keccak, vhash, 64 );
-    keccak512_4way_close( &ctx.keccak, vhashA );
+    if ( mm256_anybits1( vh_mask ) )
+    {
+       keccak512_4way_init( &ctx.keccak );
+       keccak512_4way( &ctx.keccak, vhash, 64 );
+       keccak512_4way_close( &ctx.keccak, vhashA );
+    }
+    if ( mm256_anybits0( vh_mask ) )
+    {
+       jh512_4way_init( &ctx.jh );
+       jh512_4way( &ctx.jh, vhash, 64 );
+       jh512_4way_close( &ctx.jh, vhashB );
+    }
 
-    jh512_4way_init( &ctx.jh );
-    jh512_4way( &ctx.jh, vhash, 64 );
-    jh512_4way_close( &ctx.jh, vhashB );
+    mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-    for ( i = 0; i < 8; i++ )
-       vh[i] = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );
-
-    mm256_deinterleave_4x64( state, state+32, state+64, state+96, vhash, 256 );
+    mm256_dintrlv_4x64( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_anime_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done)
+                         uint64_t *hashes_done, struct thr_info *mythr )
 {
     uint32_t hash[4*8] __attribute__ ((aligned (64)));
     uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-    uint32_t endiandata[20] __attribute__((aligned(64)));
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
     uint32_t n = pdata[19];
     const uint32_t first_nonce = pdata[19];
-    uint32_t *nonces = work->nonces;
-    int num_found = 0;
-    uint32_t *noncep = vdata + 73;   // 9*8 + 1
+    __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
+    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
     const uint32_t Htarg = ptarget[7];
     uint64_t htmax[] = {
                 0,
@@ -165,10 +189,7 @@ int scanhash_anime_4way( int thr_id, struct work *work, uint32_t max_nonce,
                 0
         };
 
-    swab32_array( endiandata, pdata, 20 );
-
-    uint64_t *edata = (uint64_t*)endiandata;
-    mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+    mm256_bswap_intrlv80_4x64( vdata, pdata );
 
     for (int m=0; m < 6; m++)
        if (Htarg <= htmax[m])
@@ -177,30 +198,26 @@ int scanhash_anime_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
           do
           {
-             be32enc( noncep,   n   );
-             be32enc( noncep+2, n+1 );
-             be32enc( noncep+4, n+2 );
-             be32enc( noncep+6, n+3 );
+             *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+                _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
              anime_4way_hash( hash, vdata );
              pdata[19] = n;
 
              for ( int i = 0; i < 4; i++ )
              if ( ( ( (hash+(i<<3))[7] & mask ) == 0 )
-                && fulltest( hash+(i<<3), ptarget ) )
+                && fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
              {
                 pdata[19] = n+i;
-                nonces[ num_found++ ] = n+i;
-                work_set_target_ratio( work, hash+(i<<3) );
+                submit_solution( work, hash+(i<<3), mythr, i );
              }
              n += 4;
-          } while ( ( num_found == 0 ) && ( n < max_nonce )
-              && !work_restart[thr_id].restart );
+          } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
           break;
        }
 
     *hashes_done = n - first_nonce + 1;
-    return num_found;
+    return 0;
 }
 
 #endif

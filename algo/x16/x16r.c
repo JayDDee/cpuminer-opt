@@ -33,7 +33,8 @@
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
 
-typedef struct {
+union _x16r_context_overlay
+{
 #if defined(__AES__)
         hashState_echo          echo;
         hashState_groestl       groestl;
@@ -55,19 +56,13 @@ typedef struct {
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
         SHA512_CTX              sha512;
-} x16r_ctx_holder;
-
-x16r_ctx_holder x16r_ctx __attribute__ ((aligned (64)));
-
-void init_x16r_ctx()
-{
-   cubehashInit( &x16r_ctx.cube, 512, 16, 32 );
 };
+typedef union _x16r_context_overlay x16r_context_overlay;
 
 void x16r_hash( void* output, const void* input )
 {
    uint32_t _ALIGN(128) hash[16];
-   x16r_ctx_holder ctx;
+   x16r_context_overlay ctx;
    void *in = (void*) input;
    int size = 80;
 
@@ -126,7 +121,7 @@ void x16r_hash( void* output, const void* input )
                                     (const BitSequence*)in, size );
          break;
          case CUBEHASH:
-            memcpy( &ctx.cube, &x16r_ctx.cube, sizeof(cubehashParam) );
+            cubehashInit( &ctx.cube, 512, 16, 32 );
             cubehashUpdateDigest( &ctx.cube, (byte*) hash,
                                   (const byte*)in, size );
          break;
@@ -196,13 +191,12 @@ int scanhash_x16r( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t nonce = first_nonce;
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
 
-   for ( int k=0; k < 19; k++ )
-      be32enc( &endiandata[k], pdata[k] );
+   casti_m128i( endiandata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
+   casti_m128i( endiandata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
+   casti_m128i( endiandata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
+   casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
+   casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
-// This code is suspicious. s_ntime is saved after byteswapping pdata[17]
-// but is tested vs unswapped pdata[17]. This should result in calling
-// getAlgoString every pass, but that doesn't seem to be the case.
-// It appears to be working correctly as is.
    if ( s_ntime != pdata[17] )
    {
       uint32_t ntime = swab32(pdata[17]);

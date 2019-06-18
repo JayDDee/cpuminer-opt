@@ -4,12 +4,10 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
-// Overide multi way on ryzen, SHA is better.
-#if !defined(RYZEN_)
-// need sha512 2 way AVX x2 or 1 way scalar x4 to support 4way AVX.
-#if defined(__AVX2__)
+#if !defined(__SHA__)
+ #if defined(__AVX2__)
   #define LBRY_8WAY
-#endif
+ #endif
 #endif
 
 #define LBRY_NTIME_INDEX 25
@@ -24,17 +22,18 @@ bool register_lbry_algo( algo_gate_t* gate );
 
 void lbry_8way_hash( void *state, const void *input );
 int scanhash_lbry_8way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done );
-
+                         uint64_t *hashes_done, struct thr_info *mythr );
+/*
 #elif defined(LBRY_4WAY)
 
 void lbry_4way_hash( void *state, const void *input );
 int scanhash_lbry_4way( int thr_id, struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done );
+*/
 #else
 
 void lbry_hash( void *state, const void *input );
 int scanhash_lbry( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done );
+                    uint64_t *hashes_done, struct thr_info *mythr );
 #endif
 #endif

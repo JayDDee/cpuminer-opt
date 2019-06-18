@@ -537,6 +537,8 @@ bmw32_4way(bmw_4way_small_context *sc, const void *data, size_t len)
       }
    }
    sc->ptr = ptr;
+
+
    if ( h1 != sc->H )
         memcpy_128( sc->H, h1, 16 );
 }
@@ -571,6 +573,7 @@ bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
 
    for ( u = 0; u < 16; u ++ )
       buf[u] = h2[u];
+
    compress_small( buf, (__m128i*)final_s, h1 );
 
    for (u = 0, v = 16 - out_size_w32; u < out_size_w32; u ++, v ++)
@@ -1041,22 +1044,22 @@ static const __m256i final_s8[16] =
 
 void bmw256_8way_init( bmw256_8way_context *ctx )
 {
-   ctx->H[ 0] = _mm256_set1_epi64x( IV256[ 0] );
-   ctx->H[ 1] = _mm256_set1_epi64x( IV256[ 1] );
-   ctx->H[ 2] = _mm256_set1_epi64x( IV256[ 2] );
-   ctx->H[ 3] = _mm256_set1_epi64x( IV256[ 3] );
-   ctx->H[ 4] = _mm256_set1_epi64x( IV256[ 4] );
-   ctx->H[ 5] = _mm256_set1_epi64x( IV256[ 5] );
-   ctx->H[ 6] = _mm256_set1_epi64x( IV256[ 6] );
-   ctx->H[ 7] = _mm256_set1_epi64x( IV256[ 7] );
-   ctx->H[ 8] = _mm256_set1_epi64x( IV256[ 8] );
-   ctx->H[ 9] = _mm256_set1_epi64x( IV256[ 9] );
-   ctx->H[10] = _mm256_set1_epi64x( IV256[10] );
-   ctx->H[11] = _mm256_set1_epi64x( IV256[11] );
-   ctx->H[12] = _mm256_set1_epi64x( IV256[12] );
-   ctx->H[13] = _mm256_set1_epi64x( IV256[13] );
-   ctx->H[14] = _mm256_set1_epi64x( IV256[14] );
-   ctx->H[15] = _mm256_set1_epi64x( IV256[15] );
+   ctx->H[ 0] = _mm256_set1_epi32( IV256[ 0] );
+   ctx->H[ 1] = _mm256_set1_epi32( IV256[ 1] );
+   ctx->H[ 2] = _mm256_set1_epi32( IV256[ 2] );
+   ctx->H[ 3] = _mm256_set1_epi32( IV256[ 3] );
+   ctx->H[ 4] = _mm256_set1_epi32( IV256[ 4] );
+   ctx->H[ 5] = _mm256_set1_epi32( IV256[ 5] );
+   ctx->H[ 6] = _mm256_set1_epi32( IV256[ 6] );
+   ctx->H[ 7] = _mm256_set1_epi32( IV256[ 7] );
+   ctx->H[ 8] = _mm256_set1_epi32( IV256[ 8] );
+   ctx->H[ 9] = _mm256_set1_epi32( IV256[ 9] );
+   ctx->H[10] = _mm256_set1_epi32( IV256[10] );
+   ctx->H[11] = _mm256_set1_epi32( IV256[11] );
+   ctx->H[12] = _mm256_set1_epi32( IV256[12] );
+   ctx->H[13] = _mm256_set1_epi32( IV256[13] );
+   ctx->H[14] = _mm256_set1_epi32( IV256[14] );
+   ctx->H[15] = _mm256_set1_epi32( IV256[15] );
    ctx->ptr       = 0;
    ctx->bit_count = 0;
 
@@ -1076,14 +1079,15 @@ void bmw256_8way( bmw256_8way_context *ctx, const void *data, size_t len )
    ptr = ctx->ptr;
    h1 = ctx->H;
    h2 = htmp;
+
    while ( len > 0 )
    {
       size_t clen;
       clen = buf_size - ptr;
       if ( clen > len )
          clen = len;
-      memcpy_256( buf + (ptr>>3), vdata, clen >> 3 );
-      vdata = vdata + (clen>>3);
+      memcpy_256( buf + (ptr>>2), vdata, clen >> 2 );
+      vdata = vdata + (clen>>2);
       len -= clen;
       ptr += clen;
       if ( ptr == buf_size )
@@ -1097,6 +1101,7 @@ void bmw256_8way( bmw256_8way_context *ctx, const void *data, size_t len )
       }
    }
    ctx->ptr = ptr;
+
    if ( h1 != ctx->H )
         memcpy_256( ctx->H, h1, 16 );
 }
@@ -1106,24 +1111,26 @@ void bmw256_8way_close( bmw256_8way_context *ctx, void *dst )
    __m256i *buf;
    __m256i h1[16], h2[16], *h;
    size_t ptr, u, v;
-//   unsigned z;
    const int buf_size = 64;  // bytes of one lane, compatible with len
 
    buf = ctx->buf;
    ptr = ctx->ptr;
-   buf[ ptr>>3 ] = _mm256_set1_epi32( 0x80 );
-   ptr += 8;
+   buf[ ptr>>2 ] = _mm256_set1_epi32( 0x80 );
+   ptr += 4;
    h = ctx->H;
 
-   if (  ptr > (buf_size - 8) )
+   if (  ptr > (buf_size - 4) )
    {
-      memset_zero_256( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+      memset_zero_256( buf + (ptr>>2), (buf_size - ptr) >> 2 );
       compress_small_8way( buf, h, h1 );
       ptr = 0;
       h = h1;
    }
-   memset_zero_256( buf + (ptr>>3), (buf_size - 8 - ptr) >> 3 );
-   buf[ (buf_size - 8) >> 3 ] = _mm256_set1_epi64x( ctx->bit_count );
+   memset_zero_256( buf + (ptr>>2), (buf_size - 8 - ptr) >> 2 );
+   buf[ (buf_size - 8) >> 2 ] = _mm256_set1_epi32( ctx->bit_count );
+   buf[ (buf_size - 4) >> 2 ] = m256_zero;
+
+
    compress_small_8way( buf, h, h2 );
 
    for ( u = 0; u < 16; u ++ )

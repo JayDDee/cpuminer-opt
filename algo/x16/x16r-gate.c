@@ -35,11 +35,9 @@ void x16s_getAlgoString( const uint8_t* prevblock, char *output )
 bool register_x16r_algo( algo_gate_t* gate )
 {
 #if defined (X16R_4WAY)
-//  init_x16r_4way_ctx();
   gate->scanhash  = (void*)&scanhash_x16r_4way;
   gate->hash      = (void*)&x16r_4way_hash;
 #else
-  init_x16r_ctx();
   gate->scanhash  = (void*)&scanhash_x16r;
   gate->hash      = (void*)&x16r_hash;
 #endif
@@ -52,11 +50,9 @@ bool register_x16r_algo( algo_gate_t* gate )
 bool register_x16s_algo( algo_gate_t* gate )
 {
 #if defined (X16R_4WAY)
-//  init_x16r_4way_ctx();
   gate->scanhash  = (void*)&scanhash_x16r_4way;
   gate->hash      = (void*)&x16r_4way_hash;
 #else
-  init_x16r_ctx();
   gate->scanhash  = (void*)&scanhash_x16r;
   gate->hash      = (void*)&x16r_hash;
 #endif

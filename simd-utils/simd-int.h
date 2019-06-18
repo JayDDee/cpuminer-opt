@@ -3,9 +3,15 @@
 
 ///////////////////////////////////
 //
-//    Integers up to 64 bits.
+//    Integers up to 128 bits.
 //
-
+//   These utilities enhance support for integers up to 128 bits.
+//   All standard operations are supported on 128 bit integers except
+//   numeric constant representation and IO. 128 bit integers must be built
+//   and displayed as 2 64 bit halves, just like the old times.
+//
+//   Some utilities are also provided for smaller integers, most notably
+//   bit rotation.   
 
 // MMX has no extract instruction for 32 bit elements so this:
 // Lo is trivial, high is a simple shift. 
@@ -16,7 +22,6 @@
 #define u64_extr_32( a, n )  ( (uint32_t)( (a) >> ( ( 2-(n)) <<5 ) ) )
 #define u64_extr_16( a, n )  ( (uint16_t)( (a) >> ( ( 4-(n)) <<4 ) ) )
 #define u64_extr_8(  a, n )  ( (uint8_t) ( (a) >> ( ( 8-(n)) <<3 ) ) )
-
 
 // Rotate bits in various sized integers.
 #define u64_ror_64( x, c ) \
@@ -36,6 +41,9 @@
 #define u8_rol_8( x, c ) \
       (uint8_t) ( ( (uint8_t) (x) << (c) ) | ( (uint8_t) (x) >> ( 8-(c)) ) )
 
+// Endian byte swap
+#define bswap_64( a ) __builtin_bswap64( a )
+#define bswap_32( a ) __builtin_bswap32( a )
 
 // 64 bit mem functions use integral sizes instead of bytes, data must
 // be aligned to 64 bits. Mostly for scaled indexing convenience.
@@ -56,20 +64,19 @@ static inline void memset_64( uint64_t *dst, const uint64_t a,  int n )
 //
 
 // No real need or use.
-#define i128_neg1        ((uint128_t)(-1LL))
+//#define u128_neg1        ((uint128_t)(-1))
 
-// Extract specified 64 bit half of 128 bit integer.
-// typecast should work for lo: (uint64_t)(x), test it!
+// Extracting the low bits is a trivial cast.
+// These specialized functions are optimized while providing a
+// consistent interface.
 #define u128_hi64( x )    ( (uint64_t)( (uint128_t)(x) >> 64 ) )
-#define u128_lo64( x )    ( (uint64_t)( (uint128_t)(x) << 64 >> 64 ) )
-// #define i128_lo64( x )    ((uint64_t)(x))
+#define u128_lo64( x )    ( (uint64_t)(x) )
 
-// Generic extract, 
+// Generic extract, don't use for extracting low bits, cast instead.
 #define u128_extr_64( a, n )  ( (uint64_t)( (a) >> ( ( 2-(n)) <<6 ) ) )
 #define u128_extr_32( a, n )  ( (uint32_t)( (a) >> ( ( 4-(n)) <<5 ) ) )
 #define u128_extr_16( a, n )  ( (uint16_t)( (a) >> ( ( 8-(n)) <<4 ) ) )
 #define u128_extr_8(  a, n )  ( (uint8_t) ( (a) >> ( (16-(n)) <<3 ) ) )
-
 
 // Not much need for this but it fills a gap.
 #define u128_ror_128( x, c ) \

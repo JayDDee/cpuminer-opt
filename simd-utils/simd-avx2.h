@@ -103,6 +103,29 @@
 #define mm128_extr_lo128_256( a ) _mm256_castsi256_si128( a )
 #define mm128_extr_hi128_256( a ) _mm256_extracti128_si256( a, 1 )
 
+// Extract 4 u64 from 256 bit vector.
+#define mm256_extr_4x64( a0, a1, a2, a3, src ) \
+do { \
+  __m128i hi = _mm256_extracti128_si256( src, 1 ); \
+  a0 = _mm_extract_epi64( _mm256_castsi256_si128( src ), 0 ); \
+  a1 = _mm_extract_epi64( _mm256_castsi256_si128( src ), 1 ); \
+  a2 = _mm_extract_epi64( hi, 0 ); \
+  a3 = _mm_extract_epi64( hi, 1 ); \
+} while(0)
+
+#define mm256_extr_8x32( a0, a1, a2, a3, a4, a5, a6, a7, src ) \
+do { \
+  __m128i hi = _mm256_extracti128_si256( src, 1 ); \
+  a0 = _mm_extract_epi32( _mm256_castsi256_si128( src ), 0 ); \
+  a1 = _mm_extract_epi32( _mm256_castsi256_si128( src ), 1 ); \
+  a2 = _mm_extract_epi32( _mm256_castsi256_si128( src ), 2 ); \
+  a3 = _mm_extract_epi32( _mm256_castsi256_si128( src ), 3 ); \
+  a4 = _mm_extract_epi32( hi, 0 ); \
+  a5 = _mm_extract_epi32( hi, 1 ); \
+  a6 = _mm_extract_epi32( hi, 2 ); \
+  a7 = _mm_extract_epi32( hi, 3 ); \
+} while(0)
+
 // input __m128i, returns __m256i
 // To build a 256 bit vector from 2 128 bit vectors lo must be done first.
 // lo alone leaves hi undefined, hi alone leaves lo unchanged.
@@ -111,9 +134,23 @@
 #define mm256_ins_lo128_256( a, b )  _mm256_inserti128_si256( a, b, 0 )
 #define mm256_ins_hi128_256( a, b )  _mm256_inserti128_si256( a, b, 1 )
 
-// concatenate two 128 bit vectors into one 256 bit vector
+// concatenate two 128 bit vectors into one 256 bit vector: { hi, lo }
 #define mm256_concat_128( hi, lo ) \
    mm256_ins_hi128_256( _mm256_castsi128_si256( lo ), hi )
+
+// Horizontal vector testing
+
+// Bit-wise test of entire vector, useful to test results of cmp.
+#define mm256_anybits0( a ) \
+         ( (uint128_t)mm128_extr_hi128_256( a ) \
+         | (uint128_t)mm128_extr_lo128_256( a ) )
+
+#define mm256_anybits1( a ) \
+         ( ( (uint128_t)mm128_extr_hi128_256( a ) + 1 ) \
+         | ( (uint128_t)mm128_extr_lo128_256( a ) + 1 ) )
+
+#define mm256_allbits0_256( a ) ( !mm256_anybits1(a) )
+#define mm256_allbits1_256( a ) ( !mm256_anybits0(a) )
 
 // Parallel AES, for when x is expected to be in a 256 bit register.
 #define mm256_aesenc_2x128( x ) \

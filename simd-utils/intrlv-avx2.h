@@ -384,6 +384,7 @@ static inline void mm256_intrlv_8x32( void *d, const void *s0,
    // bit_len == 1024
 }
 
+// A couple of mining specifi functions.
 
 // Interleave 80 bytes of 32 bit data for 8 lanes.
 static inline void mm256_bswap_intrlv80_8x32( void *d, const void *s )
@@ -468,6 +469,20 @@ static inline void mm256_bswap_intrlv80_4x64( void *d, const void *s )
    mm256_bswap_intrlv_4x64_256( d+128, casti_m256i( s, 1 ) );
    mm256_bswap_intrlv_4x64_128( d+256, casti_m128i( s, 4 ) );
 }
+
+// Blend 32 byte lanes of hash from 2 sources according to control mask.
+// macro due to 256 bit value arg.
+#define mm256_blend_hash_4x64( dst, a, b, mask ) \
+do { \
+    dst[0] = _mm256_blendv_epi8( a[0], b[0], mask ); \
+    dst[1] = _mm256_blendv_epi8( a[1], b[1], mask ); \
+    dst[2] = _mm256_blendv_epi8( a[2], b[2], mask ); \
+    dst[3] = _mm256_blendv_epi8( a[3], b[3], mask ); \
+    dst[4] = _mm256_blendv_epi8( a[4], b[4], mask ); \
+    dst[5] = _mm256_blendv_epi8( a[5], b[5], mask ); \
+    dst[6] = _mm256_blendv_epi8( a[6], b[6], mask ); \
+    dst[7] = _mm256_blendv_epi8( a[7], b[7], mask ); \
+} while(0)
 
 // Deinterleave 4 buffers of 64 bit data from the source buffer.
 // bit_len must be 256, 512, 640 or 1024 bits.

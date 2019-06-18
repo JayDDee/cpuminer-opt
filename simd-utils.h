@@ -80,7 +80,8 @@
 //     the element size.
 //   - there is a subset of some functions for scalar data. They may have
 //     no prefix nor vec-size, just one size, the size of the data.
-//
+//   - Some integer functions are also defined which use a similar notation.
+//   
 //    Function names follow this pattern:
 //
 //         prefix_op[esize]_[vsize]
@@ -89,7 +90,7 @@
 //            are some examples:
 //
 //    u64:  unsigned 64 bit integer function
-//    i128: signed 128 bit integer function
+//    i128: signed 128 bit integer function (rarely used)
 //    m128: 128 bit vector identifier
 //    mm128: 128 bit vector function
 //
@@ -137,14 +138,32 @@
 // improve high level code readability without the penalty of function
 // overhead.
 //
+// A major restructuring is taking place shifting the focus from pointers
+// to registers. Previously pointer casting used memory to provide transparency
+// leaving it up to the compiler to manage everything and it does a very good
+// job. The focus has shifted to register arguments for more control
+// over the actual instructions assuming the data is in a register and the
+// the compiler just needs to manage the registers.
+//
+// Rather than use pointers to provide type transparency
+// specific instructions are used to access specific data as specific types.
+// Previously pointers were cast and the compiler was left to find a way
+// to get the data from wherever it happened to be to the correct registers.
+//
+// The utilities defined here make use features like register aliasing
+// to optimize operations. Many operations have specialized versions as
+// well as more generic versions. It is preferable to use a specialized
+// version whenever possible a sthey can take advantage of certain
+// optimizations not available to the generic version. Specically the generic
+// version usually has a second argument used is some extra calculations.
+// 
 ///////////////////////////////////////////////////////
 
 #include <inttypes.h>
 #include <x86intrin.h>
 #include <memory.h>
+#include <stdlib.h>
 #include <stdbool.h>
-// byteswap.h doesn't exist on Windows, find alternative
-//#include <byteswap.h>
 
 // Various types and overlays
 #include "simd-utils/simd-types.h"
@@ -157,6 +176,7 @@
 // 64 bit vectors
 #include "simd-utils/simd-mmx.h"
 #include "simd-utils/intrlv-mmx.h"
+
 #if defined(__SSE2__)
 
 // 128 bit vectors

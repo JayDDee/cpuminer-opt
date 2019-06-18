@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "hmq1725-gate.h"
 #include <string.h>
 #include <stdint.h>
 #include "algo/blake/sph_blake.h"
@@ -298,10 +298,11 @@ extern void hmq1725hash(void *state, const void *input)
 	memcpy(state, hashA, 32);
 }
 
-int scanhash_hmq1725( int thr_id, struct work *work, int32_t max_nonce,
+int scanhash_hmq1725( int thr_id, struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t endiandata[32] __attribute__((aligned(64)));
+//        uint32_t endiandata[32] __attribute__((aligned(64)));
+        uint32_t endiandata[20] __attribute__((aligned(64)));
         uint32_t hash64[8] __attribute__((aligned(64)));
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
@@ -311,7 +312,8 @@ int scanhash_hmq1725( int thr_id, struct work *work, int32_t max_nonce,
 	//const uint32_t Htarg = ptarget[7];
 
 	//we need bigendian data...
-        for (int k = 0; k < 32; k++)
+//        for (int k = 0; k < 32; k++)
+        for (int k = 0; k < 20; k++)
                 be32enc(&endiandata[k], pdata[k]);
 
         hmq_bmw512_midstate( endiandata );
@@ -407,14 +409,14 @@ int scanhash_hmq1725( int thr_id, struct work *work, int32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
-
+/*
 bool register_hmq1725_algo( algo_gate_t* gate )
 {
   init_hmq1725_ctx();
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   gate->set_target       = (void*)&scrypt_set_target;
   gate->scanhash         = (void*)&scanhash_hmq1725;
   gate->hash             = (void*)&hmq1725hash;
   return true;
 };
-
+*/

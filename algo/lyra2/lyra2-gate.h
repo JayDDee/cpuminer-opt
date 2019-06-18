@@ -5,7 +5,9 @@
 #include <stdint.h>
 #include "lyra2.h"
 
-//#if defined(__AVX2__)
+#if defined(__AVX2__)
+  #define LYRA2REV3_8WAY
+#endif
 
 #if defined(__SSE2__)
   #define LYRA2REV3_4WAY
@@ -14,8 +16,14 @@
 extern __thread uint64_t* l2v3_wholeMatrix;
 
 bool register_lyra2rev3_algo( algo_gate_t* gate );
+#if defined(LYRA2REV3_8WAY)
 
-#if defined(LYRA2REV3_4WAY)
+void lyra2rev3_8way_hash( void *state, const void *input );
+int scanhash_lyra2rev3_8way( int thr_id, struct work *work, uint32_t max_nonce,
+                             uint64_t *hashes_done, struct thr_info *mythr );
+bool init_lyra2rev3_8way_ctx();
+
+#elif defined(LYRA2REV3_4WAY)
 
 void lyra2rev3_4way_hash( void *state, const void *input );
 int scanhash_lyra2rev3_4way( int thr_id, struct work *work, uint32_t max_nonce,
@@ -142,14 +150,28 @@ bool init_allium_ctx();
 
 /////////////////////////////////////////
 
+#if defined(__AVX2__) && defined(__AES__)
+//  #define PHI2_4WAY
+#endif
+
 bool phi2_has_roots;
 
 bool register_phi2_algo( algo_gate_t* gate );
+#if defined(PHI2_4WAY)
+
+void phi2_hash_4way( void *state, const void *input );
+int scanhash_phi2_4way( int thr_id, struct work *work, uint32_t max_nonce,
+                     uint64_t *hashes_done, struct thr_info *mythr );
+//void init_phi2_ctx();
+
+#else
 
 void phi2_hash( void *state, const void *input );
 int scanhash_phi2( int thr_id, struct work *work, uint32_t max_nonce,
                      uint64_t *hashes_done, struct thr_info *mythr );
 void init_phi2_ctx();
+
+#endif
 
 #endif  // LYRA2_GATE_H__
 

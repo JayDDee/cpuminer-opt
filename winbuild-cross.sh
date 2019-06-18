@@ -34,7 +34,7 @@ cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
 make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
-CFLAGS="-O3 -march=znver1 -DRYZEN_ -Wall" ./configure $CONFIGURE_ARGS
+CFLAGS="-O3 -march=znver1 -Wall" ./configure $CONFIGURE_ARGS
 make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-zen.exe

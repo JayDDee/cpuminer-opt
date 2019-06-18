@@ -3,11 +3,8 @@
 #include <stdint.h>
 #include "algo-gate-api.h"
 
-// Override multi way on ryzen, SHA is better.
-#if !defined(RYZEN_)
 #if defined(__AVX2__)
   #define SKEIN_4WAY
-#endif
 #endif
 
 #if defined(SKEIN_4WAY)
@@ -15,12 +12,12 @@
 void skeinhash_4way( void *output, const void *input );
 
 int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done );
+                         uint64_t *hashes_done, struct thr_info *mythr );
 #endif
 
 void skeinhash( void *output, const void *input );
 
 int scanhash_skein( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done );
+                    uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif

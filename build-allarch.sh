@@ -7,16 +7,6 @@
 make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
-CFLAGS="-O3 -march=core-avx2 -msha -Wall" ./configure --with-curl
-make -j 16
-strip -s cpuminer.exe
-mv cpuminer.exe cpuminer-avx2-sha.exe
-strip -s cpuminer
-mv cpuminer cpuminer-avx2-sha
-
-make clean || echo clean
-rm -f config.status
-./autogen.sh || echo done
 CFLAGS="-O3 -march=skylake-avx512 -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
@@ -26,7 +16,6 @@ mv cpuminer cpuminer-avx512
 
 make clean || echo clean
 rm -f config.status
-./autogen.sh || echo done
 CFLAGS="-O3 -march=core-avx2 -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
@@ -36,7 +25,6 @@ mv cpuminer cpuminer-avx2
 
 make clean || echo clean
 rm -f config.status
-./autogen.sh || echo done
 CFLAGS="-O3 -march=corei7-avx -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
@@ -46,7 +34,6 @@ mv cpuminer cpuminer-aes-avx
 
 make clean || echo clean
 rm -f config.status
-./autogen.sh || echo done
 CFLAGS="-O3 -maes -msse4.2 -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
@@ -56,7 +43,6 @@ mv cpuminer cpuminer-aes-sse42
 
 make clean || echo clean
 rm -f config.status
-./autogen.sh || echo done
 CFLAGS="-O3 -march=corei7 -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
@@ -66,7 +52,6 @@ mv cpuminer cpuminer-sse42
 
 make clean || echo clean
 rm -f config.status
-./autogen.sh || echo done
 CFLAGS="-O3 -march=core2 -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
@@ -76,7 +61,6 @@ mv cpuminer cpuminer-ssse3
 
 make clean || echo clean
 rm -f config.status
-./autogen.sh || echo done
 CFLAGS="-O3 -msse2 -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
@@ -86,8 +70,7 @@ mv cpuminer cpuminer-sse2
 
 make clean || echo done
 rm -f config.status
-./autogen.sh || echo done
-CFLAGS="-O3 -march=znver1 -DRYZEN_ -Wall" ./configure --with-curl
+CFLAGS="-O3 -march=znver1 -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe cpuminer-zen.exe
@@ -96,13 +79,8 @@ mv cpuminer cpuminer-zen
 
 make clean || echo done
 rm -f config.status
-./autogen.sh || echo done
 CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
-#mv cpuminer.exe cpuminer-native.exe
 strip -s cpuminer
-#mv cpuminer cpuminer-native
-
-#make clean || echo done
 

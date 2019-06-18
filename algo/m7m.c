@@ -144,8 +144,8 @@ void init_m7m_ctx()
 #define NM7M 5
 #define SW_DIVS 5
 #define M7_MIDSTATE_LEN 76
-int scanhash_m7m_hash( int thr_id, struct work* work,
-                       uint64_t max_nonce, unsigned long *hashes_done )
+int scanhash_m7m_hash( int thr_id, struct work* work, uint64_t max_nonce,
+                       unsigned long *hashes_done, struct thr_info *mythr )
 {
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
@@ -154,6 +154,7 @@ int scanhash_m7m_hash( int thr_id, struct work* work,
     uint32_t hash[8] __attribute__((aligned(64)));
     uint8_t bhash[7][64] __attribute__((aligned(64)));
     uint32_t n = pdata[19] - 1;
+    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
     uint32_t usw_, mpzscale;
     const uint32_t first_nonce = pdata[19];
     char data_str[161], hash_str[65], target_str[65];

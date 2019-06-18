@@ -42,9 +42,6 @@ openssl 1.1.0e or higher. Add one of the following, depending on the
 compiler version, to CFLAGS:
 "-march=native" or "-march=znver1" or "-msha".
 
-Due to poor AVX2 performance on Ryzen users should add -DRYZEN_ to CFLAGS
-to override multiway AVX2 on algos with sha256, and use SHA instead.
-
 Additional instructions for static compilalation can be found here:
 https://lxadm.com/Static_compilation_of_cpuminer
 Static builds should only considered in a homogeneous HW and SW environment.

@@ -46,20 +46,6 @@ void init_anime_ctx()
 void anime_hash( void *state, const void *input )
 {
     unsigned char hash[128] __attribute__ ((aligned (32)));
-/*
-    uint64_t hash0[8] __attribute__ ((aligned (64)));
-    uint64_t hash1[8] __attribute__ ((aligned (64)));
-    uint64_t hash2[8] __attribute__ ((aligned (64)));
-    uint64_t hash3[8] __attribute__ ((aligned (64)));
-    uint64_t vhash[8*4] __attribute__ ((aligned (64)));
-    uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
-    uint64_t vhashB[8*4] __attribute__ ((aligned (64)));
-    __m256i* vh  = (__m256i*)vhash;
-    __m256i* vhA = (__m256i*)vhashA;
-    __m256i* vhB = (__m256i*)vhashB;
-    __m256i vh_mask;
-    __m256i bit3_mask; bit3_mask = _mm256_set1_epi64x( 8 );
-*/
     uint32_t mask = 8;
     anime_ctx_holder ctx;
     memcpy( &ctx, &anime_ctx, sizeof(anime_ctx) );
@@ -134,7 +120,7 @@ void anime_hash( void *state, const void *input )
 }
 
 int scanhash_anime( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done)
+                         uint64_t *hashes_done, struct thr_info *mythr)
 {
     uint32_t hash[8] __attribute__ ((aligned (64)));
     uint32_t endiandata[20] __attribute__((aligned(64)));
@@ -142,6 +128,7 @@ int scanhash_anime( int thr_id, struct work *work, uint32_t max_nonce,
     uint32_t *ptarget = work->target;
     uint32_t n = pdata[19];
     const uint32_t first_nonce = pdata[19];
+    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
     const uint32_t Htarg = ptarget[7];
     uint64_t htmax[] = {
                 0,

@@ -5,13 +5,12 @@
 #include "algo-gate-api.h"
 
 // Override multi way on ryzen, SHA is better.
-#if !defined(RYZEN_)
-#if defined(__SSE2__)
-  #define SHA256T_4WAY
-#endif
-#if defined(__AVX2__)
+#if !defined(__SHA__)
+ #if defined(__AVX2__)
   #define SHA256T_8WAY
-#endif
+#elif defined(__SSE2__)
+  #define SHA256T_4WAY
+ #endif
 #endif
 
 bool register_sha256t_algo( algo_gate_t* gate );

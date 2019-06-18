@@ -111,8 +111,8 @@
 
 #if defined(__SSSE3__)
 
-// An SSE2 versin of this would be monstrous, shifting, masking and oring
-// each byte individually.
+// An SSE2 or MMX version of this would be monstrous, shifting, masking and
+// oring each byte individually.
 #define mm64_invert_8(  v ) \
     _mm_shuffle_pi8( (__m64)v, _mm_set_pi8( 0,1,2,3,4,5,6,7 ) );
 

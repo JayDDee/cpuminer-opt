@@ -47,7 +47,9 @@ bool lyra2rev3_thread_init()
 
    int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
    l2v3_wholeMatrix = _mm_malloc( size, 64 );
-#if defined (LYRA2REV3_4WAY)
+#if defined (LYRA2REV3_8WAY)
+   init_lyra2rev3_8way_ctx();;
+#elif defined (LYRA2REV3_4WAY)
    init_lyra2rev3_4way_ctx();;
 #else
    init_lyra2rev3_ctx();
@@ -57,7 +59,10 @@ bool lyra2rev3_thread_init()
 
 bool register_lyra2rev3_algo( algo_gate_t* gate )
 {
-#if defined (LYRA2REV3_4WAY)
+#if defined (LYRA2REV3_8WAY)
+  gate->scanhash  = (void*)&scanhash_lyra2rev3_8way;
+  gate->hash      = (void*)&lyra2rev3_8way_hash;
+#elif defined (LYRA2REV3_4WAY)
   gate->scanhash  = (void*)&scanhash_lyra2rev3_4way;
   gate->hash      = (void*)&lyra2rev3_4way_hash;
 #else
@@ -203,13 +208,18 @@ void phi2_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 
 bool register_phi2_algo( algo_gate_t* gate )
 {
-   init_phi2_ctx();
+//   init_phi2_ctx();
    gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT;
    gate->get_work_data_size = (void*)&phi2_get_work_data_size;
    gate->decode_extra_data  = (void*)&phi2_decode_extra_data;
    gate->build_extraheader  = (void*)&phi2_build_extraheader;
    gate->set_target         = (void*)&alt_set_target; 
    gate->get_max64          = (void*)&get_max64_0xffffLL;
+#if defined(PHI2_4WAY)
+   gate->scanhash           = (void*)&scanhash_phi2_4way;
+#else
+   init_phi2_ctx();
    gate->scanhash           = (void*)&scanhash_phi2;
+#endif
    return true;
 }

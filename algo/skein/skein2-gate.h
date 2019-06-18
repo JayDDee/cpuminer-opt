@@ -10,11 +10,11 @@
 #if defined(SKEIN2_4WAY)
 void skein2hash_4way( void *output, const void *input );
 int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t* hashes_done );
+                          uint64_t* hashes_done, struct thr_info *mythr );
 #endif
 
 void skein2hash( void *output, const void *input );
 int scanhash_skein2( int thr_id, struct work *work, uint32_t max_nonce,
-                     uint64_t *hashes_done );
+                     uint64_t *hashes_done, struct thr_info *mythr );
 #endif
 

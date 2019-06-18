@@ -6,6 +6,12 @@
 
 #if defined (__AVX2__)
 
+union _m256_v16 {
+  uint16_t u16[16];
+  __m256i v256;
+};
+typedef union _m256_v16 m256_v16;
+
 // imported from simd_iv.h
 
 uint32_t SIMD_IV_512[] = { 0x0ba16b95, 0x72f999ad, 0x9fecc2ae, 0xba3264fc,

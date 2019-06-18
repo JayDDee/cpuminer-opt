@@ -78,7 +78,7 @@ void x14_4way_hash( void *state, const void *input )
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serial
-     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // 3 Groestl
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -90,7 +90,7 @@ void x14_4way_hash( void *state, const void *input )
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      // Parallel 4way
-     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      // 4 Skein
      skein512_4way( &ctx.skein, vhash, 64 );
@@ -105,16 +105,16 @@ void x14_4way_hash( void *state, const void *input )
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // Serial
-     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // 7 Luffa
-     mm256_interleave_2x128( vhash, hash0, hash1, 512 );
+     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
-     mm256_interleave_2x128( vhash, hash2, hash3, 512 );
+     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
+     mm256_intrlv_2x128( vhash, hash2, hash3, 512 );
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
+     mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
 
      // 8 Cubehash
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );
@@ -142,13 +142,13 @@ void x14_4way_hash( void *state, const void *input )
      sph_shavite512_close( &ctx.shavite, hash3 );
 
      // 10 Simd
-     mm256_interleave_2x128( vhash, hash0, hash1, 512 );
+     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
-     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
-     mm256_interleave_2x128( vhash, hash2, hash3, 512 );
+     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
+     mm256_intrlv_2x128( vhash, hash2, hash3, 512 );
      simd_2way_init( &ctx.simd, 512 );
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
-     mm256_deinterleave_2x128( hash2, hash3, vhash, 512 );
+     mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
 
      // 11 Echo
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
@@ -164,10 +164,10 @@ void x14_4way_hash( void *state, const void *input )
                        (const BitSequence *) hash3, 512 );
 
      // 12 Hamsi parallel 4way 32 bit
-     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
      hamsi512_4way( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
-     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // 13 Fugue serial
      sph_fugue512( &ctx.fugue, hash0, 64 );
@@ -183,14 +183,14 @@ void x14_4way_hash( void *state, const void *input )
      sph_fugue512_close( &ctx.fugue, hash3 );
 
      // 14 Shabal, parallel 32 bit
-     mm128_interleave_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, state );
 
 }
 
 int scanhash_x14_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done )
+                       uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*16] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
@@ -203,6 +203,7 @@ int scanhash_x14_4way( int thr_id, struct work *work, uint32_t max_nonce,
      int num_found = 0;
      uint32_t *noncep = vdata + 73;   // 9*8 + 1
      const uint32_t Htarg = ptarget[7];
+     /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
      uint64_t htmax[] = {          0,        0xF,       0xFF,
                                0xFFF,     0xFFFF, 0x10000000  };
      uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
@@ -212,7 +213,7 @@ int scanhash_x14_4way( int thr_id, struct work *work, uint32_t max_nonce,
      swab32_array( endiandata, pdata, 20 );
 
      uint64_t *edata = (uint64_t*)endiandata;
-     mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+     mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
      for ( int m=0; m < 6; m++ )
        if ( Htarg <= htmax[m] )

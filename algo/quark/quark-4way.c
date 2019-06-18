@@ -48,9 +48,10 @@ void quark_4way_hash( void *state, const void *input )
     __m256i* vhA = (__m256i*)vhashA;
     __m256i* vhB = (__m256i*)vhashB;
     __m256i vh_mask;
-    __m256i bit3_mask; bit3_mask = _mm256_set1_epi64x( 8 );
-    int i;
     quark_4way_ctx_holder ctx;
+    const __m256i bit3_mask = _mm256_set1_epi64x( 8 );
+    const uint32_t mask = 8;
+
     memcpy( &ctx, &quark_4way_ctx, sizeof(quark_4way_ctx) );
 
     blake512_4way( &ctx.blake, input, 80 );
@@ -62,27 +63,44 @@ void quark_4way_hash( void *state, const void *input )
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
                                   m256_zero );
 
-       mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+    mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+
+    if ( hash0[0] & mask )
+    {
        update_and_final_groestl( &ctx.groestl, (char*)hash0,
                                                (char*)hash0, 512 );
+    }
+    if ( hash1[0] & mask )
+    {
        reinit_groestl( &ctx.groestl );
        update_and_final_groestl( &ctx.groestl, (char*)hash1,
                                                (char*)hash1, 512 );
+    }
+    if ( hash2[0] & mask )
+    {   
        reinit_groestl( &ctx.groestl );
        update_and_final_groestl( &ctx.groestl, (char*)hash2,
                                                (char*)hash2, 512 );
+    }
+    if ( hash3[0] & mask )
+    {   
        reinit_groestl( &ctx.groestl );
        update_and_final_groestl( &ctx.groestl, (char*)hash3,
                                                (char*)hash3, 512 );
-       mm256_interleave_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+    }
 
+    mm256_intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+
+    if ( mm256_anybits0( vh_mask ) )   
+    {
        skein512_4way( &ctx.skein, vhash, 64 );
        skein512_4way_close( &ctx.skein, vhashB );
+    }
 
-    for ( i = 0; i < 8; i++ )
-       vh[i] = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );
+    mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-    mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+    mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+
     reinit_groestl( &ctx.groestl );
     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
     reinit_groestl( &ctx.groestl );
@@ -91,7 +109,8 @@ void quark_4way_hash( void *state, const void *input )
     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
     reinit_groestl( &ctx.groestl );
     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-    mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+
+    mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
     jh512_4way( &ctx.jh, vhash, 64 );
     jh512_4way_close( &ctx.jh, vhash );
@@ -99,16 +118,21 @@ void quark_4way_hash( void *state, const void *input )
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
                                   m256_zero );
 
+    if ( mm256_anybits1( vh_mask ) )
+    {
        blake512_4way_init( &ctx.blake );
        blake512_4way( &ctx.blake, vhash, 64 );
        blake512_4way_close( &ctx.blake, vhashA );
+    }
 
+    if ( mm256_anybits0( vh_mask ) )
+    {
        bmw512_4way_init( &ctx.bmw );
        bmw512_4way( &ctx.bmw, vhash, 64 );
        bmw512_4way_close( &ctx.bmw, vhashB );
+    }
 
-    for ( i = 0; i < 8; i++ )
-       vh[i] = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );
+    mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
     keccak512_4way( &ctx.keccak, vhash, 64 );
     keccak512_4way_close( &ctx.keccak, vhash );
@@ -120,63 +144,65 @@ void quark_4way_hash( void *state, const void *input )
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
                                   m256_zero );
 
+    if ( mm256_anybits1( vh_mask ) )
+    {
        keccak512_4way_init( &ctx.keccak );
        keccak512_4way( &ctx.keccak, vhash, 64 );
        keccak512_4way_close( &ctx.keccak, vhashA );
+    }
 
+    if ( mm256_anybits0( vh_mask ) )
+    {
        jh512_4way_init( &ctx.jh );
        jh512_4way( &ctx.jh, vhash, 64 );
        jh512_4way_close( &ctx.jh, vhashB );
+    }
 
-    for ( i = 0; i < 8; i++ )
-       vh[i] = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );
-
-    mm256_deinterleave_4x64( state, state+32, state+64, state+96, vhash, 256 );
+    // Final blend, directly to state, only need 32 bytes.
+    casti_m256i( state, 0 ) = _mm256_blendv_epi8( vhA[0], vhB[0], vh_mask );
+    casti_m256i( state, 1 ) = _mm256_blendv_epi8( vhA[1], vhB[1], vh_mask );
+    casti_m256i( state, 2 ) = _mm256_blendv_epi8( vhA[2], vhB[2], vh_mask );
+    casti_m256i( state, 3 ) = _mm256_blendv_epi8( vhA[3], vhB[3], vh_mask );
 }
 
 int scanhash_quark_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done)
+                         uint64_t *hashes_done, struct thr_info *mythr )
 {
     uint32_t hash[4*8] __attribute__ ((aligned (64)));
     uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-    uint32_t endiandata[20] __attribute__((aligned(64)));
+    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
+    uint32_t *hash7 = &(hash[25]);
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
     uint32_t n = pdata[19];
     const uint32_t first_nonce = pdata[19];
-    uint32_t *nonces = work->nonces;
-    int num_found = 0;
-    uint32_t *noncep = vdata + 73;   // 9*8 + 1
+    __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
+    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
 
-    swab32_array( endiandata, pdata, 20 );
-
-    uint64_t *edata = (uint64_t*)endiandata;
-    mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
-
+    mm256_bswap_intrlv80_4x64( vdata, pdata );
     do
     {
-       be32enc( noncep,   n   );
-       be32enc( noncep+2, n+1 );
-       be32enc( noncep+4, n+2 );
-       be32enc( noncep+6, n+3 );
+       *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+                _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
        quark_4way_hash( hash, vdata );
        pdata[19] = n;
 
        for ( int i = 0; i < 4; i++ )
-       if ( ( ( (hash+(i<<3))[7] & 0xFFFFFF00 ) == 0 )
-            && fulltest( hash+(i<<3), ptarget ) )
+       if ( ( hash7[ i<<1 ] & 0xFFFFFF00 ) == 0 )
        {
-          pdata[19] = n+i;
-          nonces[ num_found++ ] = n+i;
-          work_set_target_ratio( work, hash+(i<<3) );
+          mm256_extract_lane_4x64( lane_hash, hash, i, 256 );
+          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark  )
+          {
+            pdata[19] = n+i;
+            submit_solution( work, lane_hash, mythr, i );
+          }
        }
        n += 4;
-    } while ( ( num_found == 0 ) && ( n < max_nonce )
-              && !work_restart[thr_id].restart );
+    } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
 
     *hashes_done = n - first_nonce + 1;
-    return num_found;
+    return 0;
 }
 
 #endif

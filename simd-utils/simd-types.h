@@ -93,6 +93,7 @@
 // my_int128 = (uint128_t)_mm256_extracti128_si256( v256, 1 );
 
 // Compiler check for __int128 support
+// Configure also has a test for int128.
 #if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
   #define GCC_INT128 1
 #endif
@@ -385,14 +386,4 @@ typedef union _regarray_v256 regarray_v256;
 #define u8_1d u8_._1d
 #define u8_1e u8_._1e
 #define u8_1f u8_._1f
-
-
-// This is in use by, coincidentally, simd hash.
-union _m256_v16 {
-  uint16_t u16[16];
-  __m256i v256;
-};
-typedef union _m256_v16 m256_v16;
-
-
 

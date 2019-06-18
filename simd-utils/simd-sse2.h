@@ -10,11 +10,21 @@
 // SSE2 is generally required for full 128 bit support. Some functions
 // are also optimized with SSSE3 or SSE4.1.
 //
+// Do not call _mm_extract directly, it isn't supported in SSE2.
+// Use mm128_extr instead, it will select the appropriate implementation.
+//
+// 128 bit operations are enhanced with uint128 which adds 128 bit integer
+// support for arithmetic and other operations. Casting to uint128_t is not
+// free, it requires a move from mmx to gpr but is often the only way or
+// the more efficient way for certain operations.
 
 // Compile time constant initializers are type agnostic and can have
 // a pointer handle of almost any type. All arguments must be scalar constants.
 // up to 64 bits. These iniitializers should only be used at compile time
 // to initialize vector arrays. All data reside in memory.
+//
+// These are of limited use, it is often simpler to use uint64_t arrays
+// and cast as required.
 
 #define mm128_const_64( x1, x0 ) {{ x1, x0 }}
 #define mm128_const1_64( x )     {{  x,  x }}
@@ -79,6 +89,28 @@
 #define mm128_negate_64( v )    _mm_sub_epi64( m128_zero, v )
 #define mm128_negate_32( v )    _mm_sub_epi32( m128_zero, v )  
 #define mm128_negate_16( v )    _mm_sub_epi16( m128_zero, v )  
+
+// Use uint128_t for most arithmetic, bit shift, comparison operations
+// spanning all 128 bits. Some extractions are also more efficient 
+// casting __m128i as uint128_t and usingstandard operators.
+
+// This isn't cheap, not suitable for bulk usage.
+#define mm128_extr_4x32( a0, a1, a2, a3, src ) \
+do { \
+  a0 = _mm_extract_epi32( src, 0 ); \
+  a1 = _mm_extract_epi32( src, 1 ); \
+  a1 = _mm_extract_epi32( src, 2 ); \
+  a3 = _mm_extract_epi32( src, 3 ); \
+} while(0)
+
+// Horizontal vector testing
+
+// Bit-wise test of entire vector, useful to test results of cmp.
+#define mm128_anybits0( a ) (uint128_t)(a)
+#define mm128_anybits1( a ) (((uint128_t)(a))+1)
+
+#define mm128_allbits0( a ) ( !mm128_anybits1(a) )
+#define mm128_allbits1( a ) ( !mm128_anybits0(a) )
 
 //
 // Vector pointer cast

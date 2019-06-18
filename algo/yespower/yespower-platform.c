@@ -41,7 +41,7 @@ static void *alloc_region(yespower_region_t *region, size_t size)
 #endif
 	    MAP_ANON | MAP_PRIVATE;
 #if defined(MAP_HUGETLB) && defined(HUGEPAGE_SIZE)
-	size_t new_size = size;
+   size_t new_size = size;
 	const size_t hugepage_mask = (size_t)HUGEPAGE_SIZE - 1;
 	if (size >= HUGEPAGE_THRESHOLD && size + hugepage_mask >= size) {
 		flags |= MAP_HUGETLB;
@@ -55,6 +55,7 @@ static void *alloc_region(yespower_region_t *region, size_t size)
 	base = mmap(NULL, new_size, PROT_READ | PROT_WRITE, flags, -1, 0);
 	if (base != MAP_FAILED) {
 		base_size = new_size;
+
 	} else if (flags & MAP_HUGETLB) {
 		flags &= ~MAP_HUGETLB;
 		base = mmap(NULL, size, PROT_READ | PROT_WRITE, flags, -1, 0);

@@ -13,19 +13,15 @@ bool register_x14_algo( algo_gate_t* gate );
 #if defined(X14_4WAY)
 
 void x14_4way_hash( void *state, const void *input );
-
 int scanhash_x14_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done );
-
+                       uint64_t *hashes_done, struct thr_info *mythr );
 void init_x14_4way_ctx();
 
 #endif
 
 void x14hash( void *state, const void *input );
-
 int scanhash_x14( int thr_id, struct work *work, uint32_t max_nonce,
-                  uint64_t *hashes_done );
-
+                  uint64_t *hashes_done, struct thr_info *mythr );
 void init_x14_ctx();
 
 #endif

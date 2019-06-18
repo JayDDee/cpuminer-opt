@@ -131,6 +131,7 @@ cpuminer_SOURCES = \
   algo/lyra2/lyra2h-4way.c \
   algo/lyra2/allium-4way.c \
   algo/lyra2/allium.c \
+  algo/lyra2/phi2-4way.c \
   algo/lyra2/phi2.c \
   algo/m7m.c \
   algo/neoscrypt/neoscrypt.c \
@@ -147,6 +148,9 @@ cpuminer_SOURCES = \
   algo/quark/anime-gate.c \
   algo/quark/anime.c \
   algo/quark/anime-4way.c \
+  algo/quark/hmq1725-gate.c \
+  algo/quark/hmq1725-4way.c \
+  algo/quark/hmq1725.c \
   algo/qubit/qubit-gate.c \
   algo/qubit/qubit.c \
   algo/qubit/qubit-2way.c \
@@ -257,7 +261,6 @@ cpuminer_SOURCES = \
   algo/x17/xevan-gate.c \
   algo/x17/xevan.c \
   algo/x17/xevan-4way.c \
-  algo/x17/hmq1725.c \
   algo/x17/sonoa-gate.c \
   algo/x17/sonoa-4way.c \
   algo/x17/sonoa.c \

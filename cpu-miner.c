@@ -1851,14 +1851,14 @@ static void *miner_thread( void *userdata )
    {
 #if AFFINITY_USES_UINT128
        // Default affinity
-       if ( (opt_affinity == i128_neg1 ) && opt_n_threads > 1 )
+       if ( (opt_affinity == (uint128_t)(-1) ) && opt_n_threads > 1 )
        {  
          if ( opt_debug )
             applog( LOG_DEBUG, "Binding thread %d to cpu %d.",
                     thr_id, thr_id % num_cpus,
-	                 u128_hi64( (uint128_t)1ULL << (thr_id % num_cpus) ),
-		              u128_lo64( (uint128_t)1ULL << (thr_id % num_cpus) ) );
-         affine_to_cpu_mask( thr_id, (uint128_t)1ULL << (thr_id % num_cpus) );
+	                 u128_hi64( (uint128_t)1 << (thr_id % num_cpus) ),
+		              u128_lo64( (uint128_t)1 << (thr_id % num_cpus) ) );
+         affine_to_cpu_mask( thr_id, (uint128_t)1 << (thr_id % num_cpus) );
        }
 #else
        if ( (opt_affinity == -1LL) && opt_n_threads > 1 ) 
@@ -2322,7 +2322,7 @@ bool jr2_stratum_handle_response( json_t *val )
 
 static bool stratum_handle_response( char *buf )
 {
-	json_t *val, *id_val;
+	json_t *val, *id_val, *res_val;
 	json_error_t err;
 	bool ret = false;
 
@@ -2332,8 +2332,10 @@ static bool stratum_handle_response( char *buf )
            applog(LOG_INFO, "JSON decode failed(%d): %s", err.line, err.text);
 	   goto out;
 	}
-        json_object_get( val, "result" );
-	id_val = json_object_get( val, "id" );
+   res_val = json_object_get( val, "result" );
+   if ( !res_val ) { /* now what? */ }
+
+   id_val = json_object_get( val, "id" );
 	if ( !id_val || json_is_null(id_val) )
 		goto out;
         if ( !algo_gate.stratum_handle_response( val ) )

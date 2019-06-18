@@ -38,9 +38,17 @@ supported.
 Change Log
 ----------
 
+v3.9.4
+
+Faster AVX2 for lyra2v3, quark, anime.
+Fixed skein AVX2 regression (invalid shares since v3.9.0) and faster.
+Faster skein2 with 4way AVX2 enabled.
+Automatic SHA override on Ryzen CPUs, no need for -DRYZEN compile flag.
+Ongoing restructuring.
+
 v3.9.3.1
 
-Skippped v3.9.3 due to misidentification of v3.9.2.5 as v3.9.3.
+Skipped v3.9.3 due to misidentification of v3.9.2.5 as v3.9.3.
 Fixed x16r algo 25% invalid share reject rate. The bug may have also
 affected other algos.
 
