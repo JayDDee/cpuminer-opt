@@ -52,12 +52,14 @@ void decred_hash_simple(void *state, const void *input)
         sph_blake256_close(&ctx, state);
 }
 
-int scanhash_decred(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_decred( struct work *work, uint32_t max_nonce,
+               uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t _ALIGN(64) endiandata[48];
         uint32_t _ALIGN(64) hash32[8];
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
 //        #define DCR_NONCE_OFT32 35
 

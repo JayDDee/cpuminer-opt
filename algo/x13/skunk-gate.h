@@ -14,8 +14,8 @@ bool register_skunk_algo( algo_gate_t* gate );
 
 void skunk_4way_hash( void *state, const void *input );
 
-int scanhash_skunk_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done );
+int scanhash_skunk_4way( struct work *work, uint32_t max_nonce,
+                       uint64_t *hashes_done, struct thr_info *mythr );
 
 bool skunk_4way_thread_init();
 //void init_skunk_4way_ctx();
@@ -24,8 +24,8 @@ bool skunk_4way_thread_init();
 
 void skunkhash( void *state, const void *input );
 
-int scanhash_skunk( int thr_id, struct work *work, uint32_t max_nonce,
-                  uint64_t *hashes_done );
+int scanhash_skunk( struct work *work, uint32_t max_nonce,
+                  uint64_t *hashes_done, struct thr_info *mythr );
 
 bool skunk_thread_init();
 

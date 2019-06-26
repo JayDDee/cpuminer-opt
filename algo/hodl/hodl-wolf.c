@@ -61,13 +61,14 @@ void Rev256(uint32_t *Dest, const uint32_t *Src)
 }
 */
 
-int scanhash_hodl_wolf( int threadNumber, struct work* work, uint32_t max_nonce,
-                        uint64_t *hashes_done )
+int scanhash_hodl_wolf( struct work* work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr )
 {
 #ifdef __SSE4_2__
 //#ifdef __AVX__
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
+    int threadNumber = mythr->id;
     CacheEntry *Garbage = (CacheEntry*)hodl_scratchbuf;
     CacheEntry Cache[AES_PARALLEL_N];
     __m128i* data[AES_PARALLEL_N];

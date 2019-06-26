@@ -22,8 +22,8 @@ bool register_timetravel_algo( algo_gate_t* gate );
 
 void timetravel_4way_hash( void *state, const void *input );
 
-int scanhash_timetravel_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done );
+int scanhash_timetravel_4way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_tt8_4way_ctx();
 
@@ -31,8 +31,8 @@ void init_tt8_4way_ctx();
 
 void timetravel_hash( void *state, const void *input );
 
-int scanhash_timetravel( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done );
+int scanhash_timetravel( struct work *work, uint32_t max_nonce,
+                    uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_tt8_ctx();
 

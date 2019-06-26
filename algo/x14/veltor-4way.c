@@ -77,7 +77,7 @@ void veltor_4way_hash( void *output, const void *input )
      memcpy( output+96, hash3, 32 );
 }
 
-int scanhash_veltor_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_veltor_4way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
@@ -88,10 +88,8 @@ int scanhash_veltor_4way( int thr_id, struct work *work, uint32_t max_nonce,
      const uint32_t Htarg = ptarget[7];
      const uint32_t first_nonce = pdata[19];
      uint32_t n = first_nonce;
-     uint32_t *nonces = work->nonces;
-     int num_found = 0;
      uint32_t *noncep = vdata + 73;   // 9*8 + 1
-     /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+     int thr_id = mythr->id;  // thr_id arg is deprecated
      volatile uint8_t *restart = &(work_restart[thr_id].restart);
 
      if ( opt_benchmark )
@@ -117,13 +115,12 @@ int scanhash_veltor_4way( int thr_id, struct work *work, uint32_t max_nonce,
          if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
          {
             pdata[19] = n+i;
-            nonces[ num_found++ ] = n+i;
-            work_set_target_ratio( work, hash+(i<<3) );
+            submit_lane_solution( work, hash+(i<<3), mythr, i );
          }
          n += 4;
-     } while ( ( num_found == 0 ) && ( n < max_nonce ) && !(*restart) );
+     } while ( ( n < max_nonce ) && !(*restart) );
      *hashes_done = n - first_nonce + 1;
-     return num_found;
+     return 0;
 }
 
 #endif

@@ -59,9 +59,6 @@ Supported Algorithms
                           blake2s       Blake-2 S
                           bmw           BMW 256
                           c11           Chaincoin
-                          cryptolight   Cryptonight-light
-                          cryptonight  
-                          cryptonightv7 Monero (XMR)
                           decred
                           deep          Deepcoin (DCN)
                           dmd-gr        Diamond-Groestl
@@ -78,9 +75,9 @@ Supported Algorithms
                           luffa         Luffa
                           lyra2h        Hppcoin
                           lyra2re       lyra2
-                          lyra2rev2     lyra2v2, Vertcoin
+                          lyra2rev2     lyra2v2
                           lyra2rev3     lyrav2v3, Vertcoin
-                          lyra2z        Zcoin (XZC)
+                          lyra2z        
                           lyra2z330     Lyra2 330 rows, Zoin (ZOI)
                           m7m           Magi (XMG)
                           myr-gr        Myriad-Groestl
@@ -97,6 +94,7 @@ Supported Algorithms
                           scrypt:N      scrypt(N, 1, 1)
                           scryptjane:nf
                           sha256d       Double SHA-256
+                          sha256q       Quad SHA-256, Pyrite (PYE)
                           sha256t       Triple SHA-256, Onecoin (OC)
                           shavite3      Shavite3
                           skein         Skein+Sha (Skeincoin)

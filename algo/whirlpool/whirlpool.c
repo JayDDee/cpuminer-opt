@@ -57,14 +57,15 @@ void whirlpool_midstate( const void* input )
 }
 
 
-int scanhash_whirlpool( int thr_id, struct work* work, uint32_t max_nonce,
-                        uint64_t *hashes_done )
+int scanhash_whirlpool( struct work* work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr )
 {
 	uint32_t _ALIGN(128) endiandata[20];
 	uint32_t* pdata = work->data;
 	uint32_t* ptarget = work->target;
 	const uint32_t first_nonce = pdata[19];
         uint32_t n = first_nonce - 1;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
 	if (opt_benchmark)
 		((uint32_t*)ptarget)[7] = 0x0000ff;

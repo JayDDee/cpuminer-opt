@@ -14,8 +14,8 @@ bool register_phi1612_algo( algo_gate_t* gate );
 
 void phi1612_4way_hash( void *state, const void *input );
 
-int scanhash_phi1612_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                           uint64_t *hashes_done );
+int scanhash_phi1612_4way( struct work *work, uint32_t max_nonce,
+                           uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_phi1612_4way_ctx();
 
@@ -23,8 +23,8 @@ void init_phi1612_4way_ctx();
 
 void phi1612_hash( void *state, const void *input );
 
-int scanhash_phi1612( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done );
+int scanhash_phi1612( struct work *work, uint32_t max_nonce,
+                    uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_phi1612_ctx();
 

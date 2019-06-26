@@ -18,14 +18,15 @@ void keccakhash(void *state, const void *input)
 	memcpy(state, hash, 32);
 }
 
-int scanhash_keccak(int thr_id, struct work *work,
-	uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_keccak( struct work *work,
+	uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;
 	const uint32_t first_nonce = pdata[19];
 	//const uint32_t Htarg = ptarget[7];
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
 	uint32_t _ALIGN(32) hash64[8];
 	uint32_t endiandata[32];

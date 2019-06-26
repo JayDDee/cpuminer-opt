@@ -35,7 +35,7 @@ void nist5hash_4way( void *out, const void *input )
      blake512_4way( &ctx_blake, input, 80 );
      blake512_4way_close( &ctx_blake, vhash );
 
-     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      init_groestl( &ctx_groestl, 64 );
      update_and_final_groestl( &ctx_groestl, (char*)hash0,
@@ -50,7 +50,7 @@ void nist5hash_4way( void *out, const void *input )
      update_and_final_groestl( &ctx_groestl, (char*)hash3,
                                (const char*)hash3, 512 );
 
-     mm256_interleave_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      jh512_4way_init( &ctx_jh );
      jh512_4way( &ctx_jh, vhash, 64 );
@@ -65,8 +65,8 @@ void nist5hash_4way( void *out, const void *input )
      skein512_4way_close( &ctx_skein, out );
 }
 
-int scanhash_nist5_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done)
+int scanhash_nist5_4way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*16] __attribute__ ((aligned (64)));
      uint32_t *hash7 = &(hash[25]);
@@ -78,9 +78,8 @@ int scanhash_nist5_4way( int thr_id, struct work *work, uint32_t max_nonce,
      uint32_t n = pdata[19];
      const uint32_t first_nonce = pdata[19];
      const uint32_t Htarg = ptarget[7];
-     uint32_t *nonces = work->nonces;
-     int num_found = 0;
      uint32_t *noncep = vdata + 73;   // 9*8 + 1
+     int thr_id = mythr->id;  // thr_id arg is deprecated
 
      uint64_t htmax[] = {          0,
                                  0xF,
@@ -100,7 +99,7 @@ int scanhash_nist5_4way( int thr_id, struct work *work, uint32_t max_nonce,
      swab32_array( endiandata, pdata, 20 );
 
      uint64_t *edata = (uint64_t*)endiandata;
-     mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+     mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
      // precalc midstate
 //     blake512_4way_init( &ctx_mid );
@@ -124,22 +123,19 @@ int scanhash_nist5_4way( int thr_id, struct work *work, uint32_t max_nonce,
               if ( ( hash7[ lane ] & mask ) == 0 )
               {
                  mm256_extract_lane_4x64( lane_hash, hash, lane, 256 );
-                 if ( fulltest( lane_hash, ptarget ) )
+                 if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
                  {
                     pdata[19] = n + lane;
-                    nonces[ num_found++ ] = n + lane;
-                    work_set_target_ratio( work, lane_hash );
+                    submit_lane_solution( work, lane_hash, mythr, lane );
                  }
               }
               n += 4;
-           } while ( ( num_found == 0 ) && ( n < max_nonce )
-                     && !work_restart[thr_id].restart );
+           } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
            break;
         }
      }
-
      *hashes_done = n - first_nonce + 1;
-     return num_found;
+     return 0;
 }
 
 #endif

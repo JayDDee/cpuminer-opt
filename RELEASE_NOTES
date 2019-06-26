@@ -38,6 +38,14 @@ supported.
 Change Log
 ----------
 
+v3.9.5
+
+New share reporting information includes calculation of equivalent hhashrate
+based on share difficulty, network latency, 5 minute summary.
+Per-thread hash rate reports are disabled by default.
+New command line option --hash-meter added to enable per-thread hash rates.
+
+
 v3.9.4
 
 Faster AVX2 for lyra2v3, quark, anime.

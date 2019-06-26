@@ -12,8 +12,8 @@
 
 void myriad_4way_hash( void *state, const void *input );
 
-int scanhash_myriad_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done );
+int scanhash_myriad_4way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_myrgr_4way_ctx();
 
@@ -21,8 +21,8 @@ void init_myrgr_4way_ctx();
 
 void myriad_hash( void *state, const void *input );
 
-int scanhash_myriad( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done );
+int scanhash_myriad( struct work *work, uint32_t max_nonce,
+                    uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_myrgr_ctx();
 

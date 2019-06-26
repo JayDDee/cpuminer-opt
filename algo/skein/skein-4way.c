@@ -13,7 +13,6 @@
 void skeinhash_4way( void *state, const void *input )
 {
      uint64_t vhash64[8*4] __attribute__ ((aligned (64)));
-     uint32_t vhash32[16*4] __attribute__ ((aligned (64)));
      skein512_4way_context ctx_skein;
 #if defined(__SHA__)
      uint32_t hash0[16] __attribute__ ((aligned (64)));
@@ -22,6 +21,7 @@ void skeinhash_4way( void *state, const void *input )
      uint32_t hash3[16] __attribute__ ((aligned (64)));
      SHA256_CTX           ctx_sha256;
 #else
+     uint32_t vhash32[16*4] __attribute__ ((aligned (64)));
      sha256_4way_context ctx_sha256;
 #endif
 
@@ -58,7 +58,7 @@ void skeinhash_4way( void *state, const void *input )
 #endif
 }
 
-int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
@@ -71,7 +71,7 @@ int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
     const uint32_t first_nonce = pdata[19];
     uint32_t n = first_nonce;
     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+    int thr_id = mythr->id;  // thr_id arg is deprecated
 
    mm256_bswap_intrlv80_4x64( vdata, pdata );
    do
@@ -88,7 +88,7 @@ int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
           if ( fulltest( lane_hash, ptarget ) )
           {
              pdata[19] = n + lane;
-             submit_solution( work, lane_hash, mythr, lane );
+             submit_lane_solution( work, lane_hash, mythr, lane );
           }
        }
        n += 4;

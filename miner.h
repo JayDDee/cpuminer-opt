@@ -363,7 +363,6 @@ struct work {
 	char *job_id;
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
-        uint32_t nonces[8];    // deprecated
 } __attribute__ ((aligned (64)));
 
 struct stratum_job {
@@ -521,7 +520,7 @@ enum algos {
         ALGO_LYRA2RE,       
         ALGO_LYRA2REV2,   
         ALGO_LYRA2REV3,
-	ALGO_LYRA2Z,
+	     ALGO_LYRA2Z,
         ALGO_LYRA2Z330,
         ALGO_M7M,
         ALGO_MYR_GR,      
@@ -529,7 +528,7 @@ enum algos {
         ALGO_NIST5,       
         ALGO_PENTABLAKE,  
         ALGO_PHI1612,
-	ALGO_PHI2,
+	     ALGO_PHI2,
         ALGO_PLUCK,       
         ALGO_POLYTIMOS,
         ALGO_QUARK,
@@ -537,14 +536,14 @@ enum algos {
         ALGO_SCRYPT,
         ALGO_SCRYPTJANE,
         ALGO_SHA256D,
-        ALGO_SHA256T,
         ALGO_SHA256Q,
+        ALGO_SHA256T,
         ALGO_SHAVITE3,    
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
         ALGO_SKUNK,
         ALGO_SONOA,
-	ALGO_TIMETRAVEL,
+        ALGO_TIMETRAVEL,
         ALGO_TIMETRAVEL10,
         ALGO_TRIBUS,
         ALGO_VANILLA,
@@ -609,7 +608,7 @@ static const char* const algo_names[] = {
         "lyra2re",
         "lyra2rev2",
         "lyra2rev3",
-	"lyra2z",
+	     "lyra2z",
         "lyra2z330",
         "m7m",
         "myr-gr",
@@ -618,21 +617,21 @@ static const char* const algo_names[] = {
         "pentablake",
         "phi1612",
         "phi2",
-	"pluck",
+	     "pluck",
         "polytimos",
         "quark",
         "qubit",
         "scrypt",
         "scryptjane",
         "sha256d",
-        "sha256t",
         "sha256q",
+        "sha256t",
         "shavite3",
         "skein",
         "skein2",
         "skunk",
         "sonoa",
-	"timetravel",
+        "timetravel",
         "timetravel10",
         "tribus",
         "vanilla",
@@ -711,6 +710,7 @@ extern bool opt_stratum_stats;
 extern int num_cpus;
 extern int num_cpugroups;
 extern int opt_priority;
+extern bool opt_hash_meter;
 extern uint32_t accepted_share_count;
 extern uint32_t rejected_share_count;
 extern uint32_t solved_block_count;
@@ -767,7 +767,7 @@ Options:\n\
                           pentablake    5 x blake512\n\
                           phi1612       phi, LUX coin (original algo)\n\
                           phi2          LUX (new algo)\n\
-			  pluck         Pluck:128 (Supcoin)\n\
+			                 pluck         Pluck:128 (Supcoin)\n\
                           polytimos\n\
                           quark         Quark\n\
                           qubit         Qubit\n\
@@ -775,14 +775,14 @@ Options:\n\
                           scrypt:N      scrypt(N, 1, 1)\n\
                           scryptjane:nf\n\
                           sha256d       Double SHA-256\n\
-                          sha256t       Triple SHA-256, Onecoin (OC)\n\
                           sha256q       Quad SHA-256, Pyrite (PYE)\n\
-			  shavite3      Shavite3\n\
+                          sha256t       Triple SHA-256, Onecoin (OC)\n\
+			                 shavite3      Shavite3\n\
                           skein         Skein+Sha (Skeincoin)\n\
                           skein2        Double Skein (Woodcoin)\n\
                           skunk         Signatum (SIGT)\n\
                           sonoa         Sono\n\
-			  timetravel    timeravel8, Machinecoin (MAC)\n\
+			                 timetravel    timeravel8, Machinecoin (MAC)\n\
                           timetravel10  Bitcore (BTX)\n\
                           tribus        Denarius (DNR)\n\
                           vanilla       blake256r8vnl (VCash)\n\
@@ -825,6 +825,7 @@ Options:\n\
       --randomize       Randomize scan range start to reduce duplicates\n\
   -f, --diff-factor     Divide req. difficulty by this factor (std is 1.0)\n\
   -m, --diff-multiplier Multiply difficulty by this factor (std is 1.0)\n\
+      --hash-meter      Display thread hash rates\n\
       --hide-diff       Do not display changes in difficulty\n\
       --coinbase-addr=ADDR  payout address for solo mining\n\
       --coinbase-sig=TEXT  data to insert in the coinbase when possible\n\
@@ -888,6 +889,7 @@ static struct option const options[] = {
         { "diff-factor", 1, NULL, 'f' },
         { "diff", 1, NULL, 'f' }, // deprecated (alias)
         { "diff-multiplier", 1, NULL, 'm' },
+        { "hash-meter", 0, NULL, 1014 },
         { "hide-diff", 0, NULL, 1013 },
         { "help", 0, NULL, 'h' },
         { "no-gbt", 0, NULL, 1011 },

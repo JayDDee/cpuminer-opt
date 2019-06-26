@@ -164,8 +164,8 @@ void x12hash(void *output, const void *input)
 	memcpy(output, hashB, 32);
 }
 
-int scanhash_x12(int thr_id, struct work *work, uint32_t max_nonce,
-                               uint64_t *hashes_done)
+int scanhash_x12( struct work *work, uint32_t max_nonce,
+                               uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t endiandata[20] __attribute__((aligned(64)));
         uint32_t hash64[8] __attribute__((aligned(64)));
@@ -173,6 +173,7 @@ int scanhash_x12(int thr_id, struct work *work, uint32_t max_nonce,
         uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;
 	const uint32_t first_nonce = pdata[19];
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 	const uint32_t Htarg = ptarget[7];
 
 	uint64_t htmax[] = {

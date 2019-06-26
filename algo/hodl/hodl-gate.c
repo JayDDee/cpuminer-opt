@@ -143,13 +143,13 @@ bool hodl_do_this_thread( int thr_id )
   return ( thr_id == 0 );
 }
 
-int hodl_scanhash( int thr_id, struct work* work, uint32_t max_nonce,
-                   uint64_t *hashes_done )
+int hodl_scanhash( struct work* work, uint32_t max_nonce,
+                   uint64_t *hashes_done, struct thr_info *mythr )
 {
 #if defined(__AES__)
-  GenRandomGarbage( (CacheEntry*)hodl_scratchbuf, work->data, thr_id );
+  GenRandomGarbage( (CacheEntry*)hodl_scratchbuf, work->data, mythr->id );
   pthread_barrier_wait( &hodl_barrier );
-  return scanhash_hodl_wolf( thr_id, work, max_nonce, hashes_done );
+  return scanhash_hodl_wolf( work, max_nonce, hashes_done, thr_info );
 #endif
   return false;
 }

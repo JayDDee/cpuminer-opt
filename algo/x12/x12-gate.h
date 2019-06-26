@@ -14,8 +14,8 @@ bool register_x12_algo( algo_gate_t* gate );
 
 void x12_4way_hash( void *state, const void *input );
 
-int scanhash_x12_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done );
+int scanhash_x12_4way( struct work *work, uint32_t max_nonce,
+                       uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_x12_4way_ctx();
 
@@ -23,8 +23,8 @@ void init_x12_4way_ctx();
 
 void x12hash( void *state, const void *input );
 
-int scanhash_x12( int thr_id, struct work *work, uint32_t max_nonce,
-                  uint64_t *hashes_done );
+int scanhash_x12( struct work *work, uint32_t max_nonce,
+                  uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_x12_ctx();
 

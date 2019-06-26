@@ -11,13 +11,13 @@
 
 void skeinhash_4way( void *output, const void *input );
 
-int scanhash_skein_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
 #endif
 
 void skeinhash( void *output, const void *input );
 
-int scanhash_skein( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_skein( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif

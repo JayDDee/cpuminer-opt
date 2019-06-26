@@ -137,8 +137,8 @@ void c11_hash( void *output, const void *input )
         memcpy(output, hash+64, 32);
 }
 
-int scanhash_c11( int thr_id, struct work *work, uint32_t max_nonce,
-                  uint64_t *hashes_done )
+int scanhash_c11( struct work *work, uint32_t max_nonce,
+                  uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t endiandata[20] __attribute__((aligned(64)));
         uint32_t hash[8] __attribute__((aligned(64)));
@@ -147,6 +147,7 @@ int scanhash_c11( int thr_id, struct work *work, uint32_t max_nonce,
 	const uint32_t first_nonce = pdata[19];
         const uint32_t Htarg = ptarget[7];
 	uint32_t nonce = first_nonce;
+   int thr_id = mythr->id;
 	volatile uint8_t *restart = &(work_restart[thr_id].restart);
 
 	if (opt_benchmark)

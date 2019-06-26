@@ -40,7 +40,7 @@ void sha256q_hash( void* output, const void* input )
    memcpy( output, hash, 32 );
 }
 
-int scanhash_sha256q( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_sha256q( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t *pdata = work->data;
@@ -54,7 +54,7 @@ int scanhash_sha256q( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t hash64[8] __attribute__((aligned(32)));
 #endif
    uint32_t endiandata[32];
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    uint64_t htmax[] = {
 		0,
@@ -91,22 +91,13 @@ int scanhash_sha256q( int thr_id, struct work *work, uint32_t max_nonce,
             pdata[19] = ++n;
             be32enc(&endiandata[19], n);
             sha256q_hash( hash64, endiandata );
-            if ( ( !(hash64[7] & mask) ) && fulltest( hash64, ptarget ) )
-            {
-               work_set_target_ratio( work, hash64 );
-               if ( submit_work( mythr, work ) )
-                  applog( LOG_NOTICE, "Share %d submitted by thread %d.",
-                             accepted_share_count + rejected_share_count + 1,
-                             thr_id );
-               else
-                  applog( LOG_WARNING, "Failed to submit share." );
-               *hashes_done = n - first_nonce + 1;
-            }
+            if ( !( hash64[7] & mask ) )
+            if ( fulltest( hash64, ptarget ) && !opt_benchmark )
+               submit_solution( work, hash64, mythr );
          } while ( n < max_nonce && !work_restart[thr_id].restart );
          break;
       }
    }
-
    *hashes_done = n - first_nonce + 1;
    pdata[19] = n;
    return 0;

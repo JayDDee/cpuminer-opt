@@ -60,7 +60,8 @@ void tribus_hash(void *state, const void *input)
      memcpy(state, hash, 32);
 }
 
-int scanhash_tribus(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_tribus( struct work *work, uint32_t max_nonce,
+      uint64_t *hashes_done, struct thr_info *mythr )
 {
 	uint32_t _ALIGN(128) hash32[8];
 	uint32_t _ALIGN(128) endiandata[20];
@@ -69,6 +70,7 @@ int scanhash_tribus(int thr_id, struct work *work, uint32_t max_nonce, uint64_t 
 	const uint32_t first_nonce = pdata[19];
 	const uint32_t Htarg = ptarget[7];
 	uint32_t n = pdata[19] - 1;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
 	uint64_t htmax[] = {
 		0,

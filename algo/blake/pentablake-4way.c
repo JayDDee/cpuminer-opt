@@ -14,7 +14,7 @@
 
 extern void pentablakehash_4way( void *output, const void *input )
 {
-	unsigned char _ALIGN(32) hash[128];
+//	unsigned char _ALIGN(32) hash[128];
 //	// same as uint32_t hashA[16], hashB[16];
 //	#define hashB hash+64
 
@@ -29,7 +29,7 @@ extern void pentablakehash_4way( void *output, const void *input )
      blake512_4way_init( &ctx );
      blake512_4way( &ctx, input, 80 );
      blake512_4way_close( &ctx, vhash );
-
+/*
 uint64_t sin0[10], sin1[10], sin2[10], sin3[10];
 mm256_deinterleave_4x64( sin0, sin1, sin2, sin3, input, 640 );
 sph_blake512_context ctx2_blake;
@@ -37,14 +37,14 @@ sph_blake512_init(&ctx2_blake);
 sph_blake512(&ctx2_blake, sin0, 80);
 sph_blake512_close(&ctx2_blake, (void*) hash);
 
-mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 uint64_t* hash64 = (uint64_t*)hash;
 for( int i = 0; i < 8; i++ )
 {
    if ( hash0[i] != hash64[i] )
       printf("hash mismatch %u\n",i);
 }
-
+*/
      blake512_4way_init( &ctx );
      blake512_4way( &ctx, vhash, 64 );
      blake512_4way_close( &ctx, vhash );
@@ -61,7 +61,7 @@ for( int i = 0; i < 8; i++ )
      blake512_4way( &ctx, vhash, 64 );
      blake512_4way_close( &ctx, vhash );
 
-     mm256_deinterleave_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
      memcpy( output,    hash0, 32 );
      memcpy( output+32, hash1, 32 );
      memcpy( output+64, hash2, 32 );
@@ -99,8 +99,8 @@ for( int i = 0; i < 8; i++ )
 */
 }
 
-int scanhash_pentablake_4way( int thr_id, struct work *work,
-                              uint32_t max_nonce, uint64_t *hashes_done )
+int scanhash_pentablake_4way( struct work *work,
+      uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr )
 {
     uint32_t hash[4*8] __attribute__ ((aligned (64)));
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
@@ -110,9 +110,8 @@ int scanhash_pentablake_4way( int thr_id, struct work *work,
     uint32_t n = pdata[19] - 1;
     const uint32_t first_nonce = pdata[19];
     const uint32_t Htarg = ptarget[7];
-    uint32_t *nonces = work->nonces;
-    int num_found = 0;
     uint32_t *noncep = vdata + 73;   // 9*8 + 1
+    int thr_id = mythr->id;  // thr_id arg is deprecated
 
 //    uint32_t _ALIGN(32) hash64[8];
 //    uint32_t _ALIGN(32) endiandata[32];
@@ -138,7 +137,7 @@ int scanhash_pentablake_4way( int thr_id, struct work *work,
     swab32_array( endiandata, pdata, 20 );
 
     uint64_t *edata = (uint64_t*)endiandata;
-    mm256_interleave_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+    mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
     for ( int m=0; m < 6; m++ )
     {
@@ -155,10 +154,10 @@ int scanhash_pentablake_4way( int thr_id, struct work *work,
 
               for ( int i = 0; i < 4; i++ )
               if ( !( (hash+(i<<3))[7] & mask )
-                  && fulltest( hash+(i<<3), ptarget ) )
+                  && fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
               {
-                 nonces[ num_found++ ] = n+i;
-                 work_set_target_ratio( work, hash+(i<<3) );
+                 pdata[19] = n + i;
+                 submit_lane_solution( work, hash+(i<<3), mythr, i );
               }
               n += 4;
 

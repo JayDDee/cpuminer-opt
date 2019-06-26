@@ -14,15 +14,15 @@
 
 void tribus_hash_4way( void *state, const void *input );
 
-int scanhash_tribus_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done );
+int scanhash_tribus_4way( struct work *work, uint32_t max_nonce,
+                          uint64_t *hashes_done, struct thr_info *mythr );
 
 #else
 
 void tribus_hash( void *state, const void *input );
 
-int scanhash_tribus( int thr_id, struct work *work, uint32_t max_nonce,
-                     uint64_t *hashes_done );
+int scanhash_tribus( struct work *work, uint32_t max_nonce,
+                     uint64_t *hashes_done, struct thr_info *mythr );
 
 bool tribus_thread_init();
 

@@ -160,7 +160,7 @@ void anime_4way_hash( void *state, const void *input )
     mm256_dintrlv_4x64( state, state+32, state+64, state+96, vhash, 256 );
 }
 
-int scanhash_anime_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_anime_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
     uint32_t hash[4*8] __attribute__ ((aligned (64)));
@@ -170,7 +170,7 @@ int scanhash_anime_4way( int thr_id, struct work *work, uint32_t max_nonce,
     uint32_t n = pdata[19];
     const uint32_t first_nonce = pdata[19];
     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+    int thr_id = mythr->id;  // thr_id arg is deprecated
     const uint32_t Htarg = ptarget[7];
     uint64_t htmax[] = {
                 0,
@@ -209,7 +209,7 @@ int scanhash_anime_4way( int thr_id, struct work *work, uint32_t max_nonce,
                 && fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
              {
                 pdata[19] = n+i;
-                submit_solution( work, hash+(i<<3), mythr, i );
+                submit_lane_solution( work, hash+(i<<3), mythr, i );
              }
              n += 4;
           } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );

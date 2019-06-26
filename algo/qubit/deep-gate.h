@@ -13,14 +13,14 @@ bool register_deep_algo( algo_gate_t* gate );
 #if defined(DEEP_2WAY)
 
 void deep_2way_hash( void *state, const void *input );
-int scanhash_deep_2way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_deep_2way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
 void init_deep_2way_ctx();
 
 #endif
 
 void deep_hash( void *state, const void *input );
-int scanhash_deep( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_deep( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr );
 void init_deep_ctx();
 

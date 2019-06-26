@@ -44,7 +44,7 @@ void lyra2z_4way_hash( void *state, const void *input )
      LYRA2Z( lyra2z_4way_matrix, state+96, 32, hash3, 32, hash3, 32, 8, 8, 8 );
 }
 
-int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_lyra2z_4way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
@@ -55,7 +55,7 @@ int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
@@ -74,7 +74,7 @@ int scanhash_lyra2z_4way( int thr_id, struct work *work, uint32_t max_nonce,
            && !opt_benchmark )
       {
           pdata[19] = n+i;         
-          submit_solution( work, hash+(i<<3), mythr, i );
+          submit_lane_solution( work, hash+(i<<3), mythr, i );
       }
       n += 4;
    } while ( (n < max_nonce-4) && !work_restart[thr_id].restart);
@@ -141,7 +141,7 @@ void lyra2z_8way_hash( void *state, const void *input )
      memcpy( state+224, hash7, 32 );
 }
 
-int scanhash_lyra2z_8way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*8] __attribute__ ((aligned (64)));
@@ -152,7 +152,7 @@ int scanhash_lyra2z_8way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
@@ -171,7 +171,7 @@ int scanhash_lyra2z_8way( int thr_id, struct work *work, uint32_t max_nonce,
            && !opt_benchmark )
       {
           pdata[19] = n+i;         
-          submit_solution( work, hash+(i<<3), mythr, i );
+          submit_lane_solution( work, hash+(i<<3), mythr, i );
       }
       n += 8;
    } while ( (n < max_nonce-8) && !work_restart[thr_id].restart);

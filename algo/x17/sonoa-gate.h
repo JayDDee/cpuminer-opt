@@ -14,7 +14,7 @@ bool register_sonoa_algo( algo_gate_t* gate );
 
 void sonoa_4way_hash( void *state, const void *input );
 
-int scanhash_sonoa_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_sonoa_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
 
 //void init_sonoa_4way_ctx();
@@ -23,7 +23,7 @@ int scanhash_sonoa_4way( int thr_id, struct work *work, uint32_t max_nonce,
 
 void sonoa_hash( void *state, const void *input );
 
-int scanhash_sonoa( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_sonoa( struct work *work, uint32_t max_nonce,
                   uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_sonoa_ctx();

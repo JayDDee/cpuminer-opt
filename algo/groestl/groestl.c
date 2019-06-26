@@ -56,14 +56,15 @@ void groestlhash( void *output, const void *input )
      memcpy(output, hash, 32);
  }
 
-int scanhash_groestl( int thr_id, struct work *work, uint32_t max_nonce,
-                      uint64_t *hashes_done )
+int scanhash_groestl( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
         uint32_t endiandata[20] __attribute__ ((aligned (64)));
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
 	if (opt_benchmark)
 		((uint32_t*)ptarget)[7] = 0x0000ff;

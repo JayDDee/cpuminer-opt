@@ -17,11 +17,11 @@ void blakecoin_4way_hash(void *state, const void *input)
      blake256r8_4way( &ctx, input + (64<<2), 16 );
      blake256r8_4way_close( &ctx, vhash );
 
-     mm128_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
+     mm128_dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
-int scanhash_blakecoin_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done )
+int scanhash_blakecoin_4way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t hash[8*4] __attribute__ ((aligned (32)));
@@ -31,13 +31,12 @@ int scanhash_blakecoin_4way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t HTarget = ptarget[7];
    uint32_t _ALIGN(32) edata[20];
    uint32_t n = first_nonce;
-   uint32_t *nonces = work->nonces;
-   int num_found = 0;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
    if ( opt_benchmark )
       HTarget = 0x7f;
 
    swab32_array( edata, pdata, 20 );
-   mm128_interleave_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_intrlv_4x32( vdata, edata, edata, edata, edata, 640 );
    blake256r8_4way_init( &blakecoin_4w_ctx );
    blake256r8_4way( &blakecoin_4w_ctx, vdata, 64 );
 
@@ -51,19 +50,18 @@ int scanhash_blakecoin_4way( int thr_id, struct work *work, uint32_t max_nonce,
       blakecoin_4way_hash( hash, vdata );
 
       for ( int i = 0; i < 4; i++ )
-      if (  (hash+(i<<3))[7] <= HTarget && fulltest( hash+(i<<3), ptarget ) )
+      if (  (hash+(i<<3))[7] <= HTarget && fulltest( hash+(i<<3), ptarget )
+           && !opt_benchmark )
       {
           pdata[19] = n+i;
-          nonces[ num_found++ ] = n+i;
-          work_set_target_ratio( work, hash+(i<<3) );
+          submit_lane_solution( work, hash+(i<<3), mythr, i );
       }
       n += 4;
 
-   } while ( (num_found == 0) && (n < max_nonce) 
-             && !work_restart[thr_id].restart );
+   } while ( (n < max_nonce) && !work_restart[thr_id].restart );
 
    *hashes_done = n - first_nonce + 1;
-   return num_found;
+   return 0;
 }
 
 #endif
@@ -81,13 +79,13 @@ void blakecoin_8way_hash( void *state, const void *input )
      blake256r8_8way( &ctx, input + (64<<3), 16 );
      blake256r8_8way_close( &ctx, vhash );
 
-     mm256_deinterleave_8x32( state,     state+ 32, state+ 64, state+ 96,
+     mm256_dintrlv_8x32( state,     state+ 32, state+ 64, state+ 96,
                               state+128, state+160, state+192, state+224,
                               vhash, 256 );
 }
 
-int scanhash_blakecoin_8way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done )
+int scanhash_blakecoin_8way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t hash[8*8] __attribute__ ((aligned (32)));
@@ -97,15 +95,14 @@ int scanhash_blakecoin_8way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t HTarget = ptarget[7];
    uint32_t _ALIGN(32) edata[20];
    uint32_t n = first_nonce;
-   uint32_t *nonces = work->nonces;
    uint32_t *noncep = vdata + 152;   // 19*8
-   int num_found = 0;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
    if ( opt_benchmark )
       HTarget = 0x7f;
 
    // we need big endian data...
    swab32_array( edata, pdata, 20 );
-   mm256_interleave_8x32( vdata, edata, edata, edata, edata,
+   mm256_intrlv_8x32( vdata, edata, edata, edata, edata,
                                  edata, edata, edata, edata, 640 );
    blake256r8_8way_init( &blakecoin_8w_ctx );
    blake256r8_8way( &blakecoin_8w_ctx, vdata, 64 );
@@ -123,18 +120,17 @@ int scanhash_blakecoin_8way( int thr_id, struct work *work, uint32_t max_nonce,
       blakecoin_8way_hash( hash, vdata );
 
       for ( int i = 0; i < 8; i++ )
-      if (  (hash+(i<<3))[7] <= HTarget && fulltest( hash+(i<<3), ptarget ) )
+      if (  (hash+(i<<3))[7] <= HTarget && fulltest( hash+(i<<3), ptarget )
+          && !opt_benchmark )
       {
           pdata[19] = n+i;
-          nonces[ num_found++ ] = n+i;
-          work_set_target_ratio( work, hash+(i<<3) );
+          submit_lane_solution( work, hash+(i<<3), mythr, i );
       }
       n += 8;
-   } while ( (num_found == 0) && (n < max_nonce)
-             && !work_restart[thr_id].restart );
+   } while ( (n < max_nonce) && !work_restart[thr_id].restart );
 
    *hashes_done = n - first_nonce + 1;
-   return num_found;
+   return 0;
 }
 
 #endif

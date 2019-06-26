@@ -14,8 +14,8 @@ bool register_x13_algo( algo_gate_t* gate );
 
 void x13_4way_hash( void *state, const void *input );
 
-int scanhash_x13_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done );
+int scanhash_x13_4way( struct work *work, uint32_t max_nonce,
+                       uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_x13_4way_ctx();
 
@@ -23,8 +23,8 @@ void init_x13_4way_ctx();
 
 void x13hash( void *state, const void *input );
 
-int scanhash_x13( int thr_id, struct work *work, uint32_t max_nonce,
-                  uint64_t *hashes_done );
+int scanhash_x13( struct work *work, uint32_t max_nonce,
+                  uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_x13_ctx();
 

@@ -142,6 +142,7 @@ char *rpc2_job_id = NULL;
 double opt_diff_factor = 1.0;
 uint32_t zr5_pok = 0;
 bool opt_stratum_stats = false;
+bool opt_hash_meter = false;
 
 uint32_t accepted_share_count = 0ULL;
 uint32_t rejected_share_count = 0ULL;
@@ -809,156 +810,157 @@ out:
 
 void scale_hash_for_display ( double* hashrate, char* units )
 {
-     if ( *hashrate < 1e4 )
-       // 0 H/s to 9999 H/s
-       *units = 0;
-     else if ( *hashrate < 1e7 )
-     {
-       // 10 kH/s to 9999 kH/s
-       *units = 'k';
-       *hashrate /= 1e3;
-     }
-     else if ( *hashrate < 1e10 )
-     {
-       // 10 Mh/s to 9999 Mh/s
-       *units = 'M';
-       *hashrate /= 1e6;
-     }
-     else if ( *hashrate < 1e13 )
-     {
-       // 10 iGh/s to 9999 Gh/s
-       *units = 'G';
-       *hashrate /= 1e9;
-     }
-     else
-     {
-       // 10 Th/s and higher
-       *units = 'T';
-       *hashrate /= 1e12;
-     }
+     if ( *hashrate < 1e4 )            //  0  H/s to 9999  H/s
+        *units =  0;
+     else if ( *hashrate < 1e7 )       // 10 kH/s to 9999 kH/s
+     {  *units = 'k';  *hashrate /= 1e3;   }
+     else if ( *hashrate < 1e10 )      // 10 Mh/s to 9999 Mh/s
+     {  *units = 'M';  *hashrate /= 1e6;   }
+     else if ( *hashrate < 1e13 )      // 10 Gh/s to 9999 Gh/s
+     {  *units = 'G';  *hashrate /= 1e9;   }
+     else if ( *hashrate < 1e16 )      // 10 Th/s to 9999 Th/s
+     {  *units = 'T';  *hashrate /= 1e12;  }
+     else                              // 10 Ph/s and higher
+     {  *units = 'P';  *hashrate /= 1e15;  }
 }
+
+// Bitcoin formula for converting a share's difficulty to an equivalent
+// number of hashes.
+//
+//   https://en.bitcoin.it/wiki/Difficulty
+//
+//   H = D * 2**48 / 0xffff
+//     = D * 2**32
+//
+// That formula doesn't seem to be accurate but an adjustment to the
+// constant produces correct results.
+//
+// The formula used is:
+//
+//   hash = sharediff * 2**48 / 0x3fff
+//        = sharediff * 2**30
+//        = sharediff * diff2hash
+
+const uint64_t diff2hash = 0x40000000ULL;
+
+static struct timeval submit_time, prev_submit_time;
+static struct timeval submit_interval;
+static struct timeval five_min_start;
+static double shash_sum = 0.;
+static double bhash_sum = 0.;
+static double time_sum = 0.;
+static double latency_sum = 0.;
+static uint64_t submits_sum = 0;
 
 static int share_result( int result, struct work *work, const char *reason )
 {
-   char hc[16];
    char hr[16];
    const char *sres;
    double hashcount = 0.;
    double hashrate = 0.;
-   char hc_units[4] = {0};
    char hr_units[4] = {0};
-   uint32_t total_submits;
-   float rate;
-   char rate_s[8] = {0};
+   bool solved; 
+   char shr[16];
+   char shr_units[4] = {0};
+   char diffstr[32];
+   struct timeval ack_time, latency_tv;
+   uint64_t latency;
+   double share_time, share_hash, block_hash;
    double sharediff = work ? work->sharediff : stratum.sharediff;
-   bool solved = result && accepted_share_count && (net_diff > 0.0 )
-	         && ( sharediff >= net_diff );
-   char sol[32] = {0};
-   int i;
+   double share_size;
 
-   pthread_mutex_lock(&stats_lock);
-   for (i = 0; i < opt_n_threads; i++)
+   pthread_mutex_lock( &stats_lock );
+   for ( int i = 0; i < opt_n_threads; i++ )
    {
        hashcount += thr_hashcount[i];
        hashrate += thr_hashrates[i];
    }
-   solved = result && ( (uint64_t)hashcount > 0 )  && (net_diff > 0.0 )
-                                             && ( sharediff >= net_diff );
+
+   // calculate latency
+   gettimeofday( &ack_time, NULL );
+   timeval_subtract( &latency_tv, &ack_time, &submit_time );
+   latency = ( latency_tv.tv_sec * 1000  + latency_tv.tv_usec / 1000 );
+
+   // calculate share hashrate and size
+   share_time = submit_interval.tv_sec + ( submit_interval.tv_usec / 1000000. );
+   share_hash = sharediff * diff2hash;
+   block_hash = net_diff  * diff2hash;
+   share_size = block_hash == 0. ? 0. : share_hash / block_hash;
+
+   // update counters for 5 minute summary report
+   shash_sum   += share_hash;
+   bhash_sum   += block_hash;
+   time_sum    += share_time;
+   submits_sum ++;
+   latency_sum += latency;
+
+   pthread_mutex_unlock( &stats_lock );
+
+   double share_hash_rate = share_time == 0. ? 0. : share_hash / share_time;
+
    result ? accepted_share_count++ : rejected_share_count++;
-
-   if ( solved )
-   {
-      solved_block_count++;
-      if ( use_colors )
-         sprintf( sol, CL_GRN " Solved: %d" CL_WHT, solved_block_count );   
-      else
-         sprintf( sol, ", Solved: %d", solved_block_count ); 
-   }
-
-   pthread_mutex_unlock(&stats_lock);
    global_hashcount = hashcount;
    global_hashrate = hashrate;
-   total_submits = accepted_share_count + rejected_share_count;
 
-   rate = ( result ? ( 100. * accepted_share_count / total_submits )  
-                   : ( 100. * rejected_share_count / total_submits ) );
+   // check for solved block
+   solved = result && (net_diff > 0.0 ) && ( sharediff >= net_diff );
+   solved_block_count += solved ? 1 : 0 ;
 
-   if (use_colors)
+   if ( use_colors )
    {
-        sres = (result ? CL_GRN "Accepted" CL_WHT : CL_RED "Rejected" CL_WHT );
+      sres = ( solved ? ( CL_MAG "BLOCK SOLVED" CL_WHT )
+                        : result ? ( CL_GRN "Accepted" CL_WHT )
+                                 : ( CL_RED "Rejected" CL_WHT ) );
+
+      // colour code the share diff to highlight high value.
+      if ( solved )
+         sprintf( diffstr, "%s%.3g%s", CL_MAG, sharediff, CL_WHT );
+      else if ( share_size > 0.01 )
+         sprintf( diffstr, "%s%.3g%s", CL_GRN, sharediff, CL_WHT );
+      else if ( share_size > 0.001 )          
+         sprintf( diffstr, "%s%.3g%s", CL_CYN, sharediff, CL_WHT );
+      else if ( share_hash_rate > hashrate )
+         sprintf( diffstr, "%s%.3g%s", CL_YLW, sharediff, CL_WHT );
+      else
+         sprintf( diffstr, "%.3g", sharediff );   
    }
    else
    {
-        sres = (result ? "Accepted" : "Rejected" );
+      sres = ( solved ? "BLOCK SOLVED"
+                        : result ? "Accepted" : "Rejected" );
+      sprintf( diffstr, "%3g", sharediff );                   
    }
 
-   // Contrary to rounding convention 100% means zero rejects, exactly 100%. 
-   // Rates > 99% and < 100% (rejects>0) display 99.9%.
-   if ( result )
-   {
-      rate = 100. * accepted_share_count / total_submits;
-      if ( rate == 100.0 )
-         sprintf( rate_s, "%.0f", rate );
-      else
-         sprintf( rate_s, "%.1f", ( rate < 99.9 ) ? rate : 99.9 );
-   }
-   else
-   {
-      rate = 100. * rejected_share_count / total_submits;
-      if ( rate < 0.1 )
-         sprintf( rate_s, "%.1f", 0.10 );
-      else
-         sprintf( rate_s, "%.1f", rate );
-   }
-
-   scale_hash_for_display ( &hashcount, hc_units );
    scale_hash_for_display ( &hashrate, hr_units );
-   if ( hc_units[0] )
-   {
-      sprintf(hc, "%.2f", hashcount );
-      if ( hashrate < 10 )
-         // very low hashrate, add digits
-         sprintf(hr, "%.4f", hashrate );
-      else
-         sprintf(hr, "%.2f", hashrate );
-   }
+   if ( hashrate < 10. )
+      sprintf(hr, "%.4f", hashrate );
    else
-   {
-      // no fractions of a hash
-      sprintf(hc, "%.0f", hashcount );
       sprintf(hr, "%.2f", hashrate );
+
+   applog( LOG_NOTICE, "%s, diff %s, %.3f secs, A/R/B: %d/%d/%d.",
+                       sres, diffstr, share_time, accepted_share_count,
+                       rejected_share_count, solved_block_count );
+
+   if ( have_stratum && result && sharediff && net_diff && !opt_quiet )
+   {
+//      double share_hash_rate = share_time == 0. ? 0. : share_hash / share_time;
+
+      scale_hash_for_display ( &share_hash_rate, shr_units );
+      if ( share_hash_rate < 10 )
+         // very low hashrate, add digits
+         sprintf( shr, "%.4f", share_hash_rate );
+      else
+         sprintf( shr, "%.2f", share_hash_rate );
+
+      applog( LOG_NOTICE, "Miner %s %sH/s, Share %s %sH/s, Latency %d ms.",
+                          hr, hr_units, shr, shr_units, latency );
+      applog( LOG_NOTICE, "Height %d, Block share %.5f%%.", 
+                          stratum.bloc_height, share_size*100. );
    }
 
-   if ( sharediff == 0 )
+   if ( reason )
    {
-#if ((defined(_WIN64) || defined(__WINDOWS__)))
-   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), %s %sH, %s %sH/s",
-               sres, ( result ? accepted_share_count : rejected_share_count ),
-               total_submits, rate_s, hc, hc_units, hr, hr_units );
-#else
-   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), %s %sH, %s %sH/s, %dC",
-                sres, ( result ? accepted_share_count : rejected_share_count ),
-                total_submits, rate_s, hc, hc_units, hr, hr_units,
-                (uint32_t)cpu_temp(0) );
-#endif
-   }
-   else
-   {
-#if ((defined(_WIN64) || defined(__WINDOWS__)))
-   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g%s, %s %sH/s",
-               sres, ( result ? accepted_share_count : rejected_share_count ),
-               total_submits, rate_s, sharediff, sol, hr, hr_units );
-#else
-   applog( LOG_NOTICE, "%s %lu/%lu (%s%%), diff %.3g%s, %s %sH/s, %dC",
-               sres, ( result ? accepted_share_count : rejected_share_count ),
-               total_submits, rate_s, sharediff, sol, hr, hr_units,
-               (uint32_t)cpu_temp(0) );
-#endif
-   }
-
-   if (reason)
-   {
-	applog(LOG_WARNING, "reject reason: %s", reason);
+	applog( LOG_WARNING, "reject reason: %s", reason );
 /*
 	if (strncmp(reason, "low difficulty share", 20) == 0)
         {
@@ -1554,7 +1556,12 @@ static bool get_work(struct thr_info *thr, struct work *work)
 bool submit_work(struct thr_info *thr, const struct work *work_in)
 {
 	struct workio_cmd *wc;
-	/* fill out work request message */
+
+   memcpy( &prev_submit_time, &submit_time, sizeof submit_time );
+   gettimeofday( &submit_time, NULL );
+   timeval_subtract( &submit_interval, &submit_time, &prev_submit_time );
+
+   /* fill out work request message */
 	wc = (struct workio_cmd *) calloc(1, sizeof(*wc));
 	if (!wc)
 		return false;
@@ -1783,6 +1790,8 @@ static void *miner_thread( void *userdata )
    int      thr_id = mythr->id;
    struct   work work;
    uint32_t max_nonce;
+   struct timeval et;
+   struct timeval time_now;
 
    // end_nonce gets read before being set so it needs to be initialized
    // what is an appropriate value that is completely neutral?
@@ -1991,7 +2000,7 @@ static void *miner_thread( void *userdata )
        gettimeofday( (struct timeval *) &tv_start, NULL );
 
        // Scan for nonce
-       nonce_found = algo_gate.scanhash( thr_id, &work, max_nonce,
+       nonce_found = algo_gate.scanhash( &work, max_nonce,
                                                  &hashes_done, mythr );
 
        // record scanhash elapsed time
@@ -2001,36 +2010,20 @@ static void *miner_thread( void *userdata )
        {
           pthread_mutex_lock( &stats_lock );
           thr_hashcount[thr_id] = hashes_done;
-	  thr_hashrates[thr_id] =
-		hashes_done / ( diff.tv_sec + diff.tv_usec * 1e-6 );
-	  pthread_mutex_unlock( &stats_lock );
+          thr_hashrates[thr_id] =
+          hashes_done / ( diff.tv_sec + diff.tv_usec * 1e-6 );
+          pthread_mutex_unlock( &stats_lock );
        }
-
        // if nonce(s) found submit work 
        if ( nonce_found && !opt_benchmark )
-       {  // 4 way with multiple nonces, copy individually to work and submit.
-          if ( nonce_found > 1 )
-          for ( int n = 0; n < nonce_found; n++ )
+       {  
+          if ( !submit_work( mythr, &work ) )
           {
-             *algo_gate.get_nonceptr( work.data ) = work.nonces[n];
-             if ( submit_work( mythr, &work ) )
-                applog( LOG_NOTICE, "Share submitted." );
-             else
-             {
-                applog( LOG_WARNING, "Failed to submit share." );
-                break;
-             }
+             applog( LOG_WARNING, "Failed to submit share." );
+             break;
           }
-	  else
-          {  // only 1 nonce, in work ready to submit.
-
-             if ( !submit_work( mythr, &work ) )
-             {
-                applog( LOG_WARNING, "Failed to submit share." );
-                break;
-             }
+          if ( !opt_quiet )
              applog( LOG_NOTICE, "Share submitted." );
-          }
 
           // prevent stale work in solo
           // we can't submit twice a block!
@@ -2042,8 +2035,70 @@ static void *miner_thread( void *userdata )
              pthread_mutex_unlock( &g_work_lock );
           }
        }
+       // Check for 5 minute summary report, mutex until global counters
+       // are read and reset. It's bad form to unlock inside a conditional
+       // block but more efficient. The logic is reversed to make the mutex
+       // issue obvious.
+       pthread_mutex_lock( &stats_lock );
+
+       gettimeofday( &time_now, NULL );
+       timeval_subtract( &et, &time_now, &five_min_start );
+       if ( et.tv_sec < 300 )
+          pthread_mutex_unlock( &stats_lock );
+       else
+       {
+          // collect and reset counters
+          double   hash     = shash_sum;   shash_sum   = 0.;
+          double   bhash    = bhash_sum;   bhash_sum   = 0.;
+          double   time     = time_sum;    time_sum    = 0.;
+          uint64_t submits  = submits_sum; submits_sum = 0;
+          uint64_t latency  = latency_sum; latency_sum = 0;
+          memcpy( &five_min_start, &time_now, sizeof time_now );
+
+          pthread_mutex_unlock( &stats_lock );
+
+          char hr[16];
+          char hr_units[4] = {0};
+          char bshstr[32];
+          double hrate = time == 0. ? 0. : hash / time;
+          double avg_share = bhash == 0. ? 0. : hash / bhash * 100.;
+          latency = submits ? latency / submits : 0;
+
+          // colour code the block share to highlight high value.
+          if ( avg_share > 90.0 )
+             sprintf( bshstr, "%s%.5f%s", CL_MAG, avg_share, CL_WHT );
+          else if ( avg_share > 1.0 )
+             sprintf( bshstr, "%s%.5f%s", CL_GRN, avg_share, CL_WHT );
+          else if ( avg_share > 0.1 )
+             sprintf( bshstr, "%s%.5f%s", CL_CYN, avg_share, CL_WHT );
+          else if ( hrate > global_hashrate )
+             sprintf( bshstr, "%s%.5f%s", CL_YLW, avg_share, CL_WHT );
+          else
+             sprintf( bshstr, "%.5f", avg_share );
+        
+          scale_hash_for_display ( &hrate, hr_units );
+          if ( hrate < 10. )
+             // very low hashrate, add digits
+             sprintf( hr, "%.4f", hrate );
+          else
+             sprintf( hr, "%.2f", hrate );
+
+          applog(LOG_NOTICE,"Summary: %d submits in %dm%02ds, block share %s%%.",
+                             (uint64_t)submits, et.tv_sec / 60,
+                             et.tv_sec % 60, bshstr );    
+
+#if ((defined(_WIN64) || defined(__WINDOWS__)))
+          applog(LOG_NOTICE,"Share hashrate %s %sH/s, latency %d ms.",
+                            hr, hr_units, latency );
+#else
+          applog(LOG_NOTICE,"Share hashrate %s %sH/s, latency %d ms, temp %dC.",
+                            hr, hr_units, latency, (uint32_t)cpu_temp(0) );
+#endif
+          
+       }
+
        // display hashrate
-       if ( !opt_quiet )
+       if ( opt_hash_meter )
        {
           char hc[16];
           char hr[16];
@@ -2086,7 +2141,7 @@ static void *miner_thread( void *userdata )
                 char hc_units[2] = {0,0};
                 char hr[16];
                 char hr_units[2] = {0,0};
-	        scale_hash_for_display( &hashcount, hc_units );
+	             scale_hash_for_display( &hashcount, hc_units );
                 scale_hash_for_display( &hashrate,  hr_units );
                 if ( hc_units[0] )
                    sprintf( hc, "%.2f", hashcount );
@@ -2507,15 +2562,15 @@ static void *stratum_thread(void *userdata )
               if ( last_bloc_height != stratum.bloc_height )
               {
                  last_bloc_height = stratum.bloc_height;
-//                 if ( !opt_quiet )
-//                 {
+                 if ( !opt_quiet )
+                 {
                     if (net_diff > 0.)
 	               applog(LOG_BLUE, "%s block %d, network diff %.3f",
                            algo_names[opt_algo], stratum.bloc_height, net_diff);
                     else
 	               applog(LOG_BLUE, "%s %s block %d", short_url,
                            algo_names[opt_algo], stratum.bloc_height);
-//	           }
+	           }
               }
               restart_threads();
            }
@@ -2887,7 +2942,10 @@ void parse_arg(int key, char *arg )
 	case 1013:
 		opt_showdiff = false;
 		break;
-	case 1016:			/* --coinbase-addr */
+   case 1014:   // hash-meter
+      opt_hash_meter = true;
+      break;
+   case 1016:			/* --coinbase-addr */
 		pk_script_size = address_to_script(pk_script, sizeof(pk_script), arg);
 		if (!pk_script_size) {
 			fprintf(stderr, "invalid address -- '%s'\n", arg);
@@ -3342,6 +3400,11 @@ int main(int argc, char *argv[])
 
    // All options must be set before starting the gate
    if ( !register_algo_gate( opt_algo, &algo_gate ) ) exit(1);
+
+   // Initialize stats times and counters
+   gettimeofday( &prev_submit_time, NULL );
+   memcpy( &submit_time, &prev_submit_time, sizeof submit_time );
+   memcpy( &five_min_start, &prev_submit_time, sizeof prev_submit_time );
 
    if ( !check_cpu_capability() ) exit(1);
 

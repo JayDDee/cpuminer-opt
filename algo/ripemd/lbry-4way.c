@@ -75,7 +75,7 @@ void lbry_8way_hash( void* output, const void* input )
    sha256_8way_close( &ctx_sha256, output );
 }
 
-int scanhash_lbry_8way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_lbry_8way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*8] __attribute__ ((aligned (64)));
@@ -89,7 +89,7 @@ int scanhash_lbry_8way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t Htarg = ptarget[7];
    uint32_t edata[32] __attribute__ ((aligned (64)));
    __m256i  *noncev = (__m256i*)vdata + 27;   // aligned
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    uint64_t htmax[] = {          0,        0xF,       0xFF,
                              0xFFF,     0xFFFF, 0x10000000 };
@@ -122,7 +122,7 @@ int scanhash_lbry_8way( int thr_id, struct work *work, uint32_t max_nonce,
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
               pdata[27] = n + i;
-              submit_solution( work, lane_hash, mythr, i );
+              submit_lane_solution( work, lane_hash, mythr, i );
             }
          }
          n += 8;

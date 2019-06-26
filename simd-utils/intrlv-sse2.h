@@ -99,7 +99,6 @@ do { \
 
 // interleave 4 arrays of 32 bit elements for 128 bit processing
 // bit_len must be 256, 512 or 640 bits.
-#define mm128_interleave_4x32 mm128_intrlv_4x32
 static inline void mm128_intrlv_4x32( void *d, const void *s0,
                const void *s1, const void *s2, const void *s3, int bit_len )
 {
@@ -127,7 +126,6 @@ static inline void mm128_intrlv_4x32( void *d, const void *s0,
 
 // Still used by decred due to odd data size: 180 bytes
 // bit_len must be multiple of 32
-#define mm128_interleave_4x32x mm128_intrlv_4x32x
 static inline void mm128_intrlv_4x32x( void *dst, void *src0, void  *src1,
                                         void *src2, void *src3, int bit_len )
 {
@@ -146,7 +144,6 @@ static inline void mm128_intrlv_4x32x( void *dst, void *src0, void  *src1,
    }
 }
 
-#define mm128_deinterleave_4x32 mm128_dintrlv_4x32
 static inline void mm128_dintrlv_4x32( void *d0, void *d1, void *d2,
                                        void *d3, const void *s, int bit_len )
 {

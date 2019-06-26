@@ -1042,8 +1042,8 @@ static bool fulltest_le(const uint *hash, const uint *target)
     return(rc);
 }
 
-int scanhash_neoscrypt( int thr_id, struct work *work,
-      uint32_t max_nonce, uint64_t *hashes_done )
+int scanhash_neoscrypt( struct work *work,
+      uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr )
 
 {
     uint32_t *pdata = work->data;
@@ -1051,6 +1051,7 @@ int scanhash_neoscrypt( int thr_id, struct work *work,
     uint32_t _ALIGN(64) hash[8];
     const uint32_t Htarg = ptarget[7];
     const uint32_t first_nonce = pdata[19];
+    int thr_id = mythr->id;  // thr_id arg is deprecated
 
     while (pdata[19] < max_nonce && !work_restart[thr_id].restart)
     {

@@ -44,12 +44,13 @@ extern void freshhash(void* output, const void* input, uint32_t len)
 	memcpy(output, hash, 32);
 }
 
-int scanhash_fresh(int thr_id, struct work *work,
-				uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_fresh( struct work *work,
+				uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr)
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
 	uint32_t len = 80;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
 	uint32_t n = pdata[19] - 1;
 	const uint32_t first_nonce = pdata[19];

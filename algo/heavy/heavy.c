@@ -79,11 +79,12 @@ extern void heavyhash(unsigned char* output, const unsigned char* input, int len
 
 }
 
-int scanhash_heavy(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
-                    uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_heavy( uint32_t *pdata, const uint32_t *ptarget,
+            uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr)
 {
     uint32_t hash[8];
     uint32_t start_nonce = pdata[19];
+    int thr_id = mythr->id;  // thr_id arg is deprecated
     
     do {
         heavyhash((unsigned char *)hash, (unsigned char *)pdata, 80);

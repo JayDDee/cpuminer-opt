@@ -33,7 +33,7 @@ void sha256t_11way_hash( void *outx, void *outy, void *outz, const void *inpx,
    sha256_11way_close( &ctx, outx, outy, outz );
 }
 
-int scanhash_sha256t_11way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_sha256t_11way( struct work *work, uint32_t max_nonce,
 	                    uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t datax[20*8]  __attribute__ ((aligned (64)));
@@ -52,7 +52,7 @@ int scanhash_sha256t_11way( int thr_id, struct work *work, uint32_t max_nonce,
    __m256i  *noncex = (__m256i*) datax + 19;
    __m64    *noncey = (__m64*)   datay + 19;
    uint32_t *noncez = (uint32_t*)dataz + 19;
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
    int i;
    const uint64_t htmax[] = {           0,
                                       0xF,
@@ -103,7 +103,7 @@ int scanhash_sha256t_11way( int thr_id, struct work *work, uint32_t max_nonce,
             if ( fulltest( lane_hash, ptarget ) )
             {
 	            pdata[19] = n + i;
-               submit_solution( work, lane_hash, mythr, i );
+               submit_lane_solution( work, lane_hash, mythr, i );
             }
         }
 
@@ -115,14 +115,14 @@ int scanhash_sha256t_11way( int thr_id, struct work *work, uint32_t max_nonce,
            if ( fulltest( lane_hash, ptarget ) )
            {
                pdata[19] = n + 8 + i;
-               submit_solution( work, lane_hash, mythr, i+8 );
+               submit_lane_solution( work, lane_hash, mythr, i+8 );
            }
 	     }
 
         if ( !(hashz[7] & mask ) && fulltest( hashz, ptarget ) )
         {
             pdata[19] = n+10;
-            submit_solution( work, hashz, mythr, 10 );
+            submit_lane_solution( work, hashz, mythr, 10 );
         }
         n += 11;
 
@@ -158,7 +158,7 @@ void sha256t_8way_hash( void* output, const void* input )
    sha256_8way_close( &ctx, output );
 }
 
-int scanhash_sha256t_8way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_sha256t_8way( struct work *work, uint32_t max_nonce,
                            uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t vdata[20*8]  __attribute__ ((aligned (64)));
@@ -171,7 +171,7 @@ int scanhash_sha256t_8way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    const uint64_t htmax[] = {          0,
                                      0xF,
@@ -208,7 +208,7 @@ int scanhash_sha256t_8way( int thr_id, struct work *work, uint32_t max_nonce,
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
               pdata[19] = n + lane;
-              submit_solution( work, lane_hash, mythr, lane );
+              submit_lane_solution( work, lane_hash, mythr, lane );
 	         }
          }
          n += 8;
@@ -243,7 +243,7 @@ void sha256t_4way_hash( void* output, const void* input )
    sha256_4way_close( &ctx, output );
 }
 
-int scanhash_sha256t_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_sha256t_4way( struct work *work, uint32_t max_nonce,
 	                   uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
@@ -256,7 +256,7 @@ int scanhash_sha256t_4way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    const uint64_t htmax[] = {          0,
                                      0xF,
@@ -291,7 +291,7 @@ int scanhash_sha256t_4way( int thr_id, struct work *work, uint32_t max_nonce,
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
               pdata[19] = n + lane;
-              submit_solution( work, lane_hash, mythr, lane );
+              submit_lane_solution( work, lane_hash, mythr, lane );
 	         }
          } 
          n += 4;

@@ -19,8 +19,8 @@ bool register_x11evo_algo( algo_gate_t* gate );
 
 void x11evo_4way_hash( void *state, const void *input );
 
-int scanhash_x11evo_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done );
+int scanhash_x11evo_4way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_x11evo_4way_ctx();
 
@@ -28,8 +28,8 @@ void init_x11evo_4way_ctx();
 
 void x11evo_hash( void *state, const void *input );
 
-int scanhash_x11evo( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done );
+int scanhash_x11evo( struct work *work, uint32_t max_nonce,
+                    uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_x11evo_ctx();
 

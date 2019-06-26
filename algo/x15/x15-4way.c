@@ -213,7 +213,7 @@ void x15_4way_hash( void *state, const void *input )
      memcpy( state+96, hash3, 32 );
 }
 
-int scanhash_x15_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_x15_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
@@ -223,11 +223,9 @@ int scanhash_x15_4way( int thr_id, struct work *work, uint32_t max_nonce,
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];
      const uint32_t first_nonce = pdata[19];
-     uint32_t *nonces = work->nonces;
-     int num_found = 0;
      uint32_t *noncep = vdata + 73;   // 9*8 + 1
      const uint32_t Htarg = ptarget[7];
-     /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+     int thr_id = mythr->id;  // thr_id arg is deprecated
      uint64_t htmax[] = {          0,        0xF,       0xFF,
                                0xFFF,     0xFFFF, 0x10000000  };
      uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
@@ -254,21 +252,19 @@ int scanhash_x15_4way( int thr_id, struct work *work, uint32_t max_nonce,
             pdata[19] = n;
 
             for ( int i = 0; i < 4; i++ )
-            if ( ( ( (hash+(i<<3))[7] & mask ) == 0 )
-                 && fulltest( hash+(i<<3), ptarget ) )
+            if ( ( (hash+(i<<3))[7] & mask ) == 0 )
+            if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
             {
                pdata[19] = n+i;
-               nonces[ num_found++ ] = n+i;
-               work_set_target_ratio( work, hash+(i<<3) );
+               submit_lane_solution( work, hash, mythr, i );
             }
             n += 4;
-         } while ( ( num_found == 0 ) && ( n < max_nonce )
-                   && !work_restart[thr_id].restart );
+         } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
          break;
        }
 
      *hashes_done = n - first_nonce + 1;
-     return num_found;
+     return 0;
 }
 
 #endif

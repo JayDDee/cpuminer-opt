@@ -23,11 +23,11 @@ void decred_hash_4way( void *state, const void *input )
      memcpy( &ctx, &blake_mid, sizeof(blake_mid) );
      blake256_4way( &ctx, tail, tail_len );
      blake256_4way_close( &ctx, vhash );
-     mm128_deinterleave_4x32( state, state+32, state+64, state+96, vhash, 256 );
+     mm128_dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
-int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done)
+int scanhash_decred_4way( struct work *work, uint32_t max_nonce,
+                          uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t vdata[48*4] __attribute__ ((aligned (64)));
    uint32_t hash[8*4] __attribute__ ((aligned (32)));
@@ -37,14 +37,13 @@ int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[DECRED_NONCE_INDEX];
    uint32_t n = first_nonce;
    const uint32_t HTarget = opt_benchmark ? 0x7f : ptarget[7];
-   uint32_t *nonces = work->nonces;
-   int num_found = 0;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    // copy to buffer guaranteed to be aligned.
    memcpy( edata, pdata, 180 );
 
    // use the old way until  new way updated for size.
-   mm128_interleave_4x32x( vdata, edata, edata, edata, edata, 180*8 );
+   mm128_intrlv_4x32x( vdata, edata, edata, edata, edata, 180*8 );
 
    blake256_4way_init( &blake_mid );
    blake256_4way( &blake_mid, vdata, DECRED_MIDSTATE_LEN );
@@ -59,18 +58,17 @@ int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
       decred_hash_4way( hash, vdata );
 
       for ( int i = 0; i < 4; i++ )
-      if (  (hash+(i<<3))[7] <= HTarget && fulltest( hash+(i<<3), ptarget ) )
+      if (  (hash+(i<<3))[7] <= HTarget )
+      if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
       {
           pdata[DECRED_NONCE_INDEX] = n+i;
-          nonces[ num_found++ ] = n+i;
-          work_set_target_ratio( work, hash+(i<<3) );
+          submit_lane_solution( work, hash+(i<<3), mythr, i );
       }
       n += 4;
-  } while ( (num_found == 0) && (n < max_nonce) 
-            && !work_restart[thr_id].restart );
+  } while ( (n < max_nonce) && !work_restart[thr_id].restart );
 
   *hashes_done = n - first_nonce + 1;
-  return num_found;
+  return 0;
 }
 
 #endif

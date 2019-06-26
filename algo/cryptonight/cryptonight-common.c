@@ -70,11 +70,12 @@ void cryptonight_hash_suw( void *restrict output, const void *input )
 
 bool cryptonightV7 = false;
 
-int scanhash_cryptonight( int thr_id, struct work *work, uint32_t max_nonce,
-                   uint64_t *hashes_done )
+int scanhash_cryptonight( struct work *work, uint32_t max_nonce,
+                   uint64_t *hashes_done, struct thr_info *mythr )
  {
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
+    int thr_id = mythr->id;
 
     uint32_t *nonceptr = (uint32_t*) (((char*)pdata) + 39);
     uint32_t n = *nonceptr - 1;

@@ -69,7 +69,7 @@ void allium_hash(void *state, const void *input)
     memcpy(state, hash, 32);
 }
 
-int scanhash_allium( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_allium( struct work *work, uint32_t max_nonce,
                      uint64_t *hashes_done, struct thr_info *mythr )
 {
     uint32_t _ALIGN(128) hash[8];
@@ -80,7 +80,7 @@ int scanhash_allium( int thr_id, struct work *work, uint32_t max_nonce,
     const uint32_t Htarg = ptarget[7];
     const uint32_t first_nonce = pdata[19];
     uint32_t nonce = first_nonce;
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+    int thr_id = mythr->id;  // thr_id arg is deprecated
 
     if ( opt_benchmark )
         ptarget[7] = 0x3ffff;
@@ -94,18 +94,14 @@ int scanhash_allium( int thr_id, struct work *work, uint32_t max_nonce,
     do {
         be32enc( &endiandata[19], nonce );
         allium_hash( hash, endiandata );
-
-        if ( hash[7] <= Htarg && fulltest( hash, ptarget ) )
+        if ( hash[7] <= Htarg )
+        if ( fulltest( hash, ptarget ) && !opt_benchmark )
         {
-            work_set_target_ratio( work, hash );
             pdata[19] = nonce;
-            *hashes_done = pdata[19] - first_nonce;
-            return 1;
+            submit_solution( work, hash, mythr );
         }
         nonce++;
-
-    } while (nonce < max_nonce && !work_restart[thr_id].restart);
-
+    } while ( nonce < max_nonce && !work_restart[thr_id].restart );
     pdata[19] = nonce;
     *hashes_done = pdata[19] - first_nonce + 1;
     return 0;

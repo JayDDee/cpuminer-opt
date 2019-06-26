@@ -161,7 +161,7 @@ void phi2_hash_4way( void *state, const void *input )
 	memcpy( state, vhash, 128 );
 }
 
-int scanhash_phi2_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_phi2_4way( struct work *work, uint32_t max_nonce,
 	                     uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t _ALIGN(128) hash[8];
@@ -174,7 +174,7 @@ int scanhash_phi2_4way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    if(opt_benchmark){
    	ptarget[7] = 0x00ff;
@@ -221,7 +221,7 @@ int scanhash_phi2_4way( int thr_id, struct work *work, uint32_t max_nonce,
           if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
           {
               pdata[19] = n + lane;
-              submit_solution( work, lane_hash, mythr, lane );
+              submit_lane_solution( work, lane_hash, mythr, lane );
           }
        }
        n += 4;

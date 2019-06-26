@@ -33,13 +33,14 @@ void argon2d_crds_hash( void *output, const void *input )
 	argon2_ctx( &context, Argon2_d );
 }
 
-int scanhash_argon2d_crds( int thr_id, struct work *work, uint32_t max_nonce,
-                      uint64_t *hashes_done )
+int scanhash_argon2d_crds( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t _ALIGN(64) endiandata[20];
         uint32_t _ALIGN(64) hash[8];
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
+        int thr_id = mythr->id;  // thr_id arg is deprecated
 
         const uint32_t first_nonce = pdata[19];
         const uint32_t Htarg = ptarget[7];
@@ -103,13 +104,14 @@ void argon2d_dyn_hash( void *output, const void *input )
     argon2_ctx( &context, Argon2_d );
 }
 
-int scanhash_argon2d_dyn( int thr_id, struct work *work, uint32_t max_nonce,
-                      uint64_t *hashes_done )
+int scanhash_argon2d_dyn( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t _ALIGN(64) endiandata[20];
         uint32_t _ALIGN(64) hash[8];
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
+        int thr_id = mythr->id;  // thr_id arg is deprecated
 
         const uint32_t first_nonce = pdata[19];
         const uint32_t Htarg = ptarget[7];
@@ -147,8 +149,8 @@ bool register_argon2d_dyn_algo( algo_gate_t* gate )
 
 // Unitus
 
-int scanhash_argon2d4096( int thr_id, struct work *work, uint32_t max_nonce,
-                           uint64_t *hashes_done)
+int scanhash_argon2d4096( struct work *work, uint32_t max_nonce,
+                           uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t _ALIGN(64) vhash[8];
    uint32_t _ALIGN(64) endiandata[20];
@@ -157,7 +159,7 @@ int scanhash_argon2d4096( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
-    
+   int thr_id = mythr->id;  // thr_id arg is deprecated
    uint32_t t_cost = 1; // 1 iteration
    uint32_t m_cost = 4096; // use 4MB
    uint32_t parallelism = 1; // 1 thread, 2 lanes

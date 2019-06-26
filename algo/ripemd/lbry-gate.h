@@ -21,19 +21,19 @@ bool register_lbry_algo( algo_gate_t* gate );
 #if defined(LBRY_8WAY)
 
 void lbry_8way_hash( void *state, const void *input );
-int scanhash_lbry_8way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_lbry_8way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
 /*
 #elif defined(LBRY_4WAY)
 
 void lbry_4way_hash( void *state, const void *input );
-int scanhash_lbry_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_lbry_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done );
 */
 #else
 
 void lbry_hash( void *state, const void *input );
-int scanhash_lbry( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_lbry( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr );
 #endif
 #endif

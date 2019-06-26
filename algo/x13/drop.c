@@ -175,7 +175,8 @@ static void droplp_hash_pok(void *output, uint32_t *pdata, const uint32_t versio
 	memcpy(output, hash, 32);
 }
 
-int scanhash_drop(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *hashes_done)
+int scanhash_drop( struct work *work, uint32_t max_nonce,
+                   uint64_t *hashes_done, struct thr_info *mythr )
 {
 	uint32_t _ALIGN(64) hash[16];
 	uint32_t *pdata = work->data;
@@ -183,6 +184,7 @@ int scanhash_drop(int thr_id, struct work *work, uint32_t max_nonce, uint64_t *h
 	const uint32_t version = pdata[0] & (~POK_DATA_MASK);
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 	#define tmpdata pdata
 
 	if (opt_benchmark)

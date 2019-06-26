@@ -230,14 +230,14 @@ void xevan_hash(void *output, const void *input)
 	memcpy(output, hash, 32);
 }
 
-int scanhash_xevan( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_xevan( struct work *work, uint32_t max_nonce,
 	            uint64_t *hashes_done, struct thr_info *mythr )
 {
 	uint32_t _ALIGN(64) hash[8];
 	uint32_t _ALIGN(64) endiandata[20];
 	uint32_t *pdata = work->data;
 	uint32_t *ptarget = work->target;
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 	const uint32_t Htarg = ptarget[7];
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
@@ -254,15 +254,14 @@ int scanhash_xevan( int thr_id, struct work *work, uint32_t max_nonce,
 		be32enc(&endiandata[19], nonce);
 		xevan_hash(hash, endiandata);
 
-		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
-			work_set_target_ratio(work, hash);
-			pdata[19] = nonce;
-			*hashes_done = pdata[19] - first_nonce;
-			return 1;
+		if (hash[7] <= Htarg )
+      if ( fulltest( hash, ptarget ) && !opt_benchmark )
+	   {
+         pdata[19] = nonce;
+         submit_solution( work, hash, mythr );
 		}
 		nonce++;
-
-	} while (nonce < max_nonce && !(*restart));
+	} while ( nonce < max_nonce && !(*restart) );
 
 	pdata[19] = nonce;
 	*hashes_done = pdata[19] - first_nonce + 1;

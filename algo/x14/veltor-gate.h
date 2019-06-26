@@ -14,7 +14,7 @@ bool register_veltor_algo( algo_gate_t* gate );
 
 void veltor_4way_hash( void *state, const void *input );
 
-int scanhash_veltor_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_veltor_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_veltor_4way_ctx();
@@ -23,7 +23,7 @@ void init_veltor_4way_ctx();
 
 void veltor_hash( void *state, const void *input );
 
-int scanhash_veltor( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_veltor( struct work *work, uint32_t max_nonce,
                   uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_veltor_ctx();

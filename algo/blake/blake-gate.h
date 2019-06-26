@@ -10,12 +10,12 @@
 
 #if defined (BLAKE_4WAY)
 void blakehash_4way(void *state, const void *input);
-int scanhash_blake_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done );
+int scanhash_blake_4way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
 #endif
 
 void blakehash( void *state, const void *input );
-int scanhash_blake( int thr_id, struct work *work, uint32_t max_nonce,
-                      uint64_t *hashes_done );
+int scanhash_blake( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif

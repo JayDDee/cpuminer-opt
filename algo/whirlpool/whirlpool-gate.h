@@ -14,14 +14,14 @@
 
 void whirlpool_hash_4way(void *state, const void *input);
 
-int scanhash_whirlpool_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                              uint64_t *hashes_done );
+int scanhash_whirlpool_4way( struct work *work, uint32_t max_nonce,
+                              uint64_t *hashes_done, struct thr_info *mythr );
 #else
 
 void whirlpool_hash( void *state, const void *input );
 
-int scanhash_whirlpool( int thr_id, struct work *work, uint32_t max_nonce,
-                        uint64_t *hashes_done );
+int scanhash_whirlpool( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr );
 void init_whirlpool_ctx();
 #endif
 

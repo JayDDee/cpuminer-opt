@@ -47,7 +47,7 @@ typedef union _hmq1725_4way_context_overlay hmq1725_4way_context_overlay;
 
 extern void hmq1725_4way_hash(void *state, const void *input)
 {
-// why so big? only really need 8, haval thing uses 16.
+// why so big? only really need 16.
      uint32_t hash0 [32]    __attribute__ ((aligned (64)));
      uint32_t hash1 [32]    __attribute__ ((aligned (64)));
      uint32_t hash2 [32]    __attribute__ ((aligned (64)));
@@ -570,11 +570,11 @@ extern void hmq1725_4way_hash(void *state, const void *input)
  	memcpy(state, vhash, 32<<2 );
 }
 
-int scanhash_hmq1725_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_hmq1725_4way( struct work *work, uint32_t max_nonce,
                            uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
-//   uint32_t *hash7 = &(hash[7<<2]);
+//   uint32_t *hash7 = &(hash[25]);
 //   uint32_t lane_hash[8];
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
    uint32_t *pdata = work->data;
@@ -582,7 +582,7 @@ int scanhash_hmq1725_4way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t n = pdata[19] - 1;
    const uint32_t first_nonce = pdata[19];
    __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
    const uint32_t Htarg = ptarget[7];
    uint64_t htmax[] = {          0,        0xF,       0xFF,
                              0xFFF,     0xFFFF, 0x10000000  };
@@ -604,7 +604,7 @@ int scanhash_hmq1725_4way( int thr_id, struct work *work, uint32_t max_nonce,
             if ( fulltest( (hash+(i<<3)), ptarget ) && !opt_benchmark )
             {
                pdata[19] = n + i;
-               submit_solution( work, (hash+(i<<3)), mythr, i );
+               submit_lane_solution( work, (hash+(i<<3)), mythr, i );
             }
          }
 	      n += 4;

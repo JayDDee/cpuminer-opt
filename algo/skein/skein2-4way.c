@@ -19,7 +19,7 @@ void skein2hash_4way( void *output, const void *input )
    skein512_4way_close( &ctx, output );
 }
 
-int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_skein2_4way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr )
 {
     uint32_t hash[8*4] __attribute__ ((aligned (64)));
@@ -31,7 +31,7 @@ int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
     const uint32_t first_nonce = pdata[19];
     uint32_t n = first_nonce;
     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-    /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+    int thr_id = mythr->id;  // thr_id arg is deprecated
 
     mm256_bswap_intrlv80_4x64( vdata, pdata );
     do 
@@ -49,7 +49,7 @@ int scanhash_skein2_4way( int thr_id, struct work *work, uint32_t max_nonce,
           if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
           {
              pdata[19] = n + lane;
-             submit_solution( work, lane_hash, mythr, lane );
+             submit_lane_solution( work, lane_hash, mythr, lane );
           }
        }
        n += 4;

@@ -14,7 +14,7 @@
 
 #if defined (__AVX2__) 
 //void blakehash_84way(void *state, const void *input);
-//int scanhash_blake_8way( int thr_id, struct work *work, uint32_t max_nonce,
+//int scanhash_blake_8way( struct work *work, uint32_t max_nonce,
 //                         uint64_t *hashes_done );
 #endif
 
@@ -24,13 +24,13 @@
 
 #if defined (DECRED_4WAY)
 void decred_hash_4way(void *state, const void *input);
-int scanhash_decred_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done );
+int scanhash_decred_4way( struct work *work, uint32_t max_nonce,
+                          uint64_t *hashes_done, struct thr_info *mythr );
 #endif
 
 void decred_hash( void *state, const void *input );
-int scanhash_decred( int thr_id, struct work *work, uint32_t max_nonce,
-                     uint64_t *hashes_done );
+int scanhash_decred( struct work *work, uint32_t max_nonce,
+                     uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif
 

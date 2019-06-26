@@ -382,7 +382,7 @@ void yescrypthash(void *output, const void *input)
 	yescrypt_hash((char*) input, (char*) output, 80);
 }
 
-int scanhash_yescrypt( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_yescrypt( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t _ALIGN(64) vhash[8];
@@ -393,7 +393,7 @@ int scanhash_yescrypt( int thr_id, struct work *work, uint32_t max_nonce,
         const uint32_t Htarg = ptarget[7];
         const uint32_t first_nonce = pdata[19];
         uint32_t n = first_nonce;
-        /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+        int thr_id = mythr->id;  // thr_id arg is deprecated
 
         for (int k = 0; k < 19; k++)
                 be32enc(&endiandata[k], pdata[k]);

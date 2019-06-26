@@ -84,7 +84,7 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    bmw256_4way_close( &ctx.bmw, state );
 }
 
-int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_lyra2rev2_4way( struct work *work, uint32_t max_nonce,
                              uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
@@ -97,7 +97,7 @@ int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const uint32_t Htarg = ptarget[7];
    __m128i *noncev = (__m128i*)vdata + 19;   // aligned
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
@@ -120,7 +120,7 @@ int scanhash_lyra2rev2_4way( int thr_id, struct work *work, uint32_t max_nonce,
          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
          {
             pdata[19] = n + lane;         
-            submit_solution( work, lane_hash, mythr, lane );
+            submit_lane_solution( work, lane_hash, mythr, lane );
          }
       }
       n += 4;

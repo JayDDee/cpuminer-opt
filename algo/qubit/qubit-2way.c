@@ -41,7 +41,7 @@ void qubit_2way_hash( void *output, const void *input )
      memcpy( &ctx, &qubit_2way_ctx, sizeof(qubit_2way_ctx) );
      luffa_2way_update( &ctx.luffa, input + (64<<1), 16 );
      luffa_2way_close( &ctx.luffa, vhash );
-     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
 
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0,
                            (const byte*) hash0, 64 );
@@ -55,9 +55,9 @@ void qubit_2way_hash( void *output, const void *input )
      sph_shavite512( &ctx.shavite, hash1, 64 );
      sph_shavite512_close( &ctx.shavite, hash1 );
 
-     mm256_interleave_2x128( vhash, hash0, hash1, 512 );
+     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
-     mm256_deinterleave_2x128( hash0, hash1, vhash, 512 );
+     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
 
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
                        (const BitSequence *) hash0, 512 );
@@ -69,7 +69,7 @@ void qubit_2way_hash( void *output, const void *input )
      memcpy( output+32, hash1, 32 );
 }
 
-int scanhash_qubit_2way( int thr_id, struct work *work,uint32_t max_nonce,
+int scanhash_qubit_2way( struct work *work,uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
@@ -80,7 +80,7 @@ int scanhash_qubit_2way( int thr_id, struct work *work,uint32_t max_nonce,
      uint32_t n = pdata[19];
      const uint32_t first_nonce = pdata[19];
      uint32_t *noncep = vdata + 32+3;   // 4*8 + 3
-     /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+     int thr_id = mythr->id;  // thr_id arg is deprecated
      const uint32_t Htarg = ptarget[7];
      uint64_t htmax[] = {          0,        0xF,       0xFF,
                                0xFFF,     0xFFFF, 0x10000000  };
@@ -92,7 +92,7 @@ int scanhash_qubit_2way( int thr_id, struct work *work,uint32_t max_nonce,
      casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
      uint64_t *edata = (uint64_t*)endiandata;
-     mm256_interleave_2x128( (uint64_t*)vdata, edata, edata, 640 );
+     mm256_intrlv_2x128( (uint64_t*)vdata, edata, edata, 640 );
 
      luffa_2way_init( &qubit_2way_ctx.luffa, 512 );
      luffa_2way_update( &qubit_2way_ctx.luffa, vdata, 64 );
@@ -111,13 +111,13 @@ int scanhash_qubit_2way( int thr_id, struct work *work,uint32_t max_nonce,
             if ( fulltest( hash, ptarget) && !opt_benchmark )
             {
                 pdata[19] = n;
-                submit_solution( work, hash, mythr, 0 );
+                submit_lane_solution( work, hash, mythr, 0 );
             }
             if ( !( (hash+8)[7] & mask ) )
             if ( fulltest( hash+8, ptarget) && !opt_benchmark )
             {
                pdata[19] = n+1;
-               submit_solution( work, hash+8, mythr, 1 );
+               submit_lane_solution( work, hash+8, mythr, 1 );
             }
             n += 2;
          } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );

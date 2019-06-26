@@ -48,7 +48,7 @@ void lyra2h_4way_hash( void *state, const void *input )
              32, 16, 16, 16 );
 }
 
-int scanhash_lyra2h_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_lyra2h_4way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
@@ -59,7 +59,7 @@ int scanhash_lyra2h_4way( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
@@ -76,7 +76,7 @@ int scanhash_lyra2h_4way( int thr_id, struct work *work, uint32_t max_nonce,
            && !opt_benchmark )
       {
           pdata[19] = n+i;         
-          submit_solution( work, hash+(i<<3), mythr, i );
+          submit_lane_solution( work, hash+(i<<3), mythr, i );
       }
       n += 4;
    } while (  (n < max_nonce-4) && !work_restart[thr_id].restart);

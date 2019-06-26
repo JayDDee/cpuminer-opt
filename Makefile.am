@@ -134,14 +134,12 @@ cpuminer_SOURCES = \
   algo/lyra2/phi2-4way.c \
   algo/lyra2/phi2.c \
   algo/m7m.c \
-  algo/neoscrypt/neoscrypt.c \
   algo/nist5/nist5-gate.c \
   algo/nist5/nist5-4way.c \
   algo/nist5/nist5.c \
   algo/nist5/zr5.c \
   algo/panama/sph_panama.c \
   algo/radiogatun/sph_radiogatun.c \
-  algo/pluck.c \
   algo/quark/quark-gate.c \
   algo/quark/quark.c \
   algo/quark/quark-4way.c \
@@ -162,7 +160,9 @@ cpuminer_SOURCES = \
   algo/ripemd/lbry-gate.c \
   algo/ripemd/lbry.c \
   algo/ripemd/lbry-4way.c \
-  algo/scrypt.c \
+  algo/scrypt/scrypt.c \
+  algo/scrypt/neoscrypt.c \
+  algo/scrypt/pluck.c \
   algo/scryptjane/scrypt-jane.c \
   algo/sha/sph_sha2.c \
   algo/sha/sph_sha2big.c \
@@ -198,7 +198,6 @@ cpuminer_SOURCES = \
   algo/whirlpool/sph_whirlpool.c \
   algo/whirlpool/whirlpool-hash-4way.c \
   algo/whirlpool/whirlpool-gate.c \
-  algo/whirlpool/whirlpool-4way.c \
   algo/whirlpool/whirlpool.c \
   algo/whirlpool/whirlpoolx.c \
   algo/x11/x11-gate.c \

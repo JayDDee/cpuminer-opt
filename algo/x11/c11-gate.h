@@ -14,8 +14,8 @@ bool register_c11_algo( algo_gate_t* gate );
 
 void c11_4way_hash( void *state, const void *input );
 
-int scanhash_c11_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done );
+int scanhash_c11_4way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_c11_4way_ctx();
 
@@ -23,8 +23,8 @@ void init_c11_4way_ctx();
 
 void c11_hash( void *state, const void *input );
 
-int scanhash_c11( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done );
+int scanhash_c11( struct work *work, uint32_t max_nonce,
+                    uint64_t *hashes_done, struct thr_info *mythr );
 
 void init_c11_ctx();
 

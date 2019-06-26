@@ -355,7 +355,6 @@ static inline void mm256_dintrlv_2x128x256( void *d0, void *d1,
 
 // Interleave 8 source buffers containing 32 bit data into the destination
 // vector
-#define mm256_interleave_8x32 mm256_intrlv_8x32
 static inline void mm256_intrlv_8x32( void *d, const void *s0,
         const void *s1, const void *s2, const void *s3, const void *s4,
         const void *s5, const void *s6, const void *s7, int bit_len )
@@ -396,7 +395,6 @@ static inline void mm256_bswap_intrlv80_8x32( void *d, const void *s )
 
 // Deinterleave 8 buffers of 32 bit data from the source buffer.
 // Sub-function can be called directly for 32 byte final hash.
-#define mm256_deinterleave_8x32 mm256_dintrlv_8x32
 static inline void mm256_dintrlv_8x32( void *d0, void *d1, void *d2,
                         void *d3, void *d4, void *d5, void *d6, void *d7,
                         const void *s, int bit_len )
@@ -439,7 +437,6 @@ static inline void mm256_extract_lane_8x32( void *d, const void *s,
 
 // Interleave 4 source buffers containing 64 bit data into the destination
 // buffer. Only bit_len 256, 512, 640 & 1024 are supported.
-#define mm256_interleave_4x64 mm256_intrlv_4x64
 static inline void mm256_intrlv_4x64( void *d, const void *s0,
             const void *s1, const void *s2, const void *s3, int bit_len )
 {
@@ -487,7 +484,6 @@ do { \
 // Deinterleave 4 buffers of 64 bit data from the source buffer.
 // bit_len must be 256, 512, 640 or 1024 bits.
 // Requires overrun padding for 640 bit len.
-#define mm256_deinterleave_4x64 mm256_dintrlv_4x64
 static inline void mm256_dintrlv_4x64( void *d0, void *d1, void *d2,
                                     void *d3, const void *s, int bit_len )
 {
@@ -521,7 +517,6 @@ static inline void mm256_extract_lane_4x64( void *d, const void *s,
 
 // Convert from 4x32 SSE2 interleaving to 4x64 AVX2.
 // Can't do it in place
-#define mm256_reinterleave_4x32_4x64 mm256_rintrlv_4x32_4x64
 static inline void mm256_rintrlv_4x32_4x64( void *dst, void *src,
                                             int  bit_len )
 {
@@ -559,7 +554,6 @@ static inline void mm256_rintrlv_4x32_4x64( void *dst, void *src,
 
 // Convert 4x64 byte (256 bit) vectors to 4x32 (128 bit) vectors for AVX
 // bit_len must be multiple of 64
-#define mm256_reinterleave_4x64_4x32 mm256_rintrlv_4x64_4x32
 static inline void mm256_rintrlv_4x64_4x32( void *dst, void *src,
                                             int  bit_len )
 {
@@ -595,7 +589,6 @@ static inline void mm256_rintrlv_4x64_4x32( void *dst, void *src,
    // bit_len == 1024
 }
 
-#define mm256_reinterleave_4x64_2x128 mm256_rintrlv_4x64_2x128
 static inline void mm256_rintrlv_4x64_2x128( void *dst0, void *dst1,
                                               const void *src, int  bit_len )
 {
@@ -632,7 +625,6 @@ static inline void mm256_rintrlv_4x64_2x128( void *dst0, void *dst1,
    d1[7] = _mm256_set_epi64x( s[63], s[59], s[62], s[58] );
 }
 
-#define mm256_reinterleave_2x128_4x64 mm256_rintrlv_2x128_4x64
 static inline void mm256_rintrlv_2x128_4x64( void *dst, const void *src0,
                                          const void *src1, int  bit_len )
 {
@@ -666,7 +658,6 @@ static inline void mm256_rintrlv_2x128_4x64( void *dst, const void *src0,
 }
 
 
-#define mm256_interleave_2x128 mm256_intrlv_2x128
 static inline void mm256_intrlv_2x128( const void *d, const void *s0,
                                       void *s1, const int bit_len )
 {
@@ -709,7 +700,6 @@ static inline void mm256_intrlv_2x128( const void *d, const void *s0,
   casti_m256i( d,7 ) = mm256_concat_128( s1hi, s0hi );        
 }
 
-#define mm256_deinterleave_2x128 mm256_dintrlv_2x128
 static inline void mm256_dintrlv_2x128( void *dst0, void *dst1, const void *s,
                                              int bit_len )
 {

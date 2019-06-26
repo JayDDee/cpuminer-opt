@@ -37,7 +37,7 @@ void yespower_hash( const char *input, char *output, uint32_t len )
    yespower_tls( input, len, &yespower_params, (yespower_binary_t*)output ); 
 }
 
-int scanhash_yespower( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_yespower( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t _ALIGN(64) vhash[8];
@@ -48,11 +48,10 @@ int scanhash_yespower( int thr_id, struct work *work, uint32_t max_nonce,
         const uint32_t Htarg = ptarget[7];
         const uint32_t first_nonce = pdata[19];
         uint32_t n = first_nonce;
-        /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+        int thr_id = mythr->id;  // thr_id arg is deprecated
 
         for (int k = 0; k < 19; k++)
                 be32enc(&endiandata[k], pdata[k]);
-
         do {
                 be32enc(&endiandata[19], n);
                 yespower_hash((char*) endiandata, (char*) vhash, 80);
@@ -119,7 +118,7 @@ int64_t yescryptr16_05_get_max64()
 
 bool register_yescrypt_05_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT;
+   gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
    gate->set_target = (void*)&scrypt_set_target;
    gate->get_max64  = (void*)&yescrypt_05_get_max64;
@@ -133,7 +132,7 @@ bool register_yescrypt_05_algo( algo_gate_t* gate )
 
 bool register_yescryptr8_05_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT;
+   gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
    gate->set_target = (void*)&scrypt_set_target;
    gate->get_max64  = (void*)&yescrypt_05_get_max64;
@@ -147,7 +146,7 @@ bool register_yescryptr8_05_algo( algo_gate_t* gate )
 
 bool register_yescryptr16_05_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT;
+   gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
    gate->set_target = (void*)&scrypt_set_target;
    gate->get_max64  = (void*)&yescryptr16_05_get_max64;
@@ -161,7 +160,7 @@ bool register_yescryptr16_05_algo( algo_gate_t* gate )
 
 bool register_yescryptr32_05_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT;
+   gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
    gate->set_target = (void*)&scrypt_set_target;
    gate->get_max64  = (void*)&yescryptr16_05_get_max64;

@@ -189,7 +189,7 @@ void x14_4way_hash( void *state, const void *input )
 
 }
 
-int scanhash_x14_4way( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_x14_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*16] __attribute__ ((aligned (64)));
@@ -199,11 +199,9 @@ int scanhash_x14_4way( int thr_id, struct work *work, uint32_t max_nonce,
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];
      const uint32_t first_nonce = pdata[19];
-     uint32_t *nonces = work->nonces;
-     int num_found = 0;
      uint32_t *noncep = vdata + 73;   // 9*8 + 1
      const uint32_t Htarg = ptarget[7];
-     /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+     int thr_id = mythr->id;  // thr_id arg is deprecated
      uint64_t htmax[] = {          0,        0xF,       0xFF,
                                0xFFF,     0xFFFF, 0x10000000  };
      uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
@@ -238,21 +236,18 @@ int scanhash_x14_4way( int thr_id, struct work *work, uint32_t max_nonce,
                uint32_t lane_hash[8];
                mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
 
-               if ( fulltest( lane_hash, ptarget ) )
+               if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
                {
                   pdata[19] = n + lane;
-                  nonces[ num_found++ ] = n + lane;
-                  work_set_target_ratio( work, lane_hash );
+                  submit_lane_solution( work, lane_hash, mythr, lane );
                }
             }
             n += 4;
-         } while ( ( num_found == 0 ) && ( n < max_nonce )
-                   && !work_restart[thr_id].restart );
+         } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
          break;
        }
-
      *hashes_done = n - first_nonce + 1;
-     return num_found;
+     return 0;
 }
 
 #endif

@@ -181,7 +181,7 @@ void x17_hash(void *output, const void *input)
         sph_haval256_5_close( &ctx.haval, output );
 }
 
-int scanhash_x17( int thr_id, struct work *work, uint32_t max_nonce,
+int scanhash_x17( struct work *work, uint32_t max_nonce,
 	          uint64_t *hashes_done, struct thr_info *mythr)
 {
    uint32_t endiandata[20] __attribute__((aligned(64)));
@@ -191,7 +191,7 @@ int scanhash_x17( int thr_id, struct work *work, uint32_t max_nonce,
    uint32_t n = pdata[19] - 1;
    const uint32_t first_nonce = pdata[19];
    const uint32_t Htarg = ptarget[7];
-   /* int */ thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
    uint64_t htmax[] =
    {
@@ -219,10 +219,6 @@ int scanhash_x17( int thr_id, struct work *work, uint32_t max_nonce,
    casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
    casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
-#ifdef DEBUG_ALGO
-   if ( Htarg != 0 )
-	printf( "[%d] Htarg=%X\n", thr_id, Htarg );
-#endif
    for ( int m = 0; m < 6; m++ )
    {
       if ( Htarg <= htmax[m] )
@@ -233,32 +229,10 @@ int scanhash_x17( int thr_id, struct work *work, uint32_t max_nonce,
 	         pdata[19] = ++n;
 		      be32enc( &endiandata[19], n );
 		      x17_hash( hash64, endiandata );
-#ifndef DEBUG_ALGO
 		      if ( !( hash64[7] & mask ) )
-            {
-               if ( fulltest( hash64, ptarget ) )
-		         {
-		            *hashes_done = n - first_nonce + 1;
-		            return true;
-               }
-//             else
-//               applog(LOG_INFO, "Result does not validate on CPU!");
-            }
-#else
-		      if ( !( n % 0x1000 ) && !thr_id ) printf(".");
-		      if ( !( hash64[7] & mask ) )
-	       	{
-		         printf("[%d]",thr_id);
-		         if ( fulltest( hash64, ptarget ) )
-		         {
-                 work_set_target_ratio( work, hash64 );
-		           *hashes_done = n - first_nonce + 1;
-		           return true;
-		         }
-		      }
-#endif
-	      } while (n < max_nonce && !work_restart[thr_id].restart);
-			// see blake.c if else to understand the loop on htmax => mask
+            if ( fulltest( hash64, ptarget ) && !opt_benchmark )
+                submit_solution( work, hash64, mythr );
+	      } while ( n < max_nonce && !work_restart[thr_id].restart);
 	      break;
 	   }
    }

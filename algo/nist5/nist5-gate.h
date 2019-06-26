@@ -12,15 +12,15 @@
 
 void nist5hash_4way( void *state, const void *input );
 
-int scanhash_nist5_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done );
+int scanhash_nist5_4way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
 
 #else
 
 void nist5hash( void *state, const void *input );
 
-int scanhash_nist5( int thr_id, struct work *work, uint32_t max_nonce,
-                    uint64_t *hashes_done );
+int scanhash_nist5( struct work *work, uint32_t max_nonce,
+                    uint64_t *hashes_done, struct thr_info *mythr );
 void init_nist5_ctx();
 #endif
 
