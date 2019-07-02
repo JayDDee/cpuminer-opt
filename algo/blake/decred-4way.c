@@ -23,7 +23,7 @@ void decred_hash_4way( void *state, const void *input )
      memcpy( &ctx, &blake_mid, sizeof(blake_mid) );
      blake256_4way( &ctx, tail, tail_len );
      blake256_4way_close( &ctx, vhash );
-     mm128_dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
+     dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_decred_4way( struct work *work, uint32_t max_nonce,

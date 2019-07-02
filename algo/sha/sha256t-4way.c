@@ -99,7 +99,7 @@ int scanhash_sha256t_11way( struct work *work, uint32_t max_nonce,
         for ( i = 0; i < 8; i++ ) if ( !( hash7[ i ] & mask ) )
         { 
             // deinterleave hash for lane
-            mm256_extract_lane_8x32( lane_hash, hashx, i, 256 );
+            mm256_extr_lane_8x32( lane_hash, hashx, i, 256 );
             if ( fulltest( lane_hash, ptarget ) )
             {
 	            pdata[19] = n + i;
@@ -111,7 +111,7 @@ int scanhash_sha256t_11way( struct work *work, uint32_t max_nonce,
         for( i = 0; i < 2; i++ ) if ( !(hash7[ 0] & mask ) )
  
         {
-            mm64_extract_lane_2x32( lane_hash, hashy, i, 256 );
+            mm64_extr_lane_2x32( lane_hash, hashy, i, 256 );
            if ( fulltest( lane_hash, ptarget ) )
            {
                pdata[19] = n + 8 + i;
@@ -204,7 +204,7 @@ int scanhash_sha256t_8way( struct work *work, uint32_t max_nonce,
          if ( !( hash7[ lane ] & mask ) )
          {
             // deinterleave hash for lane
-            mm256_extract_lane_8x32( lane_hash, hash, lane, 256 );
+            mm256_extr_lane_8x32( lane_hash, hash, lane, 256 );
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
               pdata[19] = n + lane;
@@ -287,7 +287,7 @@ int scanhash_sha256t_4way( struct work *work, uint32_t max_nonce,
          for ( int lane = 0; lane < 4; lane++ )
          if ( !( hash7[ lane ] & mask ) )
          {
-            mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+            extr_lane_4x32( lane_hash, hash, lane, 256 );
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
               pdata[19] = n + lane;

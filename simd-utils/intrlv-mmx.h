@@ -104,7 +104,7 @@ static inline void mm64_dintrlv_2x32( void *d00, void *d01, const int n,
    casti_m64( d01,15 ) = mm64_get_32( s, 61, 63 );
 }
 
-static inline void mm64_extract_lane_2x32( void *d, const void *s,
+static inline void mm64_extr_lane_2x32( void *d, const void *s,
                                          const int lane, const int bit_len )
 {
   casti_m64( d, 0 ) = mm64_get_32( s, lane   , lane+ 4 );

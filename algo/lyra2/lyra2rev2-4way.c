@@ -78,7 +78,7 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    cubehashInit( &ctx.cube, 256, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash3, (const byte*) hash3, 32 );
 
-   mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
+   intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
 
    bmw256_4way( &ctx.bmw, vhash, 32 );
    bmw256_4way_close( &ctx.bmw, state );
@@ -90,7 +90,7 @@ int scanhash_lyra2rev2_4way( struct work *work, uint32_t max_nonce,
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[7<<2]);
-   uint32_t lane_hash[8];
+   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -116,7 +116,7 @@ int scanhash_lyra2rev2_4way( struct work *work, uint32_t max_nonce,
 
       for ( int lane = 0; lane < 4; lane++ ) if ( hash7[lane] <= Htarg )
       {
-         mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+         extr_lane_4x32( lane_hash, hash, lane, 256 );
          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
          {
             pdata[19] = n + lane;         

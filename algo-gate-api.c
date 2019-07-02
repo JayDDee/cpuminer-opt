@@ -368,9 +368,9 @@ bool submit_solution( struct work *work, void *hash,
      if ( submit_work( thr, work ) )
      {
          if ( !opt_quiet )
-            applog( LOG_NOTICE, "Share %d submitted by thread %d.",
+            applog( LOG_BLUE, "Share %d submitted by thread %d, job %s.",
                     accepted_share_count + rejected_share_count + 1,
-                    thr->id );
+                    thr->id, work->job_id );
          return true;
      }
      else
@@ -385,9 +385,12 @@ bool submit_lane_solution( struct work *work, void *hash,
      if ( submit_work( thr, work ) )
      {
          if ( !opt_quiet )
-            applog( LOG_NOTICE, "Share %d submitted by thread %d, lane %d.",
+//            applog( LOG_BLUE, "Share %d submitted by thread %d, lane %d.",
+//                    accepted_share_count + rejected_share_count + 1,
+//                    thr->id, lane );
+            applog( LOG_BLUE, "Share %d submitted by thread %d, lane %d, job %s.",
                     accepted_share_count + rejected_share_count + 1, thr->id,
-                    lane );
+                    lane, work->job_id );
          return true;
      }
      else

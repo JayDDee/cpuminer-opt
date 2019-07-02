@@ -36,6 +36,7 @@ int scanhash_sha256q_8way( struct work *work, uint32_t max_nonce,
 {
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t hash[8*8] __attribute__ ((aligned (32)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
@@ -79,8 +80,7 @@ int scanhash_sha256q_8way( struct work *work, uint32_t max_nonce,
          if ( !( hash7[ lane ] & mask ) )
          { 
             // deinterleave hash for lane
-	         uint32_t lane_hash[8];
-	         mm256_extract_lane_8x32( lane_hash, hash, lane, 256 );
+	         mm256_extr_lane_8x32( lane_hash, hash, lane, 256 );
 
 	         if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
@@ -130,7 +130,7 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t hash[8*4] __attribute__ ((aligned (32)));
    uint32_t *hash7 = &(hash[7<<2]);
-   uint32_t lane_hash[8];
+   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
@@ -168,7 +168,7 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
          for ( int lane = 0; lane < 4; lane++ )
          if ( !( hash7[ lane ] & mask ) )
          {
-            mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+            extr_lane_4x32( lane_hash, hash, lane, 256 );
 
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {

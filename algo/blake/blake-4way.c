@@ -15,7 +15,7 @@ void blakehash_4way(void *state, const void *input)
      memcpy( &ctx, &blake_4w_ctx, sizeof ctx );
      blake256r14_4way( &ctx, input + (64<<2), 16 );
      blake256r14_4way_close( &ctx, vhash );
-     mm128_dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
+     dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_blake_4way( struct work *work, uint32_t max_nonce,

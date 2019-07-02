@@ -189,12 +189,11 @@ int scanhash_x13_4way( struct work *work, uint32_t max_nonce,
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-     uint32_t endiandata[20] __attribute__((aligned(64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];
      const uint32_t first_nonce = pdata[19];
-     uint32_t *noncep = vdata + 73;   // 9*8 + 1
+     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
      int thr_id = mythr->id;  // thr_id arg is deprecated
      const uint32_t Htarg = ptarget[7];
      uint64_t htmax[] = {          0,        0xF,       0xFF,
@@ -202,11 +201,7 @@ int scanhash_x13_4way( struct work *work, uint32_t max_nonce,
      uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
                           0xFFFFF000, 0xFFFF0000,          0  };
 
-     // big endian encode 0..18 uint32_t, 64 bits at a time
-     swab32_array( endiandata, pdata, 20 );
-
-     uint64_t *edata = (uint64_t*)endiandata;
-     mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+     mm256_bswap_intrlv80_4x64( vdata, pdata );
 
      for ( int m=0; m < 6; m++ )
        if ( Htarg <= htmax[m] )
@@ -214,10 +209,8 @@ int scanhash_x13_4way( struct work *work, uint32_t max_nonce,
          uint32_t mask = masks[m];
          do
          {
-            be32enc( noncep,   n   );
-            be32enc( noncep+2, n+1 );
-            be32enc( noncep+4, n+2 );
-            be32enc( noncep+6, n+3 );
+           *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
             x13_4way_hash( hash, vdata );
             pdata[19] = n;

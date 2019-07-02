@@ -43,7 +43,7 @@ void polytimos_4way_hash( void *output, const void *input )
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash32, 64 );
      shabal512_4way_close( &ctx.shabal, vhash32 );
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash32, 512 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash32, 512 );
 
      init_echo( &ctx.echo, 512 );
      update_final_echo ( &ctx.echo, (BitSequence *)hash0,

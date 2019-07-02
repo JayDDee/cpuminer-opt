@@ -17,7 +17,7 @@ void blakecoin_4way_hash(void *state, const void *input)
      blake256r8_4way( &ctx, input + (64<<2), 16 );
      blake256r8_4way_close( &ctx, vhash );
 
-     mm128_dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
+     dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_blakecoin_4way( struct work *work, uint32_t max_nonce,

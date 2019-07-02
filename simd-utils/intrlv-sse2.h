@@ -162,8 +162,8 @@ static inline void mm128_dintrlv_4x32( void *d0, void *d1, void *d2,
 }
 
 // extract and deinterleave specified lane.
-static inline void mm128_extract_lane_4x32( void *d, const void *s,
-                                            const int lane, const int bit_len )
+static inline void mm128_extr_lane_4x32( void *d, const void *s,
+                                         const int lane, const int bit_len )
 {
   casti_m128i( d, 0 ) =
              mm128_get_32( s, lane   , lane+ 4, lane+ 8, lane+12 );

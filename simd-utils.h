@@ -183,9 +183,15 @@
 #include "simd-utils/simd-sse2.h"
 #include "simd-utils/intrlv-sse2.h"
 
+#if defined(__AVX__)
+
+// 256 bit vector basics
+#include "simd-utils/simd-avx.h"
+#include "simd-utils/intrlv-avx.h"
+
 #if defined(__AVX2__)
 
-// 256 bit vectors
+// 256 bit everything else
 #include "simd-utils/simd-avx2.h"
 #include "simd-utils/intrlv-avx2.h"
 
@@ -198,6 +204,11 @@
 
 #endif  // MMX
 #endif  // SSE2
+#endif  // AVX
 #endif  // AVX2
 #endif  // AVX512
+
+// Picks implementation based on available CPU features.
+#include "simd-utils/intrlv-selector.h"
+
 #endif  // SIMD_UTILS_H__

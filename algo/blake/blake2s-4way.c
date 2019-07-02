@@ -83,7 +83,7 @@ void blake2s_4way_hash( void *output, const void *input )
    blake2s_4way_update( &ctx, input + (64<<2), 16 );
    blake2s_4way_final( &ctx, vhash, BLAKE2S_OUTBYTES );
 
-   mm128_dintrlv_4x32( output, output+32, output+64, output+96,
+   dintrlv_4x32( output, output+32, output+64, output+96,
 		            vhash, 256 );
 }
 

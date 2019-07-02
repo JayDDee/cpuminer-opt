@@ -390,7 +390,7 @@ void sonoa_4way_hash( void *state, const void *input )
      sph_fugue512( &ctx.fugue, hash3, 64 );
      sph_fugue512_close( &ctx.fugue, hash3 );
 
-     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, 64 );
@@ -438,7 +438,7 @@ void sonoa_4way_hash( void *state, const void *input )
      shabal512_4way( &ctx.shabal, vhashB, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
      init_groestl( &ctx.groestl, 64 );
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -522,13 +522,13 @@ void sonoa_4way_hash( void *state, const void *input )
      sph_fugue512( &ctx.fugue, hash3, 64 );
      sph_fugue512_close( &ctx.fugue, hash3 );
 
-     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_whirlpool_init( &ctx.whirlpool );
      sph_whirlpool( &ctx.whirlpool, hash0, 64 );
@@ -635,13 +635,13 @@ void sonoa_4way_hash( void *state, const void *input )
      sph_fugue512( &ctx.fugue, hash3, 64 );
      sph_fugue512_close( &ctx.fugue, hash3 );
 
-     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_whirlpool_init( &ctx.whirlpool );
      sph_whirlpool( &ctx.whirlpool, hash0, 64 );
@@ -769,13 +769,13 @@ void sonoa_4way_hash( void *state, const void *input )
      sph_fugue512( &ctx.fugue, hash3, 64 );
      sph_fugue512_close( &ctx.fugue, hash3 );
 
-     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_whirlpool_init( &ctx.whirlpool );
      sph_whirlpool( &ctx.whirlpool, hash0, 64 );
@@ -807,9 +807,9 @@ int scanhash_sonoa_4way( struct work *work, uint32_t max_nonce,
 	            uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
-     uint32_t *hash7 = &(hash[7<<2]);
-     uint32_t lane_hash[8];
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+     uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+     uint32_t *hash7 = &(hash[7<<2]);
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];
@@ -837,7 +837,7 @@ int scanhash_sonoa_4way( struct work *work, uint32_t max_nonce,
            for ( int lane = 0; lane < 4; lane++ )
            if ( ( ( hash7[ lane ] & mask ) == 0 ) )
            {
-              mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+              extr_lane_4x32( lane_hash, hash, lane, 256 );
               if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
               {
                  pdata[19] = n + lane;

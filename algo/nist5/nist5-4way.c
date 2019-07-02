@@ -70,7 +70,7 @@ int scanhash_nist5_4way( struct work *work, uint32_t max_nonce,
 {
      uint32_t hash[4*16] __attribute__ ((aligned (64)));
      uint32_t *hash7 = &(hash[25]);
-     uint32_t lane_hash[8];
+     uint32_t lane_hash[8] __attribute__ ((aligned (32)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
      uint32_t endiandata[20] __attribute__((aligned(64)));
      uint32_t *pdata = work->data;
@@ -122,7 +122,7 @@ int scanhash_nist5_4way( struct work *work, uint32_t max_nonce,
               for ( int lane = 0; lane < 4; lane++ )
               if ( ( hash7[ lane ] & mask ) == 0 )
               {
-                 mm256_extract_lane_4x64( lane_hash, hash, lane, 256 );
+                 mm256_extr_lane_4x64( lane_hash, hash, lane, 256 );
                  if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
                  {
                     pdata[19] = n + lane;

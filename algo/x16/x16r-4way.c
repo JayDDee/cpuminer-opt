@@ -248,11 +248,11 @@ void x16r_4way_hash( void* output, const void* input )
              sph_fugue512_close( &ctx.fugue, hash3 );
          break;
          case SHABAL:
-             mm128_intrlv_4x32( vhash, in0, in1, in2, in3, size<<3 );
+             intrlv_4x32( vhash, in0, in1, in2, in3, size<<3 );
              shabal512_4way_init( &ctx.shabal );
              shabal512_4way( &ctx.shabal, vhash, size );
              shabal512_4way_close( &ctx.shabal, vhash );
-             mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+             dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case WHIRLPOOL:
              sph_whirlpool_init( &ctx.whirlpool );

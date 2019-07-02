@@ -124,8 +124,8 @@ void x17_4way_hash( void *state, const void *input )
      simd_2way_init( &ctx.simd, 512 );
      simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
 
-     mm256_dintrlv_2x128( hash0, hash1, vhashA, 512 );
-     mm256_dintrlv_2x128( hash2, hash3, vhashB, 512 );
+     mm256_dintrlv_2x128_512( hash0, hash1, vhashA );
+     mm256_dintrlv_2x128_512( hash2, hash3, vhashB );
 
      // 11 Echo serial
      init_echo( &ctx.echo, 512 );
@@ -165,13 +165,13 @@ void x17_4way_hash( void *state, const void *input )
      sph_fugue512_close( &ctx.fugue, hash3 );
 
      // 14 Shabal, parallel 4 way 32 bit
-     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
        
      // 15 Whirlpool serial
      sph_whirlpool_init( &ctx.whirlpool );
@@ -206,9 +206,9 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
-     uint32_t *hash7 = &(hash[7<<2]);
-     uint32_t lane_hash[8];
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+     uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+     uint32_t *hash7 = &(hash[7<<2]);
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];
@@ -235,7 +235,7 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
 	     for ( int lane = 0; lane < 4; lane++ )
            if ( ( hash7[ lane ] & mask ) == 0 )
            {
-              mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+              extr_lane_4x32( lane_hash, hash, lane, 256 );
               if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
               {
                  pdata[19] = n + lane;

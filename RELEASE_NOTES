@@ -38,9 +38,31 @@ supported.
 Change Log
 ----------
 
+v3.9.5.1
+
+Fixed skein2 crash on Windows.
+
+Fixed CPU temperature reading on Ubuntu 19.04.
+
+Realigned log message colours, blue is used to report normal activity and
+yellow is only used to report abnormal activity.
+
+Changed stats colours, yellow now means below average, white is average
+range. Tweaked colour thresholds.
+
+Changed colour of stratum difficulty change messages to blue to match other
+normal protocol messages. Blue messages (block, stratum, submit) will no
+longer be displayed when using -q option.
+
+Added job id to new block, share submit, and share result messages and added
+new nessage when a new job is received for an existing block. This will for
+better troubleshooting of invalid job id rejects seen at zergpool.
+
+Some more restructuring.
+
 v3.9.5
 
-New share reporting information includes calculation of equivalent hhashrate
+New share reporting information includes calculation of equivalent hashrate
 based on share difficulty, network latency, 5 minute summary.
 Per-thread hash rate reports are disabled by default.
 New command line option --hash-meter added to enable per-thread hash rates.

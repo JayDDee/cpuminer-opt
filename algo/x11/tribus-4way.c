@@ -64,13 +64,12 @@ int scanhash_tribus_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t _ALIGN(128) endiandata[20];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    const uint32_t Htarg = ptarget[7];
    uint32_t n = pdata[19];
-   uint32_t *noncep = vdata + 73;   // 9*8 + 1
+   __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
    int thr_id = mythr->id;  // thr_id arg is deprecated
 
    uint64_t htmax[] = {          0,
@@ -87,14 +86,7 @@ int scanhash_tribus_4way( struct work *work, uint32_t max_nonce,
                         0xFFFF0000,
                                  0 };
 
-   // we need bigendian data...
-   for ( int i = 0; i < 20; i++ )
-   {
-      be32enc( &endiandata[i], pdata[i] );
-   }
-
-   uint64_t *edata = (uint64_t*)endiandata;
-   mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+   mm256_bswap_intrlv80_4x64( vdata, pdata );
 
    // precalc midstate
    // doing it one way then then interleaving would be faster but too
@@ -108,10 +100,8 @@ int scanhash_tribus_4way( struct work *work, uint32_t max_nonce,
       {
          uint32_t mask = masks[m];
          do {
-            be32enc( noncep,   n   );
-            be32enc( noncep+2, n+1 );
-            be32enc( noncep+4, n+2 );
-            be32enc( noncep+6, n+3 );
+           *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
             tribus_hash_4way( hash, vdata );
 

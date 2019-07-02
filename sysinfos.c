@@ -14,11 +14,13 @@
 #ifndef WIN32
 
 #define HWMON_PATH \
- "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input"
+ "/sys/class/hwmon/hwmon2/temp1_input"
 #define HWMON_ALT \
- "/sys/class/hwmon/hwmon1/temp1_input"
-#define HWMON_ALT2 \
  "/sys/class/hwmon/hwmon0/temp1_input"
+#define HWMON_ALT1 \
+ "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input"
+#define HWMON_ALT2 \
+ "/sys/class/hwmon/hwmon1/temp1_input"
 #define HWMON_ALT3 \
  "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input"
 #define HWMON_ALT4 \

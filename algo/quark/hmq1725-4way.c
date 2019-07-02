@@ -575,7 +575,7 @@ int scanhash_hmq1725_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
 //   uint32_t *hash7 = &(hash[25]);
-//   uint32_t lane_hash[8];
+//   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;

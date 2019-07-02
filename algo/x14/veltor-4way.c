@@ -54,10 +54,10 @@ void veltor_4way_hash( void *output, const void *input )
      sph_shavite512( &ctx.shavite, hash3, 64 );
      sph_shavite512_close( &ctx.shavite, hash3 );
 
-     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_gost512( &ctx.gost, hash0, 64 );
      sph_gost512_close( &ctx.gost, hash0 );
@@ -82,31 +82,24 @@ int scanhash_veltor_4way( struct work *work, uint32_t max_nonce,
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-     uint32_t endiandata[20] __attribute__((aligned(64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      const uint32_t Htarg = ptarget[7];
      const uint32_t first_nonce = pdata[19];
      uint32_t n = first_nonce;
-     uint32_t *noncep = vdata + 73;   // 9*8 + 1
+     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
      int thr_id = mythr->id;  // thr_id arg is deprecated
      volatile uint8_t *restart = &(work_restart[thr_id].restart);
 
      if ( opt_benchmark )
         ptarget[7] = 0x0cff;
-     for ( int i=0; i < 19; i++ )
-     {
-        be32enc( &endiandata[i], pdata[i] );
-     }
 
-     uint64_t *edata = (uint64_t*)endiandata;
-     mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+     mm256_bswap_intrlv80_4x64( vdata, pdata );
+
      do
      {
-         be32enc( noncep,   n   );
-         be32enc( noncep+2, n+1 );
-         be32enc( noncep+4, n+2 );
-         be32enc( noncep+6, n+3 );
+         *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
          veltor_4way_hash( hash, vdata );
          pdata[19] = n;

@@ -118,7 +118,7 @@ int scanhash_lbry_8way( struct work *work, uint32_t max_nonce,
          for ( int i = 0; i < 8; i++ )  if ( !( hash7[ i ] & mask ) )
          {
             // deinterleave hash for lane
-            mm256_extract_lane_8x32( lane_hash, hash, i, 256 );
+            mm256_extr_lane_8x32( lane_hash, hash, i, 256 );
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
               pdata[27] = n + i;

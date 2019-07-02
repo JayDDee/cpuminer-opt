@@ -48,7 +48,7 @@ void skeinhash_4way( void *state, const void *input )
      SHA256_Update( &ctx_sha256, (unsigned char*)hash3, 64 );
      SHA256_Final( (unsigned char*)hash3, &ctx_sha256 );
 
-     mm128_intrlv_4x32( state, hash0, hash1, hash2, hash3, 256 );
+     intrlv_4x32( state, hash0, hash1, hash2, hash3, 256 );
 #else
      mm256_rintrlv_4x64_4x32( vhash32, vhash64, 512 );
 
@@ -63,7 +63,7 @@ int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
 {
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
     uint32_t hash[8*4] __attribute__ ((aligned (64)));
-    uint32_t lane_hash[8];
+    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
     uint32_t *hash7 = &(hash[7<<2]);
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
@@ -84,7 +84,7 @@ int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
        for ( int lane = 0; lane < 4; lane++ )
        if (  hash7[ lane ] <= Htarg )
        {
-          mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+          extr_lane_4x32( lane_hash, hash, lane, 256 );
           if ( fulltest( lane_hash, ptarget ) )
           {
              pdata[19] = n + lane;

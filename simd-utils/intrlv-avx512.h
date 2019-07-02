@@ -442,7 +442,7 @@ static inline void mm512_dintrlv_16x32( void *d00, void *d01, void *d02,
              1, src+1024 );
 }
 
-static inline void mm512_extract_lane_16x32( void *dst, const void *src,
+static inline void mm512_extr_lane_16x32( void *dst, const void *src,
                                             const int lane, const int bit_len )
 {
   if ( bit_len <= 256 )
@@ -506,7 +506,7 @@ static inline void mm512_dintrlv_8x64( void *d0, void *d1, void *d2,
 }
 
 // Extract one lane from 64 bit interleaved data
-static inline void mm512_extract_lane_8x64( void *d, const void *s,
+static inline void mm512_extr_lane_8x64( void *d, const void *s,
                                             const int lane, const int bit_len )
 {
   if ( bit_len <= 256 )
@@ -661,7 +661,7 @@ static inline void mm512_rintrlv_4x128_8x64( void *dst, const void *src0,
 
 }
 
-static inline void mm512_extract_lane_4x128( void *d, const void *s,
+static inline void mm512_extr_lane_4x128( void *d, const void *s,
                                             const int lane, const int bit_len )
 {
   int l = lane<<1;

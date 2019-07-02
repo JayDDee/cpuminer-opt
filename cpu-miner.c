@@ -843,8 +843,6 @@ void scale_hash_for_display ( double* hashrate, char* units )
 
 const uint64_t diff2hash = 0x40000000ULL;
 
-static struct timeval submit_time, prev_submit_time;
-static struct timeval submit_interval;
 static struct timeval five_min_start;
 static double shash_sum = 0.;
 static double bhash_sum = 0.;
@@ -852,40 +850,92 @@ static double time_sum = 0.;
 static double latency_sum = 0.;
 static uint64_t submits_sum = 0;
 
-static int share_result( int result, struct work *work, const char *reason )
+struct share_stats_t
 {
-   char hr[16];
-   const char *sres;
+   struct timeval submit_time;
+   double net_diff;
+   double share_diff;
+   char   job_id[32];
+};
+
+// with more and more parallelism the chances of submitting multiple
+// shares in a very short time grows. 
+#define s_stats_size 4
+static struct share_stats_t share_stats[ s_stats_size ];
+static int s_get_ptr = 0, s_put_ptr = 0;
+static struct timeval last_submit_time = {0};
+
+static int share_result( int result, struct work *null_work,
+                         const char *reason )
+{
+   double share_time, share_hash, block_hash, share_size;
    double hashcount = 0.;
    double hashrate = 0.;
+   uint64_t latency;
+   struct share_stats_t my_stats = {0};
+   struct timeval ack_time, latency_tv, et;
+   char hr[32];
    char hr_units[4] = {0};
-   bool solved; 
-   char shr[16];
+   char shr[32];
    char shr_units[4] = {0};
    char diffstr[32];
-   struct timeval ack_time, latency_tv;
-   uint64_t latency;
-   double share_time, share_hash, block_hash;
-   double sharediff = work ? work->sharediff : stratum.sharediff;
-   double share_size;
+   const char *sres;
+   bool solved; 
 
+   // Mutex while accessing global counters.
    pthread_mutex_lock( &stats_lock );
+
+   // There is a window where a second share could be submitted
+   // before receiving the response for this one. When this happens
+   // te second share will be processed from [1] on the next pass.
+   memcpy( &my_stats, &share_stats[ s_get_ptr], sizeof my_stats );
+   memset( &share_stats[ s_get_ptr ], 0, sizeof my_stats );
+   s_get_ptr++;
+   if ( s_get_ptr >= s_stats_size )
+      s_get_ptr = 0;
+/*
+   if ( share_stats[0].submit_time.tv_sec )
+   {
+      memcpy( &my_stats, &share_stats[0], sizeof my_stats );
+      memset( &share_stats[0], 0, sizeof my_stats );
+   }
+   else if ( share_stats[1].submit_time.tv_sec )
+   {
+      memcpy( &my_stats, &share_stats[1], sizeof my_stats );
+      memset( &share_stats[1], 0, sizeof my_stats );
+   }
+   else
+   {
+      memcpy( &my_stats, &share_stats[2], sizeof my_stats );
+      memset( &share_stats[2], 0, sizeof my_stats );
+   }
+*/
    for ( int i = 0; i < opt_n_threads; i++ )
    {
        hashcount += thr_hashcount[i];
        hashrate += thr_hashrates[i];
    }
+   global_hashcount = hashcount;
+   global_hashrate = hashrate;
 
-   // calculate latency
+   // calculate latency and share time.
    gettimeofday( &ack_time, NULL );
-   timeval_subtract( &latency_tv, &ack_time, &submit_time );
+   timeval_subtract( &latency_tv, &ack_time, &my_stats.submit_time );
    latency = ( latency_tv.tv_sec * 1000  + latency_tv.tv_usec / 1000 );
+   timeval_subtract( &et, &my_stats.submit_time, &last_submit_time );
+   share_time = (double)et.tv_sec + ( (double)et.tv_usec / 1000000. );
+   memcpy( &last_submit_time, &my_stats.submit_time, sizeof last_submit_time );
 
    // calculate share hashrate and size
-   share_time = submit_interval.tv_sec + ( submit_interval.tv_usec / 1000000. );
-   share_hash = sharediff * diff2hash;
-   block_hash = net_diff  * diff2hash;
-   share_size = block_hash == 0. ? 0. : share_hash / block_hash;
+   share_hash = my_stats.share_diff * diff2hash;
+   block_hash = my_stats.net_diff   * diff2hash;
+   share_size = block_hash == 0. ? 0. : share_hash / block_hash * 100.;
+
+   // check result
+   result ? accepted_share_count++ : rejected_share_count++;
+   solved = result && (my_stats.net_diff > 0.0 )
+            && ( my_stats.share_diff >= net_diff );
+   solved_block_count += solved ? 1 : 0 ;
 
    // update counters for 5 minute summary report
    shash_sum   += share_hash;
@@ -897,38 +947,46 @@ static int share_result( int result, struct work *work, const char *reason )
    pthread_mutex_unlock( &stats_lock );
 
    double share_hash_rate = share_time == 0. ? 0. : share_hash / share_time;
+   double scaled_shr;
 
-   result ? accepted_share_count++ : rejected_share_count++;
-   global_hashcount = hashcount;
-   global_hashrate = hashrate;
-
-   // check for solved block
-   solved = result && (net_diff > 0.0 ) && ( sharediff >= net_diff );
-   solved_block_count += solved ? 1 : 0 ;
+   scaled_shr = share_hash_rate;
+   scale_hash_for_display ( &scaled_shr, shr_units );
 
    if ( use_colors )
    {
       sres = ( solved ? ( CL_MAG "BLOCK SOLVED" CL_WHT )
-                        : result ? ( CL_GRN "Accepted" CL_WHT )
-                                 : ( CL_RED "Rejected" CL_WHT ) );
+                      : result ? ( CL_GRN "Accepted" CL_WHT )
+                               : ( CL_RED "Rejected" CL_WHT ) );
 
       // colour code the share diff to highlight high value.
       if ( solved )
-         sprintf( diffstr, "%s%.3g%s", CL_MAG, sharediff, CL_WHT );
-      else if ( share_size > 0.01 )
-         sprintf( diffstr, "%s%.3g%s", CL_GRN, sharediff, CL_WHT );
-      else if ( share_size > 0.001 )          
-         sprintf( diffstr, "%s%.3g%s", CL_CYN, sharediff, CL_WHT );
-      else if ( share_hash_rate > hashrate )
-         sprintf( diffstr, "%s%.3g%s", CL_YLW, sharediff, CL_WHT );
+         sprintf( diffstr, "%s%.3g%s", CL_MAG, my_stats.share_diff, CL_WHT );
+      else if ( my_stats.share_diff > (my_stats.net_diff*0.1) )
+         sprintf( diffstr, "%s%.3g%s", CL_GRN, my_stats.share_diff, CL_WHT );
+      else if ( my_stats.share_diff > (my_stats.net_diff*0.01) )
+         sprintf( diffstr, "%s%.3g%s", CL_CYN, my_stats.share_diff, CL_WHT );
       else
-         sprintf( diffstr, "%.3g", sharediff );   
+         sprintf( diffstr, "%.3g", my_stats.share_diff );
+
+      if ( hashrate && share_hash_rate > (768.*hashrate) )
+         sprintf( shr, "%s%.2f %sH/s%s", CL_MAG, scaled_shr, shr_units,
+                                         CL_WHT );
+      else if ( share_hash_rate > (32.*hashrate) )
+         sprintf( shr, "%s%.2f %sH/s%s", CL_GRN, scaled_shr, shr_units,
+                                         CL_WHT );
+      else if ( share_hash_rate > 2.0*hashrate )
+         sprintf( shr, "%s%.2f %sH/s%s", CL_CYN, scaled_shr, shr_units,
+                                         CL_WHT );
+      else if ( share_hash_rate > 0.5*hashrate )
+         sprintf( shr, "%.2f %sH/s", scaled_shr, shr_units );
+      else
+         sprintf( shr, "%s%.2f %sH/s%s", CL_YLW, scaled_shr, shr_units,
+                                         CL_WHT );
    }
    else
    {
-      sres = ( solved ? "BLOCK SOLVED"
-                        : result ? "Accepted" : "Rejected" );
-      sprintf( diffstr, "%3g", sharediff );                   
+      sres = ( solved ? "BLOCK SOLVED" : result ? "Accepted" : "Rejected" );
+      sprintf( diffstr, "%.3g", my_stats.share_diff );
    }
 
    scale_hash_for_display ( &hashrate, hr_units );
@@ -941,36 +999,20 @@ static int share_result( int result, struct work *work, const char *reason )
                        sres, diffstr, share_time, accepted_share_count,
                        rejected_share_count, solved_block_count );
 
-   if ( have_stratum && result && sharediff && net_diff && !opt_quiet )
+   if ( have_stratum && result && my_stats.share_diff && my_stats.net_diff
+        && !opt_quiet )
    {
-//      double share_hash_rate = share_time == 0. ? 0. : share_hash / share_time;
-
-      scale_hash_for_display ( &share_hash_rate, shr_units );
-      if ( share_hash_rate < 10 )
-         // very low hashrate, add digits
-         sprintf( shr, "%.4f", share_hash_rate );
-      else
-         sprintf( shr, "%.2f", share_hash_rate );
-
-      applog( LOG_NOTICE, "Miner %s %sH/s, Share %s %sH/s, Latency %d ms.",
-                          hr, hr_units, shr, shr_units, latency );
-      applog( LOG_NOTICE, "Height %d, Block share %.5f%%.", 
-                          stratum.bloc_height, share_size*100. );
+      applog( LOG_NOTICE, "Miner %s %sH/s, Share %s, Latency %d ms.",
+                          hr, hr_units, shr, latency );
+      applog( LOG_NOTICE, "Height %d, job %s, %.5f%% block share.", 
+                          stratum.bloc_height, my_stats.job_id, share_size );
+      applog(LOG_INFO,"- - - - - - - - - - - - - - - - - - - - - - - - - - -");
    }
 
    if ( reason )
-   {
-	applog( LOG_WARNING, "reject reason: %s", reason );
-/*
-	if (strncmp(reason, "low difficulty share", 20) == 0)
-        {
-           opt_diff_factor = (opt_diff_factor * 2.0) / 3.0;
-	   applog(LOG_WARNING, "factor reduced to : %0.2f", opt_diff_factor);
-           return 0;
-        }
-*/
-   }
-	return 1;
+      applog( LOG_WARNING, "reject reason: %s.", reason );
+
+   return 1;
 }
 
 void std_le_build_stratum_request( char *req, struct work *work )
@@ -1557,9 +1599,42 @@ bool submit_work(struct thr_info *thr, const struct work *work_in)
 {
 	struct workio_cmd *wc;
 
-   memcpy( &prev_submit_time, &submit_time, sizeof submit_time );
-   gettimeofday( &submit_time, NULL );
-   timeval_subtract( &submit_interval, &submit_time, &prev_submit_time );
+   // collect some share stats
+   pthread_mutex_lock( &stats_lock );
+
+   gettimeofday( &share_stats[ s_put_ptr ].submit_time, NULL );
+   share_stats[ s_put_ptr ].share_diff = work_in->sharediff;
+   share_stats[ s_put_ptr ].net_diff = net_diff;
+   strcpy( share_stats[ s_put_ptr ].job_id, work_in->job_id );
+
+   s_put_ptr++;
+   if ( s_put_ptr >= s_stats_size )
+      s_put_ptr = 0;
+/*   
+   if ( share_stats[0].submit_time.tv_sec == 0 )
+   {   
+     gettimeofday( &share_stats[0].submit_time, NULL );
+     share_stats[0].share_diff = work_in->sharediff;
+     share_stats[0].net_diff = net_diff;
+     strcpy( share_stats[0].job_id, work_in->job_id );
+   }
+   else if ( share_stats[1].submit_time.tv_sec == 0 )
+   { // previous share hasn't been confirmed yet.
+     gettimeofday( &share_stats[1].submit_time, NULL );
+     share_stats[1].share_diff = work_in->sharediff;
+     share_stats[1].net_diff = net_diff;
+     strcpy( share_stats[1].job_id, work_in->job_id );
+   }
+   else
+   { // previous share hasn't been confirmed yet.
+     gettimeofday( &share_stats[2].submit_time, NULL );
+     share_stats[2].share_diff = work_in->sharediff;
+     share_stats[2].net_diff = net_diff;
+     strcpy( share_stats[2].job_id, work_in->job_id );
+   }
+*/
+
+   pthread_mutex_unlock( &stats_lock );
 
    /* fill out work request message */
 	wc = (struct workio_cmd *) calloc(1, sizeof(*wc));
@@ -1722,6 +1797,7 @@ uint32_t* jr2_get_nonceptr( uint32_t *work_data )
    // nonce is misaligned, use byte offset
    return (uint32_t*) ( ((uint8_t*) work_data) + algo_gate.nonce_index );
 }
+
 
 void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
                      uint32_t *end_nonce_ptr, bool clean_job )
@@ -1912,7 +1988,7 @@ static void *miner_thread( void *userdata )
           if ( have_stratum )
           {
               algo_gate.wait_for_diff( &stratum );
- 	      pthread_mutex_lock( &g_work_lock );
+      	     pthread_mutex_lock( &g_work_lock );
               if ( *algo_gate.get_nonceptr( work.data ) >= end_nonce )
                  algo_gate.stratum_gen_work( &stratum, &g_work );
               algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce,
@@ -1922,20 +1998,20 @@ static void *miner_thread( void *userdata )
           else
           {
              int min_scantime = have_longpoll ? LP_SCANTIME : opt_scantime;
-	     pthread_mutex_lock( &g_work_lock );
+	          pthread_mutex_lock( &g_work_lock );
 
              if ( time(NULL) - g_work_time >= min_scantime
                   || *algo_gate.get_nonceptr( work.data ) >= end_nonce )
              {
-	        if ( unlikely( !get_work( mythr, &g_work ) ) )
+	             if ( unlikely( !get_work( mythr, &g_work ) ) )
                 {
-		   applog( LOG_ERR, "work retrieval failed, exiting "
-		           "mining thread %d", thr_id );
+		             applog( LOG_ERR, "work retrieval failed, exiting "
+		                                      "mining thread %d", thr_id );
                    pthread_mutex_unlock( &g_work_lock );
-		   goto out;
-	        }
+		             goto out;
+	             }
                 g_work_time = time(NULL);
-	     }
+	          }
              algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce, true );
 
              pthread_mutex_unlock( &g_work_lock );
@@ -2023,7 +2099,12 @@ static void *miner_thread( void *userdata )
              break;
           }
           if ( !opt_quiet )
-             applog( LOG_NOTICE, "Share submitted." );
+//              applog( LOG_BLUE, "Share %d submitted by thread %d.",
+//                      accepted_share_count + rejected_share_count + 1,
+//                      mythr->id );
+              applog( LOG_BLUE, "Share %d submitted by thread %d, job %s.",
+                      accepted_share_count + rejected_share_count + 1,
+                      mythr->id, work.job_id );
 
           // prevent stale work in solo
           // we can't submit twice a block!
@@ -2035,6 +2116,7 @@ static void *miner_thread( void *userdata )
              pthread_mutex_unlock( &g_work_lock );
           }
        }
+
        // Check for 5 minute summary report, mutex until global counters
        // are read and reset. It's bad form to unlock inside a conditional
        // block but more efficient. The logic is reversed to make the mutex
@@ -2057,43 +2139,56 @@ static void *miner_thread( void *userdata )
 
           pthread_mutex_unlock( &stats_lock );
 
-          char hr[16];
-          char hr_units[4] = {0};
-          char bshstr[32];
-          double hrate = time == 0. ? 0. : hash / time;
+          double ghrate = global_hashrate;
+          double shrate = time == 0. ? 0. : hash / time;
+          double scaled_shrate = shrate;
           double avg_share = bhash == 0. ? 0. : hash / bhash * 100.;
+          char shr[32];
+          char shr_units[4] = {0};
+          int temp = cpu_temp(0);
+          char timestr[32];
+
           latency = submits ? latency / submits : 0;
+          scale_hash_for_display( &scaled_shrate, shr_units );
 
-          // colour code the block share to highlight high value.
-          if ( avg_share > 90.0 )
-             sprintf( bshstr, "%s%.5f%s", CL_MAG, avg_share, CL_WHT );
-          else if ( avg_share > 1.0 )
-             sprintf( bshstr, "%s%.5f%s", CL_GRN, avg_share, CL_WHT );
-          else if ( avg_share > 0.1 )
-             sprintf( bshstr, "%s%.5f%s", CL_CYN, avg_share, CL_WHT );
-          else if ( hrate > global_hashrate )
-             sprintf( bshstr, "%s%.5f%s", CL_YLW, avg_share, CL_WHT );
-          else
-             sprintf( bshstr, "%.5f", avg_share );
-        
-          scale_hash_for_display ( &hrate, hr_units );
-          if ( hrate < 10. )
-             // very low hashrate, add digits
-             sprintf( hr, "%.4f", hrate );
-          else
-             sprintf( hr, "%.2f", hrate );
+          if ( use_colors )
+          {
+             if ( shrate > (32.*ghrate) )
+                sprintf( shr, "%s%.2f %sH/s%s", CL_MAG, scaled_shrate,
+                         shr_units, CL_WHT );
+             else if ( shrate > (8.*ghrate) )
+                sprintf( shr, "%s%.2f %sH/s%s", CL_GRN, scaled_shrate,
+                         shr_units, CL_WHT );
+             else if ( shrate > 2.0*ghrate )
+                sprintf( shr, "%s%.2f %sH/s%s", CL_CYN, scaled_shrate,
+                         shr_units, CL_WHT );
+             else if ( shrate > 0.5*ghrate )
+                sprintf( shr, "%.2f %sH/s", scaled_shrate, shr_units );
+             else
+                sprintf( shr, "%s%.2f %sH/s%s", CL_YLW, scaled_shrate,
+                         shr_units, CL_WHT );
 
-          applog(LOG_NOTICE,"Summary: %d submits in %dm%02ds, block share %s%%.",
-                             (uint64_t)submits, et.tv_sec / 60,
-                             et.tv_sec % 60, bshstr );    
+             if ( temp >= 80 ) sprintf( timestr, "%s%d C%s",
+                                                  CL_RED, temp, CL_WHT );
+             else if (temp >=70 ) sprintf( timestr, "%s%d C%s",
+                                                  CL_YLW, temp, CL_WHT );
+             else sprintf( timestr, "%d C", temp );
+          }
+          else
+             sprintf( shr, "%.2f %sH/s", scaled_shrate, shr_units );
+
+          applog(LOG_NOTICE,"Submitted %d shares in %dm%02ds, %.5f%% block share.",
+               (uint64_t)submits, et.tv_sec / 60, et.tv_sec % 60, avg_share );    
 
 #if ((defined(_WIN64) || defined(__WINDOWS__)))
-          applog(LOG_NOTICE,"Share hashrate %s %sH/s, latency %d ms.",
-                            hr, hr_units, latency );
+          applog(LOG_NOTICE,"Share hashrate %s, latency %d ms.",
+                            shr, latency );
 #else
-          applog(LOG_NOTICE,"Share hashrate %s %sH/s, latency %d ms, temp %dC.",
-                            hr, hr_units, latency, (uint32_t)cpu_temp(0) );
+          applog(LOG_NOTICE,"Share hashrate %s, latency %d ms, temp %s.",
+                            shr, latency, timestr );
 #endif
+//          applog(LOG_NOTICE,"Performance index: %s.", hixstr );
+          applog(LOG_INFO,"- - - - - - - - - - - - - - - - - - - - - - - - - - -");
           
        }
 
@@ -2294,7 +2389,7 @@ start:
 	 	 sprintf(netinfo, ", diff %.3f", net_diff);
 	       }
 	       if (opt_showdiff)
-	 	 sprintf( &netinfo[strlen(netinfo)], ", target %.3f",
+	            sprintf( &netinfo[strlen(netinfo)], ", target %.3f",
                           g_work.targetdiff );
                applog(LOG_BLUE, "%s detected new block%s", short_url, netinfo);
 	     }
@@ -2457,6 +2552,9 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    algo_gate.set_work_data_endian( g_work );
    pthread_mutex_unlock( &sctx->work_lock );
 
+//   if ( !opt_quiet )
+//      applog( LOG_BLUE,"New job %s.", g_work->job_id );
+
    if ( opt_debug )
    {
      unsigned char *xnonce2str = abin2hex( g_work->xnonce2,
@@ -2470,14 +2568,14 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 
    if ( stratum_diff != sctx->job.diff )
    {
-     char sdiff[32] = { 0 };
+//     char sdiff[32] = { 0 };
      // store for api stats
      stratum_diff = sctx->job.diff;
-     if ( opt_showdiff && g_work->targetdiff != stratum_diff )
+     if ( !opt_quiet && opt_showdiff && g_work->targetdiff != stratum_diff )
      {
-        snprintf( sdiff, 32, " (%.5f)", g_work->targetdiff );
-        applog( LOG_WARNING, "Stratum difficulty set to %g%s", stratum_diff,
-                        sdiff );
+//        snprintf( sdiff, 32, " (%.5f)", g_work->targetdiff );
+        applog( LOG_BLUE, "Stratum difficulty set to %g", stratum_diff );
+//                        sdiff );
      }
    }
 }
@@ -2492,114 +2590,118 @@ void jr2_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 
 static void *stratum_thread(void *userdata )
 {
-    struct thr_info *mythr = (struct thr_info *) userdata;
-    char *s;
+   struct thr_info *mythr = (struct thr_info *) userdata;
+   char *s;
 
-    stratum.url = (char*) tq_pop(mythr->q, NULL);
-    if (!stratum.url)
-	goto out;
-    applog(LOG_INFO, "Starting Stratum on %s", stratum.url);
+   stratum.url = (char*) tq_pop(mythr->q, NULL);
+   if (!stratum.url)
+      goto out;
+   applog(LOG_INFO, "Starting Stratum on %s", stratum.url);
 
-    while (1)
-    {
-	int failures = 0;
+   while (1)
+   {
+      int failures = 0;
 
-	if ( stratum_need_reset )
-        {
-           stratum_need_reset = false;
-	   stratum_disconnect( &stratum );
-	   if ( strcmp( stratum.url, rpc_url ) )
-           {
-		free( stratum.url );
-		stratum.url = strdup( rpc_url );
-		applog(LOG_BLUE, "Connection changed to %s", short_url);
-	   }
-           else if ( !opt_quiet )
-		applog(LOG_DEBUG, "Stratum connection reset");
-	}
+      if ( stratum_need_reset )
+      {
+          stratum_need_reset = false;
+          stratum_disconnect( &stratum );
+          if ( strcmp( stratum.url, rpc_url ) )
+          {
+	          free( stratum.url );
+	          stratum.url = strdup( rpc_url );
+	          applog(LOG_BLUE, "Connection changed to %s", short_url);
+          }
+          else if ( !opt_quiet )
+	          applog(LOG_DEBUG, "Stratum connection reset");
+      }
 
-        while ( !stratum.curl )
-        {
-           pthread_mutex_lock( &g_work_lock );
-           g_work_time = 0;
-           pthread_mutex_unlock( &g_work_lock );
-           restart_threads();
-           if ( !stratum_connect( &stratum, stratum.url )
-                || !stratum_subscribe( &stratum )
-                || !stratum_authorize( &stratum, rpc_user, rpc_pass ) )
-           {
-              stratum_disconnect( &stratum );
-              if (opt_retries >= 0 && ++failures > opt_retries)
-              {
-                 applog(LOG_ERR, "...terminating workio thread");
-                 tq_push(thr_info[work_thr_id].q, NULL);
-                 goto out;
-              }
-              if (!opt_benchmark)
-                  applog(LOG_ERR, "...retry after %d seconds", opt_fail_pause);
-              sleep(opt_fail_pause);
-           }
+      while ( !stratum.curl )
+      {
+         pthread_mutex_lock( &g_work_lock );
+         g_work_time = 0;
+         pthread_mutex_unlock( &g_work_lock );
+         restart_threads();
+         if ( !stratum_connect( &stratum, stratum.url )
+              || !stratum_subscribe( &stratum )
+              || !stratum_authorize( &stratum, rpc_user, rpc_pass ) )
+         {
+            stratum_disconnect( &stratum );
+            if (opt_retries >= 0 && ++failures > opt_retries)
+            {
+               applog(LOG_ERR, "...terminating workio thread");
+               tq_push(thr_info[work_thr_id].q, NULL);
+               goto out;
+            }
+            if (!opt_benchmark)
+                applog(LOG_ERR, "...retry after %d seconds", opt_fail_pause);
+            sleep(opt_fail_pause);
+         }
 
-           if (jsonrpc_2)
-           {
-              work_free(&g_work);
-	      work_copy(&g_work, &stratum.work);
-           }
-        }
+         if (jsonrpc_2)
+         {
+             work_free(&g_work);
+             work_copy(&g_work, &stratum.work);
+         }
+      }
 
-        if ( stratum.job.job_id &&
-             ( !g_work_time || strcmp( stratum.job.job_id, g_work.job_id ) ) )
-        {
-           pthread_mutex_lock(&g_work_lock);
-           algo_gate.stratum_gen_work( &stratum, &g_work );
-           time(&g_work_time);
-           pthread_mutex_unlock(&g_work_lock);
-//           restart_threads();
+      if ( stratum.job.job_id
+          && ( !g_work_time || strcmp( stratum.job.job_id, g_work.job_id ) ) )
+      {
+         pthread_mutex_lock(&g_work_lock);
+         algo_gate.stratum_gen_work( &stratum, &g_work );
+         time(&g_work_time);
+         pthread_mutex_unlock(&g_work_lock);
+         restart_threads();
 
-           if (stratum.job.clean || jsonrpc_2)
-           {
-              static uint32_t last_bloc_height;
-              if ( last_bloc_height != stratum.bloc_height )
-              {
-                 last_bloc_height = stratum.bloc_height;
-                 if ( !opt_quiet )
-                 {
-                    if (net_diff > 0.)
-	               applog(LOG_BLUE, "%s block %d, network diff %.3f",
-                           algo_names[opt_algo], stratum.bloc_height, net_diff);
-                    else
-	               applog(LOG_BLUE, "%s %s block %d", short_url,
-                           algo_names[opt_algo], stratum.bloc_height);
-	           }
-              }
-              restart_threads();
-           }
-           else if (opt_debug && !opt_quiet)
-           {
-		applog(LOG_BLUE, "%s asks job %d for block %d", short_url,
-		strtoul(stratum.job.job_id, NULL, 16), stratum.bloc_height);
-           }
-        }  // stratum.job.job_id
+         if ( stratum.job.clean || jsonrpc_2 )
+         {
+            static uint32_t last_bloc_height;
+            if ( last_bloc_height != stratum.bloc_height )
+            {
+               last_bloc_height = stratum.bloc_height;
+               if ( !opt_quiet )
+               {
+                  if ( net_diff > 0. )
+                     applog( LOG_BLUE,
+                             "%s block %d, job %s, network diff %.4f",
+                             algo_names[opt_algo], stratum.bloc_height,
+                             g_work.job_id, net_diff);
+                  else
+	                  applog( LOG_BLUE, "%s %s block %d, job %s",
+                             short_url, algo_names[opt_algo],
+                             stratum.bloc_height, g_work.job_id );
+	             }
+            }
+            else if ( !opt_quiet )
+               applog( LOG_BLUE,"New job %s.", g_work.job_id );
+         }
+         else if (opt_debug && !opt_quiet)
+         {
+            applog( LOG_BLUE, "%s asks job %d for block %d", short_url,
+                strtoul( stratum.job.job_id, NULL, 16 ), stratum.bloc_height );
+         }
+      }  // stratum.job.job_id
 
-       if ( !stratum_socket_full( &stratum, opt_timeout ) )
-       {
-          applog(LOG_ERR, "Stratum connection timeout");
-	  s = NULL;
-       }
-       else
-           s = stratum_recv_line(&stratum);
-       if ( !s )
-       {
-          stratum_disconnect(&stratum);
+     if ( !stratum_socket_full( &stratum, opt_timeout ) )
+     {
+        applog(LOG_ERR, "Stratum connection timeout");
+        s = NULL;
+     }
+     else
+        s = stratum_recv_line(&stratum);
+     if ( !s )
+     {
+        stratum_disconnect(&stratum);
 //	  applog(LOG_WARNING, "Stratum connection interrupted");
-	  continue;
-       }
-       if (!stratum_handle_method(&stratum, s))
+        continue;
+     }
+     if (!stratum_handle_method(&stratum, s))
           stratum_handle_response(s);
-       free(s);
-   }  // loop
+     free(s);
+  }  // loop
 out:
-	return NULL;
+  return NULL;
 }
 
 void show_version_and_exit(void)
@@ -3402,23 +3504,23 @@ int main(int argc, char *argv[])
    if ( !register_algo_gate( opt_algo, &algo_gate ) ) exit(1);
 
    // Initialize stats times and counters
-   gettimeofday( &prev_submit_time, NULL );
-   memcpy( &submit_time, &prev_submit_time, sizeof submit_time );
-   memcpy( &five_min_start, &prev_submit_time, sizeof prev_submit_time );
+   memset( share_stats, 0, 2 *  sizeof (struct share_stats_t) );
+   gettimeofday( &last_submit_time, NULL );
+   memcpy( &five_min_start, &last_submit_time, sizeof (struct timeval) );
 
    if ( !check_cpu_capability() ) exit(1);
 
-	pthread_mutex_init(&stats_lock, NULL);
-	pthread_mutex_init(&g_work_lock, NULL);
-	pthread_mutex_init(&rpc2_job_lock, NULL);
-	pthread_mutex_init(&rpc2_login_lock, NULL);
-	pthread_mutex_init(&stratum.sock_lock, NULL);
-	pthread_mutex_init(&stratum.work_lock, NULL);
+	pthread_mutex_init( &stats_lock, NULL );
+	pthread_mutex_init( &g_work_lock, NULL );
+	pthread_mutex_init( &rpc2_job_lock, NULL );
+	pthread_mutex_init( &rpc2_login_lock, NULL );
+	pthread_mutex_init( &stratum.sock_lock, NULL );
+	pthread_mutex_init( &stratum.work_lock, NULL );
 
-	flags = !opt_benchmark && strncmp(rpc_url, "https:", 6)
-	        ? (CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL)
+	flags = !opt_benchmark && strncmp( rpc_url, "https:", 6 )
+	        ? ( CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL )
 	        : CURL_GLOBAL_ALL;
-	if (curl_global_init(flags))
+	if ( curl_global_init( flags ) )
    {
 		applog(LOG_ERR, "CURL initialization failed");
 		return 1;

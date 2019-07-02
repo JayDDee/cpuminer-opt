@@ -161,13 +161,13 @@ void xevan_4way_hash( void *output, const void *input )
      sph_fugue512_close( &ctx.fugue, hash3 );
 
      // Parallel 4way 32 bit
-     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, dataLen );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      // Serial
      sph_whirlpool_init( &ctx.whirlpool );
@@ -295,13 +295,13 @@ void xevan_4way_hash( void *output, const void *input )
      sph_fugue512( &ctx.fugue, hash3, dataLen );
      sph_fugue512_close( &ctx.fugue, hash3 );
 
-     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, dataLen );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      sph_whirlpool_init( &ctx.whirlpool );
      sph_whirlpool( &ctx.whirlpool, hash0, dataLen );
@@ -333,9 +333,9 @@ int scanhash_xevan_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
-   uint32_t *hash7 = &(hash[7<<2]);
-   uint32_t lane_hash[8];
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+   uint32_t *hash7 = &(hash[7<<2]);
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    int thr_id = mythr->id;  // thr_id arg is deprecated
@@ -357,7 +357,7 @@ int scanhash_xevan_4way( struct work *work, uint32_t max_nonce,
       for ( int lane = 0; lane < 4; lane++ )
       if ( hash7[ lane ] <= Htarg )
       {
-         mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+         extr_lane_4x32( lane_hash, hash, lane, 256 );
 	      if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
          {
              pdata[19] = n + lane;

@@ -1631,7 +1631,7 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 		      hashrate += thr_hashrates[i];
                    pthread_mutex_unlock(&stats_lock);
 		   double diff = trunc( ( ((double)0xffffffff) / target ) );
-		   if ( opt_showdiff )
+		   if ( !opt_quiet )
 		      // xmr pool diff can change a lot...
 		      applog(LOG_WARNING, "Stratum difficulty set to %g", diff);
 		   stratum_diff = diff;
@@ -1813,7 +1813,8 @@ static bool stratum_set_difficulty(struct stratum_ctx *sctx, json_t *params)
 	/* store for api stats */
 	stratum_diff = diff;
 
-	applog(LOG_WARNING, "Stratum difficulty set to %g", diff);
+   if ( !opt_quiet )
+	     applog(LOG_BLUE, "Stratum difficulty set to %g", diff);
 
 	return true;
 }

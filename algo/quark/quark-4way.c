@@ -191,7 +191,7 @@ int scanhash_quark_4way( struct work *work, uint32_t max_nonce,
        for ( int i = 0; i < 4; i++ )
        if ( ( hash7[ i<<1 ] & 0xFFFFFF00 ) == 0 )
        {
-          mm256_extract_lane_4x64( lane_hash, hash, i, 256 );
+          mm256_extr_lane_4x64( lane_hash, hash, i, 256 );
           if ( fulltest( lane_hash, ptarget ) && !opt_benchmark  )
           {
             pdata[19] = n+i;

@@ -89,7 +89,7 @@ int scanhash_jha_4way( struct work *work, uint32_t max_nonce,
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[25]);
-   uint32_t lane_hash[8];
+   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -143,7 +143,7 @@ int scanhash_jha_4way( struct work *work, uint32_t max_nonce,
 //                  && fulltest( hash+(i<<3), ptarget ) )
               for ( int i = 0; i < 4; i++ ) if ( !( (hash7[i] & mask ) == 0 ) )
               {
-                 mm256_extract_lane_4x64( lane_hash, hash, i, 256 );
+                 mm256_extr_lane_4x64( lane_hash, hash, i, 256 );
                  if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
                  {
                     pdata[19] = n+i;

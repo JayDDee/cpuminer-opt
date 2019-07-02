@@ -78,29 +78,23 @@ int scanhash_skunk_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-   uint32_t endiandata[20] __attribute__((aligned(64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
-   uint32_t *noncep = vdata + 73;   // 9*8 + 1
+   __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
    const uint32_t Htarg = ptarget[7];
    int thr_id = mythr->id;  // thr_id arg is deprecated
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
 
    if ( opt_benchmark )
       ((uint32_t*)ptarget)[7] = 0x0cff;
-   for ( int k = 0; k < 19; k++ )
-      be32enc( &endiandata[k], pdata[k] );
 
-   uint64_t *edata = (uint64_t*)endiandata;
-   mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+   mm256_bswap_intrlv80_4x64( vdata, pdata );
    do
    {
-      be32enc( noncep,   n   );
-      be32enc( noncep+2, n+1 );
-      be32enc( noncep+4, n+2 );
-      be32enc( noncep+6, n+3 );
+      *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
       skunk_4way_hash( hash, vdata );
       pdata[19] = n;

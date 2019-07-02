@@ -207,6 +207,7 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
 
         SHA512_Update(  &ctx2.sha512, data_p64, 80 - M7_MIDSTATE_LEN );
         SHA512_Final( (unsigned char*) (bhash[1]), &ctx2.sha512 );
+
         sph_keccak512( &ctx2.keccak, data_p64, 80 - M7_MIDSTATE_LEN );
         sph_keccak512_close( &ctx2.keccak, (void*)(bhash[2]) );
 
@@ -222,18 +223,18 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
         sph_ripemd160( &ctx2.ripemd, data_p64, 80 - M7_MIDSTATE_LEN );
         sph_ripemd160_close( &ctx2.ripemd, (void*)(bhash[6]) );
 
-	mpz_import(bns0, a, -1, p, -1, 0, bhash[0]);
+        mpz_import(bns0, a, -1, p, -1, 0, bhash[0]);
         mpz_set(bns1, bns0);
-	mpz_set(product, bns0);
-	for ( i=1; i < 7; i++ )
+	     mpz_set(product, bns0);
+	     for ( i=1; i < 7; i++ )
         {
-	    mpz_import(bns0, a, -1, p, -1, 0, bhash[i]);
-	    mpz_add(bns1, bns1, bns0);
-            mpz_mul(product, product, bns0);
+	        mpz_import(bns0, a, -1, p, -1, 0, bhash[i]);
+	        mpz_add(bns1, bns1, bns0);
+           mpz_mul(product, product, bns0);
         }
         mpz_mul(product, product, bns1);
 
-	mpz_mul(product, product, product);
+        mpz_mul(product, product, product);
         bytes = mpz_sizeinbase(product, 256);
         mpz_export((void *)bdata, NULL, -1, 1, 0, 0, product);
 
@@ -243,27 +244,27 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
 
         digits=(int)((sqrt((double)(n/2))*(1.+EPS))/9000+75);
         mp_bitcnt_t prec = (long int)(digits*BITS_PER_DIGIT+16);
-	mpf_set_prec_raw(magifpi, prec);
-	mpf_set_prec_raw(mptmp, prec);
-	mpf_set_prec_raw(mpt1, prec);
-	mpf_set_prec_raw(mpt2, prec);
+        mpf_set_prec_raw(magifpi, prec);
+        mpf_set_prec_raw(mptmp, prec);
+        mpf_set_prec_raw(mpt1, prec);
+        mpf_set_prec_raw(mpt2, prec);
 
         usw_ = sw2_(n/2);
-	mpzscale = 1;
+	     mpzscale = 1;
         mpz_set_ui(magisw, usw_);
 	    
         for ( i = 0; i < 5; i++ )
         {	
             mpf_set_d(mpt1, 0.25*mpzscale);
-	    mpf_sub(mpt1, mpt1, mpt2);
+	         mpf_sub(mpt1, mpt1, mpt2);
             mpf_abs(mpt1, mpt1);
             mpf_div(magifpi, magifpi0, mpt1);
             mpf_pow_ui(mptmp, mpten, digits >> 1);
             mpf_mul(magifpi, magifpi, mptmp);
-	    mpz_set_f(magipi, magifpi);
+	         mpz_set_f(magipi, magifpi);
             mpz_add(magipi,magipi,magisw);
             mpz_add(product,product,magipi);
-	    mpz_import(bns0, b, -1, p, -1, 0, (void*)(hash));
+	         mpz_import(bns0, b, -1, p, -1, 0, (void*)(hash));
             mpz_add(bns1, bns1, bns0);
             mpz_mul(product,product,bns1);
             mpz_cdiv_q (product, product, bns0);
@@ -275,18 +276,18 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
             SHA256_Init( &ctxf_sha256 );
             SHA256_Update(  &ctxf_sha256, bdata, bytes );
             SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
-	}
+        }
 
-	const unsigned char *hash_ = (const unsigned char *)hash;
-	const unsigned char *target_ = (const unsigned char *)ptarget;
-	for ( i = 31; i >= 0; i-- )
+        const unsigned char *hash_ = (const unsigned char *)hash;
+        const unsigned char *target_ = (const unsigned char *)ptarget;
+        for ( i = 31; i >= 0; i-- )
         {
-	      if ( hash_[i] != target_[i] )
-              {
-		rc = hash_[i] < target_[i];
-		break;
-	      }
-	}
+	        if ( hash_[i] != target_[i] )
+           {
+		        rc = hash_[i] < target_[i];
+		        break;
+	        }
+        }
         if ( unlikely(rc) )
         {
             if ( opt_debug )
@@ -299,15 +300,15 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
                     hash_str,
                     target_str);
             }
-            work_set_target_ratio( work, hash );
             pdata[19] = data[19];
-            goto out;
-	  }
+            submit_solution( work, hash, mythr );
+        }
     } while (n < max_nonce && !work_restart[thr_id].restart);
 
      pdata[19] = n;
 
-out:
+// can this be skipped after finding a share? Seems to work ok.
+//out:
      mpf_set_prec_raw(magifpi, prec0);
      mpf_set_prec_raw(magifpi0, prec0);
      mpf_set_prec_raw(mptmp, prec0);

@@ -17,66 +17,6 @@
 // Constants of these types reside in memory.
 
 
-// Compile time vector constants and initializers.
-//
-// The following macro constants and functions should only be used
-// for compile time initialization of constant and variable vector
-// arrays. These constants use memory, use _mm256_set at run time to
-// avoid using memory.
-
-#define mm256_const_64( x3, x2, x1, x0 ) {{ x3, x2, x1, x0 }}
-#define mm256_const1_64( x ) {{ x,x,x,x }}
-
-#define mm256_const_32( x7, x6, x5, x4, x3, x2, x1, x0 ) \
-                     {{ x7, x6, x5, x4, x3, x2, x1, x0 }}
-#define mm256_const1_32( x ) {{ x,x,x,x, x,x,x,x }}
-
-#define mm256_const_16( x15, x14, x13, x12, x11, x10, x09, x08, \
-                        x07, x06, x05, x04, x03, x02, x01, x00 ) \
-                     {{ x15, x14, x13, x12, x11, x10, x09, x08, \
-                        x07, x06, x05, x04, x03, x02, x01, x00 }}
-#define mm256_const1_16( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
-
-#define mm256_const_8( x31, x30, x29, x28, x27, x26, x25, x24, \
-                       x23, x22, x21, x20, x19, x18, x17, x16, \
-                       x15, x14, x13, x12, x11, x10, x09, x08, \
-                       x07, x06, x05, x04, x03, x02, x01, x00 ) \
-                    {{ x31, x30, x29, x28, x27, x26, x25, x24, \
-                       x23, x22, x21, x20, x19, x18, x17, x16, \
-                       x15, x14, x13, x12, x11, x10, x09, x08, \
-                       x07, x06, x05, x04, x03, x02, x01, x00 }}
-#define mm256_const1_8( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, \
-                               x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
-
-// Predefined compile time constant vectors.
-// Use Pseudo constants at run time for all simple constant vectors.
-#define c256_zero         mm256_const1_64( 0ULL )
-#define c256_one_256      mm256_const_64(  0ULL, 0ULL, 0ULL, 1ULL )
-#define c256_one_128      mm256_const_64(  0ULL, 1ULL, 0ULL, 1ULL )
-#define c256_one_64       mm256_const1_64( 1ULL )
-#define c256_one_32       mm256_const1_32( 1UL )
-#define c256_one_16       mm256_const1_16( 1U )
-#define c256_one_8        mm256_const1_8(  1U )
-#define c256_neg1         mm256_const1_64( 0xFFFFFFFFFFFFFFFFULL )
-#define c256_neg1_64      mm256_const1_64( 0xFFFFFFFFFFFFFFFFULL )
-#define c256_neg1_32      mm256_const1_32( 0xFFFFFFFFUL )
-#define c256_neg1_16      mm256_const1_16( 0xFFFFU )
-#define c256_neg1_8       mm256_const1_8(  0xFFU )
-
-//
-// Pseudo constants.
-// These can't be used for compile time initialization but are preferable
-// for simple constant vectors at run time.
-
-#define m256_zero            _mm256_setzero_si256()
-#define m256_one_256         _mm256_set_epi64x(  0ULL, 0ULL, 0ULL, 1ULL )
-#define m256_one_128         _mm256_set_epi64x(  0ULL, 1ULL, 0ULL, 1ULL )
-#define m256_one_64          _mm256_set1_epi64x( 1ULL )
-#define m256_one_32          _mm256_set1_epi32(  1UL )
-#define m256_one_16          _mm256_set1_epi16(  1U )
-#define m256_one_8           _mm256_set1_epi8(   1U )
-#define m256_neg1            _mm256_set1_epi64x( 0xFFFFFFFFFFFFFFFFULL )
-
 //
 // Basic operations without SIMD equivalent
 
@@ -88,6 +28,11 @@
 #define mm256_negate_32( a ) _mm256_sub_epi32( m256_zero, a )
 #define mm256_negate_16( a ) _mm256_sub_epi16( m256_zero, a )
 
+/***************************
+ *
+ * extracti128 (AVX2) vs extractf128 (AVX)???
+ 
+ 
 //
 // Vector size conversion.
 //
@@ -133,7 +78,9 @@ do { \
 // Insert b into specified half of a leaving other half of a unchanged.
 #define mm256_ins_lo128_256( a, b )  _mm256_inserti128_si256( a, b, 0 )
 #define mm256_ins_hi128_256( a, b )  _mm256_inserti128_si256( a, b, 1 )
+*/
 
+/*
 // concatenate two 128 bit vectors into one 256 bit vector: { hi, lo }
 #define mm256_concat_128( hi, lo ) \
    mm256_ins_hi128_256( _mm256_castsi128_si256( lo ), hi )
@@ -253,6 +200,8 @@ static inline void memset_256( __m256i *dst, const __m256i a,  int n )
 
 static inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
 {   for ( int i = 0; i < n; i ++ ) dst[i] = src[i]; }
+
+*************************************/
 
 //
 //           Bit rotations.

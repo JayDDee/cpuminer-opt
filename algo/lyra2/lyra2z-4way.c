@@ -36,7 +36,7 @@ void lyra2z_4way_hash( void *state, const void *input )
      blake256_4way( &ctx_blake, input + (64*4), 16 );
      blake256_4way_close( &ctx_blake, vhash );
 
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
      LYRA2Z( lyra2z_4way_matrix, state   , 32, hash0, 32, hash0, 32, 8, 8, 8 );
      LYRA2Z( lyra2z_4way_matrix, state+32, 32, hash1, 32, hash1, 32, 8, 8, 8 );

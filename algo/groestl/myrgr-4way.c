@@ -33,7 +33,7 @@ void myriad_4way_hash( void *output, const void *input )
      myrgr_4way_ctx_holder ctx;
      memcpy( &ctx, &myrgr_4way_ctx, sizeof(myrgr_4way_ctx) );
 
-     mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, input, 640 );
+     dintrlv_4x32( hash0, hash1, hash2, hash3, input, 640 );
 
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 640 );
      memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
@@ -43,7 +43,7 @@ void myriad_4way_hash( void *output, const void *input )
      memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 640 );
 
-     mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
      sha256_4way( &ctx.sha, vhash, 64 );
      sha256_4way_close( &ctx.sha, output );
@@ -89,7 +89,7 @@ int scanhash_myriad_4way( struct work *work, uint32_t max_nonce,
       for ( int lane = 0; lane < 4; lane++ )
       if ( hash7[ lane ] <= Htarg )
       {
-         mm128_extract_lane_4x32( lane_hash, hash, lane, 256 );
+         extr_lane_4x32( lane_hash, hash, lane, 256 );
          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
          {
             pdata[19] = n + lane;
