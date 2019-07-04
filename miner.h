@@ -349,7 +349,7 @@ void   cpu_brand_string( char* s );
 float cpu_temp( int core );
 
 struct work {
-	uint32_t data[48];
+	uint32_t data[48] __attribute__ ((aligned (64)));
 	uint32_t target[8];
 
 	double targetdiff;
@@ -401,7 +401,7 @@ struct stratum_ctx {
 	unsigned char *xnonce1;
 	size_t xnonce2_size;
 	struct stratum_job job;
-	struct work work;
+	struct work work __attribute__ ((aligned (64)));
 	pthread_mutex_t work_lock;
 
 	int bloc_height;

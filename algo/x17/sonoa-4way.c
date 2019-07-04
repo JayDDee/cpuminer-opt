@@ -808,6 +808,7 @@ int scanhash_sonoa_4way( struct work *work, uint32_t max_nonce,
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+    uint32_t edata[20] __attribute__ ((aligned (64)));
      uint32_t lane_hash[8] __attribute__ ((aligned (32)));
      uint32_t *hash7 = &(hash[7<<2]);
      uint32_t *pdata = work->data;
@@ -823,7 +824,9 @@ int scanhash_sonoa_4way( struct work *work, uint32_t max_nonce,
                           0xFFFFF000, 0xFFFF0000,          0  };
 
      // Need big endian data
-     mm256_bswap_intrlv80_4x64( vdata, pdata );
+    swab32_array( edata, pdata, 20 );
+    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+//     mm256_bswap_intrlv80_4x64( vdata, pdata );
      for ( int m=0; m < 6; m++ ) if ( Htarg <= htmax[m] )
      {
         uint32_t mask = masks[m];

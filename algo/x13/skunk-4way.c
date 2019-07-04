@@ -78,6 +78,7 @@ int scanhash_skunk_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+   uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -90,7 +91,9 @@ int scanhash_skunk_4way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ((uint32_t*)ptarget)[7] = 0x0cff;
 
-   mm256_bswap_intrlv80_4x64( vdata, pdata );
+   swab32_array( edata, pdata, 20 );
+   mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+//   mm256_bswap_intrlv80_4x64( vdata, pdata );
    do
    {
       *noncev = mm256_intrlv_blend_32( mm256_bswap_32(

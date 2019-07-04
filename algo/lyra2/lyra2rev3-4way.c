@@ -91,6 +91,7 @@ int scanhash_lyra2rev3_8way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*8] __attribute__ ((aligned (64)));
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
+    uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[7<<3]);
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
@@ -104,7 +105,10 @@ int scanhash_lyra2rev3_8way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   mm256_bswap_intrlv80_8x32( vdata, pdata );
+    swab32_array( edata, pdata, 20 );
+    mm256_intrlv_8x32( vdata, edata, edata, edata, edata,
+                              edata, edata, edata, edata, 640 );
+//   mm256_bswap_intrlv80_8x32( vdata, pdata );
    do
    {
       *noncev = mm256_bswap_32( _mm256_set_epi32( n+7, n+6, n+5, n+4,

@@ -178,7 +178,7 @@ static char const short_options[] =
 #endif
 	"a:b:Bc:CDf:hm:n:p:Px:qr:R:s:t:T:o:u:O:V";
 
-static struct work g_work = {{ 0 }};
+static struct work g_work __attribute__ ((aligned (64))) = {{ 0 }};
 //static struct work tmp_work;
 time_t g_work_time = 0;
 static        pthread_mutex_t g_work_lock;
@@ -843,11 +843,11 @@ void scale_hash_for_display ( double* hashrate, char* units )
 
 const uint64_t diff2hash = 0x40000000ULL;
 
-static struct timeval five_min_start;
-static double shash_sum = 0.;
-static double bhash_sum = 0.;
-static double time_sum = 0.;
-static double latency_sum = 0.;
+static struct   timeval five_min_start;
+static double   shash_sum   = 0.;
+static double   bhash_sum   = 0.;
+static double   time_sum    = 0.;
+static double   latency_sum = 0.;
 static uint64_t submits_sum = 0;
 
 struct share_stats_t
@@ -860,18 +860,22 @@ struct share_stats_t
 
 // with more and more parallelism the chances of submitting multiple
 // shares in a very short time grows. 
-#define s_stats_size 4
+#define s_stats_size 8
 static struct share_stats_t share_stats[ s_stats_size ];
 static int s_get_ptr = 0, s_put_ptr = 0;
 static struct timeval last_submit_time = {0};
 
+static inline int stats_ptr_incr( int p )
+{
+   return ++p < s_stats_size ? p : 0;
+}
+
 static int share_result( int result, struct work *null_work,
                          const char *reason )
 {
-   double share_time, share_hash, block_hash, share_size;
-   double hashcount = 0.;
-   double hashrate = 0.;
-   uint64_t latency;
+   double share_time = 0., share_hash = 0., block_hash = 0., share_size = 0.;
+   double hashcount = 0., hashrate = 0.;
+   uint64_t latency = 0;
    struct share_stats_t my_stats = {0};
    struct timeval ack_time, latency_tv, et;
    char hr[32];
@@ -879,37 +883,29 @@ static int share_result( int result, struct work *null_work,
    char shr[32];
    char shr_units[4] = {0};
    char diffstr[32];
-   const char *sres;
-   bool solved; 
+   const char *sres = NULL;
+   bool solved = false; 
 
-   // Mutex while accessing global counters.
+   // Mutex while we grab asnapshot of the global counters.
    pthread_mutex_lock( &stats_lock );
 
-   // There is a window where a second share could be submitted
-   // before receiving the response for this one. When this happens
-   // te second share will be processed from [1] on the next pass.
-   memcpy( &my_stats, &share_stats[ s_get_ptr], sizeof my_stats );
-   memset( &share_stats[ s_get_ptr ], 0, sizeof my_stats );
-   s_get_ptr++;
-   if ( s_get_ptr >= s_stats_size )
-      s_get_ptr = 0;
-/*
-   if ( share_stats[0].submit_time.tv_sec )
+   // When submit_work detects a buffer overflow it discards the stats for
+   // the new share. When we catch up we may get acks for shares with
+   // no stats. Leaving the get pointer un-incremented will resync with the
+   // put pointer.
+   if ( share_stats[ s_get_ptr ].submit_time.tv_sec )
    {
-      memcpy( &my_stats, &share_stats[0], sizeof my_stats );
-      memset( &share_stats[0], 0, sizeof my_stats );
-   }
-   else if ( share_stats[1].submit_time.tv_sec )
-   {
-      memcpy( &my_stats, &share_stats[1], sizeof my_stats );
-      memset( &share_stats[1], 0, sizeof my_stats );
+      memcpy( &my_stats, &share_stats[ s_get_ptr], sizeof my_stats );
+      memset( &share_stats[ s_get_ptr ], 0, sizeof my_stats );
+      s_get_ptr = stats_ptr_incr( s_get_ptr );
+      pthread_mutex_unlock( &stats_lock );
    }
    else
    {
-      memcpy( &my_stats, &share_stats[2], sizeof my_stats );
-      memset( &share_stats[2], 0, sizeof my_stats );
+      pthread_mutex_unlock( &stats_lock );
+      applog(LOG_WARNING,"Pending shares overflow, stats for share are lost.");
    }
-*/
+
    for ( int i = 0; i < opt_n_threads; i++ )
    {
        hashcount += thr_hashcount[i];
@@ -919,12 +915,16 @@ static int share_result( int result, struct work *null_work,
    global_hashrate = hashrate;
 
    // calculate latency and share time.
-   gettimeofday( &ack_time, NULL );
-   timeval_subtract( &latency_tv, &ack_time, &my_stats.submit_time );
-   latency = ( latency_tv.tv_sec * 1000  + latency_tv.tv_usec / 1000 );
-   timeval_subtract( &et, &my_stats.submit_time, &last_submit_time );
-   share_time = (double)et.tv_sec + ( (double)et.tv_usec / 1000000. );
-   memcpy( &last_submit_time, &my_stats.submit_time, sizeof last_submit_time );
+   if ( my_stats.submit_time.tv_sec )
+   {
+      gettimeofday( &ack_time, NULL );
+      timeval_subtract( &latency_tv, &ack_time, &my_stats.submit_time );
+      latency = ( latency_tv.tv_sec * 1000  + latency_tv.tv_usec / 1000 );
+      timeval_subtract( &et, &my_stats.submit_time, &last_submit_time );
+      share_time = (double)et.tv_sec + ( (double)et.tv_usec / 1000000. );
+      memcpy( &last_submit_time, &my_stats.submit_time,
+              sizeof last_submit_time );
+   }
 
    // calculate share hashrate and size
    share_hash = my_stats.share_diff * diff2hash;
@@ -938,6 +938,8 @@ static int share_result( int result, struct work *null_work,
    solved_block_count += solved ? 1 : 0 ;
 
    // update counters for 5 minute summary report
+   pthread_mutex_lock( &stats_lock );
+
    shash_sum   += share_hash;
    bhash_sum   += block_hash;
    time_sum    += share_time;
@@ -961,32 +963,38 @@ static int share_result( int result, struct work *null_work,
       // colour code the share diff to highlight high value.
       if ( solved )
          sprintf( diffstr, "%s%.3g%s", CL_MAG, my_stats.share_diff, CL_WHT );
-      else if ( my_stats.share_diff > (my_stats.net_diff*0.1) )
+      else if ( my_stats.share_diff > ( my_stats.net_diff * 0.1 ) )
          sprintf( diffstr, "%s%.3g%s", CL_GRN, my_stats.share_diff, CL_WHT );
-      else if ( my_stats.share_diff > (my_stats.net_diff*0.01) )
+      else if ( my_stats.share_diff > ( my_stats.net_diff * 0.01 ) )
          sprintf( diffstr, "%s%.3g%s", CL_CYN, my_stats.share_diff, CL_WHT );
       else
          sprintf( diffstr, "%.3g", my_stats.share_diff );
 
-      if ( hashrate && share_hash_rate > (768.*hashrate) )
-         sprintf( shr, "%s%.2f %sH/s%s", CL_MAG, scaled_shr, shr_units,
-                                         CL_WHT );
-      else if ( share_hash_rate > (32.*hashrate) )
-         sprintf( shr, "%s%.2f %sH/s%s", CL_GRN, scaled_shr, shr_units,
-                                         CL_WHT );
-      else if ( share_hash_rate > 2.0*hashrate )
-         sprintf( shr, "%s%.2f %sH/s%s", CL_CYN, scaled_shr, shr_units,
-                                         CL_WHT );
-      else if ( share_hash_rate > 0.5*hashrate )
-         sprintf( shr, "%.2f %sH/s", scaled_shr, shr_units );
-      else
-         sprintf( shr, "%s%.2f %sH/s%s", CL_YLW, scaled_shr, shr_units,
-                                         CL_WHT );
+      if ( hashrate )  // don't colour share hash rate without reference rate.
+      {
+         if ( share_hash_rate > 768. * hashrate )
+            sprintf( shr, "%s%.2f %sH/s%s", CL_MAG, scaled_shr, shr_units,
+                                            CL_WHT );
+         else if ( share_hash_rate >  32. * hashrate )
+            sprintf( shr, "%s%.2f %sH/s%s", CL_GRN, scaled_shr, shr_units,
+                                            CL_WHT );
+         else if ( share_hash_rate > 2.0 * hashrate )
+            sprintf( shr, "%s%.2f %sH/s%s", CL_CYN, scaled_shr, shr_units,
+                                            CL_WHT );
+         else if ( share_hash_rate > 0.5 * hashrate )
+            sprintf( shr, "%.2f %sH/s", scaled_shr, shr_units );
+         else
+            sprintf( shr, "%s%.2f %sH/s%s", CL_YLW, scaled_shr, shr_units,
+                                            CL_WHT );
+       }
+       else
+          sprintf( shr, "%.2f %sH/s", scaled_shr, shr_units );
    }
-   else
+   else   // monochrome
    {
       sres = ( solved ? "BLOCK SOLVED" : result ? "Accepted" : "Rejected" );
       sprintf( diffstr, "%.3g", my_stats.share_diff );
+      sprintf( shr, "%.2f %sH/s", scaled_shr, shr_units );
    }
 
    scale_hash_for_display ( &hashrate, hr_units );
@@ -1602,37 +1610,16 @@ bool submit_work(struct thr_info *thr, const struct work *work_in)
    // collect some share stats
    pthread_mutex_lock( &stats_lock );
 
-   gettimeofday( &share_stats[ s_put_ptr ].submit_time, NULL );
-   share_stats[ s_put_ptr ].share_diff = work_in->sharediff;
-   share_stats[ s_put_ptr ].net_diff = net_diff;
-   strcpy( share_stats[ s_put_ptr ].job_id, work_in->job_id );
-
-   s_put_ptr++;
-   if ( s_put_ptr >= s_stats_size )
-      s_put_ptr = 0;
-/*   
-   if ( share_stats[0].submit_time.tv_sec == 0 )
-   {   
-     gettimeofday( &share_stats[0].submit_time, NULL );
-     share_stats[0].share_diff = work_in->sharediff;
-     share_stats[0].net_diff = net_diff;
-     strcpy( share_stats[0].job_id, work_in->job_id );
+   // if buffer full discard stats and don't increment pointer.
+   // We're on the clock so let share_result report it.
+   if ( share_stats[ s_put_ptr ].submit_time.tv_sec == 0 )
+   {
+      gettimeofday( &share_stats[ s_put_ptr ].submit_time, NULL );
+      share_stats[ s_put_ptr ].share_diff = work_in->sharediff;
+      share_stats[ s_put_ptr ].net_diff = net_diff;
+      strcpy( share_stats[ s_put_ptr ].job_id, work_in->job_id );
+      s_put_ptr = stats_ptr_incr( s_put_ptr );      
    }
-   else if ( share_stats[1].submit_time.tv_sec == 0 )
-   { // previous share hasn't been confirmed yet.
-     gettimeofday( &share_stats[1].submit_time, NULL );
-     share_stats[1].share_diff = work_in->sharediff;
-     share_stats[1].net_diff = net_diff;
-     strcpy( share_stats[1].job_id, work_in->job_id );
-   }
-   else
-   { // previous share hasn't been confirmed yet.
-     gettimeofday( &share_stats[2].submit_time, NULL );
-     share_stats[2].share_diff = work_in->sharediff;
-     share_stats[2].net_diff = net_diff;
-     strcpy( share_stats[2].job_id, work_in->job_id );
-   }
-*/
 
    pthread_mutex_unlock( &stats_lock );
 
@@ -1811,10 +1798,11 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
 // or
 //    || ( !benchmark && strcmp( work->job_id, g_work->job_id ) ) ) )
 // For now leave it as is, it seems stable.
-
+// strtoul seems to work.
    if ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
-      && ( clean_job || ( *nonceptr >= *end_nonce_ptr )
-         || ( work->job_id != g_work->job_id ) ) )
+     && ( clean_job || ( *nonceptr >= *end_nonce_ptr )
+      || strtoul( work->job_id, NULL, 16 )
+          != strtoul( g_work->job_id, NULL, 16 ) ) )
    {
      work_free( work );
      work_copy( work, g_work );
@@ -1862,9 +1850,9 @@ bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
 
 static void *miner_thread( void *userdata )
 {
+   struct   work work __attribute__ ((aligned (64))) ;
    struct   thr_info *mythr = (struct thr_info *) userdata;
    int      thr_id = mythr->id;
-   struct   work work;
    uint32_t max_nonce;
    struct timeval et;
    struct timeval time_now;
@@ -2099,9 +2087,6 @@ static void *miner_thread( void *userdata )
              break;
           }
           if ( !opt_quiet )
-//              applog( LOG_BLUE, "Share %d submitted by thread %d.",
-//                      accepted_share_count + rejected_share_count + 1,
-//                      mythr->id );
               applog( LOG_BLUE, "Share %d submitted by thread %d, job %s.",
                       accepted_share_count + rejected_share_count + 1,
                       mythr->id, work.job_id );
@@ -2129,7 +2114,7 @@ static void *miner_thread( void *userdata )
           pthread_mutex_unlock( &stats_lock );
        else
        {
-          // collect and reset counters
+          // collect and reset global counters
           double   hash     = shash_sum;   shash_sum   = 0.;
           double   bhash    = bhash_sum;   bhash_sum   = 0.;
           double   time     = time_sum;    time_sum    = 0.;
@@ -2175,7 +2160,10 @@ static void *miner_thread( void *userdata )
              else sprintf( timestr, "%d C", temp );
           }
           else
+          {
              sprintf( shr, "%.2f %sH/s", scaled_shrate, shr_units );
+             sprintf( timestr, "%d C", temp );
+          }
 
           applog(LOG_NOTICE,"Submitted %d shares in %dm%02ds, %.5f%% block share.",
                (uint64_t)submits, et.tv_sec / 60, et.tv_sec % 60, avg_share );    
@@ -2187,9 +2175,7 @@ static void *miner_thread( void *userdata )
           applog(LOG_NOTICE,"Share hashrate %s, latency %d ms, temp %s.",
                             shr, latency, timestr );
 #endif
-//          applog(LOG_NOTICE,"Performance index: %s.", hixstr );
           applog(LOG_INFO,"- - - - - - - - - - - - - - - - - - - - - - - - - - -");
-          
        }
 
        // display hashrate
@@ -2478,8 +2464,8 @@ static bool stratum_handle_response( char *buf )
 
 	val = JSON_LOADS( buf, &err );
 	if (!val)
-        {
-           applog(LOG_INFO, "JSON decode failed(%d): %s", err.line, err.text);
+   {
+      applog(LOG_INFO, "JSON decode failed(%d): %s", err.line, err.text);
 	   goto out;
 	}
    res_val = json_object_get( val, "result" );
@@ -2488,8 +2474,8 @@ static bool stratum_handle_response( char *buf )
    id_val = json_object_get( val, "id" );
 	if ( !id_val || json_is_null(id_val) )
 		goto out;
-        if ( !algo_gate.stratum_handle_response( val ) )
-                goto out;
+   if ( !algo_gate.stratum_handle_response( val ) )
+      goto out;
 	ret = true;
 out:
 	if (val)

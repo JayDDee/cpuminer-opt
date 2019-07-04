@@ -32,25 +32,24 @@ int scanhash_skein2_4way( struct work *work, uint32_t max_nonce,
     const uint32_t Htarg = ptarget[7];
     const uint32_t first_nonce = pdata[19];
     uint32_t n = first_nonce;
-//    __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
+    __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
     int thr_id = mythr->id;  // thr_id arg is deprecated
-    uint32_t *noncep = vdata + 73;   // 9*8 + 1
+//    uint32_t *noncep = vdata + 73;   // 9*8 + 1
 
 
     swab32_array( edata, pdata, 20 );
-
     mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
 
 //    mm256_bswap_intrlv80_4x64( vdata, pdata );
     do 
     {
-       be32enc( noncep,   n   );
-       be32enc( noncep+2, n+1 );
-       be32enc( noncep+4, n+2 );
-       be32enc( noncep+6, n+3 );
+//       be32enc( noncep,   n   );
+//       be32enc( noncep+2, n+1 );
+//       be32enc( noncep+4, n+2 );
+//       be32enc( noncep+6, n+3 );
 
-//       *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
-//                _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
+       *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+                _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
        skein2hash_4way( hash, vdata );
 

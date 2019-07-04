@@ -217,6 +217,7 @@ int scanhash_x15_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
+     uint32_t edata[20] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
@@ -230,7 +231,10 @@ int scanhash_x15_4way( struct work *work, uint32_t max_nonce,
      uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
                           0xFFFFF000, 0xFFFF0000,          0  };
 
-     mm256_bswap_intrlv80_4x64( vdata, pdata );
+     swab32_array( edata, pdata, 20 );
+     mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+
+//     mm256_bswap_intrlv80_4x64( vdata, pdata );
 
      for ( int m=0; m < 6; m++ )
        if ( Htarg <= htmax[m] )

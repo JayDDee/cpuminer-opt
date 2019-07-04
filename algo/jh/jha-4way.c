@@ -88,6 +88,7 @@ int scanhash_jha_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
+    uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[25]);
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
@@ -115,12 +116,11 @@ int scanhash_jha_4way( struct work *work, uint32_t max_nonce,
 		0
 	};
 
-//   for ( int i=0; i < 19; i++ )
-//      be32enc( &endiandata[i], pdata[i] );
+   for ( int i=0; i < 19; i++ )
+      be32enc( &edata[i], pdata[i] );
 
-//   uint64_t *edata = (uint64_t*)endiandata;
-//   mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
-   mm256_bswap_intrlv80_4x64( vdata, pdata );
+   mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+//   mm256_bswap_intrlv80_4x64( vdata, pdata );
 
    for ( int m = 0; m < 6; m++ )
    {

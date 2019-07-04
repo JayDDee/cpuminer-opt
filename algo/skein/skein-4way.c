@@ -63,6 +63,7 @@ int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
 {
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
     uint32_t hash[8*4] __attribute__ ((aligned (64)));
+    uint32_t edata[20] __attribute__ ((aligned (64)));
     uint32_t lane_hash[8] __attribute__ ((aligned (32)));
     uint32_t *hash7 = &(hash[7<<2]);
     uint32_t *pdata = work->data;
@@ -73,7 +74,9 @@ int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
     int thr_id = mythr->id;  // thr_id arg is deprecated
 
-   mm256_bswap_intrlv80_4x64( vdata, pdata );
+    swab32_array( edata, pdata, 20 );
+    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+//   mm256_bswap_intrlv80_4x64( vdata, pdata );
    do
    {
        *noncev = mm256_intrlv_blend_32( mm256_bswap_32(

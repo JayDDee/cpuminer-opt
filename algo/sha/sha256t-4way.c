@@ -163,6 +163,7 @@ int scanhash_sha256t_8way( struct work *work, uint32_t max_nonce,
 {
    uint32_t vdata[20*8]  __attribute__ ((aligned (64)));
    uint32_t hash[8*8]    __attribute__ ((aligned (32)));
+   uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *hash7 = &(hash[7<<3]);
    uint32_t *pdata = work->data;
@@ -186,8 +187,12 @@ int scanhash_sha256t_8way( struct work *work, uint32_t max_nonce,
                                0xFFFF0000,
                                         0 };
 
+   swab32_array( edata, pdata, 20 );
+   mm256_intrlv_8x32( vdata, edata, edata, edata, edata,
+                             edata, edata, edata, edata, 640 );
+
    // Need big endian data
-   mm256_bswap_intrlv80_8x32( vdata, pdata );
+//   mm256_bswap_intrlv80_8x32( vdata, pdata );
    sha256_8way_init( &sha256_ctx8 );
    sha256_8way( &sha256_ctx8, vdata, 64 );
 
@@ -248,6 +253,7 @@ int scanhash_sha256t_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t hash[8*4] __attribute__ ((aligned (32)));
+   uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[7<<2]);
    uint32_t *pdata = work->data;
@@ -271,7 +277,10 @@ int scanhash_sha256t_4way( struct work *work, uint32_t max_nonce,
                               0xFFFF0000,
                                        0 };
 
-   mm128_bswap_intrlv80_4x32( vdata, pdata );
+   swab32_array( edata, pdata, 20 );
+   mm128_intrlv_4x32( vdata, edata, edata, edata, edata, 640 );
+
+//   mm128_bswap_intrlv80_4x32( vdata, pdata );
    sha256_4way_init( &sha256_ctx4 );
    sha256_4way( &sha256_ctx4, vdata, 64 );
 
