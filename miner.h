@@ -496,10 +496,11 @@ enum algos {
         ALGO_BLAKE,       
         ALGO_BLAKECOIN,   
 //        ALGO_BLAKE2B,
-        ALGO_BLAKE2S,     
-        ALGO_BMW,        
-        ALGO_C11,         
-        ALGO_CRYPTOLIGHT, 
+        ALGO_BLAKE2S,
+        ALGO_BMW,
+        ALGO_C11,
+        ALGO_CPUPOWER,
+        ALGO_CRYPTOLIGHT,
         ALGO_CRYPTONIGHT,
         ALGO_CRYPTONIGHTV7, 
         ALGO_DECRED,
@@ -587,6 +588,7 @@ static const char* const algo_names[] = {
         "blake2s",
         "bmw",
         "c11",
+        "cpupower",
         "cryptolight",
         "cryptonight",
         "cryptonightv7",
@@ -737,6 +739,7 @@ Options:\n\
                           blake2s       Blake-2 S\n\
                           bmw           BMW 256\n\
                           c11           Chaincoin\n\
+                          cpupower      CPUchain (CPU)\n\
                           cryptolight   Cryptonight-light\n\
                           cryptonight   Cryptonote legacy\n\
                           cryptonightv7 variant 7, Monero (XMR)\n\

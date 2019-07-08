@@ -59,6 +59,7 @@ Supported Algorithms
                           blake2s       Blake-2 S
                           bmw           BMW 256
                           c11           Chaincoin
+                          cpupower      CPUchain (CPU)
                           decred
                           deep          Deepcoin (DCN)
                           dmd-gr        Diamond-Groestl

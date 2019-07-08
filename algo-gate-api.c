@@ -171,6 +171,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
 //    case ALGO_BLAKE2B:      register_blake2b_algo     ( gate ); break;
     case ALGO_BLAKE2S:       register_blake2s_algo       ( gate ); break;
     case ALGO_C11:           register_c11_algo           ( gate ); break;
+    case ALGO_CPUPOWER:      register_cpupower_algo      ( gate ); break;
     case ALGO_CRYPTOLIGHT:   register_cryptolight_algo   ( gate ); break;
     case ALGO_CRYPTONIGHT:   register_cryptonight_algo   ( gate ); break;
     case ALGO_CRYPTONIGHTV7: register_cryptonightv7_algo ( gate ); break;
@@ -315,6 +316,7 @@ const char* const algo_alias_map[][2] =
   { "blake256r8vnl",     "vanilla"      },
   { "blake256r14",       "blake"        },
   { "blake256r14dcr",    "decred"       },
+  { "cpuchain",          "cpupower"     },
   { "cryptonote",        "cryptonight"  },
   { "cryptonight-light", "cryptolight"  },
   { "diamond",           "dmd-gr"       },
