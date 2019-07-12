@@ -1,5 +1,5 @@
-#if !defined(SIMD_AVX512_H__)
-#define SIMD_AVX512_H__ 1
+#if !defined(SIMD_512_H__)
+#define SIMD_512_H__ 1
 
 #if defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -246,28 +246,22 @@
 //
 // Rotate elements in 512 bit vector.
 
-#define mm512_swap_256( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64( 3,2,1,0,  7,6,5,4 ) )
+#define mm512_swap_256( v )        _mm512_alignr_epi64( v, v, 4 )
 
-#define mm512_ror_1x128( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64( 1,0,  7,6,  5,4,  3,2 ) )
+#define mm512_ror_1x128( v )       _mm512_alignr_epi64( v, v, 2 )
+#define mm512_rol_1x128( v )       _mm512_alignr_epi64( v, v, 6 )
 
-#define mm512_rol_1x128( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64( 5,4,  3,2,  1,0,  7,6 ) )
+#define mm512_ror_1x64( v )        _mm512_alignr_epi64( v, v, 1 )
+#define mm512_rol_1x64( v )        _mm512_alignr_epi64( v, v, 7 )
 
-#define mm512_ror_1x64( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64( 0,7,6,5,4,3,2,1 ) )
+#define mm512_ror_1x32( v )        _mm512_alignr_epi32( v, v, 1 )
+#define mm512_rol_1x32( v )        _mm512_alignr_epi32( v, v, 15 )
 
-#define mm512_rol_1x64( v ) \
-    _mm512_permutexvar_epi64( v, _mm512_set_epi64( 6,5,4,3,2,1,0,7 ) )
+// Generic for odd rotations
+#define mm512_ror_x64( v, n )      _mm512_alignr_epi64( v, v, n )
 
-#define mm512_ror_1x32( v ) \
-  _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
-                      0,15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1 ) )
+#define mm512_ror_x32( v, n )      _mm512_alignr_epi32( v, v, n )
 
-#define mm512_rol_1x32( v ) \
-  _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
-                     14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 15 ) )
 
 //  Although documented to exist in AVX512F the _mm512_set_epi8 &
 //  _mm512_set_epi16 intrinsics fail to compile. Seems usefull to have
@@ -282,7 +276,7 @@
                        0X00080007, 0X00060005, 0X00040003, 0X00020001 ) )
 
 #define mm512_rol_1x16( v ) \
-   _mm512_permutexvar_epi16( v, _mm512_set_epi16( \
+   _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
                        0x001E001D, 0x001C001B, 0x001A0019, 0x00180017, \
                        0X00160015, 0X00140013, 0X00120011, 0x0010000F, \
                        0X000E000D, 0X000C000B, 0X000A0009, 0X00080007, \
@@ -290,14 +284,14 @@
 
 
 #define mm512_ror_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
                        0x003F3E3D, 0x3C3B3A39, 0x38373635, 0x34333231, \
                        0x302F2E2D, 0x2C2B2A29, 0x28272625, 0x24232221, \
                        0x201F1E1D, 0x1C1B1A19. 0x18171615, 0x14131211, \
                        0x100F0E0D, 0x0C0B0A09, 0x08070605, 0x04030201 ) )
 
 #define mm512_rol_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi8( \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
                        0x3E3D3C3B, 0x3A393837, 0x36353433, 0x3231302F. \
                        0x2E2D2C2B, 0x2A292827, 0x26252423, 0x2221201F, \
                        0x1E1D1C1B, 0x1A191817, 0x16151413, 0x1211100F, \
@@ -601,4 +595,4 @@ do { \
 } while(0)
 
 #endif // AVX512
-#endif // SIMD_AVX512_H__
+#endif // SIMD_512_H__

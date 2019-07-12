@@ -77,6 +77,24 @@ static const sph_u32 V_INIT[5][8] = {
 	}
 };
 
+#if SPH_LUFFA_PARALLEL
+
+static const sph_u64 RCW010[8] = {
+   SPH_C64(0xb6de10ed303994a6), SPH_C64(0x70f47aaec0e65299),
+   SPH_C64(0x0707a3d46cc33a12), SPH_C64(0x1c1e8f51dc56983e),
+   SPH_C64(0x707a3d451e00108f), SPH_C64(0xaeb285627800423d),
+   SPH_C64(0xbaca15898f5b7882), SPH_C64(0x40a46f3e96e1db12)
+};
+
+static const sph_u64 RCW014[8] = {
+   SPH_C64(0x01685f3de0337818), SPH_C64(0x05a17cf4441ba90d),
+   SPH_C64(0xbd09caca7f34d442), SPH_C64(0xf4272b289389217f),
+   SPH_C64(0x144ae5cce5a8bce6), SPH_C64(0xfaa7ae2b5274baf4),
+   SPH_C64(0x2e48f1c126889ba7), SPH_C64(0xb923c7049a226e9d)
+};
+
+#else
+
 static const sph_u32 RC00[8] = {
 	SPH_C32(0x303994a6), SPH_C32(0xc0e65299),
 	SPH_C32(0x6cc33a12), SPH_C32(0xdc56983e),
@@ -105,20 +123,18 @@ static const sph_u32 RC14[8] = {
 	SPH_C32(0x2e48f1c1), SPH_C32(0xb923c704)
 };
 
-#if SPH_LUFFA_PARALLEL
-
-static const sph_u64 RCW010[8] = {
-	SPH_C64(0xb6de10ed303994a6), SPH_C64(0x70f47aaec0e65299),
-	SPH_C64(0x0707a3d46cc33a12), SPH_C64(0x1c1e8f51dc56983e),
-	SPH_C64(0x707a3d451e00108f), SPH_C64(0xaeb285627800423d),
-	SPH_C64(0xbaca15898f5b7882), SPH_C64(0x40a46f3e96e1db12)
+static const sph_u32 RC30[8] = {
+   SPH_C32(0xb213afa5), SPH_C32(0xc84ebe95),
+   SPH_C32(0x4e608a22), SPH_C32(0x56d858fe),
+   SPH_C32(0x343b138f), SPH_C32(0xd0ec4e3d),
+   SPH_C32(0x2ceb4882), SPH_C32(0xb3ad2208)
 };
 
-static const sph_u64 RCW014[8] = {
-	SPH_C64(0x01685f3de0337818), SPH_C64(0x05a17cf4441ba90d),
-	SPH_C64(0xbd09caca7f34d442), SPH_C64(0xf4272b289389217f),
-	SPH_C64(0x144ae5cce5a8bce6), SPH_C64(0xfaa7ae2b5274baf4),
-	SPH_C64(0x2e48f1c126889ba7), SPH_C64(0xb923c7049a226e9d)
+static const sph_u32 RC34[8] = {
+   SPH_C32(0xe028c9bf), SPH_C32(0x44756f91),
+   SPH_C32(0x7e8fce32), SPH_C32(0x956548be),
+   SPH_C32(0xfe191be2), SPH_C32(0x3cb226e5),
+   SPH_C32(0x5944a28e), SPH_C32(0xa1c4c355)
 };
 
 #endif
@@ -137,19 +153,6 @@ static const sph_u32 RC24[8] = {
 	SPH_C32(0x36eda57f), SPH_C32(0x703aace7)
 };
 
-static const sph_u32 RC30[8] = {
-	SPH_C32(0xb213afa5), SPH_C32(0xc84ebe95),
-	SPH_C32(0x4e608a22), SPH_C32(0x56d858fe),
-	SPH_C32(0x343b138f), SPH_C32(0xd0ec4e3d),
-	SPH_C32(0x2ceb4882), SPH_C32(0xb3ad2208)
-};
-
-static const sph_u32 RC34[8] = {
-	SPH_C32(0xe028c9bf), SPH_C32(0x44756f91),
-	SPH_C32(0x7e8fce32), SPH_C32(0x956548be),
-	SPH_C32(0xfe191be2), SPH_C32(0x3cb226e5),
-	SPH_C32(0x5944a28e), SPH_C32(0xa1c4c355)
-};
 
 #if SPH_LUFFA_PARALLEL
 

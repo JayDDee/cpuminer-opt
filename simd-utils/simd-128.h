@@ -1,5 +1,5 @@
-#if !defined(SIMD_SSE2_H__)
-#define SIMD_SSE2_H__ 1
+#if !defined(SIMD_128_H__)
+#define SIMD_128_H__ 1
 
 #if defined(__SSE2__)
 
@@ -15,69 +15,148 @@
 //
 // 128 bit operations are enhanced with uint128 which adds 128 bit integer
 // support for arithmetic and other operations. Casting to uint128_t is not
-// free, it requires a move from mmx to gpr but is often the only way or
-// the more efficient way for certain operations.
-
-// Compile time constant initializers are type agnostic and can have
-// a pointer handle of almost any type. All arguments must be scalar constants.
-// up to 64 bits. These iniitializers should only be used at compile time
-// to initialize vector arrays. All data reside in memory.
+// efficient but is sometimes the only way for certain operations.
 //
-// These are of limited use, it is often simpler to use uint64_t arrays
-// and cast as required.
-
-#define mm128_const_64( x1, x0 ) {{ x1, x0 }}
-#define mm128_const1_64( x )     {{  x,  x }}
-
-#define mm128_const_32( x3, x2, x1, x0 ) {{ x3, x2, x1, x0 }}
-#define mm128_const1_32( x ) {{ x,x,x,x }}
-
-#define mm128_const_16( x7, x6, x5, x4, x3, x2, x1, x0 ) \
-                     {{ x7, x6, x5, x4, x3, x2, x1, x0 }}
-#define mm128_const1_16( x ) {{ x,x,x,x, x,x,x,x }}
-
-#define mm128_const_8( x15, x14, x13, x12, x11, x10, x09, x08, \
-                       x07, x06, x05, x04, x03, x02, x01, x00 ) \
-                    {{ x15, x14, x13, x12, x11, x10, x09, x08, \
-                       x07, x06, x05, x04, x03, x02, x01, x00 }}
-#define mm128_const1_8( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
-
-// Compile time constants, use only for compile time initializing.
-#define c128_zero      mm128_const1_64( 0ULL )
-#define c128_one_128   mm128_const_64(  0ULL, 1ULL )  
-#define c128_one_64    mm128_const1_64( 1ULL )
-#define c128_one_32    mm128_const1_32( 1UL )
-#define c128_one_16    mm128_const1_16( 1U )
-#define c128_one_8     mm128_const1_8(  1U )
-#define c128_neg1      mm128_const1_64( 0xFFFFFFFFFFFFFFFFULL )
-#define c128_neg1_64   mm128_const1_64( 0xFFFFFFFFFFFFFFFFULL )
-#define c128_neg1_32   mm128_const1_32( 0xFFFFFFFFUL )
-#define c128_neg1_16   mm128_const1_32( 0xFFFFU )
-#define c128_neg1_8    mm128_const1_32( 0xFFU )
+// Constants are an issue with simd. Simply put, immediate constants don't
+// exist. All simd constants either reside in memory or a register.
+// The distibction is made below with c128 being memory resident defined
+// at compile time and m128 being register defined at run time.
+//
+// All run time constants must be generated using their components elements
+// incurring significant overhead. The more elements the more overhead
+// both in instructions and in GP register usage. Whenever possible use
+// 64 bit constant elements regardless of the actual element size.
+//
+// Due to the cost of generating constants they should not be regenerated
+// in the same function. Instead, define a local const.
+//
+// Some constant values can be generated using shortcuts. Zero for example
+// is as simple as XORing any register with itself, and is implemented
+// in the setzero instrinsic. These shortcuts must be implemented is asm
+// due to doing things the compiler would complain about. Another single
+// instruction constant is -1, defined below. Others may be added as the need
+// arises. Even single instruction constants are less efficient than local
+// register variables so the advice above stands.
+//
+// One common use for simd constants is as a control index for some simd
+// instructions like blend and shuffle. The utilities below do not take this
+// into account. Those that generate a simd constant should not be used
+// repeatedly. It may be better for the application to reimplement the
+// utility to better suit its usage.
+//
 
 //
 // Pseudo constants.
 //
 // These can't be used for compile time initialization.
 // These should be used for all simple vectors.
-//
-// _mm_setzero_si128 uses pxor instruction, it's unclear what _mm_set_epi does.
-// Clearly it's faster than reading a memory resident constant. Assume set
-// is also faster.
-// If a pseudo constant is used often in a function it may be preferable
-// to define a register variable to represent that constant.
-// register __m128i zero = mm_setzero_si128().
-// This reduces any references to a move instruction.
+// Repeated usage of any simd pseudo-constant should use a locally defined
+// const rather than recomputing it for every reference.
 
 #define m128_zero      _mm_setzero_si128()
 
-#define m128_one_128   _mm_set_epi64x(  0ULL, 1ULL )
-#define m128_one_64    _mm_set1_epi64x( 1ULL )
-#define m128_one_32    _mm_set1_epi32(  1UL )
-#define m128_one_16    _mm_set1_epi16(  1U )
-#define m128_one_8     _mm_set1_epi8(   1U )
+// As suggested by Intel...
+// Arg passing for simd registers is assumed to be first output arg,
+// then input args, then locals. This is probably wrong, gcc likely picks
+// whichever register is currently holding the variable, or whichever
+// register is available to hold it. Nevertheless, all args are specified
+// by their arg number and local variables use registers starting at 
+// last arg + 1, by type.
+// Output args don't need to be listed as clobbered.
 
-#define m128_neg1      _mm_set1_epi64x( 0xFFFFFFFFFFFFFFFFULL )
+
+static inline __m128i m128_one_64_fn()
+{
+  __m128i a;
+  asm( "pxor %0, %0\n\t"
+       "pcmpeqd %%xmm1, %%xmm1\n\t"
+       "psubq %%xmm1, %0\n\t"
+       :"=x"(a)
+       :
+       : "xmm1" );
+  return a;
+}
+#define m128_one_64    m128_one_64_fn()
+
+static inline __m128i m128_one_32_fn()
+{
+  __m128i a;
+  asm( "pxor %0, %0\n\t"
+       "pcmpeqd %%xmm1, %%xmm1\n\t"
+       "psubd %%xmm1, %0\n\t"
+       :"=x"(a)
+       :
+       : "xmm1" );
+  return a;
+}
+#define m128_one_32    m128_one_32_fn()
+
+static inline __m128i m128_one_16_fn()
+{
+  __m128i a;
+  asm( "pxor %0, %0\n\t"
+       "pcmpeqd %%xmm1, %%xmm1\n\t"
+       "psubw %%xmm1, %0\n\t"
+       :"=x"(a)
+       :
+       : "xmm1" );
+  return a;
+}
+#define m128_one_16    m128_one_16_fn()
+
+static inline __m128i m128_one_8_fn()
+{
+  __m128i a;
+  asm( "pxor %0, %0\n\t"
+       "pcmpeqd %%xmm1, %%xmm1\n\t"
+       "psubb %%xmm1, %0\n\t"
+       :"=x"(a)
+       :
+       : "xmm1" );
+  return a;
+}
+#define m128_one_8    m128_one_8_fn()
+
+static inline __m128i m128_neg1_fn()
+{
+   __m128i a;
+   asm( "pcmpeqd %0, %0\n\t"
+        :"=x"(a) );
+   return a;
+}
+#define m128_neg1    m128_neg1_fn()
+
+#if defined(__SSE41__)
+
+static inline __m128i m128_one_128_fn()
+{
+   __m128i a;
+   asm( "pinsrq $0, $1, %0\n\t"
+        "pinsrq $1, $0, %0\n\t"
+        :"=x"(a) );
+   return a;
+}
+#define m128_one_128    m128_one_128_fn()
+
+// alternative to _mm_set_epi64x, doesn't use mem,
+// cost = 2 pinsrt, estimate 4 clocks.
+static inline __m128i m128_const_64( uint64_t hi, uint64_t lo )
+{
+   __m128i a;
+   asm( "pinsrq $0, %2, %0\n\t"
+        "pinsrq $1, %1, %0\n\t"
+        :"=x"(a)
+        :"r"(hi),"r"(lo) );
+   return a;
+} 
+
+#else
+
+#define m128_one_128   _mm_set_epi64x(  0ULL, 1ULL )
+
+#define m128_const_64 _mm_set_epi64x
+
+#endif
 
 //
 // Basic operations without equivalent SIMD intrinsic
@@ -90,9 +169,21 @@
 #define mm128_negate_32( v )    _mm_sub_epi32( m128_zero, v )  
 #define mm128_negate_16( v )    _mm_sub_epi16( m128_zero, v )  
 
-// Use uint128_t for most arithmetic, bit shift, comparison operations
-// spanning all 128 bits. Some extractions are also more efficient 
-// casting __m128i as uint128_t and usingstandard operators.
+// Add 4 values, fewer dependencies than sequential addition.
+#define mm128_add4_64( a, b, c, d ) \
+   _mm_add_epi64( _mm_add_epi64( a, b ), _mm_add_epi64( c, d ) )
+
+#define mm128_add4_32( a, b, c, d ) \
+   _mm_add_epi32( _mm_add_epi32( a, b ), _mm_add_epi32( c, d ) )
+
+#define mm128_add4_16( a, b, c, d ) \
+   _mm_add_epi16( _mm_add_epi16( a, b ), _mm_add_epi16( c, d ) )
+
+#define mm128_add4_8( a, b, c, d ) \
+   _mm_add_epi8( _mm_add_epi8( a, b ), _mm_add_epi8( c, d ) )
+
+#define mm128_xor4( a, b, c, d ) \
+   _mm_xor_si128( _mm_xor_si128( a, b ), _mm_xor_si128( c, d ) )
 
 // This isn't cheap, not suitable for bulk usage.
 #define mm128_extr_4x32( a0, a1, a2, a3, src ) \
@@ -105,12 +196,24 @@ do { \
 
 // Horizontal vector testing
 
+#if defined(__SSE41__)
+
+#define mm128_allbits0( a )    _mm_testz_si128(   a, a )
+#define mm128_allbits1( a )    _mm_testc_si128(   a, m128_neg1 )
+#define mm128_allbitsne( a )   _mm_testnzc_si128( a, m128_neg1 )
+#define mm128_anybits0         mm128_allbitsne
+#define mm128_anybits1         mm128_allbitsne
+
+#else   // SSE2
+
 // Bit-wise test of entire vector, useful to test results of cmp.
 #define mm128_anybits0( a ) (uint128_t)(a)
 #define mm128_anybits1( a ) (((uint128_t)(a))+1)
 
 #define mm128_allbits0( a ) ( !mm128_anybits1(a) )
 #define mm128_allbits1( a ) ( !mm128_anybits0(a) )
+
+#endif // SSE41 else SSE2
 
 //
 // Vector pointer cast
@@ -139,6 +242,7 @@ do { \
 
 #else
 
+// Doesn't work with register variables.
 #define mm128_extr_64(a,n)   (((uint64_t*)&a)[n])
 #define mm128_extr_32(a,n)   (((uint32_t*)&a)[n])
 
@@ -209,7 +313,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 // Bit rotations
 
 // AVX512 has implemented bit rotation for 128 bit vectors with
-// 64 and 32 bit elements. Not really useful.
+// 64 and 32 bit elements.
 
 //
 // Rotate each element of v by c bits
@@ -233,12 +337,15 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
    _mm_or_si128( _mm_slli_epi16( v, c ), _mm_srli_epi16( v, 16-(c) ) )
 
 //
-// Rotate elements accross all lanes
+// Rotate vector elements accross all lanes
 
 #define mm128_swap_64( v )    _mm_shuffle_epi32( v, 0x4e )
 
 #define mm128_ror_1x32( v )   _mm_shuffle_epi32( v, 0x39 )
 #define mm128_rol_1x32( v )   _mm_shuffle_epi32( v, 0x93 )
+
+#if defined (__SSE3__)
+// no SSE2 implementation, no current users
 
 #define mm128_ror_1x16( v ) \
    _mm_shuffle_epi8( v, _mm_set_epi8(  1, 0,15,14,13,12,11,10 \
@@ -252,6 +359,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 #define mm128_rol_1x8( v ) \
    _mm_shuffle_epi8( v, _mm_set_epi8( 14,13,12,11,10, 9, 8, 7, \
                                        6, 5, 4, 3, 2, 1, 0,15 ) )
+#endif  // SSE3
 
 // Rotate 16 byte (128 bit) vector by c bytes.
 // Less efficient using shift but more versatile. Use only for odd number
@@ -261,17 +369,6 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 
 #define mm128_brol( v, c ) \
    _mm_or_si128( _mm_slli_si128( v, c ), _mm_srli_si128( v, 16-(c) ) )
-
-// Invert vector: {3,2,1,0} -> {0,1,2,3}
-#define mm128_invert_32( v ) _mm_shuffle_epi32( a, 0x1b )
-
-#define mm128_invert_16( v ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8( 1, 0,   3, 2,   5, 4,   7, 6, \
-                                      9, 8,  11,10,  13,12,  15,14 ) )
-
-#define mm128_invert_8( v ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8( 0, 1, 2, 3, 4, 5, 6, 7, \
-                                      8, 9,10,11,12,13,14,15 ) )
 
 //
 // Rotate elements within lanes.
@@ -283,7 +380,6 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 #define mm128_rol16_64( v )   _mm_shuffle_epi8( v, \
               _mm_set_epi8( 13,12,11,10, 9, 8,15,14,  5, 4, 3, 2, 1, 0, 7, 6 )
 
-
 #define mm128_swap16_32( v )  _mm_shuffle_epi8( v, \
                       _mm_set_epi8( 13,12,15,14, 9,8,11,10, 5,4,7,6, 1,0,3,2 )
 
@@ -293,16 +389,44 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 #if defined(__SSSE3__)
 
 #define mm128_bswap_64( v ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8( 8, 9,10,11,12,13,14,15, \
-                                      0, 1, 2, 3, 4, 5, 6, 7 ) )
+   _mm_shuffle_epi8( v, m128_const64(  0x08090a0b0c0d0e0f, \
+                                       0x0001020304050607 ) )
 
 #define mm128_bswap_32( v ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8( 12,13,14,15,   8, 9,10,11, \
-                                       4, 5, 6, 7,   0, 1, 2, 3 ) )
+   _mm_shuffle_epi8( v, m128_const_64( 0x0c0d0e0f08090a0b, \
+                                       0x0405060700010203 ) )
 
 #define mm128_bswap_16( v ) \
    _mm_shuffle_epi8( v, _mm_set_epi8( 14,15,  12,13,  10,11,   8, 9, \
                                        6, 7,   4, 5,   2, 3,   0, 1 ) )
+
+// 8 byte qword * 8 qwords * 2 lanes = 128 bytes
+#define mm128_block_bswap_64( d, s ) do \
+{ \
+   __m128i ctl = m128_const_64(  0x08090a0b0c0d0e0f, 0x0001020304050607 ); \
+  casti_m128i( d, 0 ) = _mm_shuffle_epi8( casti_m128i( s, 0 ), ctl ); \
+  casti_m128i( d, 1 ) = _mm_shuffle_epi8( casti_m128i( s, 1 ), ctl ); \
+  casti_m128i( d, 2 ) = _mm_shuffle_epi8( casti_m128i( s, 2 ), ctl ); \
+  casti_m128i( d, 3 ) = _mm_shuffle_epi8( casti_m128i( s, 3 ), ctl ); \
+  casti_m128i( d, 4 ) = _mm_shuffle_epi8( casti_m128i( s, 4 ), ctl ); \
+  casti_m128i( d, 5 ) = _mm_shuffle_epi8( casti_m128i( s, 5 ), ctl ); \
+  casti_m128i( d, 6 ) = _mm_shuffle_epi8( casti_m128i( s, 6 ), ctl ); \
+  casti_m128i( d, 7 ) = _mm_shuffle_epi8( casti_m128i( s, 7 ), ctl ); \
+} while(0)
+
+// 4 byte dword * 8 dwords * 4 lanes = 128 bytes
+#define mm128_block_bswap_32( d, s ) do \
+{ \
+   __m128i ctl = m128_const_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 ); \
+  casti_m128i( d, 0 ) = _mm_shuffle_epi8( casti_m128i( s, 0 ), ctl ); \
+  casti_m128i( d, 1 ) = _mm_shuffle_epi8( casti_m128i( s, 1 ), ctl ); \
+  casti_m128i( d, 2 ) = _mm_shuffle_epi8( casti_m128i( s, 2 ), ctl ); \
+  casti_m128i( d, 3 ) = _mm_shuffle_epi8( casti_m128i( s, 3 ), ctl ); \
+  casti_m128i( d, 4 ) = _mm_shuffle_epi8( casti_m128i( s, 4 ), ctl ); \
+  casti_m128i( d, 5 ) = _mm_shuffle_epi8( casti_m128i( s, 5 ), ctl ); \
+  casti_m128i( d, 6 ) = _mm_shuffle_epi8( casti_m128i( s, 6 ), ctl ); \
+  casti_m128i( d, 7 ) = _mm_shuffle_epi8( casti_m128i( s, 7 ), ctl ); \
+} while(0)
 
 #else  // SSE2
 
@@ -326,16 +450,41 @@ static inline __m128i mm128_bswap_16( __m128i v )
   return _mm_or_si128( _mm_slli_epi16( v, 8 ), _mm_srli_epi16( v, 8 ) );
 }
 
+static inline void mm128_block_bswap_64( __m128i *d, __m128i *s )
+{
+   d[0] = mm128_bswap_32( s[0] );
+   d[1] = mm128_bswap_32( s[1] );
+   d[2] = mm128_bswap_32( s[2] );
+   d[3] = mm128_bswap_32( s[3] );
+   d[4] = mm128_bswap_32( s[4] );
+   d[5] = mm128_bswap_32( s[5] );
+   d[6] = mm128_bswap_32( s[6] );
+   d[7] = mm128_bswap_32( s[7] );
+}
+
+static inline void mm128_block_bswap_32( __m128i *d, __m128i *s )
+{
+   d[0] = mm128_bswap_32( s[0] );
+   d[1] = mm128_bswap_32( s[1] );
+   d[2] = mm128_bswap_32( s[2] );
+   d[3] = mm128_bswap_32( s[3] );
+   d[4] = mm128_bswap_32( s[4] );
+   d[5] = mm128_bswap_32( s[5] );
+   d[6] = mm128_bswap_32( s[6] );
+   d[7] = mm128_bswap_32( s[7] );
+}
+
 #endif // SSSE3 else SSE2
+
 //
 // Rotate in place concatenated 128 bit vectors as one 256 bit vector.
 
 // Swap 128 bit vectorse.
 
-#define mm128_swap128_256(v1, v2) \
-   v1 = _mm_xor_si128(v1, v2); \
-   v2 = _mm_xor_si128(v1, v2); \
-   v1 = _mm_xor_si128(v1, v2);
+#define mm128_swap128_256( v1, v2 ) \
+   v1 = _mm_xor_si128( v1, v2 ); \
+   v2 = _mm_xor_si128( v1, v2 ); \
+   v1 = _mm_xor_si128( v1, v2 );
 
 // Concatenate v1 & v2 and rotate as one 256 bit vector.
 #if defined(__SSE4_1__)
@@ -457,4 +606,4 @@ do { \
 #endif  // SSE4.1 else SSE2
 
 #endif // __SSE2__
-#endif // SIMD_SSE2_H__
+#endif // SIMD_128_H__

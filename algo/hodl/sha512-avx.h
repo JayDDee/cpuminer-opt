@@ -23,6 +23,7 @@ typedef struct
    __m256i h[8];
    __m256i w[80];
 #elif defined(__SSE4_2__)
+//#elif defined(__AVX__)
    __m128i h[8];
    __m128i w[80];
 #else
@@ -32,7 +33,8 @@ typedef struct
 
 #ifdef __AVX2__
 #define SHA512_PARALLEL_N 8
-#elif defined(__SSE$_2__)
+#elif defined(__SSE4_2__)
+//#elif defined(__AVX__)
 #define SHA512_PARALLEL_N 4
 #else
 #define SHA512_PARALLEL_N 1   // dummy value

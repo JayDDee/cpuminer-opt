@@ -1,6 +1,50 @@
 #if !defined(INTRLV_AVX_H__)
 #define INTRLV_AVX_H__ 1
 
+// philosophical discussion
+// 
+// transitions:
+//
+//  int32 <-> int64
+//  uint64_t = (uint64_t)int32_lo | ( (uint64_t)int32_hi << 32 )
+//  Efficient transition and post processing, 32 bit granularity is lost.
+//  
+//  int32 <-> m64
+//  More complex, 32 bit granularity maintained, limited number of mmx regs.
+//  int32 <-> int64 <-> m64 might be more efficient.
+//
+//  int32 <-> m128
+//  Expensive, current implementation.
+//
+//  int32 <-> m256
+//  Very expensive multi stage, current implementation.
+//
+//  int64/m64 <-> m128
+//  Efficient, agnostic to native element size. Common.
+//
+//  m128 <-> m256
+//  Expensive for a single instruction, unavoidable. Common.
+// 
+//  Multi stage options
+//
+//  int32 <-> int64 -> m128
+//  More efficient than insert32, granularity maintained. Common.
+//
+//  int64 <-> m128 -> m256
+//  Unavoidable, reasonably efficient. Common
+//
+//  int32 <-> int64 -> m128 -> m256
+//  Seems inevitable, most efficient despite number of stages. Common.
+//
+//  Implementation plan. 
+//
+//  1. Complete m128 <-> m256
+//  2. Implement int64 <-> m128
+//  3. Combine int64 <-> m128 <-> m256
+//  4. Implement int32 <-> int64 <-> m128
+//  5. Combine int32 <-> int64 <-> m128 <-> m256
+//
+
 #if  defined(__AVX__)
 
 // Convenient short cuts for local use only

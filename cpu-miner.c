@@ -848,7 +848,8 @@ static double   shash_sum   = 0.;
 static double   bhash_sum   = 0.;
 static double   time_sum    = 0.;
 static double   latency_sum = 0.;
-static uint64_t submits_sum = 0;
+static uint64_t submit_sum  = 0;
+static uint64_t reject_sum  = 0;
 
 struct share_stats_t
 {
@@ -943,7 +944,8 @@ static int share_result( int result, struct work *null_work,
    shash_sum   += share_hash;
    bhash_sum   += block_hash;
    time_sum    += share_time;
-   submits_sum ++;
+   submit_sum ++;
+   reject_sum += (uint64_t)!result;
    latency_sum += latency;
 
    pthread_mutex_unlock( &stats_lock );
@@ -2118,30 +2120,49 @@ static void *miner_thread( void *userdata )
           double   hash     = shash_sum;   shash_sum   = 0.;
           double   bhash    = bhash_sum;   bhash_sum   = 0.;
           double   time     = time_sum;    time_sum    = 0.;
-          uint64_t submits  = submits_sum; submits_sum = 0;
+          uint64_t submits  = submit_sum;  submit_sum  = 0;
+          uint64_t rejects  = reject_sum;  reject_sum  = 0;
           uint64_t latency  = latency_sum; latency_sum = 0;
           memcpy( &five_min_start, &time_now, sizeof time_now );
 
           pthread_mutex_unlock( &stats_lock );
 
-          double ghrate = global_hashrate;
-          double shrate = time == 0. ? 0. : hash / time;
-          double scaled_shrate = shrate;
-          double avg_share = bhash == 0. ? 0. : hash / bhash * 100.;
+          double   ghrate = global_hashrate;
+          double   scaled_ghrate = ghrate;
+          double   shrate = time == 0. ? 0. : hash / time;
+          double   scaled_shrate = shrate;
+          double   avg_share = bhash == 0. ? 0. : hash / bhash * 100.;
+          uint64_t avg_latency = 0;
+          double   latency_pc = 0.;
+          double   rejects_pc = 0.;
+          double   submit_rate = 0.;
           char shr[32];
           char shr_units[4] = {0};
+          char ghr[32];
+          char ghr_units[4] = {0};
           int temp = cpu_temp(0);
-          char timestr[32];
+          char tempstr[32];
 
-          latency = submits ? latency / submits : 0;
+          if ( submits )
+             avg_latency = latency / submits;
+
+          if ( time != 0. )
+          {
+            submit_rate = (double)submits*60. / time;
+            rejects_pc = (double)rejects / (time*10.);   
+            latency_pc =  (double)latency / ( time*10.);
+          }
+          
           scale_hash_for_display( &scaled_shrate, shr_units );
+          scale_hash_for_display( &scaled_ghrate, ghr_units );
+          sprintf( ghr, "%.2f %sH/s", scaled_ghrate, ghr_units );
 
           if ( use_colors )
           {
-             if ( shrate > (32.*ghrate) )
+             if ( shrate > (128.*ghrate) )
                 sprintf( shr, "%s%.2f %sH/s%s", CL_MAG, scaled_shrate,
                          shr_units, CL_WHT );
-             else if ( shrate > (8.*ghrate) )
+             else if ( shrate > (16.*ghrate) )
                 sprintf( shr, "%s%.2f %sH/s%s", CL_GRN, scaled_shrate,
                          shr_units, CL_WHT );
              else if ( shrate > 2.0*ghrate )
@@ -2153,53 +2174,99 @@ static void *miner_thread( void *userdata )
                 sprintf( shr, "%s%.2f %sH/s%s", CL_YLW, scaled_shrate,
                          shr_units, CL_WHT );
 
-             if ( temp >= 80 ) sprintf( timestr, "%s%d C%s",
+             if ( temp >= 80 ) sprintf( tempstr, "%s%d C%s",
                                                   CL_RED, temp, CL_WHT );
-             else if (temp >=70 ) sprintf( timestr, "%s%d C%s",
+             else if (temp >=70 ) sprintf( tempstr, "%s%d C%s",
                                                   CL_YLW, temp, CL_WHT );
-             else sprintf( timestr, "%d C", temp );
+             else sprintf( tempstr, "%d C", temp );
           }
           else
           {
              sprintf( shr, "%.2f %sH/s", scaled_shrate, shr_units );
-             sprintf( timestr, "%d C", temp );
+             sprintf( tempstr, "%d C", temp );
           }
 
+
+          applog(LOG_NOTICE,"Submitted %d shares in %dm%02ds.",
+                (uint64_t)submits, et.tv_sec / 60, et.tv_sec % 60 );
+          applog(LOG_NOTICE,"%d rejects (%.2f%%), %.5f%% block share.",     
+                rejects, rejects_pc, avg_share );
+          applog(LOG_NOTICE,"Avg hashrate: Miner %s, Share %s.", ghr, shr );
+          
+#if ((defined(_WIN64) || defined(__WINDOWS__)))
+          applog(LOG_NOTICE,"Shares/min: %.2f, latency %d ms (%.2f%%).",
+                submit_rate, avg_latency, latency_pc );
+
+#else
+          applog(LOG_NOTICE,"Shares/min: %.2f, latency %d ms (%.2f%%), temp: %s.",
+                submit_rate, avg_latency, latency_pc, tempstr );
+#endif
+
+/*
           applog(LOG_NOTICE,"Submitted %d shares in %dm%02ds, %.5f%% block share.",
                (uint64_t)submits, et.tv_sec / 60, et.tv_sec % 60, avg_share );    
 
 #if ((defined(_WIN64) || defined(__WINDOWS__)))
-          applog(LOG_NOTICE,"Share hashrate %s, latency %d ms.",
-                            shr, latency );
+          applog(LOG_NOTICE,"Share hashrate %s, latency %d ms (%.2f%%).",
+                            shr, avg_latency, latency_pc );
 #else
-          applog(LOG_NOTICE,"Share hashrate %s, latency %d ms, temp %s.",
-                            shr, latency, timestr );
+          applog(LOG_NOTICE,"Share hashrate %s, latency %d ms (%.2f%%), temp %s.",
+                            shr, avg_latency, latency_pc, tempstr );
 #endif
+*/
           applog(LOG_INFO,"- - - - - - - - - - - - - - - - - - - - - - - - - - -");
        }
 
        // display hashrate
-       if ( opt_hash_meter )
+       if ( !opt_quiet )
        {
           char hc[16];
           char hr[16];
           char hc_units[2] = {0,0};
           char hr_units[2] = {0,0};
-          double hashcount = thr_hashcount[thr_id];
-          double hashrate  = thr_hashrates[thr_id];
-          if ( hashcount )
+          double hashcount;
+          double hashrate;
+          if ( opt_hash_meter )
           {
-             scale_hash_for_display( &hashcount, hc_units );
-             scale_hash_for_display( &hashrate,  hr_units );
-             if ( hc_units[0] )
-                sprintf( hc, "%.2f", hashcount );
-             else // no fractions of a hash
-                sprintf( hc, "%.0f", hashcount );
-             sprintf( hr, "%.2f", hashrate );
-             applog( LOG_INFO, "CPU #%d: %s %sH, %s %sH/s",
-                               thr_id, hc, hc_units, hr, hr_units );
+             hashcount = thr_hashcount[thr_id];
+             hashrate  = thr_hashrates[thr_id];
+             if ( hashcount != 0. )
+             {
+                scale_hash_for_display( &hashcount, hc_units );
+                scale_hash_for_display( &hashrate,  hr_units );
+                if ( hc_units[0] )
+                   sprintf( hc, "%.2f", hashcount );
+                else // no fractions of a hash
+                   sprintf( hc, "%.0f", hashcount );
+                sprintf( hr, "%.2f", hashrate );
+                applog( LOG_INFO, "CPU #%d: %s %sH, %s %sH/s",
+                                  thr_id, hc, hc_units, hr, hr_units );
+             }
+          }
+          if ( thr_id == 0 )
+          {
+             hashcount = 0.;
+             hashrate = 0.;
+             for ( i = 0; i < opt_n_threads; i++ )
+             {
+                 hashrate  += thr_hashrates[i];
+                 hashcount += thr_hashcount[i];
+             }
+             if ( hashcount != 0. )
+             {
+                scale_hash_for_display( &hashcount, hc_units );
+                scale_hash_for_display( &hashrate,  hr_units );
+                if ( hc_units[0] )
+                   sprintf( hc, "%.2f", hashcount );
+                else  // no fractions of a hash
+                   sprintf( hc, "%.0f", hashcount );
+                sprintf( hr, "%.2f", hashrate );
+                applog( LOG_NOTICE, "Miner perf: %s %sH, %s %sH/s.",
+                                    hc, hc_units, hr, hr_units );
+             }
           }
        }
+
        // Display benchmark total
        // Update hashrate for API if no shares accepted yet.
        if ( ( opt_benchmark || !accepted_share_count ) 
@@ -2212,7 +2279,7 @@ static void *miner_thread( void *userdata )
               hashrate  += thr_hashrates[i];
               hashcount += thr_hashcount[i];
           }
-          if ( hashcount )
+          if ( hashcount != 0. )
           {
              global_hashcount = hashcount;
              global_hashrate  = hashrate;

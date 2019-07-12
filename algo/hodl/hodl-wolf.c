@@ -17,7 +17,7 @@ void GenerateGarbageCore( CacheEntry *Garbage, int ThreadID, int ThreadCount,
     const uint32_t StartChunk = ThreadID * Chunk;
     const uint32_t EndChunk   = StartChunk + Chunk;
 
-#ifdef __SSE4_2__
+#if defined(__SSE4_2__)
 //#ifdef __AVX__
     uint64_t* TempBufs[ SHA512_PARALLEL_N ] ;
     uint64_t* desination[ SHA512_PARALLEL_N ];
@@ -64,7 +64,7 @@ void Rev256(uint32_t *Dest, const uint32_t *Src)
 int scanhash_hodl_wolf( struct work* work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr )
 {
-#ifdef __SSE4_2__
+#if defined(__SSE4_2__)
 //#ifdef __AVX__
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
@@ -140,7 +140,7 @@ int scanhash_hodl_wolf( struct work* work, uint32_t max_nonce,
     return(0);
 
 
-#else  // no SSE4.2
+#else  // no AVX
 
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
@@ -148,6 +148,7 @@ int scanhash_hodl_wolf( struct work* work, uint32_t max_nonce,
     CacheEntry *Garbage = (CacheEntry*)hodl_scratchbuf;
     CacheEntry Cache;
     uint32_t CollisionCount = 0;
+    int threadNumber = mythr->id;
 
     swab32_array( BlockHdr, pdata, 20 );
         // Search for pattern in psuedorandom data      
@@ -205,7 +206,7 @@ int scanhash_hodl_wolf( struct work* work, uint32_t max_nonce,
     *hashes_done = CollisionCount;
     return(0);
 
-#endif  // SSE4.2 else
+#endif  // AVX else
 
 }
 

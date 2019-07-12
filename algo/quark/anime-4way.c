@@ -50,6 +50,7 @@ void anime_4way_hash( void *state, const void *input )
     __m256i vh_mask;
     const uint32_t mask = 8;
     const __m256i bit3_mask = _mm256_set1_epi64x( 8 );
+    const __m256i zero = _mm256_setzero_si256();
     anime_4way_ctx_holder ctx;
     memcpy( &ctx, &anime_4way_ctx, sizeof(anime_4way_ctx) );
 
@@ -59,8 +60,7 @@ void anime_4way_hash( void *state, const void *input )
     blake512_4way( &ctx.blake, vhash, 64 );
     blake512_4way_close( &ctx.blake, vhash );
 
-    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
-                                  m256_zero );
+    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
 
     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
@@ -114,8 +114,7 @@ void anime_4way_hash( void *state, const void *input )
     jh512_4way( &ctx.jh, vhash, 64 );
     jh512_4way_close( &ctx.jh, vhash );
 
-    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
-                                  m256_zero );
+    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
 
     if ( mm256_anybits1( vh_mask ) )
     {
@@ -139,8 +138,7 @@ void anime_4way_hash( void *state, const void *input )
     skein512_4way( &ctx.skein, vhash, 64 );
     skein512_4way_close( &ctx.skein, vhash );
 
-    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
-                                  m256_zero );
+    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
 
     if ( mm256_anybits1( vh_mask ) )
     {

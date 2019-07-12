@@ -6,7 +6,7 @@
 
 void ExpandAESKey256(__m128i *keys, const __m128i *KeyBuf);
 
-#ifdef __SSE4_2__
+#if defined(__SSE4_2__)
 //#ifdef __AVX__
 
 #define AES_PARALLEL_N 8

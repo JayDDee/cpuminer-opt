@@ -412,18 +412,18 @@ static const sph_u64 CB[16] = {
 	V5 = H5; \
 	V6 = H6; \
 	V7 = H7; \
-        V8 = _mm256_xor_si256( S0, _mm256_set_epi64x( CB0, CB0, CB0, CB0 ) ); \
-        V9 = _mm256_xor_si256( S1, _mm256_set_epi64x( CB1, CB1, CB1, CB1 ) ); \
-        VA = _mm256_xor_si256( S2, _mm256_set_epi64x( CB2, CB2, CB2, CB2 ) ); \
-        VB = _mm256_xor_si256( S3, _mm256_set_epi64x( CB3, CB3, CB3, CB3 ) ); \
-        VC = _mm256_xor_si256( _mm256_set_epi64x( T0, T0, T0, T0 ), \
-                               _mm256_set_epi64x( CB4, CB4, CB4, CB4 ) ); \
-        VD = _mm256_xor_si256( _mm256_set_epi64x( T0, T0, T0, T0 ), \
-                               _mm256_set_epi64x( CB5, CB5, CB5, CB5 ) ); \
-        VE = _mm256_xor_si256( _mm256_set_epi64x( T1, T1, T1, T1 ), \
-                               _mm256_set_epi64x( CB6, CB6, CB6, CB6 ) ); \
-        VF = _mm256_xor_si256( _mm256_set_epi64x( T1, T1, T1, T1 ), \
-                               _mm256_set_epi64x( CB7, CB7, CB7, CB7 ) ); \
+   V8 = _mm256_xor_si256( S0, _mm256_set_epi64x( CB0, CB0, CB0, CB0 ) ); \
+   V9 = _mm256_xor_si256( S1, _mm256_set_epi64x( CB1, CB1, CB1, CB1 ) ); \
+   VA = _mm256_xor_si256( S2, _mm256_set_epi64x( CB2, CB2, CB2, CB2 ) ); \
+   VB = _mm256_xor_si256( S3, _mm256_set_epi64x( CB3, CB3, CB3, CB3 ) ); \
+   VC = _mm256_xor_si256( _mm256_set_epi64x( T0, T0, T0, T0 ), \
+                          _mm256_set_epi64x( CB4, CB4, CB4, CB4 ) ); \
+   VD = _mm256_xor_si256( _mm256_set_epi64x( T0, T0, T0, T0 ), \
+                          _mm256_set_epi64x( CB5, CB5, CB5, CB5 ) ); \
+   VE = _mm256_xor_si256( _mm256_set_epi64x( T1, T1, T1, T1 ), \
+                          _mm256_set_epi64x( CB6, CB6, CB6, CB6 ) ); \
+   VF = _mm256_xor_si256( _mm256_set_epi64x( T1, T1, T1, T1 ), \
+                          _mm256_set_epi64x( CB7, CB7, CB7, CB7 ) ); \
 	M[0x0] = mm256_bswap_64( *(buf+0) ); \
 	M[0x1] = mm256_bswap_64( *(buf+1) ); \
 	M[0x2] = mm256_bswap_64( *(buf+2) ); \
@@ -464,80 +464,76 @@ static const sph_u64 CB[16] = {
 
 //current impl
 
-#define COMPRESS64_4WAY   do { \
-     __m256i M0, M1, M2, M3, M4, M5, M6, M7; \
-     __m256i M8, M9, MA, MB, MC, MD, ME, MF; \
-     __m256i V0, V1, V2, V3, V4, V5, V6, V7; \
-     __m256i V8, V9, VA, VB, VC, VD, VE, VF; \
-     V0 = H0; \
-     V1 = H1; \
-     V2 = H2; \
-     V3 = H3; \
-     V4 = H4; \
-     V5 = H5; \
-     V6 = H6; \
-     V7 = H7; \
-     V8 = _mm256_xor_si256( S0, _mm256_set_epi64x( CB0, CB0, CB0, CB0 ) );  \
-     V9 = _mm256_xor_si256( S1, _mm256_set_epi64x( CB1, CB1, CB1, CB1 ) );  \
-     VA = _mm256_xor_si256( S2, _mm256_set_epi64x( CB2, CB2, CB2, CB2 ) );  \
-     VB = _mm256_xor_si256( S3, _mm256_set_epi64x( CB3, CB3, CB3, CB3 ) );  \
-     VC = _mm256_xor_si256( _mm256_set_epi64x( T0, T0, T0, T0 ), \
-                            _mm256_set_epi64x( CB4, CB4, CB4, CB4 ) );  \
-     VD = _mm256_xor_si256( _mm256_set_epi64x( T0, T0, T0, T0 ), \
-                            _mm256_set_epi64x( CB5, CB5, CB5, CB5 ) );  \
-     VE = _mm256_xor_si256( _mm256_set_epi64x( T1, T1, T1, T1 ), \
-                            _mm256_set_epi64x( CB6, CB6, CB6, CB6 ) );  \
-     VF = _mm256_xor_si256( _mm256_set_epi64x( T1, T1, T1, T1 ), \
-                            _mm256_set_epi64x( CB7, CB7, CB7, CB7 ) );  \
-     M0 = mm256_bswap_64( *(buf + 0) ); \
-     M1 = mm256_bswap_64( *(buf + 1) ); \
-     M2 = mm256_bswap_64( *(buf + 2) ); \
-     M3 = mm256_bswap_64( *(buf + 3) ); \
-     M4 = mm256_bswap_64( *(buf + 4) ); \
-     M5 = mm256_bswap_64( *(buf + 5) ); \
-     M6 = mm256_bswap_64( *(buf + 6) ); \
-     M7 = mm256_bswap_64( *(buf + 7) ); \
-     M8 = mm256_bswap_64( *(buf + 8) ); \
-     M9 = mm256_bswap_64( *(buf + 9) ); \
-     MA = mm256_bswap_64( *(buf + 10) ); \
-     MB = mm256_bswap_64( *(buf + 11) ); \
-     MC = mm256_bswap_64( *(buf + 12) ); \
-     MD = mm256_bswap_64( *(buf + 13) ); \
-     ME = mm256_bswap_64( *(buf + 14) ); \
-     MF = mm256_bswap_64( *(buf + 15) ); \
-     ROUND_B_4WAY(0); \
-     ROUND_B_4WAY(1); \
-     ROUND_B_4WAY(2); \
-     ROUND_B_4WAY(3); \
-     ROUND_B_4WAY(4); \
-     ROUND_B_4WAY(5); \
-     ROUND_B_4WAY(6); \
-     ROUND_B_4WAY(7); \
-     ROUND_B_4WAY(8); \
-     ROUND_B_4WAY(9); \
-     ROUND_B_4WAY(0); \
-     ROUND_B_4WAY(1); \
-     ROUND_B_4WAY(2); \
-     ROUND_B_4WAY(3); \
-     ROUND_B_4WAY(4); \
-     ROUND_B_4WAY(5); \
-     H0 = _mm256_xor_si256( _mm256_xor_si256( \
-                            _mm256_xor_si256( S0, V0 ), V8 ), H0 ); \
-     H1 = _mm256_xor_si256( _mm256_xor_si256( \
-                            _mm256_xor_si256( S1, V1 ), V9 ), H1 ); \
-     H2 = _mm256_xor_si256( _mm256_xor_si256( \
-                            _mm256_xor_si256( S2, V2 ), VA ), H2 ); \
-     H3 = _mm256_xor_si256( _mm256_xor_si256( \
-                            _mm256_xor_si256( S3, V3 ), VB ), H3 ); \
-     H4 = _mm256_xor_si256( _mm256_xor_si256( \
-                            _mm256_xor_si256( S0, V4 ), VC ), H4 ); \
-     H5 = _mm256_xor_si256( _mm256_xor_si256( \
-                            _mm256_xor_si256( S1, V5 ), VD ), H5 ); \
-     H6 = _mm256_xor_si256( _mm256_xor_si256( \
-                            _mm256_xor_si256( S2, V6 ), VE ), H6 ); \
-     H7 = _mm256_xor_si256( _mm256_xor_si256( \
-                            _mm256_xor_si256( S3, V7 ), VF ), H7 ); \
-	} while (0)
+#define COMPRESS64_4WAY   do \
+{ \
+  __m256i M0, M1, M2, M3, M4, M5, M6, M7; \
+  __m256i M8, M9, MA, MB, MC, MD, ME, MF; \
+  __m256i V0, V1, V2, V3, V4, V5, V6, V7; \
+  __m256i V8, V9, VA, VB, VC, VD, VE, VF; \
+  __m256i shuf_bswap64; \
+  V0 = H0; \
+  V1 = H1; \
+  V2 = H2; \
+  V3 = H3; \
+  V4 = H4; \
+  V5 = H5; \
+  V6 = H6; \
+  V7 = H7; \
+  V8 = _mm256_xor_si256( S0, _mm256_set1_epi64x( CB0 ) );  \
+  V9 = _mm256_xor_si256( S1, _mm256_set1_epi64x( CB1 ) );  \
+  VA = _mm256_xor_si256( S2, _mm256_set1_epi64x( CB2 ) );  \
+  VB = _mm256_xor_si256( S3, _mm256_set1_epi64x( CB3 ) );  \
+  VC = _mm256_xor_si256( _mm256_set1_epi64x( T0 ), \
+                         _mm256_set1_epi64x( CB4 ) );  \
+  VD = _mm256_xor_si256( _mm256_set1_epi64x( T0 ), \
+                         _mm256_set1_epi64x( CB5 ) );  \
+  VE = _mm256_xor_si256( _mm256_set1_epi64x( T1 ), \
+                         _mm256_set1_epi64x( CB6 ) );  \
+  VF = _mm256_xor_si256( _mm256_set1_epi64x( T1 ), \
+                         _mm256_set1_epi64x( CB7 ) );  \
+  shuf_bswap64 = _mm256_set_epi64x( 0x08090a0b0c0d0e0f, 0x0001020304050607, \
+                                    0x08090a0b0c0d0e0f, 0x0001020304050607 ); \
+  M0 = _mm256_shuffle_epi8( *(buf+ 0), shuf_bswap64 ); \
+  M1 = _mm256_shuffle_epi8( *(buf+ 1), shuf_bswap64 ); \
+  M2 = _mm256_shuffle_epi8( *(buf+ 2), shuf_bswap64 ); \
+  M3 = _mm256_shuffle_epi8( *(buf+ 3), shuf_bswap64 ); \
+  M4 = _mm256_shuffle_epi8( *(buf+ 4), shuf_bswap64 ); \
+  M5 = _mm256_shuffle_epi8( *(buf+ 5), shuf_bswap64 ); \
+  M6 = _mm256_shuffle_epi8( *(buf+ 6), shuf_bswap64 ); \
+  M7 = _mm256_shuffle_epi8( *(buf+ 7), shuf_bswap64 ); \
+  M8 = _mm256_shuffle_epi8( *(buf+ 8), shuf_bswap64 ); \
+  M9 = _mm256_shuffle_epi8( *(buf+ 9), shuf_bswap64 ); \
+  MA = _mm256_shuffle_epi8( *(buf+10), shuf_bswap64 ); \
+  MB = _mm256_shuffle_epi8( *(buf+11), shuf_bswap64 ); \
+  MC = _mm256_shuffle_epi8( *(buf+12), shuf_bswap64 ); \
+  MD = _mm256_shuffle_epi8( *(buf+13), shuf_bswap64 ); \
+  ME = _mm256_shuffle_epi8( *(buf+14), shuf_bswap64 ); \
+  MF = _mm256_shuffle_epi8( *(buf+15), shuf_bswap64 ); \
+  ROUND_B_4WAY(0); \
+  ROUND_B_4WAY(1); \
+  ROUND_B_4WAY(2); \
+  ROUND_B_4WAY(3); \
+  ROUND_B_4WAY(4); \
+  ROUND_B_4WAY(5); \
+  ROUND_B_4WAY(6); \
+  ROUND_B_4WAY(7); \
+  ROUND_B_4WAY(8); \
+  ROUND_B_4WAY(9); \
+  ROUND_B_4WAY(0); \
+  ROUND_B_4WAY(1); \
+  ROUND_B_4WAY(2); \
+  ROUND_B_4WAY(3); \
+  ROUND_B_4WAY(4); \
+  ROUND_B_4WAY(5); \
+  H0 = mm256_xor4( V8, V0, S0, H0 ); \
+  H1 = mm256_xor4( V9, V1, S1, H1 ); \
+  H2 = mm256_xor4( VA, V2, S2, H2 ); \
+  H3 = mm256_xor4( VB, V3, S3, H3 ); \
+  H4 = mm256_xor4( VC, V4, S0, H4 ); \
+  H5 = mm256_xor4( VD, V5, S1, H5 ); \
+  H6 = mm256_xor4( VE, V6, S2, H6 ); \
+  H7 = mm256_xor4( VF, V7, S3, H7 ); \
+} while (0)
 
 #endif
 
@@ -547,13 +543,23 @@ static void
 blake64_4way_init( blake_4way_big_context *sc, const sph_u64 *iv,
               const sph_u64 *salt )
 {
-        int i;
-        for ( i = 0; i < 8; i++ )
-           sc->H[i] = _mm256_set1_epi64x( iv[i] );
-        for ( i = 0; i < 4; i++ )
-           sc->S[i] = _mm256_set1_epi64x( salt[i] );
-        sc->T0 = sc->T1 = 0;
-        sc->ptr = 0;
+   __m256i zero = m256_zero;
+   casti_m256i( sc->H, 0 ) = _mm256_set1_epi64x( iv[0] );
+   casti_m256i( sc->H, 1 ) = _mm256_set1_epi64x( iv[1] );
+   casti_m256i( sc->H, 2 ) = _mm256_set1_epi64x( iv[2] );
+   casti_m256i( sc->H, 3 ) = _mm256_set1_epi64x( iv[3] );
+   casti_m256i( sc->H, 4 ) = _mm256_set1_epi64x( iv[4] );
+   casti_m256i( sc->H, 5 ) = _mm256_set1_epi64x( iv[5] );
+   casti_m256i( sc->H, 6 ) = _mm256_set1_epi64x( iv[6] );
+   casti_m256i( sc->H, 7 ) = _mm256_set1_epi64x( iv[7] );
+
+   casti_m256i( sc->S, 0 ) = zero;
+   casti_m256i( sc->S, 1 ) = zero;
+   casti_m256i( sc->S, 2 ) = zero;
+   casti_m256i( sc->S, 3 ) = zero;
+
+   sc->T0 = sc->T1 = 0;
+   sc->ptr = 0;
 }
 
 static void
@@ -604,15 +610,11 @@ static void
 blake64_4way_close( blake_4way_big_context *sc,
 	unsigned ub, unsigned n, void *dst, size_t out_size_w64)
 {
-//   union {
-      __m256i buf[16];
-//      sph_u64 dummy;
-//   } u;
-   size_t ptr, k;
+   __m256i buf[16];
+   size_t ptr;
    unsigned bit_len;
    uint64_t z, zz;
    sph_u64 th, tl;
-   __m256i *out;
 
    ptr = sc->ptr;
    bit_len = ((unsigned)ptr << 3);
@@ -665,9 +667,7 @@ blake64_4way_close( blake_4way_big_context *sc,
 
        blake64_4way( sc, buf, 128 );
    }
-   out = (__m256i*)dst;
-   for ( k = 0; k < out_size_w64; k++ )
-       out[k] = mm256_bswap_64( sc->H[k] );
+   mm256_block_bswap_64( (__m256i*)dst, sc->H );
 }
 
 void

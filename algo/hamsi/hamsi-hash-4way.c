@@ -531,16 +531,17 @@ static const sph_u32 T512[64][16] = {
 
 #define INPUT_BIG \
 do { \
+  const __m256i zero = _mm256_setzero_si256(); \
   __m256i db = *buf; \
   const sph_u32 *tp = &T512[0][0]; \
-  m0 = m256_zero; \
-  m1 = m256_zero; \
-  m2 = m256_zero; \
-  m3 = m256_zero; \
-  m4 = m256_zero; \
-  m5 = m256_zero; \
-  m6 = m256_zero; \
-  m7 = m256_zero; \
+  m0 = zero; \
+  m1 = zero; \
+  m2 = zero; \
+  m3 = zero; \
+  m4 = zero; \
+  m5 = zero; \
+  m6 = zero; \
+  m7 = zero; \
   for ( int u = 0; u < 64; u++ ) \
   { \
      __m256i dm = _mm256_and_si256( db, m256_one_64 ) ; \
@@ -913,9 +914,7 @@ void hamsi512_4way( hamsi_4way_big_context *sc, const void *data, size_t len )
 
 void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 {
-   __m256i *out = (__m256i*)dst;
    __m256i pad[1];
-   size_t u;
    int ch, cl;
 
    sph_enc32be( &ch, sc->count_high );
@@ -925,8 +924,8 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
                                   0UL, 0x80UL, 0UL, 0x80UL );
    hamsi_big( sc, sc->buf, 1 );
    hamsi_big_final( sc, pad );
-   for ( u = 0; u < 8; u ++ )
-      out[u] = mm256_bswap_32( sc->h[u] );
+
+   mm256_block_bswap_32( (__m256i*)dst, sc->h );
 }
 
 #ifdef __cplusplus

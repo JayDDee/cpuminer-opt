@@ -62,9 +62,15 @@ static inline void memset_64( uint64_t *dst, const uint64_t a,  int n )
 // 
 //      128 bit integers
 //
+//  128 bit integers are inneficient and not a shortcut for __m128i.
 
 // No real need or use.
 //#define u128_neg1        ((uint128_t)(-1))
+
+// usefull for making constants.
+#define mk_uint128( hi, lo ) \
+   ( ( (uint128_t)(hi) << 64 ) | ( (uint128_t)(lo) ) )
+
 
 // Extracting the low bits is a trivial cast.
 // These specialized functions are optimized while providing a

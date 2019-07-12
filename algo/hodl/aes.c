@@ -83,7 +83,7 @@ void ExpandAESKey256(__m128i *keys, const __m128i *KeyBuf)
     keys[14] = tmp1;
 }
 
-#ifdef __SSE4_2__
+#if defined(__SSE4_2__)
 //#ifdef __AVX__
 
 #define AESENC(i,j) \
@@ -151,7 +151,7 @@ void AES256CBC(__m128i** data, const __m128i** next, __m128i ExpandedKey[][16], 
     }
 }
 
-#else    // NO SSE4.2
+#else    // NO AVX
 
 static inline __m128i AES256Core(__m128i State, const __m128i *ExpandedKey)
 {

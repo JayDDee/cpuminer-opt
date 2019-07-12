@@ -113,50 +113,27 @@ static const uint32_t IV256[] = {
 
 
 #define expand1s( qt, M, H, i ) \
-   _mm_add_epi32( \
-      _mm_add_epi32( \
-         _mm_add_epi32( \
-             _mm_add_epi32( \
-                _mm_add_epi32( ss1( qt[ (i)-16 ] ), \
-                               ss2( qt[ (i)-15 ] ) ), \
-                _mm_add_epi32( ss3( qt[ (i)-14 ] ), \
-                               ss0( qt[ (i)-13 ] ) ) ), \
-             _mm_add_epi32( \
-                _mm_add_epi32( ss1( qt[ (i)-12 ] ), \
-                               ss2( qt[ (i)-11 ] ) ), \
-                _mm_add_epi32( ss3( qt[ (i)-10 ] ), \
-                               ss0( qt[ (i)- 9 ] ) ) ) ), \
-         _mm_add_epi32( \
-             _mm_add_epi32( \
-                _mm_add_epi32( ss1( qt[ (i)- 8 ] ), \
-                               ss2( qt[ (i)- 7 ] ) ), \
-                _mm_add_epi32( ss3( qt[ (i)- 6 ] ), \
-                               ss0( qt[ (i)- 5 ] ) ) ), \
-             _mm_add_epi32( \
-                _mm_add_epi32( ss1( qt[ (i)- 4 ] ), \
-                               ss2( qt[ (i)- 3 ] ) ), \
-                _mm_add_epi32( ss3( qt[ (i)- 2 ] ), \
-                               ss0( qt[ (i)- 1 ] ) ) ) ) ), \
+   _mm_add_epi32(  mm128_add4_32( \
+            mm128_add4_32( ss1( qt[ (i)-16 ] ), ss2( qt[ (i)-15 ] ), \
+                           ss3( qt[ (i)-14 ] ), ss0( qt[ (i)-13 ] ) ), \
+            mm128_add4_32( ss1( qt[ (i)-12 ] ), ss2( qt[ (i)-11 ] ), \
+                           ss3( qt[ (i)-10 ] ), ss0( qt[ (i)- 9 ] ) ), \
+            mm128_add4_32( ss1( qt[ (i)- 8 ] ), ss2( qt[ (i)- 7 ] ), \
+                           ss3( qt[ (i)- 6 ] ), ss0( qt[ (i)- 5 ] ) ),  \
+            mm128_add4_32( ss1( qt[ (i)- 4 ] ), ss2( qt[ (i)- 3 ] ), \
+                           ss3( qt[ (i)- 2 ] ), ss0( qt[ (i)- 1 ] ) ) ), \
       add_elt_s( M, H, (i)-16 ) )
 
 #define expand2s( qt, M, H, i) \
-   _mm_add_epi32( \
-      _mm_add_epi32( \
-         _mm_add_epi32( \
-             _mm_add_epi32( \
-                _mm_add_epi32( qt[ (i)-16 ], rs1( qt[ (i)-15 ] ) ), \
-                _mm_add_epi32( qt[ (i)-14 ], rs2( qt[ (i)-13 ] ) ) ), \
-             _mm_add_epi32( \
-                _mm_add_epi32( qt[ (i)-12 ], rs3( qt[ (i)-11 ] ) ), \
-                _mm_add_epi32( qt[ (i)-10 ], rs4( qt[ (i)- 9 ] ) ) ) ), \
-         _mm_add_epi32( \
-             _mm_add_epi32( \
-                _mm_add_epi32( qt[ (i)- 8 ], rs5( qt[ (i)- 7 ] ) ), \
-                _mm_add_epi32( qt[ (i)- 6 ], rs6( qt[ (i)- 5 ] ) ) ), \
-             _mm_add_epi32( \
-                _mm_add_epi32( qt[ (i)- 4 ], rs7( qt[ (i)- 3 ] ) ), \
-                _mm_add_epi32( ss4( qt[ (i)- 2 ] ), \
-                               ss5( qt[ (i)- 1 ] ) ) ) ) ), \
+   _mm_add_epi32( mm128_add4_32( \
+            mm128_add4_32( qt[ (i)-16 ], rs1( qt[ (i)-15 ] ), \
+                           qt[ (i)-14 ], rs2( qt[ (i)-13 ] ) ), \
+            mm128_add4_32( qt[ (i)-12 ], rs3( qt[ (i)-11 ] ), \
+                           qt[ (i)-10 ], rs4( qt[ (i)- 9 ] ) ), \
+            mm128_add4_32( qt[ (i)- 8 ], rs5( qt[ (i)- 7 ] ), \
+                           qt[ (i)- 6 ], rs6( qt[ (i)- 5 ] ) ), \
+            mm128_add4_32( qt[ (i)- 4 ], rs7( qt[ (i)- 3 ] ), \
+                           ss4( qt[ (i)- 2 ] ), ss5( qt[ (i)- 1 ] ) ) ), \
       add_elt_s( M, H, (i)-16 ) )
 
 #define Ws0 \
@@ -357,17 +334,11 @@ void compress_small( const __m128i *M, const __m128i H[16], __m128i dH[16] )
    qt[30] = expand2s( qt, M, H, 30 );
    qt[31] = expand2s( qt, M, H, 31 );
 
-   xl = _mm_xor_si128(
-              _mm_xor_si128( _mm_xor_si128( qt[16], qt[17] ),
-                             _mm_xor_si128( qt[18], qt[19] ) ),
-              _mm_xor_si128( _mm_xor_si128( qt[20], qt[21] ),
-                             _mm_xor_si128( qt[22], qt[23] ) ) );
-   xh = _mm_xor_si128( xl,
-             _mm_xor_si128(
-                 _mm_xor_si128( _mm_xor_si128( qt[24], qt[25] ),
-                                   _mm_xor_si128( qt[26], qt[27] ) ),
-                 _mm_xor_si128( _mm_xor_si128( qt[28], qt[29] ),
-                                   _mm_xor_si128( qt[30], qt[31] ) )));
+   xl = _mm_xor_si128( mm128_xor4( qt[16], qt[17], qt[18], qt[19] ),
+                       mm128_xor4( qt[20], qt[21], qt[22], qt[23] ) );
+   xh = _mm_xor_si128( xl, _mm_xor_si128(
+                             mm128_xor4( qt[24], qt[25], qt[26], qt[27] ),
+                             mm128_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
 
    dH[ 0] = _mm_add_epi32(
                  _mm_xor_si128( M[0],
@@ -695,22 +666,15 @@ bmw256_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 
 #define expand2s8( qt, M, H, i) \
    _mm256_add_epi32( \
-      _mm256_add_epi32( \
-         _mm256_add_epi32( \
-             _mm256_add_epi32( \
-                _mm256_add_epi32( qt[ (i)-16 ], r8s1( qt[ (i)-15 ] ) ), \
-                _mm256_add_epi32( qt[ (i)-14 ], r8s2( qt[ (i)-13 ] ) ) ), \
-             _mm256_add_epi32( \
-                _mm256_add_epi32( qt[ (i)-12 ], r8s3( qt[ (i)-11 ] ) ), \
-                _mm256_add_epi32( qt[ (i)-10 ], r8s4( qt[ (i)- 9 ] ) ) ) ), \
-         _mm256_add_epi32( \
-             _mm256_add_epi32( \
-                _mm256_add_epi32( qt[ (i)- 8 ], r8s5( qt[ (i)- 7 ] ) ), \
-                _mm256_add_epi32( qt[ (i)- 6 ], r8s6( qt[ (i)- 5 ] ) ) ), \
-             _mm256_add_epi32( \
-                _mm256_add_epi32( qt[ (i)- 4 ], r8s7( qt[ (i)- 3 ] ) ), \
-                _mm256_add_epi32( s8s4( qt[ (i)- 2 ] ), \
-                                  s8s5( qt[ (i)- 1 ] ) ) ) ) ), \
+      mm256_add4_32( \
+          mm256_add4_32( qt[ (i)-16 ], r8s1( qt[ (i)-15 ] ), \
+                         qt[ (i)-14 ], r8s2( qt[ (i)-13 ] ) ), \
+          mm256_add4_32( qt[ (i)-12 ], r8s3( qt[ (i)-11 ] ), \
+                         qt[ (i)-10 ], r8s4( qt[ (i)- 9 ] ) ), \
+          mm256_add4_32( qt[ (i)- 8 ], r8s5( qt[ (i)- 7 ] ), \
+                         qt[ (i)- 6 ], r8s6( qt[ (i)- 5 ] ) ), \
+          mm256_add4_32( qt[ (i)- 4 ], r8s7( qt[ (i)- 3 ] ), \
+                         s8s4( qt[ (i)- 2 ] ), s8s5( qt[ (i)- 1 ] ) ) ), \
       add_elt_s8( M, H, (i)-16 ) )
 
 
@@ -913,16 +877,11 @@ void compress_small_8way( const __m256i *M, const __m256i H[16],
    qt[31] = expand2s8( qt, M, H, 31 );
 
    xl = _mm256_xor_si256(
-              _mm256_xor_si256( _mm256_xor_si256( qt[16], qt[17] ),
-                                _mm256_xor_si256( qt[18], qt[19] ) ),
-              _mm256_xor_si256( _mm256_xor_si256( qt[20], qt[21] ),
-                                _mm256_xor_si256( qt[22], qt[23] ) ) );
-   xh = _mm256_xor_si256( xl,
-             _mm256_xor_si256(
-                 _mm256_xor_si256( _mm256_xor_si256( qt[24], qt[25] ),
-                                   _mm256_xor_si256( qt[26], qt[27] ) ),
-                 _mm256_xor_si256( _mm256_xor_si256( qt[28], qt[29] ),
-                                   _mm256_xor_si256( qt[30], qt[31] ) )));
+              mm256_xor4( qt[16], qt[17], qt[18], qt[19] ),
+              mm256_xor4( qt[20], qt[21], qt[22], qt[23] ) );
+   xh = _mm256_xor_si256( xl,  _mm256_xor_si256(
+                 mm256_xor4( qt[24], qt[25], qt[26], qt[27] ),
+                 mm256_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
 
    dH[ 0] = _mm256_add_epi32(
                  _mm256_xor_si256( M[0],

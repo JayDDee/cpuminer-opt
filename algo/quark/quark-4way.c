@@ -51,6 +51,7 @@ void quark_4way_hash( void *state, const void *input )
     quark_4way_ctx_holder ctx;
     const __m256i bit3_mask = _mm256_set1_epi64x( 8 );
     const uint32_t mask = 8;
+    const __m256i zero = _mm256_setzero_si256();
 
     memcpy( &ctx, &quark_4way_ctx, sizeof(quark_4way_ctx) );
 
@@ -60,8 +61,7 @@ void quark_4way_hash( void *state, const void *input )
     bmw512_4way( &ctx.bmw, vhash, 64 );
     bmw512_4way_close( &ctx.bmw, vhash );
 
-    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
-                                  m256_zero );
+    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
 
     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
@@ -115,8 +115,7 @@ void quark_4way_hash( void *state, const void *input )
     jh512_4way( &ctx.jh, vhash, 64 );
     jh512_4way_close( &ctx.jh, vhash );
 
-    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
-                                  m256_zero );
+    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
 
     if ( mm256_anybits1( vh_mask ) )
     {
@@ -141,8 +140,7 @@ void quark_4way_hash( void *state, const void *input )
     skein512_4way( &ctx.skein, vhash, 64 );
     skein512_4way_close( &ctx.skein, vhash );
 
-    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ),
-                                  m256_zero );
+    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
 
     if ( mm256_anybits1( vh_mask ) )
     {

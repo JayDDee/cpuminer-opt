@@ -1,6 +1,6 @@
 #ifndef __AVX2__
 
-#ifdef __SSE4_2__
+#if defined(__SSE4_2__)
 //#ifdef __AVX__
 
 //Dependencies

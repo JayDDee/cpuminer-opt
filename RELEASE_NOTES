@@ -38,6 +38,15 @@ supported.
 Change Log
 ----------
 
+v3.9.5.3
+
+Fix crash mining hodl with aes-sse42.
+More restructuring and share report tweaks.
+
+v3.9.5.2
+
+Revert bswap-interleave optiization for causing crashes on Windows.
+
 v3.9.5.1
 
 Fixed skein2 crash on Windows.
