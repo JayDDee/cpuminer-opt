@@ -62,7 +62,7 @@ void anime_4way_hash( void *state, const void *input )
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
 
-    mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
     if ( hash0[0] & mask )
     {
@@ -88,7 +88,7 @@ void anime_4way_hash( void *state, const void *input )
                                                (char*)hash3, 512 );
     }
 
-    mm256_intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+    intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
     if ( mm256_anybits0( vh_mask ) )
     {
@@ -98,7 +98,7 @@ void anime_4way_hash( void *state, const void *input )
 
     mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-    mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
     reinit_groestl( &ctx.groestl );
     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -109,7 +109,7 @@ void anime_4way_hash( void *state, const void *input )
     reinit_groestl( &ctx.groestl );
     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
-    mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+    intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
     jh512_4way( &ctx.jh, vhash, 64 );
     jh512_4way_close( &ctx.jh, vhash );
@@ -155,7 +155,7 @@ void anime_4way_hash( void *state, const void *input )
 
     mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-    mm256_dintrlv_4x64( state, state+32, state+64, state+96, vhash, 256 );
+    dintrlv_4x64( state, state+32, state+64, state+96, vhash, 256 );
 }
 
 int scanhash_anime_4way( struct work *work, uint32_t max_nonce,
@@ -163,7 +163,6 @@ int scanhash_anime_4way( struct work *work, uint32_t max_nonce,
 {
     uint32_t hash[4*8] __attribute__ ((aligned (64)));
     uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
     uint32_t n = pdata[19];
@@ -188,9 +187,7 @@ int scanhash_anime_4way( struct work *work, uint32_t max_nonce,
                 0
         };
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//    mm256_bswap_intrlv80_4x64( vdata, pdata );
+    mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
     for (int m=0; m < 6; m++)
        if (Htarg <= htmax[m])

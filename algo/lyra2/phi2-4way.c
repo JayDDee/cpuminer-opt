@@ -69,13 +69,13 @@ void phi2_hash_4way( void *state, const void *input )
    LYRA2RE( &hashA[3][0], 32, &hashB[3][0], 32, &hashB[3][0], 32, 1, 8, 8 );
    LYRA2RE( &hashA[3][8], 32, &hashB[3][8], 32, &hashB[3][8], 32, 1, 8, 8 );
 
-   mm256_intrlv_4x64( vhash, hashA[0], hashA[1], hashA[2], hashA[3], 512 );
+   intrlv_4x64( vhash, hashA[0], hashA[1], hashA[2], hashA[3], 512 );
 
    jh512_4way_init( &ctx.jh );
    jh512_4way( &ctx.jh, vhash, 64 );
    jh512_4way_close( &ctx.jh, vhash );
 
-   mm256_dintrlv_4x64( hash[0], hash[1], hash[2], hash[3], vhash, 512 );
+   dintrlv_4x64( hash[0], hash[1], hash[2], hash[3], vhash, 512 );
 
    if ( hash[0][0] & 1 )
   	{
@@ -141,7 +141,7 @@ void phi2_hash_4way( void *state, const void *input )
                           (const BitSequence *)hash[3], 512 );
    }
 
-   mm256_intrlv_4x64( vhash, hash[0], hash[1], hash[2], hash[3], 512 );
+   intrlv_4x64( vhash, hash[0], hash[1], hash[2], hash[3], 512 );
    
    skein512_4way_init( &ctx.skein );
 	skein512_4way( &ctx.skein, vhash, 64 );
@@ -217,7 +217,7 @@ int scanhash_phi2_4way( struct work *work, uint32_t max_nonce,
 
       for ( int lane = 0; lane < 4; lane++ ) if (  hash7[ lane<<1 ] < Htarg )
       {
-          mm256_extr_lane_4x64( lane_hash, hash, lane, 256 );
+          extr_lane_4x64( lane_hash, hash, lane, 256 );
           if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
           {
               pdata[19] = n + lane;

@@ -20,8 +20,7 @@ int scanhash_keccak_4way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-   uint32_t hash[8*4] __attribute__ ((aligned (32)));
-   uint32_t edata[20] __attribute__ ((aligned (64)));
+   uint32_t hash[16*4] __attribute__ ((aligned (32)));
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *hash7 = &(hash[25]);   // 3*8+1
    uint32_t *pdata = work->data;
@@ -32,9 +31,7 @@ int scanhash_keccak_4way( struct work *work, uint32_t max_nonce,
 //   const uint32_t Htarg = ptarget[7];
     int thr_id = mythr->id;  // thr_id arg is deprecated
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//   mm256_bswap_intrlv80_4x64( vdata, pdata );
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
    do {
        *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
@@ -44,7 +41,7 @@ int scanhash_keccak_4way( struct work *work, uint32_t max_nonce,
       for ( int lane = 0; lane < 4; lane++ )
       if ( ( ( hash7[ lane<<1 ] & 0xFFFFFF00 ) == 0 ) )
       {
-          mm256_extr_lane_4x64( lane_hash, hash, lane, 256 );
+          extr_lane_4x64( lane_hash, hash, lane, 256 );
           if ( fulltest( lane_hash, ptarget ) )
           {
               pdata[19] = n + lane;

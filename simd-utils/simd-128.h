@@ -44,7 +44,17 @@
 // repeatedly. It may be better for the application to reimplement the
 // utility to better suit its usage.
 //
-
+// More tips:
+//
+// Conversions from integer to vector should be avoided whenever possible.
+// Extract, insert and set and set1 instructions should be avoided.
+// In addition to the issues with constants set is also very inefficient with
+// variables.
+// Converting integer data to perform a couple of vector operations
+// then converting back to integer should be avoided. Converting data in
+// registers should also be avoided. Conversion should be limited to buffers
+// in memory where the data is loaded directly to vector registers, bypassing
+// the integer to vector conversion.
 //
 // Pseudo constants.
 //
@@ -71,7 +81,7 @@ static inline __m128i m128_one_64_fn()
   asm( "pxor %0, %0\n\t"
        "pcmpeqd %%xmm1, %%xmm1\n\t"
        "psubq %%xmm1, %0\n\t"
-       :"=x"(a)
+       : "=x"(a)
        :
        : "xmm1" );
   return a;
@@ -84,7 +94,7 @@ static inline __m128i m128_one_32_fn()
   asm( "pxor %0, %0\n\t"
        "pcmpeqd %%xmm1, %%xmm1\n\t"
        "psubd %%xmm1, %0\n\t"
-       :"=x"(a)
+       : "=x"(a)
        :
        : "xmm1" );
   return a;
@@ -97,7 +107,7 @@ static inline __m128i m128_one_16_fn()
   asm( "pxor %0, %0\n\t"
        "pcmpeqd %%xmm1, %%xmm1\n\t"
        "psubw %%xmm1, %0\n\t"
-       :"=x"(a)
+       : "=x"(a)
        :
        : "xmm1" );
   return a;
@@ -110,7 +120,7 @@ static inline __m128i m128_one_8_fn()
   asm( "pxor %0, %0\n\t"
        "pcmpeqd %%xmm1, %%xmm1\n\t"
        "psubb %%xmm1, %0\n\t"
-       :"=x"(a)
+       : "=x"(a)
        :
        : "xmm1" );
   return a;
@@ -121,7 +131,7 @@ static inline __m128i m128_neg1_fn()
 {
    __m128i a;
    asm( "pcmpeqd %0, %0\n\t"
-        :"=x"(a) );
+        : "=x"(a) );
    return a;
 }
 #define m128_neg1    m128_neg1_fn()
@@ -133,7 +143,7 @@ static inline __m128i m128_one_128_fn()
    __m128i a;
    asm( "pinsrq $0, $1, %0\n\t"
         "pinsrq $1, $0, %0\n\t"
-        :"=x"(a) );
+        : "=x"(a) );
    return a;
 }
 #define m128_one_128    m128_one_128_fn()
@@ -145,8 +155,8 @@ static inline __m128i m128_const_64( uint64_t hi, uint64_t lo )
    __m128i a;
    asm( "pinsrq $0, %2, %0\n\t"
         "pinsrq $1, %1, %0\n\t"
-        :"=x"(a)
-        :"r"(hi),"r"(lo) );
+        : "=x"(a)
+        : "r"(hi), "r"(lo) );
    return a;
 } 
 

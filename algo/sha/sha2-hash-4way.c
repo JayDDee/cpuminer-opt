@@ -660,7 +660,7 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
     const int pad = buf_size - 16;
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
-    sc->buf[ ptr>>3 ] = _mm256_set1_epi64x( 0x80 );
+    sc->buf[ ptr>>3 ] = m256_const1_64( 0x80 );
     ptr += 8;
     if ( ptr > pad )
     {

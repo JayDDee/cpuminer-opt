@@ -37,7 +37,7 @@ void tribus_hash_4way(void *state, const void *input)
      keccak512_4way( &ctx_keccak, vhash, 64 );
      keccak512_4way_close( &ctx_keccak, vhash );
 
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // hash echo serially
      init_echo( &ctx_echo, 512 );
@@ -64,7 +64,6 @@ int scanhash_tribus_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -87,9 +86,7 @@ int scanhash_tribus_4way( struct work *work, uint32_t max_nonce,
                         0xFFFF0000,
                                  0 };
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//   mm256_bswap_intrlv80_4x64( vdata, pdata );
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
    // precalc midstate
    // doing it one way then then interleaving would be faster but too

@@ -39,7 +39,7 @@ void polytimos_4way_hash( void *output, const void *input )
 
      // Need to convert from 64 bit interleaved to 32 bit interleaved.
      uint32_t vhash32[16*4];
-     mm256_rintrlv_4x64_4x32( vhash32, vhash, 512 );
+     rintrlv_4x64_4x32( vhash32, vhash, 512 );
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash32, 64 );
      shabal512_4way_close( &ctx.shabal, vhash32 );
@@ -58,15 +58,15 @@ void polytimos_4way_hash( void *output, const void *input )
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                        (const BitSequence *) hash3, 512 );
 
-     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
+     intrlv_2x128( vhash, hash0, hash1, 512 );
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
-     mm256_intrlv_2x128( vhash, hash2, hash3, 512 );
+     dintrlv_2x128( hash0, hash1, vhash, 512 );
+     intrlv_2x128( vhash, hash2, hash3, 512 );
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
+     dintrlv_2x128( hash2, hash3, vhash, 512 );
 
      sph_fugue512_init( &ctx.fugue );
      sph_fugue512( &ctx.fugue, hash0, 64 );
@@ -105,7 +105,6 @@ int scanhash_polytimos_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[4*8] __attribute__ ((aligned (64)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -118,9 +117,7 @@ int scanhash_polytimos_4way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ptarget[7] = 0x0cff;
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//   mm256_bswap_intrlv80_4x64( vdata, pdata );
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
    do {
       *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
                  _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );

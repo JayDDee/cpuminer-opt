@@ -47,10 +47,6 @@ void myriad_4way_hash( void *output, const void *input )
 
      sha256_4way( &ctx.sha, vhash, 64 );
      sha256_4way_close( &ctx.sha, output );
-
-//     sha256_4way_close( &ctx.sha, vhash );
-//     mm128_dintrlv_4x32( output, output+32, output+64, output+96,
-//                           vhash, 256 );
 }
 
 int scanhash_myriad_4way( struct work *work, uint32_t max_nonce,
@@ -68,18 +64,10 @@ int scanhash_myriad_4way( struct work *work, uint32_t max_nonce,
    __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
    int thr_id = mythr->id;  // thr_id arg is deprecated
 
-/*
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
-
-	uint32_t _ALIGN(64) endiandata[20];
-	const uint32_t first_nonce = pdata[19];
-	uint32_t nonce = first_nonce;
-*/
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   mm128_bswap_intrlv80_4x32( vdata, pdata );
+   mm128_bswap32_intrlv80_4x32( vdata, pdata );
    do {
       *noncev = mm128_bswap_32( _mm_set_epi32( n+3,n+2,n+1,n ) );
 

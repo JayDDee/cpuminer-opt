@@ -67,7 +67,7 @@ void x16r_4way_hash( void* output, const void* input )
    void *in3 = (void*) hash3;
    int size = 80;
 
-   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, input, 640 );
+   dintrlv_4x64( hash0, hash1, hash2, hash3, input, 640 );
  
    if ( s_ntime == UINT32_MAX )
    {
@@ -96,11 +96,11 @@ void x16r_4way_hash( void* output, const void* input )
                blake512_4way( &ctx.blake, input, size );
             else
             {
-               mm256_intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
+               intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
                blake512_4way( &ctx.blake, vhash, size );
             }
             blake512_4way_close( &ctx.blake, vhash );
-            mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case BMW:
             bmw512_4way_init( &ctx.bmw );
@@ -108,11 +108,11 @@ void x16r_4way_hash( void* output, const void* input )
                bmw512_4way( &ctx.bmw, input, size );
             else
             {
-               mm256_intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
+               intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
                bmw512_4way( &ctx.bmw, vhash, size );
             }
             bmw512_4way_close( &ctx.bmw, vhash );
-            mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case GROESTL:
                init_groestl( &ctx.groestl, 64 );
@@ -134,11 +134,11 @@ void x16r_4way_hash( void* output, const void* input )
                skein512_4way( &ctx.skein, input, size );
             else
             {
-               mm256_intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
+               intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
                skein512_4way( &ctx.skein, vhash, size );
             }
             skein512_4way_close( &ctx.skein, vhash );
-            mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case JH:
             jh512_4way_init( &ctx.jh );
@@ -146,11 +146,11 @@ void x16r_4way_hash( void* output, const void* input )
                jh512_4way( &ctx.jh, input, size );
             else
             {
-               mm256_intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
+               intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
                jh512_4way( &ctx.jh, vhash, size );
             }
             jh512_4way_close( &ctx.jh, vhash );
-            mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case KECCAK:
             keccak512_4way_init( &ctx.keccak );
@@ -158,21 +158,21 @@ void x16r_4way_hash( void* output, const void* input )
                keccak512_4way( &ctx.keccak, input, size );
             else
             {
-               mm256_intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
+               intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
                keccak512_4way( &ctx.keccak, vhash, size );
             }
             keccak512_4way_close( &ctx.keccak, vhash );
-            mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+            dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case LUFFA:
-            mm256_intrlv_2x128( vhash, in0, in1, size<<3 );
+            intrlv_2x128( vhash, in0, in1, size<<3 );
             luffa_2way_init( &ctx.luffa, 512 );
             luffa_2way_update_close( &ctx.luffa, vhash, vhash, size );
-            mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
-            mm256_intrlv_2x128( vhash, in2, in3, size<<3 );
+            dintrlv_2x128( hash0, hash1, vhash, 512 );
+            intrlv_2x128( vhash, in2, in3, size<<3 );
             luffa_2way_init( &ctx.luffa, 512 );
             luffa_2way_update_close( &ctx.luffa, vhash, vhash, size);
-            mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
+            dintrlv_2x128( hash2, hash3, vhash, 512 );
          break;
          case CUBEHASH:
             cubehashInit( &ctx.cube, 512, 16, 32 );
@@ -203,14 +203,14 @@ void x16r_4way_hash( void* output, const void* input )
             sph_shavite512_close( &ctx.shavite, hash3 );
          break;
          case SIMD:
-            mm256_intrlv_2x128( vhash, in0, in1, size<<3 );
+            intrlv_2x128( vhash, in0, in1, size<<3 );
             simd_2way_init( &ctx.simd, 512 );
             simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
-            mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
-            mm256_intrlv_2x128( vhash, in2, in3, size<<3 );
+            dintrlv_2x128( hash0, hash1, vhash, 512 );
+            intrlv_2x128( vhash, in2, in3, size<<3 );
             simd_2way_init( &ctx.simd, 512 );
             simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
-            mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
+            dintrlv_2x128( hash2, hash3, vhash, 512 );
          break;
          case ECHO:
              init_echo( &ctx.echo, 512 );
@@ -227,11 +227,11 @@ void x16r_4way_hash( void* output, const void* input )
                                 (const BitSequence*)in3, size<<3 );
          break;
          case HAMSI:
-             mm256_intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
+             intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
              hamsi512_4way_init( &ctx.hamsi );
              hamsi512_4way( &ctx.hamsi, vhash, size );
              hamsi512_4way_close( &ctx.hamsi, vhash );
-             mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+             dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case FUGUE:
              sph_fugue512_init( &ctx.fugue );
@@ -269,11 +269,11 @@ void x16r_4way_hash( void* output, const void* input )
              sph_whirlpool_close( &ctx.whirlpool, hash3 );
          break;
          case SHA_512:
-             mm256_intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
+             intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
              sha512_4way_init( &ctx.sha512 );
              sha512_4way( &ctx.sha512, vhash, size );
              sha512_4way_close( &ctx.sha512, vhash );
-             mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+             dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
       }
       size = 64;
@@ -316,7 +316,7 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
       ptarget[7] = 0x0cff;
 
    uint64_t *edata = (uint64_t*)endiandata;
-   mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+   intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
    do
    {

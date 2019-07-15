@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-//#include "avxdefs.h"
 
 #if defined(JHA_4WAY)
 
@@ -12,9 +11,6 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/groestl/aes_ni/hash-groestl.h"
-
-//static __thread keccak512_4way_context jha_kec_mid
-//                                   __attribute__ ((aligned (64)));
 
 void jha_hash_4way( void *out, const void *input )
 {
@@ -46,7 +42,7 @@ void jha_hash_4way( void *out, const void *input )
        vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256(
                vh[0], _mm256_set1_epi64x( 1 ) ), m256_zero );
 
-       mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+       dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
        init_groestl( &ctx_groestl, 64 );
        update_and_final_groestl( &ctx_groestl, (char*)hash0,
                                                (char*)hash0, 512 );
@@ -59,7 +55,7 @@ void jha_hash_4way( void *out, const void *input )
        init_groestl( &ctx_groestl, 64 );
        update_and_final_groestl( &ctx_groestl, (char*)hash3,
                                                (char*)hash3, 512 );
-       mm256_intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+       intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
        skein512_4way_init( &ctx_skein );
        skein512_4way( &ctx_skein, vhash, 64 );
@@ -79,8 +75,6 @@ void jha_hash_4way( void *out, const void *input )
        for ( int i = 0; i < 8; i++ )
           casti_m256i( out, i ) = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );
     }
-
-//    mm256_dintrlv_4x64( out, out+32, out+64, out+96, vhash, 256 );
 }
 
 int scanhash_jha_4way( struct work *work, uint32_t max_nonce,
@@ -88,7 +82,6 @@ int scanhash_jha_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[25]);
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
@@ -116,11 +109,7 @@ int scanhash_jha_4way( struct work *work, uint32_t max_nonce,
 		0
 	};
 
-   for ( int i=0; i < 19; i++ )
-      be32enc( &edata[i], pdata[i] );
-
-   mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//   mm256_bswap_intrlv80_4x64( vdata, pdata );
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
    for ( int m = 0; m < 6; m++ )
    {
@@ -130,26 +119,17 @@ int scanhash_jha_4way( struct work *work, uint32_t max_nonce,
          do {
               *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
-//              be32enc( noncep,   n   );
-//              be32enc( noncep+2, n+1 );
-//              be32enc( noncep+4, n+2 );
-//              be32enc( noncep+6, n+3 );
 
               jha_hash_4way( hash, vdata );
               pdata[19] = n;
 
-//              for ( int i = 0; i < 4; i++ )
-//              if ( ( !( (hash+(i<<3))[7] & mask ) == 0 )
-//                  && fulltest( hash+(i<<3), ptarget ) )
               for ( int i = 0; i < 4; i++ ) if ( !( (hash7[i] & mask ) == 0 ) )
               {
-                 mm256_extr_lane_4x64( lane_hash, hash, i, 256 );
+                 extr_lane_4x64( lane_hash, hash, i, 256 );
                  if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
                  {
                     pdata[19] = n+i;
                     submit_lane_solution( work, lane_hash, mythr, i );
-//                 nonces[ num_found++ ] = n+i;
-//                 work_set_target_ratio( work, hash+(i<<3) );
                  }
               }
               n += 4;

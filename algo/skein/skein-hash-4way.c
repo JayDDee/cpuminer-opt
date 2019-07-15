@@ -279,10 +279,7 @@ do { \
                                               _mm256_xor_si256( k2, k3 ) ), \
                             _mm256_xor_si256( _mm256_xor_si256( k4, k5 ), \
                                               _mm256_xor_si256( k6, k7 ) ) ), \
-                         _mm256_set_epi64x( SPH_C64(0x1BD11BDAA9FC1A22), \
-                                            SPH_C64(0x1BD11BDAA9FC1A22), \
-                                            SPH_C64(0x1BD11BDAA9FC1A22), \
-                                            SPH_C64(0x1BD11BDAA9FC1A22) ) ); \
+                         m256_const1_64( 0x1BD11BDAA9FC1A22) ); \
   t2 = t0 ^ t1; \
 } while (0)
 
@@ -294,13 +291,11 @@ do { \
   w3 = _mm256_add_epi64( w3, SKBI(k,s,3) ); \
   w4 = _mm256_add_epi64( w4, SKBI(k,s,4) ); \
   w5 = _mm256_add_epi64( w5, _mm256_add_epi64( SKBI(k,s,5), \
-                           _mm256_set_epi64x( SKBT(t,s,0), SKBT(t,s,0), \
-                                              SKBT(t,s,0), SKBT(t,s,0) ) ) ); \
+                                         m256_const1_64( SKBT(t,s,0) ) ) ); \
   w6 = _mm256_add_epi64( w6, _mm256_add_epi64( SKBI(k,s,6), \
-                           _mm256_set_epi64x( SKBT(t,s,1), SKBT(t,s,1), \
-                                              SKBT(t,s,1), SKBT(t,s,1) ) ) ); \
+                                         m256_const1_64( SKBT(t,s,1) ) ) ); \
   w7 = _mm256_add_epi64( w7, _mm256_add_epi64( SKBI(k,s,7), \
-                                      _mm256_set_epi64x( s, s, s, s ) ) ); \
+                                         m256_const1_64( s ) ) ); \
 } while (0)
 
 

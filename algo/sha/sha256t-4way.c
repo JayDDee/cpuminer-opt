@@ -72,7 +72,7 @@ int scanhash_sha256t_11way( struct work *work, uint32_t max_nonce,
    casti_m256i( dataz, 1 ) = mm256_bswap_32( casti_m256i( pdata, 1 ) );
    casti_m128i( dataz, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
-   mm256_intrlv_8x32( datax, dataz, dataz, dataz, dataz,
+   intrlv_8x32( datax, dataz, dataz, dataz, dataz,
                                  dataz, dataz, dataz, dataz, 640 );
    mm64_interleave_2x32( datay, dataz, dataz, 640 );
 
@@ -99,7 +99,7 @@ int scanhash_sha256t_11way( struct work *work, uint32_t max_nonce,
         for ( i = 0; i < 8; i++ ) if ( !( hash7[ i ] & mask ) )
         { 
             // deinterleave hash for lane
-            mm256_extr_lane_8x32( lane_hash, hashx, i, 256 );
+            extr_lane_8x32( lane_hash, hashx, i, 256 );
             if ( fulltest( lane_hash, ptarget ) )
             {
 	            pdata[19] = n + i;
@@ -163,7 +163,6 @@ int scanhash_sha256t_8way( struct work *work, uint32_t max_nonce,
 {
    uint32_t vdata[20*8]  __attribute__ ((aligned (64)));
    uint32_t hash[8*8]    __attribute__ ((aligned (32)));
-   uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *hash7 = &(hash[7<<3]);
    uint32_t *pdata = work->data;
@@ -187,12 +186,9 @@ int scanhash_sha256t_8way( struct work *work, uint32_t max_nonce,
                                0xFFFF0000,
                                         0 };
 
-   swab32_array( edata, pdata, 20 );
-   mm256_intrlv_8x32( vdata, edata, edata, edata, edata,
-                             edata, edata, edata, edata, 640 );
 
    // Need big endian data
-//   mm256_bswap_intrlv80_8x32( vdata, pdata );
+   mm256_bswap32_intrlv80_8x32( vdata, pdata );
    sha256_8way_init( &sha256_ctx8 );
    sha256_8way( &sha256_ctx8, vdata, 64 );
 
@@ -209,7 +205,7 @@ int scanhash_sha256t_8way( struct work *work, uint32_t max_nonce,
          if ( !( hash7[ lane ] & mask ) )
          {
             // deinterleave hash for lane
-            mm256_extr_lane_8x32( lane_hash, hash, lane, 256 );
+            extr_lane_8x32( lane_hash, hash, lane, 256 );
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
               pdata[19] = n + lane;
@@ -253,7 +249,6 @@ int scanhash_sha256t_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t hash[8*4] __attribute__ ((aligned (32)));
-   uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[7<<2]);
    uint32_t *pdata = work->data;
@@ -277,10 +272,7 @@ int scanhash_sha256t_4way( struct work *work, uint32_t max_nonce,
                               0xFFFF0000,
                                        0 };
 
-   swab32_array( edata, pdata, 20 );
-   mm128_intrlv_4x32( vdata, edata, edata, edata, edata, 640 );
-
-//   mm128_bswap_intrlv80_4x32( vdata, pdata );
+   mm128_bswap32_intrlv80_4x32( vdata, pdata );
    sha256_4way_init( &sha256_ctx4 );
    sha256_4way( &sha256_ctx4, vdata, 64 );
 

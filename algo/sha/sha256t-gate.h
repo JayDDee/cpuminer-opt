@@ -8,7 +8,7 @@
 #if !defined(__SHA__)
  #if defined(__AVX2__)
   #define SHA256T_8WAY
-#elif defined(__SSE2__)
+ #elif defined(__SSE2__)
   #define SHA256T_4WAY
  #endif
 #endif

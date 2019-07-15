@@ -12,7 +12,7 @@
 
 void skeinhash_4way( void *state, const void *input )
 {
-     uint64_t vhash64[8*4] __attribute__ ((aligned (64)));
+     uint64_t vhash64[16*4] __attribute__ ((aligned (64)));
      skein512_4way_context ctx_skein;
 #if defined(__SHA__)
      uint32_t hash0[16] __attribute__ ((aligned (64)));
@@ -30,7 +30,7 @@ void skeinhash_4way( void *state, const void *input )
      skein512_4way_close( &ctx_skein, vhash64 );
 
 #if defined(__SHA__)      
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 512 );
 
      SHA256_Init( &ctx_sha256 );
      SHA256_Update( &ctx_sha256, (unsigned char*)hash0, 64 );
@@ -50,7 +50,7 @@ void skeinhash_4way( void *state, const void *input )
 
      intrlv_4x32( state, hash0, hash1, hash2, hash3, 256 );
 #else
-     mm256_rintrlv_4x64_4x32( vhash32, vhash64, 512 );
+     rintrlv_4x64_4x32( vhash32, vhash64, 512 );
 
      sha256_4way_init( &ctx_sha256 );
      sha256_4way( &ctx_sha256, vhash32, 64 );
@@ -62,8 +62,7 @@ int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-    uint32_t hash[8*4] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
+    uint32_t hash[16*4] __attribute__ ((aligned (64)));
     uint32_t lane_hash[8] __attribute__ ((aligned (32)));
     uint32_t *hash7 = &(hash[7<<2]);
     uint32_t *pdata = work->data;
@@ -74,9 +73,7 @@ int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
     int thr_id = mythr->id;  // thr_id arg is deprecated
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//   mm256_bswap_intrlv80_4x64( vdata, pdata );
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
    do
    {
        *noncev = mm256_intrlv_blend_32( mm256_bswap_32(

@@ -53,7 +53,7 @@ void phi1612_4way_hash( void *state, const void *input )
      jh512_4way_close( &ctx.jh, vhash );
 
      // Serial to the end
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // Cubehash
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );
@@ -114,7 +114,6 @@ int scanhash_phi1612_4way( struct work *work, uint32_t max_nonce,
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-     uint32_t edata[20] __attribute__ ((aligned (64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      const uint32_t first_nonce = pdata[19];
@@ -125,9 +124,7 @@ int scanhash_phi1612_4way( struct work *work, uint32_t max_nonce,
 
      if ( opt_benchmark )
           ( (uint32_t*)ptarget )[7] = 0x0cff;
-     swab32_array( edata, pdata, 20 );
-     mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//     mm256_bswap_intrlv80_4x64( vdata, pdata );
+     mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
      do {
            *noncev = mm256_intrlv_blend_32( mm256_bswap_32(

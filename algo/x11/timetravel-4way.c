@@ -87,19 +87,16 @@ void timetravel_4way_hash(void *output, const void *input)
            blake512_4way( &ctx.blake, vhashA, dataLen );
            blake512_4way_close( &ctx.blake, vhashB );
            if ( i == 7 )
-              mm256_dintrlv_4x64( hash0, hash1, hash2, hash3,
-                                       vhashB, dataLen<<3 );
+              dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
         break;
         case 1:
            bmw512_4way( &ctx.bmw, vhashA, dataLen );
            bmw512_4way_close( &ctx.bmw, vhashB );
            if ( i == 7 )
-              mm256_dintrlv_4x64( hash0, hash1, hash2, hash3,
-                                       vhashB, dataLen<<3 );
+              dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
         break;
         case 2:
-           mm256_dintrlv_4x64( hash0, hash1, hash2, hash3,
-                                    vhashA, dataLen<<3 );
+           dintrlv_4x64( hash0, hash1, hash2, hash3, vhashA, dataLen<<3 );
            update_and_final_groestl( &ctx.groestl, (char*)hash0,
                                                    (char*)hash0, dataLen<<3 );
            reinit_groestl( &ctx.groestl );
@@ -112,47 +109,40 @@ void timetravel_4way_hash(void *output, const void *input)
            update_and_final_groestl( &ctx.groestl, (char*)hash3,
                                                    (char*)hash3, dataLen<<3 );
            if ( i != 7 )
-              mm256_intrlv_4x64( vhashB,
-                                     hash0, hash1, hash2, hash3, dataLen<<3 );
+              intrlv_4x64( vhashB, hash0, hash1, hash2, hash3, dataLen<<3 );
         break;
         case 3:
            skein512_4way( &ctx.skein, vhashA, dataLen );
            skein512_4way_close( &ctx.skein, vhashB );
            if ( i == 7 )
-              mm256_dintrlv_4x64( hash0, hash1, hash2, hash3,
-                                       vhashB, dataLen<<3 );
+              dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
         break;
         case 4:
            jh512_4way( &ctx.jh, vhashA, dataLen );
            jh512_4way_close( &ctx.jh, vhashB );
            if ( i == 7 )
-              mm256_dintrlv_4x64( hash0, hash1, hash2, hash3,
-                                       vhashB, dataLen<<3 );
+              dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
         break;
         case 5:
            keccak512_4way( &ctx.keccak, vhashA, dataLen );
            keccak512_4way_close( &ctx.keccak, vhashB );
            if ( i == 7 )
-              mm256_dintrlv_4x64( hash0, hash1, hash2, hash3,
-                                       vhashB, dataLen<<3 );
+              dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
         break;
         case 6:
-           mm256_dintrlv_4x64( hash0, hash1, hash2, hash3,
-                                    vhashA, dataLen<<3 );
-           mm256_intrlv_2x128( vhashA, hash0, hash1, dataLen<<3 );
+           dintrlv_4x64( hash0, hash1, hash2, hash3, vhashA, dataLen<<3 );
+           intrlv_2x128( vhashA, hash0, hash1, dataLen<<3 );
            luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, dataLen );
-           mm256_dintrlv_2x128( hash0, hash1, vhashA, dataLen<<3 );
-           mm256_intrlv_2x128( vhashA, hash2, hash3, dataLen<<3 );
+           dintrlv_2x128( hash0, hash1, vhashA, dataLen<<3 );
+           intrlv_2x128( vhashA, hash2, hash3, dataLen<<3 );
            luffa_2way_init( &ctx.luffa, 512 );
            luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, dataLen );
-           mm256_dintrlv_2x128( hash2, hash3, vhashA, dataLen<<3 );
+           dintrlv_2x128( hash2, hash3, vhashA, dataLen<<3 );
            if ( i != 7 )           
-              mm256_intrlv_4x64( vhashB,
-                                     hash0, hash1, hash2, hash3, dataLen<<3 );
+              intrlv_4x64( vhashB, hash0, hash1, hash2, hash3, dataLen<<3 );
         break;
         case 7:
-           mm256_dintrlv_4x64( hash0, hash1, hash2, hash3,
-                                    vhashA, dataLen<<3 );
+           dintrlv_4x64( hash0, hash1, hash2, hash3, vhashA, dataLen<<3 );
            cubehashUpdateDigest( &ctx.cube, (byte*)hash0,
                                       (const byte*)hash0, dataLen );
            memcpy( &ctx.cube, &tt8_4way_ctx.cube, sizeof(cubehashParam) );
@@ -165,8 +155,7 @@ void timetravel_4way_hash(void *output, const void *input)
            cubehashUpdateDigest( &ctx.cube, (byte*)hash3,
                                       (const byte*)hash3, dataLen );
            if ( i != 7 )           
-              mm256_intrlv_4x64( vhashB,
-                                     hash0, hash1, hash2, hash3, dataLen<<3 );
+              intrlv_4x64( vhashB, hash0, hash1, hash2, hash3, dataLen<<3 );
         break;
         default:
            applog(LOG_ERR,"SWERR: timetravel invalid permutation");
@@ -215,7 +204,7 @@ int scanhash_timetravel_4way( struct work *work, uint32_t max_nonce,
    }
 
    uint64_t *edata = (uint64_t*)endiandata;
-   mm256_intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
+   intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
    do
    {

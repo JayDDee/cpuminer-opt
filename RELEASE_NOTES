@@ -38,6 +38,12 @@ supported.
 Change Log
 ----------
 
+v3.9.5.4
+
+Fixed sha256q AVX2 poor performance.
+Fixed skein2 buffer overflow and restored bswap-interleave optimization.
+More restructuring.
+
 v3.9.5.3
 
 Fix crash mining hodl with aes-sse42.
@@ -45,7 +51,7 @@ More restructuring and share report tweaks.
 
 v3.9.5.2
 
-Revert bswap-interleave optiization for causing crashes on Windows.
+Revert bswap-interleave optimization for causing crashes on Windows.
 
 v3.9.5.1
 

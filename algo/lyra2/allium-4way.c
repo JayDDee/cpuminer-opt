@@ -44,11 +44,11 @@ void allium_4way_hash( void *state, const void *input )
    blake256_4way( &ctx.blake, input + (64<<2), 16 );
    blake256_4way_close( &ctx.blake, vhash32 );
 
-   mm256_rintrlv_4x32_4x64( vhash64, vhash32, 256 );
+   rintrlv_4x32_4x64( vhash64, vhash32, 256 );
    keccak256_4way( &ctx.keccak, vhash64, 32 );
    keccak256_4way_close( &ctx.keccak, vhash64 );
 
-   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
+   dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
    LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
    LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
@@ -68,12 +68,12 @@ void allium_4way_hash( void *state, const void *input )
    LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
    LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
 
-   mm256_intrlv_4x64( vhash64, hash0, hash1, hash2, hash3, 256 );
+   intrlv_4x64( vhash64, hash0, hash1, hash2, hash3, 256 );
 
    skein256_4way( &ctx.skein, vhash64, 32 );
    skein256_4way_close( &ctx.skein, vhash64 );
 
-   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
+   dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
    update_and_final_groestl256( &ctx.groestl, state, hash0, 256 );
    memcpy( &ctx.groestl, &allium_4way_ctx.groestl,
@@ -103,7 +103,7 @@ int scanhash_allium_4way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   mm128_bswap_intrlv80_4x32( vdata, pdata );
+   mm128_bswap32_intrlv80_4x32( vdata, pdata );
    blake256_4way_init( &allium_4way_ctx.blake );
    blake256_4way( &allium_4way_ctx.blake, vdata, 64 );
 

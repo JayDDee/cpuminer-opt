@@ -242,6 +242,8 @@ void cryptolight_hash(void* output, const void* input, int len) {
 	free(ctx);
 }
 
+#if defined(__AES__)
+
 static void cryptolight_hash_ctx_aes_ni(void* output, const void* input,
                        int len, struct cryptonight_ctx* ctx)
 {
@@ -311,6 +313,8 @@ static void cryptolight_hash_ctx_aes_ni(void* output, const void* input,
 	extra_hashes[ctx->state.hs.b[0] & 3](&ctx->state, 200, output);
 	oaes_free((OAES_CTX **) &ctx->aes_ctx);
 }
+
+#endif
 
 int scanhash_cryptolight( struct work *work,
 		uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr)

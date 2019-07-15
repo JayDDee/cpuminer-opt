@@ -68,7 +68,7 @@ void x17_4way_hash( void *state, const void *input )
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serialize
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // 3 Groestl
      init_groestl( &ctx.groestl, 64 );
@@ -81,7 +81,7 @@ void x17_4way_hash( void *state, const void *input )
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      // Parallellize
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      // 4 Skein parallel 4 way 64 bit 
      skein512_4way_init( &ctx.skein );
@@ -99,7 +99,7 @@ void x17_4way_hash( void *state, const void *input )
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // 7 Luffa  parallel 2 way 128 bit
-     mm256_rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
@@ -124,8 +124,8 @@ void x17_4way_hash( void *state, const void *input )
      simd_2way_init( &ctx.simd, 512 );
      simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
 
-     mm256_dintrlv_2x128_512( hash0, hash1, vhashA );
-     mm256_dintrlv_2x128_512( hash2, hash3, vhashB );
+     dintrlv_2x128_512( hash0, hash1, vhashA );
+     dintrlv_2x128_512( hash2, hash3, vhashB );
 
      // 11 Echo serial
      init_echo( &ctx.echo, 512 );
@@ -142,13 +142,13 @@ void x17_4way_hash( void *state, const void *input )
                        (const BitSequence *) hash3, 512 );
 
      // 12 Hamsi parallel 4 way 64 bit
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // 13 Fugue serial
      sph_fugue512_init( &ctx.fugue );
@@ -188,14 +188,14 @@ void x17_4way_hash( void *state, const void *input )
      sph_whirlpool_close( &ctx.whirlpool, hash3 );
 
      // 16 SHA512 parallel 64 bit 
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      sha512_4way_init( &ctx.sha512 );
      sha512_4way( &ctx.sha512, vhash, 64 );
      sha512_4way_close( &ctx.sha512, vhash );     
 
      // 17 Haval parallel 32 bit
-     mm256_rintrlv_4x64_4x32( vhashB, vhash,  512 );
+     rintrlv_4x64_4x32( vhashB, vhash,  512 );
 
      haval256_5_4way_init( &ctx.haval );
      haval256_5_4way( &ctx.haval, vhashB, 64 );
@@ -207,7 +207,6 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
      uint32_t lane_hash[8] __attribute__ ((aligned (32)));
      uint32_t *hash7 = &(hash[7<<2]);
      uint32_t *pdata = work->data;
@@ -223,9 +222,7 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
                           0xFFFFF000, 0xFFFF0000,          0  };
 
      // Need big endian data
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//     mm256_bswap_intrlv80_4x64( vdata, pdata );
+     mm256_bswap32_intrlv80_4x64( vdata, pdata );
      for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
      {
         uint32_t mask = masks[ m ];
@@ -235,7 +232,7 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
 	              _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
            x17_4way_hash( hash, vdata );
 
-	     for ( int lane = 0; lane < 4; lane++ )
+           for ( int lane = 0; lane < 4; lane++ )
            if ( ( hash7[ lane ] & mask ) == 0 )
            {
               extr_lane_4x32( lane_hash, hash, lane, 256 );

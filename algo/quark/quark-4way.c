@@ -63,7 +63,7 @@ void quark_4way_hash( void *state, const void *input )
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
 
-    mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
     if ( hash0[0] & mask )
     {
@@ -89,7 +89,7 @@ void quark_4way_hash( void *state, const void *input )
                                                (char*)hash3, 512 );
     }
 
-    mm256_intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+    intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
     if ( mm256_anybits0( vh_mask ) )   
     {
@@ -99,7 +99,7 @@ void quark_4way_hash( void *state, const void *input )
 
     mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-    mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
     reinit_groestl( &ctx.groestl );
     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -110,7 +110,7 @@ void quark_4way_hash( void *state, const void *input )
     reinit_groestl( &ctx.groestl );
     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
-    mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+    intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
     jh512_4way( &ctx.jh, vhash, 64 );
     jh512_4way_close( &ctx.jh, vhash );
@@ -168,7 +168,6 @@ int scanhash_quark_4way( struct work *work, uint32_t max_nonce,
 {
     uint32_t hash[4*8] __attribute__ ((aligned (64)));
     uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
     uint32_t lane_hash[8] __attribute__ ((aligned (64)));
     uint32_t *hash7 = &(hash[25]);
     uint32_t *pdata = work->data;
@@ -178,9 +177,7 @@ int scanhash_quark_4way( struct work *work, uint32_t max_nonce,
     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
     int thr_id = mythr->id;  // thr_id arg is deprecated
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//    mm256_bswap_intrlv80_4x64( vdata, pdata );
+    mm256_bswap32_intrlv80_4x64( vdata, pdata );
     do
     {
        *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
@@ -192,7 +189,7 @@ int scanhash_quark_4way( struct work *work, uint32_t max_nonce,
        for ( int i = 0; i < 4; i++ )
        if ( ( hash7[ i<<1 ] & 0xFFFFFF00 ) == 0 )
        {
-          mm256_extr_lane_4x64( lane_hash, hash, i, 256 );
+          extr_lane_4x64( lane_hash, hash, i, 256 );
           if ( fulltest( lane_hash, ptarget ) && !opt_benchmark  )
           {
             pdata[19] = n+i;

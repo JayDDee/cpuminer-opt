@@ -39,7 +39,7 @@ void deep_2way_hash( void *output, const void *input )
      memcpy( &ctx, &deep_2way_ctx, sizeof(deep_2way_ctx) );
      luffa_2way_update( &ctx.luffa, input + (64<<1), 16 );
      luffa_2way_close( &ctx.luffa, vhash );
-     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
+     dintrlv_2x128( hash0, hash1, vhash, 512 );
 
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0,
                            (const byte*) hash0, 64 );
@@ -86,7 +86,7 @@ int scanhash_deep_2way( struct work *work,uint32_t max_nonce,
      casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
      uint64_t *edata = (uint64_t*)endiandata;
-     mm256_intrlv_2x128( (uint64_t*)vdata, edata, edata, 640 );
+     intrlv_2x128( (uint64_t*)vdata, edata, edata, 640 );
 
      luffa_2way_init( &deep_2way_ctx.luffa, 512 );
      luffa_2way_update( &deep_2way_ctx.luffa, vdata, 64 );

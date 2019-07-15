@@ -196,9 +196,9 @@ SPH_XCAT( HASH, _addbits_and_close )(void *cc, 	unsigned ub, unsigned n,
     ptr = (unsigned)sc->count & (SPH_BLEN - 1U);
 
 #ifdef PW01
-    sc->buf[ptr>>3] = _mm256_set1_epi64x( 0x100 >> 8 );
+    sc->buf[ptr>>3] = m256_const1_64( 0x100 >> 8 );
 #else
-    sc->buf[ptr>>3] = _mm256_set1_epi64x( 0x80 );
+    sc->buf[ptr>>3] = m256_const1_64( 0x80 );
 #endif
     ptr += 8;
 

@@ -70,7 +70,7 @@ void x11gost_4way_hash( void *state, const void *input )
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serial
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
      memcpy( &ctx.groestl, &x11gost_4way_ctx.groestl,
@@ -84,7 +84,7 @@ void x11gost_4way_hash( void *state, const void *input )
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      // 4way
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      skein512_4way( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
@@ -96,7 +96,7 @@ void x11gost_4way_hash( void *state, const void *input )
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // Serial
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_gost512( &ctx.gost, hash0, 64 );
      sph_gost512_close( &ctx.gost, hash0 );
@@ -110,13 +110,13 @@ void x11gost_4way_hash( void *state, const void *input )
      sph_gost512( &ctx.gost, hash3, 64 );
      sph_gost512_close( &ctx.gost, hash3 );
 
-     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
+     intrlv_2x128( vhash, hash0, hash1, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
-     mm256_intrlv_2x128( vhash, hash2, hash3, 512 );
+     dintrlv_2x128( hash0, hash1, vhash, 512 );
+     intrlv_2x128( vhash, hash2, hash3, 512 );
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
+     dintrlv_2x128( hash2, hash3, vhash, 512 );
 
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );
      memcpy( &ctx.cube, &x11gost_4way_ctx.cube, sizeof(cubehashParam) );
@@ -141,12 +141,12 @@ void x11gost_4way_hash( void *state, const void *input )
      sph_shavite512( &ctx.shavite, hash3, 64 );
      sph_shavite512_close( &ctx.shavite, hash3 );
 
-     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
+     intrlv_2x128( vhash, hash0, hash1, 512 );
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
-     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
-     mm256_intrlv_2x128( vhash, hash2, hash3, 512 );
+     dintrlv_2x128( hash0, hash1, vhash, 512 );
+     intrlv_2x128( vhash, hash2, hash3, 512 );
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
-     mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
+     dintrlv_2x128( hash2, hash3, vhash, 512 );
 
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
                        (const BitSequence *) hash0, 512 );
@@ -171,7 +171,6 @@ int scanhash_x11gost_4way( struct work *work, uint32_t max_nonce,
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];
@@ -184,9 +183,7 @@ int scanhash_x11gost_4way( struct work *work, uint32_t max_nonce,
      uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
                           0xFFFFF000, 0xFFFF0000,          0  };
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//     mm256_bswap_intrlv80_4x64( vdata, pdata );
+     mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
      for (int m=0; m < 6; m++) 
        if (Htarg <= htmax[m])

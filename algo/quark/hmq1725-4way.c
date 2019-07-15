@@ -67,7 +67,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
      bmw512_4way( &ctx.bmw, input, 80 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_whirlpool_init( &ctx.whirlpool );
      sph_whirlpool( &ctx.whirlpool, hash0, 64 );
@@ -84,7 +84,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
 // first fork, A is groestl serial, B is skein parallel.
 
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], vmask ),
                                    m256_zero );
@@ -116,7 +116,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
                                                (char*)hash3, 512 );
 //     }
 
-     mm256_intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
 // B
 
@@ -158,7 +158,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
      mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
     
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      init_luffa( &ctx.luffa, 512 );
      update_and_final_luffa( &ctx.luffa, (BitSequence*)hash0,
@@ -186,7 +186,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
      cubehashUpdateDigest( &ctx.cube, (BitSequence *)hash3,
                                 (const BitSequence *)hash3, 64 );
 
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
 // A= keccak parallel, B= jh parallel
     
@@ -209,7 +209,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
      mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_shavite512_init( &ctx.shavite );
      sph_shavite512 ( &ctx.shavite, hash0, 64 );
@@ -240,7 +240,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 // A is whirlpool serial, B is haval parallel.
     
 
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], vmask ),
                                    m256_zero );
@@ -271,7 +271,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
         sph_whirlpool_close( &ctx.whirlpool, hash3 );
 //     }
 
-     mm256_intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
 // B
 
@@ -285,7 +285,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
      mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
     
      init_echo( &ctx.echo, 512 );
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
@@ -300,13 +300,13 @@ extern void hmq1725_4way_hash(void *state, const void *input)
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                              (const BitSequence *)hash3, 512 );
 
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
      
      blake512_4way_init( &ctx.blake );
      blake512_4way( &ctx.blake, vhash, 64 );
      blake512_4way_close( &ctx.blake, vhash );
 
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
 // shavite & luffa, both serial, select individually.
 
@@ -362,13 +362,13 @@ extern void hmq1725_4way_hash(void *state, const void *input)
                                     (const BitSequence *)hash3, 64 );
    }
 
-   mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+   intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
    hamsi512_4way_init( &ctx.hamsi );
    hamsi512_4way( &ctx.hamsi, vhash, 64 );
    hamsi512_4way_close( &ctx.hamsi, vhash );
 
-   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+   dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
    sph_fugue512_init( &ctx.fugue );
    sph_fugue512( &ctx.fugue, hash0, 64 );
@@ -438,13 +438,13 @@ extern void hmq1725_4way_hash(void *state, const void *input)
                              (const BitSequence *)hash3, 512 );
    }
 
-   mm128_intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+   intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
    shabal512_4way_init( &ctx.shabal );
    shabal512_4way( &ctx.shabal, vhash, 64 );
    shabal512_4way_close( &ctx.shabal, vhash );
 
-   mm128_dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+   dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
    sph_whirlpool_init( &ctx.whirlpool );
    sph_whirlpool( &ctx.whirlpool, hash0, 64 );
@@ -461,7 +461,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
 // A = fugue serial, B = sha512 prarallel
    
-   mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+   intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], vmask ),
                                  m256_zero );
@@ -491,7 +491,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
       sph_fugue512_close( &ctx.fugue, hash3 );
 //   }
 
-   mm256_intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
+   intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
 //   if ( mm256_any_clr_256( vh_mask ) )
 //   {
@@ -502,7 +502,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
    mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+   dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
    init_groestl( &ctx.groestl, 64 );
    update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -513,7 +513,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
    init_groestl( &ctx.groestl, 64 );
    update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
-   mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+   intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
    sha512_4way_init( &ctx.sha512 ); 
    sha512_4way( &ctx.sha512, vhash, 64 );
@@ -524,7 +524,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
    vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], vmask ),
                                  m256_zero );
 
-   mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+   dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
      
 //   if ( mm256_any_set_256( vh_mask ) ) //4
 //   {
@@ -559,7 +559,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
       sph_whirlpool_close( &ctx.whirlpool, hash3 );
 //   }
 
-   mm256_intrlv_4x64( vhashB, hash0, hash1, hash2, hash3, 512 );
+   intrlv_4x64( vhashB, hash0, hash1, hash2, hash3, 512 );
 
    mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
@@ -589,7 +589,7 @@ int scanhash_hmq1725_4way( struct work *work, uint32_t max_nonce,
    uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
                         0xFFFFF000, 0xFFFF0000,          0  };
 
-   mm256_bswap_intrlv80_4x64( vdata, pdata );
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
    for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
    {
       uint32_t mask = masks[ m ];

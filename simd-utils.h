@@ -175,32 +175,25 @@
 
 // 64 bit vectors
 #include "simd-utils/simd-64.h"
-#include "simd-utils/intrlv-mmx.h"
+//#include "simd-utils/intrlv-mmx.h"
 
 #if defined(__SSE2__)
 
 // 128 bit vectors
 #include "simd-utils/simd-128.h"
-#include "simd-utils/intrlv-sse2.h"
 
 #if defined(__AVX__)
 
 // 256 bit vector basics
 #include "simd-utils/simd-256.h"
-#include "simd-utils/intrlv-avx.h"
 
 #if defined(__AVX2__)
-
-// 256 bit everything else
-//#include "simd-utils/simd-avx2.h"
-#include "simd-utils/intrlv-avx2.h"
 
 // Skylake-X has all these
 #if defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 // 512 bit vectors
 #include "simd-utils/simd-512.h"
-#include "simd-utils/intrlv-avx512.h"
 
 #endif  // MMX
 #endif  // SSE2
@@ -208,7 +201,6 @@
 #endif  // AVX2
 #endif  // AVX512
 
-// Picks implementation based on available CPU features.
-#include "simd-utils/intrlv-selector.h"
+#include "simd-utils/intrlv.h"
 
 #endif  // SIMD_UTILS_H__

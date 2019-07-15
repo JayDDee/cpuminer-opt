@@ -41,7 +41,7 @@ void lyra2rev3_8way_hash( void *state, const void *input )
    blake256_8way( &ctx.blake, input, 80 );
    blake256_8way_close( &ctx.blake, vhash );
 
-   mm256_dintrlv_8x32( hash0, hash1, hash2, hash3,
+   dintrlv_8x32( hash0, hash1, hash2, hash3,
                        hash4, hash5, hash6, hash7, vhash, 256 );
 
    LYRA2REV3( l2v3_wholeMatrix, hash0, 32, hash0, 32, hash0, 32, 1, 4, 4 );
@@ -78,7 +78,7 @@ void lyra2rev3_8way_hash( void *state, const void *input )
    LYRA2REV3( l2v3_wholeMatrix, hash6, 32, hash6, 32, hash6, 32, 1, 4, 4 );
    LYRA2REV3( l2v3_wholeMatrix, hash7, 32, hash7, 32, hash7, 32, 1, 4, 4 );
 
-   mm256_intrlv_8x32( vhash, hash0, hash1, hash2, hash3,
+   intrlv_8x32( vhash, hash0, hash1, hash2, hash3,
                              hash4, hash5, hash6, hash7, 256 );
 
    bmw256_8way( &ctx.bmw, vhash, 32 );
@@ -91,7 +91,6 @@ int scanhash_lyra2rev3_8way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*8] __attribute__ ((aligned (64)));
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[7<<3]);
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
@@ -105,10 +104,7 @@ int scanhash_lyra2rev3_8way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_8x32( vdata, edata, edata, edata, edata,
-                              edata, edata, edata, edata, 640 );
-//   mm256_bswap_intrlv80_8x32( vdata, pdata );
+   mm256_bswap32_intrlv80_8x32( vdata, pdata );
    do
    {
       *noncev = mm256_bswap_32( _mm256_set_epi32( n+7, n+6, n+5, n+4,
@@ -119,7 +115,7 @@ int scanhash_lyra2rev3_8way( struct work *work, uint32_t max_nonce,
 
       for ( int lane = 0; lane < 8; lane++ ) if ( hash7[lane] <= Htarg )
       {
-         mm256_extr_lane_8x32( lane_hash, hash, lane, 256 );
+         extr_lane_8x32( lane_hash, hash, lane, 256 );
          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
          {
               pdata[19] = n + lane;
@@ -208,7 +204,7 @@ int scanhash_lyra2rev3_4way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   mm128_bswap_intrlv80_4x32( vdata, pdata );
+   mm128_bswap32_intrlv80_4x32( vdata, pdata );
    do
    {
       *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );

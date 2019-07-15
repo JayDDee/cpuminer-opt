@@ -81,7 +81,7 @@ void x13sm3_4way_hash( void *state, const void *input )
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serial
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // Groestl
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -93,7 +93,7 @@ void x13sm3_4way_hash( void *state, const void *input )
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      // Parallel 4way
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      // Skein
      skein512_4way( &ctx.skein, vhash, 64 );
@@ -108,16 +108,16 @@ void x13sm3_4way_hash( void *state, const void *input )
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // Serial to the end
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // Luffa
-     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
+     intrlv_2x128( vhash, hash0, hash1, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
-     mm256_intrlv_2x128( vhash, hash2, hash3, 512 );
+     dintrlv_2x128( hash0, hash1, vhash, 512 );
+     intrlv_2x128( vhash, hash2, hash3, 512 );
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
+     dintrlv_2x128( hash2, hash3, vhash, 512 );
 
      // Cubehash
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );
@@ -145,13 +145,13 @@ void x13sm3_4way_hash( void *state, const void *input )
      sph_shavite512_close( &ctx.shavite, hash3 );
 
      // Simd
-     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
+     intrlv_2x128( vhash, hash0, hash1, 512 );
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
-     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
-     mm256_intrlv_2x128( vhash, hash2, hash3, 512 );
+     dintrlv_2x128( hash0, hash1, vhash, 512 );
+     intrlv_2x128( vhash, hash2, hash3, 512 );
      simd_2way_init( &ctx.simd, 512 );
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
-     mm256_dintrlv_2x128( hash2, hash3, vhash, 512 );
+     dintrlv_2x128( hash2, hash3, vhash, 512 );
 
      // Echo
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
@@ -185,10 +185,10 @@ void x13sm3_4way_hash( void *state, const void *input )
      dintrlv_4x32( hash0, hash1, hash2, hash3, sm3_vhash, 512 );
 
      // Hamsi parallel 4x32x2
-     mm256_intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
      hamsi512_4way( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // Fugue serial
      sph_fugue512( &ctx.fugue, hash0, 64 );
@@ -214,7 +214,6 @@ int scanhash_x13sm3_4way( struct work *work, uint32_t max_nonce,
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-     uint32_t edata[20] __attribute__ ((aligned (64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];
@@ -227,9 +226,7 @@ int scanhash_x13sm3_4way( struct work *work, uint32_t max_nonce,
      uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
                           0xFFFFF000, 0xFFFF0000,          0  };
 
-     swab32_array( edata, pdata, 20 );
-     mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//     mm256_bswap_intrlv80_4x64( vdata, pdata );
+     mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
      blake512_4way_init( &x13sm3_ctx_mid );
      blake512_4way( &x13sm3_ctx_mid, vdata, 64 );

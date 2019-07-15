@@ -42,79 +42,6 @@
 
 
 //
-// Compile time vector constants and initializers.
-//
-// The following macro constants and functions should only be used
-// for compile time initialization of constant and variable vector
-// arrays. These constants use memory, use set instruction or pseudo
-// constants at run time to avoid using memory.
-
-// Constant initializers
-#define mm512_const_64( x7, x6, x5, x4, x3, x2, x1, x0 ) \
-                     {{ x7, x6, x5, x4, x3, x2, x1, x0 }}
-
-#define mm512_const1_64( x ) {{ x,x,x,x,x,x,x }}
-
-#define mm512_const_32( x15, x14, x13, x12, x11, x10, x09, x08, \
-                        x07, x06, x05, x04, x03, x02, x01, x00 ) \
-                     {{ x15, x14, x13, x12, x11, x10, x09, x08, }} \
-                        x07, x06, x05, x04, x03, x02, x01, x00 }}
-
-#define mm512_const1_32( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
-
-#define mm512_const_16( x31, x30, x29, x28, x27, x26, x25, x24, \
-                        x23, x22, x21, x20, x19, x18, x17, x16, \
-                        x15, x14, x13, x12, x11, x10, x09, x08, \
-                        x07, x06, x05, x04, x03, x02, x01, x00 ) \
-                     {{ x31, x30, x29, x28, x27, x26, x25, x24, \
-                        x23, x22, x21, x20, x19, x18, x17, x16, \
-                        x15, x14, x13, x12, x11, x10, x09, x08, \
-                        x07, x06, x05, x04, x03, x02, x01, x00 }}
-
-#define mm512_const1_16( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, \
-                                x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
-
-#define mm512_const_8( x63, x62, x61, x60, x59, x58, x57, x56, \
-                       x55, x54, x53, x52, x51, x50, x49, x48, \
-                       x47, x46, x45, x44, x43, x42, x41, x40, \
-                       x39, x38, x37, x36, x35, x34, x33, x32, \
-                       x31, x30, x29, x28, x27, x26, x25, x24, \
-                       x23, x22, x21, x20, x19, x18, x17, x16, \
-                       x15, x14, x13, x12, x11, x10, x09, x08, \
-                       x07, x06, x05, x04, x03, x02, x01, x00 ) \
-                    {{ x63, x62, x61, x60, x59, x58, x57, x56, \
-                       x55, x54, x53, x52, x51, x50, x49, x48, \
-                       x47, x46, x45, x44, x43, x42, x41, x40, \
-                       x39, x38, x37, x36, x35, x34, x33, x32, \
-                       x31, x30, x29, x28, x27, x26, x25, x24, \
-                       x23, x22, x21, x20, x19, x18, x17, x16, \
-                       x15, x14, x13, x12, x11, x10, x09, x08, \
-                       x07, x06, x05, x04, x03, x02, x01, x00 }}
-
-#define mm512_const1_8( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, \
-                               x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, \
-                               x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, \
-                               x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
-
-// Predefined compile time constant vectors.
-#define c512_zero      mm512_const1_64(   0ULL )
-#define c512_neg1      mm512_const1_64(   0xFFFFFFFFFFFFFFFFULL )
-#define c512_one_512   mm512_const_epi64( 0ULL, 0ULL, 0ULL, 0ULL, \
-                                          0ULL, 0ULL, 0ULL, 1ULL )
-#define c512_one_256   mm512_const_64(    0ULL, 0ULL, 0ULL, 1ULL, \
-                                          0ULL, 0ULL, 0ULL, 1ULL )
-#define c512_one_128   mm512_const_64(    0ULL, 1ULL, 0ULL, 1ULL, \
-                                          0ULL, 1ULL, 0ULL, 1ULL )
-#define c512_one_64    mm512_const1_64(   1ULL )
-#define c512_one_32    mm512_const1_32(   1UL )
-#define c512_one_16    mm512_const1_16(   1U )
-#define c512_one_8     mm512_const1_8(    1U )
-#define c512_neg1_64   mm512_const1_64( 0xFFFFFFFFFFFFFFFFULL )
-#define c512_neg1_32   mm512_const1_32( 0xFFFFFFFFUL )
-#define c512_neg1_16   mm512_const1_32( 0xFFFFU )
-#define c512_neg1_8    mm512_const1_32( 0xFFU )
-
-//
 // Pseudo constants.
 
 // _mm512_setzero_si512 uses xor instruction. If needed frequently
@@ -127,11 +54,77 @@
                                            0ULL, 0ULL, 0ULL, 1ULL )
 #define m512_one_256    _mm512_set4_epi64( 0ULL, 0ULL, 0ULL, 1ULL )
 #define m512_one_128    _mm512_set4_epi64( 0ULL, 1ULL, 0ULL, 1ULL )
-#define m512_one_64     _mm512_set1_epi64( 1ULL )
-#define m512_one_32     _mm512_set1_epi32( 1UL )
-#define m512_one_16     _mm512_set1_epi16( 1U )
-#define m512_one_8      _mm512_set1_epi8(  1U )
-#define m512_neg1       _mm512_set1_epi64( 0xFFFFFFFFFFFFFFFFULL )
+//#define m512_one_64     _mm512_set1_epi64( 1ULL )
+//#define m512_one_32     _mm512_set1_epi32( 1UL )
+//#define m512_one_16     _mm512_set1_epi16( 1U )
+//#define m512_one_8      _mm512_set1_epi8(  1U )
+//#define m512_neg1       _mm512_set1_epi64( 0xFFFFFFFFFFFFFFFFULL )
+
+#define mi512_const_64( i7, i6, i5, i4, i3, i2, i1, i0 ) \
+  _mm512_inserti64x4( _mm512_castsi512_si256( m256_const_64( i3.i2,i1,i0 ) ), \
+                      m256_const_64( i7,i6,i5,i4 ), 1 )
+#define m512_const1_64( i ) m256_const_64( i, i, i, i, i, i, i, i )
+
+static inline __m512i m512_one_64_fn()
+{
+  __m512i a;
+  asm( "vpxorq %0, %0, %0\n\t"
+       "vpcmpeqd %%zmm1, %%zmm1, %%zmm1\n\t"
+       "vpsubq %%zmm1, %0, %0\n\t"
+       :"=x"(a)
+       :
+       : "zmm1" );
+  return a;
+}
+#define m512_one_64    m512_one_64_fn()
+
+static inline __m512i m512_one_32_fn()
+{
+  __m512i a;
+  asm( "vpxord %0, %0, %0\n\t"
+       "vpcmpeqd %%zmm1, %%zmm1, %%zmm1\n\t"
+       "vpsubd %%zmm1, %0, %0\n\t"
+       :"=x"(a)
+       :
+       : "zmm1" );
+  return a;
+}
+#define m512_one_32    m512_one_32_fn()
+
+static inline __m512i m512_one_16_fn()
+{
+  __m512i a;
+  asm( "vpxord %0, %0, %0\n\t"
+       "vpcmpeqd %%zmm1, %%zmm1, %%zmm1\n\t"
+       "vpsubw %%zmm1, %0, %0\n\t"
+       :"=x"(a)
+       :
+       : "zmm1" );
+  return a;
+}
+#define m512_one_16    m512_one_16_fn()
+
+static inline __m512i m512_one_8_fn()
+{
+  __m512i a;
+  asm( "vpxord %0, %0, %0\n\t"
+       "vpcmpeqd %%zmm1, %%zmm1, %%zmm1\n\t"
+       "vpsubb %%zmm1, %0, %0\n\t"
+       :"=x"(a)
+       :
+       : "zmm1" );
+  return a;
+}
+#define m512_one_8    m512_one_8_fn()
+
+static inline __m512i m512_neg1_fn()
+{
+   __m512i a;
+   asm( "vpcmpeqq %0, %0, %0\n\t"
+        :"=x"(a) );
+   return a;
+}
+#define m512_neg1    m512_neg1_fn()
 
 
 //
@@ -141,6 +134,15 @@
 #define mm512_negate_64( x ) _mm512_sub_epi64( m512_zero, x )
 #define mm512_negate_32( x ) _mm512_sub_epi32( m512_zero, x )  
 #define mm512_negate_16( x ) _mm512_sub_epi16( m512_zero, x )  
+
+
+
+#define mm256_extr_lo256_512( a ) _mm512_castsi512_si256( a )
+#define mm256_extr_hi256_512( a ) _mm512_extracti64x4_epi64( a, 1 )
+
+#define mm128_extr_lo128_512( a ) _mm512_castsi512_si256( a )
+
+
 
 //
 // Pointer casting
@@ -225,6 +227,25 @@
    *((uint32_t*)(d06)) = ((uint32_t*)(s))[14]; \
    *((uint32_t*)(d07)) = ((uint32_t*)(s))[15];
 
+// Add 4 values, fewer dependencies than sequential addition.
+
+
+#define mm512_add4_64( a, b, c, d ) \
+   _mm512_add_epi64( _mm512_add_epi64( a, b ), _mm512_add_epi64( c, d ) )
+
+#define mm512_add4_32( a, b, c, d ) \
+   _mm512_add_epi32( _mm512_add_epi32( a, b ), _mm512_add_epi32( c, d ) )
+
+#define mm512_add4_16( a, b, c, d ) \
+   _mm512_add_epi16( _mm512_add_epi16( a, b ), _mm512_add_epi16( c, d ) )
+
+#define mm512_add4_8( a, b, c, d ) \
+   _mm512_add_epi8( _mm512_add_epi8( a, b ), _mm512_add_epi8( c, d ) )
+
+#define mm512_xor4( a, b, c, d ) \
+   _mm512_xor_si512( _mm512_xor_si256( a, b ), _mm512_xor_si256( c, d ) )
+
+
 
 //
 // Bit rotations.
@@ -263,45 +284,41 @@
 #define mm512_ror_x32( v, n )      _mm512_alignr_epi32( v, v, n )
 
 
-//  Although documented to exist in AVX512F the _mm512_set_epi8 &
-//  _mm512_set_epi16 intrinsics fail to compile. Seems usefull to have
-//  for endian byte swapping. Workaround by using _mm512_set_epi32.
-//  Ugly but it works.
 
 #define mm512_ror_1x16( v ) \
-   _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
-                       0x0000001F, 0x001E001D, 0x001C001B, 0x001A0019, \
-                       0X00180017, 0X00160015, 0X00140013, 0X00120011, \
-                       0X0010000F, 0X000E000D, 0X000C000B, 0X000A0009, \
-                       0X00080007, 0X00060005, 0X00040003, 0X00020001 ) )
+   _mm512_permutexvar_epi16( v, m512_const_64( \
+                       0x0000001F001E001D, 0x001C001B001A0019, \
+                       0X0018001700160015, 0X0014001300120011, \
+                       0X0010000F000E000D, 0X000C000B000A0009, \
+                       0X0008000700060005, 0X0004000300020001 ) )
 
 #define mm512_rol_1x16( v ) \
-   _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
-                       0x001E001D, 0x001C001B, 0x001A0019, 0x00180017, \
-                       0X00160015, 0X00140013, 0X00120011, 0x0010000F, \
-                       0X000E000D, 0X000C000B, 0X000A0009, 0X00080007, \
-                       0X00060005, 0X00040003, 0X00020001, 0x0000001F ) )
+   _mm512_permutexvar_epi16( v, m512_const_64( \
+                       0x001E001D001C001B, 0x001A001900180017, \
+                       0X0016001500140013, 0X001200110010000F, \
+                       0X000E000D000C000B, 0X000A000900080007, \
+                       0X0006000500040003, 0X000200010000001F ) )
 
 
 #define mm512_ror_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                       0x003F3E3D, 0x3C3B3A39, 0x38373635, 0x34333231, \
-                       0x302F2E2D, 0x2C2B2A29, 0x28272625, 0x24232221, \
-                       0x201F1E1D, 0x1C1B1A19. 0x18171615, 0x14131211, \
-                       0x100F0E0D, 0x0C0B0A09, 0x08070605, 0x04030201 ) )
+   _mm512_permutexvar_epi8( v, m512_const_64( \
+                       0x003F3E3D3C3B3A39, 0x3837363534333231, \
+                       0x302F2E2D2C2B2A29, 0x2827262524232221, \
+                       0x201F1E1D1C1B1A19. 0x1817161514131211, \
+                       0x100F0E0D0C0B0A09, 0x0807060504030201 ) )
 
 #define mm512_rol_1x8( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                       0x3E3D3C3B, 0x3A393837, 0x36353433, 0x3231302F. \
-                       0x2E2D2C2B, 0x2A292827, 0x26252423, 0x2221201F, \
-                       0x1E1D1C1B, 0x1A191817, 0x16151413, 0x1211100F, \
-                       0x0E0D0C0B, 0x0A090807, 0x06050403, 0x0201003F ) )
+   _mm512_permutexvar_epi8( v, m512_const_64( \
+                       0x3E3D3C3B3A393837, 0x363534333231302F. \
+                       0x2E2D2C2B2A292827, 0x262524232221201F, \
+                       0x1E1D1C1B1A191817, 0x161514131211100F, \
+                       0x0E0D0C0B0A090807, 0x060504030201003F ) )
 
 // Invert vector: {3,2,1,0} -> {0,1,2,3}
 #define mm512_invert_128( v ) _mm512_permute4f128_epi32( a, 0x1b )
 
 #define mm512_invert_64( v ) \
-   _mm512_permutex_epi64( v, _mm512_set_epi64( 0,1,2,3,4,5,6,7 ) )
+   _mm512_permutex_epi64( v, m512_const_64( 0,1,2,3,4,5,6,7 ) )
 
 #define mm512_invert_32( v ) \
    _mm512_permutexvar_epi32( v, _mm512_set_epi32( \
@@ -378,32 +395,32 @@
 #define mm512_rol1x32_128( v )   _mm512_shuffle_epi32( v, 0x93 )
 
 #define mm512_ror1x16_128( v ) \
-    _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
-                     0x0018001F, 0x001E001D, 0x001C001B, 0x001A0019, \
-                     0x00100017, 0x00160015, 0x00140013, 0x00120011, \
-                     0x0008000F, 0x000E000D, 0x000C000B, 0x000A0009, \
-                     0x00000007, 0x00060005, 0x00040003, 0x00020001 ) )
+    _mm512_permutexvar_epi16( v, m512_const_64( \
+                     0x0018001F001E001D, 0x001C001B001A0019, \
+                     0x0010001700160015, 0x0014001300120011, \
+                     0x0008000F000E000D, 0x000C000B000A0009, \
+                     0x0000000700060005, 0x0004000300020001 ) )
 
 #define mm512_rol1x16_128( v ) \
-    _mm512_permutexvar_epi16( v, _mm512_set_epi32( \
-                     0x001E001D, 0x001C001B, 0x001A0019, 0x0018001F, \
-                     0x00160015, 0x00140013, 0x00120011, 0x00100017, \
-                     0x000E000D, 0x000C000B, 0x000A0009, 0x0008000F, \
-                     0x00060005, 0x00040003, 0x00020001, 0x00000007 ) )
+    _mm512_permutexvar_epi16( v, m512_const_64( \
+                     0x001E001D001C001B, 0x001A00190018001F, \
+                     0x0016001500140013, 0x0012001100100017, \
+                     0x000E000D000C000B, 0x000A00090008000F, \
+                     0x0006000500040003, 0x0002000100000007 ) )
 
 #define mm512_ror1x8_128( v ) \
-    _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                     0x303F3E3D, 0x3C3B3A39, 0x38373635, 0x34333231, \
-                     0x202F2E2D, 0x2C2B2A29, 0x28272625, 0x24232221, \
-                     0x101F1E1D, 0x1C1B1A19, 0x18171615, 0x14131211, \
-                     0x000F0E0D, 0x0C0B0A09, 0x08070605, 0x04030201 ) )
+    _mm512_permutexvar_epi8( v, m512_const_64( \
+                     0x303F3E3D3C3B3A39, 0x3837363534333231, \
+                     0x202F2E2D2C2B2A29, 0x2827262524232221, \
+                     0x101F1E1D1C1B1A19, 0x1817161514131211, \
+                     0x000F0E0D0C0B0A09, 0x0807060504030201 ) )
 
 #define mm512_rol1x8_128( v ) \
-    _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
-                     0x3E3D3C3B, 0x3A393837, 0x36353433. 0x3231303F, \
-                     0x2E2D2C2B, 0x2A292827, 0x26252423, 0x2221202F, \
-                     0x1E1D1C1B, 0x1A191817, 0x16151413, 0x1211101F, \
-                     0x0E0D0C0B, 0x0A090807, 0x06050403, 0x0201000F ) )
+    _mm512_permutexvar_epi8( v, m512_const_64( \
+                     0x3E3D3C3B3A393837, 0x363534333231303F, \
+                     0x2E2D2C2B2A292827, 0x262524232221202F, \
+                     0x1E1D1C1B1A191817, 0x161514131211101F, \
+                     0x0E0D0C0B0A090807, 0x060504030201000F ) )
 
 // Rotate 128 bit lanes by c bytes.  
 #define mm512_bror_128( v, c ) \

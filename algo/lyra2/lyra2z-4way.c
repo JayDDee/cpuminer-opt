@@ -60,7 +60,7 @@ int scanhash_lyra2z_4way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
 
-   mm128_bswap_intrlv80_4x32( vdata, pdata );
+   mm128_bswap32_intrlv80_4x32( vdata, pdata );
    lyra2z_4way_midstate( vdata );
 
    do {
@@ -119,8 +119,8 @@ void lyra2z_8way_hash( void *state, const void *input )
      blake256_8way( &ctx_blake, input + (64*8), 16 );
      blake256_8way_close( &ctx_blake, vhash );
 
-     mm256_dintrlv_8x32( hash0, hash1, hash2, hash3,
-                         hash4, hash5, hash6, hash7, vhash, 256 );
+     dintrlv_8x32( hash0, hash1, hash2, hash3,
+                   hash4, hash5, hash6, hash7, vhash, 256 );
 
      LYRA2Z( lyra2z_8way_matrix, hash0, 32, hash0, 32, hash0, 32, 8, 8, 8 );
      LYRA2Z( lyra2z_8way_matrix, hash1, 32, hash1, 32, hash1, 32, 8, 8, 8 );
@@ -146,7 +146,6 @@ int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[8*8] __attribute__ ((aligned (64)));
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
@@ -158,10 +157,7 @@ int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_8x32( vdata, edata, edata, edata, edata,
-                              edata, edata, edata, edata, 640 );
-//   mm256_bswap_intrlv80_8x32( vdata, pdata );
+   mm256_bswap32_intrlv80_8x32( vdata, pdata );
    lyra2z_8way_midstate( vdata );
 
    do {

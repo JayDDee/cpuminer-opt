@@ -40,7 +40,7 @@ void veltor_4way_hash( void *output, const void *input )
 
      skein512_4way( &ctx.skein, input, 80 );
      skein512_4way_close( &ctx.skein, vhash );
-     mm256_dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      sph_shavite512( &ctx.shavite, hash0, 64 );
      sph_shavite512_close( &ctx.shavite, hash0 );
@@ -82,7 +82,6 @@ int scanhash_veltor_4way( struct work *work, uint32_t max_nonce,
 {
      uint32_t hash[4*8] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      const uint32_t Htarg = ptarget[7];
@@ -95,9 +94,7 @@ int scanhash_veltor_4way( struct work *work, uint32_t max_nonce,
      if ( opt_benchmark )
         ptarget[7] = 0x0cff;
 
-    swab32_array( edata, pdata, 20 );
-    mm256_intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
-//     mm256_bswap_intrlv80_4x64( vdata, pdata );
+     mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
      do
      {

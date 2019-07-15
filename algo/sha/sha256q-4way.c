@@ -36,7 +36,6 @@ int scanhash_sha256q_8way( struct work *work, uint32_t max_nonce,
 {
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t hash[8*8] __attribute__ ((aligned (32)));
-   uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
@@ -60,10 +59,7 @@ int scanhash_sha256q_8way( struct work *work, uint32_t max_nonce,
                                         0 };
 
    // Need big endian data
-   swab32_array( edata, pdata, 20 );
-   mm256_intrlv_8x32( vdata, edata, edata, edata, edata,
-                             edata, edata, edata, edata, 640 );
-//   mm256_bswap_intrlv80_8x32( vdata, pdata );
+   mm256_bswap32_intrlv80_8x32( vdata, pdata );
    sha256_8way_init( &sha256_ctx8 );
    sha256_8way( &sha256_ctx8, vdata, 64 );
 
@@ -84,7 +80,7 @@ int scanhash_sha256q_8way( struct work *work, uint32_t max_nonce,
          if ( !( hash7[ lane ] & mask ) )
          { 
             // deinterleave hash for lane
-	         mm256_extr_lane_8x32( lane_hash, hash, lane, 256 );
+	         extr_lane_8x32( lane_hash, hash, lane, 256 );
 
 	         if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
@@ -133,7 +129,6 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t hash[8*4] __attribute__ ((aligned (32)));
-    uint32_t edata[20] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[7<<2]);
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
@@ -157,9 +152,7 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
                                0xFFFF0000,
                                         0 };
 
-   swab32_array( edata, pdata, 20 );
-   mm128_intrlv_4x32( vdata, edata, edata, edata, edata, 640 );
-//   mm128_bswap_intrlv80_4x32( vdata, pdata );
+   mm128_bswap32_intrlv80_4x32( vdata, pdata );
    sha256_4way_init( &sha256_ctx4 );
    sha256_4way( &sha256_ctx4, vdata, 64 );
 

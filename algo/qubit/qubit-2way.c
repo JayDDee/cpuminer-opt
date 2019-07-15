@@ -41,7 +41,7 @@ void qubit_2way_hash( void *output, const void *input )
      memcpy( &ctx, &qubit_2way_ctx, sizeof(qubit_2way_ctx) );
      luffa_2way_update( &ctx.luffa, input + (64<<1), 16 );
      luffa_2way_close( &ctx.luffa, vhash );
-     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
+     dintrlv_2x128( hash0, hash1, vhash, 512 );
 
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0,
                            (const byte*) hash0, 64 );
@@ -55,9 +55,9 @@ void qubit_2way_hash( void *output, const void *input )
      sph_shavite512( &ctx.shavite, hash1, 64 );
      sph_shavite512_close( &ctx.shavite, hash1 );
 
-     mm256_intrlv_2x128( vhash, hash0, hash1, 512 );
+     intrlv_2x128( vhash, hash0, hash1, 512 );
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
-     mm256_dintrlv_2x128( hash0, hash1, vhash, 512 );
+     dintrlv_2x128( hash0, hash1, vhash, 512 );
 
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
                        (const BitSequence *) hash0, 512 );
@@ -92,7 +92,7 @@ int scanhash_qubit_2way( struct work *work,uint32_t max_nonce,
      casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
      uint64_t *edata = (uint64_t*)endiandata;
-     mm256_intrlv_2x128( (uint64_t*)vdata, edata, edata, 640 );
+     intrlv_2x128( (uint64_t*)vdata, edata, edata, 640 );
 
      luffa_2way_init( &qubit_2way_ctx.luffa, 512 );
      luffa_2way_update( &qubit_2way_ctx.luffa, vdata, 64 );

@@ -29,23 +29,18 @@ int scanhash_blakecoin_4way( struct work *work, uint32_t max_nonce,
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    uint32_t HTarget = ptarget[7];
-   uint32_t _ALIGN(32) edata[20];
    uint32_t n = first_nonce;
+   __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
    int thr_id = mythr->id;  // thr_id arg is deprecated
    if ( opt_benchmark )
       HTarget = 0x7f;
 
-   swab32_array( edata, pdata, 20 );
-   mm128_intrlv_4x32( vdata, edata, edata, edata, edata, 640 );
+   mm128_bswap32_intrlv80_4x32( vdata, pdata );
    blake256r8_4way_init( &blakecoin_4w_ctx );
    blake256r8_4way( &blakecoin_4w_ctx, vdata, 64 );
 
-   uint32_t *noncep = vdata + 76;   // 19*4
    do {
-      be32enc( noncep,    n   );
-      be32enc( noncep +1, n+1 );
-      be32enc( noncep +2, n+2 );
-      be32enc( noncep +3, n+3 );
+      *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );
       pdata[19] = n;
       blakecoin_4way_hash( hash, vdata );
 
@@ -79,9 +74,8 @@ void blakecoin_8way_hash( void *state, const void *input )
      blake256r8_8way( &ctx, input + (64<<3), 16 );
      blake256r8_8way_close( &ctx, vhash );
 
-     mm256_dintrlv_8x32( state,     state+ 32, state+ 64, state+ 96,
-                              state+128, state+160, state+192, state+224,
-                              vhash, 256 );
+     dintrlv_8x32( state,     state+ 32, state+ 64, state+ 96, state+128,
+                   state+160, state+192, state+224, vhash, 256 );
 }
 
 int scanhash_blakecoin_8way( struct work *work, uint32_t max_nonce,
@@ -93,29 +87,19 @@ int scanhash_blakecoin_8way( struct work *work, uint32_t max_nonce,
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    uint32_t HTarget = ptarget[7];
-   uint32_t _ALIGN(32) edata[20];
    uint32_t n = first_nonce;
-   uint32_t *noncep = vdata + 152;   // 19*8
+   __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
    int thr_id = mythr->id;  // thr_id arg is deprecated
    if ( opt_benchmark )
       HTarget = 0x7f;
 
-   // we need big endian data...
-   swab32_array( edata, pdata, 20 );
-   mm256_intrlv_8x32( vdata, edata, edata, edata, edata,
-                                 edata, edata, edata, edata, 640 );
+   mm256_bswap32_intrlv80_8x32( vdata, pdata );
    blake256r8_8way_init( &blakecoin_8w_ctx );
    blake256r8_8way( &blakecoin_8w_ctx, vdata, 64 );
 
    do {
-      be32enc( noncep,    n   );
-      be32enc( noncep +1, n+1 );
-      be32enc( noncep +2, n+2 );
-      be32enc( noncep +3, n+3 );
-      be32enc( noncep +4, n+4 );
-      be32enc( noncep +5, n+5 );
-      be32enc( noncep +6, n+6 );
-      be32enc( noncep +7, n+7 );
+      *noncev = mm256_bswap_32( _mm256_set_epi32( n+7, n+6, n+5, n+4,
+                                                  n+3, n+2, n+1, n ) );
       pdata[19] = n;
       blakecoin_8way_hash( hash, vdata );
 

@@ -40,9 +40,9 @@ void lbry_8way_hash( void* output, const void* input )
    sha256_8way_close( &ctx_sha256, vhashA );
 
    // reinterleave to do sha512 4-way 64 bit twice.
-   mm256_dintrlv_8x32( h0, h1, h2, h3, h4, h5, h6, h7, vhashA, 256 );
-   mm256_intrlv_4x64( vhashA, h0, h1, h2, h3, 256 );
-   mm256_intrlv_4x64( vhashB, h4, h5, h6, h7, 256 );
+   dintrlv_8x32( h0, h1, h2, h3, h4, h5, h6, h7, vhashA, 256 );
+   intrlv_4x64( vhashA, h0, h1, h2, h3, 256 );
+   intrlv_4x64( vhashB, h4, h5, h6, h7, 256 );
 
    sha512_4way_init( &ctx_sha512 );
    sha512_4way( &ctx_sha512, vhashA, 32 );
@@ -53,9 +53,9 @@ void lbry_8way_hash( void* output, const void* input )
    sha512_4way_close( &ctx_sha512, vhashB );
 
    // back to 8-way 32 bit
-   mm256_dintrlv_4x64( h0, h1, h2, h3, vhashA, 512 );
-   mm256_dintrlv_4x64( h4, h5, h6, h7, vhashB, 512 );
-   mm256_intrlv_8x32( vhashA, h0, h1, h2, h3, h4, h5, h6, h7, 512 );
+   dintrlv_4x64( h0, h1, h2, h3, vhashA, 512 );
+   dintrlv_4x64( h4, h5, h6, h7, vhashB, 512 );
+   intrlv_8x32( vhashA, h0, h1, h2, h3, h4, h5, h6, h7, 512 );
 
    ripemd160_8way_init( &ctx_ripemd );
    ripemd160_8way( &ctx_ripemd, vhashA, 32 );
@@ -97,11 +97,15 @@ int scanhash_lbry_8way( struct work *work, uint32_t max_nonce,
                         0xFFFFF000, 0xFFFF0000,          0 };
 
    // we need bigendian data...
-   casti_m256i( edata, 0 ) = mm256_bswap_32( casti_m256i( pdata, 0 ) );
-   casti_m256i( edata, 1 ) = mm256_bswap_32( casti_m256i( pdata, 1 ) );
-   casti_m256i( edata, 2 ) = mm256_bswap_32( casti_m256i( pdata, 2 ) );
-   casti_m256i( edata, 3 ) = mm256_bswap_32( casti_m256i( pdata, 3 ) );
-   mm256_intrlv_8x32( vdata, edata, edata, edata, edata,
+   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
+   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
+   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
+   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
+   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
+   casti_m128i( edata, 5 ) = mm128_bswap_32( casti_m128i( pdata, 5 ) );
+   casti_m128i( edata, 6 ) = mm128_bswap_32( casti_m128i( pdata, 6 ) );
+   casti_m128i( edata, 7 ) = mm128_bswap_32( casti_m128i( pdata, 7 ) );
+   intrlv_8x32( vdata, edata, edata, edata, edata,
                              edata, edata, edata, edata, 1024 );
    sha256_8way_init( &sha256_8w_mid );
    sha256_8way( &sha256_8w_mid, vdata, LBRY_MIDSTATE );
@@ -118,7 +122,7 @@ int scanhash_lbry_8way( struct work *work, uint32_t max_nonce,
          for ( int i = 0; i < 8; i++ )  if ( !( hash7[ i ] & mask ) )
          {
             // deinterleave hash for lane
-            mm256_extr_lane_8x32( lane_hash, hash, i, 256 );
+            extr_lane_8x32( lane_hash, hash, i, 256 );
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
               pdata[27] = n + i;
