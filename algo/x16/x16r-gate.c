@@ -62,3 +62,149 @@ bool register_x16s_algo( algo_gate_t* gate )
   return true;
 };
 
+////////////////
+//
+//   X16RT
+
+
+void x16rt_getTimeHash( const uint32_t timeStamp, void* timeHash )
+{
+    int32_t maskedTime = timeStamp & 0xffffff80;
+    sha256d( (unsigned char*)timeHash, (const unsigned char*)( &maskedTime ),
+             sizeof( maskedTime ) );
+}
+
+void x16rt_getAlgoString( const uint32_t *timeHash, char *output)
+{
+   char *sptr = output;
+   uint8_t* data = (uint8_t*)timeHash;
+
+   for (uint8_t j = 0; j < X16R_HASH_FUNC_COUNT; j++) {
+      uint8_t b = (15 - j) >> 1; // 16 ascii hex chars, reversed
+      uint8_t algoDigit = (j & 1) ? data[b] & 0xF : data[b] >> 4;
+
+      if (algoDigit >= 10)
+         sprintf(sptr, "%c", 'A' + (algoDigit - 10));
+      else
+         sprintf(sptr, "%u", (uint32_t) algoDigit);
+      sptr++;
+   }
+   *sptr = '\0';
+}
+
+void x16rt_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
+{
+   uchar merkle_tree[64] = { 0 };
+   size_t t;
+
+   algo_gate.gen_merkle_root( merkle_tree, sctx );
+   // Increment extranonce2
+   for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
+
+   // Assemble block header
+//   algo_gate.build_block_header( g_work, le32dec( sctx->job.version ),
+//          (uint32_t*) sctx->job.prevhash, (uint32_t*) merkle_tree,
+//          le32dec( sctx->job.ntime ), le32dec(sctx->job.nbits) );
+   int i;
+
+   memset( g_work->data, 0, sizeof(g_work->data) );
+   g_work->data[0] = le32dec( sctx->job.version );
+
+   if ( have_stratum )
+      for ( i = 0; i < 8; i++ )
+         g_work->data[ 1+i ] = le32dec( (uint32_t*)sctx->job.prevhash + i );
+   else
+      for (i = 0; i < 8; i++)
+         g_work->data[ 8-i ] = le32dec( (uint32_t*)sctx->job.prevhash + i );
+
+   g_work->data[ algo_gate.ntime_index ] = le32dec( sctx->job.ntime );
+   g_work->data[ algo_gate.nbits_index ] = le32dec( sctx->job.nbits );
+   g_work->data[20] = 0x80000000;
+   g_work->data[31] = 0x00000280;
+
+   for ( i = 0; i < 8; i++ )
+      g_work->merkleroothash[7 - i] = be32dec((uint32_t *)merkle_tree + i);
+   for ( i = 0; i < 8; i++ )
+      g_work->witmerkleroothash[7 - i] = be32dec((uint32_t *)merkle_tree + i);
+   for ( i = 0; i < 8; i++ )
+      g_work->denom10[i] =    le32dec((uint32_t *)sctx->job.denom10 + i);
+   for ( i = 0; i < 8; i++ )
+      g_work->denom100[i] =   le32dec((uint32_t *)sctx->job.denom100 + i);
+   for ( i = 0; i < 8; i++ )
+      g_work->denom1000[i] =  le32dec((uint32_t *)sctx->job.denom1000 + i);
+   for ( i = 0; i < 8; i++ )
+      g_work->denom10000[i] = le32dec((uint32_t *)sctx->job.denom10000 + i);
+
+   uint32_t pofnhash[8];
+   memset(pofnhash, 0x00, 32);
+
+   char denom10_str      [ 2 * sizeof( g_work->denom10 )           + 1 ];
+   char denom100_str     [ 2 * sizeof( g_work->denom100 )          + 1 ];
+   char denom1000_str    [ 2 * sizeof( g_work->denom1000 )         + 1 ];
+   char denom10000_str   [ 2 * sizeof( g_work->denom10000 )        + 1 ];
+   char merkleroot_str   [ 2 * sizeof( g_work->merkleroothash )    + 1 ];
+   char witmerkleroot_str[ 2 * sizeof( g_work->witmerkleroothash ) + 1 ];
+   char pofn_str         [ 2 * sizeof( pofnhash )                  + 1 ];
+
+   cbin2hex( denom10_str,       (char*) g_work->denom10,           32 );
+   cbin2hex( denom100_str,      (char*) g_work->denom100,          32 );
+   cbin2hex( denom1000_str,     (char*) g_work->denom1000,         32 );
+   cbin2hex( denom10000_str,    (char*) g_work->denom10000,        32 );
+   cbin2hex( merkleroot_str,    (char*) g_work->merkleroothash,    32 );
+   cbin2hex( witmerkleroot_str, (char*) g_work->witmerkleroothash, 32 );
+   cbin2hex( pofn_str,          (char*) pofnhash,                  32 );
+
+   if ( true )
+   {
+       char* data;
+       data = (char*)malloc( 2 + strlen( denom10_str ) * 4 + 16 * 4
+                             + strlen( merkleroot_str ) * 3 );
+       // Build the block header veildatahash in hex
+       sprintf( data, "%s%s%s%s%s%s%s%s%s%s%s%s",
+                       merkleroot_str, witmerkleroot_str, "04",
+                       "0a00000000000000", denom10_str,
+                       "6400000000000000", denom100_str,
+                       "e803000000000000", denom1000_str,
+                       "1027000000000000", denom10000_str, pofn_str );
+       // Covert the hex to binary
+       uint32_t test[100];
+       hex2bin( (unsigned char*)(&test), data, 257);
+       // Compute the sha256d of the binary
+       uint32_t _ALIGN(64) hash[8];
+       sha256d( (unsigned char*)hash, (unsigned char*)&(test), 257);
+       // assign the veildatahash in the blockheader
+       for ( i = 0; i < 8; i++ )
+           g_work->data[16 - i] = le32dec(hash + i);
+       free(data);
+    }
+}
+
+bool register_x16rt_algo( algo_gate_t* gate )
+{
+#if defined (X16R_4WAY)
+  gate->scanhash  = (void*)&scanhash_x16rt_4way;
+  gate->hash      = (void*)&x16rt_4way_hash;
+#else
+  gate->scanhash  = (void*)&scanhash_x16rt;
+  gate->hash      = (void*)&x16rt_hash;
+#endif
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
+  gate->set_target = (void*)&alt_set_target;
+  return true;
+};
+
+bool register_x16rt_veil_algo( algo_gate_t* gate )
+{
+#if defined (X16R_4WAY)
+  gate->scanhash  = (void*)&scanhash_x16rt_4way;
+  gate->hash      = (void*)&x16rt_4way_hash;
+#else
+  gate->scanhash  = (void*)&scanhash_x16rt;
+  gate->hash      = (void*)&x16rt_hash;
+#endif
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
+  gate->set_target = (void*)&alt_set_target;
+  gate->build_extraheader = (void*)&x16rt_build_extraheader;
+  return true;
+};
+

@@ -503,7 +503,7 @@ static inline __m512i m512_neg1_fn()
                        0x08090A0B, 0x0C0D0E0F,   0x00010203, 0x04050607 ) )
 
 #define mm512_bswap_32( v ) \
-   _mm512_permutexvar_epi8( v, _mm512_set_epi832( \
+   _mm512_permutexvar_epi8( v, _mm512_set_epi32( \
                        0x3C3D3E3F, 0x38393A3B, 0x34353637, 0x30313233, \
                        0x3C3D3E3F, 0x38393A3B, 0x34353637, 0x30313233, \
                        0x3C3D3E3F, 0x38393A3B, 0x34353637, 0x30313233, \

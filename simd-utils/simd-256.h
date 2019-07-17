@@ -32,6 +32,7 @@
 
 // set instructions load memory resident constants, this avoids mem.
 // cost 4 pinsert + 1 vinsert, estimate 7 clocks.
+// Avoid using, mm128_const_64 twice is still faster.
 #define m256_const_64( i3, i2, i1, i0 ) \
    _mm256_insertf128_si256( _mm256_castsi128_si256( m128_const_64( i1, i0 ) ), \
                             m128_const_64( i3, i2 ), 1 )
@@ -50,7 +51,7 @@ static inline __m256i m256_one_64_fn()
   asm( "vpxor %0, %0, %0\n\t"
        "vpcmpeqd %%ymm1, %%ymm1, %%ymm1\n\t"
        "vpsubq %%ymm1, %0, %0\n\t"
-       :"=x"(a)
+       : "=x"(a)
        :
        : "ymm1" );
   return a;
@@ -63,7 +64,7 @@ static inline __m256i m256_one_32_fn()
   asm( "vpxor %0, %0, %0\n\t"
        "vpcmpeqd %%ymm1, %%ymm1, %%ymm1\n\t"
        "vpsubd %%ymm1, %0, %0\n\t"
-       :"=x"(a)
+       : "=x"(a)
        :
        : "ymm1" );
   return a;
@@ -76,7 +77,7 @@ static inline __m256i m256_one_16_fn()
   asm( "vpxor %0, %0, %0\n\t"
        "vpcmpeqd %%ymm1, %%ymm1, %%ymm1\n\t"
        "vpsubw %%ymm1, %0, %0\n\t"
-       :"=x"(a)
+       : "=x"(a)
        :
        : "ymm1" );
   return a;
@@ -89,7 +90,7 @@ static inline __m256i m256_one_8_fn()
   asm( "vpxor %0, %0, %0\n\t"
        "vpcmpeqd %%ymm1, %%ymm1, %%ymm1\n\t"
        "vpsubb %%ymm1, %0, %0\n\t"
-       :"=x"(a)
+       : "=x"(a)
        :
        : "ymm1" );
   return a;
@@ -100,7 +101,7 @@ static inline __m256i m256_neg1_fn()
 {
    __m256i a;
    asm( "vpcmpeqq %0, %0, %0\n\t"
-        :"=x"(a) );
+        : "=x"(a) );
    return a;
 }
 #define m256_neg1    m256_neg1_fn()
@@ -423,23 +424,23 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, int n )
 
 // Rotate 256 bit vector by one 16 bit element.     
 #define mm256_ror_1x16( v ) \
-   _mm256_permutexvar_epi16( _mm256_set_epi16( \
-         0,15,14,13,12,11,10, 9,   8, 7, 6, 5, 4, 3, 2, 1 ), v )
+   _mm256_permutexvar_epi16( m256_const_64( \
+                                 0x0000000f000e000d, 0x000c000b000a0009, \
+                                 0x0008000700060005, 0x0004000300020001 ), v )
 
 #define mm256_rol_1x16( v ) \
-   _mm256_permutexvar_epi16( _mm256_set_epi16( \
-        14,13,12,11,10, 9, 8, 7,   6, 5, 4, 3, 2, 1, 0,15 ), v )
+   _mm256_permutexvar_epi16( m256_const_64( \
+                                 0x000e000d000c000b, 0x000a000900080007, \
+                                 0x0006000500040003, 0x000200010000000f ), v )
 
 // Rotate 256 bit vector by one byte.
-#define mm256_ror_1x8( v ) \
-   _mm256_permutexvar_epi8( _mm256_set_epi8( \
-         0,31,30,29,28,27,26,25,  24,23,22,21,20,19,18,17, \
-        16,15,14,13,12,11,10, 9,   8, 7, 6, 5, 4, 3, 2, 1 ), v )
+#define mm256_ror_1x8( v ) m256_const_64( \
+                                 0x001f1e1d1c1b1a19, 0x1817161514131211, \
+                                 0x100f0e0d0c0b0a09, 0x0807060504030201 )
 
-#define mm256_rol_1x8( v ) \
-   _mm256_permutexvar_epi8( _mm256_set_epi8( \
-        30,29,28,27,26,25,24,23,  22,21,20,19,18,17,16,15, \
-        14,13,12,11,10, 9, 8, 7,   6, 5, 4, 3, 2, 1, 0,31 ), v )
+#define mm256_rol_1x8( v ) m256_const_64( \
+                                 0x1e1d1c1b1a191817, 0x161514131211100f, \
+                                 0x0e0d0c0b0a090807, 0x060504030201001f )
 
 #endif  // AVX512
 

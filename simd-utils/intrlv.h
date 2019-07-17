@@ -477,42 +477,42 @@ static inline void mm256_bswap32_intrlv80_8x32( void *d, void *src )
    __m256i s0 = mm256_bswap_32( casti_m256i( src,0 ) );
    __m256i s1 = mm256_bswap_32( casti_m256i( src,1 ) );
    __m128i s2 = mm128_bswap_32( casti_m128i( src,4 ) );
-  const __m256i zero = m256_zero;
-  const __m256i one  = m256_one_32;
-  const __m256i two  = _mm256_add_epi32( one, one );
-  const __m256i tre  = _mm256_add_epi32( two, one );
-  const __m256i four = _mm256_add_epi32( two, two );
+  const __m256i zero  = m256_zero;
+  const __m256i one   = m256_one_32;
+  const __m256i two   = _mm256_add_epi32( one, one );
+  const __m256i three = _mm256_add_epi32( two, one );
+  const __m256i four  = _mm256_add_epi32( two, two );
 
-  casti_m256i( d, 0 ) = _mm256_permutevar8x32_epi32( s0, zero );
-  casti_m256i( d, 1 ) = _mm256_permutevar8x32_epi32( s0, one  );
-  casti_m256i( d, 2 ) = _mm256_permutevar8x32_epi32( s0, two  );
-  casti_m256i( d, 3 ) = _mm256_permutevar8x32_epi32( s0, tre  );
-  casti_m256i( d, 4 ) = _mm256_permutevar8x32_epi32( s0, four );
+  casti_m256i( d, 0 ) = _mm256_permutevar8x32_epi32( s0, zero  );
+  casti_m256i( d, 1 ) = _mm256_permutevar8x32_epi32( s0, one   );
+  casti_m256i( d, 2 ) = _mm256_permutevar8x32_epi32( s0, two   );
+  casti_m256i( d, 3 ) = _mm256_permutevar8x32_epi32( s0, three );
+  casti_m256i( d, 4 ) = _mm256_permutevar8x32_epi32( s0, four  );
   casti_m256i( d, 5 ) = _mm256_permutevar8x32_epi32( s0,
-                                       _mm256_add_epi32( four, one ) );
+                                       _mm256_add_epi32( four, one   ) );
   casti_m256i( d, 6 ) = _mm256_permutevar8x32_epi32( s0,
-                                       _mm256_add_epi32( four, two ) );
+                                       _mm256_add_epi32( four, two   ) );
   casti_m256i( d, 7 ) = _mm256_permutevar8x32_epi32( s0,
-                                       _mm256_add_epi32( four, tre ) );
-  casti_m256i( d, 8 ) = _mm256_permutevar8x32_epi32( s1, zero );
-  casti_m256i( d, 9 ) = _mm256_permutevar8x32_epi32( s1, one  );
-  casti_m256i( d,10 ) = _mm256_permutevar8x32_epi32( s1, two  );
-  casti_m256i( d,11 ) = _mm256_permutevar8x32_epi32( s1, tre  );
-  casti_m256i( d,12 ) = _mm256_permutevar8x32_epi32( s1, four );
+                                       _mm256_add_epi32( four, three ) );
+  casti_m256i( d, 8 ) = _mm256_permutevar8x32_epi32( s1, zero  );
+  casti_m256i( d, 9 ) = _mm256_permutevar8x32_epi32( s1, one   );
+  casti_m256i( d,10 ) = _mm256_permutevar8x32_epi32( s1, two   );
+  casti_m256i( d,11 ) = _mm256_permutevar8x32_epi32( s1, three );
+  casti_m256i( d,12 ) = _mm256_permutevar8x32_epi32( s1, four  );
   casti_m256i( d,13 ) = _mm256_permutevar8x32_epi32( s1,
-                                       _mm256_add_epi32( four, one ) );
+                                       _mm256_add_epi32( four, one   ) );
   casti_m256i( d,14 ) = _mm256_permutevar8x32_epi32( s1,
-                                       _mm256_add_epi32( four, two  ) );
+                                       _mm256_add_epi32( four, two   ) );
   casti_m256i( d,15 ) = _mm256_permutevar8x32_epi32( s1,
-                                       _mm256_add_epi32( four, tre ) );
+                                       _mm256_add_epi32( four, three ) );
   casti_m256i( d,16 ) = _mm256_permutevar8x32_epi32(
-                             _mm256_castsi128_si256( s2 ), zero );
+                             _mm256_castsi128_si256( s2 ), zero  );
   casti_m256i( d,17 ) = _mm256_permutevar8x32_epi32(
-                             _mm256_castsi128_si256( s2 ), one  );
+                             _mm256_castsi128_si256( s2 ), one   );
   casti_m256i( d,18 ) = _mm256_permutevar8x32_epi32(
-                             _mm256_castsi128_si256( s2 ), two  );
+                             _mm256_castsi128_si256( s2 ), two   );
   casti_m256i( d,19 ) = _mm256_permutevar8x32_epi32( 
-                             _mm256_castsi128_si256( s2 ), tre  );
+                             _mm256_castsi128_si256( s2 ), three );
 }
 
 #endif   // AVX2
@@ -677,39 +677,39 @@ static inline void mm512_bswap32_intrlv80_16x32( void *d, void *src )
 {
   __m512i s0 = mm512_bswap_32( casti_m512i( src, 0 ) );
   __m128i s1 = mm128_bswap_32( casti_m128i( src, 4 ) );
-  const __m512i zero   = m512_zero;
-  const __m512i one    = m512_one_32;
-  const __m512i two    = _mm512_add_epi32( one,   one  );
-  const __m512i tre    = _mm512_add_epi32( two,   one  );
-  const __m512i four   = _mm512_add_epi32( two,   two  );
-  const __m512i eight  = _mm512_add_epi32( four,  four );
-  const __m512i eleven = _mm512_add_epi32( eight, tre  );
+  const __m512i zero     = m512_zero;
+  const __m512i one      = m512_one_32;
+  const __m512i two      = _mm512_add_epi32( one,   one   );
+  const __m512i three    = _mm512_add_epi32( two,   one   );
+  const __m512i four     = _mm512_add_epi32( two,   two   );
+  const __m512i eight    = _mm512_add_epi32( four,  four  );
+  const __m512i eleven   = _mm512_add_epi32( eight, three );
 
-  casti_m512i( d, 0 ) = _mm512_permutexvar_epi32( s0, zero );
-  casti_m512i( d, 1 ) = _mm512_permutexvar_epi32( s0, one  );
-  casti_m512i( d, 2 ) = _mm512_permutexvar_epi32( s0, two  );
-  casti_m512i( d, 3 ) = _mm512_permutexvar_epi32( s0, tre  );
-  casti_m512i( d, 4 ) = _mm512_permutexvar_epi32( s0, four );
+  casti_m512i( d, 0 ) = _mm512_permutexvar_epi32( s0, zero   );
+  casti_m512i( d, 1 ) = _mm512_permutexvar_epi32( s0, one    );
+  casti_m512i( d, 2 ) = _mm512_permutexvar_epi32( s0, two    );
+  casti_m512i( d, 3 ) = _mm512_permutexvar_epi32( s0, three  );
+  casti_m512i( d, 4 ) = _mm512_permutexvar_epi32( s0, four   );
   casti_m512i( d, 5 ) = _mm512_permutexvar_epi32( s0,
-                                    _mm512_add_epi32( four, one ) );
+                                    _mm512_add_epi32( four,   one   ) );
   casti_m512i( d, 6 ) = _mm512_permutexvar_epi32( s0, 
-                                    _mm512_add_epi32( four, two ) );
+                                    _mm512_add_epi32( four,   two   ) );
   casti_m512i( d, 7 ) = _mm512_permutexvar_epi32( s0,
-                                    _mm512_add_epi32( four, tre ) );
+                                    _mm512_add_epi32( four,   three ) );
   casti_m512i( d, 8 ) = _mm512_permutexvar_epi32( s0, eight );
   casti_m512i( d, 9 ) = _mm512_permutexvar_epi32( s0, 
-                                    _mm512_add_epi32( eight, one ) );
+                                    _mm512_add_epi32( eight,  one   ) );
   casti_m512i( d,10 ) = _mm512_permutexvar_epi32( s0,
-                                    _mm512_add_epi32( eight, two ) );
+                                    _mm512_add_epi32( eight,  two   ) );
   casti_m512i( d,11 ) = _mm512_permutexvar_epi32( s0, eleven ); 
   casti_m512i( d,12 ) = _mm512_permutexvar_epi32( s0, 
-                                    _mm512_add_epi32( eleven, one ) );
+                                    _mm512_add_epi32( eleven, one   ) );
   casti_m512i( d,13 ) = _mm512_permutexvar_epi32( s0, 
-                                    _mm512_add_epi32( eleven, two ) );
+                                    _mm512_add_epi32( eleven, two   ) );
   casti_m512i( d,14 ) = _mm512_permutexvar_epi32( s0, 
-                                    _mm512_add_epi32( eleven, tre ) );
+                                    _mm512_add_epi32( eleven, three ) );
   casti_m512i( d,15 ) = _mm512_permutexvar_epi32( s0,
-                                    _mm512_add_epi32( eleven, four ) );
+                                    _mm512_add_epi32( eleven, four  ) );
   casti_m512i( d,16 ) = _mm512_permutexvar_epi32(
                           _mm512_castsi128_si512( s1 ), zero );
   casti_m512i( d,17 ) = _mm512_permutexvar_epi32(
@@ -717,7 +717,7 @@ static inline void mm512_bswap32_intrlv80_16x32( void *d, void *src )
   casti_m512i( d,18 ) = _mm512_permutexvar_epi32(
                           _mm512_castsi128_si512( s1 ), two  );
   casti_m512i( d,19 ) = _mm512_permutexvar_epi32(
-                          _mm512_castsi128_si512( s1 ), tre  );
+                          _mm512_castsi128_si512( s1 ), three  );
 }
 
 #endif    // AVX512
@@ -1006,20 +1006,20 @@ static inline void mm512_bswap32_intrlv80_8x64( void *dst, void *src )
    __m512i *d = (__m512i*)dst;
    __m512i s0 = mm512_bswap_32( casti_m512i(src, 0 ) );
    __m128i s1 = mm128_bswap_32( casti_m128i(src, 4 ) );
-  const __m512i zero = m512_zero;
-  const __m512i one  = m512_one_64;
-  const __m512i two  = _mm512_add_epi64( one, one );
-  const __m512i tre  = _mm512_add_epi64( two, one );
-  const __m512i four = _mm512_add_epi64( two, two );
+  const __m512i zero   = m512_zero;
+  const __m512i one    = m512_one_64;
+  const __m512i two    = _mm512_add_epi64( one, one );
+  const __m512i three  = _mm512_add_epi64( two, one );
+  const __m512i four   = _mm512_add_epi64( two, two );
 
   d[0] = _mm512_permutexvar_epi64( s0, zero );
   d[1] = _mm512_permutexvar_epi64( s0, one  );
   d[2] = _mm512_permutexvar_epi64( s0, two  );
-  d[3] = _mm512_permutexvar_epi64( s0, tre  );
+  d[3] = _mm512_permutexvar_epi64( s0, three  );
   d[4] = _mm512_permutexvar_epi64( s0, four );
-  d[5] = _mm512_permutexvar_epi64( s0, _mm512_add_epi64( four, one ) );
-  d[6] = _mm512_permutexvar_epi64( s0, _mm512_add_epi64( four, two ) );
-  d[7] = _mm512_permutexvar_epi64( s0, _mm512_add_epi64( four, tre ) );
+  d[5] = _mm512_permutexvar_epi64( s0, _mm512_add_epi64( four, one   ) );
+  d[6] = _mm512_permutexvar_epi64( s0, _mm512_add_epi64( four, two   ) );
+  d[7] = _mm512_permutexvar_epi64( s0, _mm512_add_epi64( four, three ) );
   d[8] = _mm512_permutexvar_epi64(
            _mm512_castsi128_si512( s1 ), zero );
   d[9] = _mm512_permutexvar_epi64(
@@ -1296,25 +1296,18 @@ static inline void rintrlv_4x64_2x128( void *dst0, void *dst1,
 #if defined(__SSE4_1__)
 // No SSE2 implementation.
 
-#define mm128_intrlv_blend_64( hi, lo ) \
-                _mm_blend_epi16( hi, lo, 0x0f )
-#define mm128_intrlv_blend_32( hi, lo ) \
-                _mm_blend_epi16( hi, lo, 0x33 )
+#define mm128_intrlv_blend_64( hi, lo )   _mm_blend_epi16( hi, lo, 0x0f )
+#define mm128_intrlv_blend_32( hi, lo )   _mm_blend_epi16( hi, lo, 0x33 )
 
 #endif   // SSE4_1
 
 #if defined(__AVX2__)
 
-#define mm256_intrlv_blend_128( hi, lo ) \
-                _mm256_blend_epi32( hi, lo, 0x0f )
+#define mm256_intrlv_blend_128( hi, lo )  _mm256_blend_epi32( hi, lo, 0x0f )
+#define mm256_intrlv_blend_64( hi, lo )   _mm256_blend_epi32( hi, lo, 0x33 )
+#define mm256_intrlv_blend_32( hi, lo )   _mm256_blend_epi32( hi, lo, 0x55 )
 
-#define mm256_intrlv_blend_64( hi, lo ) \
-                _mm256_blend_epi32( hi, lo, 0x33 )
-
-#define mm256_intrlv_blend_32( hi, lo ) \
-           _mm256_blend_epi32( hi, lo, 0x55 )
-
-// Blend 32 byte lanes of hash from 2 sources according to control mask.
+// Select lanes of 32 byte hash from 2 sources according to control mask.
 // macro due to 256 bit value arg.
 #define mm256_blend_hash_4x64( dst, a, b, mask ) \
 do { \

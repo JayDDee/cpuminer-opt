@@ -1009,8 +1009,7 @@ static int share_result( int result, struct work *null_work,
                        sres, diffstr, share_time, accepted_share_count,
                        rejected_share_count, solved_block_count );
 
-   if ( have_stratum && result && my_stats.share_diff && my_stats.net_diff
-        && !opt_quiet )
+   if ( have_stratum && result && !opt_quiet )
    {
       applog( LOG_NOTICE, "Miner %s %sH/s, Share %s, Latency %d ms.",
                           hr, hr_units, shr, latency );

@@ -58,6 +58,7 @@ Supported Algorithms
                           blakecoin     blake256r8
                           blake2s       Blake-2 S
                           bmw           BMW 256
+                          bmw512        BMW 512
                           c11           Chaincoin
                           decred
                           deep          Deepcoin (DCN)
@@ -113,11 +114,14 @@ Supported Algorithms
                           x11gost       sib (SibCoin)
                           x12           Galaxie Cash (GCH)
                           x13           X13
+                          x13bcd        bcd
                           x13sm3        hsr (Hshare)
                           x14           X14
                           x15           X15
                           x16r          Ravencoin (RVN)
-                          x16s          pigeoncoin (PGN)
+                          x16rt         Gincoin (GIN)
+                          x16rt_veil    Veil (VEIL)
+                          x16s          Pigeoncoin (PGN)
                           x17
                           xevan         Bitsend (BSD)
                           yescrypt      Globalboost-Y (BSTY)

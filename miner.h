@@ -313,6 +313,7 @@ void   applog(int prio, const char *fmt, ...);
 void   restart_threads(void);
 extern json_t *json_rpc_call( CURL *curl, const char *url, const char *userpass,
                 	const char *rpc_req, int *curl_err, int flags );
+extern void cbin2hex(char *out, const char *in, size_t len);
 void   bin2hex( char *s, const unsigned char *p, size_t len );
 char  *abin2hex( const unsigned char *p, size_t len );
 bool   hex2bin( unsigned char *p, const char *hexstr, size_t len );
@@ -329,6 +330,7 @@ extern void diff_to_target(uint32_t *target, double diff);
 
 double hash_target_ratio( uint32_t* hash, uint32_t* target );
 void   work_set_target_ratio( struct work* work, uint32_t* hash );
+
 
 void   get_currentalgo( char* buf, int sz );
 bool   has_sha();
@@ -363,6 +365,14 @@ struct work {
 	char *job_id;
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
+   // x16rt
+   uint32_t merkleroothash[8];
+   uint32_t witmerkleroothash[8];
+   uint32_t denom10[8];
+   uint32_t denom100[8];
+   uint32_t denom1000[8];
+   uint32_t denom10000[8];
+
 } __attribute__ ((aligned (64)));
 
 struct stratum_job {
@@ -376,9 +386,15 @@ struct stratum_job {
 	unsigned char version[4];
 	unsigned char nbits[4];
 	unsigned char ntime[4];
-	bool clean;
 	double diff;
-        unsigned char extra[64];
+   bool clean;
+   // for x16rt
+   unsigned char extra[64];
+   unsigned char denom10[32];
+   unsigned char denom100[32];
+   unsigned char denom1000[32];
+   unsigned char denom10000[32];
+   unsigned char proofoffullnode[32];
 
 } __attribute__ ((aligned (64)));
 
@@ -498,6 +514,7 @@ enum algos {
 //        ALGO_BLAKE2B,
         ALGO_BLAKE2S,     
         ALGO_BMW,        
+        ALGO_BMW512,
         ALGO_C11,         
         ALGO_CRYPTOLIGHT, 
         ALGO_CRYPTONIGHT,
@@ -555,10 +572,13 @@ enum algos {
         ALGO_X11GOST,
         ALGO_X12,
         ALGO_X13,         
+        ALGO_X13BCD,
         ALGO_X13SM3,
         ALGO_X14,        
         ALGO_X15,       
         ALGO_X16R,
+        ALGO_X16RT,
+        ALGO_X16RT_VEIL,
         ALGO_X16S,
         ALGO_X17,
         ALGO_XEVAN,
@@ -586,6 +606,7 @@ static const char* const algo_names[] = {
 //        "blake2b",
         "blake2s",
         "bmw",
+        "bmw512",
         "c11",
         "cryptolight",
         "cryptonight",
@@ -643,10 +664,13 @@ static const char* const algo_names[] = {
         "x11gost",
         "x12",
         "x13",
+        "x13bcd",
         "x13sm3",
         "x14",
         "x15",
         "x16r",
+        "x16rt",
+        "x16rt-veil",
         "x16s",
         "x17",
         "xevan",
@@ -736,6 +760,7 @@ Options:\n\
                           blakecoin     blake256r8\n\
                           blake2s       Blake-2 S\n\
                           bmw           BMW 256\n\
+                          bmw512        BMW 512\n\
                           c11           Chaincoin\n\
                           cryptolight   Cryptonight-light\n\
                           cryptonight   Cryptonote legacy\n\
@@ -782,7 +807,7 @@ Options:\n\
                           skein2        Double Skein (Woodcoin)\n\
                           skunk         Signatum (SIGT)\n\
                           sonoa         Sono\n\
-			                 timetravel    timeravel8, Machinecoin (MAC)\n\
+                          timetravel    timeravel8, Machinecoin (MAC)\n\
                           timetravel10  Bitcore (BTX)\n\
                           tribus        Denarius (DNR)\n\
                           vanilla       blake256r8vnl (VCash)\n\
@@ -794,20 +819,23 @@ Options:\n\
                           x11gost       sib (SibCoin)\n\
                           x12           Galaxie Cash (GCH)\n\
                           x13           X13\n\
+                          x13bcd        bcd \n\
                           x13sm3        hsr (Hshare)\n\
                           x14           X14\n\
                           x15           X15\n\
                           x16r          Ravencoin (RVN)\n\
+                          x16rt         Gincoin (GIN)\n\
+                          x16rt-veil    Veil (VEIL)\n\
                           x16s          Pigeoncoin (PGN)\n\
                           x17\n\
                           xevan         Bitsend (BSD)\n\
-                          yescrypt      Globlboost-Y (BSTY)\n\
+                          yescrypt      Globalboost-Y (BSTY)\n\
                           yescryptr8    BitZeny (ZNY)\n\
                           yescryptr16   Eli\n\
                           yescryptr32   WAVI\n\
                           yespower      Cryply\n\
                           yespowerr16   Yenten (YTN)\n\
-			  zr5           Ziftr\n\
+                          zr5           Ziftr\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
   -u, --user=USERNAME   username for mining server\n\

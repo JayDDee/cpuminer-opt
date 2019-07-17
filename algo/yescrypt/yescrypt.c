@@ -399,15 +399,15 @@ int scanhash_yescrypt( struct work *work, uint32_t max_nonce,
                 be32enc(&endiandata[k], pdata[k]);
 
         do {
-                be32enc(&endiandata[19], n);
-                yescrypt_hash((char*) endiandata, (char*) vhash, 80);
-                if (vhash[7] < Htarg && fulltest(vhash, ptarget)) {
-                        work_set_target_ratio( work, vhash );
-                        *hashes_done = n - first_nonce + 1;
-                        pdata[19] = n;
-                        return true;
-                }
-                n++;
+           be32enc(&endiandata[19], n);
+           yescrypt_hash((char*) endiandata, (char*) vhash, 80);
+           if (vhash[7] < Htarg && fulltest(vhash, ptarget ) 
+               && !opt_benchmark )
+           {
+               pdata[19] = n;
+               submit_solution( work, vhash, mythr );
+           }
+           n++;
         } while (n < max_nonce && !work_restart[thr_id].restart);
 
         *hashes_done = n - first_nonce + 1;

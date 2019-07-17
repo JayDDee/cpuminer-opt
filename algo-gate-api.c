@@ -170,6 +170,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_BLAKECOIN:     register_blakecoin_algo     ( gate ); break;
 //    case ALGO_BLAKE2B:      register_blake2b_algo     ( gate ); break;
     case ALGO_BLAKE2S:       register_blake2s_algo       ( gate ); break;
+    case ALGO_BMW512:        register_bmw512_algo        ( gate ); break;
     case ALGO_C11:           register_c11_algo           ( gate ); break;
     case ALGO_CRYPTOLIGHT:   register_cryptolight_algo   ( gate ); break;
     case ALGO_CRYPTONIGHT:   register_cryptonight_algo   ( gate ); break;
@@ -227,10 +228,13 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_X11GOST:       register_x11gost_algo       ( gate ); break;
     case ALGO_X12:           register_x12_algo           ( gate ); break;
     case ALGO_X13:           register_x13_algo           ( gate ); break;
+    case ALGO_X13BCD:        register_x13bcd_algo        ( gate ); break;
     case ALGO_X13SM3:        register_x13sm3_algo        ( gate ); break;
     case ALGO_X14:           register_x14_algo           ( gate ); break;
     case ALGO_X15:           register_x15_algo           ( gate ); break;
     case ALGO_X16R:          register_x16r_algo          ( gate ); break;
+    case ALGO_X16RT:         register_x16rt_algo         ( gate ); break;
+    case ALGO_X16RT_VEIL:    register_x16rt_veil_algo    ( gate ); break;
     case ALGO_X16S:          register_x16s_algo          ( gate ); break;
     case ALGO_X17:           register_x17_algo           ( gate ); break;
     case ALGO_XEVAN:         register_xevan_algo         ( gate ); break;
@@ -327,7 +331,6 @@ const char* const algo_alias_map[][2] =
   { "lyra2",             "lyra2re"      },
   { "lyra2v2",           "lyra2rev2"    },
   { "lyra2v3",           "lyra2rev3"    },
-  { "lyra2zoin",         "lyra2z330"    },
   { "myrgr",             "myr-gr"       },
   { "myriad",            "myr-gr"       },
   { "neo",               "neoscrypt"    },
@@ -335,11 +338,9 @@ const char* const algo_alias_map[][2] =
 //  { "sia",               "blake2b"      },
   { "sib",               "x11gost"      },
   { "timetravel8",       "timetravel"   },
-  { "ziftr",             "zr5"          },
+  { "veil",              "x16rt-veil"   },
   { "yenten",            "yescryptr16"  },
-  { "yescryptr8k",       "yescrypt"     },
-  { "zcoin",             "lyra2z"       },
-  { "zoin",              "lyra2z330"    },
+  { "ziftr",             "zr5"          },
   { NULL,                NULL           }   
 };
 

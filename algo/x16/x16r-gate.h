@@ -4,6 +4,7 @@
 #include "algo-gate-api.h"
 #include "simd-utils.h"
 #include <stdint.h>
+#include <unistd.h>
 
 #if defined(__AVX2__) && defined(__AES__)
   #define X16R_4WAY
@@ -30,16 +31,24 @@ enum x16r_Algo {
 };
 
 void (*x16_r_s_getAlgoString) ( const uint8_t*, char* );
-void x16r_getAlgoString( const uint8_t* prevblock, char *output );
-void x16s_getAlgoString( const uint8_t* prevblock, char *output );
+void x16r_getAlgoString( const uint8_t *prevblock, char *output );
+void x16s_getAlgoString( const uint8_t *prevblock, char *output );
+void x16rt_getAlgoString( const uint32_t *timeHash, char *output );
+
+void x16rt_getTimeHash( const uint32_t timeStamp, void* timeHash );
 
 bool register_x16r_algo( algo_gate_t* gate );
 bool register_x16s_algo( algo_gate_t* gate );
+bool register_x16rt_algo( algo_gate_t* gate );
 
 #if defined(X16R_4WAY)
 
 void x16r_4way_hash( void *state, const void *input );
 int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr );
+
+void x16rt_4way_hash( void *state, const void *input );
+int scanhash_x16rt_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif
@@ -48,5 +57,8 @@ void x16r_hash( void *state, const void *input );
 int scanhash_x16r( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr );
 
+void x16rt_hash( void *state, const void *input );
+int scanhash_x16rt( struct work *work, uint32_t max_nonce,
+                   uint64_t *hashes_done, struct thr_info *mythr );
 #endif
 

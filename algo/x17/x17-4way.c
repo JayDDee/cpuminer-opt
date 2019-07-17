@@ -68,7 +68,7 @@ void x17_4way_hash( void *state, const void *input )
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serialize
-     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
      // 3 Groestl
      init_groestl( &ctx.groestl, 64 );
@@ -81,7 +81,7 @@ void x17_4way_hash( void *state, const void *input )
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      // Parallellize
-     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      // 4 Skein parallel 4 way 64 bit 
      skein512_4way_init( &ctx.skein );
@@ -142,13 +142,13 @@ void x17_4way_hash( void *state, const void *input )
                        (const BitSequence *) hash3, 512 );
 
      // 12 Hamsi parallel 4 way 64 bit
-     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
-     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
      // 13 Fugue serial
      sph_fugue512_init( &ctx.fugue );
@@ -165,13 +165,13 @@ void x17_4way_hash( void *state, const void *input )
      sph_fugue512_close( &ctx.fugue, hash3 );
 
      // 14 Shabal, parallel 4 way 32 bit
-     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
      shabal512_4way_init( &ctx.shabal );
      shabal512_4way( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
-     dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+     dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
        
      // 15 Whirlpool serial
      sph_whirlpool_init( &ctx.whirlpool );
@@ -188,7 +188,7 @@ void x17_4way_hash( void *state, const void *input )
      sph_whirlpool_close( &ctx.whirlpool, hash3 );
 
      // 16 SHA512 parallel 64 bit 
-     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+     intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      sha512_4way_init( &ctx.sha512 );
      sha512_4way( &ctx.sha512, vhash, 64 );
@@ -205,7 +205,7 @@ void x17_4way_hash( void *state, const void *input )
 int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-     uint32_t hash[4*8] __attribute__ ((aligned (64)));
+     uint32_t hash[4*16] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
      uint32_t lane_hash[8] __attribute__ ((aligned (32)));
      uint32_t *hash7 = &(hash[7<<2]);

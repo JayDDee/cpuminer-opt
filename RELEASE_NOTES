@@ -38,6 +38,10 @@ supported.
 Change Log
 ----------
 
+v3.9.6
+
+New algos: bmw512, x16rt, x16rt-veil (alias veil), x13bcd (alias bcd).
+
 v3.9.5.4
 
 Fixed sha256q AVX2 poor performance.

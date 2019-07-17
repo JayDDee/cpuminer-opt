@@ -323,7 +323,7 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
      mpz_clears(magipi, magisw, product, bns0, bns1, NULL);
 
     *hashes_done = n - first_nonce + 1;
-    return rc;
+    return 0;
 }
 
 bool register_m7m_algo( algo_gate_t *gate )

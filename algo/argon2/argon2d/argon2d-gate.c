@@ -36,35 +36,31 @@ void argon2d_crds_hash( void *output, const void *input )
 int scanhash_argon2d_crds( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t _ALIGN(64) endiandata[20];
-        uint32_t _ALIGN(64) hash[8];
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
-        int thr_id = mythr->id;  // thr_id arg is deprecated
+   uint32_t _ALIGN(64) endiandata[20];
+   uint32_t _ALIGN(64) hash[8];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t Htarg = ptarget[7];
+   uint32_t nonce = first_nonce;
 
-        const uint32_t first_nonce = pdata[19];
-        const uint32_t Htarg = ptarget[7];
+   swab32_array( endiandata, pdata, 20 );
 
-        uint32_t nonce = first_nonce;
+   do {
+      be32enc(&endiandata[19], nonce);
+      argon2d_crds_hash( hash, endiandata );
+      if ( hash[7] <= Htarg && fulltest( hash, ptarget ) && !opt_benchmark )
+      {
+          pdata[19] = nonce;
+          submit_solution( work, hash, mythr );
+      }
+      nonce++;
+   } while (nonce < max_nonce && !work_restart[thr_id].restart);
 
-        swab32_array( endiandata, pdata, 20 );
-
-        do {
-                be32enc(&endiandata[19], nonce);
-                argon2d_crds_hash( hash, endiandata );
-                if ( hash[7] <= Htarg && fulltest( hash, ptarget ) )
-                {
-                        pdata[19] = nonce;
-                        *hashes_done = pdata[19] - first_nonce;
-                        work_set_target_ratio(work, hash);
-                        return 1;
-                }
-                nonce++;
-        } while (nonce < max_nonce && !work_restart[thr_id].restart);
-
-        pdata[19] = nonce;
-        *hashes_done = pdata[19] - first_nonce + 1;
-        return 0;
+   pdata[19] = nonce;
+   *hashes_done = pdata[19] - first_nonce + 1;
+   return 0;
 }
 
 bool register_argon2d_crds_algo( algo_gate_t* gate )
@@ -107,35 +103,32 @@ void argon2d_dyn_hash( void *output, const void *input )
 int scanhash_argon2d_dyn( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t _ALIGN(64) endiandata[20];
-        uint32_t _ALIGN(64) hash[8];
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
-        int thr_id = mythr->id;  // thr_id arg is deprecated
+   uint32_t _ALIGN(64) endiandata[20];
+   uint32_t _ALIGN(64) hash[8];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t Htarg = ptarget[7];
+   uint32_t nonce = first_nonce;
 
-        const uint32_t first_nonce = pdata[19];
-        const uint32_t Htarg = ptarget[7];
+   swab32_array( endiandata, pdata, 20 );
 
-        uint32_t nonce = first_nonce;
+   do
+   {
+      be32enc(&endiandata[19], nonce);
+      argon2d_dyn_hash( hash, endiandata );
+      if ( hash[7] <= Htarg && fulltest( hash, ptarget ) && !opt_benchmark )
+      {
+          pdata[19] = nonce;
+          submit_solution( work, hash, mythr );
+      }
+      nonce++;
+  } while (nonce < max_nonce && !work_restart[thr_id].restart);
 
-        swab32_array( endiandata, pdata, 20 );
-
-        do {
-                be32enc(&endiandata[19], nonce);
-                argon2d_dyn_hash( hash, endiandata );
-                if ( hash[7] <= Htarg && fulltest( hash, ptarget ) )
-                {
-                        pdata[19] = nonce;
-                        *hashes_done = pdata[19] - first_nonce;
-                        work_set_target_ratio(work, hash);
-                        return 1;
-                }
-                nonce++;
-        } while (nonce < max_nonce && !work_restart[thr_id].restart);
-
-        pdata[19] = nonce;
-        *hashes_done = pdata[19] - first_nonce + 1;
-        return 0;
+   pdata[19] = nonce;
+   *hashes_done = pdata[19] - first_nonce + 1;
+   return 0;
 }
 
 bool register_argon2d_dyn_algo( algo_gate_t* gate )
@@ -171,11 +164,10 @@ int scanhash_argon2d4096( struct work *work, uint32_t max_nonce,
       be32enc( &endiandata[19], n );
       argon2d_hash_raw( t_cost, m_cost, parallelism, (char*) endiandata, 80,
                  (char*) endiandata, 80, (char*) vhash, 32, ARGON2_VERSION_13 );
-      if ( vhash[7] < Htarg && fulltest( vhash, ptarget ) )
+      if ( vhash[7] < Htarg && fulltest( vhash, ptarget ) && !opt_benchmark )
       {
-         *hashes_done = n - first_nonce + 1;
          pdata[19] = n;
-         return true;
+         submit_solution( work, vhash, mythr );
       }
       n++;
 

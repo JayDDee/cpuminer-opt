@@ -71,6 +71,9 @@ cpuminer_SOURCES = \
   algo/bmw/bmw256-hash-4way.c \
   algo/bmw/bmw512-hash-4way.c \
   algo/bmw/bmw256.c \
+  algo/bmw/bmw512-gate.c \
+  algo/bmw/bmw512.c \
+  algo/bmw/bmw512-4way.c \
   algo/cryptonight/cryptolight.c \
   algo/cryptonight/cryptonight-common.c\
   algo/cryptonight/cryptonight-aesni.c\
@@ -238,6 +241,8 @@ cpuminer_SOURCES = \
   algo/x13/skunk-4way.c \
   algo/x13/skunk.c \
   algo/x13/drop.c \
+  algo/x13/x13bcd-4way.c \
+  algo/x13/x13bcd.c \
   algo/x14/x14-gate.c \
   algo/x14/x14.c \
   algo/x14/x14-4way.c \
@@ -254,6 +259,8 @@ cpuminer_SOURCES = \
   algo/x16/x16r-gate.c \
   algo/x16/x16r.c \
   algo/x16/x16r-4way.c \
+  algo/x16/x16rt.c \
+  algo/x16/x16rt-4way.c \
   algo/x17/x17-gate.c \
   algo/x17/x17.c \
   algo/x17/x17-4way.c \

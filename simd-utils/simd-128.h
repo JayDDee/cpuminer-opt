@@ -358,17 +358,17 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 // no SSE2 implementation, no current users
 
 #define mm128_ror_1x16( v ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8(  1, 0,15,14,13,12,11,10 \
-                                       9, 8, 7, 6, 5, 4, 3, 2 ) )
+   _mm_shuffle_epi8( v, m128_const_64( 0x01000f0e0d0c0b0a, \
+                                       0x0908070605040302 ) )
 #define mm128_rol_1x16( v ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8( 13,12,11,10, 9, 8, 7, 6, \
-                                       5, 4, 3, 2, 1, 0,15,14 ) )
+   _mm_shuffle_epi8( v, m128_const_64( 0x0d0c0b0a09080706, \
+                                       0x0504030201000f0e ) )
 #define mm128_ror_1x8( v ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8(  0,15,14,13,12,11,10, 9, \
-                                       8, 7, 6, 5, 4, 3, 2, 1 ) )
+   _mm_shuffle_epi8( v, m128_const_64( 0x000f0e0d0c0b0a09, \
+                                       0x0807060504030201 ) )
 #define mm128_rol_1x8( v ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8( 14,13,12,11,10, 9, 8, 7, \
-                                       6, 5, 4, 3, 2, 1, 0,15 ) )
+   _mm_shuffle_epi8( v, m128_const_64( 0x0e0d0c0b0a090807, \
+                                       0x060504030201000f ) )
 #endif  // SSE3
 
 // Rotate 16 byte (128 bit) vector by c bytes.
@@ -386,12 +386,12 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 #define mm128_swap32_64( v )  _mm_shuffle_epi32( v, 0xb1 )
 
 #define mm128_ror16_64( v )   _mm_shuffle_epi8( v, \
-         _mm_set_epi8(  9, 8,15,14,13,12,11,10,  1, 0, 7, 6, 5, 4, 3, 2 )
+                   m128_const_64( 0x09080f0e0d0c0b0a, 0x0100070605040302 )
 #define mm128_rol16_64( v )   _mm_shuffle_epi8( v, \
-              _mm_set_epi8( 13,12,11,10, 9, 8,15,14,  5, 4, 3, 2, 1, 0, 7, 6 )
+                   m128_const_64( 0x0dc0b0a09080f0e, 0x0504030201000706 )
 
 #define mm128_swap16_32( v )  _mm_shuffle_epi8( v, \
-                      _mm_set_epi8( 13,12,15,14, 9,8,11,10, 5,4,7,6, 1,0,3,2 )
+                   m128_const_64( 0x0d0c0f0e09080b0a, 0x0504070601000302 )
 
 //
 // Endian byte swap.
@@ -399,16 +399,15 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, int n )
 #if defined(__SSSE3__)
 
 #define mm128_bswap_64( v ) \
-   _mm_shuffle_epi8( v, m128_const64(  0x08090a0b0c0d0e0f, \
+   _mm_shuffle_epi8( v, m128_const_64( 0x08090a0b0c0d0e0f, \
                                        0x0001020304050607 ) )
 
 #define mm128_bswap_32( v ) \
    _mm_shuffle_epi8( v, m128_const_64( 0x0c0d0e0f08090a0b, \
                                        0x0405060700010203 ) )
 
-#define mm128_bswap_16( v ) \
-   _mm_shuffle_epi8( v, _mm_set_epi8( 14,15,  12,13,  10,11,   8, 9, \
-                                       6, 7,   4, 5,   2, 3,   0, 1 ) )
+#define mm128_bswap_16( v ) _mm_shuffle_epi8( \
+                   m128_const_64( 0x0e0f0c0d0a0b0809, 0x0607040502030001 )
 
 // 8 byte qword * 8 qwords * 2 lanes = 128 bytes
 #define mm128_block_bswap_64( d, s ) do \
@@ -462,14 +461,14 @@ static inline __m128i mm128_bswap_16( __m128i v )
 
 static inline void mm128_block_bswap_64( __m128i *d, __m128i *s )
 {
-   d[0] = mm128_bswap_32( s[0] );
-   d[1] = mm128_bswap_32( s[1] );
-   d[2] = mm128_bswap_32( s[2] );
-   d[3] = mm128_bswap_32( s[3] );
-   d[4] = mm128_bswap_32( s[4] );
-   d[5] = mm128_bswap_32( s[5] );
-   d[6] = mm128_bswap_32( s[6] );
-   d[7] = mm128_bswap_32( s[7] );
+   d[0] = mm128_bswap_64( s[0] );
+   d[1] = mm128_bswap_64( s[1] );
+   d[2] = mm128_bswap_64( s[2] );
+   d[3] = mm128_bswap_64( s[3] );
+   d[4] = mm128_bswap_64( s[4] );
+   d[5] = mm128_bswap_64( s[5] );
+   d[6] = mm128_bswap_64( s[6] );
+   d[7] = mm128_bswap_64( s[7] );
 }
 
 static inline void mm128_block_bswap_32( __m128i *d, __m128i *s )

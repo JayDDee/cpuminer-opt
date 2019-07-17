@@ -332,7 +332,7 @@ void xevan_4way_hash( void *output, const void *input )
 int scanhash_xevan_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[4*8] __attribute__ ((aligned (64)));
+   uint32_t hash[4*16] __attribute__ ((aligned (64)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *hash7 = &(hash[7<<2]);
