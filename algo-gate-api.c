@@ -182,6 +182,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_FRESH:         register_fresh_algo         ( gate ); break;
     case ALGO_GROESTL:       register_groestl_algo       ( gate ); break;
     case ALGO_HEAVY:         register_heavy_algo         ( gate ); break;
+    case ALGO_HEX:           register_hex_algo           ( gate ); break;
     case ALGO_HMQ1725:       register_hmq1725_algo       ( gate ); break;
     case ALGO_HODL:          register_hodl_algo          ( gate ); break;
     case ALGO_JHA:           register_jha_algo           ( gate ); break;
@@ -237,6 +238,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_X16RT_VEIL:    register_x16rt_veil_algo    ( gate ); break;
     case ALGO_X16S:          register_x16s_algo          ( gate ); break;
     case ALGO_X17:           register_x17_algo           ( gate ); break;
+    case ALGO_X21S:          register_x21s_algo          ( gate ); break;
     case ALGO_XEVAN:         register_xevan_algo         ( gate ); break;
 /*    case ALGO_YESCRYPT:     register_yescrypt_05_algo     ( gate ); break;
      case ALGO_YESCRYPTR8:   register_yescryptr8_05_algo   ( gate ); break;
@@ -339,6 +341,7 @@ const char* const algo_alias_map[][2] =
   { "sib",               "x11gost"      },
   { "timetravel8",       "timetravel"   },
   { "veil",              "x16rt-veil"   },
+  { "x16r-hex",          "hex"          },
   { "yenten",            "yescryptr16"  },
   { "ziftr",             "zr5"          },
   { NULL,                NULL           }   

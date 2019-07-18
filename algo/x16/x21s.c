@@ -29,11 +29,17 @@
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
+#include "algo/haval/sph-haval.h"
+#include "algo/tiger/sph_tiger.h"
+#include "algo/gost/sph_gost.h"
+#include "algo/lyra2/lyra2.h"
 
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
 
-union _x16r_context_overlay
+static __thread uint64_t* x21s_matrix;
+
+union _x21s_context_overlay
 {
 #if defined(__AES__)
         hashState_echo          echo;
@@ -56,22 +62,20 @@ union _x16r_context_overlay
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
         SHA512_CTX              sha512;
+        sph_haval256_5_context  haval;
+        sph_tiger_context       tiger;
+        sph_gost512_context     gost;
+        SHA256_CTX              sha256;
 };
-typedef union _x16r_context_overlay x16r_context_overlay;
+typedef union _x21s_context_overlay x21s_context_overlay;
 
-void x16r_hash( void* output, const void* input )
+void x21s_hash( void* output, const void* input )
 {
    uint32_t _ALIGN(128) hash[16];
-   x16r_context_overlay ctx;
+   x21s_context_overlay ctx;
    void *in = (void*) input;
    int size = 80;
-/*
-   if ( s_ntime == UINT32_MAX )
-   {
-      const uint8_t* in8 = (uint8_t*) input;
-      x16_r_s_getAlgoString( &in8[4], hashOrder );
-   }
-*/
+
    for ( int i = 0; i < 16; i++ )
    {
       const char elem = hashOrder[i];
@@ -175,10 +179,30 @@ void x16r_hash( void* output, const void* input )
       in = (void*) hash;
       size = 64;
    }
-   memcpy(output, hash, 32);
+
+   sph_haval256_5_init( &ctx.haval );
+   sph_haval256_5( &ctx.haval, (const void*) hash, 64) ;
+   sph_haval256_5_close( &ctx.haval, hash );
+
+   sph_tiger_init( &ctx.tiger );
+   sph_tiger ( &ctx.tiger, (const void*) hash, 64 );
+   sph_tiger_close( &ctx.tiger, (void*) hash );
+
+   LYRA2REV2( x21s_matrix, (void*) hash, 32, (const void*) hash, 32,
+               (const void*) hash, 32, 1, 4, 4);
+
+   sph_gost512_init( &ctx.gost );
+   sph_gost512 ( &ctx.gost, (const void*) hash, 64 );
+   sph_gost512_close( &ctx.gost, (void*) hash );
+
+   SHA256_Init( &ctx.sha256 );
+   SHA256_Update( &ctx.sha256, hash, 64 );
+   SHA256_Final( (unsigned char*)hash, &ctx.sha256 );
+
+   memcpy( output, hash, 32 );
 }
 
-int scanhash_x16r( struct work *work, uint32_t max_nonce,
+int scanhash_x21s( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t _ALIGN(128) hash32[8];
@@ -212,7 +236,7 @@ int scanhash_x16r( struct work *work, uint32_t max_nonce,
    do
    {
       be32enc( &endiandata[19], nonce );
-      x16r_hash( hash32, endiandata );
+      x21s_hash( hash32, endiandata );
 
       if ( hash32[7] <= Htarg )
       if (fulltest( hash32, ptarget ) && !opt_benchmark )
@@ -226,3 +250,14 @@ int scanhash_x16r( struct work *work, uint32_t max_nonce,
    *hashes_done = pdata[19] - first_nonce + 1;
    return 0;
 }
+
+bool x21s_thread_init()
+{
+   const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols
+   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+
+   const int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
+   x21s_matrix = _mm_malloc( size, 64 );
+   return x21s_matrix;
+}
+

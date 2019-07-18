@@ -33,7 +33,24 @@
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
 
-union _x16r_context_overlay
+static void hex_getAlgoString(const uint32_t* prevblock, char *output)
+{
+   char *sptr = output;
+   uint8_t* data = (uint8_t*)prevblock;
+
+   for (uint8_t j = 0; j < X16R_HASH_FUNC_COUNT; j++) {
+      uint8_t b = (15 - j) >> 1; // 16 ascii hex chars, reversed
+      uint8_t algoDigit = (j & 1) ? data[b] & 0xF : data[b] >> 4;
+      if (algoDigit >= 10)
+         sprintf(sptr, "%c", 'A' + (algoDigit - 10));
+      else
+         sprintf(sptr, "%u", (uint32_t) algoDigit);
+      sptr++;
+   }
+   *sptr = '\0';
+}
+
+union _hex_context_overlay
 {
 #if defined(__AES__)
         hashState_echo          echo;
@@ -57,12 +74,12 @@ union _x16r_context_overlay
         sph_whirlpool_context   whirlpool;
         SHA512_CTX              sha512;
 };
-typedef union _x16r_context_overlay x16r_context_overlay;
+typedef union _hex_context_overlay hex_context_overlay;
 
-void x16r_hash( void* output, const void* input )
+void hex_hash( void* output, const void* input )
 {
    uint32_t _ALIGN(128) hash[16];
-   x16r_context_overlay ctx;
+   hex_context_overlay ctx;
    void *in = (void*) input;
    int size = 80;
 /*
@@ -72,11 +89,12 @@ void x16r_hash( void* output, const void* input )
       x16_r_s_getAlgoString( &in8[4], hashOrder );
    }
 */
+
+   char elem = hashOrder[0];
+   uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
+
    for ( int i = 0; i < 16; i++ )
    {
-      const char elem = hashOrder[i];
-      const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
-
       switch ( algo )
       {
          case BLAKE:
@@ -172,14 +190,15 @@ void x16r_hash( void* output, const void* input )
              SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
          break;
       }
+      algo = (uint8_t)hash[0] % X16R_HASH_FUNC_COUNT;
       in = (void*) hash;
       size = 64;
    }
    memcpy(output, hash, 32);
 }
 
-int scanhash_x16r( struct work *work, uint32_t max_nonce,
-                   uint64_t *hashes_done, struct thr_info *mythr )
+int scanhash_hex( struct work *work, uint32_t max_nonce,
+                  uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t _ALIGN(128) hash32[8];
    uint32_t _ALIGN(128) endiandata[20];
@@ -197,10 +216,10 @@ int scanhash_x16r( struct work *work, uint32_t max_nonce,
    casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
    casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
-   if ( s_ntime != pdata[17] )
+   uint32_t ntime = swab32(pdata[17]);
+   if ( s_ntime != ntime )
    {
-      uint32_t ntime = swab32(pdata[17]);
-      x16_r_s_getAlgoString( (const uint8_t*) (&endiandata[1]), hashOrder );
+      hex_getAlgoString( (const uint32_t*) (&endiandata[1]), hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
               applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );
@@ -212,7 +231,7 @@ int scanhash_x16r( struct work *work, uint32_t max_nonce,
    do
    {
       be32enc( &endiandata[19], nonce );
-      x16r_hash( hash32, endiandata );
+      hex_hash( hash32, endiandata );
 
       if ( hash32[7] <= Htarg )
       if (fulltest( hash32, ptarget ) && !opt_benchmark )

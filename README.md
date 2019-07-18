@@ -67,6 +67,7 @@ Supported Algorithms
                           fresh         Fresh
                           groestl       Groestl coin
                           heavy         Heavy
+                          hex           x16r-hex
                           hmq1725       Espers
                           hodl          Hodlcoin
                           jha           Jackpotcoin
@@ -123,6 +124,7 @@ Supported Algorithms
                           x16rt_veil    Veil (VEIL)
                           x16s          Pigeoncoin (PGN)
                           x17
+                          x21s
                           xevan         Bitsend (BSD)
                           yescrypt      Globalboost-Y (BSTY)
                           yescryptr8    BitZeny (ZNY)

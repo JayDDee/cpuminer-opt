@@ -208,3 +208,44 @@ bool register_x16rt_veil_algo( algo_gate_t* gate )
   return true;
 };
 
+////////////////////
+//
+//    HEX
+
+
+void hex_set_target( struct work* work, double job_diff )
+{
+   work_set_target( work, job_diff / (128.0 * opt_diff_factor) );
+}
+
+bool register_hex_algo( algo_gate_t* gate )
+{
+  gate->scanhash        = (void*)&scanhash_hex;
+  gate->hash            = (void*)&hex_hash;
+  gate->optimizations   = SSE2_OPT | AES_OPT | AVX2_OPT;
+  gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
+  gate->set_target      = (void*)&hex_set_target;
+  return true;
+};
+
+///////////////////////////////
+//
+//   X21S
+
+bool register_x21s_algo( algo_gate_t* gate )
+{
+#if defined (X16R_4WAY)
+  gate->scanhash          = (void*)&scanhash_x21s_4way;
+  gate->hash              = (void*)&x21s_4way_hash;
+  gate->miner_thread_init = (void*)&x21s_4way_thread_init;
+#else
+  gate->scanhash          = (void*)&scanhash_x21s;
+  gate->hash              = (void*)&x21s_hash;
+  gate->miner_thread_init = (void*)&x21s_thread_init;
+#endif
+  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT;
+  gate->set_target        = (void*)&alt_set_target;
+  x16_r_s_getAlgoString   = (void*)&x16s_getAlgoString;
+  return true;
+};
+

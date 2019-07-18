@@ -526,6 +526,7 @@ enum algos {
         ALGO_FRESH,       
         ALGO_GROESTL,     
         ALGO_HEAVY,
+        ALGO_HEX,
         ALGO_HMQ1725,
         ALGO_HODL,
         ALGO_JHA,
@@ -581,6 +582,7 @@ enum algos {
         ALGO_X16RT_VEIL,
         ALGO_X16S,
         ALGO_X17,
+        ALGO_X21S,
         ALGO_XEVAN,
         ALGO_YESCRYPT,
         ALGO_YESCRYPTR8,
@@ -618,6 +620,7 @@ static const char* const algo_names[] = {
         "fresh",
         "groestl",
         "heavy",
+        "hex",
         "hmq1725",
         "hodl",
         "jha",
@@ -673,6 +676,7 @@ static const char* const algo_names[] = {
         "x16rt-veil",
         "x16s",
         "x17",
+        "x21s",
         "xevan",
         "yescrypt",
         "yescryptr8",
@@ -772,6 +776,7 @@ Options:\n\
                           fresh         Fresh\n\
                           groestl       Groestl coin\n\
                           heavy         Heavy\n\
+                          hex           x16r-hex\n\
                           hmq1725       Espers\n\
                           hodl          Hodlcoin\n\
                           jha           jackppot (Jackpotcoin)\n\
@@ -828,6 +833,7 @@ Options:\n\
                           x16rt-veil    Veil (VEIL)\n\
                           x16s          Pigeoncoin (PGN)\n\
                           x17\n\
+                          x21s\n\
                           xevan         Bitsend (BSD)\n\
                           yescrypt      Globalboost-Y (BSTY)\n\
                           yescryptr8    BitZeny (ZNY)\n\

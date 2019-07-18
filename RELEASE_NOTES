@@ -38,6 +38,10 @@ supported.
 Change Log
 ----------
 
+v3.9.6.1
+
+New algos: x21s, hex (alias x16r-hex).
+
 v3.9.6
 
 New algos: bmw512, x16rt, x16rt-veil (alias veil), x13bcd (alias bcd).

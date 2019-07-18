@@ -32,27 +32,27 @@ void l2v3_blake256_midstate( const void* input )
 
 void lyra2rev3_hash( void *state, const void *input )
 {
-        lyra2v3_ctx_holder ctx __attribute__ ((aligned (64))); 
-        memcpy( &ctx, &lyra2v3_ctx, sizeof(lyra2v3_ctx) );
-        uint8_t hash[128] __attribute__ ((aligned (64)));
-        #define hashA hash
-        #define hashB hash+64
-        const int midlen = 64;            // bytes
-        const int tail   = 80 - midlen;   // 16
+   lyra2v3_ctx_holder ctx __attribute__ ((aligned (64))); 
+   memcpy( &ctx, &lyra2v3_ctx, sizeof(lyra2v3_ctx) );
+   uint8_t hash[128] __attribute__ ((aligned (64)));
+   #define hashA hash
+   #define hashB hash+64
+   const int midlen = 64;            // bytes
+   const int tail   = 80 - midlen;   // 16
 
-        memcpy( &ctx.blake, &l2v3_blake_mid, sizeof l2v3_blake_mid );
-	sph_blake256( &ctx.blake, (uint8_t*)input + midlen, tail );
-	sph_blake256_close( &ctx.blake, hash );
+   memcpy( &ctx.blake, &l2v3_blake_mid, sizeof l2v3_blake_mid );
+   sph_blake256( &ctx.blake, (uint8_t*)input + midlen, tail );
+   sph_blake256_close( &ctx.blake, hash );
 
-        LYRA2REV3( l2v3_wholeMatrix, hash, 32, hash, 32, hash, 32, 1, 4, 4 );
+   LYRA2REV3( l2v3_wholeMatrix, hash, 32, hash, 32, hash, 32, 1, 4, 4 );
 
-        cubehashUpdateDigest( &ctx.cube, (byte*) hashA,
-                              (const byte*) hash, 32 );
+   cubehashUpdateDigest( &ctx.cube, (byte*) hashA,
+                         (const byte*) hash, 32 );
 
-	LYRA2REV3( l2v3_wholeMatrix, hash, 32, hash, 32, hash, 32, 1, 4, 4 );
+   LYRA2REV3( l2v3_wholeMatrix, hash, 32, hash, 32, hash, 32, 1, 4, 4 );
 
-	sph_bmw256( &ctx.bmw, hash, 32 );
-	sph_bmw256_close( &ctx.bmw, hash );
+   sph_bmw256( &ctx.bmw, hash, 32 );
+   sph_bmw256_close( &ctx.bmw, hash );
 
 	memcpy( state, hash, 32 );
 }

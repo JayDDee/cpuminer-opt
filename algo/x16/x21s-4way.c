@@ -28,11 +28,19 @@
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha/sha2-hash-4way.h"
+#include "algo/haval/haval-hash-4way.h"
+#include "algo/tiger/sph_tiger.h"
+#include "algo/gost/sph_gost.h"
+#include "algo/lyra2/lyra2.h"
+#if defined(__SHA__)
+ #include <openssl/sha.h>
+#endif
 
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
+static __thread uint64_t* x21s_4way_matrix;
 
-union _x16r_4way_context_overlay
+union _x21s_4way_context_overlay
 {
     blake512_4way_context   blake;
     bmw512_4way_context     bmw;
@@ -50,17 +58,25 @@ union _x16r_4way_context_overlay
     shabal512_4way_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_4way_context     sha512;
+    haval256_5_4way_context haval;
+    sph_tiger_context       tiger;
+    sph_gost512_context     gost;
+#if defined(__SHA__)
+    SHA256_CTX              sha256;
+#else
+    sha256_4way_context     sha256;
+#endif
 };
-typedef union _x16r_4way_context_overlay x16r_4way_context_overlay;
+typedef union _x21s_4way_context_overlay x21s_4way_context_overlay;
 
-void x16r_4way_hash( void* output, const void* input )
+void x21s_4way_hash( void* output, const void* input )
 {
    uint32_t hash0[24] __attribute__ ((aligned (64)));
    uint32_t hash1[24] __attribute__ ((aligned (64)));
    uint32_t hash2[24] __attribute__ ((aligned (64)));
    uint32_t hash3[24] __attribute__ ((aligned (64)));
    uint32_t vhash[24*4] __attribute__ ((aligned (64)));
-   x16r_4way_context_overlay ctx;
+   x21s_4way_context_overlay ctx;
    void *in0 = (void*) hash0;
    void *in1 = (void*) hash1;
    void *in2 = (void*) hash2;
@@ -68,13 +84,7 @@ void x16r_4way_hash( void* output, const void* input )
    int size = 80;
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, input, 640 );
-/* 
-   if ( s_ntime == UINT32_MAX )
-   {
-      const uint8_t* tmp = (uint8_t*) in0;
-      x16_r_s_getAlgoString( &tmp[4], hashOrder );
-   }
-*/
+
    // Input data is both 64 bit interleaved (input)
    // and deinterleaved in inp0-3.
    // If First function uses 64 bit data it is not required to interleave inp
@@ -278,13 +288,82 @@ void x16r_4way_hash( void* output, const void* input )
       }
       size = 64;
    }
+
+   intrlv_4x32( vhash, hash0, hash1, hash2, hash3,  512 );
+
+   haval256_5_4way_init( &ctx.haval );
+   haval256_5_4way( &ctx.haval, vhash, 64 );
+   haval256_5_4way_close( &ctx.haval, vhash );
+
+   dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
+
+   sph_tiger_init( &ctx.tiger );
+   sph_tiger ( &ctx.tiger, (const void*) hash0, 64 );
+   sph_tiger_close( &ctx.tiger, (void*) hash0 );
+   sph_tiger_init( &ctx.tiger );
+   sph_tiger ( &ctx.tiger, (const void*) hash1, 64 );
+   sph_tiger_close( &ctx.tiger, (void*) hash1 );
+   sph_tiger_init( &ctx.tiger );
+   sph_tiger ( &ctx.tiger, (const void*) hash2, 64 );
+   sph_tiger_close( &ctx.tiger, (void*) hash2 );
+   sph_tiger_init( &ctx.tiger );
+   sph_tiger ( &ctx.tiger, (const void*) hash3, 64 );
+   sph_tiger_close( &ctx.tiger, (void*) hash3 );
+
+   LYRA2REV2( x21s_4way_matrix, (void*) hash0, 32, (const void*) hash0, 32,
+            (const void*) hash0, 32, 1, 4, 4 );
+   LYRA2REV2( x21s_4way_matrix, (void*) hash1, 32, (const void*) hash1, 32,
+            (const void*) hash1, 32, 1, 4, 4 );
+   LYRA2REV2( x21s_4way_matrix, (void*) hash2, 32, (const void*) hash2, 32,
+            (const void*) hash2, 32, 1, 4, 4 );
+   LYRA2REV2( x21s_4way_matrix, (void*) hash3, 32, (const void*) hash3, 32,
+            (const void*) hash3, 32, 1, 4, 4 );
+
+   sph_gost512_init( &ctx.gost );
+   sph_gost512 ( &ctx.gost, (const void*) hash0, 64 );
+   sph_gost512_close( &ctx.gost, (void*) hash0 );
+   sph_gost512_init( &ctx.gost );
+   sph_gost512 ( &ctx.gost, (const void*) hash1, 64 );
+   sph_gost512_close( &ctx.gost, (void*) hash1 );
+   sph_gost512_init( &ctx.gost );
+   sph_gost512 ( &ctx.gost, (const void*) hash2, 64 );
+   sph_gost512_close( &ctx.gost, (void*) hash2 );
+   sph_gost512_init( &ctx.gost );
+   sph_gost512 ( &ctx.gost, (const void*) hash3, 64 );
+   sph_gost512_close( &ctx.gost, (void*) hash3 );
+
+#if defined(__SHA__)
+
+   SHA256_Init( &ctx.sha256 );
+   SHA256_Update( &ctx.sha256, hash0, 64 );
+   SHA256_Final( (unsigned char*)hash0, &ctx.sha256 );
+   SHA256_Init( &ctx.sha256 );
+   SHA256_Update( &ctx.sha256, hash1, 64 );
+   SHA256_Final( (unsigned char*)hash1, &ctx.sha256 );
+   SHA256_Init( &ctx.sha256 );
+   SHA256_Update( &ctx.sha256, hash2, 64 );
+   SHA256_Final( (unsigned char*)hash2, &ctx.sha256 );
+   SHA256_Init( &ctx.sha256 );
+   SHA256_Update( &ctx.sha256, hash3, 64 );
+   SHA256_Final( (unsigned char*)hash3, &ctx.sha256 );
+
    memcpy( output,    hash0, 32 );
    memcpy( output+32, hash1, 32 );
    memcpy( output+64, hash2, 32 );
    memcpy( output+96, hash3, 32 );
+
+#else
+
+   intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
+   sha256_4way_init( &ctx.sha256 );
+   sha256_4way( &ctx.sha256, vhash, 64 );
+   sha256_4way_close( &ctx.sha256, vhash );
+   dintrlv_4x32( output, output+32, output+64,output+96, vhash, 256 );
+
+#endif
 }
 
-int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
+int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr)
 {
    uint32_t hash[4*16] __attribute__ ((aligned (64)));
@@ -295,7 +374,7 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id; 
     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
 
@@ -323,7 +402,7 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
       *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
                _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
-      x16r_4way_hash( hash, vdata );
+      x21s_4way_hash( hash, vdata );
       pdata[19] = n;
 
       for ( int i = 0; i < 4; i++ )  if ( (hash+(i<<3))[7] <= Htarg )
@@ -337,6 +416,16 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
 
    *hashes_done = n - first_nonce + 1;
    return 0;
+}
+
+bool x21s_4way_thread_init()
+{
+   const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols
+   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+
+   const int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
+   x21s_4way_matrix = _mm_malloc( size, 64 );
+   return x21s_4way_matrix;
 }
 
 #endif
