@@ -12,6 +12,7 @@
 
 #include <string.h>
 #include <inttypes.h>
+#include <openssl/sha.h>
 
 #if defined(USE_ASM) && defined(__arm__) && defined(__APCS_32__)
 #define EXTERN_SHA256
@@ -197,7 +198,17 @@ static void sha256d_80_swap(uint32_t *hash, const uint32_t *data)
 
 extern void sha256d(unsigned char *hash, const unsigned char *data, int len)
 {
-	uint32_t S[16], T[16];
+#if defined(__SHA__)
+   SHA256_CTX ctx;
+   SHA256_Init( &ctx );
+   SHA256_Update( &ctx, data, len );
+   SHA256_Final( (unsigned char*)hash, &ctx );
+   SHA256_Init( &ctx );
+   SHA256_Update( &ctx, hash, 32 );
+   SHA256_Final( (unsigned char*)hash, &ctx );
+#else
+
+   uint32_t S[16], T[16];
 	int i, r;
 
 	sha256_init(S);
@@ -218,6 +229,7 @@ extern void sha256d(unsigned char *hash, const unsigned char *data, int len)
 	sha256_transform(T, S, 0);
 	for (i = 0; i < 8; i++)
 		be32enc((uint32_t *)hash + i, T[i]);
+#endif
 }
 
 static inline void sha256d_preextend(uint32_t *W)
@@ -635,9 +647,46 @@ int scanhash_sha256d( struct work *work,
 	return 0;
 }
 
+int scanhash_SHA256d( struct work *work, const uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t _ALIGN(128) hash[8];
+   uint32_t _ALIGN(64) data[20];
+   uint32_t *pdata = work->data;
+   const uint32_t *ptarget = work->target;
+   uint32_t n = pdata[19] - 1;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t Htarg = ptarget[7];
+   int thr_id = mythr->id;  // thr_id arg is deprecated
+
+   memcpy( data, pdata, 80 );
+
+   do {
+      data[19] = ++n;
+      sha256d( (unsigned char*)hash, (const unsigned char*)data, 80 );
+      if ( unlikely( swab32( hash[7] ) <= Htarg ) )
+      {
+         pdata[19] = n;
+         sha256d_80_swap(hash, pdata);
+         if ( fulltest( hash, ptarget ) && !opt_benchmark )
+            submit_solution( work, hash, mythr );
+      }
+   } while ( likely( n < max_nonce && !work_restart[thr_id].restart ) );
+   *hashes_done = n - first_nonce + 1;
+   pdata[19] = n;
+   return 0;
+}
+
+
 bool register_sha256d_algo( algo_gate_t* gate )
 {
-    gate->scanhash = (void*)&scanhash_sha256d;
+#if defined(__SHA__)
+   gate->optimizations = SHA_OPT;
+   gate->scanhash = (void*)&scanhash_SHA256d;
+#else
+   gate->optimizations = SSE2_OPT | AVX2_OPT;
+   gate->scanhash = (void*)&scanhash_sha256d;
+#endif
     gate->hash     = (void*)&sha256d;
     return true;
 };

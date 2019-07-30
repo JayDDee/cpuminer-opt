@@ -415,18 +415,46 @@ do { \
 		sc->bcount = bcount; \
 	} while (0)
 
+/*
+static const sph_u64 IV256[] = {
+   SPH_C64(0xCCD044A12FDB3E13), SPH_C64(0xE83590301A79A9EB),
+   SPH_C64(0x55AEA0614F816E6F), SPH_C64(0x2A2767A4AE9B94DB),
+   SPH_C64(0xEC06025E74DD7683), SPH_C64(0xE7A436CDC4746251),
+   SPH_C64(0xC36FBAF9393AD185), SPH_C64(0x3EEDBA1833EDFC13)
+};
 
-static void
-skein_big_init_4way( skein512_4way_context *sc, const sph_u64 *iv )
+static const sph_u64 IV512[] = {
+   SPH_C64(0x4903ADFF749C51CE), SPH_C64(0x0D95DE399746DF03),
+   SPH_C64(0x8FD1934127C79BCE), SPH_C64(0x9A255629FF352CB1),
+   SPH_C64(0x5DB62599DF6CA7B0), SPH_C64(0xEABE394CA9D5C3F4),
+   SPH_C64(0x991112C71A75B523), SPH_C64(0xAE18A40B660FCC33)
+};
+*/
+
+void skein256_4way_init( skein256_4way_context *sc )
 {
-        sc->h0 = _mm256_set_epi64x( iv[0], iv[0],iv[0],iv[0] );
-        sc->h1 = _mm256_set_epi64x( iv[1], iv[1],iv[1],iv[1] );
-        sc->h2 = _mm256_set_epi64x( iv[2], iv[2],iv[2],iv[2] );
-        sc->h3 = _mm256_set_epi64x( iv[3], iv[3],iv[3],iv[3] );
-        sc->h4 = _mm256_set_epi64x( iv[4], iv[4],iv[4],iv[4] );
-        sc->h5 = _mm256_set_epi64x( iv[5], iv[5],iv[5],iv[5] );
-        sc->h6 = _mm256_set_epi64x( iv[6], iv[6],iv[6],iv[6] );
-        sc->h7 = _mm256_set_epi64x( iv[7], iv[7],iv[7],iv[7] );
+        sc->h0 = m256_const1_64( 0xCCD044A12FDB3E13 );
+        sc->h1 = m256_const1_64( 0xE83590301A79A9EB );
+        sc->h2 = m256_const1_64( 0x55AEA0614F816E6F );
+        sc->h3 = m256_const1_64( 0x2A2767A4AE9B94DB );
+        sc->h4 = m256_const1_64( 0xEC06025E74DD7683 );
+        sc->h5 = m256_const1_64( 0xE7A436CDC4746251 );
+        sc->h6 = m256_const1_64( 0xC36FBAF9393AD185 );
+        sc->h7 = m256_const1_64( 0x3EEDBA1833EDFC13 );
+        sc->bcount = 0;
+        sc->ptr = 0;
+}
+
+void skein512_4way_init( skein512_4way_context *sc )
+{
+        sc->h0 = m256_const1_64( 0x4903ADFF749C51CE );
+        sc->h1 = m256_const1_64( 0x0D95DE399746DF03 );
+        sc->h2 = m256_const1_64( 0x8FD1934127C79BCE );
+        sc->h3 = m256_const1_64( 0x9A255629FF352CB1 );
+        sc->h4 = m256_const1_64( 0x5DB62599DF6CA7B0 );
+        sc->h5 = m256_const1_64( 0xEABE394CA9D5C3F4 );
+        sc->h6 = m256_const1_64( 0x991112C71A75B523 );
+        sc->h7 = m256_const1_64( 0xAE18A40B660FCC33 );
         sc->bcount = 0;
         sc->ptr = 0;
 }
@@ -524,6 +552,7 @@ skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
         memcpy_256( dst, buf, out_len >> 3 );
 }
 
+/*
 static const sph_u64 IV256[] = {
 	SPH_C64(0xCCD044A12FDB3E13), SPH_C64(0xE83590301A79A9EB),
 	SPH_C64(0x55AEA0614F816E6F), SPH_C64(0x2A2767A4AE9B94DB),
@@ -537,13 +566,14 @@ static const sph_u64 IV512[] = {
 	SPH_C64(0x5DB62599DF6CA7B0), SPH_C64(0xEABE394CA9D5C3F4),
 	SPH_C64(0x991112C71A75B523), SPH_C64(0xAE18A40B660FCC33)
 };
-
-
+*/
+/*
 void
 skein256_4way_init(void *cc)
 {
 	skein_big_init_4way(cc, IV256);
 }
+*/
 
 void
 skein256_4way(void *cc, const void *data, size_t len)
@@ -557,11 +587,13 @@ skein256_4way_close(void *cc, void *dst)
         skein_big_close_4way(cc, 0, 0, dst, 32);
 }
 
+/*
 void
 skein512_4way_init(void *cc)
 {
 	skein_big_init_4way(cc, IV512);
 }
+*/
 
 void
 skein512_4way(void *cc, const void *data, size_t len)

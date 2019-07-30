@@ -961,8 +961,22 @@ static const __m256i final_b[16] =
 static void
 bmw64_4way_init( bmw_4way_big_context *sc, const sph_u64 *iv )
 {
-   for ( int i = 0; i < 16; i++ )
-      sc->H[i] = _mm256_set1_epi64x( iv[i] );
+   sc->H[ 0] = m256_const1_64( 0x8081828384858687 );
+   sc->H[ 1] = m256_const1_64( 0x88898A8B8C8D8E8F );
+   sc->H[ 2] = m256_const1_64( 0x9091929394959697 );
+   sc->H[ 3] = m256_const1_64( 0x98999A9B9C9D9E9F );
+   sc->H[ 4] = m256_const1_64( 0xA0A1A2A3A4A5A6A7 );
+   sc->H[ 5] = m256_const1_64( 0xA8A9AAABACADAEAF );
+   sc->H[ 6] = m256_const1_64( 0xB0B1B2B3B4B5B6B7 );
+   sc->H[ 7] = m256_const1_64( 0xB8B9BABBBCBDBEBF );
+   sc->H[ 8] = m256_const1_64( 0xC0C1C2C3C4C5C6C7 );
+   sc->H[ 9] = m256_const1_64( 0xC8C9CACBCCCDCECF );
+   sc->H[10] = m256_const1_64( 0xD0D1D2D3D4D5D6D7 );
+   sc->H[11] = m256_const1_64( 0xD8D9DADBDCDDDEDF );
+   sc->H[12] = m256_const1_64( 0xE0E1E2E3E4E5E6E7 );
+   sc->H[13] = m256_const1_64( 0xE8E9EAEBECEDEEEF );
+   sc->H[14] = m256_const1_64( 0xF0F1F2F3F4F5F6F7 );
+   sc->H[15] = m256_const1_64( 0xF8F9FAFBFCFDFEFF );
    sc->ptr = 0;
    sc->bit_count = 0;
 }
@@ -1014,13 +1028,11 @@ bmw64_4way_close(bmw_4way_big_context *sc, unsigned ub, unsigned n,
    __m256i *buf;
    __m256i h1[16], h2[16], *h;
    size_t ptr, u, v;
-   unsigned z;
    const int buf_size = 128;  // bytes of one lane, compatible with len
 
    buf = sc->buf;
    ptr = sc->ptr;
-   z = 0x80 >> n;
-   buf[ ptr>>3 ] = _mm256_set1_epi64x( z );
+   buf[ ptr>>3 ] = m256_const1_64( 0x80 );
    ptr += 8;
    h = sc->H;
 

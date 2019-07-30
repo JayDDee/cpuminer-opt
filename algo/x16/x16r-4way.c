@@ -27,7 +27,7 @@
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/sha/sha2-hash-4way.h"
+#include "algo/sha/sha-hash-4way.h"
 
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };

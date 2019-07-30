@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "aes_ni/hash-groestl.h"
-#include "algo/sha/sha2-hash-4way.h"
+#include "algo/sha/sha-hash-4way.h"
 
 typedef struct {
     hashState_groestl       groestl;

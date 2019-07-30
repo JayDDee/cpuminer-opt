@@ -170,7 +170,8 @@ void reducedSqueezeRow0(uint64_t* state, uint64_t* row, uint64_t nCols);
 
 //---- Absorbs
 void absorbBlock(uint64_t *state, const uint64_t *in);
-void absorbBlockBlake2Safe(uint64_t *state, const uint64_t *in);
+void absorbBlockBlake2Safe( uint64_t *state, const uint64_t *in,
+                            const uint64_t nBlocks, const uint64_t block_len );
 
 //---- Duplexes
 void reducedDuplexRow1(uint64_t *state, uint64_t *rowIn, uint64_t *rowOut, uint64_t nCols);

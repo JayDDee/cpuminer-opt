@@ -86,7 +86,7 @@ void lyra2rev3_8way_hash( void *state, const void *input )
 
    }
 
-int scanhash_lyra2rev3_8way( struct work *work, uint32_t max_nonce,
+int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
                              uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*8] __attribute__ ((aligned (64)));
@@ -94,12 +94,12 @@ int scanhash_lyra2rev3_8way( struct work *work, uint32_t max_nonce,
    uint32_t *hash7 = &(hash[7<<3]);
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
+   const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    const uint32_t Htarg = ptarget[7];
    __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   const int thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
@@ -186,7 +186,7 @@ void lyra2rev3_4way_hash( void *state, const void *input )
    bmw256_4way_close( &ctx.bmw, state );
 }
 
-int scanhash_lyra2rev3_4way( struct work *work, uint32_t max_nonce,
+int scanhash_lyra2rev3_4way( struct work *work, const uint32_t max_nonce,
                              uint64_t *hashes_done, struct thr_info *mythr ) 
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
@@ -194,12 +194,12 @@ int scanhash_lyra2rev3_4way( struct work *work, uint32_t max_nonce,
    uint32_t *hash7 = &(hash[7<<2]);
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
+   const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    const uint32_t Htarg = ptarget[7];
    __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   const int thr_id = mythr->id;  // thr_id arg is deprecated
    
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;

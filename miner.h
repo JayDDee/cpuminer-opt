@@ -510,9 +510,9 @@ enum algos {
         ALGO_AXIOM,       
         ALGO_BASTION,
         ALGO_BLAKE,       
-        ALGO_BLAKECOIN,   
-//        ALGO_BLAKE2B,
+        ALGO_BLAKE2B,
         ALGO_BLAKE2S,     
+        ALGO_BLAKECOIN,
         ALGO_BMW,        
         ALGO_BMW512,
         ALGO_C11,         
@@ -604,9 +604,9 @@ static const char* const algo_names[] = {
         "axiom",
         "bastion",
         "blake",
-        "blakecoin",
-//        "blake2b",
+        "blake2b",
         "blake2s",
+        "blakecoin",
         "bmw",
         "bmw512",
         "c11",
@@ -761,8 +761,9 @@ Options:\n\
                           axiom         Shabal-256 MemoHash\n\
                           bastion\n\
                           blake         blake256r14 (SFR)\n\
-                          blakecoin     blake256r8\n\
+                          blake2b       Blake2b 256\n\
                           blake2s       Blake-2 S\n\
+                          blakecoin     blake256r8\n\
                           bmw           BMW 256\n\
                           bmw512        BMW 512\n\
                           c11           Chaincoin\n\

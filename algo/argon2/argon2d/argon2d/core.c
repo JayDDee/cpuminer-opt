@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <mm_malloc.h>
 
 #include "core.h"
 #include "argon2d_thread.h"
@@ -99,7 +100,8 @@ int allocate_memory(const argon2_context *context, uint8_t **memory,
     if (context->allocate_cbk) {
         (context->allocate_cbk)(memory, memory_size);
     } else {
-        *memory = malloc(memory_size);
+        *memory = _mm_malloc( memory_size, 64 );
+//        *memory = malloc(memory_size);
     }
 
     if (*memory == NULL) {
@@ -116,7 +118,8 @@ void free_memory(const argon2_context *context, uint8_t *memory,
     if (context->free_cbk) {
         (context->free_cbk)(memory, memory_size);
     } else {
-        free(memory);
+//        free(memory);
+        _mm_free( memory );
     }
 }
 

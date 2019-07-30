@@ -307,12 +307,12 @@ static const sph_u64 CB[16] = {
 
 #define GB_4WAY(m0, m1, c0, c1, a, b, c, d)   do { \
    a = _mm256_add_epi64( _mm256_add_epi64( _mm256_xor_si256( \
-                 _mm256_set_epi64x( c1, c1, c1, c1 ), m0 ), b ), a ); \
+                 _mm256_set1_epi64x( c1 ), m0 ), b ), a ); \
    d = mm256_ror_64( _mm256_xor_si256( d, a ), 32 ); \
    c = _mm256_add_epi64( c, d ); \
    b = mm256_ror_64( _mm256_xor_si256( b, c ), 25 ); \
    a = _mm256_add_epi64( _mm256_add_epi64( _mm256_xor_si256( \
-                 _mm256_set_epi64x( c0, c0, c0, c0 ), m1 ), b ), a ); \
+                 _mm256_set1_epi64x( c0 ), m1 ), b ), a ); \
    d = mm256_ror_64( _mm256_xor_si256( d, a ), 16 ); \
    c = _mm256_add_epi64( c, d ); \
    b = mm256_ror_64( _mm256_xor_si256( b, c ), 11 ); \
@@ -479,20 +479,20 @@ static const sph_u64 CB[16] = {
   V5 = H5; \
   V6 = H6; \
   V7 = H7; \
-  V8 = _mm256_xor_si256( S0, _mm256_set1_epi64x( CB0 ) );  \
-  V9 = _mm256_xor_si256( S1, _mm256_set1_epi64x( CB1 ) );  \
-  VA = _mm256_xor_si256( S2, _mm256_set1_epi64x( CB2 ) );  \
-  VB = _mm256_xor_si256( S3, _mm256_set1_epi64x( CB3 ) );  \
+  V8 = _mm256_xor_si256( S0, m256_const1_64( CB0 ) );  \
+  V9 = _mm256_xor_si256( S1, m256_const1_64( CB1 ) );  \
+  VA = _mm256_xor_si256( S2, m256_const1_64( CB2 ) );  \
+  VB = _mm256_xor_si256( S3, m256_const1_64( CB3 ) );  \
   VC = _mm256_xor_si256( _mm256_set1_epi64x( T0 ), \
-                         _mm256_set1_epi64x( CB4 ) );  \
+                         m256_const1_64( CB4 ) );  \
   VD = _mm256_xor_si256( _mm256_set1_epi64x( T0 ), \
-                         _mm256_set1_epi64x( CB5 ) );  \
+                         m256_const1_64( CB5 ) );  \
   VE = _mm256_xor_si256( _mm256_set1_epi64x( T1 ), \
-                         _mm256_set1_epi64x( CB6 ) );  \
+                         m256_const1_64( CB6 ) );  \
   VF = _mm256_xor_si256( _mm256_set1_epi64x( T1 ), \
-                         _mm256_set1_epi64x( CB7 ) );  \
-  shuf_bswap64 = _mm256_set_epi64x( 0x08090a0b0c0d0e0f, 0x0001020304050607, \
-                                    0x08090a0b0c0d0e0f, 0x0001020304050607 ); \
+                         m256_const1_64( CB7 ) );  \
+  shuf_bswap64 = m256_const_64( 0x08090a0b0c0d0e0f, 0x0001020304050607, \
+                                0x08090a0b0c0d0e0f, 0x0001020304050607 ); \
   M0 = _mm256_shuffle_epi8( *(buf+ 0), shuf_bswap64 ); \
   M1 = _mm256_shuffle_epi8( *(buf+ 1), shuf_bswap64 ); \
   M2 = _mm256_shuffle_epi8( *(buf+ 2), shuf_bswap64 ); \
@@ -544,14 +544,14 @@ blake64_4way_init( blake_4way_big_context *sc, const sph_u64 *iv,
               const sph_u64 *salt )
 {
    __m256i zero = m256_zero;
-   casti_m256i( sc->H, 0 ) = _mm256_set1_epi64x( iv[0] );
-   casti_m256i( sc->H, 1 ) = _mm256_set1_epi64x( iv[1] );
-   casti_m256i( sc->H, 2 ) = _mm256_set1_epi64x( iv[2] );
-   casti_m256i( sc->H, 3 ) = _mm256_set1_epi64x( iv[3] );
-   casti_m256i( sc->H, 4 ) = _mm256_set1_epi64x( iv[4] );
-   casti_m256i( sc->H, 5 ) = _mm256_set1_epi64x( iv[5] );
-   casti_m256i( sc->H, 6 ) = _mm256_set1_epi64x( iv[6] );
-   casti_m256i( sc->H, 7 ) = _mm256_set1_epi64x( iv[7] );
+   casti_m256i( sc->H, 0 ) = m256_const1_64( 0x6A09E667F3BCC908 );
+   casti_m256i( sc->H, 1 ) = m256_const1_64( 0xBB67AE8584CAA73B );
+   casti_m256i( sc->H, 2 ) = m256_const1_64( 0x3C6EF372FE94F82B );
+   casti_m256i( sc->H, 3 ) = m256_const1_64( 0xA54FF53A5F1D36F1 );
+   casti_m256i( sc->H, 4 ) = m256_const1_64( 0x510E527FADE682D1 );
+   casti_m256i( sc->H, 5 ) = m256_const1_64( 0x9B05688C2B3E6C1F );
+   casti_m256i( sc->H, 6 ) = m256_const1_64( 0x1F83D9ABFB41BD6B );
+   casti_m256i( sc->H, 7 ) = m256_const1_64( 0x5BE0CD19137E2179 );
 
    casti_m256i( sc->S, 0 ) = zero;
    casti_m256i( sc->S, 1 ) = zero;
@@ -642,11 +642,9 @@ blake64_4way_close( blake_4way_big_context *sc,
        memset_zero_256( buf + (ptr>>3) + 1, (104-ptr) >> 3 );
        if ( out_size_w64 == 8 )
           buf[(104>>3)] = _mm256_or_si256( buf[(104>>3)],
-                                 _mm256_set1_epi64x( 0x0100000000000000ULL ) );
-       *(buf+(112>>3)) = mm256_bswap_64(
-                                    _mm256_set_epi64x( th, th, th, th ) );
-       *(buf+(120>>3)) = mm256_bswap_64(
-                                    _mm256_set_epi64x( tl, tl, tl, tl ) );
+                                 m256_const1_64( 0x0100000000000000ULL ) );
+       *(buf+(112>>3)) = _mm256_set1_epi64x( bswap_64( th ) );
+       *(buf+(120>>3)) = _mm256_set1_epi64x( bswap_64( tl ) );
 
        blake64_4way( sc, buf + (ptr>>3), 128 - ptr );
    }
@@ -659,11 +657,9 @@ blake64_4way_close( blake_4way_big_context *sc,
        sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFFULL);
        memset_zero_256( buf, 112>>3 ); 
        if ( out_size_w64 == 8 )
-           buf[104>>3] = _mm256_set1_epi64x( 0x0100000000000000ULL );
-       *(buf+(112>>3)) = mm256_bswap_64(
-                                    _mm256_set_epi64x( th, th, th, th ) );
-       *(buf+(120>>3)) = mm256_bswap_64(
-                                    _mm256_set_epi64x( tl, tl, tl, tl ) );
+           buf[104>>3] = m256_const1_64( 0x0100000000000000ULL );
+       *(buf+(112>>3)) = _mm256_set1_epi64x( bswap_64( th ) );
+       *(buf+(120>>3)) = _mm256_set1_epi64x( bswap_64( tl ) );
 
        blake64_4way( sc, buf, 128 );
    }

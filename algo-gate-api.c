@@ -167,9 +167,9 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_AXIOM:         register_axiom_algo         ( gate ); break;
     case ALGO_BASTION:       register_bastion_algo       ( gate ); break;
     case ALGO_BLAKE:         register_blake_algo         ( gate ); break;
-    case ALGO_BLAKECOIN:     register_blakecoin_algo     ( gate ); break;
-//    case ALGO_BLAKE2B:      register_blake2b_algo     ( gate ); break;
+    case ALGO_BLAKE2B:       register_blake2b_algo       ( gate ); break;
     case ALGO_BLAKE2S:       register_blake2s_algo       ( gate ); break;
+    case ALGO_BLAKECOIN:     register_blakecoin_algo     ( gate ); break;
     case ALGO_BMW512:        register_bmw512_algo        ( gate ); break;
     case ALGO_C11:           register_c11_algo           ( gate ); break;
     case ALGO_CRYPTOLIGHT:   register_cryptolight_algo   ( gate ); break;

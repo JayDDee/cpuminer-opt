@@ -370,18 +370,23 @@ static const sph_u64 RC[] = {
 
 static void keccak64_init( keccak64_ctx_m256i *kc, unsigned out_size )
 {
-   int i;
-   for (i = 0; i < 25; i ++)
-          kc->w[i] = _mm256_setzero_si256();
+   __m256i zero = m256_zero;
+   __m256i neg1 = m256_neg1;
 
    // Initialization for the "lane complement".
-   kc->w[ 1] = m256_neg1;
-   kc->w[ 2] = m256_neg1;
-   kc->w[ 8] = m256_neg1;
-   kc->w[12] = m256_neg1;
-   kc->w[17] = m256_neg1;
-   kc->w[20] = m256_neg1;
-   kc->ptr = 0;
+   kc->w[ 0] = zero;   kc->w[ 1] = neg1;
+   kc->w[ 2] = neg1;   kc->w[ 3] = zero;
+   kc->w[ 4] = zero;   kc->w[ 5] = zero;
+   kc->w[ 6] = zero;   kc->w[ 7] = zero;
+   kc->w[ 8] = neg1;   kc->w[ 9] = zero;
+   kc->w[10] = zero;   kc->w[11] = zero;
+   kc->w[12] = neg1;   kc->w[13] = zero;
+   kc->w[14] = zero;   kc->w[15] = zero;
+   kc->w[16] = zero;   kc->w[17] = neg1;
+   kc->w[18] = zero;   kc->w[19] = zero;
+   kc->w[20] = neg1;   kc->w[21] = zero;
+   kc->w[22] = zero;   kc->w[23] = zero;
+   kc->w[24] = zero;   kc->ptr = 0;
    kc->lim = 200 - (out_size >> 2);
 }
 
@@ -441,8 +446,8 @@ static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
     eb = 0x100  >> 8;
     if ( kc->ptr == (lim - 8) )
     {
-        uint64_t t = eb | 0x8000000000000000;
-        u.tmp[0] = _mm256_set_epi64x( t, t, t, t );
+        const uint64_t t = eb | 0x8000000000000000;
+        u.tmp[0] = m256_const1_64( t );
         j = 8;
     }
     else
@@ -450,8 +455,7 @@ static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
         j = lim - kc->ptr;
         u.tmp[0] = _mm256_set_epi64x( eb, eb, eb, eb );
         memset_zero_256( u.tmp + 1, (j>>3) - 2 );
-        u.tmp[ (j>>3) - 1] = _mm256_set_epi64x( 0x8000000000000000,
-                0x8000000000000000, 0x8000000000000000, 0x8000000000000000);
+        u.tmp[ (j>>3) - 1] = m256_const1_64( 0x8000000000000000 );
     }
     keccak64_core( kc, u.tmp, j, lim );
     /* Finalize the "lane complement" */
@@ -461,9 +465,7 @@ static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
     NOT64( kc->w[12], kc->w[12] );
     NOT64( kc->w[17], kc->w[17] );
     NOT64( kc->w[20], kc->w[20] );
-    for ( j = 0; j < m256_len; j++ )
-         u.tmp[j] =  kc->w[j]; 
-    memcpy_256( dst, u.tmp, m256_len );
+    memcpy_256( dst, kc->w, m256_len );
 }
 
 void keccak256_4way_init( void *kc )

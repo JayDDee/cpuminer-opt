@@ -17,7 +17,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#if defined(__SSE4_2__)
+//#if defined(__SSE4_2__)
+#if defined(__SSE2__)
+
 
 static const uint32_t blake2s_IV[8] =
 {
@@ -57,8 +59,18 @@ int blake2s_4way_init( blake2s_4way_state *S, const uint8_t outlen )
    memset( P->personal, 0, sizeof( P->personal ) );
 
    memset( S, 0, sizeof( blake2s_4way_state ) );
-   for( int i = 0; i < 8; ++i )
-      S->h[i] = _mm_set1_epi32( blake2s_IV[i] );
+
+   S->h[0] = m128_const1_64( 0x6A09E6676A09E667ULL );
+   S->h[1] = m128_const1_64( 0xBB67AE85BB67AE85ULL );
+   S->h[2] = m128_const1_64( 0x3C6EF3723C6EF372ULL );
+   S->h[3] = m128_const1_64( 0xA54FF53AA54FF53AULL );
+   S->h[4] = m128_const1_64( 0x510E527F510E527FULL );
+   S->h[5] = m128_const1_64( 0x9B05688C9B05688CULL );
+   S->h[6] = m128_const1_64( 0x1F83D9AB1F83D9ABULL );
+   S->h[7] = m128_const1_64( 0x5BE0CD195BE0CD19ULL );
+   
+//   for( int i = 0; i < 8; ++i )
+//      S->h[i] = _mm_set1_epi32( blake2s_IV[i] );
 
    uint32_t *p = ( uint32_t * )( P );
 
@@ -267,8 +279,18 @@ int blake2s_8way_init( blake2s_8way_state *S, const uint8_t outlen )
    memset( P->personal, 0, sizeof( P->personal ) );
 
    memset( S, 0, sizeof( blake2s_8way_state ) );
-   for( int i = 0; i < 8; ++i )
-      S->h[i] = _mm256_set1_epi32( blake2s_IV[i] );
+   S->h[0] = m256_const1_64( 0x6A09E6676A09E667ULL );
+   S->h[1] = m256_const1_64( 0xBB67AE85BB67AE85ULL );
+   S->h[2] = m256_const1_64( 0x3C6EF3723C6EF372ULL );
+   S->h[3] = m256_const1_64( 0xA54FF53AA54FF53AULL );
+   S->h[4] = m256_const1_64( 0x510E527F510E527FULL );
+   S->h[5] = m256_const1_64( 0x9B05688C9B05688CULL );
+   S->h[6] = m256_const1_64( 0x1F83D9AB1F83D9ABULL );
+   S->h[7] = m256_const1_64( 0x5BE0CD195BE0CD19ULL );
+
+
+//   for( int i = 0; i < 8; ++i )
+//      S->h[i] = _mm256_set1_epi32( blake2s_IV[i] );
 
    uint32_t *p = ( uint32_t * )( P );
 

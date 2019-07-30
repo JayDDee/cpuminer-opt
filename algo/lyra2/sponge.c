@@ -40,29 +40,32 @@
  */
 inline void initState( uint64_t State[/*16*/] )
 {
+
+   /*
 #if defined (__AVX2__)
 
   __m256i* state = (__m256i*)State;
- 
-  state[0] = _mm256_setzero_si256();
-  state[1] = _mm256_setzero_si256();
-  state[2] = _mm256_set_epi64x( blake2b_IV[3], blake2b_IV[2],
-                                blake2b_IV[1], blake2b_IV[0] );
-  state[3] = _mm256_set_epi64x( blake2b_IV[7], blake2b_IV[6],
-                                blake2b_IV[5], blake2b_IV[4] );
+  const __m256i zero = m256_zero; 
+  state[0] = zero;
+  state[1] = zero;
+  state[2] = m256_const_64( 0xa54ff53a5f1d36f1ULL, 0x3c6ef372fe94f82bULL,
+                            0xbb67ae8584caa73bULL, 0x6a09e667f3bcc908ULL );
+  state[3] = m256_const_64( 0x5be0cd19137e2179ULL, 0x1f83d9abfb41bd6bULL,
+                            0x9b05688c2b3e6c1fULL, 0x510e527fade682d1ULL );
 
 #elif defined (__SSE2__)
 
   __m128i* state = (__m128i*)State;
+  const __m128i zero = m128_zero;   
 
-  state[0] = _mm_setzero_si128();
-  state[1] = _mm_setzero_si128();
-  state[2] = _mm_setzero_si128();
-  state[3] = _mm_setzero_si128();
-  state[4] = _mm_set_epi64x( blake2b_IV[1], blake2b_IV[0] );
-  state[5] = _mm_set_epi64x( blake2b_IV[3], blake2b_IV[2] );
-  state[6] = _mm_set_epi64x( blake2b_IV[5], blake2b_IV[4] );
-  state[7] = _mm_set_epi64x( blake2b_IV[7], blake2b_IV[6] );
+  state[0] = zero;
+  state[1] = zero;
+  state[2] = zero;
+  state[3] = zero;
+  state[4] = m128_const_64( 0xbb67ae8584caa73bULL, 0x6a09e667f3bcc908ULL );
+  state[5] = m128_const_64( 0xa54ff53a5f1d36f1ULL, 0x3c6ef372fe94f82bULL );
+  state[6] = m128_const_64( 0x9b05688c2b3e6c1fULL, 0x510e527fade682d1ULL );
+  state[7] = m128_const_64( 0x5be0cd19137e2179ULL, 0x1f83d9abfb41bd6bULL );
 
 #else
     //First 512 bis are zeros
@@ -77,6 +80,8 @@ inline void initState( uint64_t State[/*16*/] )
     State[14] = blake2b_IV[6];
     State[15] = blake2b_IV[7];
 #endif
+*/
+
 }
 
 /**
@@ -250,43 +255,76 @@ inline void absorbBlock( uint64_t *State, const uint64_t *In )
  * @param state The current state of the sponge
  * @param in    The block to be absorbed (BLOCK_LEN_BLAKE2_SAFE_INT64 words)
  */
-inline void absorbBlockBlake2Safe( uint64_t *State, const uint64_t *In )
+inline void absorbBlockBlake2Safe( uint64_t *State, const uint64_t *In,
+                      const uint64_t nBlocks, const uint64_t block_len )
 {
-    //XORs the first BLOCK_LEN_BLAKE2_SAFE_INT64 words of "in" with the current state
+// XORs the first BLOCK_LEN_BLAKE2_SAFE_INT64 words of "in" with
+// the IV.
 #if defined (__AVX2__)
 
-    register __m256i state0, state1, state2, state3;
+  register __m256i state0, state1, state2, state3;
+  const __m256i zero = m256_zero;
+
+  state0 = zero;
+  state1 = zero;
+  state2 = m256_const_64( 0xa54ff53a5f1d36f1ULL, 0x3c6ef372fe94f82bULL,
+                          0xbb67ae8584caa73bULL, 0x6a09e667f3bcc908ULL );
+  state3 = m256_const_64( 0x5be0cd19137e2179ULL, 0x1f83d9abfb41bd6bULL,
+                          0x9b05688c2b3e6c1fULL, 0x510e527fade682d1ULL );
+
+  for ( int i = 0; i < nBlocks; i++ )
+  { 
     __m256i *in = (__m256i*)In;
-
-    state0 = _mm256_load_si256( (__m256i*)State     );
-    state1 = _mm256_load_si256( (__m256i*)State + 1 );
-    state2 = _mm256_load_si256( (__m256i*)State + 2 );
-    state3 = _mm256_load_si256( (__m256i*)State + 3 );
-
     state0 = _mm256_xor_si256( state0, in[0] );
     state1 = _mm256_xor_si256( state1, in[1] );
 
     LYRA_12_ROUNDS_AVX2( state0, state1, state2, state3 );
+    In += block_len;
+  }
 
-    _mm256_store_si256( (__m256i*)State,     state0 );
-    _mm256_store_si256( (__m256i*)State + 1, state1 );
-    _mm256_store_si256( (__m256i*)State + 2, state2 );
-    _mm256_store_si256( (__m256i*)State + 3, state3 );
+  _mm256_store_si256( (__m256i*)State,     state0 );
+  _mm256_store_si256( (__m256i*)State + 1, state1 );
+  _mm256_store_si256( (__m256i*)State + 2, state2 );
+  _mm256_store_si256( (__m256i*)State + 3, state3 );
 
 #elif defined (__SSE2__)
 
-    __m128i* state = (__m128i*)State;
+  __m128i state0, state1, state2, state3, state4, state5, state6, state7;
+  const __m128i zero = m128_zero;
+
+  state0 = zero;
+  state1 = zero;
+  state2 = zero;
+  state3 = zero;
+  state4 = m128_const_64( 0xbb67ae8584caa73bULL, 0x6a09e667f3bcc908ULL );
+  state5 = m128_const_64( 0xa54ff53a5f1d36f1ULL, 0x3c6ef372fe94f82bULL );
+  state6 = m128_const_64( 0x9b05688c2b3e6c1fULL, 0x510e527fade682d1ULL );
+  state7 = m128_const_64( 0x5be0cd19137e2179ULL, 0x1f83d9abfb41bd6bULL );
+
+  for ( int i = 0; i < nBlocks; i++ )
+  { 
     __m128i* in    = (__m128i*)In;
 
-    state[0] = _mm_xor_si128( state[0], in[0] );
-    state[1] = _mm_xor_si128( state[1], in[1] );
-    state[2] = _mm_xor_si128( state[2], in[2] );
-    state[3] = _mm_xor_si128( state[3], in[3] );
+    state0 = _mm_xor_si128( state0, in[0] );
+    state1 = _mm_xor_si128( state1, in[1] );
+    state2 = _mm_xor_si128( state2, in[2] );
+    state3 = _mm_xor_si128( state3, in[3] );
 
     //Applies the transformation f to the sponge's state
-    LYRA_12_ROUNDS_AVX( state[0], state[1], state[2], state[3],
-                        state[4], state[5], state[6], state[7] );
+    LYRA_12_ROUNDS_AVX( state0, state1, state2, state3,
+                        state4, state5, state6, state7 );
+    In += block_len;
+  }
 
+  _mm_store_si128( (__m128i*)State,     state0 );
+  _mm_store_si128( (__m128i*)State + 1, state1 );
+  _mm_store_si128( (__m128i*)State + 2, state2 );
+  _mm_store_si128( (__m128i*)State + 3, state3 );
+  _mm_store_si128( (__m128i*)State + 4, state4 );
+  _mm_store_si128( (__m128i*)State + 5, state5 );
+  _mm_store_si128( (__m128i*)State + 6, state6 );
+  _mm_store_si128( (__m128i*)State + 7, state7 );
+  
 #else
 
     State[0] ^= In[0];

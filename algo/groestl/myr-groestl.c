@@ -10,7 +10,7 @@
 #else
   #include "aes_ni/hash-groestl.h"
 #endif
-#include "algo/sha/sph_sha2.h"
+#include <openssl/sha.h>
 
 typedef struct {
 #ifdef NO_AES_NI
@@ -18,7 +18,7 @@ typedef struct {
 #else
     hashState_groestl       groestl;
 #endif
-    sph_sha256_context sha;
+    SHA256_CTX              sha;
 } myrgr_ctx_holder;
 
 myrgr_ctx_holder myrgr_ctx;
@@ -28,15 +28,15 @@ void init_myrgr_ctx()
 #ifdef NO_AES_NI
      sph_groestl512_init( &myrgr_ctx.groestl );
 #else
-     init_groestl (&myrgr_ctx.groestl, 64 );
+     init_groestl ( &myrgr_ctx.groestl, 64 );
 #endif
-     sph_sha256_init(&myrgr_ctx.sha);
+     SHA256_Init( &myrgr_ctx.sha );
 }
 
 void myriad_hash(void *output, const void *input)
 {
-        myrgr_ctx_holder ctx;
-        memcpy( &ctx, &myrgr_ctx, sizeof(myrgr_ctx) );
+   myrgr_ctx_holder ctx;
+   memcpy( &ctx, &myrgr_ctx, sizeof(myrgr_ctx) );
 
  	uint32_t _ALIGN(32) hash[16];
 
@@ -44,23 +44,22 @@ void myriad_hash(void *output, const void *input)
 	sph_groestl512(&ctx.groestl, input, 80);
 	sph_groestl512_close(&ctx.groestl, hash);
 #else
-        update_groestl( &ctx.groestl, (char*)input, 640 );
-        final_groestl( &ctx.groestl, (char*)hash);
+   update_groestl( &ctx.groestl, (char*)input, 640 );
+   final_groestl( &ctx.groestl, (char*)hash);
 #endif
 
-	sph_sha256(&ctx.sha, hash, 64);
-	sph_sha256_close(&ctx.sha, hash);
+   SHA256_Update( &ctx.sha, (unsigned char*)hash, 64 );
+   SHA256_Final( (unsigned char*)hash, &ctx.sha );
 
 	memcpy(output, hash, 32);
 }
 
-int scanhash_myriad( struct work *work,
-	uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr)
+int scanhash_myriad( struct work *work, uint32_t max_nonce,
+                     uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
-
 	uint32_t _ALIGN(64) endiandata[20];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
    int thr_id = mythr->id;  // thr_id arg is deprecated

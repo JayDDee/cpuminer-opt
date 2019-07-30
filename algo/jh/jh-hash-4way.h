@@ -79,13 +79,13 @@ typedef jh_4way_context jh256_4way_context;
 
 typedef jh_4way_context jh512_4way_context;
 
-void jh256_4way_init(void *cc);
+void jh256_4way_init( jh_4way_context *sc);
 
 void jh256_4way(void *cc, const void *data, size_t len);
 
 void jh256_4way_close(void *cc, void *dst);
 
-void jh512_4way_init(void *cc);
+void jh512_4way_init( jh_4way_context *sc );
 
 void jh512_4way(void *cc, const void *data, size_t len);
 

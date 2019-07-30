@@ -39,10 +39,10 @@ int scanhash_keccak_4way( struct work *work, uint32_t max_nonce,
       keccakhash_4way( hash, vdata );
 
       for ( int lane = 0; lane < 4; lane++ )
-      if ( ( ( hash7[ lane<<1 ] & 0xFFFFFF00 ) == 0 ) )
+      if ( ( hash7[ lane<<1 ] & 0xFFFFFF00 ) == 0 )
       {
           extr_lane_4x64( lane_hash, hash, lane, 256 );
-          if ( fulltest( lane_hash, ptarget ) )
+          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
           {
               pdata[19] = n + lane;
               submit_lane_solution( work, lane_hash, mythr, lane );

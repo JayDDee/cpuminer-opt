@@ -48,7 +48,7 @@ extern "C"{
 #if defined(__SSE2__)
 
 // BMW-256 4 way 32
-
+/*
 static const uint32_t IV256[] = {
 	0x40414243, 0x44454647,
 	0x48494A4B, 0x4C4D4E4F,
@@ -59,6 +59,7 @@ static const uint32_t IV256[] = {
 	0x70717273, 0x74757677,
 	0x78797A7B, 0x7C7D7E7F
 };
+*/
 
 #define ss0(x) \
    _mm_xor_si128( _mm_xor_si128( _mm_srli_epi32( (x), 1), \
@@ -462,13 +463,30 @@ static const __m128i final_s[16] =
    { 0xaaaaaaafaaaaaaaf, 0xaaaaaaafaaaaaaaf }
 };
 */
-static void
-bmw32_4way_init(bmw_4way_small_context *sc, const sph_u32 *iv)
+void bmw256_4way_init( bmw256_4way_context *ctx )
 {
-   for ( int i = 0; i < 16; i++ )
-      sc->H[i] = _mm_set1_epi32( iv[i] );
-   sc->ptr = 0;
-   sc->bit_count = 0;
+   ctx->H[ 0] = m128_const1_64( 0x4041424340414243 );
+   ctx->H[ 1] = m128_const1_64( 0x4445464744454647 );
+   ctx->H[ 2] = m128_const1_64( 0x48494A4B48494A4B );
+   ctx->H[ 3] = m128_const1_64( 0x4C4D4E4F4C4D4E4F );
+   ctx->H[ 4] = m128_const1_64( 0x5051525350515253 );
+   ctx->H[ 5] = m128_const1_64( 0x5455565754555657 );
+   ctx->H[ 6] = m128_const1_64( 0x58595A5B58595A5B );
+   ctx->H[ 7] = m128_const1_64( 0x5C5D5E5F5C5D5E5F );
+   ctx->H[ 8] = m128_const1_64( 0x6061626360616263 );
+   ctx->H[ 9] = m128_const1_64( 0x6465666764656667 );
+   ctx->H[10] = m128_const1_64( 0x68696A6B68696A6B );
+   ctx->H[11] = m128_const1_64( 0x6C6D6E6F6C6D6E6F );
+   ctx->H[12] = m128_const1_64( 0x7071727370717273 );
+   ctx->H[13] = m128_const1_64( 0x7475767774757677 );
+   ctx->H[14] = m128_const1_64( 0x78797A7B78797A7B );
+   ctx->H[15] = m128_const1_64( 0x7C7D7E7F7C7D7E7F );
+
+
+//   for ( int i = 0; i < 16; i++ )
+//      sc->H[i] = _mm_set1_epi32( iv[i] );
+   ctx->ptr = 0;
+   ctx->bit_count = 0;
 }
 
 static void
@@ -525,7 +543,7 @@ bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
 
    buf = sc->buf;
    ptr = sc->ptr;
-   buf[ ptr>>2 ] = _mm_set1_epi32( 0x80 );
+   buf[ ptr>>2 ] = m128_const1_64( 0x0000008000000080 );
    ptr += 4;
    h = sc->H;
 
@@ -551,11 +569,13 @@ bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
       casti_m128i( dst, u ) = h1[v];
 }
 
+/*
 void
 bmw256_4way_init(void *cc)
 {
 	bmw32_4way_init(cc, IV256);
 }
+*/
 
 void
 bmw256_4way(void *cc, const void *data, size_t len)
@@ -1003,25 +1023,24 @@ static const __m256i final_s8[16] =
 
 void bmw256_8way_init( bmw256_8way_context *ctx )
 {
-   ctx->H[ 0] = _mm256_set1_epi32( IV256[ 0] );
-   ctx->H[ 1] = _mm256_set1_epi32( IV256[ 1] );
-   ctx->H[ 2] = _mm256_set1_epi32( IV256[ 2] );
-   ctx->H[ 3] = _mm256_set1_epi32( IV256[ 3] );
-   ctx->H[ 4] = _mm256_set1_epi32( IV256[ 4] );
-   ctx->H[ 5] = _mm256_set1_epi32( IV256[ 5] );
-   ctx->H[ 6] = _mm256_set1_epi32( IV256[ 6] );
-   ctx->H[ 7] = _mm256_set1_epi32( IV256[ 7] );
-   ctx->H[ 8] = _mm256_set1_epi32( IV256[ 8] );
-   ctx->H[ 9] = _mm256_set1_epi32( IV256[ 9] );
-   ctx->H[10] = _mm256_set1_epi32( IV256[10] );
-   ctx->H[11] = _mm256_set1_epi32( IV256[11] );
-   ctx->H[12] = _mm256_set1_epi32( IV256[12] );
-   ctx->H[13] = _mm256_set1_epi32( IV256[13] );
-   ctx->H[14] = _mm256_set1_epi32( IV256[14] );
-   ctx->H[15] = _mm256_set1_epi32( IV256[15] );
+   ctx->H[ 0] = m256_const1_64( 0x4041424340414243 );
+   ctx->H[ 1] = m256_const1_64( 0x4445464744454647 );
+   ctx->H[ 2] = m256_const1_64( 0x48494A4B48494A4B );
+   ctx->H[ 3] = m256_const1_64( 0x4C4D4E4F4C4D4E4F );
+   ctx->H[ 4] = m256_const1_64( 0x5051525350515253 );
+   ctx->H[ 5] = m256_const1_64( 0x5455565754555657 );
+   ctx->H[ 6] = m256_const1_64( 0x58595A5B58595A5B );
+   ctx->H[ 7] = m256_const1_64( 0x5C5D5E5F5C5D5E5F );
+   ctx->H[ 8] = m256_const1_64( 0x6061626360616263 );
+   ctx->H[ 9] = m256_const1_64( 0x6465666764656667 );
+   ctx->H[10] = m256_const1_64( 0x68696A6B68696A6B );
+   ctx->H[11] = m256_const1_64( 0x6C6D6E6F6C6D6E6F );
+   ctx->H[12] = m256_const1_64( 0x7071727370717273 );
+   ctx->H[13] = m256_const1_64( 0x7475767774757677 );
+   ctx->H[14] = m256_const1_64( 0x78797A7B78797A7B );
+   ctx->H[15] = m256_const1_64( 0x7C7D7E7F7C7D7E7F );
    ctx->ptr       = 0;
    ctx->bit_count = 0;
-
 }
 
 void bmw256_8way( bmw256_8way_context *ctx, const void *data, size_t len )
@@ -1074,7 +1093,7 @@ void bmw256_8way_close( bmw256_8way_context *ctx, void *dst )
 
    buf = ctx->buf;
    ptr = ctx->ptr;
-   buf[ ptr>>2 ] = _mm256_set1_epi32( 0x80 );
+   buf[ ptr>>2 ] = m256_const1_64( 0x0000008000000080 );
    ptr += 4;
    h = ctx->H;
 
@@ -1088,7 +1107,6 @@ void bmw256_8way_close( bmw256_8way_context *ctx, void *dst )
    memset_zero_256( buf + (ptr>>2), (buf_size - 8 - ptr) >> 2 );
    buf[ (buf_size - 8) >> 2 ] = _mm256_set1_epi32( ctx->bit_count );
    buf[ (buf_size - 4) >> 2 ] = m256_zero;
-
 
    compress_small_8way( buf, h, h2 );
 

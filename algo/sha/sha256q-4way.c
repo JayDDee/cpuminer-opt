@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "sha2-hash-4way.h"
+#include "sha-hash-4way.h"
 
 #if defined(SHA256T_8WAY)
 

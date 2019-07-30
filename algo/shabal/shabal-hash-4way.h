@@ -54,7 +54,8 @@ typedef struct {
 	__m128i buf[16] __attribute__ ((aligned (64)));
 	__m128i A[12], B[16], C[16];
 	sph_u32 Whigh, Wlow;
-        size_t ptr;
+   size_t ptr;
+   bool state_loaded;
 } shabal_4way_context;
 
 typedef shabal_4way_context shabal256_4way_context;

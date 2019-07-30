@@ -92,7 +92,7 @@ void x16rt_getAlgoString( const uint32_t *timeHash, char *output)
    *sptr = '\0';
 }
 
-void x16rt_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
+void veil_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
    uchar merkle_tree[64] = { 0 };
    size_t t;
@@ -204,7 +204,7 @@ bool register_x16rt_veil_algo( algo_gate_t* gate )
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   gate->set_target = (void*)&alt_set_target;
-  gate->build_extraheader = (void*)&x16rt_build_extraheader;
+  gate->build_extraheader = (void*)&veil_build_extraheader;
   return true;
 };
 

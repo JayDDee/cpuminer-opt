@@ -38,6 +38,13 @@ supported.
 Change Log
 ----------
 
+v3.9.6.2
+
+New algo blake2b.
+Faster myr-gr on Ryzen using SHA.
+Faster blake2s SSE2.
+Small speedup of around 1% for several other algos.
+
 v3.9.6.1
 
 New algos: x21s, hex (alias x16r-hex).

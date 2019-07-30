@@ -246,18 +246,12 @@ do { \
 	} while (0)
 */
 
-#define W0(x)   Wz(x, _mm256_set_epi64x( 0x5555555555555555, \
-       0x5555555555555555, 0x5555555555555555, 0x5555555555555555 ), 1 )
-#define W1(x)   Wz(x, _mm256_set_epi64x( 0x3333333333333333, \
-       0x3333333333333333, 0x3333333333333333, 0x3333333333333333 ), 2 )
-#define W2(x)   Wz(x, _mm256_set_epi64x( 0x0F0F0F0F0F0F0F0F, \
-       0x0F0F0F0F0F0F0F0F, 0x0F0F0F0F0F0F0F0F, 0x0F0F0F0F0F0F0F0F ), 4 )
-#define W3(x)   Wz(x, _mm256_set_epi64x( 0x00FF00FF00FF00FF, \
-       0x00FF00FF00FF00FF, 0x00FF00FF00FF00FF, 0x00FF00FF00FF00FF ), 8 ) 
-#define W4(x)   Wz(x, _mm256_set_epi64x( 0x0000FFFF0000FFFF, \
-       0x0000FFFF0000FFFF, 0x0000FFFF0000FFFF, 0x0000FFFF0000FFFF ), 16 )
-#define W5(x)   Wz(x, _mm256_set_epi64x( 0x00000000FFFFFFFF, \
-       0x00000000FFFFFFFF, 0x00000000FFFFFFFF, 0x00000000FFFFFFFF ), 32 )
+#define W0(x)   Wz(x, m256_const1_64( 0x5555555555555555 ),  1 )
+#define W1(x)   Wz(x, m256_const1_64( 0x3333333333333333 ),  2 )
+#define W2(x)   Wz(x, m256_const1_64( 0x0F0F0F0F0F0F0F0F ),  4 )
+#define W3(x)   Wz(x, m256_const1_64( 0x00FF00FF00FF00FF ),  8 ) 
+#define W4(x)   Wz(x, m256_const1_64( 0x0000FFFF0000FFFF ), 16 )
+#define W5(x)   Wz(x, m256_const1_64( 0x00000000FFFFFFFF ), 32 )
 #define W6(x) \
 do { \
    __m256i t = x ## h; \
@@ -331,14 +325,14 @@ do { \
 	__m256i m2l = buf[5]; \
 	__m256i m3h = buf[6]; \
 	__m256i m3l = buf[7]; \
-        h0h = _mm256_xor_si256( h0h, m0h ); \
-        h0l = _mm256_xor_si256( h0l, m0l ); \
-        h1h = _mm256_xor_si256( h1h, m1h ); \
-        h1l = _mm256_xor_si256( h1l, m1l ); \
-        h2h = _mm256_xor_si256( h2h, m2h ); \
-        h2l = _mm256_xor_si256( h2l, m2l ); \
-        h3h = _mm256_xor_si256( h3h, m3h ); \
-        h3l = _mm256_xor_si256( h3l, m3l ); \
+   h0h = _mm256_xor_si256( h0h, m0h ); \
+   h0l = _mm256_xor_si256( h0l, m0l ); \
+   h1h = _mm256_xor_si256( h1h, m1h ); \
+   h1l = _mm256_xor_si256( h1l, m1l ); \
+   h2h = _mm256_xor_si256( h2h, m2h ); \
+   h2l = _mm256_xor_si256( h2l, m2l ); \
+   h3h = _mm256_xor_si256( h3h, m3h ); \
+   h3l = _mm256_xor_si256( h3l, m3l ); \
 
 #define INPUT_BUF2 \
    h4h = _mm256_xor_si256( h4h, m0h ); \
@@ -477,13 +471,48 @@ static const sph_u64 IV512[] = {
 
 #endif
 
-static void
-jh_4way_init( jh_4way_context *sc, const void *iv )
+void jh256_4way_init( jh_4way_context *sc )
 {
-    uint64_t *v = (uint64_t*)iv;
-    
-    for ( int i = 0; i < 16; i++ )
-        sc->H[i] = _mm256_set_epi64x( v[i], v[i], v[i], v[i] );
+    // bswapped IV256
+    sc->H[ 0] = m256_const1_64( 0xebd3202c41a398eb );
+    sc->H[ 1] = m256_const1_64( 0xc145b29c7bbecd92 );
+    sc->H[ 2] = m256_const1_64( 0xfac7d4609151931c );
+    sc->H[ 3] = m256_const1_64( 0x038a507ed6820026 );
+    sc->H[ 4] = m256_const1_64( 0x45b92677269e23a4 );
+    sc->H[ 5] = m256_const1_64( 0x77941ad4481afbe0 );
+    sc->H[ 6] = m256_const1_64( 0x7a176b0226abb5cd );
+    sc->H[ 7] = m256_const1_64( 0xa82fff0f4224f056 );
+    sc->H[ 8] = m256_const1_64( 0x754d2e7f8996a371 );
+    sc->H[ 9] = m256_const1_64( 0x62e27df70849141d );
+    sc->H[10] = m256_const1_64( 0x948f2476f7957627 );
+    sc->H[11] = m256_const1_64( 0x6c29804757b6d587 );
+    sc->H[12] = m256_const1_64( 0x6c0d8eac2d275e5c );
+    sc->H[13] = m256_const1_64( 0x0f7a0557c6508451 );
+    sc->H[14] = m256_const1_64( 0xea12247067d3e47b );
+    sc->H[15] = m256_const1_64( 0x69d71cd313abe389 );
+    sc->ptr = 0;
+    sc->block_count = 0;
+}
+
+void jh512_4way_init( jh_4way_context *sc )
+{
+    // bswapped IV512
+    sc->H[ 0] = m256_const1_64( 0x17aa003e964bd16f );
+    sc->H[ 1] = m256_const1_64( 0x43d5157a052e6a63 );
+    sc->H[ 2] = m256_const1_64( 0x0bef970c8d5e228a );
+    sc->H[ 3] = m256_const1_64( 0x61c3b3f2591234e9 );
+    sc->H[ 4] = m256_const1_64( 0x1e806f53c1a01d89 );
+    sc->H[ 5] = m256_const1_64( 0x806d2bea6b05a92a );
+    sc->H[ 6] = m256_const1_64( 0xa6ba7520dbcc8e58 );
+    sc->H[ 7] = m256_const1_64( 0xf73bf8ba763a0fa9 );
+    sc->H[ 8] = m256_const1_64( 0x694ae34105e66901 );
+    sc->H[ 9] = m256_const1_64( 0x5ae66f2e8e8ab546 );
+    sc->H[10] = m256_const1_64( 0x243c84c1d0a74710 );
+    sc->H[11] = m256_const1_64( 0x99c15a2db1716e3b );
+    sc->H[12] = m256_const1_64( 0x56f8b19decf657cf );
+    sc->H[13] = m256_const1_64( 0x56b116577c8806a7 );
+    sc->H[14] = m256_const1_64( 0xfb1785e6dffcc2e3 );
+    sc->H[15] = m256_const1_64( 0x4bdd8ccc78465a54 );
     sc->ptr = 0;
     sc->block_count = 0;
 }
@@ -542,7 +571,7 @@ jh_4way_close( jh_4way_context *sc, unsigned ub, unsigned n, void *dst,
    size_t numz, u;
    sph_u64 l0, l1, l0e, l1e;
 
-   buf[0] = _mm256_set_epi64x( 0x80, 0x80, 0x80, 0x80 );
+   buf[0] = m256_const1_64( 0x80ULL );
 
    if ( sc->ptr == 0 )
        numz = 48;
@@ -555,8 +584,8 @@ jh_4way_close( jh_4way_context *sc, unsigned ub, unsigned n, void *dst,
    l1 = SPH_T64(sc->block_count >> 55);
    sph_enc64be( &l0e, l0 );
    sph_enc64be( &l1e, l1 );
-   *(buf + (numz>>3)    ) = _mm256_set_epi64x( l1e, l1e, l1e, l1e );
-   *(buf + (numz>>3) + 1) = _mm256_set_epi64x( l0e, l0e, l0e, l0e ); 
+   *(buf + (numz>>3)    ) = _mm256_set1_epi64x( l1e );
+   *(buf + (numz>>3) + 1) = _mm256_set1_epi64x( l0e ); 
 
    jh_4way_core( sc, buf, numz + 16 );
 
@@ -566,11 +595,13 @@ jh_4way_close( jh_4way_context *sc, unsigned ub, unsigned n, void *dst,
     memcpy_256( dst256, buf, 8 );
 }
 
+/*
 void
 jh256_4way_init(void *cc)
 {
-	jh_4way_init(cc, IV256);
+	jhs_4way_init(cc, IV256);
 }
+*/
 
 void
 jh256_4way(void *cc, const void *data, size_t len)
@@ -584,11 +615,13 @@ jh256_4way_close(void *cc, void *dst)
 	jh_4way_close(cc, 0, 0, dst, 8, IV256);
 }
 
+/*
 void
 jh512_4way_init(void *cc)
 {
-	jh_4way_init(cc, IV512);
+	jhb_4way_init(cc, IV512);
 }
+*/
 
 void
 jh512_4way(void *cc, const void *data, size_t len)

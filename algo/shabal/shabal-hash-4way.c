@@ -63,7 +63,6 @@ extern "C"{
  * that it can optimize them at will.
  */
 
-/* BEGIN -- automatically generated code. */
 
 #define DECL_STATE   \
 	__m128i A00, A01, A02, A03, A04, A05, A06, A07, \
@@ -76,8 +75,11 @@ extern "C"{
 	        M8, M9, MA, MB, MC, MD, ME, MF; \
 	sph_u32 Wlow, Whigh;
 
-#define READ_STATE(state)   do { \
-		A00 = (state)->A[0]; \
+#define READ_STATE(state) do \
+{ \
+   if ( (state)->state_loaded ) \
+   { \
+      A00 = (state)->A[0]; \
 		A01 = (state)->A[1]; \
 		A02 = (state)->A[2]; \
 		A03 = (state)->A[3]; \
@@ -121,9 +123,58 @@ extern "C"{
 		CD = (state)->C[13]; \
 		CE = (state)->C[14]; \
 		CF = (state)->C[15]; \
-		Wlow = (state)->Wlow; \
-		Whigh = (state)->Whigh; \
-	} while (0)
+   } \
+   else \
+   { \
+       (state)->state_loaded = true; \
+       A00 = m128_const1_64( 0x20728DFD20728DFD ); \
+       A01 = m128_const1_64( 0x46C0BD5346C0BD53 ); \
+       A02 = m128_const1_64( 0xE782B699E782B699 ); \
+       A03 = m128_const1_64( 0x5530463255304632 ); \
+       A04 = m128_const1_64( 0x71B4EF9071B4EF90 ); \
+       A05 = m128_const1_64( 0x0EA9E82C0EA9E82C ); \
+       A06 = m128_const1_64( 0xDBB930F1DBB930F1 ); \
+       A07 = m128_const1_64( 0xFAD06B8BFAD06B8B ); \
+       A08 = m128_const1_64( 0xBE0CAE40BE0CAE40 ); \
+       A09 = m128_const1_64( 0x8BD144108BD14410 ); \
+       A0A = m128_const1_64( 0x76D2ADAC76D2ADAC ); \
+       A0B = m128_const1_64( 0x28ACAB7F28ACAB7F ); \
+       B0 = m128_const1_64( 0xC1099CB7C1099CB7 ); \
+       B1 = m128_const1_64( 0x07B385F307B385F3 ); \
+       B2 = m128_const1_64( 0xE7442C26E7442C26 ); \
+       B3 = m128_const1_64( 0xCC8AD640CC8AD640 ); \
+       B4 = m128_const1_64( 0xEB6F56C7EB6F56C7 ); \
+       B5 = m128_const1_64( 0x1EA81AA91EA81AA9 ); \
+       B6 = m128_const1_64( 0x73B9D31473B9D314 ); \
+       B7 = m128_const1_64( 0x1DE85D081DE85D08 ); \
+       B8 = m128_const1_64( 0x48910A5A48910A5A ); \
+       B9 = m128_const1_64( 0x893B22DB893B22DB ); \
+       BA = m128_const1_64( 0xC5A0DF44C5A0DF44 ); \
+       BB = m128_const1_64( 0xBBC4324EBBC4324E ); \
+       BC = m128_const1_64( 0x72D2F24072D2F240 ); \
+       BD = m128_const1_64( 0x75941D9975941D99 ); \
+       BE = m128_const1_64( 0x6D8BDE826D8BDE82 ); \
+       BF = m128_const1_64( 0xA1A7502BA1A7502B ); \
+       C0 = m128_const1_64( 0xD9BF68D1D9BF68D1 ); \
+       C1 = m128_const1_64( 0x58BAD75058BAD750 ); \
+       C2 = m128_const1_64( 0x56028CB256028CB2 ); \
+       C3 = m128_const1_64( 0x8134F3598134F359 ); \
+       C4 = m128_const1_64( 0xB5D469D8B5D469D8 ); \
+       C5 = m128_const1_64( 0x941A8CC2941A8CC2 ); \
+       C6 = m128_const1_64( 0x418B2A6E418B2A6E ); \
+       C7 = m128_const1_64( 0x0405278004052780 ); \
+       C8 = m128_const1_64( 0x7F07D7877F07D787 ); \
+       C9 = m128_const1_64( 0x5194358F5194358F ); \
+       CA = m128_const1_64( 0x3C60D6653C60D665 ); \
+       CB = m128_const1_64( 0xBE97D79ABE97D79A ); \
+       CC = m128_const1_64( 0x950C3434950C3434 ); \
+       CD = m128_const1_64( 0xAED9A06DAED9A06D ); \
+       CE = m128_const1_64( 0x2537DC8D2537DC8D ); \
+       CF = m128_const1_64( 0x7CDB59697CDB5969 ); \
+   } \
+   Wlow = (state)->Wlow; \
+   Whigh = (state)->Whigh; \
+} while (0)
 
 #define WRITE_STATE(state)   do { \
 		(state)->A[0] = A00; \
@@ -397,6 +448,7 @@ do { \
 			Whigh = T32(Whigh + 1); \
 	} while (0)
 
+/*
 static const sph_u32 A_init_256[] = {
 	C32(0x52F84552), C32(0xE54B7999), C32(0x2D8EE3EC), C32(0xB9645191),
 	C32(0xE0078B86), C32(0xBB7C44C9), C32(0xD2B5C1CA), C32(0xB0D2EB8C),
@@ -436,33 +488,115 @@ static const sph_u32 C_init_512[] = {
 	C32(0x7F07D787), C32(0x5194358F), C32(0x3C60D665), C32(0xBE97D79A),
 	C32(0x950C3434), C32(0xAED9A06D), C32(0x2537DC8D), C32(0x7CDB5969)
 };
+*/
 
 static void
 shabal_4way_init( void *cc, unsigned size )
 {
    shabal_4way_context *sc = (shabal_4way_context*)cc;
-   int i;
 
    if ( size == 512 )
-   {
-      for ( i = 0; i < 12; i++ )
-         sc->A[i] = _mm_set1_epi32( A_init_512[i] );
-      for ( i = 0; i < 16; i++ )
-      {
-         sc->B[i] = _mm_set1_epi32( B_init_512[i] );
-         sc->C[i] = _mm_set1_epi32( C_init_512[i] );
-      }
+   { // copy immediate constants directly to working registers later.
+       sc->state_loaded = false;
+/*
+       sc->A[ 0] = m128_const1_64( 0x20728DFD20728DFD );
+       sc->A[ 1] = m128_const1_64( 0x46C0BD5346C0BD53 );
+       sc->A[ 2] = m128_const1_64( 0xE782B699E782B699 );
+       sc->A[ 3] = m128_const1_64( 0x5530463255304632 );
+       sc->A[ 4] = m128_const1_64( 0x71B4EF9071B4EF90 );
+       sc->A[ 5] = m128_const1_64( 0x0EA9E82C0EA9E82C );
+       sc->A[ 6] = m128_const1_64( 0xDBB930F1DBB930F1 );
+       sc->A[ 7] = m128_const1_64( 0xFAD06B8BFAD06B8B );
+       sc->A[ 8] = m128_const1_64( 0xBE0CAE40BE0CAE40 );
+       sc->A[ 9] = m128_const1_64( 0x8BD144108BD14410 );
+       sc->A[10] = m128_const1_64( 0x76D2ADAC76D2ADAC );
+       sc->A[11] = m128_const1_64( 0x28ACAB7F28ACAB7F );
+
+       sc->B[ 0] = m128_const1_64( 0xC1099CB7C1099CB7 );
+       sc->B[ 1] = m128_const1_64( 0x07B385F307B385F3 );
+       sc->B[ 2] = m128_const1_64( 0xE7442C26E7442C26 );
+       sc->B[ 3] = m128_const1_64( 0xCC8AD640CC8AD640 );
+       sc->B[ 4] = m128_const1_64( 0xEB6F56C7EB6F56C7 );
+       sc->B[ 5] = m128_const1_64( 0x1EA81AA91EA81AA9 );
+       sc->B[ 6] = m128_const1_64( 0x73B9D31473B9D314 );
+       sc->B[ 7] = m128_const1_64( 0x1DE85D081DE85D08 );
+       sc->B[ 8] = m128_const1_64( 0x48910A5A48910A5A );
+       sc->B[ 9] = m128_const1_64( 0x893B22DB893B22DB );
+       sc->B[10] = m128_const1_64( 0xC5A0DF44C5A0DF44 );
+       sc->B[11] = m128_const1_64( 0xBBC4324EBBC4324E );
+       sc->B[12] = m128_const1_64( 0x72D2F24072D2F240 );
+       sc->B[13] = m128_const1_64( 0x75941D9975941D99 );
+       sc->B[14] = m128_const1_64( 0x6D8BDE826D8BDE82 );
+       sc->B[15] = m128_const1_64( 0xA1A7502BA1A7502B );
+
+       sc->C[ 0] = m128_const1_64( 0xD9BF68D1D9BF68D1 );
+       sc->C[ 1] = m128_const1_64( 0x58BAD75058BAD750 );
+       sc->C[ 2] = m128_const1_64( 0x56028CB256028CB2 );
+       sc->C[ 3] = m128_const1_64( 0x8134F3598134F359 );
+       sc->C[ 4] = m128_const1_64( 0xB5D469D8B5D469D8 );
+       sc->C[ 5] = m128_const1_64( 0x941A8CC2941A8CC2 );
+       sc->C[ 6] = m128_const1_64( 0x418B2A6E418B2A6E );
+       sc->C[ 7] = m128_const1_64( 0x0405278004052780 );
+       sc->C[ 8] = m128_const1_64( 0x7F07D7877F07D787 );
+       sc->C[ 9] = m128_const1_64( 0x5194358F5194358F );
+       sc->C[10] = m128_const1_64( 0x3C60D6653C60D665 );
+       sc->C[11] = m128_const1_64( 0xBE97D79ABE97D79A );
+       sc->C[12] = m128_const1_64( 0x950C3434950C3434 );
+       sc->C[13] = m128_const1_64( 0xAED9A06DAED9A06D );
+       sc->C[14] = m128_const1_64( 0x2537DC8D2537DC8D );
+       sc->C[15] = m128_const1_64( 0x7CDB59697CDB5969 );
+*/
    }
    else
-   {
-      for ( i = 0; i < 12; i++ )
-         sc->A[i] = _mm_set1_epi32( A_init_256[i] );
-      for ( i = 0; i < 16; i++ )
-      {
-         sc->B[i] = _mm_set1_epi32( B_init_256[i] );
-         sc->C[i] = _mm_set1_epi32( C_init_256[i] );
-      }
-    }
+   {  // No users
+       sc->state_loaded = true;
+       sc->A[ 0] = m128_const1_64( 0x52F8455252F84552 );
+       sc->A[ 1] = m128_const1_64( 0xE54B7999E54B7999 );
+       sc->A[ 2] = m128_const1_64( 0x2D8EE3EC2D8EE3EC );
+       sc->A[ 3] = m128_const1_64( 0xB9645191B9645191 );
+       sc->A[ 4] = m128_const1_64( 0xE0078B86E0078B86 );
+       sc->A[ 5] = m128_const1_64( 0xBB7C44C9BB7C44C9 );
+       sc->A[ 6] = m128_const1_64( 0xD2B5C1CAD2B5C1CA );
+       sc->A[ 7] = m128_const1_64( 0xB0D2EB8CB0D2EB8C );
+       sc->A[ 8] = m128_const1_64( 0x14CE5A4514CE5A45 );
+       sc->A[ 9] = m128_const1_64( 0x22AF50DC22AF50DC );
+       sc->A[10] = m128_const1_64( 0xEFFDBC6BEFFDBC6B );
+       sc->A[11] = m128_const1_64( 0xEB21B74AEB21B74A );
+
+       sc->B[ 0] = m128_const1_64( 0xB555C6EEB555C6EE );
+       sc->B[ 1] = m128_const1_64( 0x3E7105963E710596 );
+       sc->B[ 2] = m128_const1_64( 0xA72A652FA72A652F );
+       sc->B[ 3] = m128_const1_64( 0x9301515F9301515F );
+       sc->B[ 4] = m128_const1_64( 0xDA28C1FADA28C1FA );
+       sc->B[ 5] = m128_const1_64( 0x696FD868696FD868 );
+       sc->B[ 6] = m128_const1_64( 0x9CB6BF729CB6BF72 );
+       sc->B[ 7] = m128_const1_64( 0x0AFE40020AFE4002 );
+       sc->B[ 8] = m128_const1_64( 0xA6E03615A6E03615 );
+       sc->B[ 9] = m128_const1_64( 0x5138C1D45138C1D4 );
+       sc->B[10] = m128_const1_64( 0xBE216306BE216306 );
+       sc->B[11] = m128_const1_64( 0xB38B8890B38B8890 );
+       sc->B[12] = m128_const1_64( 0x3EA8B96B3EA8B96B );
+       sc->B[13] = m128_const1_64( 0x3299ACE43299ACE4 );
+       sc->B[14] = m128_const1_64( 0x30924DD430924DD4 );
+       sc->B[15] = m128_const1_64( 0x55CB34A555CB34A5 );
+
+       sc->C[ 0] = m128_const1_64( 0xB405F031B405F031 );
+       sc->C[ 1] = m128_const1_64( 0xC4233EBAC4233EBA );
+       sc->C[ 2] = m128_const1_64( 0xB3733979B3733979 );
+       sc->C[ 3] = m128_const1_64( 0xC0DD9D55C0DD9D55 );
+       sc->C[ 4] = m128_const1_64( 0xC51C28AEC51C28AE );
+       sc->C[ 5] = m128_const1_64( 0xA327B8E1A327B8E1 );
+       sc->C[ 6] = m128_const1_64( 0x56C5616756C56167 );
+       sc->C[ 7] = m128_const1_64( 0xED614433ED614433 );
+       sc->C[ 8] = m128_const1_64( 0x88B59D6088B59D60 );
+       sc->C[ 9] = m128_const1_64( 0x60E2CEBA60E2CEBA );
+       sc->C[10] = m128_const1_64( 0x758B4B8B758B4B8B );
+       sc->C[11] = m128_const1_64( 0x83E82A7F83E82A7F );
+       sc->C[12] = m128_const1_64( 0xBC968828BC968828 );
+       sc->C[13] = m128_const1_64( 0xE6E00BF7E6E00BF7 );
+       sc->C[14] = m128_const1_64( 0xBA839E55BA839E55 );
+       sc->C[15] = m128_const1_64( 0x9B491C609B491C60 );
+   }
     sc->Wlow = 1;
     sc->Whigh = 0;
     sc->ptr = 0;
@@ -488,6 +622,8 @@ shabal_4way_core( void *cc, const unsigned char *data, size_t len )
       sc->ptr = ptr;
       return;
    }
+   
+
    READ_STATE(sc);
 
    while ( len > 0 )

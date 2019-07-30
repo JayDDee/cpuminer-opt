@@ -4,7 +4,7 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
-#if defined(__AVX2__) && defined(__AES__)
+#if defined(__AVX2__) && defined(__AES__) && !defined(__SHA__)
   #define MYRGR_4WAY
 #endif
 

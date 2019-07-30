@@ -5,23 +5,26 @@
 #include <stddef.h>
 #include <string.h>
 
+/*
 static const uint32_t IV[5] =
 { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0 };
+*/
 
 /*
  * Round constants for RIPEMD-160.
  */
-#define K11  0x00000000
-#define K12  0x5A827999
-#define K13  0x6ED9EBA1
-#define K14  0x8F1BBCDC
-#define K15  0xA953FD4E
 
-#define K21  0x50A28BE6
-#define K22  0x5C4DD124
-#define K23  0x6D703EF3
-#define K24  0x7A6D76E9
-#define K25  0x00000000
+#define K11  0x0000000000000000
+#define K12  0x5A8279995A827999
+#define K13  0x6ED9EBA16ED9EBA1
+#define K14  0x8F1BBCDC8F1BBCDC
+#define K15  0xA953FD4EA953FD4E
+
+#define K21  0x50A28BE650A28BE6
+#define K22  0x5C4DD1245C4DD124
+#define K23  0x6D703EF36D703EF3
+#define K24  0x7A6D76E97A6D76E9
+#define K25  0x0000000000000000
 
 // RIPEMD-160 4 way
 
@@ -44,7 +47,7 @@ static const uint32_t IV[5] =
 do{ \
    a = _mm_add_epi32( mm128_rol_32( _mm_add_epi32( _mm_add_epi32( \
                 _mm_add_epi32( a, f( b ,c, d ) ), r ), \
-                                 _mm_set1_epi32( k ) ), s ), e ); \
+                                 m128_const1_64( k ) ), s ), e ); \
    c = mm128_rol_32( c, 10 );\
 } while (0)
 
@@ -248,11 +251,11 @@ static void ripemd160_4way_round( ripemd160_4way_context *sc )
 
 void ripemd160_4way_init( ripemd160_4way_context *sc )
 {
-   sc->val[0] = _mm_set1_epi32( IV[0] );
-   sc->val[1] = _mm_set1_epi32( IV[1] );
-   sc->val[2] = _mm_set1_epi32( IV[2] );
-   sc->val[3] = _mm_set1_epi32( IV[3] );
-   sc->val[4] = _mm_set1_epi32( IV[4] );
+   sc->val[0] = m128_const1_64( 0x6745230167452301 );
+   sc->val[1] = m128_const1_64( 0xEFCDAB89EFCDAB89 );
+   sc->val[2] = m128_const1_64( 0x98BADCFE98BADCFE );
+   sc->val[3] = m128_const1_64( 0x1032547610325476 );
+   sc->val[4] = m128_const1_64( 0xC3D2E1F0C3D2E1F0 );
    sc->count_high = sc->count_low = 0;
 }
 
@@ -343,7 +346,7 @@ void ripemd160_4way_close( ripemd160_4way_context  *sc, void *dst )
 do{ \
    a = _mm256_add_epi32( mm256_rol_32( _mm256_add_epi32( _mm256_add_epi32( \
                 _mm256_add_epi32( a, f( b ,c, d ) ), r ), \
-                                 _mm256_set1_epi32( k ) ), s ), e ); \
+                                 m256_const1_64( k ) ), s ), e ); \
    c = mm256_rol_32( c, 10 );\
 } while (0)
     
@@ -548,11 +551,11 @@ static void ripemd160_8way_round( ripemd160_8way_context *sc )
 
 void ripemd160_8way_init( ripemd160_8way_context *sc )
 {
-   sc->val[0] = _mm256_set1_epi32( IV[0] );
-   sc->val[1] = _mm256_set1_epi32( IV[1] );
-   sc->val[2] = _mm256_set1_epi32( IV[2] );
-   sc->val[3] = _mm256_set1_epi32( IV[3] );
-   sc->val[4] = _mm256_set1_epi32( IV[4] );
+   sc->val[0] = m256_const1_64( 0x6745230167452301 );
+   sc->val[1] = m256_const1_64( 0xEFCDAB89EFCDAB89 );
+   sc->val[2] = m256_const1_64( 0x98BADCFE98BADCFE );
+   sc->val[3] = m256_const1_64( 0x1032547610325476 );
+   sc->val[4] = m256_const1_64( 0xC3D2E1F0C3D2E1F0 );
    sc->count_high = sc->count_low = 0;
 }
 

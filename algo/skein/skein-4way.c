@@ -5,7 +5,7 @@
 #if defined(__SHA__)
   #include <openssl/sha.h>
 #else
-  #include "algo/sha/sha2-hash-4way.h"
+  #include "algo/sha/sha-hash-4way.h"
 #endif
 
 #if defined (SKEIN_4WAY)

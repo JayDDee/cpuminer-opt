@@ -21,7 +21,7 @@
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/haval-hash-4way.h"
-#include "algo/sha/sha2-hash-4way.h"
+#include "algo/sha/sha-hash-4way.h"
 
 union _hmq1725_4way_context_overlay
 {
@@ -57,7 +57,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
      uint32_t vhashB[32<<2] __attribute__ ((aligned (64)));
      hmq1725_4way_context_overlay ctx __attribute__ ((aligned (64)));
      __m256i vh_mask;     
-     const __m256i vmask = _mm256_set1_epi64x( 24 );
+     const __m256i vmask = m256_const1_64( 24 );
      const uint32_t mask = 24;
      __m256i* vh  = (__m256i*)vhash;
      __m256i* vhA = (__m256i*)vhashA;

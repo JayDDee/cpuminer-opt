@@ -51,12 +51,15 @@ cpuminer_SOURCES = \
   algo/blake/blake.c \
   algo/blake/blake-4way.c \
   algo/blake/sph_blake2b.c \
-  algo/blake/blake2b.c \
   algo/blake/sph-blake2s.c \
   algo/blake/blake2s-hash-4way.c \
   algo/blake/blake2s.c \
   algo/blake/blake2s-gate.c \
   algo/blake/blake2s-4way.c \
+  algo/blake/blake2b-hash-4way.c \
+  algo/blake/blake2b.c \
+  algo/blake/blake2b-gate.c \
+  algo/blake/blake2b-4way.c \
   algo/blake/blakecoin-gate.c \
   algo/blake/mod_blakecoin.c \
   algo/blake/blakecoin.c \
@@ -169,7 +172,8 @@ cpuminer_SOURCES = \
   algo/scryptjane/scrypt-jane.c \
   algo/sha/sph_sha2.c \
   algo/sha/sph_sha2big.c \
-  algo/sha/sha2-hash-4way.c \
+  algo/sha/sha256-hash-4way.c \
+  algo/sha/sha512-hash-4way.c \
   algo/sha/sha256_hash_11way.c \
   algo/sha/sha2.c \
   algo/sha/sha256t-gate.c \

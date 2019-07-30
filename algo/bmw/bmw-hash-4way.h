@@ -62,7 +62,7 @@ typedef struct {
 
 typedef bmw_4way_small_context bmw256_4way_context;
 
-void bmw256_4way_init(void *cc);
+void bmw256_4way_init( bmw256_4way_context *ctx );
 
 void bmw256_4way(void *cc, const void *data, size_t len);
 

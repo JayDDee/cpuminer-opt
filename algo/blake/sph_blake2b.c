@@ -103,7 +103,6 @@ static void blake2b_compress( sph_blake2b_ctx *ctx, int last )
 	v[13] ^= ctx->t[1];                 // high 64 bits
 	if (last)                           // last block flag set ?
 		v[14] = ~v[14];
-
 	for (i = 0; i < 16; i++)            // get little-endian words
 		m[i] = B2B_GET64(&ctx->b[8 * i]);
 
@@ -184,7 +183,8 @@ void sph_blake2b_final( sph_blake2b_ctx *ctx, void *out )
 
 	while (ctx->c < 128)                // fill up with zeros
 		ctx->b[ctx->c++] = 0;
-	blake2b_compress(ctx, 1);           // final block flag = 1
+
+   blake2b_compress(ctx, 1);           // final block flag = 1
 
 	// little endian convert and store
 	for (i = 0; i < ctx->outlen; i++) {

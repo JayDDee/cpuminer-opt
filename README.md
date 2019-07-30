@@ -55,8 +55,9 @@ Supported Algorithms
                           axiom         Shabal-256 MemoHash
                           bastion
                           blake         Blake-256 (SFR)
-                          blakecoin     blake256r8
+                          blake2b       Blake2b 256
                           blake2s       Blake-2 S
+                          blakecoin     blake256r8
                           bmw           BMW 256
                           bmw512        BMW 512
                           c11           Chaincoin

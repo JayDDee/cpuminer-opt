@@ -22,7 +22,7 @@
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/haval-hash-4way.h"
-#include "algo/sha/sha2-hash-4way.h"
+#include "algo/sha/sha-hash-4way.h"
 
 union _x17_4way_context_overlay
 {
@@ -210,11 +210,11 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
      uint32_t lane_hash[8] __attribute__ ((aligned (32)));
      uint32_t *hash7 = &(hash[7<<2]);
      uint32_t *pdata = work->data;
-     uint32_t *ptarget = work->target;
-     uint32_t n = pdata[19];
+     const uint32_t *ptarget = work->target;
      const uint32_t first_nonce = pdata[19];
      __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-     int thr_id = mythr->id;  // thr_id arg is deprecated
+     uint32_t n = first_nonce;
+     const int thr_id = mythr->id;
      const uint32_t Htarg = ptarget[7];
      uint64_t htmax[] = {          0,        0xF,       0xFF,
                                0xFFF,     0xFFFF, 0x10000000  };
@@ -225,7 +225,7 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
      mm256_bswap32_intrlv80_4x64( vdata, pdata );
      for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
      {
-        uint32_t mask = masks[ m ];
+        const uint32_t mask = masks[ m ];
         do
         {
            *noncev = mm256_intrlv_blend_32( mm256_bswap_32(

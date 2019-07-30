@@ -2044,7 +2044,7 @@ static void *miner_thread( void *userdata )
              else
                 applog( LOG_NOTICE,
 	          "Mining timeout of %ds reached, exiting...", opt_time_limit);
-	     proper_exit(0);
+	       proper_exit(0);
           }
           if (remain < max64) max64 = remain;
        }
@@ -2079,7 +2079,7 @@ static void *miner_thread( void *userdata )
           hashes_done / ( diff.tv_sec + diff.tv_usec * 1e-6 );
           pthread_mutex_unlock( &stats_lock );
        }
-       // if nonce(s) found submit work 
+       // If unsubmiited nonce(s) found, submit. 
        if ( nonce_found && !opt_benchmark )
        {  
           if ( !submit_work( mythr, &work ) )
@@ -2242,7 +2242,7 @@ static void *miner_thread( void *userdata )
                                   thr_id, hc, hc_units, hr, hr_units );
              }
           }
-          if ( thr_id == 0 )
+          if ( thr_id == 0 && !opt_benchmark )
           {
              hashcount = 0.;
              hashrate = 0.;

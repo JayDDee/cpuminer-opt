@@ -49,7 +49,7 @@ void anime_4way_hash( void *state, const void *input )
     __m256i* vhB = (__m256i*)vhashB;
     __m256i vh_mask;
     const uint32_t mask = 8;
-    const __m256i bit3_mask = _mm256_set1_epi64x( 8 );
+    const __m256i bit3_mask = m256_const1_64( 8 );
     const __m256i zero = _mm256_setzero_si256();
     anime_4way_ctx_holder ctx;
     memcpy( &ctx, &anime_4way_ctx, sizeof(anime_4way_ctx) );

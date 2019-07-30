@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include "algo-gate-api.h"
 
-#if defined(__SSE4_2__)
+//#if defined(__SSE4_2__)
+#if defined(__SSE2__)
   #define BLAKE2S_4WAY
 #endif
 #if defined(__AVX2__)

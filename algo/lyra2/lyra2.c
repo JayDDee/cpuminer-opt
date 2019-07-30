@@ -60,7 +60,7 @@ int LYRA2REV2( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    int64_t step = 1; //Visitation step (used during Setup and Wandering phases)
    int64_t window = 2; //Visitation window (used to define which rows can be revisited during Setup)
    int64_t gap = 1; //Modifier to the step, assuming the values 1 or -1
-   int64_t i; //auxiliary iteration counter
+//   int64_t i; //auxiliary iteration counter
    int64_t v64; // 64bit var for memcpy
    //====================================================================/
 
@@ -128,17 +128,22 @@ int LYRA2REV2( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    //================= Initializing the Sponge State ====================//
    //Sponge state: 16 uint64_t, BLOCK_LEN_INT64 words of them for the bitrate (b) and the remainder for the capacity (c)
 
-   initState( state );
+//   initState( state );
 
    //========================= Setup Phase =============================//
    //Absorbing salt, password and basil: this is the only place in which the block length is hard-coded to 512 bits
    
    ptrWord = wholeMatrix;
+
+   absorbBlockBlake2Safe( state, ptrWord, nBlocksInput, BLOCK_LEN );
+/*
    for (i = 0; i < nBlocksInput; i++)
    {
        absorbBlockBlake2Safe( state, ptrWord ); //absorbs each block of pad(pwd || salt || basil)
        ptrWord += BLOCK_LEN; //goes to next block of pad(pwd || salt || basil)
    }
+*/
+
    //Initializes M[0] and M[1]
    reducedSqueezeRow0( state, &wholeMatrix[0], nCols ); //The locally copied password is most likely overwritten here
 
@@ -227,7 +232,7 @@ int LYRA2REV3( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    int64_t step = 1; //Visitation step (used during Setup and Wandering phases)
    int64_t window = 2; //Visitation window (used to define which rows can be revisited during Setup)
    int64_t gap = 1; //Modifier to the step, assuming the values 1 or -1
-   int64_t i; //auxiliary iteration counter
+//   int64_t i; //auxiliary iteration counter
    int64_t v64; // 64bit var for memcpy
    uint64_t instance = 0;
    //====================================================================/
@@ -302,17 +307,21 @@ int LYRA2REV3( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
    //================= Initializing the Sponge State ====================//
    //Sponge state: 16 uint64_t, BLOCK_LEN_INT64 words of them for the bitrate (b) and the remainder for the capacity (c)
 
-   initState( state );
+//   initState( state );
 
    //========================= Setup Phase =============================//
    //Absorbing salt, password and basil: this is the only place in which the block length is hard-coded to 512 bits
 
    ptrWord = wholeMatrix;
+
+   absorbBlockBlake2Safe( state, ptrWord, nBlocksInput, BLOCK_LEN );
+/*
    for (i = 0; i < nBlocksInput; i++)
    {
        absorbBlockBlake2Safe( state, ptrWord ); //absorbs each block of pad(pwd || salt || basil)
        ptrWord += BLOCK_LEN; //goes to next block of pad(pwd || salt || basil)
    }
+*/
    //Initializes M[0] and M[1]
    reducedSqueezeRow0( state, &wholeMatrix[0], nCols ); //The locally copied password is most likely overwritten here
 
@@ -405,7 +414,7 @@ int LYRA2Z( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
     int64_t step = 1; //Visitation step (used during Setup and Wandering phases)
     int64_t window = 2; //Visitation window (used to define which rows can be revisited during Setup)
     int64_t gap = 1; //Modifier to the step, assuming the values 1 or -1
-    int64_t i; //auxiliary iteration counter
+//    int64_t i; //auxiliary iteration counter
     //=======================================================================/
 
     //======= Initializing the Memory Matrix and pointers to it =============//
@@ -459,17 +468,21 @@ int LYRA2Z( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
 //        if (state == NULL) {
 //                return -1;
 //        }
-    initState( state );
+//    initState( state );
 
     //============================== Setup Phase =============================//
     //Absorbing salt, password and basil: this is the only place in which the block length is hard-coded to 512 bits
-        uint64_t *ptrWord = wholeMatrix;
+    uint64_t *ptrWord = wholeMatrix;
+
+    absorbBlockBlake2Safe( state, ptrWord, nBlocksInput,
+                           BLOCK_LEN_BLAKE2_SAFE_INT64 );
+/*
     for ( i = 0; i < nBlocksInput; i++ )
     {
       absorbBlockBlake2Safe( state, ptrWord ); //absorbs each block of pad(pwd || salt || basil)
       ptrWord += BLOCK_LEN_BLAKE2_SAFE_INT64; //goes to next block of pad(pwd || salt || basil)
     }
-
+*/
     //Initializes M[0] and M[1]
         reducedSqueezeRow0(state, &wholeMatrix[0], nCols); //The locally copied password is most likely overwritten here
         reducedDuplexRow1(state, &wholeMatrix[0], &wholeMatrix[ROW_LEN_INT64], nCols);
@@ -623,17 +636,21 @@ int LYRA2RE( void *K, uint64_t kLen, const void *pwd, const uint64_t pwdlen,
    //================= Initializing the Sponge State ====================//
    //Sponge state: 16 uint64_t, BLOCK_LEN_INT64 words of them for the bitrate (b) and the remainder for the capacity (c)
 
-   initState( state );
+//   initState( state );
 
    //========================= Setup Phase =============================//
    //Absorbing salt, password and basil: this is the only place in which the block length is hard-coded to 512 bits
 
    ptrWord = wholeMatrix;
+
+   absorbBlockBlake2Safe( state, ptrWord, nBlocksInput, BLOCK_LEN );
+/*
    for (i = 0; i < nBlocksInput; i++)
    {
        absorbBlockBlake2Safe( state, ptrWord ); //absorbs each block of pad(pwd || salt || basil)
        ptrWord += BLOCK_LEN; //goes to next block of pad(pwd || salt || basil)
    }
+*/
    //Initializes M[0] and M[1]
    reducedSqueezeRow0( state, &wholeMatrix[0], nCols ); //The locally copied password is most likely overwritten here
 

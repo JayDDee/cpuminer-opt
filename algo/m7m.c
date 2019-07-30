@@ -19,100 +19,89 @@
 #define EPS1 DBL_EPSILON
 #define EPS2 3.0e-11
 
-inline double exp_n(double xt)
+inline double exp_n( double xt )
 {
-    if(xt < -700.0)
+    if ( xt < -700.0 )
         return 0;
-    else if(xt > 700.0)
+    else if ( xt > 700.0 )
         return 1e200;
-    else if(xt > -0.8e-8 && xt < 0.8e-8)
-        return (1.0 + xt);
+    else if ( xt > -0.8e-8 && xt < 0.8e-8 )
+        return ( 1.0 + xt );
     else
-        return exp(xt);
+        return exp( xt );
 }
 
-inline double exp_n2(double x1, double x2)
+inline double exp_n2( double x1, double x2 )
 {
-    double p1 = -700., p2 = -37., p3 = -0.8e-8, p4 = 0.8e-8, p5 = 37., p6 = 700.;
+    double p1 = -700., p2 = -37., p3 = -0.8e-8, p4 = 0.8e-8,
+           p5 = 37., p6 = 700.;
     double xt = x1 - x2;
-    if (xt < p1+1.e-200)
+    if ( xt < p1+1.e-200 )
         return 1.;
-    else if (xt > p1 && xt < p2 + 1.e-200)
+    else if ( xt > p1 && xt < p2 + 1.e-200 )
         return ( 1. - exp(xt) );
-    else if (xt > p2 && xt < p3 + 1.e-200)
-        return ( 1. / (1. + exp(xt)) );
-    else if (xt > p3 && xt < p4)
+    else if ( xt > p2 && xt < p3 + 1.e-200 )
+        return ( 1. / ( 1. + exp(xt) ) );
+    else if ( xt > p3 && xt < p4 )
         return ( 1. / (2. + xt) );
-    else if (xt > p4 - 1.e-200 && xt < p5)
-        return ( exp(-xt) / (1. + exp(-xt)) );
-    else if (xt > p5 - 1.e-200 && xt < p6)
+    else if ( xt > p4 - 1.e-200 && xt < p5 )
+        return ( exp(-xt) / ( 1. + exp(-xt) ) );
+    else if ( xt > p5 - 1.e-200 && xt < p6 )
         return ( exp(-xt) );
-    else if (xt > p6 - 1.e-200)
+    else if ( xt > p6 - 1.e-200 )
         return 0.;
 }
 
-double swit2_(double wvnmb)
+double swit2_( double wvnmb )
 {
-    return pow( (5.55243*(exp_n(-0.3*wvnmb/15.762) - exp_n(-0.6*wvnmb/15.762)))*wvnmb, 0.5) 
-	  / 1034.66 * pow(sin(wvnmb/65.), 2.);
+    return pow( ( 5.55243 * ( exp_n( -0.3 * wvnmb / 15.762 )
+                - exp_n( -0.6 * wvnmb / 15.762 ) ) ) * wvnmb, 0.5 ) 
+	        / 1034.66 * pow( sin( wvnmb / 65. ), 2. );
 }
 
-
-double GaussianQuad_N2(const double x1, const double x2)
+double GaussianQuad_N2( const double x1, const double x2 )
 {
-    double s=0.0;
+    double s = 0.0;
     double x[6], w[6];
     //gauleg(a2, b2, x, w);
     
     double z1, z, xm, xl, pp, p3, p2, p1;
-    xm=0.5*(x2+x1);
-    xl=0.5*(x2-x1);
-    for(int i=1;i<=3;i++)
+    xm = 0.5 * ( x2 + x1 );
+    xl = 0.5 * ( x2 - x1 );
+    for( int i = 1; i <= 3; i++ )
     {
-		z = (i == 1) ? 0.909632 : -0.0;
-		z = (i == 2) ? 0.540641 : z;
-	    do
+      z = (i == 2) ? 0.540641 : ( (i == 1) ? 0.909632 : -0.0 );
+      do
 	    {
-			p1 = z;
-			p2 = 1;
-			p3 = 0;
-			
-			p3=1;
-			p2=z;
-			p1=((3.0 * z * z) - 1) / 2;
-			
-			p3=p2;
-			p2=p1;
-			p1=((5.0 * z * p2) - (2.0 * z)) / 3;
-			
-			p3=p2;
-			p2=p1;
-			p1=((7.0 * z * p2) - (3.0 * p3)) / 4;
-			
-			p3=p2;
-			p2=p1;
-			p1=((9.0 * z * p2) - (4.0 * p3)) / 5;
-		    
-		    pp=5*(z*p1-p2)/(z*z-1.0);
-		    z1=z;
-		    z=z1-p1/pp;
-	    } while (fabs(z-z1) > 3.0e-11);
+			p1 = ( ( 3.0 * z * z ) - 1 ) / 2;
+			p2 = p1;
+         p1 = ( ( 5.0 * z * p2 ) - ( 2.0 * z ) ) / 3;
+			p3 = p2;
+			p2 = p1;
+			p1 = ( ( 7.0 * z * p2 ) - ( 3.0 * p3 ) ) / 4;
+			p3 = p2;
+			p2 = p1;
+			p1 = ( ( 9.0 * z * p2 ) - ( 4.0 * p3 ) ) / 5;
+         pp = 5 * ( z * p1 - p2 ) / ( z * z - 1.0 );
+		   z1 = z;
+		   z = z1 - p1 / pp;
+	    } while ( fabs( z - z1 ) > 3.0e-11 );
 	    
-	    x[i]=xm-xl*z;
-	    x[5+1-i]=xm+xl*z;
-	    w[i]=2.0*xl/((1.0-z*z)*pp*pp);
-	    w[5+1-i]=w[i];
+	    x[i]       = xm - xl * z;
+	    x[ 5+1-i ] = xm + xl * z;
+	    w[i]       = 2.0 * xl / ( ( 1.0 - z * z ) * pp * pp );
+	    w[ 5+1-i ] = w [i];
     }
     
-    for(int j=1; j<=5; j++) s += w[j]*swit2_(x[j]);
+    for( int j = 1; j <= 5; j++ ) s += w[j] * swit2_( x[j] );
     
     return s;
 }
 
-uint32_t sw2_(int nnounce)
+uint32_t sw2_( int nnounce )
 {
-    double wmax = ((sqrt((double)(nnounce))*(1.+EPSa))/450+100);
-    return ((uint32_t)(GaussianQuad_N2(0., wmax)*(1.+EPSa)*1.e6));
+    double wmax = ( ( sqrt( (double)(nnounce) ) * ( 1.+EPSa ) ) / 450+100 );
+    return ( (uint32_t)( GaussianQuad_N2( 0., wmax ) * ( 1.+EPSa ) * 1.e6 ) );
 }
 
 typedef struct {
