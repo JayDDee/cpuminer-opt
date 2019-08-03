@@ -1,9 +1,11 @@
 #if !defined(SCRYPT_CHOOSE_COMPILETIME) || !defined(SCRYPT_HAVE_ROMIX)
 
+/*
 #if defined(SCRYPT_CHOOSE_COMPILETIME)
 #undef SCRYPT_ROMIX_FN
 #define SCRYPT_ROMIX_FN scrypt_ROMix
 #endif
+*/
 
 #undef SCRYPT_HAVE_ROMIX
 #define SCRYPT_HAVE_ROMIX

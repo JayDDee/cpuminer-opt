@@ -38,6 +38,26 @@ supported.
 Change Log
 ----------
 
+v3.9.7
+
+Command line option changes:
+
+"-R" is no longer used as a shortcut for "--retry-pause", users must
+use the long option.
+
+New options:
+
+-N, --param-n: set the N parameter for yescrypt, yespower or scrypt algos
+-R, --param-r: set the R parameter for yescrypt or yespower algos, scrypt is
+     hardcoded with R=1
+-K, --param-key: set the client key/pers parameter for yescrypt/yespower algos.
+
+These options can be used to mine yescrypt or yespower variations using
+the generic yescrypt or yespower algo name and specifying the parameters
+manually. They can even be used to mine variations that aren't formally
+supported by a unique algo name. Existing algos can continue to to be mined
+using their original name without parameters.
+
 v3.9.6.2
 
 New algo blake2b.

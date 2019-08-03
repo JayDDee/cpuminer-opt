@@ -34,7 +34,7 @@
       (uint32_t)( ( (uint32_t)(x) << (c) ) | ( (uint32_t)(x) >> (32-(c)) ) )
 #define u16_ror_16( x, c ) \
       (uint16_t)( ( (uint16_t)(x) >> (c) ) | ( (uint16_t)(x) << (16-(c)) ) )
-#define u16rol_16( x, c ) \
+#define u16_rol_16( x, c ) \
       (uint16_t)( ( (uint16_t)(x) << (c) ) | ( (uint16_t)(x) >> (16-(c)) ) )
 #define u8_ror_8( x, c ) \
       (uint8_t) ( ( (uint8_t) (x) >> (c) ) | ( (uint8_t) (x) << ( 8-(c)) ) )

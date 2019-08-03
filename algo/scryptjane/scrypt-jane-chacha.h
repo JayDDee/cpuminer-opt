@@ -55,6 +55,7 @@ typedef uint32_t scrypt_mix_word_t;
 	#include "scrypt-jane-romix-template.h"
 #endif
 
+
 /* cpu agnostic */
 #define SCRYPT_ROMIX_FN scrypt_ROMix_basic
 #define SCRYPT_MIX_FN chacha_core_basic

@@ -698,8 +698,8 @@ static void scrypt_1024_1_1_256_24way(const uint32_t *input,
 extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
                             uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
 	uint32_t data[SCRYPT_MAX_WAYS * 20], hash[SCRYPT_MAX_WAYS * 8];
 	uint32_t midstate[8];
 	uint32_t n = pdata[19] - 1;
@@ -786,10 +786,14 @@ bool register_scrypt_algo( algo_gate_t* gate )
   gate->set_target       = (void*)&scrypt_set_target;
   gate->get_max64        = (void*)&scrypt_get_max64;
 
-  if ( !opt_scrypt_n )
+  if ( !opt_param_n )
+  {
+     opt_param_n = 1024;
      scratchbuf_size = 1024;
+  }
   else
-     scratchbuf_size = opt_scrypt_n;
+     scratchbuf_size = opt_param_n;
+  applog(LOG_INFO,"Scrypt paramaters: N= %d, R= 1.", opt_param_n );
   return true;
 };
 

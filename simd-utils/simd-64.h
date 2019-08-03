@@ -33,7 +33,8 @@
 // cast all arguments as the're likely to be uint64_t
 
 // Bitwise not: ~(a)
-#define mm64_not( a ) _mm_xor_si64( (__m64)a, m64_neg1 )
+//#define mm64_not( a ) _mm_xor_si64( (__m64)a, m64_neg1 )
+#define mm64_not( a ) ( (__m64)( ~( (uint64_t)(a) ) )
 
 // Unary negate elements
 #define mm64_negate_32( v ) _mm_sub_pi32( m64_zero, (__m64)v )

@@ -244,20 +244,20 @@ bool register_scryptjane_algo( algo_gate_t* gate )
     gate->get_max64  = (void*)&get_max64_0x40LL;
 
     // figure out if arg in N or Nfactor
-    if ( !opt_scrypt_n )
+    if ( !opt_param_n )
     {
       applog( LOG_ERR, "The N factor must be specified in the form algo:nf");
       return false;
     }
-    else if ( opt_scrypt_n < 32 )
+    else if ( opt_param_n < 32 )
     {
       // arg is Nfactor, calculate N
-      sj_N = 1 << ( opt_scrypt_n + 1 );
+      sj_N = 1 << ( opt_param_n + 1 );
     }
     else
     {
       // arg is N
-      sj_N = opt_scrypt_n;
+      sj_N = opt_param_n;
     }
     return true;
 }

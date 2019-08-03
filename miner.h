@@ -729,7 +729,9 @@ extern double stratum_diff;
 extern double net_diff;
 extern double net_hashrate;
 extern int opt_pluck_n;
-extern int opt_scrypt_n;
+extern int opt_param_n;
+extern int opt_param_r;
+extern char* opt_param_key;
 extern double opt_diff_factor;
 extern bool opt_randomize;
 extern bool allow_mininginfo;
@@ -843,6 +845,9 @@ Options:\n\
                           yespower      Cryply\n\
                           yespowerr16   Yenten (YTN)\n\
                           zr5           Ziftr\n\
+  -N, --param-n         N parameter for scrypt based algos\n\
+  -R, --patam-r         R parameter for scrypt based algos\n\
+  -K, --param-key       Key parameter for algos that use it\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
   -u, --user=USERNAME   username for mining server\n\
@@ -852,7 +857,7 @@ Options:\n\
   -t, --threads=N       number of miner threads (default: number of processors)\n\
   -r, --retries=N       number of times to retry if a network call fails\n\
                           (default: retry indefinitely)\n\
-  -R, --retry-pause=N   time to pause between retries, in seconds (default: 30)\n\
+      --retry-pause=N   time to pause between retries, in seconds (default: 30)\n\
       --time-limit=N    maximum time [s] to mine before exiting the program.\n\
   -T, --timeout=N       timeout for long poll and stratum (default: 300 seconds)\n\
   -s, --scantime=N      upper bound on time spent scanning current work when\n\
@@ -927,6 +932,7 @@ static struct option const options[] = {
         { "hash-meter", 0, NULL, 1014 },
         { "hide-diff", 0, NULL, 1013 },
         { "help", 0, NULL, 'h' },
+        { "key", 1, NULL, 'K' },
         { "no-gbt", 0, NULL, 1011 },
         { "no-getwork", 0, NULL, 1010 },
         { "no-longpoll", 0, NULL, 1003 },
@@ -936,13 +942,16 @@ static struct option const options[] = {
         { "max-temp", 1, NULL, 1060 },
         { "max-diff", 1, NULL, 1061 },
         { "max-rate", 1, NULL, 1062 },
+        { "param-key", 1, NULL, 'K' },
+        { "param-n", 1, NULL, 'N' },
+        { "param-r", 1, NULL, 'R' },
         { "pass", 1, NULL, 'p' },
         { "protocol", 0, NULL, 'P' },
         { "protocol-dump", 0, NULL, 'P' },
         { "proxy", 1, NULL, 'x' },
         { "quiet", 0, NULL, 'q' },
         { "retries", 1, NULL, 'r' },
-        { "retry-pause", 1, NULL, 'R' },
+        { "retry-pause", 1, NULL, 1025 },
         { "randomize", 0, NULL, 1024 },
         { "scantime", 1, NULL, 's' },
 #ifdef HAVE_SYSLOG_H

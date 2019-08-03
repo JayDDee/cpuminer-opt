@@ -175,7 +175,6 @@
 
 // 64 bit vectors
 #include "simd-utils/simd-64.h"
-//#include "simd-utils/intrlv-mmx.h"
 
 #if defined(__SSE2__)
 
@@ -188,6 +187,8 @@
 #include "simd-utils/simd-256.h"
 
 #if defined(__AVX2__)
+
+// Utilities that require AVX2 are defined in simd-256.h.
 
 // Skylake-X has all these
 #if defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)

@@ -438,11 +438,32 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 {
    yescrypt_gate_base( gate );
    gate->get_max64  = (void*)&yescrypt_get_max64;
-   yescrypt_client_key = NULL;
-   yescrypt_client_key_len = 0;
-   YESCRYPT_N = 2048;
-   YESCRYPT_R = 8;
+
+   if ( opt_param_n )  YESCRYPT_N = opt_param_n;
+   else                YESCRYPT_N = 2048;
+
+   if ( opt_param_r )  YESCRYPT_R = opt_param_r;
+   else                YESCRYPT_R = 8;
+ 
+   if ( opt_param_key ) 
+   {   
+     yescrypt_client_key = opt_param_key;
+     yescrypt_client_key_len = strlen( opt_param_key );
+   }
+   else
+   {   
+     yescrypt_client_key = NULL;
+     yescrypt_client_key_len = 0;
+   }
+
    YESCRYPT_P = 1;
+
+   applog(LOG_NOTICE,"Yescrypt parameters: N= %d, R= %d.", YESCRYPT_N,
+                                                           YESCRYPT_R );
+   if ( yescrypt_client_key )
+     applog(LOG_NOTICE,"Key= ""%s"", len= %d.\n", yescrypt_client_key, 
+                                                  yescrypt_client_key_len );
+
    return true;
 }
 
