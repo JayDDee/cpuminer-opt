@@ -431,7 +431,7 @@ void yescrypt_gate_base(algo_gate_t *gate )
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yescrypt;
    gate->hash       = (void*)&yescrypt_hash;
-   gate->set_target = (void*)&scrypt_set_target;
+   opt_target_factor = 65536.0;
 }
 
 bool register_yescrypt_algo( algo_gate_t* gate )
@@ -458,11 +458,10 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 
    YESCRYPT_P = 1;
 
-   applog(LOG_NOTICE,"Yescrypt parameters: N= %d, R= %d.", YESCRYPT_N,
-                                                           YESCRYPT_R );
+   applog( LOG_NOTICE,"Yescrypt parameters: N= %d, R= %d.", YESCRYPT_N,
+                                                            YESCRYPT_R );
    if ( yescrypt_client_key )
-     applog(LOG_NOTICE,"Key= ""%s"", len= %d.\n", yescrypt_client_key, 
-                                                  yescrypt_client_key_len );
+     applog( LOG_NOTICE,"Key= \"%s\"\n", yescrypt_client_key );
 
    return true;
 }

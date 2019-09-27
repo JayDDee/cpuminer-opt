@@ -1089,13 +1089,13 @@ bool register_neoscrypt_algo( algo_gate_t* gate )
   gate->scanhash              = (void*)&scanhash_neoscrypt;
   gate->hash                  = (void*)&neoscrypt;
   gate->get_max64             = (void*)&get_neoscrypt_max64;
-  gate->set_target            = (void*)&scrypt_set_target;
   gate->wait_for_diff         = (void*)&neoscrypt_wait_for_diff;
   gate->build_stratum_request = (void*)&std_be_build_stratum_request;
   gate->work_decode           = (void*)&std_be_work_decode;
   gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
   gate->set_work_data_endian  = (void*)&set_work_data_big_endian;
   gate->get_work_data_size    = (void*)&neoscrypt_get_work_data_size;
+  opt_target_factor = 65536.0;
   return true;
 };
 

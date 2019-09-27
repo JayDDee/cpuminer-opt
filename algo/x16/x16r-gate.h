@@ -38,6 +38,7 @@ void x16rt_getAlgoString( const uint32_t *timeHash, char *output );
 void x16rt_getTimeHash( const uint32_t timeStamp, void* timeHash );
 
 bool register_x16r_algo( algo_gate_t* gate );
+bool register_x16rv2_algo( algo_gate_t* gate );
 bool register_x16s_algo( algo_gate_t* gate );
 bool register_x16rt_algo( algo_gate_t* gate );
 bool register_hex__algo( algo_gate_t* gate );
@@ -47,6 +48,10 @@ bool register_x21s__algo( algo_gate_t* gate );
 
 void x16r_4way_hash( void *state, const void *input );
 int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr );
+
+void x16rv2_4way_hash( void *state, const void *input );
+int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
 void x16rt_4way_hash( void *state, const void *input );
@@ -62,6 +67,10 @@ bool x21s_4way_thread_init();
 
 void x16r_hash( void *state, const void *input );
 int scanhash_x16r( struct work *work, uint32_t max_nonce,
+                   uint64_t *hashes_done, struct thr_info *mythr );
+
+void x16rv2_hash( void *state, const void *input );
+int scanhash_x16rv2( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr );
 
 void x16rt_hash( void *state, const void *input );

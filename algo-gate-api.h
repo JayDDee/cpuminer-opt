@@ -132,7 +132,6 @@ void ( *decode_extra_data )      ( struct work*, uint64_t* );
 void ( *wait_for_diff )          ( struct stratum_ctx* );
 int64_t ( *get_max64 )           ();
 bool ( *work_decode )            ( const json_t*, struct work* );
-void ( *set_target)              ( struct work*, double );
 bool ( *submit_getwork_result )  ( CURL*, struct work* );
 void ( *gen_merkle_root )        ( char*, struct stratum_ctx* );
 void ( *build_extraheader )      ( struct work*, struct stratum_ctx* );
@@ -193,15 +192,6 @@ void four_way_not_tested();
 // allways returns failure
 int null_scanhash();
 
-// Allow algos to submit from scanhash loop.
-bool submit_solution( struct work *work, void *hash,
-                      struct thr_info *thr );
-bool submit_lane_solution( struct work *work, void *hash,
-                          struct thr_info *thr, int lane );
-
- 
-bool submit_work( struct thr_info *thr, const struct work *work_in );
-
 // displays warning
 void null_hash    ();
 void null_hash_suw();
@@ -231,10 +221,6 @@ int64_t get_max64_0x3ffff();
 int64_t get_max64_0x3fffffLL();
 int64_t get_max64_0x1ffff();
 int64_t get_max64_0xffffLL();
-
-void std_set_target(    struct work *work, double job_diff );
-void alt_set_target(    struct work* work, double job_diff );
-void scrypt_set_target( struct work *work, double job_diff );
 
 bool std_le_work_decode( const json_t *val, struct work *work );
 bool std_be_work_decode( const json_t *val, struct work *work );

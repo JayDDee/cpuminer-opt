@@ -67,8 +67,8 @@ bool register_argon2d_crds_algo( algo_gate_t* gate )
 {
         gate->scanhash = (void*)&scanhash_argon2d_crds;
         gate->hash = (void*)&argon2d_crds_hash;
-        gate->set_target = (void*)&scrypt_set_target;
         gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+        opt_target_factor = 65536.0;
         return true;
 }
 
@@ -135,8 +135,8 @@ bool register_argon2d_dyn_algo( algo_gate_t* gate )
 {
         gate->scanhash = (void*)&scanhash_argon2d_dyn;
         gate->hash = (void*)&argon2d_dyn_hash;
-        gate->set_target = (void*)&scrypt_set_target;
         gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+        opt_target_factor = 65536.0;
         return true;
 }
 
@@ -184,9 +184,9 @@ int64_t get_max64_0x1ff() { return 0x1ff; }
 bool register_argon2d4096_algo( algo_gate_t* gate )
 {
         gate->scanhash = (void*)&scanhash_argon2d4096;
-        gate->set_target = (void*)&scrypt_set_target;
         gate->get_max64  = (void*)&get_max64_0x1ff;
         gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+        opt_target_factor = 65536.0;
         return true;
 }
 

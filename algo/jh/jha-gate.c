@@ -12,7 +12,7 @@ bool register_jha_algo( algo_gate_t* gate )
   gate->hash             = (void*)&jha_hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
-  gate->set_target       = (void*)&scrypt_set_target;
+  opt_target_factor = 65536.0;
   return true;
 };
 

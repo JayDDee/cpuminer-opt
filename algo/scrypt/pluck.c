@@ -503,8 +503,8 @@ bool register_pluck_algo( algo_gate_t* gate )
   gate->miner_thread_init = (void*)&pluck_miner_thread_init;
   gate->scanhash         = (void*)&scanhash_pluck;
   gate->hash             = (void*)&pluck_hash;
-  gate->set_target       = (void*)&scrypt_set_target;
   gate->get_max64        = (void*)&pluck_get_max64;
+  opt_target_factor = 65536.0;
   return true;
 };
 

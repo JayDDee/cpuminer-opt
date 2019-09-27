@@ -38,6 +38,14 @@ supported.
 Change Log
 ----------
 
+v3.9.8
+
+Changes to log output to provide data more relevant to actual mining
+performance.
+phi2 can now handle pools with a mix of coins that use and don't use roots.
+phi2-lux added as an alias for phi2 as they are identical except for roots.
+Add x16rv2 algo for Ravencoin fork.
+
 v3.9.7
 
 Command line option changes:

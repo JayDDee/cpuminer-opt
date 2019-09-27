@@ -15,11 +15,6 @@ pthread_barrier_t hodl_barrier;
 // need to be passed.
 unsigned char *hodl_scratchbuf = NULL;
 
-void hodl_set_target( struct work* work, double diff )
-{
-     diff_to_target(work->target, diff / 8388608.0 );
-}
-
 void hodl_le_build_stratum_request( char* req, struct work* work,
                                     struct stratum_ctx *sctx ) 
 {
@@ -170,7 +165,6 @@ bool register_hodl_algo( algo_gate_t* gate )
   gate->scanhash              = (void*)&hodl_scanhash;
   gate->get_new_work          = (void*)&hodl_get_new_work;
   gate->longpoll_rpc_call     = (void*)&hodl_longpoll_rpc_call;
-  gate->set_target            = (void*)&hodl_set_target;
   gate->build_stratum_request = (void*)&hodl_le_build_stratum_request;
   gate->malloc_txs_request    = (void*)&hodl_malloc_txs_request;
   gate->build_block_header    = (void*)&hodl_build_block_header;
@@ -179,6 +173,7 @@ bool register_hodl_algo( algo_gate_t* gate )
   gate->work_cmp_size         = 76;
   hodl_scratchbuf = (unsigned char*)malloc( 1 << 30 );
   allow_getwork = false;
+  opt_target_factor = 8388608.0;
   return ( hodl_scratchbuf != NULL );
 }
 

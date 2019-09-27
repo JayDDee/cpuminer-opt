@@ -118,11 +118,6 @@ int64_t lyra2re_get_max64 ()
   return 0xffffLL;
 }
 
-void lyra2re_set_target ( struct work* work, double job_diff )
-{
-   work_set_target(work, job_diff / (128.0 * opt_diff_factor) );
-}
-
 bool register_lyra2re_algo( algo_gate_t* gate )
 {
   init_lyra2re_ctx();
@@ -130,7 +125,7 @@ bool register_lyra2re_algo( algo_gate_t* gate )
   gate->scanhash   = (void*)&scanhash_lyra2re;
   gate->hash       = (void*)&lyra2re_hash;
   gate->get_max64  = (void*)&lyra2re_get_max64;
-  gate->set_target = (void*)&lyra2re_set_target;
+  opt_target_factor = 128.0;
   return true;
 };
 

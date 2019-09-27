@@ -39,9 +39,18 @@ static inline __m256i m256_const1_64( uint64_t i )
 {
    register __m128i a;
    asm( "movq %1, %0\n\t"
-        : "=x"(a)
-        : "r"(i) );
+      : "=x" (a)
+      : "r"  (i) );
    return _mm256_broadcastq_epi64( a );
+}
+
+static inline __m256i m256_const1_32( uint32_t i )
+{
+   register __m128i a;
+   asm( "movd %1, %0\n\t"
+      : "=x" (a)
+      : "r"  (i) );
+   return _mm256_broadcastd_epi32( a );
 }
 
 #if defined(__AVX2__)
@@ -142,7 +151,7 @@ do { \
   __m128i hi = _mm256_extracti128_si256( src, 1 ); \
   a0 = mm256_mov256_64( src ); \
   a1 = _mm_extract_epi64( _mm256_castsi256_si128( src ), 1 ); \
-  a2 = _mm_extract_epi64( hi, 0 ); \
+  a2 = mm128_mov128_64( hi ); \
   a3 = _mm_extract_epi64( hi, 1 ); \
 } while(0)
 
@@ -244,44 +253,6 @@ static inline __m256i mm256_mov32_256( uint32_t n )
 // p = any aligned pointer, o = scaled offset
 // returns pointer p+o
 #define casto_m256i(p,o) (((__m256i*)(p))+(o))
-
-
-// Gather scatter
-
-#define mm256_gather_64( d, s0, s1, s2, s3 ) \
-    ((uint64_t*)(d))[0] = (uint64_t)(s0); \
-    ((uint64_t*)(d))[1] = (uint64_t)(s1); \
-    ((uint64_t*)(d))[2] = (uint64_t)(s2); \
-    ((uint64_t*)(d))[3] = (uint64_t)(s3);
-
-#define mm256_gather_32( d, s0, s1, s2, s3, s4, s5, s6, s7 ) \
-    ((uint32_t*)(d))[0] = (uint32_t)(s0); \
-    ((uint32_t*)(d))[1] = (uint32_t)(s1); \
-    ((uint32_t*)(d))[2] = (uint32_t)(s2); \
-    ((uint32_t*)(d))[3] = (uint32_t)(s3); \
-    ((uint32_t*)(d))[4] = (uint32_t)(s4); \
-    ((uint32_t*)(d))[5] = (uint32_t)(s5); \
-    ((uint32_t*)(d))[6] = (uint32_t)(s6); \
-    ((uint32_t*)(d))[7] = (uint32_t)(s7);
-
-
-// Scatter data from contiguous memory.
-// All arguments are pointers
-#define mm256_scatter_64( d0, d1, d2, d3, s ) \
-   *((uint64_t*)(d0)) = ((uint64_t*)(s))[0]; \
-   *((uint64_t*)(d1)) = ((uint64_t*)(s))[1]; \
-   *((uint64_t*)(d2)) = ((uint64_t*)(s))[2]; \
-   *((uint64_t*)(d3)) = ((uint64_t*)(s))[3];
-
-#define mm256_scatter_32( d0, d1, d2, d3, d4, d5, d6, d7, s ) \
-   *((uint32_t*)(d0)) = ((uint32_t*)(s))[0]; \
-   *((uint32_t*)(d1)) = ((uint32_t*)(s))[1]; \
-   *((uint32_t*)(d2)) = ((uint32_t*)(s))[2]; \
-   *((uint32_t*)(d3)) = ((uint32_t*)(s))[3]; \
-   *((uint32_t*)(d4)) = ((uint32_t*)(s))[4]; \
-   *((uint32_t*)(d5)) = ((uint32_t*)(s))[5]; \
-   *((uint32_t*)(d6)) = ((uint32_t*)(s))[6]; \
-   *((uint32_t*)(d7)) = ((uint32_t*)(s))[7];
 
 
 //

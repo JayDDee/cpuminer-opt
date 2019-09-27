@@ -122,7 +122,6 @@ void init_algo_gate( algo_gate_t* gate )
    gate->stratum_gen_work        = (void*)&std_stratum_gen_work;
    gate->build_stratum_request   = (void*)&std_le_build_stratum_request;
    gate->malloc_txs_request      = (void*)&std_malloc_txs_request;
-   gate->set_target              = (void*)&std_set_target;
    gate->submit_getwork_result   = (void*)&std_le_submit_getwork_result;
    gate->build_block_header      = (void*)&std_build_block_header;
    gate->build_extraheader       = (void*)&std_build_extraheader;
@@ -234,6 +233,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_X14:           register_x14_algo           ( gate ); break;
     case ALGO_X15:           register_x15_algo           ( gate ); break;
     case ALGO_X16R:          register_x16r_algo          ( gate ); break;
+    case ALGO_X16RV2:        register_x16rv2_algo        ( gate ); break;
     case ALGO_X16RT:         register_x16rt_algo         ( gate ); break;
     case ALGO_X16RT_VEIL:    register_x16rt_veil_algo    ( gate ); break;
     case ALGO_X16S:          register_x16s_algo          ( gate ); break;
@@ -337,7 +337,7 @@ const char* const algo_alias_map[][2] =
   { "myriad",            "myr-gr"       },
   { "neo",               "neoscrypt"    },
   { "phi",               "phi1612"      },
-//  { "sia",               "blake2b"      },
+  { "phi2-lux",          "phi2"         },
   { "sib",               "x11gost"      },
   { "timetravel8",       "timetravel"   },
   { "veil",              "x16rt-veil"   },
@@ -364,41 +364,4 @@ void get_algo_alias( char** algo_or_alias )
 
 #undef ALIAS
 #undef PROPER
-
-bool submit_solution( struct work *work, void *hash,
-                      struct thr_info *thr )
-{
-     work_set_target_ratio( work, hash );
-     if ( submit_work( thr, work ) )
-     {
-         if ( !opt_quiet )
-            applog( LOG_BLUE, "Share %d submitted by thread %d, job %s.",
-                    accepted_share_count + rejected_share_count + 1,
-                    thr->id, work->job_id );
-         return true;
-     }
-     else
-          applog( LOG_WARNING, "Failed to submit share." );
-     return false;
-}
-
-bool submit_lane_solution( struct work *work, void *hash,
-                           struct thr_info *thr, int lane )
-{
-     work_set_target_ratio( work, hash );
-     if ( submit_work( thr, work ) )
-     {
-         if ( !opt_quiet )
-//            applog( LOG_BLUE, "Share %d submitted by thread %d, lane %d.",
-//                    accepted_share_count + rejected_share_count + 1,
-//                    thr->id, lane );
-            applog( LOG_BLUE, "Share %d submitted by thread %d, lane %d, job %s.",
-                    accepted_share_count + rejected_share_count + 1, thr->id,
-                    lane, work->job_id );
-         return true;
-     }
-     else
-          applog( LOG_WARNING, "Failed to submit share." );
-     return false;
-}
 

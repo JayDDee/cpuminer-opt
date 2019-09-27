@@ -24,7 +24,7 @@ Requirements
 
 1. A x86_64 architecture CPU with a minimum of SSE2 support. This includes
 Intel Core2 and newer and AMD equivalents. In order to take advantage of AES_NI
-optimizations a CPU with AES_NI is required. This includes Intel Westbridge
+optimizations a CPU with AES_NI is required. This includes Intel Westmere
 and newer and AMD equivalents. Further optimizations are available on some
 algoritms for CPUs with AVX and AVX2, Sandybridge and Haswell respectively.
 
@@ -87,8 +87,9 @@ Supported Algorithms
                           neoscrypt     NeoScrypt(128, 2, 1)
                           nist5         Nist5
                           pentablake    Pentablake
-                          phi1612       phi, LUX coin (original algo)
-                          phi2          LUX coin (new algo)
+                          phi1612       phi
+                          phi2          Luxcoin (LUX)
+                          phi2-lux      identical to phi2
                           pluck         Pluck:128 (Supcoin)
                           polytimos     Ninja
                           quark         Quark
@@ -120,7 +121,8 @@ Supported Algorithms
                           x13sm3        hsr (Hshare)
                           x14           X14
                           x15           X15
-                          x16r          Ravencoin (RVN)
+                          x16r          Ravencoin (RVN) (original algo)
+                          x16rv2        Ravencoin (RVN) (new algo)
                           x16rt         Gincoin (GIN)
                           x16rt_veil    Veil (VEIL)
                           x16s          Pigeoncoin (PGN)
@@ -155,14 +157,15 @@ Benchmark testing does not work for x11evo.
 Bugs
 ----
 
-Users are encouraged to post their bug reports on the Bitcoin Talk
-forum at:
+Users are encouraged to post their bug reports using git issues or on the
+Bitcoin Talk forum at:
 
 https://bitcointalk.org/index.php?topic=1326803.0
 
-All problem reports must be accompanied by a proper definition.
+All problem reports must be accompanied by a proper problem definition.
 This should include how the problem occurred, the command line and
-output from the miner showing the startup and any errors.
+output from the miner showing the startup messages and any errors.
+A history is also useful, ie did it work before.
 
 Donations
 ---------

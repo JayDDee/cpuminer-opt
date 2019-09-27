@@ -323,9 +323,9 @@ bool register_m7m_algo( algo_gate_t *gate )
   gate->build_stratum_request = (void*)&std_be_build_stratum_request;
   gate->work_decode           = (void*)&std_be_work_decode;
   gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
-  gate->set_target            = (void*)&scrypt_set_target;
   gate->get_max64             = (void*)&get_max64_0x1ffff;
   gate->set_work_data_endian  = (void*)&set_work_data_big_endian;
+  opt_target_factor = 65536.0;
   return true;
 }
 

@@ -94,19 +94,14 @@ int scanhash_groestl( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-void groestl_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
-}
-
 bool register_dmd_gr_algo( algo_gate_t* gate )
 {
     init_groestl_ctx();
     gate->optimizations   = SSE2_OPT | AES_OPT;
     gate->scanhash        = (void*)&scanhash_groestl;
     gate->hash            = (void*)&groestlhash;
-    gate->set_target      = (void*)&groestl_set_target;
     gate->get_max64       = (void*)&get_max64_0x3ffff;
+    opt_target_factor = 256.0;
     return true;
 };
 

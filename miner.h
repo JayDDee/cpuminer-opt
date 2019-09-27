@@ -310,6 +310,7 @@ struct thr_api {
 #define CL_WHT  "\x1B[01;37m" /* white */
 
 void   applog(int prio, const char *fmt, ...);
+void   applog2(int prio, const char *fmt, ...);
 void   restart_threads(void);
 extern json_t *json_rpc_call( CURL *curl, const char *url, const char *userpass,
                 	const char *rpc_req, int *curl_err, int flags );
@@ -330,6 +331,24 @@ extern void diff_to_target(uint32_t *target, double diff);
 
 double hash_target_ratio( uint32_t* hash, uint32_t* target );
 void   work_set_target_ratio( struct work* work, uint32_t* hash );
+
+struct thr_info {
+        int id;
+        pthread_t pth;
+        pthread_attr_t attr;
+        struct thread_q *q;
+        struct cpu_info cpu;
+};
+
+//struct thr_info *thr_info;
+
+bool   submit_solution( struct work *work, void *hash,
+                        struct thr_info *thr );
+bool   submit_lane_solution( struct work *work, void *hash,
+                             struct thr_info *thr, int lane );
+
+
+//bool submit_work( struct thr_info *thr, const struct work *work_in );
 
 
 void   get_currentalgo( char* buf, int sz );
@@ -355,7 +374,7 @@ struct work {
 	uint32_t target[8];
 
 	double targetdiff;
-	double shareratio;
+//	double shareratio;
 	double sharediff;
 
 	int height;
@@ -471,6 +490,7 @@ void print_hash_tests(void);
 
 void scale_hash_for_display ( double* hashrate, char* units );
 
+/*
 struct thr_info {
         int id;
         pthread_t pth;
@@ -478,6 +498,7 @@ struct thr_info {
         struct thread_q *q;
         struct cpu_info cpu;
 };
+*/
 
 struct work_restart {
         volatile uint8_t restart;
@@ -578,6 +599,7 @@ enum algos {
         ALGO_X14,        
         ALGO_X15,       
         ALGO_X16R,
+        ALGO_X16RV2,
         ALGO_X16RT,
         ALGO_X16RT_VEIL,
         ALGO_X16S,
@@ -672,6 +694,7 @@ static const char* const algo_names[] = {
         "x14",
         "x15",
         "x16r",
+        "x16rv2",
         "x16rt",
         "x16rt-veil",
         "x16s",
@@ -733,6 +756,7 @@ extern int opt_param_n;
 extern int opt_param_r;
 extern char* opt_param_key;
 extern double opt_diff_factor;
+extern double opt_target_factor;
 extern bool opt_randomize;
 extern bool allow_mininginfo;
 extern time_t g_work_time;
@@ -798,8 +822,8 @@ Options:\n\
                           neoscrypt     NeoScrypt(128, 2, 1)\n\
                           nist5         Nist5\n\
                           pentablake    5 x blake512\n\
-                          phi1612       phi, LUX coin (original algo)\n\
-                          phi2          LUX (new algo)\n\
+                          phi1612       phi\n\
+                          phi2          Luxcoin (LUX)\n\
 			                 pluck         Pluck:128 (Supcoin)\n\
                           polytimos\n\
                           quark         Quark\n\
@@ -831,7 +855,8 @@ Options:\n\
                           x13sm3        hsr (Hshare)\n\
                           x14           X14\n\
                           x15           X15\n\
-                          x16r          Ravencoin (RVN)\n\
+                          x16r\n\
+                          x16rv2        Ravencoin (RVN)\n\
                           x16rt         Gincoin (GIN)\n\
                           x16rt-veil    Veil (VEIL)\n\
                           x16s          Pigeoncoin (PGN)\n\

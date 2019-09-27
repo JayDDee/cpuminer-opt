@@ -71,7 +71,7 @@ bool register_lyra2rev3_algo( algo_gate_t* gate )
 #endif
   gate->optimizations = SSE2_OPT | SSE42_OPT | AVX2_OPT;
   gate->miner_thread_init = (void*)&lyra2rev3_thread_init;
-  gate->set_target        = (void*)&alt_set_target;
+  opt_target_factor = 256.0;
   return true;
 };
 
@@ -105,7 +105,7 @@ bool register_lyra2rev2_algo( algo_gate_t* gate )
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT;
   gate->miner_thread_init = (void*)&lyra2rev2_thread_init;
-  gate->set_target        = (void*)&alt_set_target;
+  opt_target_factor = 256.0;
   return true;
 };
 
@@ -128,7 +128,7 @@ bool register_lyra2z_algo( algo_gate_t* gate )
 #endif
   gate->optimizations = SSE42_OPT | AVX2_OPT;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
-  gate->set_target = (void*)&alt_set_target;
+  opt_target_factor = 256.0;
   return true;
 };
 
@@ -148,7 +148,7 @@ bool register_lyra2h_algo( algo_gate_t* gate )
 #endif
   gate->optimizations = SSE42_OPT | AVX2_OPT;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
-  gate->set_target = (void*)&alt_set_target;
+  opt_target_factor = 256.0;
   return true;
 };
 
@@ -168,8 +168,8 @@ bool register_allium_algo( algo_gate_t* gate )
   gate->hash      = (void*)&allium_hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT;
-  gate->set_target        = (void*)&alt_set_target;
   gate->get_max64         = (void*)&allium_get_max64_0xFFFFLL;
+  opt_target_factor = 256.0;
   return true;
 };
 
@@ -182,6 +182,7 @@ int phi2_get_work_data_size() { return phi2_use_roots ? 144 : 128; }
 
 void phi2_decode_extra_data( struct work *work )
 {
+   phi2_use_roots = false;
    if ( work->data[0] & ( 1<<30 ) ) phi2_use_roots = true;
    else for ( int i = 20; i < 36; i++ )
    {
@@ -213,8 +214,8 @@ bool register_phi2_algo( algo_gate_t* gate )
    gate->get_work_data_size = (void*)&phi2_get_work_data_size;
    gate->decode_extra_data  = (void*)&phi2_decode_extra_data;
    gate->build_extraheader  = (void*)&phi2_build_extraheader;
-   gate->set_target         = (void*)&alt_set_target; 
    gate->get_max64          = (void*)&get_max64_0xffffLL;
+   opt_target_factor = 256.0;
 #if defined(PHI2_4WAY)
    gate->scanhash           = (void*)&scanhash_phi2_4way;
 #else

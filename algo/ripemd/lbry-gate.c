@@ -41,6 +41,7 @@ void lbry_le_build_stratum_request( char *req, struct work *work,
    free(xnonce2str);
 }
 
+/*
 void lbry_build_block_header( struct work* g_work, uint32_t version,
                              uint32_t *prevhash, uint32_t *merkle_root,
                              uint32_t ntime, uint32_t nbits )
@@ -63,6 +64,7 @@ void lbry_build_block_header( struct work* g_work, uint32_t version,
    g_work->data[ LBRY_NBITS_INDEX ] = nbits;
    g_work->data[28] = 0x80000000;
 }
+*/
 
 void lbry_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
@@ -92,11 +94,6 @@ void lbry_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    g_work->data[28] = 0x80000000;
 }
 
-void lbry_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
-}
-
 int64_t lbry_get_max64() { return 0x1ffffLL; }
 
 int lbry_get_work_data_size() { return LBRY_WORK_DATA_SIZE; }
@@ -119,11 +116,11 @@ bool register_lbry_algo( algo_gate_t* gate )
   gate->build_stratum_request = (void*)&lbry_le_build_stratum_request;
 //  gate->build_block_header    = (void*)&build_block_header;
   gate->build_extraheader     = (void*)&lbry_build_extraheader;
-  gate->set_target            = (void*)&lbry_set_target;
   gate->ntime_index           = LBRY_NTIME_INDEX;
   gate->nbits_index           = LBRY_NBITS_INDEX;
   gate->nonce_index           = LBRY_NONCE_INDEX;
   gate->get_work_data_size    = (void*)&lbry_get_work_data_size;
+  opt_target_factor = 256.0;
   return true;
 }
 

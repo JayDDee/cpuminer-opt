@@ -53,11 +53,6 @@ int scanhash_lyra2z330( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
-void lyra2z330_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
-}
-
 bool lyra2z330_thread_init()
 {
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 256; // nCols
@@ -76,7 +71,7 @@ bool register_lyra2z330_algo( algo_gate_t* gate )
   gate->scanhash   = (void*)&scanhash_lyra2z330;
   gate->hash       = (void*)&lyra2z330_hash;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
-  gate->set_target = (void*)&lyra2z330_set_target;
+  opt_target_factor = 256.0;
   return true;
 };
 

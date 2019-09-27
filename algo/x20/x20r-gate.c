@@ -26,9 +26,9 @@ bool register_x20r_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x20r;
   gate->hash      = (void*)&x20r_hash;
 #endif
-  gate->set_target = (void*)&alt_set_target;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   x20_r_s_getAlgoString = (void*)&x20r_getAlgoString;
+  opt_target_factor = 256.;
   return true;
 };
 

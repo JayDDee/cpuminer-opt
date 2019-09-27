@@ -120,19 +120,13 @@ int scanhash_fresh( struct work *work,
 	return 0;
 }
 
-void fresh_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
-}
-
-
 bool register_fresh_algo( algo_gate_t* gate )
 {
     algo_not_tested();
     gate->scanhash   = (void*)&scanhash_fresh;
     gate->hash       = (void*)&freshhash;
-    gate->set_target = (void*)&fresh_set_target;
     gate->get_max64  = (void*)&get_max64_0x3ffff;
+    opt_target_factor = 256.0;
     return true;
 };
 

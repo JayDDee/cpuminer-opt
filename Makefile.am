@@ -18,7 +18,6 @@ dist_man_MANS	= cpuminer.1
 cpuminer_SOURCES = \
   cpu-miner.c \
   util.c \
-  uint256.cpp \
   api.c \
   sysinfos.c \
   algo-gate-api.c\
@@ -263,6 +262,8 @@ cpuminer_SOURCES = \
   algo/x16/x16r-gate.c \
   algo/x16/x16r.c \
   algo/x16/x16r-4way.c \
+  algo/x16/x16rv2.c \
+  algo/x16/x16rv2-4way.c \
   algo/x16/x16rt.c \
   algo/x16/x16rt-4way.c \
   algo/x16/hex.c \

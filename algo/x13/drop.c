@@ -249,7 +249,6 @@ bool register_drop_algo( algo_gate_t* gate )
     gate->scanhash              = (void*)&scanhash_drop;
     gate->hash                  = (void*)&droplp_hash_pok;
     gate->get_new_work          = (void*)&drop_get_new_work;
-    gate->set_target            = (void*)&scrypt_set_target;
     gate->build_stratum_request = (void*)&std_be_build_stratum_request;
     gate->work_decode           = (void*)&std_be_work_decode;
     gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
@@ -257,6 +256,7 @@ bool register_drop_algo( algo_gate_t* gate )
     gate->decode_extra_data     = (void*)&drop_display_pok;
     gate->get_work_data_size    = (void*)&drop_get_work_data_size;
     gate->work_cmp_size         = 72;
+    opt_target_factor = 65536.0;
     return true;
 };
 

@@ -28,11 +28,12 @@
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha/sha-hash-4way.h"
+#include "algo/tiger/sph_tiger.h"
 
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
 
-union _x16r_4way_context_overlay
+union _x16rv2_4way_context_overlay
 {
     blake512_4way_context   blake;
     bmw512_4way_context     bmw;
@@ -50,17 +51,24 @@ union _x16r_4way_context_overlay
     shabal512_4way_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_4way_context     sha512;
+    sph_tiger_context       tiger;
 };
-typedef union _x16r_4way_context_overlay x16r_4way_context_overlay;
+typedef union _x16rv2_4way_context_overlay x16rv2_4way_context_overlay;
 
-void x16r_4way_hash( void* output, const void* input )
+// Pad the 24 bytes tiger hash to 64 bytes
+inline void padtiger512( uint32_t* hash )
+{
+  for ( int i = 6; i < 16; i++ ) hash[i] = 0;
+}
+
+void x16rv2_4way_hash( void* output, const void* input )
 {
    uint32_t hash0[24] __attribute__ ((aligned (64)));
    uint32_t hash1[24] __attribute__ ((aligned (64)));
    uint32_t hash2[24] __attribute__ ((aligned (64)));
    uint32_t hash3[24] __attribute__ ((aligned (64)));
    uint32_t vhash[24*4] __attribute__ ((aligned (64)));
-   x16r_4way_context_overlay ctx;
+   x16rv2_4way_context_overlay ctx;
    void *in0 = (void*) hash0;
    void *in1 = (void*) hash1;
    void *in2 = (void*) hash2;
@@ -139,64 +147,96 @@ void x16r_4way_hash( void* output, const void* input )
             dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case KECCAK:
-            keccak512_4way_init( &ctx.keccak );
-            if ( i == 0 )
-               keccak512_4way( &ctx.keccak, input, size );
-            else
-            {
-               intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
-               keccak512_4way( &ctx.keccak, vhash, size );
-            }
-            keccak512_4way_close( &ctx.keccak, vhash );
-            dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+             sph_tiger_init( &ctx.tiger );
+			    sph_tiger( &ctx.tiger, in0, size );
+			    sph_tiger_close( &ctx.tiger, hash0 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in1, size );
+             sph_tiger_close( &ctx.tiger, hash1 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in2, size );
+             sph_tiger_close( &ctx.tiger, hash2 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in3, size );
+             sph_tiger_close( &ctx.tiger, hash3 );
+
+             for ( int i = (24/4); i < (64/4); i++ )
+                hash0[i] = hash1[i] = hash2[i] = hash3[i] = 0;
+
+             intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+             keccak512_4way_init( &ctx.keccak );
+             keccak512_4way( &ctx.keccak, vhash, 64 );
+             keccak512_4way_close( &ctx.keccak, vhash );
+             dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
          case LUFFA:
-            intrlv_2x128( vhash, in0, in1, size<<3 );
-            luffa_2way_init( &ctx.luffa, 512 );
-            luffa_2way_update_close( &ctx.luffa, vhash, vhash, size );
-            dintrlv_2x128( hash0, hash1, vhash, 512 );
-            intrlv_2x128( vhash, in2, in3, size<<3 );
-            luffa_2way_init( &ctx.luffa, 512 );
-            luffa_2way_update_close( &ctx.luffa, vhash, vhash, size);
-            dintrlv_2x128( hash2, hash3, vhash, 512 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in0, size );
+             sph_tiger_close( &ctx.tiger, hash0 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in1, size );
+             sph_tiger_close( &ctx.tiger, hash1 );
+
+             for ( int i = (24/4); i < (64/4); i++ )
+                hash0[i] = hash1[i] = 0;
+
+             intrlv_2x128( vhash, hash0, hash1, 512 );
+             luffa_2way_init( &ctx.luffa, 512 );
+             luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
+             dintrlv_2x128( hash0, hash1, vhash, 512 );
+
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in2, size );
+             sph_tiger_close( &ctx.tiger, hash2 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in3, size );
+             sph_tiger_close( &ctx.tiger, hash3 );
+
+             for ( int i = (24/4); i < (64/4); i++ )
+                hash2[i] = hash3[i] = 0;
+             
+             intrlv_2x128( vhash, hash2, hash3, 512 );
+             luffa_2way_init( &ctx.luffa, 512 );
+             luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
+             dintrlv_2x128( hash2, hash3, vhash, 512 );
          break;
          case CUBEHASH:
-            cubehashInit( &ctx.cube, 512, 16, 32 );
-            cubehashUpdateDigest( &ctx.cube, (byte*) hash0,
-                                  (const byte*)in0, size );
-            cubehashInit( &ctx.cube, 512, 16, 32 );
-            cubehashUpdateDigest( &ctx.cube, (byte*) hash1,
-                                  (const byte*)in1, size );
-            cubehashInit( &ctx.cube, 512, 16, 32 );
-            cubehashUpdateDigest( &ctx.cube, (byte*) hash2,
-                                  (const byte*)in2, size );
-            cubehashInit( &ctx.cube, 512, 16, 32 );
-            cubehashUpdateDigest( &ctx.cube, (byte*) hash3,
-                                  (const byte*)in3, size );
+             cubehashInit( &ctx.cube, 512, 16, 32 );
+             cubehashUpdateDigest( &ctx.cube, (byte*) hash0,
+                                   (const byte*)in0, size );
+             cubehashInit( &ctx.cube, 512, 16, 32 );
+             cubehashUpdateDigest( &ctx.cube, (byte*) hash1,
+                                   (const byte*)in1, size );
+             cubehashInit( &ctx.cube, 512, 16, 32 );
+             cubehashUpdateDigest( &ctx.cube, (byte*) hash2,
+                                   (const byte*)in2, size );
+             cubehashInit( &ctx.cube, 512, 16, 32 );
+             cubehashUpdateDigest( &ctx.cube, (byte*) hash3,
+                                   (const byte*)in3, size );
          break;
          case SHAVITE:
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in0, size );
-            sph_shavite512_close( &ctx.shavite, hash0 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in1, size );
-            sph_shavite512_close( &ctx.shavite, hash1 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in2, size );
-            sph_shavite512_close( &ctx.shavite, hash2 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in3, size );
-            sph_shavite512_close( &ctx.shavite, hash3 );
+             sph_shavite512_init( &ctx.shavite );
+             sph_shavite512( &ctx.shavite, in0, size );
+             sph_shavite512_close( &ctx.shavite, hash0 );
+             sph_shavite512_init( &ctx.shavite );
+             sph_shavite512( &ctx.shavite, in1, size );
+             sph_shavite512_close( &ctx.shavite, hash1 );
+             sph_shavite512_init( &ctx.shavite );
+             sph_shavite512( &ctx.shavite, in2, size );
+             sph_shavite512_close( &ctx.shavite, hash2 );
+             sph_shavite512_init( &ctx.shavite );
+             sph_shavite512( &ctx.shavite, in3, size );
+             sph_shavite512_close( &ctx.shavite, hash3 );
          break;
          case SIMD:
-            intrlv_2x128( vhash, in0, in1, size<<3 );
-            simd_2way_init( &ctx.simd, 512 );
-            simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
-            dintrlv_2x128( hash0, hash1, vhash, 512 );
-            intrlv_2x128( vhash, in2, in3, size<<3 );
-            simd_2way_init( &ctx.simd, 512 );
-            simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
-            dintrlv_2x128( hash2, hash3, vhash, 512 );
+             intrlv_2x128( vhash, in0, in1, size<<3 );
+             simd_2way_init( &ctx.simd, 512 );
+             simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
+             dintrlv_2x128( hash0, hash1, vhash, 512 );
+             intrlv_2x128( vhash, in2, in3, size<<3 );
+             simd_2way_init( &ctx.simd, 512 );
+             simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
+             dintrlv_2x128( hash2, hash3, vhash, 512 );
          break;
          case ECHO:
              init_echo( &ctx.echo, 512 );
@@ -255,9 +295,25 @@ void x16r_4way_hash( void* output, const void* input )
              sph_whirlpool_close( &ctx.whirlpool, hash3 );
          break;
          case SHA_512:
-             intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in0, size );
+             sph_tiger_close( &ctx.tiger, hash0 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in1, size );
+             sph_tiger_close( &ctx.tiger, hash1 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in2, size );
+             sph_tiger_close( &ctx.tiger, hash2 );
+             sph_tiger_init( &ctx.tiger );
+             sph_tiger( &ctx.tiger, in3, size );
+             sph_tiger_close( &ctx.tiger, hash3 );
+
+             for ( int i = (24/4); i < (64/4); i++ )
+                hash0[i] = hash1[i] = hash2[i] = hash3[i] = 0;
+ 
+             intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
              sha512_4way_init( &ctx.sha512 );
-             sha512_4way( &ctx.sha512, vhash, size );
+             sha512_4way( &ctx.sha512, vhash, 64 );
              sha512_4way_close( &ctx.sha512, vhash );
              dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
@@ -270,7 +326,7 @@ void x16r_4way_hash( void* output, const void* input )
    memcpy( output+96, hash3, 32 );
 }
 
-int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
+int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr)
 {
    uint32_t hash[4*16] __attribute__ ((aligned (64)));
@@ -309,7 +365,7 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
       *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
                _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
-      x16r_4way_hash( hash, vdata );
+      x16rv2_4way_hash( hash, vdata );
       pdata[19] = n;
 
       for ( int i = 0; i < 4; i++ )  if ( (hash+(i<<3))[7] <= Htarg )

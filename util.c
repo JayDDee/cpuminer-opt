@@ -80,6 +80,86 @@ struct thread_q {
 	pthread_cond_t		cond;
 };
 
+
+void applog2( int prio, const char *fmt, ... )
+{
+   va_list ap;
+
+   va_start(ap, fmt);
+
+#ifdef HAVE_SYSLOG_H
+   if (use_syslog) {
+      va_list ap2;
+      char *buf;
+      int len;
+
+      /* custom colors to syslog prio */
+      if (prio > LOG_DEBUG) {
+         switch (prio) {
+            case LOG_BLUE: prio = LOG_NOTICE; break;
+         }
+      }
+
+      va_copy(ap2, ap);
+      len = vsnprintf(NULL, 0, fmt, ap2) + 1;
+      va_end(ap2);
+      buf = alloca(len);
+      if (vsnprintf(buf, len, fmt, ap) >= 0)
+         syslog(prio, "%s", buf);
+   }
+#else
+   if (0) {}
+#endif
+   else {
+      const char* color = "";
+      char *f;
+      int len;
+//    struct tm tm;
+//    time_t now = time(NULL);
+
+//    localtime_r(&now, &tm);
+
+      switch (prio) {
+         case LOG_ERR:     color = CL_RED; break;
+         case LOG_WARNING: color = CL_YLW; break;
+         case LOG_NOTICE:  color = CL_WHT; break;
+         case LOG_INFO:    color = ""; break;
+         case LOG_DEBUG:   color = CL_GRY; break;
+
+         case LOG_BLUE:
+            prio = LOG_NOTICE;
+            color = CL_CYN;
+            break;
+      }
+      if (!use_colors)
+         color = "";
+
+      len = 64 + (int) strlen(fmt) + 2;
+      f = (char*) malloc(len);
+      sprintf(f, "                     %s %s%s\n",
+//      sprintf(f, "[%d-%02d-%02d %02d:%02d:%02d]%s %s%s\n",
+//         tm.tm_year + 1900,
+//         tm.tm_mon + 1,
+//         tm.tm_mday,
+//         tm.tm_hour,
+//         tm.tm_min,
+//         tm.tm_sec,
+         color,
+         fmt,
+         use_colors ? CL_N : ""
+      );
+      pthread_mutex_lock(&applog_lock);
+      vfprintf(stdout, f, ap);   /* atomic write to stdout */
+      fflush(stdout);
+      free(f);
+      pthread_mutex_unlock(&applog_lock);
+   }
+   va_end(ap);
+}
+
+
+
+
 void applog(int prio, const char *fmt, ...)
 {
 	va_list ap;

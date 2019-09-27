@@ -85,8 +85,9 @@ bool register_argon2_algo( algo_gate_t* gate )
   gate->scanhash        = (void*)&scanhash_argon2;
   gate->hash            = (void*)&argon2hash;
   gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
-  gate->set_target      = (void*)&scrypt_set_target;
   gate->get_max64       = (void*)&argon2_get_max64;
+  opt_target_factor = 65536.0;
+
   return true;
 };
 

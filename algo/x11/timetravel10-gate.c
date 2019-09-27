@@ -1,10 +1,5 @@
 #include "timetravel10-gate.h"
 
-void tt10_set_target( struct work* work, double job_diff )
-{
- work_set_target( work, job_diff / (256.0 * opt_diff_factor) );
-}
-
 bool register_timetravel10_algo( algo_gate_t* gate )
 {
 #ifdef TIMETRAVEL10_4WAY
@@ -16,9 +11,9 @@ bool register_timetravel10_algo( algo_gate_t* gate )
   gate->scanhash   = (void*)&scanhash_timetravel10;
   gate->hash       = (void*)&timetravel10_hash;
 #endif
-  gate->set_target = (void*)&tt10_set_target;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   gate->get_max64  = (void*)&get_max64_0xffffLL;
+  opt_target_factor = 256.0;
   return true;
 };
 

@@ -42,9 +42,11 @@
 
 static inline __m128i m128_one_128_fn()
 {
+   register uint64_t one = 1;
    register __m128i a;
-   asm( "movq $1, %0\n\t"
-        : "=x"(a) );
+   asm( "movq %1, %0\n\t"
+        : "=x"(a)
+        : "r" (one) );
    return a;
 }
 #define m128_one_128    m128_one_128_fn()
@@ -54,9 +56,9 @@ static inline __m128i m128_one_64_fn()
   register uint64_t one = 1;
   register __m128i a;
   asm( "movq %1, %0\n\t"
-       : "=x"(a)
-       : "r"(one) );
-  return _mm_shuffle_epi32( a, 0x04 );
+       : "=x" (a)
+       : "r"  (one) );
+  return _mm_shuffle_epi32( a, 0x44 );
 }
 #define m128_one_64    m128_one_64_fn()
 
@@ -65,8 +67,8 @@ static inline __m128i m128_one_32_fn()
   register uint32_t one = 1;
   register __m128i a;
   asm( "movd %1, %0\n\t"
-       : "=x"(a)
-       : "r"(one) );
+       : "=x" (a)
+       : "r"  (one) );
   return _mm_shuffle_epi32( a, 0x00 );
 }
 #define m128_one_32    m128_one_32_fn()
@@ -76,8 +78,8 @@ static inline __m128i m128_one_16_fn()
   register uint32_t one = 0x00010001;
   register __m128i a;
   asm( "movd %1, %0\n\t"
-       : "=x"(a)
-       : "r"(one) );
+       : "=x" (a)
+       : "r"  (one) );
   return _mm_shuffle_epi32( a, 0x00 );
 }
 #define m128_one_16    m128_one_16_fn()
@@ -87,8 +89,8 @@ static inline __m128i m128_one_8_fn()
   register uint32_t one = 0x01010101;
   register __m128i a;
   asm( "movd %1, %0\n\t"
-       : "=x"(a)
-       : "r"(one) );
+       : "=x" (a)
+       : "r"  (one) );
   return _mm_shuffle_epi32( a, 0x00 );
 }
 #define m128_one_8    m128_one_8_fn()
@@ -97,7 +99,7 @@ static inline __m128i m128_neg1_fn()
 {
    __m128i a;
    asm( "pcmpeqd %0, %0\n\t"
-        : "=x"(a) );
+        : "=x" (a) );
    return a;
 }
 #define m128_neg1    m128_neg1_fn()
@@ -108,7 +110,7 @@ static inline __m128i mm128_mov64_128( uint64_t n )
   register __m128i a;
   asm( "movq %1, %0\n\t"
        : "=x" (a)
-       : "r" (n) );
+       : "r"  (n) );
   return  a;
 }
 
@@ -117,7 +119,7 @@ static inline __m128i mm128_mov32_128( uint32_t n )
   register __m128i a;
   asm( "movd %1, %0\n\t"
        : "=x" (a)
-       : "r" (n) );
+       : "r"  (n) );
   return  a;
 }
 
@@ -126,7 +128,7 @@ static inline uint64_t mm128_mov128_64( __m128i a )
   register uint64_t n;
   asm( "movq %1, %0\n\t"
        : "=x" (n)
-       : "r" (a) );
+       : "r"  (a) );
   return  n;
 }
 
@@ -135,8 +137,26 @@ static inline uint32_t mm128_mov128_32( __m128i a )
   register uint32_t n;
   asm( "movd %1, %0\n\t"
        : "=x" (n)
-       : "r" (a) );
+       : "r"  (a) );
   return  n;
+}
+
+static inline __m128i m128_const1_64( const uint64_t n )
+{
+  register __m128i a;
+  asm( "movq %1, %0\n\t"
+       : "=x" (a)
+       : "r"  (n) );
+  return _mm_shuffle_epi32( a, 0x44 );
+}
+
+static inline __m128i m128_const1_32( const uint32_t n )
+{
+  register __m128i a;
+  asm( "movd %1, %0\n\t"
+       : "=x" (a)
+       : "r"  (n) );
+  return _mm_shuffle_epi32( a, 0x00 );
 }
 
 #if defined(__SSE41__)
@@ -148,11 +168,12 @@ static inline __m128i m128_const_64( const uint64_t hi, const uint64_t lo )
    register __m128i a;
    asm( "movq %2, %0\n\t"
         "pinsrq $1, %1, %0\n\t"
-        : "=x"(a)
-        : "r"(hi), "r"(lo) );
+        : "=x" (a)
+        : "r"  (hi), "r" (lo) );
    return a;
 }
 
+/*
 static inline __m128i m128_const1_64( const uint64_t n )
 {
    register __m128i a;
@@ -162,13 +183,13 @@ static inline __m128i m128_const1_64( const uint64_t n )
         : "r"(n) );
    return a;
 }
-
+*/
 #else
 
 // #define m128_one_128   _mm_set_epi64x( 0ULL, 1ULL )
 
 #define m128_const_64  _mm_set_epi64x
-#define m128_const1_64 _mm_set1_epi64x
+// #define m128_const1_64 _mm_set1_epi64x
 
 #endif
 
@@ -262,46 +283,6 @@ do { \
 
 #endif
 
-
-// Gather and scatter data.
-// Surprise, they don't use vector instructions. Several reasons why.
-// Since scalar data elements are being manipulated scalar instructions
-// are most appropriate and can bypass vector registers. They are faster
-// and more efficient on a per instruction basis due to the higher clock
-// speed and greater avaiability of execution resources. It's good for
-// interleaving data buffers for parallel processing.
-// May suffer overhead if data is already in a vector register. This can
-// usually be easilly avoided by the coder. Sometimes _mm_set is simply better.
-// These macros are likely to be used when transposing matrices rather than
-// conversions of a single vector.
-
-// Gather data elements into contiguous memory for vector use.
-// Source args are appropriately sized value integers, destination arg  is a
-// type agnostic pointer.
-// Vector alignment is not required, though likely. Appropriate integer
-// alignment satisfies these macros.
-
-// rewrite using insert
-#define mm128_gather_64( d, s0, s1 ) \
-    ((uint64_t*)d)[0] = (uint64_t)s0; \
-    ((uint64_t*)d)[1] = (uint64_t)s1;
-
-#define mm128_gather_32( d, s0, s1, s2, s3 ) \
-    ((uint32_t*)d)[0] = (uint32_t)s0; \
-    ((uint32_t*)d)[1] = (uint32_t)s1; \
-    ((uint32_t*)d)[2] = (uint32_t)s2; \
-    ((uint32_t*)d)[3] = (uint32_t)s3;
-
-// Scatter data from contiguous memory.
-#define mm128_scatter_64( d0, d1, s ) \
-   *( (uint64_t*)d0) = ((uint64_t*)s)[0]; \
-   *( (uint64_t*)d1) = ((uint64_t*)s)[1]; 
-
-#define mm128_scatter_32( d0, d1, d2, d3, s ) \
-   *( (uint32_t*)d0) = ((uint32_t*)s)[0]; \
-   *( (uint32_t*)d1) = ((uint32_t*)s)[1]; \
-   *( (uint32_t*)d2) = ((uint32_t*)s)[2]; \
-   *( (uint32_t*)d3) = ((uint32_t*)s)[3];
 
 // Memory functions
 // Mostly for convenience, avoids calculating bytes.
