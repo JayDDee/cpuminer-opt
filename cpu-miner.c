@@ -837,36 +837,16 @@ void format_hms( char *s, uint64_t t )
    sprintf( s, "%luh%02lum%02lus", hrs, min, sec );
 }
 
-// Bitcoin formula for converting a share's difficulty to an equivalent
+// Bitcoin formula for converting difficulty to an equivalent
 // number of hashes.
 //
-//   https://en.bitcoin.it/wiki/Difficulty
+//     https://en.bitcoin.it/wiki/Difficulty
 //
-//   hash = diff * 2**48 / 0xffff
-//        = diff * 2**32
+//     hash = diff * 2**32
 //
-// The formula seems to work fine when calculating TTF based on difficulty
-// (network or share) and the miner's calculated hash rate. 
-//
-// time = diff * 2**32 * hashrate 
-//
-// But it's off by a factor of 4 when calculating the effective hash rate
-// based on share based on difficulty and time.
-//
-// The modified formula used is:
-//
-//   hash = diff * 2**48 / 0x3fff
-//        = diff * 2**30
-//
-// Two constants are defined for the same purpose and used as appropriate
-// to produce expected, presumed correct, results. Not very scientific
-// but the results speak for themselves.
-//
-// diff_to_hash      = 2**32 = 0x100000000 = 4294967296;
-// diff_to_hash_hack = 2**30 =  0x40000000 = 1073741824;
+// diff_to_hash = 2**32 = 0x100000000 = 4294967296;
 
-const double diff_to_hash      = 4294967296.;
-const double diff_to_hash_hack = 1073741824.;
+const double diff_to_hash = 4294967296.;
 
 static struct   timeval five_min_start;
 static double   time_sum    = 0.;
@@ -874,6 +854,7 @@ static double   latency_sum = 0.;
 static uint64_t submit_sum  = 0;
 static uint64_t reject_sum  = 0;
 static uint32_t last_bloc_height = 0;
+static double   last_targetdiff = 0.;
 
 struct share_stats_t
 {
@@ -882,8 +863,6 @@ struct share_stats_t
    double share_diff;
 };
 
-// with more and more parallelism the chances of submitting multiple
-// shares in a very short time grows. 
 #define s_stats_size 8
 static struct share_stats_t share_stats[ s_stats_size ];
 static int s_get_ptr = 0, s_put_ptr = 0;
@@ -894,25 +873,95 @@ static inline int stats_ptr_incr( int p )
    return ++p < s_stats_size ? p : 0;
 }
 
+void report_summary_log( bool force )
+{
+   struct timeval now, et;
+
+   pthread_mutex_lock( &stats_lock );
+
+   gettimeofday( &now, NULL );
+   timeval_subtract( &et, &now, &five_min_start );
+
+   if ( !force && et.tv_sec < 300 )
+   {
+      pthread_mutex_unlock( &stats_lock );
+      return;
+   }
+   
+   // collect and reset global counters
+   double   time     = time_sum;    time_sum    = 0.;
+   uint64_t submits  = submit_sum;  submit_sum  = 0;
+   uint64_t rejects  = reject_sum;  reject_sum  = 0;
+   int      latency  = latency_sum; latency_sum = 0;
+   memcpy( &five_min_start, &now, sizeof now );
+
+   pthread_mutex_unlock( &stats_lock );
+
+   double   ghrate = global_hashrate;
+   double   scaled_ghrate = ghrate;
+   double   shrate = time == 0. ? 0. : diff_to_hash * last_targetdiff
+                                       * (double)(submits - rejects)  / time;
+   double   scaled_shrate = shrate;
+   int      avg_latency = 0;
+   double   latency_pc = 0.;
+   double   submit_rate = 0.;
+   char shr_units[4] = {0};
+   char ghr_units[4] = {0};
+
+   if ( submits )
+      avg_latency = latency / submits;
+
+   if ( time != 0. )
+   {
+      submit_rate = (double)submits*60. / time;
+      latency_pc =  (double)latency / (time * 10.);
+   }
+
+   scale_hash_for_display( &scaled_shrate, shr_units );
+   scale_hash_for_display( &scaled_ghrate, ghr_units );
+
+   applog( LOG_NOTICE,
+           "Submitted %d shares in %dm%02ds (%.2f /min), %ld rejected",
+           submits, et.tv_sec / 60, et.tv_sec % 60, submit_rate, rejects );
+   applog2( LOG_INFO, "Share eqv: %.2f %sh/s, miner ref: %.2f %sh/s",
+           scaled_shrate, shr_units, scaled_ghrate, ghr_units );
+
+#if ((defined(_WIN64) || defined(__WINDOWS__)))
+   applog2( LOG_INFO, "Network latency %d ms (%.2f%%)",
+                       avg_latency, latency_pc );
+#else
+   int temp = cpu_temp(0);
+   char tempstr[32];
+
+   if ( use_colors && ( temp >= 70 ) )
+   {
+      if ( temp >= 80 )
+         sprintf( tempstr, "%sCPU temp %d C%s", CL_WHT CL_RED, temp, CL_N );
+      else
+         sprintf( tempstr, "%sCPU temp %d C%s", CL_WHT CL_YLW, temp, CL_N );
+   }
+   else
+      sprintf( tempstr, "CPU temp %d C", temp );
+
+   applog2( LOG_INFO, "Network latency %d ms (%.2f%%), %s",
+                      avg_latency, latency_pc, tempstr );
+#endif
+}
+
 static int share_result( int result, struct work *null_work,
                          const char *reason )
 {
-   double share_time = 0., share_hash = 0., block_hash = 0., share_ratio = 0.;
+   double share_time = 0., share_ratio = 0.;
    double hashcount = 0., hashrate = 0.;
    int latency = 0;
    struct share_stats_t my_stats = {0};
    struct timeval ack_time, latency_tv, et;
-   char diffstr[32];
    const char *sres = NULL;
    bool solved = false; 
 
-   // Mutex while we grab a snapshot of the global counters.
+   // Mutex while we grab a snapshot of the stats.
    pthread_mutex_lock( &stats_lock );
 
-   // When submit_work detects a buffer overflow it discards the stats for
-   // the new share. When we catch up we may get acks for shares with
-   // no stats. Leaving the get pointer un-incremented will resync with the
-   // put pointer.
    if ( share_stats[ s_get_ptr ].submit_time.tv_sec )
    {
       memcpy( &my_stats, &share_stats[ s_get_ptr], sizeof my_stats );
@@ -926,14 +975,6 @@ static int share_result( int result, struct work *null_work,
       applog(LOG_WARNING,"Pending shares overflow, stats for share are lost.");
    }
 
-   for ( int i = 0; i < opt_n_threads; i++ )
-   {
-       hashcount += thr_hashcount[i];
-       hashrate += thr_hashrates[i];
-   }
-   global_hashcount = hashcount;
-   global_hashrate = hashrate;
-
    // calculate latency and share time.
    if ( my_stats.submit_time.tv_sec )
    {
@@ -946,10 +987,8 @@ static int share_result( int result, struct work *null_work,
               sizeof last_submit_time );
    }
 
-   // calculate share hashrate and size
-   share_hash = my_stats.share_diff * diff_to_hash_hack;
-   block_hash = my_stats.net_diff   * diff_to_hash_hack;
-   share_ratio = block_hash == 0. ? 0. : share_hash / block_hash * 100.;
+   share_ratio = my_stats.net_diff == 0. ? 0. : my_stats.share_diff /
+                                                my_stats.net_diff * 100.;
 
    // check result
    result ? accepted_share_count++ : rejected_share_count++;
@@ -957,32 +996,38 @@ static int share_result( int result, struct work *null_work,
             && ( my_stats.share_diff >= net_diff );
    solved_block_count += solved ? 1 : 0 ;
 
-   // update counters for 5 minute summary report
+   // update global counters for summary report
    pthread_mutex_lock( &stats_lock );
 
+   for ( int i = 0; i < opt_n_threads; i++ )
+   {
+       hashcount += thr_hashcount[i];
+       hashrate += thr_hashrates[i];
+   }
+   global_hashcount = hashcount;
+   global_hashrate = hashrate;
+   
    time_sum    += share_time;
-   submit_sum ++;
-   reject_sum += (uint64_t)!result;
+   submit_sum  ++;
+   reject_sum  += (uint64_t)!result;
    latency_sum += latency;
 
    pthread_mutex_unlock( &stats_lock );
 
    if ( use_colors )
-      sres = ( solved ? ( CL_MAG "BLOCK SOLVED" CL_WHT )
-                      : result ? ( CL_GRN "Accepted" CL_WHT )
-                               : ( CL_RED "Rejected" CL_WHT ) );
+      sres = solved ? ( CL_MAG "BLOCK SOLVED" CL_WHT )
+                    : ( result ? ( CL_GRN "Accepted" CL_WHT )
+                             : ( CL_RED "Rejected" CL_WHT ) );
    else   // monochrome
       sres = solved ? "BLOCK SOLVED" : ( result ? "Accepted" : "Rejected" );
 
-   sprintf( diffstr, "%.3g", my_stats.share_diff );
-
-   applog( LOG_NOTICE, "%s, %.3f secs (%dms), A/R/B: %d/%d/%d.",
+   applog( LOG_NOTICE, "%s, %.3f secs (%dms), A/R/B: %d/%d/%d",
                        sres, share_time, latency, accepted_share_count,
                        rejected_share_count, solved_block_count );
 
    if ( have_stratum && result && !opt_quiet )
-      applog2( LOG_INFO, "Share diff %s (%5f%%), block %d",
-               diffstr, share_ratio, stratum.bloc_height );
+      applog2( LOG_INFO, "Share diff %.3g (%5f%%), block %d",
+               my_stats.share_diff, share_ratio, stratum.bloc_height );
 
    if ( reason )
       applog( LOG_WARNING, "reject reason: %s.", reason );
@@ -1594,6 +1639,8 @@ err_out:
 	return false;
 }
 
+// Treat 32 byte hash string as 256 bit integer and convert to double precision
+// floating point number.
 static inline double u256_to_double( const uint64_t* u )
 {
    const double f = 4294967296.0 * 4294967296.0;  // 2**64
@@ -1604,15 +1651,10 @@ void work_set_target_ratio( struct work* work, uint32_t* hash )
 {
    double dhash;
 
-   if ( opt_showdiff )
-   {
-      dhash = u256_to_double( (const uint64_t*)hash );
-      if ( dhash > 0. )
-         work->sharediff = work->targetdiff *
-                u256_to_double( (const uint64_t*)( work->target ) ) / dhash;
-      else
-         work->sharediff = 0.;
-   }
+   dhash = u256_to_double( (const uint64_t*)hash );
+   if ( dhash > 0. )
+      work->sharediff = work->targetdiff *
+             u256_to_double( (const uint64_t*)( work->target ) ) / dhash;
    else
       work->sharediff = 0.;
 
@@ -1759,6 +1801,7 @@ void set_work_data_big_endian( struct work *work )
         be32enc( work->data + i, work->data[i] );
 }
 
+// calculate net diff from nbits.
 double std_calc_network_diff( struct work* work )
 {
    // sample for diff 43.281 : 1c05ea29
@@ -1859,8 +1902,6 @@ static void *miner_thread( void *userdata )
    struct   thr_info *mythr = (struct thr_info *) userdata;
    int      thr_id = mythr->id;
    uint32_t max_nonce;
-   struct timeval et;
-   struct timeval time_now;
 
    // end_nonce gets read before being set so it needs to be initialized
    // what is an appropriate value that is completely neutral?
@@ -2057,8 +2098,8 @@ static void *miner_thread( void *userdata )
        gettimeofday( (struct timeval *) &tv_start, NULL );
 
        // Scan for nonce
-       nonce_found = algo_gate.scanhash( &work, max_nonce,
-                                                 &hashes_done, mythr );
+       nonce_found = algo_gate.scanhash( &work, max_nonce, &hashes_done,
+                                         mythr );
 
        // record scanhash elapsed time
        gettimeofday( &tv_end, NULL );
@@ -2071,7 +2112,7 @@ static void *miner_thread( void *userdata )
           hashes_done / ( diff.tv_sec + diff.tv_usec * 1e-6 );
           pthread_mutex_unlock( &stats_lock );
        }
-       // If unsubmiited nonce(s) found, submit. 
+       // If unsubmiited nonce(s) found, submit now. 
        if ( nonce_found && !opt_benchmark )
        {  
           if ( !submit_work( mythr, &work ) )
@@ -2080,9 +2121,9 @@ static void *miner_thread( void *userdata )
              break;
           }
           if ( !opt_quiet )
-              applog( LOG_BLUE, "Share %d submitted by thread %d, job %s.",
+              applog( LOG_BLUE, "Share %d submitted by thread %d.",
                       accepted_share_count + rejected_share_count + 1,
-                      mythr->id, work.job_id );
+                      mythr->id );
 
           // prevent stale work in solo
           // we can't submit twice a block!
@@ -2094,86 +2135,8 @@ static void *miner_thread( void *userdata )
              pthread_mutex_unlock( &g_work_lock );
           }
        }
-
-       // Check for 5 minute summary report, mutex until global counters
-       // are read and reset. It's bad form to unlock inside a conditional
-       // block but more efficient. The logic is reversed to make the mutex
-       // issue obvious.
-       pthread_mutex_lock( &stats_lock );
-
-       gettimeofday( &time_now, NULL );
-       timeval_subtract( &et, &time_now, &five_min_start );
-       if ( et.tv_sec < 300 )
-          pthread_mutex_unlock( &stats_lock );
-       else
-       {
-          // collect and reset global counters
-          double   time     = time_sum;    time_sum    = 0.;
-          uint64_t submits  = submit_sum;  submit_sum  = 0;
-          uint64_t rejects  = reject_sum;  reject_sum  = 0;
-          int      latency  = latency_sum; latency_sum = 0;
-          memcpy( &five_min_start, &time_now, sizeof time_now );
-
-          pthread_mutex_unlock( &stats_lock );
-
-          double   ghrate = global_hashrate;
-          double   scaled_ghrate = ghrate;
-          double   shrate = time == 0. ? 0. : diff_to_hash * work.targetdiff 
-                                              * (double)submits  / time;
-          double   scaled_shrate = shrate;
-          int      avg_latency = 0;
-          double   latency_pc = 0.;
-          double   submit_rate = 0.;
-          char shr[32];
-          char shr_units[4] = {0};
-          char ghr[32];
-          char ghr_units[4] = {0};
-
-          if ( submits )
-             avg_latency = latency / submits;
-
-          if ( time != 0. )
-          {
-            submit_rate = (double)submits*60. / time;
-            latency_pc =  (double)latency / ( time*10.);
-          }
-         
-          scale_hash_for_display( &scaled_shrate, shr_units );
-          scale_hash_for_display( &scaled_ghrate, ghr_units );
-          sprintf( ghr, "%.2f %sh/s", scaled_ghrate, ghr_units );
-
-          sprintf( shr, "%.2f %sh/s", scaled_shrate, shr_units );
-
-          applog( LOG_NOTICE,
-                  "Submitted %d shares in %dm%02ds (%.2f /min), %ld rejected",
-                  (uint64_t)submits, et.tv_sec / 60, et.tv_sec % 60,
-                  submit_rate,  rejects );
-
-          applog2( LOG_INFO, "Share eqv: %s, miner ref: %s", shr, ghr );
-
-#if ((defined(_WIN64) || defined(__WINDOWS__)))
-          applog2( LOG_INFO, "Network latency %d ms (%.2f%%)",
-                              avg_latency, latency_pc );
-
-#else
-          int temp = cpu_temp(0);
-          char tempstr[32];
-
-          if ( use_colors && ( temp >= 70 ) )
-          {
-             if ( temp >= 80 ) sprintf( tempstr, "%sCPU temp %d C%s",
-                                                  CL_WHT CL_RED, temp, CL_N );
-             else  sprintf( tempstr, "%sCPU temp %d C%s",
-                                                  CL_WHT CL_YLW, temp, CL_N );
-          }
-          else
-             sprintf( tempstr, "CPU temp %d C", temp );
-
-          applog2( LOG_INFO, "Network latency %d ms (%.2f%%), %s",
-                             avg_latency, latency_pc, tempstr );
-#endif
-       }  // 5 minute summary
-
+       // Check if time for summary report
+       report_summary_log( false );
        // display hashrate
        if ( !opt_quiet )
        {
@@ -2362,76 +2325,75 @@ start:
 
       if (have_stratum)
       {
-	if (val)
-           json_decref(val);
-	goto out;
+         if (val)
+             json_decref(val);
+	      goto out;
       }
       if (likely( val ))
       {
- 	 bool rc;
-	 char *start_job_id;
-	 double start_diff = 0.0;
-	 json_t *res, *soval;
-	 res = json_object_get(val, "result");
-	 if (!jsonrpc_2)
-         {
-           soval = json_object_get(res, "submitold");
-	   submit_old = soval ? json_is_true(soval) : false;
-	 }
-	 pthread_mutex_lock(&g_work_lock);
-	 start_job_id = g_work.job_id ? strdup(g_work.job_id) : NULL;
-	 if (have_gbt)
-	   rc = gbt_work_decode(res, &g_work);
-	 else
-	   rc = work_decode(res, &g_work);
-	 if (rc)
-         {
-           bool newblock = g_work.job_id && strcmp(start_job_id, g_work.job_id);
-	   newblock |= (start_diff != net_diff); // the best is the height but... longpoll...
-           if (newblock)
-           {
-             start_diff = net_diff;
-	     if (!opt_quiet)
-             {
-	       char netinfo[64] = { 0 };
-	       if (net_diff > 0.)
-               {
-	 	 sprintf(netinfo, ", diff %.3f", net_diff);
-	       }
-	       if (opt_showdiff)
-	            sprintf( &netinfo[strlen(netinfo)], ", target %.3f",
-                          g_work.targetdiff );
-               applog(LOG_BLUE, "%s detected new block%s", short_url, netinfo);
-	     }
-	     time(&g_work_time);
-	     restart_threads();
-	   }
-         }
-         free(start_job_id);
-         pthread_mutex_unlock(&g_work_lock);
-         json_decref(val);
-      }
-      else   // !val
+      bool rc;
+      char *start_job_id;
+      double start_diff = 0.0;
+      json_t *res, *soval;
+	   res = json_object_get(val, "result");
+	   if (!jsonrpc_2)
       {
-         pthread_mutex_lock(&g_work_lock);
-	 g_work_time -= LP_SCANTIME;
-	 pthread_mutex_unlock(&g_work_lock);
-	 if (err == CURLE_OPERATION_TIMEDOUT)
-         {
-	    restart_threads();
-	 }
-         else
-         {
-            have_longpoll = false;
-	    restart_threads();
-	    free(hdr_path);
-	    free(lp_url);
-	    lp_url = NULL;
-	    sleep(opt_fail_pause);
-	    goto start;
-	 }
+         soval = json_object_get(res, "submitold");
+	      submit_old = soval ? json_is_true(soval) : false;
+	   }
+	   pthread_mutex_lock(&g_work_lock);
+	   start_job_id = g_work.job_id ? strdup(g_work.job_id) : NULL;
+	   if (have_gbt)
+	      rc = gbt_work_decode(res, &g_work);
+	   else
+	      rc = work_decode(res, &g_work);
+	   if (rc)
+      {
+        bool newblock = g_work.job_id && strcmp(start_job_id, g_work.job_id);
+	     newblock |= (start_diff != net_diff); // the best is the height but... longpoll...
+        if (newblock)
+        {
+          start_diff = net_diff;
+	       if (!opt_quiet)
+          {
+	         char netinfo[64] = { 0 };
+	         if (net_diff > 0.)
+            {
+	 	         sprintf(netinfo, ", diff %.3f", net_diff);
+	         }
+	         sprintf( &netinfo[strlen(netinfo)], ", target %.3f",
+                     g_work.targetdiff );
+            applog(LOG_BLUE, "%s detected new block%s", short_url, netinfo);
+	       }
+	       time(&g_work_time);
+	       restart_threads();
+	     }
       }
-   }
+      free(start_job_id);
+      pthread_mutex_unlock(&g_work_lock);
+      json_decref(val);
+    }
+    else   // !val
+    {
+       pthread_mutex_lock(&g_work_lock);
+   	 g_work_time -= LP_SCANTIME;
+	    pthread_mutex_unlock(&g_work_lock);
+	    if (err == CURLE_OPERATION_TIMEDOUT)
+       {
+	       restart_threads();
+	    }
+       else
+       {
+          have_longpoll = false;
+   	    restart_threads();
+	       free(hdr_path);
+	       free(lp_url);
+	       lp_url = NULL;
+	       sleep(opt_fail_pause);
+	       goto start;
+	    }
+    }
+  }
 
 out:
 	free(hdr_path);
@@ -2574,30 +2536,39 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
       free( xnonce2str );
    }
 
-   // Log new block
+   // Log new block and/or stratum difficulty change.
    if ( ( stratum_diff != sctx->job.diff )
      || ( last_bloc_height != sctx->bloc_height ) )
    {
-       stratum_diff = sctx->job.diff;
-       last_bloc_height = stratum.bloc_height;
-       double target_diff = g_work->targetdiff;       
        double hr = global_hashrate;
-       char shr[32];
        char hr_units[4] = {0};
        char block_ttf[32];
        char share_ttf[32];
+  
+       if ( stratum_diff != sctx->job.diff )
+       {
+          // If diff is changing report summary from old diff first.       
+          report_summary_log( stratum_diff != 0. );
+          applog( LOG_BLUE, "New stratum difficulty" );
+       }
+       if ( last_bloc_height != sctx->bloc_height )
+          applog( LOG_BLUE, "New block" );
+
+       // Update data and calculate new estimates.
+       stratum_diff = sctx->job.diff;
+       last_bloc_height = stratum.bloc_height;
+       last_targetdiff = g_work->targetdiff;
+  
        format_hms( block_ttf, net_diff * diff_to_hash / hr );
-       format_hms( share_ttf, target_diff * diff_to_hash / hr );
-
+       format_hms( share_ttf, last_targetdiff * diff_to_hash / hr );
        scale_hash_for_display ( &hr, hr_units );
-       sprintf( shr, "%.2f %sh/s", hr, hr_units );
 
-       applog( LOG_BLUE, "%s %s block %d", short_url,
-               algo_names[opt_algo], stratum.bloc_height );
+       applog2( LOG_INFO, "%s %s block %d", short_url,
+                algo_names[opt_algo], stratum.bloc_height );
        applog2( LOG_INFO, "Diff: net %g, stratum %g, target %g",
-                net_diff, stratum_diff, target_diff );
-       applog2( LOG_INFO, "TTF @ %s: block %s, share %s.",
-                shr, block_ttf, share_ttf );
+                net_diff, stratum_diff, last_targetdiff );
+       applog2( LOG_INFO, "TTF @ %.2f %sh/s: block %s, share %s",
+                hr, hr_units, block_ttf, share_ttf );
    }     
 }
 
@@ -3068,6 +3039,7 @@ void parse_arg(int key, char *arg )
 		opt_extranonce = false;
 		break;
 	case 1013:
+      applog( LOG_WARNING, "hide-diff option is deprecated and has no effect.\n                      It will be removed in a future release. Stop using it.");
 		opt_showdiff = false;
 		break;
    case 1014:   // hash-meter

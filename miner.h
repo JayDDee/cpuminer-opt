@@ -490,6 +490,8 @@ void print_hash_tests(void);
 
 void scale_hash_for_display ( double* hashrate, char* units );
 
+void report_summary_log( bool force );
+
 /*
 struct thr_info {
         int id;
@@ -823,7 +825,7 @@ Options:\n\
                           nist5         Nist5\n\
                           pentablake    5 x blake512\n\
                           phi1612       phi\n\
-                          phi2          Luxcoin (LUX)\n\
+                          phi2\n\
 			                 pluck         Pluck:128 (Supcoin)\n\
                           polytimos\n\
                           quark         Quark\n\

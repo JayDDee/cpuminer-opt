@@ -1933,13 +1933,6 @@ static bool stratum_set_difficulty(struct stratum_ctx *sctx, json_t *params)
 	pthread_mutex_lock(&sctx->work_lock);
 	sctx->next_diff = diff;
 	pthread_mutex_unlock(&sctx->work_lock);
-
-	/* store for api stats */
-	stratum_diff = diff;
-
-   if ( !opt_quiet )
-	     applog(LOG_BLUE, "Stratum difficulty set to %g", diff);
-
 	return true;
 }
 

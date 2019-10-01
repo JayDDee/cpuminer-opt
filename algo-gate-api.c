@@ -337,7 +337,6 @@ const char* const algo_alias_map[][2] =
   { "myriad",            "myr-gr"       },
   { "neo",               "neoscrypt"    },
   { "phi",               "phi1612"      },
-  { "phi2-lux",          "phi2"         },
   { "sib",               "x11gost"      },
   { "timetravel8",       "timetravel"   },
   { "veil",              "x16rt-veil"   },
