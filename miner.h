@@ -439,7 +439,7 @@ struct stratum_ctx {
 	struct work work __attribute__ ((aligned (64)));
 	pthread_mutex_t work_lock;
 
-	int bloc_height;
+	int block_height;
 } __attribute__ ((aligned (64)));
 
 bool stratum_socket_full(struct stratum_ctx *sctx, int timeout);
@@ -572,6 +572,7 @@ enum algos {
 	     ALGO_PHI2,
         ALGO_PLUCK,       
         ALGO_POLYTIMOS,
+        ALGO_POWER2B,
         ALGO_QUARK,
         ALGO_QUBIT,       
         ALGO_SCRYPT,
@@ -614,6 +615,7 @@ enum algos {
         ALGO_YESCRYPTR32,
         ALGO_YESPOWER,
         ALGO_YESPOWERR16,
+        ALGO_YESPOWER_B2B,
         ALGO_ZR5,
         ALGO_COUNT
 };
@@ -667,6 +669,7 @@ static const char* const algo_names[] = {
         "phi2",
 	     "pluck",
         "polytimos",
+        "power2b",
         "quark",
         "qubit",
         "scrypt",
@@ -709,6 +712,7 @@ static const char* const algo_names[] = {
         "yescryptr32",
         "yespower",
         "yespowerr16",
+        "yespower-b2b",
         "zr5",
         "\0"
 };
@@ -751,6 +755,7 @@ extern uint32_t opt_work_size;
 extern double *thr_hashrates;
 extern double global_hashrate;
 extern double stratum_diff;
+extern bool opt_reset_on_stale;
 extern double net_diff;
 extern double net_hashrate;
 extern int opt_pluck_n;
@@ -828,6 +833,7 @@ Options:\n\
                           phi2\n\
 			                 pluck         Pluck:128 (Supcoin)\n\
                           polytimos\n\
+                          power2b       MicroBitcoin (MBC)\n\
                           quark         Quark\n\
                           qubit         Qubit\n\
                           scrypt        scrypt(1024, 1, 1) (default)\n\
@@ -871,6 +877,7 @@ Options:\n\
                           yescryptr32   WAVI\n\
                           yespower      Cryply\n\
                           yespowerr16   Yenten (YTN)\n\
+                          yespower-b2b  generic yespower + blake2b\n\
                           zr5           Ziftr\n\
   -N, --param-n         N parameter for scrypt based algos\n\
   -R, --patam-r         R parameter for scrypt based algos\n\
@@ -890,7 +897,8 @@ Options:\n\
   -s, --scantime=N      upper bound on time spent scanning current work when\n\
                           long polling is unavailable, in seconds (default: 5)\n\
       --randomize       Randomize scan range start to reduce duplicates\n\
-  -f, --diff-factor     Divide req. difficulty by this factor (std is 1.0)\n\
+      --reset-on-stale  Workaround reset stratum if too many stale shares\n\
+      -f, --diff-factor     Divide req. difficulty by this factor (std is 1.0)\n\
   -m, --diff-multiplier Multiply difficulty by this factor (std is 1.0)\n\
       --hash-meter      Display thread hash rates\n\
       --hide-diff       Do not display changes in difficulty\n\
@@ -980,6 +988,7 @@ static struct option const options[] = {
         { "retries", 1, NULL, 'r' },
         { "retry-pause", 1, NULL, 1025 },
         { "randomize", 0, NULL, 1024 },
+        { "reset-on-stale", 0, NULL, 1026 },
         { "scantime", 1, NULL, 's' },
 #ifdef HAVE_SYSLOG_H
         { "syslog", 0, NULL, 'S' },

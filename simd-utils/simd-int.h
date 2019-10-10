@@ -1,5 +1,5 @@
-#if !defined(SIMD_SCALAR_H__)
-#define SIMD_SCALAR_H__ 1
+#if !defined(SIMD_INT_H__)
+#define SIMD_INT_H__ 1
 
 ///////////////////////////////////
 //
@@ -12,6 +12,8 @@
 //
 //   Some utilities are also provided for smaller integers, most notably
 //   bit rotation.   
+
+
 
 // MMX has no extract instruction for 32 bit elements so this:
 // Lo is trivial, high is a simple shift. 
@@ -56,18 +58,45 @@ static inline void memset_zero_64( uint64_t *src, int n )
 static inline void memset_64( uint64_t *dst, const uint64_t a,  int n )
 {   for ( int i = 0; i < n; i++ ) dst[i] = a; }
 
-#if defined (GCC_INT128)
 
 ///////////////////////////////////////
 // 
 //      128 bit integers
 //
 //  128 bit integers are inneficient and not a shortcut for __m128i.
+// Native type __int128 supported starting with GCC-4.8.
+//
+// __int128 uses two 64 bit GPRs to hold the data. The main benefits are
+// for 128 bit arithmetic. Vectors are preferred when 128 bit arith
+// is not required. int128 also works better with other integer sizes.
+// Vectors benefit from wider registers.
+//
+// For safety use typecasting on all numeric arguments.
+//
+// Use typecasting for conversion to/from 128 bit vector:
+// __m128i v128 = (__m128i)my_int128l
+// __m256i v256 = _mm256_set_m128i( (__m128i)my_int128, (__m128i)my_int128 );
+// my_int128 = (uint128_t)_mm256_extracti128_si256( v256, 1 );
 
-// No real need or use.
-//#define u128_neg1        ((uint128_t)(-1))
+// Compiler check for __int128 support
+// Configure also has a test for int128.
+#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
+  #define GCC_INT128 1
+#endif
 
-// usefull for making constants.
+#if !defined(GCC_INT128)
+  #warning "__int128 not supported, requires GCC-4.8 or newer."
+#endif
+
+#if defined(GCC_INT128)
+
+// Familiar looking type names
+typedef          __int128  int128_t;
+typedef unsigned __int128 uint128_t;
+
+
+
+// Maybe usefull for making constants.
 #define mk_uint128( hi, lo ) \
    ( ( (uint128_t)(hi) << 64 ) | ( (uint128_t)(lo) ) )
 
@@ -92,6 +121,6 @@ static inline void memset_64( uint64_t *dst, const uint64_t a,  int n )
 
 #endif  // GCC_INT128
 
-#endif // SIMD_SCALAR_H__
+#endif // SIMD_INT_H__
 
 

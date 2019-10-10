@@ -1898,7 +1898,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
       hex2bin(sctx->job.proofoffullnode, prooffullnode, 32);
    }
 
-	sctx->bloc_height = getblocheight(sctx);
+	sctx->block_height = getblocheight(sctx);
 
 	for (i = 0; i < sctx->job.merkle_count; i++)
 		free(sctx->job.merkle[i]);

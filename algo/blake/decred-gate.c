@@ -116,7 +116,7 @@ void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    // block header suffix from coinb2 (stake version)
    memcpy( &g_work->data[44],
            &sctx->job.coinbase[ sctx->job.coinbase_size-4 ], 4 );
-   sctx->bloc_height = g_work->data[32];
+   sctx->block_height = g_work->data[32];
    //applog_hex(work->data, 180);
    //applog_hex(&work->data[36], 36);
 }

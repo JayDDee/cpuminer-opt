@@ -204,6 +204,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_PHI2:          register_phi2_algo          ( gate ); break;
     case ALGO_PLUCK:         register_pluck_algo         ( gate ); break;
     case ALGO_POLYTIMOS:     register_polytimos_algo     ( gate ); break;
+    case ALGO_POWER2B:       register_power2b_algo       ( gate ); break;
     case ALGO_QUARK:         register_quark_algo         ( gate ); break;
     case ALGO_QUBIT:         register_qubit_algo         ( gate ); break;
     case ALGO_SCRYPT:        register_scrypt_algo        ( gate ); break;
@@ -251,6 +252,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_YESCRYPTR32:   register_yescryptr32_algo   ( gate ); break;
     case ALGO_YESPOWER:      register_yespower_algo      ( gate ); break;
     case ALGO_YESPOWERR16:   register_yespowerr16_algo   ( gate ); break;
+    case ALGO_YESPOWER_B2B:  register_yespower_b2b_algo  ( gate ); break;
     case ALGO_ZR5:           register_zr5_algo           ( gate ); break;
    default:
       applog(LOG_ERR,"FAIL: algo_gate registration failed, unknown algo %s.\n", algo_names[opt_algo] );

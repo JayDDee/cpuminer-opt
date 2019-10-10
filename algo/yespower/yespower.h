@@ -111,6 +111,10 @@ extern int yespower(yespower_local_t *local,
     const uint8_t *src, size_t srclen,
     const yespower_params_t *params, yespower_binary_t *dst);
 
+extern int yespower_b2b(yespower_local_t *local,
+    const uint8_t *src, size_t srclen,
+    const yespower_params_t *params, yespower_binary_t *dst);
+
 /**
  * yespower_tls(src, srclen, params, dst):
  * Compute yespower(src[0 .. srclen - 1], N, r), to be checked for "< target".
@@ -121,6 +125,9 @@ extern int yespower(yespower_local_t *local,
  * MT-safe as long as dst is local to the thread.
  */
 extern int yespower_tls(const uint8_t *src, size_t srclen,
+    const yespower_params_t *params, yespower_binary_t *dst);
+
+extern int yespower_b2b_tls(const uint8_t *src, size_t srclen,
     const yespower_params_t *params, yespower_binary_t *dst);
 
 #ifdef __cplusplus

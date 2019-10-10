@@ -19,18 +19,19 @@
 //
 // Constants are an issue with simd. Simply put, immediate constants don't
 // exist. All simd constants either reside in memory or a register and
-// must be loaded or generated at run time.
+// must be loaded from memory or generated using instructions at run time.
 //
 // Due to the cost of generating constants it is often more efficient to
 // define a local const for repeated references to the same constant.
 //
 // Some constant values can be generated using shortcuts. Zero for example
 // is as simple as XORing any register with itself, and is implemented
-// in the setzero instrinsic. These shortcuts must be implemented using ASM
+// iby the setzero instrinsic. These shortcuts must be implemented using ASM
 // due to doing things the compiler would complain about. Another single
 // instruction constant is -1, defined below. Others may be added as the need
 // arises. Even single instruction constants are less efficient than local
-// register variables so the advice above stands.
+// register variables so the advice above stands. These pseudo-constants
+// do not perform any memory accesses
 //
 // One common use for simd constants is as a control index for some simd
 // instructions like blend and shuffle. The utilities below do not take this
@@ -40,74 +41,74 @@
 
 #define m128_zero      _mm_setzero_si128()
 
-static inline __m128i m128_one_128_fn()
+static inline __m128i mm128_one_128_fn()
 {
-   register uint64_t one = 1;
-   register __m128i a;
+  __m128i a;
+   const uint64_t one = 1;
    asm( "movq %1, %0\n\t"
         : "=x"(a)
         : "r" (one) );
    return a;
 }
-#define m128_one_128    m128_one_128_fn()
+#define m128_one_128    mm128_one_128_fn()
 
-static inline __m128i m128_one_64_fn()
+static inline __m128i mm128_one_64_fn()
 {
-  register uint64_t one = 1;
-  register __m128i a;
+  __m128i a;
+  const uint64_t one = 1;
   asm( "movq %1, %0\n\t"
        : "=x" (a)
        : "r"  (one) );
   return _mm_shuffle_epi32( a, 0x44 );
 }
-#define m128_one_64    m128_one_64_fn()
+#define m128_one_64    mm128_one_64_fn()
 
-static inline __m128i m128_one_32_fn()
+static inline __m128i mm128_one_32_fn()
 {
-  register uint32_t one = 1;
-  register __m128i a;
+  __m128i a;
+  const uint32_t one = 1;
   asm( "movd %1, %0\n\t"
        : "=x" (a)
        : "r"  (one) );
   return _mm_shuffle_epi32( a, 0x00 );
 }
-#define m128_one_32    m128_one_32_fn()
+#define m128_one_32    mm128_one_32_fn()
 
-static inline __m128i m128_one_16_fn()
+static inline __m128i mm128_one_16_fn()
 {
-  register uint32_t one = 0x00010001;
-  register __m128i a;
+  __m128i a;
+  const uint32_t one = 0x00010001;
   asm( "movd %1, %0\n\t"
        : "=x" (a)
        : "r"  (one) );
   return _mm_shuffle_epi32( a, 0x00 );
 }
-#define m128_one_16    m128_one_16_fn()
+#define m128_one_16    mm128_one_16_fn()
 
-static inline __m128i m128_one_8_fn()
+static inline __m128i mm128_one_8_fn()
 {
-  register uint32_t one = 0x01010101;
-  register __m128i a;
+  __m128i a;
+  const uint32_t one = 0x01010101;
   asm( "movd %1, %0\n\t"
        : "=x" (a)
        : "r"  (one) );
   return _mm_shuffle_epi32( a, 0x00 );
 }
-#define m128_one_8    m128_one_8_fn()
+#define m128_one_8    mm128_one_8_fn()
 
-static inline __m128i m128_neg1_fn()
+static inline __m128i mm128_neg1_fn()
 {
    __m128i a;
    asm( "pcmpeqd %0, %0\n\t"
         : "=x" (a) );
    return a;
 }
-#define m128_neg1    m128_neg1_fn()
+#define m128_neg1    mm128_neg1_fn()
 
 // move uint64_t to low bits of __m128i, zeros the rest
 static inline __m128i mm128_mov64_128( uint64_t n )
 {
-  register __m128i a;
+  __m128i a;
   asm( "movq %1, %0\n\t"
        : "=x" (a)
        : "r"  (n) );
@@ -116,7 +117,7 @@ static inline __m128i mm128_mov64_128( uint64_t n )
 
 static inline __m128i mm128_mov32_128( uint32_t n )
 {
-  register __m128i a;
+  __m128i a;
   asm( "movd %1, %0\n\t"
        : "=x" (a)
        : "r"  (n) );
@@ -125,7 +126,7 @@ static inline __m128i mm128_mov32_128( uint32_t n )
 
 static inline uint64_t mm128_mov128_64( __m128i a )
 {
-  register uint64_t n;
+  uint64_t n;
   asm( "movq %1, %0\n\t"
        : "=x" (n)
        : "r"  (a) );
@@ -134,7 +135,7 @@ static inline uint64_t mm128_mov128_64( __m128i a )
 
 static inline uint32_t mm128_mov128_32( __m128i a )
 {
-  register uint32_t n;
+  uint32_t n;
   asm( "movd %1, %0\n\t"
        : "=x" (n)
        : "r"  (a) );
@@ -143,7 +144,7 @@ static inline uint32_t mm128_mov128_32( __m128i a )
 
 static inline __m128i m128_const1_64( const uint64_t n )
 {
-  register __m128i a;
+  __m128i a;
   asm( "movq %1, %0\n\t"
        : "=x" (a)
        : "r"  (n) );
@@ -152,7 +153,7 @@ static inline __m128i m128_const1_64( const uint64_t n )
 
 static inline __m128i m128_const1_32( const uint32_t n )
 {
-  register __m128i a;
+  __m128i a;
   asm( "movd %1, %0\n\t"
        : "=x" (a)
        : "r"  (n) );
@@ -165,7 +166,7 @@ static inline __m128i m128_const1_32( const uint32_t n )
 
 static inline __m128i m128_const_64( const uint64_t hi, const uint64_t lo )
 {
-   register __m128i a;
+   __m128i a;
    asm( "movq %2, %0\n\t"
         "pinsrq $1, %1, %0\n\t"
         : "=x" (a)
@@ -173,23 +174,9 @@ static inline __m128i m128_const_64( const uint64_t hi, const uint64_t lo )
    return a;
 }
 
-/*
-static inline __m128i m128_const1_64( const uint64_t n )
-{
-   register __m128i a;
-   asm( "movq %1, %0\n\t"
-        "pinsrq $1, %1, %0\n\t"
-        : "=x"(a)
-        : "r"(n) );
-   return a;
-}
-*/
 #else
 
-// #define m128_one_128   _mm_set_epi64x( 0ULL, 1ULL )
-
 #define m128_const_64  _mm_set_epi64x
-// #define m128_const1_64 _mm_set1_epi64x
 
 #endif
 
@@ -310,8 +297,19 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 // AVX512 has implemented bit rotation for 128 bit vectors with
 // 64 and 32 bit elements.
 
-//
-// Rotate each element of v by c bits
+// compiler doesn't like when a variable is used for the last arg of
+// _mm_rol_epi32, must be "8 bit immediate".
+// sm3-hash-4way.c fails to compile.
+/*
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define mm128_ror_64( v, c )    _mm_ror_epi64( v, c )
+#define mm128_rol_64( v, c )    _mm_rol_epi64( v, c )
+#define mm128_ror_32( v, c )    _mm_ror_epi32( v, c )
+#define mm128_rol_32( v, c )    _mm_rol_epi32( v, c )
+
+#else
+*/
 
 #define mm128_ror_64( v, c ) \
    _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) )
@@ -324,6 +322,8 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 #define mm128_rol_32( v, c ) \
    _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
+
+//#endif   // AVX512 else
 
 #define mm128_ror_16( v, c ) \
    _mm_or_si128( _mm_srli_epi16( v, c ), _mm_slli_epi16( v, 16-(c) ) )
@@ -364,6 +364,22 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 #define mm128_brol( v, c ) \
    _mm_or_si128( _mm_slli_si128( v, c ), _mm_srli_si128( v, 16-(c) ) )
+
+
+// Invert vector: {3,2,1,0} -> {0,1,2,3}
+#define mm128_invert_32( v ) _mm_shuffle_epi32( v, 0x1b )
+
+#if defined(__SSSE3__)
+
+#define mm128_invert_16( v ) \
+   _mm_shuffle_epi8( v, mm128_const_64( 0x0100030205040706, \
+                                        0x09080b0a0d0c0f0e )
+#define mm128_invert_8( v ) \
+   _mm_shuffle_epi8( v, mm128_const_64( 0x0001020304050607, \
+                                        0x08090a0b0c0d0e0f )
+
+#endif   // SSSE3
+
 
 //
 // Rotate elements within lanes.

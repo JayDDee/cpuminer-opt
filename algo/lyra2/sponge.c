@@ -263,10 +263,9 @@ inline void absorbBlockBlake2Safe( uint64_t *State, const uint64_t *In,
 #if defined (__AVX2__)
 
   register __m256i state0, state1, state2, state3;
-  const __m256i zero = m256_zero;
 
-  state0 = zero;
-  state1 = zero;
+  state0 = 
+  state1 = m256_zero;
   state2 = m256_const_64( 0xa54ff53a5f1d36f1ULL, 0x3c6ef372fe94f82bULL,
                           0xbb67ae8584caa73bULL, 0x6a09e667f3bcc908ULL );
   state3 = m256_const_64( 0x5be0cd19137e2179ULL, 0x1f83d9abfb41bd6bULL,
@@ -290,12 +289,11 @@ inline void absorbBlockBlake2Safe( uint64_t *State, const uint64_t *In,
 #elif defined (__SSE2__)
 
   __m128i state0, state1, state2, state3, state4, state5, state6, state7;
-  const __m128i zero = m128_zero;
 
-  state0 = zero;
-  state1 = zero;
-  state2 = zero;
-  state3 = zero;
+  state0 = 
+  state1 =
+  state2 =
+  state3 = m128_zero;
   state4 = m128_const_64( 0xbb67ae8584caa73bULL, 0x6a09e667f3bcc908ULL );
   state5 = m128_const_64( 0xa54ff53a5f1d36f1ULL, 0x3c6ef372fe94f82bULL );
   state6 = m128_const_64( 0x9b05688c2b3e6c1fULL, 0x510e527fade682d1ULL );

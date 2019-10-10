@@ -6,9 +6,6 @@ This feature requires recent SW including GCC version 5 or higher and
 openssl version 1.1 or higher. It may also require using "-march=znver1"
 compile flag.
 
-cpuminer-opt is a console program, if you're using a mouse you're doing it
-wrong.
-
 Security warning
 ----------------
 
@@ -34,9 +31,23 @@ Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
 supported.
 
 64 bit Linux or Windows operating system. Apple and Android are not supported.
+FreeBSD YMMV.
 
 Change Log
 ----------
+
+v3.9.9
+
+Added power2b algo for MicroBitcoin.
+
+Added generic yespower-b2b (yespower + blake2b) algo to be used with
+the parameters introduced in v3.9.7 for yespower & yescrypt.
+
+Display additional info when a share is rejected.
+
+Some low level enhancements and minor tweaking of log output.
+
+RELEASE_NOTES (this file) and README.md  added to Windows release package.
 
 v3.9.8.1
 

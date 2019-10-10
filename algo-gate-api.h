@@ -85,14 +85,16 @@
 
 typedef  uint32_t set_t;
 
-#define EMPTY_SET       0
-#define SSE2_OPT        1
-#define AES_OPT         2  
-#define SSE42_OPT       4
-#define AVX_OPT         8
-#define AVX2_OPT     0x10
-#define SHA_OPT      0x20
-#define AVX512_OPT   0x40
+#define EMPTY_SET        0
+#define SSE2_OPT         1
+#define AES_OPT          2  
+#define SSE42_OPT        4
+#define AVX_OPT          8   // Sandybridge
+#define AVX2_OPT      0x10   // Haswell
+#define SHA_OPT       0x20   // sha256 (Ryzen, Ice Lake)
+#define AVX512_OPT    0x40   // AVX512- F, VL, DQ, BW (Skylake-X)
+#define VAES_OPT      0x80   // VAES (Ice Lake)
+
 
 // return set containing all elements from sets a & b
 inline set_t set_union ( set_t a, set_t b ) { return a | b; }

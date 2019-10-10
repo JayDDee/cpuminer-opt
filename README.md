@@ -92,6 +92,7 @@ Supported Algorithms
                           phi2-lux      identical to phi2
                           pluck         Pluck:128 (Supcoin)
                           polytimos     Ninja
+                          power2b       MicroBitcoin (MBC)
                           quark         Quark
                           qubit         Qubit
                           scrypt        scrypt(1024, 1, 1) (default)
@@ -135,6 +136,7 @@ Supported Algorithms
                           yescryptr32   WAVI
                           yespower      Cryply
                           yespowerr16   Yenten (YTN)
+                          yespoer-b2b   generic yespower + blake2b
                           zr5           Ziftr
 
 Errata

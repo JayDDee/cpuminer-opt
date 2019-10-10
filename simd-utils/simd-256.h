@@ -14,30 +14,32 @@
 // is limited because 256 bit vectors are less likely to be used when 512
 // is available.
 
-//
-// All SIMD constant macros are actually functions containing executable
-// code and therefore can't be used as compile time initializers.
-
-#define m256_zero         _mm256_setzero_si256()
-
-#define m256_one_256 \
-   _mm256_inserti128_si256( _mm256_castsi128_si256( m128_one_128 ), \
-                                                    m128_zero, 1 )
-
-#define m256_one_128 \
-   _mm256_inserti128_si256( _mm256_castsi128_si256( m128_one_128 ), \
-                                                    m128_one_128, 1 )
-
 // set instructions load memory resident constants, this avoids mem.
 // cost 4 pinsert + 1 vinsert, estimate 8 clocks latency.
 
+#if defined(__AVX2__)
+
+#define m256_const_128( hi, lo ) \
+   _mm256_inserti128_si256( _mm256_castsi128_si256( lo ), hi, 1 )
+
 #define m256_const_64( i3, i2, i1, i0 ) \
-   _mm256_inserti128_si256( _mm256_castsi128_si256( m128_const_64( i1, i0 ) ), \
-                           m128_const_64( i3, i2 ), 1 )
+   m256_const_128( m128_const_64( i3, i2 ), m128_const_64( i1, i0 ) )
+
+/*
+#define m256_const_64( i3, i2, i1, i0 ) \
+  _mm256_inserti128_si256( _mm256_castsi128_si256( m128_const_64( i1, i0 ) ), \
+                                                   m128_const_64( i3, i2 ), 1 )
+*/
+
+#else    // AVX
+
+#define m256_const_64( i3, i2, i1, i0 )  _mm256_set_epi64x( i3, i2, i1, i0 )
+
+#endif
 
 static inline __m256i m256_const1_64( uint64_t i )
 {
-   register __m128i a;
+   __m128i a;
    asm( "movq %1, %0\n\t"
       : "=x" (a)
       : "r"  (i) );
@@ -46,12 +48,36 @@ static inline __m256i m256_const1_64( uint64_t i )
 
 static inline __m256i m256_const1_32( uint32_t i )
 {
-   register __m128i a;
+   __m128i a;
    asm( "movd %1, %0\n\t"
       : "=x" (a)
       : "r"  (i) );
    return _mm256_broadcastd_epi32( a );
 }
+
+static inline __m256i m256_const1_16( uint16_t i )
+{
+   __m128i a;
+   asm( "movw %1, %0\n\t"
+      : "=x" (a)
+      : "r"  (i) );
+   return _mm256_broadcastw_epi16( a );
+}
+
+static inline __m256i m256_const1_8( uint8_t i )
+{
+   __m128i a;
+   asm( "movb %1, %0\n\t"
+      : "=x" (a)
+      : "r"  (i) );
+   return _mm256_broadcastb_epi8( a );
+}
+
+//
+// All SIMD constant macros are actually functions containing executable
+// code and therefore can't be used as compile time initializers.
+
+#define m256_zero         _mm256_setzero_si256()
 
 #if defined(__AVX2__)
 
@@ -59,60 +85,90 @@ static inline __m256i m256_const1_32( uint32_t i )
 // a constant identifier instead of a function.
 // __m256i foo = m256_one_64; 
 
-static inline __m256i m256_one_64_fn()
+static inline __m256i mm256_one_256_fn()
 {
-  register uint64_t one = 1;
-  register __m128i a;
+  __m256i a;
+  const uint64_t one = 1;
+  asm( "movq %1, %0\n\t"
+       : "=x" (a)
+       : "r" (one) );
+  return a;
+}
+#define m256_one_256    mm256_one_256_fn()
+
+static inline __m256i mm256_one_128_fn()
+{
+  __m128i a;
+  const uint64_t one = 1;
+  asm( "movq %1, %0\n\t"
+       : "=x" (a)
+       : "r" (one) );
+  return _mm256_broadcastsi128_si256( a );
+}
+#define m256_one_128    mm256_one_128_fn()
+
+static inline __m256i mm256_one_64_fn()
+{
+  __m128i a;
+  const uint64_t one = 1;
   asm( "movq %1, %0\n\t"
        : "=x" (a)
        : "r" (one) );
   return _mm256_broadcastq_epi64( a );
 }
-#define m256_one_64    m256_one_64_fn()
+#define m256_one_64    mm256_one_64_fn()
 
-static inline __m256i m256_one_32_fn()
+static inline __m256i mm256_one_32_fn()
 {
-  register uint64_t one = 0x0000000100000001;
-  register __m128i a;
+  __m128i a;
+  const uint64_t one = 0x0000000100000001;
   asm( "movq %1, %0\n\t"
        : "=x" (a)
        : "r" (one) );
   return _mm256_broadcastq_epi64( a );
 }
-#define m256_one_32    m256_one_32_fn()
+#define m256_one_32    mm256_one_32_fn()
 
-static inline __m256i m256_one_16_fn()
+static inline __m256i mm256_one_16_fn()
 {
-  register uint64_t one = 0x0001000100010001;
-  register __m128i a;
+  __m128i a;
+  const uint64_t one = 0x0001000100010001;
   asm( "movq %1, %0\n\t"
        : "=x" (a)
        : "r" (one) );
   return _mm256_broadcastq_epi64( a );
 }
-#define m256_one_16    m256_one_16_fn()
+#define m256_one_16    mm256_one_16_fn()
 
-static inline __m256i m256_one_8_fn()
+static inline __m256i mm256_one_8_fn()
 {
-  register uint64_t one = 0x0101010101010101;
-  register __m128i a;
+  __m128i a;
+  const uint64_t one = 0x0101010101010101;
   asm( "movq %1, %0\n\t"
        : "=x" (a)
        : "r" (one) );
   return _mm256_broadcastq_epi64( a );
 }
-#define m256_one_8    m256_one_8_fn()
+#define m256_one_8    mm256_one_8_fn()
 
-static inline __m256i m256_neg1_fn()
+static inline __m256i mm256_neg1_fn()
 {
-   register __m256i a;
+   __m256i a;
    asm( "vpcmpeqq %0, %0, %0\n\t"
         : "=x"(a) );
    return a;
 }
-#define m256_neg1    m256_neg1_fn()
+#define m256_neg1    mm256_neg1_fn()
 
 #else  // AVX
+
+#define m256_one_256 m256_const_64( m128_zero, m128_one ) \
+   _mm256_inserti128_si256( _mm256_castsi128_si256( m128_one_128 ), \
+                                                    m128_zero, 1 )
+
+#define m256_one_128 \
+   _mm256_inserti128_si256( _mm256_castsi128_si256( m128_one_128 ), \
+                                                    m128_one_128, 1 )
 
 #define m256_one_64       _mm256_set1_epi64x( 1ULL )
 #define m256_one_32       _mm256_set1_epi64x( 0x0000000100000001ULL )
@@ -120,12 +176,12 @@ static inline __m256i m256_neg1_fn()
 #define m256_one_8        _mm256_set1_epi64x( 0x0101010101010101ULL )
 
 // AVX doesn't have inserti128 but insertf128 will do. 
-static inline __m256i m256_neg1_fn()
+static inline __m256i mm256_neg1_fn()
 {
    __m128i a = m128_neg1;
    return _mm256_insertf128_si256( _mm256_castsi128_si256( a ), a, 1 );
 }
-#define m256_neg1   m256_neg1_fn()
+#define m256_neg1   mm256_neg1_fn()
 
 #endif  // AVX2 else AVX
 
@@ -175,7 +231,7 @@ do { \
 // Move integer to lower bits of vector, upper bits set to zero.
 static inline __m256i mm256_mov64_256( uint64_t n )
 {
-  register __m128i a;
+  __m128i a;
   asm( "movq %1, %0\n\t"
        : "=x" (a)
        : "r" (n) );
@@ -184,14 +240,14 @@ static inline __m256i mm256_mov64_256( uint64_t n )
 
 static inline __m256i mm256_mov32_256( uint32_t n )
 {
-  register __m128i a;
+  __m128i a;
   asm( "movd %1, %0\n\t"
        : "=x" (a)
        : "r" (n) );
   return _mm256_castsi128_si256( a );
 }
 
-// Move lo bits of vector to integer, hi bits are truncated.
+// Return lo bits of vector as integer.
 #define mm256_mov256_64( a ) mm128_mov128_64( _mm256_castsi256_si128( a ) )
 
 #define mm256_mov256_32( a ) mm128_mov128_32( _mm256_castsi256_si128( a ) )
@@ -310,10 +366,20 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 // The only bit shift for more than 64 bits is with __int128.
 //
 // AVX512 has bit rotate for 256 bit vectors with 64 or 32 bit elements
-// but is of little value
 
-//
-// Rotate each element of v by c bits
+// compiler doesn't like when a variable is used for the last arg of
+// _mm_rol_epi32, must be "8 bit immediate".
+/*
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define mm256_ror_64( v, c )    _mm256_ror_epi64( v, c )
+#define mm256_rol_64( v, c )    _mm256_rol_epi64( v, c )
+#define mm256_ror_32( v, c )    _mm256_ror_epi32( v, c )
+#define mm256_rol_32( v, c )    _mm256_rol_epi32( v, c )
+
+#else
+*/
+
 #define mm256_ror_64( v, c ) \
    _mm256_or_si256( _mm256_srli_epi64( v, c ), \
                     _mm256_slli_epi64( v, 64-(c) ) )
@@ -329,6 +395,9 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 #define mm256_rol_32( v, c ) \
    _mm256_or_si256( _mm256_slli_epi32( v, c ), \
                     _mm256_srli_epi32( v, 32-(c) ) )
+
+// #endif     // AVX512 else
+
 
 #define  mm256_ror_16( v, c ) \
    _mm256_or_si256( _mm256_srli_epi16( v, c ), \
@@ -365,6 +434,19 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
                                      _mm256_set1_epi32( 32 ), c ) ) )
 
 // AVX512 can do 16 bit elements.
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define mm256_rorv_16( v, c ) \
+   _mm256_or_si256( \
+         _mm256_srlv_epi16( v, _mm256_set1_epi16( c ) ), \
+         _mm256_sllv_epi16( v, _mm256_set1_epi16( 16-(c) ) ) )
+
+#define mm256_rolv_16( v, c ) \
+   _mm256_or_si256( \
+         _mm256_sllv_epi16( v, _mm256_set1_epi16( c ) ), \
+         _mm256_srlv_epi16( v, _mm256_set1_epi16( 16-(c) ) ) )
+
+#endif  // AVX512
 
 //
 // Rotate elements accross all lanes.
@@ -403,7 +485,7 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
                                     0x0000000000000007, 0x0000000600000005 )
 
 // AVX512 can do 16 & 8 bit elements.
-#if defined(__AVX512VL__)
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 // Rotate 256 bit vector by one 16 bit element.     
 #define mm256_ror_1x16( v ) \
@@ -416,16 +498,49 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
                                  0x000e000d000c000b, 0x000a000900080007, \
                                  0x0006000500040003, 0x000200010000000f ), v )
 
-// Rotate 256 bit vector by one byte.
-#define mm256_ror_1x8( v ) m256_const_64( \
-                                 0x001f1e1d1c1b1a19, 0x1817161514131211, \
-                                 0x100f0e0d0c0b0a09, 0x0807060504030201 )
+#if defined (__AVX512VBMI__)
 
-#define mm256_rol_1x8( v ) m256_const_64( \
+// Rotate 256 bit vector by one byte.
+#define mm256_ror_1x8( v ) _mm256_permutexvar_epi8( m256_const_64( \
+                                 0x001f1e1d1c1b1a19, 0x1817161514131211, \
+                                 0x100f0e0d0c0b0a09, 0x0807060504030201 ), v )
+
+#define mm256_rol_1x8( v ) _mm256_permutexvar_epi16( m256_const_64( \
                                  0x1e1d1c1b1a191817, 0x161514131211100f, \
-                                 0x0e0d0c0b0a090807, 0x060504030201001f )
+                                 0x0e0d0c0b0a090807, 0x060504030201001f ), v )
+
+#endif  // VBMI
 
 #endif  // AVX512
+
+
+// Invert vector: {3,2,1,0} -> {0,1,2,3}
+
+#define mm256_invert_64 ( v ) _mm256_permute4x64_epi64( v, 0x1b )
+
+#define mm256_invert_32 ( v ) _mm256_permutevar8x32_epi32( v, \
+                     m256_const_64( 0x0000000000000001, 0x0000000200000003 \
+                                    0x0000000400000005, 0x0000000600000007 )
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+// Invert vector: {7,6,5,4,3,2,1,0} -> {0,1,2,3,4,5,6,7}
+#define mm256_invert_16 ( v ) \
+     _mm256_permutexvar_epi16( m256_const_64( 0x0000000100020003, \
+                                              0x0004000500060007, \
+                                              0x00080009000a000b, \
+                                              0x000c000d000e000f ), v )
+
+#if defined(__AVX512VBMI__)
+
+#define mm256_invert_8( v ) \
+     _mm256_permutexvar_epi8( m256_const_64( 0x0001020304050607, \
+                                             0x08090a0b0c0d0e0f, \
+                                             0x1011121314151617, \
+                                             0x18191a1b1c1d1e1f ), v )
+#endif  // VBMI
+#endif  // AVX512
+
 
 //
 // Rotate elements within lanes of 256 bit vector.

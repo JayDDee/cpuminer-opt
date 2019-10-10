@@ -36,7 +36,7 @@
 //    MMX:     64 bit vectors  
 //    SSE2:   128 bit vectors  (64 bit CPUs only, such as Intel Core2.
 //    AVX2:   256 bit vectors  (Starting with Intel Haswell and AMD Ryzen)
-//    AVX512: 512 bit vectors  (still under development)
+//    AVX512: 512 bit vectors  (Starting with SkylakeX)
 //
 //    Most functions are avalaible at the stated levels but in rare cases
 //    a higher level feature may be required with no compatible alternative.
@@ -138,24 +138,17 @@
 // improve high level code readability without the penalty of function
 // overhead.
 //
-// A major restructuring is taking place shifting the focus from pointers
-// to registers. Previously pointer casting used memory to provide transparency
-// leaving it up to the compiler to manage everything and it does a very good
-// job. The focus has shifted to register arguments for more control
-// over the actual instructions assuming the data is in a register and the
-// the compiler just needs to manage the registers.
-//
-// Rather than use pointers to provide type transparency
-// specific instructions are used to access specific data as specific types.
-// Previously pointers were cast and the compiler was left to find a way
-// to get the data from wherever it happened to be to the correct registers.
+// These utilities avoid memory accesses and assume data is in a register
+// argument. Vector constants, in particular are generated with opcodes instead
+// of being read from memory.
 //
 // The utilities defined here make use features like register aliasing
 // to optimize operations. Many operations have specialized versions as
 // well as more generic versions. It is preferable to use a specialized
-// version whenever possible a sthey can take advantage of certain
-// optimizations not available to the generic version. Specically the generic
-// version usually has a second argument used is some extra calculations.
+// version whenever possible as they can take advantage of certain
+// optimizations not available to the generic version. The generic
+// version will often have an additional argument used is some extra
+// calculations.
 // 
 ///////////////////////////////////////////////////////
 
@@ -164,9 +157,6 @@
 #include <memory.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
-// Various types and overlays
-#include "simd-utils/simd-types.h"
 
 // 64 and 128 bit integers.
 #include "simd-utils/simd-int.h"
@@ -191,16 +181,16 @@
 // Utilities that require AVX2 are defined in simd-256.h.
 
 // Skylake-X has all these
-#if defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 // 512 bit vectors
 #include "simd-utils/simd-512.h"
 
-#endif  // MMX
-#endif  // SSE2
-#endif  // AVX
-#endif  // AVX2
 #endif  // AVX512
+#endif  // AVX2
+#endif  // AVX
+#endif  // SSE2
+#endif  // MMX
 
 #include "simd-utils/intrlv.h"
 

@@ -107,6 +107,8 @@ int opt_param_n = 0;
 int opt_param_r = 0;
 int opt_pluck_n = 128;
 int opt_n_threads = 0;
+bool opt_reset_on_stale = false;
+
 // Windows doesn't support 128 bit affinity mask.
 #if defined(__linux) && defined(GCC_INT128)  
 #define AFFINITY_USES_UINT128 1
@@ -810,33 +812,42 @@ out:
    return rc;
 }
 
-void scale_hash_for_display ( double* hashrate, char* units )
+// returns the unit prefix and the hashrate appropriately scaled.
+void scale_hash_for_display ( double* hashrate, char* prefix )
 {
-     if ( *hashrate < 1e4 )            //  0  H/s to 9999  H/s
-        *units =  0;
-     else if ( *hashrate < 1e7 )       // 10 kH/s to 9999 kH/s
-     {  *units = 'k';  *hashrate /= 1e3;   }
+     if ( *hashrate < 1e4 )            //  0  H/s to 9999  h/s
+        *prefix =  0;
+     else if ( *hashrate < 1e7 )       // 10 kH/s to 9999 kh/s
+     {  *prefix = 'k';  *hashrate /= 1e3;   }
      else if ( *hashrate < 1e10 )      // 10 Mh/s to 9999 Mh/s
-     {  *units = 'M';  *hashrate /= 1e6;   }
+     {  *prefix = 'M';  *hashrate /= 1e6;   }
      else if ( *hashrate < 1e13 )      // 10 Gh/s to 9999 Gh/s
-     {  *units = 'G';  *hashrate /= 1e9;   }
+     {  *prefix = 'G';  *hashrate /= 1e9;   }
      else if ( *hashrate < 1e16 )      // 10 Th/s to 9999 Th/s
-     {  *units = 'T';  *hashrate /= 1e12;  }
-     else                              // 10 Ph/s and higher
-     {  *units = 'P';  *hashrate /= 1e15;  }
+     {  *prefix = 'T';  *hashrate /= 1e12;  }
+     else if ( *hashrate < 1e19 )      // 10 Ph/s to 9999 Ph
+     {  *prefix = 'P';  *hashrate /= 1e15;  }
+     else                              // 10 Eh/s and higher
+     {  *prefix = 'E';  *hashrate /= 1e18;  }
 }
 
-void format_hms( char *s, uint64_t t )
+static inline void sprintf_et( char *str, uint64_t seconds )
 {
-   //   00h00m00s
-   uint64_t rem;
-   uint64_t sec = t % 60;
-   rem =  t / 60;
-   uint64_t min = rem % 60;
-   uint64_t hrs = rem / 60;
-   sprintf( s, "%luh%02lum%02lus", hrs, min, sec );
+   uint64_t min = seconds / 60;
+   uint64_t sec = seconds % 60;
+   uint64_t hrs = min / 60;
+   if ( hrs )   
+   {
+      uint64_t days = hrs / 24;
+      if ( days )  //0d00h
+         sprintf( str, "%llud%02lluh", days, hrs % 24 );
+      else         // 0h00m  
+         sprintf( str, "%lluh%02llum", hrs, min % 60 );
+   }
+   else         // 0m00s
+      sprintf( str, "%llum%02llus", min, sec );
 }
-
+   
 // Bitcoin formula for converting difficulty to an equivalent
 // number of hashes.
 //
@@ -853,7 +864,7 @@ static double   time_sum    = 0.;
 static double   latency_sum = 0.;
 static uint64_t submit_sum  = 0;
 static uint64_t reject_sum  = 0;
-static uint32_t last_bloc_height = 0;
+static uint32_t last_block_height = 0;
 static double   last_targetdiff = 0.;
 
 struct share_stats_t
@@ -903,10 +914,11 @@ void report_summary_log( bool force )
                                        * (double)(submits - rejects)  / time;
    double   scaled_shrate = shrate;
    int      avg_latency = 0;
-   double   latency_pc = 0.;
+   double   latency_pc  = 0.;
    double   submit_rate = 0.;
    char shr_units[4] = {0};
    char ghr_units[4] = {0};
+   char et_str[24];
 
    if ( submits )
       avg_latency = latency / submits;
@@ -919,10 +931,10 @@ void report_summary_log( bool force )
 
    scale_hash_for_display( &scaled_shrate, shr_units );
    scale_hash_for_display( &scaled_ghrate, ghr_units );
+   sprintf_et( et_str, et.tv_sec );
 
-   applog( LOG_NOTICE,
-           "Submitted %d shares in %dm%02ds (%.2f /min), %ld rejected",
-           submits, et.tv_sec / 60, et.tv_sec % 60, submit_rate, rejects );
+   applog( LOG_NOTICE, "Submitted %d shares in %s, %.2f /min, %ld rejected",
+                        submits, et_str, submit_rate, rejects );
    applog2( LOG_INFO, "Share eqv: %.2f %sh/s, miner ref: %.2f %sh/s",
            scaled_shrate, shr_units, scaled_ghrate, ghr_units );
 
@@ -1025,12 +1037,36 @@ static int share_result( int result, struct work *null_work,
                        sres, share_time, latency, accepted_share_count,
                        rejected_share_count, solved_block_count );
 
-   if ( have_stratum && result && !opt_quiet )
+   if ( have_stratum && !opt_quiet )
       applog2( LOG_INFO, "Share diff %.3g (%5f%%), block %d",
-               my_stats.share_diff, share_ratio, stratum.bloc_height );
+               my_stats.share_diff, share_ratio, stratum.block_height );
 
    if ( reason )
-      applog( LOG_WARNING, "reject reason: %s.", reason );
+   {
+      applog( LOG_WARNING, "Reject reason: %s", reason );
+      
+      if ( opt_debug )
+      {
+         uint32_t str1[8], str2[8];
+         char str3[65];
+
+         // display share hash and target for troubleshooting
+         diff_to_target( str1, my_stats.share_diff );
+         for ( int i = 0; i < 8; i++ )
+            be32enc( str2 + i, str1[7 - i] );
+         bin2hex( str3, (unsigned char*)str2, 12 );
+         applog2( LOG_INFO, "Hash:   %s...", str3 );
+
+         diff_to_target( str1, last_targetdiff );
+         for ( int i = 0; i < 8; i++ )
+            be32enc( str2 + i, str1[7 - i] );
+         bin2hex( str3, (unsigned char*)str2, 12 );
+         applog2( LOG_INFO, "Target: %s...", str3 );
+      }
+
+      if ( opt_reset_on_stale && strstr( reason, "Invalid job id" ) )
+         stratum_need_reset = true;
+   }
 
    return 1;
 }
@@ -2538,7 +2574,7 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 
    // Log new block and/or stratum difficulty change.
    if ( ( stratum_diff != sctx->job.diff )
-     || ( last_bloc_height != sctx->bloc_height ) )
+     || ( last_block_height != sctx->block_height ) )
    {
        double hr = global_hashrate;
        char hr_units[4] = {0};
@@ -2551,20 +2587,20 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
           report_summary_log( stratum_diff != 0. );
           applog( LOG_BLUE, "New stratum difficulty" );
        }
-       if ( last_bloc_height != sctx->bloc_height )
+       if ( last_block_height != sctx->block_height )
           applog( LOG_BLUE, "New block" );
 
        // Update data and calculate new estimates.
        stratum_diff = sctx->job.diff;
-       last_bloc_height = stratum.bloc_height;
+       last_block_height = stratum.block_height;
        last_targetdiff = g_work->targetdiff;
   
-       format_hms( block_ttf, net_diff * diff_to_hash / hr );
-       format_hms( share_ttf, last_targetdiff * diff_to_hash / hr );
+       sprintf_et( block_ttf, net_diff * diff_to_hash / hr );
+       sprintf_et( share_ttf, last_targetdiff * diff_to_hash / hr );
        scale_hash_for_display ( &hr, hr_units );
 
        applog2( LOG_INFO, "%s %s block %d", short_url,
-                algo_names[opt_algo], stratum.bloc_height );
+                algo_names[opt_algo], stratum.block_height );
        applog2( LOG_INFO, "Diff: net %g, stratum %g, target %g",
                 net_diff, stratum_diff, last_targetdiff );
        applog2( LOG_INFO, "TTF @ %.2f %sh/s: block %s, share %s",
@@ -2604,8 +2640,8 @@ static void *stratum_thread(void *userdata )
 	          stratum.url = strdup( rpc_url );
 	          applog(LOG_BLUE, "Connection changed to %s", short_url);
           }
-          else if ( !opt_quiet )
-	          applog(LOG_DEBUG, "Stratum connection reset");
+          else // if ( !opt_quiet )
+	          applog(LOG_WARNING, "Stratum connection reset");
       }
 
       while ( !stratum.curl )
@@ -2648,10 +2684,10 @@ static void *stratum_thread(void *userdata )
 
          if ( stratum.job.clean || jsonrpc_2 )
          {
-            static uint32_t last_bloc_height;
-            if ( last_bloc_height != stratum.bloc_height )
+            static uint32_t last_block_height;
+            if ( last_block_height != stratum.block_height )
             {
-               last_bloc_height = stratum.bloc_height;
+               last_block_height = stratum.block_height;
 /*
                if ( !opt_quiet )
                {
@@ -2674,7 +2710,7 @@ static void *stratum_thread(void *userdata )
          else if (opt_debug && !opt_quiet)
          {
             applog( LOG_BLUE, "%s asks job %d for block %d", short_url,
-                strtoul( stratum.job.job_id, NULL, 16 ), stratum.bloc_height );
+                strtoul( stratum.job.job_id, NULL, 16 ), stratum.block_height );
          }
       }  // stratum.job.job_id
 
@@ -3132,6 +3168,9 @@ void parse_arg(int key, char *arg )
 	case 1024:
 		opt_randomize = true;
 		break;
+   case 1026:
+      opt_reset_on_stale = true;
+      break;
 	case 'V':
 		show_version_and_exit();
 	case 'h':

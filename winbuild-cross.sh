@@ -24,6 +24,8 @@ ln -s $LOCAL_LIB/gmp/gmp.h ./gmp.h
 # make release directory and copy selected DLLs.
 mkdir release
 cp README.txt release/
+cp README.md release/
+cp RELEASE_NOTES release/
 cp /usr/x86_64-w64-mingw32/lib/zlib1.dll release/
 cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll release/
 cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libstdc++-6.dll release/
