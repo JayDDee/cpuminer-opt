@@ -136,7 +136,7 @@ Supported Algorithms
                           yescryptr32   WAVI
                           yespower      Cryply
                           yespowerr16   Yenten (YTN)
-                          yespoer-b2b   generic yespower + blake2b
+                          yespower-b2b  generic yespower + blake2b
                           zr5           Ziftr
 
 Errata
