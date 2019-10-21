@@ -158,23 +158,18 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_ALLIUM:       register_allium_algo      ( gate ); break;
 //     case ALGO_ANIME:        register_anime_algo       ( gate ); break;
      case ALGO_ARGON2:       register_argon2_algo      ( gate ); break;
-     case ALGO_AXIOM:        register_axiom_algo       ( gate ); break;
      case ALGO_BASTION:      register_bastion_algo     ( gate ); break;
      case ALGO_BLAKE:        register_blake_algo       ( gate ); break;
      case ALGO_BLAKECOIN:    register_blakecoin_algo   ( gate ); break;
 //     case ALGO_BLAKE2B:      register_blake2b_algo    ( gate ); break;
      case ALGO_BLAKE2S:      register_blake2s_algo     ( gate ); break;
-     case ALGO_C11:          register_c11_algo         ( gate ); break;
      case ALGO_CRYPTOLIGHT:  register_cryptolight_algo ( gate ); break;
      case ALGO_CRYPTONIGHT:  register_cryptonight_algo ( gate ); break;
      case ALGO_DECRED:       register_decred_algo      ( gate ); break;
      case ALGO_DEEP:         register_deep_algo        ( gate ); break;
      case ALGO_DMD_GR:       register_dmd_gr_algo      ( gate ); break;
-     case ALGO_DROP:         register_drop_algo        ( gate ); break;
-     case ALGO_FRESH:        register_fresh_algo       ( gate ); break;
      case ALGO_GROESTL:      register_groestl_algo     ( gate ); break;
      case ALGO_HEAVY:        register_heavy_algo       ( gate ); break;
-     case ALGO_HMQ1725:      register_hmq1725_algo     ( gate ); break;
      case ALGO_HODL:         register_hodl_algo        ( gate ); break;
      case ALGO_JHA:          register_jha_algo         ( gate ); break;
      case ALGO_KECCAK:       register_keccak_algo      ( gate ); break;
@@ -191,9 +186,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_NEOSCRYPT:    register_neoscrypt_algo   ( gate ); break;
      case ALGO_NIST5:        register_nist5_algo       ( gate ); break;
      case ALGO_PENTABLAKE:   register_pentablake_algo  ( gate ); break;
-     case ALGO_PHI1612:      register_phi1612_algo     ( gate ); break;
      case ALGO_PLUCK:        register_pluck_algo       ( gate ); break;
-     case ALGO_POLYTIMOS:    register_polytimos_algo   ( gate ); break;
      case ALGO_QUARK:        register_quark_algo       ( gate ); break;
      case ALGO_QUBIT:        register_qubit_algo       ( gate ); break;
      case ALGO_SCRYPT:       register_scrypt_algo      ( gate ); break;
@@ -203,25 +196,9 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_SHAVITE3:     register_shavite_algo     ( gate ); break;
      case ALGO_SKEIN:        register_skein_algo       ( gate ); break;
      case ALGO_SKEIN2:       register_skein2_algo      ( gate ); break;
-     case ALGO_SKUNK:        register_skunk_algo       ( gate ); break;
-     case ALGO_TIMETRAVEL:   register_timetravel_algo  ( gate ); break;
-     case ALGO_TIMETRAVEL10: register_timetravel10_algo( gate ); break;
-     case ALGO_TRIBUS:       register_tribus_algo      ( gate ); break;
      case ALGO_VANILLA:      register_vanilla_algo     ( gate ); break;
-     case ALGO_VELTOR:       register_veltor_algo      ( gate ); break;
      case ALGO_WHIRLPOOL:    register_whirlpool_algo   ( gate ); break;
      case ALGO_WHIRLPOOLX:   register_whirlpoolx_algo  ( gate ); break;
-     case ALGO_X11:          register_x11_algo         ( gate ); break;
-     case ALGO_X11EVO:       register_x11evo_algo      ( gate ); break;
-     case ALGO_X11GOST:      register_x11gost_algo     ( gate ); break;
-//     case ALGO_X12:          register_x12_algo         ( gate ); break;
-     case ALGO_X13:          register_x13_algo         ( gate ); break;
-     case ALGO_X13SM3:       register_x13sm3_algo      ( gate ); break;
-     case ALGO_X14:          register_x14_algo         ( gate ); break;
-     case ALGO_X15:          register_x15_algo         ( gate ); break;
-//     case ALGO_X16R:         register_x16r_algo        ( gate ); break;
-     case ALGO_X17:          register_x17_algo         ( gate ); break;
-     case ALGO_XEVAN:        register_xevan_algo       ( gate ); break;
      case ALGO_YESCRYPT:     register_yescrypt_algo    ( gate ); break;
      case ALGO_YESCRYPTR8:   register_yescryptr8_algo  ( gate ); break;
      case ALGO_YESCRYPTR16:  register_yescryptr16_algo ( gate ); break;
@@ -286,7 +263,6 @@ void exec_hash_function( int algo, void *output, const void *pdata )
 const char* const algo_alias_map[][2] =
 {
 //   alias                proper
-  { "bitcore",           "timetravel10" },
   { "bitzeny",           "yescryptr8"   },
   { "blake256r8",        "blakecoin"    },
   { "blake256r8vnl",     "vanilla"      },
@@ -295,10 +271,6 @@ const char* const algo_alias_map[][2] =
   { "cryptonote",        "cryptonight"  },
   { "cryptonight-light", "cryptolight"  },
   { "diamond",           "dmd-gr"       },
-  { "droplp",            "drop"         },
-  { "espers",            "hmq1725"      },
-  { "flax",              "c11"          },
-  { "hsr",               "x13sm3"       },
   { "jackpot",           "jha"          },
   { "jane",              "scryptjane"   }, 
   { "lyra2",             "lyra2re"      },
@@ -307,10 +279,7 @@ const char* const algo_alias_map[][2] =
   { "myrgr",             "myr-gr"       },
   { "myriad",            "myr-gr"       },
   { "neo",               "neoscrypt"    },
-  { "phi",               "phi1612"      },
 //  { "sia",               "blake2b"      },
-  { "sib",               "x11gost"      },
-  { "timetravel8",       "timetravel"   },
   { "ziftr",             "zr5"          },
   { "yenten",            "yescryptr16"  },
   { "yescryptr8k",       "yescrypt"     },

@@ -160,61 +160,6 @@ cpuminer_SOURCES = \
   algo/whirlpool/whirlpool-4way.c \
   algo/whirlpool/whirlpool.c \
   algo/whirlpool/whirlpoolx.c \
-  algo/x11/x11-gate.c \
-  algo/x11/x11.c \
-  algo/x11/x11-4way.c \
-  algo/x11/x11gost-gate.c \
-  algo/x11/x11gost.c \
-  algo/x11/x11gost-4way.c \
-  algo/x11/c11-gate.c \
-  algo/x11/c11.c \
-  algo/x11/c11-4way.c \
-  algo/x11/tribus-gate.c \
-  algo/x11/tribus.c \
-  algo/x11/tribus-4way.c \
-  algo/x11/timetravel-gate.c \
-  algo/x11/timetravel.c \
-  algo/x11/timetravel-4way.c \
-  algo/x11/timetravel10-gate.c \
-  algo/x11/timetravel10.c \
-  algo/x11/timetravel10-4way.c \
-  algo/x11/fresh.c \
-  algo/x11/x11evo.c \
-  algo/x11/x11evo-4way.c \
-  algo/x11/x11evo-gate.c \
-  algo/x13/x13-gate.c \
-  algo/x13/x13.c \
-  algo/x13/x13-4way.c \
-  algo/x13/x13sm3-gate.c \
-  algo/x13/x13sm3.c \
-  algo/x13/x13sm3-4way.c \
-  algo/x13/phi1612-gate.c \
-  algo/x13/phi1612.c \
-  algo/x13/phi1612-4way.c \
-  algo/x13/skunk-gate.c \
-  algo/x13/skunk-4way.c \
-  algo/x13/skunk.c \
-  algo/x13/drop.c \
-  algo/x14/x14-gate.c \
-  algo/x14/x14.c \
-  algo/x14/x14-4way.c \
-  algo/x14/veltor-gate.c \
-  algo/x14/veltor.c \
-  algo/x14/veltor-4way.c \
-  algo/x14/polytimos-gate.c \
-  algo/x14/polytimos.c \
-  algo/x14/polytimos-4way.c \
-  algo/x14/axiom.c \
-  algo/x15/x15-gate.c \
-  algo/x15/x15.c \
-  algo/x15/x15-4way.c \
-  algo/x17/x17-gate.c \
-  algo/x17/x17.c \
-  algo/x17/x17-4way.c \
-  algo/x17/xevan-gate.c \
-  algo/x17/xevan.c \
-  algo/x17/xevan-4way.c \
-  algo/x17/hmq1725.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/sha256_Y.c \
   algo/yescrypt/yescrypt-best.c \

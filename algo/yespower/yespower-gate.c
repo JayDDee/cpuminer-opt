@@ -159,6 +159,11 @@ int64_t yespower_get_max64()
 bool register_yespower_algo( algo_gate_t* gate )
 {
   yespower_params.version = YESPOWER_1_0;
+  yespower_params.N       = 2048;
+  yespower_params.r       = 32;
+  yespower_params.pers    = NULL;
+  yespower_params.perslen = 0;
+
 
   if ( opt_param_n )  yespower_params.N = opt_param_n;
   else                yespower_params.N = 2048;
@@ -176,11 +181,6 @@ bool register_yespower_algo( algo_gate_t* gate )
      yespower_params.pers    = NULL;
      yespower_params.perslen = 0;
   }
-
-  yespower_params.N       = 2048;
-  yespower_params.r       = 32;
-  yespower_params.pers    = NULL;
-  yespower_params.perslen = 0;
 
   applog( LOG_NOTICE,"Yespower parameters: N= %d, R= %d.", yespower_params.N,
                                                            yespower_params.r );
