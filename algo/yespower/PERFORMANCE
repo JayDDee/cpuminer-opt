@@ -1,0 +1,95 @@
+Included with yespower is the "benchmark" program, which is built by
+simply invoking "make".  When invoked without parameters, it tests
+yespower 0.5 at N = 2048, r = 8, which appears to be the lowest setting
+in use by existing cryptocurrencies.  On an i7-4770K with 4x DDR3-1600
+(on two memory channels) running CentOS 7 for x86-64 (and built with
+CentOS 7's default version of gcc) and with thread affinity set, this
+reports between 3700 and 3800 hashes per second for both SSE2 and AVX
+builds, e.g.:
+
+$ GOMP_CPU_AFFINITY=0-7 OMP_NUM_THREADS=4 ./benchmark
+version=0.5 N=2048 r=8
+Will use 2048.00 KiB RAM
+a5 9f ec 4c 4f dd a1 6e 3b 14 05 ad da 66 d5 25 b6 8e 7c ad fc fe 6a c0 66 c7 ad 11 8c d8 05 90
+Benchmarking 1 thread ...
+1018 H/s real, 1018 H/s virtual (2047 hashes in 2.01 seconds)
+Benchmarking 4 threads ...
+3773 H/s real, 950 H/s virtual (8188 hashes in 2.17 seconds)
+min 0.984 ms, avg 1.052 ms, max 1.074 ms
+
+Running 8 threads (to match the logical rather than the physical CPU
+core count) results in very slightly worse performance on this system,
+but this might be the other way around on another and/or with other
+parameters.  Upgrading to yespower 1.0, performance at these parameters
+improves to almost 4000 hashes per second:
+
+$ GOMP_CPU_AFFINITY=0-7 OMP_NUM_THREADS=4 ./benchmark 10
+version=1.0 N=2048 r=8
+Will use 2048.00 KiB RAM
+d0 78 cd d4 cf 3f 5a a8 4e 3c 4a 58 66 29 81 d8 2d 27 e5 67 36 37 c4 be 77 63 61 32 24 c1 8a 93
+Benchmarking 1 thread ...
+1080 H/s real, 1080 H/s virtual (4095 hashes in 3.79 seconds)
+Benchmarking 4 threads ...
+3995 H/s real, 1011 H/s virtual (16380 hashes in 4.10 seconds)
+min 0.923 ms, avg 0.989 ms, max 1.137 ms
+
+Running 8 threads results in substantial slowdown with this new version
+(to between 3200 and 3400 hashes per second) because of cache thrashing.
+
+For higher settings such as those achieving 8 MiB instead of the 2 MiB
+above, this system performs at around 800 hashes per second for yespower
+0.5 and at around 830 hashes per second for yespower 1.0:
+
+$ GOMP_CPU_AFFINITY=0-7 OMP_NUM_THREADS=4 ./benchmark 5 2048 32
+version=0.5 N=2048 r=32
+Will use 8192.00 KiB RAM
+56 0a 89 1b 5c a2 e1 c6 36 11 1a 9f f7 c8 94 a5 d0 a2 60 2f 43 fd cf a5 94 9b 95 e2 2f e4 46 1e
+Benchmarking 1 thread ...
+265 H/s real, 265 H/s virtual (1023 hashes in 3.85 seconds)
+Benchmarking 4 threads ...
+803 H/s real, 200 H/s virtual (4092 hashes in 5.09 seconds)
+min 4.924 ms, avg 4.980 ms, max 5.074 ms
+
+$ GOMP_CPU_AFFINITY=0-7 OMP_NUM_THREADS=4 ./benchmark 10 2048 32
+version=1.0 N=2048 r=32
+Will use 8192.00 KiB RAM
+f7 69 26 ae 4a dc 56 53 90 2f f0 22 78 ea aa 39 eb 99 84 11 ac 3e a6 24 2e 19 6d fb c4 3d 68 25
+Benchmarking 1 thread ...
+275 H/s real, 275 H/s virtual (1023 hashes in 3.71 seconds)
+Benchmarking 4 threads ...
+831 H/s real, 209 H/s virtual (4092 hashes in 4.92 seconds)
+min 3.614 ms, avg 4.769 ms, max 5.011 ms
+
+Again, running 8 threads results in a slowdown, albeit not as bad as can
+be seen for lower settings.
+
+On x86(-64), the following code versions may reasonably be built: SSE2,
+AVX, and XOP.  (There's no reason to build for AVX2 and higher, which is
+unsuitable for and thus unused by current yespower anyway.  There's also
+no reason to build yespower as-is for SSE4, although there's a disabled
+by default 32-bit specific SSE4 code version that may be re-enabled and
+given a try if someone is so inclined; it may perform slightly slower or
+slightly faster across different systems.)
+
+yescrypt and especially yespower 1.0 have been designed to fit the SSE2
+instruction set almost perfectly, so there's very little benefit from
+the AVX and XOP builds, yet even at yespower 1.0 there may be
+performance differences between SSE2, AVX, and XOP builds within 2% or
+so (and it is unclear which is the fastest on a given system until
+tested, except that where XOP is supported it is almost always faster
+than AVX).
+
+Proper setting of thread affinities to run exactly one thread per
+physical CPU core is non-trivial.  In the above examples, it so happened
+that the first 4 logical CPU numbers corresponded to different physical
+cores, but this won't always be the case.  This can vary even between
+apparently similar systems.  On Linux, the mapping of logical CPUs to
+physical cores may be obtained from /proc/cpuinfo (on x86[-64] and MIC)
+or sysfs, which an optimized implementation of e.g. a cryptocurrency
+miner could use.  If you do not bother obtaining this information from
+the operating system, you might be better off not setting thread
+affinities at all (in order to avoid the risk of doing this incorrectly,
+which would have a greater negative performance impact) and/or running
+as many threads as there are logical CPUs.  Also, there's no certainty
+whether different and future CPUs will run yespower faster using one or
+maybe more threads per physical core.

@@ -131,6 +131,7 @@ size_t rpc2_bloblen = 0;
 uint32_t rpc2_target = 0;
 char *rpc2_job_id = NULL;
 double opt_diff_factor = 1.0;
+double opt_target_factor = 1.0;
 uint32_t zr5_pok = 0;
 bool opt_stratum_stats = false;
 

@@ -550,6 +550,9 @@ enum algos {
         ALGO_YESCRYPTR8,
         ALGO_YESCRYPTR16,
         ALGO_YESCRYPTR32,
+        ALGO_YESPOWER,
+        ALGO_YESPOWERR16,
+        ALGO_YESPOWER_B2B,
         ALGO_ZR5,
         ALGO_COUNT
 };
@@ -624,6 +627,9 @@ static const char* const algo_names[] = {
         "yescryptr8",
         "yescryptr16",
         "yescryptr32",
+        "yespower",
+        "yespowerr16",
+        "yespower-b2b",
         "zr5",
         "\0"
 };
@@ -667,6 +673,7 @@ extern double net_hashrate;
 extern int opt_pluck_n;
 extern int opt_scrypt_n;
 extern double opt_diff_factor;
+extern double opt_target_factor;
 extern bool opt_randomize;
 extern bool allow_mininginfo;
 extern time_t g_work_time;
@@ -752,6 +759,9 @@ Options:\n\
                           yescryptr8   BitZeny (ZNY)\n\
                           yescryptr16  Yenten (YTN)\n\
                           yescryptr32  WAVI\n\
+                          yespower      Cryply\n\
+                          yespowerr16   Yenten (YTN)\n\
+                          yespower-b2b  generic yespower + blake2b\n\
                           zr5          Ziftr\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\

@@ -217,7 +217,12 @@ cpuminer_SOURCES = \
   algo/x17/hmq1725.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/sha256_Y.c \
-  algo/yescrypt/yescrypt-best.c
+  algo/yescrypt/yescrypt-best.c \
+  algo/yespower/yespower-gate.c \
+  algo/yespower/yespower-blake2b.c \
+  algo/yespower/crypto/blake2b-yp.c \
+  algo/yespower/sha256_p.c \
+  algo/yespower/yespower-opt.c
 
 disable_flags =
 
