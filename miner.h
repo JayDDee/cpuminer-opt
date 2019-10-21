@@ -671,7 +671,9 @@ extern double stratum_diff;
 extern double net_diff;
 extern double net_hashrate;
 extern int opt_pluck_n;
-extern int opt_scrypt_n;
+extern int opt_param_n;
+extern int opt_param_r;
+extern char* opt_param_key;
 extern double opt_diff_factor;
 extern double opt_target_factor;
 extern bool opt_randomize;
@@ -763,6 +765,9 @@ Options:\n\
                           yespowerr16   Yenten (YTN)\n\
                           yespower-b2b  generic yespower + blake2b\n\
                           zr5          Ziftr\n\
+  -N, --param-n         N parameter for scrypt based algos\n\
+  -R, --patam-r         R parameter for scrypt based algos\n\
+  -K, --param-key       Key parameter for algos that use it\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
   -u, --user=USERNAME   username for mining server\n\
@@ -851,6 +856,9 @@ static struct option const options[] = {
         { "no-redirect", 0, NULL, 1009 },
         { "no-stratum", 0, NULL, 1007 },
         { "no-extranonce", 0, NULL, 1012 },
+        { "param-n", 1, NULL, 'N' },
+        { "param-r", 1, NULL, 'R' },
+        { "param-key", 1, NULL, 'K' },
         { "max-temp", 1, NULL, 1060 },
         { "max-diff", 1, NULL, 1061 },
         { "max-rate", 1, NULL, 1062 },

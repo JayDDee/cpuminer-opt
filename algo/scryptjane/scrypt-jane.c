@@ -163,11 +163,11 @@ int scanhash_scryptjane( int thr_id, struct work *work, uint32_t max_nonce,
 	//	//scrypt_fatal_error("scrypt: N out of range");
 	//}
 
-// opt_scrypt_n default is 1024 which makes no sense in this context
+// opt_param_n default is 1024 which makes no sense in this context
 // and results in N = 2, but it seems to work on Nicehash scryptjanenf16
 // (leocoin). Need to test with proper NF 16 for functionality and performance.
 // Also test yacoin (NF 18).
-//	N = (1 << ( opt_scrypt_n + 1));
+//	N = (1 << ( opt_param_n + 1));
 
 	chunk_bytes = SCRYPT_BLOCK_BYTES * r * 2;
 	if (!scrypt_alloc( sj_N * chunk_bytes, &V ) ) return 1;
@@ -243,20 +243,20 @@ bool register_scryptjane_algo( algo_gate_t* gate )
     gate->get_max64  = (void*)&get_max64_0x40LL;
 
     // figure out if arg in N or Nfactor
-    if ( !opt_scrypt_n )
+    if ( !opt_param_n )
     {
       applog( LOG_ERR, "The N factor must be specified in the form algo:nf");
       return false;
     }
-    else if ( opt_scrypt_n < 32 )
+    else if ( opt_param_n < 32 )
     {
       // arg is Nfactor, calculate N
-      sj_N = 1 << ( opt_scrypt_n + 1 );
+      sj_N = 1 << ( opt_param_n + 1 );
     }
     else
     {
       // arg is N
-      sj_N = opt_scrypt_n;
+      sj_N = opt_param_n;
     }
     return true;
 }

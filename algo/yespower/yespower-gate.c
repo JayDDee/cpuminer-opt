@@ -26,6 +26,7 @@
  * This file was originally written by Cryply team as part of the Cryply
  * coin.
  */
+#include <string.h>
 #include "yespower.h"
 
 #include "algo-gate-api.h"
@@ -158,7 +159,7 @@ int64_t yespower_get_max64()
 bool register_yespower_algo( algo_gate_t* gate )
 {
   yespower_params.version = YESPOWER_1_0;
-/*
+
   if ( opt_param_n )  yespower_params.N = opt_param_n;
   else                yespower_params.N = 2048;
 
@@ -175,7 +176,7 @@ bool register_yespower_algo( algo_gate_t* gate )
      yespower_params.pers    = NULL;
      yespower_params.perslen = 0;
   }
-  */
+
   yespower_params.N       = 2048;
   yespower_params.r       = 32;
   yespower_params.pers    = NULL;
@@ -310,12 +311,12 @@ bool register_yespower_b2b_algo( algo_gate_t* gate )
 {
   yespower_params.version = YESPOWER_1_0;
 
-  if (1)// !( opt_param_n && opt_param_r ) )
+  if (!( opt_param_n && opt_param_r ) )
   {
      applog(LOG_ERR,"Yespower-b2b N & R parameters are required");
      return false;
   }
-/*
+
   yespower_params.N = opt_param_n;
   yespower_params.r = opt_param_r;
 
@@ -336,8 +337,8 @@ bool register_yespower_b2b_algo( algo_gate_t* gate )
   {
      applog( LOG_NOTICE,"Key= \"%s\"", yespower_params.pers );
      applog( LOG_NOTICE,"Key length= %d\n", yespower_params.perslen );
-  }  
-*/
+  }
+
   gate->optimizations = SSE2_OPT;
   gate->get_max64     = (void*)&yespower_get_max64;
   gate->scanhash      = (void*)&scanhash_yespower_b2b;

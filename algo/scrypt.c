@@ -784,10 +784,10 @@ bool register_scrypt_algo( algo_gate_t* gate )
   gate->set_target       = (void*)&scrypt_set_target;
   gate->get_max64        = (void*)&scrypt_get_max64;
 
-  if ( !opt_scrypt_n )
+  if ( !opt_param_n )
      scratchbuf_size = 1024;
   else
-     scratchbuf_size = opt_scrypt_n;
+     scratchbuf_size = opt_param_n;
   return true;
 };
 

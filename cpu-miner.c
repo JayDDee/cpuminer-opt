@@ -100,7 +100,10 @@ int opt_timeout = 300;
 static int opt_scantime = 5;
 static const bool opt_time = true;
 enum algos opt_algo = ALGO_NULL;
-int opt_scrypt_n = 0;
+//int opt_scrypt_n = 0;
+char* opt_param_key = NULL;
+int opt_param_n = 0;
+int opt_param_r = 0;
 int opt_pluck_n = 128;
 int opt_n_threads = 0;
 int64_t opt_affinity = -1;
@@ -166,7 +169,7 @@ static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 	"S"
 #endif
-	"a:b:Bc:CDf:hm:n:p:Px:qr:R:s:t:T:o:u:O:V";
+	"a:b:Bc:CDf:hm:n:p:Px:qr:N:R:K:s:t:T:o:u:O:V";
 
 static struct work g_work = {{ 0 }};
 //static struct work tmp_work;
@@ -2477,7 +2480,7 @@ void parse_arg(int key, char *arg )
                                 if (*ep || v < 2)
 					continue;
 				opt_algo = (enum algos) i;
-				opt_scrypt_n = v;
+				opt_param_n = v;
 				break;
 			}
 		  }
@@ -2560,12 +2563,14 @@ void parse_arg(int key, char *arg )
 			show_usage_and_exit(1);
 		opt_retries = v;
 		break;
+/*
 	case 'R':
 		v = atoi(arg);
-		if (v < 1 || v > 9999) /* sanity check */
+		if (v < 1 || v > 9999)
 			show_usage_and_exit(1);
 		opt_fail_pause = v;
 		break;
+*/
 	case 's':
 		v = atoi(arg);
 		if (v < 1 || v > 9999) /* sanity check */
@@ -2759,6 +2764,18 @@ void parse_arg(int key, char *arg )
 			show_usage_and_exit(1);
 		opt_priority = v;
 		break;
+   case 'N':    // N parameter for various scrypt algos
+      d = atoi( arg );
+      opt_param_n = d;
+      break;
+   case 'R':   // R parameter for various scrypt algos
+      d = atoi( arg );
+      opt_param_r = d;
+      break;
+   case 'K':    // Client key for various algos
+      free( opt_param_key );
+      opt_param_key = strdup( arg );
+      break;
 	case 1060: // max-temp
 		d = atof(arg);
 		opt_max_temp = d;
