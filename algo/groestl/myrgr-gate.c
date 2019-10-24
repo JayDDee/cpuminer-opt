@@ -12,7 +12,6 @@ bool register_myriad_algo( algo_gate_t* gate )
   gate->hash      = (void*)&myriad_hash;
 #endif
   gate->optimizations = AES_OPT | AVX2_OPT;
-  gate->get_max64 = (void*)&get_max64_0x3ffff;
   return true;
 };
 

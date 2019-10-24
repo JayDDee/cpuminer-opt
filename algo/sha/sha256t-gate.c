@@ -15,7 +15,6 @@ bool register_sha256t_algo( algo_gate_t* gate )
     gate->scanhash   = (void*)&scanhash_sha256t;
     gate->hash       = (void*)&sha256t_hash;
 #endif
-    gate->get_max64  = (void*)&get_max64_0x3ffff;
     return true;
 }
 
@@ -34,7 +33,6 @@ bool register_sha256q_algo( algo_gate_t* gate )
     gate->scanhash   = (void*)&scanhash_sha256q;
     gate->hash       = (void*)&sha256q_hash;
 #endif
-    gate->get_max64  = (void*)&get_max64_0x3ffff;
     return true;
 
 }

@@ -109,11 +109,6 @@ int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
         return 0;
 }
 
-int64_t yespower_get_max64()
-{
-  return 0xfffLL;
-}
-
 bool register_yespower_algo( algo_gate_t* gate )
 {
   yespower_params.version = YESPOWER_1_0;
@@ -141,7 +136,6 @@ bool register_yespower_algo( algo_gate_t* gate )
      applog( LOG_NOTICE,"Key= \"%s\"\n", yespower_params.pers );
 
   gate->optimizations = SSE2_OPT;
-  gate->get_max64     = (void*)&yespower_get_max64;
   gate->scanhash      = (void*)&scanhash_yespower;
   gate->hash          = (void*)&yespower_hash;
   opt_target_factor = 65536.0;
@@ -156,7 +150,6 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
   yespower_params.pers    = NULL;
   yespower_params.perslen = 0;
   gate->optimizations = SSE2_OPT;
-  gate->get_max64     = (void*)&yespower_get_max64;
   gate->scanhash      = (void*)&scanhash_yespower;
   gate->hash          = (void*)&yespower_hash;
   opt_target_factor = 65536.0;
@@ -164,21 +157,10 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
  };
 
 
-int64_t yescrypt_05_get_max64()
-{
-  return 0x1ffLL;
-}
-
-int64_t yescryptr16_05_get_max64()
-{
-  return 0xfffLL;
-}
-
 bool register_yescrypt_05_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
-   gate->get_max64  = (void*)&yescrypt_05_get_max64;
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 2048;
    yespower_params.r       = 8;
@@ -192,7 +174,6 @@ bool register_yescryptr8_05_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
-   gate->get_max64  = (void*)&yescrypt_05_get_max64;
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 2048;
    yespower_params.r       = 8;
@@ -206,7 +187,6 @@ bool register_yescryptr16_05_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
-   gate->get_max64  = (void*)&yescryptr16_05_get_max64;
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 4096;
    yespower_params.r       = 16;
@@ -220,7 +200,6 @@ bool register_yescryptr32_05_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
-   gate->get_max64  = (void*)&yescryptr16_05_get_max64;
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 4096;
    yespower_params.r       = 32;
@@ -245,7 +224,6 @@ bool register_power2b_algo( algo_gate_t* gate )
   applog( LOG_NOTICE,"Key length= %d\n", yespower_params.perslen );
 
   gate->optimizations = SSE2_OPT;
-  gate->get_max64     = (void*)&yespower_get_max64;
   gate->scanhash      = (void*)&scanhash_yespower_b2b;
   gate->hash          = (void*)&yespower_b2b_hash;
   opt_target_factor = 65536.0;
@@ -286,7 +264,6 @@ bool register_yespower_b2b_algo( algo_gate_t* gate )
   }  
 
   gate->optimizations = SSE2_OPT;
-  gate->get_max64     = (void*)&yespower_get_max64;
   gate->scanhash      = (void*)&scanhash_yespower_b2b;
   gate->hash          = (void*)&yespower_b2b_hash;
   opt_target_factor = 65536.0;

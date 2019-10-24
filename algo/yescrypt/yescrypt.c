@@ -416,16 +416,6 @@ int scanhash_yescrypt( struct work *work, uint32_t max_nonce,
         return 0;
 }
 
-int64_t yescrypt_get_max64()
-{
-  return 0x1ffLL;
-}
-
-int64_t yescryptr16_get_max64()
-{
-  return 0xfffLL;
-}
-
 void yescrypt_gate_base(algo_gate_t *gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
@@ -437,7 +427,6 @@ void yescrypt_gate_base(algo_gate_t *gate )
 bool register_yescrypt_algo( algo_gate_t* gate )
 {
    yescrypt_gate_base( gate );
-   gate->get_max64  = (void*)&yescrypt_get_max64;
 
    if ( opt_param_n )  YESCRYPT_N = opt_param_n;
    else                YESCRYPT_N = 2048;
@@ -469,7 +458,6 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 bool register_yescryptr8_algo( algo_gate_t* gate )
 {
    yescrypt_gate_base( gate );
-   gate->get_max64  = (void*)&yescrypt_get_max64;
    yescrypt_client_key = "Client Key";
    yescrypt_client_key_len = 10;
    YESCRYPT_N = 2048;
@@ -481,7 +469,6 @@ bool register_yescryptr8_algo( algo_gate_t* gate )
 bool register_yescryptr16_algo( algo_gate_t* gate )
 {
    yescrypt_gate_base( gate );
-   gate->get_max64  = (void*)&yescryptr16_get_max64;
    yescrypt_client_key = "Client Key";
    yescrypt_client_key_len = 10;
    YESCRYPT_N = 4096;   
@@ -493,7 +480,6 @@ bool register_yescryptr16_algo( algo_gate_t* gate )
 bool register_yescryptr32_algo( algo_gate_t* gate )
 {
    yescrypt_gate_base( gate );
-   gate->get_max64  = (void*)&yescryptr16_get_max64;
    yescrypt_client_key = "WaviBanana";
    yescrypt_client_key_len = 10;
    YESCRYPT_N = 4096;

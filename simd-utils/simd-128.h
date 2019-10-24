@@ -298,30 +298,38 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 // 64 and 32 bit elements.
 
 // compiler doesn't like when a variable is used for the last arg of
-// _mm_rol_epi32, must be "8 bit immediate".
+// _mm_rol_epi32, must be "8 bit immediate". Therefore use rol_var where
+// necessary.
 // sm3-hash-4way.c fails to compile.
+
+#define mm128_ror_var_64( v, c ) \
+   _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) )
+
+#define mm128_rol_var_64( v, c ) \
+   _mm_or_si128( _mm_slli_epi64( v, c ), _mm_srli_epi64( v, 64-(c) ) )
+
+#define mm128_ror_var_32( v, c ) \
+   _mm_or_si128( _mm_srli_epi32( v, c ), _mm_slli_epi32( v, 32-(c) ) )
+
+#define mm128_rol_var_32( v, c ) \
+   _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
+
+
 /*
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-#define mm128_ror_64( v, c )    _mm_ror_epi64( v, c )
-#define mm128_rol_64( v, c )    _mm_rol_epi64( v, c )
-#define mm128_ror_32( v, c )    _mm_ror_epi32( v, c )
-#define mm128_rol_32( v, c )    _mm_rol_epi32( v, c )
+#define mm128_ror_64    _mm_ror_epi64
+#define mm128_rol_64    _mm_rol_epi64
+#define mm128_ror_32    _mm_ror_epi32
+#define mm128_rol_32    _mm_rol_epi32
 
 #else
 */
 
-#define mm128_ror_64( v, c ) \
-   _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) )
-
-#define mm128_rol_64( v, c ) \
-   _mm_or_si128( _mm_slli_epi64( v, c ), _mm_srli_epi64( v, 64-(c) ) )
-
-#define mm128_ror_32( v, c ) \
-   _mm_or_si128( _mm_srli_epi32( v, c ), _mm_slli_epi32( v, 32-(c) ) )
-
-#define mm128_rol_32( v, c ) \
-   _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
+#define mm128_ror_64   mm128_ror_var_64
+#define mm128_rol_64   mm128_rol_var_64
+#define mm128_ror_32   mm128_ror_var_32
+#define mm128_rol_32   mm128_rol_var_32
 
 //#endif   // AVX512 else
 

@@ -38,7 +38,7 @@ void decred_decode_extradata( struct work* work, uint64_t* net_blocks )
    if (!have_longpoll && work->height > *net_blocks + 1)
    {
       char netinfo[64] = { 0 };
-      if (opt_showdiff && net_diff > 0.)
+      if ( net_diff > 0. )
       {
          if (net_diff != work->targetdiff)
             sprintf(netinfo, ", diff %.3f, target %.1f", net_diff,
@@ -154,7 +154,6 @@ bool register_decred_algo( algo_gate_t* gate )
 #endif
   gate->optimizations = AVX2_OPT;
   gate->get_nonceptr          = (void*)&decred_get_nonceptr;
-  gate->get_max64             = (void*)&get_max64_0x3fffffLL;
   gate->decode_extra_data     = (void*)&decred_decode_extradata;
   gate->build_stratum_request = (void*)&decred_be_build_stratum_request;
   gate->work_decode           = (void*)&std_be_work_decode;

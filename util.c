@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <jansson.h>
 #include <curl/curl.h>
+#include "sysinfos.c"
 #include <time.h>
 #include <sys/stat.h>
 #include <math.h>

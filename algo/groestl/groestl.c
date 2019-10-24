@@ -100,7 +100,6 @@ bool register_dmd_gr_algo( algo_gate_t* gate )
     gate->optimizations   = SSE2_OPT | AES_OPT;
     gate->scanhash        = (void*)&scanhash_groestl;
     gate->hash            = (void*)&groestlhash;
-    gate->get_max64       = (void*)&get_max64_0x3ffff;
     opt_target_factor = 256.0;
     return true;
 };

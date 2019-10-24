@@ -181,7 +181,7 @@ void sm3_4way_compress( __m128i *digest, __m128i *block )
    for( j =0; j < 16; j++ )
    {
       SS1 = mm128_rol_32( _mm_add_epi32( _mm_add_epi32( mm128_rol_32(A,12), E ),
-                                      mm128_rol_32( T, j ) ), 7 );
+                                      mm128_rol_var_32( T, j ) ), 7 );
       SS2 = _mm_xor_si128( SS1, mm128_rol_32( A, 12 ) );
       TT1 = _mm_add_epi32( _mm_add_epi32( _mm_add_epi32( FF0( A, B, C ), D ),
                                           SS2 ), W1[j] );
@@ -200,9 +200,8 @@ void sm3_4way_compress( __m128i *digest, __m128i *block )
    T = _mm_set1_epi32( 0x7A879D8AUL );
    for( j =16; j < 64; j++ )
    {
-      // AVX512 _mm_rol_epi32 doesn't like using a variable for the second arg.
       SS1 = mm128_rol_32( _mm_add_epi32( _mm_add_epi32( mm128_rol_32(A,12), E ),
-                                      mm128_rol_32( T, j&31 ) ), 7 );
+                                      mm128_rol_var_32( T, j&31 ) ), 7 );
       SS2 = _mm_xor_si128( SS1, mm128_rol_32( A, 12 ) );
       TT1 = _mm_add_epi32( _mm_add_epi32( _mm_add_epi32( FF1( A, B, C ), D ), 
                                           SS2 ), W1[j] );

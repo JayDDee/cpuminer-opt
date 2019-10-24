@@ -11,7 +11,6 @@ bool register_sonoa_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_sonoa;
   gate->hash      = (void*)&sonoa_hash;
 #endif
-  gate->get_max64     = (void*)&get_max64_0x1ffff;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
   return true;
 };

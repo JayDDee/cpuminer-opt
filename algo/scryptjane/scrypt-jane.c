@@ -240,7 +240,6 @@ bool register_scryptjane_algo( algo_gate_t* gate )
 {
     gate->scanhash   = (void*)&scanhash_scryptjane;
     gate->hash       = (void*)&scryptjanehash;
-    gate->get_max64  = (void*)&get_max64_0x40LL;
     opt_target_factor = 65536.0;
 
     // figure out if arg in N or Nfactor

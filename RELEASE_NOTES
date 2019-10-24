@@ -1,11 +1,6 @@
 cpuminer-opt is a console program run from the command line using the
 keyboard, not the mouse.
 
-cpuminer-opt now supports HW SHA acceleration available on AMD Ryzen CPUs.
-This feature requires recent SW including GCC version 5 or higher and
-openssl version 1.1 or higher. It may also require using "-march=znver1"
-compile flag.
-
 Security warning
 ----------------
 
@@ -36,17 +31,26 @@ FreeBSD YMMV.
 Change Log
 ----------
 
+v3.9.9.1
+
+Fixed a day1 bug that could cause the miner to idle for up to 2 minutes
+under certain circumstances.
+
+Redesigned summary stats report now includes session statistics.
+
+More robust handling of statistics to reduce corruption.
+
+Removed --hide-diff option.
+
+Better handling of cpu-affinity with more than 64 CPUs.
+
 v3.9.9
 
 Added power2b algo for MicroBitcoin.
-
 Added generic yespower-b2b (yespower + blake2b) algo to be used with
 the parameters introduced in v3.9.7 for yespower & yescrypt.
-
 Display additional info when a share is rejected.
-
 Some low level enhancements and minor tweaking of log output.
-
 RELEASE_NOTES (this file) and README.md  added to Windows release package.
 
 v3.9.8.1

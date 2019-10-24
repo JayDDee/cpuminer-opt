@@ -113,18 +113,12 @@ int scanhash_lyra2re( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-int64_t lyra2re_get_max64 ()
-{
-  return 0xffffLL;
-}
-
 bool register_lyra2re_algo( algo_gate_t* gate )
 {
   init_lyra2re_ctx();
   gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT;
   gate->scanhash   = (void*)&scanhash_lyra2re;
   gate->hash       = (void*)&lyra2re_hash;
-  gate->get_max64  = (void*)&lyra2re_get_max64;
   opt_target_factor = 128.0;
   return true;
 };

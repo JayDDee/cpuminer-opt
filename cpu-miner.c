@@ -37,6 +37,7 @@
 #include <curl/curl.h>
 #include <jansson.h>
 #include <openssl/sha.h>
+#include "sysinfos.c"
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -81,7 +82,6 @@ bool opt_debug_diff = false;
 bool opt_protocol = false;
 bool opt_benchmark = false;
 bool opt_redirect = true;
-bool opt_showdiff = true;
 bool opt_extranonce = true;
 bool want_longpoll = true;
 bool have_longpoll = false;
@@ -110,12 +110,16 @@ int opt_n_threads = 0;
 bool opt_reset_on_stale = false;
 
 // Windows doesn't support 128 bit affinity mask.
+// Need compile time and run time test.
 #if defined(__linux) && defined(GCC_INT128)  
 #define AFFINITY_USES_UINT128 1
-uint128_t opt_affinity = -1LL;
+uint128_t opt_affinity = -1;
+static bool affinity_uses_uint128 = true;
 #else
-uint64_t opt_affinity = -1LL;
+uint64_t opt_affinity = -1;
+static bool affinity_uses_uint128 = false;
 #endif
+
 int opt_priority = 0;
 int num_cpus = 1;
 int num_cpugroups = 1;
@@ -148,9 +152,10 @@ double opt_target_factor = 1.0;
 uint32_t zr5_pok = 0;
 bool opt_stratum_stats = false;
 bool opt_hash_meter = false;
-uint32_t accepted_share_count = 0ULL;
-uint32_t rejected_share_count = 0ULL;
-uint32_t solved_block_count = 0ULL;
+uint32_t submitted_share_count= 0;
+uint32_t accepted_share_count = 0;
+uint32_t rejected_share_count = 0;
+uint32_t solved_block_count = 0;
 double *thr_hashrates;
 double *thr_hashcount;
 double global_hashcount = 0;
@@ -212,9 +217,9 @@ static inline void drop_policy(void)
 
 // Linux affinity can use int128.
 #if AFFINITY_USES_UINT128
-static void affine_to_cpu_mask( int id, unsigned __int128 mask )
+static void affine_to_cpu_mask( int id, uint128_t mask )
 #else
-static void affine_to_cpu_mask( int id, unsigned long long mask )
+static void affine_to_cpu_mask( int id, uint64_t mask )
 #endif
 {
    cpu_set_t set;
@@ -225,9 +230,9 @@ static void affine_to_cpu_mask( int id, unsigned long long mask )
    {
       // cpu mask
 #if AFFINITY_USES_UINT128
-      if( ( mask & ( (unsigned __int128)1ULL << i ) ) )  CPU_SET( i, &set );
+      if( ( mask & ( (uint128_t)1 << i ) ) )  CPU_SET( i, &set );
 #else
-      if( (ncpus > 64) || ( mask & (1ULL << i) ) )  CPU_SET( i, &set );
+      if( (ncpus > 64) || ( mask & (1 << i) ) )  CPU_SET( i, &set );
 #endif
    }
    if ( id == -1 )
@@ -246,7 +251,7 @@ static void affine_to_cpu_mask( int id, unsigned long long mask )
 static inline void drop_policy(void) { }
 
 // Windows CPU groups to manage more than 64 CPUs.
-static void affine_to_cpu_mask( int id, unsigned long mask )
+static void affine_to_cpu_mask( int id, uint64_t mask )
 {
    bool success;
    unsigned long last_error;    
@@ -254,45 +259,44 @@ static void affine_to_cpu_mask( int id, unsigned long mask )
 //   DWORD last_error;
 
    if ( id == -1 )
-	success = SetProcessAffinityMask( GetCurrentProcess(), mask );
+      success = SetProcessAffinityMask( GetCurrentProcess(), mask );
 
 // Are Windows CPU Groups supported?
 #if _WIN32_WINNT==0x0601
    else if ( num_cpugroups == 1 )
-	success = SetThreadAffinityMask( GetCurrentThread(), mask );
+	   success = SetThreadAffinityMask( GetCurrentThread(), mask );
    else
    {
-	// Find the correct cpu group
-	int cpu = id % num_cpus;
-	int group;
-	for( group = 0; group < num_cpugroups; group++ )
-	{
-	   int cpus = GetActiveProcessorCount( group );
- 	   if ( cpu < cpus )
-	      break;
+	   // Find the correct cpu group
+	   int cpu = id % num_cpus;
+	   int group;
+	   for( group = 0; group < num_cpugroups; group++ )
+	   {
+	      int cpus = GetActiveProcessorCount( group );
+ 	      if ( cpu < cpus )  break;
+  	      cpu -= cpus;
+      }
 
-  	   cpu -= cpus;
-   }
+	   if (opt_debug)
+         applog(LOG_DEBUG, "Binding thread %d to cpu %d on cpu group %d (mask %x)",
+               id, cpu, group, (1ULL << cpu));
 
-	if (opt_debug)
-	applog(LOG_DEBUG, "Binding thread %d to cpu %d on cpu group %d (mask %x)", id, cpu, group, (1ULL << cpu));
-
-	GROUP_AFFINITY affinity;
-	affinity.Group = group;
-	affinity.Mask = 1ULL << cpu;
-	success = SetThreadGroupAffinity( GetCurrentThread(), &affinity, NULL );
+	   GROUP_AFFINITY affinity;
+	   affinity.Group = group;
+	   affinity.Mask = 1ULL << cpu;
+	   success = SetThreadGroupAffinity( GetCurrentThread(), &affinity, NULL );
    }
 #else
    else 
-        success = SetThreadAffinityMask( GetCurrentThread(), mask );
+      success = SetThreadAffinityMask( GetCurrentThread(), mask );
 #endif
 
    if (!success)
    {
-	last_error = GetLastError();
-	applog(LOG_WARNING, "affine_to_cpu_mask for %u returned %x", id, last_error);
+	   last_error = GetLastError();
+	   applog(LOG_WARNING, "affine_to_cpu_mask for %u returned %x",
+               id, last_error);
    }
-
 }
 
 #else
@@ -831,21 +835,22 @@ void scale_hash_for_display ( double* hashrate, char* prefix )
      {  *prefix = 'E';  *hashrate /= 1e18;  }
 }
 
-static inline void sprintf_et( char *str, uint64_t seconds )
+static inline void sprintf_et( char *str, int seconds )
 {
-   uint64_t min = seconds / 60;
-   uint64_t sec = seconds % 60;
-   uint64_t hrs = min / 60;
+   // sprintf doesn't like uint64_t, Linux thinks it's long, Windows long long.
+   unsigned int min = seconds / 60;
+   unsigned int sec = seconds % 60;
+   unsigned int hrs = min / 60;
    if ( hrs )   
    {
-      uint64_t days = hrs / 24;
+      unsigned int days = hrs / 24;
       if ( days )  //0d00h
-         sprintf( str, "%llud%02lluh", days, hrs % 24 );
+         sprintf( str, "%ud%02uh", days, hrs % 24 );
       else         // 0h00m  
-         sprintf( str, "%lluh%02llum", hrs, min % 60 );
+         sprintf( str, "%uh%02um", hrs, min % 60 );
    }
    else         // 0m00s
-      sprintf( str, "%llum%02llus", min, sec );
+      sprintf( str, "%um%02us", min, sec );
 }
    
 // Bitcoin formula for converting difficulty to an equivalent
@@ -859,23 +864,33 @@ static inline void sprintf_et( char *str, uint64_t seconds )
 
 const double diff_to_hash = 4294967296.;
 
+static struct   timeval session_start;
 static struct   timeval five_min_start;
-static double   time_sum    = 0.;
 static double   latency_sum = 0.;
 static uint64_t submit_sum  = 0;
+static uint64_t accept_sum  = 0;
 static uint64_t reject_sum  = 0;
+static double   norm_diff_sum = 0.;
 static uint32_t last_block_height = 0;
 static double   last_targetdiff = 0.;
+static double   ref_rate_hi = 0.;
+static double   ref_rate_lo = 1e100;
+#if !(defined(__WINDOWS__) || defined(__WIN64))
+static uint32_t hi_temp = 0;
+#endif
+//static uint32_t stratum_errors = 0;
 
 struct share_stats_t
 {
    struct timeval submit_time;
    double net_diff;
    double share_diff;
+   double stratum_diff;
+   double target_diff;
 };
 
 #define s_stats_size 8
-static struct share_stats_t share_stats[ s_stats_size ];
+static struct share_stats_t share_stats[ s_stats_size ] = {0};
 static int s_get_ptr = 0, s_put_ptr = 0;
 static struct timeval last_submit_time = {0};
 
@@ -886,77 +901,102 @@ static inline int stats_ptr_incr( int p )
 
 void report_summary_log( bool force )
 {
-   struct timeval now, et;
+   struct timeval now, et, uptime, start_time;
 
    pthread_mutex_lock( &stats_lock );
 
    gettimeofday( &now, NULL );
    timeval_subtract( &et, &now, &five_min_start );
 
-   if ( !force && et.tv_sec < 300 )
+   if ( !( force && ( submit_sum || ( et.tv_sec > 5 ) ) )
+        && ( et.tv_sec < 300 ) )
    {
       pthread_mutex_unlock( &stats_lock );
       return;
    }
    
-   // collect and reset global counters
-   double   time     = time_sum;    time_sum    = 0.;
-   uint64_t submits  = submit_sum;  submit_sum  = 0;
-   uint64_t rejects  = reject_sum;  reject_sum  = 0;
-   int      latency  = latency_sum; latency_sum = 0;
+   // collect and reset periodic counters
+   uint64_t submits = submit_sum;  submit_sum = 0;
+   uint64_t accepts = accept_sum;  accept_sum = 0;
+   uint64_t rejects = reject_sum;  reject_sum = 0;
+//   int      latency  = latency_sum; latency_sum = 0;
+   memcpy( &start_time, &five_min_start, sizeof start_time );
    memcpy( &five_min_start, &now, sizeof now );
 
    pthread_mutex_unlock( &stats_lock );
 
-   double   ghrate = global_hashrate;
-   double   scaled_ghrate = ghrate;
-   double   shrate = time == 0. ? 0. : diff_to_hash * last_targetdiff
-                                       * (double)(submits - rejects)  / time;
-   double   scaled_shrate = shrate;
-   int      avg_latency = 0;
-   double   latency_pc  = 0.;
-   double   submit_rate = 0.;
+   timeval_subtract( &et, &now, &start_time );
+   timeval_subtract( &uptime, &now, &session_start );
+   
+   double share_time = (double)et.tv_sec + (double)et.tv_usec / 1e6;
+   double ghrate = global_hashrate;
+   double scaled_ghrate = ghrate;
+   double shrate = share_time == 0. ? 0. : diff_to_hash * last_targetdiff
+                                           * (double)(accepts) / share_time;
+   double sess_hrate = uptime.tv_sec == 0. ? 0. : diff_to_hash * norm_diff_sum
+                                                   / (double)uptime.tv_sec;
+   double scaled_shrate = shrate;
+//   int    avg_latency = 0;
+//   double latency_pc  = 0.;
+   double submit_rate = 0.;
    char shr_units[4] = {0};
    char ghr_units[4] = {0};
+   char sess_hr_units[4] = {0};
    char et_str[24];
+   char upt_str[24];
 
-   if ( submits )
-      avg_latency = latency / submits;
+//   if ( submits )  avg_latency = latency / submits;
 
-   if ( time != 0. )
+   if ( share_time != 0. )
    {
-      submit_rate = (double)submits*60. / time;
-      latency_pc =  (double)latency / (time * 10.);
+      submit_rate = (double)submits*60. / share_time;
+//      latency_pc =  (double)latency / (share_time * 10.);
    }
+
+   if ( ghrate > ref_rate_hi )  ref_rate_hi = ghrate;
+   if ( ghrate < ref_rate_lo )  ref_rate_lo = ghrate;
 
    scale_hash_for_display( &scaled_shrate, shr_units );
    scale_hash_for_display( &scaled_ghrate, ghr_units );
+   scale_hash_for_display( &sess_hrate, sess_hr_units );
+
    sprintf_et( et_str, et.tv_sec );
+   sprintf_et( upt_str, uptime.tv_sec );
 
-   applog( LOG_NOTICE, "Submitted %d shares in %s, %.2f /min, %ld rejected",
-                        submits, et_str, submit_rate, rejects );
-   applog2( LOG_INFO, "Share eqv: %.2f %sh/s, miner ref: %.2f %sh/s",
-           scaled_shrate, shr_units, scaled_ghrate, ghr_units );
+   applog( LOG_NOTICE, "Periodic Report     %s        %s", et_str, upt_str );
+   applog2( LOG_INFO, "Share rate        %.2f/min     %.2f/min",
+                      submit_rate, (double)submitted_share_count*60. /
+                    ( (double)uptime.tv_sec + (double)uptime.tv_usec / 1e6 ) );
+   applog2( LOG_INFO, "Hash rate       %7.2f%sh/s   %7.2f%sh/s   (%.2f%sh/s)",
+                     scaled_shrate, shr_units, sess_hrate, sess_hr_units, 
+                     scaled_ghrate, ghr_units );
+   applog2( LOG_INFO,"Submitted        %6d       %6d",
+                       submits, submitted_share_count );
+   applog2( LOG_INFO,"Accepted         %6d       %6d",
+                       accepts, accepted_share_count );
+   applog2( LOG_INFO,"Rejected         %6d       %6d",
+                       rejects, rejected_share_count );
+//   applog2( LOG_INFO,"Blocks solved                  %6d",
+//                              solved_block_count );
 
-#if ((defined(_WIN64) || defined(__WINDOWS__)))
-   applog2( LOG_INFO, "Network latency %d ms (%.2f%%)",
-                       avg_latency, latency_pc );
-#else
+#if !(defined(__WINDOWS__) || defined(__WIN64))
+
    int temp = cpu_temp(0);
    char tempstr[32];
+   if ( temp > hi_temp ) hi_temp = temp;
 
    if ( use_colors && ( temp >= 70 ) )
    {
       if ( temp >= 80 )
-         sprintf( tempstr, "%sCPU temp %d C%s", CL_WHT CL_RED, temp, CL_N );
+         sprintf( tempstr, "%s%dC%s", CL_WHT CL_RED, temp, CL_N );
       else
-         sprintf( tempstr, "%sCPU temp %d C%s", CL_WHT CL_YLW, temp, CL_N );
+         sprintf( tempstr, "%s%dC%s", CL_WHT CL_YLW, temp, CL_N );
    }
    else
-      sprintf( tempstr, "CPU temp %d C", temp );
+      sprintf( tempstr, "%dC", temp );
 
-   applog2( LOG_INFO, "Network latency %d ms (%.2f%%), %s",
-                      avg_latency, latency_pc, tempstr );
+   applog2(LOG_INFO,"CPU temp             %s      max %dC", tempstr, hi_temp );
+
 #endif
 }
 
@@ -983,6 +1023,7 @@ static int share_result( int result, struct work *null_work,
    }
    else
    {
+      // empty queue, it must have overflowed and stats were lost for a share.
       pthread_mutex_unlock( &stats_lock );
       applog(LOG_WARNING,"Pending shares overflow, stats for share are lost.");
    }
@@ -992,9 +1033,9 @@ static int share_result( int result, struct work *null_work,
    {
       gettimeofday( &ack_time, NULL );
       timeval_subtract( &latency_tv, &ack_time, &my_stats.submit_time );
-      latency = ( latency_tv.tv_sec * 1000  + latency_tv.tv_usec / 1000 );
+      latency = ( latency_tv.tv_sec * 1e3  + latency_tv.tv_usec / 1e3 );
       timeval_subtract( &et, &my_stats.submit_time, &last_submit_time );
-      share_time = (double)et.tv_sec + ( (double)et.tv_usec / 1000000. );
+      share_time = (double)et.tv_sec + ( (double)et.tv_usec / 1e6 );
       memcpy( &last_submit_time, &my_stats.submit_time,
               sizeof last_submit_time );
    }
@@ -1003,11 +1044,23 @@ static int share_result( int result, struct work *null_work,
                                                 my_stats.net_diff * 100.;
 
    // check result
+   if ( result )
+   {
+      accepted_share_count++;
+      if ( ( my_stats.net_diff > 0. ) && ( my_stats.share_diff >= net_diff ) )
+      {
+         solved = true;
+         solved_block_count++;
+      }
+   }
+   else
+      rejected_share_count++;
+/*
    result ? accepted_share_count++ : rejected_share_count++;
    solved = result && (my_stats.net_diff > 0.0 )
             && ( my_stats.share_diff >= net_diff );
    solved_block_count += solved ? 1 : 0 ;
-
+*/
    // update global counters for summary report
    pthread_mutex_lock( &stats_lock );
 
@@ -1019,9 +1072,14 @@ static int share_result( int result, struct work *null_work,
    global_hashcount = hashcount;
    global_hashrate = hashrate;
    
-   time_sum    += share_time;
-   submit_sum  ++;
-   reject_sum  += (uint64_t)!result;
+   if ( result ) 
+   {
+      accept_sum++;
+      norm_diff_sum += my_stats.target_diff;
+   }
+   else
+      reject_sum++;
+   submit_sum++;
    latency_sum += latency;
 
    pthread_mutex_unlock( &stats_lock );
@@ -1057,7 +1115,7 @@ static int share_result( int result, struct work *null_work,
          bin2hex( str3, (unsigned char*)str2, 12 );
          applog2( LOG_INFO, "Hash:   %s...", str3 );
 
-         diff_to_target( str1, last_targetdiff );
+         diff_to_target( str1, my_stats.target_diff );
          for ( int i = 0; i < 8; i++ )
             be32enc( str2 + i, str1[7 - i] );
          bin2hex( str3, (unsigned char*)str2, 12 );
@@ -1569,42 +1627,44 @@ static void *workio_thread(void *userdata)
 	bool ok = true;
 
 	curl = curl_easy_init();
-	if (unlikely(!curl))
-        {
+	if (unlikely( !curl ) )
+   {
 		applog(LOG_ERR, "CURL initialization failed");
 		return NULL;
 	}
-	if(jsonrpc_2 && !have_stratum)
-		ok = rpc2_workio_login(curl);
-	while (ok)
-        {
+	if ( jsonrpc_2 && !have_stratum )
+		ok = rpc2_workio_login( curl );
+
+   while (ok)
+   {
 		struct workio_cmd *wc;
 
 		/* wait for workio_cmd sent to us, on our queue */
 		wc = (struct workio_cmd *) tq_pop(mythr->q, NULL);
 		if (!wc)
-                {
+      {
 			ok = false;
 			break;
 		}
 
 		/* process workio_cmd */
 		switch (wc->cmd)
-                {
-		case WC_GET_WORK:
-			ok = workio_get_work(wc, curl);
-			break;
-		case WC_SUBMIT_WORK:
-			ok = workio_submit_work(wc, curl);
-			break;
+      {
+		   case WC_GET_WORK:
+			   ok = workio_get_work(wc, curl);
+			   break;
+		   case WC_SUBMIT_WORK:
+			   ok = workio_submit_work(wc, curl);
+			   break;
 
-		default:		/* should never happen */
-			ok = false;
-			break;
+		   default:		/* should never happen */
+			   ok = false;
+			   break;
 		}
 		workio_cmd_free(wc);
 	}
-	tq_freeze(mythr->q);
+
+   tq_freeze(mythr->q);
 	curl_easy_cleanup(curl);
 	return NULL;
 }
@@ -1695,17 +1755,18 @@ void work_set_target_ratio( struct work* work, uint32_t* hash )
       work->sharediff = 0.;
 
    // collect some share stats
+   // Frequent share submission combined with high latency can caused
+   // shares to be submitted faster than they are acked. If severe enough
+   // it can overflow the queue and overwrite stats for a share.
    pthread_mutex_lock( &stats_lock );
 
-   // if buffer full discard the stats and don't increment pointer.
-   // We're on the clock so let share_result report it.
-   if ( share_stats[ s_put_ptr ].submit_time.tv_sec == 0 )
-   {
-      gettimeofday( &share_stats[ s_put_ptr ].submit_time, NULL );
-      share_stats[ s_put_ptr ].share_diff = work->sharediff;
-      share_stats[ s_put_ptr ].net_diff = net_diff;
-      s_put_ptr = stats_ptr_incr( s_put_ptr );
-   }
+   gettimeofday( &share_stats[ s_put_ptr ].submit_time, NULL );
+   share_stats[ s_put_ptr ].share_diff = work->sharediff;
+   share_stats[ s_put_ptr ].net_diff = net_diff;
+   share_stats[ s_put_ptr ].stratum_diff = stratum_diff;
+   share_stats[ s_put_ptr ].target_diff = work->targetdiff;
+
+   s_put_ptr = stats_ptr_incr( s_put_ptr );
 
    pthread_mutex_unlock( &stats_lock );
 }
@@ -1715,10 +1776,11 @@ bool submit_solution( struct work *work, void *hash,
 {
   if ( submit_work( thr, work ) )
   {
+     submitted_share_count++;
      work_set_target_ratio( work, hash );
      if ( !opt_quiet )
         applog( LOG_BLUE, "Share %d submitted by thread %d",
-            accepted_share_count + rejected_share_count + 1, thr->id );
+            submitted_share_count, thr->id );
      return true;
   }
   else
@@ -1731,10 +1793,11 @@ bool submit_lane_solution( struct work *work, void *hash,
 {
   if ( submit_work( thr, work ) )
   {
+     submitted_share_count++;
      work_set_target_ratio( work, hash );
      if ( !opt_quiet )
         applog( LOG_BLUE, "Share %d submitted by thread %d, lane %d",
-            accepted_share_count + rejected_share_count + 1, thr->id, lane );
+            submitted_share_count, thr->id, lane );
      return true;
   }
   else
@@ -1793,21 +1856,7 @@ static bool wanna_mine(int thr_id)
 	return state;
 }
 
-void std_wait_for_diff()
-{
-   while ( time(NULL) >= g_work_time + 120 )
-     sleep(1);
-}
-
 // Common target functions, default usually listed first.
-
-// pick your favorite or define your own
-int64_t get_max64_0x1fffffLL() { return 0x1fffffLL; } // default
-int64_t get_max64_0x40LL()     { return 0x40LL;     }
-int64_t get_max64_0x3ffff()    { return 0x3ffff;    }
-int64_t get_max64_0x3fffffLL() { return 0x3fffffLL; }
-int64_t get_max64_0x1ffff()    { return 0x1ffff;    }
-int64_t get_max64_0xffffLL()   { return 0xffffLL;   };
 
 // default
 void sha256d_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
@@ -1943,9 +1992,11 @@ static void *miner_thread( void *userdata )
    // what is an appropriate value that is completely neutral?
    // zero seems to work. No, it breaks benchmark.
 //   uint32_t end_nonce = 0;
-   uint32_t end_nonce = opt_benchmark
-                      ? ( 0xffffffffU / opt_n_threads ) * (thr_id + 1) - 0x20
-                      : 0;
+//   uint32_t end_nonce = opt_benchmark
+//                      ? ( 0xffffffffU / opt_n_threads ) * (thr_id + 1) - 0x20
+//                      : 0;
+   uint32_t end_nonce = 0xffffffffU / opt_n_threads  * (thr_id + 1) - 0x20;
+
    time_t   firstwork_time = 0;
    int  i;
    memset( &work, 0, sizeof(work) );
@@ -1996,37 +2047,42 @@ static void *miner_thread( void *userdata )
       // Default affinity
       if ( (opt_affinity == (uint128_t)(-1) ) && opt_n_threads > 1 )
       {  
+         affine_to_cpu_mask( thr_id, (uint128_t)1 << (thr_id % num_cpus) );
          if ( opt_debug )
             applog( LOG_DEBUG, "Binding thread %d to cpu %d.",
                     thr_id, thr_id % num_cpus,
 	                 u128_hi64( (uint128_t)1 << (thr_id % num_cpus) ),
 		              u128_lo64( (uint128_t)1 << (thr_id % num_cpus) ) );
-         affine_to_cpu_mask( thr_id, (uint128_t)1 << (thr_id % num_cpus) );
       }
 #else
-      if ( (opt_affinity == -1LL) && opt_n_threads > 1 ) 
+      if ( ( opt_affinity == -1 ) && ( opt_n_threads > 1 ) ) 
       {
+         affine_to_cpu_mask( thr_id, 1 << (thr_id % num_cpus) );
          if (opt_debug)
             applog( LOG_DEBUG, "Binding thread %d to cpu %d.",
-                thr_id, thr_id % num_cpus, 1LL << (thr_id % num_cpus)) ;
-         affine_to_cpu_mask( thr_id, 1ULL << (thr_id % num_cpus) );
+                thr_id, thr_id % num_cpus, 1 << (thr_id % num_cpus)) ;
       }
 #endif
       else   // Custom affinity
       {
+         affine_to_cpu_mask( thr_id, opt_affinity );
+         if ( opt_debug )
+         {
 #if AFFINITY_USES_UINT128
-         if (opt_debug)
-             applog( LOG_DEBUG, "Binding thread %d to mask %016llx %016llx",
+            if ( num_cpus > 64 )
+               applog( LOG_DEBUG, "Binding thread %d to mask %016llx %016llx",
                                 thr_id, u128_hi64( opt_affinity ), 
                                         u128_lo64( opt_affinity ) );
+            else
+               applog( LOG_DEBUG, "Binding thread %d to mask %016llx",
+                                 thr_id, opt_affinity );
 #else
-         if (opt_debug)
-             applog( LOG_DEBUG, "Binding thread %d to mask %016llx",
+            applog( LOG_DEBUG, "Binding thread %d to mask %016llx",
                                  thr_id, opt_affinity );
 #endif
-      affine_to_cpu_mask( thr_id, opt_affinity );
+         }
       }
-   }
+   }  // num_cpus > 1
 
    if ( !algo_gate.miner_thread_init( thr_id ) )
    {
@@ -2034,18 +2090,20 @@ static void *miner_thread( void *userdata )
       exit (1);
    }
 
+   // wait for stratum to send first job
+   if ( have_stratum ) while ( !stratum.job.job_id ) sleep(1);
+
    while (1)
    {
        uint64_t hashes_done;
        struct timeval tv_start, tv_end, diff;
-       int64_t max64;
+       int64_t max64 = 1000;
        int nonce_found = 0;
 
        if ( algo_gate.do_this_thread( thr_id ) )
        {
           if ( have_stratum )
           {
-              algo_gate.wait_for_diff( &stratum );
       	     pthread_mutex_lock( &g_work_lock );
               if ( *algo_gate.get_nonceptr( work.data ) >= end_nonce )
                  algo_gate.stratum_gen_work( &stratum, &g_work );
@@ -2117,11 +2175,13 @@ static void *miner_thread( void *userdata )
           }
           if ( remain < max64 ) max64 = remain;
        }
-       // max64
+       // Select nonce range for approx 1 min duration based
+       // on hashrate, initial value arbitrarilly set to 1000 just to get
+       // a sample hashrate for the next time.
        uint32_t work_nonce = *( algo_gate.get_nonceptr( work.data ) );
-       max64 *= thr_hashrates[thr_id];
+       max64 = 60 * thr_hashrates[thr_id];
        if ( max64 <= 0)
-          max64 = (int64_t)algo_gate.get_max64();
+          max64 = 1000;
        if ( work_nonce + max64 > end_nonce )
           max_nonce = end_nonce;
        else
@@ -2171,8 +2231,6 @@ static void *miner_thread( void *userdata )
              pthread_mutex_unlock( &g_work_lock );
           }
        }
-       // Check if time for summary report
-       report_summary_log( false );
        // display hashrate
        if ( !opt_quiet )
        {
@@ -2199,28 +2257,6 @@ static void *miner_thread( void *userdata )
                                   thr_id, hc, hc_units, hr, hr_units );
              }
           }
-/*
-          if ( thr_id == 0 && !opt_benchmark )
-          {
-             hashcount = 0.;
-             hashrate = 0.;
-             for ( i = 0; i < opt_n_threads; i++ )
-             {
-                 hashrate  += thr_hashrates[i];
-                 hashcount += thr_hashcount[i];
-             }
-             if ( hashcount != 0. )
-             {
-                scale_hash_for_display( &hashcount, hc_units );
-                scale_hash_for_display( &hashrate,  hr_units );
-                if ( hc_units[0] )
-                   sprintf( hc, "%.2f", hashcount );
-                else  // no fractions of a hash
-                   sprintf( hc, "%.0f", hashcount );
-                sprintf( hr, "%.2f", hashrate );
-             }
-          }
-*/
        }
 
        // Display benchmark total
@@ -2260,8 +2296,8 @@ static void *miner_thread( void *userdata )
                          hc, hc_units, hr, hr_units, (uint32_t)cpu_temp(0) );
 #endif
              }
-	  }
-       }
+	       }
+       }  // benchmark
    }  // miner_thread loop
 
 out:
@@ -2582,11 +2618,7 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
        char share_ttf[32];
   
        if ( stratum_diff != sctx->job.diff )
-       {
-          // If diff is changing report summary from old diff first.       
-          report_summary_log( stratum_diff != 0. );
           applog( LOG_BLUE, "New stratum difficulty" );
-       }
        if ( last_block_height != sctx->block_height )
           applog( LOG_BLUE, "New block" );
 
@@ -2614,6 +2646,8 @@ void jr2_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    work_free( g_work );
    work_copy( g_work, &sctx->work );
    pthread_mutex_unlock( &sctx->work_lock );
+   if ( last_block_height != stratum.block_height )
+       last_block_height = stratum.block_height;
 }
 
 static void *stratum_thread(void *userdata )
@@ -2642,6 +2676,8 @@ static void *stratum_thread(void *userdata )
           }
           else // if ( !opt_quiet )
 	          applog(LOG_WARNING, "Stratum connection reset");
+          // reset stats queue as well
+          s_get_ptr = s_put_ptr = 0;
       }
 
       while ( !stratum.curl )
@@ -2673,6 +2709,9 @@ static void *stratum_thread(void *userdata )
          }
       }
 
+      report_summary_log( ( stratum_diff != stratum.job.diff )
+                       && ( stratum_diff != 0. ) );
+      
       if ( stratum.job.job_id
           && ( !g_work_time || strcmp( stratum.job.job_id, g_work.job_id ) ) )
       {
@@ -2682,40 +2721,53 @@ static void *stratum_thread(void *userdata )
          pthread_mutex_unlock(&g_work_lock);
          restart_threads();
 
+/*
          if ( stratum.job.clean || jsonrpc_2 )
          {
             static uint32_t last_block_height;
             if ( last_block_height != stratum.block_height )
             {
                last_block_height = stratum.block_height;
-/*
-               if ( !opt_quiet )
-               {
-                  if ( net_diff > 0. )
-                     applog( LOG_BLUE,
-                             "%s block %d, job %s, network diff %.4f",
-                             algo_names[opt_algo], stratum.bloc_height,
-                             g_work.job_id, net_diff);
-                  else
-	                  applog( LOG_BLUE, "%s %s block %d, job %s",
-                             short_url, algo_names[opt_algo],
-                             stratum.bloc_height, g_work.job_id );
-	             }
-*/
             }
-//            else if ( !opt_quiet )
-//               applog( LOG_BLUE,"New job %s.", g_work.job_id );
 
          }
-         else if (opt_debug && !opt_quiet)
+         else
+*/
+         if (opt_debug && !opt_quiet)
          {
             applog( LOG_BLUE, "%s asks job %d for block %d", short_url,
                 strtoul( stratum.job.job_id, NULL, 16 ), stratum.block_height );
          }
       }  // stratum.job.job_id
 
+     if ( stratum_socket_full( &stratum, opt_timeout ) )
+     {
+        s = stratum_recv_line(&stratum);
+        if ( !s )
+           applog(LOG_WARNING, "Stratum connection interrupted");
+     }
+     else
+     {
+        s = NULL;
+        applog(LOG_ERR, "Stratum connection timeout");
+     }
+
+     if ( s )
+     {
+        if ( !stratum_handle_method( &stratum, s ) )
+           stratum_handle_response( s );
+        free( s );
+     }
+     else
+     {
+        // stratum_errors++;
+        // check if this redundant
+        stratum_disconnect( &stratum );
+     }   
+/*
      if ( !stratum_socket_full( &stratum, opt_timeout ) )
      {
+        stratum_errors++;
         applog(LOG_ERR, "Stratum connection timeout");
         s = NULL;
      }
@@ -2724,13 +2776,14 @@ static void *stratum_thread(void *userdata )
      if ( !s )
      {
         stratum_disconnect(&stratum);
-//	  applog(LOG_WARNING, "Stratum connection interrupted");
+        applog(LOG_WARNING, "Stratum connection interrupted");
         continue;
      }
      if (!stratum_handle_method(&stratum, s))
           stratum_handle_response(s);
      free(s);
-  }  // loop
+*/
+   }  // loop
 out:
   return NULL;
 }
@@ -3074,10 +3127,6 @@ void parse_arg(int key, char *arg )
 	case 1012:
 		opt_extranonce = false;
 		break;
-	case 1013:
-      applog( LOG_WARNING, "hide-diff option is deprecated and has no effect.\n                      It will be removed in a future release. Stop using it.");
-		opt_showdiff = false;
-		break;
    case 1014:   // hash-meter
       opt_hash_meter = true;
       break;
@@ -3124,7 +3173,7 @@ void parse_arg(int key, char *arg )
 // than 64 CPUs, otherwise zero extend the upper half.
                 opt_affinity = (uint128_t)ul;
                 if ( num_cpus > 64 )
-                   opt_affinity = (opt_affinity << 64 ) | (uint128_t)ul;
+                   opt_affinity = (opt_affinity << 64 ) | opt_affinity;
 #else
                    opt_affinity = ul;
 #endif
@@ -3303,10 +3352,10 @@ bool check_cpu_capability ()
      bool cpu_has_sse2   = has_sse2();
      bool cpu_has_aes    = has_aes_ni();
      bool cpu_has_sse42  = has_sse42();
-     bool cpu_has_avx    = has_avx1();
+     bool cpu_has_avx    = has_avx();
      bool cpu_has_avx2   = has_avx2();
      bool cpu_has_sha    = has_sha();
-     bool cpu_has_avx512 = has_avx512f();
+     bool cpu_has_avx512 = has_avx512();
      bool sw_has_aes    = false;
      bool sw_has_sse42  = false;
      bool sw_has_avx    = false;
@@ -3340,16 +3389,16 @@ bool check_cpu_capability ()
      #ifdef __AVX2__
          sw_has_avx2 = true;
      #endif
-     #ifdef __AVX512F__
+     #if (defined(__AVX512F__) && defined(__AVX51DQF__) && defined(__AVX51BW__) && defined(__AVX512VL__))
          sw_has_avx512 = true;
      #endif
      #ifdef __SHA__
          sw_has_sha = true;
      #endif
 
-     #if !((__AES__) || (__SSE2__))
-         printf("Neither __AES__ nor __SSE2__ defined.\n");
-     #endif
+//     #if !((__AES__) || (__SSE2__))
+//         printf("Neither __AES__ nor __SSE2__ defined.\n");
+//     #endif
 
      cpu_brand_string( cpu_brand );
      printf( "CPU: %s.\n", cpu_brand );
@@ -3465,7 +3514,7 @@ int main(int argc, char *argv[])
 	rpc_pass = strdup("");
 	opt_api_allow = strdup("127.0.0.1"); /* 0.0.0.0 for all ips */
 
-        parse_cmdline(argc, argv);
+   parse_cmdline(argc, argv);
 
 #if defined(WIN32)
 //	SYSTEM_INFO sysinfo;
@@ -3486,9 +3535,9 @@ int main(int argc, char *argv[])
 		applog(LOG_DEBUG, "Found %d cpus on cpu group %d", cpus, i);
 	}
 #else
-      SYSTEM_INFO sysinfo;
-      GetSystemInfo(&sysinfo);
-      num_cpus = sysinfo.dwNumberOfProcessors;
+   SYSTEM_INFO sysinfo;
+   GetSystemInfo(&sysinfo);
+   num_cpus = sysinfo.dwNumberOfProcessors;
 #endif
 
 #elif defined(_SC_NPROCESSORS_CONF)
@@ -3504,21 +3553,21 @@ int main(int argc, char *argv[])
 		num_cpus = 1;
 
 
-        if (!opt_n_threads)
-                opt_n_threads = num_cpus;
+   if (!opt_n_threads)
+      opt_n_threads = num_cpus;
 
-        if ( opt_algo == ALGO_NULL )
-        {
-            fprintf(stderr, "%s: no algo supplied\n", argv[0]);
-            show_usage_and_exit(1);
-        }
+   if ( opt_algo == ALGO_NULL )
+   {
+      fprintf(stderr, "%s: no algo supplied\n", argv[0]);
+      show_usage_and_exit(1);
+   }
 	if ( !opt_benchmark )
-        {
-            if ( !short_url )
-            {
-               fprintf(stderr, "%s: no URL supplied\n", argv[0]);
-               show_usage_and_exit(1);
-            }
+   {
+      if ( !short_url )
+      {
+         fprintf(stderr, "%s: no URL supplied\n", argv[0]);
+         show_usage_and_exit(1);
+      }
 /*
             if ( !rpc_url )
             {
@@ -3557,6 +3606,7 @@ int main(int argc, char *argv[])
    memset( share_stats, 0, 2 *  sizeof (struct share_stats_t) );
    gettimeofday( &last_submit_time, NULL );
    memcpy( &five_min_start, &last_submit_time, sizeof (struct timeval) );
+   memcpy( &session_start, &last_submit_time, sizeof (struct timeval) );
 
    if ( !check_cpu_capability() ) exit(1);
 
@@ -3578,7 +3628,7 @@ int main(int argc, char *argv[])
 
 #ifndef WIN32
 	if (opt_background)
-        {
+   {
 		i = fork();
 		if (i < 0) exit(1);
 		if (i > 0) exit(0);
@@ -3596,7 +3646,7 @@ int main(int argc, char *argv[])
 #else
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
 	if (opt_background)
-        {
+   {
 		HWND hcon = GetConsoleWindow();
 		if (hcon) {
 			// this method also hide parent command line window
@@ -3608,7 +3658,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (opt_priority > 0)
-        {
+   {
 		DWORD prio = NORMAL_PRIORITY_CLASS;
 		switch (opt_priority) {
 		case 1:
@@ -3631,20 +3681,32 @@ int main(int argc, char *argv[])
      applog( LOG_INFO,"%u CPU cores available, %u miner threads selected.",
              num_cpus, opt_n_threads );
 
-// To be reviewed
+// To be confirmed with more than 64 cpus
    if ( opt_affinity != -1 )
    {
-      if ( num_cpus > 64 )
+      if ( !affinity_uses_uint128 && num_cpus > 64 )
       {
-          applog(LOG_WARNING,"--cpu-affinity argument is not supported with more");
-          applog(LOG_WARNING," than 64 CPUs, using default affinity.");
+          applog(LOG_WARNING,"Setting CPU affinity with more than 64 CPUs is only");
+          applog(LOG_WARNING,"available on Linux. Using default affinity.");
           opt_affinity = -1;
       }
       else	
       {
-         if (!opt_quiet)
-            applog(LOG_DEBUG, "Binding process to cpu mask %x", opt_affinity);
-         affine_to_cpu_mask( -1, (unsigned long)opt_affinity );
+         affine_to_cpu_mask( -1, opt_affinity );
+         if ( !opt_quiet )
+         {
+#if AFFINITY_USES_UINT128
+            if ( num_cpus > 64 )
+               applog(LOG_DEBUG, "Binding process to cpu mask %x",
+                      u128_hi64( opt_affinity ), u128_lo64( opt_affinity ) );
+            else 
+               applog(LOG_DEBUG, "Binding process to cpu mask %x",
+                      opt_affinity );
+#else
+               applog(LOG_DEBUG, "Binding process to cpu mask %x",
+                      opt_affinity );
+#endif
+         }
       }
    }
 
@@ -3687,7 +3749,7 @@ int main(int argc, char *argv[])
 
 	/* ESET-NOD32 Detects these 2 thread_create... */
 	if (want_longpoll && !have_stratum)
-        {
+   {
 		/* init longpoll thread info */
 		longpoll_thr_id = opt_n_threads + 1;
 		thr = &thr_info[longpoll_thr_id];
@@ -3703,7 +3765,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (want_stratum)
-        {
+   {
 		/* init stratum thread info */
 		stratum_thr_id = opt_n_threads + 2;
 		thr = &thr_info[stratum_thr_id];
@@ -3723,7 +3785,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (opt_api_listen)
-        {
+   {
 		/* api thread */
 		api_thr_id = opt_n_threads + 3;
 		thr = &thr_info[api_thr_id];
@@ -3740,7 +3802,7 @@ int main(int argc, char *argv[])
 
 	/* start mining threads */
 	for (i = 0; i < opt_n_threads; i++)
-        {
+   {
 		thr = &thr_info[i];
 		thr->id = i;
 		thr->q = tq_new();

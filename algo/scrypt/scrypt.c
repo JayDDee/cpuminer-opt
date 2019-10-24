@@ -766,8 +766,6 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-int64_t scrypt_get_max64() { return 0xfff; }
-
 bool scrypt_miner_thread_init( int thr_id )
 {
  scratchbuf = scrypt_buffer_alloc( scratchbuf_size );  
@@ -783,9 +781,7 @@ bool register_scrypt_algo( algo_gate_t* gate )
   gate->miner_thread_init =(void*)&scrypt_miner_thread_init;
   gate->scanhash         = (void*)&scanhash_scrypt;
 //  gate->hash             = (void*)&scrypt_1024_1_1_256_24way;
-  gate->get_max64        = (void*)&scrypt_get_max64;
   opt_target_factor = 65536.0;
-
 
   if ( !opt_param_n )
   {

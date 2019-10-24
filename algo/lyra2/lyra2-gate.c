@@ -127,7 +127,6 @@ bool register_lyra2z_algo( algo_gate_t* gate )
   gate->hash       = (void*)&lyra2z_hash;
 #endif
   gate->optimizations = SSE42_OPT | AVX2_OPT;
-  gate->get_max64  = (void*)&get_max64_0xffffLL;
   opt_target_factor = 256.0;
   return true;
 };
@@ -147,14 +146,11 @@ bool register_lyra2h_algo( algo_gate_t* gate )
   gate->hash       = (void*)&lyra2h_hash;
 #endif
   gate->optimizations = SSE42_OPT | AVX2_OPT;
-  gate->get_max64  = (void*)&get_max64_0xffffLL;
   opt_target_factor = 256.0;
   return true;
 };
 
 /////////////////////////////////
-
-int64_t allium_get_max64_0xFFFFLL() { return 0xFFFFLL; }
 
 bool register_allium_algo( algo_gate_t* gate )
 {
@@ -168,7 +164,6 @@ bool register_allium_algo( algo_gate_t* gate )
   gate->hash      = (void*)&allium_hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT;
-  gate->get_max64         = (void*)&allium_get_max64_0xFFFFLL;
   opt_target_factor = 256.0;
   return true;
 };
@@ -214,7 +209,6 @@ bool register_phi2_algo( algo_gate_t* gate )
    gate->get_work_data_size = (void*)&phi2_get_work_data_size;
    gate->decode_extra_data  = (void*)&phi2_decode_extra_data;
    gate->build_extraheader  = (void*)&phi2_build_extraheader;
-   gate->get_max64          = (void*)&get_max64_0xffffLL;
    opt_target_factor = 256.0;
 #if defined(PHI2_4WAY)
    gate->scanhash           = (void*)&scanhash_phi2_4way;

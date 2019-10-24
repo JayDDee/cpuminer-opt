@@ -88,15 +88,3 @@ int scanhash_myriad( struct work *work, uint32_t max_nonce,
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
-/*
-bool register_myriad_algo( algo_gate_t* gate )
-{
-    gate->optimizations = SSE2_OPT | AES_OPT;
-    init_myrgr_ctx();
-    gate->scanhash = (void*)&scanhash_myriad;
-    gate->hash     = (void*)&myriadhash;
-//    gate->hash_alt = (void*)&myriadhash;
-    gate->get_max64 = (void*)&get_max64_0x3ffff;
-    return true;
-};
-*/

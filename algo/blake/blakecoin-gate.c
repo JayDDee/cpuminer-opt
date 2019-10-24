@@ -1,13 +1,6 @@
 #include "blakecoin-gate.h"
 #include <memory.h>
 
-// changed to get_max64_0x3fffffLL in cpuminer-multi-decred
-int64_t blakecoin_get_max64 ()
-{
-  return 0x7ffffLL;
-//  return 0x3fffffLL;
-}
-
 // vanilla uses default gen merkle root, otherwise identical to blakecoin
 bool register_vanilla_algo( algo_gate_t* gate )
 {
@@ -23,7 +16,6 @@ bool register_vanilla_algo( algo_gate_t* gate )
   gate->hash     = (void*)&blakecoinhash;
 #endif
   gate->optimizations = SSE42_OPT | AVX2_OPT;
-  gate->get_max64 = (void*)&blakecoin_get_max64;
   return true;
 }
 

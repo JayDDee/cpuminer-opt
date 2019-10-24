@@ -12,7 +12,6 @@ bool register_timetravel_algo( algo_gate_t* gate )
   gate->hash       = (void*)&timetravel_hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
-  gate->get_max64  = (void*)&get_max64_0xffffLL;
   opt_target_factor = 256.0;
   return true;
 };

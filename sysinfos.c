@@ -1,8 +1,13 @@
+#if !defined(SYSINJFOS_C___)
+#define SYSINFOS_C__
+
 /**
  * Unit to read cpu informations
  *
  * tpruvot 2014
- */
+ * JayDDee 2019
+ * 
+*/
 
 #include <stdio.h>
 #include <ctype.h>
@@ -28,7 +33,7 @@
 #define HWMON_ALT5 \
 "/sys/class/hwmon/hwmon0/device/temp1_input"
 
-static float linux_cputemp(int core)
+static inline float linux_cputemp(int core)
 {
 	float tc = 0.0;
 	FILE *fd = fopen(HWMON_PATH, "r");
@@ -60,7 +65,7 @@ static float linux_cputemp(int core)
 
 #define CPUFREQ_PATH \
  "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq"
-static uint32_t linux_cpufreq(int core)
+static inline uint32_t linux_cpufreq(int core)
 {
 	FILE *fd = fopen(CPUFREQ_PATH, "r");
 	uint32_t freq = 0;
@@ -76,7 +81,7 @@ static uint32_t linux_cpufreq(int core)
 
 #else /* WIN32 */
 
-static float win32_cputemp(int core)
+static inline float win32_cputemp(int core)
 {
 	// todo
 	return 0.0;
@@ -88,7 +93,7 @@ static float win32_cputemp(int core)
 /* exports */
 
 
-float cpu_temp(int core)
+static inline float cpu_temp(int core)
 {
 #ifdef WIN32
 	return win32_cputemp(core);
@@ -97,7 +102,7 @@ float cpu_temp(int core)
 #endif
 }
 
-uint32_t cpu_clock(int core)
+static inline uint32_t cpu_clock(int core)
 {
 #ifdef WIN32
 	return 0;
@@ -106,7 +111,7 @@ uint32_t cpu_clock(int core)
 #endif
 }
 
-int cpu_fanpercent()
+static inline int cpu_fanpercent()
 {
 	return 0;
 }
@@ -142,7 +147,7 @@ static inline void cpuid(int functionnumber, int output[4]) {
 #define cpuid(fn, out) out[0] = 0;
 #endif
 
-void cpu_getname(char *outbuf, size_t maxsz)
+static inline void cpu_getname(char *outbuf, size_t maxsz)
 {
    memset(outbuf, 0, maxsz);
 #ifdef WIN32
@@ -190,7 +195,7 @@ void cpu_getname(char *outbuf, size_t maxsz)
 #endif
 }
 
-void cpu_getmodelid(char *outbuf, size_t maxsz)
+static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 {
    memset(outbuf, 0, maxsz);
 #ifdef WIN32
@@ -259,32 +264,47 @@ void cpu_getmodelid(char *outbuf, size_t maxsz)
 #define CPU_BRAND_2          (0x80000003)
 #define CPU_BRAND_3          (0x80000004)
 
+// Registers
 #define EAX_Reg  (0)
 #define EBX_Reg  (1)
 #define ECX_Reg  (2)
 #define EDX_Reg  (3)
 
-#define XSAVE_Flag    (1<<26) // ECX
+// Feature flags
+
+// CPU_INFO ECX
+#define XSAVE_Flag    (1<<26) 
 #define OSXSAVE_Flag  (1<<27)
-#define AVX1_Flag     (1<<28)
+#define AVX_Flag     (1<<28)
 #define XOP_Flag      (1<<11)
 #define FMA3_Flag     (1<<12)
 #define AES_Flag      (1<<25)
 #define SSE42_Flag    (1<<20)
 
+// CPU_INFO EDX
 #define SSE_Flag      (1<<25) // EDX
 #define SSE2_Flag     (1<<26) 
 
-#define AVX2_Flag     (1<< 5) // ADV EBX
+// EXTENDED_FEATURES EBX
+#define AVX2_Flag     (1<< 5)
 #define AVX512F_Flag  (1<<16)
+#define AVX512DQ_Flag (1<<17)
 #define SHA_Flag      (1<<29)
+#define AVX512BW_Flag (1<<30)
+#define AVX512VL_Flag (1<<31)
+
+// EXTENDED_FEATURES ECX
+#define AVX512VBMI_Flag  (1<<1) 
+#define AVX512VBMI2_Flag (1<<6)
+#define AVX512VAES_Flag  (1<<9)
+
 
 // Use this to detect presence of feature
-#define AVX1_mask     (AVX1_Flag|XSAVE_Flag|OSXSAVE_Flag)
-#define FMA3_mask     (FMA3_Flag|AVX1_mask)
+#define AVX_mask     (AVX_Flag|XSAVE_Flag|OSXSAVE_Flag)
+#define FMA3_mask     (FMA3_Flag|AVX_mask)
+#define AVX512_mask   (AVX512VL_Flag|AVX512BW_Flag|AVX512DQ_Flag|AVX512F_Flag)
 
-
-static inline bool has_sha_()
+static inline bool has_sha()
 {
 #ifdef __arm__
     return false;
@@ -295,10 +315,7 @@ static inline bool has_sha_()
 #endif
 }
 
-bool has_sha() { return has_sha_(); }
-
-
-static inline bool has_sse2_()
+static inline bool has_sse2()
 {
 #ifdef __arm__
     return false;
@@ -309,10 +326,8 @@ static inline bool has_sse2_()
 #endif
 }
 
-bool has_sse2() { return has_sse2_(); } 
-
-// nehalem and above, no AVX1 on nehalem
-static inline bool has_aes_ni_()
+// nehalem and above, no AVX on nehalem
+static inline bool has_aes_ni()
 {
 #ifdef __arm__
 	return false;
@@ -323,24 +338,20 @@ static inline bool has_aes_ni_()
 #endif
 }
 
-bool has_aes_ni() { return has_aes_ni_(); }
-
 // westmere and above
-static inline bool has_avx1_()
+static inline bool has_avx()
 {
 #ifdef __arm__
         return false;
 #else
         int cpu_info[4] = { 0 };
         cpuid( CPU_INFO, cpu_info );
-        return ( ( cpu_info[ ECX_Reg ] & AVX1_mask ) == AVX1_mask );
+        return ( ( cpu_info[ ECX_Reg ] & AVX_mask ) == AVX_mask );
 #endif
 }
 
-bool has_avx1() { return has_avx1_(); }
-
 // haswell and above
-static inline bool has_avx2_()
+static inline bool has_avx2()
 {
 #ifdef __arm__
     return false;
@@ -351,9 +362,7 @@ static inline bool has_avx2_()
 #endif
 }
 
-bool has_avx2() { return has_avx2_(); }
-
-static inline bool has_avx512f_()
+static inline bool has_avx512f()
 {
 #ifdef __arm__
     return false;
@@ -364,24 +373,75 @@ static inline bool has_avx512f_()
 #endif
 }
 
-bool has_avx512f() { return has_avx512f_(); }
+static inline bool has_avx512dq()
+{
+#ifdef __arm__
+    return false;
+#else
+    int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, cpu_info );
+    return cpu_info[ EBX_Reg ] & AVX512DQ_Flag;
+#endif
+}
 
+static inline bool has_avx512bw()
+{
+#ifdef __arm__
+    return false;
+#else
+    int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, cpu_info );
+    return cpu_info[ EBX_Reg ] & AVX512BW_Flag;
+#endif
+}
+
+static inline bool has_avx512vl()
+{
+#ifdef __arm__
+    return false;
+#else
+    int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, cpu_info );
+    return cpu_info[ EBX_Reg ] & AVX512VL_Flag;
+#endif
+}
+
+// Minimum to be useful
+static inline bool has_avx512()
+{
+#ifdef __arm__
+    return false;
+#else
+    int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, cpu_info );
+    return ( ( cpu_info[ EBX_Reg ] & AVX512_mask ) == AVX512_mask );
+#endif
+}
+
+static inline bool has_avx512vaes()
+{
+#ifdef __arm__
+    return false;
+#else
+    int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, cpu_info );
+    return cpu_info[ ECX_Reg ] & AVX512VAES_Flag;
+#endif
+}
 
 // AMD only
-static inline bool has_xop_()
+static inline bool has_xop()
 {
 #ifdef __arm__
         return false;
 #else
         int cpu_info[4] = { 0 };
-        cpuid( CPU_INFO, cpu_info );
+        cpuid( EXTENDED_CPU_INFO, cpu_info );
         return cpu_info[ ECX_Reg ] & XOP_Flag;
 #endif
 }
 
-bool has_xop() { return has_xop_(); }
-
-static inline bool has_fma3_()
+static inline bool has_fma3()
 {
 #ifdef __arm__
         return false;
@@ -392,9 +452,7 @@ static inline bool has_fma3_()
 #endif
 }
 
-bool has_fma3() { return has_fma3_(); }
-
-static inline bool has_sse42_()
+static inline bool has_sse42()
 {
 #ifdef __arm__
         return false;
@@ -405,9 +463,7 @@ static inline bool has_sse42_()
 #endif
 }
 
-bool has_sse42() { return has_sse42_(); }
-
-static inline bool has_sse_()
+static inline bool has_sse()
 {
 #ifdef __arm__
         return false;
@@ -418,16 +474,14 @@ static inline bool has_sse_()
 #endif
 }
 
-bool has_sse() { return has_sse_(); }
-
-uint32_t cpuid_get_highest_function_number()
+static inline uint32_t cpuid_get_highest_function_number()
 {
   uint32_t cpu_info[4] = {0};
   cpuid( VENDOR_ID, cpu_info);
   return cpu_info[ EAX_Reg ];
 }
 
-void cpuid_get_highest_function( char* s )
+static inline void cpuid_get_highest_function( char* s )
 {
   uint32_t fn = cpuid_get_highest_function_number();
   switch (fn)
@@ -449,7 +503,7 @@ void cpuid_get_highest_function( char* s )
   }
 }
 
-void cpu_bestfeature(char *outbuf, size_t maxsz)
+static inline void cpu_bestfeature(char *outbuf, size_t maxsz)
 {
 #ifdef __arm__
 	sprintf(outbuf, "ARM");
@@ -459,19 +513,19 @@ void cpu_bestfeature(char *outbuf, size_t maxsz)
 	cpuid( CPU_INFO, cpu_info );
 	cpuid( EXTENDED_FEATURES, cpu_info_adv );
 
-        if ( has_avx1_() && has_avx2_() )
+        if ( has_avx() && has_avx2() )
               sprintf(outbuf, "AVX2");
-        else if ( has_avx1_() )
-              sprintf(outbuf, "AVX1");
-        else if ( has_fma3_() )
+        else if ( has_avx() )
+              sprintf(outbuf, "AVX");
+        else if ( has_fma3() )
               sprintf(outbuf, "FMA3");
-        else if ( has_xop_() )
+        else if ( has_xop() )
               sprintf(outbuf, "XOP");
-        else if ( has_sse42_() )
+        else if ( has_sse42() )
               sprintf(outbuf, "SSE42");
-        else if ( has_sse2_() )
+        else if ( has_sse2() )
               sprintf(outbuf, "SSE2");
-        else if ( has_sse_() )
+        else if ( has_sse() )
               sprintf(outbuf, "SSE");
         else
               *outbuf = '\0';
@@ -479,7 +533,7 @@ void cpu_bestfeature(char *outbuf, size_t maxsz)
 #endif
 }
 
-void cpu_brand_string( char* s )
+static inline void cpu_brand_string( char* s )
 {
 #ifdef __arm__
         sprintf( s, "ARM" );
@@ -497,4 +551,6 @@ void cpu_brand_string( char* s )
     }
 #endif
 }    
+
+#endif  // SYSINFOS_C__
 

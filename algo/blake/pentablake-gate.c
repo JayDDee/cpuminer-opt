@@ -10,7 +10,6 @@ bool register_pentablake_algo( algo_gate_t* gate )
     gate->hash      = (void*)&pentablakehash;
 #endif
     gate->optimizations = AVX2_OPT;
-    gate->get_max64 = (void*)&get_max64_0x3ffff;
     return true;
 };
 

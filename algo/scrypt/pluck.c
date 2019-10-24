@@ -483,11 +483,6 @@ int scanhash_pluck( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-int64_t pluck_get_max64 ()
-{
-  return 0x1ffLL;
-}
-
 bool pluck_miner_thread_init( int thr_id )
 { 
   scratchbuf = malloc( 128 * 1024 ); 
@@ -503,7 +498,6 @@ bool register_pluck_algo( algo_gate_t* gate )
   gate->miner_thread_init = (void*)&pluck_miner_thread_init;
   gate->scanhash         = (void*)&scanhash_pluck;
   gate->hash             = (void*)&pluck_hash;
-  gate->get_max64        = (void*)&pluck_get_max64;
   opt_target_factor = 65536.0;
   return true;
 };

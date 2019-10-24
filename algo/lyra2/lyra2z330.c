@@ -70,7 +70,6 @@ bool register_lyra2z330_algo( algo_gate_t* gate )
   gate->miner_thread_init = (void*)&lyra2z330_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z330;
   gate->hash       = (void*)&lyra2z330_hash;
-  gate->get_max64  = (void*)&get_max64_0xffffLL;
   opt_target_factor = 256.0;
   return true;
 };

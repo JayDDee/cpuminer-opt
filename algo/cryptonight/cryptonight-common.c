@@ -111,7 +111,6 @@ bool register_cryptonight_algo( algo_gate_t* gate )
   gate->scanhash         = (void*)&scanhash_cryptonight;
   gate->hash             = (void*)&cryptonight_hash;
   gate->hash_suw         = (void*)&cryptonight_hash_suw;  
-  gate->get_max64        = (void*)&get_max64_0x40LL;
   return true;
 };
 
@@ -123,7 +122,6 @@ bool register_cryptonightv7_algo( algo_gate_t* gate )
   gate->scanhash      = (void*)&scanhash_cryptonight;
   gate->hash          = (void*)&cryptonight_hash;
   gate->hash_suw      = (void*)&cryptonight_hash_suw;
-  gate->get_max64     = (void*)&get_max64_0x40LL;
   return true;
 };
 

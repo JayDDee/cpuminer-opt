@@ -94,8 +94,6 @@ void lbry_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    g_work->data[28] = 0x80000000;
 }
 
-int64_t lbry_get_max64() { return 0x1ffffLL; }
-
 int lbry_get_work_data_size() { return LBRY_WORK_DATA_SIZE; }
 
 bool register_lbry_algo( algo_gate_t* gate )
@@ -112,7 +110,6 @@ bool register_lbry_algo( algo_gate_t* gate )
   gate->hash                  = (void*)&lbry_hash;
 #endif
   gate->calc_network_diff     = (void*)&lbry_calc_network_diff;
-  gate->get_max64             = (void*)&lbry_get_max64;
   gate->build_stratum_request = (void*)&lbry_le_build_stratum_request;
 //  gate->build_block_header    = (void*)&build_block_header;
   gate->build_extraheader     = (void*)&lbry_build_extraheader;

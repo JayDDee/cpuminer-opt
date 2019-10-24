@@ -122,10 +122,10 @@ Supported Algorithms
                           x13sm3        hsr (Hshare)
                           x14           X14
                           x15           X15
-                          x16r          Ravencoin (RVN) (original algo)
-                          x16rv2        Ravencoin (RVN) (new algo)
+                          x16r          
+                          x16rv2        Ravencoin (RVN)
                           x16rt         Gincoin (GIN)
-                          x16rt_veil    Veil (VEIL)
+                          x16rt-veil    Veil (VEIL)
                           x16s          Pigeoncoin (PGN)
                           x17
                           x21s
@@ -136,7 +136,7 @@ Supported Algorithms
                           yescryptr32   WAVI
                           yespower      Cryply
                           yespowerr16   Yenten (YTN)
-                          yespoer-b2b   generic yespower + blake2b
+                          yespower-b2b  generic yespower + blake2b
                           zr5           Ziftr
 
 Errata
@@ -160,9 +160,11 @@ Bugs
 ----
 
 Users are encouraged to post their bug reports using git issues or on the
-Bitcoin Talk forum at:
+Bitcoin Talk forum or opening an issue in git:
 
 https://bitcointalk.org/index.php?topic=1326803.0
+
+https://github.com/JayDDee/cpuminer-opt/issues
 
 All problem reports must be accompanied by a proper problem definition.
 This should include how the problem occurred, the command line and
@@ -175,10 +177,6 @@ Donations
 cpuminer-opt has no fees of any kind but donations are accepted.
 
  BTC: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT
- ETH: 0x72122edabcae9d3f57eab0729305a425f6fef6d0
- LTC: LdUwoHJnux9r9EKqFWNvAi45kQompHk6e8
- BCH: 1QKYkB6atn4P7RFozyziAXLEnurwnUM1cQ
- BTG: GVUyECtRHeC5D58z9F3nGGfVQndwnsPnHQ
 
 Happy mining!
 

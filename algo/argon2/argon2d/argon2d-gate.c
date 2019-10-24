@@ -179,12 +179,9 @@ int scanhash_argon2d4096( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
-int64_t get_max64_0x1ff() { return 0x1ff; }
-
 bool register_argon2d4096_algo( algo_gate_t* gate )
 {
         gate->scanhash = (void*)&scanhash_argon2d4096;
-        gate->get_max64  = (void*)&get_max64_0x1ff;
         gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
         opt_target_factor = 65536.0;
         return true;

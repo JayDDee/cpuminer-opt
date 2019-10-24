@@ -352,6 +352,7 @@ bool   submit_lane_solution( struct work *work, void *hash,
 
 
 void   get_currentalgo( char* buf, int sz );
+/*
 bool   has_sha();
 bool   has_aes_ni();
 bool   has_avx1();
@@ -368,6 +369,7 @@ void   cpu_getmodelid(char *outbuf, size_t maxsz);
 void   cpu_brand_string( char* s );
 
 float cpu_temp( int core );
+*/
 
 struct work {
 	uint32_t data[48] __attribute__ ((aligned (64)));
@@ -724,7 +726,6 @@ extern bool opt_debug;
 extern bool opt_debug_diff;
 extern bool opt_benchmark;
 extern bool opt_protocol;
-extern bool opt_showdiff;
 extern bool opt_extranonce;
 extern bool opt_quiet;
 extern bool opt_redirect;
@@ -867,7 +868,7 @@ Options:\n\
                           x16rv2        Ravencoin (RVN)\n\
                           x16rt         Gincoin (GIN)\n\
                           x16rt-veil    Veil (VEIL)\n\
-                          x16s          Pigeoncoin (PGN)\n\
+                          x16s\n\
                           x17\n\
                           x21s\n\
                           xevan         Bitsend (BSD)\n\
@@ -901,7 +902,6 @@ Options:\n\
       -f, --diff-factor     Divide req. difficulty by this factor (std is 1.0)\n\
   -m, --diff-multiplier Multiply difficulty by this factor (std is 1.0)\n\
       --hash-meter      Display thread hash rates\n\
-      --hide-diff       Do not display changes in difficulty\n\
       --coinbase-addr=ADDR  payout address for solo mining\n\
       --coinbase-sig=TEXT  data to insert in the coinbase when possible\n\
       --no-longpoll     disable long polling support\n\
@@ -965,7 +965,6 @@ static struct option const options[] = {
         { "diff", 1, NULL, 'f' }, // deprecated (alias)
         { "diff-multiplier", 1, NULL, 'm' },
         { "hash-meter", 0, NULL, 1014 },
-        { "hide-diff", 0, NULL, 1013 },
         { "help", 0, NULL, 'h' },
         { "key", 1, NULL, 'K' },
         { "no-gbt", 0, NULL, 1011 },

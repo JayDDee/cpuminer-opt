@@ -12,7 +12,6 @@ bool register_x13_algo( algo_gate_t* gate )
   gate->hash      = (void*)&x13hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
-  gate->get_max64 = (void*)&get_max64_0x3ffff;
   return true;
 };
 

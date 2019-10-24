@@ -32,7 +32,7 @@
 #include <sys/types.h>
 
 #include "miner.h"
-
+#include "sysinfos.c"
 #ifndef WIN32
 # include <errno.h>
 # include <sys/socket.h>
@@ -105,7 +105,7 @@ extern double global_hashrate;
 #define USE_MONITORING
 extern float cpu_temp(int);
 extern uint32_t cpu_clock(int);
-extern int cpu_fanpercent(void);
+//extern int cpu_fanpercent(void);
 
 /***************************************************************/
 

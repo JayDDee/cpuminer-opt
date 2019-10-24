@@ -70,18 +70,3 @@ int scanhash_blake2s( struct work *work,
 
 	return 0;
 }
-/*
-// changed to get_max64_0x3fffffLL in cpuminer-multi-decred
-int64_t blake2s_get_max64 ()
-{
-   return 0x7ffffLL;
-}
-
-bool register_blake2s_algo( algo_gate_t* gate )
-{
-  gate->scanhash  = (void*)&scanhash_blake2s;
-  gate->hash      = (void*)&blake2s_hash;
-  gate->get_max64 = (void*)&blake2s_get_max64;
-  return true;
-};
-*/

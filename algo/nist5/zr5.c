@@ -208,12 +208,6 @@ void zr5_get_new_work( struct work* work, struct work* g_work, int thr_id,
        ++(*nonceptr);
 }
 
-int64_t zr5_get_max64 ()
-{
-//  return 0x1ffffLL;
-  return 0x1fffffLL;
-}
-
 void zr5_display_pok( struct work* work )
 {
       if ( work->data[0] & 0x00008000 )
@@ -229,7 +223,6 @@ bool register_zr5_algo( algo_gate_t* gate )
     gate->get_new_work          = (void*)&zr5_get_new_work;
     gate->scanhash              = (void*)&scanhash_zr5;
     gate->hash                  = (void*)&zr5hash;
-    gate->get_max64             = (void*)&zr5_get_max64;
     gate->decode_extra_data     = (void*)&zr5_display_pok;
     gate->build_stratum_request = (void*)&std_be_build_stratum_request;
     gate->work_decode           = (void*)&std_be_work_decode;

@@ -93,33 +93,3 @@ int scanhash_blakecoin( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-/*
-void blakecoin_gen_merkle_root ( char* merkle_root, struct stratum_ctx* sctx )
-{
- SHA256( sctx->job.coinbase, (int)sctx->job.coinbase_size, merkle_root );
-}
-*/
-/*
-// changed to get_max64_0x3fffffLL in cpuminer-multi-decred
-int64_t blakecoin_get_max64 ()
-{
-  return 0x7ffffLL;
-}
-
-// vanilla uses default gen merkle root, otherwise identical to blakecoin
-bool register_vanilla_algo( algo_gate_t* gate )
-{
-    gate->scanhash = (void*)&scanhash_blakecoin;
-    gate->hash     = (void*)&blakecoinhash;
-    gate->get_max64 = (void*)&blakecoin_get_max64;
-    blakecoin_init( &blake_init_ctx );
-    return true;
-}
-
-bool register_blakecoin_algo( algo_gate_t* gate )
-{
-  register_vanilla_algo( gate );
-  gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
-  return true;
-}
-*/

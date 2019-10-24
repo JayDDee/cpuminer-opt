@@ -363,7 +363,6 @@ bool register_cryptolight_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_cryptolight;
   gate->hash      = (void*)&cryptolight_hash;
   gate->hash_suw  = (void*)&cryptolight_hash; 
-  gate->get_max64 = (void*)&get_max64_0x40LL;
   return true;
 };
 

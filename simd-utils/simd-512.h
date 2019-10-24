@@ -278,7 +278,7 @@ static inline __m512i mm512_neg1_fn()
 // Horizontal vector testing
 
 #define mm512_allbits0( a )    _mm512_cmpeq_epi64_mask( a, m512_zero )
-#define mm256_allbits1( a )    _mm512_cmpeq_epi64_mask( a, m512_neg1 )
+#define mm512_allbits1( a )    _mm512_cmpeq_epi64_mask( a, m512_neg1 )
 #define mm512_anybits0( a )    _mm512_cmpneq_epi64_mask( a, m512_neg1 )
 #define mm512_anybits1( a )    _mm512_cmpneq_epi64_mask( a, m512_zero )
 
@@ -287,11 +287,30 @@ static inline __m512i mm512_neg1_fn()
 // Bit rotations.
 
 // AVX512F has built-in fixed and variable bit rotation for 64 & 32 bit
-// elements and can be called directly.
+// elements and can be called directly. But they only accept immediate 8
+// for control arg. 
 //
 // _mm512_rol_epi64,  _mm512_ror_epi64,  _mm512_rol_epi32,  _mm512_ror_epi32
 // _mm512_rolv_epi64, _mm512_rorv_epi64, _mm512_rolv_epi32, _mm512_rorv_epi32
 //
+
+#define mm512_ror_var_64( v, c ) \
+   _mm512_or_si512( _mm512_srli_epi64( v, c ), \
+                    _mm512_slli_epi64( v, 64-(c) ) )
+
+#define mm512_rol_var_64( v, c ) \
+   _mm512_or_si512( _mm512_slli_epi64( v, c ), \
+                    _mm512_srli_epi64( v, 64-(c) ) )
+
+#define mm512_ror_var_32( v, c ) \
+   _mm512_or_si512( _mm512_srli_epi32( v, c ), \
+                    _mm512_slli_epi32( v, 32-(c) ) )
+
+#define mm512_rol_var_32( v, c ) \
+   _mm512_or_si512( _mm512_slli_epi32( v, c ), \
+                    _mm512_srli_epi32( v, 32-(c) ) )
+
+
 // Here is a fixed bit rotate for 16 bit elements:
 #define mm512_ror_16( v, c ) \
     _mm512_or_si512( _mm512_srli_epi16( v, c ), \
@@ -299,6 +318,8 @@ static inline __m512i mm512_neg1_fn()
 #define mm512_rol_16( v, c ) \
     _mm512_or_si512( _mm512_slli_epi16( v, c ), \
                      _mm512_srli_epi16( v, 16-(c) )
+
+
 
 // Rotations using a vector control index are very slow due to overhead
 // to generate the index vector. Repeated rotations using the same index

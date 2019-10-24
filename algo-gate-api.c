@@ -116,8 +116,6 @@ void init_algo_gate( algo_gate_t* gate )
    gate->get_nonceptr            = (void*)&std_get_nonceptr;
    gate->work_decode             = (void*)&std_le_work_decode;
    gate->decode_extra_data       = (void*)&do_nothing;
-   gate->wait_for_diff           = (void*)&std_wait_for_diff;
-   gate->get_max64               = (void*)&get_max64_0x1fffffLL;
    gate->gen_merkle_root         = (void*)&sha256d_gen_merkle_root;
    gate->stratum_gen_work        = (void*)&std_stratum_gen_work;
    gate->build_stratum_request   = (void*)&std_le_build_stratum_request;
@@ -278,7 +276,7 @@ bool register_json_rpc2( algo_gate_t *gate )
   applog(LOG_WARNING,"supported by cpuminer-opt. Shares submitted will");
   applog(LOG_WARNING,"likely be rejected. Proceed at your own risk.\n");
 
-  gate->wait_for_diff           = (void*)&do_nothing;
+//  gate->wait_for_diff           = (void*)&do_nothing;
   gate->get_new_work            = (void*)&jr2_get_new_work;
   gate->get_nonceptr            = (void*)&jr2_get_nonceptr;
   gate->stratum_gen_work        = (void*)&jr2_stratum_gen_work;
