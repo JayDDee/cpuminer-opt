@@ -2333,9 +2333,11 @@ void print_hash_tests(void)
       switch(algo) {
         case ALGO_ALLIUM :
         case ALGO_BLAKE :
-        //case ALGO_CRYPTONIGHT :
-        case ALGO_YESCRYPT :
-        case ALGO_YESPOWER :
+        case ALGO_CRYPTONIGHT :
+        case ALGO_KECCAK :
+        case ALGO_SHA256D :
+        //case ALGO_YESCRYPT :
+        //case ALGO_YESPOWER :
           break;
         default : continue;
       }
