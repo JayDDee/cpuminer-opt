@@ -205,50 +205,40 @@ void x17_4way_hash( void *state, const void *input )
 int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-     uint32_t hash[4*16] __attribute__ ((aligned (64)));
-     uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-     uint32_t lane_hash[8] __attribute__ ((aligned (32)));
-     uint32_t *hash7 = &(hash[7<<2]);
-     uint32_t *pdata = work->data;
-     const uint32_t *ptarget = work->target;
-     const uint32_t first_nonce = pdata[19];
-     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-     uint32_t n = first_nonce;
-     const int thr_id = mythr->id;
-     const uint32_t Htarg = ptarget[7];
-     uint64_t htmax[] = {          0,        0xF,       0xFF,
-                               0xFFF,     0xFFFF, 0x10000000  };
-     uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
-                          0xFFFFF000, 0xFFFF0000,          0  };
+   uint32_t hash[4*16] __attribute__ ((aligned (64)));
+   uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+   uint32_t *hash7 = &(hash[7<<2]);
+   uint32_t *pdata = work->data;
+   const uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const uint32_t Htarg = ptarget[7];
 
-     // Need big endian data
-     mm256_bswap32_intrlv80_4x64( vdata, pdata );
-     for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
-     {
-        const uint32_t mask = masks[ m ];
-        do
-        {
-           *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
-	              _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
-           x17_4way_hash( hash, vdata );
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
+   do
+   {
+      *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+              _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
+      x17_4way_hash( hash, vdata );
 
-           for ( int lane = 0; lane < 4; lane++ )
-           if ( ( hash7[ lane ] & mask ) == 0 )
-           {
-              extr_lane_4x32( lane_hash, hash, lane, 256 );
-              if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
-              {
-                 pdata[19] = n + lane;
-                 submit_lane_solution( work, lane_hash, mythr, lane );
-              }
-           }
-           n += 4;
-        } while ( ( n < max_nonce - 4 ) && !work_restart[thr_id].restart );
-        break;
-     }
+      for ( int lane = 0; lane < 4; lane++ )
+      if unlikely( ( hash7[ lane ] <= Htarg ) )
+      {
+         extr_lane_4x32( lane_hash, hash, lane, 256 );
+         if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
+         {
+            pdata[19] = n + lane;
+            submit_lane_solution( work, lane_hash, mythr, lane );
+         }
+      }
+      n += 4;
+   } while ( likely( ( n < max_nonce - 4 ) && !work_restart[thr_id].restart ) );
 
-     *hashes_done = n - first_nonce + 1;
-     return 0;
+   *hashes_done = n - first_nonce + 1;
+   return 0;
 }
 
 #endif

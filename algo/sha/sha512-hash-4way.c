@@ -252,16 +252,6 @@ void sha512_4way_init( sha512_4way_context *sc )
 {
    sc->initialized = false;
    sc->count = 0;
-/*
-   sc->val[0] = _mm256_set1_epi64x( H512[0] );
-   sc->val[1] = _mm256_set1_epi64x( H512[1] );
-   sc->val[2] = _mm256_set1_epi64x( H512[2] );
-   sc->val[3] = _mm256_set1_epi64x( H512[3] );
-   sc->val[4] = _mm256_set1_epi64x( H512[4] );
-   sc->val[5] = _mm256_set1_epi64x( H512[5] );
-   sc->val[6] = _mm256_set1_epi64x( H512[6] );
-   sc->val[7] = _mm256_set1_epi64x( H512[7] );
-*/
 }
 
 void sha512_4way( sha512_4way_context *sc, const void *data, size_t len )
@@ -295,6 +285,8 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
     unsigned ptr;
     const int buf_size = 128;
     const int pad = buf_size - 16;
+    const __m256i shuff_bswap64 = m256_const2_64( 0x08090a0b0c0d0e0f,
+                                                  0x0001020304050607 );
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
     sc->buf[ ptr>>3 ] = m256_const1_64( 0x80 );
@@ -308,10 +300,10 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
     else
          memset_zero_256( sc->buf + (ptr>>3), (pad - ptr) >> 3 );
 
-    sc->buf[ pad >> 3 ] =
-                 mm256_bswap_64( _mm256_set1_epi64x( sc->count >> 61 ) );
-    sc->buf[ ( pad+8 ) >> 3 ] = 
-                 mm256_bswap_64( _mm256_set1_epi64x( sc->count << 3 ) );
+    sc->buf[ pad >> 3 ] = _mm256_shuffle_epi8(
+                       _mm256_set1_epi64x( sc->count >> 61 ), shuff_bswap64 );
+    sc->buf[ ( pad+8 ) >> 3 ] = _mm256_shuffle_epi8( 
+                       _mm256_set1_epi64x( sc->count <<  3 ), shuff_bswap64 );
     sha512_4way_round( sc, sc->buf, sc->val );
 
     mm256_block_bswap_64( dst, sc->val );

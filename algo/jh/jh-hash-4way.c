@@ -94,7 +94,7 @@ extern "C"{
 
 #define Sb(x0, x1, x2, x3, c) \
 do { \
-   __m256i cc = _mm256_set_epi64x( c, c, c, c ); \
+   __m256i cc = _mm256_set1_epi64x( c ); \
     x3 = mm256_not( x3 ); \
     x0 = _mm256_xor_si256( x0, _mm256_andnot_si256( x2, cc ) ); \
     tmp = _mm256_xor_si256( cc, _mm256_and_si256( x0, x1 ) ); \

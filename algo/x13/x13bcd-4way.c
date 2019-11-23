@@ -12,7 +12,6 @@
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
-//#include "algo/luffa/luffa-hash-2way.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/simd-hash-2way.h"
@@ -28,7 +27,6 @@ typedef struct {
     skein512_4way_context   skein;
     jh512_4way_context      jh;
     keccak512_4way_context  keccak;
-//    luffa_2way_context      luffa;
     cubehashParam           cube;
     sph_shavite512_context  shavite;
     simd_2way_context       simd;
@@ -49,7 +47,6 @@ void init_x13bcd_4way_ctx()
      skein512_4way_init( &x13bcd_4way_ctx.skein );
      jh512_4way_init( &x13bcd_4way_ctx.jh );
      keccak512_4way_init( &x13bcd_4way_ctx.keccak );
-//     luffa_2way_init( &x13bcd_4way_ctx.luffa, 512 );
      cubehashInit( &x13bcd_4way_ctx.cube, 512, 16, 32 );
      sph_shavite512_init( &x13bcd_4way_ctx.shavite );
      simd_2way_init( &x13bcd_4way_ctx.simd, 512 );
@@ -72,8 +69,6 @@ void x13bcd_4way_hash( void *state, const void *input )
      // Blake
      memcpy( &ctx.blake, &x13bcd_ctx_mid, sizeof(x13bcd_ctx_mid) );
      blake512_4way( &ctx.blake, input + (64<<2), 16 );
-
-//     blake512_4way( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
      // Bmw
@@ -127,17 +122,6 @@ void x13bcd_4way_hash( void *state, const void *input )
      sm3_4way_close( &ctx.sm3, sm3_vhash );
      dintrlv_4x32( hash0, hash1, hash2, hash3, sm3_vhash, 512 );
 
-/*     
-     // Luffa
-     intrlv_2x128( vhash, hash0, hash1, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     dintrlv_2x128( hash0, hash1, vhash, 512 );
-     intrlv_2x128( vhash, hash2, hash3, 512 );
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     dintrlv_2x128( hash2, hash3, vhash, 512 );
-*/
-     
      // Cubehash
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );
      memcpy( &ctx.cube, &x13bcd_4way_ctx.cube, sizeof(cubehashParam) );
@@ -184,26 +168,6 @@ void x13bcd_4way_hash( void *state, const void *input )
      memcpy( &ctx.echo, &x13bcd_4way_ctx.echo, sizeof(hashState_echo) );
      update_final_echo( &ctx.echo, (BitSequence *)hash3,
                        (const BitSequence *) hash3, 512 );
-
-/*
-     intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
-
-     // SM3 parallel 32 bit
-     uint32_t sm3_vhash[32*4] __attribute__ ((aligned (64)));
-     memset( sm3_vhash, 0, sizeof sm3_vhash );
-     uint32_t sm3_hash0[32] __attribute__ ((aligned (32)));
-     memset( sm3_hash0, 0, sizeof sm3_hash0 );
-     uint32_t sm3_hash1[32] __attribute__ ((aligned (32)));
-     memset( sm3_hash1, 0, sizeof sm3_hash1 );
-     uint32_t sm3_hash2[32] __attribute__ ((aligned (32)));
-     memset( sm3_hash2, 0, sizeof sm3_hash2 );
-     uint32_t sm3_hash3[32] __attribute__ ((aligned (32)));
-     memset( sm3_hash3, 0, sizeof sm3_hash3 );
-
-     sm3_4way( &ctx.sm3, vhash, 64 );
-     sm3_4way_close( &ctx.sm3, sm3_vhash );
-     dintrlv_4x32( hash0, hash1, hash2, hash3, sm3_vhash, 512 );
-*/
 
      // Hamsi parallel 4x32x2
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );

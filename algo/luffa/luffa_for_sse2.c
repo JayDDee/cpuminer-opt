@@ -541,7 +541,9 @@ static void finalization512( hashState_luffa *state, uint32 *b )
     uint32   hash[8] __attribute((aligned(64)));
     __m256i* chainv = (__m256i*)state->chainv;
     __m256i  t;
-    const __m128i zero = _mm_setzero_si128();
+    const __m128i zero = m128_zero;
+    const __m256i shuff_bswap32 = m256_const2_64( 0x0c0d0e0f08090a0b,
+                                                  0x0405060700010203 );
 
     rnd512( state, zero, zero );
 
@@ -555,7 +557,9 @@ static void finalization512( hashState_luffa *state, uint32 *b )
 
     _mm256_store_si256( (__m256i*)hash, t );
 
-    casti_m256i( b, 0 ) = mm256_bswap_32( casti_m256i( hash, 0 ) );
+    casti_m256i( b, 0 ) = _mm256_shuffle_epi8(
+                                 casti_m256i( hash, 0 ), shuff_bswap32 );
+//    casti_m256i( b, 0 ) = mm256_bswap_32( casti_m256i( hash, 0 ) );
 
     rnd512( state, zero, zero );
 
@@ -568,7 +572,9 @@ static void finalization512( hashState_luffa *state, uint32 *b )
 
     _mm256_store_si256( (__m256i*)hash, t );
 
-    casti_m256i( b, 1 ) = mm256_bswap_32( casti_m256i( hash, 0 ) );
+    casti_m256i( b, 1 ) = _mm256_shuffle_epi8( 
+                                 casti_m256i( hash, 0 ), shuff_bswap32 );
+//    casti_m256i( b, 1 ) = mm256_bswap_32( casti_m256i( hash, 0 ) );
 }
 
 #else

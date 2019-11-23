@@ -7,7 +7,7 @@
 
 // 2x128
 
-/*
+
 // The result of hashing 10 rounds of initial data which consists of params
 // zero padded.
 static const uint64_t IV256[] =
@@ -25,7 +25,7 @@ static const uint64_t IV512[] =
 0x148FE485FCD398D9, 0xB64445321B017BEF, 0x2FF5781C6A536159, 0x0DBADEA991FA7934,
 0xA5A70E75D65C8A2B, 0xBC796576B1C62456, 0xE7989AF11921C8F7, 0xD43E3B447795D246
 };
-*/
+
 
 static void transform_2way( cube_2way_context *sp )
 {
@@ -97,39 +97,30 @@ static void transform_2way( cube_2way_context *sp )
 int cube_2way_init( cube_2way_context *sp, int hashbitlen, int rounds,
                     int blockbytes )
 {
-    __m128i* h = (__m128i*)sp->h;
+    __m256i *h = (__m256i*)sp->h;
+    __m128i *iv = (__m128i*)( hashbitlen == 512 ? (__m128i*)IV512
+                                                : (__m128i*)IV256 );
     sp->hashlen   = hashbitlen/128;
     sp->blocksize = blockbytes/16;
     sp->rounds    = rounds;
     sp->pos       = 0;
 
-    if ( hashbitlen == 512 )
-    {
-
-       h[ 0] = m128_const_64( 0x4167D83E2D538B8B, 0x50F494D42AEA2A61 );
-       h[ 2] = m128_const_64( 0x50AC5695CC39968E, 0xC701CF8C3FEE2313 );
-       h[ 4] = m128_const_64( 0x825B453797CF0BEF, 0xA647A8B34D42C787 );
-       h[ 6] = m128_const_64( 0xA23911AED0E5CD33, 0xF22090C4EEF864D2 );
-       h[ 8] = m128_const_64( 0xB64445321B017BEF, 0x148FE485FCD398D9 );
-       h[10] = m128_const_64( 0x0DBADEA991FA7934, 0x2FF5781C6A536159 );
-       h[12] = m128_const_64( 0xBC796576B1C62456, 0xA5A70E75D65C8A2B );
-       h[14] = m128_const_64( 0xD43E3B447795D246, 0xE7989AF11921C8F7 );
-       h[1] = h[ 0];  h[ 3] = h[ 2]; h[ 5] = h[ 4]; h[ 7] = h[ 6];
-       h[9] = h[ 8];  h[11] = h[10]; h[13] = h[12]; h[15] = h[14];
-    }
-    else
-    {
-       h[ 0] = m128_const_64( 0x35481EAE63117E71, 0xCCD6F29FEA2BD4B4 );
-       h[ 2] = m128_const_64( 0xF4CC12BE7E624131, 0xE5D94E6322512D5B );
-       h[ 4] = m128_const_64( 0x3361DA8CD0720C35, 0x42AF2070C2D0B696 );
-       h[ 6] = m128_const_64( 0x40E5FBAB4680AC00, 0x8EF8AD8328CCECA4 );
-       h[ 8] = m128_const_64( 0xF0B266796C859D41, 0x6107FBD5D89041C3 );
-       h[10] = m128_const_64( 0x93CB628565C892FD, 0x5FA2560309392549 );
-       h[12] = m128_const_64( 0x85254725774ABFDD, 0x9E4B4E602AF2B5AE );
-       h[14] = m128_const_64( 0xD6032C0A9CDAF8AF, 0x4AB6AAD615815AEB );
-       h[1] = h[ 0];  h[ 3] = h[ 2]; h[ 5] = h[ 4]; h[ 7] = h[ 6];
-       h[9] = h[ 8];  h[11] = h[10]; h[13] = h[12]; h[15] = h[14];
-    }
+    h[ 0] = m256_const1_128( iv[0] );
+    h[ 1] = m256_const1_128( iv[1] );
+    h[ 2] = m256_const1_128( iv[2] );
+    h[ 3] = m256_const1_128( iv[3] );
+    h[ 4] = m256_const1_128( iv[4] );
+    h[ 5] = m256_const1_128( iv[5] );
+    h[ 6] = m256_const1_128( iv[6] );
+    h[ 7] = m256_const1_128( iv[7] );
+    h[ 0] = m256_const1_128( iv[0] );
+    h[ 1] = m256_const1_128( iv[1] );
+    h[ 2] = m256_const1_128( iv[2] );
+    h[ 3] = m256_const1_128( iv[3] );
+    h[ 4] = m256_const1_128( iv[4] );
+    h[ 5] = m256_const1_128( iv[5] );
+    h[ 6] = m256_const1_128( iv[6] );
+    h[ 7] = m256_const1_128( iv[7] );
     
     return 0;
 }
@@ -164,11 +155,11 @@ int cube_2way_close( cube_2way_context *sp, void *output )
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->h[ sp->pos ] = _mm256_xor_si256( sp->h[ sp->pos ],
-                                _mm256_set_epi32( 0,0,0,0x80,  0,0,0,0x80 ) );
+                                   m256_const2_64( 0, 0x0000000000000080 ) );
     transform_2way( sp );
 
     sp->h[7] = _mm256_xor_si256( sp->h[7],
-		                 _mm256_set_epi32( 1,0,0,0,  1,0,0,0 ) );
+                                   m256_const2_64( 0x0000000100000000, 0 ) );
 
     for ( i = 0; i < 10; ++i )           transform_2way( sp );
 
@@ -197,13 +188,13 @@ int cube_2way_update_close( cube_2way_context *sp, void *output,
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->h[ sp->pos ] = _mm256_xor_si256( sp->h[ sp->pos ],
-                    _mm256_set_epi32( 0,0,0,0x80,  0,0,0,0x80 ) );
+                                    m256_const2_64( 0, 0x0000000000000080 ) );
     transform_2way( sp );
 
-    sp->h[7] = _mm256_xor_si256( sp->h[7], _mm256_set_epi32( 1,0,0,0,
-                                                             1,0,0,0 ) );
+    sp->h[7] = _mm256_xor_si256( sp->h[7],
+                                    m256_const2_64( 0x0000000100000000, 0 ) );
 
-    for ( i = 0; i < 10; ++i )            transform_2way( sp );
+    for ( i = 0; i < 10; ++i )    transform_2way( sp );
 
     memcpy( hash, sp->h, sp->hashlen<<5 );
     return 0;

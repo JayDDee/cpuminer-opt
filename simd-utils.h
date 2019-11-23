@@ -105,52 +105,36 @@
 //    Ex: mm256_ror1x64_128 rotates each 128 bit lane of a 256 bit vector
 //        right by 64 bits.
 //
-//   Some random thoughts about macros and inline functions, the pros and
-//   cons, when to use them, etc:
+// Vector constants
 //
-// Macros are very convenient and efficient for statement functions.
-// Macro args are passed by value and modifications are seen by the caller.
-// Macros should not generally call regular functions unless it is for a
-// special purpose such overloading a function name.
-// Statement function macros that return a value should not end in ";"
-// Statement function macros that return a value and don't modify input args
-// may be used in function arguments and expressions.
-// Macro args used in expressions should be protected ex: (x)+1
-// Macros force inlining, function inlining can be overridden by the compiler.
-// Inline functions are preferred when multiple statements or local variables
-// are needed.
-// The compiler can't do any syntax checking or type checking of args making
-// macros difficult to debug.
-// Although it is technically posssible to access the callers data without
-// they being passed as arguments it is good practice to always define
-// arguments even if they have the same name.
+// Vector constants are a big problem because they technically don't exist.
+// All vectors used as constants either reside in memory or must be genererated
+// at run time at significant cost. The cost of generating a constant
+// increases non-linearly with the number of vector elements. A 4 element
+// vector costs between 7 and 11 clocks to generate, an 8 element vector
+// is 15-25 clocks. There are also additional clock due to data dependency
+// stalls.
 //
-// General guidelines for inline functions:
+// Vector constants are often used as control indexes for permute, blend, etc,
+// where generating the index can be over 90% of the operation. This is
+// where the problem occurs. An instruction that only requires one to 3
+// clocks needs may times more just to build the index argument.
 //
-// Inline functions should not have loops, it defeats the purpose of inlining.
-// Inline functions should be short, the benefit is lost and the memory cost
-// increases if the function is referenced often.
-// Inline functions may call other functions, inlined or not. It is convenient
-// for wrapper functions whether or not the wrapped function is itself inlined.
-// Care should be taken when unrolling loops that contain calls to inlined
-// functions that may be large.
-// Large code blocks used only once may use function inlining to
-// improve high level code readability without the penalty of function
-// overhead.
+// There is very little a programmer can do to avoid the worst case scenarios.
+// Smaller integers can be merged to form 64 bit integers, and vectors with
+// repeated elements can be generated more efficiently but they have limited
+// benefit and limited application.
 //
-// These utilities avoid memory accesses and assume data is in a register
-// argument. Vector constants, in particular are generated with opcodes instead
-// of being read from memory.
+// If a vector constant is to be used repeatedly it is better to define a local
+// variable to generate the constant only once.
 //
-// The utilities defined here make use features like register aliasing
-// to optimize operations. Many operations have specialized versions as
-// well as more generic versions. It is preferable to use a specialized
-// version whenever possible as they can take advantage of certain
-// optimizations not available to the generic version. The generic
-// version will often have an additional argument used is some extra
-// calculations.
-// 
-///////////////////////////////////////////////////////
+// If a sequence of constants is to be used it can be more efficient to
+// use arithmetic with already existing constants to generate new ones.
+//
+// ex: const __m512i one = _mm512_const1_64( 1 );
+//     const __m512i two = _mm512_add_epi64( one, one );
+//     
+//////////////////////////////////////////////////////////////////////////
 
 #include <inttypes.h>
 #include <x86intrin.h>

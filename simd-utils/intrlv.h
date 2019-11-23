@@ -14,7 +14,7 @@
 // 2x32
 
 static inline void intrlv_2x32( void *dst, const void *src0,
-                                const void *src1, int bit_len )
+                                const void *src1, const int bit_len )
 {
    uint32_t *d = (uint32_t*)dst;;
    const uint32_t *s0 = (const uint32_t*)src0;
@@ -41,7 +41,7 @@ static inline void intrlv_2x32( void *dst, const void *src0,
 }
 
 static inline void dintrlv_2x32( void *dst0, void *dst1,
-                                 const void *src, int bit_len )
+                                 const void *src, const int bit_len )
 {
    uint32_t *d0 = (uint32_t*)dst0;
    uint32_t *d1 = (uint32_t*)dst1;
@@ -85,9 +85,106 @@ static inline void extr_lane_2x32( void *dst, const void *src,
 }
 
 // 4x32
+/*
+static inline void intrlv_4x32( void *dst, const void *src0,
+           const void *src1, const void *src2, const void *src3, int bit_len )
+{
+   __m64 *d = (__m64*)dst;
+   const __m64 *s0 = (const __m64*)src0;
+   const __m64 *s1 = (const __m64*)src1;
+   const __m64 *s2 = (const __m64*)src2;
+   const __m64 *s3 = (const __m64*)src3;
+
+   d[ 0] = _mm_unpacklo_pi32( s0[0], s1[0] );
+   d[ 1] = _mm_unpacklo_pi32( s2[0], s3[0] );
+   d[ 2] = _mm_unpackhi_pi32( s0[0], s1[0] );
+   d[ 3] = _mm_unpackhi_pi32( s2[0], s3[0] );
+
+   d[ 4] = _mm_unpacklo_pi32( s0[1], s1[1] );
+   d[ 5] = _mm_unpacklo_pi32( s2[1], s3[1] );
+   d[ 6] = _mm_unpackhi_pi32( s0[1], s1[1] );
+   d[ 7] = _mm_unpackhi_pi32( s2[1], s3[1] );
+
+   d[ 8] = _mm_unpacklo_pi32( s0[2], s1[2] );
+   d[ 9] = _mm_unpacklo_pi32( s2[2], s3[2] );
+   d[10] = _mm_unpackhi_pi32( s0[2], s1[2] );
+   d[11] = _mm_unpackhi_pi32( s2[2], s3[2] );
+
+   d[12] = _mm_unpacklo_pi32( s0[3], s1[3] );
+   d[13] = _mm_unpacklo_pi32( s2[3], s3[3] );
+   d[14] = _mm_unpackhi_pi32( s0[3], s1[3] );
+   d[15] = _mm_unpackhi_pi32( s2[3], s3[3] );
+
+   if ( bit_len <= 256 ) return;
+
+   d[16] = _mm_unpacklo_pi32( s0[4], s1[4] );
+   d[17] = _mm_unpacklo_pi32( s2[4], s3[4] );
+   d[18] = _mm_unpackhi_pi32( s0[4], s1[4] );
+   d[19] = _mm_unpackhi_pi32( s2[4], s3[4] );
+
+   d[20] = _mm_unpacklo_pi32( s0[5], s1[5] );
+   d[21] = _mm_unpacklo_pi32( s2[5], s3[5] );
+   d[22] = _mm_unpackhi_pi32( s0[5], s1[5] );
+   d[23] = _mm_unpackhi_pi32( s2[5], s3[5] );
+
+   d[24] = _mm_unpacklo_pi32( s0[6], s1[6] );
+   d[25] = _mm_unpacklo_pi32( s2[6], s3[6] );
+   d[26] = _mm_unpackhi_pi32( s0[6], s1[6] );
+   d[27] = _mm_unpackhi_pi32( s2[6], s3[6] );
+
+   d[28] = _mm_unpacklo_pi32( s0[7], s1[7] );
+   d[29] = _mm_unpacklo_pi32( s2[7], s3[7] );
+   d[30] = _mm_unpackhi_pi32( s0[7], s1[7] );
+   d[31] = _mm_unpackhi_pi32( s2[7], s3[7] );
+
+   if ( bit_len <= 512 ) return;
+
+   d[32] = _mm_unpacklo_pi32( s0[8], s1[8] );
+   d[33] = _mm_unpacklo_pi32( s2[8], s3[8] );
+   d[34] = _mm_unpackhi_pi32( s0[8], s1[8] );
+   d[35] = _mm_unpackhi_pi32( s2[8], s3[8] );
+
+   d[36] = _mm_unpacklo_pi32( s0[9], s1[9] );
+   d[37] = _mm_unpacklo_pi32( s2[9], s3[9] );
+   d[38] = _mm_unpackhi_pi32( s0[9], s1[9] );
+   d[39] = _mm_unpackhi_pi32( s2[9], s3[9] );
+   
+   if ( bit_len <= 640 ) return;
+
+   d[40] = _mm_unpacklo_pi32( s0[10], s1[10] );
+   d[41] = _mm_unpacklo_pi32( s2[10], s3[10] );
+   d[42] = _mm_unpackhi_pi32( s0[10], s1[10] );
+   d[43] = _mm_unpackhi_pi32( s2[10], s3[10] );
+
+   d[44] = _mm_unpacklo_pi32( s0[11], s1[11] );
+   d[45] = _mm_unpacklo_pi32( s2[11], s3[11] );
+   d[46] = _mm_unpackhi_pi32( s0[11], s1[11] );
+   d[47] = _mm_unpackhi_pi32( s2[11], s3[11] );
+
+   d[48] = _mm_unpacklo_pi32( s0[12], s1[12] );
+   d[49] = _mm_unpacklo_pi32( s2[12], s3[12] );
+   d[50] = _mm_unpackhi_pi32( s0[12], s1[12] );
+   d[51] = _mm_unpackhi_pi32( s2[12], s3[12] );
+
+   d[52] = _mm_unpacklo_pi32( s0[13], s1[13] );
+   d[53] = _mm_unpacklo_pi32( s2[13], s3[13] );
+   d[54] = _mm_unpackhi_pi32( s0[13], s1[13] );
+   d[55] = _mm_unpackhi_pi32( s2[13], s3[13] );
+
+   d[56] = _mm_unpacklo_pi32( s0[14], s1[14] );
+   d[57] = _mm_unpacklo_pi32( s2[14], s3[14] );
+   d[58] = _mm_unpackhi_pi32( s0[14], s1[14] );
+   d[59] = _mm_unpackhi_pi32( s2[14], s3[14] );
+
+   d[60] = _mm_unpacklo_pi32( s0[15], s1[15] );
+   d[61] = _mm_unpacklo_pi32( s2[15], s3[15] );
+   d[62] = _mm_unpackhi_pi32( s0[15], s1[15] );
+   d[63] = _mm_unpackhi_pi32( s2[15], s3[15] );
+}  
+*/
 
 static inline void intrlv_4x32( void *dst, const void *src0, const void *src1,
-                             const void *src2, const void *src3, int bit_len )
+                      const void *src2, const void *src3, const int bit_len )
 {
    uint32_t *d = (uint32_t*)dst;
    const uint32_t *s0 = (const uint32_t*)src0;
@@ -131,6 +228,58 @@ static inline void intrlv_4x32( void *dst, const void *src0, const void *src1,
    d[124] = s0[31];   d[125] = s1[31];   d[126] = s2[31];   d[127] = s3[31];
 }
 
+/*
+static inline void intrlv_4x32_512( void *dst, const void *src0,
+           const void *src1, const void *src2, const void *src3 )
+{
+   __m64 *d = (__m64*)dst;
+   const __m64 *s0 = (const __m64*)src0;
+   const __m64 *s1 = (const __m64*)src1;
+   const __m64 *s2 = (const __m64*)src2;
+   const __m64 *s3 = (const __m64*)src3;
+
+   d[ 0] = _mm_unpacklo_pi32( s0[0], s1[0] );
+   d[ 1] = _mm_unpacklo_pi32( s2[0], s3[0] );
+   d[ 2] = _mm_unpackhi_pi32( s0[0], s1[0] );
+   d[ 3] = _mm_unpackhi_pi32( s2[0], s3[0] );
+
+   d[ 4] = _mm_unpacklo_pi32( s0[1], s1[1] );
+   d[ 5] = _mm_unpacklo_pi32( s2[1], s3[1] );
+   d[ 6] = _mm_unpackhi_pi32( s0[1], s1[1] );
+   d[ 7] = _mm_unpackhi_pi32( s2[1], s3[1] );
+
+   d[ 8] = _mm_unpacklo_pi32( s0[2], s1[2] );
+   d[ 9] = _mm_unpacklo_pi32( s2[2], s3[2] );
+   d[10] = _mm_unpackhi_pi32( s0[2], s1[2] );
+   d[11] = _mm_unpackhi_pi32( s2[2], s3[2] );
+
+   d[12] = _mm_unpacklo_pi32( s0[3], s1[3] );
+   d[13] = _mm_unpacklo_pi32( s2[3], s3[3] );
+   d[14] = _mm_unpackhi_pi32( s0[3], s1[3] );
+   d[15] = _mm_unpackhi_pi32( s2[3], s3[3] );
+
+   d[16] = _mm_unpacklo_pi32( s0[4], s1[4] );
+   d[17] = _mm_unpacklo_pi32( s2[4], s3[4] );
+   d[18] = _mm_unpackhi_pi32( s0[4], s1[4] );
+   d[19] = _mm_unpackhi_pi32( s2[4], s3[4] );
+
+   d[20] = _mm_unpacklo_pi32( s0[5], s1[5] );
+   d[21] = _mm_unpacklo_pi32( s2[5], s3[5] );
+   d[22] = _mm_unpackhi_pi32( s0[5], s1[5] );
+   d[23] = _mm_unpackhi_pi32( s2[5], s3[5] );
+
+   d[24] = _mm_unpacklo_pi32( s0[6], s1[6] );
+   d[25] = _mm_unpacklo_pi32( s2[6], s3[6] );
+   d[26] = _mm_unpackhi_pi32( s0[6], s1[6] );
+   d[27] = _mm_unpackhi_pi32( s2[6], s3[6] );
+
+   d[28] = _mm_unpacklo_pi32( s0[7], s1[7] );
+   d[29] = _mm_unpacklo_pi32( s2[7], s3[7] );
+   d[30] = _mm_unpackhi_pi32( s0[7], s1[7] );
+   d[31] = _mm_unpackhi_pi32( s2[7], s3[7] );
+}
+*/
+
 static inline void intrlv_4x32_512( void *dst, const void *src0,
                      const void *src1, const void *src2, const void *src3 )
 {
@@ -157,8 +306,105 @@ static inline void intrlv_4x32_512( void *dst, const void *src0,
    d[ 60] = s0[15];   d[ 61] = s1[15];   d[ 62] = s2[15];   d[ 63] = s3[15];
 }
 
+/*
 static inline void dintrlv_4x32( void *dst0, void *dst1, void *dst2,
                                  void *dst3, const void *src, int bit_len )
+{
+   __m64 *d0 = (__m64*)dst0;
+   __m64 *d1 = (__m64*)dst1;
+   __m64 *d2 = (__m64*)dst2;
+   __m64 *d3 = (__m64*)dst3;
+   const __m64 *s = (const __m64*)src;
+   d0[0] = _mm_unpacklo_pi32( s[ 0], s[ 2] );
+   d1[0] = _mm_unpackhi_pi32( s[ 0], s[ 2] );
+   d2[0] = _mm_unpacklo_pi32( s[ 1], s[ 3] );
+   d3[0] = _mm_unpackhi_pi32( s[ 1], s[ 3] );
+
+   d0[1] = _mm_unpacklo_pi32( s[ 4], s[ 6] );
+   d1[1] = _mm_unpackhi_pi32( s[ 4], s[ 6] );
+   d2[1] = _mm_unpacklo_pi32( s[ 5], s[ 7] );
+   d3[1] = _mm_unpackhi_pi32( s[ 5], s[ 7] );
+
+   d0[2] = _mm_unpacklo_pi32( s[ 8], s[10] );
+   d1[2] = _mm_unpackhi_pi32( s[ 8], s[10] );
+   d2[2] = _mm_unpacklo_pi32( s[ 9], s[11] );
+   d3[2] = _mm_unpackhi_pi32( s[ 9], s[11] );
+
+   d0[3] = _mm_unpacklo_pi32( s[12], s[14] );
+   d1[3] = _mm_unpackhi_pi32( s[12], s[14] );
+   d2[3] = _mm_unpacklo_pi32( s[13], s[15] );
+   d3[3] = _mm_unpackhi_pi32( s[13], s[15] );
+
+   if ( bit_len <= 256 ) return;
+
+   d0[4] = _mm_unpacklo_pi32( s[16], s[18] );
+   d1[4] = _mm_unpackhi_pi32( s[16], s[18] );
+   d2[4] = _mm_unpacklo_pi32( s[17], s[19] );
+   d3[4] = _mm_unpackhi_pi32( s[17], s[19] );
+
+   d0[5] = _mm_unpacklo_pi32( s[20], s[22] );
+   d1[5] = _mm_unpackhi_pi32( s[20], s[22] );
+   d2[5] = _mm_unpacklo_pi32( s[21], s[23] );
+   d3[5] = _mm_unpackhi_pi32( s[21], s[23] );
+
+   d0[6] = _mm_unpacklo_pi32( s[24], s[26] );
+   d1[6] = _mm_unpackhi_pi32( s[24], s[26] );
+   d2[6] = _mm_unpacklo_pi32( s[25], s[27] );
+   d3[6] = _mm_unpackhi_pi32( s[25], s[27] );
+
+   d0[7] = _mm_unpacklo_pi32( s[28], s[30] );
+   d1[7] = _mm_unpackhi_pi32( s[28], s[30] );
+   d2[7] = _mm_unpacklo_pi32( s[29], s[31] );
+   d3[7] = _mm_unpackhi_pi32( s[29], s[31] );
+
+   if ( bit_len <= 512 ) return;
+
+   d0[8] = _mm_unpacklo_pi32( s[32], s[34] );
+   d1[8] = _mm_unpackhi_pi32( s[32], s[34] );
+   d2[8] = _mm_unpacklo_pi32( s[33], s[35] );
+   d3[8] = _mm_unpackhi_pi32( s[33], s[35] );
+
+   d0[9] = _mm_unpacklo_pi32( s[36], s[38] );
+   d1[9] = _mm_unpackhi_pi32( s[36], s[38] );
+   d2[9] = _mm_unpacklo_pi32( s[37], s[39] );
+   d3[9] = _mm_unpackhi_pi32( s[37], s[39] );
+
+   if ( bit_len <= 640 ) return;
+
+   d0[10] = _mm_unpacklo_pi32( s[40], s[42] );
+   d1[10] = _mm_unpackhi_pi32( s[40], s[42] );
+   d2[10] = _mm_unpacklo_pi32( s[41], s[43] );
+   d3[10] = _mm_unpackhi_pi32( s[41], s[43] );
+
+   d0[11] = _mm_unpacklo_pi32( s[44], s[46] );
+   d1[11] = _mm_unpackhi_pi32( s[44], s[46] );
+   d2[11] = _mm_unpacklo_pi32( s[45], s[47] );
+   d3[11] = _mm_unpackhi_pi32( s[45], s[47] );
+
+   d0[12] = _mm_unpacklo_pi32( s[48], s[50] );
+   d1[12] = _mm_unpackhi_pi32( s[48], s[50] );
+   d2[12] = _mm_unpacklo_pi32( s[49], s[51] );
+   d3[12] = _mm_unpackhi_pi32( s[49], s[51] );
+
+   d0[13] = _mm_unpacklo_pi32( s[52], s[54] );
+   d1[13] = _mm_unpackhi_pi32( s[52], s[54] );
+   d2[13] = _mm_unpacklo_pi32( s[53], s[55] );
+   d3[13] = _mm_unpackhi_pi32( s[53], s[55] );
+
+   d0[14] = _mm_unpacklo_pi32( s[56], s[58] );
+   d1[14] = _mm_unpackhi_pi32( s[56], s[58] );
+   d2[14] = _mm_unpacklo_pi32( s[57], s[59] );
+   d3[14] = _mm_unpackhi_pi32( s[57], s[59] );
+
+   d0[15] = _mm_unpacklo_pi32( s[60], s[62] );
+   d1[15] = _mm_unpackhi_pi32( s[60], s[62] );
+   d2[15] = _mm_unpacklo_pi32( s[61], s[62] );
+   d3[15] = _mm_unpackhi_pi32( s[61], s[62] );
+}
+*/
+
+static inline void dintrlv_4x32( void *dst0, void *dst1, void *dst2,
+                           void *dst3, const void *src, const int bit_len )
 {
    uint32_t *d0 = (uint32_t*)dst0;
    uint32_t *d1 = (uint32_t*)dst1;
@@ -202,6 +448,54 @@ static inline void dintrlv_4x32( void *dst0, void *dst1, void *dst2,
    d0[31] = s[124];   d1[31] = s[125];    d2[31] = s[126];   d3[31] = s[127];
 }
 
+/*
+static inline void dintrlv_4x32_512( void *dst0, void *dst1, void *dst2,
+                                     void *dst3, const void *src )
+{
+   __m64 *d0 = (__m64*)dst0;
+   __m64 *d1 = (__m64*)dst1;
+   __m64 *d2 = (__m64*)dst2;
+   __m64 *d3 = (__m64*)dst3;
+   const __m64 *s = (const __m64*)src;
+
+   d0[0] = _mm_unpacklo_pi32( s[ 0], s[ 2] );
+   d1[0] = _mm_unpackhi_pi32( s[ 0], s[ 2] );
+   d2[0] = _mm_unpacklo_pi32( s[ 1], s[ 3] );
+   d3[0] = _mm_unpackhi_pi32( s[ 1], s[ 3] );
+   d0[1] = _mm_unpacklo_pi32( s[ 4], s[ 6] );
+   d1[1] = _mm_unpackhi_pi32( s[ 4], s[ 6] );
+   d2[1] = _mm_unpacklo_pi32( s[ 5], s[ 7] );
+   d3[1] = _mm_unpackhi_pi32( s[ 5], s[ 7] );
+
+   d0[2] = _mm_unpacklo_pi32( s[ 8], s[10] );
+   d1[2] = _mm_unpackhi_pi32( s[ 8], s[10] );
+   d2[2] = _mm_unpacklo_pi32( s[ 9], s[11] );
+   d3[2] = _mm_unpackhi_pi32( s[ 9], s[11] );
+   d0[3] = _mm_unpacklo_pi32( s[12], s[14] );
+   d1[3] = _mm_unpackhi_pi32( s[12], s[14] );
+   d2[3] = _mm_unpacklo_pi32( s[13], s[15] );
+   d3[3] = _mm_unpackhi_pi32( s[13], s[15] );
+
+   d0[4] = _mm_unpacklo_pi32( s[16], s[18] );
+   d1[4] = _mm_unpackhi_pi32( s[16], s[18] );
+   d2[4] = _mm_unpacklo_pi32( s[17], s[19] );
+   d3[4] = _mm_unpackhi_pi32( s[17], s[19] );
+   d0[5] = _mm_unpacklo_pi32( s[20], s[22] );
+   d1[5] = _mm_unpackhi_pi32( s[20], s[22] );
+   d2[5] = _mm_unpacklo_pi32( s[21], s[23] );
+   d3[5] = _mm_unpackhi_pi32( s[21], s[23] );
+
+   d0[6] = _mm_unpacklo_pi32( s[24], s[26] );
+   d1[6] = _mm_unpackhi_pi32( s[24], s[26] );
+   d2[6] = _mm_unpacklo_pi32( s[25], s[27] );
+   d3[6] = _mm_unpackhi_pi32( s[25], s[27] );
+   d0[7] = _mm_unpacklo_pi32( s[28], s[30] );
+   d1[7] = _mm_unpackhi_pi32( s[28], s[30] );
+   d2[7] = _mm_unpacklo_pi32( s[29], s[31] );
+   d3[7] = _mm_unpackhi_pi32( s[29], s[31] );
+}
+*/
+
 static inline void dintrlv_4x32_512( void *dst0, void *dst1, void *dst2,
                                      void *dst3, const void *src )
 {
@@ -228,26 +522,27 @@ static inline void dintrlv_4x32_512( void *dst0, void *dst1, void *dst2,
    d0[15] = s[ 60];   d1[15] = s[ 61];    d2[15] = s[ 62];   d3[15] = s[ 63];
 }
 
+
 static inline void extr_lane_4x32( void *d, const void *s,
-                                         const int lane, const int bit_len )
+                                   const int lane, const int bit_len )
 {
-   ((uint32_t*)d)[ 0] = ((uint32_t*)s)[ lane    ];
-   ((uint32_t*)d)[ 1] = ((uint32_t*)s)[ lane+ 4 ];
-   ((uint32_t*)d)[ 2] = ((uint32_t*)s)[ lane+ 8 ];
-   ((uint32_t*)d)[ 3] = ((uint32_t*)s)[ lane+12 ];
-   ((uint32_t*)d)[ 4] = ((uint32_t*)s)[ lane+16 ];
-   ((uint32_t*)d)[ 5] = ((uint32_t*)s)[ lane+20 ];
-   ((uint32_t*)d)[ 6] = ((uint32_t*)s)[ lane+24 ];
-   ((uint32_t*)d)[ 7] = ((uint32_t*)s)[ lane+28 ];
+   ((uint32_t*)d)[ 0] = ((const uint32_t*)s)[ lane    ];
+   ((uint32_t*)d)[ 1] = ((const uint32_t*)s)[ lane+ 4 ];
+   ((uint32_t*)d)[ 2] = ((const uint32_t*)s)[ lane+ 8 ];
+   ((uint32_t*)d)[ 3] = ((const uint32_t*)s)[ lane+12 ];
+   ((uint32_t*)d)[ 4] = ((const uint32_t*)s)[ lane+16 ];
+   ((uint32_t*)d)[ 5] = ((const uint32_t*)s)[ lane+20 ];
+   ((uint32_t*)d)[ 6] = ((const uint32_t*)s)[ lane+24 ];
+   ((uint32_t*)d)[ 7] = ((const uint32_t*)s)[ lane+28 ];
    if ( bit_len <= 256 ) return;
-   ((uint32_t*)d)[ 8] = ((uint32_t*)s)[ lane+32 ];
-   ((uint32_t*)d)[ 9] = ((uint32_t*)s)[ lane+36 ];
-   ((uint32_t*)d)[10] = ((uint32_t*)s)[ lane+40 ];
-   ((uint32_t*)d)[11] = ((uint32_t*)s)[ lane+44 ];
-   ((uint32_t*)d)[12] = ((uint32_t*)s)[ lane+48 ];
-   ((uint32_t*)d)[13] = ((uint32_t*)s)[ lane+52 ];
-   ((uint32_t*)d)[14] = ((uint32_t*)s)[ lane+56 ];
-   ((uint32_t*)d)[15] = ((uint32_t*)s)[ lane+60 ];
+   ((uint32_t*)d)[ 8] = ((const uint32_t*)s)[ lane+32 ];
+   ((uint32_t*)d)[ 9] = ((const uint32_t*)s)[ lane+36 ];
+   ((uint32_t*)d)[10] = ((const uint32_t*)s)[ lane+40 ];
+   ((uint32_t*)d)[11] = ((const uint32_t*)s)[ lane+44 ];
+   ((uint32_t*)d)[12] = ((const uint32_t*)s)[ lane+48 ];
+   ((uint32_t*)d)[13] = ((const uint32_t*)s)[ lane+52 ];
+   ((uint32_t*)d)[14] = ((const uint32_t*)s)[ lane+56 ];
+   ((uint32_t*)d)[15] = ((const uint32_t*)s)[ lane+60 ];
 }
 
 
@@ -255,7 +550,7 @@ static inline void extr_lane_4x32( void *d, const void *s,
 // Still used by decred due to odd data size: 180 bytes
 // bit_len must be multiple of 32
 static inline void mm128_intrlv_4x32x( void *dst, void *src0, void  *src1,
-                                        void *src2, void *src3, int bit_len )
+                                 void *src2, void *src3, const int bit_len )
 {
    uint32_t *d  = (uint32_t*)dst;
    uint32_t *s0 = (uint32_t*)src0;
@@ -272,34 +567,44 @@ static inline void mm128_intrlv_4x32x( void *dst, void *src0, void  *src1,
    }
 }
 
-// Double buffered source to reduce latency
-static inline void mm128_bswap32_intrlv80_4x32( void *d, void *src )
+static inline void mm128_bswap32_intrlv80_4x32( void *d, const void *src )
 {
-  __m128i sx = mm128_bswap_32( casti_m128i( src,0 ) );
-  __m128i sy = mm128_bswap_32( casti_m128i( src,1 ) );
-  casti_m128i( d, 0 ) = _mm_shuffle_epi32( sx, 0x00 );
-  casti_m128i( d, 1 ) = _mm_shuffle_epi32( sx, 0x55 );
-  casti_m128i( d, 2 ) = _mm_shuffle_epi32( sx, 0xaa );
-  casti_m128i( d, 3 ) = _mm_shuffle_epi32( sx, 0xff );
-  sx = mm128_bswap_32( casti_m128i( src,2 ) );
-  casti_m128i( d, 4 ) = _mm_shuffle_epi32( sy, 0x00 );
-  casti_m128i( d, 5 ) = _mm_shuffle_epi32( sy, 0x55 );
-  casti_m128i( d, 6 ) = _mm_shuffle_epi32( sy, 0xaa );
-  casti_m128i( d, 7 ) = _mm_shuffle_epi32( sy, 0xff );
-  sy = mm128_bswap_32( casti_m128i( src,3 ) );
-  casti_m128i( d, 8 ) = _mm_shuffle_epi32( sx, 0x00 );
-  casti_m128i( d, 9 ) = _mm_shuffle_epi32( sx, 0x55 );
-  casti_m128i( d,10 ) = _mm_shuffle_epi32( sx, 0xaa );
-  casti_m128i( d,11 ) = _mm_shuffle_epi32( sx, 0xff );
-  sx = mm128_bswap_32( casti_m128i( src,4 ) );
-  casti_m128i( d,12 ) = _mm_shuffle_epi32( sy, 0x00 );
-  casti_m128i( d,13 ) = _mm_shuffle_epi32( sy, 0x55 );
-  casti_m128i( d,14 ) = _mm_shuffle_epi32( sy, 0xaa );
-  casti_m128i( d,15 ) = _mm_shuffle_epi32( sy, 0xff );
-  casti_m128i( d,16 ) = _mm_shuffle_epi32( sx, 0x00 );
-  casti_m128i( d,17 ) = _mm_shuffle_epi32( sx, 0x55 );
-  casti_m128i( d,18 ) = _mm_shuffle_epi32( sx, 0xaa );
-  casti_m128i( d,19 ) = _mm_shuffle_epi32( sx, 0xff );
+  __m128i s0 = casti_m128i( src,0 );
+  __m128i s1 = casti_m128i( src,1 );
+  __m128i s2 = casti_m128i( src,2 );
+  __m128i s3 = casti_m128i( src,3 );
+  __m128i s4 = casti_m128i( src,4 );
+
+  s0 = mm128_bswap_32( s0 );
+  s1 = mm128_bswap_32( s1 );
+  s2 = mm128_bswap_32( s2 );
+  s3 = mm128_bswap_32( s3 );
+  s4 = mm128_bswap_32( s4 );
+
+  casti_m128i( d, 0 ) = _mm_shuffle_epi32( s0, 0x00 );
+  casti_m128i( d, 1 ) = _mm_shuffle_epi32( s0, 0x55 );
+  casti_m128i( d, 2 ) = _mm_shuffle_epi32( s0, 0xaa );
+  casti_m128i( d, 3 ) = _mm_shuffle_epi32( s0, 0xff );
+
+  casti_m128i( d, 4 ) = _mm_shuffle_epi32( s1, 0x00 );
+  casti_m128i( d, 5 ) = _mm_shuffle_epi32( s1, 0x55 );
+  casti_m128i( d, 6 ) = _mm_shuffle_epi32( s1, 0xaa );
+  casti_m128i( d, 7 ) = _mm_shuffle_epi32( s1, 0xff );
+
+  casti_m128i( d, 8 ) = _mm_shuffle_epi32( s2, 0x00 );
+  casti_m128i( d, 9 ) = _mm_shuffle_epi32( s2, 0x55 );
+  casti_m128i( d,10 ) = _mm_shuffle_epi32( s2, 0xaa );
+  casti_m128i( d,11 ) = _mm_shuffle_epi32( s2, 0xff );
+
+  casti_m128i( d,12 ) = _mm_shuffle_epi32( s3, 0x00 );
+  casti_m128i( d,13 ) = _mm_shuffle_epi32( s3, 0x55 );
+  casti_m128i( d,14 ) = _mm_shuffle_epi32( s3, 0xaa );
+  casti_m128i( d,15 ) = _mm_shuffle_epi32( s3, 0xff );
+
+  casti_m128i( d,16 ) = _mm_shuffle_epi32( s4, 0x00 );
+  casti_m128i( d,17 ) = _mm_shuffle_epi32( s4, 0x55 );
+  casti_m128i( d,18 ) = _mm_shuffle_epi32( s4, 0xaa );
+  casti_m128i( d,19 ) = _mm_shuffle_epi32( s4, 0xff );
 }
 
 // 8x32
@@ -319,7 +624,7 @@ static inline void mm128_bswap32_intrlv80_4x32( void *d, void *src )
   
 static inline void intrlv_8x32( void *dst, const void *s0, const void *s1,
            const void *s2, const void *s3, const void *s4, const void *s5,
-           const void *s6, const void *s7, int bit_len )
+           const void *s6, const void *s7, const int bit_len )
 {
    ILEAVE_8x32(  0 );   ILEAVE_8x32(  1 );
    ILEAVE_8x32(  2 );   ILEAVE_8x32(  3 );
@@ -372,7 +677,8 @@ static inline void intrlv_8x32_512( void *dst, const void *s0, const void *s1,
 } while(0)
 
 static inline void dintrlv_8x32( void *d0, void *d1, void *d2, void *d3,
-        void *d4, void *d5, void *d6, void *d7, const void *src, int bit_len )
+             void *d4, void *d5, void *d6, void *d7, const void *src,
+             const int bit_len )
 {
    DLEAVE_8x32(  0 );   DLEAVE_8x32(  1 );
    DLEAVE_8x32(  2 );   DLEAVE_8x32(  3 );
@@ -413,69 +719,86 @@ static inline void dintrlv_8x32_512( void *d0, void *d1, void *d2, void *d3,
 static inline void extr_lane_8x32( void *d, const void *s,
                                    const int lane, const int bit_len )
 {
-   ((uint32_t*)d)[ 0] = ((uint32_t*)s)[ lane     ];
-   ((uint32_t*)d)[ 1] = ((uint32_t*)s)[ lane+  8 ];
-   ((uint32_t*)d)[ 2] = ((uint32_t*)s)[ lane+ 16 ];
-   ((uint32_t*)d)[ 3] = ((uint32_t*)s)[ lane+ 24 ];
-   ((uint32_t*)d)[ 4] = ((uint32_t*)s)[ lane+ 32 ];
-   ((uint32_t*)d)[ 5] = ((uint32_t*)s)[ lane+ 40 ];
-   ((uint32_t*)d)[ 6] = ((uint32_t*)s)[ lane+ 48 ];
-   ((uint32_t*)d)[ 7] = ((uint32_t*)s)[ lane+ 56 ];
+   ((uint32_t*)d)[ 0] = ((const uint32_t*)s)[ lane     ];
+   ((uint32_t*)d)[ 1] = ((const uint32_t*)s)[ lane+  8 ];
+   ((uint32_t*)d)[ 2] = ((const uint32_t*)s)[ lane+ 16 ];
+   ((uint32_t*)d)[ 3] = ((const uint32_t*)s)[ lane+ 24 ];
+   ((uint32_t*)d)[ 4] = ((const uint32_t*)s)[ lane+ 32 ];
+   ((uint32_t*)d)[ 5] = ((const uint32_t*)s)[ lane+ 40 ];
+   ((uint32_t*)d)[ 6] = ((const uint32_t*)s)[ lane+ 48 ];
+   ((uint32_t*)d)[ 7] = ((const uint32_t*)s)[ lane+ 56 ];
    if ( bit_len <= 256 ) return;
-   ((uint32_t*)d)[ 8] = ((uint32_t*)s)[ lane+ 64 ];
-   ((uint32_t*)d)[ 9] = ((uint32_t*)s)[ lane+ 72 ];
-   ((uint32_t*)d)[10] = ((uint32_t*)s)[ lane+ 80 ];
-   ((uint32_t*)d)[11] = ((uint32_t*)s)[ lane+ 88 ];
-   ((uint32_t*)d)[12] = ((uint32_t*)s)[ lane+ 96 ];
-   ((uint32_t*)d)[13] = ((uint32_t*)s)[ lane+104 ];
-   ((uint32_t*)d)[14] = ((uint32_t*)s)[ lane+112 ];
-   ((uint32_t*)d)[15] = ((uint32_t*)s)[ lane+120 ];
+   ((uint32_t*)d)[ 8] = ((const uint32_t*)s)[ lane+ 64 ];
+   ((uint32_t*)d)[ 9] = ((const uint32_t*)s)[ lane+ 72 ];
+   ((uint32_t*)d)[10] = ((const uint32_t*)s)[ lane+ 80 ];
+   ((uint32_t*)d)[11] = ((const uint32_t*)s)[ lane+ 88 ];
+   ((uint32_t*)d)[12] = ((const uint32_t*)s)[ lane+ 96 ];
+   ((uint32_t*)d)[13] = ((const uint32_t*)s)[ lane+104 ];
+   ((uint32_t*)d)[14] = ((const uint32_t*)s)[ lane+112 ];
+   ((uint32_t*)d)[15] = ((const uint32_t*)s)[ lane+120 ];
 }
 
 #if defined(__AVX2__)
 
-static inline void mm256_bswap32_intrlv80_8x32( void *d, void *src )
+static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
 {
-   __m256i s0 = mm256_bswap_32( casti_m256i( src,0 ) );
-   __m256i s1 = mm256_bswap_32( casti_m256i( src,1 ) );
-   __m128i s2 = mm128_bswap_32( casti_m128i( src,4 ) );
-  const __m256i one   = m256_one_32;
-  const __m256i two   = _mm256_add_epi32( one, one );
-  const __m256i three = _mm256_add_epi32( two, one );
-  const __m256i four  = _mm256_add_epi32( two, two );
+   __m128i s0 = casti_m128i( src,0 );
+   __m128i s1 = casti_m128i( src,1 );
+   __m128i s2 = casti_m128i( src,2 );
+   __m128i s3 = casti_m128i( src,3 );
+   __m128i s4 = casti_m128i( src,4 );
 
-  casti_m256i( d, 0 ) = _mm256_broadcastd_epi32(
-                             _mm256_castsi256_si128( s0 ) );
-  casti_m256i( d, 1 ) = _mm256_permutevar8x32_epi32( s0, one   );
-  casti_m256i( d, 2 ) = _mm256_permutevar8x32_epi32( s0, two   );
-  casti_m256i( d, 3 ) = _mm256_permutevar8x32_epi32( s0, three );
-  casti_m256i( d, 4 ) = _mm256_permutevar8x32_epi32( s0, four  );
-  casti_m256i( d, 5 ) = _mm256_permutevar8x32_epi32( s0,
-                                       _mm256_add_epi32( four, one   ) );
-  casti_m256i( d, 6 ) = _mm256_permutevar8x32_epi32( s0,
-                                       _mm256_add_epi32( four, two   ) );
-  casti_m256i( d, 7 ) = _mm256_permutevar8x32_epi32( s0,
-                                       _mm256_add_epi32( four, three ) );
-  casti_m256i( d, 8 ) = _mm256_broadcastd_epi32(
-                             _mm256_castsi256_si128( s1 ) );
-  casti_m256i( d, 9 ) = _mm256_permutevar8x32_epi32( s1, one   );
-  casti_m256i( d,10 ) = _mm256_permutevar8x32_epi32( s1, two   );
-  casti_m256i( d,11 ) = _mm256_permutevar8x32_epi32( s1, three );
-  casti_m256i( d,12 ) = _mm256_permutevar8x32_epi32( s1, four  );
-  casti_m256i( d,13 ) = _mm256_permutevar8x32_epi32( s1,
-                                       _mm256_add_epi32( four, one   ) );
-  casti_m256i( d,14 ) = _mm256_permutevar8x32_epi32( s1,
-                                       _mm256_add_epi32( four, two   ) );
-  casti_m256i( d,15 ) = _mm256_permutevar8x32_epi32( s1,
-                                       _mm256_add_epi32( four, three ) );
-  casti_m256i( d,16 ) = _mm256_broadcastd_epi32(     s2 );
-  casti_m256i( d,17 ) = _mm256_permutevar8x32_epi32(
-                             _mm256_castsi128_si256( s2 ), one   );
-  casti_m256i( d,18 ) = _mm256_permutevar8x32_epi32(
-                             _mm256_castsi128_si256( s2 ), two   );
-  casti_m256i( d,19 ) = _mm256_permutevar8x32_epi32( 
-                             _mm256_castsi128_si256( s2 ), three );
-}
+   s0 = mm128_bswap_32( s0 );
+   s1 = mm128_bswap_32( s1 );
+   s2 = mm128_bswap_32( s2 );
+   s3 = mm128_bswap_32( s3 );
+   s4 = mm128_bswap_32( s4 );
+
+   casti_m128i( d, 0 ) = 
+   casti_m128i( d, 1 ) = _mm_shuffle_epi32( s0 , 0x00 );
+   casti_m128i( d, 2 ) = 
+   casti_m128i( d, 3 ) = _mm_shuffle_epi32( s0 , 0x55 );
+   casti_m128i( d, 4 ) = 
+   casti_m128i( d, 5 ) = _mm_shuffle_epi32( s0 , 0xaa );
+   casti_m128i( d, 6 ) = 
+   casti_m128i( d, 7 ) = _mm_shuffle_epi32( s0 , 0xff );
+
+   casti_m128i( d, 8 ) = 
+   casti_m128i( d, 9 ) = _mm_shuffle_epi32( s1 , 0x00 );
+   casti_m128i( d,10 ) = 
+   casti_m128i( d,11 ) = _mm_shuffle_epi32( s1 , 0x55 );
+   casti_m128i( d,12 ) = 
+   casti_m128i( d,13 ) = _mm_shuffle_epi32( s1 , 0xaa );
+   casti_m128i( d,14 ) = 
+   casti_m128i( d,15 ) = _mm_shuffle_epi32( s1 , 0xff );
+
+   casti_m128i( d,16 ) = 
+   casti_m128i( d,17 ) = _mm_shuffle_epi32( s2 , 0x00 );
+   casti_m128i( d,18 ) = 
+   casti_m128i( d,19 ) = _mm_shuffle_epi32( s2 , 0x55 );
+   casti_m128i( d,20 ) = 
+   casti_m128i( d,21 ) = _mm_shuffle_epi32( s2 , 0xaa );
+   casti_m128i( d,22 ) = 
+   casti_m128i( d,23 ) = _mm_shuffle_epi32( s2 , 0xff );
+
+   casti_m128i( d,24 ) = 
+   casti_m128i( d,25 ) = _mm_shuffle_epi32( s3 , 0x00 );
+   casti_m128i( d,26 ) = 
+   casti_m128i( d,27 ) = _mm_shuffle_epi32( s3 , 0x55 );
+   casti_m128i( d,28 ) = 
+   casti_m128i( d,29 ) = _mm_shuffle_epi32( s3 , 0xaa );
+   casti_m128i( d,30 ) = 
+   casti_m128i( d,31 ) = _mm_shuffle_epi32( s3 , 0xff );
+
+   casti_m128i( d,32 ) = 
+   casti_m128i( d,33 ) = _mm_shuffle_epi32( s4 , 0x00 );
+   casti_m128i( d,34 ) = 
+   casti_m128i( d,35 ) = _mm_shuffle_epi32( s4 , 0x55 );
+   casti_m128i( d,36 ) = 
+   casti_m128i( d,37 ) = _mm_shuffle_epi32( s4 , 0xaa );
+   casti_m128i( d,38 ) = 
+   casti_m128i( d,39 ) = _mm_shuffle_epi32( s4 , 0xff );
+} 
 
 #endif   // AVX2
 
@@ -506,7 +829,7 @@ static inline void intrlv_16x32( void *dst, const void *s00,
         const void *s01, const void *s02, const void *s03, const void *s04,
         const void *s05, const void *s06, const void *s07, const void *s08,
         const void *s09, const void *s10, const void *s11, const void *s12,
-        const void *s13, const void *s14, const void *s15, int bit_len )
+        const void *s13, const void *s14, const void *s15, const int bit_len )
 {
    ILEAVE_16x32(  0 );   ILEAVE_16x32(  1 );
    ILEAVE_16x32(  2 );   ILEAVE_16x32(  3 );
@@ -571,7 +894,7 @@ static inline void intrlv_16x32_512( void *dst, const void *s00,
 static inline void dintrlv_16x32( void *d00, void *d01, void *d02, void *d03,
             void *d04, void *d05, void *d06, void *d07, void *d08, void *d09,
             void *d10, void *d11, void *d12, void *d13, void *d14, void *d15,
-            const void *src, int bit_len )
+            const void *src, const int bit_len )
 {
    DLEAVE_16x32(  0 );   DLEAVE_16x32(  1 );
    DLEAVE_16x32(  2 );   DLEAVE_16x32(  3 );
@@ -614,71 +937,125 @@ static inline void dintrlv_16x32_512( void *d00, void *d01, void *d02,
 static inline void extr_lane_16x32( void *d, const void *s,
                                     const int lane, const int bit_len )
 {
-   ((uint32_t*)d)[ 0] = ((uint32_t*)s)[ lane    ];
-   ((uint32_t*)d)[ 1] = ((uint32_t*)s)[ lane+16 ];
-   ((uint32_t*)d)[ 2] = ((uint32_t*)s)[ lane+32 ];
-   ((uint32_t*)d)[ 3] = ((uint32_t*)s)[ lane+48 ];
-   ((uint32_t*)d)[ 4] = ((uint32_t*)s)[ lane+64 ];
-   ((uint32_t*)d)[ 5] = ((uint32_t*)s)[ lane+80 ];
-   ((uint32_t*)d)[ 6] = ((uint32_t*)s)[ lane+96 ];
-   ((uint32_t*)d)[ 7] = ((uint32_t*)s)[ lane+112 ];
+   ((uint32_t*)d)[ 0] = ((const uint32_t*)s)[ lane    ];
+   ((uint32_t*)d)[ 1] = ((const uint32_t*)s)[ lane+16 ];
+   ((uint32_t*)d)[ 2] = ((const uint32_t*)s)[ lane+32 ];
+   ((uint32_t*)d)[ 3] = ((const uint32_t*)s)[ lane+48 ];
+   ((uint32_t*)d)[ 4] = ((const uint32_t*)s)[ lane+64 ];
+   ((uint32_t*)d)[ 5] = ((const uint32_t*)s)[ lane+80 ];
+   ((uint32_t*)d)[ 6] = ((const uint32_t*)s)[ lane+96 ];
+   ((uint32_t*)d)[ 7] = ((const uint32_t*)s)[ lane+112 ];
    if ( bit_len <= 256 ) return;
-   ((uint32_t*)d)[ 8] = ((uint32_t*)s)[ lane+128 ];
-   ((uint32_t*)d)[ 9] = ((uint32_t*)s)[ lane+144 ];
-   ((uint32_t*)d)[10] = ((uint32_t*)s)[ lane+160 ];
-   ((uint32_t*)d)[11] = ((uint32_t*)s)[ lane+176 ];
-   ((uint32_t*)d)[12] = ((uint32_t*)s)[ lane+192 ];
-   ((uint32_t*)d)[13] = ((uint32_t*)s)[ lane+208 ];
-   ((uint32_t*)d)[14] = ((uint32_t*)s)[ lane+224 ];
-   ((uint32_t*)d)[15] = ((uint32_t*)s)[ lane+240 ];
+   ((uint32_t*)d)[ 8] = ((const uint32_t*)s)[ lane+128 ];
+   ((uint32_t*)d)[ 9] = ((const uint32_t*)s)[ lane+144 ];
+   ((uint32_t*)d)[10] = ((const uint32_t*)s)[ lane+160 ];
+   ((uint32_t*)d)[11] = ((const uint32_t*)s)[ lane+176 ];
+   ((uint32_t*)d)[12] = ((const uint32_t*)s)[ lane+192 ];
+   ((uint32_t*)d)[13] = ((const uint32_t*)s)[ lane+208 ];
+   ((uint32_t*)d)[14] = ((const uint32_t*)s)[ lane+224 ];
+   ((uint32_t*)d)[15] = ((const uint32_t*)s)[ lane+240 ];
 }
 
 #if defined(__AVX512F__) && defined(__AVX512VL__)
 
-static inline void mm512_bswap32_intrlv80_16x32( void *d, void *src )
+static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
 {
-  __m512i s0 = mm512_bswap_32( casti_m512i( src, 0 ) );
-  __m128i s1 = mm128_bswap_32( casti_m128i( src, 4 ) );
-  const __m512i one   = m512_one_32;
-  const __m512i two   = _mm512_add_epi32( one,   one   );
-  const __m512i three = _mm512_add_epi32( two,   one   );
-        __m512i     x = _mm512_add_epi32( three, three );
+   __m128i s0 = casti_m128i( src,0 );
+   __m128i s1 = casti_m128i( src,1 );
+   __m128i s2 = casti_m128i( src,2 );
+   __m128i s3 = casti_m128i( src,3 );
+   __m128i s4 = casti_m128i( src,4 );
 
-  casti_m512i( d, 0 ) = _mm512_broadcastd_epi32(
-                          _mm512_castsi512_si128( s0 ) );
-  casti_m512i( d, 1 ) = _mm512_permutexvar_epi32( one,   s0 );
-  casti_m512i( d, 2 ) = _mm512_permutexvar_epi32( two,   s0 );
-  casti_m512i( d, 3 ) = _mm512_permutexvar_epi32( three, s0 );
-  casti_m512i( d, 4 ) = _mm512_permutexvar_epi32( 
-                                _mm512_add_epi32( two, two ), s0 );
-  casti_m512i( d, 5 ) = _mm512_permutexvar_epi32( 
-                                _mm512_add_epi32( three, two ), s0 );
-  casti_m512i( d, 6 ) = _mm512_permutexvar_epi32( x, s0 );
-  casti_m512i( d, 7 ) = _mm512_permutexvar_epi32( 
-                                _mm512_add_epi32( x, one ), s0 );
-  casti_m512i( d, 8 ) = _mm512_permutexvar_epi32(
-                                _mm512_add_epi32( x, two ), s0 );
-  x = _mm512_add_epi32( x, three );
-  casti_m512i( d, 9 ) = _mm512_permutexvar_epi32( x, s0 );
-  casti_m512i( d,10 ) = _mm512_permutexvar_epi32( 
-                                _mm512_add_epi32( x, one ), s0 );
-  casti_m512i( d,11 ) = _mm512_permutexvar_epi32( 
-                                _mm512_add_epi32( x, two ), s0 );
-  x = _mm512_add_epi32( x, three );
-  casti_m512i( d,12 ) = _mm512_permutexvar_epi32( x, s0 );
-  casti_m512i( d,13 ) = _mm512_permutexvar_epi32( 
-                                _mm512_add_epi32( x, one ), s0 );
-  casti_m512i( d,14 ) = _mm512_permutexvar_epi32( 
-                                _mm512_add_epi32( x, two ), s0 );
-  casti_m512i( d,15 ) = _mm512_permutexvar_epi32( 
-                                _mm512_add_epi32( x, three ), s0 );
-  casti_m512i( d,16 ) = _mm512_broadcastd_epi32(  s1 );
-  casti_m512i( d,17 ) = _mm512_permutexvar_epi32( one,
-                                     _mm512_castsi128_si512( s1 ) );
-  casti_m512i( d,18 ) = _mm512_permutexvar_epi32( two,
-                                     _mm512_castsi128_si512( s1 ) );
-  casti_m512i( d,19 ) = _mm512_permutexvar_epi32( three,
-                                     _mm512_castsi128_si512( s1 ) );
+   s0 = mm128_bswap_32( s0 );
+   s1 = mm128_bswap_32( s1 );
+   s2 = mm128_bswap_32( s2 );
+   s3 = mm128_bswap_32( s3 );
+   s4 = mm128_bswap_32( s4 );
+
+   casti_m128i( d, 0 ) = 
+   casti_m128i( d, 1 ) = 
+   casti_m128i( d, 2 ) = 
+   casti_m128i( d, 3 ) = _mm_shuffle_epi32( s0 , 0x00 );
+   casti_m128i( d, 4 ) = 
+   casti_m128i( d, 5 ) = 
+   casti_m128i( d, 6 ) = 
+   casti_m128i( d, 7 ) = _mm_shuffle_epi32( s0 , 0x55 );
+   casti_m128i( d, 8 ) = 
+   casti_m128i( d, 9 ) = 
+   casti_m128i( d,10 ) = 
+   casti_m128i( d,11 ) = _mm_shuffle_epi32( s0 , 0xaa );
+   casti_m128i( d,12 ) = 
+   casti_m128i( d,13 ) = 
+   casti_m128i( d,14 ) = 
+   casti_m128i( d,15 ) = _mm_shuffle_epi32( s0 , 0xff );
+
+   casti_m128i( d,16 ) = 
+   casti_m128i( d,17 ) = 
+   casti_m128i( d,18 ) = 
+   casti_m128i( d,19 ) = _mm_shuffle_epi32( s1 , 0x00 );
+   casti_m128i( d,20 ) = 
+   casti_m128i( d,21 ) = 
+   casti_m128i( d,22 ) = 
+   casti_m128i( d,23 ) = _mm_shuffle_epi32( s1 , 0x55 );
+   casti_m128i( d,24 ) = 
+   casti_m128i( d,25 ) = 
+   casti_m128i( d,26 ) = 
+   casti_m128i( d,27 ) = _mm_shuffle_epi32( s1 , 0xaa );
+   casti_m128i( d,28 ) = 
+   casti_m128i( d,29 ) = 
+   casti_m128i( d,30 ) = 
+   casti_m128i( d,31 ) = _mm_shuffle_epi32( s1 , 0xff );
+
+   casti_m128i( d,32 ) = 
+   casti_m128i( d,33 ) = 
+   casti_m128i( d,34 ) = 
+   casti_m128i( d,35 ) = _mm_shuffle_epi32( s2 , 0x00 );
+   casti_m128i( d,36 ) = 
+   casti_m128i( d,37 ) = 
+   casti_m128i( d,38 ) = 
+   casti_m128i( d,39 ) = _mm_shuffle_epi32( s2 , 0x55 );
+   casti_m128i( d,40 ) = 
+   casti_m128i( d,41 ) = 
+   casti_m128i( d,42 ) = 
+   casti_m128i( d,43 ) = _mm_shuffle_epi32( s2 , 0xaa );
+   casti_m128i( d,44 ) = 
+   casti_m128i( d,45 ) = 
+   casti_m128i( d,46 ) = 
+   casti_m128i( d,47 ) = _mm_shuffle_epi32( s2 , 0xff );
+
+   casti_m128i( d,48 ) = 
+   casti_m128i( d,49 ) = 
+   casti_m128i( d,50 ) = 
+   casti_m128i( d,51 ) = _mm_shuffle_epi32( s3 , 0x00 );
+   casti_m128i( d,52 ) = 
+   casti_m128i( d,53 ) = 
+   casti_m128i( d,54 ) = 
+   casti_m128i( d,55 ) = _mm_shuffle_epi32( s3 , 0x55 );
+   casti_m128i( d,56 ) = 
+   casti_m128i( d,57 ) = 
+   casti_m128i( d,58 ) = 
+   casti_m128i( d,59 ) = _mm_shuffle_epi32( s3 , 0xaa );
+   casti_m128i( d,60 ) = 
+   casti_m128i( d,61 ) = 
+   casti_m128i( d,62 ) = 
+   casti_m128i( d,63 ) = _mm_shuffle_epi32( s3 , 0xff );
+
+   casti_m128i( d,64 ) = 
+   casti_m128i( d,65 ) = 
+   casti_m128i( d,66 ) = 
+   casti_m128i( d,67 ) = _mm_shuffle_epi32( s4 , 0x00 );
+   casti_m128i( d,68 ) = 
+   casti_m128i( d,69 ) = 
+   casti_m128i( d,70 ) = 
+   casti_m128i( d,71 ) = _mm_shuffle_epi32( s4 , 0x55 );
+   casti_m128i( d,72 ) = 
+   casti_m128i( d,73 ) = 
+   casti_m128i( d,74 ) = 
+   casti_m128i( d,75 ) = _mm_shuffle_epi32( s4 , 0xaa );
+   casti_m128i( d,76 ) = 
+   casti_m128i( d,77 ) = 
+   casti_m128i( d,78 ) = 
+   casti_m128i( d,79 ) = _mm_shuffle_epi32( s4 , 0xff );
 }
 
 #endif    // AVX512
@@ -690,7 +1067,7 @@ static inline void mm512_bswap32_intrlv80_16x32( void *d, void *src )
 // 2x64    (SSE2)
 
 static inline void intrlv_2x64( void *dst, const void *src0,
-                                const void *src1, int bit_len )
+                                const void *src1, const int bit_len )
 {
    uint64_t *d = (uint64_t*)dst;;
    const uint64_t *s0 = (const uint64_t*)src0;
@@ -709,7 +1086,7 @@ static inline void intrlv_2x64( void *dst, const void *src0,
 }
 
 static inline void dintrlv_2x64( void *dst0, void *dst1,
-                                 const void *src, int bit_len )
+                                 const void *src, const int bit_len )
 {
    uint64_t *d0 = (uint64_t*)dst0;
    uint64_t *d1 = (uint64_t*)dst1;
@@ -730,6 +1107,53 @@ static inline void dintrlv_2x64( void *dst0, void *dst1,
 
 // 4x64   (AVX2)
 
+static inline void intrlv_4x64( void *dst, const void *src0,
+                    const void *src1, const void *src2, const void *src3,
+                    const int bit_len )
+{
+   __m128i *d = (__m128i*)dst;
+   const __m128i *s0 = (const __m128i*)src0;
+   const __m128i *s1 = (const __m128i*)src1;
+   const __m128i *s2 = (const __m128i*)src2;
+   const __m128i *s3 = (const __m128i*)src3;
+   d[ 0] = _mm_unpacklo_epi64( s0[0], s1[0] );
+   d[ 1] = _mm_unpacklo_epi64( s2[0], s3[0] );
+   d[ 2] = _mm_unpackhi_epi64( s0[0], s1[0] );
+   d[ 3] = _mm_unpackhi_epi64( s2[0], s3[0] );
+   d[ 4] = _mm_unpacklo_epi64( s0[1], s1[1] );
+   d[ 5] = _mm_unpacklo_epi64( s2[1], s3[1] );
+   d[ 6] = _mm_unpackhi_epi64( s0[1], s1[1] );
+   d[ 7] = _mm_unpackhi_epi64( s2[1], s3[1] );
+   if ( bit_len <= 256 ) return;
+   d[ 8] = _mm_unpacklo_epi64( s0[2], s1[2] );
+   d[ 9] = _mm_unpacklo_epi64( s2[2], s3[2] );
+   d[10] = _mm_unpackhi_epi64( s0[2], s1[2] );
+   d[11] = _mm_unpackhi_epi64( s2[2], s3[2] );
+   d[12] = _mm_unpacklo_epi64( s0[3], s1[3] );
+   d[13] = _mm_unpacklo_epi64( s2[3], s3[3] );
+   d[14] = _mm_unpackhi_epi64( s0[3], s1[3] );
+   d[15] = _mm_unpackhi_epi64( s2[3], s3[3] );
+   if ( bit_len <= 512 ) return;
+   d[16] = _mm_unpacklo_epi64( s0[4], s1[4] );
+   d[17] = _mm_unpacklo_epi64( s2[4], s3[4] );
+   d[18] = _mm_unpackhi_epi64( s0[4], s1[4] );
+   d[19] = _mm_unpackhi_epi64( s2[4], s3[4] );
+   if ( bit_len <= 640 ) return;
+   d[20] = _mm_unpacklo_epi64( s0[5], s1[5] );
+   d[21] = _mm_unpacklo_epi64( s2[5], s3[5] );
+   d[22] = _mm_unpackhi_epi64( s0[5], s1[5] );
+   d[23] = _mm_unpackhi_epi64( s2[5], s3[5] );
+   d[24] = _mm_unpacklo_epi64( s0[6], s1[6] );
+   d[25] = _mm_unpacklo_epi64( s2[6], s3[6] );
+   d[26] = _mm_unpackhi_epi64( s0[6], s1[6] );
+   d[27] = _mm_unpackhi_epi64( s2[6], s3[6] );
+   d[28] = _mm_unpacklo_epi64( s0[7], s1[7] );
+   d[29] = _mm_unpacklo_epi64( s2[7], s3[7] );
+   d[30] = _mm_unpackhi_epi64( s0[7], s1[7] );
+   d[31] = _mm_unpackhi_epi64( s2[7], s3[7] );
+}
+
+/*
 static inline void intrlv_4x64( void *dst, void *src0,
            void *src1, void *src2, void *src3, int bit_len )
 {
@@ -758,7 +1182,35 @@ static inline void intrlv_4x64( void *dst, void *src0,
    d[ 56] = s0[14];   d[ 57] = s1[14];   d[ 58] = s2[14];   d[ 59] = s3[14];
    d[ 60] = s0[15];   d[ 61] = s1[15];   d[ 62] = s2[15];   d[ 63] = s3[15];
 }
+*/
 
+static inline void intrlv_4x64_512( void *dst, const void *src0,
+           const void *src1, const void *src2, const void *src3 )
+{
+   __m128i *d = (__m128i*)dst;
+   const __m128i *s0 = (const __m128i*)src0;
+   const __m128i *s1 = (const __m128i*)src1;
+   const __m128i *s2 = (const __m128i*)src2;
+   const __m128i *s3 = (const __m128i*)src3;
+   d[ 0] = _mm_unpacklo_epi64( s0[0], s1[0] );
+   d[ 1] = _mm_unpacklo_epi64( s2[0], s3[0] );
+   d[ 2] = _mm_unpackhi_epi64( s0[0], s1[0] );
+   d[ 3] = _mm_unpackhi_epi64( s2[0], s3[0] );
+   d[ 4] = _mm_unpacklo_epi64( s0[1], s1[1] );
+   d[ 5] = _mm_unpacklo_epi64( s2[1], s3[1] );
+   d[ 6] = _mm_unpackhi_epi64( s0[1], s1[1] );
+   d[ 7] = _mm_unpackhi_epi64( s2[1], s3[1] );
+   d[ 8] = _mm_unpacklo_epi64( s0[2], s1[2] );
+   d[ 9] = _mm_unpacklo_epi64( s2[2], s3[2] );
+   d[10] = _mm_unpackhi_epi64( s0[2], s1[2] );
+   d[11] = _mm_unpackhi_epi64( s2[2], s3[2] );
+   d[12] = _mm_unpacklo_epi64( s0[3], s1[3] );
+   d[13] = _mm_unpacklo_epi64( s2[3], s3[3] );
+   d[14] = _mm_unpackhi_epi64( s0[3], s1[3] );
+   d[15] = _mm_unpackhi_epi64( s2[3], s3[3] );
+}
+
+/*
 static inline void intrlv_4x64_512( void *dst, const void *src0,
                       const void *src1, const void *src2, const void *src3 )
 {
@@ -776,7 +1228,55 @@ static inline void intrlv_4x64_512( void *dst, const void *src0,
    d[ 24] = s0[ 6];   d[ 25] = s1[ 6];   d[ 26] = s2[ 6];   d[ 27] = s3[ 6];
    d[ 28] = s0[ 7];   d[ 29] = s1[ 7];   d[ 30] = s2[ 7];   d[ 31] = s3[ 7];
 }
+*/
 
+static inline void dintrlv_4x64( void *dst0, void *dst1, void *dst2,
+                           void *dst3, const void *src, const int bit_len )
+{
+   __m128i *d0 = (__m128i*)dst0;
+   __m128i *d1 = (__m128i*)dst1;
+   __m128i *d2 = (__m128i*)dst2;
+   __m128i *d3 = (__m128i*)dst3;
+   const __m128i *s = (const __m128i*)src;
+   d0[0] = _mm_unpacklo_epi64( s[ 0], s[ 2] );
+   d1[0] = _mm_unpackhi_epi64( s[ 0], s[ 2] );
+   d2[0] = _mm_unpacklo_epi64( s[ 1], s[ 3] );
+   d3[0] = _mm_unpackhi_epi64( s[ 1], s[ 3] );
+   d0[1] = _mm_unpacklo_epi64( s[ 4], s[ 6] );
+   d1[1] = _mm_unpackhi_epi64( s[ 4], s[ 6] );
+   d2[1] = _mm_unpacklo_epi64( s[ 5], s[ 7] );
+   d3[1] = _mm_unpackhi_epi64( s[ 5], s[ 7] );
+   if ( bit_len <= 256 ) return;
+   d0[2] = _mm_unpacklo_epi64( s[ 8], s[10] );
+   d1[2] = _mm_unpackhi_epi64( s[ 8], s[10] );
+   d2[2] = _mm_unpacklo_epi64( s[ 9], s[11] );
+   d3[2] = _mm_unpackhi_epi64( s[ 9], s[11] );
+   d0[3] = _mm_unpacklo_epi64( s[12], s[14] );
+   d1[3] = _mm_unpackhi_epi64( s[12], s[14] );
+   d2[3] = _mm_unpacklo_epi64( s[13], s[15] );
+   d3[3] = _mm_unpackhi_epi64( s[13], s[15] );
+   if ( bit_len <= 512 ) return;
+   d0[4] = _mm_unpacklo_epi64( s[16], s[18] );
+   d1[4] = _mm_unpackhi_epi64( s[16], s[18] );
+   d2[4] = _mm_unpacklo_epi64( s[17], s[19] );
+   d3[4] = _mm_unpackhi_epi64( s[17], s[19] );
+   if ( bit_len <= 640 ) return;
+   d0[5] = _mm_unpacklo_epi64( s[20], s[22] );
+   d1[5] = _mm_unpackhi_epi64( s[20], s[22] );
+   d2[5] = _mm_unpacklo_epi64( s[21], s[23] );
+   d3[5] = _mm_unpackhi_epi64( s[21], s[23] );
+   d0[6] = _mm_unpacklo_epi64( s[24], s[26] );
+   d1[6] = _mm_unpackhi_epi64( s[24], s[26] );
+   d2[6] = _mm_unpacklo_epi64( s[25], s[27] );
+   d3[6] = _mm_unpackhi_epi64( s[25], s[27] );
+   d0[7] = _mm_unpacklo_epi64( s[28], s[30] );
+   d1[7] = _mm_unpackhi_epi64( s[28], s[30] );
+   d2[7] = _mm_unpacklo_epi64( s[29], s[31] );
+   d3[7] = _mm_unpackhi_epi64( s[29], s[31] );
+}
+
+
+/*
 static inline void dintrlv_4x64( void *dst0, void *dst1, void *dst2,
                                  void *dst3, const void *src, int bit_len )
 {
@@ -805,7 +1305,35 @@ static inline void dintrlv_4x64( void *dst0, void *dst1, void *dst2,
    d0[14] = s[56];   d1[14] = s[57];    d2[14] = s[58];   d3[14] = s[59];
    d0[15] = s[60];   d1[15] = s[61];    d2[15] = s[62];   d3[15] = s[63];
 }
+*/
 
+static inline void dintrlv_4x64_512( void *dst0, void *dst1, void *dst2,
+                                     void *dst3, const void *src )
+{
+   __m128i *d0 = (__m128i*)dst0;
+   __m128i *d1 = (__m128i*)dst1;
+   __m128i *d2 = (__m128i*)dst2;
+   __m128i *d3 = (__m128i*)dst3;
+   const __m128i *s = (const __m128i*)src;
+   d0[0] = _mm_unpacklo_epi64( s[ 0], s[ 2] );
+   d1[0] = _mm_unpackhi_epi64( s[ 0], s[ 2] );
+   d2[0] = _mm_unpacklo_epi64( s[ 1], s[ 3] );
+   d3[0] = _mm_unpackhi_epi64( s[ 1], s[ 3] );
+   d0[1] = _mm_unpacklo_epi64( s[ 4], s[ 6] );
+   d1[1] = _mm_unpackhi_epi64( s[ 4], s[ 6] );
+   d2[1] = _mm_unpacklo_epi64( s[ 5], s[ 7] );
+   d3[1] = _mm_unpackhi_epi64( s[ 5], s[ 7] );
+   d0[2] = _mm_unpacklo_epi64( s[ 8], s[10] );
+   d1[2] = _mm_unpackhi_epi64( s[ 8], s[10] );
+   d2[2] = _mm_unpacklo_epi64( s[ 9], s[11] );
+   d3[2] = _mm_unpackhi_epi64( s[ 9], s[11] );
+   d0[3] = _mm_unpacklo_epi64( s[12], s[14] );
+   d1[3] = _mm_unpackhi_epi64( s[12], s[14] );
+   d2[3] = _mm_unpacklo_epi64( s[13], s[15] );
+   d3[3] = _mm_unpackhi_epi64( s[13], s[15] );
+}
+
+/*
 static inline void dintrlv_4x64_512( void *dst0, void *dst1, void *dst2,
                                      void *dst3, const void *src )
 {
@@ -823,19 +1351,20 @@ static inline void dintrlv_4x64_512( void *dst0, void *dst1, void *dst2,
    d0[ 6] = s[24];   d1[ 6] = s[25];    d2[ 6] = s[26];   d3[ 6] = s[27];
    d0[ 7] = s[28];   d1[ 7] = s[29];    d2[ 7] = s[30];   d3[ 7] = s[31];
 }
+*/
 
 static inline void extr_lane_4x64( void *d, const void *s,
                                    const int lane, const int bit_len )
 {
-   ((uint64_t*)d)[ 0] = ((uint64_t*)s)[ lane    ];
-   ((uint64_t*)d)[ 1] = ((uint64_t*)s)[ lane+ 4 ];
-   ((uint64_t*)d)[ 2] = ((uint64_t*)s)[ lane+ 8 ];
-   ((uint64_t*)d)[ 3] = ((uint64_t*)s)[ lane+12 ];
+   ((uint64_t*)d)[ 0] = ((const uint64_t*)s)[ lane    ];
+   ((uint64_t*)d)[ 1] = ((const uint64_t*)s)[ lane+ 4 ];
+   ((uint64_t*)d)[ 2] = ((const uint64_t*)s)[ lane+ 8 ];
+   ((uint64_t*)d)[ 3] = ((const uint64_t*)s)[ lane+12 ];
    if ( bit_len <= 256 ) return;
-   ((uint64_t*)d)[ 4] = ((uint64_t*)s)[ lane+16 ];
-   ((uint64_t*)d)[ 5] = ((uint64_t*)s)[ lane+20 ];
-   ((uint64_t*)d)[ 6] = ((uint64_t*)s)[ lane+24 ];
-   ((uint64_t*)d)[ 7] = ((uint64_t*)s)[ lane+28 ];
+   ((uint64_t*)d)[ 4] = ((const uint64_t*)s)[ lane+16 ];
+   ((uint64_t*)d)[ 5] = ((const uint64_t*)s)[ lane+20 ];
+   ((uint64_t*)d)[ 6] = ((const uint64_t*)s)[ lane+24 ];
+   ((uint64_t*)d)[ 7] = ((const uint64_t*)s)[ lane+28 ];
 }
 
 #if defined(__AVX2__)
@@ -843,30 +1372,146 @@ static inline void extr_lane_4x64( void *d, const void *s,
 // There a alignment problems with the source buffer on Wwindows,
 // can't use 256 bit bswap.
 
-static inline void mm256_bswap32_intrlv80_4x64( void *d, void *src )
+static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
 {
-  __m256i s0 = mm256_bswap_32( casti_m256i( src, 0 ) );
-  __m256i s1 = mm256_bswap_32( casti_m256i( src, 1 ) );
-  __m128i s2 = mm128_bswap_32( casti_m128i( src, 4 ) );
+  __m128i s0 = casti_m128i( src, 0 );
+  __m128i s1 = casti_m128i( src, 1 );
+  __m128i s2 = casti_m128i( src, 2 );
+  __m128i s3 = casti_m128i( src, 3 );
+  __m128i s4 = casti_m128i( src, 4 );
 
-  casti_m256i( d, 0 ) = _mm256_permute4x64_epi64( s0, 0x00 );
-  casti_m256i( d, 1 ) = _mm256_permute4x64_epi64( s0, 0x55 );
-  casti_m256i( d, 2 ) = _mm256_permute4x64_epi64( s0, 0xaa );
-  casti_m256i( d, 3 ) = _mm256_permute4x64_epi64( s0, 0xff );
-  casti_m256i( d, 4 ) = _mm256_permute4x64_epi64( s1, 0x00 );
-  casti_m256i( d, 5 ) = _mm256_permute4x64_epi64( s1, 0x55 );
-  casti_m256i( d, 6 ) = _mm256_permute4x64_epi64( s1, 0xaa );
-  casti_m256i( d, 7 ) = _mm256_permute4x64_epi64( s1, 0xff );
-  casti_m256i( d, 8 ) = _mm256_permute4x64_epi64(
-                          _mm256_castsi128_si256( s2 ), 0x00 );
-  casti_m256i( d, 9 ) = _mm256_permute4x64_epi64(
-                          _mm256_castsi128_si256( s2 ), 0x55 );
+  s0 = mm128_bswap_32( s0 );
+  s1 = mm128_bswap_32( s1 );
+  s2 = mm128_bswap_32( s2 );
+  s3 = mm128_bswap_32( s3 );
+  s4 = mm128_bswap_32( s4 );
+
+  casti_m128i( d,  0 ) = 
+  casti_m128i( d,  1 ) = _mm_shuffle_epi32( s0, 0x44 );
+  casti_m128i( d,  2 ) =   
+  casti_m128i( d,  3 ) = _mm_shuffle_epi32( s0, 0xee );
+
+  casti_m128i( d,  4 ) =   
+  casti_m128i( d,  5 ) = _mm_shuffle_epi32( s1, 0x44 );
+  casti_m128i( d,  6 ) =
+  casti_m128i( d,  7 ) = _mm_shuffle_epi32( s1, 0xee );
+
+  casti_m128i( d,  8 ) =
+  casti_m128i( d,  9 ) = _mm_shuffle_epi32( s2, 0x44 );
+  casti_m128i( d, 10 ) =
+  casti_m128i( d, 11 ) = _mm_shuffle_epi32( s2, 0xee );
+
+  casti_m128i( d, 12 ) =
+  casti_m128i( d, 13 ) = _mm_shuffle_epi32( s3, 0x44 );
+  casti_m128i( d, 14 ) =
+  casti_m128i( d, 15 ) = _mm_shuffle_epi32( s3, 0xee );
+
+  casti_m128i( d, 16 ) =
+  casti_m128i( d, 17 ) = _mm_shuffle_epi32( s4, 0x44 );
+  casti_m128i( d, 18 ) =
+  casti_m128i( d, 19 ) = _mm_shuffle_epi32( s4, 0xee );
+
 }
 
 #endif  // AVX2
 
 // 8x64   (AVX512)
 
+static inline void intrlv_8x64( void *dst, const void *src0,
+       const void *src1, const void *src2, const void *src3,
+       const void *src4, const void *src5, const void *src6,
+       const void *src7, const int bit_len )
+{
+   __m128i *d = (__m128i*)dst;
+   const __m128i *s0 = (const __m128i*)src0;
+   const __m128i *s1 = (const __m128i*)src1;
+   const __m128i *s2 = (const __m128i*)src2;
+   const __m128i *s3 = (const __m128i*)src3;
+   const __m128i *s4 = (const __m128i*)src4;
+   const __m128i *s5 = (const __m128i*)src5;
+   const __m128i *s6 = (const __m128i*)src6;
+   const __m128i *s7 = (const __m128i*)src7;
+
+   d[ 0] = _mm_unpacklo_epi64( s0[0], s1[0] );
+   d[ 1] = _mm_unpacklo_epi64( s2[0], s3[0] );
+   d[ 2] = _mm_unpacklo_epi64( s4[0], s5[0] );
+   d[ 3] = _mm_unpacklo_epi64( s6[0], s7[0] );
+   d[ 4] = _mm_unpackhi_epi64( s0[0], s1[0] );
+   d[ 5] = _mm_unpackhi_epi64( s2[0], s3[0] );
+   d[ 6] = _mm_unpackhi_epi64( s4[0], s5[0] );
+   d[ 7] = _mm_unpackhi_epi64( s6[0], s7[0] );
+
+   d[ 8] = _mm_unpacklo_epi64( s0[1], s1[1] );
+   d[ 9] = _mm_unpacklo_epi64( s2[1], s3[1] );
+   d[10] = _mm_unpacklo_epi64( s4[1], s5[1] );
+   d[11] = _mm_unpacklo_epi64( s6[1], s7[1] );
+   d[12] = _mm_unpackhi_epi64( s0[1], s1[1] );
+   d[13] = _mm_unpackhi_epi64( s2[1], s3[1] );
+   d[14] = _mm_unpackhi_epi64( s4[1], s5[1] );
+   d[15] = _mm_unpackhi_epi64( s6[1], s7[1] );
+
+   if ( bit_len <= 256 ) return;
+
+   d[16] = _mm_unpacklo_epi64( s0[2], s1[2] );
+   d[17] = _mm_unpacklo_epi64( s2[2], s3[2] );
+   d[18] = _mm_unpacklo_epi64( s4[2], s5[2] );
+   d[19] = _mm_unpacklo_epi64( s6[2], s7[2] );
+   d[20] = _mm_unpackhi_epi64( s0[2], s1[2] );
+   d[21] = _mm_unpackhi_epi64( s2[2], s3[2] );
+   d[22] = _mm_unpackhi_epi64( s4[2], s5[2] );
+   d[23] = _mm_unpackhi_epi64( s6[2], s7[2] );
+
+   d[24] = _mm_unpacklo_epi64( s0[3], s1[3] );
+   d[25] = _mm_unpacklo_epi64( s2[3], s3[3] );
+   d[26] = _mm_unpacklo_epi64( s4[3], s5[3] );
+   d[27] = _mm_unpacklo_epi64( s6[3], s7[3] );
+   d[28] = _mm_unpackhi_epi64( s0[3], s1[3] );
+   d[29] = _mm_unpackhi_epi64( s2[3], s3[3] );
+   d[30] = _mm_unpackhi_epi64( s4[3], s5[3] );
+   d[31] = _mm_unpackhi_epi64( s6[3], s7[3] );
+
+   if ( bit_len <= 512 ) return;
+
+   d[32] = _mm_unpacklo_epi64( s0[4], s1[4] );
+   d[33] = _mm_unpacklo_epi64( s2[4], s3[4] );
+   d[34] = _mm_unpacklo_epi64( s4[4], s5[4] );
+   d[35] = _mm_unpacklo_epi64( s6[4], s7[4] );
+   d[36] = _mm_unpackhi_epi64( s0[4], s1[4] );
+   d[37] = _mm_unpackhi_epi64( s2[4], s3[4] );
+   d[38] = _mm_unpackhi_epi64( s4[4], s5[4] );
+   d[39] = _mm_unpackhi_epi64( s6[4], s7[4] );
+
+   if ( bit_len <= 640 ) return;
+
+   d[40] = _mm_unpacklo_epi64( s0[5], s1[5] );
+   d[41] = _mm_unpacklo_epi64( s2[5], s3[5] );
+   d[42] = _mm_unpacklo_epi64( s4[5], s5[5] );
+   d[43] = _mm_unpacklo_epi64( s6[5], s7[5] );
+   d[44] = _mm_unpackhi_epi64( s0[5], s1[5] );
+   d[45] = _mm_unpackhi_epi64( s2[5], s3[5] );
+   d[46] = _mm_unpackhi_epi64( s4[5], s5[5] );
+   d[47] = _mm_unpackhi_epi64( s6[5], s7[5] );
+
+   d[48] = _mm_unpacklo_epi64( s0[6], s1[6] );
+   d[49] = _mm_unpacklo_epi64( s2[6], s3[6] );
+   d[50] = _mm_unpacklo_epi64( s4[6], s5[6] );
+   d[51] = _mm_unpacklo_epi64( s6[6], s7[6] );
+   d[52] = _mm_unpackhi_epi64( s0[6], s1[6] );
+   d[53] = _mm_unpackhi_epi64( s2[6], s3[6] );
+   d[54] = _mm_unpackhi_epi64( s4[6], s5[6] );
+   d[55] = _mm_unpackhi_epi64( s6[6], s7[6] );
+
+   d[56] = _mm_unpacklo_epi64( s0[7], s1[7] );
+   d[57] = _mm_unpacklo_epi64( s2[7], s3[7] );
+   d[58] = _mm_unpacklo_epi64( s4[7], s5[7] );
+   d[59] = _mm_unpacklo_epi64( s6[7], s7[7] );
+   d[60] = _mm_unpackhi_epi64( s0[7], s1[7] );
+   d[61] = _mm_unpackhi_epi64( s2[7], s3[7] );
+   d[62] = _mm_unpackhi_epi64( s4[7], s5[7] );
+   d[63] = _mm_unpackhi_epi64( s6[7], s7[7] );
+}
+
+/*
 #define ILEAVE_8x64( i ) do \
 { \
   uint64_t *d = (uint64_t*)(dst) + ( (i) << 3 ); \
@@ -898,7 +1543,103 @@ static inline void intrlv_8x64( void *dst, const void *s0,
 }
 
 #undef ILEAVE_8x64
+*/
 
+
+static inline void dintrlv_8x64( void *dst0, void *dst1, void *dst2,
+         void *dst3, void *dst4, void *dst5, void *dst6, void *dst7,
+         const void *src, const int bit_len )
+{
+   __m128i *d0 = (__m128i*)dst0;
+   __m128i *d1 = (__m128i*)dst1;
+   __m128i *d2 = (__m128i*)dst2;
+   __m128i *d3 = (__m128i*)dst3;
+   __m128i *d4 = (__m128i*)dst4;
+   __m128i *d5 = (__m128i*)dst5;
+   __m128i *d6 = (__m128i*)dst5;
+   __m128i *d7 = (__m128i*)dst7;
+   const __m128i* s = (const __m128i*)src;
+
+   d0[0] = _mm_unpacklo_epi64( s[ 0], s[ 4] );
+   d1[0] = _mm_unpackhi_epi64( s[ 0], s[ 4] );
+   d2[0] = _mm_unpacklo_epi64( s[ 1], s[ 5] );
+   d3[0] = _mm_unpackhi_epi64( s[ 1], s[ 5] );
+   d4[0] = _mm_unpacklo_epi64( s[ 2], s[ 6] );
+   d5[0] = _mm_unpackhi_epi64( s[ 2], s[ 6] );
+   d6[0] = _mm_unpacklo_epi64( s[ 3], s[ 7] );
+   d7[0] = _mm_unpackhi_epi64( s[ 3], s[ 7] );
+
+   d0[1] = _mm_unpacklo_epi64( s[ 8], s[12] );
+   d1[1] = _mm_unpackhi_epi64( s[ 8], s[12] );
+   d2[1] = _mm_unpacklo_epi64( s[ 9], s[13] );
+   d3[1] = _mm_unpackhi_epi64( s[ 9], s[13] );
+   d4[1] = _mm_unpacklo_epi64( s[10], s[14] );
+   d5[1] = _mm_unpackhi_epi64( s[10], s[14] );
+   d6[1] = _mm_unpacklo_epi64( s[11], s[15] );
+   d7[1] = _mm_unpackhi_epi64( s[11], s[15] );
+
+   if ( bit_len <= 256 ) return;
+
+   d0[2] = _mm_unpacklo_epi64( s[16], s[20] );
+   d1[2] = _mm_unpackhi_epi64( s[16], s[20] );
+   d2[2] = _mm_unpacklo_epi64( s[17], s[21] );
+   d3[2] = _mm_unpackhi_epi64( s[17], s[21] );
+   d4[2] = _mm_unpacklo_epi64( s[18], s[22] );
+   d5[2] = _mm_unpackhi_epi64( s[18], s[22] );
+   d6[2] = _mm_unpacklo_epi64( s[19], s[23] );
+   d7[2] = _mm_unpackhi_epi64( s[19], s[23] );
+
+   d0[3] = _mm_unpacklo_epi64( s[24], s[28] );
+   d1[3] = _mm_unpackhi_epi64( s[24], s[28] );
+   d2[3] = _mm_unpacklo_epi64( s[25], s[29] );
+   d3[3] = _mm_unpackhi_epi64( s[25], s[29] );
+   d4[3] = _mm_unpacklo_epi64( s[26], s[30] );
+   d5[3] = _mm_unpackhi_epi64( s[26], s[30] );
+   d6[3] = _mm_unpacklo_epi64( s[27], s[31] );
+   d7[3] = _mm_unpackhi_epi64( s[27], s[31] );
+
+   if ( bit_len <= 512 ) return;
+
+   d0[4] = _mm_unpacklo_epi64( s[32], s[36] );
+   d1[4] = _mm_unpackhi_epi64( s[32], s[36] );
+   d2[4] = _mm_unpacklo_epi64( s[33], s[37] );
+   d3[4] = _mm_unpackhi_epi64( s[33], s[37] );
+   d4[4] = _mm_unpacklo_epi64( s[34], s[38] );
+   d5[4] = _mm_unpackhi_epi64( s[34], s[38] );
+   d6[4] = _mm_unpacklo_epi64( s[35], s[39] );
+   d7[4] = _mm_unpackhi_epi64( s[35], s[39] );
+
+   if ( bit_len <= 640 ) return;
+
+   d0[5] = _mm_unpacklo_epi64( s[40], s[44] );
+   d1[5] = _mm_unpackhi_epi64( s[40], s[44] );
+   d2[5] = _mm_unpacklo_epi64( s[41], s[45] );
+   d3[5] = _mm_unpackhi_epi64( s[41], s[45] );
+   d4[5] = _mm_unpacklo_epi64( s[42], s[46] );
+   d5[5] = _mm_unpackhi_epi64( s[42], s[46] );
+   d6[5] = _mm_unpacklo_epi64( s[43], s[47] );
+   d7[5] = _mm_unpackhi_epi64( s[43], s[47] );
+
+   d0[6] = _mm_unpacklo_epi64( s[48], s[52] );
+   d1[6] = _mm_unpackhi_epi64( s[48], s[52] );
+   d2[6] = _mm_unpacklo_epi64( s[49], s[53] );
+   d3[6] = _mm_unpackhi_epi64( s[49], s[53] );
+   d4[6] = _mm_unpacklo_epi64( s[50], s[54] );
+   d5[6] = _mm_unpackhi_epi64( s[50], s[54] );
+   d6[6] = _mm_unpacklo_epi64( s[51], s[55] );
+   d7[6] = _mm_unpackhi_epi64( s[51], s[55] );
+
+   d0[7] = _mm_unpacklo_epi64( s[56], s[60] );
+   d1[7] = _mm_unpackhi_epi64( s[56], s[60] );
+   d2[7] = _mm_unpacklo_epi64( s[57], s[61] );
+   d3[7] = _mm_unpackhi_epi64( s[57], s[61] );
+   d4[7] = _mm_unpacklo_epi64( s[58], s[62] );
+   d5[7] = _mm_unpackhi_epi64( s[58], s[62] );
+   d6[7] = _mm_unpacklo_epi64( s[59], s[63] );
+   d7[7] = _mm_unpackhi_epi64( s[59], s[63] );
+}
+
+/*
 #define DLEAVE_8x64( i ) do \
 { \
    const uint64_t *s = (const uint64_t*)(src) + ( (i) << 3 ); \
@@ -929,43 +1670,83 @@ static inline void dintrlv_8x64( void *d0, void *d1, void *d2, void *d3,
 }
 
 #undef DLEAVE_8x64
+*/
 
 static inline void extr_lane_8x64( void *d, const void *s,
                                    const int lane, const int bit_len )
 {
-   ((uint64_t*)d)[ 0] = ((uint64_t*)s)[ lane     ];
-   ((uint64_t*)d)[ 1] = ((uint64_t*)s)[ lane+  8 ];
-   ((uint64_t*)d)[ 2] = ((uint64_t*)s)[ lane+ 16 ];
-   ((uint64_t*)d)[ 3] = ((uint64_t*)s)[ lane+ 24 ];
+   ((uint64_t*)d)[ 0] = ((const uint64_t*)s)[ lane     ];
+   ((uint64_t*)d)[ 1] = ((const uint64_t*)s)[ lane+  8 ];
+   ((uint64_t*)d)[ 2] = ((const uint64_t*)s)[ lane+ 16 ];
+   ((uint64_t*)d)[ 3] = ((const uint64_t*)s)[ lane+ 24 ];
    if ( bit_len <= 256 ) return;
-   ((uint64_t*)d)[ 4] = ((uint64_t*)s)[ lane+ 32 ];
-   ((uint64_t*)d)[ 5] = ((uint64_t*)s)[ lane+ 40 ];
-   ((uint64_t*)d)[ 6] = ((uint64_t*)s)[ lane+ 48 ];
-   ((uint64_t*)d)[ 7] = ((uint64_t*)s)[ lane+ 56 ];
+   ((uint64_t*)d)[ 4] = ((const uint64_t*)s)[ lane+ 32 ];
+   ((uint64_t*)d)[ 5] = ((const uint64_t*)s)[ lane+ 40 ];
+   ((uint64_t*)d)[ 6] = ((const uint64_t*)s)[ lane+ 48 ];
+   ((uint64_t*)d)[ 7] = ((const uint64_t*)s)[ lane+ 56 ];
 }
 
 #if defined(__AVX512F__) && defined(__AVX512VL__)
 
-static inline void mm512_bswap32_intrlv80_8x64( void *dst, void *src )
+static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
 {
-   __m512i *d = (__m512i*)dst;
-   __m512i s0 = mm512_bswap_32( casti_m512i( src, 0 ) );
-   __m128i s1 = mm128_bswap_32( casti_m128i( src, 4 ) );
-  const __m512i one    = m512_one_64;
-  const __m512i two    = _mm512_add_epi64( one, one );
-  const __m512i three  = _mm512_add_epi64( two, one );
-  const __m512i four   = _mm512_add_epi64( two, two );
+  __m128i s0 = casti_m128i( src, 0 );
+  __m128i s1 = casti_m128i( src, 1 );
+  __m128i s2 = casti_m128i( src, 2 );
+  __m128i s3 = casti_m128i( src, 3 );
+  __m128i s4 = casti_m128i( src, 4 );
 
-  d[0] = _mm512_broadcastq_epi64( _mm512_castsi512_si128( s0 ) );
-  d[1] = _mm512_permutexvar_epi64( one, s0 );
-  d[2] = _mm512_permutexvar_epi64( two, s0 );
-  d[3] = _mm512_permutexvar_epi64( three, s0 );
-  d[4] = _mm512_permutexvar_epi64( four, s0 );
-  d[5] = _mm512_permutexvar_epi64( _mm512_add_epi64( four, one   ), s0 );
-  d[6] = _mm512_permutexvar_epi64( _mm512_add_epi64( four, two   ), s0 );
-  d[7] = _mm512_permutexvar_epi64( _mm512_add_epi64( four, three ), s0 );
-  d[8] = _mm512_broadcastq_epi64( s1 );
-  d[9] = _mm512_permutexvar_epi64( one, _mm512_castsi128_si512( s1 ) );
+  s0 = mm128_bswap_32( s0 );
+  s1 = mm128_bswap_32( s1 );
+  s2 = mm128_bswap_32( s2 );
+  s3 = mm128_bswap_32( s3 );
+  s4 = mm128_bswap_32( s4 );
+
+  casti_m128i( d,  0 ) =
+  casti_m128i( d,  1 ) =
+  casti_m128i( d,  2 ) =
+  casti_m128i( d,  3 ) = _mm_shuffle_epi32( s0, 0x44 );
+  casti_m128i( d,  4 ) =
+  casti_m128i( d,  5 ) =
+  casti_m128i( d,  6 ) =
+  casti_m128i( d,  7 ) = _mm_shuffle_epi32( s0, 0xee );
+
+  casti_m128i( d,  8 ) =
+  casti_m128i( d,  9 ) =
+  casti_m128i( d, 10 ) =
+  casti_m128i( d, 11 ) = _mm_shuffle_epi32( s1, 0x44 );
+  casti_m128i( d, 12 ) =
+  casti_m128i( d, 13 ) =
+  casti_m128i( d, 14 ) =
+  casti_m128i( d, 15 ) = _mm_shuffle_epi32( s1, 0xee );
+
+  casti_m128i( d, 16 ) =
+  casti_m128i( d, 17 ) =
+  casti_m128i( d, 18 ) =
+  casti_m128i( d, 19 ) = _mm_shuffle_epi32( s2, 0x44 );
+  casti_m128i( d, 20 ) =
+  casti_m128i( d, 21 ) =
+  casti_m128i( d, 22 ) =
+  casti_m128i( d, 23 ) = _mm_shuffle_epi32( s2, 0xee );
+
+  casti_m128i( d, 24 ) =
+  casti_m128i( d, 25 ) =
+  casti_m128i( d, 26 ) =
+  casti_m128i( d, 27 ) = _mm_shuffle_epi32( s3, 0x44 );
+  casti_m128i( d, 28 ) =
+  casti_m128i( d, 29 ) =
+  casti_m128i( d, 30 ) =
+  casti_m128i( d, 31 ) = _mm_shuffle_epi32( s3, 0xee );
+
+  casti_m128i( d, 32 ) =
+  casti_m128i( d, 33 ) =
+  casti_m128i( d, 34 ) =
+  casti_m128i( d, 35 ) = _mm_shuffle_epi32( s4, 0x44 );
+  casti_m128i( d, 36 ) =
+  casti_m128i( d, 37 ) =
+  casti_m128i( d, 38 ) =
+  casti_m128i( d, 39 ) = _mm_shuffle_epi32( s4, 0xee );
+  
 }
 
 #endif  // AVX512
@@ -977,7 +1758,7 @@ static inline void mm512_bswap32_intrlv80_8x64( void *dst, void *src )
 // 2x128  (AVX2)
 
 static inline void intrlv_2x128( void *dst, const void *src0,
-                                 const void *src1, int bit_len )
+                                 const void *src1, const int bit_len )
 {
    __m128i *d = (__m128i*)dst;
    const __m128i *s0 = (const __m128i*)src0;
@@ -1042,7 +1823,7 @@ static inline void dintrlv_2x128_512( void *dst0, void *dst1, const void *src )
 // 4x128  (AVX512)
 
 static inline void intrlv_4x128( void *dst, const void *src0,
-           const void *src1, const void *src2, const void *src3, int bit_len )
+     const void *src1, const void *src2, const void *src3, const int bit_len )
 {
    __m128i *d = (__m128i*)dst;
    const __m128i *s0 = (const __m128i*)src0;
@@ -1077,7 +1858,7 @@ static inline void intrlv_4x128_512( void *dst, const void *src0,
 }
 
 static inline void dintrlv_4x128( void *dst0, void *dst1, void *dst2,
-                                  void *dst3, const void *src, int bit_len )
+                             void *dst3, const void *src, const int bit_len )
 {
    __m128i *d0 = (__m128i*)dst0;
    __m128i *d1 = (__m128i*)dst1;
@@ -1117,19 +1898,19 @@ static inline void dintrlv_4x128_512( void *dst0, void *dst1, void *dst2,
 #if defined (__AVX__)
 
 static inline void intrlv_2x256( void *dst, const void *src0,
-                                 const void *src1, int bit_len )
+                                 const void *src1, const int bit_len )
 {
    __m256i *d = (__m256i*)dst;
    const __m256i *s0 = (const __m256i*)src0;
    const __m256i *s1 = (const __m256i*)src1;
-   d[ 0] = s0[0];   d[ 1] = s1[0];
+   d[0] = s0[0];      d[1] = s1[0];
    if ( bit_len <= 256 ) return;
-   d[ 2] = s0[1];   d[ 3] = s1[1];
+   d[2] = s0[1];      d[3] = s1[1];
    if ( bit_len <= 512 ) return;
-   d[ 4] = s0[2];
+   d[4] = s0[2];
    if ( bit_len <= 640 ) return;
-   d[ 5] = s1[2];
-   d[ 6] = s0[3];   d[ 7] = s1[3];
+   d[5] = s1[2];
+   d[6] = s0[3];      d[7] = s1[3];
 }
 
 // No 80 byte dintrlv
@@ -1140,12 +1921,12 @@ static inline void dintrlv_2x256( void *dst0, void *dst1,
    __m256i *d1 = (__m256i*)dst1;
    const __m256i *s = (const __m256i*)src;
 
-   d0[0] = s[ 0];   d1[0] = s[ 1];
+   d0[0] = s[0];      d1[0] = s[1];
    if ( bit_len <= 256 ) return;
-   d0[1] = s[ 2];   d1[1] = s[ 3];
+   d0[1] = s[2];      d1[1] = s[3];
    if ( bit_len <= 512 ) return;
-   d0[2] = s[ 4];   d1[2] = s[ 5];
-   d0[3] = s[ 6];   d1[3] = s[ 7];
+   d0[2] = s[4];      d1[2] = s[5];
+   d0[3] = s[6];      d1[3] = s[7];
 }
 
 #endif // AVX
@@ -1169,8 +1950,8 @@ static inline void dintrlv_2x256( void *dst0, void *dst1,
 
 // Convert 4x64 byte (256 bit) vectors to 4x32 (128 bit) vectors for AVX
 // bit_len must be multiple of 64
-static inline void rintrlv_4x64_4x32( void *dst, void *src,
-                                            int  bit_len )
+static inline void rintrlv_4x64_4x32( void *dst, const void *src,
+                                            const int  bit_len )
 {
    RLEAVE_4x64_4x32(   0 );   RLEAVE_4x64_4x32(   8 );
    RLEAVE_4x64_4x32(  16 );   RLEAVE_4x64_4x32(  24 );
@@ -1189,6 +1970,49 @@ static inline void rintrlv_4x64_4x32( void *dst, void *src,
 
 // 4x32 -> 4x64
 
+static inline void rintrlv_4x32_4x64( void *dst,
+                                      const void *src, const int bit_len )
+{
+   __m128i *d = (__m128i*)dst;
+   const __m128i *s = (const __m128i*)src;
+   d[ 0] = _mm_unpacklo_epi32( s[ 0], s[ 1] );
+   d[ 1] = _mm_unpackhi_epi32( s[ 0], s[ 1] );
+   d[ 2] = _mm_unpacklo_epi32( s[ 2], s[ 3] );
+   d[ 3] = _mm_unpackhi_epi32( s[ 2], s[ 3] );
+   d[ 4] = _mm_unpacklo_epi32( s[ 4], s[ 5] );
+   d[ 5] = _mm_unpackhi_epi32( s[ 4], s[ 5] );
+   d[ 6] = _mm_unpacklo_epi32( s[ 6], s[ 7] );
+   d[ 7] = _mm_unpackhi_epi32( s[ 6], s[ 7] );
+   if ( bit_len <= 256 ) return;
+   d[ 8] = _mm_unpacklo_epi32( s[ 8], s[ 9] );
+   d[ 9] = _mm_unpackhi_epi32( s[ 8], s[ 9] );
+   d[10] = _mm_unpacklo_epi32( s[10], s[11] );
+   d[11] = _mm_unpackhi_epi32( s[10], s[11] );
+   d[12] = _mm_unpacklo_epi32( s[12], s[13] );
+   d[13] = _mm_unpackhi_epi32( s[12], s[13] );
+   d[14] = _mm_unpacklo_epi32( s[14], s[15] );
+   d[15] = _mm_unpackhi_epi32( s[14], s[15] );
+   if ( bit_len <= 512 ) return;
+   d[16] = _mm_unpacklo_epi32( s[16], s[17] );
+   d[17] = _mm_unpackhi_epi32( s[16], s[17] );
+   d[18] = _mm_unpacklo_epi32( s[18], s[19] );
+   d[19] = _mm_unpackhi_epi32( s[18], s[19] );
+   if ( bit_len <= 640 ) return;
+   d[20] = _mm_unpacklo_epi32( s[20], s[21] );
+   d[21] = _mm_unpackhi_epi32( s[20], s[21] );
+   d[22] = _mm_unpacklo_epi32( s[22], s[23] );
+   d[23] = _mm_unpackhi_epi32( s[22], s[23] );
+   d[24] = _mm_unpacklo_epi32( s[24], s[25] );
+   d[25] = _mm_unpackhi_epi32( s[24], s[25] );
+   d[26] = _mm_unpacklo_epi32( s[26], s[27] );
+   d[27] = _mm_unpackhi_epi32( s[26], s[27] );
+   d[28] = _mm_unpacklo_epi32( s[28], s[29] );
+   d[29] = _mm_unpackhi_epi32( s[28], s[29] );
+   d[30] = _mm_unpacklo_epi32( s[30], s[31] );
+   d[31] = _mm_unpackhi_epi32( s[30], s[31] );
+}
+
+/*
 #define RLEAVE_4x32_4x64(i) do \
 { \
  uint32_t *d = (uint32_t*)dst + (i); \
@@ -1215,10 +2039,55 @@ static inline void rintrlv_4x32_4x64( void *dst,
 }
 
 #undef RLEAVE_4x32_4x64
-
+*/
 
 // 2x128 -> 4x64
 
+
+static inline void rintrlv_2x128_4x64( void *dst, const void *src0,
+                                       const void *src1, const int bit_len )
+{
+   __m128i *d = (__m128i*)dst;
+   const __m128i *s0 = (const __m128i*)src0;
+   const __m128i *s1 = (const __m128i*)src1;
+   d[ 0] = _mm_unpacklo_epi64( s0[ 0], s0[ 1] );
+   d[ 1] = _mm_unpacklo_epi64( s1[ 0], s1[ 1] );
+   d[ 2] = _mm_unpackhi_epi64( s0[ 0], s0[ 1] );
+   d[ 3] = _mm_unpackhi_epi64( s1[ 0], s1[ 1] );
+   d[ 4] = _mm_unpacklo_epi64( s0[ 2], s0[ 3] );
+   d[ 5] = _mm_unpacklo_epi64( s1[ 2], s1[ 3] );
+   d[ 6] = _mm_unpackhi_epi64( s0[ 2], s0[ 3] );
+   d[ 7] = _mm_unpackhi_epi64( s1[ 2], s1[ 3] );
+   if ( bit_len <= 256 ) return;
+   d[ 8] = _mm_unpacklo_epi64( s0[ 4], s0[ 5] );
+   d[ 9] = _mm_unpacklo_epi64( s1[ 4], s1[ 5] );
+   d[10] = _mm_unpackhi_epi64( s0[ 4], s0[ 5] );
+   d[11] = _mm_unpackhi_epi64( s1[ 4], s1[ 5] );
+   d[12] = _mm_unpacklo_epi64( s0[ 6], s0[ 7] );
+   d[13] = _mm_unpacklo_epi64( s1[ 6], s1[ 7] );
+   d[14] = _mm_unpackhi_epi64( s0[ 6], s0[ 7] );
+   d[15] = _mm_unpackhi_epi64( s1[ 6], s1[ 7] );
+   if ( bit_len <= 256 ) return;
+   d[16] = _mm_unpacklo_epi64( s0[ 8], s0[ 9] );
+   d[17] = _mm_unpacklo_epi64( s1[ 8], s1[ 9] );
+   d[18] = _mm_unpackhi_epi64( s0[ 8], s0[ 9] );
+   d[19] = _mm_unpackhi_epi64( s1[ 8], s1[ 9] );
+   d[20] = _mm_unpacklo_epi64( s0[10], s0[11] );
+   d[21] = _mm_unpacklo_epi64( s1[10], s1[11] );
+   d[22] = _mm_unpackhi_epi64( s0[10], s0[11] );
+   d[23] = _mm_unpackhi_epi64( s1[10], s1[11] );
+   d[24] = _mm_unpacklo_epi64( s0[12], s0[13] );
+   d[25] = _mm_unpacklo_epi64( s1[12], s1[13] );
+   d[26] = _mm_unpackhi_epi64( s0[12], s0[13] );
+   d[27] = _mm_unpackhi_epi64( s1[12], s1[13] );
+   d[28] = _mm_unpacklo_epi64( s0[14], s0[15] );
+   d[29] = _mm_unpacklo_epi64( s1[14], s1[15] );
+   d[30] = _mm_unpackhi_epi64( s0[14], s0[15] );
+   d[31] = _mm_unpackhi_epi64( s1[14], s1[15] );
+}
+
+
+/*
 #define RLEAVE_2x128_4x64( i ) do \
 { \
    uint64_t *d = (uint64_t*)dst + ((i)<<1); \
@@ -1242,10 +2111,54 @@ static inline void rintrlv_2x128_4x64( void *dst, const void *src0,
 }
 
 #undef RLEAVE_2x128_4x64
-
+*/
 
 // 4x64 -> 2x128
 
+static inline void rintrlv_4x64_2x128( void *dst0, void *dst1,
+                                       const void *src, const int bit_len )
+{
+   __m128i *d0 = (__m128i*)dst0;
+   __m128i *d1 = (__m128i*)dst1;
+   const __m128i* s = (const __m128i*)src;
+   d0[ 0] = _mm_unpacklo_epi64( s[ 0], s[ 2] );
+   d0[ 1] = _mm_unpackhi_epi64( s[ 0], s[ 2] );
+   d1[ 0] = _mm_unpacklo_epi64( s[ 1], s[ 3] );
+   d1[ 1] = _mm_unpackhi_epi64( s[ 1], s[ 3] );
+   d0[ 2] = _mm_unpacklo_epi64( s[ 4], s[ 6] );
+   d0[ 3] = _mm_unpackhi_epi64( s[ 4], s[ 6] );
+   d1[ 2] = _mm_unpacklo_epi64( s[ 5], s[ 7] );
+   d1[ 3] = _mm_unpackhi_epi64( s[ 5], s[ 7] );
+   if ( bit_len <= 256 ) return;
+   d0[ 4] = _mm_unpacklo_epi64( s[ 8], s[10] );
+   d0[ 5] = _mm_unpackhi_epi64( s[ 8], s[10] );
+   d1[ 4] = _mm_unpacklo_epi64( s[ 9], s[11] );
+   d1[ 5] = _mm_unpackhi_epi64( s[ 9], s[11] );
+   d0[ 6] = _mm_unpacklo_epi64( s[12], s[14] );
+   d0[ 7] = _mm_unpackhi_epi64( s[12], s[14] );
+   d1[ 6] = _mm_unpacklo_epi64( s[13], s[15] );
+   d1[ 7] = _mm_unpackhi_epi64( s[13], s[15] );
+   if ( bit_len <= 512 ) return;
+   d0[ 8] = _mm_unpacklo_epi64( s[16], s[18] );
+   d0[ 9] = _mm_unpackhi_epi64( s[16], s[18] );
+   d1[ 8] = _mm_unpacklo_epi64( s[17], s[19] );
+   d1[ 9] = _mm_unpackhi_epi64( s[17], s[19] );
+   d0[10] = _mm_unpacklo_epi64( s[20], s[22] );
+   d0[11] = _mm_unpackhi_epi64( s[20], s[22] );
+   d1[10] = _mm_unpacklo_epi64( s[21], s[23] );
+   d1[11] = _mm_unpackhi_epi64( s[21], s[23] );
+   d0[12] = _mm_unpacklo_epi64( s[24], s[26] );
+   d0[13] = _mm_unpackhi_epi64( s[24], s[26] );
+   d1[12] = _mm_unpacklo_epi64( s[25], s[27] );
+   d1[13] = _mm_unpackhi_epi64( s[25], s[27] );
+   d0[14] = _mm_unpacklo_epi64( s[28], s[30] );
+   d0[15] = _mm_unpackhi_epi64( s[28], s[30] );
+   d1[14] = _mm_unpacklo_epi64( s[29], s[31] );
+   d1[15] = _mm_unpackhi_epi64( s[29], s[31] );
+}
+
+
+/*
 #define RLEAVE_4x64_2x128( i ) do \
 { \
    uint64_t *d0 = (uint64_t*)dst0 + (i); \
@@ -1267,7 +2180,7 @@ static inline void rintrlv_4x64_2x128( void *dst0, void *dst1,
    RLEAVE_4x64_2x128( 16 );   RLEAVE_4x64_2x128( 20 );
    RLEAVE_4x64_2x128( 24 );   RLEAVE_4x64_2x128( 28 );
 }
-
+*/
 
 //
 // Some functions customized for mining.

@@ -32,8 +32,6 @@
 
 #include <stddef.h>
 #include <string.h>
-
-//#include "miner.h"
 #include "hamsi-hash-4way.h"
 
 #if defined(__AVX2__)
@@ -100,7 +98,7 @@ extern "C"{
 #endif
 
 //#include "hamsi-helper-4way.c"
-
+/*
 static const sph_u32 IV512[] = {
 	SPH_C32(0x73746565), SPH_C32(0x6c706172), SPH_C32(0x6b204172),
 	SPH_C32(0x656e6265), SPH_C32(0x72672031), SPH_C32(0x302c2062),
@@ -109,7 +107,7 @@ static const sph_u32 IV512[] = {
 	SPH_C32(0x65766572), SPH_C32(0x6c65652c), SPH_C32(0x2042656c),
 	SPH_C32(0x6769756d)
 };
-
+*/
 static const sph_u32 alpha_n[] = {
 	SPH_C32(0xff00f0f0), SPH_C32(0xccccaaaa), SPH_C32(0xf0f0cccc),
 	SPH_C32(0xff00aaaa), SPH_C32(0xccccaaaa), SPH_C32(0xf0f0ff00),
@@ -137,6 +135,7 @@ static const sph_u32 alpha_f[] = {
 	SPH_C32(0x0ff0caf9), SPH_C32(0xcaf90ff0), SPH_C32(0xf9c0639c),
 	SPH_C32(0xcaf9f9c0), SPH_C32(0x0ff0639c)
 };
+
 
 // imported from hamsi helper
 
@@ -529,49 +528,34 @@ static const sph_u32 T512[64][16] = {
 	  SPH_C32(0xe7e00a94) }
 };
 
+
 #define INPUT_BIG \
 do { \
-  const __m256i zero = _mm256_setzero_si256(); \
   __m256i db = *buf; \
-  const sph_u32 *tp = &T512[0][0]; \
-  m0 = zero; \
-  m1 = zero; \
-  m2 = zero; \
-  m3 = zero; \
-  m4 = zero; \
-  m5 = zero; \
-  m6 = zero; \
-  m7 = zero; \
+  const uint64_t *tp = (uint64_t*)&T512[0][0];  \
+  m0 = m1 = m2 = m3 = m4 = m5 = m6 = m7 = m256_zero; \
   for ( int u = 0; u < 64; u++ ) \
   { \
      __m256i dm = _mm256_and_si256( db, m256_one_64 ) ; \
      dm = mm256_negate_32( _mm256_or_si256( dm, \
                          _mm256_slli_epi64( dm, 32 ) ) ); \
      m0 = _mm256_xor_si256( m0, _mm256_and_si256( dm, \
-                  _mm256_set_epi32( tp[0x1], tp[0x0], tp[0x1], tp[0x0], \
-                                    tp[0x1], tp[0x0], tp[0x1], tp[0x0] ) ) ); \
+                                          m256_const1_64( tp[0] ) ) ); \
      m1 = _mm256_xor_si256( m1, _mm256_and_si256( dm, \
-                  _mm256_set_epi32( tp[0x3], tp[0x2], tp[0x3], tp[0x2], \
-                                    tp[0x3], tp[0x2], tp[0x3], tp[0x2] ) ) ); \
+                                          m256_const1_64( tp[1] ) ) ); \
      m2 = _mm256_xor_si256( m2, _mm256_and_si256( dm, \
-                  _mm256_set_epi32( tp[0x5], tp[0x4], tp[0x5], tp[0x4], \
-                                    tp[0x5], tp[0x4], tp[0x5], tp[0x4] ) ) ); \
+                                          m256_const1_64( tp[2] ) ) ); \
      m3 = _mm256_xor_si256( m3, _mm256_and_si256( dm, \
-                  _mm256_set_epi32( tp[0x7], tp[0x6], tp[0x7], tp[0x6], \
-                                    tp[0x7], tp[0x6], tp[0x7], tp[0x6] ) ) ); \
+                                          m256_const1_64( tp[3] ) ) ); \
      m4 = _mm256_xor_si256( m4, _mm256_and_si256( dm, \
-                  _mm256_set_epi32( tp[0x9], tp[0x8], tp[0x9], tp[0x8], \
-                                    tp[0x9], tp[0x8], tp[0x9], tp[0x8] ) ) ); \
+                                          m256_const1_64( tp[4] ) ) ); \
      m5 = _mm256_xor_si256( m5, _mm256_and_si256( dm, \
-                  _mm256_set_epi32( tp[0xB], tp[0xA], tp[0xB], tp[0xA], \
-                                    tp[0xB], tp[0xA], tp[0xB], tp[0xA] ) ) ); \
+                                          m256_const1_64( tp[5] ) ) ); \
      m6 = _mm256_xor_si256( m6, _mm256_and_si256( dm, \
-                  _mm256_set_epi32( tp[0xD], tp[0xC], tp[0xD], tp[0xC], \
-                                    tp[0xD], tp[0xC], tp[0xD], tp[0xC] ) ) ); \
+                                          m256_const1_64( tp[6] ) ) ); \
      m7 = _mm256_xor_si256( m7, _mm256_and_si256( dm, \
-                  _mm256_set_epi32( tp[0xF], tp[0xE], tp[0xF], tp[0xE], \
-                                    tp[0xF], tp[0xE], tp[0xF], tp[0xE] ) ) ); \
-     tp += 0x10; \
+                                          m256_const1_64( tp[7] ) ) ); \
+     tp += 8; \
      db = _mm256_srli_epi64( db, 1 ); \
   } \
 } while (0)
@@ -662,55 +646,39 @@ do { \
 
 #define ROUND_BIG(rc, alpha) \
 do { \
-  __m256i t0, t1, t2, t3; \
-  s0 = _mm256_xor_si256( s0, _mm256_set_epi32( \
-        alpha[0x01] ^ (rc), alpha[0x00], alpha[0x01] ^ (rc), alpha[0x00], \
-        alpha[0x01] ^ (rc), alpha[0x00], alpha[0x01] ^ (rc), alpha[0x00] ) ); \
-  s1 = _mm256_xor_si256( s1, _mm256_set_epi32( \
-                     alpha[0x03], alpha[0x02], alpha[0x03], alpha[0x02], \
-                     alpha[0x03], alpha[0x02], alpha[0x03], alpha[0x02] ) ); \
-  s2 = _mm256_xor_si256( s2, _mm256_set_epi32( \
-                     alpha[0x05], alpha[0x04], alpha[0x05], alpha[0x04], \
-                     alpha[0x05], alpha[0x04], alpha[0x05], alpha[0x04] ) ); \
-  s3 = _mm256_xor_si256( s3, _mm256_set_epi32( \
-                     alpha[0x07], alpha[0x06], alpha[0x07], alpha[0x06], \
-                     alpha[0x07], alpha[0x06], alpha[0x07], alpha[0x06] ) ); \
-  s4 = _mm256_xor_si256( s4, _mm256_set_epi32( \
-                     alpha[0x09], alpha[0x08], alpha[0x09], alpha[0x08], \
-                     alpha[0x09], alpha[0x08], alpha[0x09], alpha[0x08] ) ); \
-  s5 = _mm256_xor_si256( s5, _mm256_set_epi32( \
-                     alpha[0x0B], alpha[0x0A], alpha[0x0B], alpha[0x0A], \
-                     alpha[0x0B], alpha[0x0A], alpha[0x0B], alpha[0x0A] ) ); \
-  s6 = _mm256_xor_si256( s6, _mm256_set_epi32( \
-                     alpha[0x0D], alpha[0x0C], alpha[0x0D], alpha[0x0C], \
-                     alpha[0x0D], alpha[0x0C], alpha[0x0D], alpha[0x0C] ) ); \
-  s7 = _mm256_xor_si256( s7, _mm256_set_epi32( \
-                     alpha[0x0F], alpha[0x0E], alpha[0x0F], alpha[0x0E], \
-                     alpha[0x0F], alpha[0x0E], alpha[0x0F], alpha[0x0E] ) ); \
-  s8 = _mm256_xor_si256( s8, _mm256_set_epi32( \
-                     alpha[0x11], alpha[0x10], alpha[0x11], alpha[0x10], \
-                     alpha[0x11], alpha[0x10], alpha[0x11], alpha[0x10] ) ); \
-  s9 = _mm256_xor_si256( s9, _mm256_set_epi32( \
-                     alpha[0x13], alpha[0x12], alpha[0x13], alpha[0x12], \
-                     alpha[0x13], alpha[0x12], alpha[0x13], alpha[0x12] ) ); \
-  sA = _mm256_xor_si256( sA, _mm256_set_epi32( \
-                     alpha[0x15], alpha[0x14], alpha[0x15], alpha[0x14], \
-                     alpha[0x15], alpha[0x14], alpha[0x15], alpha[0x14] ) ); \
-  sB = _mm256_xor_si256( sB, _mm256_set_epi32( \
-                     alpha[0x17], alpha[0x16], alpha[0x17], alpha[0x16], \
-                     alpha[0x17], alpha[0x16], alpha[0x17], alpha[0x16] ) ); \
-  sC = _mm256_xor_si256( sC, _mm256_set_epi32( \
-                     alpha[0x19], alpha[0x18], alpha[0x19], alpha[0x18], \
-                     alpha[0x19], alpha[0x18], alpha[0x19], alpha[0x18] ) ); \
-  sD = _mm256_xor_si256( sD, _mm256_set_epi32( \
-                     alpha[0x1B], alpha[0x1A], alpha[0x1B], alpha[0x1A], \
-                     alpha[0x1B], alpha[0x1A], alpha[0x1B], alpha[0x1A] ) ); \
-  sE = _mm256_xor_si256( sE, _mm256_set_epi32( \
-                     alpha[0x1D], alpha[0x1C], alpha[0x1D], alpha[0x1C], \
-                     alpha[0x1D], alpha[0x1C], alpha[0x1D], alpha[0x1C] ) ); \
-  sF = _mm256_xor_si256( sF, _mm256_set_epi32( \
-                     alpha[0x1F], alpha[0x1E], alpha[0x1F], alpha[0x1E], \
-                     alpha[0x1F], alpha[0x1E], alpha[0x1F], alpha[0x1E] ) ); \
+   __m256i t0, t1, t2, t3; \
+   s0 = _mm256_xor_si256( s0, m256_const1_64( \
+        ( ( (uint64_t)( (rc) ^ alpha[1] ) << 32 ) ) | (uint64_t)alpha[0] ) ); \
+   s1 = _mm256_xor_si256( s1, m256_const1_64( \
+        ( (uint64_t)alpha[ 3] << 32 ) | (uint64_t)alpha[ 2] ) ); \
+   s2 = _mm256_xor_si256( s2, m256_const1_64( \
+        ( (uint64_t)alpha[ 5] << 32 ) | (uint64_t)alpha[ 4] ) ); \
+   s3 = _mm256_xor_si256( s3, m256_const1_64( \
+        ( (uint64_t)alpha[ 7] << 32 ) | (uint64_t)alpha[ 6] ) ); \
+   s4 = _mm256_xor_si256( s4, m256_const1_64( \
+        ( (uint64_t)alpha[ 9] << 32 ) | (uint64_t)alpha[ 8] ) ); \
+   s5 = _mm256_xor_si256( s5, m256_const1_64( \
+        ( (uint64_t)alpha[11] << 32 ) | (uint64_t)alpha[10] ) ); \
+   s6 = _mm256_xor_si256( s6, m256_const1_64( \
+        ( (uint64_t)alpha[13] << 32 ) | (uint64_t)alpha[12] ) ); \
+   s7 = _mm256_xor_si256( s7, m256_const1_64( \
+        ( (uint64_t)alpha[15] << 32 ) | (uint64_t)alpha[14] ) ); \
+   s8 = _mm256_xor_si256( s8, m256_const1_64( \
+        ( (uint64_t)alpha[17] << 32 ) | (uint64_t)alpha[16] ) ); \
+   s9 = _mm256_xor_si256( s9, m256_const1_64( \
+        ( (uint64_t)alpha[19] << 32 ) | (uint64_t)alpha[18] ) ); \
+   sA = _mm256_xor_si256( sA, m256_const1_64( \
+        ( (uint64_t)alpha[21] << 32 ) | (uint64_t)alpha[20] ) ); \
+   sB = _mm256_xor_si256( sB, m256_const1_64( \
+        ( (uint64_t)alpha[23] << 32 ) | (uint64_t)alpha[22] ) ); \
+   sC = _mm256_xor_si256( sC, m256_const1_64( \
+        ( (uint64_t)alpha[25] << 32 ) | (uint64_t)alpha[24] ) ); \
+   sD = _mm256_xor_si256( sD, m256_const1_64( \
+        ( (uint64_t)alpha[27] << 32 ) | (uint64_t)alpha[26] ) ); \
+   sE = _mm256_xor_si256( sE, m256_const1_64( \
+        ( (uint64_t)alpha[29] << 32 ) | (uint64_t)alpha[28] ) ); \
+   sF = _mm256_xor_si256( sF, m256_const1_64( \
+        ( (uint64_t)alpha[31] << 32 ) | (uint64_t)alpha[30] ) ); \
 \
   SBOX( s0, s4, s8, sC ); \
   SBOX( s1, s5, s9, sD ); \
@@ -864,46 +832,21 @@ void hamsi_big_final( hamsi_4way_big_context *sc, __m256i *buf )
 void hamsi512_4way_init( hamsi_4way_big_context *sc )
 {
    sc->partial_len = 0;
-   sph_u32 lo, hi;
    sc->count_high = sc->count_low = 0;
-   for ( int i = 0; i < 8; i++ )
-   {
-      lo = 2*i;
-      hi = 2*i + 1;
-      sc->h[i] = _mm256_set_epi32( IV512[hi], IV512[lo], IV512[hi], IV512[lo],
-                                   IV512[hi], IV512[lo], IV512[hi], IV512[lo] );
-   }
+
+   sc->h[0] = m256_const1_64( 0x6c70617273746565 );
+   sc->h[1] = m256_const1_64( 0x656e62656b204172 );
+   sc->h[2] = m256_const1_64( 0x302c206272672031 );
+   sc->h[3] = m256_const1_64( 0x3434362c75732032 );
+   sc->h[4] = m256_const1_64( 0x3030312020422d33 );
+   sc->h[5] = m256_const1_64( 0x656e2d484c657576 );
+   sc->h[6] = m256_const1_64( 0x6c65652c65766572 );
+   sc->h[7] = m256_const1_64( 0x6769756d2042656c );
 }
 
 void hamsi512_4way( hamsi_4way_big_context *sc, const void *data, size_t len )
 {
    __m256i *vdata = (__m256i*)data;
-
-// It looks like the only way to get in here is if core was previously called
-// with a very small len
-// That's not likely even with 80 byte input so deprecate partial len
-/*
-   if ( sc->partial_len != 0 )
-   {
-      size_t mlen;
-
-      mlen = 8 - sc->partial_len;
-      if ( len < mlen )
-      {
-         memcpy_256( sc->partial + (sc->partial_len >> 3), data, len>>3 );
-         sc->partial_len += len;
-         return;
-      }
-      else
-      {
-         memcpy_256( sc->partial + (sc->partial_len >> 3), data, mlen>>3 );
-         len -= mlen;
-         vdata += mlen>>3;
-         hamsi_big( sc, sc->partial, 1 );
-         sc->partial_len = 0;
-      }
-   }
-*/
 
    hamsi_big( sc, vdata, len>>3 );
    vdata += ( (len& ~(size_t)7) >> 3 );
@@ -920,8 +863,9 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
    sph_enc32be( &ch, sc->count_high );
    sph_enc32be( &cl, sc->count_low + ( sc->partial_len << 3 ) );
    pad[0] =  _mm256_set_epi32( cl, ch, cl, ch, cl, ch, cl, ch );
-   sc->buf[0] = _mm256_set_epi32( 0UL, 0x80UL, 0UL, 0x80UL,
-                                  0UL, 0x80UL, 0UL, 0x80UL );
+   sc->buf[0] = m256_const1_64( 0x80 );
+//      sc->buf[0] = _mm256_set_epi32( 0UL, 0x80UL, 0UL, 0x80UL,
+//                                  0UL, 0x80UL, 0UL, 0x80UL );
    hamsi_big( sc, sc->buf, 1 );
    hamsi_big_final( sc, pad );
 

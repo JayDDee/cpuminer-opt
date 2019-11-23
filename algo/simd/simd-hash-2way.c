@@ -111,13 +111,25 @@ static const m256_v16 FFT256_Twiddle[] =
 // imported from vector.c
 
 #define REDUCE(x) \
+  _mm256_sub_epi16( _mm256_and_si256( x, m256_const1_64( \
+                         0x00ff00ff00ff00ff ) ), _mm256_srai_epi16( x, 8 ) )
+/*
+#define REDUCE(x) \
   _mm256_sub_epi16( _mm256_and_si256( x, _mm256_set1_epi16( 255 ) ), \
                                          _mm256_srai_epi16( x, 8 ) )
+*/
 
+#define EXTRA_REDUCE_S(x)\
+  _mm256_sub_epi16( x, _mm256_and_si256( \
+             m256_const1_64( 0x0101010101010101 ), \
+             _mm256_cmpgt_epi16( x, m256_const1_64( 0x0080008000800080 ) ) ) )
+
+/*
 #define EXTRA_REDUCE_S(x)\
   _mm256_sub_epi16( x, \
          _mm256_and_si256( _mm256_set1_epi16( 257 ), \
                            _mm256_cmpgt_epi16( x, _mm256_set1_epi16( 128 ) ) ) )
+*/
 
 #define REDUCE_FULL_S( x )  EXTRA_REDUCE_S( REDUCE (x ) )
 

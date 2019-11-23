@@ -113,17 +113,18 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
       lyra2rev3_8way_hash( hash, vdata );
       pdata[19] = n;
 
-      for ( int lane = 0; lane < 8; lane++ ) if ( hash7[lane] <= Htarg )
+      for ( int lane = 0; lane < 8; lane++ )
+      if ( unlikely( hash7[lane] <= Htarg ) )
       {
          extr_lane_8x32( lane_hash, hash, lane, 256 );
-         if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
+         if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
          {
               pdata[19] = n + lane;
               submit_lane_solution( work, lane_hash, mythr, lane );
          }
       }
       n += 8;
-   } while ( (n < max_nonce-8) && !work_restart[thr_id].restart);
+   } while ( likely( (n < max_nonce-8) && !work_restart[thr_id].restart ) );
    *hashes_done = n - first_nonce + 1;
    return 0;
 }

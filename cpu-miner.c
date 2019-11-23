@@ -157,8 +157,6 @@ uint32_t accepted_share_count = 0;
 uint32_t rejected_share_count = 0;
 uint32_t solved_block_count = 0;
 double *thr_hashrates;
-double *thr_hashcount;
-double global_hashcount = 0;
 double global_hashrate = 0;
 double stratum_diff = 0.;
 double net_diff = 0.;
@@ -875,7 +873,7 @@ static uint32_t last_block_height = 0;
 static double   last_targetdiff = 0.;
 static double   ref_rate_hi = 0.;
 static double   ref_rate_lo = 1e100;
-#if !(defined(__WINDOWS__) || defined(__WIN64))
+#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
 static uint32_t hi_temp = 0;
 #endif
 //static uint32_t stratum_errors = 0;
@@ -976,10 +974,11 @@ void report_summary_log( bool force )
                        accepts, accepted_share_count );
    applog2( LOG_INFO,"Rejected         %6d       %6d",
                        rejects, rejected_share_count );
-//   applog2( LOG_INFO,"Blocks solved                  %6d",
-//                              solved_block_count );
+   if ( solved_block_count )
+      applog2( LOG_INFO,"Blocks solved                 %6d",
+                         solved_block_count );
 
-#if !(defined(__WINDOWS__) || defined(__WIN64))
+#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
 
    int temp = cpu_temp(0);
    char tempstr[32];
@@ -1004,7 +1003,7 @@ static int share_result( int result, struct work *null_work,
                          const char *reason )
 {
    double share_time = 0., share_ratio = 0.;
-   double hashcount = 0., hashrate = 0.;
+   double hashrate = 0.;
    int latency = 0;
    struct share_stats_t my_stats = {0};
    struct timeval ack_time, latency_tv, et;
@@ -1065,11 +1064,7 @@ static int share_result( int result, struct work *null_work,
    pthread_mutex_lock( &stats_lock );
 
    for ( int i = 0; i < opt_n_threads; i++ )
-   {
-       hashcount += thr_hashcount[i];
        hashrate += thr_hashrates[i];
-   }
-   global_hashcount = hashcount;
    global_hashrate = hashrate;
    
    if ( result ) 
@@ -1342,8 +1337,8 @@ static bool submit_upstream_work( CURL *curl, struct work *work )
       if ( work->height && work->height <= net_blocks )
       {
          if (opt_debug)
-	    applog(LOG_WARNING, "block %u was already solved", work->height);
-	 return true;
+ 	        applog(LOG_WARNING, "block %u was already solved", work->height);
+	      return true;
       }
    }
 
@@ -1735,12 +1730,12 @@ err_out:
 	return false;
 }
 
-// Treat 32 byte hash string as 256 bit integer and convert to double precision
-// floating point number.
+// Convert little endian 256 bit unsigned integer to
+// double precision floating point.
 static inline double u256_to_double( const uint64_t* u )
 {
    const double f = 4294967296.0 * 4294967296.0;  // 2**64
-   return u[0] + f * ( u[1] + f * ( u[2] + f * u[3] ) );
+   return ( ( u[3] * f + u[2] ) * f + u[1] ) * f + u[0];
 }
 
 void work_set_target_ratio( struct work* work, uint32_t* hash )
@@ -2203,7 +2198,6 @@ static void *miner_thread( void *userdata )
        if ( diff.tv_usec || diff.tv_sec )
        {
           pthread_mutex_lock( &stats_lock );
-          thr_hashcount[thr_id] = hashes_done;
           thr_hashrates[thr_id] =
           hashes_done / ( diff.tv_sec + diff.tv_usec * 1e-6 );
           pthread_mutex_unlock( &stats_lock );
@@ -2232,30 +2226,19 @@ static void *miner_thread( void *userdata )
           }
        }
        // display hashrate
-       if ( !opt_quiet )
+       if ( opt_hash_meter )
        {
-          char hc[16];
           char hr[16];
-          char hc_units[2] = {0,0};
           char hr_units[2] = {0,0};
-          double hashcount;
           double hashrate;
-          if ( opt_hash_meter )
+
+          hashrate  = thr_hashrates[thr_id];
+          if ( hashrate != 0. )
           {
-             hashcount = thr_hashcount[thr_id];
-             hashrate  = thr_hashrates[thr_id];
-             if ( hashcount != 0. )
-             {
-                scale_hash_for_display( &hashcount, hc_units );
-                scale_hash_for_display( &hashrate,  hr_units );
-                if ( hc_units[0] )
-                   sprintf( hc, "%.2f", hashcount );
-                else // no fractions of a hash
-                   sprintf( hc, "%.0f", hashcount );
-                sprintf( hr, "%.2f", hashrate );
-                applog( LOG_INFO, "CPU #%d: %s %sh, %s %sh/s",
-                                  thr_id, hc, hc_units, hr, hr_units );
-             }
+             scale_hash_for_display( &hashrate,  hr_units );
+             sprintf( hr, "%.2f", hashrate );
+             applog( LOG_INFO, "CPU #%d: %s %sh/s",
+                               thr_id, hr, hr_units );
           }
        }
 
@@ -2265,35 +2248,23 @@ static void *miner_thread( void *userdata )
             && thr_id == opt_n_threads - 1 )
        {
           double hashrate  = 0.;
-          double hashcount = 0.;
           for ( i = 0; i < opt_n_threads; i++ )
-          {
               hashrate  += thr_hashrates[i];
-              hashcount += thr_hashcount[i];
-          }
-          if ( hashcount != 0. )
+
+          if ( hashrate != 0. )
           {
-             global_hashcount = hashcount;
              global_hashrate  = hashrate;
              if ( opt_benchmark )
              {
-                char hc[16];
-                char hc_units[2] = {0,0};
                 char hr[16];
                 char hr_units[2] = {0,0};
-	             scale_hash_for_display( &hashcount, hc_units );
                 scale_hash_for_display( &hashrate,  hr_units );
-                if ( hc_units[0] )
-                   sprintf( hc, "%.2f", hashcount );
-                else  // no fractions of a hash
-                   sprintf( hc, "%.0f", hashcount );
                 sprintf( hr, "%.2f", hashrate );
-#if ((defined(_WIN64) || defined(__WINDOWS__)))
-                applog( LOG_NOTICE, "Total: %s %sH, %s %sH/s",
-                                  hc, hc_units, hr, hr_units );
+#if ((defined(_WIN64) || defined(__WINDOWS__)) || defined(_WIN32))
+                applog( LOG_NOTICE, "Total: %s %sH/s", hr, hr_units );
 #else
-                applog( LOG_NOTICE, "Total: %s %sH, %s %sH/s, %dC",
-                         hc, hc_units, hr, hr_units, (uint32_t)cpu_temp(0) );
+                applog( LOG_NOTICE, "Total: %s %sH/s, CPU temp: %dC",
+                                     hr, hr_units, (uint32_t)cpu_temp(0) );
 #endif
              }
 	       }
@@ -2612,10 +2583,14 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    if ( ( stratum_diff != sctx->job.diff )
      || ( last_block_height != sctx->block_height ) )
    {
-       double hr = global_hashrate;
-       char hr_units[4] = {0};
-       char block_ttf[32];
-       char share_ttf[32];
+       double hr = 0.;
+
+       pthread_mutex_lock( &stats_lock );
+
+       for ( int i = 0; i < opt_n_threads; i++ )
+          hr += thr_hashrates[i];
+       global_hashrate = hr;
+       pthread_mutex_unlock( &stats_lock );
   
        if ( stratum_diff != sctx->job.diff )
           applog( LOG_BLUE, "New stratum difficulty" );
@@ -2626,17 +2601,25 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
        stratum_diff = sctx->job.diff;
        last_block_height = stratum.block_height;
        last_targetdiff = g_work->targetdiff;
-  
-       sprintf_et( block_ttf, net_diff * diff_to_hash / hr );
-       sprintf_et( share_ttf, last_targetdiff * diff_to_hash / hr );
-       scale_hash_for_display ( &hr, hr_units );
 
        applog2( LOG_INFO, "%s %s block %d", short_url,
                 algo_names[opt_algo], stratum.block_height );
        applog2( LOG_INFO, "Diff: net %g, stratum %g, target %g",
                 net_diff, stratum_diff, last_targetdiff );
-       applog2( LOG_INFO, "TTF @ %.2f %sh/s: block %s, share %s",
-                hr, hr_units, block_ttf, share_ttf );
+
+       if ( hr > 0. )
+       {
+          char hr_units[4] = {0};
+          char block_ttf[32];
+          char share_ttf[32];
+
+          sprintf_et( block_ttf, net_diff * diff_to_hash / hr );
+          sprintf_et( share_ttf, last_targetdiff * diff_to_hash / hr );
+          scale_hash_for_display ( &hr, hr_units );
+
+          applog2( LOG_INFO, "TTF @ %.2f %sh/s: block %s, share %s",
+                              hr, hr_units, block_ttf, share_ttf );
+       }
    }     
 }
 
@@ -3724,9 +3707,6 @@ int main(int argc, char *argv[])
 	thr_hashrates = (double *) calloc(opt_n_threads, sizeof(double));
 	if (!thr_hashrates)
 		return 1;
-        thr_hashcount = (double *) calloc(opt_n_threads, sizeof(double));
-        if (!thr_hashcount)
-                return 1;
 
 	/* init workio thread info */
 	work_thr_id = opt_n_threads;

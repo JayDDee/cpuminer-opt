@@ -118,25 +118,55 @@ void ( *hash )     ( void*, const void*, uint32_t ) ;
 void ( *hash_suw ) ( void*, const void* );
 
 //optional, safe to use default in most cases
+
+// Allocate thread local buffers and other initialization specific to miner
+// threads.
 bool ( *miner_thread_init )      ( int );
+
+// Generate global blockheader from stratum data.
 void ( *stratum_gen_work )       ( struct stratum_ctx*, struct work* );
+
+// Get thread local copy of blockheader with unique nonce.
 void ( *get_new_work )           ( struct work*, struct work*, int, uint32_t*,
                                    bool );
+
+// Return pointer to nonce in blockheader.
 uint32_t *( *get_nonceptr )      ( uint32_t* );
-void ( *decode_extra_data )      ( struct work*, uint64_t* );
+
+// Decode getwork blockheader
 bool ( *work_decode )            ( const json_t*, struct work* );
+
+// Extra getwork data
+void ( *decode_extra_data )      ( struct work*, uint64_t* );
+
 bool ( *submit_getwork_result )  ( CURL*, struct work* );
+
 void ( *gen_merkle_root )        ( char*, struct stratum_ctx* );
+
+// Increment extranonce
 void ( *build_extraheader )      ( struct work*, struct stratum_ctx* );
+
 void ( *build_block_header )     ( struct work*, uint32_t, uint32_t*,
 	                                uint32_t*, uint32_t, uint32_t );
+// Build mining.submit message
 void ( *build_stratum_request )  ( char*, struct work*, struct stratum_ctx* );
+
 char* ( *malloc_txs_request )    ( struct work* );
+
+// Big or little
 void ( *set_work_data_endian )   ( struct work* );
+
 double ( *calc_network_diff )    ( struct work* );
+
+// Wait for first work
 bool ( *ready_to_mine )          ( struct work*, struct stratum_ctx*, int );
-void ( *resync_threads )         ( struct work* );
+
+// Diverge mining threads
 bool ( *do_this_thread )         ( int );
+
+// After do_this_thread
+void ( *resync_threads )         ( struct work* );
+
 json_t* (*longpoll_rpc_call)     ( CURL*, int*, char* );
 bool ( *stratum_handle_response )( json_t* );
 set_t optimizations;

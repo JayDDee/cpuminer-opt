@@ -5,6 +5,7 @@
 
 #if defined(__AVX2__)
 
+
 static const uint32_t IV512[] =
 {
         0x72FCCDD8, 0x79CA4727, 0x128A077B, 0x40D55AEC,
@@ -12,6 +13,7 @@ static const uint32_t IV512[] =
         0x8E45D73D, 0x681AB538, 0xBDE86578, 0xDD577E47,
         0xE275EADE, 0x502D9FCD, 0xB9357178, 0x022A4B9A
 };
+
 
 #define mm256_ror2x256hi_1x32( a, b ) \
    _mm256_blend_epi32( mm256_ror1x32_128( a ), \
@@ -232,18 +234,14 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
 
 void shavite512_2way_init( shavite512_2way_context *ctx )
 {
-   casti_m256i( ctx->h, 0 ) =
-            _mm256_set_epi32( IV512[ 3], IV512[ 2], IV512[ 1], IV512[ 0],
-                              IV512[ 3], IV512[ 2], IV512[ 1], IV512[ 0] );  
-   casti_m256i( ctx->h, 1 ) =
-            _mm256_set_epi32( IV512[ 7], IV512[ 6], IV512[ 5], IV512[ 4],
-                              IV512[ 7], IV512[ 6], IV512[ 5], IV512[ 4] );
-   casti_m256i( ctx->h, 2 ) =
-            _mm256_set_epi32( IV512[11], IV512[10], IV512[ 9], IV512[ 8],
-                              IV512[11], IV512[10], IV512[ 9], IV512[ 8] );
-   casti_m256i( ctx->h, 3 ) =
-            _mm256_set_epi32( IV512[15], IV512[14], IV512[13], IV512[12],
-                              IV512[15], IV512[14], IV512[13], IV512[12] );
+    __m256i *h = (__m256i*)ctx->h;
+    __m128i *iv = (__m128i*)IV512;
+   
+   h[0] = m256_const1_128( iv[0] );
+   h[1] = m256_const1_128( iv[1] );
+   h[2] = m256_const1_128( iv[2] );
+   h[3] = m256_const1_128( iv[3] );
+
    ctx->ptr    = 0;
    ctx->count0 = 0;
    ctx->count1 = 0;
@@ -251,6 +249,7 @@ void shavite512_2way_init( shavite512_2way_context *ctx )
    ctx->count3 = 0;
 }
 
+// not tested, use update_close
 void shavite512_2way_update( shavite512_2way_context *ctx, const void *data,
                              size_t len )
 {
@@ -287,6 +286,7 @@ void shavite512_2way_update( shavite512_2way_context *ctx, const void *data,
    ctx->ptr = ptr;
 }
 
+// not tested
 void shavite512_2way_close( shavite512_2way_context *ctx, void *dst )
 {
     unsigned char *buf;
@@ -300,7 +300,7 @@ void shavite512_2way_close( shavite512_2way_context *ctx, void *dst )
     uint32_t vp = ctx->ptr>>5;
 
     // Terminating byte then zero pad
-    casti_m256i( buf, vp++ ) = _mm256_set_epi32( 0,0,0,0x80, 0,0,0,0x80 );
+    casti_m256i( buf, vp++ ) = m256_const2_64( 0, 0x0000000000000080 );
 
     // Zero pad full vectors up to count
     for ( ; vp < 6; vp++ )      
@@ -314,14 +314,12 @@ void shavite512_2way_close( shavite512_2way_context *ctx, void *dst )
     count.u32[2] = ctx->count2;
     count.u32[3] = ctx->count3;
 
-    casti_m256i( buf, 6 ) = _mm256_set_epi16( count.u16[0], 0,0,0,0,0,0,0,
-		                              count.u16[0], 0,0,0,0,0,0,0 );
-    casti_m256i( buf, 7 ) = _mm256_set_epi16(
-		    0x0200      , count.u16[7], count.u16[6], count.u16[5],
-		    count.u16[4], count.u16[3], count.u16[2], count.u16[1],
-                    0x0200      , count.u16[7], count.u16[6], count.u16[5],
-                    count.u16[4], count.u16[3], count.u16[2], count.u16[1] );
-
+    casti_m256i( buf, 6 ) = m256_const1_128(
+                  _mm_insert_epi16( m128_zero, count.u16[0], 7 ) ); 
+    casti_m256i( buf, 7 ) = m256_const1_128( _mm_set_epi16(
+                  0x0200,       count.u16[7], count.u16[6], count.u16[5],
+                  count.u16[4], count.u16[3], count.u16[2], count.u16[1] ) );
+                
     c512_2way( ctx, buf);
 
     casti_m256i( dst, 0 ) = casti_m256i( ctx->h, 0 );
@@ -382,23 +380,21 @@ void shavite512_2way_update_close( shavite512_2way_context *ctx, void *dst,
 
    if ( vp == 0 )    // empty buf, xevan.
    { 
-      casti_m256i( buf, 0 ) = _mm256_set_epi32( 0,0,0,0x80, 0,0,0,0x80 );
+      casti_m256i( buf, 0 ) = m256_const2_64( 0, 0x0000000000000080 );
       memset_zero_256( (__m256i*)buf + 1, 5 );
       ctx->count0 = ctx->count1 = ctx->count2 = ctx->count3 = 0;
    }
    else     // half full buf, everyone else.
    {
-      casti_m256i( buf, vp++ ) = _mm256_set_epi32( 0,0,0,0x80, 0,0,0,0x80 );
+    casti_m256i( buf, vp++ ) = m256_const2_64( 0, 0x0000000000000080 );
       memset_zero_256( (__m256i*)buf + vp, 6 - vp );
    }
 
-   casti_m256i( buf, 6 ) = _mm256_set_epi16( count.u16[0], 0,0,0,0,0,0,0,
-                                             count.u16[0], 0,0,0,0,0,0,0 );
-   casti_m256i( buf, 7 ) = _mm256_set_epi16(
-                   0x0200      , count.u16[7], count.u16[6], count.u16[5],
-                   count.u16[4], count.u16[3], count.u16[2], count.u16[1],
-                   0x0200      , count.u16[7], count.u16[6], count.u16[5],
-                   count.u16[4], count.u16[3], count.u16[2], count.u16[1] );
+    casti_m256i( buf, 6 ) = m256_const1_128(
+                  _mm_insert_epi16( m128_zero, count.u16[0], 7 ) ); 
+    casti_m256i( buf, 7 ) = m256_const1_128( _mm_set_epi16(
+                  0x0200,       count.u16[7], count.u16[6], count.u16[5],
+                  count.u16[4], count.u16[3], count.u16[2], count.u16[1] ) );
 
    c512_2way( ctx, buf);
 

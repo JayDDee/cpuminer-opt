@@ -1,23 +1,3 @@
-/*
- * luffa_for_sse2.c
- * Version 2.0 (Sep 15th 2009)
- *
- * Copyright (C) 2008-2009 Hitachi, Ltd. All rights reserved.
- *
- * Hitachi, Ltd. is the owner of this software and hereby grant
- * the U.S. Government and any interested party the right to use
- * this software for the purposes of the SHA-3 evaluation process,
- * notwithstanding that this software is copyrighted.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-
 #include <string.h>
 #include <immintrin.h>
 #include "luffa-hash-2way.h"
@@ -26,31 +6,30 @@
 
 #include "simd-utils.h"
 
-#define MASK _mm256_set_epi32( 0UL, 0UL, 0UL, 0xffffffffUL, \
-                               0UL, 0UL, 0UL, 0xffffffffUL )
+#define cns(i)  m256_const1_128( ( (__m128i*)CNS_INIT)[i] )
 
 #define ADD_CONSTANT(a,b,c0,c1)\
     a = _mm256_xor_si256(a,c0);\
     b = _mm256_xor_si256(b,c1);\
 
-#define MULT2(a0,a1) \
+#define MULT2( a0, a1, mask ) \
 do { \
-  register __m256i b = _mm256_xor_si256( a0, \
-                   _mm256_shuffle_epi32( _mm256_and_si256(a1,MASK), 16 ) ); \
+  __m256i b = _mm256_xor_si256( a0, \
+                   _mm256_shuffle_epi32( _mm256_and_si256(a1,mask), 16 ) ); \
   a0 = _mm256_or_si256( _mm256_srli_si256(b,4), _mm256_slli_si256(a1,12) ); \
   a1 = _mm256_or_si256( _mm256_srli_si256(a1,4), _mm256_slli_si256(b,12) );  \
 } while(0)
 
 // confirm pointer arithmetic
 // ok but use array indexes
-#define STEP_PART(x,c,t)\
+#define STEP_PART(x,c0,c1,t)\
     SUBCRUMB(*x,*(x+1),*(x+2),*(x+3),*t);\
     SUBCRUMB(*(x+5),*(x+6),*(x+7),*(x+4),*t);\
     MIXWORD(*x,*(x+4),*t,*(t+1));\
     MIXWORD(*(x+1),*(x+5),*t,*(t+1));\
     MIXWORD(*(x+2),*(x+6),*t,*(t+1));\
     MIXWORD(*(x+3),*(x+7),*t,*(t+1));\
-    ADD_CONSTANT(*x, *(x+4), *c, *(c+1));
+    ADD_CONSTANT(*x, *(x+4), c0, c1);
 
 #define SUBCRUMB(a0,a1,a2,a3,t)\
     t  = _mm256_load_si256(&a0);\
@@ -245,7 +224,7 @@ static const uint32 CNS_INIT[128] __attribute((aligned(32))) = {
     0x00000000,0x00000000,0x00000000,0xfc053c31
 };
 
-__m256i CNS[32];
+
 
 /***************************************************/
 /* Round function         */
@@ -258,6 +237,7 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     __m256i msg0, msg1;
     __m256i tmp[2];
     __m256i x[8];
+    const __m256i MASK = m256_const2_64( 0, 0x00000000ffffffff );
 
     t0 = chainv[0];
     t1 = chainv[1];
@@ -271,7 +251,7 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     t0 = _mm256_xor_si256( t0, chainv[8] );
     t1 = _mm256_xor_si256( t1, chainv[9] );
 
-    MULT2( t0, t1 );
+    MULT2( t0, t1, MASK );
 
     msg0 = _mm256_shuffle_epi32( msg[0], 27 );
     msg1 = _mm256_shuffle_epi32( msg[1], 27 );
@@ -290,66 +270,66 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     t0 = chainv[0];
     t1 = chainv[1];
 
-    MULT2( chainv[0], chainv[1]);
+    MULT2( chainv[0], chainv[1], MASK );
     chainv[0] = _mm256_xor_si256( chainv[0], chainv[2] );
     chainv[1] = _mm256_xor_si256( chainv[1], chainv[3] );
 
-    MULT2( chainv[2], chainv[3]);
+    MULT2( chainv[2], chainv[3], MASK );
     chainv[2] = _mm256_xor_si256(chainv[2], chainv[4]);
     chainv[3] = _mm256_xor_si256(chainv[3], chainv[5]);
 
-    MULT2( chainv[4], chainv[5]);
+    MULT2( chainv[4], chainv[5], MASK );
     chainv[4] = _mm256_xor_si256(chainv[4], chainv[6]);
     chainv[5] = _mm256_xor_si256(chainv[5], chainv[7]);
 
-    MULT2( chainv[6], chainv[7]);
+    MULT2( chainv[6], chainv[7], MASK );
     chainv[6] = _mm256_xor_si256(chainv[6], chainv[8]);
     chainv[7] = _mm256_xor_si256(chainv[7], chainv[9]);
 
-    MULT2( chainv[8], chainv[9]);
+    MULT2( chainv[8], chainv[9], MASK );
     chainv[8] = _mm256_xor_si256( chainv[8], t0 );
     chainv[9] = _mm256_xor_si256( chainv[9], t1 );
 
     t0 = chainv[8];
     t1 = chainv[9];
 
-    MULT2( chainv[8], chainv[9]);
+    MULT2( chainv[8], chainv[9], MASK );
     chainv[8] = _mm256_xor_si256( chainv[8], chainv[6] );
     chainv[9] = _mm256_xor_si256( chainv[9], chainv[7] );
 
-    MULT2( chainv[6], chainv[7]);
+    MULT2( chainv[6], chainv[7], MASK );
     chainv[6] = _mm256_xor_si256( chainv[6], chainv[4] );
     chainv[7] = _mm256_xor_si256( chainv[7], chainv[5] );
 
-    MULT2( chainv[4], chainv[5]);
+    MULT2( chainv[4], chainv[5], MASK );
     chainv[4] = _mm256_xor_si256( chainv[4], chainv[2] );
     chainv[5] = _mm256_xor_si256( chainv[5], chainv[3] );
 
-    MULT2( chainv[2], chainv[3] );
+    MULT2( chainv[2], chainv[3], MASK );
     chainv[2] = _mm256_xor_si256( chainv[2], chainv[0] );
     chainv[3] = _mm256_xor_si256( chainv[3], chainv[1] );
 
-    MULT2( chainv[0], chainv[1] );
+    MULT2( chainv[0], chainv[1], MASK );
     chainv[0] = _mm256_xor_si256( _mm256_xor_si256( chainv[0], t0 ), msg0 );
     chainv[1] = _mm256_xor_si256( _mm256_xor_si256( chainv[1], t1 ), msg1 );
 
-    MULT2( msg0, msg1);
+    MULT2( msg0, msg1, MASK );
     chainv[2] = _mm256_xor_si256( chainv[2], msg0 );
     chainv[3] = _mm256_xor_si256( chainv[3], msg1 );
 
-    MULT2( msg0, msg1);
+    MULT2( msg0, msg1, MASK );
     chainv[4] = _mm256_xor_si256( chainv[4], msg0 );
     chainv[5] = _mm256_xor_si256( chainv[5], msg1 );
 
-    MULT2( msg0, msg1);
+    MULT2( msg0, msg1, MASK );
     chainv[6] = _mm256_xor_si256( chainv[6], msg0 );
     chainv[7] = _mm256_xor_si256( chainv[7], msg1 );
 
-    MULT2( msg0, msg1);
+    MULT2( msg0, msg1, MASK );
     chainv[8] = _mm256_xor_si256( chainv[8], msg0 );
     chainv[9] = _mm256_xor_si256( chainv[9], msg1 );
 
-    MULT2( msg0, msg1);
+    MULT2( msg0, msg1, MASK );
 
     chainv[3] = _mm256_or_si256( _mm256_slli_epi32( chainv[3],  1 ),
                                  _mm256_srli_epi32( chainv[3], 31 ) );
@@ -365,14 +345,14 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
                 chainv[1],chainv[3],chainv[5],chainv[7],
                 x[4], x[5], x[6], x[7] );
 
-    STEP_PART( &x[0], &CNS[ 0], &tmp[0] );
-    STEP_PART( &x[0], &CNS[ 2], &tmp[0] );
-    STEP_PART( &x[0], &CNS[ 4], &tmp[0] );
-    STEP_PART( &x[0], &CNS[ 6], &tmp[0] );
-    STEP_PART( &x[0], &CNS[ 8], &tmp[0] );
-    STEP_PART( &x[0], &CNS[10], &tmp[0] );
-    STEP_PART( &x[0], &CNS[12], &tmp[0] );
-    STEP_PART( &x[0], &CNS[14], &tmp[0] );
+    STEP_PART( &x[0], cns( 0), cns( 1), &tmp[0] );
+    STEP_PART( &x[0], cns( 2), cns( 3), &tmp[0] );
+    STEP_PART( &x[0], cns( 4), cns( 5), &tmp[0] );
+    STEP_PART( &x[0], cns( 6), cns( 7), &tmp[0] );
+    STEP_PART( &x[0], cns( 8), cns( 9), &tmp[0] );
+    STEP_PART( &x[0], cns(10), cns(11), &tmp[0] );
+    STEP_PART( &x[0], cns(12), cns(13), &tmp[0] );
+    STEP_PART( &x[0], cns(14), cns(15), &tmp[0] );
 
     MIXTON1024( x[0], x[1], x[2], x[3],
                 chainv[0], chainv[2], chainv[4],chainv[6],
@@ -380,24 +360,23 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
                 chainv[1],chainv[3],chainv[5],chainv[7]);
 
     /* Process last 256-bit block */
-    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[16], CNS[17],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(16), cns(17),
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[18], CNS[19],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(18), cns(19),
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[20], CNS[21],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(20), cns(21),
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[22], CNS[23],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(22), cns(23),
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[24], CNS[25],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(24), cns(25),
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[26], CNS[27],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(26), cns(27),
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[28], CNS[29],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(28), cns(29),
                 tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, CNS[30], CNS[31],
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(30), cns(31),
                 tmp[0], tmp[1] );
 }
-
 
 /***************************************************/
 /* Finalization function  */
@@ -410,8 +389,9 @@ void finalization512_2way( luffa_2way_context *state, uint32 *b )
     __m256i* chainv = state->chainv;
     __m256i t[2];
     __m256i zero[2];
-    zero[0] = zero[1] = _mm256_setzero_si256();
-
+    zero[0] = zero[1] = m256_zero;
+    const __m256i shuff_bswap32 = m256_const2_64( 0x0c0d0e0f08090a0b,
+                                                  0x0405060700010203 );
     /*---- blank round with m=0 ----*/
     rnd512_2way( state, zero );
 
@@ -433,8 +413,10 @@ void finalization512_2way( luffa_2way_context *state, uint32 *b )
     _mm256_store_si256( (__m256i*)&hash[0], t[0] );
     _mm256_store_si256( (__m256i*)&hash[8], t[1] );
 
-    casti_m256i( b, 0 ) = mm256_bswap_32( casti_m256i( hash, 0 ) );
-    casti_m256i( b, 1 ) = mm256_bswap_32( casti_m256i( hash, 1 ) );
+    casti_m256i( b, 0 ) = _mm256_shuffle_epi8(
+                                  casti_m256i( hash, 0 ), shuff_bswap32 );
+    casti_m256i( b, 1 ) = _mm256_shuffle_epi8( 
+                                  casti_m256i( hash, 1 ), shuff_bswap32 );
 
     rnd512_2way( state, zero );
 
@@ -455,26 +437,27 @@ void finalization512_2way( luffa_2way_context *state, uint32 *b )
     _mm256_store_si256( (__m256i*)&hash[0], t[0] );
     _mm256_store_si256( (__m256i*)&hash[8], t[1] );
 
-    casti_m256i( b, 2 ) = mm256_bswap_32( casti_m256i( hash, 0 ) );
-    casti_m256i( b, 3 ) = mm256_bswap_32( casti_m256i( hash, 1 ) );
+    casti_m256i( b, 2 ) = _mm256_shuffle_epi8( 
+                                  casti_m256i( hash, 0 ), shuff_bswap32 );
+    casti_m256i( b, 3 ) = _mm256_shuffle_epi8( 
+                                  casti_m256i( hash, 1 ), shuff_bswap32 );
 }
 
 int luffa_2way_init( luffa_2way_context *state, int hashbitlen )
 {
-    int i;
     state->hashbitlen = hashbitlen;
-
-    for ( i=0; i<32; i++ ) CNS[i] =
-          _mm256_set_epi32( CNS_INIT[ (i<<2) + 3 ], CNS_INIT[ (i<<2) +2 ],
-                            CNS_INIT[ (i<<2) + 1 ], CNS_INIT[ (i<<2)    ],
-                            CNS_INIT[ (i<<2) + 3 ], CNS_INIT[ (i<<2) +2 ],
-                            CNS_INIT[ (i<<2) + 1 ], CNS_INIT[ (i<<2)    ] );
-
-    for ( i=0; i<10; i++ ) state->chainv[i] =
-          _mm256_set_epi32( IV[ (i<<2) +3 ], IV[ (i<<2) +2 ],
-                            IV[ (i<<2) +1 ], IV[ (i<<2)    ],
-                            IV[ (i<<2) +3 ], IV[ (i<<2) +2 ],
-                            IV[ (i<<2) +1 ], IV[ (i<<2)    ] );
+    __m128i *iv = (__m128i*)IV;
+    
+    state->chainv[0] = m256_const1_128( iv[0] );
+    state->chainv[1] = m256_const1_128( iv[1] );
+    state->chainv[2] = m256_const1_128( iv[2] );
+    state->chainv[3] = m256_const1_128( iv[3] );
+    state->chainv[4] = m256_const1_128( iv[4] );
+    state->chainv[5] = m256_const1_128( iv[5] );
+    state->chainv[6] = m256_const1_128( iv[6] );
+    state->chainv[7] = m256_const1_128( iv[7] );
+    state->chainv[8] = m256_const1_128( iv[8] );
+    state->chainv[9] = m256_const1_128( iv[9] );
 
     ((__m256i*)state->buffer)[0] = m256_zero;
     ((__m256i*)state->buffer)[1] = m256_zero;
@@ -492,13 +475,15 @@ int luffa_2way_update( luffa_2way_context *state, const void *data,
     __m256i msg[2];
     int i;
     int blocks = (int)len >> 5;
+    const __m256i shuff_bswap32 = m256_const2_64( 0x0c0d0e0f08090a0b,
+                                                  0x0405060700010203 );
     state-> rembytes = (int)len & 0x1F;
 
     // full blocks
     for ( i = 0; i < blocks; i++, vdata+=2 )
     {
-       msg[0] = mm256_bswap_32( vdata[ 0] );
-       msg[1] = mm256_bswap_32( vdata[ 1 ] );
+       msg[0] = _mm256_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
+       msg[1] = _mm256_shuffle_epi8( vdata[ 1 ], shuff_bswap32 );
        rnd512_2way( state, msg );
     }
 
@@ -507,9 +492,8 @@ int luffa_2way_update( luffa_2way_context *state, const void *data,
     if ( state->rembytes  )
     {
       // remaining data bytes
-      buffer[0] = mm256_bswap_32( vdata[0] );
-      buffer[1] = _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
-                                   0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+      buffer[0] = _mm256_shuffle_epi8( vdata[0], shuff_bswap32 );
+      buffer[1] = m256_const2_64( 0, 0x0000000080000000 );
     }
     return 0;
 }
@@ -525,8 +509,7 @@ int luffa_2way_close( luffa_2way_context *state, void *hashval )
       rnd512_2way( state, buffer );
     else
     {     // empty pad block, constant data
-      msg[0] = _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
-                                0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+      msg[0] = m256_const2_64( 0, 0x0000000080000000 );
       msg[1] = m256_zero;
       rnd512_2way( state, msg );
     }
@@ -545,13 +528,16 @@ int luffa_2way_update_close( luffa_2way_context *state,
     __m256i msg[2];
     int i;
     const int blocks = (int)( inlen >> 5 );
+    const __m256i shuff_bswap32 = m256_const2_64( 0x0c0d0e0f08090a0b,
+                                                  0x0405060700010203 );
+
     state->rembytes = inlen & 0x1F;
 
     // full blocks
     for ( i = 0; i < blocks; i++, vdata+=2 )
     {
-       msg[0] = mm256_bswap_32( vdata[ 0 ] );
-       msg[1] = mm256_bswap_32( vdata[ 1 ] );
+       msg[0] = _mm256_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
+       msg[1] = _mm256_shuffle_epi8( vdata[ 1 ], shuff_bswap32 );
        rnd512_2way( state, msg );
     }
 
@@ -559,16 +545,14 @@ int luffa_2way_update_close( luffa_2way_context *state,
     if ( state->rembytes  )
     {
        // padding of partial block
-       msg[0] = mm256_bswap_32( vdata[0] );
-       msg[1] = _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
-                                 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+       msg[0] = _mm256_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
+       msg[1] = m256_const2_64( 0, 0x0000000080000000 );
        rnd512_2way( state, msg );
     }
     else
     {
        // empty pad block
-       msg[0] = _mm256_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0,
-                                 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+       msg[0] = m256_const2_64( 0, 0x0000000080000000 );
        msg[1] = m256_zero;
        rnd512_2way( state, msg );
     }

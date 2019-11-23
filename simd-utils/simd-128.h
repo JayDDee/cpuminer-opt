@@ -3,182 +3,131 @@
 
 #if defined(__SSE2__)
 
-//////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 //
 //                 128 bit SSE vectors
 //
-// SSE2 is generally required for full 128 bit support. Some functions
-// are also optimized with SSSE3 or SSE4.1.
-//
-// Do not call intrinsic _mm_extract directly, it isn't supported in SSE2.
-// Use mm128_extr macro instead, it will select the appropriate implementation.
-//
-// 128 bit operations are enhanced with uint128 which adds 128 bit integer
-// support for arithmetic and other operations. Casting to uint128_t is not
-// free but is sometimes the only way for certain operations.
+// SSE2 is required for 128 bit integer support. Some functions are also
+// optimized with SSSE3, SSE4.1 or AVX. Some of these more optimized
+// functions don't have SSE2 equivalents and their use would break SSE2
+// compatibility.
 //
 // Constants are an issue with simd. Simply put, immediate constants don't
 // exist. All simd constants either reside in memory or a register and
-// must be loaded from memory or generated using instructions at run time.
+// must be loaded from memory or generated at run time.
 //
-// Due to the cost of generating constants it is often more efficient to
+// Due to the cost of generating constants it is more efficient to
 // define a local const for repeated references to the same constant.
 //
-// Some constant values can be generated using shortcuts. Zero for example
-// is as simple as XORing any register with itself, and is implemented
-// iby the setzero instrinsic. These shortcuts must be implemented using ASM
-// due to doing things the compiler would complain about. Another single
-// instruction constant is -1, defined below. Others may be added as the need
-// arises. Even single instruction constants are less efficient than local
-// register variables so the advice above stands. These pseudo-constants
-// do not perform any memory accesses
+// One common use for simd constants is as a control index for vector
+// instructions like blend and shuffle. Alhough the ultimate instruction
+// may execute in a single clock cycle, generating the control index adds
+// several more cycles to the entire operation. 
 //
-// One common use for simd constants is as a control index for some simd
-// instructions like blend and shuffle. The utilities below do not take this
-// into account. Those that generate a simd constant should not be used
-// repeatedly. It may be better for the application to reimplement the
-// utility to better suit its usage.
+// All of the utilities here assume all data is in registers except
+// in rare cases where arguments are pointers.
+//
+// Intrinsics automatically promote from REX to VEX when AVX is available
+// but ASM needs to be done manually.
+//
+///////////////////////////////////////////////////////////////////////////
+
+
+// Efficient and convenient moving bwtween GP & low bits of XMM.
+// Use VEX when available to give access to xmm8-15 and zero extend for
+// larger vectors.
+
+static inline __m128i mm128_mov64_128( const uint64_t n )
+{
+  __m128i a;
+#if defined(__AVX__)
+  asm( "vmovq %1, %0\n\t" : "=x"(a) : "r"(n) );
+#else
+  asm( "movq %1, %0\n\t" : "=x"(a) : "r"(n) );
+#endif
+  return  a;
+}
+
+static inline __m128i mm128_mov32_128( const uint32_t n )
+{
+  __m128i a;
+#if defined(__AVX__)
+  asm( "vmovd %1, %0\n\t" : "=x"(a) : "r"(n) );
+#else  
+  asm( "movd %1, %0\n\t" : "=x"(a) : "r"(n) );
+#endif
+  return  a;
+}
+
+static inline uint64_t mm128_mov128_64( const __m128i a )
+{
+  uint64_t n;
+#if defined(__AVX__)
+  asm( "vmovq %1, %0\n\t" : "=r"(n) : "x"(a) );
+#else  
+  asm( "movq %1, %0\n\t" : "=r"(n) : "x"(a) );
+#endif
+  return  n;
+}
+
+static inline uint32_t mm128_mov128_32( const __m128i a )
+{
+  uint32_t n;
+#if defined(__AVX__)
+  asm( "vmovd %1, %0\n\t" : "=r"(n) : "x"(a) );
+#else  
+  asm( "movd %1, %0\n\t" : "=r"(n) : "x"(a) );
+#endif
+  return  n;
+}
+
+// Pseudo constants
 
 #define m128_zero      _mm_setzero_si128()
+#define m128_one_128   mm128_mov64_128( 1 )
+#define m128_one_64    _mm_shuffle_epi32( mm128_mov64_128( 1 ), 0x44 )
+#define m128_one_32    _mm_shuffle_epi32( mm128_mov32_128( 1 ), 0x00 )
+#define m128_one_16    _mm_shuffle_epi32( \
+                                 mm128_mov32_128( 0x00010001 ), 0x00 )
+#define m128_one_8     _mm_shuffle_epi32( \
+                                 mm128_mov32_128( 0x01010101 ), 0x00 )
 
-static inline __m128i mm128_one_128_fn()
-{
-  __m128i a;
-   const uint64_t one = 1;
-   asm( "movq %1, %0\n\t"
-        : "=x"(a)
-        : "r" (one) );
-   return a;
-}
-#define m128_one_128    mm128_one_128_fn()
-
-static inline __m128i mm128_one_64_fn()
-{
-  __m128i a;
-  const uint64_t one = 1;
-  asm( "movq %1, %0\n\t"
-       : "=x" (a)
-       : "r"  (one) );
-  return _mm_shuffle_epi32( a, 0x44 );
-}
-#define m128_one_64    mm128_one_64_fn()
-
-static inline __m128i mm128_one_32_fn()
-{
-  __m128i a;
-  const uint32_t one = 1;
-  asm( "movd %1, %0\n\t"
-       : "=x" (a)
-       : "r"  (one) );
-  return _mm_shuffle_epi32( a, 0x00 );
-}
-#define m128_one_32    mm128_one_32_fn()
-
-static inline __m128i mm128_one_16_fn()
-{
-  __m128i a;
-  const uint32_t one = 0x00010001;
-  asm( "movd %1, %0\n\t"
-       : "=x" (a)
-       : "r"  (one) );
-  return _mm_shuffle_epi32( a, 0x00 );
-}
-#define m128_one_16    mm128_one_16_fn()
-
-static inline __m128i mm128_one_8_fn()
-{
-  __m128i a;
-  const uint32_t one = 0x01010101;
-  asm( "movd %1, %0\n\t"
-       : "=x" (a)
-       : "r"  (one) );
-  return _mm_shuffle_epi32( a, 0x00 );
-}
-#define m128_one_8    mm128_one_8_fn()
+// ASM avoids the need to initialize return variable to avoid compiler warning.
+// Macro abstracts function parentheses to look like an identifier.
 
 static inline __m128i mm128_neg1_fn()
 {
    __m128i a;
-   asm( "pcmpeqd %0, %0\n\t"
-        : "=x" (a) );
+#if defined(__AVX__) 
+   asm( "vpcmpeqq %0, %0, %0\n\t" : "=x"(a) );
+#else
+   asm( "pcmpeqq %0, %0\n\t" : "=x"(a) );
+#endif
    return a;
 }
 #define m128_neg1    mm128_neg1_fn()
 
-// move uint64_t to low bits of __m128i, zeros the rest
-static inline __m128i mm128_mov64_128( uint64_t n )
-{
-  __m128i a;
-  asm( "movq %1, %0\n\t"
-       : "=x" (a)
-       : "r"  (n) );
-  return  a;
-}
 
-static inline __m128i mm128_mov32_128( uint32_t n )
-{
-  __m128i a;
-  asm( "movd %1, %0\n\t"
-       : "=x" (a)
-       : "r"  (n) );
-  return  a;
-}
+// const functions work best when arguments are immediate constants or
+// are known to be in registers. If data needs to loaded from memory or cache
+// use set.
 
-static inline uint64_t mm128_mov128_64( __m128i a )
-{
-  uint64_t n;
-  asm( "movq %1, %0\n\t"
-       : "=x" (n)
-       : "r"  (a) );
-  return  n;
-}
+// Equivalent of set1, broadcast 64 bit integer to all elements.
+#define m128_const1_64( i ) _mm_shuffle_epi32( mm128_mov64_128( i ), 0x44 )
+#define m128_const1_32( i ) _mm_shuffle_epi32( mm128_mov32_128( i ), 0x00 )
 
-static inline uint32_t mm128_mov128_32( __m128i a )
-{
-  uint32_t n;
-  asm( "movd %1, %0\n\t"
-       : "=x" (n)
-       : "r"  (a) );
-  return  n;
-}
+#if defined(__SSE4_1__)
 
-static inline __m128i m128_const1_64( const uint64_t n )
-{
-  __m128i a;
-  asm( "movq %1, %0\n\t"
-       : "=x" (a)
-       : "r"  (n) );
-  return _mm_shuffle_epi32( a, 0x44 );
-}
+// Assign 64 bit integers to respective elements: {hi, lo}
+#define m128_const_64( hi, lo ) \
+   _mm_insert_epi64( mm128_mov64_128( lo ), hi, 1 )
 
-static inline __m128i m128_const1_32( const uint32_t n )
-{
-  __m128i a;
-  asm( "movd %1, %0\n\t"
-       : "=x" (a)
-       : "r"  (n) );
-  return _mm_shuffle_epi32( a, 0x00 );
-}
-
-#if defined(__SSE41__)
-
-// alternative to _mm_set_epi64x, doesn't use mem,
-
-static inline __m128i m128_const_64( const uint64_t hi, const uint64_t lo )
-{
-   __m128i a;
-   asm( "movq %2, %0\n\t"
-        "pinsrq $1, %1, %0\n\t"
-        : "=x" (a)
-        : "r"  (hi), "r" (lo) );
-   return a;
-}
-
-#else
+#else  // No insert in SSE2
 
 #define m128_const_64  _mm_set_epi64x
 
 #endif
+
 
 //
 // Basic operations without equivalent SIMD intrinsic
@@ -207,18 +156,9 @@ static inline __m128i m128_const_64( const uint64_t hi, const uint64_t lo )
 #define mm128_xor4( a, b, c, d ) \
    _mm_xor_si128( _mm_xor_si128( a, b ), _mm_xor_si128( c, d ) )
 
-// This isn't cheap, not suitable for bulk usage.
-#define mm128_extr_4x32( a0, a1, a2, a3, src ) \
-do { \
-  a0 = _mm_extract_epi32( src, 0 ); \
-  a1 = _mm_extract_epi32( src, 1 ); \
-  a1 = _mm_extract_epi32( src, 2 ); \
-  a3 = _mm_extract_epi32( src, 3 ); \
-} while(0)
-
 // Horizontal vector testing
 
-#if defined(__SSE41__)
+#if defined(__SSE4_1__)
 
 #define mm128_allbits0( a )    _mm_testz_si128(   a, a )
 #define mm128_allbits1( a )    _mm_testc_si128(   a, m128_neg1 )
@@ -235,7 +175,7 @@ do { \
 #define mm128_allbits0( a ) ( !mm128_anybits1(a) )
 #define mm128_allbits1( a ) ( !mm128_anybits0(a) )
 
-#endif // SSE41 else SSE2
+#endif // SSE4.1 else SSE2
 
 //
 // Vector pointer cast
@@ -255,20 +195,6 @@ do { \
 // p = any aligned pointer, o = scaled offset
 // returns pointer p+o
 #define casto_m128i(p,o) (((__m128i*)(p))+(o))
-
-// SSE2 doesn't implement extract
-#if defined(__SSE4_1)
-
-#define mm128_extr_64(a,n)   _mm_extract_epi64( a, n )
-#define mm128_extr_32(a,n)   _mm_extract_epi32( a, n )
-
-#else
-
-// Doesn't work with register variables.
-#define mm128_extr_64(a,n)   (((uint64_t*)&a)[n])
-#define mm128_extr_32(a,n)   (((uint32_t*)&a)[n])
-
-#endif
 
 
 // Memory functions
@@ -294,13 +220,14 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 //
 // Bit rotations
 
-// AVX512 has implemented bit rotation for 128 bit vectors with
+// AVX512VL has implemented bit rotation for 128 bit vectors with
 // 64 and 32 bit elements.
 
 // compiler doesn't like when a variable is used for the last arg of
-// _mm_rol_epi32, must be "8 bit immediate". Therefore use rol_var where
+// _mm_rol_epi32, must be "8 bit immediate". Oddly _mm_slli has the same
+// specification but works with a variable. Therefore use rol_var where
 // necessary.
-// sm3-hash-4way.c fails to compile.
+// sm3-hash-4way.c has one instance where mm128_rol_var_32 is required.
 
 #define mm128_ror_var_64( v, c ) \
    _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) )
@@ -392,18 +319,19 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 //
 // Rotate elements within lanes.
 
-// Equivalent to mm128_ror_64( v, 32 )
 #define mm128_swap32_64( v )  _mm_shuffle_epi32( v, 0xb1 )
 
-// Equivalent to mm128_ror_64( v, 16 )
-#define mm128_ror16_64( v )   _mm_shuffle_epi8( v, \
-                   m128_const_64( 0x09080f0e0d0c0b0a, 0x0100070605040302 )
-#define mm128_rol16_64( v )   _mm_shuffle_epi8( v, \
-                   m128_const_64( 0x0dc0b0a09080f0e, 0x0504030201000706 )
+#define mm128_ror16_64( v ) \
+   _mm_shuffle_epi8( v, m128_const_64( 0x09080f0e0d0c0b0a, \
+                                       0x0100070605040302 )
 
-// Equivalent to mm128_ror_32( v, 16 )
-#define mm128_swap16_32( v )  _mm_shuffle_epi8( v, \
-                   m128_const_64( 0x0d0c0f0e09080b0a, 0x0504070601000302 )
+#define mm128_rol16_64( v ) \
+   _mm_shuffle_epi8( v, m128_const_64( 0x0d0c0b0a09080f0e, \
+                                       0x0504030201000706 )
+
+#define mm128_swap16_32( v ) \
+   _mm_shuffle_epi8( v, m128_const_64( 0x0d0c0f0e09080b0a, \
+                                       0x0504070601000302 )
 
 //
 // Endian byte swap.
@@ -418,8 +346,9 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
    _mm_shuffle_epi8( v, m128_const_64( 0x0c0d0e0f08090a0b, \
                                        0x0405060700010203 ) )
 
-#define mm128_bswap_16( v ) _mm_shuffle_epi8( \
-                   m128_const_64( 0x0e0f0c0d0a0b0809, 0x0607040502030001 )
+#define mm128_bswap_16( v ) \
+   _mm_shuffle_epi8( v, m128_const_64( 0x0e0f0c0d0a0b0809, \
+                                       0x0607040502030001 )
 
 // 8 byte qword * 8 qwords * 2 lanes = 128 bytes
 #define mm128_block_bswap_64( d, s ) do \

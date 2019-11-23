@@ -331,34 +331,31 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[4*16] __attribute__ ((aligned (64)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-   uint32_t endiandata[20] __attribute__((aligned(64)));
+   uint32_t bedata1[2] __attribute__((aligned(64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id; 
     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
 
-   casti_m256i( endiandata, 0 ) = mm256_bswap_32( casti_m256i( pdata, 0 ) );
-   casti_m256i( endiandata, 1 ) = mm256_bswap_32( casti_m256i( pdata, 1 ) );
-   casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
+   if ( opt_benchmark )
+      ptarget[7] = 0x0fff;
+   
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
-   if ( s_ntime != endiandata[17] )
+   bedata1[0] = bswap_32( pdata[1] );
+   bedata1[1] = bswap_32( pdata[2] );
+   const uint32_t ntime = bswap_32(pdata[17]);
+   if ( s_ntime != ntime )
    {
-      uint32_t ntime = swab32(pdata[17]);
-      x16_r_s_getAlgoString( (const uint8_t*) (&endiandata[1]), hashOrder );
+      x16_r_s_getAlgoString( (const uint8_t*)bedata1, hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
               applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );
    }
-
-   if ( opt_benchmark )
-      ptarget[7] = 0x0cff;
-
-   uint64_t *edata = (uint64_t*)endiandata;
-   intrlv_4x64( (uint64_t*)vdata, edata, edata, edata, edata, 640 );
 
    do
    {
@@ -368,14 +365,15 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
       x16rv2_4way_hash( hash, vdata );
       pdata[19] = n;
 
-      for ( int i = 0; i < 4; i++ )  if ( (hash+(i<<3))[7] <= Htarg )
-      if( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
+      for ( int i = 0; i < 4; i++ )
+      if ( unlikely( (hash+(i<<3))[7] <= Htarg ) )
+      if( likely( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark ) )
       {
          pdata[19] = n+i;
          submit_lane_solution( work, hash+(i<<3), mythr, i );
       }
       n += 4;
-   } while ( (  n < max_nonce ) && !(*restart) );
+   } while ( likely( (  n < max_nonce ) && !(*restart) ) );
 
    *hashes_done = n - first_nonce + 1;
    return 0;

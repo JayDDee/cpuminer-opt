@@ -305,9 +305,11 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
     low = low << 3;
 
     sc->buf[ pad >> 2 ] =
-                 mm128_bswap_32( _mm_set1_epi32( high ) );
+                 mm128_bswap_32( m128_const1_32( high ) );
+//                 mm128_bswap_32( _mm_set1_epi32( high ) );
     sc->buf[ ( pad+4 ) >> 2 ] =
-                 mm128_bswap_32( _mm_set1_epi32( low ) );
+                 mm128_bswap_32( m128_const1_32( low ) );
+//                 mm128_bswap_32( _mm_set1_epi32( low ) );
     sha256_4way_round( sc, sc->buf, sc->val );
 
     mm128_block_bswap_32( dst, sc->val );
@@ -538,9 +540,9 @@ void sha256_8way_close( sha256_8way_context *sc, void *dst )
     low = low << 3;
 
     sc->buf[ pad >> 2 ] =
-                 mm256_bswap_32( _mm256_set1_epi32( high ) );
+                 mm256_bswap_32( m256_const1_32( high ) );
     sc->buf[ ( pad+4 ) >> 2 ] =
-                 mm256_bswap_32( _mm256_set1_epi32( low ) );
+                 mm256_bswap_32( m256_const1_32( low ) );
 
     sha256_8way_round( sc, sc->buf, sc->val );
 
