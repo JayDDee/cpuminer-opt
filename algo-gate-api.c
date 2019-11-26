@@ -238,6 +238,8 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_X16S:          register_x16s_algo          ( gate ); break;
     case ALGO_X17:           register_x17_algo           ( gate ); break;
     case ALGO_X21S:          register_x21s_algo          ( gate ); break;
+    case ALGO_X22I:          register_x22i_algo          ( gate ); break;
+    case ALGO_X25X:          register_x25x_algo          ( gate ); break;
     case ALGO_XEVAN:         register_xevan_algo         ( gate ); break;
 /*    case ALGO_YESCRYPT:     register_yescrypt_05_algo     ( gate ); break;
      case ALGO_YESCRYPTR8:   register_yescryptr8_05_algo   ( gate ); break;

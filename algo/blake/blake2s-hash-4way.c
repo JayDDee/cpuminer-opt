@@ -20,12 +20,13 @@
 //#if defined(__SSE4_2__)
 #if defined(__SSE2__)
 
-
+/*
 static const uint32_t blake2s_IV[8] =
 {
 	0x6A09E667UL, 0xBB67AE85UL, 0x3C6EF372UL, 0xA54FF53AUL,
 	0x510E527FUL, 0x9B05688CUL, 0x1F83D9ABUL, 0x5BE0CD19UL
 };
+*/
 
 static const uint8_t blake2s_sigma[10][16] =
 {
@@ -40,6 +41,7 @@ static const uint8_t blake2s_sigma[10][16] =
 	{  6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5 } ,
 	{ 10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0 } ,
 };
+
 
 // define a constant for initial param.
 
@@ -88,41 +90,45 @@ int blake2s_4way_compress( blake2s_4way_state *S, const __m128i* block )
    memcpy_128( m, block, 16 );
    memcpy_128( v, S->h, 8 );
 
-   v[ 8] = _mm_set1_epi32( blake2s_IV[0] );
-   v[ 9] = _mm_set1_epi32( blake2s_IV[1] );
-   v[10] = _mm_set1_epi32( blake2s_IV[2] );
-   v[11] = _mm_set1_epi32( blake2s_IV[3] );
+   v[ 8] = m128_const1_64( 0x6A09E6676A09E667ULL );
+   v[ 9] = m128_const1_64( 0xBB67AE85BB67AE85ULL );
+   v[10] = m128_const1_64( 0x3C6EF3723C6EF372ULL );
+   v[11] = m128_const1_64( 0xA54FF53AA54FF53AULL );
    v[12] = _mm_xor_si128( _mm_set1_epi32( S->t[0] ),
-                          _mm_set1_epi32( blake2s_IV[4] ) );
+                          m128_const1_64( 0x510E527F510E527FULL ) );
    v[13] = _mm_xor_si128( _mm_set1_epi32( S->t[1] ),
-                          _mm_set1_epi32( blake2s_IV[5] ) );
+                          m128_const1_64( 0x9B05688C9B05688CULL ) );
    v[14] = _mm_xor_si128( _mm_set1_epi32( S->f[0] ),
-                          _mm_set1_epi32( blake2s_IV[6] ) );
+                          m128_const1_64( 0x1F83D9AB1F83D9ABULL ) );
    v[15] = _mm_xor_si128( _mm_set1_epi32( S->f[1] ),
-                          _mm_set1_epi32( blake2s_IV[7] ) );
+                          m128_const1_64( 0x5BE0CD195BE0CD19ULL ) );
 
-#define G4W(r,i,a,b,c,d) \
+#define G4W( sigma0, sigma1, a, b, c, d ) \
 do { \
-   a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ blake2s_sigma[r][2*i+0] ] ); \
+   uint8_t s0 = sigma0; \
+   uint8_t s1 = sigma1; \
+   a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ s0 ] ); \
    d = mm128_ror_32( _mm_xor_si128( d, a ), 16 ); \
    c = _mm_add_epi32( c, d ); \
    b = mm128_ror_32( _mm_xor_si128( b, c ), 12 ); \
-   a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ blake2s_sigma[r][2*i+1] ] ); \
+   a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ s1 ] ); \
    d = mm128_ror_32( _mm_xor_si128( d, a ),  8 ); \
    c = _mm_add_epi32( c, d ); \
    b = mm128_ror_32( _mm_xor_si128( b, c ),  7 ); \
 } while(0)
 
+
 #define ROUND4W(r)  \
 do { \
-   G4W( r, 0, v[ 0], v[ 4], v[ 8], v[12] ); \
-   G4W( r, 1, v[ 1], v[ 5], v[ 9], v[13] ); \
-   G4W( r, 2, v[ 2], v[ 6], v[10], v[14] ); \
-   G4W( r, 3, v[ 3], v[ 7], v[11], v[15] ); \
-   G4W( r, 4, v[ 0], v[ 5], v[10], v[15] ); \
-   G4W( r, 5, v[ 1], v[ 6], v[11], v[12] ); \
-   G4W( r, 6, v[ 2], v[ 7], v[ 8], v[13] ); \
-   G4W( r, 7, v[ 3], v[ 4], v[ 9], v[14] ); \
+   uint8_t *sigma = (uint8_t*)&blake2s_sigma[r]; \
+   G4W( sigma[ 0], sigma[ 1], v[ 0], v[ 4], v[ 8], v[12] ); \
+   G4W( sigma[ 2], sigma[ 3], v[ 1], v[ 5], v[ 9], v[13] ); \
+   G4W( sigma[ 4], sigma[ 5], v[ 2], v[ 6], v[10], v[14] ); \
+   G4W( sigma[ 6], sigma[ 7], v[ 3], v[ 7], v[11], v[15] ); \
+   G4W( sigma[ 8], sigma[ 9], v[ 0], v[ 5], v[10], v[15] ); \
+   G4W( sigma[10], sigma[11], v[ 1], v[ 6], v[11], v[12] ); \
+   G4W( sigma[12], sigma[13], v[ 2], v[ 7], v[ 8], v[13] ); \
+   G4W( sigma[14], sigma[15], v[ 3], v[ 4], v[ 9], v[14] ); \
 } while(0)
 
    ROUND4W( 0 );
@@ -144,26 +150,47 @@ do { \
    return 0;
 }
 
+// There is a problem that can't be resolved internally.
+// If the last block is a full 64 bytes it should not be compressed in
+// update but left for final. However, when streaming, it isn't known
+// which block is last. There may be a subsequent call to update to add
+// more data.
+//
+// The reference code handled this by juggling 2 blocks at a time at
+// a significant performance penalty.
+//
+// Instead a new function is introduced called full_blocks which combines
+// update and final and is to be used in non-streaming mode where the data
+// is a multiple of 64 bytes.
+// 
+// Supported:
+//    64 + 16 bytes  (blake2s with midstate optimization)
+//    80 bytes without midstate (blake2s without midstate optimization)
+//    Any multiple of 64 bytes in one shot (x25x)
+//
+// Unsupported:
+//    Stream of 64 byte blocks one at a time.   
+//
+// use for part blocks or when streaming more data
 int blake2s_4way_update( blake2s_4way_state *S, const void *in,
                          uint64_t inlen )
 {
-  __m128i *input = (__m128i*)in;
-  __m128i *buf = (__m128i*)S->buf;
-  const int bsize = BLAKE2S_BLOCKBYTES;
+   __m128i *input = (__m128i*)in;
+   __m128i *buf = (__m128i*)S->buf;
 
    while( inlen > 0 )
    {
       size_t left = S->buflen;
-      if( inlen >= bsize - left )
+      if( inlen >= BLAKE2S_BLOCKBYTES - left )
       {
-         memcpy_128( buf + (left>>2), input, (bsize - left) >> 2 );
-         S->buflen += bsize - left;
+         memcpy_128( buf + (left>>2), input, (BLAKE2S_BLOCKBYTES - left) >> 2 );
+         S->buflen += BLAKE2S_BLOCKBYTES - left;
          S->t[0] += BLAKE2S_BLOCKBYTES;
          S->t[1] += ( S->t[0] < BLAKE2S_BLOCKBYTES );
          blake2s_4way_compress( S, buf ); 
          S->buflen = 0;
-         input += ( bsize >> 2 );
-         inlen -= bsize;
+         input += ( BLAKE2S_BLOCKBYTES >> 2 );
+         inlen -= BLAKE2S_BLOCKBYTES;
       }
       else
       {
@@ -195,8 +222,45 @@ int blake2s_4way_final( blake2s_4way_state *S, void *out, uint8_t outlen )
    return 0;
 }
 
+// Update and final when inlen is a multiple of 64 bytes
+int blake2s_4way_full_blocks( blake2s_4way_state *S, void *out,
+                              const void *input, uint64_t inlen )
+{
+    __m128i *in = (__m128i*)input;
+    __m128i *buf = (__m128i*)S->buf;
+
+    while( inlen > BLAKE2S_BLOCKBYTES )
+    {
+       memcpy_128( buf, in, BLAKE2S_BLOCKBYTES >> 2 );
+       S->buflen = BLAKE2S_BLOCKBYTES;
+       inlen -= BLAKE2S_BLOCKBYTES;
+       S->t[0] += BLAKE2S_BLOCKBYTES;
+       S->t[1] += ( S->t[0] < BLAKE2S_BLOCKBYTES );
+       blake2s_4way_compress( S, buf );
+       S->buflen = 0;
+       in += ( BLAKE2S_BLOCKBYTES >> 2 );
+    }
+
+    // last block
+    memcpy_128( buf, in, BLAKE2S_BLOCKBYTES >> 2 );
+    S->buflen = BLAKE2S_BLOCKBYTES;
+    S->t[0] += S->buflen;
+    S->t[1] += ( S->t[0] < S->buflen );
+    if ( S->last_node )  S->f[1] = ~0U;
+    S->f[0] = ~0U;
+    blake2s_4way_compress( S, buf );
+
+    for ( int i = 0; i < 8; ++i )
+      casti_m128i( out, i ) = S->h[ i ];
+    return 0;
+}
+
 #if defined(__AVX2__)
 
+// The commented code below is slower on Intel but faster on
+// Zen1 AVX2. It's also faster than Zen1 AVX.
+// Ryzen gen2 is unknown at this time.
+ 
 int blake2s_8way_compress( blake2s_8way_state *S, const __m256i *block )
 {
    __m256i m[16];
@@ -205,6 +269,23 @@ int blake2s_8way_compress( blake2s_8way_state *S, const __m256i *block )
    memcpy_256( m, block, 16 );
    memcpy_256( v, S->h, 8 );
 
+   v[ 8] = m256_const1_64( 0x6A09E6676A09E667ULL );
+   v[ 9] = m256_const1_64( 0xBB67AE85BB67AE85ULL );
+   v[10] = m256_const1_64( 0x3C6EF3723C6EF372ULL );
+   v[11] = m256_const1_64( 0xA54FF53AA54FF53AULL );
+   v[12] = _mm256_xor_si256( _mm256_set1_epi32( S->t[0] ),
+                          m256_const1_64( 0x510E527F510E527FULL ) );
+
+   v[13] = _mm256_xor_si256( _mm256_set1_epi32( S->t[1] ),
+                          m256_const1_64( 0x9B05688C9B05688CULL ) );
+
+   v[14] = _mm256_xor_si256( _mm256_set1_epi32( S->f[0] ),
+                          m256_const1_64( 0x1F83D9AB1F83D9ABULL ) );
+
+   v[15] = _mm256_xor_si256( _mm256_set1_epi32( S->f[1] ),
+                          m256_const1_64( 0x5BE0CD195BE0CD19ULL ) );
+
+/*
    v[ 8] = _mm256_set1_epi32( blake2s_IV[0] );
    v[ 9] = _mm256_set1_epi32( blake2s_IV[1] );
    v[10] = _mm256_set1_epi32( blake2s_IV[2] );
@@ -217,6 +298,7 @@ int blake2s_8way_compress( blake2s_8way_state *S, const __m256i *block )
                              _mm256_set1_epi32( blake2s_IV[6] ) );
    v[15] = _mm256_xor_si256( _mm256_set1_epi32( S->f[1] ),
                              _mm256_set1_epi32( blake2s_IV[7] ) );
+
 
 #define G8W(r,i,a,b,c,d) \
 do { \
@@ -231,7 +313,36 @@ do { \
    c = _mm256_add_epi32( c, d ); \
    b = mm256_ror_32( _mm256_xor_si256( b, c ),  7 ); \
 } while(0)
+*/
 
+#define G8W( sigma0, sigma1, a, b, c, d) \
+do { \
+   uint8_t s0 = sigma0; \
+   uint8_t s1 = sigma1; \
+   a = _mm256_add_epi32( _mm256_add_epi32( a, b ), m[ s0 ] ); \
+   d = mm256_ror_32( _mm256_xor_si256( d, a ), 16 ); \
+   c = _mm256_add_epi32( c, d ); \
+   b = mm256_ror_32( _mm256_xor_si256( b, c ), 12 ); \
+   a = _mm256_add_epi32( _mm256_add_epi32( a, b ), m[ s1 ] ); \
+   d = mm256_ror_32( _mm256_xor_si256( d, a ),  8 ); \
+   c = _mm256_add_epi32( c, d ); \
+   b = mm256_ror_32( _mm256_xor_si256( b, c ),  7 ); \
+} while(0)
+
+#define ROUND8W(r)  \
+do { \
+   uint8_t *sigma = (uint8_t*)&blake2s_sigma[r]; \
+   G8W( sigma[ 0], sigma[ 1], v[ 0], v[ 4], v[ 8], v[12] ); \
+   G8W( sigma[ 2], sigma[ 3], v[ 1], v[ 5], v[ 9], v[13] ); \
+   G8W( sigma[ 4], sigma[ 5], v[ 2], v[ 6], v[10], v[14] ); \
+   G8W( sigma[ 6], sigma[ 7], v[ 3], v[ 7], v[11], v[15] ); \
+   G8W( sigma[ 8], sigma[ 9], v[ 0], v[ 5], v[10], v[15] ); \
+   G8W( sigma[10], sigma[11], v[ 1], v[ 6], v[11], v[12] ); \
+   G8W( sigma[12], sigma[13], v[ 2], v[ 7], v[ 8], v[13] ); \
+   G8W( sigma[14], sigma[15], v[ 3], v[ 4], v[ 9], v[14] ); \
+} while(0)
+
+/*
 #define ROUND8W(r)  \
 do { \
    G8W( r, 0, v[ 0], v[ 4], v[ 8], v[12] ); \
@@ -243,6 +354,7 @@ do { \
    G8W( r, 6, v[ 2], v[ 7], v[ 8], v[13] ); \
    G8W( r, 7, v[ 3], v[ 4], v[ 9], v[14] ); \
 } while(0)
+*/
 
    ROUND8W( 0 );
    ROUND8W( 1 );

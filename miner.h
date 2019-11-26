@@ -610,6 +610,8 @@ enum algos {
         ALGO_X16S,
         ALGO_X17,
         ALGO_X21S,
+        ALGO_X22I,
+        ALGO_X25X,
         ALGO_XEVAN,
         ALGO_YESCRYPT,
         ALGO_YESCRYPTR8,
@@ -707,6 +709,8 @@ static const char* const algo_names[] = {
         "x16s",
         "x17",
         "x21s",
+        "x22i",
+        "x25x",
         "xevan",
         "yescrypt",
         "yescryptr8",
@@ -871,6 +875,8 @@ Options:\n\
                           x16s\n\
                           x17\n\
                           x21s\n\
+                          x22i\n\
+                          x25x\n\
                           xevan         Bitsend (BSD)\n\
                           yescrypt      Globalboost-Y (BSTY)\n\
                           yescryptr8    BitZeny (ZNY)\n\

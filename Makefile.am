@@ -117,6 +117,7 @@ cpuminer_SOURCES = \
   algo/keccak/keccak-4way.c\
   algo/keccak/keccak-gate.c \
   algo/keccak/sse2/keccak.c \
+  algo/lanehash/lane.c \
   algo/luffa/sph_luffa.c \
   algo/luffa/luffa.c \
   algo/luffa/luffa_for_sse2.c \
@@ -200,6 +201,7 @@ cpuminer_SOURCES = \
   algo/skein/skein2-gate.c \
   algo/sm3/sm3.c \
   algo/sm3/sm3-hash-4way.c \
+  algo/swifftx/swifftx.c \
   algo/tiger/sph_tiger.c \
   algo/whirlpool/sph_whirlpool.c \
   algo/whirlpool/whirlpool-hash-4way.c \
@@ -279,6 +281,11 @@ cpuminer_SOURCES = \
   algo/x17/sonoa-4way.c \
   algo/x17/sonoa.c \
   algo/x20/x20r.c \
+  algo/x22/x22i-4way.c \
+  algo/x22/x22i.c \
+  algo/x22/x22i-gate.c \
+  algo/x22/x25x.c \
+  algo/x22/x25x-4way.c \
   algo/yescrypt/yescrypt.c \
   algo/yescrypt/sha256_Y.c \
   algo/yescrypt/yescrypt-best.c \

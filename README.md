@@ -129,6 +129,8 @@ Supported Algorithms
                           x16s          Pigeoncoin (PGN)
                           x17
                           x21s
+                          x22i
+                          x25x
                           xevan         Bitsend (BSD)
                           yescrypt      Globalboost-Y (BSTY)
                           yescryptr8    BitZeny (ZNY)

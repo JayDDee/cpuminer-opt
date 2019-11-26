@@ -31,6 +31,11 @@ FreeBSD YMMV.
 Change Log
 ----------
 
+v3.9.11
+
+Added x22i & x25x algos.
+Blake2s 2% faster AVX2 with Intel CPU, slower with Ryzen v1, v2 ?
+
 v3.9.10
 
 Faster X* algos with AVX2.

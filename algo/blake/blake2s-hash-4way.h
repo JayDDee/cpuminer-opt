@@ -64,7 +64,7 @@ typedef struct __blake2s_nway_param
 ALIGN( 64 ) typedef struct __blake2s_4way_state
 {
    __m128i h[8];
-   uint8_t  buf[ BLAKE2S_BLOCKBYTES * 4 ];
+   uint8_t  buf[ 2 * BLAKE2S_BLOCKBYTES * 4 ];
    uint32_t t[2];
    uint32_t f[2];
    size_t   buflen;
@@ -81,7 +81,7 @@ int blake2s_4way_final( blake2s_4way_state *S, void *out, uint8_t outlen );
 ALIGN( 64 ) typedef struct __blake2s_8way_state
 {
    __m256i h[8];
-   uint8_t  buf[ BLAKE2S_BLOCKBYTES * 8 ];
+   uint8_t  buf[ 2 * BLAKE2S_BLOCKBYTES * 8 ];
    uint32_t t[2];
    uint32_t f[2];
    size_t   buflen;
@@ -92,6 +92,9 @@ int blake2s_8way_init( blake2s_8way_state *S, const uint8_t outlen );
 int blake2s_8way_update( blake2s_8way_state *S, const void *in,
                          uint64_t inlen );
 int blake2s_8way_final( blake2s_8way_state *S, void *out, uint8_t outlen );
+int blake2s_4way_full_blocks( blake2s_4way_state *S, void *out,
+                              const void *input, uint64_t inlen );
+
 
 #endif
 
