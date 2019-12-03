@@ -78,7 +78,7 @@ void bmw256_4way_addbits_and_close(
 // BMW-256 8 way 32
 
 typedef struct {
-   __m256i buf[64];
+   __m256i buf[16];
    __m256i H[16];
    size_t ptr;
    uint32_t bit_count;  // assume bit_count fits in 32 bits
@@ -121,7 +121,7 @@ typedef struct {
    __m256i H[16];
    size_t ptr;
    sph_u64 bit_count;
-} bmw_4way_big_context;
+} bmw_4way_big_context __attribute__((aligned(128)));
 
 typedef bmw_4way_big_context bmw512_4way_context;
 
@@ -136,6 +136,22 @@ void bmw512_4way_addbits_and_close(
 	void *cc, unsigned ub, unsigned n, void *dst);
 
 #endif  // __AVX2__
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+typedef struct {
+   __m512i buf[16];
+   __m512i H[16];
+   size_t ptr;
+   uint64_t bit_count;
+} bmw512_8way_context __attribute__((aligned(128)));
+
+void bmw512_8way_init( bmw512_8way_context *ctx );
+void bmw512_8way_update( bmw512_8way_context *ctx, const void *data,
+                         size_t len );
+void bmw512_8way_close( bmw512_8way_context *ctx, void *dst );
+
+#endif // AVX512
 
 #ifdef __cplusplus
 }

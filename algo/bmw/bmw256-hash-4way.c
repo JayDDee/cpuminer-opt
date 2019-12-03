@@ -137,165 +137,151 @@ static const uint32_t IV256[] = {
                            ss4( qt[ (i)- 2 ] ), ss5( qt[ (i)- 1 ] ) ) ), \
       add_elt_s( M, H, (i)-16 ) )
 
+// Expressions are grouped using associativity to reduce CPU depenedencies,
+// resulting in some sign changes compared to the reference code.
+
 #define Ws0 \
    _mm_add_epi32( \
-       _mm_add_epi32( \
-          _mm_add_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 5], H[ 5] ), \
-                            _mm_xor_si128( M[ 7], H[ 7] ) ), \
-             _mm_xor_si128( M[10], H[10] ) ), \
-          _mm_xor_si128( M[13], H[13] ) ), \
-       _mm_xor_si128( M[14], H[14] ) )
+      _mm_add_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 5], H[ 5] ), \
+                        _mm_xor_si128( M[ 7], H[ 7] ) ), \
+         _mm_xor_si128( M[10], H[10] ) ), \
+      _mm_add_epi32( _mm_xor_si128( M[13], H[13] ), \
+                     _mm_xor_si128( M[14], H[14] ) ) )
 
 #define Ws1 \
-   _mm_sub_epi32( \
+   _mm_add_epi32( \
        _mm_add_epi32( \
-          _mm_add_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 6], H[ 6] ), \
-                            _mm_xor_si128( M[ 8], H[ 8] ) ), \
-             _mm_xor_si128( M[11], H[11] ) ), \
-          _mm_xor_si128( M[14], H[14] ) ), \
-       _mm_xor_si128( M[15], H[15] ) )
+          _mm_sub_epi32( _mm_xor_si128( M[ 6], H[ 6] ), \
+                         _mm_xor_si128( M[ 8], H[ 8] ) ), \
+          _mm_xor_si128( M[11], H[11] ) ), \
+       _mm_sub_epi32( _mm_xor_si128( M[14], H[14] ), \
+                      _mm_xor_si128( M[15], H[15] ) ) )
 
 #define Ws2 \
-   _mm_add_epi32( \
-       _mm_sub_epi32( \
-          _mm_add_epi32( \
-             _mm_add_epi32( _mm_xor_si128( M[ 0], H[ 0] ), \
-                            _mm_xor_si128( M[ 7], H[ 7] ) ), \
-             _mm_xor_si128( M[ 9], H[ 9] ) ), \
-          _mm_xor_si128( M[12], H[12] ) ), \
-       _mm_xor_si128( M[15], H[15] ) )
+   _mm_sub_epi32( \
+      _mm_add_epi32( \
+         _mm_add_epi32( _mm_xor_si128( M[ 0], H[ 0] ), \
+                        _mm_xor_si128( M[ 7], H[ 7] ) ), \
+         _mm_xor_si128( M[ 9], H[ 9] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[12], H[12] ), \
+                     _mm_xor_si128( M[15], H[15] ) ) )
 
 #define Ws3 \
-   _mm_add_epi32( \
-       _mm_sub_epi32( \
-          _mm_add_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 0], H[ 0] ), \
-                            _mm_xor_si128( M[ 1], H[ 1] ) ), \
-             _mm_xor_si128( M[ 8], H[ 8] ) ), \
-          _mm_xor_si128( M[10], H[10] ) ), \
-       _mm_xor_si128( M[13], H[13] ) )
+   _mm_sub_epi32( \
+      _mm_add_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 0], H[ 0] ), \
+                        _mm_xor_si128( M[ 1], H[ 1] ) ), \
+         _mm_xor_si128( M[ 8], H[ 8] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[10], H[10] ), \
+                     _mm_xor_si128( M[13], H[13] ) ) )
 
 #define Ws4 \
    _mm_sub_epi32( \
-       _mm_sub_epi32( \
-          _mm_add_epi32( \
-             _mm_add_epi32( _mm_xor_si128( M[ 1], H[ 1] ), \
-                            _mm_xor_si128( M[ 2], H[ 2] ) ), \
-             _mm_xor_si128( M[ 9], H[ 9] ) ), \
-          _mm_xor_si128( M[11], H[11] ) ), \
-       _mm_xor_si128( M[14], H[14] ) )
+      _mm_add_epi32( \
+         _mm_add_epi32( _mm_xor_si128( M[ 1], H[ 1] ), \
+                        _mm_xor_si128( M[ 2], H[ 2] ) ), \
+         _mm_xor_si128( M[ 9], H[ 9] ) ), \
+      _mm_add_epi32( _mm_xor_si128( M[11], H[11] ), \
+                     _mm_xor_si128( M[14], H[14] ) ) )
 
 #define Ws5 \
-   _mm_add_epi32( \
-       _mm_sub_epi32( \
-          _mm_add_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 3], H[ 3] ), \
-                            _mm_xor_si128( M[ 2], H[ 2] ) ), \
-             _mm_xor_si128( M[10], H[10] ) ), \
-          _mm_xor_si128( M[12], H[12] ) ), \
-       _mm_xor_si128( M[15], H[15] ) )
+   _mm_sub_epi32( \
+      _mm_add_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 3], H[ 3] ), \
+                        _mm_xor_si128( M[ 2], H[ 2] ) ), \
+         _mm_xor_si128( M[10], H[10] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[12], H[12] ), \
+                     _mm_xor_si128( M[15], H[15] ) ) )
 
 #define Ws6 \
-   _mm_add_epi32( \
-       _mm_sub_epi32( \
-          _mm_sub_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 4], H[ 4] ), \
-                            _mm_xor_si128( M[ 0], H[ 0] ) ), \
-             _mm_xor_si128( M[ 3], H[ 3] ) ), \
-          _mm_xor_si128( M[11], H[11] ) ), \
-       _mm_xor_si128( M[13], H[13] ) )
+   _mm_sub_epi32( \
+      _mm_sub_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 4], H[ 4] ), \
+                        _mm_xor_si128( M[ 0], H[ 0] ) ), \
+         _mm_xor_si128( M[ 3], H[ 3] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[11], H[11] ), \
+                     _mm_xor_si128( M[13], H[13] ) ) )
 
 #define Ws7 \
    _mm_sub_epi32( \
-       _mm_sub_epi32( \
-          _mm_sub_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 1], H[ 1] ), \
-                            _mm_xor_si128( M[ 4], H[ 4] ) ), \
-             _mm_xor_si128( M[ 5], H[ 5] ) ), \
-          _mm_xor_si128( M[12], H[12] ) ), \
-       _mm_xor_si128( M[14], H[14] ) )
+      _mm_sub_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 1], H[ 1] ), \
+                        _mm_xor_si128( M[ 4], H[ 4] ) ), \
+         _mm_xor_si128( M[ 5], H[ 5] ) ), \
+      _mm_add_epi32( _mm_xor_si128( M[12], H[12] ), \
+                     _mm_xor_si128( M[14], H[14] ) ) )
 
 #define Ws8 \
-   _mm_sub_epi32( \
-       _mm_add_epi32( \
-          _mm_sub_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 2], H[ 2] ), \
-                            _mm_xor_si128( M[ 5], H[ 5] ) ), \
-             _mm_xor_si128( M[ 6], H[ 6] ) ), \
-          _mm_xor_si128( M[13], H[13] ) ), \
-       _mm_xor_si128( M[15], H[15] ) )
-
-#define Ws9 \
    _mm_add_epi32( \
-       _mm_sub_epi32( \
-          _mm_add_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 0], H[ 0] ), \
-                            _mm_xor_si128( M[ 3], H[ 3] ) ), \
-             _mm_xor_si128( M[ 6], H[ 6] ) ), \
-          _mm_xor_si128( M[ 7], H[ 7] ) ), \
-       _mm_xor_si128( M[14], H[14] ) )
+      _mm_sub_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 2], H[ 2] ), \
+                        _mm_xor_si128( M[ 5], H[ 5] ) ), \
+         _mm_xor_si128( M[ 6], H[ 6] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[13], H[13] ), \
+                     _mm_xor_si128( M[15], H[15] ) ) )
+#define Ws9 \
+   _mm_sub_epi32( \
+      _mm_add_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 0], H[ 0] ), \
+                        _mm_xor_si128( M[ 3], H[ 3] ) ), \
+         _mm_xor_si128( M[ 6], H[ 6] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[ 7], H[ 7] ), \
+                     _mm_xor_si128( M[14], H[14] ) ) )
 
 #define Ws10 \
-   _mm_add_epi32( \
-       _mm_sub_epi32( \
-          _mm_sub_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 8], H[ 8] ), \
-                            _mm_xor_si128( M[ 1], H[ 1] ) ), \
-             _mm_xor_si128( M[ 4], H[ 4] ) ), \
-          _mm_xor_si128( M[ 7], H[ 7] ) ), \
-       _mm_xor_si128( M[15], H[15] ) )
+   _mm_sub_epi32( \
+      _mm_sub_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 8], H[ 8] ), \
+                        _mm_xor_si128( M[ 1], H[ 1] ) ), \
+         _mm_xor_si128( M[ 4], H[ 4] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[ 7], H[ 7] ), \
+                     _mm_xor_si128( M[15], H[15] ) ) )
 
 #define Ws11 \
-   _mm_add_epi32( \
-       _mm_sub_epi32( \
-          _mm_sub_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 8], H[ 8] ), \
-                            _mm_xor_si128( M[ 0], H[ 0] ) ), \
-             _mm_xor_si128( M[ 2], H[ 2] ) ), \
-          _mm_xor_si128( M[ 5], H[ 5] ) ), \
-       _mm_xor_si128( M[ 9], H[ 9] ) )
+   _mm_sub_epi32( \
+      _mm_sub_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 8], H[ 8] ), \
+                        _mm_xor_si128( M[ 0], H[ 0] ) ), \
+         _mm_xor_si128( M[ 2], H[ 2] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[ 5], H[ 5] ), \
+                     _mm_xor_si128( M[ 9], H[ 9] ) ) )
 
 #define Ws12 \
-   _mm_add_epi32( \
-       _mm_sub_epi32( \
-          _mm_sub_epi32( \
-             _mm_add_epi32( _mm_xor_si128( M[ 1], H[ 1] ), \
-                            _mm_xor_si128( M[ 3], H[ 3] ) ), \
-             _mm_xor_si128( M[ 6], H[ 6] ) ), \
-          _mm_xor_si128( M[ 9], H[ 9] ) ), \
-       _mm_xor_si128( M[10], H[10] ) )
+   _mm_sub_epi32( \
+      _mm_sub_epi32( \
+         _mm_add_epi32( _mm_xor_si128( M[ 1], H[ 1] ), \
+                        _mm_xor_si128( M[ 3], H[ 3] ) ), \
+         _mm_xor_si128( M[ 6], H[ 6] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[ 9], H[ 9] ), \
+                     _mm_xor_si128( M[10], H[10] ) ) )
 
 #define Ws13 \
    _mm_add_epi32( \
-       _mm_add_epi32( \
-          _mm_add_epi32( \
-             _mm_add_epi32( _mm_xor_si128( M[ 2], H[ 2] ), \
-                            _mm_xor_si128( M[ 4], H[ 4] ) ), \
-             _mm_xor_si128( M[ 7], H[ 7] ) ), \
-          _mm_xor_si128( M[10], H[10] ) ), \
-       _mm_xor_si128( M[11], H[11] ) )
+      _mm_add_epi32( \
+         _mm_add_epi32( _mm_xor_si128( M[ 2], H[ 2] ), \
+                        _mm_xor_si128( M[ 4], H[ 4] ) ), \
+         _mm_xor_si128( M[ 7], H[ 7] ) ), \
+      _mm_add_epi32( _mm_xor_si128( M[10], H[10] ), \
+                     _mm_xor_si128( M[11], H[11] ) ) )
 
 #define Ws14 \
    _mm_sub_epi32( \
-       _mm_sub_epi32( \
-          _mm_add_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[ 3], H[ 3] ), \
-                               _mm_xor_si128( M[ 5], H[ 5] ) ), \
-             _mm_xor_si128( M[ 8], H[ 8] ) ), \
-          _mm_xor_si128( M[11], H[11] ) ), \
-       _mm_xor_si128( M[12], H[12] ) )
+      _mm_add_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[ 3], H[ 3] ), \
+                        _mm_xor_si128( M[ 5], H[ 5] ) ), \
+         _mm_xor_si128( M[ 8], H[ 8] ) ), \
+      _mm_add_epi32( _mm_xor_si128( M[11], H[11] ), \
+                     _mm_xor_si128( M[12], H[12] ) ) )
 
 #define Ws15 \
-   _mm_add_epi32( \
-       _mm_sub_epi32( \
-          _mm_sub_epi32( \
-             _mm_sub_epi32( _mm_xor_si128( M[12], H[12] ), \
-                            _mm_xor_si128( M[ 4], H[ 4] ) ), \
-             _mm_xor_si128( M[ 6], H[ 6] ) ), \
-          _mm_xor_si128( M[ 9], H[ 9] ) ), \
-       _mm_xor_si128( M[13], H[13] ) )
+   _mm_sub_epi32( \
+      _mm_sub_epi32( \
+         _mm_sub_epi32( _mm_xor_si128( M[12], H[12] ), \
+                        _mm_xor_si128( M[ 4], H[4] ) ), \
+         _mm_xor_si128( M[ 6], H[ 6] ) ), \
+      _mm_sub_epi32( _mm_xor_si128( M[ 9], H[ 9] ), \
+                     _mm_xor_si128( M[13], H[13] ) ) )
 
 
 void compress_small( const __m128i *M, const __m128i H[16], __m128i dH[16] )
@@ -700,163 +686,148 @@ bmw256_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 
 #define W8s0 \
    _mm256_add_epi32( \
-       _mm256_add_epi32( \
-          _mm256_add_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 5], H[ 5] ), \
-                               _mm256_xor_si256( M[ 7], H[ 7] ) ), \
-             _mm256_xor_si256( M[10], H[10] ) ), \
-          _mm256_xor_si256( M[13], H[13] ) ), \
-       _mm256_xor_si256( M[14], H[14] ) )
+      _mm256_add_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 5], H[ 5] ), \
+                           _mm256_xor_si256( M[ 7], H[ 7] ) ), \
+         _mm256_xor_si256( M[10], H[10] ) ), \
+      _mm256_add_epi32( _mm256_xor_si256( M[13], H[13] ), \
+                        _mm256_xor_si256( M[14], H[14] ) ) )
 
 #define W8s1 \
-   _mm256_sub_epi32( \
+   _mm256_add_epi32( \
        _mm256_add_epi32( \
-          _mm256_add_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 6], H[ 6] ), \
-                               _mm256_xor_si256( M[ 8], H[ 8] ) ), \
-             _mm256_xor_si256( M[11], H[11] ) ), \
-          _mm256_xor_si256( M[14], H[14] ) ), \
-       _mm256_xor_si256( M[15], H[15] ) )
+          _mm256_sub_epi32( _mm256_xor_si256( M[ 6], H[ 6] ), \
+                            _mm256_xor_si256( M[ 8], H[ 8] ) ), \
+          _mm256_xor_si256( M[11], H[11] ) ), \
+       _mm256_sub_epi32( _mm256_xor_si256( M[14], H[14] ), \
+                         _mm256_xor_si256( M[15], H[15] ) ) )
 
 #define W8s2 \
-   _mm256_add_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_add_epi32( \
-             _mm256_add_epi32( _mm256_xor_si256( M[ 0], H[ 0] ), \
-                               _mm256_xor_si256( M[ 7], H[ 7] ) ), \
-             _mm256_xor_si256( M[ 9], H[ 9] ) ), \
-          _mm256_xor_si256( M[12], H[12] ) ), \
-       _mm256_xor_si256( M[15], H[15] ) )
+   _mm256_sub_epi32( \
+      _mm256_add_epi32( \
+         _mm256_add_epi32( _mm256_xor_si256( M[ 0], H[ 0] ), \
+                           _mm256_xor_si256( M[ 7], H[ 7] ) ), \
+         _mm256_xor_si256( M[ 9], H[ 9] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[12], H[12] ), \
+                        _mm256_xor_si256( M[15], H[15] ) ) )
 
 #define W8s3 \
-   _mm256_add_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_add_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 0], H[ 0] ), \
-                               _mm256_xor_si256( M[ 1], H[ 1] ) ), \
-             _mm256_xor_si256( M[ 8], H[ 8] ) ), \
-          _mm256_xor_si256( M[10], H[10] ) ), \
-       _mm256_xor_si256( M[13], H[13] ) )
+   _mm256_sub_epi32( \
+      _mm256_add_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 0], H[ 0] ), \
+                           _mm256_xor_si256( M[ 1], H[ 1] ) ), \
+         _mm256_xor_si256( M[ 8], H[ 8] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[10], H[10] ), \
+                        _mm256_xor_si256( M[13], H[13] ) ) )
 
 #define W8s4 \
    _mm256_sub_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_add_epi32( \
-             _mm256_add_epi32( _mm256_xor_si256( M[ 1], H[ 1] ), \
-                               _mm256_xor_si256( M[ 2], H[ 2] ) ), \
-             _mm256_xor_si256( M[ 9], H[ 9] ) ), \
-          _mm256_xor_si256( M[11], H[11] ) ), \
-       _mm256_xor_si256( M[14], H[14] ) )
+      _mm256_add_epi32( \
+         _mm256_add_epi32( _mm256_xor_si256( M[ 1], H[ 1] ), \
+                           _mm256_xor_si256( M[ 2], H[ 2] ) ), \
+         _mm256_xor_si256( M[ 9], H[ 9] ) ), \
+      _mm256_add_epi32( _mm256_xor_si256( M[11], H[11] ), \
+                        _mm256_xor_si256( M[14], H[14] ) ) )
 
 #define W8s5 \
-   _mm256_add_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_add_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 3], H[ 3] ), \
-                               _mm256_xor_si256( M[ 2], H[ 2] ) ), \
-             _mm256_xor_si256( M[10], H[10] ) ), \
-          _mm256_xor_si256( M[12], H[12] ) ), \
-       _mm256_xor_si256( M[15], H[15] ) )
+   _mm256_sub_epi32( \
+      _mm256_add_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 3], H[ 3] ), \
+                           _mm256_xor_si256( M[ 2], H[ 2] ) ), \
+         _mm256_xor_si256( M[10], H[10] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[12], H[12] ), \
+                        _mm256_xor_si256( M[15], H[15] ) ) )
 
 #define W8s6 \
-   _mm256_add_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_sub_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 4], H[ 4] ), \
-                               _mm256_xor_si256( M[ 0], H[ 0] ) ), \
-             _mm256_xor_si256( M[ 3], H[ 3] ) ), \
-          _mm256_xor_si256( M[11], H[11] ) ), \
-       _mm256_xor_si256( M[13], H[13] ) )
+   _mm256_sub_epi32( \
+      _mm256_sub_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 4], H[ 4] ), \
+                           _mm256_xor_si256( M[ 0], H[ 0] ) ), \
+         _mm256_xor_si256( M[ 3], H[ 3] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[11], H[11] ), \
+                        _mm256_xor_si256( M[13], H[13] ) ) )
 
 #define W8s7 \
    _mm256_sub_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_sub_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 1], H[ 1] ), \
-                               _mm256_xor_si256( M[ 4], H[ 4] ) ), \
-             _mm256_xor_si256( M[ 5], H[ 5] ) ), \
-          _mm256_xor_si256( M[12], H[12] ) ), \
-       _mm256_xor_si256( M[14], H[14] ) )
+      _mm256_sub_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 1], H[ 1] ), \
+                           _mm256_xor_si256( M[ 4], H[ 4] ) ), \
+         _mm256_xor_si256( M[ 5], H[ 5] ) ), \
+      _mm256_add_epi32( _mm256_xor_si256( M[12], H[12] ), \
+                        _mm256_xor_si256( M[14], H[14] ) ) )
 
 #define W8s8 \
-   _mm256_sub_epi32( \
-       _mm256_add_epi32( \
-          _mm256_sub_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 2], H[ 2] ), \
-                               _mm256_xor_si256( M[ 5], H[ 5] ) ), \
-             _mm256_xor_si256( M[ 6], H[ 6] ) ), \
-          _mm256_xor_si256( M[13], H[13] ) ), \
-       _mm256_xor_si256( M[15], H[15] ) )
+   _mm256_add_epi32( \
+      _mm256_sub_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 2], H[ 2] ), \
+                           _mm256_xor_si256( M[ 5], H[ 5] ) ), \
+         _mm256_xor_si256( M[ 6], H[ 6] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[13], H[13] ), \
+                        _mm256_xor_si256( M[15], H[15] ) ) )
 
 #define W8s9 \
-   _mm256_add_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_add_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 0], H[ 0] ), \
-                               _mm256_xor_si256( M[ 3], H[ 3] ) ), \
-             _mm256_xor_si256( M[ 6], H[ 6] ) ), \
-          _mm256_xor_si256( M[ 7], H[ 7] ) ), \
-       _mm256_xor_si256( M[14], H[14] ) )
+   _mm256_sub_epi32( \
+      _mm256_add_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 0], H[ 0] ), \
+                           _mm256_xor_si256( M[ 3], H[ 3] ) ), \
+         _mm256_xor_si256( M[ 6], H[ 6] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[ 7], H[ 7] ), \
+                        _mm256_xor_si256( M[14], H[14] ) ) )
 
 #define W8s10 \
-   _mm256_add_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_sub_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 8], H[ 8] ), \
-                               _mm256_xor_si256( M[ 1], H[ 1] ) ), \
-             _mm256_xor_si256( M[ 4], H[ 4] ) ), \
-          _mm256_xor_si256( M[ 7], H[ 7] ) ), \
-       _mm256_xor_si256( M[15], H[15] ) )
+   _mm256_sub_epi32( \
+      _mm256_sub_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 8], H[ 8] ), \
+                           _mm256_xor_si256( M[ 1], H[ 1] ) ), \
+         _mm256_xor_si256( M[ 4], H[ 4] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[ 7], H[ 7] ), \
+                        _mm256_xor_si256( M[15], H[15] ) ) )
 
 #define W8s11 \
-   _mm256_add_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_sub_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 8], H[ 8] ), \
-                               _mm256_xor_si256( M[ 0], H[ 0] ) ), \
-             _mm256_xor_si256( M[ 2], H[ 2] ) ), \
-          _mm256_xor_si256( M[ 5], H[ 5] ) ), \
-       _mm256_xor_si256( M[ 9], H[ 9] ) )
+   _mm256_sub_epi32( \
+      _mm256_sub_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 8], H[ 8] ), \
+                           _mm256_xor_si256( M[ 0], H[ 0] ) ), \
+         _mm256_xor_si256( M[ 2], H[ 2] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[ 5], H[ 5] ), \
+                        _mm256_xor_si256( M[ 9], H[ 9] ) ) )
 
 #define W8s12 \
-   _mm256_add_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_sub_epi32( \
-             _mm256_add_epi32( _mm256_xor_si256( M[ 1], H[ 1] ), \
-                               _mm256_xor_si256( M[ 3], H[ 3] ) ), \
-             _mm256_xor_si256( M[ 6], H[ 6] ) ), \
-          _mm256_xor_si256( M[ 9], H[ 9] ) ), \
-       _mm256_xor_si256( M[10], H[10] ) )
+   _mm256_sub_epi32( \
+      _mm256_sub_epi32( \
+         _mm256_add_epi32( _mm256_xor_si256( M[ 1], H[ 1] ), \
+                           _mm256_xor_si256( M[ 3], H[ 3] ) ), \
+         _mm256_xor_si256( M[ 6], H[ 6] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[ 9], H[ 9] ), \
+                        _mm256_xor_si256( M[10], H[10] ) ) )
 
 #define W8s13 \
    _mm256_add_epi32( \
-       _mm256_add_epi32( \
-          _mm256_add_epi32( \
-             _mm256_add_epi32( _mm256_xor_si256( M[ 2], H[ 2] ), \
-                               _mm256_xor_si256( M[ 4], H[ 4] ) ), \
-             _mm256_xor_si256( M[ 7], H[ 7] ) ), \
-          _mm256_xor_si256( M[10], H[10] ) ), \
-       _mm256_xor_si256( M[11], H[11] ) )
+      _mm256_add_epi32( \
+         _mm256_add_epi32( _mm256_xor_si256( M[ 2], H[ 2] ), \
+                           _mm256_xor_si256( M[ 4], H[ 4] ) ), \
+         _mm256_xor_si256( M[ 7], H[ 7] ) ), \
+      _mm256_add_epi32( _mm256_xor_si256( M[10], H[10] ), \
+                        _mm256_xor_si256( M[11], H[11] ) ) )
 
 #define W8s14 \
    _mm256_sub_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_add_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[ 3], H[ 3] ), \
-                               _mm256_xor_si256( M[ 5], H[ 5] ) ), \
-             _mm256_xor_si256( M[ 8], H[ 8] ) ), \
-          _mm256_xor_si256( M[11], H[11] ) ), \
-       _mm256_xor_si256( M[12], H[12] ) )
+      _mm256_add_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[ 3], H[ 3] ), \
+                           _mm256_xor_si256( M[ 5], H[ 5] ) ), \
+         _mm256_xor_si256( M[ 8], H[ 8] ) ), \
+      _mm256_add_epi32( _mm256_xor_si256( M[11], H[11] ), \
+                        _mm256_xor_si256( M[12], H[12] ) ) )
 
 #define W8s15 \
-   _mm256_add_epi32( \
-       _mm256_sub_epi32( \
-          _mm256_sub_epi32( \
-             _mm256_sub_epi32( _mm256_xor_si256( M[12], H[12] ), \
-                               _mm256_xor_si256( M[ 4], H[4] ) ), \
-             _mm256_xor_si256( M[ 6], H[ 6] ) ), \
-          _mm256_xor_si256( M[ 9], H[ 9] ) ), \
-       _mm256_xor_si256( M[13], H[13] ) )
+   _mm256_sub_epi32( \
+      _mm256_sub_epi32( \
+         _mm256_sub_epi32( _mm256_xor_si256( M[12], H[12] ), \
+                           _mm256_xor_si256( M[ 4], H[4] ) ), \
+         _mm256_xor_si256( M[ 6], H[ 6] ) ), \
+      _mm256_sub_epi32( _mm256_xor_si256( M[ 9], H[ 9] ), \
+                        _mm256_xor_si256( M[13], H[13] ) ) )
+
 
 void compress_small_8way( const __m256i *M, const __m256i H[16],
 	                  __m256i dH[16] )

@@ -41,21 +41,26 @@ make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-zen.exe
 
-# mingw won't compile avx512 without -fno-asynchronous-unwind-tables
-make clean || echo clean
-rm -f config.status
-CFLAGS="-O3 -march=skylake-avx512 -Wall -fno-asynchronous-unwind-tables" ./configure $CONFIGURE_ARGS
-make -j 16
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-avx512.exe
+#make clean || echo clean
+#CFLAGS="-O3 -march=corei7-avx -msha -Wall" ./configure $CONFIGURE_ARGS
+#make
+#strip -s cpuminer.exe
+#mv cpuminer.exe release/cpuminer-avx-sha.exe
 
 make clean || echo clean
 rm -f config.status
-# GCC 9 doesn't include AES in core-avx2
-CFLAGS="-O3 -march=core-avx2 -maes -Wall" ./configure $CONFIGURE_ARGS
+CFLAGS="-O3 -march=core-avx2 -Wall" ./configure $CONFIGURE_ARGS
 make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx2.exe
+
+#make clean || echo clean
+#rm -f config.status
+#CFLAGS="-O3 -march=znver1 -Wall" ./configure $CONFIGURE_ARGS
+#make -j 
+#strip -s cpuminer.exe
+#mv cpuminer.exe release/cpuminer-aes-sha.exe
+
 
 make clean || echo clean
 rm -f config.status

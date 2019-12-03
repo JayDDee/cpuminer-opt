@@ -31,6 +31,26 @@ FreeBSD YMMV.
 Change Log
 ----------
 
+v3.10.0
+
+AVX-512 is now supported on selected algos, Windows binary is now available.
+AVX512 optimizations are available for argon2d, blake2s, keccak, keccakc,
+skein & skein2.
+
+Fixed CPU temperature for some CPU models (Linux only).
+
+Fixed a bug that caused some lanes not to submit shares.
+
+Fixed some previously undetected buffer overflows.
+
+Lyra2rev2 3% faster SSE2 and AVX2.
+
+Added "-fno-asynchronous-unwind-tables" to AVX512 build acript for Windows
+to fix known mingw issue.
+
+Changed AVX2 build script to explicitly add AES to address change in
+behaviour in GCC 9. 
+
 v3.9.11
 
 Added x22i & x25x algos.

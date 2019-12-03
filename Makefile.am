@@ -174,7 +174,6 @@ cpuminer_SOURCES = \
   algo/sha/sph_sha2big.c \
   algo/sha/sha256-hash-4way.c \
   algo/sha/sha512-hash-4way.c \
-  algo/sha/sha256_hash_11way.c \
   algo/sha/sha2.c \
   algo/sha/sha256t-gate.c \
   algo/sha/sha256t-4way.c \
@@ -198,7 +197,6 @@ cpuminer_SOURCES = \
   algo/skein/skein-gate.c \
   algo/skein/skein2.c \
   algo/skein/skein2-4way.c \
-  algo/skein/skein2-gate.c \
   algo/sm3/sm3.c \
   algo/sm3/sm3-hash-4way.c \
   algo/swifftx/swifftx.c \

@@ -22,14 +22,13 @@ Step by step...
 
 Refer to Linux compile instructions and install required packages.
 
-Additionally, install mingw-64.
+Additionally, install mingw-w64.
 
 sudo apt-get install mingw-w64
 
 
 2. Create a local library directory for packages to be compiled in the next
-   step. Recommended location is $HOME/usr/lib/
-
+   step. Suggested location is $HOME/usr/lib/
 
 3. Download and build other packages for mingw that don't have a mingw64
    version available in the repositories.

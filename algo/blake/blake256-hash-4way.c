@@ -304,16 +304,17 @@ static const sph_u32 CS[16] = {
 
 #endif
 
+// Blake-256 4 way
 
 #define GS_4WAY( m0, m1, c0, c1, a, b, c, d ) \
 do { \
-   a = _mm_add_epi32( _mm_add_epi32( _mm_xor_si128( \
-                                   _mm_set1_epi32( c1 ), m0 ), b ), a ); \
+   a = _mm_add_epi32( _mm_add_epi32( a, b ), \
+                      _mm_xor_si128( _mm_set1_epi32( c1 ), m0 ) ); \
    d = mm128_ror_32( _mm_xor_si128( d, a ), 16 ); \
    c = _mm_add_epi32( c, d ); \
    b = mm128_ror_32( _mm_xor_si128( b, c ), 12 ); \
-   a = _mm_add_epi32( _mm_add_epi32( _mm_xor_si128( \
-                                   _mm_set1_epi32( c0 ), m1 ), b ), a ); \
+   a = _mm_add_epi32( _mm_add_epi32( a, b ), \
+                      _mm_xor_si128( _mm_set1_epi32( c0 ), m1 ) ); \
    d = mm128_ror_32( _mm_xor_si128( d, a ), 8 ); \
    c = _mm_add_epi32( c, d ); \
    b = mm128_ror_32( _mm_xor_si128( b, c ), 7 ); \
@@ -321,7 +322,8 @@ do { \
 
 #if SPH_COMPACT_BLAKE_32
 
-// Blake-256 4 way
+// Not used
+#if 0
 
 #define ROUND_S_4WAY(r)   do { \
 	GS_4WAY(M[sigma[r][0x0]], M[sigma[r][0x1]], \
@@ -342,6 +344,8 @@ do { \
 		CS[sigma[r][0xE]], CS[sigma[r][0xF]], V3, V4, V9, VE); \
 } while (0)
 
+#endif
+
 #else
 
 #define ROUND_S_4WAY(r)   do { \
@@ -359,7 +363,6 @@ do { \
 
 #define DECL_STATE32_4WAY \
 	__m128i H0, H1, H2, H3, H4, H5, H6, H7; \
-	__m128i S0, S1, S2, S3; \
         uint32_t T0, T1;
 
 #define READ_STATE32_4WAY(state)   do { \
@@ -371,10 +374,6 @@ do { \
 		H5 = casti_m128i( state->H, 5 ); \
 		H6 = casti_m128i( state->H, 6 ); \
 		H7 = casti_m128i( state->H, 7 ); \
-		S0 = casti_m128i( state->S, 0 ); \
-		S1 = casti_m128i( state->S, 1 ); \
-		S2 = casti_m128i( state->S, 2 ); \
-		S3 = casti_m128i( state->S, 3 ); \
 		T0 = (state)->T0; \
 		T1 = (state)->T1; \
 	} while (0)
@@ -388,17 +387,13 @@ do { \
 		casti_m128i( state->H, 5 ) = H5; \
 		casti_m128i( state->H, 6 ) = H6; \
 		casti_m128i( state->H, 7 ) = H7; \
-		casti_m128i( state->S, 0 ) = S0; \
-		casti_m128i( state->S, 1 ) = S1; \
-		casti_m128i( state->S, 2 ) = S2; \
-		casti_m128i( state->S, 3 ) = S3; \
 		(state)->T0 = T0; \
 		(state)->T1 = T1; \
 	} while (0)
 
 #if SPH_COMPACT_BLAKE_32
 // not used
-
+#if 0
 #define COMPRESS32_4WAY( rounds )   do { \
 	__m128i M[16]; \
 	__m128i V0, V1, V2, V3, V4, V5, V6, V7; \
@@ -441,6 +436,7 @@ do { \
         H7 = _mm_xor_si128( _mm_xor_si128( \
                                    _mm_xor_si128( S3, V7 ), VF ), H7 ); \
 	} while (0)
+#endif
 
 #else
 
@@ -508,10 +504,10 @@ do { \
    V5 = H5; \
    V6 = H6; \
    V7 = H7; \
-   V8 = _mm_xor_si128( S0, m128_const1_64( 0x243F6A88243F6A88 ) ); \
-   V9 = _mm_xor_si128( S1, m128_const1_64( 0x85A308D385A308D3 ) ); \
-   VA = _mm_xor_si128( S2, m128_const1_64( 0x13198A2E13198A2E ) ); \
-   VB = _mm_xor_si128( S3, m128_const1_64( 0x0370734403707344 ) ); \
+   V8 = m128_const1_64( 0x243F6A88243F6A88 ); \
+   V9 = m128_const1_64( 0x85A308D385A308D3 ); \
+   VA = m128_const1_64( 0x13198A2E13198A2E ); \
+   VB = m128_const1_64( 0x0370734403707344 ); \
    VC = _mm_xor_si128( _mm_set1_epi32( T0 ), \
                            m128_const1_64( 0xA4093822A4093822 ) ); \
    VD = _mm_xor_si128( _mm_set1_epi32( T0 ), \
@@ -538,14 +534,14 @@ do { \
       ROUND_S_4WAY(2); \
       ROUND_S_4WAY(3); \
    } \
-   H0 = mm128_xor4( V8, V0, S0, H0 ); \
-   H1 = mm128_xor4( V9, V1, S1, H1 ); \
-   H2 = mm128_xor4( VA, V2, S2, H2 ); \
-   H3 = mm128_xor4( VB, V3, S3, H3 ); \
-   H4 = mm128_xor4( VC, V4, S0, H4 ); \
-   H5 = mm128_xor4( VD, V5, S1, H5 ); \
-   H6 = mm128_xor4( VE, V6, S2, H6 ); \
-   H7 = mm128_xor4( VF, V7, S3, H7 ); \
+   H0 = _mm_xor_si128( _mm_xor_si128( V8, V0 ), H0 ); \
+   H1 = _mm_xor_si128( _mm_xor_si128( V9, V1 ), H1 ); \
+   H2 = _mm_xor_si128( _mm_xor_si128( VA, V2 ), H2 ); \
+   H3 = _mm_xor_si128( _mm_xor_si128( VB, V3 ), H3 ); \
+   H4 = _mm_xor_si128( _mm_xor_si128( VC, V4 ), H4 ); \
+   H5 = _mm_xor_si128( _mm_xor_si128( VD, V5 ), H5 ); \
+   H6 = _mm_xor_si128( _mm_xor_si128( VE, V6 ), H6 ); \
+   H7 = _mm_xor_si128( _mm_xor_si128( VF, V7 ), H7 ); \
 } while (0)
 
 #endif
@@ -556,13 +552,13 @@ do { \
 
 #define GS_8WAY( m0, m1, c0, c1, a, b, c, d ) \
 do { \
-   a = _mm256_add_epi32( _mm256_add_epi32( _mm256_xor_si256( \
-                 _mm256_set1_epi32( c1 ), m0 ), b ), a ); \
+   a = _mm256_add_epi32( _mm256_add_epi32( a, b ), \
+                         _mm256_xor_si256( _mm256_set1_epi32( c1 ), m0 ) ); \
    d = mm256_ror_32( _mm256_xor_si256( d, a ), 16 ); \
    c = _mm256_add_epi32( c, d ); \
    b = mm256_ror_32( _mm256_xor_si256( b, c ), 12 ); \
-   a = _mm256_add_epi32( _mm256_add_epi32( _mm256_xor_si256( \
-                 _mm256_set1_epi32( c0 ), m1 ), b ), a ); \
+   a = _mm256_add_epi32( _mm256_add_epi32( a, b ), \
+                         _mm256_xor_si256( _mm256_set1_epi32( c0 ), m1 ) ); \
    d = mm256_ror_32( _mm256_xor_si256( d, a ), 8 ); \
    c = _mm256_add_epi32( c, d ); \
    b = mm256_ror_32( _mm256_xor_si256( b, c ), 7 ); \
@@ -581,7 +577,6 @@ do { \
 
 #define DECL_STATE32_8WAY \
    __m256i H0, H1, H2, H3, H4, H5, H6, H7; \
-   __m256i S0, S1, S2, S3; \
    sph_u32 T0, T1;
 
 #define READ_STATE32_8WAY(state) \
@@ -594,10 +589,6 @@ do { \
    H5 = (state)->H[5]; \
    H6 = (state)->H[6]; \
    H7 = (state)->H[7]; \
-   S0 = (state)->S[0]; \
-   S1 = (state)->S[1]; \
-   S2 = (state)->S[2]; \
-   S3 = (state)->S[3]; \
    T0 = (state)->T0; \
    T1 = (state)->T1; \
 } while (0)
@@ -612,10 +603,6 @@ do { \
    (state)->H[5] = H5; \
    (state)->H[6] = H6; \
    (state)->H[7] = H7; \
-   (state)->S[0] = S0; \
-   (state)->S[1] = S1; \
-   (state)->S[2] = S2; \
-   (state)->S[3] = S3; \
    (state)->T0 = T0; \
    (state)->T1 = T1; \
 } while (0)
@@ -635,10 +622,10 @@ do { \
    V5 = H5; \
    V6 = H6; \
    V7 = H7; \
-   V8 = _mm256_xor_si256( S0, m256_const1_64( 0x243F6A88243F6A88 ) ); \
-   V9 = _mm256_xor_si256( S1, m256_const1_64( 0x85A308D385A308D3 ) ); \
-   VA = _mm256_xor_si256( S2, m256_const1_64( 0x13198A2E13198A2E ) ); \
-   VB = _mm256_xor_si256( S3, m256_const1_64( 0x0370734403707344 ) ); \
+   V8 = m256_const1_64( 0x243F6A88243F6A88 ); \
+   V9 = m256_const1_64( 0x85A308D385A308D3 ); \
+   VA = m256_const1_64( 0x13198A2E13198A2E ); \
+   VB = m256_const1_64( 0x0370734403707344 ); \
    VC = _mm256_xor_si256( _mm256_set1_epi32( T0 ),\
                               m256_const1_64( 0xA4093822A4093822 ) ); \
    VD = _mm256_xor_si256( _mm256_set1_epi32( T0 ),\
@@ -682,14 +669,14 @@ do { \
       ROUND_S_8WAY(2); \
       ROUND_S_8WAY(3); \
    } \
-   H0 = mm256_xor4( V8, V0, S0, H0 ); \
-   H1 = mm256_xor4( V9, V1, S1, H1 ); \
-   H2 = mm256_xor4( VA, V2, S2, H2 ); \
-   H3 = mm256_xor4( VB, V3, S3, H3 ); \
-   H4 = mm256_xor4( VC, V4, S0, H4 ); \
-   H5 = mm256_xor4( VD, V5, S1, H5 ); \
-   H6 = mm256_xor4( VE, V6, S2, H6 ); \
-   H7 = mm256_xor4( VF, V7, S3, H7 ); \
+   H0 = _mm256_xor_si256( _mm256_xor_si256( V8, V0 ), H0 ); \
+   H1 = _mm256_xor_si256( _mm256_xor_si256( V9, V1 ), H1 ); \
+   H2 = _mm256_xor_si256( _mm256_xor_si256( VA, V2 ), H2 ); \
+   H3 = _mm256_xor_si256( _mm256_xor_si256( VB, V3 ), H3 ); \
+   H4 = _mm256_xor_si256( _mm256_xor_si256( VC, V4 ), H4 ); \
+   H5 = _mm256_xor_si256( _mm256_xor_si256( VD, V5 ), H5 ); \
+   H6 = _mm256_xor_si256( _mm256_xor_si256( VE, V6 ), H6 ); \
+   H7 = _mm256_xor_si256( _mm256_xor_si256( VF, V7 ), H7 ); \
 } while (0)
 
 
@@ -703,7 +690,6 @@ static void
 blake32_4way_init( blake_4way_small_context *ctx, const uint32_t *iv,
                    const uint32_t *salt, int rounds )
 {
-   __m128i zero = m128_zero;
    casti_m128i( ctx->H, 0 ) = m128_const1_64( 0x6A09E6676A09E667 );
    casti_m128i( ctx->H, 1 ) = m128_const1_64( 0xBB67AE85BB67AE85 );
    casti_m128i( ctx->H, 2 ) = m128_const1_64( 0x3C6EF3723C6EF372 );
@@ -712,11 +698,6 @@ blake32_4way_init( blake_4way_small_context *ctx, const uint32_t *iv,
    casti_m128i( ctx->H, 5 ) = m128_const1_64( 0x9B05688C9B05688C );
    casti_m128i( ctx->H, 6 ) = m128_const1_64( 0x1F83D9AB1F83D9AB );
    casti_m128i( ctx->H, 7 ) = m128_const1_64( 0x5BE0CD195BE0CD19 );
-
-   casti_m128i( ctx->S, 0 ) = zero;
-   casti_m128i( ctx->S, 1 ) = zero;
-   casti_m128i( ctx->S, 2 ) = zero;
-   casti_m128i( ctx->S, 3 ) = zero;
    ctx->T0 = ctx->T1 = 0;
    ctx->ptr = 0;
    ctx->rounds = rounds;
@@ -824,7 +805,6 @@ static void
 blake32_8way_init( blake_8way_small_context *sc, const sph_u32 *iv,
                    const sph_u32 *salt, int rounds )
 {
-   __m256i zero = m256_zero;
    casti_m256i( sc->H, 0 ) = m256_const1_64( 0x6A09E6676A09E667 );
    casti_m256i( sc->H, 1 ) = m256_const1_64( 0xBB67AE85BB67AE85 );
    casti_m256i( sc->H, 2 ) = m256_const1_64( 0x3C6EF3723C6EF372 );
@@ -833,10 +813,6 @@ blake32_8way_init( blake_8way_small_context *sc, const sph_u32 *iv,
    casti_m256i( sc->H, 5 ) = m256_const1_64( 0x9B05688C9B05688C );
    casti_m256i( sc->H, 6 ) = m256_const1_64( 0x1F83D9AB1F83D9AB );
    casti_m256i( sc->H, 7 ) = m256_const1_64( 0x5BE0CD195BE0CD19 );
-   casti_m256i( sc->S, 0 ) = zero;
-   casti_m256i( sc->S, 1 ) = zero;
-   casti_m256i( sc->S, 2 ) = zero;
-   casti_m256i( sc->S, 3 ) = zero;
    sc->T0 = sc->T1 = 0;
    sc->ptr = 0;
    sc->rounds = rounds;

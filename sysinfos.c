@@ -18,14 +18,47 @@
 
 #ifndef WIN32
 
+// 1035g1: /sys/devices/platform/coretemp.0/hwmon/hwmon3/temp1_input
+// 1035g1: /sys/class/hwmon/hwmon1/temp1_input wrong temp
+// ryzen has no /sys/devices/platform/coretemp.0
+// ryzen: /sys/class/hwmon/hwmon0
+// 2400: /sys/class/hwmon/hwmon0/temp1_input incorrect temp
+// 2400 has no /sys/class/hwmon/hwmon2/temp1_input
+// 2400 /sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input ok
+// 6700 /sys/devices/platform/coretemp.0/hwmon/hwmon2/temp1_input
+// 6700 /sys/class/hwmon/hwmon2/temp1_input
+// /sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input never exists
+// /sys/class/hwmon/hwmon0/temp2_input doesn't exist or shows wrong temp (sys16)
+// /sys/class/hwmon/hwmon0/device/temp1_input doesn't exist
+
+
+// the first 3 will find i5-2400, i7-6700k, r7-1700, i5-1035g1.
+// The others are left in for legacy, some should probably be removed.
+#define HWMON_PATH1 \
+   "/sys/devices/platform/coretemp.0/hwmon/hwmon3/temp1_input"
+
+#define HWMON_PATH2 \
+   "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input"
+
+#define HWMON_PATH3 \
+   "/sys/class/hwmon/hwmon0/temp1_input"
+
 #define HWMON_PATH \
  "/sys/class/hwmon/hwmon2/temp1_input"
+
+/*
 #define HWMON_ALT \
  "/sys/class/hwmon/hwmon0/temp1_input"
+
 #define HWMON_ALT1 \
  "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input"
+*/
+
+// This shows wrong temp on i5-1035g1
 #define HWMON_ALT2 \
  "/sys/class/hwmon/hwmon1/temp1_input"
+
+// None of these work on any of the cpus above.
 #define HWMON_ALT3 \
  "/sys/devices/platform/coretemp.0/hwmon/hwmon0/temp2_input"
 #define HWMON_ALT4 \
@@ -33,16 +66,28 @@
 #define HWMON_ALT5 \
 "/sys/class/hwmon/hwmon0/device/temp1_input"
 
+
 static inline float linux_cputemp(int core)
 {
 	float tc = 0.0;
-	FILE *fd = fopen(HWMON_PATH, "r");
+	FILE *fd;
 	uint32_t val = 0;
 
-	if (!fd)
-		fd = fopen(HWMON_ALT, "r");
+   fd = fopen(HWMON_PATH1, "r");
+
+   if (!fd)
+      fd = fopen(HWMON_PATH2, "r");
+
+   if (!fd)
+      fd = fopen(HWMON_PATH3, "r");
+
+   if (!fd)
+      fd = fopen(HWMON_PATH, "r");
 
 	if (!fd)
+//		fd = fopen(HWMON_ALT1, "r");
+
+//	if (!fd)
 		fd = fopen(HWMON_ALT2, "r");
 
 	if (!fd)
@@ -52,14 +97,14 @@ static inline float linux_cputemp(int core)
 		fd = fopen(HWMON_ALT4, "r");
 
 	if (!fd)
-                fd = fopen(HWMON_ALT5, "r");
+      fd = fopen(HWMON_ALT5, "r");
 
 	if (!fd)
 		return tc;
 
-	if (fscanf(fd, "%d", &val))
+	if ( fscanf( fd, "%d", &val ) )
 		tc = val / 1000.0;
-	fclose(fd);
+	fclose( fd );
 	return tc;
 }
 
@@ -296,7 +341,7 @@ static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 // EXTENDED_FEATURES ECX
 #define AVX512VBMI_Flag  (1<<1) 
 #define AVX512VBMI2_Flag (1<<6)
-#define AVX512VAES_Flag  (1<<9)
+#define VAES_Flag        (1<<9)
 
 
 // Use this to detect presence of feature
@@ -418,14 +463,14 @@ static inline bool has_avx512()
 #endif
 }
 
-static inline bool has_avx512vaes()
+static inline bool has_vaes()
 {
 #ifdef __arm__
     return false;
 #else
     int cpu_info[4] = { 0 };
     cpuid( EXTENDED_FEATURES, cpu_info );
-    return cpu_info[ ECX_Reg ] & AVX512VAES_Flag;
+    return cpu_info[ ECX_Reg ] & VAES_Flag;
 #endif
 }
 

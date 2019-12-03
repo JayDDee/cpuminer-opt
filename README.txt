@@ -29,6 +29,7 @@ cpuminer-sse2.exe      "-msse2"                  Core2, Nehalem
 cpuminer-aes-sse42.exe "-march=westmere"         Westmere
 cpuminer-avx.exe       "-march=corei7-avx"       Sandy-Ivybridge
 cpuminer-avx2.exe      "-march=core-avx2"        Haswell, Sky-Kaby-Coffeelake
+cpuminer-avx512.exe    "-march=skylake-avx512"   Skylake-X, Cascadelake-X
 cpuminer-zen           "-march=znver1"           AMD Ryzen, Threadripper
 
 If you like this software feel free to donate:

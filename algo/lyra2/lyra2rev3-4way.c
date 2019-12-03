@@ -5,7 +5,6 @@
 #include "algo/bmw/bmw-hash-4way.h"
 #include "algo/cubehash/cubehash_sse2.h" 
 
-
 #if defined (LYRA2REV3_8WAY)
 
 typedef struct {
@@ -14,7 +13,7 @@ typedef struct {
    bmw256_8way_context       bmw;
 } lyra2v3_8way_ctx_holder;
 
-static lyra2v3_8way_ctx_holder l2v3_8way_ctx;
+static __thread lyra2v3_8way_ctx_holder l2v3_8way_ctx;
 
 bool init_lyra2rev3_8way_ctx()
 {
@@ -38,7 +37,7 @@ void lyra2rev3_8way_hash( void *state, const void *input )
    lyra2v3_8way_ctx_holder ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &l2v3_8way_ctx, sizeof(l2v3_8way_ctx) );
 
-   blake256_8way( &ctx.blake, input, 80 );
+   blake256_8way( &ctx.blake, input + (64*8), 16 );
    blake256_8way_close( &ctx.blake, vhash );
 
    dintrlv_8x32( hash0, hash1, hash2, hash3,
@@ -91,7 +90,7 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
 {
    uint32_t hash[8*8] __attribute__ ((aligned (64)));
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-   uint32_t *hash7 = &(hash[7<<3]);
+   uint32_t *hash7 = &hash[7<<3];
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
@@ -99,12 +98,15 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
    uint32_t n = first_nonce;
    const uint32_t Htarg = ptarget[7];
    __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
-   const int thr_id = mythr->id;  // thr_id arg is deprecated
+   const int thr_id = mythr->id;
 
-   if ( opt_benchmark )
-      ( (uint32_t*)ptarget )[7] = 0x0000ff;
+   if ( opt_benchmark )  ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
+
+   blake256_8way_init( &l2v3_8way_ctx.blake );
+   blake256_8way( &l2v3_8way_ctx.blake, vdata, 64 );
+
    do
    {
       *noncev = mm256_bswap_32( _mm256_set_epi32( n+7, n+6, n+5, n+4,
@@ -119,8 +121,8 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
          extr_lane_8x32( lane_hash, hash, lane, 256 );
          if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
          {
-              pdata[19] = n + lane;
-              submit_lane_solution( work, lane_hash, mythr, lane );
+             pdata[19] = n + lane;
+             submit_lane_solution( work, lane_hash, mythr, lane );
          }
       }
       n += 8;
@@ -133,14 +135,14 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
 
 #if defined (LYRA2REV3_4WAY)  
 
-
 typedef struct {
    blake256_4way_context     blake;
    cubehashParam             cube;
    bmw256_4way_context       bmw;
 } lyra2v3_4way_ctx_holder;
 
-static lyra2v3_4way_ctx_holder l2v3_4way_ctx;
+//static lyra2v3_4way_ctx_holder l2v3_4way_ctx;
+static __thread lyra2v3_4way_ctx_holder l2v3_4way_ctx;
 
 bool init_lyra2rev3_4way_ctx()
 {
@@ -160,7 +162,8 @@ void lyra2rev3_4way_hash( void *state, const void *input )
    lyra2v3_4way_ctx_holder ctx __attribute__ ((aligned (64))); 
    memcpy( &ctx, &l2v3_4way_ctx, sizeof(l2v3_4way_ctx) );
 
-   blake256_4way( &ctx.blake, input, 80 );
+//   blake256_4way( &ctx.blake, input, 80 );
+   blake256_4way( &ctx.blake, input + (64*4), 16 );
    blake256_4way_close( &ctx.blake, vhash );
    dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
@@ -206,6 +209,10 @@ int scanhash_lyra2rev3_4way( struct work *work, const uint32_t max_nonce,
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
    mm128_bswap32_intrlv80_4x32( vdata, pdata );
+
+   blake256_4way_init( &l2v3_4way_ctx.blake );
+   blake256_4way( &l2v3_4way_ctx.blake, vdata, 64 );
+
    do
    {
       *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );

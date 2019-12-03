@@ -24,18 +24,10 @@ be installed manually. There may be others, read the error messages they
 will give a clue as to the missing package.
 
 The following command should install everything you need on Debian based
-distributions such as Ubuntu:
+distributions such as Ubuntu. Fedora and other distributions may have similar
+but different package names.
 
-sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev automake zlib1g-dev
-
-build-essential  (Development Tools package group on Fedora)
-automake
-libjansson-dev
-libgmp-dev
-libcurl4-openssl-dev
-libssl-dev
-lib-thread
-zlib1g-dev
+sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev zlib1g-dev
 
 SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and
 openssl 1.1.0e or higher. Add one of the following, depending on the

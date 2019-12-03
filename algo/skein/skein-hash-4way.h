@@ -55,29 +55,50 @@ extern "C"{
 #define SPH_SIZE_skein256   256
 #define SPH_SIZE_skein512   512
 
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
 typedef struct
 {
-   __m256i buf[8] __attribute__ ((aligned (64)));
+   __m512i buf[8];
+   __m512i h0, h1, h2, h3, h4, h5, h6, h7;
+   size_t ptr;
+   sph_u64 bcount;
+} sph_skein_8way_big_context __attribute__ ((aligned (128)));
+
+typedef sph_skein_8way_big_context skein512_8way_context;
+typedef sph_skein_8way_big_context skein256_8way_context;
+
+void skein512_8way_init( skein512_8way_context *sc );
+void skein512_8way_update( void *cc, const void *data, size_t len );
+void skein512_8way_close( void *cc, void *dst );
+
+void skein256_8way_init( skein256_8way_context *sc );
+void skein256_8way_update( void *cc, const void *data, size_t len );
+void skein256_8way_close( void *cc, void *dst );
+
+#endif // AVX512
+   
+typedef struct
+{
+   __m256i buf[8];
    __m256i h0, h1, h2, h3, h4, h5, h6, h7;
    size_t ptr;
 	sph_u64 bcount;
-} sph_skein_4way_big_context;
+} sph_skein_4way_big_context __attribute__ ((aligned (128)));
 
 typedef sph_skein_4way_big_context skein512_4way_context;
 typedef sph_skein_4way_big_context skein256_4way_context;
 
 void skein512_4way_init( skein512_4way_context *sc );
-void skein512_4way( void *cc, const void *data, size_t len );
+void skein512_4way_update( void *cc, const void *data, size_t len );
 void skein512_4way_close( void *cc, void *dst );
-//void sph_skein512_addbits_and_close(
-//        void *cc, unsigned ub, unsigned n, void *dst);
+#define skein512_4way skein512_4way_update
 
 void skein256_4way_init( skein256_4way_context *sc );
-void skein256_4way( void *cc, const void *data, size_t len );
+void skein256_4way_update( void *cc, const void *data, size_t len );
 void skein256_4way_close( void *cc, void *dst );
-//void sph_skein256_addbits_and_close(
-//	void *cc, unsigned ub, unsigned n, void *dst);
-
+#define skein256_4way skein256_4way_update
 
 #ifdef __cplusplus
 }

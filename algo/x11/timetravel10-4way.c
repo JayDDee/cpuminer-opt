@@ -51,12 +51,12 @@ void init_tt10_4way_ctx()
 
 void timetravel10_4way_hash(void *output, const void *input)
 {
-   uint64_t hash0[8] __attribute__ ((aligned (64)));
-   uint64_t hash1[8] __attribute__ ((aligned (64)));
-   uint64_t hash2[8] __attribute__ ((aligned (64)));
-   uint64_t hash3[8] __attribute__ ((aligned (64)));
-   uint64_t vhashX[8*4] __attribute__ ((aligned (64)));
-   uint64_t vhashY[8*4] __attribute__ ((aligned (64)));
+   uint64_t hash0[10] __attribute__ ((aligned (64)));
+   uint64_t hash1[10] __attribute__ ((aligned (64)));
+   uint64_t hash2[10] __attribute__ ((aligned (64)));
+   uint64_t hash3[10] __attribute__ ((aligned (64)));
+   uint64_t vhashX[10*4] __attribute__ ((aligned (64)));
+   uint64_t vhashY[10*4] __attribute__ ((aligned (64)));
    uint64_t *vhashA, *vhashB;
    tt10_4way_ctx_holder ctx __attribute__ ((aligned (64)));
    uint32_t dataLen = 64;

@@ -83,13 +83,14 @@ HashReturn init_sd(hashState_sd *state, int hashbitlen) {
   char *init;
 
 #ifndef NO_PRECOMPUTED_IV
-  if (hashbitlen == 224)
-    r=InitIV(state, hashbitlen, IV_224);
-  else if (hashbitlen == 256)
-    r=InitIV(state, hashbitlen, IV_256);
-  else if (hashbitlen == 384)
-    r=InitIV(state, hashbitlen, IV_384);
-  else if (hashbitlen == 512)
+//  if (hashbitlen == 224)
+//    r=InitIV(state, hashbitlen, IV_224);
+//  else if (hashbitlen == 256)
+//    r=InitIV(state, hashbitlen, IV_256);
+//  else if (hashbitlen == 384)
+//    r=InitIV(state, hashbitlen, IV_384);
+//  else
+  if (hashbitlen == 512)
     r=InitIV(state, hashbitlen, IV_512);
   else
 #endif

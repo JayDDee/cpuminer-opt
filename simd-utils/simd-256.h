@@ -233,7 +233,7 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
    _mm256_or_si256( _mm256_slli_epi32( v, c ), \
                     _mm256_srli_epi32( v, 32-(c) ) )
 
-/*
+
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 // AVX512, control must be 8 bit immediate.
@@ -244,7 +244,7 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 #define mm256_rol_32    _mm256_rol_epi32
 
 #else
-*/
+
 
 // No AVX512, use fallback.
 
@@ -253,7 +253,7 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 #define mm256_ror_32    mm256_ror_var_32
 #define mm256_rol_32    mm256_rol_var_32
 
-// #endif     // AVX512 else
+#endif     // AVX512 else
 
 #define  mm256_ror_16( v, c ) \
    _mm256_or_si256( _mm256_srli_epi16( v, c ), \
@@ -311,7 +311,7 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 // AVX512 has finer granularity full vector permutes.
 // AVX512 has full vector alignr which might be faster, especially for 32 bit
 
-/*
+
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #define mm256_swap_128( v )   _mm256_alignr_epi64( v, v, 2 )
@@ -323,7 +323,6 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 #define mm256_rol_3x32( v )   _mm256_alignr_epi32( v, v, 5 )
 
 #else   // AVX2
-*/
 
 // Swap 128 bit elements in 256 bit vector.
 #define mm256_swap_128( v )     _mm256_permute4x64_epi64( v, 0x4e )
@@ -354,7 +353,7 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
                      m256_const_64( 0x0000000400000003, 0x0000000200000001, \
                                     0x0000000000000007, 0x0000000600000005 )
 
-//#endif    // AVX512 else AVX2
+#endif    // AVX512 else AVX2
 
 
 // AVX512 can do 16 & 8 bit elements.
@@ -423,21 +422,25 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 #define mm256_ror1x32_128( v )  _mm256_shuffle_epi32( v, 0x39 )
 #define mm256_rol1x32_128( v )  _mm256_shuffle_epi32( v, 0x93 )
 
-// Rotate each 128 bit lane by one 16 bit element.
 #define mm256_ror1x16_128( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x01000f0e0d0c0b0a, \
-                                                    0x0908070605040302 ) )
-#define mm256_rol1x16_128( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x0d0c0b0a09080706, \
-                                                    0x0504030201000f0e ) )
+   _mm256_shuffle_epi8( v, \
+         m256_const_64( 0x11101f1e1d1c1b1a, 0x1918171615141312, \
+                        0x01000f0e0d0c0b0a, 0x0908070605040302 ) )
 
-// Rotate each 128 bit lane by one byte
+#define mm256_rol1x16_128( v ) \
+   _mm256_shuffle_epi8( v, \
+         m256_const_64( 0x1d1c1b1a19181716, 0x1514131211101f1e, \
+                        0x0d0c0b0a09080706, 0x0504030201000f0e ) )
+
 #define mm256_ror1x8_128( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x000f0e0d0c0b0a09, \
-                                                    0x0807060504030201 ) )
+   _mm256_shuffle_epi8( v, \
+         m256_const_64( 0x101f1e1d1c1b1a19, 0x1817161514131211, \
+                        0x000f0e0d0c0b0a09, 0x0807060504030201 ) )
+
 #define mm256_rol1x8_128( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x0d0c0b0a09080f0e, \
-                                                    0x0504030201000706 ) )
+   _mm256_shuffle_epi8( v, \
+         m256_const_64( 0x1d1c1b1a19181f1e, 0x1514131211101716, \
+                        0x0d0c0b0a09080f0e, 0x0504030201000706 ) )
 
 // Rotate each 128 bit lane by c bytes.
 #define mm256_bror_128( v, c ) \
@@ -451,50 +454,65 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 #define mm256_swap32_64( v )    _mm256_shuffle_epi32( v, 0xb1 )
 
 #define mm256_ror1x16_64( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x09080f0e0d0c0b0a, \
-                                                    0x0100070605040302 ) )
+   _mm256_shuffle_epi8( v, \
+        m256_const_64( 0x19181f1e1d1c1b1a, 0x1110171615141312, \
+                       0x09080f0e0d0c0b0a, 0x0100070605040302 ) )
+
 #define mm256_rol1x16_64( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x0d0c0b0a09080f0e, \
-                                                    0x0504030201000706 ) )
+   _mm256_shuffle_epi8( v, \
+        m256_const_64( 0x1d1c1b1a19181f1e, 0x1514131211101716, \
+                       0x0d0c0b0a09080f0e, 0x0504030201000706 ) )
 
 #define mm256_ror1x8_64( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x080f0e0d0c0b0a09, \
-                                                    0x0007060504030201 ) )
+   _mm256_shuffle_epi8( v, \
+        m256_const_64( 0x181f1e1d1c1b1a19, 0x1017161514131211, \
+                       0x080f0e0d0c0b0a09, 0x0007060504030201 ) )
+
 #define mm256_rol1x8_64( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x0e0d0c0b0a09080f, \
-                                                    0x0605040302010007 ) )
+   _mm256_shuffle_epi8( v, \
+        m256_const_64( 0x1e1d1c1b1a19181f, 0x1615141312111017, \
+                       0x0e0d0c0b0a09080f, 0x0605040302010007 ) )
 
 #define mm256_ror3x8_64( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x0a09080f0e0d0c0b, \
-                                                    0x0201000706050403 ) )
+   _mm256_shuffle_epi8( v, \
+        m256_const_64( 0x1a19181f1e1d1c1b, 0x1211101716151413, \
+                       0x0a09080f0e0d0c0b, 0x0201000706050403 ) )
+
 #define mm256_rol3x8_64( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x0c0b0a09080f0e0d, \
-                                                    0x0403020100070605 ) )
+   _mm256_shuffle_epi8( v, \
+        m256_const_64( 0x1c1b1a19181f1e1d, 0x1413121110171615, \
+                       0x0c0b0a09080f0e0d, 0x0403020100070605 ) )
+
 
 // Swap 16 bit elements in each 32 bit lane
 #define mm256_swap16_32( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x0b0a09080f0e0d0c, \
-                                                    0x0302010007060504 ) )
+   _mm256_shuffle_epi8( v, \
+         m256_const_64( 0x1b1a19181f1e1d1c, 0x1312111017161514, \
+                        0x0b0a09080f0e0d0c, 0x0302010007060504 ) )
 
 //
 // Swap bytes in vector elements, endian bswap.
 #define mm256_bswap_64( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x08090a0b0c0d0e0f, \
-                                                    0x0001020304050607 ) )
+   _mm256_shuffle_epi8( v, \
+         m256_const_64( 0x18191a1b1c1d1e1f, 0x1011121314151617, \
+                        0x08090a0b0c0d0e0f, 0x0001020304050607 ) )
 
 #define mm256_bswap_32( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x0c0d0e0f08090a0b, \
-                                                    0x0405060700010203 ) )
+   _mm256_shuffle_epi8( v, \
+         m256_const_64( 0x1c1d1e1f18191a1b, 0x1415161710111213, \
+                        0x0c0d0e0f08090a0b, 0x0405060700010203 ) )
 
 #define mm256_bswap_16( v ) \
-            _mm256_shuffle_epi8( v, m256_const2_64( 0x0e0f0c0d0a0b0809, \
-                                                    0x0607040502030001 ) )
+   _mm256_shuffle_epi8( v, \
+         m256_const_64( 0x1e1f1c1d1a1b1819, 0x1617141512131011, \
+                        0x0e0f0c0d0a0b0809, 0x0607040502030001, ) )
 
 // Source and destination are pointers, may point to same memory.
 // 8 byte qword * 8 qwords * 4 lanes = 256 bytes
 #define mm256_block_bswap_64( d, s ) do \
 { \
-  __m256i ctl = m256_const2_64( 0x08090a0b0c0d0e0f, 0x0001020304050607 ); \
+  __m256i ctl = m256_const_64( 0x18191a1b1c1d1e1f, 0x1011121314151617, \
+                               0x08090a0b0c0d0e0f, 0x0001020304050607 ) ; \
   casti_m256i( d, 0 ) = _mm256_shuffle_epi8( casti_m256i( s, 0 ), ctl ); \
   casti_m256i( d, 1 ) = _mm256_shuffle_epi8( casti_m256i( s, 1 ), ctl ); \
   casti_m256i( d, 2 ) = _mm256_shuffle_epi8( casti_m256i( s, 2 ), ctl ); \
@@ -508,7 +526,8 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 // 4 byte dword * 8 dwords * 8 lanes = 256 bytes
 #define mm256_block_bswap_32( d, s ) do \
 { \
-  __m256i ctl = m256_const2_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 ); \
+  __m256i ctl = m256_const_64( 0x1c1d1e1f18191a1b, 0x1415161710111213, \
+                               0x0c0d0e0f08090a0b, 0x0405060700010203 ); \
   casti_m256i( d, 0 ) = _mm256_shuffle_epi8( casti_m256i( s, 0 ), ctl ); \
   casti_m256i( d, 1 ) = _mm256_shuffle_epi8( casti_m256i( s, 1 ), ctl ); \
   casti_m256i( d, 2 ) = _mm256_shuffle_epi8( casti_m256i( s, 2 ), ctl ); \

@@ -49,6 +49,7 @@
  * no slowdown from the prefixes is generally observed on AMD CPUs supporting
  * XOP, some slowdown is sometimes observed on Intel CPUs with AVX.
  */
+/*
 #ifdef __XOP__
 #warning "Note: XOP is enabled.  That's great."
 #elif defined(__AVX__)
@@ -60,6 +61,7 @@
 #else
 #warning "Note: building generic code for non-x86.  That's OK."
 #endif
+*/
 
 /*
  * The SSE4 code version has fewer instructions than the generic SSE2 version,

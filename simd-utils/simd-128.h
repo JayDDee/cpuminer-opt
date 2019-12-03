@@ -242,7 +242,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
    _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
 
 
-/*
+
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #define mm128_ror_64    _mm_ror_epi64
@@ -251,14 +251,14 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_rol_32    _mm_rol_epi32
 
 #else
-*/
+
 
 #define mm128_ror_64   mm128_ror_var_64
 #define mm128_rol_64   mm128_rol_var_64
 #define mm128_ror_32   mm128_ror_var_32
 #define mm128_rol_32   mm128_rol_var_32
 
-//#endif   // AVX512 else
+#endif   // AVX512 else
 
 #define mm128_ror_16( v, c ) \
    _mm_or_si128( _mm_srli_epi16( v, c ), _mm_slli_epi16( v, 16-(c) ) )

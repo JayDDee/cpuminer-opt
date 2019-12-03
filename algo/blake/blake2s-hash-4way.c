@@ -165,13 +165,13 @@ do { \
 // 
 // Supported:
 //    64 + 16 bytes  (blake2s with midstate optimization)
-//    80 bytes without midstate (blake2s without midstate optimization)
+//    80 bytes       (blake2s without midstate optimization)
 //    Any multiple of 64 bytes in one shot (x25x)
 //
 // Unsupported:
-//    Stream of 64 byte blocks one at a time.   
-//
-// use for part blocks or when streaming more data
+//    Stream of full 64 byte blocks one at a time.   
+
+// use only when streaming more data or final block not full.
 int blake2s_4way_update( blake2s_4way_state *S, const void *in,
                          uint64_t inlen )
 {
@@ -465,6 +465,168 @@ int blake2s_8way_final( blake2s_8way_state *S, void *out, uint8_t outlen )
 
 
 #endif // __AVX2__
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+// Blake2s-256 16 way
+
+int blake2s_16way_compress( blake2s_16way_state *S, const __m512i *block )
+{
+   __m512i m[16];
+   __m512i v[16];
+
+   memcpy_512( m, block, 16 );
+   memcpy_512( v, S->h, 8 );
+
+   v[ 8] = m512_const1_64( 0x6A09E6676A09E667ULL );
+   v[ 9] = m512_const1_64( 0xBB67AE85BB67AE85ULL );
+   v[10] = m512_const1_64( 0x3C6EF3723C6EF372ULL );
+   v[11] = m512_const1_64( 0xA54FF53AA54FF53AULL );
+   v[12] = _mm512_xor_si512( _mm512_set1_epi32( S->t[0] ),
+                          m512_const1_64( 0x510E527F510E527FULL ) );
+
+   v[13] = _mm512_xor_si512( _mm512_set1_epi32( S->t[1] ),
+                          m512_const1_64( 0x9B05688C9B05688CULL ) );
+
+   v[14] = _mm512_xor_si512( _mm512_set1_epi32( S->f[0] ),
+                          m512_const1_64( 0x1F83D9AB1F83D9ABULL ) );
+
+   v[15] = _mm512_xor_si512( _mm512_set1_epi32( S->f[1] ),
+                          m512_const1_64( 0x5BE0CD195BE0CD19ULL ) );
+
+
+#define G16W( sigma0, sigma1, a, b, c, d) \
+do { \
+   uint8_t s0 = sigma0; \
+   uint8_t s1 = sigma1; \
+   a = _mm512_add_epi32( _mm512_add_epi32( a, b ), m[ s0 ] ); \
+   d = mm512_ror_32( _mm512_xor_si512( d, a ), 16 ); \
+   c = _mm512_add_epi32( c, d ); \
+   b = mm512_ror_32( _mm512_xor_si512( b, c ), 12 ); \
+   a = _mm512_add_epi32( _mm512_add_epi32( a, b ), m[ s1 ] ); \
+   d = mm512_ror_32( _mm512_xor_si512( d, a ),  8 ); \
+   c = _mm512_add_epi32( c, d ); \
+   b = mm512_ror_32( _mm512_xor_si512( b, c ),  7 ); \
+} while(0)
+
+#define ROUND16W(r)  \
+do { \
+   uint8_t *sigma = (uint8_t*)&blake2s_sigma[r]; \
+   G16W( sigma[ 0], sigma[ 1], v[ 0], v[ 4], v[ 8], v[12] ); \
+   G16W( sigma[ 2], sigma[ 3], v[ 1], v[ 5], v[ 9], v[13] ); \
+   G16W( sigma[ 4], sigma[ 5], v[ 2], v[ 6], v[10], v[14] ); \
+   G16W( sigma[ 6], sigma[ 7], v[ 3], v[ 7], v[11], v[15] ); \
+   G16W( sigma[ 8], sigma[ 9], v[ 0], v[ 5], v[10], v[15] ); \
+   G16W( sigma[10], sigma[11], v[ 1], v[ 6], v[11], v[12] ); \
+   G16W( sigma[12], sigma[13], v[ 2], v[ 7], v[ 8], v[13] ); \
+   G16W( sigma[14], sigma[15], v[ 3], v[ 4], v[ 9], v[14] ); \
+} while(0)
+
+   ROUND16W( 0 );
+   ROUND16W( 1 );
+   ROUND16W( 2 );
+   ROUND16W( 3 );
+   ROUND16W( 4 );
+   ROUND16W( 5 );
+   ROUND16W( 6 );
+   ROUND16W( 7 );
+   ROUND16W( 8 );
+   ROUND16W( 9 );
+
+   for( size_t i = 0; i < 8; ++i )
+      S->h[i] = _mm512_xor_si512( _mm512_xor_si512( S->h[i], v[i] ), v[i + 8] );
+
+#undef G16W
+#undef ROUND16W
+   return 0;
+}
+
+int blake2s_16way_init( blake2s_16way_state *S, const uint8_t outlen )
+{
+   blake2s_nway_param P[1];
+
+   P->digest_length = outlen;
+   P->key_length    = 0;
+   P->fanout        = 1;
+   P->depth         = 1;
+   P->leaf_length   = 0;
+   *((uint64_t*)(P->node_offset)) = 0;
+   P->node_depth    = 0;
+   P->inner_length  = 0;
+   memset( P->salt,     0, sizeof( P->salt ) );
+   memset( P->personal, 0, sizeof( P->personal ) );
+
+   memset( S, 0, sizeof( blake2s_16way_state ) );
+   S->h[0] = m512_const1_64( 0x6A09E6676A09E667ULL );
+   S->h[1] = m512_const1_64( 0xBB67AE85BB67AE85ULL );
+   S->h[2] = m512_const1_64( 0x3C6EF3723C6EF372ULL );
+   S->h[3] = m512_const1_64( 0xA54FF53AA54FF53AULL );
+   S->h[4] = m512_const1_64( 0x510E527F510E527FULL );
+   S->h[5] = m512_const1_64( 0x9B05688C9B05688CULL );
+   S->h[6] = m512_const1_64( 0x1F83D9AB1F83D9ABULL );
+   S->h[7] = m512_const1_64( 0x5BE0CD195BE0CD19ULL );
+
+   uint32_t *p = ( uint32_t * )( P );
+
+   /* IV XOR ParamBlock */
+   for ( size_t i = 0; i < 8; ++i )
+      S->h[i] = _mm512_xor_si512( S->h[i], _mm512_set1_epi32( p[i] ) );
+   return 0;
+}
+
+int blake2s_16way_update( blake2s_16way_state *S, const void *in,
+                         uint64_t inlen )
+{
+  __m512i *input = (__m512i*)in;
+  __m512i *buf = (__m512i*)S->buf;
+  const int bsize = BLAKE2S_BLOCKBYTES;
+
+   while( inlen > 0 )
+   {
+      size_t left = S->buflen;
+      if( inlen >= bsize - left )
+      {
+         memcpy_512( buf + (left>>2), input, (bsize - left) >> 2 );
+         S->buflen += bsize - left;
+         S->t[0] += BLAKE2S_BLOCKBYTES;
+         S->t[1] += ( S->t[0] < BLAKE2S_BLOCKBYTES );
+         blake2s_16way_compress( S, buf );
+         S->buflen = 0;
+         input += ( bsize >> 2 );
+         inlen -= bsize;
+      }
+      else
+      {
+          memcpy_512( buf + ( left>>2 ), input, inlen>>2 );
+          S->buflen += (size_t) inlen;
+          input += ( inlen>>2 );
+          inlen -= inlen;
+      }
+   }
+   return 0;
+}
+
+int blake2s_16way_final( blake2s_16way_state *S, void *out, uint8_t outlen )
+{
+   __m512i *buf = (__m512i*)S->buf;
+
+   S->t[0] += S->buflen;
+   S->t[1] += ( S->t[0] < S->buflen );
+   if ( S->last_node )
+      S->f[1] = ~0U;
+   S->f[0] = ~0U;
+
+   memset_zero_512( buf + ( S->buflen>>2 ),
+                    ( BLAKE2S_BLOCKBYTES - S->buflen ) >> 2 );
+   blake2s_16way_compress( S, buf );
+
+   for ( int i = 0; i < 8; ++i )
+      casti_m512i( out, i ) = S->h[ i ];
+   return 0;
+}
+
+#endif   // AVX512
+
 
 #if 0
 int blake2s( uint8_t *out, const void *in, const void *key, const uint8_t outlen, const uint64_t inlen, uint8_t keylen )

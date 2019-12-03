@@ -53,6 +53,8 @@
 #if HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
+
+// GCC 9 warning sysctl.h is deprecated
 #include <sys/sysctl.h>
 #endif
 #endif
@@ -3339,12 +3341,14 @@ bool check_cpu_capability ()
      bool cpu_has_avx2   = has_avx2();
      bool cpu_has_sha    = has_sha();
      bool cpu_has_avx512 = has_avx512();
+     bool cpu_has_vaes   = has_vaes();
      bool sw_has_aes    = false;
      bool sw_has_sse42  = false;
      bool sw_has_avx    = false;
      bool sw_has_avx2   = false;
      bool sw_has_avx512 = false;
      bool sw_has_sha    = false;
+     bool sw_has_vaes   = false;
      set_t algo_features = algo_gate.optimizations;
      bool algo_has_sse2   = set_incl( SSE2_OPT,    algo_features );
      bool algo_has_aes    = set_incl( AES_OPT,     algo_features );
@@ -3352,12 +3356,14 @@ bool check_cpu_capability ()
      bool algo_has_avx2   = set_incl( AVX2_OPT,    algo_features );
      bool algo_has_avx512 = set_incl( AVX512_OPT,  algo_features );
      bool algo_has_sha    = set_incl( SHA_OPT,     algo_features );
+     bool algo_has_vaes   = set_incl( VAES_OPT,    algo_features );
      bool use_aes;
      bool use_sse2;
      bool use_sse42;
      bool use_avx2;
      bool use_avx512;
      bool use_sha;
+     bool use_vaes;
      bool use_none;
 
      #ifdef __AES__
@@ -3372,12 +3378,16 @@ bool check_cpu_capability ()
      #ifdef __AVX2__
          sw_has_avx2 = true;
      #endif
-     #if (defined(__AVX512F__) && defined(__AVX51DQF__) && defined(__AVX51BW__) && defined(__AVX512VL__))
+     #if (defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512BW__) && defined(__AVX512VL__))
          sw_has_avx512 = true;
      #endif
      #ifdef __SHA__
          sw_has_sha = true;
      #endif
+     #ifdef __VAES__
+         sw_has_vaes = true;
+     #endif
+         
 
 //     #if !((__AES__) || (__SSE2__))
 //         printf("Neither __AES__ nor __SSE2__ defined.\n");
@@ -3404,6 +3414,7 @@ bool check_cpu_capability ()
      if ( cpu_has_avx2   )    printf( " AVX2"   );
      if ( cpu_has_avx512 )    printf( " AVX512" );
      if ( cpu_has_sha    )    printf( " SHA"    );
+     if ( cpu_has_vaes   )    printf( " VAES"   );
 
      printf(".\nSW features: SSE2");
      if ( sw_has_aes    )     printf( " AES"    );
@@ -3412,18 +3423,20 @@ bool check_cpu_capability ()
      if ( sw_has_avx2   )     printf( " AVX2"   );
      if ( sw_has_avx512 )     printf( " AVX512" );
      if ( sw_has_sha    )     printf( " SHA"    );
+     if ( sw_has_vaes   )     printf( " VAES"   );
     
 
      printf(".\nAlgo features:");
      if ( algo_features == EMPTY_SET ) printf( " None" );
      else
      {
-        if ( algo_has_sse2   ) printf( " SSE2"    );
-        if ( algo_has_aes    ) printf( " AES"     );
-        if ( algo_has_sse42  ) printf( " SSE4.2"  );
+        if ( algo_has_sse2   ) printf( " SSE2"   );
+        if ( algo_has_aes    ) printf( " AES"    );
+        if ( algo_has_sse42  ) printf( " SSE4.2" );
         if ( algo_has_avx2   ) printf( " AVX2"   );
         if ( algo_has_avx512 ) printf( " AVX512" );
         if ( algo_has_sha    ) printf( " SHA"    );
+        if ( algo_has_vaes   ) printf( " VAES"   );
      }
      printf(".\n");
 
@@ -3461,8 +3474,9 @@ bool check_cpu_capability ()
      use_avx2   = cpu_has_avx2   && sw_has_avx2   && algo_has_avx2;
      use_avx512 = cpu_has_avx512 && sw_has_avx512 && algo_has_avx512;
      use_sha    = cpu_has_sha    && sw_has_sha    && algo_has_sha;
+     use_vaes   = cpu_has_vaes   && sw_has_vaes   && algo_has_vaes;
      use_none = !( use_sse2 || use_aes || use_sse42 || use_avx512 || use_avx2 ||
-                   use_sha );
+                   use_sha || use_vaes );
       
      // Display best options
      printf( "Start mining with" );

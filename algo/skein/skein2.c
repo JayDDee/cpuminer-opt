@@ -1,4 +1,4 @@
-#include "algo-gate-api.h"
+#include "skein-gate.h"
 #include <string.h>
 #include <stdint.h>
 

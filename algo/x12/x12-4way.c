@@ -108,7 +108,7 @@ void x12_4way_hash( void *state, const void *input )
      intrlv_2x128( vhash, hash2, hash3, 512 );
      luffa_2way_init( &ctx.luffa, 512 );
      luffa_2way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     intrlv_2x128( hash2, hash3, vhash, 512 );
+     dintrlv_2x128( hash2, hash3, vhash, 512 );
 
      // 8 Cubehash
      cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );

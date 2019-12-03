@@ -59,7 +59,6 @@ extern "C"{
 typedef struct {
    unsigned char buf[64<<2];
    uint32_t H[8<<2];
-   uint32_t S[4<<2];
 //   __m128i buf[16] __attribute__ ((aligned (64)));
 //   __m128i H[8];
 //   __m128i S[4];    
@@ -93,7 +92,6 @@ void blake256r8_4way_close(void *cc, void *dst);
 typedef struct {
    __m256i buf[16] __attribute__ ((aligned (64)));
    __m256i H[8];
-   __m256i S[4];
    size_t ptr;
    sph_u32 T0, T1;
    int rounds;   // 14 for blake, 8 for blakecoin & vanilla
