@@ -11,9 +11,14 @@
 
 export LOCAL_LIB="$HOME/usr/lib"
 
-export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs -L$LOCAL_LIB/openssl"
-
 export CONFIGURE_ARGS="--with-curl=$LOCAL_LIB/curl --with-crypto=$LOCAL_LIB/openssl --host=x86_64-w64-mingw32"
+
+export MINGW_LIB="/usr/x86_64-w64-mingw32/lib"
+
+export GCC_MINGW_LIB="/usr/lib/gcc/x86_64-w64-mingw32/7.3-win32"
+
+# used by GCC
+export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs -L$LOCAL_LIB/openssl"
 
 # make link to local gmp header file.
 ln -s $LOCAL_LIB/gmp/gmp.h ./gmp.h
@@ -26,12 +31,18 @@ mkdir release
 cp README.txt release/
 cp README.md release/
 cp RELEASE_NOTES release/
-cp /usr/x86_64-w64-mingw32/lib/zlib1.dll release/
-cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll release/
-cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libstdc++-6.dll release/
-cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libgcc_s_seh-1.dll release/
+cp $MINGW_LIB/zlib1.dll release/
+cp $MINGW_LIB/libwinpthread-1.dll release/
+cp $GCC_MINGW_LIB/libstdc++-6.dll release/
+cp $GCC_MINGW_LIB/libgcc_s_seh-1.dll release/
+#cp /usr/x86_64-w64-mingw32/lib/zlib1.dll release/
+#cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll release/
+#cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libstdc++-6.dll release/
+#cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libgcc_s_seh-1.dll release/
 cp $LOCAL_LIB/openssl/libcrypto-1_1-x64.dll release/
 cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
+
+# Start building...
 
 make distclean || echo clean
 rm -f config.status

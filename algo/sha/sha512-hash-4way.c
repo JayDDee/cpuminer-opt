@@ -285,8 +285,10 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
     unsigned ptr;
     const int buf_size = 128;
     const int pad = buf_size - 16;
-    const __m256i shuff_bswap64 = m256_const2_64( 0x08090a0b0c0d0e0f,
-                                                  0x0001020304050607 );
+    const __m256i shuff_bswap64 = m256_const_64( 0x18191a1b1c1d1e1f,
+                                                 0x1011121314151617,
+                                                 0x08090a0b0c0d0e0f,
+                                                 0x0001020304050607 );
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
     sc->buf[ ptr>>3 ] = m256_const1_64( 0x80 );

@@ -15,7 +15,7 @@
 
 void skeinhash_8way( void *state, const void *input )
 {
-     uint64_t vhash64[16*8] __attribute__ ((aligned (128)));
+     uint64_t vhash64[8*8] __attribute__ ((aligned (128)));
      skein512_8way_context ctx_skein;
 
 //#if defined(__SHA__)
@@ -29,7 +29,7 @@ void skeinhash_8way( void *state, const void *input )
 //     uint32_t hash7[16] __attribute__ ((aligned (64)));
 //     SHA256_CTX           ctx_sha256;
 //#else
-     uint32_t vhash32[32*8] __attribute__ ((aligned (128)));
+     uint32_t vhash32[16*8] __attribute__ ((aligned (128)));
      sha256_8way_context ctx_sha256;
 //#endif
 
@@ -135,7 +135,7 @@ int scanhash_skein_8way( struct work *work, uint32_t max_nonce,
 
 void skeinhash_4way( void *state, const void *input )
 {
-     uint64_t vhash64[16*4] __attribute__ ((aligned (64)));
+     uint64_t vhash64[8*4] __attribute__ ((aligned (128)));
      skein512_4way_context ctx_skein;
 #if defined(__SHA__)
      uint32_t hash0[16] __attribute__ ((aligned (64)));

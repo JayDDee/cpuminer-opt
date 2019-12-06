@@ -162,9 +162,10 @@ static inline __m128i mm128_neg1_fn()
 
 #define mm128_allbits0( a )    _mm_testz_si128(   a, a )
 #define mm128_allbits1( a )    _mm_testc_si128(   a, m128_neg1 )
-#define mm128_allbitsne( a )   _mm_testnzc_si128( a, m128_neg1 )
-#define mm128_anybits0         mm128_allbitsne
-#define mm128_anybits1         mm128_allbitsne
+// probably broken, avx2 is
+//#define mm128_allbitsne( a )   _mm_testnzc_si128( a, m128_neg1 )
+#define mm128_anybits0( a )    mm128_allbits1( a )
+#define mm128_anybits1( a )    mm128_allbits0( a )
 
 #else   // SSE2
 

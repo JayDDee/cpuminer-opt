@@ -31,9 +31,20 @@ FreeBSD YMMV.
 Change Log
 ----------
 
+v3.10.1
+
+AVX512 for blake2b, nist5, quark, tribus.
+
+More broken lane fixes.
+
+Fixed buffer overflow in skein AVX512.
+
+Only the highest ranking feature in a class is listed at startup, lower ranking
+features are available but no longer listed.
+
 v3.10.0
 
-AVX-512 is now supported on selected algos, Windows binary is now available.
+AVX512 is now supported on selected algos, Windows binary is now available.
 AVX512 optimizations are available for argon2d, blake2s, keccak, keccakc,
 skein & skein2.
 
@@ -45,7 +56,7 @@ Fixed some previously undetected buffer overflows.
 
 Lyra2rev2 3% faster SSE2 and AVX2.
 
-Added "-fno-asynchronous-unwind-tables" to AVX512 build acript for Windows
+Added "-fno-asynchronous-unwind-tables" to AVX512 build script for Windows
 to fix known mingw issue.
 
 Changed AVX2 build script to explicitly add AES to address change in

@@ -561,12 +561,9 @@ void bmw512_2way_close( bmw_2way_big_context *ctx, void *dst )
 
 #endif  // __SSE2__
 
-
-
 #if defined(__AVX2__)
 
 // BMW-512 4 way 64
-
 
 #define sb0(x) \
    mm256_xor4( _mm256_srli_epi64( (x), 1), _mm256_slli_epi64( (x), 3), \
@@ -1047,7 +1044,7 @@ bmw512_4way_init(void *cc)
 }
 
 void
-bmw512_4way(void *cc, const void *data, size_t len)
+bmw512_4way_update(void *cc, const void *data, size_t len)
 {
 	bmw64_4way(cc, data, len);
 }
@@ -1136,8 +1133,6 @@ bmw512_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
       mm512_add4_64( qt[ (i)- 4 ], r8b7( qt[ (i)- 3 ] ), \
                      s8b4( qt[ (i)- 2 ] ), s8b5( qt[ (i)- 1 ] ) ) ), \
       add_elt_b8( M, H, (i)-16 ) )
-
-
 
 #define W8b0 \
    _mm512_add_epi64( \
@@ -1328,21 +1323,28 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
            mm512_xor4( qt[24], qt[25], qt[26], qt[27] ),
            mm512_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
 
-#define DH1( m, sl, sr, a, b, c ) \
+#define DH1L( m, sl, sr, a, b, c ) \
    _mm512_add_epi64( \
                _mm512_xor_si512( M[m], \
                   _mm512_xor_si512( _mm512_slli_epi64( xh, sl ), \
                                     _mm512_srli_epi64( qt[a], sr ) ) ), \
                _mm512_xor_si512( _mm512_xor_si512( xl, qt[b] ), qt[c] ) )
 
-#define DHL( m, rl, sl, h, a, b, c ) \
+#define DH1R( m, sl, sr, a, b, c ) \
+   _mm512_add_epi64( \
+               _mm512_xor_si512( M[m], \
+                  _mm512_xor_si512( _mm512_srli_epi64( xh, sl ), \
+                                    _mm512_slli_epi64( qt[a], sr ) ) ), \
+               _mm512_xor_si512( _mm512_xor_si512( xl, qt[b] ), qt[c] ) )
+
+#define DH2L( m, rl, sl, h, a, b, c ) \
    _mm512_add_epi64( _mm512_add_epi64( \
        mm512_rol_64( dH[h], rl ), \
           _mm512_xor_si512( _mm512_xor_si512( xh, qt[a] ), M[m] )), \
                  _mm512_xor_si512( _mm512_slli_epi64( xl, sl ), \
                                    _mm512_xor_si512( qt[b], qt[c] ) ) );
    
-#define DHR( m, rl, sr, h, a, b, c ) \
+#define DH2R( m, rl, sr, h, a, b, c ) \
    _mm512_add_epi64( _mm512_add_epi64( \
        mm512_rol_64( dH[h], rl ), \
           _mm512_xor_si512( _mm512_xor_si512( xh, qt[a] ), M[m] )), \
@@ -1350,26 +1352,27 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
                                    _mm512_xor_si512( qt[b], qt[c] ) ) );
 
 
-   dH[ 0] = DH1(  0,  5,  5, 16, 24, 0 );
-   dH[ 1] = DH1(  1,  7,  8, 17, 25, 1 );
-   dH[ 2] = DH1(  2,  5,  5, 18, 26, 2 );
-   dH[ 3] = DH1(  3,  1,  5, 19, 27, 3 );
-   dH[ 4] = DH1(  4,  3,  0, 20, 28, 4 );
-   dH[ 5] = DH1(  5,  6,  6, 21, 29, 5 );
-   dH[ 6] = DH1(  6,  4,  6, 22, 30, 6 );
-   dH[ 7] = DH1(  7, 11,  2, 23, 31, 7 );
-   dH[ 8] = DHL(  8,  9,  8,  4, 24, 23,  8 );
-   dH[ 9] = DHR(  9, 10,  6,  5, 25, 16,  9 );
-   dH[10] = DHL( 10, 11,  6,  6, 26, 17, 10 );
-   dH[11] = DHL( 11, 12,  4,  7, 27, 18, 11 );
-   dH[12] = DHR( 12, 13,  3,  0, 28, 19, 12 );
-   dH[13] = DHR( 13, 14,  4,  1, 29, 20, 13 );
-   dH[14] = DHR( 14, 15,  7,  2, 30, 21, 14 );
-   dH[15] = DHR( 15, 16,  2,  3, 31, 22, 15 );
+   dH[ 0] = DH1L(  0,  5,  5, 16, 24, 0 );
+   dH[ 1] = DH1R(  1,  7,  8, 17, 25, 1 );
+   dH[ 2] = DH1R(  2,  5,  5, 18, 26, 2 );
+   dH[ 3] = DH1R(  3,  1,  5, 19, 27, 3 );
+   dH[ 4] = DH1R(  4,  3,  0, 20, 28, 4 );
+   dH[ 5] = DH1L(  5,  6,  6, 21, 29, 5 );
+   dH[ 6] = DH1R(  6,  4,  6, 22, 30, 6 );
+   dH[ 7] = DH1R(  7, 11,  2, 23, 31, 7 );
+   dH[ 8] = DH2L(  8,  9,  8,  4, 24, 23,  8 );
+   dH[ 9] = DH2R(  9, 10,  6,  5, 25, 16,  9 );
+   dH[10] = DH2L( 10, 11,  6,  6, 26, 17, 10 );
+   dH[11] = DH2L( 11, 12,  4,  7, 27, 18, 11 );
+   dH[12] = DH2R( 12, 13,  3,  0, 28, 19, 12 );
+   dH[13] = DH2R( 13, 14,  4,  1, 29, 20, 13 );
+   dH[14] = DH2R( 14, 15,  7,  2, 30, 21, 14 );
+   dH[15] = DH2R( 15, 16,  2,  3, 31, 22, 15 );
 
-#undef DH1
-#undef DHL
-#undef DHR
+#undef DH1L
+#undef DH1R
+#undef DH2L
+#undef DH2R
          
 }
 

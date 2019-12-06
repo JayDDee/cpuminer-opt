@@ -118,20 +118,42 @@ void blake256r8_8way_close(void *cc, void *dst);
 // Blake-512 4 way
 
 typedef struct {
-   __m256i buf[16] __attribute__ ((aligned (64)));
+   __m256i buf[16];
    __m256i H[8];
    __m256i S[4];   
    size_t ptr;
    sph_u64 T0, T1;
-} blake_4way_big_context;
+} blake_4way_big_context __attribute__ ((aligned (128)));
 
 typedef blake_4way_big_context blake512_4way_context;
 
-void blake512_4way_init(void *cc);
-void blake512_4way(void *cc, const void *data, size_t len);
-void blake512_4way_close(void *cc, void *dst);
-void blake512_4way_addbits_and_close(
-	void *cc, unsigned ub, unsigned n, void *dst);
+void blake512_4way_init( void *cc );
+void blake512_4way_update( void *cc, const void *data, size_t len );
+#define blake512_4way blake512_4way_update
+void blake512_4way_close( void *cc, void *dst );
+void blake512_4way_addbits_and_close( void *cc, unsigned ub, unsigned n,
+                                      void *dst );
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+typedef struct {
+   __m512i buf[16];
+   __m512i H[8];
+   __m512i S[4];
+   size_t ptr;
+   sph_u64 T0, T1;
+} blake_8way_big_context __attribute__ ((aligned (128)));
+
+typedef blake_8way_big_context blake512_8way_context;
+
+void blake512_8way_init( void *cc );
+void blake512_8way_update( void *cc, const void *data, size_t len );
+void blake512_8way_close( void *cc, void *dst );
+void blake512_8way_addbits_and_close( void *cc, unsigned ub, unsigned n,
+                                      void *dst );
+
+#endif  // AVX512
+
 
 #endif  // AVX2
 

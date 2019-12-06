@@ -17,7 +17,7 @@ int scanhash_blake2b_8way( struct work *work, uint32_t max_nonce,
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));;
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
    blake2b_8way_ctx ctx __attribute__ ((aligned (64)));
-   uint32_t *hash7 = &(hash[25]);   // 3*8+1
+   uint32_t *hash7 = &(hash[49]);   // 3*16+1
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    int thr_id = mythr->id;

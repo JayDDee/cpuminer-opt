@@ -1991,7 +1991,7 @@ static inline void rintrlv_4x64_4x32( void *dst, const void *src,
    d[ 0] = s[ 0];  d[ 1] = s[ 2];  d[ 2] = s[ 4];  d[ 3] = s[ 6]; \
    d[ 4] = s[ 8];  d[ 5] = s[10];  d[ 6] = s[12];  d[ 7] = s[14]; \
    d[ 8] = s[ 1];  d[ 9] = s[ 3];  d[10] = s[ 5];  d[11] = s[ 7]; \
-   d[12] = s[ 9];  d[13] = s[11];  d[14] = s[13];  d[16] = s[15]; \
+   d[12] = s[ 9];  d[13] = s[11];  d[14] = s[13];  d[15] = s[15]; \
 } while(0)
 
 
@@ -2002,47 +2002,18 @@ static inline void rintrlv_8x64_8x32( void *dst, const void *src,
 {
    RLEAVE_8x64_8x32(   0 );   RLEAVE_8x64_8x32(  16 );
    RLEAVE_8x64_8x32(  32 );   RLEAVE_8x64_8x32(  48 );
+
+   if ( bit_len <= 256 ) return;
+
    RLEAVE_8x64_8x32(  64 );   RLEAVE_8x64_8x32(  80 );
    RLEAVE_8x64_8x32(  96 );   RLEAVE_8x64_8x32( 112 );
 
+   if ( bit_len <= 512 ) return;
+   
    RLEAVE_8x64_8x32( 128 );   RLEAVE_8x64_8x32( 144 );
    RLEAVE_8x64_8x32( 160 );   RLEAVE_8x64_8x32( 176 );
    RLEAVE_8x64_8x32( 192 );   RLEAVE_8x64_8x32( 208 );
    RLEAVE_8x64_8x32( 224 );   RLEAVE_8x64_8x32( 240 );
-   
-   if ( bit_len <= 256 ) return;
-
-   RLEAVE_8x64_8x32( 256 );   RLEAVE_8x64_8x32( 272 );
-   RLEAVE_8x64_8x32( 288 );   RLEAVE_8x64_8x32( 304 );
-   RLEAVE_8x64_8x32( 320 );   RLEAVE_8x64_8x32( 336 );
-   RLEAVE_8x64_8x32( 352 );   RLEAVE_8x64_8x32( 368 );
-
-   RLEAVE_8x64_8x32( 384 );   RLEAVE_8x64_8x32( 400 );
-   RLEAVE_8x64_8x32( 416 );   RLEAVE_8x64_8x32( 432 );
-   RLEAVE_8x64_8x32( 448 );   RLEAVE_8x64_8x32( 464 );
-   RLEAVE_8x64_8x32( 480 );   RLEAVE_8x64_8x32( 496 );
-
-   if ( bit_len <= 512 ) return;
-
-   RLEAVE_8x64_8x32( 512 );   RLEAVE_8x64_8x32( 528 );
-   RLEAVE_8x64_8x32( 544 );   RLEAVE_8x64_8x32( 560 );
-   RLEAVE_8x64_8x32( 576 );   RLEAVE_8x64_8x32( 592 );
-   RLEAVE_8x64_8x32( 608 );   RLEAVE_8x64_8x32( 624 );
-
-   RLEAVE_8x64_8x32( 640 );   RLEAVE_8x64_8x32( 656 );
-   RLEAVE_8x64_8x32( 672 );   RLEAVE_8x64_8x32( 688 );
-   RLEAVE_8x64_8x32( 704 );   RLEAVE_8x64_8x32( 720 );
-   RLEAVE_8x64_8x32( 736 );   RLEAVE_8x64_8x32( 752 );
-
-   RLEAVE_8x64_8x32( 768 );   RLEAVE_8x64_8x32( 784 );
-   RLEAVE_8x64_8x32( 800 );   RLEAVE_8x64_8x32( 816 );
-   RLEAVE_8x64_8x32( 832 );   RLEAVE_8x64_8x32( 848 );
-   RLEAVE_8x64_8x32( 864 );   RLEAVE_8x64_8x32( 880 );
-
-   RLEAVE_8x64_8x32( 896 );   RLEAVE_8x64_8x32( 912 );
-   RLEAVE_8x64_8x32( 928 );   RLEAVE_8x64_8x32( 944 );
-   RLEAVE_8x64_8x32( 960 );   RLEAVE_8x64_8x32( 976 );
-   RLEAVE_8x64_8x32( 992 );   RLEAVE_8x64_8x32(1008 );
 }
 
 #undef RLEAVE_8x64_8x32
@@ -2307,6 +2278,18 @@ do { \
 
 #define mm512_intrlv_blend_32( hi, lo ) \
    _mm512_mask_blend_epi32( 0x5555, hi, lo )
+
+#define mm512_blend_hash_8x64( dst, a, b, mask ) \
+do { \
+    dst[0] = _mm512_mask_blend_epi64( mask, a[0], b[0] ); \
+    dst[1] = _mm512_mask_blend_epi64( mask, a[1], b[1] ); \
+    dst[2] = _mm512_mask_blend_epi64( mask, a[2], b[2] ); \
+    dst[3] = _mm512_mask_blend_epi64( mask, a[3], b[3] ); \
+    dst[4] = _mm512_mask_blend_epi64( mask, a[4], b[4] ); \
+    dst[5] = _mm512_mask_blend_epi64( mask, a[5], b[5] ); \
+    dst[6] = _mm512_mask_blend_epi64( mask, a[6], b[6] ); \
+    dst[7] = _mm512_mask_blend_epi64( mask, a[7], b[7] ); \
+} while(0)
 
 #endif // AVX512
 #endif // INTERLEAVE_H__

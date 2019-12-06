@@ -542,8 +542,10 @@ static void finalization512( hashState_luffa *state, uint32 *b )
     __m256i* chainv = (__m256i*)state->chainv;
     __m256i  t;
     const __m128i zero = m128_zero;
-    const __m256i shuff_bswap32 = m256_const2_64( 0x0c0d0e0f08090a0b,
-                                                  0x0405060700010203 );
+    const __m256i shuff_bswap32 = m256_const_64( 0x1c1d1e1f18191a1b,
+                                                 0x1415161710111213,
+                                                 0x0c0d0e0f08090a0b,
+                                                 0x0405060700010203 );
 
     rnd512( state, zero, zero );
 

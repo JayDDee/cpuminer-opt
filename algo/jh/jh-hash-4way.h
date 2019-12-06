@@ -60,20 +60,41 @@ extern "C"{
  * can be cloned by copying the context (e.g. with a simple
  * <code>memcpy()</code>).
  */
+
+ 
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
 typedef struct {
-    __m256i buf[8] __attribute__ ((aligned (64)));
+    __m512i buf[8];
+    __m512i H[16];
+    size_t ptr;
+    uint64_t block_count;
+} jh_8way_context __attribute__ ((aligned (128)));
+
+typedef jh_8way_context jh256_8way_context;
+
+typedef jh_8way_context jh512_8way_context;
+
+void jh256_8way_init( jh_8way_context *sc);
+
+void jh256_8way_update(void *cc, const void *data, size_t len);
+
+void jh256_8way_close(void *cc, void *dst);
+
+void jh512_8way_init( jh_8way_context *sc );
+
+void jh512_8way_update(void *cc, const void *data, size_t len);
+
+void jh512_8way_close(void *cc, void *dst);
+
+#endif
+
+typedef struct {
+    __m256i buf[8];
     __m256i H[16];
     size_t ptr;
     uint64_t block_count;
-/*
-	unsigned char buf[64]; 
-	size_t ptr;
-	union {
-		sph_u64 wide[16];
-	} H;
-	sph_u64 block_count;
-*/
-} jh_4way_context;
+} jh_4way_context __attribute__ ((aligned (128)));
 
 typedef jh_4way_context jh256_4way_context;
 
@@ -81,13 +102,15 @@ typedef jh_4way_context jh512_4way_context;
 
 void jh256_4way_init( jh_4way_context *sc);
 
-void jh256_4way(void *cc, const void *data, size_t len);
+void jh256_4way_update(void *cc, const void *data, size_t len);
+#define jh256_4way jh256_4way_update
 
 void jh256_4way_close(void *cc, void *dst);
 
 void jh512_4way_init( jh_4way_context *sc );
 
-void jh512_4way(void *cc, const void *data, size_t len);
+void jh512_4way_update(void *cc, const void *data, size_t len);
+#define jh512_4way jh512_4way_update
 
 void jh512_4way_close(void *cc, void *dst);
 
@@ -95,6 +118,6 @@ void jh512_4way_close(void *cc, void *dst);
 }
 #endif
 
-#endif
+#endif // AVX2
 
 #endif

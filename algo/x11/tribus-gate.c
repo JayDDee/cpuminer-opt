@@ -2,9 +2,11 @@
 
 bool register_tribus_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT;
-#if defined (TRIBUS_4WAY)
-//  init_tribus_4way_ctx();
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+#if defined (TRIBUS_8WAY)
+  gate->scanhash      = (void*)&scanhash_tribus_8way;
+  gate->hash          = (void*)&tribus_hash_8way;
+#elif defined (TRIBUS_4WAY)
   gate->scanhash      = (void*)&scanhash_tribus_4way;
   gate->hash          = (void*)&tribus_hash_4way;
 #else

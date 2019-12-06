@@ -427,14 +427,14 @@ static __m512i muladd(__m512i x, __m512i y)
 #define SWAP_QUARTERS(A0, A1) \
     do { \
         SWAP_HALVES(A0, A1); \
-        A0 = _mm512_permutexvar_epi64(_mm512_setr_epi64(0, 1, 4, 5, 2, 3, 6, 7), A0); \
-        A1 = _mm512_permutexvar_epi64(_mm512_setr_epi64(0, 1, 4, 5, 2, 3, 6, 7), A1); \
+        A0 = _mm512_shuffle_i64x2( A0, A0, 0xd8 ); \
+        A1 = _mm512_shuffle_i64x2( A1, A1, 0xd8 ); \
     } while((void)0, 0)
 
 #define UNSWAP_QUARTERS(A0, A1) \
     do { \
-        A0 = _mm512_permutexvar_epi64(_mm512_setr_epi64(0, 1, 4, 5, 2, 3, 6, 7), A0); \
-        A1 = _mm512_permutexvar_epi64(_mm512_setr_epi64(0, 1, 4, 5, 2, 3, 6, 7), A1); \
+        A0 = _mm512_shuffle_i64x2( A0, A0, 0xd8 ); \
+        A1 = _mm512_shuffle_i64x2( A1, A1, 0xd8 ); \
         SWAP_HALVES(A0, A1); \
     } while((void)0, 0)
 

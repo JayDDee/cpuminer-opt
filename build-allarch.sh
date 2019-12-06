@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # This script is not intended for users, it is only used for compile testing
-# during develpment. Howver the information contained my provide cimpilation
+# during develpment. However the information contained may provide compilation
 # tips to users.
 
 make distclean || echo clean

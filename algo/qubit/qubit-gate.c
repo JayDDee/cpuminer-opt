@@ -2,6 +2,13 @@
 
 bool register_qubit_algo( algo_gate_t* gate )
 {
+/*   
+#if defined (QUBIT_4WAY)
+  init_qubit_2way_ctx();
+  gate->scanhash  = (void*)&scanhash_qubit_4way;
+  gate->hash      = (void*)&qubit_4way_hash;
+#elif defined (QUBIT_4WAY)
+*/
 #if defined (QUBIT_2WAY)
   init_qubit_2way_ctx();
   gate->scanhash  = (void*)&scanhash_qubit_2way;

@@ -15,8 +15,8 @@ the features listed at cpuminer startup to ensure you are mining at
 optimum speed using the best available features.
 
 Architecture names and compile options used are only provided for Intel
-Core series. Even the newest Pentium and Celeron CPUs are often missing
-features.
+Core series. Budget CPUs like Pentium and Celeron are often missing the
+latest features.
 
 AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
 supported by cpuminer-opt due to an incompatible implementation of SSE2 on
@@ -28,7 +28,7 @@ Exe name                Compile flags            Arch name
 cpuminer-sse2.exe      "-msse2"                  Core2, Nehalem   
 cpuminer-aes-sse42.exe "-march=westmere"         Westmere
 cpuminer-avx.exe       "-march=corei7-avx"       Sandy-Ivybridge
-cpuminer-avx2.exe      "-march=core-avx2"        Haswell, Sky-Kaby-Coffeelake
+cpuminer-avx2.exe      "-march=core-avx2 -maes"  Haswell, Sky-Kaby-Coffeelake
 cpuminer-avx512.exe    "-march=skylake-avx512"   Skylake-X, Cascadelake-X
 cpuminer-zen           "-march=znver1"           AMD Ryzen, Threadripper
 

@@ -92,6 +92,38 @@ extern "C"{
 
 #endif
 
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define Sb_8W(x0, x1, x2, x3, c) \
+do { \
+   __m512i cc = _mm512_set1_epi64( c ); \
+    x3 = mm512_not( x3 ); \
+    x0 = _mm512_xor_si512( x0, _mm512_andnot_si512( x2, cc ) ); \
+    tmp = _mm512_xor_si512( cc, _mm512_and_si512( x0, x1 ) ); \
+    x0 = _mm512_xor_si512( x0, _mm512_and_si512( x2, x3 ) ); \
+    x3 = _mm512_xor_si512( x3, _mm512_andnot_si512( x1, x2 ) ); \
+    x1 = _mm512_xor_si512( x1, _mm512_and_si512( x0, x2 ) ); \
+    x2 = _mm512_xor_si512( x2, _mm512_andnot_si512( x3, x0 ) ); \
+    x0 = _mm512_xor_si512( x0, _mm512_or_si512( x1, x3 ) ); \
+    x3 = _mm512_xor_si512( x3, _mm512_and_si512( x1, x2 ) ); \
+    x1 = _mm512_xor_si512( x1, _mm512_and_si512( tmp, x0 ) ); \
+    x2 = _mm512_xor_si512( x2, tmp ); \
+} while (0)
+
+#define Lb_8W(x0, x1, x2, x3, x4, x5, x6, x7) \
+do { \
+    x4 = _mm512_xor_si512( x4, x1 ); \
+    x5 = _mm512_xor_si512( x5, x2 ); \
+    x6 = _mm512_xor_si512( x6, _mm512_xor_si512( x3, x0 ) ); \
+    x7 = _mm512_xor_si512( x7, x0 ); \
+    x0 = _mm512_xor_si512( x0, x5 ); \
+    x1 = _mm512_xor_si512( x1, x6 ); \
+    x2 = _mm512_xor_si512( x2, _mm512_xor_si512( x7, x4 ) ); \
+    x3 = _mm512_xor_si512( x3, x4 ); \
+} while (0)
+
+#endif
+
 #define Sb(x0, x1, x2, x3, c) \
 do { \
    __m256i cc = _mm256_set1_epi64x( c ); \
@@ -226,6 +258,48 @@ static const sph_u64 C[] = {
 			x4 ## l, x5 ## l, x6 ## l, x7 ## l); \
 	} while (0)
 
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define S_8W(x0, x1, x2, x3, cb, r)   do { \
+      Sb_8W(x0 ## h, x1 ## h, x2 ## h, x3 ## h, cb ## hi(r)); \
+      Sb_8W(x0 ## l, x1 ## l, x2 ## l, x3 ## l, cb ## lo(r)); \
+   } while (0)
+
+#define L_8W(x0, x1, x2, x3, x4, x5, x6, x7)   do { \
+      Lb_8W(x0 ## h, x1 ## h, x2 ## h, x3 ## h, \
+         x4 ## h, x5 ## h, x6 ## h, x7 ## h); \
+      Lb_8W(x0 ## l, x1 ## l, x2 ## l, x3 ## l, \
+         x4 ## l, x5 ## l, x6 ## l, x7 ## l); \
+   } while (0)
+
+#define Wz_8W(x, c, n) \
+do { \
+   __m512i t = _mm512_slli_epi64( _mm512_and_si512(x ## h, (c)), (n) ); \
+   x ## h = _mm512_or_si512( _mm512_and_si512( \
+                                _mm512_srli_epi64(x ## h, (n)), (c)), t ); \
+   t = _mm512_slli_epi64( _mm512_and_si512(x ## l, (c)), (n) ); \
+   x ## l = _mm512_or_si512( _mm512_and_si512((x ## l >> (n)), (c)), t ); \
+} while (0)
+
+#define W80(x)   Wz_8W(x, m512_const1_64( 0x5555555555555555 ),  1 )
+#define W81(x)   Wz_8W(x, m512_const1_64( 0x3333333333333333 ),  2 )
+#define W82(x)   Wz_8W(x, m512_const1_64( 0x0F0F0F0F0F0F0F0F ),  4 )
+#define W83(x)   Wz_8W(x, m512_const1_64( 0x00FF00FF00FF00FF ),  8 ) 
+#define W84(x)   Wz_8W(x, m512_const1_64( 0x0000FFFF0000FFFF ), 16 )
+#define W85(x)   Wz_8W(x, m512_const1_64( 0x00000000FFFFFFFF ), 32 )
+#define W86(x) \
+do { \
+   __m512i t = x ## h; \
+   x ## h = x ## l; \
+   x ## l = t; \
+} while (0)
+
+#define DECL_STATE_8W \
+   __m512i h0h, h1h, h2h, h3h, h4h, h5h, h6h, h7h; \
+   __m512i h0l, h1l, h2l, h3l, h4l, h5l, h6l, h7l; \
+   __m512i tmp;
+
+#endif
 
 #define Wz(x, c, n) \
 do { \
@@ -235,16 +309,6 @@ do { \
    t = _mm256_slli_epi64( _mm256_and_si256(x ## l, (c)), (n) ); \
    x ## l = _mm256_or_si256( _mm256_and_si256((x ## l >> (n)), (c)), t ); \
 } while (0)
-
-
-/*
-#define Wz(x, c, n)   do { \
-		sph_u64 t = (x ## h & (c)) << (n); \
-		x ## h = ((x ## h >> (n)) & (c)) | t; \
-		t = (x ## l & (c)) << (n); \
-		x ## l = ((x ## l >> (n)) & (c)) | t; \
-	} while (0)
-*/
 
 #define W0(x)   Wz(x, m256_const1_64( 0x5555555555555555 ),  1 )
 #define W1(x)   Wz(x, m256_const1_64( 0x3333333333333333 ),  2 )
@@ -259,24 +323,11 @@ do { \
    x ## l = t; \
 } while (0)
 
-/*
-#define W0(x)   Wz(x, SPH_C64(0x5555555555555555),  1)
-#define W1(x)   Wz(x, SPH_C64(0x3333333333333333),  2)
-#define W2(x)   Wz(x, SPH_C64(0x0F0F0F0F0F0F0F0F),  4)
-#define W3(x)   Wz(x, SPH_C64(0x00FF00FF00FF00FF),  8)
-#define W4(x)   Wz(x, SPH_C64(0x0000FFFF0000FFFF), 16)
-#define W5(x)   Wz(x, SPH_C64(0x00000000FFFFFFFF), 32)
-#define W6(x)   do { \
-		sph_u64 t = x ## h; \
-		x ## h = x ## l; \
-		x ## l = t; \
-	} while (0)
-*/
-
 #define DECL_STATE \
 	__m256i h0h, h1h, h2h, h3h, h4h, h5h, h6h, h7h; \
 	__m256i h0l, h1l, h2l, h3l, h4l, h5l, h6l, h7l; \
 	__m256i tmp;
+
 
 #define READ_STATE(state)   do { \
 		h0h = (state)->H[ 0]; \
@@ -316,6 +367,38 @@ do { \
 		(state)->H[15] = h7l; \
 	} while (0)
 
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define INPUT_BUF1_8W \
+   __m512i m0h = buf[0]; \
+   __m512i m0l = buf[1]; \
+   __m512i m1h = buf[2]; \
+   __m512i m1l = buf[3]; \
+   __m512i m2h = buf[4]; \
+   __m512i m2l = buf[5]; \
+   __m512i m3h = buf[6]; \
+   __m512i m3l = buf[7]; \
+   h0h = _mm512_xor_si512( h0h, m0h ); \
+   h0l = _mm512_xor_si512( h0l, m0l ); \
+   h1h = _mm512_xor_si512( h1h, m1h ); \
+   h1l = _mm512_xor_si512( h1l, m1l ); \
+   h2h = _mm512_xor_si512( h2h, m2h ); \
+   h2l = _mm512_xor_si512( h2l, m2l ); \
+   h3h = _mm512_xor_si512( h3h, m3h ); \
+   h3l = _mm512_xor_si512( h3l, m3l ); \
+
+#define INPUT_BUF2_8W \
+   h4h = _mm512_xor_si512( h4h, m0h ); \
+   h4l = _mm512_xor_si512( h4l, m0l ); \
+   h5h = _mm512_xor_si512( h5h, m1h ); \
+   h5l = _mm512_xor_si512( h5l, m1l ); \
+   h6h = _mm512_xor_si512( h6h, m2h ); \
+   h6l = _mm512_xor_si512( h6l, m2l ); \
+   h7h = _mm512_xor_si512( h7h, m3h ); \
+   h7l = _mm512_xor_si512( h7l, m3l ); \
+
+#endif
+
 #define INPUT_BUF1 \
 	__m256i m0h = buf[0]; \
 	__m256i m0l = buf[1]; \
@@ -343,6 +426,7 @@ do { \
    h6l = _mm256_xor_si256( h6l, m2l ); \
    h7h = _mm256_xor_si256( h7h, m3h ); \
    h7l = _mm256_xor_si256( h7l, m3l ); \
+
 
 static const sph_u64 IV256[] = {
 	C64e(0xeb98a3412c20d3eb), C64e(0x92cdbe7b9cb245c1),
@@ -372,6 +456,22 @@ static const sph_u64 IV512[] = {
 
 #endif
 
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define SL_8W(ro)   SLu_8W(r + ro, ro)
+
+#define SLu_8W(r, ro)   do { \
+      S_8W(h0, h2, h4, h6, Ceven_, r); \
+      S_8W(h1, h3, h5, h7, Codd_, r); \
+      L_8W(h0, h2, h4, h6, h1, h3, h5, h7); \
+      W8 ## ro(h1); \
+      W8 ## ro(h3); \
+      W8 ## ro(h5); \
+      W8 ## ro(h7); \
+   } while (0)
+
+#endif
+
 #define SL(ro)   SLu(r + ro, ro)
 
 #define SLu(r, ro)   do { \
@@ -392,6 +492,23 @@ static const sph_u64 IV512[] = {
  * The "small footprint" 64-bit version just uses a partially unrolled
  * loop.
  */
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define E8_8W   do { \
+      unsigned r; \
+      for (r = 0; r < 42; r += 7) { \
+         SL_8W(0); \
+         SL_8W(1); \
+         SL_8W(2); \
+         SL_8W(3); \
+         SL_8W(4); \
+         SL_8W(5); \
+         SL_8W(6); \
+      } \
+   } while (0)
+
+#endif
 
 #define E8   do { \
 		unsigned r; \
@@ -419,55 +536,256 @@ static const sph_u64 IV512[] = {
  * On a "true 64-bit" architecture, we can unroll at will.
  */
 
-#define E8   do { \
-		SLu( 0, 0); \
-		SLu( 1, 1); \
-		SLu( 2, 2); \
-		SLu( 3, 3); \
-		SLu( 4, 4); \
-		SLu( 5, 5); \
-		SLu( 6, 6); \
-		SLu( 7, 0); \
-		SLu( 8, 1); \
-		SLu( 9, 2); \
-		SLu(10, 3); \
-		SLu(11, 4); \
-		SLu(12, 5); \
-		SLu(13, 6); \
-		SLu(14, 0); \
-		SLu(15, 1); \
-		SLu(16, 2); \
-		SLu(17, 3); \
-		SLu(18, 4); \
-		SLu(19, 5); \
-		SLu(20, 6); \
-		SLu(21, 0); \
-		SLu(22, 1); \
-		SLu(23, 2); \
-		SLu(24, 3); \
-		SLu(25, 4); \
-		SLu(26, 5); \
-		SLu(27, 6); \
-		SLu(28, 0); \
-		SLu(29, 1); \
-		SLu(30, 2); \
-		SLu(31, 3); \
-		SLu(32, 4); \
-		SLu(33, 5); \
-		SLu(34, 6); \
-		SLu(35, 0); \
-		SLu(36, 1); \
-		SLu(37, 2); \
-		SLu(38, 3); \
-		SLu(39, 4); \
-		SLu(40, 5); \
-		SLu(41, 6); \
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define E8_8W   do { \
+		SLu_8W( 0, 0); \
+		SLu_8W( 1, 1); \
+		SLu_8W( 2, 2); \
+		SLu_8W( 3, 3); \
+		SLu_8W( 4, 4); \
+		SLu_8W( 5, 5); \
+		SLu_8W( 6, 6); \
+		SLu_8W( 7, 0); \
+		SLu_8W( 8, 1); \
+		SLu_8W( 9, 2); \
+		SLu_8W(10, 3); \
+		SLu_8W(11, 4); \
+		SLu_8W(12, 5); \
+		SLu_8W(13, 6); \
+		SLu_8W(14, 0); \
+		SLu_8W(15, 1); \
+		SLu_8W(16, 2); \
+		SLu_8W(17, 3); \
+		SLu_8W(18, 4); \
+		SLu_8W(19, 5); \
+		SLu_8W(20, 6); \
+		SLu_8W(21, 0); \
+		SLu_8W(22, 1); \
+		SLu_8W(23, 2); \
+		SLu_8W(24, 3); \
+		SLu_8W(25, 4); \
+		SLu_8W(26, 5); \
+		SLu_8W(27, 6); \
+		SLu_8W(28, 0); \
+		SLu_8W(29, 1); \
+		SLu_8W(30, 2); \
+		SLu_8W(31, 3); \
+		SLu_8W(32, 4); \
+		SLu_8W(33, 5); \
+		SLu_8W(34, 6); \
+		SLu_8W(35, 0); \
+		SLu_8W(36, 1); \
+		SLu_8W(37, 2); \
+		SLu_8W(38, 3); \
+		SLu_8W(39, 4); \
+		SLu_8W(40, 5); \
+		SLu_8W(41, 6); \
 	} while (0)
+
+#endif  // AVX512
+
+#define E8   do { \
+      SLu( 0, 0); \
+      SLu( 1, 1); \
+      SLu( 2, 2); \
+      SLu( 3, 3); \
+      SLu( 4, 4); \
+      SLu( 5, 5); \
+      SLu( 6, 6); \
+      SLu( 7, 0); \
+      SLu( 8, 1); \
+      SLu( 9, 2); \
+      SLu(10, 3); \
+      SLu(11, 4); \
+      SLu(12, 5); \
+      SLu(13, 6); \
+      SLu(14, 0); \
+      SLu(15, 1); \
+      SLu(16, 2); \
+      SLu(17, 3); \
+      SLu(18, 4); \
+      SLu(19, 5); \
+      SLu(20, 6); \
+      SLu(21, 0); \
+      SLu(22, 1); \
+      SLu(23, 2); \
+      SLu(24, 3); \
+      SLu(25, 4); \
+      SLu(26, 5); \
+      SLu(27, 6); \
+      SLu(28, 0); \
+      SLu(29, 1); \
+      SLu(30, 2); \
+      SLu(31, 3); \
+      SLu(32, 4); \
+      SLu(33, 5); \
+      SLu(34, 6); \
+      SLu(35, 0); \
+      SLu(36, 1); \
+      SLu(37, 2); \
+      SLu(38, 3); \
+      SLu(39, 4); \
+      SLu(40, 5); \
+      SLu(41, 6); \
+   } while (0)
 
 #else
 
 
 #endif
+
+#endif
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+void jh256_8way_init( jh_8way_context *sc )
+{
+    // bswapped IV256
+    sc->H[ 0] = m512_const1_64( 0xebd3202c41a398eb );
+    sc->H[ 1] = m512_const1_64( 0xc145b29c7bbecd92 );
+    sc->H[ 2] = m512_const1_64( 0xfac7d4609151931c );
+    sc->H[ 3] = m512_const1_64( 0x038a507ed6820026 );
+    sc->H[ 4] = m512_const1_64( 0x45b92677269e23a4 );
+    sc->H[ 5] = m512_const1_64( 0x77941ad4481afbe0 );
+    sc->H[ 6] = m512_const1_64( 0x7a176b0226abb5cd );
+    sc->H[ 7] = m512_const1_64( 0xa82fff0f4224f056 );
+    sc->H[ 8] = m512_const1_64( 0x754d2e7f8996a371 );
+    sc->H[ 9] = m512_const1_64( 0x62e27df70849141d );
+    sc->H[10] = m512_const1_64( 0x948f2476f7957627 );
+    sc->H[11] = m512_const1_64( 0x6c29804757b6d587 );
+    sc->H[12] = m512_const1_64( 0x6c0d8eac2d275e5c );
+    sc->H[13] = m512_const1_64( 0x0f7a0557c6508451 );
+    sc->H[14] = m512_const1_64( 0xea12247067d3e47b );
+    sc->H[15] = m512_const1_64( 0x69d71cd313abe389 );
+    sc->ptr = 0;
+    sc->block_count = 0;
+}
+
+void jh512_8way_init( jh_8way_context *sc )
+{
+    // bswapped IV512
+    sc->H[ 0] = m512_const1_64( 0x17aa003e964bd16f );
+    sc->H[ 1] = m512_const1_64( 0x43d5157a052e6a63 );
+    sc->H[ 2] = m512_const1_64( 0x0bef970c8d5e228a );
+    sc->H[ 3] = m512_const1_64( 0x61c3b3f2591234e9 );
+    sc->H[ 4] = m512_const1_64( 0x1e806f53c1a01d89 );
+    sc->H[ 5] = m512_const1_64( 0x806d2bea6b05a92a );
+    sc->H[ 6] = m512_const1_64( 0xa6ba7520dbcc8e58 );
+    sc->H[ 7] = m512_const1_64( 0xf73bf8ba763a0fa9 );
+    sc->H[ 8] = m512_const1_64( 0x694ae34105e66901 );
+    sc->H[ 9] = m512_const1_64( 0x5ae66f2e8e8ab546 );
+    sc->H[10] = m512_const1_64( 0x243c84c1d0a74710 );
+    sc->H[11] = m512_const1_64( 0x99c15a2db1716e3b );
+    sc->H[12] = m512_const1_64( 0x56f8b19decf657cf );
+    sc->H[13] = m512_const1_64( 0x56b116577c8806a7 );
+    sc->H[14] = m512_const1_64( 0xfb1785e6dffcc2e3 );
+    sc->H[15] = m512_const1_64( 0x4bdd8ccc78465a54 );
+    sc->ptr = 0;
+    sc->block_count = 0;
+}
+
+static void
+jh_8way_core( jh_8way_context *sc, const void *data, size_t len )
+{
+    __m512i *buf;
+    __m512i *vdata = (__m512i*)data;
+   const int buf_size = 64;   // 64 * _m512i
+   size_t ptr;
+   DECL_STATE_8W
+
+   buf = sc->buf;
+   ptr = sc->ptr;
+
+   if ( len < (buf_size - ptr) )
+   {
+       memcpy_512( buf + (ptr>>3), vdata, len>>3 );
+       ptr += len;
+       sc->ptr = ptr;
+       return;
+   }
+
+   READ_STATE(sc);
+   while ( len > 0 )
+   {
+       size_t clen;
+       clen = buf_size - ptr;
+       if ( clen > len )
+          clen = len;
+
+       memcpy_512( buf + (ptr>>3), vdata, clen>>3 );
+       ptr += clen;
+       vdata += (clen>>3);
+       len -= clen;
+       if ( ptr == buf_size )
+       {
+          INPUT_BUF1_8W;
+          E8_8W;
+          INPUT_BUF2_8W;
+          sc->block_count ++;
+          ptr = 0;
+       }
+   }
+   WRITE_STATE(sc);
+   sc->ptr = ptr;
+}
+
+static void
+jh_8way_close( jh_8way_context *sc, unsigned ub, unsigned n, void *dst,
+               size_t out_size_w32, const void *iv )
+{
+   __m512i buf[16*4];
+   __m512i *dst512 = (__m512i*)dst;
+   size_t numz, u;
+   sph_u64 l0, l1, l0e, l1e;
+
+   buf[0] = m512_const1_64( 0x80ULL );
+
+   if ( sc->ptr == 0 )
+       numz = 48;
+   else
+       numz = 112 - sc->ptr;
+
+   memset_zero_512( buf+1, (numz>>3) - 1 );
+
+   l0 = SPH_T64(sc->block_count << 9) + (sc->ptr << 3);
+   l1 = SPH_T64(sc->block_count >> 55);
+   sph_enc64be( &l0e, l0 );
+   sph_enc64be( &l1e, l1 );
+   *(buf + (numz>>3)    ) = _mm512_set1_epi64( l1e );
+   *(buf + (numz>>3) + 1) = _mm512_set1_epi64( l0e );
+
+   jh_8way_core( sc, buf, numz + 16 );
+
+   for ( u=0; u < 8; u++ )
+       buf[u] = sc->H[u+8];
+
+    memcpy_512( dst512, buf, 8 );
+}
+
+void
+jh256_8way_update(void *cc, const void *data, size_t len)
+{
+   jh_8way_core(cc, data, len);
+}
+
+void
+jh256_8way_close(void *cc, void *dst)
+{
+   jh_8way_close(cc, 0, 0, dst, 8, IV256);
+}
+
+void
+jh512_8way_update(void *cc, const void *data, size_t len)
+{
+   jh_8way_core(cc, data, len);
+}
+
+void
+jh512_8way_close(void *cc, void *dst)
+{
+   jh_8way_close(cc, 0, 0, dst, 16, IV512);
+}
 
 #endif
 
@@ -595,16 +913,8 @@ jh_4way_close( jh_4way_context *sc, unsigned ub, unsigned n, void *dst,
     memcpy_256( dst256, buf, 8 );
 }
 
-/*
 void
-jh256_4way_init(void *cc)
-{
-	jhs_4way_init(cc, IV256);
-}
-*/
-
-void
-jh256_4way(void *cc, const void *data, size_t len)
+jh256_4way_update(void *cc, const void *data, size_t len)
 {
 	jh_4way_core(cc, data, len);
 }
@@ -615,16 +925,8 @@ jh256_4way_close(void *cc, void *dst)
 	jh_4way_close(cc, 0, 0, dst, 8, IV256);
 }
 
-/*
 void
-jh512_4way_init(void *cc)
-{
-	jhb_4way_init(cc, IV512);
-}
-*/
-
-void
-jh512_4way(void *cc, const void *data, size_t len)
+jh512_4way_update(void *cc, const void *data, size_t len)
 {
 	jh_4way_core(cc, data, len);
 }
@@ -634,6 +936,7 @@ jh512_4way_close(void *cc, void *dst)
 {
 	jh_4way_close(cc, 0, 0, dst, 16, IV512);
 }
+
 
 #ifdef __cplusplus
 }

@@ -107,7 +107,8 @@ typedef struct {
 typedef bmw_2way_big_context bmw512_2way_context;
 
 void bmw512_2way_init( bmw512_2way_context *ctx );
-void bmw512_2way( bmw512_2way_context *ctx, const void *data, size_t len );
+void bmw512_2way_update( bmw512_2way_context *ctx, const void *data,
+                         size_t len );
 void bmw512_2way_close( bmw512_2way_context *ctx, void *dst );
 
 #endif // __SSE2__
@@ -128,7 +129,8 @@ typedef bmw_4way_big_context bmw512_4way_context;
 
 void bmw512_4way_init(void *cc);
 
-void bmw512_4way(void *cc, const void *data, size_t len);
+void bmw512_4way_update(void *cc, const void *data, size_t len);
+#define bmw512_4way bmw512_4way_update
 
 void bmw512_4way_close(void *cc, void *dst);
 

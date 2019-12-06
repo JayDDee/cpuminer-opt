@@ -144,6 +144,9 @@ Supported Algorithms
 Errata
 ------
 
+Old algorithms that are no longer used frequently will not have the latest
+optimizations.
+
 Cryptonight and variants are no longer supported, use another miner.
 
 Neoscrypt crashes on Windows, use legacy version.

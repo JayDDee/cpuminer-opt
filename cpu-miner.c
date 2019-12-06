@@ -3327,7 +3327,7 @@ static void show_credits()
 {
    printf("\n         **********  "PACKAGE_NAME" "PACKAGE_VERSION"  *********** \n");
    printf("     A CPU miner with multi algo support and optimized for CPUs\n");
-   printf("     with AES_NI and AVX2 and SHA extensions.\n");
+   printf("     with AES_NI and AVX2, AVX512 and SHA extensions.\n");
    printf("     BTC donation address: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT\n\n");
 }
 
@@ -3343,6 +3343,7 @@ bool check_cpu_capability ()
      bool cpu_has_avx512 = has_avx512();
      bool cpu_has_vaes   = has_vaes();
      bool sw_has_aes    = false;
+     bool sw_has_sse2  = false;
      bool sw_has_sse42  = false;
      bool sw_has_avx    = false;
      bool sw_has_avx2   = false;
@@ -3368,6 +3369,9 @@ bool check_cpu_capability ()
 
      #ifdef __AES__
        sw_has_aes = true;
+     #endif
+     #ifdef __SSE2__
+         sw_has_sse2 = true;
      #endif
      #ifdef __SSE4_2__
          sw_has_sse42 = true;
@@ -3407,36 +3411,36 @@ bool check_cpu_capability ()
      #endif
 
      printf("CPU features:");
-     if ( cpu_has_sse2   )    printf( " SSE2"   );
-     if ( cpu_has_aes    )    printf( " AES"    );
-     if ( cpu_has_sse42  )    printf( " SSE4.2" );
-     if ( cpu_has_avx    )    printf( " AVX"    );
-     if ( cpu_has_avx2   )    printf( " AVX2"   );
-     if ( cpu_has_avx512 )    printf( " AVX512" );
-     if ( cpu_has_sha    )    printf( " SHA"    );
-     if ( cpu_has_vaes   )    printf( " VAES"   );
+     if      ( cpu_has_vaes   )    printf( " VAES"   );
+     if      ( cpu_has_sha    )    printf( " SHA"    );
+     else if ( cpu_has_aes    )    printf( " AES"    );
+     if      ( cpu_has_avx512 )    printf( " AVX512" );
+     else if ( cpu_has_avx2   )    printf( " AVX2"   );
+     else if ( cpu_has_avx    )    printf( " AVX"    );
+     else if ( cpu_has_sse42  )    printf( " SSE4.2" );
+     else if ( cpu_has_sse2   )    printf( " SSE2"   );
 
-     printf(".\nSW features: SSE2");
-     if ( sw_has_aes    )     printf( " AES"    );
-     if ( sw_has_sse42  )     printf( " SSE4.2" );
-     if ( sw_has_avx    )     printf( " AVX"    );
-     if ( sw_has_avx2   )     printf( " AVX2"   );
-     if ( sw_has_avx512 )     printf( " AVX512" );
-     if ( sw_has_sha    )     printf( " SHA"    );
-     if ( sw_has_vaes   )     printf( " VAES"   );
-    
+     printf(".\nSW features:");
+     if      ( sw_has_vaes   )    printf( " VAES"   );
+     else if ( sw_has_aes    )    printf( " AES"    );
+     if      ( sw_has_sha    )    printf( " SHA"    );
+     if      ( sw_has_avx512 )    printf( " AVX512" );
+     else if ( sw_has_avx2   )    printf( " AVX2"   );
+     else if ( sw_has_avx    )    printf( " AVX"    );
+     else if ( sw_has_sse42  )    printf( " SSE4.2" );
+     else if ( sw_has_sse2   )    printf( " SSE2"   );
 
      printf(".\nAlgo features:");
      if ( algo_features == EMPTY_SET ) printf( " None" );
      else
      {
-        if ( algo_has_sse2   ) printf( " SSE2"   );
-        if ( algo_has_aes    ) printf( " AES"    );
-        if ( algo_has_sse42  ) printf( " SSE4.2" );
-        if ( algo_has_avx2   ) printf( " AVX2"   );
-        if ( algo_has_avx512 ) printf( " AVX512" );
-        if ( algo_has_sha    ) printf( " SHA"    );
-        if ( algo_has_vaes   ) printf( " VAES"   );
+        if      ( algo_has_vaes   )    printf( " VAES"   );
+        else if ( algo_has_aes    )    printf( " AES"    );
+        if      ( algo_has_sha    )    printf( " SHA"    );
+        if      ( algo_has_avx512 )    printf( " AVX512" );
+        else if ( algo_has_avx2   )    printf( " AVX2"   );
+        else if ( algo_has_sse42  )    printf( " SSE4.2" );
+        else if ( algo_has_sse2   )    printf( " SSE2"   );
      }
      printf(".\n");
 
@@ -3483,12 +3487,13 @@ bool check_cpu_capability ()
      if         ( use_none ) printf( " no optimizations" );
      else
      {
-        if      ( use_aes    ) printf( " AES"  );
+        if      ( use_vaes   ) printf( " VAES"   );
+        else if ( use_aes    ) printf( " AES"    );
         if      ( use_avx512 ) printf( " AVX512" );
-        else if ( use_avx2   ) printf( " AVX2" );
-        else if ( use_sse42  ) printf( " SSE4.2"  );
-        else if ( use_sse2   ) printf( " SSE2" );
-        if      ( use_sha    ) printf( " SHA"  );
+        else if ( use_avx2   ) printf( " AVX2"   );
+        else if ( use_sse42  ) printf( " SSE4.2" );
+        else if ( use_sse2   ) printf( " SSE2"   );
+        if      ( use_sha    ) printf( " SHA"    );
      }
      printf( ".\n\n" );
 

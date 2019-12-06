@@ -1,7 +1,4 @@
 #include "qubit-gate.h"
-
-#if defined(QUBIT_2WAY)
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -11,6 +8,160 @@
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/echo/aes_ni/hash_api.h"
+
+#if defined(QUBIT_4WAY)
+
+typedef struct
+{
+        luffa_4way_context      luffa;
+        cubehashParam           cube;
+        sph_shavite512_context  shavite;
+        simd_4way_context       simd;
+        hashState_echo          echo;
+} qubit_4way_ctx_holder;
+
+qubit_4way_ctx_holder qubit_4way_ctx;
+
+void init_qubit_4way_ctx()
+{
+        cubehashInit(&qubit_4way_ctx.cube,512,16,32);
+        sph_shavite512_init(&qubit_4way_ctx.shavite);
+        simd_4way_init( &qubit_4way_ctx.simd, 512 );
+        init_echo(&qubit_4way_ctx.echo, 512);
+};
+
+void qubit_4way_hash( void *output, const void *input )
+{
+     uint64_t vhash[8*4] __attribute__ ((aligned (128)));
+     uint64_t hash0[8] __attribute__ ((aligned (64)));
+     uint64_t hash1[8] __attribute__ ((aligned (64)));
+     uint64_t hash2[8] __attribute__ ((aligned (64)));
+     uint64_t hash3[8] __attribute__ ((aligned (64)));
+     qubit_4way_ctx_holder ctx;
+
+     memcpy( &ctx, &qubit_4way_ctx, sizeof(qubit_4way_ctx) );
+     luffa_4way_update( &ctx.luffa, input + (64<<2), 16 );
+     luffa_4way_close( &ctx.luffa, vhash );
+     dintrlv_4x128( hash0, hash1, hash2, hash3, vhash, 512 );
+
+     cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*) hash0, 64 );
+     memcpy( &ctx.cube, &qubit_2way_ctx.cube, sizeof(cubehashParam) );
+     cubehashUpdateDigest( &ctx.cube, (byte*)hash1, (const byte*) hash1, 64 );
+     memcpy( &ctx.cube, &qubit_2way_ctx.cube, sizeof(cubehashParam) );
+     cubehashUpdateDigest( &ctx.cube, (byte*)hash2, (const byte*) hash2, 64 );
+     memcpy( &ctx.cube, &qubit_2way_ctx.cube, sizeof(cubehashParam) );
+     cubehashUpdateDigest( &ctx.cube, (byte*)hash3, (const byte*) hash3, 64 );
+
+     sph_shavite512( &ctx.shavite, hash0, 64 );
+     sph_shavite512_close( &ctx.shavite, hash0 );
+     memcpy( &ctx.shavite, &qubit_2way_ctx.shavite,
+             sizeof(sph_shavite512_context) );
+     sph_shavite512( &ctx.shavite, hash1, 64 );
+     sph_shavite512_close( &ctx.shavite, hash1 );
+     memcpy( &ctx.shavite, &qubit_2way_ctx.shavite,
+             sizeof(sph_shavite512_context) );
+     sph_shavite512( &ctx.shavite, hash2, 64 );
+     sph_shavite512_close( &ctx.shavite, hash2 );
+     memcpy( &ctx.shavite, &qubit_2way_ctx.shavite,
+             sizeof(sph_shavite512_context) );
+     sph_shavite512( &ctx.shavite, hash3, 64 );
+     sph_shavite512_close( &ctx.shavite, hash3 );
+
+     intrlv_4x128( vhash, hash0, hash1, hash2, hash3, 512 );
+     simd_4way_update_close( &ctx.simd, vhash, vhash, 512 );
+     dintrlv_4x128( hash0, hash1, hash2, hash3, vhash, 512 );
+
+     update_final_echo( &ctx.echo, (BitSequence *)hash0,
+                       (const BitSequence *) hash0, 512 );
+     memcpy( &ctx.echo, &qubit_2way_ctx.echo, sizeof(hashState_echo) );
+     update_final_echo( &ctx.echo, (BitSequence *)hash1,
+                       (const BitSequence *) hash1, 512 );
+     memcpy( &ctx.echo, &qubit_2way_ctx.echo, sizeof(hashState_echo) );
+     update_final_echo( &ctx.echo, (BitSequence *)hash2,
+                       (const BitSequence *) hash2, 512 );
+     memcpy( &ctx.echo, &qubit_2way_ctx.echo, sizeof(hashState_echo) );
+     update_final_echo( &ctx.echo, (BitSequence *)hash3,
+                       (const BitSequence *) hash3, 512 );
+
+     memcpy( output,    hash0, 32 );
+     memcpy( output+32, hash1, 32 );
+     memcpy( output+64, hash2, 32 );
+     memcpy( output+96, hash3, 32 );
+}
+
+int scanhash_qubit_4way( struct work *work,uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr )
+{
+     uint32_t hash[4*16] __attribute__ ((aligned (128)));
+     uint32_t vdata[4*24] __attribute__ ((aligned (64)));
+     uint32_t endiandata[20] __attribute__((aligned(64)));
+     uint32_t *pdata = work->data;
+     uint32_t *ptarget = work->target;
+     uint32_t n = pdata[19];
+     const uint32_t first_nonce = pdata[19];
+     uint32_t *noncep = vdata + 64+3;   // 4*16 + 3
+     int thr_id = mythr->id;  
+     const uint32_t Htarg = ptarget[7];
+     uint64_t htmax[] = {          0,        0xF,       0xFF,
+                               0xFFF,     0xFFFF, 0x10000000  };
+     uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
+                          0xFFFFF000, 0xFFFF0000,          0  };
+
+     casti_m512i( endiandata, 0 ) = mm512_bswap_32( casti_m512i( pdata, 0 ) );
+     casti_m512i( endiandata, 1 ) = mm512_bswap_32( casti_m512i( pdata, 1 ) );
+     casti_m512i( endiandata, 4 ) = mm512_bswap_32( casti_m512i( pdata, 4 ) );
+
+     uint64_t *edata = (uint64_t*)endiandata;
+     intrlv_4x128( (uint64_t*)vdata, edata, edata, 640 );
+
+     luffa_4way_init( &qubit_4way_ctx.luffa, 512 );
+     luffa_4way_update( &qubit_4way_ctx.luffa, vdata, 64 );
+
+     for ( int m=0; m < 6; m++ ) if ( Htarg <= htmax[m] )
+     {
+        uint32_t mask = masks[m];
+        do
+        {
+            be32enc( noncep,   n   );
+            be32enc( noncep+4, n+1 );
+            be32enc( noncep+8, n+2 );
+            be32enc( noncep+12, n+3 );
+            qubit_4way_hash( hash, vdata );
+            pdata[19] = n;
+
+            if ( !( hash[7] & mask ) )
+            if ( fulltest( hash, ptarget) && !opt_benchmark )
+            {
+                pdata[19] = n;
+                submit_lane_solution( work, hash, mythr, 0 );
+            }
+            if ( !( (hash+8)[7] & mask ) )
+            if ( fulltest( hash+8, ptarget) && !opt_benchmark )
+            {
+               pdata[19] = n+1;
+               submit_lane_solution( work, hash+8, mythr, 1 );
+            }
+            if ( !( hash+16[7] & mask ) )
+            if ( fulltest( hash, ptarget) && !opt_benchmark )
+            {
+                pdata[19] = n+2;
+                submit_lane_solution( work, hash, mythr, 2 );
+            }
+            if ( !( (hash+24)[7] & mask ) )
+            if ( fulltest( hash+8, ptarget) && !opt_benchmark )
+            {
+               pdata[19] = n+3;
+               submit_lane_solution( work, hash+8, mythr, 3 );
+            }
+            n += 4;
+         } while ( ( n < max_nonce-4 ) && !work_restart[thr_id].restart );
+         break;
+     }
+     *hashes_done = n - first_nonce;
+     return 0;
+}
+
+#elif defined(QUBIT_2WAY)
 
 typedef struct
 {
