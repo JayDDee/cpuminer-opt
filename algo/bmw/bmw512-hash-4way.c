@@ -58,8 +58,7 @@ static const sph_u64 IV512[] = {
 
 #if defined(__SSE2__)
 
-// BMW-512 2 way 64
-
+// BMW-512 2 way 64 
 
 #define s2b0(x) \
    _mm_xor_si128( _mm_xor_si128( _mm_srli_epi64( (x), 1), \
@@ -824,87 +823,57 @@ void compress_big( const __m256i *M, const __m256i H[16], __m256i dH[16] )
            mm256_xor4( qt[24], qt[25], qt[26], qt[27] ),
            mm256_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
 
-   dH[ 0] = _mm256_add_epi64(
-               _mm256_xor_si256( M[0],
-                  _mm256_xor_si256( _mm256_slli_epi64( xh, 5 ),
-                                    _mm256_srli_epi64( qt[16], 5 ) ) ),
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[24] ), qt[ 0] ) );
-   dH[ 1] = _mm256_add_epi64(
-               _mm256_xor_si256( M[1],
-                  _mm256_xor_si256( _mm256_srli_epi64( xh, 7 ),
-                                    _mm256_slli_epi64( qt[17], 8 ) ) ),
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[25] ), qt[ 1] ) );
-   dH[ 2] = _mm256_add_epi64(
-               _mm256_xor_si256( M[2],
-                  _mm256_xor_si256( _mm256_srli_epi64( xh, 5 ),
-                                    _mm256_slli_epi64( qt[18], 5 ) ) ),
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[26] ), qt[ 2] ) );
-   dH[ 3] = _mm256_add_epi64(
-               _mm256_xor_si256( M[3],
-                  _mm256_xor_si256( _mm256_srli_epi64( xh, 1 ),
-                                    _mm256_slli_epi64( qt[19], 5 ) ) ),
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[27] ), qt[ 3] ) );
-   dH[ 4] = _mm256_add_epi64(
-               _mm256_xor_si256( M[4],
-                  _mm256_xor_si256( _mm256_srli_epi64( xh, 3 ),
-                                    _mm256_slli_epi64( qt[20], 0 ) ) ),
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[28] ), qt[ 4] ) );
-   dH[ 5] = _mm256_add_epi64(
-               _mm256_xor_si256( M[5],
-                  _mm256_xor_si256( _mm256_slli_epi64( xh, 6 ),
-                                    _mm256_srli_epi64( qt[21], 6 ) ) ),
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[29] ), qt[ 5] ) );
-   dH[ 6] = _mm256_add_epi64(
-               _mm256_xor_si256( M[6],
-                  _mm256_xor_si256( _mm256_srli_epi64( xh, 4 ),
-                                    _mm256_slli_epi64( qt[22], 6 ) ) ),
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[30] ), qt[ 6] ) );
-   dH[ 7] = _mm256_add_epi64(
-               _mm256_xor_si256( M[7],
-                  _mm256_xor_si256( _mm256_srli_epi64( xh, 11 ),
-                                    _mm256_slli_epi64( qt[23], 2 ) ) ),
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[31] ), qt[ 7] ) );
-   dH[ 8] = _mm256_add_epi64( _mm256_add_epi64(
-              mm256_rol_64( dH[4], 9 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[24] ), M[ 8] )),
-                 _mm256_xor_si256( _mm256_slli_epi64( xl, 8 ),
-                                   _mm256_xor_si256( qt[23], qt[ 8] ) ) );
-   dH[ 9] = _mm256_add_epi64( _mm256_add_epi64(
-              mm256_rol_64( dH[5], 10 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[25] ), M[ 9] )),
-                 _mm256_xor_si256( _mm256_srli_epi64( xl, 6 ),
-                                   _mm256_xor_si256( qt[16], qt[ 9] ) ) );
-   dH[10] = _mm256_add_epi64( _mm256_add_epi64(
-              mm256_rol_64( dH[6], 11 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[26] ), M[10] )),
-                 _mm256_xor_si256( _mm256_slli_epi64( xl, 6 ),
-                                   _mm256_xor_si256( qt[17], qt[10] ) ) );
-   dH[11] = _mm256_add_epi64( _mm256_add_epi64(
-              mm256_rol_64( dH[7], 12 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[27] ), M[11] )),
-                 _mm256_xor_si256( _mm256_slli_epi64( xl, 4 ),
-                                   _mm256_xor_si256( qt[18], qt[11] ) ) );
-   dH[12] = _mm256_add_epi64( _mm256_add_epi64(
-              mm256_rol_64( dH[0], 13 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[28] ), M[12] )),
-                 _mm256_xor_si256( _mm256_srli_epi64( xl, 3 ),
-                                   _mm256_xor_si256( qt[19], qt[12] ) ) );
-   dH[13] = _mm256_add_epi64( _mm256_add_epi64(
-              mm256_rol_64( dH[1], 14 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[29] ), M[13] )),
-                 _mm256_xor_si256( _mm256_srli_epi64( xl, 4 ),
-                                   _mm256_xor_si256( qt[20], qt[13] ) ) );
-   dH[14] = _mm256_add_epi64( _mm256_add_epi64(
-              mm256_rol_64( dH[2], 15 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[30] ), M[14] )),
-                 _mm256_xor_si256( _mm256_srli_epi64( xl, 7 ),
-                                   _mm256_xor_si256( qt[21], qt[14] ) ) );
-   dH[15] = _mm256_add_epi64( _mm256_add_epi64(
-              mm256_rol_64( dH[3], 16 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[31] ), M[15] )),
-                 _mm256_xor_si256( _mm256_srli_epi64( xl, 2 ),
-                                   _mm256_xor_si256( qt[22], qt[15] ) ) );
-} 
+
+#define DH1L( m, sl, sr, a, b, c ) \
+   _mm256_add_epi64( \
+               _mm256_xor_si256( M[m], \
+                  _mm256_xor_si256( _mm256_slli_epi64( xh, sl ), \
+                                    _mm256_srli_epi64( qt[a], sr ) ) ), \
+               _mm256_xor_si256( _mm256_xor_si256( xl, qt[b] ), qt[c] ) )
+
+#define DH1R( m, sl, sr, a, b, c ) \
+   _mm256_add_epi64( \
+               _mm256_xor_si256( M[m], \
+                  _mm256_xor_si256( _mm256_srli_epi64( xh, sl ), \
+                                    _mm256_slli_epi64( qt[a], sr ) ) ), \
+               _mm256_xor_si256( _mm256_xor_si256( xl, qt[b] ), qt[c] ) )
+
+#define DH2L( m, rl, sl, h, a, b, c ) \
+   _mm256_add_epi64( _mm256_add_epi64( \
+       mm256_rol_64( dH[h], rl ), \
+          _mm256_xor_si256( _mm256_xor_si256( xh, qt[a] ), M[m] )), \
+                 _mm256_xor_si256( _mm256_slli_epi64( xl, sl ), \
+                                   _mm256_xor_si256( qt[b], qt[c] ) ) );
+
+#define DH2R( m, rl, sr, h, a, b, c ) \
+   _mm256_add_epi64( _mm256_add_epi64( \
+       mm256_rol_64( dH[h], rl ), \
+          _mm256_xor_si256( _mm256_xor_si256( xh, qt[a] ), M[m] )), \
+                 _mm256_xor_si256( _mm256_srli_epi64( xl, sr ), \
+                                   _mm256_xor_si256( qt[b], qt[c] ) ) );
+
+   dH[ 0] = DH1L(  0,  5,  5, 16, 24, 0 );
+   dH[ 1] = DH1R(  1,  7,  8, 17, 25, 1 );
+   dH[ 2] = DH1R(  2,  5,  5, 18, 26, 2 );
+   dH[ 3] = DH1R(  3,  1,  5, 19, 27, 3 );
+   dH[ 4] = DH1R(  4,  3,  0, 20, 28, 4 );
+   dH[ 5] = DH1L(  5,  6,  6, 21, 29, 5 );
+   dH[ 6] = DH1R(  6,  4,  6, 22, 30, 6 );
+   dH[ 7] = DH1R(  7, 11,  2, 23, 31, 7 );
+   dH[ 8] = DH2L(  8,  9,  8,  4, 24, 23,  8 );
+   dH[ 9] = DH2R(  9, 10,  6,  5, 25, 16,  9 );
+   dH[10] = DH2L( 10, 11,  6,  6, 26, 17, 10 );
+   dH[11] = DH2L( 11, 12,  4,  7, 27, 18, 11 );
+   dH[12] = DH2R( 12, 13,  3,  0, 28, 19, 12 );
+   dH[13] = DH2R( 13, 14,  4,  1, 29, 20, 13 );
+   dH[14] = DH2R( 14, 15,  7,  2, 30, 21, 14 );
+   dH[15] = DH2R( 15, 16,  2,  3, 31, 22, 15 );
+
+#undef DH1L
+#undef DH1R
+#undef DH2L
+#undef DH2R
+}
 
 static const __m256i final_b[16] =
 {

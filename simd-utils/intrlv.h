@@ -1528,6 +1528,58 @@ static inline void intrlv_8x64( void *dst, const void *src0,
    d[63] = _mm_unpackhi_epi64( s6[7], s7[7] );
 }
 
+static inline void intrlv_8x64_512( void *dst, const void *src0,
+       const void *src1, const void *src2, const void *src3,
+       const void *src4, const void *src5, const void *src6,
+       const void *src7 )
+{
+   __m128i *d = (__m128i*)dst;
+   const __m128i *s0 = (const __m128i*)src0;
+   const __m128i *s1 = (const __m128i*)src1;
+   const __m128i *s2 = (const __m128i*)src2;
+   const __m128i *s3 = (const __m128i*)src3;
+   const __m128i *s4 = (const __m128i*)src4;
+   const __m128i *s5 = (const __m128i*)src5;
+   const __m128i *s6 = (const __m128i*)src6;
+   const __m128i *s7 = (const __m128i*)src7;
+
+   d[ 0] = _mm_unpacklo_epi64( s0[0], s1[0] );
+   d[ 1] = _mm_unpacklo_epi64( s2[0], s3[0] );
+   d[ 2] = _mm_unpacklo_epi64( s4[0], s5[0] );
+   d[ 3] = _mm_unpacklo_epi64( s6[0], s7[0] );
+   d[ 4] = _mm_unpackhi_epi64( s0[0], s1[0] );
+   d[ 5] = _mm_unpackhi_epi64( s2[0], s3[0] );
+   d[ 6] = _mm_unpackhi_epi64( s4[0], s5[0] );
+   d[ 7] = _mm_unpackhi_epi64( s6[0], s7[0] );
+
+   d[ 8] = _mm_unpacklo_epi64( s0[1], s1[1] );
+   d[ 9] = _mm_unpacklo_epi64( s2[1], s3[1] );
+   d[10] = _mm_unpacklo_epi64( s4[1], s5[1] );
+   d[11] = _mm_unpacklo_epi64( s6[1], s7[1] );
+   d[12] = _mm_unpackhi_epi64( s0[1], s1[1] );
+   d[13] = _mm_unpackhi_epi64( s2[1], s3[1] );
+   d[14] = _mm_unpackhi_epi64( s4[1], s5[1] );
+   d[15] = _mm_unpackhi_epi64( s6[1], s7[1] );
+
+   d[16] = _mm_unpacklo_epi64( s0[2], s1[2] );
+   d[17] = _mm_unpacklo_epi64( s2[2], s3[2] );
+   d[18] = _mm_unpacklo_epi64( s4[2], s5[2] );
+   d[19] = _mm_unpacklo_epi64( s6[2], s7[2] );
+   d[20] = _mm_unpackhi_epi64( s0[2], s1[2] );
+   d[21] = _mm_unpackhi_epi64( s2[2], s3[2] );
+   d[22] = _mm_unpackhi_epi64( s4[2], s5[2] );
+   d[23] = _mm_unpackhi_epi64( s6[2], s7[2] );
+
+   d[24] = _mm_unpacklo_epi64( s0[3], s1[3] );
+   d[25] = _mm_unpacklo_epi64( s2[3], s3[3] );
+   d[26] = _mm_unpacklo_epi64( s4[3], s5[3] );
+   d[27] = _mm_unpacklo_epi64( s6[3], s7[3] );
+   d[28] = _mm_unpackhi_epi64( s0[3], s1[3] );
+   d[29] = _mm_unpackhi_epi64( s2[3], s3[3] );
+   d[30] = _mm_unpackhi_epi64( s4[3], s5[3] );
+   d[31] = _mm_unpackhi_epi64( s6[3], s7[3] );
+}
+
 /*
 #define ILEAVE_8x64( i ) do \
 { \
@@ -1654,6 +1706,57 @@ static inline void dintrlv_8x64( void *dst0, void *dst1, void *dst2,
    d5[7] = _mm_unpackhi_epi64( s[58], s[62] );
    d6[7] = _mm_unpacklo_epi64( s[59], s[63] );
    d7[7] = _mm_unpackhi_epi64( s[59], s[63] );
+}
+
+static inline void dintrlv_8x64_512( void *dst0, void *dst1, void *dst2,
+         void *dst3, void *dst4, void *dst5, void *dst6, void *dst7,
+         const void *src )
+{
+   __m128i *d0 = (__m128i*)dst0;
+   __m128i *d1 = (__m128i*)dst1;
+   __m128i *d2 = (__m128i*)dst2;
+   __m128i *d3 = (__m128i*)dst3;
+   __m128i *d4 = (__m128i*)dst4;
+   __m128i *d5 = (__m128i*)dst5;
+   __m128i *d6 = (__m128i*)dst6;
+   __m128i *d7 = (__m128i*)dst7;
+   const __m128i* s = (const __m128i*)src;
+
+   d0[0] = _mm_unpacklo_epi64( s[ 0], s[ 4] );
+   d1[0] = _mm_unpackhi_epi64( s[ 0], s[ 4] );
+   d2[0] = _mm_unpacklo_epi64( s[ 1], s[ 5] );
+   d3[0] = _mm_unpackhi_epi64( s[ 1], s[ 5] );
+   d4[0] = _mm_unpacklo_epi64( s[ 2], s[ 6] );
+   d5[0] = _mm_unpackhi_epi64( s[ 2], s[ 6] );
+   d6[0] = _mm_unpacklo_epi64( s[ 3], s[ 7] );
+   d7[0] = _mm_unpackhi_epi64( s[ 3], s[ 7] );
+
+   d0[1] = _mm_unpacklo_epi64( s[ 8], s[12] );
+   d1[1] = _mm_unpackhi_epi64( s[ 8], s[12] );
+   d2[1] = _mm_unpacklo_epi64( s[ 9], s[13] );
+   d3[1] = _mm_unpackhi_epi64( s[ 9], s[13] );
+   d4[1] = _mm_unpacklo_epi64( s[10], s[14] );
+   d5[1] = _mm_unpackhi_epi64( s[10], s[14] );
+   d6[1] = _mm_unpacklo_epi64( s[11], s[15] );
+   d7[1] = _mm_unpackhi_epi64( s[11], s[15] );
+
+   d0[2] = _mm_unpacklo_epi64( s[16], s[20] );
+   d1[2] = _mm_unpackhi_epi64( s[16], s[20] );
+   d2[2] = _mm_unpacklo_epi64( s[17], s[21] );
+   d3[2] = _mm_unpackhi_epi64( s[17], s[21] );
+   d4[2] = _mm_unpacklo_epi64( s[18], s[22] );
+   d5[2] = _mm_unpackhi_epi64( s[18], s[22] );
+   d6[2] = _mm_unpacklo_epi64( s[19], s[23] );
+   d7[2] = _mm_unpackhi_epi64( s[19], s[23] );
+
+   d0[3] = _mm_unpacklo_epi64( s[24], s[28] );
+   d1[3] = _mm_unpackhi_epi64( s[24], s[28] );
+   d2[3] = _mm_unpacklo_epi64( s[25], s[29] );
+   d3[3] = _mm_unpackhi_epi64( s[25], s[29] );
+   d4[3] = _mm_unpacklo_epi64( s[26], s[30] );
+   d5[3] = _mm_unpackhi_epi64( s[26], s[30] );
+   d6[3] = _mm_unpacklo_epi64( s[27], s[31] );
+   d7[3] = _mm_unpackhi_epi64( s[27], s[31] );
 }
 
 /*
@@ -1910,6 +2013,32 @@ static inline void dintrlv_4x128_512( void *dst0, void *dst1, void *dst2,
 }
 
 
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+static inline void mm512_bswap32_intrlv80_4x128( void *d, void *src )
+{
+  __m128i bswap_shuf = m128_const_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 );
+  __m128i s0 = casti_m128i( src,0 );
+  __m128i s1 = casti_m128i( src,1 );
+  __m128i s2 = casti_m128i( src,2 );
+  __m128i s3 = casti_m128i( src,3 );
+  __m128i s4 = casti_m128i( src,4 );
+
+  s0 = _mm_shuffle_epi8( s0, bswap_shuf );
+  s1 = _mm_shuffle_epi8( s1, bswap_shuf );
+  s2 = _mm_shuffle_epi8( s2, bswap_shuf );
+  s3 = _mm_shuffle_epi8( s3, bswap_shuf );
+  s4 = _mm_shuffle_epi8( s4, bswap_shuf );
+
+  casti_m512i( d, 0 ) = _mm512_broadcast_i64x2( s0 );
+  casti_m512i( d, 1 ) = _mm512_broadcast_i64x2( s1 );
+  casti_m512i( d, 2 ) = _mm512_broadcast_i64x2( s2 );
+  casti_m512i( d, 3 ) = _mm512_broadcast_i64x2( s3 );
+  casti_m512i( d, 4 ) = _mm512_broadcast_i64x2( s4 );
+}  
+
+#endif
+
 // 2x256 (AVX512)
 
 #if defined (__AVX__)
@@ -1945,6 +2074,9 @@ static inline void dintrlv_2x256( void *dst0, void *dst1,
    d0[2] = s[4];      d1[2] = s[5];
    d0[3] = s[6];      d1[3] = s[7];
 }
+
+
+
 
 #endif // AVX
 

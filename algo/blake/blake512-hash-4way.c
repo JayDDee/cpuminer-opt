@@ -42,20 +42,13 @@
 extern "C"{
 #endif
 
-#if SPH_SMALL_FOOTPRINT && !defined SPH_SMALL_FOOTPRINT_BLAKE
-#define SPH_SMALL_FOOTPRINT_BLAKE   1
-#endif
-
-#if SPH_64 && (SPH_SMALL_FOOTPRINT_BLAKE || !SPH_64_TRUE)
-#define SPH_COMPACT_BLAKE_64   1
-#endif
-
 #ifdef _MSC_VER
 #pragma warning (disable: 4146)
 #endif
 
-// Blake-512
-
+// Blake-512 common
+   
+/*
 static const sph_u64 IV512[8] = {
 	SPH_C64(0x6A09E667F3BCC908), SPH_C64(0xBB67AE8584CAA73B),
 	SPH_C64(0x3C6EF372FE94F82B), SPH_C64(0xA54FF53A5F1D36F1),
@@ -64,10 +57,6 @@ static const sph_u64 IV512[8] = {
 };
 
 static const sph_u64 salt_zero_big[4] = { 0, 0, 0, 0 };
-
-#if SPH_COMPACT_BLAKE_32 || SPH_COMPACT_BLAKE_64
-
-// Blake-256 4 & 8 way, Blake-512 4 way
 
 static const unsigned sigma[16][16] = {
 	{  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
@@ -88,7 +77,17 @@ static const unsigned sigma[16][16] = {
 	{  2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9 }
 };
 
-#endif
+static const sph_u64 CB[16] = {
+   SPH_C64(0x243F6A8885A308D3), SPH_C64(0x13198A2E03707344),
+   SPH_C64(0xA4093822299F31D0), SPH_C64(0x082EFA98EC4E6C89),
+   SPH_C64(0x452821E638D01377), SPH_C64(0xBE5466CF34E90C6C),
+   SPH_C64(0xC0AC29B7C97C50DD), SPH_C64(0x3F84D5B5B5470917),
+   SPH_C64(0x9216D5D98979FB1B), SPH_C64(0xD1310BA698DFB5AC),
+   SPH_C64(0x2FFD72DBD01ADFB7), SPH_C64(0xB8E1AFED6A267E96),
+   SPH_C64(0xBA7C9045F12C7F99), SPH_C64(0x24A19947B3916CF7),
+   SPH_C64(0x0801F2E2858EFC16), SPH_C64(0x636920D871574E69)
+
+*/
 
 #define Z00   0
 #define Z01   1
@@ -285,23 +284,6 @@ static const unsigned sigma[16][16] = {
 #define CBE   SPH_C64(0x0801F2E2858EFC16)
 #define CBF   SPH_C64(0x636920D871574E69)
 
-/*
-#if SPH_COMPACT_BLAKE_64
-// not used
-static const sph_u64 CB[16] = {
-	SPH_C64(0x243F6A8885A308D3), SPH_C64(0x13198A2E03707344),
-	SPH_C64(0xA4093822299F31D0), SPH_C64(0x082EFA98EC4E6C89),
-	SPH_C64(0x452821E638D01377), SPH_C64(0xBE5466CF34E90C6C),
-	SPH_C64(0xC0AC29B7C97C50DD), SPH_C64(0x3F84D5B5B5470917),
-	SPH_C64(0x9216D5D98979FB1B), SPH_C64(0xD1310BA698DFB5AC),
-	SPH_C64(0x2FFD72DBD01ADFB7), SPH_C64(0xB8E1AFED6A267E96),
-	SPH_C64(0xBA7C9045F12C7F99), SPH_C64(0x24A19947B3916CF7),
-	SPH_C64(0x0801F2E2858EFC16), SPH_C64(0x636920D871574E69)
-};
-
-#endif
-*/
-
 #define READ_STATE64(state)   do { \
       H0 = (state)->H[0]; \
       H1 = (state)->H[1]; \
@@ -338,7 +320,7 @@ static const sph_u64 CB[16] = {
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-// Blake-512 8 way
+// Blake-512 8 way AVX512
 
 #define GB_8WAY(m0, m1, c0, c1, a, b, c, d)   do { \
    a = _mm512_add_epi64( _mm512_add_epi64( _mm512_xor_si512( \
@@ -363,7 +345,6 @@ static const sph_u64 CB[16] = {
    GB_8WAY(Mx(r, C), Mx(r, D), CBx(r, C), CBx(r, D), V2, V7, V8, VD); \
    GB_8WAY(Mx(r, E), Mx(r, F), CBx(r, E), CBx(r, F), V3, V4, V9, VE); \
    } while (0)
-
 
 #define DECL_STATE64_8WAY \
    __m512i H0, H1, H2, H3, H4, H5, H6, H7; \
@@ -443,9 +424,7 @@ static const sph_u64 CB[16] = {
   H7 = mm512_xor4( VF, V7, S3, H7 ); \
 } while (0)
 
-static void
-blake64_8way_init( blake_8way_big_context *sc, const sph_u64 *iv,
-              const sph_u64 *salt )
+void blake512_8way_init( blake_8way_big_context *sc )
 {
    __m512i zero = m512_zero;
    casti_m512i( sc->H, 0 ) = m512_const1_64( 0x6A09E667F3BCC908 );
@@ -511,20 +490,20 @@ blake64_8way( blake_8way_big_context *sc, const void *data, size_t len )
 }
 
 static void
-blake64_8way_close( blake_8way_big_context *sc,
-   unsigned ub, unsigned n, void *dst, size_t out_size_w64)
+blake64_8way_close( blake_8way_big_context *sc, void *dst )
 {
    __m512i buf[16];
    size_t ptr;
    unsigned bit_len;
-   uint64_t z, zz;
+//   uint64_t z, zz;
    sph_u64 th, tl;
 
    ptr = sc->ptr;
    bit_len = ((unsigned)ptr << 3);
-   z = 0x80 >> n;
-   zz = ((ub & -z) | z) & 0xFF;
-   buf[ptr>>3] = _mm512_set1_epi64( zz );
+//   z = 0x80 >> n;
+//   zz = ((ub & -z) | z) & 0xFF;
+//   buf[ptr>>3] = _mm512_set1_epi64( zz );
+   buf[ptr>>3] = m512_const1_64( 0x80 );
    tl = sc->T0 + bit_len;
    th = sc->T1;
    if (ptr == 0 )
@@ -544,11 +523,10 @@ blake64_8way_close( blake_8way_big_context *sc,
    if ( ptr <= 104 )
    {
        memset_zero_512( buf + (ptr>>3) + 1, (104-ptr) >> 3 );
-       if ( out_size_w64 == 8 )
-          buf[(104>>3)] = _mm512_or_si512( buf[(104>>3)],
+       buf[104>>3] = _mm512_or_si512( buf[104>>3],
                                  m512_const1_64( 0x0100000000000000ULL ) );
-       *(buf+(112>>3)) = _mm512_set1_epi64( bswap_64( th ) );
-       *(buf+(120>>3)) = _mm512_set1_epi64( bswap_64( tl ) );
+       buf[112>>3] = m512_const1_64( bswap_64( th ) );
+       buf[120>>3] = m512_const1_64( bswap_64( tl ) );
 
        blake64_8way( sc, buf + (ptr>>3), 128 - ptr );
    }
@@ -560,20 +538,13 @@ blake64_8way_close( blake_8way_big_context *sc,
        sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL);
        sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFFULL);
        memset_zero_512( buf, 112>>3 );
-       if ( out_size_w64 == 8 )
-           buf[104>>3] = m512_const1_64( 0x0100000000000000ULL );
-       *(buf+(112>>3)) = _mm512_set1_epi64( bswap_64( th ) );
-       *(buf+(120>>3)) = _mm512_set1_epi64( bswap_64( tl ) );
+       buf[104>>3] = m512_const1_64( 0x0100000000000000ULL );
+       buf[112>>3] = m512_const1_64( bswap_64( th ) );
+       buf[120>>3] = m512_const1_64( bswap_64( tl ) );
 
        blake64_8way( sc, buf, 128 );
    }
    mm512_block_bswap_64( (__m512i*)dst, sc->H );
-}
-
-void
-blake512_8way_init(void *cc)
-{
-   blake64_8way_init(cc, IV512, salt_zero_big);
 }
 
 void
@@ -591,7 +562,7 @@ blake512_8way_close(void *cc, void *dst)
 void
 blake512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 {
-   blake64_8way_close(cc, ub, n, dst, 8);
+   blake64_8way_close(cc, dst);
 }
 
 #endif  // AVX512
@@ -698,11 +669,8 @@ blake512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
   H7 = mm256_xor4( VF, V7, S3, H7 ); \
 } while (0)
 
-//static const sph_u64 salt_zero_big[4] = { 0, 0, 0, 0 };
 
-static void
-blake64_4way_init( blake_4way_big_context *sc, const sph_u64 *iv,
-              const sph_u64 *salt )
+void blake512_4way_init( blake_4way_big_context *sc )
 {
    __m256i zero = m256_zero;
    casti_m256i( sc->H, 0 ) = m256_const1_64( 0x6A09E667F3BCC908 );
@@ -713,12 +681,10 @@ blake64_4way_init( blake_4way_big_context *sc, const sph_u64 *iv,
    casti_m256i( sc->H, 5 ) = m256_const1_64( 0x9B05688C2B3E6C1F );
    casti_m256i( sc->H, 6 ) = m256_const1_64( 0x1F83D9ABFB41BD6B );
    casti_m256i( sc->H, 7 ) = m256_const1_64( 0x5BE0CD19137E2179 );
-
    casti_m256i( sc->S, 0 ) = zero;
    casti_m256i( sc->S, 1 ) = zero;
    casti_m256i( sc->S, 2 ) = zero;
    casti_m256i( sc->S, 3 ) = zero;
-
    sc->T0 = sc->T1 = 0;
    sc->ptr = 0;
 }
@@ -768,20 +734,16 @@ blake64_4way( blake_4way_big_context *sc, const void *data, size_t len)
 }
 
 static void
-blake64_4way_close( blake_4way_big_context *sc,
-	unsigned ub, unsigned n, void *dst, size_t out_size_w64)
+blake64_4way_close( blake_4way_big_context *sc, void *dst )
 {
    __m256i buf[16];
    size_t ptr;
    unsigned bit_len;
-   uint64_t z, zz;
    sph_u64 th, tl;
 
    ptr = sc->ptr;
    bit_len = ((unsigned)ptr << 3);
-   z = 0x80 >> n;
-   zz = ((ub & -z) | z) & 0xFF;
-   buf[ptr>>3] = _mm256_set1_epi64x( zz );
+   buf[ptr>>3] = m256_const1_64( 0x80 );
    tl = sc->T0 + bit_len;
    th = sc->T1;
    if (ptr == 0 )
@@ -798,40 +760,41 @@ blake64_4way_close( blake_4way_big_context *sc,
    {
         sc->T0 -= 1024 - bit_len;
    }
+
    if ( ptr <= 104 )
    {
        memset_zero_256( buf + (ptr>>3) + 1, (104-ptr) >> 3 );
-       if ( out_size_w64 == 8 )
-          buf[(104>>3)] = _mm256_or_si256( buf[(104>>3)],
+       buf[104>>3] = _mm256_or_si256( buf[104>>3],
                                  m256_const1_64( 0x0100000000000000ULL ) );
-       *(buf+(112>>3)) = _mm256_set1_epi64x( bswap_64( th ) );
-       *(buf+(120>>3)) = _mm256_set1_epi64x( bswap_64( tl ) );
+       buf[112>>3] = m256_const1_64( bswap_64( th ) );
+       buf[120>>3] = m256_const1_64( bswap_64( tl ) );
 
        blake64_4way( sc, buf + (ptr>>3), 128 - ptr );
    }
    else
-  {
+   {
        memset_zero_256( buf + (ptr>>3) + 1, (120 - ptr) >> 3 );
 
        blake64_4way( sc, buf + (ptr>>3), 128 - ptr );
        sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL);
        sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFFULL);
        memset_zero_256( buf, 112>>3 ); 
-       if ( out_size_w64 == 8 )
-           buf[104>>3] = m256_const1_64( 0x0100000000000000ULL );
-       *(buf+(112>>3)) = _mm256_set1_epi64x( bswap_64( th ) );
-       *(buf+(120>>3)) = _mm256_set1_epi64x( bswap_64( tl ) );
+       buf[104>>3] = m256_const1_64( 0x0100000000000000ULL );
+       buf[112>>3] = m256_const1_64( bswap_64( th ) );
+       buf[120>>3] = m256_const1_64( bswap_64( tl ) );
 
        blake64_4way( sc, buf, 128 );
    }
    mm256_block_bswap_64( (__m256i*)dst, sc->H );
 }
 
+/*
 void
 blake512_4way_init(void *cc)
 {
 	blake64_4way_init(cc, IV512, salt_zero_big);
 }
+*/
 
 void
 blake512_4way_update(void *cc, const void *data, size_t len)
@@ -842,15 +805,18 @@ blake512_4way_update(void *cc, const void *data, size_t len)
 void
 blake512_4way_close(void *cc, void *dst)
 {
-	blake512_4way_addbits_and_close(cc, 0, 0, dst);
+   blake64_4way_close( cc, dst );
+
+//   blake512_4way_addbits_and_close(cc, dst);
 }
 
+/*
 void
 blake512_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 {
 	blake64_4way_close(cc, ub, n, dst, 8);
 }
-
+*/
 #ifdef __cplusplus
 }
 #endif

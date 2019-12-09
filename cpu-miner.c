@@ -3327,7 +3327,7 @@ static void show_credits()
 {
    printf("\n         **********  "PACKAGE_NAME" "PACKAGE_VERSION"  *********** \n");
    printf("     A CPU miner with multi algo support and optimized for CPUs\n");
-   printf("     with AES_NI and AVX2, AVX512 and SHA extensions.\n");
+   printf("     with AES_NI, AVX2, AVX512 and SHA extensions.\n");
    printf("     BTC donation address: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT\n\n");
 }
 
@@ -3343,7 +3343,7 @@ bool check_cpu_capability ()
      bool cpu_has_avx512 = has_avx512();
      bool cpu_has_vaes   = has_vaes();
      bool sw_has_aes    = false;
-     bool sw_has_sse2  = false;
+     bool sw_has_sse2   = false;
      bool sw_has_sse42  = false;
      bool sw_has_avx    = false;
      bool sw_has_avx2   = false;
@@ -3412,8 +3412,8 @@ bool check_cpu_capability ()
 
      printf("CPU features:");
      if      ( cpu_has_vaes   )    printf( " VAES"   );
-     if      ( cpu_has_sha    )    printf( " SHA"    );
      else if ( cpu_has_aes    )    printf( " AES"    );
+     if      ( cpu_has_sha    )    printf( " SHA"    );
      if      ( cpu_has_avx512 )    printf( " AVX512" );
      else if ( cpu_has_avx2   )    printf( " AVX2"   );
      else if ( cpu_has_avx    )    printf( " AVX"    );

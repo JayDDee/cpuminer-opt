@@ -18,16 +18,17 @@ void bmw512hash_8way(void *state, const void *input)
 int scanhash_bmw512_8way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t vdata[24*8] __attribute__ ((aligned (64)));
-   uint32_t hash[16*8] __attribute__ ((aligned (32)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+   uint32_t vdata[24*8] __attribute__ ((aligned (128)));
+   uint32_t hash[16*8] __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[49]);   // 3*16+1
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    uint32_t n = pdata[19];
    const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 8;
    __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
-//   const uint32_t Htarg = ptarget[7];
+   const uint32_t Htarg = ptarget[7];
    int thr_id = mythr->id;
 
    mm512_bswap32_intrlv80_8x64( vdata, pdata );
@@ -39,7 +40,8 @@ int scanhash_bmw512_8way( struct work *work, uint32_t max_nonce,
       bmw512hash_8way( hash, vdata );
 
       for ( int lane = 0; lane < 8; lane++ )
-      if ( ( ( hash7[ lane<<1 ] & 0xFFFFFF00 ) == 0 ) )
+      if ( unlikely( hash7[ lane<<1 ] < Htarg ) )
+//      if ( ( ( hash7[ lane<<1 ] & 0xFFFFFF00 ) == 0 ) )
       {
           extr_lane_8x64( lane_hash, hash, lane, 256 );
           if ( fulltest( lane_hash, ptarget ) )
@@ -48,15 +50,14 @@ int scanhash_bmw512_8way( struct work *work, uint32_t max_nonce,
               submit_lane_solution( work, lane_hash, mythr, lane );
           }
       }
-      n += 4;
+      n += 8;
 
-   } while ( (n < max_nonce-8) && !work_restart[thr_id].restart);
+   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart) );
 
-   *hashes_done = n - first_nonce + 1;
+   *hashes_done = n - first_nonce;
    return 0;
 }
    
-
 #elif defined(BMW512_4WAY)
 
 //#ifdef BMW512_4WAY
@@ -72,16 +73,17 @@ void bmw512hash_4way(void *state, const void *input)
 int scanhash_bmw512_4way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-   uint32_t hash[16*4] __attribute__ ((aligned (32)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+   uint32_t vdata[24*4] __attribute__ ((aligned (128)));
+   uint32_t hash[16*4] __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[25]);   // 3*8+1
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    uint32_t n = pdata[19];
    const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce -  4;
    __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-//   const uint32_t Htarg = ptarget[7];
+   const uint32_t Htarg = ptarget[7];
     int thr_id = mythr->id;  // thr_id arg is deprecated
 
    mm256_bswap32_intrlv80_4x64( vdata, pdata );
@@ -92,7 +94,8 @@ int scanhash_bmw512_4way( struct work *work, uint32_t max_nonce,
       bmw512hash_4way( hash, vdata );
 
       for ( int lane = 0; lane < 4; lane++ )
-      if ( ( ( hash7[ lane<<1 ] & 0xFFFFFF00 ) == 0 ) )
+      if ( unlikely( hash7[ lane<<1 ] < Htarg ) )
+//      if ( ( ( hash7[ lane<<1 ] & 0xFFFFFF00 ) == 0 ) )
       {
           extr_lane_4x64( lane_hash, hash, lane, 256 );
           if ( fulltest( lane_hash, ptarget ) )
@@ -103,9 +106,9 @@ int scanhash_bmw512_4way( struct work *work, uint32_t max_nonce,
       }
       n += 4;
 
-   } while ( (n < max_nonce-4) && !work_restart[thr_id].restart);
+   } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
 
-   *hashes_done = n - first_nonce + 1;
+   *hashes_done = n - first_nonce;
    return 0;
 }
 

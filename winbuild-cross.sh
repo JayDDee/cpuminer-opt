@@ -62,7 +62,7 @@ mv cpuminer.exe release/cpuminer-avx512.exe
 
 make clean || echo clean
 rm -f config.status
-# GCC 9 doesn't include AES in core-avx2
+# GCC 9 doesn't include AES in -march=core-avx2
 CFLAGS="-O3 -march=core-avx2 -maes -Wall" ./configure $CONFIGURE_ARGS
 make -j 16
 strip -s cpuminer.exe
@@ -70,7 +70,8 @@ mv cpuminer.exe release/cpuminer-avx2.exe
 
 make clean || echo clean
 rm -f config.status
-CFLAGS="-O3 -march=corei7-avx -Wall" ./configure $CONFIGURE_ARGS 
+# -march=corei7-avx still includes aes, but just in case
+CFLAGS="-O3 -march=corei7-avx -maes -Wall" ./configure $CONFIGURE_ARGS 
 make -j 16
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx.exe

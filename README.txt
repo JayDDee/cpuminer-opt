@@ -23,12 +23,20 @@ supported by cpuminer-opt due to an incompatible implementation of SSE2 on
 these CPUs. Some algos may crash the miner with an invalid instruction.
 Users are recommended to use an unoptimized miner such as cpuminer-multi.
 
+More information for Intel and AMD CPU architectures and their features
+can be found on Wikipedia.
+
+https://en.wikipedia.org/wiki/List_of_Intel_CPU_microarchitectures
+
+https://en.wikipedia.org/wiki/List_of_AMD_CPU_microarchitectures
+
+
 Exe name                Compile flags            Arch name
 
 cpuminer-sse2.exe      "-msse2"                  Core2, Nehalem   
 cpuminer-aes-sse42.exe "-march=westmere"         Westmere
-cpuminer-avx.exe       "-march=corei7-avx"       Sandy-Ivybridge
-cpuminer-avx2.exe      "-march=core-avx2 -maes"  Haswell, Sky-Kaby-Coffeelake
+cpuminer-avx.exe       "-march=corei7-avx"       Sandybridge
+cpuminer-avx2.exe      "-march=core-avx2 -maes"  Haswell, Skylake, Coffeelake
 cpuminer-avx512.exe    "-march=skylake-avx512"   Skylake-X, Cascadelake-X
 cpuminer-zen           "-march=znver1"           AMD Ryzen, Threadripper
 

@@ -64,7 +64,8 @@ typedef bmw_4way_small_context bmw256_4way_context;
 
 void bmw256_4way_init( bmw256_4way_context *ctx );
 
-void bmw256_4way(void *cc, const void *data, size_t len);
+void bmw256_4way_update(void *cc, const void *data, size_t len);
+#define bmw256_4way bmw256_4way_update
 
 void bmw256_4way_close(void *cc, void *dst);
 
@@ -87,8 +88,30 @@ typedef struct {
 typedef bmw_8way_small_context bmw256_8way_context;
 
 void bmw256_8way_init( bmw256_8way_context *ctx );
-void bmw256_8way( bmw256_8way_context *ctx, const void *data, size_t len );
+void bmw256_8way_update( bmw256_8way_context *ctx, const void *data,
+                         size_t len );
+#define bmw256_8way bmw256_8way_update
 void bmw256_8way_close( bmw256_8way_context *ctx, void *dst );
+
+#endif
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+// BMW-256 16 way 32
+
+typedef struct {
+   __m512i buf[16];
+   __m512i H[16];
+   size_t ptr;
+   uint32_t bit_count;  // assume bit_count fits in 32 bits
+} bmw_16way_small_context __attribute__ ((aligned (128)));
+
+typedef bmw_16way_small_context bmw256_16way_context;
+
+void bmw256_16way_init( bmw256_16way_context *ctx );
+void bmw256_16way_update( bmw256_16way_context *ctx, const void *data,
+                          size_t len );
+void bmw256_16way_close( bmw256_16way_context *ctx, void *dst );
 
 #endif
 

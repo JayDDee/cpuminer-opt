@@ -28,6 +28,10 @@ static const uint64_t IV512[] =
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
+// 4 way 128 is handy to avoid reinterleaving in many algos.
+// If reinterleaving is necessary it may be more efficient to use
+// 2 way 256. The same transform code should work for both.
+
 static void transform_4way( cube_4way_context *sp )
 {
     int r;
@@ -200,6 +204,8 @@ int cube_4way_update_close( cube_4way_context *sp, void *output,
 
 
 #endif // AVX512
+
+// 2 way 128 
 
 static void transform_2way( cube_2way_context *sp )
 {

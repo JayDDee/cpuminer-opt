@@ -735,7 +735,7 @@ do { \
   fft128_4way( a+512 );
 }
 
-#define c1_16( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
+#define c1_16_512( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
 
 void rounds512_4way( uint32_t *state, const uint8_t *msg, uint16_t *fft )
 {
@@ -744,8 +744,12 @@ void rounds512_4way( uint32_t *state, const uint8_t *msg, uint16_t *fft )
   __m512i *S = (__m512i*) state;
   __m512i *M = (__m512i*) msg;
   __m512i *W = (__m512i*) fft;
-  static const m512_v16 code[] = { c1_16(185), c1_16(233),
-                                   c1_16(185), c1_16(233) };
+
+  static const m512_v16 code[] = { c1_16_512(185), c1_16_512(233) };
+
+
+//  static const m512_v16 code[] = { c1_16(185), c1_16(233),
+//                                   c1_16(185), c1_16(233) };
 
 
   S0l = _mm512_xor_si512( S[0], M[0] );
@@ -999,7 +1003,9 @@ void SIMD_4way_Compress( simd_4way_context *state, const void *m, int final )
 {
    m512_v16 Y[32];
    uint16_t *y = (uint16_t*) Y[0].u16;
+
    fft256_4way_msg( y, m, final );
+
    rounds512_4way( state->A, m, y );
 }
 
@@ -1340,7 +1346,8 @@ do { \
   DO_REDUCE_FULL_S( 6 );
   DO_REDUCE_FULL_S( 7 );
 
-#undef BUTTERFLY
+#undef BUTTERFLY_0
+#undef BUTTERFLY_N
 #undef DO_REDUCE
 
   A[0] = X0;
@@ -1491,6 +1498,7 @@ do { \
 
   fft128_2way( a );
   fft128_2way( a+256 );
+
 }
 
 #define c1_16( x ) {{ x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x }}
@@ -1751,7 +1759,9 @@ void SIMD_2way_Compress( simd_2way_context *state, const void *m, int final )
 {
    m256_v16 Y[32];
    uint16_t *y = (uint16_t*) Y[0].u16;
+
    fft256_2way_msg( y, m, final );
+
    rounds512_2way( state->A, m, y );
 }
 
@@ -1864,6 +1874,7 @@ int simd_2way_update_close( simd_2way_context *state, void *hashval,
     {
       // We can hash the data directly from the input buffer.
       SIMD_2way_Compress( state, data, 0 );
+
       databitlen -= bs;
       data += 2*( bs/8 );
       state->count += bs;
@@ -1874,7 +1885,8 @@ int simd_2way_update_close( simd_2way_context *state, void *hashval,
       int len = bs - current;
       if ( databitlen < len )
       {
-        memcpy( state->buffer + 2*( current/8 ), data, 2*( (databitlen+7)/8 ) );
+
+         memcpy( state->buffer + 2*( current/8 ), data, 2*( (databitlen+7)/8 ) );
         state->count += databitlen;
         break;
       }

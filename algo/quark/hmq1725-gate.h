@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #if defined(__AVX2__) && defined(__AES__)
-//  #define HMQ1725_4WAY
+//  #define HMQ1725_4WAY 1
 #endif
 
 bool register_hmq1725_algo( algo_gate_t* gate );

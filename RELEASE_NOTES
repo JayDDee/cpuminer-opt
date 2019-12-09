@@ -25,19 +25,23 @@ Requirements
 Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
 supported.
 
-64 bit Linux or Windows operating system. Apple and Android are not supported.
-FreeBSD YMMV.
+64 bit Linux or Windows operating system. Apple, Android and Rpi are
+not supported. FreeBSD YMMV.
 
 Change Log
 ----------
+
+v3.10.2
+
+AVX512 added for bmw512, c11, phi1612 (phi), qubit, skunk, x11, x11gost (sib).
+Fixed c11 AVX2 invalid shares.
 
 v3.10.1
 
 AVX512 for blake2b, nist5, quark, tribus.
 
-More broken lane fixes.
-
-Fixed buffer overflow in skein AVX512.
+More broken lane fixes, fixed buffer overflow in skein AVX512, fixed
+quark invalid shares AVX2.
 
 Only the highest ranking feature in a class is listed at startup, lower ranking
 features are available but no longer listed.

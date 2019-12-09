@@ -127,6 +127,7 @@ void x17_4way_hash( void *state, const void *input )
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
+
      // 11 Echo serial
      init_echo( &ctx.echo, 512 );
      update_final_echo( &ctx.echo, (BitSequence *)hash0,

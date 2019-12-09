@@ -564,7 +564,7 @@ bmw256_4way_init(void *cc)
 */
 
 void
-bmw256_4way(void *cc, const void *data, size_t len)
+bmw256_4way_update(void *cc, const void *data, size_t len)
 {
 	bmw32_4way(cc, data, len);
 }
@@ -1014,7 +1014,8 @@ void bmw256_8way_init( bmw256_8way_context *ctx )
    ctx->bit_count = 0;
 }
 
-void bmw256_8way( bmw256_8way_context *ctx, const void *data, size_t len )
+void bmw256_8way_update( bmw256_8way_context *ctx, const void *data,
+                         size_t len )
 {
    __m256i *vdata = (__m256i*)data;
    __m256i *buf;
@@ -1091,6 +1092,513 @@ void bmw256_8way_close( bmw256_8way_context *ctx, void *dst )
 
 
 #endif // __AVX2__
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+// BMW-256 16 way 32
+
+
+#define s16s0(x) \
+   mm512_xor4( _mm512_srli_epi32( (x), 1), \
+                _mm512_slli_epi32( (x), 3), \
+                mm512_rol_32( (x),  4), \
+                mm512_rol_32( (x), 19) )
+
+#define s16s1(x) \
+   mm512_xor4( _mm512_srli_epi32( (x), 1), \
+                _mm512_slli_epi32( (x), 2), \
+                mm512_rol_32( (x), 8), \
+                mm512_rol_32( (x), 23) )
+
+#define s16s2(x) \
+   mm512_xor4( _mm512_srli_epi32( (x), 2), \
+               _mm512_slli_epi32( (x), 1), \
+               mm512_rol_32( (x), 12), \
+               mm512_rol_32( (x), 25) )
+
+#define s16s3(x) \
+   mm512_xor4( _mm512_srli_epi32( (x), 2), \
+               _mm512_slli_epi32( (x), 2), \
+               mm512_rol_32( (x), 15), \
+               mm512_rol_32( (x), 29) )
+
+#define s16s4(x) \
+  _mm512_xor_si512( (x), _mm512_srli_epi32( (x), 1 ) )
+
+#define s16s5(x) \
+  _mm512_xor_si512( (x), _mm512_srli_epi32( (x), 2 ) )
+
+#define r16s1(x)    mm512_rol_32( x,  3 ) 
+#define r16s2(x)    mm512_rol_32( x,  7 ) 
+#define r16s3(x)    mm512_rol_32( x, 13 ) 
+#define r16s4(x)    mm512_rol_32( x, 16 ) 
+#define r16s5(x)    mm512_rol_32( x, 19 ) 
+#define r16s6(x)    mm512_rol_32( x, 23 ) 
+#define r16s7(x)    mm512_rol_32( x, 27 ) 
+
+#define mm512_rol_off_32( M, j, off ) \
+   mm512_rol_32( M[ ( (j) + (off) ) & 0xF ] , \
+                  ( ( (j) + (off) ) & 0xF ) + 1 )
+
+#define add_elt_s16( M, H, j ) \
+   _mm512_xor_si512( \
+      _mm512_add_epi32( \
+            _mm512_sub_epi32( _mm512_add_epi32( mm512_rol_off_32( M, j, 0 ), \
+                                                mm512_rol_off_32( M, j, 3 ) ), \
+                             mm512_rol_off_32( M, j, 10 ) ), \
+            _mm512_set1_epi32( ( (j) + 16 ) * 0x05555555UL ) ), \
+       H[ ( (j)+7 ) & 0xF ] )
+
+#define expand1s16( qt, M, H, i ) \
+   _mm512_add_epi32( add_elt_s16( M, H, (i)-16 ), \
+                     mm512_add4_32( mm512_add4_32( s16s1( qt[ (i)-16 ] ), \
+                                                   s16s2( qt[ (i)-15 ] ), \
+                                                   s16s3( qt[ (i)-14 ] ), \
+                                                   s16s0( qt[ (i)-13 ] ) ), \
+                                    mm512_add4_32( s16s1( qt[ (i)-12 ] ), \
+                                                   s16s2( qt[ (i)-11 ] ), \
+                                                   s16s3( qt[ (i)-10 ] ), \
+                                                   s16s0( qt[ (i)- 9 ] ) ), \
+                                    mm512_add4_32( s16s1( qt[ (i)- 8 ] ), \
+                                                   s16s2( qt[ (i)- 7 ] ), \
+                                                   s16s3( qt[ (i)- 6 ] ), \
+                                                   s16s0( qt[ (i)- 5 ] ) ), \
+                                    mm512_add4_32( s16s1( qt[ (i)- 4 ] ), \
+                                                   s16s2( qt[ (i)- 3 ] ), \
+                                                   s16s3( qt[ (i)- 2 ] ), \
+                                                   s16s0( qt[ (i)- 1 ] ) ) ) )
+
+#define expand2s16( qt, M, H, i) \
+   _mm512_add_epi32( add_elt_s16( M, H, (i)-16 ), \
+      mm512_add4_32( mm512_add4_32( qt[ (i)-16 ], \
+                                    r16s1( qt[ (i)-15 ] ), \
+                                    qt[ (i)-14 ], \
+                                    r16s2( qt[ (i)-13 ] ) ), \
+                     mm512_add4_32( qt[ (i)-12 ], \
+                                    r16s3( qt[ (i)-11 ] ), \
+                                    qt[ (i)-10 ], \
+                                    r16s4( qt[ (i)- 9 ] ) ), \
+                     mm512_add4_32( qt[ (i)- 8 ], \
+                                    r16s5( qt[ (i)- 7 ] ), \
+                                    qt[ (i)- 6 ], \
+                                    r16s6( qt[ (i)- 5 ] ) ), \
+                     mm512_add4_32( qt[ (i)- 4 ], \
+                                    r16s7( qt[ (i)- 3 ] ), \
+                                    s16s4( qt[ (i)- 2 ] ), \
+                                    s16s5( qt[ (i)- 1 ] ) ) ) )
+
+
+#define W16s0 \
+   _mm512_add_epi32( \
+      _mm512_add_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 5], H[ 5] ), \
+                           _mm512_xor_si512( M[ 7], H[ 7] ) ), \
+         _mm512_xor_si512( M[10], H[10] ) ), \
+      _mm512_add_epi32( _mm512_xor_si512( M[13], H[13] ), \
+                        _mm512_xor_si512( M[14], H[14] ) ) )
+
+#define W16s1 \
+   _mm512_add_epi32( \
+       _mm512_add_epi32( \
+          _mm512_sub_epi32( _mm512_xor_si512( M[ 6], H[ 6] ), \
+                            _mm512_xor_si512( M[ 8], H[ 8] ) ), \
+          _mm512_xor_si512( M[11], H[11] ) ), \
+       _mm512_sub_epi32( _mm512_xor_si512( M[14], H[14] ), \
+                         _mm512_xor_si512( M[15], H[15] ) ) )
+
+#define W16s2 \
+   _mm512_sub_epi32( \
+      _mm512_add_epi32( \
+         _mm512_add_epi32( _mm512_xor_si512( M[ 0], H[ 0] ), \
+                           _mm512_xor_si512( M[ 7], H[ 7] ) ), \
+         _mm512_xor_si512( M[ 9], H[ 9] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[12], H[12] ), \
+                        _mm512_xor_si512( M[15], H[15] ) ) )
+
+#define W16s3 \
+   _mm512_sub_epi32( \
+      _mm512_add_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 0], H[ 0] ), \
+                           _mm512_xor_si512( M[ 1], H[ 1] ) ), \
+         _mm512_xor_si512( M[ 8], H[ 8] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[10], H[10] ), \
+                        _mm512_xor_si512( M[13], H[13] ) ) )
+
+#define W16s4 \
+   _mm512_sub_epi32( \
+      _mm512_add_epi32( \
+         _mm512_add_epi32( _mm512_xor_si512( M[ 1], H[ 1] ), \
+                           _mm512_xor_si512( M[ 2], H[ 2] ) ), \
+         _mm512_xor_si512( M[ 9], H[ 9] ) ), \
+      _mm512_add_epi32( _mm512_xor_si512( M[11], H[11] ), \
+                        _mm512_xor_si512( M[14], H[14] ) ) )
+
+#define W16s5 \
+   _mm512_sub_epi32( \
+      _mm512_add_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 3], H[ 3] ), \
+                           _mm512_xor_si512( M[ 2], H[ 2] ) ), \
+         _mm512_xor_si512( M[10], H[10] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[12], H[12] ), \
+                        _mm512_xor_si512( M[15], H[15] ) ) )
+
+#define W16s6 \
+   _mm512_sub_epi32( \
+      _mm512_sub_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 4], H[ 4] ), \
+                           _mm512_xor_si512( M[ 0], H[ 0] ) ), \
+         _mm512_xor_si512( M[ 3], H[ 3] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[11], H[11] ), \
+                        _mm512_xor_si512( M[13], H[13] ) ) )
+
+#define W16s7 \
+   _mm512_sub_epi32( \
+      _mm512_sub_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 1], H[ 1] ), \
+                           _mm512_xor_si512( M[ 4], H[ 4] ) ), \
+         _mm512_xor_si512( M[ 5], H[ 5] ) ), \
+      _mm512_add_epi32( _mm512_xor_si512( M[12], H[12] ), \
+                        _mm512_xor_si512( M[14], H[14] ) ) )
+
+#define W16s8 \
+   _mm512_add_epi32( \
+      _mm512_sub_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 2], H[ 2] ), \
+                           _mm512_xor_si512( M[ 5], H[ 5] ) ), \
+         _mm512_xor_si512( M[ 6], H[ 6] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[13], H[13] ), \
+                        _mm512_xor_si512( M[15], H[15] ) ) )
+
+#define W16s9 \
+   _mm512_sub_epi32( \
+      _mm512_add_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 0], H[ 0] ), \
+                           _mm512_xor_si512( M[ 3], H[ 3] ) ), \
+         _mm512_xor_si512( M[ 6], H[ 6] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[ 7], H[ 7] ), \
+                        _mm512_xor_si512( M[14], H[14] ) ) )
+
+#define W16s10 \
+   _mm512_sub_epi32( \
+      _mm512_sub_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 8], H[ 8] ), \
+                           _mm512_xor_si512( M[ 1], H[ 1] ) ), \
+         _mm512_xor_si512( M[ 4], H[ 4] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[ 7], H[ 7] ), \
+                        _mm512_xor_si512( M[15], H[15] ) ) )
+
+#define W16s11 \
+   _mm512_sub_epi32( \
+      _mm512_sub_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 8], H[ 8] ), \
+                           _mm512_xor_si512( M[ 0], H[ 0] ) ), \
+         _mm512_xor_si512( M[ 2], H[ 2] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[ 5], H[ 5] ), \
+                        _mm512_xor_si512( M[ 9], H[ 9] ) ) )
+
+#define W16s12 \
+   _mm512_sub_epi32( \
+      _mm512_sub_epi32( \
+         _mm512_add_epi32( _mm512_xor_si512( M[ 1], H[ 1] ), \
+                           _mm512_xor_si512( M[ 3], H[ 3] ) ), \
+         _mm512_xor_si512( M[ 6], H[ 6] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[ 9], H[ 9] ), \
+                        _mm512_xor_si512( M[10], H[10] ) ) )
+
+#define W16s13 \
+   _mm512_add_epi32( \
+      _mm512_add_epi32( \
+         _mm512_add_epi32( _mm512_xor_si512( M[ 2], H[ 2] ), \
+                           _mm512_xor_si512( M[ 4], H[ 4] ) ), \
+         _mm512_xor_si512( M[ 7], H[ 7] ) ), \
+      _mm512_add_epi32( _mm512_xor_si512( M[10], H[10] ), \
+                        _mm512_xor_si512( M[11], H[11] ) ) )
+
+#define W16s14 \
+   _mm512_sub_epi32( \
+      _mm512_add_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[ 3], H[ 3] ), \
+                           _mm512_xor_si512( M[ 5], H[ 5] ) ), \
+         _mm512_xor_si512( M[ 8], H[ 8] ) ), \
+      _mm512_add_epi32( _mm512_xor_si512( M[11], H[11] ), \
+                        _mm512_xor_si512( M[12], H[12] ) ) )
+
+#define W16s15 \
+   _mm512_sub_epi32( \
+      _mm512_sub_epi32( \
+         _mm512_sub_epi32( _mm512_xor_si512( M[12], H[12] ), \
+                           _mm512_xor_si512( M[ 4], H[4] ) ), \
+         _mm512_xor_si512( M[ 6], H[ 6] ) ), \
+      _mm512_sub_epi32( _mm512_xor_si512( M[ 9], H[ 9] ), \
+                        _mm512_xor_si512( M[13], H[13] ) ) )
+
+void compress_small_16way( const __m512i *M, const __m512i H[16],
+                     __m512i dH[16] )
+{
+   __m512i qt[32], xl, xh;
+
+   qt[ 0] = _mm512_add_epi32( s16s0( W16s0 ), H[ 1] );
+   qt[ 1] = _mm512_add_epi32( s16s1( W16s1 ), H[ 2] );
+   qt[ 2] = _mm512_add_epi32( s16s2( W16s2 ), H[ 3] );
+   qt[ 3] = _mm512_add_epi32( s16s3( W16s3 ), H[ 4] );
+   qt[ 4] = _mm512_add_epi32( s16s4( W16s4 ), H[ 5] );
+   qt[ 5] = _mm512_add_epi32( s16s0( W16s5 ), H[ 6] );
+   qt[ 6] = _mm512_add_epi32( s16s1( W16s6 ), H[ 7] );
+   qt[ 7] = _mm512_add_epi32( s16s2( W16s7 ), H[ 8] );
+   qt[ 8] = _mm512_add_epi32( s16s3( W16s8 ), H[ 9] );
+   qt[ 9] = _mm512_add_epi32( s16s4( W16s9 ), H[10] );
+   qt[10] = _mm512_add_epi32( s16s0( W16s10), H[11] );
+   qt[11] = _mm512_add_epi32( s16s1( W16s11), H[12] );
+   qt[12] = _mm512_add_epi32( s16s2( W16s12), H[13] );
+   qt[13] = _mm512_add_epi32( s16s3( W16s13), H[14] );
+   qt[14] = _mm512_add_epi32( s16s4( W16s14), H[15] );
+   qt[15] = _mm512_add_epi32( s16s0( W16s15), H[ 0] );
+   qt[16] = expand1s16( qt, M, H, 16 );
+   qt[17] = expand1s16( qt, M, H, 17 );
+   qt[18] = expand2s16( qt, M, H, 18 );
+   qt[19] = expand2s16( qt, M, H, 19 );
+   qt[20] = expand2s16( qt, M, H, 20 );
+   qt[21] = expand2s16( qt, M, H, 21 );
+   qt[22] = expand2s16( qt, M, H, 22 );
+   qt[23] = expand2s16( qt, M, H, 23 );
+   qt[24] = expand2s16( qt, M, H, 24 );
+   qt[25] = expand2s16( qt, M, H, 25 );
+   qt[26] = expand2s16( qt, M, H, 26 );
+   qt[27] = expand2s16( qt, M, H, 27 );
+   qt[28] = expand2s16( qt, M, H, 28 );
+   qt[29] = expand2s16( qt, M, H, 29 );
+   qt[30] = expand2s16( qt, M, H, 30 );
+   qt[31] = expand2s16( qt, M, H, 31 );
+
+   xl = _mm512_xor_si512(
+              mm512_xor4( qt[16], qt[17], qt[18], qt[19] ),
+              mm512_xor4( qt[20], qt[21], qt[22], qt[23] ) );
+   xh = _mm512_xor_si512( xl,  _mm512_xor_si512(
+                 mm512_xor4( qt[24], qt[25], qt[26], qt[27] ),
+                 mm512_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
+
+#define DH1L( m, sl, sr, a, b, c ) \
+   _mm512_add_epi32( \
+               _mm512_xor_si512( M[m], \
+                  _mm512_xor_si512( _mm512_slli_epi32( xh, sl ), \
+                                    _mm512_srli_epi32( qt[a], sr ) ) ), \
+               _mm512_xor_si512( _mm512_xor_si512( xl, qt[b] ), qt[c] ) )
+
+#define DH1R( m, sl, sr, a, b, c ) \
+   _mm512_add_epi32( \
+               _mm512_xor_si512( M[m], \
+                  _mm512_xor_si512( _mm512_srli_epi32( xh, sl ), \
+                                    _mm512_slli_epi32( qt[a], sr ) ) ), \
+               _mm512_xor_si512( _mm512_xor_si512( xl, qt[b] ), qt[c] ) )
+
+#define DH2L( m, rl, sl, h, a, b, c ) \
+   _mm512_add_epi32( _mm512_add_epi32( \
+       mm512_rol_32( dH[h], rl ), \
+          _mm512_xor_si512( _mm512_xor_si512( xh, qt[a] ), M[m] )), \
+                 _mm512_xor_si512( _mm512_slli_epi32( xl, sl ), \
+                                   _mm512_xor_si512( qt[b], qt[c] ) ) );
+
+#define DH2R( m, rl, sr, h, a, b, c ) \
+   _mm512_add_epi32( _mm512_add_epi32( \
+       mm512_rol_32( dH[h], rl ), \
+          _mm512_xor_si512( _mm512_xor_si512( xh, qt[a] ), M[m] )), \
+                 _mm512_xor_si512( _mm512_srli_epi32( xl, sr ), \
+                                   _mm512_xor_si512( qt[b], qt[c] ) ) );
+
+   dH[ 0] = DH1L(  0,  5,  5, 16, 24, 0 );
+   dH[ 1] = DH1R(  1,  7,  8, 17, 25, 1 );
+   dH[ 2] = DH1R(  2,  5,  5, 18, 26, 2 );
+   dH[ 3] = DH1R(  3,  1,  5, 19, 27, 3 );
+   dH[ 4] = DH1R(  4,  3,  0, 20, 28, 4 );
+   dH[ 5] = DH1L(  5,  6,  6, 21, 29, 5 );
+   dH[ 6] = DH1R(  6,  4,  6, 22, 30, 6 );
+   dH[ 7] = DH1R(  7, 11,  2, 23, 31, 7 );
+   dH[ 8] = DH2L(  8,  9,  8,  4, 24, 23,  8 );
+   dH[ 9] = DH2R(  9, 10,  6,  5, 25, 16,  9 );
+   dH[10] = DH2L( 10, 11,  6,  6, 26, 17, 10 );
+   dH[11] = DH2L( 11, 12,  4,  7, 27, 18, 11 );
+   dH[12] = DH2R( 12, 13,  3,  0, 28, 19, 12 );
+   dH[13] = DH2R( 13, 14,  4,  1, 29, 20, 13 );
+   dH[14] = DH2R( 14, 15,  7,  2, 30, 21, 14 );
+   dH[15] = DH2R( 15, 16,  2,  3, 31, 22, 15 );
+
+#undef DH1L
+#undef DH1R
+#undef DH2L
+#undef DH2R
+
+}
+
+static const __m512i final_s16[16] =
+{
+    { 0xaaaaaaa0aaaaaaa0, 0xaaaaaaa0aaaaaaa0,
+      0xaaaaaaa0aaaaaaa0, 0xaaaaaaa0aaaaaaa0,
+      0xaaaaaaa0aaaaaaa0, 0xaaaaaaa0aaaaaaa0,
+      0xaaaaaaa0aaaaaaa0, 0xaaaaaaa0aaaaaaa0 },
+    { 0xaaaaaaa1aaaaaaa1, 0xaaaaaaa1aaaaaaa1,
+      0xaaaaaaa1aaaaaaa1, 0xaaaaaaa1aaaaaaa1,
+      0xaaaaaaa1aaaaaaa1, 0xaaaaaaa1aaaaaaa1,
+      0xaaaaaaa1aaaaaaa1, 0xaaaaaaa1aaaaaaa1 },
+    { 0xaaaaaaa2aaaaaaa2, 0xaaaaaaa2aaaaaaa2,
+      0xaaaaaaa2aaaaaaa2, 0xaaaaaaa2aaaaaaa2,
+      0xaaaaaaa2aaaaaaa2, 0xaaaaaaa2aaaaaaa2,
+      0xaaaaaaa2aaaaaaa2, 0xaaaaaaa2aaaaaaa2 },
+    { 0xaaaaaaa3aaaaaaa3, 0xaaaaaaa3aaaaaaa3,
+      0xaaaaaaa3aaaaaaa3, 0xaaaaaaa3aaaaaaa3,
+      0xaaaaaaa3aaaaaaa3, 0xaaaaaaa3aaaaaaa3,
+      0xaaaaaaa3aaaaaaa3, 0xaaaaaaa3aaaaaaa3 },
+    { 0xaaaaaaa4aaaaaaa4, 0xaaaaaaa4aaaaaaa4,
+      0xaaaaaaa4aaaaaaa4, 0xaaaaaaa4aaaaaaa4,
+      0xaaaaaaa4aaaaaaa4, 0xaaaaaaa4aaaaaaa4,
+      0xaaaaaaa4aaaaaaa4, 0xaaaaaaa4aaaaaaa4 },
+    { 0xaaaaaaa5aaaaaaa5, 0xaaaaaaa5aaaaaaa5,
+      0xaaaaaaa5aaaaaaa5, 0xaaaaaaa5aaaaaaa5,
+      0xaaaaaaa5aaaaaaa5, 0xaaaaaaa5aaaaaaa5,
+      0xaaaaaaa5aaaaaaa5, 0xaaaaaaa5aaaaaaa5 },
+    { 0xaaaaaaa6aaaaaaa6, 0xaaaaaaa6aaaaaaa6,
+      0xaaaaaaa6aaaaaaa6, 0xaaaaaaa6aaaaaaa6,
+      0xaaaaaaa6aaaaaaa6, 0xaaaaaaa6aaaaaaa6,
+      0xaaaaaaa6aaaaaaa6, 0xaaaaaaa6aaaaaaa6 },
+    { 0xaaaaaaa7aaaaaaa7, 0xaaaaaaa7aaaaaaa7,
+      0xaaaaaaa7aaaaaaa7, 0xaaaaaaa7aaaaaaa7,
+      0xaaaaaaa7aaaaaaa7, 0xaaaaaaa7aaaaaaa7,
+      0xaaaaaaa7aaaaaaa7, 0xaaaaaaa7aaaaaaa7 },
+    { 0xaaaaaaa8aaaaaaa8, 0xaaaaaaa8aaaaaaa8,
+      0xaaaaaaa8aaaaaaa8, 0xaaaaaaa8aaaaaaa8,
+      0xaaaaaaa8aaaaaaa8, 0xaaaaaaa8aaaaaaa8,
+      0xaaaaaaa8aaaaaaa8, 0xaaaaaaa8aaaaaaa8 },
+    { 0xaaaaaaa9aaaaaaa9, 0xaaaaaaa9aaaaaaa9,
+      0xaaaaaaa9aaaaaaa9, 0xaaaaaaa9aaaaaaa9,
+      0xaaaaaaa9aaaaaaa9, 0xaaaaaaa9aaaaaaa9,
+      0xaaaaaaa9aaaaaaa9, 0xaaaaaaa9aaaaaaa9 },
+    { 0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa,
+      0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa,
+      0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa,
+      0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa },
+    { 0xaaaaaaabaaaaaaab, 0xaaaaaaabaaaaaaab,
+      0xaaaaaaabaaaaaaab, 0xaaaaaaabaaaaaaab,
+      0xaaaaaaabaaaaaaab, 0xaaaaaaabaaaaaaab,
+      0xaaaaaaabaaaaaaab, 0xaaaaaaabaaaaaaab },
+    { 0xaaaaaaacaaaaaaac, 0xaaaaaaacaaaaaaac,
+      0xaaaaaaacaaaaaaac, 0xaaaaaaacaaaaaaac,
+      0xaaaaaaacaaaaaaac, 0xaaaaaaacaaaaaaac,
+      0xaaaaaaacaaaaaaac, 0xaaaaaaacaaaaaaac },
+    { 0xaaaaaaadaaaaaaad, 0xaaaaaaadaaaaaaad,
+      0xaaaaaaadaaaaaaad, 0xaaaaaaadaaaaaaad,
+      0xaaaaaaadaaaaaaad, 0xaaaaaaadaaaaaaad,
+      0xaaaaaaadaaaaaaad, 0xaaaaaaadaaaaaaad },
+    { 0xaaaaaaaeaaaaaaae, 0xaaaaaaaeaaaaaaae,
+      0xaaaaaaaeaaaaaaae, 0xaaaaaaaeaaaaaaae,
+      0xaaaaaaaeaaaaaaae, 0xaaaaaaaeaaaaaaae,
+      0xaaaaaaaeaaaaaaae, 0xaaaaaaaeaaaaaaae },
+    { 0xaaaaaaafaaaaaaaf, 0xaaaaaaafaaaaaaaf,
+      0xaaaaaaafaaaaaaaf, 0xaaaaaaafaaaaaaaf,
+      0xaaaaaaafaaaaaaaf, 0xaaaaaaafaaaaaaaf,
+      0xaaaaaaafaaaaaaaf, 0xaaaaaaafaaaaaaaf }
+};
+
+
+void bmw256_16way_init( bmw256_16way_context *ctx )
+{
+   ctx->H[ 0] = m512_const1_64( 0x4041424340414243 );
+   ctx->H[ 1] = m512_const1_64( 0x4445464744454647 );
+   ctx->H[ 2] = m512_const1_64( 0x48494A4B48494A4B );
+   ctx->H[ 3] = m512_const1_64( 0x4C4D4E4F4C4D4E4F );
+   ctx->H[ 4] = m512_const1_64( 0x5051525350515253 );
+   ctx->H[ 5] = m512_const1_64( 0x5455565754555657 );
+   ctx->H[ 6] = m512_const1_64( 0x58595A5B58595A5B );
+   ctx->H[ 7] = m512_const1_64( 0x5C5D5E5F5C5D5E5F );
+   ctx->H[ 8] = m512_const1_64( 0x6061626360616263 );
+   ctx->H[ 9] = m512_const1_64( 0x6465666764656667 );
+   ctx->H[10] = m512_const1_64( 0x68696A6B68696A6B );
+   ctx->H[11] = m512_const1_64( 0x6C6D6E6F6C6D6E6F );
+   ctx->H[12] = m512_const1_64( 0x7071727370717273 );
+   ctx->H[13] = m512_const1_64( 0x7475767774757677 );
+   ctx->H[14] = m512_const1_64( 0x78797A7B78797A7B );
+   ctx->H[15] = m512_const1_64( 0x7C7D7E7F7C7D7E7F );
+   ctx->ptr       = 0;
+   ctx->bit_count = 0;
+}
+
+void bmw256_16way_update( bmw256_16way_context *ctx, const void *data,
+                          size_t len )
+{
+   __m512i *vdata = (__m512i*)data;
+   __m512i *buf;
+   __m512i htmp[16];
+   __m512i *h1, *h2;
+   size_t ptr;
+   const int buf_size = 64;  // bytes of one lane, compatible with len
+
+   ctx->bit_count += len << 3;
+   buf = ctx->buf;
+   ptr = ctx->ptr;
+   h1 = ctx->H;
+   h2 = htmp;
+
+   while ( len > 0 )
+   {
+      size_t clen;
+      clen = buf_size - ptr;
+      if ( clen > len )
+         clen = len;
+      memcpy_512( buf + (ptr>>2), vdata, clen >> 2 );
+      vdata = vdata + (clen>>2);
+      len -= clen;
+      ptr += clen;
+      if ( ptr == buf_size )
+      {
+         __m512i *ht;
+         compress_small_16way( buf, h1, h2 );
+         ht = h1;
+         h1 = h2;
+         h2 = ht;
+         ptr = 0;
+      }
+   }
+   ctx->ptr = ptr;
+
+   if ( h1 != ctx->H )
+        memcpy_512( ctx->H, h1, 16 );
+}
+
+void bmw256_16way_close( bmw256_16way_context *ctx, void *dst )
+{
+   __m512i *buf;
+   __m512i h1[16], h2[16], *h;
+   size_t ptr, u, v;
+   const int buf_size = 64;  // bytes of one lane, compatible with len
+
+   buf = ctx->buf;
+   ptr = ctx->ptr;
+   buf[ ptr>>2 ] = m512_const1_64( 0x0000008000000080 );
+   ptr += 4;
+   h = ctx->H;
+
+   if (  ptr > (buf_size - 4) )
+   {
+      memset_zero_512( buf + (ptr>>2), (buf_size - ptr) >> 2 );
+      compress_small_16way( buf, h, h1 );
+      ptr = 0;
+      h = h1;
+   }
+   memset_zero_512( buf + (ptr>>2), (buf_size - 8 - ptr) >> 2 );
+   buf[ (buf_size - 8) >> 2 ] = _mm512_set1_epi32( ctx->bit_count );
+   buf[ (buf_size - 4) >> 2 ] = m512_zero;
+
+   compress_small_16way( buf, h, h2 );
+
+   for ( u = 0; u < 16; u ++ )
+      buf[u] = h2[u];
+
+   compress_small_16way( buf, final_s16, h1 );
+   for (u = 0, v = 16 - 8; u < 8; u ++, v ++)
+      casti_m512i(dst,u) = h1[v];
+}
+
+
+#endif // AVX512
+
 
 #ifdef __cplusplus
 }

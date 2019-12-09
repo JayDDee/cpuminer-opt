@@ -1,6 +1,7 @@
 #include <string.h>
 #include <immintrin.h>
 #include "luffa-hash-2way.h"
+#include <stdio.h>
 
 #if defined(__AVX2__)
 
@@ -318,22 +319,6 @@ void rnd512_4way( luffa_4way_context *state, __m512i *msg )
     chainv[4] = _mm512_xor_si512( chainv[4], msg0 );
     chainv[5] = _mm512_xor_si512( chainv[5], msg1 );
 
-    MULT24W( chainv[2], chainv[3], MASK );
-    chainv[2] = _mm512_xor_si512( chainv[2], chainv[0] );
-    chainv[3] = _mm512_xor_si512( chainv[3], chainv[1] );
-
-    MULT24W( chainv[0], chainv[1], MASK );
-    chainv[0] = _mm512_xor_si512( _mm512_xor_si512( chainv[0], t0 ), msg0 );
-    chainv[1] = _mm512_xor_si512( _mm512_xor_si512( chainv[1], t1 ), msg1 );
-
-    MULT24W( msg0, msg1, MASK );
-    chainv[2] = _mm512_xor_si512( chainv[2], msg0 );
-    chainv[3] = _mm512_xor_si512( chainv[3], msg1 );
-
-    MULT24W( msg0, msg1, MASK );
-    chainv[4] = _mm512_xor_si512( chainv[4], msg0 );
-    chainv[5] = _mm512_xor_si512( chainv[5], msg1 );
-
     MULT24W( msg0, msg1, MASK );
     chainv[6] = _mm512_xor_si512( chainv[6], msg0 );
     chainv[7] = _mm512_xor_si512( chainv[7], msg1 );
@@ -345,14 +330,10 @@ void rnd512_4way( luffa_4way_context *state, __m512i *msg )
     MULT24W( msg0, msg1, MASK );
 
     // replace with ror
-    chainv[3] = _mm512_or_si512( _mm512_slli_epi32( chainv[3],  1 ),
-                                 _mm512_srli_epi32( chainv[3], 31 ) );
-    chainv[5] = _mm512_or_si512( _mm512_slli_epi32( chainv[5],  2 ),
-                                 _mm512_srli_epi32( chainv[5], 30 ) );
-    chainv[7] = _mm512_or_si512( _mm512_slli_epi32( chainv[7],  3 ),
-                                 _mm512_srli_epi32( chainv[7], 29 ) );
-    chainv[9] = _mm512_or_si512( _mm512_slli_epi32( chainv[9],  4 ),
-                                 _mm512_srli_epi32( chainv[9], 28 ) );
+    chainv[3] = _mm512_rol_epi32( chainv[3], 1 );
+    chainv[5] = _mm512_rol_epi32( chainv[5], 2 );
+    chainv[7] = _mm512_rol_epi32( chainv[7], 3 );
+    chainv[9] = _mm512_rol_epi32( chainv[9], 4 );
 
     NMLTOM10244W( chainv[0], chainv[2], chainv[4], chainv[6],
                 x[0], x[1], x[2], x[3],
@@ -394,7 +375,7 @@ void rnd512_4way( luffa_4way_context *state, __m512i *msg )
 
 void finalization512_4way( luffa_4way_context *state, uint32 *b )
 {
-    uint32 hash[8*4] __attribute((aligned(128)));
+    uint32_t hash[8*4] __attribute((aligned(128)));
     __m512i* chainv = state->chainv;
     __m512i t[2];
     __m512i zero[2];
@@ -424,7 +405,7 @@ void finalization512_4way( luffa_4way_context *state, uint32 *b )
     t[1] = _mm512_shuffle_epi32( t[1], 27 );
 
     _mm512_store_si512( (__m512i*)&hash[0], t[0] );
-    _mm512_store_si512( (__m512i*)&hash[8], t[1] );
+    _mm512_store_si512( (__m512i*)&hash[16], t[1] );
 
     casti_m512i( b, 0 ) = _mm512_shuffle_epi8(
                                   casti_m512i( hash, 0 ), shuff_bswap32 );
@@ -448,7 +429,7 @@ void finalization512_4way( luffa_4way_context *state, uint32 *b )
     t[1] = _mm512_shuffle_epi32( t[1], 27 );
 
     _mm512_store_si512( (__m512i*)&hash[0], t[0] );
-    _mm512_store_si512( (__m512i*)&hash[8], t[1] );
+    _mm512_store_si512( (__m512i*)&hash[16], t[1] );
 
     casti_m512i( b, 2 ) = _mm512_shuffle_epi8(
                                   casti_m512i( hash, 0 ), shuff_bswap32 );
@@ -493,8 +474,8 @@ int luffa_4way_update( luffa_4way_context *state, const void *data,
                                    0x2c2d2e2f28292a2b, 0x2425262720212223,
                                    0x1c1d1e1f18191a1b, 0x1415161710111213,
                                    0x0c0d0e0f08090a0b, 0x0405060700010203 );
-         
-    state-> rembytes = (int)len & 0x1F;
+
+    state->rembytes = (int)len & 0x1F;
 
     // full blocks
     for ( i = 0; i < blocks; i++, vdata+=2 )
@@ -578,8 +559,9 @@ int luffa_4way_update_close( luffa_4way_context *state,
     }
 
     finalization512_4way( state, (uint32*)output );
+
     if ( state->hashbitlen > 512 )
-        finalization512_4way( state, (uint32*)( output+32 ) );
+        finalization512_4way( state, (uint32*)( output+64 ) );
 
     return 0;
 }
@@ -860,14 +842,10 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
 
     MULT2( msg0, msg1, MASK );
 
-    chainv[3] = _mm256_or_si256( _mm256_slli_epi32( chainv[3],  1 ),
-                                 _mm256_srli_epi32( chainv[3], 31 ) );
-    chainv[5] = _mm256_or_si256( _mm256_slli_epi32( chainv[5],  2 ),
-                                 _mm256_srli_epi32( chainv[5], 30 ) );
-    chainv[7] = _mm256_or_si256( _mm256_slli_epi32( chainv[7],  3 ),
-                                 _mm256_srli_epi32( chainv[7], 29 ) );
-    chainv[9] = _mm256_or_si256( _mm256_slli_epi32( chainv[9],  4 ),
-                                 _mm256_srli_epi32( chainv[9], 28 ) );
+    chainv[3] = mm256_rol_32( chainv[3], 1 );
+    chainv[5] = mm256_rol_32( chainv[5], 2 );
+    chainv[7] = mm256_rol_32( chainv[7], 3 );
+    chainv[9] = mm256_rol_32( chainv[9], 4 );
 
     NMLTOM1024( chainv[0], chainv[2], chainv[4], chainv[6],
                 x[0], x[1], x[2], x[3],
@@ -1093,6 +1071,7 @@ int luffa_2way_update_close( luffa_2way_context *state,
     }
 
     finalization512_2way( state, (uint32*)output );
+
     if ( state->hashbitlen > 512 )
         finalization512_2way( state, (uint32*)( output+32 ) );
 

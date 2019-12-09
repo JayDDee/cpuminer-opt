@@ -29,7 +29,7 @@ rm -f config.status
 CFLAGS="-O3 -march=corei7-avx -maes -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe
-mv cpuminer.exe cpuminer-aes-avx.exe
+mv cpuminer.exe cpuminer-avx.exe
 strip -s cpuminer
 mv cpuminer cpuminer-aes-avx
 
