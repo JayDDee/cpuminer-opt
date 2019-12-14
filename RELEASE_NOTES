@@ -31,7 +31,12 @@ not supported. FreeBSD YMMV.
 Change Log
 ----------
 
-v3.10.2
+v3.10.3
+
+AVX512 for x12, x13, x14, x15.
+Fixed x12 AVX2 invalid shares.
+
+v.10.2
 
 AVX512 added for bmw512, c11, phi1612 (phi), qubit, skunk, x11, x11gost (sib).
 Fixed c11 AVX2 invalid shares.

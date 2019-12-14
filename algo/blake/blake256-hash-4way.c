@@ -634,7 +634,7 @@ do { \
                               m256_const1_64( 0x082EFA98082EFA98 ) ); \
    VF = _mm256_xor_si256( _mm256_set1_epi32( T1 ), \
                               m256_const1_64( 0xEC4E6C89EC4E6C89 ) ); \
-   shuf_bswap32 = m256_const_64( 0x0c0d0e0f08090a0b, 0x0405060700010203, \
+   shuf_bswap32 = m256_const_64( 0x1c1d1e1f18191a1b, 0x1415161710111213, \
                                  0x0c0d0e0f08090a0b, 0x0405060700010203 ); \
    M0 = _mm256_shuffle_epi8( * buf    , shuf_bswap32 ); \
    M1 = _mm256_shuffle_epi8( *(buf+ 1), shuf_bswap32 ); \
@@ -1184,7 +1184,7 @@ blake256_16way_update(void *cc, const void *data, size_t len)
 }
 
 void
-blake256_16way_close_update(void *cc, void *dst)
+blake256_16way_close(void *cc, void *dst)
 {
         blake32_16way_close(cc, 0, 0, dst, 8);
 }
@@ -1259,7 +1259,7 @@ blake256_8way_init(void *cc)
 }
 
 void
-blake256_8way(void *cc, const void *data, size_t len)
+blake256_8way_update(void *cc, const void *data, size_t len)
 {
         blake32_8way(cc, data, len);
 }
@@ -1279,7 +1279,7 @@ void blake256r14_4way_init(void *cc)
 }
 
 void
-blake256r14_4way(void *cc, const void *data, size_t len)
+blake256r14_4way_update(void *cc, const void *data, size_t len)
 {
    blake32_4way(cc, data, len);
 }
@@ -1298,7 +1298,7 @@ void blake256r14_8way_init(void *cc)
 }
 
 void
-blake256r14_8way(void *cc, const void *data, size_t len)
+blake256r14_8way_update(void *cc, const void *data, size_t len)
 {
    blake32_8way(cc, data, len);
 }
@@ -1318,7 +1318,7 @@ void blake256r8_4way_init(void *cc)
 }
 
 void
-blake256r8_4way(void *cc, const void *data, size_t len)
+blake256r8_4way_update(void *cc, const void *data, size_t len)
 {
    blake32_4way(cc, data, len);
 }
@@ -1337,7 +1337,7 @@ void blake256r8_8way_init(void *cc)
 }
 
 void
-blake256r8_8way(void *cc, const void *data, size_t len)
+blake256r8_8way_update(void *cc, const void *data, size_t len)
 {
    blake32_8way(cc, data, len);
 }

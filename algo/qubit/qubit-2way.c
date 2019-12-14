@@ -92,7 +92,6 @@ int scanhash_qubit_4way( struct work *work,uint32_t max_nonce,
 {
      uint32_t hash[4*8] __attribute__ ((aligned (128)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-     uint32_t endiandata[20] __attribute__((aligned(64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;
      uint32_t n = pdata[19];

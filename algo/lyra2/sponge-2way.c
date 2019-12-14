@@ -19,7 +19,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "algo-gate.h"
+#include "algo-gate-api.h"
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
@@ -27,7 +27,8 @@
 #include "sponge.h"
 #include "lyra2.h"
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if 0
+//#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 inline void squeeze_2way( uint64_t *State, byte *Out, unsigned int len )
 {

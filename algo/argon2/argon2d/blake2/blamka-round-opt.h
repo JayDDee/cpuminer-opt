@@ -184,10 +184,10 @@ static BLAKE2_INLINE __m128i fBlaMka(__m128i x, __m128i y) {
 
 #include <immintrin.h>
 
-#define  rotr32  mm256_swap32_64
-#define  rotr24  mm256_ror3x8_64
-#define  rotr16  mm256_ror1x16_64
-#define  rotr63( x ) mm256_rol_64( x, 1 )
+#define  rotr32( x )  mm256_ror_64( x, 32 )
+#define  rotr24( x )  mm256_ror_64( x, 24 )
+#define  rotr16( x )  mm256_ror_64( x, 16 )
+#define  rotr63( x )  mm256_rol_64( x,  1 )
 
 //#define rotr32(x)   _mm256_shuffle_epi32(x, _MM_SHUFFLE(2, 3, 0, 1))
 //#define rotr24(x)   _mm256_shuffle_epi8(x, _mm256_setr_epi8(3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10, 3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10))

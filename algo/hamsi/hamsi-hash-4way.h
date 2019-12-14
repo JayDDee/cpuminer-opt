@@ -60,8 +60,31 @@ typedef struct {
 typedef hamsi_4way_big_context hamsi512_4way_context;
 
 void hamsi512_4way_init( hamsi512_4way_context *sc );
-void hamsi512_4way( hamsi512_4way_context *sc, const void *data, size_t len );
+void hamsi512_4way_update( hamsi512_4way_context *sc, const void *data,
+      size_t len );
+#define hamsi512_4way hamsi512_4way_update
 void hamsi512_4way_close( hamsi512_4way_context *sc, void *dst );
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+typedef struct {
+   __m512i h[8];
+   __m512i buf[1];
+   size_t partial_len;
+   sph_u32 count_high, count_low;
+} hamsi_8way_big_context;
+
+typedef hamsi_8way_big_context hamsi512_8way_context;
+
+void hamsi512_8way_init( hamsi512_8way_context *sc );
+void hamsi512_8way_update( hamsi512_8way_context *sc, const void *data,
+                           size_t len );
+void hamsi512_8way_close( hamsi512_8way_context *sc, void *dst );
+
+
+
+#endif
+
 
 #ifdef __cplusplus
 }

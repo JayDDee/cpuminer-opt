@@ -126,11 +126,11 @@ Supported Algorithms
                           x16rv2        Ravencoin (RVN)
                           x16rt         Gincoin (GIN)
                           x16rt-veil    Veil (VEIL)
-                          x16s          Pigeoncoin (PGN)
+                          x16s          
                           x17
-                          x21s
-                          x22i
-                          x25x
+                          x21s          Pigeoncoin (PGN)
+                          x22i          
+                          x25x          Sinovative (SIN)
                           xevan         Bitsend (BSD)
                           yescrypt      Globalboost-Y (BSTY)
                           yescryptr8    BitZeny (ZNY)

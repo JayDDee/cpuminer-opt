@@ -874,9 +874,9 @@ Options:\n\
                           x16rt-veil    Veil (VEIL)\n\
                           x16s\n\
                           x17\n\
-                          x21s\n\
+                          x21s          Pigeoncoin (PGN)\n\
                           x22i\n\
-                          x25x\n\
+                          x25x          Sinovative (SIN)\n\
                           xevan         Bitsend (BSD)\n\
                           yescrypt      Globalboost-Y (BSTY)\n\
                           yescryptr8    BitZeny (ZNY)\n\
