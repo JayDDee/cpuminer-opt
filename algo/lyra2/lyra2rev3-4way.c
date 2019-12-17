@@ -4,8 +4,212 @@
 #include "algo/blake/blake-hash-4way.h"
 #include "algo/bmw/bmw-hash-4way.h"
 #include "algo/cubehash/cubehash_sse2.h" 
+#include "algo/cubehash/cube-hash-2way.h"
 
-#if defined (LYRA2REV3_8WAY)
+#if defined (LYRA2REV3_16WAY)
+
+typedef struct {
+   blake256_16way_context     blake;
+   cube_4way_context          cube;
+   bmw256_16way_context       bmw;
+} lyra2v3_16way_ctx_holder;
+
+static __thread lyra2v3_16way_ctx_holder l2v3_16way_ctx;
+
+bool init_lyra2rev3_16way_ctx()
+{
+   blake256_16way_init( &l2v3_16way_ctx.blake );
+   cube_4way_init( &l2v3_16way_ctx.cube, 256, 16, 32 );
+   bmw256_16way_init( &l2v3_16way_ctx.bmw );
+   return true;
+}
+
+void lyra2rev3_16way_hash( void *state, const void *input )
+{
+   uint32_t vhash[16*8] __attribute__ ((aligned (128)));
+   uint32_t hash0[8] __attribute__ ((aligned (64)));
+   uint32_t hash1[8] __attribute__ ((aligned (32)));
+   uint32_t hash2[8] __attribute__ ((aligned (32)));
+   uint32_t hash3[8] __attribute__ ((aligned (32)));
+   uint32_t hash4[8] __attribute__ ((aligned (32)));
+   uint32_t hash5[8] __attribute__ ((aligned (32)));
+   uint32_t hash6[8] __attribute__ ((aligned (32)));
+   uint32_t hash7[8] __attribute__ ((aligned (32)));
+   uint32_t hash8[8] __attribute__ ((aligned (64)));
+   uint32_t hash9[8] __attribute__ ((aligned (32)));
+   uint32_t hash10[8] __attribute__ ((aligned (32)));
+   uint32_t hash11[8] __attribute__ ((aligned (32)));
+   uint32_t hash12[8] __attribute__ ((aligned (32)));
+   uint32_t hash13[8] __attribute__ ((aligned (32)));
+   uint32_t hash14[8] __attribute__ ((aligned (32)));
+   uint32_t hash15[8] __attribute__ ((aligned (32)));
+   lyra2v3_16way_ctx_holder ctx __attribute__ ((aligned (64)));
+   memcpy( &ctx, &l2v3_16way_ctx, sizeof(l2v3_16way_ctx) );
+
+   blake256_16way_update( &ctx.blake, input + (64*16), 16 );
+   blake256_16way_close( &ctx.blake, vhash );
+
+   dintrlv_16x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
+           hash8, hash9, hash10, hash11 ,hash12, hash13, hash14, hash15,
+           vhash, 256 );
+
+
+
+//printf("Lyra1 lane 0\n");
+
+
+   intrlv_2x256( vhash, hash0, hash1, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash0, 32, 1, 4, 4 );
+
+
+uint32_t h[8];
+
+   LYRA2REV3( l2v3_wholeMatrix, h, 32, hash1, 32, hash1, 32, 1, 4, 4 );
+
+
+printf("S: %08x %08x %08x %08x %08x %08x %08x %08x\n",hash0[0],hash0[1],hash0[2],hash0[3],hash0[4],hash0[5],hash0[6],hash0[7]);
+printf("V: %08x %08x %08x %08x %08x %08x %08x %08x\n",h[0],h[1],h[2],h[3],h[4],h[5],h[6],h[7]);
+printf("\n");
+
+//printf("Lyra1 lane 2\n");
+
+   dintrlv_2x256( hash0, hash1, vhash, 256 );
+
+/*
+
+   intrlv_2x256( vhash, hash2, hash3, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash2, 32, 1, 4, 4 );
+   dintrlv_2x256( hash2, hash3, vhash, 256 );
+   intrlv_2x256( vhash, hash4, hash5, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash4, 32, 1, 4, 4 );
+   dintrlv_2x256( hash4, hash5, vhash, 256 );
+   intrlv_2x256( vhash, hash6, hash7, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash6, 32, 1, 4, 4 );
+   dintrlv_2x256( hash6, hash7, vhash, 256 );
+   intrlv_2x256( vhash, hash8, hash9, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash8, 32, 1, 4, 4 );
+   dintrlv_2x256( hash8, hash9, vhash, 256 );
+   intrlv_2x256( vhash, hash10, hash11, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash10, 32, 1, 4, 4 );
+   dintrlv_2x256( hash10, hash11, vhash, 256 );
+   intrlv_2x256( vhash, hash12, hash13, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash12, 32, 1, 4, 4 );
+   dintrlv_2x256( hash12, hash13, vhash, 256 );
+   intrlv_2x256( vhash, hash14, hash15, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash14, 32, 1, 4, 4 );
+   dintrlv_2x256( hash14, hash15, vhash, 256 );
+*/
+
+//printf("cube\n");
+
+   intrlv_4x128( vhash, hash0, hash1, hash2, hash3, 256 );
+   cube_4way_update_close( &ctx.cube, vhash, vhash, 32 );
+   dintrlv_4x128( hash0, hash1, hash2, hash3, vhash, 256 );
+   intrlv_4x128( vhash, hash4, hash5, hash6, hash7, 256 );
+   cube_4way_init( &ctx.cube, 256, 16, 32 );
+   cube_4way_update_close( &ctx.cube, vhash, vhash, 32 );
+   dintrlv_4x128( hash4, hash5, hash6, hash7, vhash, 256 );
+   intrlv_4x128( vhash, hash8, hash9, hash10, hash11, 256 );
+   cube_4way_init( &ctx.cube, 256, 16, 32 );
+   cube_4way_update_close( &ctx.cube, vhash, vhash, 32 );
+   dintrlv_4x128( hash8, hash9, hash10, hash11, vhash, 256 );
+   intrlv_4x128( vhash, hash12, hash13, hash14, hash15, 256 );
+   cube_4way_init( &ctx.cube, 256, 16, 32 );
+   cube_4way_update_close( &ctx.cube, vhash, vhash, 32 );
+   dintrlv_4x128( hash12, hash13, hash14, hash15, vhash, 256 );
+
+//printf("Lyra2...\n");
+/*
+   intrlv_2x256( vhash, hash0, hash1, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash0, 32, 1, 4, 4 );
+   dintrlv_2x256( hash0, hash1, vhash, 256 );
+   intrlv_2x256( vhash, hash2, hash3, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash2, 32, 1, 4, 4 );
+   dintrlv_2x256( hash2, hash3, vhash, 256 );
+   intrlv_2x256( vhash, hash4, hash5, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash4, 32, 1, 4, 4 );
+   dintrlv_2x256( hash4, hash5, vhash, 256 );
+   intrlv_2x256( vhash, hash6, hash7, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash6, 32, 1, 4, 4 );
+   dintrlv_2x256( hash6, hash7, vhash, 256 );
+   intrlv_2x256( vhash, hash8, hash9, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash8, 32, 1, 4, 4 );
+   dintrlv_2x256( hash8, hash9, vhash, 256 );
+   intrlv_2x256( vhash, hash10, hash11, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash10, 32, 1, 4, 4 );
+   dintrlv_2x256( hash10, hash11, vhash, 256 );
+   intrlv_2x256( vhash, hash12, hash13, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash12, 32, 1, 4, 4 );
+   dintrlv_2x256( hash12, hash13, vhash, 256 );
+   intrlv_2x256( vhash, hash14, hash15, 256 );
+   LYRA2REV3_2WAY( l2v3_wholeMatrix, vhash, 32, vhash, 32, hash14, 32, 1, 4, 4 );
+   dintrlv_2x256( hash14, hash15, vhash, 256 );
+*/
+
+
+   intrlv_16x32( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
+             hash7, hash8, hash9, hash10, hash11, hash12, hash13, hash14,
+             hash15, 256 );
+
+//printf("bmw\n");
+
+   bmw256_16way_update( &ctx.bmw, vhash, 32 );
+   bmw256_16way_close( &ctx.bmw, state );
+
+//printf("done\n"); 
+
+}
+
+
+int scanhash_lyra2rev3_16way( struct work *work, const uint32_t max_nonce,
+                             uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t hash[8*16] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*16] __attribute__ ((aligned (64)));
+   uint32_t *hash7 = &hash[7<<3];
+   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
+   uint32_t *pdata = work->data;
+   const uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   uint32_t n = first_nonce;
+   const uint32_t Htarg = ptarget[7];
+   __m512i  *noncev = (__m512i*)vdata + 19;   // aligned
+   const int thr_id = mythr->id;
+
+   if ( opt_benchmark )  ( (uint32_t*)ptarget )[7] = 0x0000ff;
+
+   mm512_bswap32_intrlv80_16x32( vdata, pdata );
+
+   blake256_16way_init( &l2v3_16way_ctx.blake );
+//   blake256_16way_update( &l2v3_16way_ctx.blake, vdata, 64 );
+
+   do
+   {
+      *noncev = mm512_bswap_32( _mm512_set_epi32( n+15, n+14, n+13, n+12,
+                                                  n+11, n+10, n+ 9, n+ 8,
+                                                  n+ 7, n+ 6, n+ 5, n+ 4,
+                                                  n+ 3, n+ 2, n+ 1, n ) );
+
+      lyra2rev3_16way_hash( hash, vdata );
+      pdata[19] = n;
+
+      for ( int lane = 0; lane < 16; lane++ )
+      if ( unlikely( hash7[lane] <= Htarg ) )
+      {
+         extr_lane_16x32( lane_hash, hash, lane, 256 );
+         if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
+         {
+             pdata[19] = n + lane;
+             submit_lane_solution( work, lane_hash, mythr, lane );
+         }
+      }
+      n += 16;
+   } while ( likely( (n < max_nonce-16) && !work_restart[thr_id].restart ) );
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+#elif defined (LYRA2REV3_8WAY)
 
 typedef struct {
    blake256_8way_context     blake;

@@ -1,12 +1,14 @@
 
 
-Requirements:
+1. Requirements:
+---------------
 
 Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
 supported.
 64 bit Linux operating system. Apple is not supported.
 
-Building on linux prerequisites:
+2. Building on linux prerequisites:
+-----------------------------------
 
 It is assumed users know how to install packages on their system and
 be able to compile standard source packages. This is basic Linux and
@@ -20,41 +22,74 @@ http://askubuntu.com/questions/457526/how-to-install-cpuminer-in-ubuntu
 
 Install any additional dependencies needed by cpuminer-opt. The list below
 are some of the ones that may not be in the default install and need to
-be installed manually. There may be others, read the error messages they
-will give a clue as to the missing package.
+be installed manually. There may be others, read the compiler error messages,
+they will give a clue as to the missing package.
 
 The following command should install everything you need on Debian based
 distributions such as Ubuntu. Fedora and other distributions may have similar
-but different package names.
+but different package names. 
 
-sudo apt-get install build-essential libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev zlib1g-dev
+$ sudo apt-get install build-essential automake libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev zlib1g-dev git
 
 SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and
-openssl 1.1.0e or higher. Add one of the following, depending on the
-compiler version, to CFLAGS:
-"-march=native" or "-march=znver1" or "-msha".
+openssl 1.1.0e or higher. Add one of the following to CFLAGS for SHA
+support depending on your CPU and compiler version:
+
+"-march=native" is always the best choice
+
+"-march=znver1" for Ryzen 1000 & 2000 series, znver2 for 3000.
+
+"-msha"  Add SHA to other tuning options
 
 Additional instructions for static compilalation can be found here:
 https://lxadm.com/Static_compilation_of_cpuminer
 Static builds should only considered in a homogeneous HW and SW environment.
 Local builds will always have the best performance and compatibility.
 
-Extract cpuminer source.
+3. Download cpuminer-opt
+------------------------
 
-tar xvzf cpuminer-opt-x.y.z.tar.gz
-cd cpuminer-opt-x.y.z
+Download the source code for the latest realease from the official repository.
 
-Run ./build.sh to build on Linux or execute the following commands.
+https://github.com/JayDDee/cpuminer-opt/releases
 
-./autogen.sh
-CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
-make
+Extract the source code.
 
-Start mining.
+$ tar xvzf cpuminer-opt-x.y.z.tar.gz
 
-./cpuminer -a algo -o url -u username -p password
+
+Alternatively it can be cloned from git.
+
+$ git clone https://github.com/JayDDee/cpuminer-opt.git
+ 
+4. Build cpuminer-opt
+---------------------
+
+It is recomended to Build with default options, this will usuallly
+produce the best results.
+
+$ ./build.sh to build on Linux or execute the following commands.
+
+or 
+
+$ ./autogen.sh
+$ CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
+$ make -j n
+
+n is the number of threads.
+
+5. Start mining.
+----------------
+
+$ ./cpuminer -a algo -o url -u username -p password
+
 
 Windows
+-------
+
+See also INSTAL_WINDOWS
+
+The following procedure is obsolete and uses an old compiler.
 
 Precompiled Windows binaries are built on a Linux host using Mingw
 with a more recent compiler than the following Windows hosted procedure.

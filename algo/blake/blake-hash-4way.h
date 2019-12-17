@@ -70,19 +70,22 @@ typedef struct {
 // Default 14 rounds
 typedef blake_4way_small_context blake256_4way_context;
 void blake256_4way_init(void *ctx);
-void blake256_4way(void *ctx, const void *data, size_t len);
+void blake256_4way_update(void *ctx, const void *data, size_t len);
+#define blake256_4way blake256_4way_update
 void blake256_4way_close(void *ctx, void *dst);
 
 // 14 rounds, blake, decred
 typedef blake_4way_small_context blake256r14_4way_context;
 void blake256r14_4way_init(void *cc);
-void blake256r14_4way(void *cc, const void *data, size_t len);
+void blake256r14_4way_update(void *cc, const void *data, size_t len);
+#define blake256r14_4way blake256r14_4way_update
 void blake256r14_4way_close(void *cc, void *dst);
 
 // 8 rounds, blakecoin, vanilla
 typedef blake_4way_small_context blake256r8_4way_context;
 void blake256r8_4way_init(void *cc);
-void blake256r8_4way(void *cc, const void *data, size_t len);
+void blake256r8_4way_update(void *cc, const void *data, size_t len);
+#define blake256r8_4way blake256r8_4way_update
 void blake256r8_4way_close(void *cc, void *dst);
 
 #ifdef __AVX2__
@@ -100,19 +103,21 @@ typedef struct {
 // Default 14 rounds
 typedef blake_8way_small_context blake256_8way_context;
 void blake256_8way_init(void *cc);
-void blake256_8way(void *cc, const void *data, size_t len);
+void blake256_8way_update(void *cc, const void *data, size_t len);
+#define blake256_8way blake256_8way_update
 void blake256_8way_close(void *cc, void *dst);
 
 // 14 rounds, blake, decred
 typedef blake_8way_small_context blake256r14_8way_context;
 void blake256r14_8way_init(void *cc);
-void blake256r14_8way(void *cc, const void *data, size_t len);
+void blake256r14_8way_update(void *cc, const void *data, size_t len);
 void blake256r14_8way_close(void *cc, void *dst);
 
 // 8 rounds, blakecoin, vanilla
 typedef blake_8way_small_context blake256r8_8way_context;
 void blake256r8_8way_init(void *cc);
-void blake256r8_8way(void *cc, const void *data, size_t len);
+void blake256r8_8way_update(void *cc, const void *data, size_t len);
+#define blake256r8_8way blake256r8_8way_update
 void blake256r8_8way_close(void *cc, void *dst);
 
 // Blake-512 4 way

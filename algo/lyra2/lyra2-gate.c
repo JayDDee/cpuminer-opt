@@ -44,8 +44,13 @@ bool lyra2rev3_thread_init()
 {
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols
    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+   int size = ROW_LEN_BYTES * 4; // nRows;
 
-   int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
+#if defined(LYRA2REV3_16WAY)
+//   l2v3_wholeMatrix = _mm_malloc( 2*size, 128 );
+   l2v3_wholeMatrix = _mm_malloc( 2*size, 64 );
+   init_lyra2rev3_16way_ctx();;
+#else
    l2v3_wholeMatrix = _mm_malloc( size, 64 );
 #if defined (LYRA2REV3_8WAY)
    init_lyra2rev3_8way_ctx();;
@@ -54,12 +59,16 @@ bool lyra2rev3_thread_init()
 #else
    init_lyra2rev3_ctx();
 #endif
+#endif
    return l2v3_wholeMatrix;
 }
 
 bool register_lyra2rev3_algo( algo_gate_t* gate )
 {
-#if defined (LYRA2REV3_8WAY)
+#if defined(LYRA2REV3_16WAY)
+  gate->scanhash  = (void*)&scanhash_lyra2rev3_16way;
+  gate->hash      = (void*)&lyra2rev3_16way_hash;
+#elif defined (LYRA2REV3_8WAY)
   gate->scanhash  = (void*)&scanhash_lyra2rev3_8way;
   gate->hash      = (void*)&lyra2rev3_8way_hash;
 #elif defined (LYRA2REV3_4WAY)
@@ -69,6 +78,7 @@ bool register_lyra2rev3_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_lyra2rev3;
   gate->hash      = (void*)&lyra2rev3_hash;
 #endif
+//  gate->optimizations = SSE2_OPT | SSE42_OPT | AVX2_OPT | AVX512_OPT;
   gate->optimizations = SSE2_OPT | SSE42_OPT | AVX2_OPT;
   gate->miner_thread_init = (void*)&lyra2rev3_thread_init;
   opt_target_factor = 256.0;

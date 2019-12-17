@@ -51,6 +51,8 @@ void init_c11_8way_ctx()
 void c11_8way_hash( void *state, const void *input )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
+     uint64_t vhash0[4*8] __attribute__ ((aligned (64)));     
+     uint64_t vhash1[4*8] __attribute__ ((aligned (64)));
      uint64_t hash0[8] __attribute__ ((aligned (64)));
      uint64_t hash1[8] __attribute__ ((aligned (64)));
      uint64_t hash2[8] __attribute__ ((aligned (64)));
@@ -107,21 +109,18 @@ void c11_8way_hash( void *state, const void *input )
      skein512_8way_update( &ctx.skein, vhash, 64 );
      skein512_8way_close( &ctx.skein, vhash );
 
-     // Serial
-     dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
-                   vhash );
+     rintrlv_8x64_4x128( vhash0, vhash1, vhash, 512 );
 
-     // 7 Luffa + 8 cube
-     intrlv_4x128_512( vhash, hash0, hash1, hash2, hash3 );
-     luffa_4way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     cube_4way_update_close( &ctx.cube, vhash, vhash, 64 );
-     dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
-     intrlv_4x128_512( vhash, hash4, hash5, hash6, hash7 );
+     luffa_4way_update_close( &ctx.luffa, vhash0, vhash0, 64 );
      luffa_4way_init( &ctx.luffa, 512 );
+     luffa_4way_update_close( &ctx.luffa, vhash1, vhash1, 64 );
+
+     cube_4way_update_close( &ctx.cube, vhash0, vhash0, 64 );
      cube_4way_init( &ctx.cube, 512, 16, 32 );
-     luffa_4way_update_close( &ctx.luffa, vhash, vhash, 64 );
-     cube_4way_update_close( &ctx.cube, vhash, vhash, 64 );
-     dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
+     cube_4way_update_close( &ctx.cube, vhash1, vhash1, 64 );
+
+     dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash0 );
+     dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash1 );
 
      // 9 Shavite
      sph_shavite512( &ctx.shavite, hash0, 64 );

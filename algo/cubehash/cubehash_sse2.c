@@ -39,8 +39,8 @@ static void transform( cubehashParam *sp )
         x1 = mm256_rol_32( y0, 7 );
         x0 = _mm256_xor_si256( x0, x2 );
         x1 = _mm256_xor_si256( x1, x3 );
-        x2 = mm256_swap64_128( x2 );
-        x3 = mm256_swap64_128( x3 );
+        x2 = mm256_swap128_64( x2 );
+        x3 = mm256_swap128_64( x3 );
         x2 = _mm256_add_epi32( x0, x2 );
         x3 = _mm256_add_epi32( x1, x3 );
         y0 = mm256_swap_128( x0 );
@@ -49,8 +49,8 @@ static void transform( cubehashParam *sp )
         x1 = mm256_rol_32( y1, 11 );
         x0 = _mm256_xor_si256( x0, x2 );
         x1 = _mm256_xor_si256( x1, x3 );
-        x2 = mm256_swap32_64( x2 );
-        x3 = mm256_swap32_64( x3 );
+        x2 = mm256_swap64_32( x2 );
+        x3 = mm256_swap64_32( x3 );
     }
 
     _mm256_store_si256( (__m256i*)sp->x,     x0 );

@@ -6,8 +6,10 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#if defined(__AVX2__) && defined(__AES__)
-  #define X16R_4WAY
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+  #define X16R_8WAY 1
+#elif defined(__AVX2__) && defined(__AES__)
+  #define X16R_4WAY 1
 #endif
 
 enum x16r_Algo {
@@ -44,7 +46,20 @@ bool register_x16rt_algo( algo_gate_t* gate );
 bool register_hex__algo( algo_gate_t* gate );
 bool register_x21s__algo( algo_gate_t* gate );
 
-#if defined(X16R_4WAY)
+#if defined(X16R_8WAY)
+
+void x16r_8way_hash( void *state, const void *input );
+int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr );
+
+void x16rv2_8way_hash( void *state, const void *input );
+int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr );
+void x16rt_8way_hash( void *state, const void *input );
+int scanhash_x16rt_8way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr );
+
+#elif defined(X16R_4WAY)
 
 void x16r_4way_hash( void *state, const void *input );
 int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
@@ -58,12 +73,7 @@ void x16rt_4way_hash( void *state, const void *input );
 int scanhash_x16rt_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
-void x21s_4way_hash( void *state, const void *input );
-int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
-                        uint64_t *hashes_done, struct thr_info *mythr );
-bool x21s_4way_thread_init();
-
-#endif
+#else
 
 void x16r_hash( void *state, const void *input );
 int scanhash_x16r( struct work *work, uint32_t max_nonce,
@@ -77,14 +87,27 @@ void x16rt_hash( void *state, const void *input );
 int scanhash_x16rt( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr );
 
-void hex_hash( void *state, const void *input );
-int scanhash_hex( struct work *work, uint32_t max_nonce,
-                  uint64_t *hashes_done, struct thr_info *mythr );
+#endif
+
+#if defined(X16R_4WAY)
+
+void x21s_4way_hash( void *state, const void *input );
+int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr );
+bool x21s_4way_thread_init();
+
+#else
 
 void x21s_hash( void *state, const void *input );
 int scanhash_x21s( struct work *work, uint32_t max_nonce,
                   uint64_t *hashes_done, struct thr_info *mythr );
 bool x21s_thread_init();
+
+#endif
+
+void hex_hash( void *state, const void *input );
+int scanhash_hex( struct work *work, uint32_t max_nonce,
+                  uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif
 

@@ -36,8 +36,6 @@
 #include <string.h>
 #include "sha-hash-4way.h"
 
-// SHA-512 4 way 64 bit
-
 /*
 static const sph_u64 H512[8] = {
         SPH_C64(0x6A09E667F3BCC908), SPH_C64(0xBB67AE8584CAA73B),
@@ -89,6 +87,236 @@ static const sph_u64 K512[80] = {
 	SPH_C64(0x4CC5D4BECB3E42B6), SPH_C64(0x597F299CFC657E2A),
 	SPH_C64(0x5FCB6FAB3AD6FAEC), SPH_C64(0x6C44198C4A475817)
 };
+
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+// SHA-512 8 way 64 bit
+
+#define CH8W(X, Y, Z) \
+   _mm512_xor_si512( _mm512_and_si512( _mm512_xor_si512( Y, Z ), X ), Z ) 
+
+#define MAJ8W(X, Y, Z) \
+   _mm512_or_si512( _mm512_and_si512( X, Y ), \
+                    _mm512_and_si512( _mm512_or_si512( X, Y ), Z ) )
+
+#define BSG8W_5_0(x) \
+   _mm512_xor_si512( _mm512_xor_si512( \
+        mm512_ror_64(x, 28), mm512_ror_64(x, 34) ), mm512_ror_64(x, 39) )
+
+#define BSG8W_5_1(x) \
+   _mm512_xor_si512( _mm512_xor_si512( \
+        mm512_ror_64(x, 14), mm512_ror_64(x, 18) ), mm512_ror_64(x, 41) )
+
+#define SSG8W_5_0(x) \
+   _mm512_xor_si512( _mm512_xor_si512( \
+        mm512_ror_64(x,  1), mm512_ror_64(x,  8) ), _mm512_srli_epi64(x, 7) ) 
+
+#define SSG8W_5_1(x) \
+   _mm512_xor_si512( _mm512_xor_si512( \
+        mm512_ror_64(x, 19), mm512_ror_64(x, 61) ), _mm512_srli_epi64(x, 6) )
+
+static inline __m512i ssg8w_512_add( __m512i w0, __m512i w1 )
+{
+   __m512i w0a, w1a, w0b, w1b;
+   w0a = mm512_ror_64( w0, 1 );
+   w1a = mm512_ror_64( w1,19 );
+   w0b = mm512_ror_64( w0, 8 );
+   w1b = mm512_ror_64( w1,61 );
+   w0a = _mm512_xor_si512( w0a, w0b );
+   w1a = _mm512_xor_si512( w1a, w1b );
+   w0b = _mm512_srli_epi64( w0, 7 );
+   w1b = _mm512_srli_epi64( w1, 6 );
+   w0a = _mm512_xor_si512( w0a, w0b );
+   w1a = _mm512_xor_si512( w1a, w1b );
+   return _mm512_add_epi64( w0a, w1a );
+}
+
+
+#define SSG8W_512x2_0( w0, w1, i ) do \
+{ \
+   __m512i X0a, X1a, X0b, X1b; \
+  X0a = mm512_ror_64( W[i-15], 1 ); \
+  X1a = mm512_ror_64( W[i-14], 1 ); \
+  X0b = mm512_ror_64( W[i-15], 8 ); \
+  X1b = mm512_ror_64( W[i-14], 8 ); \
+  X0a = _mm512_xor_si512( X0a, X0b ); \
+  X1a = _mm512_xor_si512( X1a, X1b ); \
+  X0b = _mm512_srli_epi64( W[i-15], 7 ); \
+  X1b = _mm512_srli_epi64( W[i-14], 7 ); \
+  w0  = _mm512_xor_si512( X0a, X0b ); \
+  w1  = _mm512_xor_si512( X1a, X1b ); \
+} while(0)
+
+#define SSG8W_512x2_1( w0, w1, i ) do \
+{ \
+   __m512i X0a, X1a, X0b, X1b; \
+  X0a = mm512_ror_64( W[i-2],19 ); \
+  X1a = mm512_ror_64( W[i-1],19 ); \
+  X0b = mm512_ror_64( W[i-2],61 ); \
+  X1b = mm512_ror_64( W[i-1],61 ); \
+  X0a = _mm512_xor_si512( X0a, X0b ); \
+  X1a = _mm512_xor_si512( X1a, X1b ); \
+  X0b = _mm512_srli_epi64( W[i-2], 6 ); \
+  X1b = _mm512_srli_epi64( W[i-1], 6 ); \
+  w0  = _mm512_xor_si512( X0a, X0b ); \
+  w1  = _mm512_xor_si512( X1a, X1b ); \
+} while(0)
+
+#define SHA3_8WAY_STEP(A, B, C, D, E, F, G, H, i) \
+do { \
+  __m512i T1, T2; \
+  __m512i K = _mm512_set1_epi64( K512[ i ] ); \
+  T1 = _mm512_add_epi64( H, mm512_add4_64( BSG8W_5_1(E), CH8W(E, F, G), \
+                                           K, W[i] ) ); \
+  T2 = _mm512_add_epi64( BSG8W_5_0(A), MAJ8W(A, B, C) ); \
+  D  = _mm512_add_epi64( D, T1 ); \
+  H  = _mm512_add_epi64( T1, T2 ); \
+} while (0)
+
+static void
+sha512_8way_round( sha512_8way_context *ctx,  __m512i *in, __m512i r[8] )
+{
+   int i;
+   register __m512i A, B, C, D, E, F, G, H;
+   __m512i W[80];
+
+   mm512_block_bswap_64( W  , in );
+   mm512_block_bswap_64( W+8, in+8 );
+
+   for ( i = 16; i < 80; i++ )
+      W[i] = _mm512_add_epi64( ssg8w_512_add( W[i-15], W[i-2] ),
+                               _mm512_add_epi64( W[ i- 7 ], W[ i-16 ] ) );
+
+   if ( ctx->initialized )
+   {
+      A = r[0];
+      B = r[1];
+      C = r[2];
+      D = r[3];
+      E = r[4];
+      F = r[5];
+      G = r[6];
+      H = r[7];
+   }
+   else
+   {
+      A = m512_const1_64( 0x6A09E667F3BCC908 );
+      B = m512_const1_64( 0xBB67AE8584CAA73B );
+      C = m512_const1_64( 0x3C6EF372FE94F82B );
+      D = m512_const1_64( 0xA54FF53A5F1D36F1 );
+      E = m512_const1_64( 0x510E527FADE682D1 );
+      F = m512_const1_64( 0x9B05688C2B3E6C1F );
+      G = m512_const1_64( 0x1F83D9ABFB41BD6B );
+      H = m512_const1_64( 0x5BE0CD19137E2179 );
+   }
+
+   for ( i = 0; i < 80; i += 8 )
+   {
+      SHA3_8WAY_STEP( A, B, C, D, E, F, G, H, i + 0 );
+      SHA3_8WAY_STEP( H, A, B, C, D, E, F, G, i + 1 );
+      SHA3_8WAY_STEP( G, H, A, B, C, D, E, F, i + 2 );
+      SHA3_8WAY_STEP( F, G, H, A, B, C, D, E, i + 3 );
+      SHA3_8WAY_STEP( E, F, G, H, A, B, C, D, i + 4 );
+      SHA3_8WAY_STEP( D, E, F, G, H, A, B, C, i + 5 );
+      SHA3_8WAY_STEP( C, D, E, F, G, H, A, B, i + 6 );
+      SHA3_8WAY_STEP( B, C, D, E, F, G, H, A, i + 7 );
+   }
+
+   if ( ctx->initialized )
+   {
+      r[0] = _mm512_add_epi64( r[0], A );
+      r[1] = _mm512_add_epi64( r[1], B );
+      r[2] = _mm512_add_epi64( r[2], C );
+      r[3] = _mm512_add_epi64( r[3], D );
+      r[4] = _mm512_add_epi64( r[4], E );
+      r[5] = _mm512_add_epi64( r[5], F );
+      r[6] = _mm512_add_epi64( r[6], G );
+      r[7] = _mm512_add_epi64( r[7], H );
+   }
+   else
+   {
+      ctx->initialized = true;
+      r[0] = _mm512_add_epi64( A, m512_const1_64( 0x6A09E667F3BCC908 ) );
+      r[1] = _mm512_add_epi64( B, m512_const1_64( 0xBB67AE8584CAA73B ) );
+      r[2] = _mm512_add_epi64( C, m512_const1_64( 0x3C6EF372FE94F82B ) );
+      r[3] = _mm512_add_epi64( D, m512_const1_64( 0xA54FF53A5F1D36F1 ) );
+      r[4] = _mm512_add_epi64( E, m512_const1_64( 0x510E527FADE682D1 ) );
+      r[5] = _mm512_add_epi64( F, m512_const1_64( 0x9B05688C2B3E6C1F ) );
+      r[6] = _mm512_add_epi64( G, m512_const1_64( 0x1F83D9ABFB41BD6B ) );
+      r[7] = _mm512_add_epi64( H, m512_const1_64( 0x5BE0CD19137E2179 ) );
+   }
+}
+
+void sha512_8way_init( sha512_8way_context *sc )
+{
+   sc->initialized = false;
+   sc->count = 0;
+}
+
+void sha512_8way_update( sha512_8way_context *sc, const void *data, size_t len )
+{
+   __m512i *vdata = (__m512i*)data;
+   size_t ptr;
+   const int buf_size = 128;
+
+   ptr = (unsigned)sc->count & (buf_size - 1U);
+   while ( len > 0 )
+   {
+      size_t clen;
+      clen = buf_size - ptr;
+      if ( clen > len )
+         clen = len;
+      memcpy_512( sc->buf + (ptr>>3), vdata, clen>>3 );
+      vdata = vdata + (clen>>3);
+      ptr += clen;
+      len -= clen;
+      if ( ptr == buf_size )
+      {
+         sha512_8way_round( sc, sc->buf, sc->val );
+         ptr = 0;
+      }
+      sc->count += clen;
+   }
+}
+
+void sha512_8way_close( sha512_8way_context *sc, void *dst )
+{
+    unsigned ptr;
+    const int buf_size = 128;
+    const int pad = buf_size - 16;
+    const __m512i shuff_bswap64 = m512_const_64(
+                                    0x38393a3b3c3d3e3f, 0x3031323334353637,
+                                    0x28292a2b2c2d2e2f, 0x2021222324252627,
+                                    0x18191a1b1c1d1e1f, 0x1011121314151617,
+                                    0x08090a0b0c0d0e0f, 0x0001020304050607 );
+
+    ptr = (unsigned)sc->count & (buf_size - 1U);
+    sc->buf[ ptr>>3 ] = m512_const1_64( 0x80 );
+    ptr += 8;
+    if ( ptr > pad )
+    {
+         memset_zero_512( sc->buf + (ptr>>3), (buf_size - ptr) >> 3 );
+         sha512_8way_round( sc, sc->buf, sc->val );
+         memset_zero_512( sc->buf, pad >> 3 );
+    }
+    else
+         memset_zero_512( sc->buf + (ptr>>3), (pad - ptr) >> 3 );
+
+    sc->buf[ pad >> 3 ] = _mm512_shuffle_epi8(
+                       _mm512_set1_epi64( sc->count >> 61 ), shuff_bswap64 );
+    sc->buf[ ( pad+8 ) >> 3 ] = _mm512_shuffle_epi8(
+                       _mm512_set1_epi64( sc->count <<  3 ), shuff_bswap64 );
+    sha512_8way_round( sc, sc->buf, sc->val );
+
+    mm512_block_bswap_64( dst, sc->val );
+}
+
+
+#endif   // AVX512
+
+// SHA-512 4 way 64 bit
+
 
 #define CH(X, Y, Z) \
    _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( Y, Z ), X ), Z ) 
@@ -254,7 +482,7 @@ void sha512_4way_init( sha512_4way_context *sc )
    sc->count = 0;
 }
 
-void sha512_4way( sha512_4way_context *sc, const void *data, size_t len )
+void sha512_4way_update( sha512_4way_context *sc, const void *data, size_t len )
 {
    __m256i *vdata = (__m256i*)data;
    size_t ptr;
