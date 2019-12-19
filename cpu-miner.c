@@ -3021,7 +3021,8 @@ void parse_arg(int key, char *arg )
 		if (ap != arg) {
 			if (strncasecmp(arg, "http://", 7) &&
 			    strncasecmp(arg, "https://", 8) &&
-			    strncasecmp(arg, "stratum+tcp://", 14)) {
+			    strncasecmp(arg, "stratum+tcp://", 14) &&
+			    strncasecmp(arg, "stratum+tcps://", 15)) {
 				fprintf(stderr, "unknown protocol -- '%s'\n", arg);
 				show_usage_and_exit(1);
 			}
@@ -3619,7 +3620,7 @@ int main(int argc, char *argv[])
 	pthread_mutex_init( &stratum.sock_lock, NULL );
 	pthread_mutex_init( &stratum.work_lock, NULL );
 
-	flags = !opt_benchmark && strncmp( rpc_url, "https:", 6 )
+	flags = !opt_benchmark && (strncmp( rpc_url, "https:", 6 ) || strncasecmp(rpc_url, "stratum+tcps://", 15))
 	        ? ( CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL )
 	        : CURL_GLOBAL_ALL;
 	if ( curl_global_init( flags ) )
