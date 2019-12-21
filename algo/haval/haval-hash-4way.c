@@ -40,7 +40,7 @@
 #include <string.h>
 #include "haval-hash-4way.h"
 
-// won't compile with sse4.2
+// won't compile with sse4.2, not a problem, it's only used with AVX2 4 way.
 //#if defined (__SSE4_2__)
 #if defined(__AVX__)
 
@@ -517,6 +517,301 @@ do { \
 } while (0)
 
 #define INMSG(i)   msg[i]
+
+#if defined(__AVX2__)
+
+// Haval-256 8 way 32 bit avx2
+
+#define F1_8W(x6, x5, x4, x3, x2, x1, x0) \
+   _mm256_xor_si256( x0, \
+       _mm256_xor_si256( _mm256_and_si256(_mm256_xor_si256( x0, x4 ), x1 ), \
+                      _mm256_xor_si256( _mm256_and_si256( x2, x5 ), \
+                                     _mm256_and_si256( x3, x6 ) ) ) ) \
+
+#define F2_8W(x6, x5, x4, x3, x2, x1, x0) \
+   _mm256_xor_si256( \
+      _mm256_and_si256( x2, \
+         _mm256_xor_si256( _mm256_andnot_si256( x3, x1 ), \
+                        _mm256_xor_si256( _mm256_and_si256( x4, x5 ), \
+                                       _mm256_xor_si256( x6, x0 ) ) ) ), \
+         _mm256_xor_si256( \
+             _mm256_and_si256( x4, _mm256_xor_si256( x1, x5 ) ), \
+             _mm256_xor_si256( _mm256_and_si256( x3, x5 ), x0 ) ) ) \
+
+#define F3_8W(x6, x5, x4, x3, x2, x1, x0) \
+  _mm256_xor_si256( \
+    _mm256_and_si256( x3, \
+      _mm256_xor_si256( _mm256_and_si256( x1, x2 ), \
+                     _mm256_xor_si256( x6, x0 ) ) ), \
+      _mm256_xor_si256( _mm256_xor_si256(_mm256_and_si256( x1, x4 ), \
+                                   _mm256_and_si256( x2, x5 ) ), x0 ) )
+
+#define F4_8W(x6, x5, x4, x3, x2, x1, x0) \
+  _mm256_xor_si256( \
+     _mm256_xor_si256( \
+        _mm256_and_si256( x3, \
+           _mm256_xor_si256( _mm256_xor_si256( _mm256_and_si256( x1, x2 ), \
+                                         _mm256_or_si256( x4, x6 ) ), x5 ) ), \
+        _mm256_and_si256( x4, \
+           _mm256_xor_si256( _mm256_xor_si256( _mm256_and_si256( mm256_not(x2), x5 ), \
+                          _mm256_xor_si256( x1, x6 ) ), x0 ) ) ), \
+     _mm256_xor_si256( _mm256_and_si256( x2, x6 ), x0 ) )
+
+
+#define F5_8W(x6, x5, x4, x3, x2, x1, x0) \
+   _mm256_xor_si256( \
+       _mm256_and_si256( x0, \
+            mm256_not( _mm256_xor_si256( \
+                    _mm256_and_si256( _mm256_and_si256( x1, x2 ), x3 ), x5 ) ) ), \
+      _mm256_xor_si256( _mm256_xor_si256( _mm256_and_si256( x1, x4 ), \
+                                    _mm256_and_si256( x2, x5 ) ), \
+                                    _mm256_and_si256( x3, x6 ) ) )
+
+#define FP3_1_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F1_8W(x1, x0, x3, x5, x6, x2, x4)
+#define FP3_2_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F2_8W(x4, x2, x1, x0, x5, x3, x6)
+#define FP3_3_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F3_8W(x6, x1, x2, x3, x4, x5, x0)
+
+#define FP4_1_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F1_8W(x2, x6, x1, x4, x5, x3, x0)
+#define FP4_2_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F2_8W(x3, x5, x2, x0, x1, x6, x4)
+#define FP4_3_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F3_8W(x1, x4, x3, x6, x0, x2, x5)
+#define FP4_4_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F4_8W(x6, x4, x0, x5, x2, x1, x3)
+
+#define FP5_1_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F1_8W(x3, x4, x1, x0, x5, x2, x6)
+#define FP5_2_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F2_8W(x6, x2, x1, x0, x3, x4, x5)
+#define FP5_3_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F3_8W(x2, x6, x0, x4, x3, x1, x5)
+#define FP5_4_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F4_8W(x1, x5, x3, x2, x0, x4, x6)
+#define FP5_5_8W(x6, x5, x4, x3, x2, x1, x0) \
+   F5_8W(x2, x5, x0, x6, x4, x3, x1)
+
+#define STEP_8W(n, p, x7, x6, x5, x4, x3, x2, x1, x0, w, c) \
+do { \
+   __m256i t = FP ## n ## _ ## p ## _8W(x6, x5, x4, x3, x2, x1, x0); \
+   x7 = _mm256_add_epi32( _mm256_add_epi32( mm256_ror_32( t, 7 ), \
+                                      mm256_ror_32( x7, 11 ) ), \
+                       _mm256_add_epi32( w, _mm256_set1_epi32( c ) ) ); \
+} while (0)
+
+#define PASS1_8W(n, in)   do { \
+      unsigned pass_count; \
+      for (pass_count = 0; pass_count < 32; pass_count += 8) { \
+         STEP_8W(n, 1, s7, s6, s5, s4, s3, s2, s1, s0, \
+            in(pass_count + 0), SPH_C32(0x00000000)); \
+         STEP_8W(n, 1, s6, s5, s4, s3, s2, s1, s0, s7, \
+            in(pass_count + 1), SPH_C32(0x00000000)); \
+         STEP_8W(n, 1, s5, s4, s3, s2, s1, s0, s7, s6, \
+            in(pass_count + 2), SPH_C32(0x00000000)); \
+         STEP_8W(n, 1, s4, s3, s2, s1, s0, s7, s6, s5, \
+            in(pass_count + 3), SPH_C32(0x00000000)); \
+         STEP_8W(n, 1, s3, s2, s1, s0, s7, s6, s5, s4, \
+            in(pass_count + 4), SPH_C32(0x00000000)); \
+         STEP_8W(n, 1, s2, s1, s0, s7, s6, s5, s4, s3, \
+            in(pass_count + 5), SPH_C32(0x00000000)); \
+         STEP_8W(n, 1, s1, s0, s7, s6, s5, s4, s3, s2, \
+            in(pass_count + 6), SPH_C32(0x00000000)); \
+         STEP_8W(n, 1, s0, s7, s6, s5, s4, s3, s2, s1, \
+            in(pass_count + 7), SPH_C32(0x00000000)); \
+         } \
+   } while (0)
+
+#define PASSG_8W(p, n, in)   do { \
+      unsigned pass_count; \
+      for (pass_count = 0; pass_count < 32; pass_count += 8) { \
+         STEP_8W(n, p, s7, s6, s5, s4, s3, s2, s1, s0, \
+            in(MP ## p[pass_count + 0]), \
+            RK ## p[pass_count + 0]); \
+         STEP_8W(n, p, s6, s5, s4, s3, s2, s1, s0, s7, \
+            in(MP ## p[pass_count + 1]), \
+            RK ## p[pass_count + 1]); \
+         STEP_8W(n, p, s5, s4, s3, s2, s1, s0, s7, s6, \
+            in(MP ## p[pass_count + 2]), \
+            RK ## p[pass_count + 2]); \
+         STEP_8W(n, p, s4, s3, s2, s1, s0, s7, s6, s5, \
+            in(MP ## p[pass_count + 3]), \
+            RK ## p[pass_count + 3]); \
+         STEP_8W(n, p, s3, s2, s1, s0, s7, s6, s5, s4, \
+            in(MP ## p[pass_count + 4]), \
+            RK ## p[pass_count + 4]); \
+         STEP_8W(n, p, s2, s1, s0, s7, s6, s5, s4, s3, \
+            in(MP ## p[pass_count + 5]), \
+            RK ## p[pass_count + 5]); \
+         STEP_8W(n, p, s1, s0, s7, s6, s5, s4, s3, s2, \
+            in(MP ## p[pass_count + 6]), \
+            RK ## p[pass_count + 6]); \
+         STEP_8W(n, p, s0, s7, s6, s5, s4, s3, s2, s1, \
+            in(MP ## p[pass_count + 7]), \
+            RK ## p[pass_count + 7]); \
+         } \
+   } while (0)
+
+#define PASS2_8W(n, in)    PASSG_8W(2, n, in)
+#define PASS3_8W(n, in)    PASSG_8W(3, n, in)
+#define PASS4_8W(n, in)    PASSG_8W(4, n, in)
+#define PASS5_8W(n, in)    PASSG_8W(5, n, in)
+
+#define SAVE_STATE_8W \
+   __m256i u0, u1, u2, u3, u4, u5, u6, u7; \
+   do { \
+      u0 = s0; \
+      u1 = s1; \
+      u2 = s2; \
+      u3 = s3; \
+      u4 = s4; \
+      u5 = s5; \
+      u6 = s6; \
+      u7 = s7; \
+   } while (0)
+
+#define UPDATE_STATE_8W \
+do { \
+   s0 = _mm256_add_epi32( s0, u0 ); \
+   s1 = _mm256_add_epi32( s1, u1 ); \
+   s2 = _mm256_add_epi32( s2, u2 ); \
+   s3 = _mm256_add_epi32( s3, u3 ); \
+   s4 = _mm256_add_epi32( s4, u4 ); \
+   s5 = _mm256_add_epi32( s5, u5 ); \
+   s6 = _mm256_add_epi32( s6, u6 ); \
+   s7 = _mm256_add_epi32( s7, u7 ); \
+} while (0)
+
+#define CORE_8W5(in)  do { \
+      SAVE_STATE_8W; \
+      PASS1_8W(5, in); \
+      PASS2_8W(5, in); \
+      PASS3_8W(5, in); \
+      PASS4_8W(5, in); \
+      PASS5_8W(5, in); \
+      UPDATE_STATE_8W; \
+   } while (0)
+
+#define DSTATE_8W   __m256i s0, s1, s2, s3, s4, s5, s6, s7
+
+#define RSTATE_8W \
+do { \
+   s0 = sc->s0; \
+   s1 = sc->s1; \
+   s2 = sc->s2; \
+   s3 = sc->s3; \
+   s4 = sc->s4; \
+   s5 = sc->s5; \
+   s6 = sc->s6; \
+   s7 = sc->s7; \
+} while (0)
+
+#define WSTATE_8W \
+do { \
+   sc->s0 = s0; \
+   sc->s1 = s1; \
+   sc->s2 = s2; \
+   sc->s3 = s3; \
+   sc->s4 = s4; \
+   sc->s5 = s5; \
+   sc->s6 = s6; \
+   sc->s7 = s7; \
+} while (0)
+
+static void
+haval_8way_init( haval_8way_context *sc, unsigned olen, unsigned passes )
+{
+   sc->s0 = m256_const1_32( 0x243F6A88UL );
+   sc->s1 = m256_const1_32( 0x85A308D3UL );
+   sc->s2 = m256_const1_32( 0x13198A2EUL );
+   sc->s3 = m256_const1_32( 0x03707344UL );
+   sc->s4 = m256_const1_32( 0xA4093822UL );
+   sc->s5 = m256_const1_32( 0x299F31D0UL );
+   sc->s6 = m256_const1_32( 0x082EFA98UL );
+   sc->s7 = m256_const1_32( 0xEC4E6C89UL );
+   sc->olen = olen;
+   sc->passes = passes;
+   sc->count_high = 0;
+   sc->count_low = 0;
+
+}
+#define IN_PREPARE_8W(indata) const __m256i *const load_ptr_8w = (indata)
+
+#define INW_8W(i)   load_ptr_8w[ i ] 
+
+static void
+haval_8way_out( haval_8way_context *sc, void *dst )
+{
+   __m256i *buf = (__m256i*)dst;
+   DSTATE_8W;
+   RSTATE_8W;
+
+   buf[0] = s0;
+   buf[1] = s1;
+   buf[2] = s2;
+   buf[3] = s3;
+   buf[4] = s4;
+   buf[5] = s5;
+   buf[6] = s6;
+   buf[7] = s7;
+}
+
+#undef PASSES
+#define PASSES   5
+#include "haval-8way-helper.c"
+
+#define API_8W(xxx, y) \
+void \
+haval ## xxx ## _ ## y ## _8way_init(void *cc) \
+{ \
+   haval_8way_init(cc, xxx >> 5, y); \
+} \
+ \
+void \
+haval ## xxx ## _ ## y ## _8way_update (void *cc, const void *data, size_t len) \
+{ \
+   haval ## y ## _8way_update(cc, data, len); \
+} \
+ \
+void \
+haval ## xxx ## _ ## y ## _8way_close(void *cc, void *dst) \
+{ \
+   haval ## y ## _8way_close(cc, dst); \
+} \
+
+API_8W(256, 5)
+
+#define RVAL_8W \
+do { \
+   s0 = val[0]; \
+   s1 = val[1]; \
+   s2 = val[2]; \
+   s3 = val[3]; \
+   s4 = val[4]; \
+   s5 = val[5]; \
+   s6 = val[6]; \
+   s7 = val[7]; \
+} while (0)
+
+#define WVAL_8W \
+do { \
+   val[0] = s0; \
+   val[1] = s1; \
+   val[2] = s2; \
+   val[3] = s3; \
+   val[4] = s4; \
+   val[5] = s5; \
+   val[6] = s6; \
+   val[7] = s7; \
+} while (0)
+
+#define INMSG_8W(i)   msg[i]
+
+
+
+#endif // AVX2
 
 #ifdef __cplusplus
 }

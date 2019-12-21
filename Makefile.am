@@ -124,6 +124,8 @@ cpuminer_SOURCES = \
   algo/luffa/luffa-hash-2way.c \
   algo/lyra2/lyra2.c \
   algo/lyra2/sponge.c \
+  algo/lyra2/sponge-2way.c \
+  algo/lyra2/lyra2-hash-2way.c \
   algo/lyra2/lyra2-gate.c \
   algo/lyra2/lyra2rev2.c \
   algo/lyra2/lyra2rev2-4way.c \

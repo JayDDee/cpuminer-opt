@@ -64,10 +64,10 @@ static void transform_4way( cube_4way_context *sp )
         x1 = _mm512_xor_si512( x1, x5 );
         x2 = _mm512_xor_si512( x2, x6 );
         x3 = _mm512_xor_si512( x3, x7 );
-        x4 = mm512_swap64_128( x4 );
-        x5 = mm512_swap64_128( x5 );
-        x6 = mm512_swap64_128( x6 );
-        x7 = mm512_swap64_128( x7 );
+        x4 = mm512_swap128_64( x4 );
+        x5 = mm512_swap128_64( x5 );
+        x6 = mm512_swap128_64( x6 );
+        x7 = mm512_swap128_64( x7 );
         x4 = _mm512_add_epi32( x0, x4 );
         x5 = _mm512_add_epi32( x1, x5 );
         x6 = _mm512_add_epi32( x2, x6 );
@@ -82,10 +82,10 @@ static void transform_4way( cube_4way_context *sp )
         x1 = _mm512_xor_si512( x1, x5 );
         x2 = _mm512_xor_si512( x2, x6 );
         x3 = _mm512_xor_si512( x3, x7 );
-        x4 = mm512_swap32_64( x4 );
-        x5 = mm512_swap32_64( x5 );
-        x6 = mm512_swap32_64( x6 );
-        x7 = mm512_swap32_64( x7 );
+        x4 = mm512_swap64_32( x4 );
+        x5 = mm512_swap64_32( x5 );
+        x6 = mm512_swap64_32( x6 );
+        x7 = mm512_swap64_32( x7 );
     }
 
     _mm512_store_si512( (__m512i*)sp->h,     x0 );
@@ -239,10 +239,10 @@ static void transform_2way( cube_2way_context *sp )
         x1 = _mm256_xor_si256( x1, x5 );
         x2 = _mm256_xor_si256( x2, x6 );
         x3 = _mm256_xor_si256( x3, x7 );
-        x4 = mm256_swap64_128( x4 );
-        x5 = mm256_swap64_128( x5 );
-        x6 = mm256_swap64_128( x6 );
-        x7 = mm256_swap64_128( x7 );
+        x4 = mm256_swap128_64( x4 );
+        x5 = mm256_swap128_64( x5 );
+        x6 = mm256_swap128_64( x6 );
+        x7 = mm256_swap128_64( x7 );
         x4 = _mm256_add_epi32( x0, x4 );
         x5 = _mm256_add_epi32( x1, x5 );
         x6 = _mm256_add_epi32( x2, x6 );
@@ -257,10 +257,10 @@ static void transform_2way( cube_2way_context *sp )
         x1 = _mm256_xor_si256( x1, x5 );
         x2 = _mm256_xor_si256( x2, x6 );
         x3 = _mm256_xor_si256( x3, x7 );
-        x4 = mm256_swap32_64( x4 );
-        x5 = mm256_swap32_64( x5 );
-        x6 = mm256_swap32_64( x6 );
-        x7 = mm256_swap32_64( x7 );
+        x4 = mm256_swap64_32( x4 );
+        x5 = mm256_swap64_32( x5 );
+        x6 = mm256_swap64_32( x6 );
+        x7 = mm256_swap64_32( x7 );
     }
 
     _mm256_store_si256( (__m256i*)sp->h,     x0 );

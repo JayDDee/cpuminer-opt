@@ -59,7 +59,7 @@
  */
 
 #ifndef HAVAL_HASH_4WAY_H__
-#define HAVAL_HASH_4WAY_H__
+#define HAVAL_HASH_4WAY_H__ 1
 
 #if defined(__AVX__)
 
@@ -84,9 +84,29 @@ typedef haval_4way_context haval256_5_4way_context;
 
 void haval256_5_4way_init( void *cc );
 
-void haval256_5_4way( void *cc, const void *data, size_t len );
+void haval256_5_4way_update( void *cc, const void *data, size_t len );
+#define haval256_5_4way haval256_5_4way_update
 
 void haval256_5_4way_close( void *cc, void *dst );
+
+#if defined(__AVX2__)
+
+typedef struct {
+   __m256i buf[32];
+   __m256i s0, s1, s2, s3, s4, s5, s6, s7;
+   unsigned olen, passes;
+   uint32_t count_high, count_low;
+} haval_8way_context __attribute__ ((aligned (64)));
+
+typedef haval_8way_context haval256_5_8way_context;
+
+void haval256_5_8way_init( void *cc );
+
+void haval256_5_8way_update( void *cc, const void *data, size_t len );
+
+void haval256_5_8way_close( void *cc, void *dst );
+
+#endif // AVX2
 
 #ifdef __cplusplus
 }

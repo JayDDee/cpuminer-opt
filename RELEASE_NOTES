@@ -1,6 +1,8 @@
 cpuminer-opt is a console program run from the command line using the
 keyboard, not the mouse.
 
+See also README.md for list of supported algorithms,
+
 Security warning
 ----------------
 
@@ -31,7 +33,21 @@ not supported. FreeBSD YMMV.
 Change Log
 ----------
 
-v3.10.2
+v3.10.5
+
+AVX512 for x17, sonoa, xevan, hmq1725, lyra2rev3, lyra2rev2. 
+Faster hmq1725 AVX2.
+
+v3.10.4
+
+AVX512 for x16r, x16rv2, x16rt, x16s, x16rt-veil (veil).
+
+v3.10.3
+
+AVX512 for x12, x13, x14, x15.
+Fixed x12 AVX2 invalid shares.
+
+v.10.2
 
 AVX512 added for bmw512, c11, phi1612 (phi), qubit, skunk, x11, x11gost (sib).
 Fixed c11 AVX2 invalid shares.

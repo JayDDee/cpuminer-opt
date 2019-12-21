@@ -63,20 +63,6 @@ void quark_8way_hash( void *state, const void *input )
     bmw512_8way_update( &ctx.bmw, vhash, 64 );
     bmw512_8way_close( &ctx.bmw, vhash );
 
-// AVX 512 cmpeq returns a bit mask instead of a vector mask.
-// This should simplify things but the logic doesn't seem to be working.
-// The problem appears to be related to the test to skip a hash if it isn't
-// to be used. Skipping the test for all 8 way hashes seems to have
-// fixed it. The hash selection blending works if the hash is produced
-// but the hash wasn't being produced when it should.
-// Both decisions are based on the same data, the __mmask8. It works
-// as a blend mask but not in a logical comparison, maybe the type is the
-// problem. Maybe a cast to int or movm is needed to make it work.
-// It's now moot because the hash can only be skipped 1 in 256 iterations
-// when hashing parallel 8 ways.
-// The performance impact of the workaround should be negligible.
-// It's a problem for another day.
-
     vh_mask = _mm512_cmpeq_epi64_mask( _mm512_and_si512( vh[0], bit3_mask ),
                                        zero );
 

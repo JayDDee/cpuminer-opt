@@ -414,98 +414,70 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 
 
 //
-// Rotate elements within lanes of 256 bit vector.
+// Rotate elements within each 128 bit lane of 256 bit vector.
 
-// Swap 64 bit elements in each 128 bit lane.
-#define mm256_swap64_128( v )   _mm256_shuffle_epi32( v, 0x4e )
+#define mm256_swap128_64( v )   _mm256_shuffle_epi32( v, 0x4e )
 
-// Rotate each 128 bit lane by one 32 bit element.
-#define mm256_ror1x32_128( v )  _mm256_shuffle_epi32( v, 0x39 )
-#define mm256_rol1x32_128( v )  _mm256_shuffle_epi32( v, 0x93 )
+#define mm256_ror128_32( v )  _mm256_shuffle_epi32( v, 0x39 )
 
-#define mm256_ror1x16_128( v ) \
-   _mm256_shuffle_epi8( v, \
-         m256_const_64( 0x11101f1e1d1c1b1a, 0x1918171615141312, \
-                        0x01000f0e0d0c0b0a, 0x0908070605040302 ) )
+#define mm256_rol128_1x32( v )  _mm256_shuffle_epi32( v, 0x93 )
 
-#define mm256_rol1x16_128( v ) \
-   _mm256_shuffle_epi8( v, \
-         m256_const_64( 0x1d1c1b1a19181716, 0x1514131211101f1e, \
-                        0x0d0c0b0a09080706, 0x0504030201000f0e ) )
-
-#define mm256_ror1x8_128( v ) \
-   _mm256_shuffle_epi8( v, \
-         m256_const_64( 0x101f1e1d1c1b1a19, 0x1817161514131211, \
-                        0x000f0e0d0c0b0a09, 0x0807060504030201 ) )
-
-#define mm256_rol1x8_128( v ) \
-   _mm256_shuffle_epi8( v, \
-         m256_const_64( 0x1d1c1b1a19181f1e, 0x1514131211101716, \
-                        0x0d0c0b0a09080f0e, 0x0504030201000706 ) )
-
-// Rotate each 128 bit lane by c bytes.
-#define mm256_bror_128( v, c ) \
+// Rotave each 128 bit lane by c elements.
+#define mm256_ror128_8( v, c ) \
   _mm256_or_si256( _mm256_bsrli_epi128( v, c ), \
                    _mm256_bslli_epi128( v, 16-(c) ) )
-#define mm256_brol_128( v, c ) \
+#define mm256_rol128_8( v, c ) \
   _mm256_or_si256( _mm256_bslli_epi128( v, c ), \
                    _mm256_bsrli_epi128( v, 16-(c) ) )
 
-// Swap 32 bit elements in each 64 bit lane
-#define mm256_swap32_64( v )    _mm256_shuffle_epi32( v, 0xb1 )
+
+// Rotate elements in each 64 bit lane
+
+#define mm256_swap64_32( v )    _mm256_shuffle_epi32( v, 0xb1 )
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-#define mm256_rol1x16_64( v )   _mm256_rol_epi64( v, 16 )
-#define mm256_ror1x16_64( v )   _mm256_ror_epi64( v, 16 )
+#define mm256_rol64_8( v, c )   _mm256_rol_epi64( v, ((c)<<3) ) 
+#define mm256_ror64_8( v, c )   _mm256_ror_epi64( v, ((c)<<3) ) 
 
 #else
 
-#define mm256_ror1x16_64( v ) \
-   _mm256_shuffle_epi8( v, \
-        m256_const_64( 0x19181f1e1d1c1b1a, 0x1110171615141312, \
-                       0x09080f0e0d0c0b0a, 0x0100070605040302 ) )
+#define mm256_rol64_8( v, c ) \
+     _mm256_or_si256( _mm256_slli_epi64( v, ( ( (c)<<3 ) ), \
+                      _mm256_srli_epi64( v, ( ( 64 - ( (c)<<3 ) ) ) )
 
-#define mm256_rol1x16_64( v ) \
-   _mm256_shuffle_epi8( v, \
-        m256_const_64( 0x1d1c1b1a19181f1e, 0x1514131211101716, \
-                       0x0d0c0b0a09080f0e, 0x0504030201000706 ) )
+#define mm256_ror64_8( v, c ) \
+     _mm256_or_si256( _mm256_srli_epi64( v, ( ( (c)<<3 ) ), \
+                      _mm256_slli_epi64( v, ( ( 64 - ( (c)<<3 ) ) ) )
+
 #endif
 
-#define mm256_ror1x8_64( v ) \
-   _mm256_shuffle_epi8( v, \
-        m256_const_64( 0x181f1e1d1c1b1a19, 0x1017161514131211, \
-                       0x080f0e0d0c0b0a09, 0x0007060504030201 ) )
 
-#define mm256_rol1x8_64( v ) \
-   _mm256_shuffle_epi8( v, \
-        m256_const_64( 0x1e1d1c1b1a19181f, 0x1615141312111017, \
-                       0x0e0d0c0b0a09080f, 0x0605040302010007 ) )
-
-#define mm256_ror3x8_64( v ) \
-   _mm256_shuffle_epi8( v, \
-        m256_const_64( 0x1a19181f1e1d1c1b, 0x1211101716151413, \
-                       0x0a09080f0e0d0c0b, 0x0201000706050403 ) )
-
-#define mm256_rol3x8_64( v ) \
-   _mm256_shuffle_epi8( v, \
-        m256_const_64( 0x1c1b1a19181f1e1d, 0x1413121110171615, \
-                       0x0c0b0a09080f0e0d, 0x0403020100070605 ) )
-
-
-// Swap 16 bit elements in each 32 bit lane
+// Rotate elements in each 32 bit lane
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-#define mm256_swap16_32( v )   _mm256_rol_epi32( v, 16 )
+#define mm256_swap32_16( v ) _mm256_rol_epi32( v, 16 )
+
+#define mm256_rol32_8( v )   _mm256_rol_epi32( v, 8 )
+#define mm256_ror32_8( v )   _mm256_ror_epi32( v, 8 )
 
 #else
 
-#define mm256_swap16_32( v ) \
-   _mm256_shuffle_epi8( v, \
-         m256_const_64( 0x1b1a19181f1e1d1c, 0x1312111017161514, \
-                        0x0b0a09080f0e0d0c, 0x0302010007060504 ) )
+#define mm256_swap32_16( v ) \
+     _mm256_or_si256( _mm256_slli_epi32( v, 16 ), \
+                      _mm256_srli_epi32( v, 16 ) )
+
+#define mm256_rol32_8( v ) \
+     _mm256_or_si256( _mm256_slli_epi32( v, 8 ), \
+                      _mm256_srli_epi32( v, 8 ) )
+
+#define mm256_ror32_8( v, c ) \
+     _mm256_or_si256( _mm256_srli_epi32( v, 8 ), \
+                      _mm256_slli_epi32( v, 8 ) )
+
 #endif
+
 
 //
 // Swap bytes in vector elements, endian bswap.
@@ -565,19 +537,19 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 //  _mm256_alignr_epi 64/32 are only available with AVX512 but AVX512 also
 //  makes these macros unnecessary.
 
-#define mm256_swap256_512 (v1, v2) \
-   v1 = _mm256_xor_si256(v1, v2); \
-   v2 = _mm256_xor_si256(v1, v2); \
-   v1 = _mm256_xor_si256(v1, v2);
+#define mm256_swap512_256( v1, v2 ) \
+   v1 = _mm256_xor_si256( v1, v2 ); \
+   v2 = _mm256_xor_si256( v1, v2 ); \
+   v1 = _mm256_xor_si256( v1, v2 );
 
-#define mm256_ror1x128_512( v1, v2 ) \
+#define mm256_ror512_128( v1, v2 ) \
 do { \
    __m256i t = _mm256_permute2x128( v1, v2, 0x03 ); \
    v1 = _mm256__mm256_permute2x128( v2, v1, 0x21 ); \
    v2 = t; \
 } while(0)
 
-#define mm256_rol1x128_512( v1, v2 ) \
+#define mm256_rol512_128( v1, v2 ) \
 do { \
    __m256i t = _mm256_permute2x128( v1, v2, 0x03 ); \
    v2 = _mm256__mm256_permute2x128( v2, v1, 0x21 ); \

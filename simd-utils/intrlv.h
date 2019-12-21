@@ -897,7 +897,7 @@ static inline void intrlv_16x32_512( void *dst, const void *s00,
    *( (uint32_t*)(d06) +(i) ) = s[ 6]; \
    *( (uint32_t*)(d07) +(i) ) = s[ 7]; \
    *( (uint32_t*)(d08) +(i) ) = s[ 8]; \
-   *( (uint32_t*)(d09) +(i) ) = s[ 0]; \
+   *( (uint32_t*)(d09) +(i) ) = s[ 9]; \
    *( (uint32_t*)(d10) +(i) ) = s[10]; \
    *( (uint32_t*)(d11) +(i) ) = s[11]; \
    *( (uint32_t*)(d12) +(i) ) = s[12]; \
@@ -2055,7 +2055,7 @@ static inline void intrlv_2x256( void *dst, const void *src0,
    if ( bit_len <= 512 ) return;
    d[4] = s0[2];
    if ( bit_len <= 640 ) return;
-   d[5] = s1[2];
+                      d[5] = s1[2];
    d[6] = s0[3];      d[7] = s1[3];
 }
 
@@ -2074,9 +2074,6 @@ static inline void dintrlv_2x256( void *dst0, void *dst1,
    d0[2] = s[4];      d1[2] = s[5];
    d0[3] = s[6];      d1[3] = s[7];
 }
-
-
-
 
 #endif // AVX
 
@@ -2165,7 +2162,9 @@ static inline void rintrlv_4x32_4x64( void *dst,
    d[ 5] = _mm_unpackhi_epi32( s[ 4], s[ 5] );
    d[ 6] = _mm_unpacklo_epi32( s[ 6], s[ 7] );
    d[ 7] = _mm_unpackhi_epi32( s[ 6], s[ 7] );
+
    if ( bit_len <= 256 ) return;
+
    d[ 8] = _mm_unpacklo_epi32( s[ 8], s[ 9] );
    d[ 9] = _mm_unpackhi_epi32( s[ 8], s[ 9] );
    d[10] = _mm_unpacklo_epi32( s[10], s[11] );
@@ -2174,16 +2173,21 @@ static inline void rintrlv_4x32_4x64( void *dst,
    d[13] = _mm_unpackhi_epi32( s[12], s[13] );
    d[14] = _mm_unpacklo_epi32( s[14], s[15] );
    d[15] = _mm_unpackhi_epi32( s[14], s[15] );
+
    if ( bit_len <= 512 ) return;
+
    d[16] = _mm_unpacklo_epi32( s[16], s[17] );
    d[17] = _mm_unpackhi_epi32( s[16], s[17] );
    d[18] = _mm_unpacklo_epi32( s[18], s[19] );
    d[19] = _mm_unpackhi_epi32( s[18], s[19] );
+
    if ( bit_len <= 640 ) return;
+
    d[20] = _mm_unpacklo_epi32( s[20], s[21] );
    d[21] = _mm_unpackhi_epi32( s[20], s[21] );
    d[22] = _mm_unpacklo_epi32( s[22], s[23] );
    d[23] = _mm_unpackhi_epi32( s[22], s[23] );
+
    d[24] = _mm_unpacklo_epi32( s[24], s[25] );
    d[25] = _mm_unpackhi_epi32( s[24], s[25] );
    d[26] = _mm_unpacklo_epi32( s[26], s[27] );
@@ -2193,6 +2197,93 @@ static inline void rintrlv_4x32_4x64( void *dst,
    d[30] = _mm_unpacklo_epi32( s[30], s[31] );
    d[31] = _mm_unpackhi_epi32( s[30], s[31] );
 }
+
+// 8x32 -> 8x64
+
+static inline void rintrlv_8x32_8x64( void *dst,
+                                      const void *src, const int bit_len )
+{
+   __m128i *d = (__m128i*)dst;
+   const __m128i *s = (const __m128i*)src;
+
+   d[ 0] = _mm_unpacklo_epi32( s[ 0], s[ 2] );
+   d[ 1] = _mm_unpackhi_epi32( s[ 0], s[ 2] );
+   d[ 2] = _mm_unpacklo_epi32( s[ 1], s[ 3] );
+   d[ 3] = _mm_unpackhi_epi32( s[ 1], s[ 3] );
+   d[ 4] = _mm_unpacklo_epi32( s[ 4], s[ 6] );
+   d[ 5] = _mm_unpackhi_epi32( s[ 4], s[ 6] );
+   d[ 6] = _mm_unpacklo_epi32( s[ 5], s[ 7] );
+   d[ 7] = _mm_unpackhi_epi32( s[ 5], s[ 7] );
+
+   d[ 8] = _mm_unpacklo_epi32( s[ 8], s[10] );
+   d[ 9] = _mm_unpackhi_epi32( s[ 8], s[10] );
+   d[10] = _mm_unpacklo_epi32( s[ 9], s[11] );
+   d[11] = _mm_unpackhi_epi32( s[ 9], s[11] );
+   d[12] = _mm_unpacklo_epi32( s[12], s[14] );
+   d[13] = _mm_unpackhi_epi32( s[12], s[14] );
+   d[14] = _mm_unpacklo_epi32( s[13], s[15] );
+   d[15] = _mm_unpackhi_epi32( s[13], s[15] );
+
+   if ( bit_len <= 256 ) return;
+
+   d[16] = _mm_unpacklo_epi32( s[16], s[18] );
+   d[17] = _mm_unpackhi_epi32( s[16], s[18] );
+   d[18] = _mm_unpacklo_epi32( s[17], s[19] );
+   d[19] = _mm_unpackhi_epi32( s[17], s[19] );
+   d[20] = _mm_unpacklo_epi32( s[20], s[22] );
+   d[21] = _mm_unpackhi_epi32( s[20], s[22] );
+   d[22] = _mm_unpacklo_epi32( s[21], s[23] );
+   d[23] = _mm_unpackhi_epi32( s[21], s[23] );
+
+   d[24] = _mm_unpacklo_epi32( s[24], s[26] );
+   d[25] = _mm_unpackhi_epi32( s[24], s[26] );
+   d[26] = _mm_unpacklo_epi32( s[25], s[27] );
+   d[27] = _mm_unpackhi_epi32( s[25], s[27] );
+   d[28] = _mm_unpacklo_epi32( s[28], s[30] );
+   d[29] = _mm_unpackhi_epi32( s[28], s[30] );
+   d[30] = _mm_unpacklo_epi32( s[29], s[31] );
+   d[31] = _mm_unpackhi_epi32( s[29], s[31] );
+
+   if ( bit_len <= 512 ) return;
+
+   d[32] = _mm_unpacklo_epi32( s[32], s[34] );
+   d[33] = _mm_unpackhi_epi32( s[32], s[34] );
+   d[34] = _mm_unpacklo_epi32( s[33], s[35] );
+   d[35] = _mm_unpackhi_epi32( s[33], s[35] );
+   d[36] = _mm_unpacklo_epi32( s[36], s[38] );
+   d[37] = _mm_unpackhi_epi32( s[36], s[38] );
+   d[38] = _mm_unpacklo_epi32( s[37], s[39] );
+   d[39] = _mm_unpackhi_epi32( s[37], s[39] );
+
+   d[40] = _mm_unpacklo_epi32( s[40], s[42] );
+   d[41] = _mm_unpackhi_epi32( s[40], s[42] );
+   d[42] = _mm_unpacklo_epi32( s[41], s[43] );
+   d[43] = _mm_unpackhi_epi32( s[41], s[43] );
+   d[44] = _mm_unpacklo_epi32( s[44], s[46] );
+   d[45] = _mm_unpackhi_epi32( s[44], s[46] );
+   d[46] = _mm_unpacklo_epi32( s[45], s[47] );
+   d[47] = _mm_unpackhi_epi32( s[45], s[47] );
+
+   d[48] = _mm_unpacklo_epi32( s[48], s[50] );
+   d[49] = _mm_unpackhi_epi32( s[48], s[50] );
+   d[50] = _mm_unpacklo_epi32( s[49], s[51] );
+   d[51] = _mm_unpackhi_epi32( s[49], s[51] );
+   d[52] = _mm_unpacklo_epi32( s[52], s[54] );
+   d[53] = _mm_unpackhi_epi32( s[52], s[54] );
+   d[54] = _mm_unpacklo_epi32( s[53], s[55] );
+   d[55] = _mm_unpackhi_epi32( s[53], s[55] );
+
+   d[56] = _mm_unpacklo_epi32( s[56], s[58] );
+   d[57] = _mm_unpackhi_epi32( s[56], s[58] );
+   d[58] = _mm_unpacklo_epi32( s[57], s[59] );
+   d[59] = _mm_unpackhi_epi32( s[57], s[59] );
+   d[60] = _mm_unpacklo_epi32( s[60], s[62] );
+   d[61] = _mm_unpackhi_epi32( s[60], s[62] );
+   d[62] = _mm_unpacklo_epi32( s[61], s[63] );
+   d[63] = _mm_unpackhi_epi32( s[61], s[63] );
+}
+
+
 
 /*
 #define RLEAVE_4x32_4x64(i) do \
@@ -2224,7 +2315,6 @@ static inline void rintrlv_4x32_4x64( void *dst,
 */
 
 // 2x128 -> 4x64
-
 
 static inline void rintrlv_2x128_4x64( void *dst, const void *src0,
                                        const void *src1, const int bit_len )
@@ -2267,7 +2357,6 @@ static inline void rintrlv_2x128_4x64( void *dst, const void *src0,
    d[30] = _mm_unpackhi_epi64( s0[14], s0[15] );
    d[31] = _mm_unpackhi_epi64( s1[14], s1[15] );
 }
-
 
 /*
 #define RLEAVE_2x128_4x64( i ) do \
@@ -2339,7 +2428,6 @@ static inline void rintrlv_4x64_2x128( void *dst0, void *dst1,
    d1[15] = _mm_unpackhi_epi64( s[29], s[31] );
 }
 
-
 /*
 #define RLEAVE_4x64_2x128( i ) do \
 { \
@@ -2363,6 +2451,354 @@ static inline void rintrlv_4x64_2x128( void *dst0, void *dst1,
    RLEAVE_4x64_2x128( 24 );   RLEAVE_4x64_2x128( 28 );
 }
 */
+
+// 2x128 -> 8x64
+
+static inline void rintrlv_4x128_8x64( void *dst, const void *src0,
+                                       const void *src1, const int bit_len )
+{
+   __m128i *d = (__m128i*)dst;
+   const __m128i *s0 = (const __m128i*)src0;
+   const __m128i *s1 = (const __m128i*)src1;
+
+   d[ 0] = _mm_unpacklo_epi64( s0[ 0], s0[ 1] );
+   d[ 1] = _mm_unpacklo_epi64( s0[ 2], s0[ 3] );
+   d[ 2] = _mm_unpacklo_epi64( s1[ 0], s1[ 1] );
+   d[ 3] = _mm_unpacklo_epi64( s1[ 2], s1[ 3] );
+   d[ 4] = _mm_unpackhi_epi64( s0[ 0], s0[ 1] );
+   d[ 5] = _mm_unpackhi_epi64( s0[ 2], s0[ 3] );
+   d[ 6] = _mm_unpackhi_epi64( s1[ 0], s1[ 1] );
+   d[ 7] = _mm_unpackhi_epi64( s1[ 2], s1[ 3] );
+
+   d[ 8] = _mm_unpacklo_epi64( s0[ 4], s0[ 5] );
+   d[ 9] = _mm_unpacklo_epi64( s0[ 6], s0[ 7] );
+   d[10] = _mm_unpacklo_epi64( s1[ 4], s1[ 5] );
+   d[11] = _mm_unpacklo_epi64( s1[ 6], s1[ 7] );
+   d[12] = _mm_unpackhi_epi64( s0[ 4], s0[ 5] );
+   d[13] = _mm_unpackhi_epi64( s0[ 6], s0[ 7] );
+   d[14] = _mm_unpackhi_epi64( s1[ 4], s1[ 5] );
+   d[15] = _mm_unpackhi_epi64( s1[ 6], s1[ 7] );
+
+   if ( bit_len <= 256 ) return;
+
+   d[16] = _mm_unpacklo_epi64( s0[ 8], s0[ 9] );
+   d[17] = _mm_unpacklo_epi64( s0[10], s0[11] );
+   d[18] = _mm_unpacklo_epi64( s1[ 8], s1[ 9] );
+   d[19] = _mm_unpacklo_epi64( s1[10], s1[11] );
+   d[20] = _mm_unpackhi_epi64( s0[ 8], s0[ 9] );
+   d[21] = _mm_unpackhi_epi64( s0[10], s0[11] );
+   d[22] = _mm_unpackhi_epi64( s1[ 8], s1[ 9] );
+   d[23] = _mm_unpackhi_epi64( s1[10], s1[11] );
+
+   d[24] = _mm_unpacklo_epi64( s0[12], s0[13] );
+   d[25] = _mm_unpacklo_epi64( s0[14], s0[15] );
+   d[26] = _mm_unpacklo_epi64( s1[12], s1[13] );
+   d[27] = _mm_unpacklo_epi64( s1[14], s1[15] );
+   d[28] = _mm_unpackhi_epi64( s0[12], s0[13] );
+   d[29] = _mm_unpackhi_epi64( s0[14], s0[15] );
+   d[30] = _mm_unpackhi_epi64( s1[12], s1[13] );
+   d[31] = _mm_unpackhi_epi64( s1[14], s1[15] );
+
+   if ( bit_len <= 512 ) return;
+
+   d[32] = _mm_unpacklo_epi64( s0[16], s0[17] );
+   d[33] = _mm_unpacklo_epi64( s0[18], s0[19] );
+   d[34] = _mm_unpacklo_epi64( s1[16], s1[17] );
+   d[35] = _mm_unpacklo_epi64( s1[18], s1[19] );
+   d[36] = _mm_unpackhi_epi64( s0[16], s0[17] );
+   d[37] = _mm_unpackhi_epi64( s0[18], s0[19] );
+   d[38] = _mm_unpackhi_epi64( s1[16], s1[17] );
+   d[39] = _mm_unpackhi_epi64( s1[18], s1[19] );
+
+   d[40] = _mm_unpacklo_epi64( s0[20], s0[21] );
+   d[41] = _mm_unpacklo_epi64( s0[22], s0[23] );
+   d[42] = _mm_unpacklo_epi64( s1[20], s1[21] );
+   d[43] = _mm_unpacklo_epi64( s1[22], s1[23] );
+   d[44] = _mm_unpackhi_epi64( s0[20], s0[21] );
+   d[45] = _mm_unpackhi_epi64( s0[22], s0[23] );
+   d[46] = _mm_unpackhi_epi64( s1[20], s1[21] );
+   d[47] = _mm_unpackhi_epi64( s1[22], s1[23] );
+
+   d[48] = _mm_unpacklo_epi64( s0[24], s0[25] );
+   d[49] = _mm_unpacklo_epi64( s0[26], s0[27] );
+   d[50] = _mm_unpacklo_epi64( s1[24], s1[25] );
+   d[51] = _mm_unpacklo_epi64( s1[26], s1[27] );
+   d[52] = _mm_unpackhi_epi64( s0[24], s0[25] );
+   d[53] = _mm_unpackhi_epi64( s0[26], s0[27] );
+   d[54] = _mm_unpackhi_epi64( s1[24], s1[25] );
+   d[55] = _mm_unpackhi_epi64( s1[26], s1[27] );
+
+   d[56] = _mm_unpacklo_epi64( s0[28], s0[29] );
+   d[57] = _mm_unpacklo_epi64( s0[30], s0[31] );
+   d[58] = _mm_unpacklo_epi64( s1[28], s1[29] );
+   d[59] = _mm_unpacklo_epi64( s1[30], s1[31] );
+   d[60] = _mm_unpackhi_epi64( s0[28], s0[29] );
+   d[61] = _mm_unpackhi_epi64( s0[30], s0[31] );
+   d[62] = _mm_unpackhi_epi64( s1[28], s1[29] );
+   d[63] = _mm_unpackhi_epi64( s1[30], s1[31] );
+}
+
+// 8x64 -> 4x128
+
+static inline void rintrlv_8x64_4x128( void *dst0, void *dst1,
+                                       const void *src, const int bit_len )
+{
+   __m128i *d0 = (__m128i*)dst0;
+   __m128i *d1 = (__m128i*)dst1;
+   const __m128i* s = (const __m128i*)src;
+
+   d0[ 0] = _mm_unpacklo_epi64( s[ 0], s[ 4] );
+   d0[ 1] = _mm_unpackhi_epi64( s[ 0], s[ 4] );
+   d1[ 0] = _mm_unpacklo_epi64( s[ 2], s[ 6] );
+   d1[ 1] = _mm_unpackhi_epi64( s[ 2], s[ 6] );
+   d0[ 2] = _mm_unpacklo_epi64( s[ 1], s[ 5] );
+   d0[ 3] = _mm_unpackhi_epi64( s[ 1], s[ 5] );
+   d1[ 2] = _mm_unpacklo_epi64( s[ 3], s[ 7] );
+   d1[ 3] = _mm_unpackhi_epi64( s[ 3], s[ 7] );
+
+   d0[ 4] = _mm_unpacklo_epi64( s[ 8], s[12] );
+   d0[ 5] = _mm_unpackhi_epi64( s[ 8], s[12] );
+   d1[ 4] = _mm_unpacklo_epi64( s[10], s[14] );
+   d1[ 5] = _mm_unpackhi_epi64( s[10], s[14] );
+   d0[ 6] = _mm_unpacklo_epi64( s[ 9], s[13] );
+   d0[ 7] = _mm_unpackhi_epi64( s[ 9], s[13] );
+   d1[ 6] = _mm_unpacklo_epi64( s[11], s[15] );
+   d1[ 7] = _mm_unpackhi_epi64( s[11], s[15] );
+
+   if ( bit_len <= 256 ) return;
+
+   d0[ 8] = _mm_unpacklo_epi64( s[16], s[20] );
+   d0[ 9] = _mm_unpackhi_epi64( s[16], s[20] );
+   d1[ 8] = _mm_unpacklo_epi64( s[18], s[22] );
+   d1[ 9] = _mm_unpackhi_epi64( s[18], s[22] );
+   d0[10] = _mm_unpacklo_epi64( s[17], s[21] );
+   d0[11] = _mm_unpackhi_epi64( s[17], s[21] );
+   d1[10] = _mm_unpacklo_epi64( s[19], s[23] );
+   d1[11] = _mm_unpackhi_epi64( s[19], s[23] );
+
+   d0[12] = _mm_unpacklo_epi64( s[24], s[28] );
+   d0[13] = _mm_unpackhi_epi64( s[24], s[28] );
+   d1[12] = _mm_unpacklo_epi64( s[26], s[30] );
+   d1[13] = _mm_unpackhi_epi64( s[26], s[30] );
+   d0[14] = _mm_unpacklo_epi64( s[25], s[29] );
+   d0[15] = _mm_unpackhi_epi64( s[25], s[29] );
+   d1[14] = _mm_unpacklo_epi64( s[27], s[31] );
+   d1[15] = _mm_unpackhi_epi64( s[27], s[31] );
+
+   if ( bit_len <= 512 ) return;
+
+   d0[16] = _mm_unpacklo_epi64( s[32], s[36] );
+   d0[17] = _mm_unpackhi_epi64( s[32], s[36] );
+   d1[16] = _mm_unpacklo_epi64( s[34], s[38] );
+   d1[17] = _mm_unpackhi_epi64( s[34], s[38] );
+   d0[18] = _mm_unpacklo_epi64( s[33], s[37] );
+   d0[19] = _mm_unpackhi_epi64( s[33], s[37] );
+   d1[18] = _mm_unpacklo_epi64( s[35], s[39] );
+   d1[19] = _mm_unpackhi_epi64( s[35], s[39] );
+
+   d0[20] = _mm_unpacklo_epi64( s[40], s[44] );
+   d0[21] = _mm_unpackhi_epi64( s[40], s[44] );
+   d1[20] = _mm_unpacklo_epi64( s[42], s[46] );
+   d1[21] = _mm_unpackhi_epi64( s[42], s[46] );
+   d0[22] = _mm_unpacklo_epi64( s[41], s[45] );
+   d0[23] = _mm_unpackhi_epi64( s[41], s[45] );
+   d1[22] = _mm_unpacklo_epi64( s[43], s[47] );
+   d1[23] = _mm_unpackhi_epi64( s[43], s[47] );
+
+   d0[24] = _mm_unpacklo_epi64( s[48], s[52] );
+   d0[25] = _mm_unpackhi_epi64( s[48], s[52] );
+   d1[24] = _mm_unpacklo_epi64( s[50], s[54] );
+   d1[25] = _mm_unpackhi_epi64( s[50], s[54] );
+   d0[26] = _mm_unpacklo_epi64( s[49], s[53] );
+   d0[27] = _mm_unpackhi_epi64( s[49], s[53] );
+   d1[26] = _mm_unpacklo_epi64( s[51], s[55] );
+   d1[27] = _mm_unpackhi_epi64( s[51], s[55] );
+
+   d0[28] = _mm_unpacklo_epi64( s[56], s[60] );
+   d0[29] = _mm_unpackhi_epi64( s[56], s[60] );
+   d1[28] = _mm_unpacklo_epi64( s[58], s[62] );
+   d1[29] = _mm_unpackhi_epi64( s[58], s[62] );
+   d0[30] = _mm_unpacklo_epi64( s[57], s[61] );
+   d0[31] = _mm_unpackhi_epi64( s[57], s[61] );
+   d1[30] = _mm_unpacklo_epi64( s[59], s[63] );
+   d1[31] = _mm_unpackhi_epi64( s[59], s[63] );
+}
+
+// 8x64 -> 2x256
+
+static inline void rintrlv_8x64_2x256( void *dst0, void *dst1, void *dst2,
+                          void *dst3,  const void *src, const int bit_len )
+{
+   __m128i *d0 = (__m128i*)dst0;
+   __m128i *d1 = (__m128i*)dst1;
+   __m128i *d2 = (__m128i*)dst2;
+   __m128i *d3 = (__m128i*)dst3;
+   const __m128i* s = (const __m128i*)src;
+
+   d0[ 0] = _mm_unpacklo_epi64( s[ 0], s[ 4] );
+   d1[ 0] = _mm_unpackhi_epi64( s[ 0], s[ 4] );
+   d2[ 0] = _mm_unpacklo_epi64( s[ 1], s[ 5] );   
+   d3[ 0] = _mm_unpackhi_epi64( s[ 1], s[ 5] );
+   d0[ 1] = _mm_unpacklo_epi64( s[ 2], s[ 6] ); 
+   d1[ 1] = _mm_unpackhi_epi64( s[ 2], s[ 6] );
+   d2[ 1] = _mm_unpacklo_epi64( s[ 3], s[ 7] ); 
+   d3[ 1] = _mm_unpackhi_epi64( s[ 3], s[ 7] );
+   
+   d0[ 2] = _mm_unpacklo_epi64( s[ 8], s[12] ); 
+   d1[ 2] = _mm_unpackhi_epi64( s[ 8], s[12] );
+   d2[ 2] = _mm_unpacklo_epi64( s[ 9], s[13] ); 
+   d3[ 2] = _mm_unpackhi_epi64( s[ 9], s[13] );
+   d0[ 3] = _mm_unpacklo_epi64( s[10], s[14] );
+   d1[ 3] = _mm_unpackhi_epi64( s[10], s[14] );
+   d2[ 3] = _mm_unpacklo_epi64( s[11], s[15] );
+   d3[ 3] = _mm_unpackhi_epi64( s[11], s[15] );
+
+   if ( bit_len <= 256 ) return;
+
+   d0[ 4] = _mm_unpacklo_epi64( s[16], s[20] );
+   d1[ 4] = _mm_unpackhi_epi64( s[16], s[20] );
+   d2[ 4] = _mm_unpacklo_epi64( s[17], s[21] );
+   d3[ 4] = _mm_unpackhi_epi64( s[17], s[21] );
+   d0[ 5] = _mm_unpacklo_epi64( s[18], s[22] );
+   d1[ 5] = _mm_unpackhi_epi64( s[18], s[22] );
+   d2[ 5] = _mm_unpacklo_epi64( s[19], s[23] );
+   d3[ 5] = _mm_unpackhi_epi64( s[19], s[23] );
+   
+   d0[ 6] = _mm_unpacklo_epi64( s[24], s[28] );
+   d1[ 6] = _mm_unpackhi_epi64( s[24], s[28] );
+   d2[ 6] = _mm_unpacklo_epi64( s[25], s[29] );
+   d3[ 6] = _mm_unpackhi_epi64( s[25], s[29] );
+   d0[ 7] = _mm_unpacklo_epi64( s[26], s[30] );
+   d1[ 7] = _mm_unpackhi_epi64( s[26], s[30] );
+   d2[ 7] = _mm_unpacklo_epi64( s[27], s[31] );
+   d3[ 7] = _mm_unpackhi_epi64( s[27], s[31] );
+
+   if ( bit_len <= 512 ) return;
+
+   d0[ 8] = _mm_unpacklo_epi64( s[32], s[36] );
+   d1[ 8] = _mm_unpackhi_epi64( s[32], s[36] );
+   d2[ 8] = _mm_unpacklo_epi64( s[33], s[37] );
+   d3[ 8] = _mm_unpackhi_epi64( s[33], s[37] );
+   d0[ 9] = _mm_unpacklo_epi64( s[34], s[38] );
+   d1[ 9] = _mm_unpackhi_epi64( s[34], s[38] );
+   d2[ 9] = _mm_unpacklo_epi64( s[35], s[39] );
+   d3[ 9] = _mm_unpackhi_epi64( s[35], s[39] );
+
+   d0[10] = _mm_unpacklo_epi64( s[40], s[44] );
+   d1[10] = _mm_unpackhi_epi64( s[40], s[44] );
+   d2[10] = _mm_unpacklo_epi64( s[41], s[45] );
+   d3[10] = _mm_unpackhi_epi64( s[41], s[45] );
+   d0[11] = _mm_unpacklo_epi64( s[42], s[46] );
+   d1[11] = _mm_unpackhi_epi64( s[42], s[46] );
+   d2[11] = _mm_unpacklo_epi64( s[43], s[47] );
+   d3[11] = _mm_unpackhi_epi64( s[43], s[47] );
+
+   d0[12] = _mm_unpacklo_epi64( s[48], s[52] );
+   d1[12] = _mm_unpackhi_epi64( s[48], s[52] );
+   d2[12] = _mm_unpacklo_epi64( s[49], s[53] );
+   d3[12] = _mm_unpackhi_epi64( s[49], s[53] );
+   d0[13] = _mm_unpacklo_epi64( s[50], s[54] );
+   d1[13] = _mm_unpackhi_epi64( s[50], s[54] );
+   d2[13] = _mm_unpacklo_epi64( s[51], s[55] );
+   d3[13] = _mm_unpackhi_epi64( s[51], s[55] );
+
+   d0[14] = _mm_unpacklo_epi64( s[56], s[60] );
+   d1[14] = _mm_unpackhi_epi64( s[56], s[60] );
+   d2[14] = _mm_unpacklo_epi64( s[57], s[61] );
+   d3[14] = _mm_unpackhi_epi64( s[57], s[61] );
+   d0[15] = _mm_unpacklo_epi64( s[58], s[62] );
+   d1[15] = _mm_unpackhi_epi64( s[58], s[62] );
+   d2[15] = _mm_unpacklo_epi64( s[59], s[63] );
+   d3[15] = _mm_unpackhi_epi64( s[59], s[63] );
+}
+
+// 4x128 -> 8x64
+
+static inline void rintrlv_2x256_8x64( void *dst, const void *src0,
+      const void *src1, const void *src2, const void *src3, const int bit_len )
+{
+   __m128i *d = (__m128i*)dst;
+   __m128i *s0 = (__m128i*)src0;
+   __m128i *s1 = (__m128i*)src1;
+   __m128i *s2 = (__m128i*)src2;
+   __m128i *s3 = (__m128i*)src3;
+
+   d[ 0] = _mm_unpacklo_epi64( s0[0], s0[2] );
+   d[ 1] = _mm_unpacklo_epi64( s1[0], s1[2] );
+   d[ 2] = _mm_unpacklo_epi64( s2[0], s2[2] );
+   d[ 3] = _mm_unpacklo_epi64( s3[0], s3[2] );
+   d[ 4] = _mm_unpackhi_epi64( s0[0], s0[2] );
+   d[ 5] = _mm_unpackhi_epi64( s1[0], s1[2] );
+   d[ 6] = _mm_unpackhi_epi64( s2[0], s2[2] );
+   d[ 7] = _mm_unpackhi_epi64( s3[0], s3[2] );
+
+   d[ 8] = _mm_unpacklo_epi64( s0[1], s0[3] );
+   d[ 9] = _mm_unpacklo_epi64( s1[1], s1[3] );
+   d[10] = _mm_unpacklo_epi64( s2[1], s2[3] );
+   d[11] = _mm_unpacklo_epi64( s3[1], s3[3] );
+   d[12] = _mm_unpackhi_epi64( s0[1], s0[3] );
+   d[13] = _mm_unpackhi_epi64( s1[1], s1[3] );
+   d[14] = _mm_unpackhi_epi64( s2[1], s2[3] );
+   d[15] = _mm_unpackhi_epi64( s3[1], s3[3] );
+
+   if ( bit_len <= 256 ) return;
+
+   d[16] = _mm_unpacklo_epi64( s0[4], s0[6] );
+   d[17] = _mm_unpacklo_epi64( s1[4], s1[6] );
+   d[18] = _mm_unpacklo_epi64( s2[4], s2[6] );
+   d[19] = _mm_unpacklo_epi64( s3[4], s3[6] );
+   d[20] = _mm_unpackhi_epi64( s0[4], s0[6] );
+   d[21] = _mm_unpackhi_epi64( s1[4], s1[6] );
+   d[22] = _mm_unpackhi_epi64( s2[4], s2[6] );
+   d[23] = _mm_unpackhi_epi64( s3[4], s3[6] );
+
+   d[24] = _mm_unpacklo_epi64( s0[5], s0[7] );
+   d[25] = _mm_unpacklo_epi64( s1[5], s1[7] );
+   d[26] = _mm_unpacklo_epi64( s2[5], s2[7] );
+   d[27] = _mm_unpacklo_epi64( s3[5], s3[7] );
+   d[28] = _mm_unpackhi_epi64( s0[5], s0[7] );
+   d[29] = _mm_unpackhi_epi64( s1[5], s1[7] );
+   d[30] = _mm_unpackhi_epi64( s2[5], s2[7] );
+   d[31] = _mm_unpackhi_epi64( s3[5], s3[7] );
+
+   if ( bit_len <= 512 ) return;
+
+   d[32] = _mm_unpacklo_epi64( s0[8], s0[10] );
+   d[33] = _mm_unpacklo_epi64( s1[8], s1[10] );
+   d[34] = _mm_unpacklo_epi64( s2[8], s2[10] );
+   d[35] = _mm_unpacklo_epi64( s3[8], s3[10] );
+   d[36] = _mm_unpackhi_epi64( s0[8], s0[10] );
+   d[37] = _mm_unpackhi_epi64( s1[8], s1[10] );
+   d[38] = _mm_unpackhi_epi64( s2[8], s2[10] );
+   d[39] = _mm_unpackhi_epi64( s3[8], s3[10] );
+
+   d[40] = _mm_unpacklo_epi64( s0[9], s0[11] );
+   d[41] = _mm_unpacklo_epi64( s1[9], s1[11] );
+   d[42] = _mm_unpacklo_epi64( s2[9], s2[11] );
+   d[43] = _mm_unpacklo_epi64( s3[9], s3[11] );
+   d[44] = _mm_unpackhi_epi64( s0[9], s0[11] );
+   d[45] = _mm_unpackhi_epi64( s1[9], s1[11] );
+   d[46] = _mm_unpackhi_epi64( s2[9], s2[11] );
+   d[47] = _mm_unpackhi_epi64( s3[9], s3[11] );
+
+   d[48] = _mm_unpacklo_epi64( s0[12], s0[14] );
+   d[49] = _mm_unpacklo_epi64( s1[12], s1[14] );
+   d[50] = _mm_unpacklo_epi64( s2[12], s2[14] );
+   d[51] = _mm_unpacklo_epi64( s3[12], s3[14] );
+   d[52] = _mm_unpackhi_epi64( s0[12], s0[14] );
+   d[53] = _mm_unpackhi_epi64( s1[12], s1[14] );
+   d[54] = _mm_unpackhi_epi64( s2[12], s2[14] );
+   d[55] = _mm_unpackhi_epi64( s3[12], s3[14] );
+
+   d[56] = _mm_unpacklo_epi64( s0[13], s0[15] );
+   d[57] = _mm_unpacklo_epi64( s1[13], s1[15] );
+   d[58] = _mm_unpacklo_epi64( s2[13], s2[15] );
+   d[59] = _mm_unpacklo_epi64( s3[13], s3[15] );
+   d[60] = _mm_unpackhi_epi64( s0[13], s0[15] );
+   d[61] = _mm_unpackhi_epi64( s1[13], s1[15] );
+   d[62] = _mm_unpackhi_epi64( s2[13], s2[15] );
+   d[63] = _mm_unpackhi_epi64( s3[13], s3[15] );
+}
 
 //
 // Some functions customized for mining.

@@ -333,6 +333,7 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			if (((hash64[7]&0xFFFFFFFF)==0) && 
 					fulltest(hash64, ptarget)) {
 				*hashes_done = n - first_nonce + 1;
+            work_set_target_ratio( work, hash64 );
 				return true;
 			}
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
@@ -346,6 +347,7 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			if (((hash64[7]&0xFFFFFFF0)==0) && 
 					fulltest(hash64, ptarget)) {
 				*hashes_done = n - first_nonce + 1;
+            work_set_target_ratio( work, hash64 );
 				return true;
 			}
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
@@ -359,6 +361,7 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			if (((hash64[7]&0xFFFFFF00)==0) && 
 					fulltest(hash64, ptarget)) {
 				*hashes_done = n - first_nonce + 1;
+            work_set_target_ratio( work, hash64 );
 				return true;
 			}
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
@@ -372,6 +375,7 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			if (((hash64[7]&0xFFFFF000)==0) && 
 					fulltest(hash64, ptarget)) {
 				*hashes_done = n - first_nonce + 1;
+            work_set_target_ratio( work, hash64 );
 				return true;
 			}
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
@@ -386,6 +390,7 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			if (((hash64[7]&0xFFFF0000)==0) && 
 					fulltest(hash64, ptarget)) {
 				*hashes_done = n - first_nonce + 1;
+            work_set_target_ratio( work, hash64 );
 				return true;
 			}
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
@@ -399,6 +404,7 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			hmq1725hash(hash64, endiandata);
 			if (fulltest(hash64, ptarget)) {
 				*hashes_done = n - first_nonce + 1;
+            work_set_target_ratio( work, hash64 );
 				return true;
 			}
 		} while (n < max_nonce && !work_restart[thr_id].restart);	

@@ -3410,39 +3410,39 @@ bool check_cpu_capability ()
         printf(".\n");
      #endif
 
-     printf("CPU features:");
-     if      ( cpu_has_vaes   )    printf( " VAES"   );
-     else if ( cpu_has_aes    )    printf( " AES"    );
-     if      ( cpu_has_sha    )    printf( " SHA"    );
+     printf("CPU features: ");
      if      ( cpu_has_avx512 )    printf( " AVX512" );
-     else if ( cpu_has_avx2   )    printf( " AVX2"   );
-     else if ( cpu_has_avx    )    printf( " AVX"    );
+     else if ( cpu_has_avx2   )    printf( " AVX2  " );
+     else if ( cpu_has_avx    )    printf( " AVX   " );
      else if ( cpu_has_sse42  )    printf( " SSE4.2" );
-     else if ( cpu_has_sse2   )    printf( " SSE2"   );
+     else if ( cpu_has_sse2   )    printf( " SSE2  " );
+     if      ( cpu_has_vaes   )    printf( " VAES"   );
+     else if ( cpu_has_aes    )    printf( "  AES"   );
+     if      ( cpu_has_sha    )    printf( " SHA"    );
 
-     printf(".\nSW features:");
-     if      ( sw_has_vaes   )    printf( " VAES"   );
-     else if ( sw_has_aes    )    printf( " AES"    );
-     if      ( sw_has_sha    )    printf( " SHA"    );
+     printf("\nSW features:  ");
      if      ( sw_has_avx512 )    printf( " AVX512" );
-     else if ( sw_has_avx2   )    printf( " AVX2"   );
-     else if ( sw_has_avx    )    printf( " AVX"    );
+     else if ( sw_has_avx2   )    printf( " AVX2  " );
+     else if ( sw_has_avx    )    printf( " AVX   " );
      else if ( sw_has_sse42  )    printf( " SSE4.2" );
-     else if ( sw_has_sse2   )    printf( " SSE2"   );
+     else if ( sw_has_sse2   )    printf( " SSE2  " );
+     if      ( sw_has_vaes   )    printf( " VAES"   );
+     else if ( sw_has_aes    )    printf( " AES "   );
+     if      ( sw_has_sha    )    printf( " SHA"    );
 
-     printf(".\nAlgo features:");
+     printf("\nAlgo features:");
      if ( algo_features == EMPTY_SET ) printf( " None" );
      else
      {
-        if      ( algo_has_vaes   )    printf( " VAES"   );
-        else if ( algo_has_aes    )    printf( " AES"    );
-        if      ( algo_has_sha    )    printf( " SHA"    );
         if      ( algo_has_avx512 )    printf( " AVX512" );
-        else if ( algo_has_avx2   )    printf( " AVX2"   );
+        else if ( algo_has_avx2   )    printf( " AVX2  " );
         else if ( algo_has_sse42  )    printf( " SSE4.2" );
-        else if ( algo_has_sse2   )    printf( " SSE2"   );
+        else if ( algo_has_sse2   )    printf( " SSE2  " );
+        if      ( algo_has_vaes   )    printf( " VAES"   );
+        else if ( algo_has_aes    )    printf( " AES "   );
+        if      ( algo_has_sha    )    printf( " SHA"    );
      }
-     printf(".\n");
+     printf("\n");
 
      // Check for CPU and build incompatibilities
      if ( !cpu_has_sse2 )
@@ -3483,19 +3483,19 @@ bool check_cpu_capability ()
                    use_sha || use_vaes );
       
      // Display best options
-     printf( "Start mining with" );
+     printf( "\nStarting miner with" );
      if         ( use_none ) printf( " no optimizations" );
      else
      {
-        if      ( use_vaes   ) printf( " VAES"   );
-        else if ( use_aes    ) printf( " AES"    );
         if      ( use_avx512 ) printf( " AVX512" );
         else if ( use_avx2   ) printf( " AVX2"   );
         else if ( use_sse42  ) printf( " SSE4.2" );
         else if ( use_sse2   ) printf( " SSE2"   );
+        if      ( use_vaes   ) printf( " VAES"   );
+        else if ( use_aes    ) printf( " AES"    );
         if      ( use_sha    ) printf( " SHA"    );
      }
-     printf( ".\n\n" );
+     printf( "...\n\n" );
 
      return true;
 }

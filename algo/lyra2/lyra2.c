@@ -327,7 +327,6 @@ int LYRA2REV3( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
 
    reducedDuplexRow1( state, &wholeMatrix[0], &wholeMatrix[ROW_LEN_INT64],
                       nCols);
-
    do
    {
       //M[row] = rand; //M[row*] = M[row*] XOR rotW(rand)
