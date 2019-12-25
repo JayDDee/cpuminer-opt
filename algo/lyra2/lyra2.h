@@ -62,12 +62,17 @@ int LYRA2(void *K, int64_t kLen, const void *pwd, int32_t pwdlen, const void *sa
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
+int LYRA2RE_2WAY( void *K, uint64_t kLen, const void *pwd, uint64_t pwdlen,
+                  uint64_t timeCost, uint64_t nRows, uint64_t nCols );
 
 int LYRA2REV2_2WAY( uint64_t*, void *K, uint64_t kLen, const void *pwd,
         uint64_t pwdlen, uint64_t timeCost, uint64_t nRows, uint64_t nCols );
 
 int LYRA2REV3_2WAY( uint64_t*, void *K, uint64_t kLen, const void *pwd,
         uint64_t pwdlen, uint64_t timeCost, uint64_t nRows, uint64_t nCols );
+
+int LYRA2Z_2WAY( uint64_t*, void *K, uint64_t kLen, const void *pwd,
+          uint64_t pwdlen, uint64_t timeCost, uint64_t nRows, uint64_t nCols );
 
 #endif
 

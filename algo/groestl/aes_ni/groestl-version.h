@@ -9,6 +9,7 @@
 
 //#ifndef NO_AES_NI
 
+// Not to be confused with AVX512VAES
 #define VAES
 // #define VAVX
 // #define VVPERM

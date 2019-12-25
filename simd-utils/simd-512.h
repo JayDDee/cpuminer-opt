@@ -113,6 +113,9 @@ static inline __m512i m512_const_64( const uint64_t i7, const uint64_t i6,
    m512_const1_64( ( ( ( (uint64_t)(i1) << 32 ) ) \
                      | ( (uint64_t)(i0) & 0xffffffff ) ) )
 
+// { m128_1, m128_1, m128_0, m128_0 }
+#define m512_const_2x128( v1, v0 ) \
+   m512_mask_blend_epi64( 0x0f, m512_const1_128( v1 ), m512_const1_128( v0 ) )
 
 static inline __m512i m512_const4_64( const uint64_t i3, const uint64_t i2,
                                       const uint64_t i1, const uint64_t i0 )

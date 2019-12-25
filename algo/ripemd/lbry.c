@@ -80,9 +80,6 @@ int scanhash_lbry( struct work *work, uint32_t max_nonce,
 	// we need bigendian data...
         swab32_array( endiandata, pdata, 32 );
 
-#ifdef DEBUG_ALGO
-	printf("[%d] Htarg=%X\n", thr_id, Htarg);
-#endif
 	for (int m=0; m < sizeof(masks); m++) {
 		if (Htarg <= htmax[m]) {
 			uint32_t mask = masks[m];
@@ -90,23 +87,11 @@ int scanhash_lbry( struct work *work, uint32_t max_nonce,
 				pdata[27] = ++n;
 				be32enc(&endiandata[27], n);
 				lbry_hash(hash64, &endiandata);
-#ifndef DEBUG_ALGO
 				if ((!(hash64[7] & mask)) && fulltest(hash64, ptarget)) {
-					*hashes_done = n - first_nonce + 1;
-					return true;
+               pdata[27] = n;
+               submit_solution( work, hash64, mythr );
 				}
-#else
-				if (!(n % 0x1000) && !thr_id) printf(".");
-				if (!(hash64[7] & mask)) {
-					printf("[%d]",thr_id);
-					if (fulltest(hash64, ptarget)) {
-						*hashes_done = n - first_nonce + 1;
-						return true;
-					}
-				}
-#endif
-			} while (n < max_nonce && !work_restart[thr_id].restart);
-			// see blake.c if else to understand the loop on htmax => mask
+			} while ( (n < max_nonce -8) && !work_restart[thr_id].restart);
 			break;
 		}
 	}

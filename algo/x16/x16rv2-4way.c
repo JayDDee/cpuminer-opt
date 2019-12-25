@@ -31,7 +31,7 @@
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
 
-#if defined (X16R_8WAY)
+#if defined (X16RV2_8WAY)
 
 union _x16rv2_8way_context_overlay
 {
@@ -497,10 +497,7 @@ int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
-
-#elif defined (X16R_4WAY)
-
-
+#elif defined (X16RV2_4WAY)
 
 union _x16rv2_4way_context_overlay
 {

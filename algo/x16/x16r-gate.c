@@ -52,10 +52,10 @@ bool register_x16r_algo( algo_gate_t* gate )
 
 bool register_x16rv2_algo( algo_gate_t* gate )
 {
-#if defined (X16R_8WAY)
+#if defined (X16RV2_8WAY)
   gate->scanhash  = (void*)&scanhash_x16rv2_8way;
   gate->hash      = (void*)&x16rv2_8way_hash;
-#elif defined (X16R_4WAY)
+#elif defined (X16RV2_4WAY)
   gate->scanhash  = (void*)&scanhash_x16rv2_4way;
   gate->hash      = (void*)&x16rv2_4way_hash;
 #else
@@ -205,10 +205,10 @@ void veil_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 
 bool register_x16rt_algo( algo_gate_t* gate )
 {
-#if defined (X16R_8WAY)
+#if defined (X16RT_8WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_8way;
   gate->hash      = (void*)&x16rt_8way_hash;
-#elif defined (X16R_4WAY)
+#elif defined (X16RT_4WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_4way;
   gate->hash      = (void*)&x16rt_4way_hash;
 #else
@@ -222,10 +222,10 @@ bool register_x16rt_algo( algo_gate_t* gate )
 
 bool register_x16rt_veil_algo( algo_gate_t* gate )
 {
-#if defined (X16R_8WAY)
+#if defined (X16RT_8WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_8way;
   gate->hash      = (void*)&x16rt_8way_hash;
-#elif defined (X16R_4WAY)
+#elif defined (X16RT_4WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_4way;
   gate->hash      = (void*)&x16rt_4way_hash;
 #else
@@ -258,16 +258,23 @@ bool register_hex_algo( algo_gate_t* gate )
 
 bool register_x21s_algo( algo_gate_t* gate )
 {
-#if defined (X16R_4WAY)
+#if defined (X21S_8WAY)
+  gate->scanhash          = (void*)&scanhash_x21s_8way;
+  gate->hash              = (void*)&x21s_8way_hash;
+  gate->miner_thread_init = (void*)&x21s_8way_thread_init;
+  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+#elif defined (X21S_4WAY)
   gate->scanhash          = (void*)&scanhash_x21s_4way;
   gate->hash              = (void*)&x21s_4way_hash;
   gate->miner_thread_init = (void*)&x21s_4way_thread_init;
+  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT | AVX512_OPT;
 #else
   gate->scanhash          = (void*)&scanhash_x21s;
   gate->hash              = (void*)&x21s_hash;
   gate->miner_thread_init = (void*)&x21s_thread_init;
+  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT | AVX512_OPT;
 #endif
-  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT;
+//  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT | AVX512_OPT;
   x16_r_s_getAlgoString   = (void*)&x16s_getAlgoString;
   opt_target_factor = 256.0;
   return true;

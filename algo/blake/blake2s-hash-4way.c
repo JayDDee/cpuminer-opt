@@ -463,6 +463,38 @@ int blake2s_8way_final( blake2s_8way_state *S, void *out, uint8_t outlen )
    return 0;
 }
 
+// Update and final when inlen is a multiple of 64 bytes
+int blake2s_8way_full_blocks( blake2s_8way_state *S, void *out,
+                              const void *input, uint64_t inlen )
+{
+    __m256i *in = (__m256i*)input;
+    __m256i *buf = (__m256i*)S->buf;
+
+    while( inlen > BLAKE2S_BLOCKBYTES )
+    {
+       memcpy_256( buf, in, BLAKE2S_BLOCKBYTES >> 2 );
+       S->buflen = BLAKE2S_BLOCKBYTES;
+       inlen -= BLAKE2S_BLOCKBYTES;
+       S->t[0] += BLAKE2S_BLOCKBYTES;
+       S->t[1] += ( S->t[0] < BLAKE2S_BLOCKBYTES );
+       blake2s_8way_compress( S, buf );
+       S->buflen = 0;
+       in += ( BLAKE2S_BLOCKBYTES >> 2 );
+    }
+
+    // last block
+    memcpy_256( buf, in, BLAKE2S_BLOCKBYTES >> 2 );
+    S->buflen = BLAKE2S_BLOCKBYTES;
+    S->t[0] += S->buflen;
+    S->t[1] += ( S->t[0] < S->buflen );
+    if ( S->last_node )  S->f[1] = ~0U;
+    S->f[0] = ~0U;
+    blake2s_8way_compress( S, buf );
+
+    for ( int i = 0; i < 8; ++i )
+      casti_m256i( out, i ) = S->h[ i ];
+    return 0;
+}
 
 #endif // __AVX2__
 

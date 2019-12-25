@@ -95,8 +95,8 @@ int blake2s_8way_init( blake2s_8way_state *S, const uint8_t outlen );
 int blake2s_8way_update( blake2s_8way_state *S, const void *in,
                          uint64_t inlen );
 int blake2s_8way_final( blake2s_8way_state *S, void *out, uint8_t outlen );
-//int blake2s_8way_full_blocks( blake2s_8way_state *S, void *out,
-//                              const void *input, uint64_t inlen );
+int blake2s_8way_full_blocks( blake2s_8way_state *S, void *out,
+                              const void *input, uint64_t inlen );
 
 #endif
 

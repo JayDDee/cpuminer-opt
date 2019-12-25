@@ -98,16 +98,23 @@ int lbry_get_work_data_size() { return LBRY_WORK_DATA_SIZE; }
 
 bool register_lbry_algo( algo_gate_t* gate )
 {
-  gate->optimizations = AVX2_OPT | SHA_OPT;
-#if defined (LBRY_8WAY)
+  gate->optimizations = AVX2_OPT | AVX512_OPT | SHA_OPT;
+#if defined (LBRY_16WAY)
+  gate->scanhash              = (void*)&scanhash_lbry_16way;
+  gate->hash                  = (void*)&lbry_16way_hash;
+  gate->optimizations = AVX2_OPT | AVX512_OPT;
+#elif defined (LBRY_8WAY)
   gate->scanhash              = (void*)&scanhash_lbry_8way;
   gate->hash                  = (void*)&lbry_8way_hash;
+  gate->optimizations = AVX2_OPT | AVX512_OPT;
 #elif defined (LBRY_4WAY)
   gate->scanhash              = (void*)&scanhash_lbry_4way;
   gate->hash                  = (void*)&lbry_4way_hash;
+  gate->optimizations = AVX2_OPT | AVX512_OPT;
 #else 
   gate->scanhash              = (void*)&scanhash_lbry;
   gate->hash                  = (void*)&lbry_hash;
+  gate->optimizations = AVX2_OPT | AVX512_OPT | SHA_OPT;
 #endif
   gate->calc_network_diff     = (void*)&lbry_calc_network_diff;
   gate->build_stratum_request = (void*)&lbry_le_build_stratum_request;

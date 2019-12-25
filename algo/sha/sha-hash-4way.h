@@ -74,7 +74,8 @@ typedef struct {
 } sha256_8way_context __attribute__ ((aligned (128)));
 
 void sha256_8way_init( sha256_8way_context *sc );
-void sha256_8way( sha256_8way_context *sc, const void *data, size_t len );
+void sha256_8way_update( sha256_8way_context *sc, const void *data, size_t len );
+#define sha256_8way sha256_8way_update
 void sha256_8way_close( sha256_8way_context *sc, void *dst );
 
 //#define SPH_SIZE_sha512   512

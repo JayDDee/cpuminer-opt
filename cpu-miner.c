@@ -872,6 +872,7 @@ static uint64_t accept_sum  = 0;
 static uint64_t reject_sum  = 0;
 static double   norm_diff_sum = 0.;
 static uint32_t last_block_height = 0;
+static bool     new_job = false;
 static double   last_targetdiff = 0.;
 static double   ref_rate_hi = 0.;
 static double   ref_rate_lo = 1e100;
@@ -887,6 +888,7 @@ struct share_stats_t
    double share_diff;
    double stratum_diff;
    double target_diff;
+   char   job_id[32];
 };
 
 #define s_stats_size 8
@@ -1093,8 +1095,9 @@ static int share_result( int result, struct work *null_work,
                        rejected_share_count, solved_block_count );
 
    if ( have_stratum && !opt_quiet )
-      applog2( LOG_INFO, "Share diff %.3g (%5f%%), block %d",
-               my_stats.share_diff, share_ratio, stratum.block_height );
+      applog2( LOG_INFO, "Share diff %.3g (%5f%%), block %d, job %s",
+               my_stats.share_diff, share_ratio, stratum.block_height,
+               my_stats.job_id );
 
    if ( reason )
    {
@@ -1762,6 +1765,7 @@ void work_set_target_ratio( struct work* work, uint32_t* hash )
    share_stats[ s_put_ptr ].net_diff = net_diff;
    share_stats[ s_put_ptr ].stratum_diff = stratum_diff;
    share_stats[ s_put_ptr ].target_diff = work->targetdiff;
+   strcpy( share_stats[ s_put_ptr ].job_id, work->job_id );
 
    s_put_ptr = stats_ptr_incr( s_put_ptr );
 
@@ -2586,28 +2590,38 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
      || ( last_block_height != sctx->block_height ) )
    {
        double hr = 0.;
-
+       new_job = false;
        pthread_mutex_lock( &stats_lock );
 
        for ( int i = 0; i < opt_n_threads; i++ )
           hr += thr_hashrates[i];
        global_hashrate = hr;
        pthread_mutex_unlock( &stats_lock );
-  
-       if ( stratum_diff != sctx->job.diff )
-          applog( LOG_BLUE, "New stratum difficulty" );
-       if ( last_block_height != sctx->block_height )
-          applog( LOG_BLUE, "New block" );
+
+       if ( !opt_quiet )
+       {
+          if ( stratum_diff != sctx->job.diff )
+             applog( LOG_BLUE, "New stratum diff %g, block %d, job %s",
+                   sctx->job.diff, sctx->block_height, g_work->job_id );
+          else if ( last_block_height != sctx->block_height )
+             applog( LOG_BLUE, "New block %d, job %s", sctx->block_height,
+                                                        g_work->job_id );
+          else
+             applog( LOG_BLUE,"New job %s.", g_work->job_id );
+       }
 
        // Update data and calculate new estimates.
        stratum_diff = sctx->job.diff;
        last_block_height = stratum.block_height;
        last_targetdiff = g_work->targetdiff;
 
-       applog2( LOG_INFO, "%s %s block %d", short_url,
-                algo_names[opt_algo], stratum.block_height );
-       applog2( LOG_INFO, "Diff: net %g, stratum %g, target %g",
-                net_diff, stratum_diff, last_targetdiff );
+       if ( !opt_quiet )
+       {
+          applog2( LOG_INFO, "%s %s block %d", short_url,
+                             algo_names[opt_algo], stratum.block_height );
+          applog2( LOG_INFO, "Diff: net %g, stratum %g, target %g",
+                             net_diff, stratum_diff, last_targetdiff );
+       }
 
        if ( hr > 0. )
        {
@@ -2619,10 +2633,13 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
           sprintf_et( share_ttf, last_targetdiff * diff_to_hash / hr );
           scale_hash_for_display ( &hr, hr_units );
 
-          applog2( LOG_INFO, "TTF @ %.2f %sh/s: block %s, share %s",
-                              hr, hr_units, block_ttf, share_ttf );
+          if ( !opt_quiet )
+          {   
+             applog2( LOG_INFO, "TTF @ %.2f %sh/s: block %s, share %s",
+                                hr, hr_units, block_ttf, share_ttf );
+          }
        }
-   }     
+   }  // new diff/block   
 }
 
 void jr2_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
@@ -2700,25 +2717,23 @@ static void *stratum_thread(void *userdata )
       if ( stratum.job.job_id
           && ( !g_work_time || strcmp( stratum.job.job_id, g_work.job_id ) ) )
       {
+         new_job = true;
          pthread_mutex_lock(&g_work_lock);
          algo_gate.stratum_gen_work( &stratum, &g_work );
          time(&g_work_time);
          pthread_mutex_unlock(&g_work_lock);
          restart_threads();
 
-/*
          if ( stratum.job.clean || jsonrpc_2 )
          {
-            static uint32_t last_block_height;
-            if ( last_block_height != stratum.block_height )
-            {
-               last_block_height = stratum.block_height;
+            if ( !opt_quiet && last_block_height && new_job
+               &&  ( last_block_height == stratum.block_height ) )
+            {  
+               new_job = false;
+               applog( LOG_BLUE,"New job %s", g_work.job_id );
             }
-
          }
-         else
-*/
-         if (opt_debug && !opt_quiet)
+         else if (opt_debug && !opt_quiet)
          {
             applog( LOG_BLUE, "%s asks job %d for block %d", short_url,
                 strtoul( stratum.job.job_id, NULL, 16 ), stratum.block_height );
@@ -2960,9 +2975,7 @@ void parse_arg(int key, char *arg )
 			show_usage_and_exit(1);
 		opt_retries = v;
 		break;
-//	case 'R':
-//      applog(LOG_WARNING,"\n-R is no longer valid, use --retry-pause instead.");
-      case 1025:
+   case 1025:
       v = atoi(arg);
 		if (v < 1 || v > 9999) /* sanity check */
 			show_usage_and_exit(1);
@@ -3018,11 +3031,14 @@ void parse_arg(int key, char *arg )
 			*hp++ = '@';
 		} else
 			hp = ap;
-		if (ap != arg) {
-			if (strncasecmp(arg, "http://", 7) &&
-			    strncasecmp(arg, "https://", 8) &&
-			    strncasecmp(arg, "stratum+tcp://", 14)) {
-				fprintf(stderr, "unknown protocol -- '%s'\n", arg);
+		if ( ap != arg )
+      {
+			if ( strncasecmp( arg, "http://", 7 )
+           && strncasecmp( arg, "https://", 8 )
+           && strncasecmp( arg, "stratum+tcp://", 14 )
+           && strncasecmp( arg, "stratum+tcps://", 15 ) )
+         {
+            fprintf(stderr, "unknown protocol -- '%s'\n", arg);
 				show_usage_and_exit(1);
 			}
 			free(rpc_url);
@@ -3427,7 +3443,7 @@ bool check_cpu_capability ()
      else if ( sw_has_sse42  )    printf( " SSE4.2" );
      else if ( sw_has_sse2   )    printf( " SSE2  " );
      if      ( sw_has_vaes   )    printf( " VAES"   );
-     else if ( sw_has_aes    )    printf( " AES "   );
+     else if ( sw_has_aes    )    printf( "  AES"   );
      if      ( sw_has_sha    )    printf( " SHA"    );
 
      printf("\nAlgo features:");
@@ -3439,7 +3455,7 @@ bool check_cpu_capability ()
         else if ( algo_has_sse42  )    printf( " SSE4.2" );
         else if ( algo_has_sse2   )    printf( " SSE2  " );
         if      ( algo_has_vaes   )    printf( " VAES"   );
-        else if ( algo_has_aes    )    printf( " AES "   );
+        else if ( algo_has_aes    )    printf( "  AES"   );
         if      ( algo_has_sha    )    printf( " SHA"    );
      }
      printf("\n");
@@ -3619,7 +3635,9 @@ int main(int argc, char *argv[])
 	pthread_mutex_init( &stratum.sock_lock, NULL );
 	pthread_mutex_init( &stratum.work_lock, NULL );
 
-	flags = !opt_benchmark && strncmp( rpc_url, "https:", 6 )
+	flags = !opt_benchmark
+           && ( strncmp( rpc_url, "https:", 6 )
+               || strncasecmp(rpc_url, "stratum+tcps://", 15 ) )
 	        ? ( CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL )
 	        : CURL_GLOBAL_ALL;
 	if ( curl_global_init( flags ) )

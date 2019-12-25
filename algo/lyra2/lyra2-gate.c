@@ -129,7 +129,11 @@ bool register_lyra2rev2_algo( algo_gate_t* gate )
 
 bool register_lyra2z_algo( algo_gate_t* gate )
 {
-#if defined(LYRA2Z_8WAY)
+#if defined(LYRA2Z_16WAY)
+  gate->miner_thread_init = (void*)&lyra2z_16way_thread_init;
+  gate->scanhash   = (void*)&scanhash_lyra2z_16way;
+  gate->hash       = (void*)&lyra2z_16way_hash;
+#elif defined(LYRA2Z_8WAY)
   gate->miner_thread_init = (void*)&lyra2z_8way_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z_8way;
   gate->hash       = (void*)&lyra2z_8way_hash;
@@ -142,7 +146,7 @@ bool register_lyra2z_algo( algo_gate_t* gate )
   gate->scanhash   = (void*)&scanhash_lyra2z;
   gate->hash       = (void*)&lyra2z_hash;
 #endif
-  gate->optimizations = SSE42_OPT | AVX2_OPT;
+  gate->optimizations = SSE42_OPT | AVX2_OPT | AVX512_OPT;
   opt_target_factor = 256.0;
   return true;
 };
@@ -170,7 +174,11 @@ bool register_lyra2h_algo( algo_gate_t* gate )
 
 bool register_allium_algo( algo_gate_t* gate )
 {
-#if defined (ALLIUM_4WAY)
+#if defined (ALLIUM_8WAY)
+  gate->miner_thread_init = (void*)&init_allium_8way_ctx;
+  gate->scanhash  = (void*)&scanhash_allium_8way;
+  gate->hash      = (void*)&allium_8way_hash;
+#elif defined (ALLIUM_4WAY)
   gate->miner_thread_init = (void*)&init_allium_4way_ctx;
   gate->scanhash  = (void*)&scanhash_allium_4way;
   gate->hash      = (void*)&allium_4way_hash;
@@ -179,7 +187,7 @@ bool register_allium_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_allium;
   gate->hash      = (void*)&allium_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT | AVX512_OPT;
   opt_target_factor = 256.0;
   return true;
 };

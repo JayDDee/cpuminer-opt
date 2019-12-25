@@ -7,9 +7,11 @@ Security warning
 ----------------
 
 Miner programs are often flagged as malware by antivirus programs. This is
-a false positive, they are flagged simply because they are cryptocurrency 
-miners. The source code is open for anyone to inspect. If you don't trust 
-the software, don't use it.
+usually a false positive, they are flagged simply because they are
+cryptocurrency miners. However, some malware has been spread using the
+cover that miners are known to be subject to false positives. Always be on
+alert. The source code of cpuminer-opt is open for anyone to inspect.
+If you don't trust the software don't download it.
 
 The cryptographic hashing code has been taken from trusted sources but has been
 modified for speed at the expense of accepted security practices. This
@@ -32,6 +34,16 @@ not supported. FreeBSD YMMV.
 
 Change Log
 ----------
+
+v3.10.6
+
+Added support for SSL stratum: stratum+tcps://
+
+Added job id reporting again, but leaner, suppressed with --quiet.
+
+AVX512 for x21s, x22i, lyra2z, allium
+
+Fixed share overflow warnings mining lbry with Ryzen (SHA).
 
 v3.10.5
 

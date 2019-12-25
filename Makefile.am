@@ -84,6 +84,7 @@ cpuminer_SOURCES = \
   algo/cubehash/cubehash_sse2.c\
   algo/cubehash/cube-hash-2way.c \
   algo/echo/sph_echo.c \
+  algo/echo/echo-hash-4way.c \
   algo/echo/aes_ni/hash.c\
   algo/gost/sph_gost.c \
   algo/groestl/sph_groestl.c \
