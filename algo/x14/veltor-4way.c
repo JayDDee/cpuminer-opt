@@ -38,7 +38,7 @@ void veltor_4way_hash( void *output, const void *input )
      veltor_4way_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &veltor_4way_ctx, sizeof(veltor_4way_ctx) );
 
-     skein512_4way( &ctx.skein, input, 80 );
+     skein512_4way_update( &ctx.skein, input, 80 );
      skein512_4way_close( &ctx.skein, vhash );
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
@@ -55,7 +55,7 @@ void veltor_4way_hash( void *output, const void *input )
      sph_shavite512_close( &ctx.shavite, hash3 );
 
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
-     shabal512_4way( &ctx.shabal, vhash, 64 );
+     shabal512_4way_update( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
      dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 

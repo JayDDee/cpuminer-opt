@@ -1319,7 +1319,7 @@ int scanhash_sonoa_8way( struct work *work, uint32_t max_nonce,
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
-     const uint32_t last_nonce = max_nonce - 8;
+   const uint32_t last_nonce = max_nonce - 8;
    __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
@@ -1349,8 +1349,6 @@ int scanhash_sonoa_8way( struct work *work, uint32_t max_nonce,
    *hashes_done = n - first_nonce;
    return 0;
 }
-
-
 
 #elif defined(SONOA_4WAY)
 
@@ -1391,11 +1389,11 @@ void sonoa_4way_hash( void *state, const void *input )
 // 1
 
      blake512_4way_init( &ctx.blake );
-     blake512_4way( &ctx.blake, input, 80 );
+     blake512_4way_update( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1412,15 +1410,15 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
@@ -1466,7 +1464,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1483,15 +1481,15 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
@@ -1535,13 +1533,13 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
 // 3
 
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1558,15 +1556,15 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
@@ -1610,7 +1608,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1632,7 +1630,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1649,15 +1647,15 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
@@ -1701,7 +1699,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1722,13 +1720,13 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhash, 64 );
+     shabal512_4way_update( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
      rintrlv_4x32_4x64( vhashB, vhash, 512 ); 
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhashB, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhashB, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1758,13 +1756,13 @@ void sonoa_4way_hash( void *state, const void *input )
      rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
 
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      rintrlv_4x64_4x32( vhashB, vhash,  512 );
 
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhashB, 64 );
+     shabal512_4way_update( &ctx.shabal, vhashB, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
      dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
@@ -1781,15 +1779,15 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
@@ -1833,7 +1831,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1854,7 +1852,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhash, 64 );
+     shabal512_4way_update( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
      dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
@@ -1877,7 +1875,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
      
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1894,15 +1892,15 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
@@ -1946,7 +1944,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -1967,7 +1965,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhash, 64 );
+     shabal512_4way_update( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
      dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
@@ -1988,7 +1986,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      sha512_4way_init( &ctx.sha512 );
-     sha512_4way( &ctx.sha512, vhash, 64 );
+     sha512_4way_update( &ctx.sha512, vhash, 64 );
      sha512_4way_close( &ctx.sha512, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -2011,7 +2009,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -2028,15 +2026,15 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
@@ -2080,7 +2078,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -2101,7 +2099,7 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhash, 64 );
+     shabal512_4way_update( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
      dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
@@ -2122,13 +2120,13 @@ void sonoa_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      sha512_4way_init( &ctx.sha512 );
-     sha512_4way( &ctx.sha512, vhash, 64 );
+     sha512_4way_update( &ctx.sha512, vhash, 64 );
      sha512_4way_close( &ctx.sha512, vhash );
 
      rintrlv_4x64_4x32( vhashB, vhash,  512 );
 
      haval256_5_4way_init( &ctx.haval );
-     haval256_5_4way( &ctx.haval, vhashB, 64 );
+     haval256_5_4way_update( &ctx.haval, vhashB, 64 );
      haval256_5_4way_close( &ctx.haval, state );
 }
 

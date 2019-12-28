@@ -569,12 +569,12 @@ void xevan_4way_hash( void *output, const void *input )
      // parallel 4 way
 
      blake512_4way_init( &ctx.blake );
-     blake512_4way( &ctx.blake, input, 80 );
+     blake512_4way_update( &ctx.blake, input, 80 );
      blake512_4way_close(&ctx.blake, vhash);
      memset( &vhash[8<<2], 0, 64<<2 );
 
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, dataLen );
+     bmw512_4way_update( &ctx.bmw, vhash, dataLen );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serial
@@ -597,15 +597,15 @@ void xevan_4way_hash( void *output, const void *input )
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, dataLen );
+     skein512_4way_update( &ctx.skein, vhash, dataLen );
      skein512_4way_close( &ctx.skein, vhash );
 
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, dataLen );
+     jh512_4way_update( &ctx.jh, vhash, dataLen );
      jh512_4way_close( &ctx.jh, vhash );
 
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, dataLen );
+     keccak512_4way_update( &ctx.keccak, vhash, dataLen );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, dataLen<<3 );
@@ -649,7 +649,7 @@ void xevan_4way_hash( void *output, const void *input )
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, dataLen );
+     hamsi512_4way_update( &ctx.hamsi, vhash, dataLen );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
@@ -671,7 +671,7 @@ void xevan_4way_hash( void *output, const void *input )
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhash, dataLen );
+     shabal512_4way_update( &ctx.shabal, vhash, dataLen );
      shabal512_4way_close( &ctx.shabal, vhash );
 
      dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
@@ -693,13 +693,13 @@ void xevan_4way_hash( void *output, const void *input )
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      sha512_4way_init( &ctx.sha512 );
-     sha512_4way( &ctx.sha512, vhash, dataLen );
+     sha512_4way_update( &ctx.sha512, vhash, dataLen );
      sha512_4way_close( &ctx.sha512, vhash );
 
      rintrlv_4x64_4x32( vhashA, vhash, dataLen<<3 );
 
      haval256_5_4way_init( &ctx.haval );
-     haval256_5_4way( &ctx.haval, vhashA, dataLen );
+     haval256_5_4way_update( &ctx.haval, vhashA, dataLen );
      haval256_5_4way_close( &ctx.haval, vhashA );
 
      rintrlv_4x32_4x64( vhash, vhashA, dataLen<<3 );
@@ -707,11 +707,11 @@ void xevan_4way_hash( void *output, const void *input )
      memset( &vhash[ 4<<2 ], 0, (dataLen-32) << 2 );
 
      blake512_4way_init( &ctx.blake );
-     blake512_4way( &ctx.blake, vhash, dataLen );
+     blake512_4way_update( &ctx.blake, vhash, dataLen );
      blake512_4way_close(&ctx.blake, vhash);
 
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, dataLen );
+     bmw512_4way_update( &ctx.bmw, vhash, dataLen );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
@@ -732,15 +732,15 @@ void xevan_4way_hash( void *output, const void *input )
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, dataLen );
+     skein512_4way_update( &ctx.skein, vhash, dataLen );
      skein512_4way_close( &ctx.skein, vhash );
 
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, dataLen );
+     jh512_4way_update( &ctx.jh, vhash, dataLen );
      jh512_4way_close( &ctx.jh, vhash );
 
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, dataLen );
+     keccak512_4way_update( &ctx.keccak, vhash, dataLen );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, dataLen<<3 );
@@ -784,7 +784,7 @@ void xevan_4way_hash( void *output, const void *input )
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, dataLen );
+     hamsi512_4way_update( &ctx.hamsi, vhash, dataLen );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
@@ -805,7 +805,7 @@ void xevan_4way_hash( void *output, const void *input )
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhash, dataLen );
+     shabal512_4way_update( &ctx.shabal, vhash, dataLen );
      shabal512_4way_close( &ctx.shabal, vhash );
 
      dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
@@ -826,13 +826,13 @@ void xevan_4way_hash( void *output, const void *input )
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
      sha512_4way_init( &ctx.sha512 );
-     sha512_4way( &ctx.sha512, vhash, dataLen );
+     sha512_4way_update( &ctx.sha512, vhash, dataLen );
      sha512_4way_close( &ctx.sha512, vhash );
 
      rintrlv_4x64_4x32( vhashA, vhash, dataLen<<3 );
 
      haval256_5_4way_init( &ctx.haval );
-     haval256_5_4way( &ctx.haval, vhashA, dataLen );
+     haval256_5_4way_update( &ctx.haval, vhashA, dataLen );
      haval256_5_4way_close( &ctx.haval, output );
 }
 

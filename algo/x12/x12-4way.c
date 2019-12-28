@@ -272,10 +272,10 @@ void x12_4way_hash( void *state, const void *input )
      x12_4way_ctx_holder ctx;
      memcpy( &ctx, &x12_4way_ctx, sizeof(x12_4way_ctx) );
 
-     blake512_4way( &ctx.blake, input, 80 );
+     blake512_4way_update( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
@@ -328,16 +328,16 @@ void x12_4way_hash( void *state, const void *input )
 
      // Parallel 4way 64 bit
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64( state, state+32, state+64, state+96, vhash, 256 );

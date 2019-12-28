@@ -282,11 +282,11 @@ void c11_4way_hash( void *state, const void *input )
      memcpy( &ctx, &c11_4way_ctx, sizeof(c11_4way_ctx) );
 
      // 1 Blake 4way
-     blake512_4way( &ctx.blake, input, 80 );
+     blake512_4way_update( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
      // 2 Bmw
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serial
@@ -305,15 +305,15 @@ void c11_4way_hash( void *state, const void *input )
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      // 4 JH
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      // 5 Keccak
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // 6 Skein
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      // Serial

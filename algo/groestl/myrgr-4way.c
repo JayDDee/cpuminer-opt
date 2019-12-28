@@ -45,7 +45,7 @@ void myriad_4way_hash( void *output, const void *input )
 
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
-     sha256_4way( &ctx.sha, vhash, 64 );
+     sha256_4way_update( &ctx.sha, vhash, 64 );
      sha256_4way_close( &ctx.sha, output );
 }
 

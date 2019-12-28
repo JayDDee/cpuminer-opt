@@ -133,7 +133,7 @@ void nist5hash_4way( void *out, const void *input )
      keccak512_4way_context ctx_keccak;
 
      blake512_4way_init( &ctx_blake );
-     blake512_4way( &ctx_blake, input, 80 );
+     blake512_4way_update( &ctx_blake, input, 80 );
      blake512_4way_close( &ctx_blake, vhash );
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
@@ -154,15 +154,15 @@ void nist5hash_4way( void *out, const void *input )
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      jh512_4way_init( &ctx_jh );
-     jh512_4way( &ctx_jh, vhash, 64 );
+     jh512_4way_update( &ctx_jh, vhash, 64 );
      jh512_4way_close( &ctx_jh, vhash );
 
      keccak512_4way_init( &ctx_keccak );
-     keccak512_4way( &ctx_keccak, vhash, 64 );
+     keccak512_4way_update( &ctx_keccak, vhash, 64 );
      keccak512_4way_close( &ctx_keccak, vhash );
 
      skein512_4way_init( &ctx_skein );
-     skein512_4way( &ctx_skein, vhash, 64 );
+     skein512_4way_update( &ctx_skein, vhash, 64 );
      skein512_4way_close( &ctx_skein, out );
 }
 

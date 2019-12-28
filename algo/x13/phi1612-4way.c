@@ -225,11 +225,11 @@ void phi1612_4way_hash( void *state, const void *input )
      memcpy( &ctx, &phi1612_4way_ctx, sizeof(phi1612_4way_ctx) );
 
      // Skein parallel 4way
-     skein512_4way( &ctx.skein, input, 80 );
+     skein512_4way_update( &ctx.skein, input, 80 );
      skein512_4way_close( &ctx.skein, vhash );
 
      // JH
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      // Serial to the end

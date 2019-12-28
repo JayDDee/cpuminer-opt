@@ -93,12 +93,12 @@ typedef sph_skein_4way_big_context skein256_4way_context;
 void skein512_4way_init( skein512_4way_context *sc );
 void skein512_4way_update( void *cc, const void *data, size_t len );
 void skein512_4way_close( void *cc, void *dst );
-#define skein512_4way skein512_4way_update
+//#define skein512_4way skein512_4way_update
 
 void skein256_4way_init( skein256_4way_context *sc );
 void skein256_4way_update( void *cc, const void *data, size_t len );
 void skein256_4way_close( void *cc, void *dst );
-#define skein256_4way skein256_4way_update
+//#define skein256_4way skein256_4way_update
 
 #ifdef __cplusplus
 }

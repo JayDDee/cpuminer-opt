@@ -33,7 +33,7 @@ void jha_hash_4way( void *out, const void *input )
     keccak512_4way_context ctx_keccak;
 
     keccak512_4way_init( &ctx_keccak );
-    keccak512_4way( &ctx_keccak, input, 80 );
+    keccak512_4way_update( &ctx_keccak, input, 80 );
     keccak512_4way_close( &ctx_keccak, vhash );
 
     // Heavy & Light Pair Loop
@@ -58,7 +58,7 @@ void jha_hash_4way( void *out, const void *input )
        intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
        skein512_4way_init( &ctx_skein );
-       skein512_4way( &ctx_skein, vhash, 64 );
+       skein512_4way_update( &ctx_skein, vhash, 64 );
        skein512_4way_close( &ctx_skein, vhashB );
 
        for ( int i = 0; i < 8; i++ )
@@ -69,7 +69,7 @@ void jha_hash_4way( void *out, const void *input )
        blake512_4way_close( &ctx_blake, vhashA );
 
        jh512_4way_init( &ctx_jh );
-       jh512_4way( &ctx_jh, vhash, 64 );
+       jh512_4way_update( &ctx_jh, vhash, 64 );
        jh512_4way_close( &ctx_jh, vhashB );
 
        for ( int i = 0; i < 8; i++ )

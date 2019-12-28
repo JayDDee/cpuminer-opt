@@ -479,9 +479,9 @@ haval ## xxx ## _ ## y ## _4way_init(void *cc) \
 } \
  \
 void \
-haval ## xxx ## _ ## y ## _4way (void *cc, const void *data, size_t len) \
+haval ## xxx ## _ ## y ## _4way_update (void *cc, const void *data, size_t len) \
 { \
-	haval ## y ## _4way(cc, data, len); \
+	haval ## y ## _4way_update(cc, data, len); \
 } \
  \
 void \

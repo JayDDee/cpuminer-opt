@@ -99,14 +99,12 @@ typedef keccak64_ctx_m256i keccak512_4way_context;
 void keccak256_4way_init(void *cc);
 void keccak256_4way_update(void *cc, const void *data, size_t len);
 void keccak256_4way_close(void *cc, void *dst);
-#define keccak256_4way keccak256_4way_update
 
 void keccak512_4way_init(void *cc);
 void keccak512_4way_update(void *cc, const void *data, size_t len);
 void keccak512_4way_close(void *cc, void *dst);
 void keccak512_4way_addbits_and_close(
         void *cc, unsigned ub, unsigned n, void *dst);
-#define keccak512_4way keccak512_4way_update
 
 #endif
 

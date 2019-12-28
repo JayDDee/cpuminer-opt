@@ -104,7 +104,7 @@ typedef struct {
 typedef blake_8way_small_context blake256_8way_context;
 void blake256_8way_init(void *cc);
 void blake256_8way_update(void *cc, const void *data, size_t len);
-#define blake256_8way blake256_8way_update
+//#define blake256_8way blake256_8way_update
 void blake256_8way_close(void *cc, void *dst);
 
 // 14 rounds, blake, decred

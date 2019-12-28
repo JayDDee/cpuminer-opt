@@ -62,7 +62,7 @@ typedef hamsi_4way_big_context hamsi512_4way_context;
 void hamsi512_4way_init( hamsi512_4way_context *sc );
 void hamsi512_4way_update( hamsi512_4way_context *sc, const void *data,
       size_t len );
-#define hamsi512_4way hamsi512_4way_update
+//#define hamsi512_4way hamsi512_4way_update
 void hamsi512_4way_close( hamsi512_4way_context *sc, void *dst );
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)

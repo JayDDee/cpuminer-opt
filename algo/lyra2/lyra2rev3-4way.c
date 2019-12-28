@@ -209,7 +209,7 @@ void lyra2rev3_8way_hash( void *state, const void *input )
    lyra2v3_8way_ctx_holder ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &l2v3_8way_ctx, sizeof(l2v3_8way_ctx) );
 
-   blake256_8way( &ctx.blake, input + (64*8), 16 );
+   blake256_8way_update( &ctx.blake, input + (64*8), 16 );
    blake256_8way_close( &ctx.blake, vhash );
 
    dintrlv_8x32( hash0, hash1, hash2, hash3,
@@ -252,7 +252,7 @@ void lyra2rev3_8way_hash( void *state, const void *input )
    intrlv_8x32( vhash, hash0, hash1, hash2, hash3,
                              hash4, hash5, hash6, hash7, 256 );
 
-   bmw256_8way( &ctx.bmw, vhash, 32 );
+   bmw256_8way_update( &ctx.bmw, vhash, 32 );
    bmw256_8way_close( &ctx.bmw, state );
 
    }
@@ -277,7 +277,7 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
 
    blake256_8way_init( &l2v3_8way_ctx.blake );
-   blake256_8way( &l2v3_8way_ctx.blake, vdata, 64 );
+   blake256_8way_update( &l2v3_8way_ctx.blake, vdata, 64 );
 
    do
    {
@@ -334,8 +334,7 @@ void lyra2rev3_4way_hash( void *state, const void *input )
    lyra2v3_4way_ctx_holder ctx __attribute__ ((aligned (64))); 
    memcpy( &ctx, &l2v3_4way_ctx, sizeof(l2v3_4way_ctx) );
 
-//   blake256_4way( &ctx.blake, input, 80 );
-   blake256_4way( &ctx.blake, input + (64*4), 16 );
+   blake256_4way_update( &ctx.blake, input + (64*4), 16 );
    blake256_4way_close( &ctx.blake, vhash );
    dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
@@ -358,7 +357,7 @@ void lyra2rev3_4way_hash( void *state, const void *input )
    LYRA2REV3( l2v3_wholeMatrix, hash3, 32, hash3, 32, hash3, 32, 1, 4, 4 );
 
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
-   bmw256_4way( &ctx.bmw, vhash, 32 );
+   bmw256_4way_update( &ctx.bmw, vhash, 32 );
    bmw256_4way_close( &ctx.bmw, state );
 }
 
@@ -383,7 +382,7 @@ int scanhash_lyra2rev3_4way( struct work *work, const uint32_t max_nonce,
    mm128_bswap32_intrlv80_4x32( vdata, pdata );
 
    blake256_4way_init( &l2v3_4way_ctx.blake );
-   blake256_4way( &l2v3_4way_ctx.blake, vdata, 64 );
+   blake256_4way_update( &l2v3_4way_ctx.blake, vdata, 64 );
 
    do
    {

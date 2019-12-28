@@ -41,13 +41,9 @@
 #define SHA2_HASH_4WAY_H__ 1
 
 #include <stddef.h>
-#include "sph_types.h"
 #include "simd-utils.h"
 
 #if defined(__SSE2__)
-//#if defined(__SSE4_2__)
-
-//#define SPH_SIZE_sha256   256
 
 // SHA-256 4 way
 
@@ -59,8 +55,11 @@ typedef struct {
 } sha256_4way_context __attribute__ ((aligned (64)));
 
 void sha256_4way_init( sha256_4way_context *sc );
-void sha256_4way( sha256_4way_context *sc, const void *data, size_t len );
+void sha256_4way_update( sha256_4way_context *sc, const void *data,
+                         size_t len );
 void sha256_4way_close( sha256_4way_context *sc, void *dst );
+
+#endif  // SSE2
 
 #if defined (__AVX2__)
 
@@ -75,10 +74,28 @@ typedef struct {
 
 void sha256_8way_init( sha256_8way_context *sc );
 void sha256_8way_update( sha256_8way_context *sc, const void *data, size_t len );
-#define sha256_8way sha256_8way_update
 void sha256_8way_close( sha256_8way_context *sc, void *dst );
 
-//#define SPH_SIZE_sha512   512
+#endif  // AVX2
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+// SHA-256 16 way
+
+typedef struct {
+   __m512i buf[64>>2];
+   __m512i val[8];
+   uint32_t count_high, count_low;
+   bool initialized;
+} sha256_16way_context __attribute__ ((aligned (128)));
+
+void sha256_16way_init( sha256_16way_context *sc );
+void sha256_16way_update( sha256_16way_context *sc, const void *data, size_t len );
+void sha256_16way_close( sha256_16way_context *sc, void *dst );
+
+#endif // AVX512
+
+#if defined (__AVX2__)
 
 // SHA-512 4 way
 
@@ -92,8 +109,9 @@ typedef struct {
 void sha512_4way_init( sha512_4way_context *sc);
 void sha512_4way_update( sha512_4way_context *sc, const void *data,
                          size_t len );
-#define sha512_4way sha512_4way_update
 void sha512_4way_close( sha512_4way_context *sc, void *dst );
+
+#endif  // AVX2
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -111,8 +129,6 @@ void sha512_8way_update( sha512_8way_context *sc, const void *data,
                          size_t len );
 void sha512_8way_close( sha512_8way_context *sc, void *dst );
 
-
 #endif  // AVX512
-#endif  // __AVX2__
-#endif  // __SSE2__
+
 #endif  // SHA256_4WAY_H__

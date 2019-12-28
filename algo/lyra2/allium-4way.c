@@ -55,7 +55,6 @@ void allium_8way_hash( void *state, const void *input )
    dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                  vhash, 256 );
 
-
    intrlv_2x256( vhash, hash0, hash1, 256 );
    LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
    dintrlv_2x256( hash0, hash1, vhash, 256 );
@@ -69,19 +68,6 @@ void allium_8way_hash( void *state, const void *input )
    LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
    dintrlv_2x256( hash6, hash7, vhash, 256 );
   
-/* 
-   LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
-   LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
-   LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
-   LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
-   LYRA2RE( hash4, 32, hash4, 32, hash4, 32, 1, 8, 8 );
-   LYRA2RE( hash5, 32, hash5, 32, hash5, 32, 1, 8, 8 );
-   LYRA2RE( hash6, 32, hash6, 32, hash6, 32, 1, 8, 8 );
-   LYRA2RE( hash7, 32, hash7, 32, hash7, 32, 1, 8, 8 );
-*/
-
-
-
    intrlv_4x128( vhashA, hash0, hash1, hash2, hash3, 256 );
    intrlv_4x128( vhashB, hash4, hash5, hash6, hash7, 256 );
 
@@ -104,20 +90,6 @@ void allium_8way_hash( void *state, const void *input )
    intrlv_2x256( vhash, hash6, hash7, 256 );
    LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
    dintrlv_2x256( hash6, hash7, vhash, 256 );
-
-
-/*
-   LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
-   LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
-   LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
-   LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
-   LYRA2RE( hash4, 32, hash4, 32, hash4, 32, 1, 8, 8 );
-   LYRA2RE( hash5, 32, hash5, 32, hash5, 32, 1, 8, 8 );
-   LYRA2RE( hash6, 32, hash6, 32, hash6, 32, 1, 8, 8 );
-   LYRA2RE( hash7, 32, hash7, 32, hash7, 32, 1, 8, 8 );
-*/
-
-
 
    intrlv_8x64( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                 hash7, 256 );
@@ -232,11 +204,11 @@ void allium_4way_hash( void *state, const void *input )
    allium_4way_ctx_holder ctx __attribute__ ((aligned (64))); 
 
    memcpy( &ctx, &allium_4way_ctx, sizeof(allium_4way_ctx) );
-   blake256_4way( &ctx.blake, input + (64<<2), 16 );
+   blake256_4way_update( &ctx.blake, input + (64<<2), 16 );
    blake256_4way_close( &ctx.blake, vhash32 );
 
    rintrlv_4x32_4x64( vhash64, vhash32, 256 );
-   keccak256_4way( &ctx.keccak, vhash64, 32 );
+   keccak256_4way_update( &ctx.keccak, vhash64, 32 );
    keccak256_4way_close( &ctx.keccak, vhash64 );
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
@@ -261,7 +233,7 @@ void allium_4way_hash( void *state, const void *input )
 
    intrlv_4x64( vhash64, hash0, hash1, hash2, hash3, 256 );
 
-   skein256_4way( &ctx.skein, vhash64, 32 );
+   skein256_4way_update( &ctx.skein, vhash64, 32 );
    skein256_4way_close( &ctx.skein, vhash64 );
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );

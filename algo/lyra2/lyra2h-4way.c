@@ -20,7 +20,7 @@ static __thread blake256_4way_context l2h_4way_blake_mid;
 void lyra2h_4way_midstate( const void* input )
 {
        blake256_4way_init( &l2h_4way_blake_mid );
-       blake256_4way( &l2h_4way_blake_mid, input, 64 );
+       blake256_4way_update( &l2h_4way_blake_mid, input, 64 );
 }
 
 void lyra2h_4way_hash( void *state, const void *input )

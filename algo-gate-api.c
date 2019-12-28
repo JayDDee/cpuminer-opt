@@ -317,6 +317,7 @@ const char* const algo_alias_map[][2] =
   { "argon2d-crds",      "argon2d250"   },
   { "argon2d-dyn",       "argon2d500"   },
   { "argon2d-uis",       "argon2d4096"  },
+  { "bcd",               "x13bcd"       },
   { "bitcore",           "timetravel10" },
   { "bitzeny",           "yescryptr8"   },
   { "blake256r8",        "blakecoin"    },

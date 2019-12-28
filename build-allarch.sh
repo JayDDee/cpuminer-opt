@@ -4,7 +4,7 @@
 # during develpment. However the information contained may provide compilation
 # tips to users.
 
-rm cpuminer-avx512 cpuminer-avx2 cpuminer-aes-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen 
+rm cpuminer-avx512 cpuminer-avx2 cpuminer-aes-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen  > /dev/null
 
 make distclean || echo clean
 rm -f config.status

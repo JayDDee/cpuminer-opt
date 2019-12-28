@@ -85,7 +85,7 @@ typedef haval_4way_context haval256_5_4way_context;
 void haval256_5_4way_init( void *cc );
 
 void haval256_5_4way_update( void *cc, const void *data, size_t len );
-#define haval256_5_4way haval256_5_4way_update
+//#define haval256_5_4way haval256_5_4way_update
 
 void haval256_5_4way_close( void *cc, void *dst );
 

@@ -5,11 +5,10 @@
 #include <stdint.h>
 
 
-// 16 way needs sha256 16 way
-//#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-//  #define LBRY_16WAY
-#if defined(__AVX2__)
-  #define LBRY_8WAY
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+  #define LBRY_16WAY 1
+#elif defined(__AVX2__)
+  #define LBRY_8WAY 1
 #endif
 /*
 #if !defined(__SHA__)
@@ -37,13 +36,13 @@ int scanhash_lbry_16way( struct work *work, uint32_t max_nonce,
 void lbry_8way_hash( void *state, const void *input );
 int scanhash_lbry_8way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
-/*
+
 #elif defined(LBRY_4WAY)
 
 void lbry_4way_hash( void *state, const void *input );
 int scanhash_lbry_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done );
-*/
+
 #else
 
 void lbry_hash( void *state, const void *input );

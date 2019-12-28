@@ -310,10 +310,10 @@ void x11gost_4way_hash( void *state, const void *input )
      x11gost_4way_ctx_holder ctx;
      memcpy( &ctx, &x11gost_4way_ctx, sizeof(x11gost_4way_ctx) );
 
-     blake512_4way( &ctx.blake, input, 80 );
+     blake512_4way_update( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serial
@@ -333,13 +333,13 @@ void x11gost_4way_hash( void *state, const void *input )
      // 4way
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // Serial

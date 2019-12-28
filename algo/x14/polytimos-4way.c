@@ -34,14 +34,14 @@ void polytimos_4way_hash( void *output, const void *input )
      poly_4way_context_overlay ctx;
 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, input, 80 );
+     skein512_4way_update( &ctx.skein, input, 80 );
      skein512_4way_close( &ctx.skein, vhash );
 
      // Need to convert from 64 bit interleaved to 32 bit interleaved.
      uint32_t vhash32[16*4];
      rintrlv_4x64_4x32( vhash32, vhash, 512 );
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhash32, 64 );
+     shabal512_4way_update( &ctx.shabal, vhash32, 64 );
      shabal512_4way_close( &ctx.shabal, vhash32 );
      dintrlv_4x32( hash0, hash1, hash2, hash3, vhash32, 512 );
 

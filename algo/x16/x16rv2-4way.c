@@ -553,11 +553,11 @@ void x16rv2_4way_hash( void* output, const void* input )
          case BLAKE:
             blake512_4way_init( &ctx.blake );
             if ( i == 0 )
-               blake512_4way( &ctx.blake, input, size );
+               blake512_4way_update( &ctx.blake, input, size );
             else
             {
                intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
-               blake512_4way( &ctx.blake, vhash, size );
+               blake512_4way_update( &ctx.blake, vhash, size );
             }
             blake512_4way_close( &ctx.blake, vhash );
             dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
@@ -565,11 +565,11 @@ void x16rv2_4way_hash( void* output, const void* input )
          case BMW:
             bmw512_4way_init( &ctx.bmw );
             if ( i == 0 )
-               bmw512_4way( &ctx.bmw, input, size );
+               bmw512_4way_update( &ctx.bmw, input, size );
             else
             {
                intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
-               bmw512_4way( &ctx.bmw, vhash, size );
+               bmw512_4way_update( &ctx.bmw, vhash, size );
             }
             bmw512_4way_close( &ctx.bmw, vhash );
             dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
@@ -591,11 +591,11 @@ void x16rv2_4way_hash( void* output, const void* input )
          case SKEIN:
             skein512_4way_init( &ctx.skein );
             if ( i == 0 )
-               skein512_4way( &ctx.skein, input, size );
+               skein512_4way_update( &ctx.skein, input, size );
             else
             {
                intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
-               skein512_4way( &ctx.skein, vhash, size );
+               skein512_4way_update( &ctx.skein, vhash, size );
             }
             skein512_4way_close( &ctx.skein, vhash );
             dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
@@ -603,11 +603,11 @@ void x16rv2_4way_hash( void* output, const void* input )
          case JH:
             jh512_4way_init( &ctx.jh );
             if ( i == 0 )
-               jh512_4way( &ctx.jh, input, size );
+               jh512_4way_update( &ctx.jh, input, size );
             else
             {
                intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
-               jh512_4way( &ctx.jh, vhash, size );
+               jh512_4way_update( &ctx.jh, vhash, size );
             }
             jh512_4way_close( &ctx.jh, vhash );
             dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
@@ -631,7 +631,7 @@ void x16rv2_4way_hash( void* output, const void* input )
 
              intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
              keccak512_4way_init( &ctx.keccak );
-             keccak512_4way( &ctx.keccak, vhash, 64 );
+             keccak512_4way_update( &ctx.keccak, vhash, 64 );
              keccak512_4way_close( &ctx.keccak, vhash );
              dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
@@ -721,7 +721,7 @@ void x16rv2_4way_hash( void* output, const void* input )
          case HAMSI:
              intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
              hamsi512_4way_init( &ctx.hamsi );
-             hamsi512_4way( &ctx.hamsi, vhash, size );
+             hamsi512_4way_update( &ctx.hamsi, vhash, size );
              hamsi512_4way_close( &ctx.hamsi, vhash );
              dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
@@ -742,7 +742,7 @@ void x16rv2_4way_hash( void* output, const void* input )
          case SHABAL:
              intrlv_4x32( vhash, in0, in1, in2, in3, size<<3 );
              shabal512_4way_init( &ctx.shabal );
-             shabal512_4way( &ctx.shabal, vhash, size );
+             shabal512_4way_update( &ctx.shabal, vhash, size );
              shabal512_4way_close( &ctx.shabal, vhash );
              dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
@@ -779,7 +779,7 @@ void x16rv2_4way_hash( void* output, const void* input )
  
              intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
              sha512_4way_init( &ctx.sha512 );
-             sha512_4way( &ctx.sha512, vhash, 64 );
+             sha512_4way_update( &ctx.sha512, vhash, 64 );
              sha512_4way_close( &ctx.sha512, vhash );
              dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;

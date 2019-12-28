@@ -71,13 +71,11 @@ void x13sm3_4way_hash( void *state, const void *input )
 
      // Blake
      memcpy( &ctx.blake, &x13sm3_ctx_mid, sizeof(x13sm3_ctx_mid) );
-     blake512_4way( &ctx.blake, input + (64<<2), 16 );
-
-//     blake512_4way( &ctx.blake, input, 80 );
+     blake512_4way_update( &ctx.blake, input + (64<<2), 16 );
      blake512_4way_close( &ctx.blake, vhash );
 
      // Bmw
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serial
@@ -96,15 +94,15 @@ void x13sm3_4way_hash( void *state, const void *input )
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
      // Skein
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      // JH
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      // Keccak
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // Serial to the end
@@ -180,13 +178,13 @@ void x13sm3_4way_hash( void *state, const void *input )
      uint32_t sm3_hash3[32] __attribute__ ((aligned (32)));
      memset( sm3_hash3, 0, sizeof sm3_hash3 );
 
-     sm3_4way( &ctx.sm3, vhash, 64 );
+     sm3_4way_update( &ctx.sm3, vhash, 64 );
      sm3_4way_close( &ctx.sm3, sm3_vhash );
      dintrlv_4x32( hash0, hash1, hash2, hash3, sm3_vhash, 512 );
 
      // Hamsi parallel 4x32x2
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 

@@ -360,12 +360,12 @@ void x17_4way_hash( void *state, const void *input )
 
      // 1 Blake parallel 4 way 64 bit
      blake512_4way_init( &ctx.blake );
-     blake512_4way( &ctx.blake, input, 80 );
+     blake512_4way_update( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
      // 2 Bmw
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serialize
@@ -386,17 +386,17 @@ void x17_4way_hash( void *state, const void *input )
 
      // 4 Skein parallel 4 way 64 bit 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      // 5 JH
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      // 6 Keccak
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // 7 Luffa  parallel 2 way 128 bit
@@ -428,7 +428,6 @@ void x17_4way_hash( void *state, const void *input )
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
-
      // 11 Echo serial
      init_echo( &ctx.echo, 512 );
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
@@ -447,7 +446,7 @@ void x17_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -470,7 +469,7 @@ void x17_4way_hash( void *state, const void *input )
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhash, 64 );
+     shabal512_4way_update( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
      dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
@@ -493,14 +492,14 @@ void x17_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      sha512_4way_init( &ctx.sha512 );
-     sha512_4way( &ctx.sha512, vhash, 64 );
+     sha512_4way_update( &ctx.sha512, vhash, 64 );
      sha512_4way_close( &ctx.sha512, vhash );     
 
      // 17 Haval parallel 32 bit
      rintrlv_4x64_4x32( vhashB, vhash,  512 );
 
      haval256_5_4way_init( &ctx.haval );
-     haval256_5_4way( &ctx.haval, vhashB, 64 );
+     haval256_5_4way_update( &ctx.haval, vhashB, 64 );
      haval256_5_4way_close( &ctx.haval, state );
 }
 
