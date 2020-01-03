@@ -1028,7 +1028,7 @@ static int share_result( int result, struct work *null_work,
    {
       // empty queue, it must have overflowed and stats were lost for a share.
       pthread_mutex_unlock( &stats_lock );
-      applog(LOG_WARNING,"Pending shares overflow, stats for share are lost.");
+      applog(LOG_WARNING,"Share stats not available.");
    }
 
    // calculate latency and share time.

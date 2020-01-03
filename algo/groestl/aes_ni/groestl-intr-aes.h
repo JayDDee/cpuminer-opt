@@ -73,7 +73,7 @@ __m128i ALL_FF;
   b5 = a7;\
   a6 = _mm_xor_si128(a6, a7);\
   a7 = _mm_xor_si128(a7, b6);\
-  \
+   \
   /* build y4 y5 y6 ... in regs xmm8, xmm9, xmm10 by adding t_i*/\
   b0 = _mm_xor_si128(b0, a4);\
   b6 = _mm_xor_si128(b6, a4);\
@@ -195,7 +195,7 @@ __m128i ALL_FF;
   for(round_counter = 0; round_counter < 14; round_counter+=2) {\
     /* AddRoundConstant P1024 */\
     xmm8 = _mm_xor_si128(xmm8, (ROUND_CONST_P[round_counter]));\
-    /* ShiftBytes P1024 + pre-AESENCLAST */\
+     /* ShiftBytes P1024 + pre-AESENCLAST */\
     xmm8  = _mm_shuffle_epi8(xmm8,  (SUBSH_MASK[0]));\
     xmm9  = _mm_shuffle_epi8(xmm9,  (SUBSH_MASK[1]));\
     xmm10 = _mm_shuffle_epi8(xmm10, (SUBSH_MASK[2]));\
@@ -209,7 +209,6 @@ __m128i ALL_FF;
     \
     /* AddRoundConstant P1024 */\
     xmm0 = _mm_xor_si128(xmm0, (ROUND_CONST_P[round_counter+1]));\
-    /* ShiftBytes P1024 + pre-AESENCLAST */\
     xmm0 = _mm_shuffle_epi8(xmm0, (SUBSH_MASK[0]));\
     xmm1 = _mm_shuffle_epi8(xmm1, (SUBSH_MASK[1]));\
     xmm2 = _mm_shuffle_epi8(xmm2, (SUBSH_MASK[2]));\
@@ -218,7 +217,6 @@ __m128i ALL_FF;
     xmm5 = _mm_shuffle_epi8(xmm5, (SUBSH_MASK[5]));\
     xmm6 = _mm_shuffle_epi8(xmm6, (SUBSH_MASK[6]));\
     xmm7 = _mm_shuffle_epi8(xmm7, (SUBSH_MASK[7]));\
-    /* SubBytes + MixBytes */\
     SUBMIX(xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15);\
   }\
 }

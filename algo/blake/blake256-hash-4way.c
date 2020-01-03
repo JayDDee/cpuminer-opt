@@ -842,7 +842,8 @@ blake32_4way_init( blake_4way_small_context *ctx, const uint32_t *iv,
 }
 
 static void
-blake32_4way( blake_4way_small_context *ctx, const void *data, size_t len )
+blake32_4way( blake_4way_small_context *ctx, const void *data,
+              size_t len )
 {
    __m128i *buf = (__m128i*)ctx->buf;
    size_t  bptr = ctx->ptr<<2;
@@ -1237,7 +1238,7 @@ blake256_4way_init(void *ctx)
 }
 
 void
-blake256_4way(void *ctx, const void *data, size_t len)
+blake256_4way_update(void *ctx, const void *data, size_t len)
 {
 	blake32_4way(ctx, data, len);
 }

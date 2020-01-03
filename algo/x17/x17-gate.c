@@ -12,7 +12,7 @@ bool register_x17_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x17;
   gate->hash      = (void*)&x17_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
   return true;
 };
 

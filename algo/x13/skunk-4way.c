@@ -168,7 +168,7 @@ void skunk_4way_hash( void *output, const void *input )
      skunk_4way_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &skunk_4way_ctx, sizeof(skunk_4way_ctx) );
 
-     skein512_4way( &ctx.skein, input, 80 );
+     skein512_4way_update( &ctx.skein, input, 80 );
      skein512_4way_close( &ctx.skein, vhash );
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 

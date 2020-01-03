@@ -87,8 +87,11 @@ cpuminer_SOURCES = \
   algo/echo/echo-hash-4way.c \
   algo/echo/aes_ni/hash.c\
   algo/gost/sph_gost.c \
+  algo/groestl/groestl-gate.c \
+  algo/groestl/groestl512-hash-4way.c \
   algo/groestl/sph_groestl.c \
   algo/groestl/groestl.c \
+  algo/groestl/groestl-4way.c \
   algo/groestl/myrgr-gate.c \
   algo/groestl/myrgr-4way.c \
   algo/groestl/myr-groestl.c \
@@ -188,6 +191,7 @@ cpuminer_SOURCES = \
   algo/shavite/sph_shavite.c \
   algo/shavite/sph-shavite-aesni.c \
   algo/shavite/shavite-hash-2way.c \
+  algo/shavite/shavite-hash-4way.c \
   algo/shavite/shavite.c \
   algo/simd/sph_simd.c \
   algo/simd/nist.c \

@@ -68,11 +68,11 @@ void skein2hash_4way( void *output, const void *input )
    uint64_t hash[16*4] __attribute__ ((aligned (64)));
 
    skein512_4way_init( &ctx );
-   skein512_4way( &ctx, input, 80 );
+   skein512_4way_update( &ctx, input, 80 );
    skein512_4way_close( &ctx, hash );
 
    skein512_4way_init( &ctx );
-   skein512_4way( &ctx, hash, 64 );
+   skein512_4way_update( &ctx, hash, 64 );
    skein512_4way_close( &ctx, output );
 }
 

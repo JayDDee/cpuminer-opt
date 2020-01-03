@@ -42,17 +42,18 @@ static inline __m256i m256_const_64( const uint64_t i3, const uint64_t i2,
    return mm256_concat_128( hi, lo );
 }
 
-// Broadcast 128 bits in pairs of 64 bit integer constants {i1. i0} to all
-// 128 bit lanes.
-#define m256_const2_64( i1, i0 ) \
-    _mm256_permute4x64_epi64( _mm256_castsi128_si256( \
-                              m128_const_64( i1, i0 ) ), 0x44 )
-
 // Equivalent of set1, broadcast integer constant to all elements.
-#define m256_const1_64( i ) _mm256_broadcastq_epi64( mm128_mov64_128( i ) )
-#define m256_const1_32( i ) _mm256_broadcastd_epi32( mm128_mov32_128( i ) )
-#define m256_const1_16( i ) _mm256_broadcastw_epi16( mm128_mov32_128( i ) )
-#define m256_const1_8 ( i ) _mm256_broadcastb_epi8 ( mm128_mov32_128( i ) )
+#define m256_const1_128( v ) _mm256_broadcastsi128_si256( v )
+#define m256_const1_64( i )  _mm256_broadcastq_epi64( mm128_mov64_128( i ) )
+#define m256_const1_32( i )  _mm256_broadcastd_epi32( mm128_mov32_128( i ) )
+#define m256_const1_16( i )  _mm256_broadcastw_epi16( mm128_mov32_128( i ) )
+#define m256_const1_8 ( i )  _mm256_broadcastb_epi8 ( mm128_mov32_128( i ) )
+
+#define m256_const2_64( i1, i0 ) \
+  m256_const1_128( m128_const_64( i1, i0 ) )
+
+#define m126_const2_32( i1, i0 ) \
+   m256_const1_64( ( (uint64_t)(i1) << 32 ) | ( (uint64_t)(i0) & 0xffffffff ) ) 
 
 
 //

@@ -48,13 +48,12 @@
  */
 
 #ifndef SPH_SM3_HASH_4WAY_H
-#define SPH_SM3_HASH_4WAY_H
+#define SPH_SM3_HASH_4WAY_H 1
 
 #define SM3_DIGEST_LENGTH	32
 #define SM3_BLOCK_SIZE		64
 #define SM3_CBLOCK		(SM3_BLOCK_SIZE)
 #define SM3_HMAC_SIZE		(SM3_DIGEST_LENGTH)
-
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -65,7 +64,6 @@
 extern "C" {
 #endif
 
-
 typedef struct {
    __m128i block[16] __attribute__ ((aligned (64)));
    __m128i digest[8];
@@ -74,14 +72,23 @@ typedef struct {
 } sm3_4way_ctx_t;
 
 void sm3_4way_init( sm3_4way_ctx_t *ctx );
-//void sm3_4way_update( sm3_4way_ctx_t *ctx, const unsigned char* data,
-//                      size_t data_len );
-//void sm3_4way_final( sm3_4way_ctx_t *ctx,
-//                      unsigned char digest[SM3_DIGEST_LENGTH] );
-void sm3_4way_compress( __m128i *digest, __m128i *block );
-
-void sm3_4way(void *cc, const void *data, size_t len);
+void sm3_4way_update(void *cc, const void *data, size_t len);
 void sm3_4way_close(void *cc, void *dst);
+
+#if defined(__AVX2__)
+
+typedef struct {
+   __m256i block[16] __attribute__ ((aligned (64)));
+   __m256i digest[8];
+   uint32_t nblocks;
+   uint32_t num;
+} sm3_8way_ctx_t;
+
+void sm3_8way_init( sm3_8way_ctx_t *ctx );
+void sm3_8way_update(void *cc, const void *data, size_t len);
+void sm3_8way_close(void *cc, void *dst);
+
+#endif
 
 #ifdef __cplusplus
 }

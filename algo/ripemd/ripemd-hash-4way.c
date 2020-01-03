@@ -259,7 +259,8 @@ void ripemd160_4way_init( ripemd160_4way_context *sc )
    sc->count_high = sc->count_low = 0;
 }
 
-void ripemd160_4way( ripemd160_4way_context *sc, const void *data, size_t len )
+void ripemd160_4way_update( ripemd160_4way_context *sc, const void *data,
+                            size_t len )
 {
    __m128i *vdata = (__m128i*)data;
    size_t ptr;
@@ -559,7 +560,8 @@ void ripemd160_8way_init( ripemd160_8way_context *sc )
    sc->count_high = sc->count_low = 0;
 }
 
-void ripemd160_8way( ripemd160_8way_context *sc, const void *data, size_t len )
+void ripemd160_8way_update( ripemd160_8way_context *sc, const void *data,
+                            size_t len )
 {
    __m256i *vdata = (__m256i*)data;
    size_t ptr;
@@ -859,7 +861,7 @@ void ripemd160_16way_init( ripemd160_16way_context *sc )
    sc->count_high = sc->count_low = 0;
 }
 
-void ripemd160_16way( ripemd160_16way_context *sc, const void *data,
+void ripemd160_16way_update( ripemd160_16way_context *sc, const void *data,
                       size_t len )
 {
    __m512i *vdata = (__m512i*)data;

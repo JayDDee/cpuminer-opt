@@ -13,7 +13,7 @@ bool register_sonoa_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_sonoa;
   gate->hash      = (void*)&sonoa_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
   return true;
 };
 

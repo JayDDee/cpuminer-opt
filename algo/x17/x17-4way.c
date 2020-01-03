@@ -13,6 +13,11 @@
 #include "algo/cubehash/cube-hash-2way.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/shavite/shavite-hash-2way.h"
+#if defined(__VAES__)
+  #include "algo/groestl/groestl512-hash-4way.h"
+  #include "algo/shavite/shavite-hash-4way.h"
+  #include "algo/echo/echo-hash-4way.h"
+#endif
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
@@ -28,15 +33,21 @@ union _x17_8way_context_overlay
 {
     blake512_8way_context   blake;
     bmw512_8way_context     bmw;
-    hashState_groestl       groestl;
     skein512_8way_context   skein;
     jh512_8way_context      jh;
     keccak512_8way_context  keccak;
     luffa_4way_context      luffa;
     cube_4way_context       cube;
+#if defined(__VAES__)
+    groestl512_4way_context groestl;
+    shavite512_4way_context shavite;
+    echo_4way_context       echo;
+#else
+    hashState_groestl       groestl;
     sph_shavite512_context  shavite;
-    simd_4way_context       simd;
     hashState_echo          echo;
+#endif
+    simd_4way_context       simd;
     hamsi512_8way_context   hamsi;
     sph_fugue512_context    fugue;
     shabal512_8way_context  shabal;
@@ -49,8 +60,8 @@ typedef union _x17_8way_context_overlay x17_8way_context_overlay;
 void x17_8way_hash( void *state, const void *input )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
-     uint64_t vhash0[8*8] __attribute__ ((aligned (64)));
-     uint64_t vhash1[8*8] __attribute__ ((aligned (64)));
+     uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
+     uint64_t vhashB[8*8] __attribute__ ((aligned (64)));
      uint64_t hash0[8] __attribute__ ((aligned (64)));
      uint64_t hash1[8] __attribute__ ((aligned (64)));
      uint64_t hash2[8] __attribute__ ((aligned (64)));
@@ -61,7 +72,7 @@ void x17_8way_hash( void *state, const void *input )
      uint64_t hash7[8] __attribute__ ((aligned (64)));
      x17_8way_context_overlay ctx;
 
-     // 1 Blake parallel 4 way 64 bit
+     // 1 Blake
      blake512_8way_init( &ctx.blake );
      blake512_8way_update( &ctx.blake, input, 80 );
      blake512_8way_close( &ctx.blake, vhash );
@@ -71,11 +82,24 @@ void x17_8way_hash( void *state, const void *input )
      bmw512_8way_update( &ctx.bmw, vhash, 64 );
      bmw512_8way_close( &ctx.bmw, vhash );
 
-     // Serialize
+     // 3 Groestl
+
+#if defined(__VAES__)
+
+     rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
+
+     groestl512_4way_init( &ctx.groestl, 64 );
+     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
+     groestl512_4way_init( &ctx.groestl, 64 );
+     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+
+     rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
+     
+#else
+
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                    vhash );
 
-     // 3 Groestl
      init_groestl( &ctx.groestl, 64 );
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
      init_groestl( &ctx.groestl, 64 );
@@ -93,9 +117,10 @@ void x17_8way_hash( void *state, const void *input )
      init_groestl( &ctx.groestl, 64 );
      update_and_final_groestl( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
 
-     // Parallellize
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                   hash7 );
+
+#endif
 
      // 4 Skein parallel 4 way 64 bit 
      skein512_8way_init( &ctx.skein );
@@ -112,24 +137,34 @@ void x17_8way_hash( void *state, const void *input )
      keccak512_8way_update( &ctx.keccak, vhash, 64 );
      keccak512_8way_close( &ctx.keccak, vhash );
 
-     rintrlv_8x64_4x128( vhash0, vhash1, vhash, 512 );
+     rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
      // 7 Luffa  
      luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhash0, vhash0, 64 );
+     luffa_4way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
      luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhash1, vhash1, 64 );
+     luffa_4way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
 
      // 8 Cubehash
      cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhash0, vhash0, 64 );
+     cube_4way_update_close( &ctx.cube, vhashA, vhashA, 64 );
      cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhash1, vhash1, 64 );
-
-     dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash0 );
-     dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash1 );
+     cube_4way_update_close( &ctx.cube, vhashB, vhashB, 64 );
 
      // 9 Shavite
+
+#if defined(__VAES__)
+
+     shavite512_4way_init( &ctx.shavite );
+     shavite512_4way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
+     shavite512_4way_init( &ctx.shavite );
+     shavite512_4way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
+
+#else
+
+     dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
+     dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
+
      sph_shavite512_init( &ctx.shavite );
      sph_shavite512( &ctx.shavite, hash0, 64 );
      sph_shavite512_close( &ctx.shavite, hash0 );
@@ -155,18 +190,33 @@ void x17_8way_hash( void *state, const void *input )
      sph_shavite512( &ctx.shavite, hash7, 64 );
      sph_shavite512_close( &ctx.shavite, hash7 );
 
+     intrlv_4x128_512( vhashA, hash0, hash1, hash2, hash3 );
+     intrlv_4x128_512( vhashB, hash4, hash5, hash6, hash7 );
+
+#endif
+
      // 10 Simd
-     intrlv_4x128_512( vhash, hash0, hash1, hash2, hash3 );
      simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhash, vhash, 512 );
-     dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
-     intrlv_4x128_512( vhash, hash4, hash5, hash6, hash7 );
+     simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
      simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhash, vhash, 512 );
-     dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
+     simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
 
+     // 11 Echo
 
-     // 11 Echo serial
+#if defined(__VAES__)
+
+     echo_4way_init( &ctx.echo, 512 );
+     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
+     echo_4way_init( &ctx.echo, 512 );
+     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+
+     rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
+     dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
+     dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
+
      init_echo( &ctx.echo, 512 );
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
                             (const BitSequence *) hash0, 512 );
@@ -192,9 +242,11 @@ void x17_8way_hash( void *state, const void *input )
      update_final_echo( &ctx.echo, (BitSequence *)hash7,
                             (const BitSequence *) hash7, 512 );
 
-     // 12 Hamsi parallel 4 way 64 bit
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                       hash7 );
+#endif
+
+     // 12 Hamsi
 
      hamsi512_8way_init( &ctx.hamsi );
      hamsi512_8way_update( &ctx.hamsi, vhash, 64 );
@@ -229,7 +281,7 @@ void x17_8way_hash( void *state, const void *input )
      sph_fugue512( &ctx.fugue, hash7, 64 );
      sph_fugue512_close( &ctx.fugue, hash7 );
 
-     // 14 Shabal, parallel 4 way 32 bit
+     // 14 Shabal, parallel 8 way 32 bit
      intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                       hash7 );
 
@@ -275,10 +327,10 @@ void x17_8way_hash( void *state, const void *input )
      sha512_8way_close( &ctx.sha512, vhash );
 
      // 17 Haval parallel 32 bit
-     rintrlv_8x64_8x32( vhash0, vhash,  512 );
+     rintrlv_8x64_8x32( vhashA, vhash,  512 );
 
      haval256_5_8way_init( &ctx.haval );
-     haval256_5_8way_update( &ctx.haval, vhash0, 64 );
+     haval256_5_8way_update( &ctx.haval, vhashA, 64 );
      haval256_5_8way_close( &ctx.haval, state );
 }
 
@@ -292,7 +344,7 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
-     const uint32_t last_nonce = max_nonce - 8;
+   const uint32_t last_nonce = max_nonce - 8;
    __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
@@ -349,23 +401,23 @@ typedef union _x17_4way_context_overlay x17_4way_context_overlay;
 
 void x17_4way_hash( void *state, const void *input )
 {
+     uint64_t vhash[8*4] __attribute__ ((aligned (128)));
+     uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
+     uint64_t vhashB[8*4] __attribute__ ((aligned (64)));
      uint64_t hash0[8] __attribute__ ((aligned (64)));
      uint64_t hash1[8] __attribute__ ((aligned (64)));
      uint64_t hash2[8] __attribute__ ((aligned (64)));
      uint64_t hash3[8] __attribute__ ((aligned (64)));
-     uint64_t vhash[8*4] __attribute__ ((aligned (64)));
-     uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
-     uint64_t vhashB[8*4] __attribute__ ((aligned (64)));
      x17_4way_context_overlay ctx;
 
      // 1 Blake parallel 4 way 64 bit
      blake512_4way_init( &ctx.blake );
-     blake512_4way( &ctx.blake, input, 80 );
+     blake512_4way_update( &ctx.blake, input, 80 );
      blake512_4way_close( &ctx.blake, vhash );
 
      // 2 Bmw
      bmw512_4way_init( &ctx.bmw );
-     bmw512_4way( &ctx.bmw, vhash, 64 );
+     bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
      // Serialize
@@ -386,17 +438,17 @@ void x17_4way_hash( void *state, const void *input )
 
      // 4 Skein parallel 4 way 64 bit 
      skein512_4way_init( &ctx.skein );
-     skein512_4way( &ctx.skein, vhash, 64 );
+     skein512_4way_update( &ctx.skein, vhash, 64 );
      skein512_4way_close( &ctx.skein, vhash );
 
      // 5 JH
      jh512_4way_init( &ctx.jh );
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      // 6 Keccak
      keccak512_4way_init( &ctx.keccak );
-     keccak512_4way( &ctx.keccak, vhash, 64 );
+     keccak512_4way_update( &ctx.keccak, vhash, 64 );
      keccak512_4way_close( &ctx.keccak, vhash );
 
      // 7 Luffa  parallel 2 way 128 bit
@@ -428,7 +480,6 @@ void x17_4way_hash( void *state, const void *input )
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
-
      // 11 Echo serial
      init_echo( &ctx.echo, 512 );
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
@@ -447,7 +498,7 @@ void x17_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      hamsi512_4way_init( &ctx.hamsi );
-     hamsi512_4way( &ctx.hamsi, vhash, 64 );
+     hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
@@ -470,7 +521,7 @@ void x17_4way_hash( void *state, const void *input )
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
      shabal512_4way_init( &ctx.shabal );
-     shabal512_4way( &ctx.shabal, vhash, 64 );
+     shabal512_4way_update( &ctx.shabal, vhash, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
      dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
@@ -493,27 +544,28 @@ void x17_4way_hash( void *state, const void *input )
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      sha512_4way_init( &ctx.sha512 );
-     sha512_4way( &ctx.sha512, vhash, 64 );
+     sha512_4way_update( &ctx.sha512, vhash, 64 );
      sha512_4way_close( &ctx.sha512, vhash );     
 
      // 17 Haval parallel 32 bit
      rintrlv_4x64_4x32( vhashB, vhash,  512 );
 
      haval256_5_4way_init( &ctx.haval );
-     haval256_5_4way( &ctx.haval, vhashB, 64 );
+     haval256_5_4way_update( &ctx.haval, vhashB, 64 );
      haval256_5_4way_close( &ctx.haval, state );
 }
 
 int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[4*16] __attribute__ ((aligned (64)));
+   uint32_t hash[16*4] __attribute__ ((aligned (128)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[7<<2]);
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce -4;
    __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
@@ -537,9 +589,9 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
          }
       }
       n += 4;
-   } while ( likely( ( n < max_nonce - 4 ) && !work_restart[thr_id].restart ) );
+   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
 
-   *hashes_done = n - first_nonce + 1;
+   *hashes_done = n - first_nonce;
    return 0;
 }
 

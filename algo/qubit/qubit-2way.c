@@ -9,6 +9,10 @@
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/echo/aes_ni/hash_api.h"
+#if defined(__VAES__)
+  #include "algo/shavite/shavite-hash-4way.h"
+  #include "algo/echo/echo-hash-4way.h"
+#endif
 
 #if defined(QUBIT_4WAY)
 
@@ -16,10 +20,14 @@ typedef struct
 {
     luffa_4way_context      luffa;
     cube_4way_context       cube;
-    sph_shavite512_context  shavite;
     simd_4way_context       simd;
-    simd_2way_context       simd2;
+#if defined(__VAES__)
+    shavite512_4way_context shavite;
+    echo_4way_context       echo;
+#else
+    sph_shavite512_context  shavite;
     hashState_echo          echo;
+#endif
 } qubit_4way_ctx_holder;
 
 qubit_4way_ctx_holder qubit_4way_ctx;
@@ -27,10 +35,14 @@ qubit_4way_ctx_holder qubit_4way_ctx;
 void init_qubit_4way_ctx()
 {
     cube_4way_init( &qubit_4way_ctx.cube, 512, 16, 32 );
-    sph_shavite512_init(&qubit_4way_ctx.shavite);
     simd_4way_init( &qubit_4way_ctx.simd, 512 );
-    simd_2way_init( &qubit_4way_ctx.simd2, 512 );
-    init_echo(&qubit_4way_ctx.echo, 512);
+#if defined(__VAES__)
+    shavite512_4way_init( &qubit_4way_ctx.shavite );
+    echo_4way_init( &qubit_4way_ctx.echo, 512 );
+#else
+    sph_shavite512_init( &qubit_4way_ctx.shavite );
+    init_echo( &qubit_4way_ctx.echo, 512 );
+#endif
 };
 
 void qubit_4way_hash( void *output, const void *input )
@@ -48,6 +60,13 @@ void qubit_4way_hash( void *output, const void *input )
      luffa_4way_close( &ctx.luffa, vhash );
      
      cube_4way_update_close( &ctx.cube, vhash, vhash, 64 );
+
+#if defined(__VAES__)
+
+     shavite512_4way_update_close( &ctx.shavite, vhash, vhash, 64 );
+
+#else
+
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
      
      sph_shavite512( &ctx.shavite, hash0, 64 );
@@ -66,31 +85,44 @@ void qubit_4way_hash( void *output, const void *input )
      sph_shavite512_close( &ctx.shavite, hash3 );
 
      intrlv_4x128_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
+
      simd_4way_update_close( &ctx.simd, vhash, vhash, 512 );
+
+#if defined(__VAES__)
+
+     echo_4way_update_close( &ctx.echo, vhash, vhash, 512 );
+
+     dintrlv_4x128( output, output+32, output+64, output+96, vhash, 256 );
+    
+#else
+
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
 
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
+     update_final_echo( &ctx.echo, (BitSequence*)hash0,
+                            (const BitSequence*)hash0, 512 );
      memcpy( &ctx.echo, &qubit_4way_ctx.echo, sizeof(hashState_echo) );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
+     update_final_echo( &ctx.echo, (BitSequence*)hash1,
+                             (const BitSequence*)hash1, 512 );
      memcpy( &ctx.echo, &qubit_4way_ctx.echo, sizeof(hashState_echo) );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
+     update_final_echo( &ctx.echo, (BitSequence*)hash2,
+                             (const BitSequence*)hash2, 512 );
      memcpy( &ctx.echo, &qubit_4way_ctx.echo, sizeof(hashState_echo) );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
+     update_final_echo( &ctx.echo, (BitSequence*)hash3,
+                             (const BitSequence*)hash3, 512 );
 
      memcpy( output,    hash0, 32 );
      memcpy( output+32, hash1, 32 );
      memcpy( output+64, hash2, 32 );
      memcpy( output+96, hash3, 32 );
+#endif
 }
 
 int scanhash_qubit_4way( struct work *work,uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
-     uint32_t hash[4*8] __attribute__ ((aligned (128)));
+     uint32_t hash[8*4] __attribute__ ((aligned (128)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
      uint32_t *pdata = work->data;
      uint32_t *ptarget = work->target;

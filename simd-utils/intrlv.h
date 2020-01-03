@@ -2283,7 +2283,46 @@ static inline void rintrlv_8x32_8x64( void *dst,
    d[63] = _mm_unpackhi_epi32( s[61], s[63] );
 }
 
+// 8x32 -> 4x128
 
+// 16 bytes per lane
+#define RLEAVE_8X32_4X128( i ) \
+do { \
+    uint32_t *d0 = (uint32_t*)dst0 + (i); \
+    uint32_t *d1 = (uint32_t*)dst1 + (i); \
+    const uint32_t *s  = (const uint32_t*)src + ((i)<<1); \
+   d0[ 0] = s[ 0];      d1[ 0] = s[ 4]; \
+   d0[ 1] = s[ 8];      d1[ 1] = s[12]; \
+   d0[ 2] = s[16];      d1[ 2] = s[20]; \
+   d0[ 3] = s[24];      d1[ 3] = s[28]; \
+\
+   d0[ 4] = s[ 1];      d1[ 4] = s[ 5]; \
+   d0[ 5] = s[ 9];      d1[ 5] = s[13]; \
+   d0[ 6] = s[17];      d1[ 6] = s[21]; \
+   d0[ 7] = s[25];      d1[ 7] = s[29]; \
+\
+   d0[ 8] = s[ 2];      d1[ 8] = s[ 6]; \
+   d0[ 9] = s[10];      d1[ 9] = s[14]; \
+   d0[10] = s[18];      d1[10] = s[22]; \
+   d0[11] = s[26];      d1[11] = s[30]; \
+\
+   d0[12] = s[ 3];      d1[12] = s[ 7]; \
+   d0[13] = s[11];      d1[13] = s[15]; \
+   d0[14] = s[19];      d1[14] = s[23]; \
+   d0[15] = s[27];      d1[15] = s[31]; \
+} while(0)  
+
+static inline void rintrlv_8x32_4x128( void *dst0, void *dst1,
+                                    const void *src, const int bit_len )
+{
+   RLEAVE_8X32_4X128(   0 );    RLEAVE_8X32_4X128(  16 );
+   if ( bit_len <= 256 ) return;
+   RLEAVE_8X32_4X128(  32 );    RLEAVE_8X32_4X128(  48 );
+   if ( bit_len <= 512 ) return;
+   RLEAVE_8X32_4X128(  64 );    RLEAVE_8X32_4X128(  80 );
+   RLEAVE_8X32_4X128(  96 );    RLEAVE_8X32_4X128( 112 );
+}
+#undef RLEAVE_8X32_4X128
 
 /*
 #define RLEAVE_4x32_4x64(i) do \

@@ -15,7 +15,7 @@ bool register_phi1612_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_phi1612;
   gate->hash      = (void*)&phi1612_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
   return true;
 };
 

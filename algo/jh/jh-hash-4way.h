@@ -103,14 +103,12 @@ typedef jh_4way_context jh512_4way_context;
 void jh256_4way_init( jh_4way_context *sc);
 
 void jh256_4way_update(void *cc, const void *data, size_t len);
-#define jh256_4way jh256_4way_update
 
 void jh256_4way_close(void *cc, void *dst);
 
 void jh512_4way_init( jh_4way_context *sc );
 
 void jh512_4way_update(void *cc, const void *data, size_t len);
-#define jh512_4way jh512_4way_update
 
 void jh512_4way_close(void *cc, void *dst);
 

@@ -21,7 +21,27 @@ static void transform( cubehashParam *sp )
     int r;
     const int rounds = sp->rounds;
 
-#ifdef __AVX2__
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+    register __m512i x0, x1;
+
+    x0 = _mm512_load_si512( (__m512i*)sp->x     );
+    x1 = _mm512_load_si512( (__m512i*)sp->x + 1 );
+
+    for ( r = 0; r < rounds; ++r )
+    { 
+        x1 = _mm512_add_epi32( x0, x1 );
+        x0 = _mm512_xor_si512( mm512_rol_32( mm512_swap_256( x0 ), 7 ), x1 );
+        x1 = _mm512_add_epi32( x0, mm512_swap128_64( x1 ) );
+        x0 = _mm512_xor_si512( mm512_rol_32(
+                                         mm512_swap256_128( x0 ), 11 ), x1 );
+        x1 = mm512_swap64_32( x1 );
+    }
+
+    _mm512_store_si512( (__m512i*)sp->x,     x0 );
+    _mm512_store_si512( (__m512i*)sp->x + 1, x1 );
+
+#elif defined(__AVX2__)
 
     register __m256i x0, x1, x2, x3, y0, y1;
 

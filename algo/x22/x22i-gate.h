@@ -34,13 +34,9 @@ int scanhash_x22i( struct work *work, uint32_t max_nonce,
 
 #endif
 
-
-// Big problems with x25x 8 way. It blows up just by increasing the
-// buffer sizes and nothing else. It may have to do with accessing 2 dim arrays.
-
-//#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-//  #define X25X_8WAY 1
-#if defined(__AVX2__) && defined(__AES__)
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+  #define X25X_8WAY 1
+#elif defined(__AVX2__) && defined(__AES__)
   #define X25X_4WAY 1
 #endif
 

@@ -13,7 +13,7 @@ bool register_hmq1725_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_hmq1725;
   gate->hash      = (void*)&hmq1725hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
   opt_target_factor = 65536.0;
   return true;
 };

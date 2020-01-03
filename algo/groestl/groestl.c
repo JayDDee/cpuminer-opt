@@ -1,5 +1,4 @@
-#include "algo-gate-api.h"
-
+#include "groestl-gate.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -78,36 +77,16 @@ int scanhash_groestl( struct work *work, uint32_t max_nonce,
 		groestlhash(hash, endiandata);
 
 		if (hash[7] <= Htarg )
-                   if ( fulltest(hash, ptarget))
-                   {
+      if ( fulltest(hash, ptarget) && !opt_benchmark )
+      {
 			pdata[19] = nonce;
-			*hashes_done = pdata[19] - first_nonce;
-			return 1;
-	           }
-         
+         submit_solution( work, hash, mythr );
+	   }
 		nonce++;
-
 	} while (nonce < max_nonce && !work_restart[thr_id].restart);
 
 	pdata[19] = nonce;
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
-
-bool register_dmd_gr_algo( algo_gate_t* gate )
-{
-    init_groestl_ctx();
-    gate->optimizations   = SSE2_OPT | AES_OPT;
-    gate->scanhash        = (void*)&scanhash_groestl;
-    gate->hash            = (void*)&groestlhash;
-    opt_target_factor = 256.0;
-    return true;
-};
-
-bool register_groestl_algo( algo_gate_t* gate )
-{
-    register_dmd_gr_algo( gate );
-    gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
-    return true;
-};
 

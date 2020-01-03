@@ -22,6 +22,11 @@
 #include "algo/lyra2/lyra2.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/swifftx/swifftx.h"
+#if defined(__VAES__)
+  #include "algo/groestl/groestl512-hash-4way.h"
+  #include "algo/shavite/shavite-hash-4way.h"
+  #include "algo/echo/echo-hash-4way.h"
+#endif
 
 
 #if defined(X22I_8WAY)
@@ -30,14 +35,11 @@ union _x22i_8way_ctx_overlay
 {
     blake512_8way_context   blake;
     bmw512_8way_context     bmw;
-    hashState_groestl       groestl;
-    hashState_echo          echo;
     skein512_8way_context   skein;
     jh512_8way_context      jh;
     keccak512_8way_context  keccak;
     luffa_4way_context      luffa;
     cube_4way_context       cube;
-    sph_shavite512_context  shavite;
     simd_4way_context       simd;
     hamsi512_8way_context   hamsi;
     sph_fugue512_context    fugue;
@@ -48,6 +50,15 @@ union _x22i_8way_ctx_overlay
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
     sha256_8way_context     sha256;
+#if defined(__VAES__)
+    groestl512_4way_context groestl;
+    shavite512_4way_context shavite;
+    echo_4way_context       echo;
+#else
+    hashState_groestl       groestl;
+    sph_shavite512_context  shavite;
+    hashState_echo          echo;
+#endif
 };
 typedef union _x22i_8way_ctx_overlay x22i_8way_ctx_overlay;
 
@@ -84,6 +95,19 @@ void x22i_8way_hash( void *output, const void *input )
    bmw512_8way_update( &ctx.bmw, vhash, 64 );
    bmw512_8way_close( &ctx.bmw, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
+
+     groestl512_4way_init( &ctx.groestl, 64 );
+     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
+     groestl512_4way_init( &ctx.groestl, 64 );
+     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+
+     rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
    dintrlv_8x64_512( hash0, hash1, hash2, hash3,
                      hash4, hash5, hash6, hash7, vhash );
 
@@ -115,6 +139,8 @@ void x22i_8way_hash( void *output, const void *input )
    intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3,
                            hash4, hash5, hash6, hash7 );
    
+#endif
+
    skein512_8way_init( &ctx.skein );
    skein512_8way_update( &ctx.skein, vhash, 64 );
    skein512_8way_close( &ctx.skein, vhash );
@@ -138,6 +164,15 @@ void x22i_8way_hash( void *output, const void *input )
    cube_4way_update_close( &ctx.cube, vhashA, vhashA, 64 );
    cube_4way_init( &ctx.cube, 512, 16, 32 );
    cube_4way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+
+#if defined(__VAES__)
+
+     shavite512_4way_init( &ctx.shavite );
+     shavite512_4way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
+     shavite512_4way_init( &ctx.shavite );
+     shavite512_4way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
+
+#else
 
    dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
    dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
@@ -170,10 +205,23 @@ void x22i_8way_hash( void *output, const void *input )
    intrlv_4x128_512( vhashA, hash0, hash1, hash2, hash3 );
    intrlv_4x128_512( vhashB, hash4, hash5, hash6, hash7 );
 
+#endif
+
    simd_4way_init( &ctx.simd, 512 );
    simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
    simd_4way_init( &ctx.simd, 512 );
    simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+
+#if defined(__VAES__)
+
+     echo_4way_init( &ctx.echo, 512 );
+     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
+     echo_4way_init( &ctx.echo, 512 );
+     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+
+     rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
+
+#else
 
    dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
    dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
@@ -205,6 +253,8 @@ void x22i_8way_hash( void *output, const void *input )
 
    intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3,
                            hash4, hash5, hash6, hash7 );
+
+#endif
 
    hamsi512_8way_init( &ctx.hamsi );
    hamsi512_8way_update( &ctx.hamsi, vhash, 64 );
@@ -439,9 +489,7 @@ int scanhash_x22i_8way( struct work* work, uint32_t max_nonce,
    return 0;
 }
 
-
 #elif defined(X22I_4WAY)
-
 
 union _x22i_4way_ctx_overlay
 {
@@ -477,8 +525,6 @@ void x22i_4way_hash( void *output, const void *input )
    uint64_t vhash[8*4] __attribute__ ((aligned (64)));
    uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
    uint64_t vhashB[8*4] __attribute__ ((aligned (64)));
-
-//   unsigned char hash[64 * 4] __attribute__((aligned(64))) = {0};
    unsigned char hashA0[64]    __attribute__((aligned(64))) = {0};
    unsigned char hashA1[64]    __attribute__((aligned(32))) = {0};
    unsigned char hashA2[64]    __attribute__((aligned(32))) = {0};
@@ -486,13 +532,12 @@ void x22i_4way_hash( void *output, const void *input )
    x22i_ctx_overlay ctx;
 
    blake512_4way_init( &ctx.blake );
-   blake512_4way( &ctx.blake, input, 80 );
+   blake512_4way_update( &ctx.blake, input, 80 );
    blake512_4way_close( &ctx.blake, vhash );
 
    bmw512_4way_init( &ctx.bmw );
-   bmw512_4way( &ctx.bmw, vhash, 64 );
+   bmw512_4way_update( &ctx.bmw, vhash, 64 );
    bmw512_4way_close( &ctx.bmw, vhash );
-
    dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
    
    init_groestl( &ctx.groestl, 64 );
@@ -511,15 +556,15 @@ void x22i_4way_hash( void *output, const void *input )
    intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
    skein512_4way_init( &ctx.skein );
-   skein512_4way( &ctx.skein, vhash, 64 );
+   skein512_4way_update( &ctx.skein, vhash, 64 );
    skein512_4way_close( &ctx.skein, vhash );
 
    jh512_4way_init( &ctx.jh );
-   jh512_4way( &ctx.jh, vhash, 64 );
+   jh512_4way_update( &ctx.jh, vhash, 64 );
    jh512_4way_close( &ctx.jh, vhash );
 
    keccak512_4way_init( &ctx.keccak );
-   keccak512_4way( &ctx.keccak, vhash, 64 );
+   keccak512_4way_update( &ctx.keccak, vhash, 64 );
    keccak512_4way_close( &ctx.keccak, vhash );
 
    rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
@@ -560,13 +605,11 @@ void x22i_4way_hash( void *output, const void *input )
    update_final_echo ( &ctx.echo, (BitSequence*)hash3,
                             (const BitSequence*)hash3, 512 );
 
-
    intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
    hamsi512_4way_init( &ctx.hamsi );
-   hamsi512_4way( &ctx.hamsi, vhash, 64 );
+   hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
    hamsi512_4way_close( &ctx.hamsi, vhash );
-
    dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
    sph_fugue512_init( &ctx.fugue );
@@ -585,9 +628,8 @@ void x22i_4way_hash( void *output, const void *input )
    intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
    shabal512_4way_init( &ctx.shabal );
-   shabal512_4way( &ctx.shabal, vhash, 64 );
+   shabal512_4way_update( &ctx.shabal, vhash, 64 );
    shabal512_4way_close( &ctx.shabal, vhash );
-
    dintrlv_4x32_512( &hash0[8], &hash1[8], &hash2[8], &hash3[8], vhash );
 
    sph_whirlpool_init( &ctx.whirlpool );
@@ -606,12 +648,10 @@ void x22i_4way_hash( void *output, const void *input )
    intrlv_4x64_512( vhash, &hash0[16], &hash1[16], &hash2[16], &hash3[16] );
 
    sha512_4way_init( &ctx.sha512 );
-   sha512_4way( &ctx.sha512, vhash, 64 );
+   sha512_4way_update( &ctx.sha512, vhash, 64 );
    sha512_4way_close( &ctx.sha512, vhash );
-
    dintrlv_4x64_512( &hash0[24], &hash1[24], &hash2[24], &hash3[24], vhash );
 
-//	InitializeSWIFFTX();
 	ComputeSingleSWIFFTX((unsigned char*)hash0, (unsigned char*)hashA0);
    ComputeSingleSWIFFTX((unsigned char*)hash1, (unsigned char*)hashA1);
    ComputeSingleSWIFFTX((unsigned char*)hash2, (unsigned char*)hashA2);
@@ -622,9 +662,8 @@ void x22i_4way_hash( void *output, const void *input )
    memset( vhash, 0, 64*4 );
 
    haval256_5_4way_init( &ctx.haval );
-   haval256_5_4way( &ctx.haval, vhashA, 64 );
+   haval256_5_4way_update( &ctx.haval, vhashA, 64 );
    haval256_5_4way_close( &ctx.haval, vhash );
-
    dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
      
 	memset( hashA0, 0, 64 );
@@ -675,10 +714,8 @@ void x22i_4way_hash( void *output, const void *input )
    intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
    sha256_4way_init( &ctx.sha256 );
-   sha256_4way( &ctx.sha256, vhash, 64 );
+   sha256_4way_update( &ctx.sha256, vhash, 64 );
    sha256_4way_close( &ctx.sha256, output );
-   
-//	memcpy(output, hash, 32);
 }
 
 

@@ -21,7 +21,7 @@ required.
 Compile Instructions
 --------------------
 
-See INSTALL_LINUX or INSTALL_WINDOWS fror compile instruuctions
+See INSTALL_LINUX or INSTALL_WINDOWS for compile instruuctions
 
 Requirements
 ------------
@@ -35,13 +35,26 @@ not supported. FreeBSD YMMV.
 Change Log
 ----------
 
+v3.11.0
+
+Fixed x25x AVX512 lane 4 invalid shares.
+
+AVX512 for hex, phi2.
+
+VAES optimzation for Intel Icelake CPUs for most algos recently optimized
+with AVX512, source code only.
+
+v3.10.7
+
+AVX512 for x25x, lbry, x13bcd (bcd).
+
 v3.10.6
 
 Added support for SSL stratum: stratum+tcps://
 
 Added job id reporting again, but leaner, suppressed with --quiet.
 
-AVX512 for x21s, x22i, lyra2z, allium
+AVX512 for x21s, x22i, lyra2z, allium.
 
 Fixed share overflow warnings mining lbry with Ryzen (SHA).
 

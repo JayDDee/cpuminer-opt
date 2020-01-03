@@ -186,7 +186,7 @@ void Compress(hashState_echo *ctx, const unsigned char *pmsg, unsigned int uBloc
 	{
 	   for(i = 0; i < 4; i++)
 	   {
-		_state[i][j] = _mm_loadu_si128((__m128i*)pmsg + 4 * (j - (ctx->uHashSize / 256)) + i);
+		_state[i][j] = _mm_load_si128((__m128i*)pmsg + 4 * (j - (ctx->uHashSize / 256)) + i);
 	   }
 	}
 
@@ -390,13 +390,13 @@ HashReturn final_echo(hashState_echo *state, BitSequence *hashval)
 	}
 
 	// Store the hash value
-	_mm_storeu_si128((__m128i*)hashval + 0, state->state[0][0]);
-	_mm_storeu_si128((__m128i*)hashval + 1, state->state[1][0]);
+	_mm_store_si128((__m128i*)hashval + 0, state->state[0][0]);
+	_mm_store_si128((__m128i*)hashval + 1, state->state[1][0]);
 
 	if(state->uHashSize == 512)
 	{
-		_mm_storeu_si128((__m128i*)hashval + 2, state->state[2][0]);
-		_mm_storeu_si128((__m128i*)hashval + 3, state->state[3][0]);
+		_mm_store_si128((__m128i*)hashval + 2, state->state[2][0]);
+		_mm_store_si128((__m128i*)hashval + 3, state->state[3][0]);
 	}
 
 	return SUCCESS;
@@ -513,13 +513,13 @@ HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
    }
 
    // Store the hash value
-   _mm_storeu_si128( (__m128i*)hashval + 0, state->state[0][0] );
-   _mm_storeu_si128( (__m128i*)hashval + 1, state->state[1][0] );
+   _mm_store_si128( (__m128i*)hashval + 0, state->state[0][0] );
+   _mm_store_si128( (__m128i*)hashval + 1, state->state[1][0] );
 
    if( state->uHashSize == 512 )
    {
-        _mm_storeu_si128( (__m128i*)hashval + 2, state->state[2][0] );
-        _mm_storeu_si128( (__m128i*)hashval + 3, state->state[3][0] );
+        _mm_store_si128( (__m128i*)hashval + 2, state->state[2][0] );
+        _mm_store_si128( (__m128i*)hashval + 3, state->state[3][0] );
 
    }
    return SUCCESS;

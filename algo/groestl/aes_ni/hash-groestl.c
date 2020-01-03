@@ -230,6 +230,7 @@ HashReturn_gr update_and_final_groestl( hashState_groestl* ctx, void* output,
 
    // digest final padding block and do output transform
    TF1024( ctx->chaining, ctx->buffer );
+
    OF1024( ctx->chaining );
 
    // store hash result in output 

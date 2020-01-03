@@ -14,7 +14,6 @@
 #ifndef __BLAKE2S_HASH_4WAY_H__
 #define __BLAKE2S_HASH_4WAY_H__ 1
 
-//#if defined(__SSE4_2__)
 #if defined(__SSE2__)
 
 #include "simd-utils.h"
@@ -132,6 +131,6 @@ int blake2s_16way_final( blake2s_16way_state *S, void *out, uint8_t outlen );
 }
 #endif
 
-#endif  // __SSE4_2__
+#endif  // __SSE2__
 
 #endif

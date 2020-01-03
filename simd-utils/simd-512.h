@@ -38,6 +38,36 @@
 //    shuffle_epi8 shuffles accross entire 512 bits. Shuffle usually
 //    doesn't cross 128 bit lane boundaries but is consistent with AVX2
 //    where shuffle_epi8 spans the entire vector.
+//
+//    There are 2 areas where overhead is aconcern: constants and
+//    permutations.
+//
+//    Constants need to be composed at run time by assembling individual
+//    elements, very expensive. The cost is proportional to the number of
+//    elements therefor use the largest element size possible, even by
+//    merging smaller values.
+//
+//    Constants with repeating patterns can be optimized with the smaller
+//    patterns repeated more frequently being more efficient.
+//
+//    Some specific constants can be very efficient. Zero is very efficient,
+//    1 and -1 slightly less so.
+//
+//    If an expensive constant is to be reused in the same function it should
+//    be declared as a local variable defined once and reused.
+//
+//    Permutations cab be very exppensive if they use a vector control index,
+//    even if the permutation itself is quite efficient.
+//    The index is essentially a constant with all the baggage that brings.
+//    The same rules apply, if an index is to be reused it should be defined
+//    as a local. This applies specifically to bswap operations.
+//
+//    Additionally, permutations using smaller vectors can be more efficient
+//    if the permutation doesn't cross lane boundaries ,typically 128 bits,
+//    ans the smnaller vector can use an imm comtrol.
+//
+//    If the permutation doesn't cross lane boundaries a shuffle instructions
+//    can be used with imm control instead of permute.
 
 //////////////////////////////////////////////////////////////
 //
@@ -106,12 +136,14 @@ static inline __m512i m512_const_64( const uint64_t i7, const uint64_t i6,
 #define m512_const1_16( i )    _mm512_broadcastw_epi16( mm128_mov32_128( i ) )
 #define m512_const1_8( i )     _mm512_broadcastb_epi8 ( mm128_mov32_128( i ) )
 
+#define m512_const2_128( v1, v0 ) \
+   m512_const1_256( _mm512_inserti64x2( _mm512_castsi128_si512( lo ), hi, 1 ) )
+
 #define m512_const2_64( i1, i0 ) \
    m512_const1_128( m128_const_64( i1, i0 ) )
 
 #define m512_const2_32( i1, i0 ) \
-   m512_const1_64( ( ( ( (uint64_t)(i1) << 32 ) ) \
-                     | ( (uint64_t)(i0) & 0xffffffff ) ) )
+   m512_const1_64( ( (uint64_t)(i1) << 32 ) | ( (uint64_t)(i0) & 0xffffffff ) )
 
 // { m128_1, m128_1, m128_0, m128_0 }
 #define m512_const_2x128( v1, v0 ) \

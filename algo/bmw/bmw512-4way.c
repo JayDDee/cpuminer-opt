@@ -41,7 +41,6 @@ int scanhash_bmw512_8way( struct work *work, uint32_t max_nonce,
 
       for ( int lane = 0; lane < 8; lane++ )
       if ( unlikely( hash7[ lane<<1 ] < Htarg ) )
-//      if ( ( ( hash7[ lane<<1 ] & 0xFFFFFF00 ) == 0 ) )
       {
           extr_lane_8x64( lane_hash, hash, lane, 256 );
           if ( fulltest( lane_hash, ptarget ) )
@@ -66,7 +65,7 @@ void bmw512hash_4way(void *state, const void *input)
 {
     bmw512_4way_context ctx;
     bmw512_4way_init( &ctx );
-    bmw512_4way( &ctx, input, 80 );
+    bmw512_4way_update( &ctx, input, 80 );
     bmw512_4way_close( &ctx, state );
 }
 

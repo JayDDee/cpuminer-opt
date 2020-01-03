@@ -54,10 +54,10 @@ void anime_4way_hash( void *state, const void *input )
     anime_4way_ctx_holder ctx;
     memcpy( &ctx, &anime_4way_ctx, sizeof(anime_4way_ctx) );
 
-    bmw512_4way( &ctx.bmw, input, 80 );
+    bmw512_4way_update( &ctx.bmw, input, 80 );
     bmw512_4way_close( &ctx.bmw, vhash );
 
-    blake512_4way( &ctx.blake, vhash, 64 );
+    blake512_4way_update( &ctx.blake, vhash, 64 );
     blake512_4way_close( &ctx.blake, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
@@ -92,7 +92,7 @@ void anime_4way_hash( void *state, const void *input )
 
     if ( mm256_anybits0( vh_mask ) )
     {
-       skein512_4way( &ctx.skein, vhash, 64 );
+       skein512_4way_update( &ctx.skein, vhash, 64 );
        skein512_4way_close( &ctx.skein, vhashB );
     }
 
@@ -111,7 +111,7 @@ void anime_4way_hash( void *state, const void *input )
 
     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
-    jh512_4way( &ctx.jh, vhash, 64 );
+    jh512_4way_update( &ctx.jh, vhash, 64 );
     jh512_4way_close( &ctx.jh, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
@@ -119,23 +119,23 @@ void anime_4way_hash( void *state, const void *input )
     if ( mm256_anybits1( vh_mask ) )
     {
        blake512_4way_init( &ctx.blake );
-       blake512_4way( &ctx.blake, vhash, 64 );
+       blake512_4way_update( &ctx.blake, vhash, 64 );
        blake512_4way_close( &ctx.blake, vhashA );
     }
     if ( mm256_anybits0( vh_mask ) )
     {
        bmw512_4way_init( &ctx.bmw );
-       bmw512_4way( &ctx.bmw, vhash, 64 );
+       bmw512_4way_update( &ctx.bmw, vhash, 64 );
        bmw512_4way_close( &ctx.bmw, vhashB );
     }
 
     mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-    keccak512_4way( &ctx.keccak, vhash, 64 );
+    keccak512_4way_update( &ctx.keccak, vhash, 64 );
     keccak512_4way_close( &ctx.keccak, vhash );
 
     skein512_4way_init( &ctx.skein );
-    skein512_4way( &ctx.skein, vhash, 64 );
+    skein512_4way_update( &ctx.skein, vhash, 64 );
     skein512_4way_close( &ctx.skein, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
@@ -143,13 +143,13 @@ void anime_4way_hash( void *state, const void *input )
     if ( mm256_anybits1( vh_mask ) )
     {
        keccak512_4way_init( &ctx.keccak );
-       keccak512_4way( &ctx.keccak, vhash, 64 );
+       keccak512_4way_update( &ctx.keccak, vhash, 64 );
        keccak512_4way_close( &ctx.keccak, vhashA );
     }
     if ( mm256_anybits0( vh_mask ) )
     {
        jh512_4way_init( &ctx.jh );
-       jh512_4way( &ctx.jh, vhash, 64 );
+       jh512_4way_update( &ctx.jh, vhash, 64 );
        jh512_4way_close( &ctx.jh, vhashB );
     }
 

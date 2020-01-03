@@ -15,7 +15,7 @@ bool register_x13_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x13;
   gate->hash      = (void*)&x13hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
   return true;
 };
 

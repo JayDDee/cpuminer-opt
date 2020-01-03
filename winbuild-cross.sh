@@ -27,6 +27,9 @@ ln -s $LOCAL_LIB/gmp/gmp.h ./gmp.h
 #sed -i 's/"-lpthread"/"-lpthreadGC2"/g' configure.ac
 
 # make release directory and copy selected DLLs.
+
+rm -rf release > /dev/null
+
 mkdir release
 cp README.txt release/
 cp README.md release/
@@ -35,10 +38,6 @@ cp $MINGW_LIB/zlib1.dll release/
 cp $MINGW_LIB/libwinpthread-1.dll release/
 cp $GCC_MINGW_LIB/libstdc++-6.dll release/
 cp $GCC_MINGW_LIB/libgcc_s_seh-1.dll release/
-#cp /usr/x86_64-w64-mingw32/lib/zlib1.dll release/
-#cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll release/
-#cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libstdc++-6.dll release/
-#cp /usr/lib/gcc/x86_64-w64-mingw32/7.3-win32/libgcc_s_seh-1.dll release/
 cp $LOCAL_LIB/openssl/libcrypto-1_1-x64.dll release/
 cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
 

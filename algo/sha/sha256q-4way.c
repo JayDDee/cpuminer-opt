@@ -15,19 +15,19 @@ void sha256q_8way_hash( void* output, const void* input )
    sha256_8way_context ctx;
    memcpy( &ctx, &sha256_ctx8, sizeof ctx );
 
-   sha256_8way( &ctx, input + (64<<3), 16 );
+   sha256_8way_update( &ctx, input + (64<<3), 16 );
    sha256_8way_close( &ctx, vhash );
 
    sha256_8way_init( &ctx );
-   sha256_8way( &ctx, vhash, 32 );
+   sha256_8way_update( &ctx, vhash, 32 );
    sha256_8way_close( &ctx, vhash );
 
    sha256_8way_init( &ctx );
-   sha256_8way( &ctx, vhash, 32 );
+   sha256_8way_update( &ctx, vhash, 32 );
    sha256_8way_close( &ctx, vhash );
 
    sha256_8way_init( &ctx );
-   sha256_8way( &ctx, vhash, 32 );
+   sha256_8way_update( &ctx, vhash, 32 );
    sha256_8way_close( &ctx, output );
 }
 
@@ -61,7 +61,7 @@ int scanhash_sha256q_8way( struct work *work, uint32_t max_nonce,
    // Need big endian data
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
    sha256_8way_init( &sha256_ctx8 );
-   sha256_8way( &sha256_ctx8, vdata, 64 );
+   sha256_8way_update( &sha256_ctx8, vdata, 64 );
 
    for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
    {
@@ -108,19 +108,19 @@ void sha256q_4way_hash( void* output, const void* input )
    sha256_4way_context ctx;
    memcpy( &ctx, &sha256_ctx4, sizeof ctx );
 
-   sha256_4way( &ctx, input + (64<<2), 16 );
+   sha256_4way_update( &ctx, input + (64<<2), 16 );
    sha256_4way_close( &ctx, vhash );
 
    sha256_4way_init( &ctx );
-   sha256_4way( &ctx, vhash, 32 );
+   sha256_4way_update( &ctx, vhash, 32 );
    sha256_4way_close( &ctx, vhash );
 
    sha256_4way_init( &ctx );
-   sha256_4way( &ctx, vhash, 32 );
+   sha256_4way_update( &ctx, vhash, 32 );
    sha256_4way_close( &ctx, vhash );
 
    sha256_4way_init( &ctx );
-   sha256_4way( &ctx, vhash, 32 );
+   sha256_4way_update( &ctx, vhash, 32 );
    sha256_4way_close( &ctx, output );
 }
 
@@ -154,7 +154,7 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
 
    mm128_bswap32_intrlv80_4x32( vdata, pdata );
    sha256_4way_init( &sha256_ctx4 );
-   sha256_4way( &sha256_ctx4, vdata, 64 );
+   sha256_4way_update( &sha256_ctx4, vdata, 64 );
 
    for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
    {

@@ -1171,7 +1171,8 @@ void hamsi512_4way_init( hamsi_4way_big_context *sc )
    sc->h[7] = m256_const1_64( 0x6769756d2042656c );
 }
 
-void hamsi512_4way( hamsi_4way_big_context *sc, const void *data, size_t len )
+void hamsi512_4way_update( hamsi_4way_big_context *sc, const void *data,
+      size_t len )
 {
    __m256i *vdata = (__m256i*)data;
 

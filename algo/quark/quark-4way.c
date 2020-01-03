@@ -9,16 +9,23 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/groestl/aes_ni/hash-groestl.h"
+#if defined(__VAES__)
+  #include "algo/groestl/groestl512-hash-4way.h"
+#endif
 
 #if defined (QUARK_8WAY)
 
 typedef struct {
     blake512_8way_context  blake;
     bmw512_8way_context    bmw;
-    hashState_groestl      groestl;
     jh512_8way_context     jh;
     skein512_8way_context  skein;
     keccak512_8way_context keccak;
+#if defined(__VAES__)
+    groestl512_4way_context groestl;
+#else
+    hashState_groestl       groestl;
+#endif
 } quark_8way_ctx_holder;
 
 quark_8way_ctx_holder quark_8way_ctx __attribute__ ((aligned (128)));
@@ -27,10 +34,14 @@ void init_quark_8way_ctx()
 {
      blake512_8way_init( &quark_8way_ctx.blake );
      bmw512_8way_init( &quark_8way_ctx.bmw );
-     init_groestl( &quark_8way_ctx.groestl, 64 );
      skein512_8way_init( &quark_8way_ctx.skein );
      jh512_8way_init( &quark_8way_ctx.jh );
      keccak512_8way_init( &quark_8way_ctx.keccak );
+#if defined(__VAES__)
+     groestl512_4way_init( &quark_8way_ctx.groestl, 64 );
+#else
+     init_groestl( &quark_8way_ctx.groestl, 64 );
+#endif
 }
 
 void quark_8way_hash( void *state, const void *input )
@@ -38,6 +49,7 @@ void quark_8way_hash( void *state, const void *input )
     uint64_t vhash[8*8] __attribute__ ((aligned (128)));
     uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
     uint64_t vhashB[8*8] __attribute__ ((aligned (64)));
+    uint64_t vhashC[8*8] __attribute__ ((aligned (64)));
     uint64_t hash0[8] __attribute__ ((aligned (64)));
     uint64_t hash1[8] __attribute__ ((aligned (64)));
     uint64_t hash2[8] __attribute__ ((aligned (64)));
@@ -49,6 +61,7 @@ void quark_8way_hash( void *state, const void *input )
     __m512i* vh  = (__m512i*)vhash;
     __m512i* vhA = (__m512i*)vhashA;
     __m512i* vhB = (__m512i*)vhashB;
+    __m512i* vhC = (__m512i*)vhashC;
     __mmask8 vh_mask;
     quark_8way_ctx_holder ctx;
     const uint32_t mask = 8;
@@ -65,6 +78,25 @@ void quark_8way_hash( void *state, const void *input )
 
     vh_mask = _mm512_cmpeq_epi64_mask( _mm512_and_si512( vh[0], bit3_mask ),
                                        zero );
+
+    
+#if defined(__VAES__)
+
+     rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
+
+     if ( ( vh_mask & 0x0f ) != 0x0f )
+     {
+        groestl512_4way_init( &ctx.groestl, 64 );
+        groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
+     }
+     if ( ( vh_mask & 0xf0 ) != 0xf0 )
+     {     
+        groestl512_4way_init( &ctx.groestl, 64 );
+        groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+     }
+     rintrlv_4x128_8x64( vhashC, vhashA, vhashB, 512 );
+
+#else
 
     dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                   vhash, 512 );
@@ -117,8 +149,10 @@ void quark_8way_hash( void *state, const void *input )
                                                (char*)hash7, 512 );
     }
 
-    intrlv_8x64( vhashA, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
+    intrlv_8x64( vhashC, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                          hash7, 512 );
+
+#endif
 
     if ( vh_mask & 0xff )
     {
@@ -126,7 +160,20 @@ void quark_8way_hash( void *state, const void *input )
        skein512_8way_close( &ctx.skein, vhashB );
     }
 
-    mm512_blend_hash_8x64( vh, vhA, vhB, vh_mask );
+    mm512_blend_hash_8x64( vh, vhC, vhB, vh_mask );
+
+#if defined(__VAES__)
+
+     rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
+
+     groestl512_4way_init( &ctx.groestl, 64 );
+     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
+     groestl512_4way_init( &ctx.groestl, 64 );
+     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+
+     rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
+
+#else
 
     dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                   vhash, 512 );
@@ -150,6 +197,8 @@ void quark_8way_hash( void *state, const void *input )
 
     intrlv_8x64( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                  512 );
+
+#endif
 
     jh512_8way_update( &ctx.jh, vhash, 64 );
     jh512_8way_close( &ctx.jh, vhash );
@@ -289,10 +338,10 @@ void quark_4way_hash( void *state, const void *input )
 
     memcpy( &ctx, &quark_4way_ctx, sizeof(quark_4way_ctx) );
 
-    blake512_4way( &ctx.blake, input, 80 );
+    blake512_4way_update( &ctx.blake, input, 80 );
     blake512_4way_close( &ctx.blake, vhash );
 
-    bmw512_4way( &ctx.bmw, vhash, 64 );
+    bmw512_4way_update( &ctx.bmw, vhash, 64 );
     bmw512_4way_close( &ctx.bmw, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
@@ -327,7 +376,7 @@ void quark_4way_hash( void *state, const void *input )
 
     if ( mm256_anybits1( vh_mask ) )   
     {
-       skein512_4way( &ctx.skein, vhash, 64 );
+       skein512_4way_update( &ctx.skein, vhash, 64 );
        skein512_4way_close( &ctx.skein, vhashB );
     }
 
@@ -346,7 +395,7 @@ void quark_4way_hash( void *state, const void *input )
 
     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
-    jh512_4way( &ctx.jh, vhash, 64 );
+    jh512_4way_update( &ctx.jh, vhash, 64 );
     jh512_4way_close( &ctx.jh, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
@@ -354,24 +403,24 @@ void quark_4way_hash( void *state, const void *input )
     if ( mm256_anybits0( vh_mask ) )   
     {
        blake512_4way_init( &ctx.blake );
-       blake512_4way( &ctx.blake, vhash, 64 );
+       blake512_4way_update( &ctx.blake, vhash, 64 );
        blake512_4way_close( &ctx.blake, vhashA );
     }
 
     if ( mm256_anybits1( vh_mask ) )
     {
        bmw512_4way_init( &ctx.bmw );
-       bmw512_4way( &ctx.bmw, vhash, 64 );
+       bmw512_4way_update( &ctx.bmw, vhash, 64 );
        bmw512_4way_close( &ctx.bmw, vhashB );
     }
 
     mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-    keccak512_4way( &ctx.keccak, vhash, 64 );
+    keccak512_4way_update( &ctx.keccak, vhash, 64 );
     keccak512_4way_close( &ctx.keccak, vhash );
 
     skein512_4way_init( &ctx.skein );
-    skein512_4way( &ctx.skein, vhash, 64 );
+    skein512_4way_update( &ctx.skein, vhash, 64 );
     skein512_4way_close( &ctx.skein, vhash );
 
     vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], bit3_mask ), zero );
@@ -379,14 +428,14 @@ void quark_4way_hash( void *state, const void *input )
     if ( mm256_anybits0( vh_mask ) )    
     {
        keccak512_4way_init( &ctx.keccak );
-       keccak512_4way( &ctx.keccak, vhash, 64 );
+       keccak512_4way_update( &ctx.keccak, vhash, 64 );
        keccak512_4way_close( &ctx.keccak, vhashA );
     }
 
     if ( mm256_anybits1( vh_mask ) )
     {
        jh512_4way_init( &ctx.jh );
-       jh512_4way( &ctx.jh, vhash, 64 );
+       jh512_4way_update( &ctx.jh, vhash, 64 );
        jh512_4way_close( &ctx.jh, vhashB );
     }
 

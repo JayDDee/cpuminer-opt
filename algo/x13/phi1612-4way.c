@@ -10,6 +10,9 @@
 #include "algo/fugue/sph_fugue.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/echo/aes_ni/hash_api.h"
+#if defined(__VAES__)
+  #include "algo/echo/echo-hash-4way.h"
+#endif
 
 #if defined(PHI1612_8WAY)
 
@@ -19,7 +22,11 @@ typedef struct {
     cube_4way_context       cube;
     sph_fugue512_context    fugue;
     sph_gost512_context     gost;
+#if defined(__VAES__)
+    echo_4way_context       echo;
+#else
     hashState_echo          echo;
+#endif
 } phi1612_8way_ctx_holder;
 
 phi1612_8way_ctx_holder phi1612_8way_ctx __attribute__ ((aligned (64)));
@@ -31,7 +38,11 @@ void init_phi1612_8way_ctx()
      cube_4way_init( &phi1612_8way_ctx.cube, 512, 16, 32 );
      sph_fugue512_init( &phi1612_8way_ctx.fugue );
      sph_gost512_init( &phi1612_8way_ctx.gost );
+#if defined(__VAES__)
+     echo_4way_init( &phi1612_8way_ctx.echo, 512 );
+#else
      init_echo( &phi1612_8way_ctx.echo, 512 );
+#endif
 };
 
 void phi1612_8way_hash( void *state, const void *input )
@@ -118,6 +129,19 @@ void phi1612_8way_hash( void *state, const void *input )
      sph_gost512_close( &ctx.gost, hash7 );
 
      // Echo
+
+#if defined(__VAES__)
+
+     intrlv_4x128_512( vhash, hash0, hash1, hash2, hash3 );
+     echo_4way_update_close( &ctx.echo, vhash, vhash, 512 );
+     dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
+     intrlv_4x128_512( vhash, hash4, hash5, hash6, hash7 );
+     echo_4way_init( &ctx.echo, 512 );
+     echo_4way_update_close( &ctx.echo, vhash, vhash, 512 );
+     dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
+
+#else
+
      update_final_echo( &ctx.echo, (BitSequence *)hash0,
                        (const BitSequence *) hash0, 512 );
      init_echo( &ctx.echo, 512 );
@@ -141,6 +165,8 @@ void phi1612_8way_hash( void *state, const void *input )
      init_echo( &ctx.echo, 512 );
      update_final_echo( &ctx.echo, (BitSequence *)hash7,
                        (const BitSequence *) hash7, 512 );
+
+#endif
 
      memcpy( state,     hash0, 32 );
      memcpy( state+ 32, hash1, 32 );
@@ -225,11 +251,11 @@ void phi1612_4way_hash( void *state, const void *input )
      memcpy( &ctx, &phi1612_4way_ctx, sizeof(phi1612_4way_ctx) );
 
      // Skein parallel 4way
-     skein512_4way( &ctx.skein, input, 80 );
+     skein512_4way_update( &ctx.skein, input, 80 );
      skein512_4way_close( &ctx.skein, vhash );
 
      // JH
-     jh512_4way( &ctx.jh, vhash, 64 );
+     jh512_4way_update( &ctx.jh, vhash, 64 );
      jh512_4way_close( &ctx.jh, vhash );
 
      // Serial to the end

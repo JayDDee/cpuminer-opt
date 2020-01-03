@@ -90,13 +90,13 @@ void timetravel10_4way_hash(void *output, const void *input)
       switch ( permutation[i] )
       {
         case 0:
-           blake512_4way( &ctx.blake, vhashA, dataLen );
+           blake512_4way_update( &ctx.blake, vhashA, dataLen );
            blake512_4way_close( &ctx.blake, vhashB );
            if ( i == 9 )
               dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
         break;
         case 1:
-           bmw512_4way( &ctx.bmw, vhashA, dataLen );
+           bmw512_4way_update( &ctx.bmw, vhashA, dataLen );
            bmw512_4way_close( &ctx.bmw, vhashB );
            if ( i == 9 )
               dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
@@ -118,19 +118,19 @@ void timetravel10_4way_hash(void *output, const void *input)
               intrlv_4x64( vhashB, hash0, hash1, hash2, hash3, dataLen<<3 );
         break;
         case 3:
-           skein512_4way( &ctx.skein, vhashA, dataLen );
+           skein512_4way_update( &ctx.skein, vhashA, dataLen );
            skein512_4way_close( &ctx.skein, vhashB );
            if ( i == 9 )
               dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
         break;
         case 4:
-           jh512_4way( &ctx.jh, vhashA, dataLen );
+           jh512_4way_update( &ctx.jh, vhashA, dataLen );
            jh512_4way_close( &ctx.jh, vhashB );
            if ( i == 9 )
               dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
         break;
         case 5:
-           keccak512_4way( &ctx.keccak, vhashA, dataLen );
+           keccak512_4way_update( &ctx.keccak, vhashA, dataLen );
            keccak512_4way_close( &ctx.keccak, vhashB );
            if ( i == 9 )
               dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );

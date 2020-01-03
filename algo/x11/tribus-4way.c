@@ -6,6 +6,9 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/echo/aes_ni/hash_api.h"
+#if defined(__VAES__)
+  #include "algo/echo/echo-hash-4way.h"
+#endif
 
 #if defined(TRIBUS_8WAY)
 
@@ -14,6 +17,8 @@ static __thread jh512_8way_context ctx_mid;
 void tribus_hash_8way( void *state, const void *input )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
+     uint64_t vhashA[4*8] __attribute__ ((aligned (64)));
+     uint64_t vhashB[4*8] __attribute__ ((aligned (64)));
      uint64_t hash0[8] __attribute__ ((aligned (64)));
      uint64_t hash1[8] __attribute__ ((aligned (64)));
      uint64_t hash2[8] __attribute__ ((aligned (64)));
@@ -24,7 +29,11 @@ void tribus_hash_8way( void *state, const void *input )
      uint64_t hash7[8] __attribute__ ((aligned (64)));
      jh512_8way_context     ctx_jh;
      keccak512_8way_context ctx_keccak;
+#if defined(__VAES__)
+     echo_4way_context      ctx_echo;
+#else
      hashState_echo         ctx_echo;
+#endif
 
      memcpy( &ctx_jh, &ctx_mid, sizeof(ctx_mid) );
      jh512_8way_update( &ctx_jh, input + (64<<3), 16 );
@@ -34,10 +43,23 @@ void tribus_hash_8way( void *state, const void *input )
      keccak512_8way_update( &ctx_keccak, vhash, 64 );
      keccak512_8way_close( &ctx_keccak, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
+     
+     echo_4way_init( &ctx_echo, 512 );
+     echo_4way_update_close( &ctx_echo, vhashA, vhashA, 512 );
+     echo_4way_init( &ctx_echo, 512 );
+     echo_4way_update_close( &ctx_echo, vhashB, vhashB, 512 );
+
+     dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
+     dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
+
+#else
+
      dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                    vhash, 512 );
 
-     // hash echo serially
      init_echo( &ctx_echo, 512 );
      update_final_echo( &ctx_echo, (BitSequence *) hash0,
                         (const BitSequence *) hash0, 512 );
@@ -62,6 +84,8 @@ void tribus_hash_8way( void *state, const void *input )
      init_echo( &ctx_echo, 512 );
      update_final_echo( &ctx_echo, (BitSequence *) hash7,
                         (const BitSequence *) hash7, 512 );
+
+#endif
 
      memcpy( state,       hash0, 32 );
      memcpy( state+32,    hash1, 32 );

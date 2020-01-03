@@ -229,7 +229,7 @@ void phi2_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 bool register_phi2_algo( algo_gate_t* gate )
 {
 //   init_phi2_ctx();
-   gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT;
+   gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT | AVX512_OPT;
    gate->get_work_data_size = (void*)&phi2_get_work_data_size;
    gate->decode_extra_data  = (void*)&phi2_decode_extra_data;
    gate->build_extraheader  = (void*)&phi2_build_extraheader;

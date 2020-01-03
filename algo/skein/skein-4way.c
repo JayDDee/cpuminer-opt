@@ -18,76 +18,18 @@ void skeinhash_8way( void *state, const void *input )
      uint64_t vhash64[8*8] __attribute__ ((aligned (128)));
      skein512_8way_context ctx_skein;
 
-//#if defined(__SHA__)
-//     uint32_t hash0[16] __attribute__ ((aligned (64)));
-//     uint32_t hash1[16] __attribute__ ((aligned (64)));
-//     uint32_t hash2[16] __attribute__ ((aligned (64)));
-//     uint32_t hash3[16] __attribute__ ((aligned (64)));
-//     uint32_t hash4[16] __attribute__ ((aligned (64)));
-//     uint32_t hash5[16] __attribute__ ((aligned (64)));
-//     uint32_t hash6[16] __attribute__ ((aligned (64)));
-//     uint32_t hash7[16] __attribute__ ((aligned (64)));
-//     SHA256_CTX           ctx_sha256;
-//#else
      uint32_t vhash32[16*8] __attribute__ ((aligned (128)));
      sha256_8way_context ctx_sha256;
-//#endif
 
      skein512_8way_init( &ctx_skein );
      skein512_8way_update( &ctx_skein, input, 80 );
      skein512_8way_close( &ctx_skein, vhash64 );
-/*
-#if defined(__SHA__)      
-     dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
-                   vhash64, 512 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash0, 64 );
-     SHA256_Final( (unsigned char*)hash0, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash1, 64 );
-     SHA256_Final( (unsigned char*)hash1, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash2, 64 );
-     SHA256_Final( (unsigned char*)hash2, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash3, 64 );
-     SHA256_Final( (unsigned char*)hash3, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash4, 64 );
-     SHA256_Final( (unsigned char*)hash4, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash5, 64 );
-     SHA256_Final( (unsigned char*)hash5, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash6, 64 );
-     SHA256_Final( (unsigned char*)hash6, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash7, 64 );
-     SHA256_Final( (unsigned char*)hash7, &ctx_sha256 );
-     
-     intrlv_8x32( state, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
-                  hash7, 256 );
-#else
-*/
 
      rintrlv_8x64_8x32( vhash32, vhash64, 512 );
-//     dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
-//                   vhash64, 512 );
-//     intrlv_8x32( vhash32, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
-//                   hash7, 512 );
 
      sha256_8way_init( &ctx_sha256 );
-     sha256_8way( &ctx_sha256, vhash32, 64 );
+     sha256_8way_update( &ctx_sha256, vhash32, 64 );
      sha256_8way_close( &ctx_sha256, state );
-//#endif
 }
 
 int scanhash_skein_8way( struct work *work, uint32_t max_nonce,
@@ -176,7 +118,7 @@ void skeinhash_4way( void *state, const void *input )
      rintrlv_4x64_4x32( vhash32, vhash64, 512 );
 
      sha256_4way_init( &ctx_sha256 );
-     sha256_4way( &ctx_sha256, vhash32, 64 );
+     sha256_4way_update( &ctx_sha256, vhash32, 64 );
      sha256_4way_close( &ctx_sha256, state );
 #endif
 }

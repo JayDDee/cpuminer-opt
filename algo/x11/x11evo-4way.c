@@ -85,12 +85,12 @@ void x11evo_4way_hash( void *state, const void *input )
       switch ( idx )
       {
          case 0:
-            blake512_4way( &ctx.blake, input, 80 );
+            blake512_4way_update( &ctx.blake, input, 80 );
             blake512_4way_close( &ctx.blake, vhash );
             dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 64<<3 );
          break;
          case 1:
-            bmw512_4way( &ctx.bmw, vhash, 64 );
+            bmw512_4way_update( &ctx.bmw, vhash, 64 );
             bmw512_4way_close( &ctx.bmw, vhash );
             if ( i >= len-1 )
                dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 64<<3 );
@@ -112,19 +112,19 @@ void x11evo_4way_hash( void *state, const void *input )
                intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 64<<3 );
          break;
          case 3:
-            skein512_4way( &ctx.skein, vhash, 64 );
+            skein512_4way_update( &ctx.skein, vhash, 64 );
             skein512_4way_close( &ctx.skein, vhash );
             if ( i >= len-1 )
                dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 64<<3 );
          break;
          case 4:
-            jh512_4way( &ctx.jh, vhash, 64 );
+            jh512_4way_update( &ctx.jh, vhash, 64 );
             jh512_4way_close( &ctx.jh, vhash );
             if ( i >= len-1 )
                dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 64<<3 );
          break;
          case 5:
-            keccak512_4way( &ctx.keccak, vhash, 64 );
+            keccak512_4way_update( &ctx.keccak, vhash, 64 );
             keccak512_4way_close( &ctx.keccak, vhash );
             if ( i >= len-1 )
                dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 64<<3 );

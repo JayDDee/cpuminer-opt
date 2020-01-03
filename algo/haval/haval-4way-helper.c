@@ -38,7 +38,7 @@
 #define SPH_XCAT_(a, b)   a ## b
 
 static void
-SPH_XCAT(SPH_XCAT(haval, PASSES), _4way)
+SPH_XCAT(SPH_XCAT(haval, PASSES), _4way_update)
 ( haval_4way_context *sc, const void *data, size_t len )
 {
    __m128i *vdata = (__m128i*)data;

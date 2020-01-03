@@ -44,7 +44,7 @@ void lyra2rev2_8way_hash( void *state, const void *input )
    lyra2v2_8way_ctx_holder ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &l2v2_8way_ctx, sizeof(l2v2_8way_ctx) );
 
-   blake256_8way( &ctx.blake, input + (64<<3), 16 );
+   blake256_8way_update( &ctx.blake, input + (64<<3), 16 );
    blake256_8way_close( &ctx.blake, vhash );
 
    rintrlv_8x32_8x64( vhashA, vhash, 256 );
@@ -176,12 +176,12 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    lyra2v2_4way_ctx_holder ctx __attribute__ ((aligned (64))); 
    memcpy( &ctx, &l2v2_4way_ctx, sizeof(l2v2_4way_ctx) );
 
-   blake256_4way( &ctx.blake, input + (64<<2), 16 );
+   blake256_4way_update( &ctx.blake, input + (64<<2), 16 );
    blake256_4way_close( &ctx.blake, vhash );
 
    rintrlv_4x32_4x64( vhash64, vhash, 256 );
 
-   keccak256_4way( &ctx.keccak, vhash64, 32 );
+   keccak256_4way_update( &ctx.keccak, vhash64, 32 );
    keccak256_4way_close( &ctx.keccak, vhash64 );
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
@@ -201,7 +201,7 @@ void lyra2rev2_4way_hash( void *state, const void *input )
 
    intrlv_4x64( vhash64, hash0, hash1, hash2, hash3, 256 );
 
-   skein256_4way( &ctx.skein, vhash64, 32 );
+   skein256_4way_update( &ctx.skein, vhash64, 32 );
    skein256_4way_close( &ctx.skein, vhash64 );
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
@@ -217,7 +217,7 @@ void lyra2rev2_4way_hash( void *state, const void *input )
 
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
 
-   bmw256_4way( &ctx.bmw, vhash, 32 );
+   bmw256_4way_update( &ctx.bmw, vhash, 32 );
    bmw256_4way_close( &ctx.bmw, state );
 }
 
@@ -242,7 +242,7 @@ int scanhash_lyra2rev2_4way( struct work *work, uint32_t max_nonce,
    mm128_bswap32_intrlv80_4x32( vdata, pdata );
 
    blake256_4way_init( &l2v2_4way_ctx.blake );
-   blake256_4way( &l2v2_4way_ctx.blake, vdata, 64 );
+   blake256_4way_update( &l2v2_4way_ctx.blake, vdata, 64 );
 
    do
    {
