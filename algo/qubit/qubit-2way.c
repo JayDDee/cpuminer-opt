@@ -48,10 +48,12 @@ void init_qubit_4way_ctx()
 void qubit_4way_hash( void *output, const void *input )
 {
      uint32_t vhash[16*4] __attribute__ ((aligned (128)));
+#if !defined(__VAES__)
      uint32_t hash0[16] __attribute__ ((aligned (64)));
      uint32_t hash1[16] __attribute__ ((aligned (64)));
      uint32_t hash2[16] __attribute__ ((aligned (64)));
      uint32_t hash3[16] __attribute__ ((aligned (64)));
+#endif
      qubit_4way_ctx_holder ctx;
 
      memcpy( &ctx, &qubit_4way_ctx, sizeof(qubit_4way_ctx) );

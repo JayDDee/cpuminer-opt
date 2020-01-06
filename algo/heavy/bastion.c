@@ -16,7 +16,6 @@
 #include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/luffa/luffa_for_sse2.h"
-#include "algo/skein/sse2/skein.c"
 
 #ifndef NO_AES_NI
   #include "algo/echo/aes_ni/hash_api.h"
@@ -35,12 +34,13 @@ void bastionhash(void *output, const void *input)
 	sph_fugue512_context ctx_fugue;
 	sph_whirlpool_context ctx_whirlpool;
 	sph_shabal512_context ctx_shabal;
-	sph_hamsi512_context ctx_hamsi;
+   sph_hamsi512_context ctx_hamsi;
+	sph_skein512_context ctx_skein;
 
-        unsigned char hashbuf[128] __attribute__ ((aligned (16)));
-        sph_u64 hashctA;
+//        unsigned char hashbuf[128] __attribute__ ((aligned (16)));
+//        sph_u64 hashctA;
 //        sph_u64 hashctB;
-        size_t hashptr;
+//        size_t hashptr;
 
 	HEFTY1(input, 80, hash);
 
@@ -56,10 +56,9 @@ void bastionhash(void *output, const void *input)
 		sph_fugue512(&ctx_fugue, hash, 64);
 		sph_fugue512_close(&ctx_fugue, hash);
 	} else {
-                DECL_SKN;
-                SKN_I;
-                SKN_U;
-                SKN_C;
+   sph_skein512_init( &ctx_skein );
+   sph_skein512( &ctx_skein, hash, 64 );
+   sph_skein512_close( &ctx_skein, hash );
 	}
 
 	sph_whirlpool_init(&ctx_whirlpool);
@@ -95,10 +94,9 @@ void bastionhash(void *output, const void *input)
 	sph_shabal512(&ctx_shabal, hash, 64);
 	sph_shabal512_close(&ctx_shabal, hash);
 
-        DECL_SKN;
-        SKN_I;
-        SKN_U;
-        SKN_C;
+   sph_skein512_init( &ctx_skein );
+   sph_skein512( &ctx_skein, hash, 64 );
+   sph_skein512_close( &ctx_skein, hash );
 
 	if (hash[0] & 0x8)
 	{

@@ -35,6 +35,17 @@ not supported. FreeBSD YMMV.
 Change Log
 ----------
 
+v3.11.1
+
+Faster panama for x25x AVX2 & AVX512.
+
+Fixed echo VAES for Xevan.
+
+Removed support for scryptjane algo.
+
+Reverted macro implemtations of hash functions to SPH reference code
+for SSE2 versions of algos.
+
 v3.11.0
 
 Fixed x25x AVX512 lane 4 invalid shares.

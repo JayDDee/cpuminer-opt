@@ -1,11 +1,8 @@
 #include "x13-gate.h"
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
-#include "algo/groestl/sph_groestl.h"
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
 #include "algo/jh/sph_jh.h"
@@ -15,163 +12,123 @@
 #include "algo/luffa/sph_luffa.h"
 #include "algo/cubehash/sph_cubehash.h"
 #include "algo/simd/sph_simd.h"
-#include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
-
-#include "algo/luffa/luffa_for_sse2.h" 
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
-#include "algo/blake/sse2/blake.c"   
-#include "algo/bmw/sse2/bmw.c"
-#include "algo/keccak/sse2/keccak.c"
-#include "algo/skein/sse2/skein.c"
-#include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifndef NO_AES_NI
-  #include "algo/groestl/aes_ni/hash-groestl.h"
+#if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
+  #include "algo/groestl/aes_ni/hash-groestl.h"
+#else
+  #include "algo/groestl/sph_groestl.h"
+  #include "algo/echo/sph_echo.h"
 #endif
 
 typedef struct {
-#ifdef NO_AES_NI
-        sph_groestl512_context   groestl;
-        sph_echo512_context      echo;
+   sph_blake512_context blake;
+   sph_bmw512_context bmw;
+#if defined(__AES__)
+   hashState_echo          echo;
+   hashState_groestl       groestl;
 #else
-        hashState_groestl       groestl;
-        hashState_echo          echo;
+   sph_groestl512_context   groestl;
+   sph_echo512_context      echo;
 #endif
-        hashState_luffa         luffa;
-        cubehashParam           cubehash;
-        sph_shavite512_context  shavite;
-        hashState_sd            simd;
-        sph_hamsi512_context    hamsi;
-        sph_fugue512_context    fugue;
+   sph_jh512_context       jh;
+   sph_keccak512_context   keccak;
+   sph_skein512_context    skein;
+   hashState_luffa         luffa;
+   cubehashParam           cubehash;
+   sph_shavite512_context  shavite;
+   hashState_sd            simd;
+   sph_hamsi512_context    hamsi;
+   sph_fugue512_context    fugue;
 } x13_ctx_holder;
 
 x13_ctx_holder x13_ctx;
 
 void init_x13_ctx()
 {
-#ifdef NO_AES_NI
-        sph_groestl512_init(&x13_ctx.groestl);
-        sph_echo512_init(&x13_ctx.echo);
+   sph_blake512_init( &x13_ctx.blake );
+   sph_bmw512_init( &x13_ctx.bmw );
+#if defined(__AES__)
+   init_groestl( &x13_ctx.groestl, 64 );
+   init_echo( &x13_ctx.echo, 512 );
 #else
-        init_echo( &x13_ctx.echo, 512 );
-        init_groestl (&x13_ctx.groestl, 64 );
+   sph_groestl512_init( &x13_ctx.groestl );
+   sph_echo512_init( &x13_ctx.echo );
 #endif
-        init_luffa( &x13_ctx.luffa, 512 );
-        cubehashInit( &x13_ctx.cubehash, 512, 16, 32 );
-        sph_shavite512_init( &x13_ctx.shavite );
-        init_sd( &x13_ctx.simd, 512 );
-        sph_hamsi512_init( &x13_ctx.hamsi );
-        sph_fugue512_init( &x13_ctx.fugue );
+   sph_skein512_init( &x13_ctx.skein );
+   sph_jh512_init( &x13_ctx.jh );
+   sph_keccak512_init( &x13_ctx.keccak );
+   init_luffa( &x13_ctx.luffa, 512 );
+   cubehashInit( &x13_ctx.cubehash, 512, 16, 32 );
+   sph_shavite512_init( &x13_ctx.shavite );
+   init_sd( &x13_ctx.simd, 512 );
+   sph_hamsi512_init( &x13_ctx.hamsi );
+   sph_fugue512_init( &x13_ctx.fugue );
 };
 
 void x13hash(void *output, const void *input)
 {
-	unsigned char hash[128] __attribute__ ((aligned (32)));
-	#define hashB hash+64
-      
-        x13_ctx_holder ctx;
-        memcpy( &ctx, &x13_ctx, sizeof(x13_ctx) );
+    unsigned char hash[64] __attribute__((aligned(64)));
+    x13_ctx_holder ctx;
+    memcpy( &ctx, &x13_ctx, sizeof(x13_ctx) );
 
-        // X11 algos
+    sph_blake512( &ctx.blake, input, 80 );
+    sph_blake512_close( &ctx.blake, hash );
 
-        unsigned char hashbuf[128];
-        size_t hashptr;
-        sph_u64 hashctA;
-        sph_u64 hashctB;
+    sph_bmw512( &ctx.bmw, (const void*) hash, 64 );
+    sph_bmw512_close( &ctx.bmw, hash );
 
-        //---blake1---
-
-        DECL_BLK;
-        BLK_I;
-        BLK_W;
-        BLK_C;
-
-        //---bmw2---
-
-        DECL_BMW;
-        BMW_I;
-        BMW_U;
-
-        #define M(x)    sph_dec64le_aligned(data + 8 * (x))
-        #define H(x)    (h[x])
-        #define dH(x)   (dh[x])
-
-        BMW_C;
-
-        #undef M
-        #undef H
-        #undef dH
-        
-        //---groetl----
-
-#ifdef NO_AES_NI
-        sph_groestl512 (&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+#if defined(__AES__)
+    init_groestl( &ctx.groestl, 64 );
+    update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                      (const char*)hash, 512 );
 #else
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                  (const char*)hash, 512 );
+    sph_groestl512_init( &ctx.groestl );
+    sph_groestl512( &ctx.groestl, hash, 64 );
+    sph_groestl512_close( &ctx.groestl, hash );
 #endif
 
-        //---skein4---
+    sph_skein512( &ctx.skein, (const void*) hash, 64 );
+    sph_skein512_close( &ctx.skein, hash );
 
-        DECL_SKN;
-        SKN_I;
-        SKN_U;
-        SKN_C;
+    sph_jh512( &ctx.jh, (const void*) hash, 64 );
+    sph_jh512_close( &ctx.jh, hash );
 
-        //---jh5------
+    sph_keccak512( &ctx.keccak, (const void*) hash, 64 );
+    sph_keccak512_close( &ctx.keccak, hash );
 
-        DECL_JH;
-        JH_H;
-
-        //---keccak6---
-
-        DECL_KEC;
-        KEC_I;
-        KEC_U;
-        KEC_C;
-
-        //--- luffa7
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
+    update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                 (const BitSequence*)hash, 64 );
 
-        // 8 Cube
-        cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                              (const byte*)hashB, 64 );
+    cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
+                              (const byte*)hash, 64 );
 
-        // 9 Shavite
-        sph_shavite512( &ctx.shavite, hash, 64);
-        sph_shavite512_close( &ctx.shavite, hashB);
+    sph_shavite512( &ctx.shavite, hash, 64);
+    sph_shavite512_close( &ctx.shavite, hash);
 
-        // 10 Simd
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
-                         (const BitSequence *)hashB, 512 );
+    update_final_sd( &ctx.simd, (BitSequence *)hash,
+                         (const BitSequence *)hash, 512 );
 
-        //11---echo---
-
-#ifdef NO_AES_NI
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hashB);
-#else
-        update_final_echo ( &ctx.echo, (BitSequence *)hashB,
+#if defined(__AES__)
+    update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
+#else
+    sph_echo512( &ctx.echo, hash, 64 );
+    sph_echo512_close( &ctx.echo, hash );
 #endif
 
-        // X13 algos
-        // 12 Hamsi
-	sph_hamsi512(&ctx.hamsi, hashB, 64);
-	sph_hamsi512_close(&ctx.hamsi, hash);
+    sph_hamsi512( &ctx.hamsi, hash, 64 );
+    sph_hamsi512_close( &ctx.hamsi, hash );
 
-        // 13 Fugue
-	sph_fugue512(&ctx.fugue, hash, 64);
-	sph_fugue512_close(&ctx.fugue, hashB);
+    sph_fugue512( &ctx.fugue, hash, 64 );
+    sph_fugue512_close( &ctx.fugue, hash );
 
-        asm volatile ("emms");
-	memcpy(output, hashB, 32);
+	 memcpy( output, hash, 32 );
 }
 
 int scanhash_x13( struct work *work, uint32_t max_nonce,

@@ -206,7 +206,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_QUARK:         register_quark_algo         ( gate ); break;
     case ALGO_QUBIT:         register_qubit_algo         ( gate ); break;
     case ALGO_SCRYPT:        register_scrypt_algo        ( gate ); break;
-    case ALGO_SCRYPTJANE:    register_scryptjane_algo    ( gate ); break;
     case ALGO_SHA256D:       register_sha256d_algo       ( gate ); break;
     case ALGO_SHA256Q:       register_sha256q_algo       ( gate ); break;
     case ALGO_SHA256T:       register_sha256t_algo       ( gate ); break;

@@ -43,9 +43,9 @@
  * optimized, and it is not meant to be used in production.  Instead, use
  * yespower-opt.c.
  */
-
+/*
 #warning "This reference implementation is deliberately mostly not optimized. Use yespower-opt.c instead unless you're testing (against) the reference implementation on purpose."
-
+*/
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>

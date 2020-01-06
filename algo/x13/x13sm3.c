@@ -1,134 +1,108 @@
 #include "x13sm3-gate.h"
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
-#include "algo/groestl/sph_groestl.h"
+#include "algo/blake/sph_blake.h"
+#include "algo/bmw/sph_bmw.h"
+#include "algo/jh/sph_jh.h"
+#include "algo/keccak/sph_keccak.h"
+#include "algo/sm3/sph_sm3.h"
+#include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/sph_luffa.h"
-#include "algo/cubehash/sph_cubehash.h"
 #include "algo/simd/sph_simd.h"
-#include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
-#include "algo/sm3/sph_sm3.h"
-
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
-#include "algo/blake/sse2/blake.c"
-#include "algo/bmw/sse2/bmw.c"
-#include "algo/keccak/sse2/keccak.c"
-#include "algo/skein/sse2/skein.c"
-#include "algo/jh/sse2/jh_sse2_opt64.h"
 
-#ifndef NO_AES_NI
-  #include "algo/groestl/aes_ni/hash-groestl.h"
+#if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
+  #include "algo/groestl/aes_ni/hash-groestl.h"
+#else
+  #include "algo/groestl/sph_groestl.h"
+  #include "algo/echo/sph_echo.h"
 #endif
 
 typedef struct {
-#ifdef NO_AES_NI
-        sph_groestl512_context  groestl;
-        sph_echo512_context     echo;
+   sph_blake512_context blake;
+   sph_bmw512_context bmw;
+#if defined(__AES__)
+   hashState_echo          echo;
+   hashState_groestl       groestl;
 #else
-        hashState_echo          echo;
-        hashState_groestl       groestl;
+   sph_groestl512_context   groestl;
+   sph_echo512_context      echo;
 #endif
-        hashState_luffa         luffa;
-        cubehashParam           cube;
-        sph_shavite512_context  shavite;
-        hashState_sd            simd;
-        sm3_ctx_t               sm3;
-        sph_hamsi512_context    hamsi;
-        sph_fugue512_context    fugue;
+   sph_jh512_context       jh;
+   sph_keccak512_context   keccak;
+   sph_skein512_context    skein;
+   hashState_luffa         luffa;
+   cubehashParam           cube;
+   sph_shavite512_context  shavite;
+   hashState_sd            simd;
+   sm3_ctx_t               sm3;
+   sph_hamsi512_context    hamsi;
+   sph_fugue512_context    fugue;
 } hsr_ctx_holder;
 
 hsr_ctx_holder hsr_ctx;
 
 void init_x13sm3_ctx()
 {
-#ifdef NO_AES_NI
-        sph_groestl512_init(&hsr_ctx.groestl);
-        sph_echo512_init(&hsr_ctx.echo);
+   sph_blake512_init( &hsr_ctx.blake );
+   sph_bmw512_init( &hsr_ctx.bmw );
+#if defined(__AES__)
+   init_groestl( &hsr_ctx.groestl, 64 );
+   init_echo( &hsr_ctx.echo, 512 );
 #else
-        init_echo(&hsr_ctx.echo, 512);
-        init_groestl(&hsr_ctx.groestl, 64 );
+   sph_groestl512_init( &hsr_ctx.groestl );
+   sph_echo512_init( &hsr_ctx.echo );
 #endif
-        init_luffa(&hsr_ctx.luffa,512);
-        cubehashInit(&hsr_ctx.cube,512,16,32);
-        sph_shavite512_init(&hsr_ctx.shavite);
-        init_sd(&hsr_ctx.simd,512);
-        sm3_init( &hsr_ctx.sm3 );
-        sph_hamsi512_init(&hsr_ctx.hamsi);
-        sph_fugue512_init(&hsr_ctx.fugue);
+   sph_skein512_init( &hsr_ctx.skein );
+   sph_jh512_init( &hsr_ctx.jh );
+   sph_keccak512_init( &hsr_ctx.keccak );
+   init_luffa( &hsr_ctx.luffa,512 );
+   cubehashInit( &hsr_ctx.cube,512,16,32 );
+   sph_shavite512_init( &hsr_ctx.shavite );
+   init_sd( &hsr_ctx.simd,512 );
+   sm3_init( &hsr_ctx.sm3 );
+   sph_hamsi512_init( &hsr_ctx.hamsi );
+   sph_fugue512_init( &hsr_ctx.fugue );
 };
 
 void x13sm3_hash(void *output, const void *input)
 {
-	unsigned char hash[128] __attribute__ ((aligned (32)));
+    unsigned char hash[64] __attribute__((aligned(64)));
+    hsr_ctx_holder ctx;
+    memcpy( &ctx, &hsr_ctx, sizeof(hsr_ctx) );
 
-        hsr_ctx_holder ctx;
-        memcpy(&ctx, &hsr_ctx, sizeof(hsr_ctx));
+    sph_blake512( &ctx.blake, input, 80 );
+    sph_blake512_close( &ctx.blake, hash );
 
-        unsigned char hashbuf[128];
-        size_t hashptr;
-        sph_u64 hashctA;
-        sph_u64 hashctB;
+    sph_bmw512( &ctx.bmw, (const void*) hash, 64 );
+    sph_bmw512_close( &ctx.bmw, hash );
 
-        //---blake1---
-        
-        DECL_BLK;
-        BLK_I;
-        BLK_W;
-        BLK_C;
-
-        //---bmw2---
-
-        DECL_BMW;
-        BMW_I;
-        BMW_U;
-
-        #define M(x)    sph_dec64le_aligned(data + 8 * (x))
-        #define H(x)    (h[x])
-        #define dH(x)   (dh[x])
-
-        BMW_C;
-
-        #undef M
-        #undef H
-        #undef dH
-
-        //---groestl----
-
-#ifdef NO_AES_NI
-        sph_groestl512 (&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+#if defined(__AES__)
+    init_groestl( &ctx.groestl, 64 );
+    update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                      (const char*)hash, 512 );
 #else
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                  (const char*)hash, 512 );
+    sph_groestl512_init( &ctx.groestl );
+    sph_groestl512( &ctx.groestl, hash, 64 );
+    sph_groestl512_close( &ctx.groestl, hash );
 #endif
 
-        //---skein4---
+    sph_skein512( &ctx.skein, (const void*) hash, 64 );
+    sph_skein512_close( &ctx.skein, hash );
 
-        DECL_SKN;
-        SKN_I;
-        SKN_U;
-        SKN_C;
+    sph_jh512( &ctx.jh, (const void*) hash, 64 );
+    sph_jh512_close( &ctx.jh, hash );
 
-        //---jh5------
+    sph_keccak512( &ctx.keccak, (const void*) hash, 64 );
+    sph_keccak512_close( &ctx.keccak, hash );
 
-        DECL_JH;
-        JH_H;
-
-        //---keccak6---
-
-        DECL_KEC;
-        KEC_I;
-        KEC_U;
-        KEC_C;
 
         //--- luffa7
         update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,

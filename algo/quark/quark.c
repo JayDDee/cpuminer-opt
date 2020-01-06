@@ -1,176 +1,113 @@
 #include "cpuminer-config.h"
 #include "quark-gate.h"
-
-#include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 #include <stdint.h>
-
+#include <string.h>
+#include <stdio.h>
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
-#include "algo/groestl/sph_groestl.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-
-#include "algo/blake/sse2/blake.c"
-#include "algo/bmw/sse2/bmw.c"
-#include "algo/keccak/sse2/keccak.c"
-#include "algo/skein/sse2/skein.c"
-#include "algo/jh/sse2/jh_sse2_opt64.h"
-
-#ifndef NO_AES_NI
- #include "algo/groestl/aes_ni/hash-groestl.h"
-#endif
-
-/*define data alignment for different C compilers*/
-#if defined(__GNUC__)
-      #define DATA_ALIGN16(x) x __attribute__ ((aligned(16)))
-      #define DATA_ALIGNXY(x,y) x __attribute__ ((aligned(y)))
-
+#if defined(__AES__)
+  #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
-      #define DATA_ALIGN16(x) __declspec(align(16)) x
-      #define DATA_ALIGNXY(x,y) __declspec(align(y)) x
+  #include "algo/groestl/sph_groestl.h"
 #endif
-
-#ifdef NO_AES_NI
-    sph_groestl512_context quark_ctx;
-#else
-    hashState_groestl      quark_ctx;
-#endif
-
-void init_quark_ctx()
-{
-#ifdef NO_AES_NI
-   sph_groestl512_init( &quark_ctx );
-#else
-   init_groestl( &quark_ctx, 64 );
-#endif
-}
 
 void quark_hash(void *state, const void *input)
 {
-    unsigned char hashbuf[128];
-    size_t hashptr;
-    sph_u64 hashctA;
-    sph_u64 hashctB;
-    int i;
-    unsigned char hash[128] __attribute__ ((aligned (32)));
-#ifdef NO_AES_NI
-    sph_groestl512_context ctx;
+   uint32_t hash[16] __attribute__((aligned(64)));
+   sph_blake512_context    ctx_blake;
+   sph_bmw512_context      ctx_bmw;
+#if defined(__AES__)
+   hashState_groestl       ctx_groestl;
 #else
-    hashState_groestl ctx;
+   sph_groestl512_context  ctx_groestl;
+#endif
+   sph_skein512_context    ctx_skein;
+   sph_jh512_context       ctx_jh;
+   sph_keccak512_context   ctx_keccak;
+   uint32_t mask = 8;
+
+   sph_blake512_init( &ctx_blake );
+   sph_blake512( &ctx_blake, input, 80 );
+   sph_blake512_close( &ctx_blake, hash );
+
+   sph_bmw512_init( &ctx_bmw );
+   sph_bmw512( &ctx_bmw, hash, 64 );
+   sph_bmw512_close( &ctx_bmw, hash ); 
+
+   if ( hash[0] & mask )
+   {
+#if defined(__AES__)
+      init_groestl( &ctx_groestl, 64 );
+      update_and_final_groestl( &ctx_groestl, (char*)hash,
+                                        (const char*)hash, 512 );
+#else
+      sph_groestl512_init( &ctx_groestl );
+      sph_groestl512( &ctx_groestl, hash, 64 );
+      sph_groestl512_close( &ctx_groestl, hash );
+#endif
+   }
+   else
+   {
+      sph_skein512_init( &ctx_skein );
+      sph_skein512( &ctx_skein, hash, 64 );
+      sph_skein512_close( &ctx_skein, hash );
+   }
+
+#if defined(__AES__)
+   init_groestl( &ctx_groestl, 64 );
+   update_and_final_groestl( &ctx_groestl, (char*)hash,
+                                     (const char*)hash, 512 );
+#else
+   sph_groestl512_init( &ctx_groestl );
+   sph_groestl512( &ctx_groestl, hash, 64 );
+   sph_groestl512_close( &ctx_groestl, hash );
 #endif
 
-    memcpy( &ctx, &quark_ctx, sizeof(ctx) );
+   sph_jh512_init( &ctx_jh );
+   sph_jh512( &ctx_jh, hash, 64 );
+   sph_jh512_close( &ctx_jh, hash );
 
-    // Blake
-    DECL_BLK;
-    BLK_I;
-    BLK_W;
-    for(i=0; i<9; i++)
-    {
-    /* blake is split between 64byte hashes and the 80byte initial block */
-    //DECL_BLK;
-      switch (i+(16*((hash[0] & (uint32_t)(8)) == (uint32_t)(0))))
-      {
-        // Blake
-        case 5 :
-            BLK_I;
-            BLK_U;
-        case 0:
-        case 16: 
-            BLK_C;
-            break;
-        case 1:
-        case 17:
-        case 21:
+   if ( hash[0] & mask )
+   {
+      sph_blake512_init( &ctx_blake );
+      sph_blake512( &ctx_blake, hash, 64 );
+      sph_blake512_close( &ctx_blake, hash );
+   }
+   else
+   {
+      sph_bmw512_init( &ctx_bmw );
+      sph_bmw512( &ctx_bmw, hash, 64 );
+      sph_bmw512_close( &ctx_bmw, hash );
+   }
 
-            // BMW
-            do
-            { 
-              DECL_BMW;
-              BMW_I;
-              BMW_U;
-              /* bmw compress uses some defines */
-              /* i havent gotten around to rewriting these */
-              #define M(x)    sph_dec64le_aligned(data + 8 * (x))
-              #define H(x)    (h[x])
-              #define dH(x)   (dh[x])
-              BMW_C;
-              #undef M
-              #undef H
-              #undef dH
-            } while(0); continue;;
+   sph_keccak512_init( &ctx_keccak );
+   sph_keccak512( &ctx_keccak, hash, 64 );
+   sph_keccak512_close( &ctx_keccak, hash );
 
-        case 2:
-            // dos this entry point represent a second groestl round?
+   sph_skein512_init( &ctx_skein );
+   sph_skein512( &ctx_skein, hash, 64 );
+   sph_skein512_close( &ctx_skein, hash );
 
-        case 3:
-        case 19:
-          // Groestl 
-          do
-          {
+   if ( hash[0] & mask )
+   {
+      sph_keccak512_init( &ctx_keccak );
+      sph_keccak512( &ctx_keccak, hash, 64 );
+      sph_keccak512_close( &ctx_keccak, hash );
+   }
+   else
+   {
+      sph_jh512_init( &ctx_jh );
+      sph_jh512( &ctx_jh, hash, 64 );
+      sph_jh512_close( &ctx_jh, hash );
+   }
 
-#ifdef NO_AES_NI
-             sph_groestl512_init( &ctx );
-             sph_groestl512 ( &ctx, hash, 64 );
-             sph_groestl512_close( &ctx, hash );
-#else
-             reinit_groestl( &ctx );
-             update_and_final_groestl( &ctx, (char*)hash, (char*)hash, 512 );
-//             update_groestl( &ctx, (char*)hash, 512 );
-//             final_groestl( &ctx, (char*)hash );
-#endif
-
-          } while(0); continue;
-
-        case 4:
-        case 20:
-        case 24:
-            // JH
-            do
-            {
-              DECL_JH;
-              JH_H;
-            } while(0); continue;
-
-        case 6:
-        case 22:
-        case 8:
-            // Keccak
-            do
-            {
-              DECL_KEC;
-              KEC_I;
-              KEC_U;
-              KEC_C;
-            } while(0); continue;
-
-        case 18:
-        case 7:
-        case 23:
-            // Skein
-            do
-            {
-              DECL_SKN;
-              SKN_I;
-              SKN_U;
-              SKN_C; /* is a magintue faster than others, done */
-            } while(0); continue;
- 
-       default:
-            /* bad things happend, i counted to potato */
-            abort();
-    }
-    /* only blake shouuld get here without continue */
-    /* blake finishs from top split */
-    //BLK_C;
- }
- 
-
-//    asm volatile ("emms");
-  memcpy(state, hash, 32);
+   memcpy(state, hash, 32);
 }
+
 
 int scanhash_quark( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr )

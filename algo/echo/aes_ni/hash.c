@@ -179,53 +179,53 @@ void Compress(hashState_echo *ctx, const unsigned char *pmsg, unsigned int uBloc
 
    for(b = 0; b < uBlockCount; b++)
    {
-	ctx->k = _mm_add_epi64(ctx->k, ctx->const1536);
+   	ctx->k = _mm_add_epi64(ctx->k, ctx->const1536);
 
-	// load message
-	for(j = ctx->uHashSize / 256; j < 4; j++)
-	{
-	   for(i = 0; i < 4; i++)
+   	// load message
+	   for(j = ctx->uHashSize / 256; j < 4; j++)
 	   {
-		_state[i][j] = _mm_load_si128((__m128i*)pmsg + 4 * (j - (ctx->uHashSize / 256)) + i);
+	      for(i = 0; i < 4; i++)
+	      {
+		     _state[i][j] = _mm_load_si128((__m128i*)pmsg + 4 * (j - (ctx->uHashSize / 256)) + i);
+	      }
 	   }
-	}
 
-	// save state
-	SAVESTATE(_statebackup, _state);
+	   // save state
+	   SAVESTATE(_statebackup, _state);
 
-	k1 = ctx->k;
+	   k1 = ctx->k;
 
-	for(r = 0; r < ctx->uRounds / 2; r++)
-	{
-		ECHO_ROUND_UNROLL2;
-	}
+	   for(r = 0; r < ctx->uRounds / 2; r++)
+   	{
+	   	ECHO_ROUND_UNROLL2;
+	   }
 		
-	if(ctx->uHashSize == 256)
-	{
-	   for(i = 0; i < 4; i++)
+	   if(ctx->uHashSize == 256)
 	   {
-		_state[i][0] = _mm_xor_si128(_state[i][0], _state[i][1]);
-		_state[i][0] = _mm_xor_si128(_state[i][0], _state[i][2]);
-		_state[i][0] = _mm_xor_si128(_state[i][0], _state[i][3]);
-		_state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][0]);
-		_state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][1]);
-		_state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][2]);
-		_state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][3]);
+	      for(i = 0; i < 4; i++)
+	      {
+		      _state[i][0] = _mm_xor_si128(_state[i][0], _state[i][1]);
+		      _state[i][0] = _mm_xor_si128(_state[i][0], _state[i][2]);
+		      _state[i][0] = _mm_xor_si128(_state[i][0], _state[i][3]);
+		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][0]);
+		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][1]);
+		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][2]);
+		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][3]);
+	      }
 	   }
-	}
-	else
-	{
-	   for(i = 0; i < 4; i++)
-	   {
-		_state[i][0] = _mm_xor_si128(_state[i][0], _state[i][2]);
-		_state[i][1] = _mm_xor_si128(_state[i][1], _state[i][3]);
-		_state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][0]);
-		_state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][2]);
-		_state[i][1] = _mm_xor_si128(_state[i][1], _statebackup[i][1]);
-		_state[i][1] = _mm_xor_si128(_state[i][1], _statebackup[i][3]);
-           }
-	}
-	pmsg += ctx->uBlockLength;
+	   else
+    	{
+	      for(i = 0; i < 4; i++)
+	      {
+      		_state[i][0] = _mm_xor_si128(_state[i][0], _state[i][2]);
+		      _state[i][1] = _mm_xor_si128(_state[i][1], _state[i][3]);
+		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][0]);
+		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][2]);
+		      _state[i][1] = _mm_xor_si128(_state[i][1], _statebackup[i][1]);
+		      _state[i][1] = _mm_xor_si128(_state[i][1], _statebackup[i][3]);
+         }
+   	}
+	   pmsg += ctx->uBlockLength;
    }
 	SAVESTATE(ctx->state, _state);
 

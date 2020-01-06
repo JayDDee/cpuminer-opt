@@ -50,6 +50,7 @@ void quark_8way_hash( void *state, const void *input )
     uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
     uint64_t vhashB[8*8] __attribute__ ((aligned (64)));
     uint64_t vhashC[8*8] __attribute__ ((aligned (64)));
+#if !defined(__VAES__)
     uint64_t hash0[8] __attribute__ ((aligned (64)));
     uint64_t hash1[8] __attribute__ ((aligned (64)));
     uint64_t hash2[8] __attribute__ ((aligned (64)));
@@ -58,6 +59,7 @@ void quark_8way_hash( void *state, const void *input )
     uint64_t hash5[8] __attribute__ ((aligned (64)));
     uint64_t hash6[8] __attribute__ ((aligned (64)));
     uint64_t hash7[8] __attribute__ ((aligned (64)));
+#endif
     __m512i* vh  = (__m512i*)vhash;
     __m512i* vhA = (__m512i*)vhashA;
     __m512i* vhB = (__m512i*)vhashB;

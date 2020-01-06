@@ -25,7 +25,6 @@
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
-#include "algo/jh/sse2/jh_sse2_opt64.h"
 
 typedef struct {
   sph_blake512_context    blake1, blake2;

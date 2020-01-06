@@ -7,9 +7,9 @@
 
 #include "algo/gost/sph_gost.h"
 #include "algo/echo/sph_echo.h"
-#include "algo/fugue//sph_fugue.h"
+#include "algo/fugue/sph_fugue.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#include "algo/skein/sse2/skein.c"
+#include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
 
 #ifndef NO_AES_NI

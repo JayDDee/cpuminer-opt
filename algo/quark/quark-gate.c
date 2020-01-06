@@ -11,7 +11,6 @@ bool register_quark_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_quark_4way;
   gate->hash      = (void*)&quark_4way_hash;
 #else
-  init_quark_ctx();
   gate->scanhash  = (void*)&scanhash_quark;
   gate->hash      = (void*)&quark_hash;
 #endif
