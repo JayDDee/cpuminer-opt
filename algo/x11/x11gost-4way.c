@@ -448,6 +448,7 @@ void x11gost_4way_hash( void *state, const void *input )
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
      dintrlv_2x128( hash0, hash1, vhash, 512 );
      intrlv_2x128( vhash, hash2, hash3, 512 );
+     simd_2way_init( &ctx.simd, 512 );
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
      dintrlv_2x128( hash2, hash3, vhash, 512 );
 

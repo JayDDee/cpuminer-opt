@@ -30,23 +30,14 @@
 #include "algo-gate-api.h"
 #include <string.h>
 #include <stdint.h>
-
-#include "algo/groestl/sph_groestl.h"
+#include "algo/blake/sph_blake.h"
+#include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
-
-#ifndef NO_AES_NI
+#include "algo/skein/sph_skein.h"
+#if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
-#endif
-
-#include "algo/jh/sse2/jh_sse2_opt64.h"
-#include "algo/skein/sse2/skein.c"
-#include "algo/blake/sse2/blake.c"
-
-/*define data alignment for different C compilers*/
-#if defined(__GNUC__)
-      #define DATA_ALIGN16(x) x __attribute__ ((aligned(16)))
 #else
-      #define DATA_ALIGN16(x) __declspec(align(16)) x
+  #include "algo/groestl/sph_groestl.h"
 #endif
 
 #define ZR_BLAKE 0
@@ -56,38 +47,19 @@
 #define POK_BOOL_MASK 0x00008000
 #define POK_DATA_MASK 0xFFFF0000
 
-typedef struct {
-  #ifdef NO_AES_NI
-    sph_groestl512_context  groestl;
-  #else
-    hashState_groestl       groestl;
-  #endif
-    sph_keccak512_context    keccak;
-} zr5_ctx_holder;
-
-zr5_ctx_holder zr5_ctx;
-
-void init_zr5_ctx()
-{
-  #ifdef NO_AES_NI
-     sph_groestl512_init( &zr5_ctx.groestl );
-  #else
-     init_groestl( &zr5_ctx.groestl, 64 );
-  #endif
-     sph_keccak512_init(&zr5_ctx.keccak);
-}  
-
 static void zr5hash(void *state, const void *input)
 {
+   char hash[128] __attribute__((aligned(64)));
+   sph_blake512_context    ctx_blake;
+#if defined(__AES__)
+   hashState_groestl       ctx_groestl;
+#else
+   sph_groestl512_context  ctx_groestl;
+#endif
+   sph_skein512_context    ctx_skein;
+   sph_jh512_context       ctx_jh;
+   sph_keccak512_context   ctx_keccak;
     
-DATA_ALIGN16(unsigned char hashbuf[128]);
-DATA_ALIGN16(unsigned char hash[128]);
-DATA_ALIGN16(size_t hashptr);
-DATA_ALIGN16(sph_u64 hashctA);
-DATA_ALIGN16(sph_u64 hashctB);
-
-//memset(hash, 0, 128);
-
 static const int arrOrder[][4] =
 {
    { 0, 1, 2, 3 }, { 0, 1, 3, 2 }, { 0, 2, 1, 3 }, { 0, 2, 3, 1 },
@@ -98,50 +70,48 @@ static const int arrOrder[][4] =
    { 3, 1, 0, 2 }, { 3, 1, 2, 0 }, { 3, 2, 0, 1 }, { 3, 2, 1, 0 }
 };
 
-    zr5_ctx_holder ctx;
-    memcpy( &ctx, &zr5_ctx, sizeof(zr5_ctx) );
-
-    sph_keccak512 (&ctx.keccak, input, 80);
-    sph_keccak512_close(&ctx.keccak, hash);
+    sph_keccak512_init( &ctx_keccak );
+    sph_keccak512( &ctx_keccak, input, 80 );
+    sph_keccak512_close( &ctx_keccak, hash );
   
     unsigned int nOrder = *(unsigned int *)(&hash) % 24;
     unsigned int i = 0;
 
-    for (i = 0; i < 4; i++)
+    for ( i = 0; i < 4; i++ )
     {
-       switch (arrOrder[nOrder][i])
+       switch ( arrOrder[nOrder][i] )
        {
          case 0:
-		{DECL_BLK;
-		BLK_I;
-		BLK_U;
-		BLK_C;}
-		break;
+            sph_blake512_init( &ctx_blake );
+            sph_blake512( &ctx_blake, hash, 64 );
+            sph_blake512_close( &ctx_blake, hash );
+		      break;
          case 1:
-            #ifdef NO_AES_NI
-                sph_groestl512 (&ctx.groestl, hash, 64);
-                sph_groestl512_close(&ctx.groestl, hash);
-            #else
-                update_groestl( &ctx.groestl, (char*)hash,512);
-                final_groestl( &ctx.groestl, (char*)hash);
-            #endif
-	    break;
+#if defined(__AES__)
+            init_groestl( &ctx_groestl, 64 );
+            update_and_final_groestl( &ctx_groestl, (char*)hash,
+                                               (const char*)hash, 512 );
+#else
+            sph_groestl512_init( &ctx_groestl );
+            sph_groestl512( &ctx_groestl, hash, 64 );
+            sph_groestl512_close( &ctx_groestl, hash );
+#endif
+	         break;
          case 2:
-		{DECL_JH;
-		JH_H;} 
-		break;
+            sph_jh512_init( &ctx_jh );
+            sph_jh512( &ctx_jh, hash, 64 );
+            sph_jh512_close( &ctx_jh, hash );
+	         break;
          case 3:
-		{DECL_SKN;
-                SKN_I;
-                SKN_U;
-                SKN_C; }
-		break;
+            sph_skein512_init( &ctx_skein );
+            sph_skein512( &ctx_skein, hash, 64 );
+            sph_skein512_close( &ctx_skein, hash );
+            break;
          default:
            break;
        }
     }
-	asm volatile ("emms");
-	memcpy(state, hash, 32);
+	memcpy( state, hash, 32 );
 }
 
 int scanhash_zr5( struct work *work, uint32_t max_nonce,
@@ -172,11 +142,7 @@ int scanhash_zr5( struct work *work, uint32_t max_nonce,
        {
          pdata[0] = tmpdata[0];
          pdata[19] = nonce;
-         *hashes_done = pdata[19] - first_nonce + 1;
-         work_set_target_ratio( work, hash );
-         if (opt_debug)
-           applog(LOG_INFO, "found nonce %x", nonce);
-         return 1;
+         submit_solution( work, hash, mythr );
        }
     }
     nonce++;
@@ -219,7 +185,6 @@ int zr5_get_work_data_size() { return 80; }
 bool register_zr5_algo( algo_gate_t* gate )
 {
     gate->optimizations = SSE2_OPT | AES_OPT;
-    init_zr5_ctx();
     gate->get_new_work          = (void*)&zr5_get_new_work;
     gate->scanhash              = (void*)&scanhash_zr5;
     gate->hash                  = (void*)&zr5hash;

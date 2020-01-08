@@ -62,9 +62,7 @@ int scanhash_argon2( struct work* work, uint32_t max_nonce,
 		argon2hash(hash, endiandata);
 		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
 			pdata[19] = nonce;
-			*hashes_done = pdata[19] - first_nonce;
-			work_set_target_ratio(work, hash);
-			return 1;
+         submit_solution( work, hash, mythr );
 		}
 		nonce++;
 	} while (nonce < max_nonce && !work_restart[thr_id].restart);

@@ -132,9 +132,18 @@ do { \
 
 // Parallel AES, for when x is expected to be in a 256 bit register.
 // Use same 128 bit key.
+#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define mm256_aesenc_2x128( x, k ) \
+   _mm256_aesenc_epi128( x, m256_const1_128(k ) )
+
+#else
+
 #define mm256_aesenc_2x128( x, k ) \
    mm256_concat_128( _mm_aesenc_si128( mm128_extr_hi128_256( x ), k ), \
                      _mm_aesenc_si128( mm128_extr_lo128_256( x ), k ) )
+
+#endif
 
 #define mm256_paesenc_2x128( y, x, k ) do \
 { \
@@ -546,14 +555,14 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 #define mm256_ror512_128( v1, v2 ) \
 do { \
    __m256i t = _mm256_permute2x128( v1, v2, 0x03 ); \
-   v1 = _mm256__mm256_permute2x128( v2, v1, 0x21 ); \
+   v1 = _mm256_permute2x128( v2, v1, 0x21 ); \
    v2 = t; \
 } while(0)
 
 #define mm256_rol512_128( v1, v2 ) \
 do { \
    __m256i t = _mm256_permute2x128( v1, v2, 0x03 ); \
-   v2 = _mm256__mm256_permute2x128( v2, v1, 0x21 ); \
+   v2 = _mm256_permute2x128( v2, v1, 0x21 ); \
    v1 = t; \
 } while(0)
 

@@ -1035,7 +1035,7 @@ int simd_4way_update( simd_4way_context *state, const void *data,
 
   while ( databitlen > 0 )
   {
-    if ( current == 0 && databitlen >= bs )
+    if ( ( current == 0 ) && ( databitlen >= bs ) )
     {
        // We can hash the data directly from the input buffer.
       SIMD_4way_Compress( state, data, 0 );
@@ -1049,13 +1049,13 @@ int simd_4way_update( simd_4way_context *state, const void *data,
       int len = bs - current;
       if ( databitlen < len )
       {
-        memcpy( state->buffer + 4*(current/8), data, 4*((databitlen+7)/8) );
+        memcpy( state->buffer + 4 * (current/8), data, 4 * (databitlen/8) );
         state->count += databitlen;
         return 0;
       }
       else
       {
-        memcpy( state->buffer + 4*(current/8), data, 4*(len/8) );
+        memcpy( state->buffer + 4 * (current / 8), data, 4 * (len / 8) );
         state->count += len;
         databitlen -= len;
         data += 4*(len/8);
@@ -1128,7 +1128,7 @@ int simd_4way_update_close( simd_4way_context *state, void *hashval,
       int len = bs - current;
       if ( databitlen < len )
       {
-        memcpy( state->buffer + 4*( current/8 ), data, 4*( (databitlen+7)/8 ) );
+        memcpy( state->buffer + 4*( current/8 ), data, 4*( (databitlen)/8 ) );
         state->count += databitlen;
         break;
       }
@@ -1149,7 +1149,7 @@ int simd_4way_update_close( simd_4way_context *state, void *hashval,
   // If there is still some data in the buffer, hash it
   if ( current )
   {
-    current = ( current+7 ) / 8;
+    current = current / 8;
     memset( state->buffer + 4*current, 0, 4*( state->blocksize/8 - current) );
     SIMD_4way_Compress( state, state->buffer, 0 );
   }

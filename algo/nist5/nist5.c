@@ -1,93 +1,67 @@
 #include "nist5-gate.h"
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
 #include "algo/blake/sph_blake.h"
-#include "algo/groestl/sph_groestl.h"
-#include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
-
-#include "algo/blake/sse2/blake.c"
-#include "algo/keccak/sse2/keccak.c"
-#include "algo/skein/sse2/skein.c"
-#include "algo/jh/sse2/jh_sse2_opt64.h"
-
-#ifndef NO_AES_NI
+#include "algo/skein/sph_skein.h"
+#if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
-#endif
-
-typedef struct {
-#ifdef NO_AES_NI
-    sph_groestl512_context groestl;
 #else
-    hashState_groestl      groestl;
+  #include "algo/groestl/sph_groestl.h"
 #endif
-} nist5_ctx_holder;
-
-nist5_ctx_holder nist5_ctx;
-
-void init_nist5_ctx()
-{
-#ifdef NO_AES_NI
-     sph_groestl512_init( &nist5_ctx.groestl );
-#else
-     init_groestl( &nist5_ctx.groestl, 64 );
-#endif
-}
 
 void nist5hash(void *output, const void *input)
 {
-     size_t hashptr;
-     unsigned char hashbuf[128];
-     sph_u64 hashctA;
-     sph_u64 hashctB;
-     unsigned char hash[128] __attribute__ ((aligned (64))) ;
-     #define hashA hash
-     #define hashB hash+64
+   uint32_t hash[16] __attribute__((aligned(64)));
+   sph_blake512_context    ctx_blake;
+#if defined(__AES__)
+   hashState_groestl       ctx_groestl;
+#else
+   sph_groestl512_context  ctx_groestl;
+#endif
+   sph_skein512_context    ctx_skein;
+   sph_jh512_context       ctx_jh;
+   sph_keccak512_context   ctx_keccak;
 
-     nist5_ctx_holder ctx __attribute__ ((aligned (64)));
-     memcpy( &ctx, &nist5_ctx, sizeof(nist5_ctx) );
+   sph_blake512_init( &ctx_blake );
+   sph_blake512( &ctx_blake, input, 80 );
+   sph_blake512_close( &ctx_blake, hash );
 
-     DECL_BLK;
-     BLK_I;
-     BLK_W;
-     BLK_C;
+#if defined(__AES__)
+   init_groestl( &ctx_groestl, 64 );
+   update_and_final_groestl( &ctx_groestl, (char*)hash,
+                                     (const char*)hash, 512 );
+#else
+   sph_groestl512_init( &ctx_groestl );
+   sph_groestl512( &ctx_groestl, hash, 64 );
+   sph_groestl512_close( &ctx_groestl, hash );
+#endif
 
-     #ifdef NO_AES_NI
-       sph_groestl512 (&ctx.groestl, hash, 64);
-       sph_groestl512_close(&ctx.groestl, hash);
-     #else
-       update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                 (const char*)hash, 512 );
-     #endif
+   sph_jh512_init( &ctx_jh );
+   sph_jh512( &ctx_jh, hash, 64 );
+   sph_jh512_close( &ctx_jh, hash );
 
-     DECL_JH;
-     JH_H;
+   sph_keccak512_init( &ctx_keccak );
+   sph_keccak512( &ctx_keccak, hash, 64 );
+   sph_keccak512_close( &ctx_keccak, hash );
 
-     DECL_KEC;
-     KEC_I;
-     KEC_U;
-     KEC_C;
+   sph_skein512_init( &ctx_skein );
+   sph_skein512( &ctx_skein, hash, 64 );
+   sph_skein512_close( &ctx_skein, hash );
 
-     DECL_SKN;
-     SKN_I;
-     SKN_U;
-     SKN_C;
-
-     memcpy(output, hash, 32);
+   memcpy( output, hash, 32 );
 }
 
 int scanhash_nist5( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr)
 {
-        uint32_t endiandata[20] __attribute__((aligned(64)));
-        uint32_t hash64[8] __attribute__((aligned(32)));
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
+   uint32_t endiandata[20] __attribute__((aligned(64)));
+   uint32_t hash64[8] __attribute__((aligned(32)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;
 	const uint32_t first_nonce = pdata[19];
    int thr_id = mythr->id;  // thr_id arg is deprecated
@@ -113,9 +87,6 @@ int scanhash_nist5( struct work *work, uint32_t max_nonce,
 	// we need bigendian data...
         swab32_array( endiandata, pdata, 20 );
 
-#ifdef DEBUG_ALGO
-	printf("[%d] Htarg=%X\n", thr_id, Htarg);
-#endif
 	for (int m=0; m < 6; m++) {
 		if (Htarg <= htmax[m]) {
 			uint32_t mask = masks[m];
@@ -123,24 +94,9 @@ int scanhash_nist5( struct work *work, uint32_t max_nonce,
 				pdata[19] = ++n;
 				be32enc(&endiandata[19], n);
 				nist5hash(hash64, endiandata);
-#ifndef DEBUG_ALGO
-				if ((!(hash64[7] & mask)) && fulltest(hash64, ptarget)) {
-					*hashes_done = n - first_nonce + 1;
-					return true;
-				}
-#else
-				if (!(n % 0x1000) && !thr_id) printf(".");
-				if (!(hash64[7] & mask)) {
-					printf("[%d]",thr_id);
-					if (fulltest(hash64, ptarget)) {
-                                                work_set_target_ratio( work, hash64 );
-						*hashes_done = n - first_nonce + 1;
-						return true;
-					}
-				}
-#endif
+				if ((!(hash64[7] & mask)) && fulltest(hash64, ptarget))
+                submit_solution( work, hash64, mythr );
 			} while (n < max_nonce && !work_restart[thr_id].restart);
-			// see blake.c if else to understand the loop on htmax => mask
 			break;
 		}
 	}

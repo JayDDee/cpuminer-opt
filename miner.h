@@ -578,7 +578,6 @@ enum algos {
         ALGO_QUARK,
         ALGO_QUBIT,       
         ALGO_SCRYPT,
-        ALGO_SCRYPTJANE,
         ALGO_SHA256D,
         ALGO_SHA256Q,
         ALGO_SHA256T,
@@ -677,7 +676,6 @@ static const char* const algo_names[] = {
         "quark",
         "qubit",
         "scrypt",
-        "scryptjane",
         "sha256d",
         "sha256q",
         "sha256t",
@@ -843,7 +841,6 @@ Options:\n\
                           qubit         Qubit\n\
                           scrypt        scrypt(1024, 1, 1) (default)\n\
                           scrypt:N      scrypt(N, 1, 1)\n\
-                          scryptjane:nf\n\
                           sha256d       Double SHA-256\n\
                           sha256q       Quad SHA-256, Pyrite (PYE)\n\
                           sha256t       Triple SHA-256, Onecoin (OC)\n\

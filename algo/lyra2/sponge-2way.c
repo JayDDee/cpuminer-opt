@@ -196,7 +196,6 @@ inline void reducedDuplexRowSetup_2way( uint64_t *State, uint64_t *rowIn,
     __m512i* in    = (__m512i*)rowIn;
     __m512i* inout = (__m512i*)rowInOut;
     __m512i* out   = (__m512i*)rowOut + ( (nCols-1) * BLOCK_LEN_M256I );
-    __m512i  t0, t1, t2;
 
     state0 = _mm512_load_si512( (__m512i*)State     );
     state1 = _mm512_load_si512( (__m512i*)State + 1 );
@@ -218,24 +217,27 @@ inline void reducedDuplexRowSetup_2way( uint64_t *State, uint64_t *rowIn,
        out[1] = _mm512_xor_si512( state1, in[1] );
        out[2] = _mm512_xor_si512( state2, in[2] );
 
-       //M[row*][col] = M[row*][col] XOR rotW(rand)
-       t0 = _mm512_permutex_epi64( state0, 0x93 );
-       t1 = _mm512_permutex_epi64( state1, 0x93 );
-       t2 = _mm512_permutex_epi64( state2, 0x93 );
+      {
+        register __m512i t0, t1, t2;
+       
+        //M[row*][col] = M[row*][col] XOR rotW(rand)
+        t0 = _mm512_permutex_epi64( state0, 0x93 );
+        t1 = _mm512_permutex_epi64( state1, 0x93 );
+        t2 = _mm512_permutex_epi64( state2, 0x93 );
 
-       inout[0] = _mm512_xor_si512( inout[0],
-                                 _mm512_mask_blend_epi32( 0x0303, t0, t2 ) );
-       inout[1] = _mm512_xor_si512( inout[1],
-                                 _mm512_mask_blend_epi32( 0x0303, t1, t0 ) );
-       inout[2] = _mm512_xor_si512( inout[2],
-                                 _mm512_mask_blend_epi32( 0x0303, t2, t1 ) );
+        inout[0] = _mm512_xor_si512( inout[0],
+                                 _mm512_mask_blend_epi64( 0x11, t0, t2 ) );
+        inout[1] = _mm512_xor_si512( inout[1],
+                                 _mm512_mask_blend_epi64( 0x11, t1, t0 ) );
+        inout[2] = _mm512_xor_si512( inout[2],
+                                 _mm512_mask_blend_epi64( 0x11, t2, t1 ) );
+      }
 
-
-       //Inputs: next column (i.e., next block in sequence)
-       in    += BLOCK_LEN_M256I;
-       inout += BLOCK_LEN_M256I;
-       //Output: goes to previous column
-       out   -= BLOCK_LEN_M256I;
+      //Inputs: next column (i.e., next block in sequence)
+      in    += BLOCK_LEN_M256I;
+      inout += BLOCK_LEN_M256I;
+      //Output: goes to previous column
+      out   -= BLOCK_LEN_M256I;
     }
 
     _mm512_store_si512( (__m512i*)State,     state0 );
@@ -243,9 +245,6 @@ inline void reducedDuplexRowSetup_2way( uint64_t *State, uint64_t *rowIn,
     _mm512_store_si512( (__m512i*)State + 2, state2 );
     _mm512_store_si512( (__m512i*)State + 3, state3 );
 }
-
-// big ugly workaound for pointer aliasing, use a union of pointers.
-// Access matrix using m512i for in and out, m256i for inout
 
 inline void reducedDuplexRow_2way( uint64_t *State, uint64_t *rowIn,
                             uint64_t *rowInOut0, uint64_t *rowInOut1,
@@ -257,95 +256,81 @@ inline void reducedDuplexRow_2way( uint64_t *State, uint64_t *rowIn,
    __m256i *inout0 = (__m256i*)rowInOut0;
    __m256i *inout1 = (__m256i*)rowInOut1;
    __m512i *out = (__m512i*)rowOut;
-   __m512i io[3];
-   povly inout;
-   inout.v512 = &io[0];
-    __m512i t0, t1, t2;
+   register __m512i io0, io1, io2;
 
    state0 = _mm512_load_si512( (__m512i*)State     );
    state1 = _mm512_load_si512( (__m512i*)State + 1 );
    state2 = _mm512_load_si512( (__m512i*)State + 2 );
    state3 = _mm512_load_si512( (__m512i*)State + 3 );
     
-    _mm_prefetch( in,     _MM_HINT_T0 );
-    _mm_prefetch( inout0,     _MM_HINT_T0 );
-    _mm_prefetch( inout1,     _MM_HINT_T0 );
-    _mm_prefetch( in     + 2, _MM_HINT_T0 );
-    _mm_prefetch( inout0 + 2, _MM_HINT_T0 );
-    _mm_prefetch( inout1 + 2, _MM_HINT_T0 );
-    _mm_prefetch( in     + 4, _MM_HINT_T0 );
-    _mm_prefetch( inout0 + 4, _MM_HINT_T0 );
-    _mm_prefetch( inout1 + 4, _MM_HINT_T0 );
-    _mm_prefetch( in     + 6, _MM_HINT_T0 );
-    _mm_prefetch( inout0 + 6, _MM_HINT_T0 );
-    _mm_prefetch( inout1 + 6, _MM_HINT_T0 );
+   for ( i = 0; i < nCols; i++ )
+   {
+     //Absorbing "M[prev] [+] M[row*]"
+     io0 = _mm512_mask_blend_epi64( 0xf0,
+                 _mm512_load_si512( (__m512i*)inout0 ),
+                 _mm512_load_si512( (__m512i*)inout1 ) );
+     io1 = _mm512_mask_blend_epi64( 0xf0,
+                 _mm512_load_si512( (__m512i*)inout0 +1 ),
+                 _mm512_load_si512( (__m512i*)inout1 +1 ) );
+     io2 = _mm512_mask_blend_epi64( 0xf0,
+                 _mm512_load_si512( (__m512i*)inout0 +2 ),
+                 _mm512_load_si512( (__m512i*)inout1 +2 ) );
 
-    
-    for ( i = 0; i < nCols; i++ )
-    {
+     state0 = _mm512_xor_si512( state0, _mm512_add_epi64( in[0], io0 ) );
+     state1 = _mm512_xor_si512( state1, _mm512_add_epi64( in[1], io1 ) );
+     state2 = _mm512_xor_si512( state2, _mm512_add_epi64( in[2], io2 ) );
 
-      //Absorbing "M[prev] [+] M[row*]"
-      inout.v256[0] = inout0[0];
-      inout.v256[1] = inout1[1];
-      inout.v256[2] = inout0[2];
-      inout.v256[3] = inout1[3];
-      inout.v256[4] = inout0[4];
-      inout.v256[5] = inout1[5];
+     //Applies the reduced-round transformation f to the sponge's state
+     LYRA_ROUND_2WAY_AVX512( state0, state1, state2, state3 );
 
-      state0 = _mm512_xor_si512( state0,
-                                 _mm512_add_epi64( in[0], inout.v512[0] ) );
-      state1 = _mm512_xor_si512( state1,
-                                 _mm512_add_epi64( in[1], inout.v512[1] ) );
-      state2 = _mm512_xor_si512( state2,
-                                 _mm512_add_epi64( in[2], inout.v512[2] ) );
+     {
+       register __m512i t0, t1, t2;
 
+       //M[rowOut][col] = M[rowOut][col] XOR rand
+       t0 = _mm512_xor_si512( out[0], state0 );
+       t1 = _mm512_xor_si512( out[1], state1 );
+       t2 = _mm512_xor_si512( out[2], state2 );
 
-      //Applies the reduced-round transformation f to the sponge's state
-      LYRA_ROUND_2WAY_AVX512( state0, state1, state2, state3 );
+       // if out is the same row as inout, update with new data.
+       if ( rowOut == rowInOut0 )
+       {
+          io0 = _mm512_mask_blend_epi64( 0x0f, io0, t0 );
+          io1 = _mm512_mask_blend_epi64( 0x0f, io1, t1 );
+          io2 = _mm512_mask_blend_epi64( 0x0f, io2, t2 );
+       }
+       if ( rowOut == rowInOut1 )
+       {
+          io0 = _mm512_mask_blend_epi64( 0xf0, io0, t0 );
+          io1 = _mm512_mask_blend_epi64( 0xf0, io1, t1 );
+          io2 = _mm512_mask_blend_epi64( 0xf0, io2, t2 );
+       }
 
-      //M[rowOut][col] = M[rowOut][col] XOR rand
-      out[0] = _mm512_xor_si512( out[0], state0 );
-      out[1] = _mm512_xor_si512( out[1], state1 );
-      out[2] = _mm512_xor_si512( out[2], state2 );
+       out[0] = t0;
+       out[1] = t1;
+       out[2] = t2;
 
-      // if inout is the same row as out it was just overwritten, reload.
-      if ( rowOut == rowInOut0 )
-      {
-         inout.v256[0] = inout0[0];
-         inout.v256[2] = inout0[2];
-         inout.v256[4] = inout0[4];
-      }
-      if ( rowOut == rowInOut1 )
-      {
-         inout.v256[1] = inout1[1];
-         inout.v256[3] = inout1[3];
-         inout.v256[5] = inout1[5];
-      }
+       //M[rowInOut][col] = M[rowInOut][col] XOR rotW(rand)
+       t0 = _mm512_permutex_epi64( state0, 0x93 );
+       t1 = _mm512_permutex_epi64( state1, 0x93 );
+       t2 = _mm512_permutex_epi64( state2, 0x93 );
 
-      //M[rowInOut][col] = M[rowInOut][col] XOR rotW(rand)
-      t0 = _mm512_permutex_epi64( state0, 0x93 );
-      t1 = _mm512_permutex_epi64( state1, 0x93 );
-      t2 = _mm512_permutex_epi64( state2, 0x93 );
+       io0 = _mm512_xor_si512( io0, _mm512_mask_blend_epi64( 0x11, t0, t2 ) );
+       io1 = _mm512_xor_si512( io1, _mm512_mask_blend_epi64( 0x11, t1, t0 ) );
+       io2 = _mm512_xor_si512( io2, _mm512_mask_blend_epi64( 0x11, t2, t1 ) );
+     }
 
-      inout.v512[0] = _mm512_xor_si512( inout.v512[0],
-                                   _mm512_mask_blend_epi32( 0x0303, t0, t2 ) );
-      inout.v512[1] = _mm512_xor_si512( inout.v512[1],
-                                   _mm512_mask_blend_epi32( 0x0303, t1, t0 ) );
-      inout.v512[2] = _mm512_xor_si512( inout.v512[2],
-                                   _mm512_mask_blend_epi32( 0x0303, t2, t1 ) );
-      
-      inout0[0] = inout.v256[0];
-      inout1[1] = inout.v256[1];
-      inout0[2] = inout.v256[2];
-      inout1[3] = inout.v256[3];
-      inout0[4] = inout.v256[4];
-      inout1[5] = inout.v256[5];
+     _mm512_mask_store_epi64( (__m512i*)inout0,    0x0f, io0 );
+     _mm512_mask_store_epi64( (__m512i*)inout1,    0xf0, io0 );
+     _mm512_mask_store_epi64( (__m512i*)inout0 +1, 0x0f, io1 );
+     _mm512_mask_store_epi64( (__m512i*)inout1 +1, 0xf0, io1 );
+     _mm512_mask_store_epi64( (__m512i*)inout0 +2, 0x0f, io2 );
+     _mm512_mask_store_epi64( (__m512i*)inout1 +2, 0xf0, io2 );
 
-       //Goes to next block
-       in     += BLOCK_LEN_M256I;
-       inout0 += BLOCK_LEN_M256I * 2;
-       inout1 += BLOCK_LEN_M256I * 2;
-       out    += BLOCK_LEN_M256I;
+      //Goes to next block
+      in     += BLOCK_LEN_M256I;
+      inout0 += BLOCK_LEN_M256I * 2;
+      inout1 += BLOCK_LEN_M256I * 2;
+      out    += BLOCK_LEN_M256I;
    }
 
    _mm512_store_si512( (__m512i*)State,     state0 );

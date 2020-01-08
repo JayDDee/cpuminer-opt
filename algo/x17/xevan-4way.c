@@ -40,7 +40,6 @@ union _xevan_8way_context_overlay
    luffa_4way_context      luffa;
    cube_4way_context       cube;
    simd_4way_context       simd;
-   hashState_echo          echo;
    hamsi512_8way_context   hamsi;
    sph_fugue512_context    fugue;
    shabal512_8way_context  shabal;
@@ -50,11 +49,11 @@ union _xevan_8way_context_overlay
 #if defined(__VAES__)
     groestl512_4way_context groestl;
     shavite512_4way_context shavite;
-//    echo_4way_context       echo;
+    echo_4way_context       echo;
 #else
     hashState_groestl       groestl;
     sph_shavite512_context  shavite;
-//    hashState_echo          echo;
+    hashState_echo          echo;
 #endif
 } __attribute__ ((aligned (64)));
 typedef union _xevan_8way_context_overlay xevan_8way_context_overlay;
@@ -201,7 +200,6 @@ void xevan_8way_hash( void *output, const void *input )
      simd_4way_init( &ctx.simd, 512 );
      simd_4way_update_close( &ctx.simd, vhashB, vhashB, dataLen<<3 );
 
-/*
 #if defined(__VAES__)
 
      echo_4way_init( &ctx.echo, 512 );
@@ -212,7 +210,6 @@ void xevan_8way_hash( void *output, const void *input )
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, dataLen<<3 );
 
 #else
-*/
 
      dintrlv_4x128( hash0, hash1, hash2, hash3, vhashA, dataLen<<3 );
      dintrlv_4x128( hash4, hash5, hash6, hash7, vhashB, dataLen<<3 );
@@ -245,7 +242,7 @@ void xevan_8way_hash( void *output, const void *input )
      intrlv_8x64( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                   hash7, dataLen<<3 );
 
-//#endif
+#endif
 
      hamsi512_8way_init( &ctx.hamsi );
      hamsi512_8way_update( &ctx.hamsi, vhash, dataLen );
@@ -456,8 +453,6 @@ void xevan_8way_hash( void *output, const void *input )
      simd_4way_init( &ctx.simd, 512 );
      simd_4way_update_close( &ctx.simd, vhashB, vhashB, dataLen<<3 );
 
-
-/*
 #if defined(__VAES__)
 
      echo_4way_init( &ctx.echo, 512 );
@@ -468,7 +463,6 @@ void xevan_8way_hash( void *output, const void *input )
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, dataLen<<3 );
 
 #else
-*/
 
      dintrlv_4x128( hash0, hash1, hash2, hash3, vhashA, dataLen<<3 );
      dintrlv_4x128( hash4, hash5, hash6, hash7, vhashB, dataLen<<3 );
@@ -501,7 +495,7 @@ void xevan_8way_hash( void *output, const void *input )
      intrlv_8x64( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                   hash7, dataLen<<3 );
 
-//#endif
+#endif
 
      hamsi512_8way_init( &ctx.hamsi );
      hamsi512_8way_update( &ctx.hamsi, vhash, dataLen );

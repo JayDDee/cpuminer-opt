@@ -277,41 +277,40 @@ int echo_4way_update_close( echo_4way_context *state, void *hashval,
    {
       echo_4way_compress( state, data, 1 );
       state->processed_bits = 1024;
-      remainingbits = m512_zero;
+      remainingbits = m512_const2_64( 0, -1024 );
       vlen = 0;
    }
    else
    {
       vlen = databitlen / 128;  // * 4 lanes / 128 bits per lane
       memcpy_512( state->buffer, data, vlen );
-   
       state->processed_bits += (unsigned int)( databitlen );
       remainingbits = _mm512_set4_epi32( 0, 0, 0, databitlen );
 
    }
 
-  state->buffer[ vlen ] = _mm512_set4_epi32( 0, 0, 0, 0x80 );
-  memset_zero_512( state->buffer + vlen + 1, vblen - vlen - 2 );
-  state->buffer[ vblen-2 ] =
+   state->buffer[ vlen ] = _mm512_set4_epi32( 0, 0, 0, 0x80 );
+   memset_zero_512( state->buffer + vlen + 1, vblen - vlen - 2 );
+   state->buffer[ vblen-2 ] =
                 _mm512_set4_epi32( (uint32_t)state->uHashSize << 16, 0, 0, 0 );
-  state->buffer[ vblen-1 ] =
+   state->buffer[ vblen-1 ] =
                    _mm512_set4_epi64( 0, state->processed_bits,
                                       0, state->processed_bits );  
 
-  state->k = _mm512_add_epi64( state->k, remainingbits );
-  state->k = _mm512_sub_epi64( state->k, state->const1536 );
+   state->k = _mm512_add_epi64( state->k, remainingbits );
+   state->k = _mm512_sub_epi64( state->k, state->const1536 );
 
-  echo_4way_compress( state, state->buffer, 1 );
+   echo_4way_compress( state, state->buffer, 1 );
 
-  _mm512_store_si512( (__m512i*)hashval + 0, state->state[ 0 ][ 0] );
-  _mm512_store_si512( (__m512i*)hashval + 1, state->state[ 1 ][ 0] );
+   _mm512_store_si512( (__m512i*)hashval + 0, state->state[ 0 ][ 0] );
+   _mm512_store_si512( (__m512i*)hashval + 1, state->state[ 1 ][ 0] );
 
-  if ( state->uHashSize == 512 )
-  {
-     _mm512_store_si512( (__m512i*)hashval + 2, state->state[ 2 ][ 0 ] );
-     _mm512_store_si512( (__m512i*)hashval + 3, state->state[ 3 ][ 0 ] );
-  }
-  return 0;
+   if ( state->uHashSize == 512 )
+   {
+      _mm512_store_si512( (__m512i*)hashval + 2, state->state[ 2 ][ 0 ] );
+      _mm512_store_si512( (__m512i*)hashval + 3, state->state[ 3 ][ 0 ] );
+   }
+   return 0;
 }
 
 #endif

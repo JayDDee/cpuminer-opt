@@ -1,6 +1,8 @@
 #include "shavite-hash-4way.h"
 #include <stdint.h>
 
+#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
 static const uint32_t IV512[] =
 {
         0x72FCCDD8, 0x79CA4727, 0x128A077B, 0x40D55AEC,
@@ -8,8 +10,6 @@ static const uint32_t IV512[] =
         0x8E45D73D, 0x681AB538, 0xBDE86578, 0xDD577E47,
         0xE275EADE, 0x502D9FCD, 0xB9357178, 0x022A4B9A
 };
-
-#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #define mm512_ror2x512hi_1x32( a, b ) \
    _mm512_mask_blend_epi32( 0x8888, mm512_ror128_32( a ), \

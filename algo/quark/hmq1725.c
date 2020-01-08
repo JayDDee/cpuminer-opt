@@ -25,7 +25,6 @@
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
-#include "algo/jh/sse2/jh_sse2_opt64.h"
 
 typedef struct {
   sph_blake512_context    blake1, blake2;
@@ -331,11 +330,8 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			be32enc(&endiandata[19], n); 
 			hmq1725hash(hash64, endiandata);
 			if (((hash64[7]&0xFFFFFFFF)==0) && 
-					fulltest(hash64, ptarget)) {
-				*hashes_done = n - first_nonce + 1;
-            work_set_target_ratio( work, hash64 );
-				return true;
-			}
+					fulltest(hash64, ptarget)) 
+            submit_solution( work, hash64, mythr );
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
 	} 
 	else if (ptarget[7]<=0xF) 
@@ -345,11 +341,8 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			be32enc(&endiandata[19], n); 
 			hmq1725hash(hash64, endiandata);
 			if (((hash64[7]&0xFFFFFFF0)==0) && 
-					fulltest(hash64, ptarget)) {
-				*hashes_done = n - first_nonce + 1;
-            work_set_target_ratio( work, hash64 );
-				return true;
-			}
+					fulltest(hash64, ptarget)) 
+            submit_solution( work, hash64, mythr );
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
 	} 
 	else if (ptarget[7]<=0xFF) 
@@ -359,11 +352,8 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			be32enc(&endiandata[19], n); 
 			hmq1725hash(hash64, endiandata);
 			if (((hash64[7]&0xFFFFFF00)==0) && 
-					fulltest(hash64, ptarget)) {
-				*hashes_done = n - first_nonce + 1;
-            work_set_target_ratio( work, hash64 );
-				return true;
-			}
+					fulltest(hash64, ptarget)) 
+            submit_solution( work, hash64, mythr );
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
 	} 
 	else if (ptarget[7]<=0xFFF) 
@@ -373,13 +363,9 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			be32enc(&endiandata[19], n); 
 			hmq1725hash(hash64, endiandata);
 			if (((hash64[7]&0xFFFFF000)==0) && 
-					fulltest(hash64, ptarget)) {
-				*hashes_done = n - first_nonce + 1;
-            work_set_target_ratio( work, hash64 );
-				return true;
-			}
+					fulltest(hash64, ptarget)) 
+            submit_solution( work, hash64, mythr );
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
-
 	} 
 	else if (ptarget[7]<=0xFFFF) 
 	{
@@ -388,13 +374,9 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			be32enc(&endiandata[19], n); 
 			hmq1725hash(hash64, endiandata);
 			if (((hash64[7]&0xFFFF0000)==0) && 
-					fulltest(hash64, ptarget)) {
-				*hashes_done = n - first_nonce + 1;
-            work_set_target_ratio( work, hash64 );
-				return true;
-			}
+					fulltest(hash64, ptarget)) 
+                submit_solution( work, hash64, mythr );
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
-
 	} 
 	else 
 	{
@@ -402,15 +384,10 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 			pdata[19] = ++n;
 			be32enc(&endiandata[19], n); 
 			hmq1725hash(hash64, endiandata);
-			if (fulltest(hash64, ptarget)) {
-				*hashes_done = n - first_nonce + 1;
-            work_set_target_ratio( work, hash64 );
-				return true;
-			}
+			if (fulltest(hash64, ptarget)) 
+                submit_solution( work, hash64, mythr );
 		} while (n < max_nonce && !work_restart[thr_id].restart);	
 	}
-	
-	
 	*hashes_done = n - first_nonce + 1;
 	pdata[19] = n;
 	return 0;

@@ -44,14 +44,14 @@
 //
 //    Constants need to be composed at run time by assembling individual
 //    elements, very expensive. The cost is proportional to the number of
-//    elements therefor use the largest element size possible, even by
-//    merging smaller values.
+//    different elements therefore use the largest element size possible,
+//    merge smaller integer elements to 64 bits, and group repeated elements.
 //
 //    Constants with repeating patterns can be optimized with the smaller
 //    patterns repeated more frequently being more efficient.
 //
 //    Some specific constants can be very efficient. Zero is very efficient,
-//    1 and -1 slightly less so.
+//    1 and -1 slightly less so. 
 //
 //    If an expensive constant is to be reused in the same function it should
 //    be declared as a local variable defined once and reused.

@@ -160,16 +160,12 @@ int scanhash_anime( struct work *work, uint32_t max_nonce,
               pdata[19] = n;
 
              if ( ( hash[7] & mask ) == 0 && fulltest( hash, ptarget ) ) 
-             {
-                work_set_target_ratio( work, hash );
-                *hashes_done = n - first_nonce + 1;
-                return true;
-             }
+                submit_solution( work, hash, mythr );
              n++;
           } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
           break;
        }
-
+    *hashes_done = n - first_nonce + 1;
     pdata[19] = n;
     return 0;
 }

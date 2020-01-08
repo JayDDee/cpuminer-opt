@@ -77,25 +77,15 @@ int scanhash_decred( struct work *work, uint32_t max_nonce,
                 be32enc(&endiandata[k], pdata[k]);
 #endif
 
-#ifdef DEBUG_ALGO
-        if (!thr_id) applog(LOG_DEBUG,"[%d] Target=%08x %08x", thr_id, ptarget[6], ptarget[7]);
-#endif
-
         do {
                 //be32enc(&endiandata[DCR_NONCE_OFT32], n);
                 endiandata[DECRED_NONCE_INDEX] = n;
                 decred_hash(hash32, endiandata);
 
-                if (hash32[7] <= HTarget && fulltest(hash32, ptarget)) {
-                        work_set_target_ratio(work, hash32);
-                        *hashes_done = n - first_nonce + 1;
-#ifdef DEBUG_ALGO
-                        applog(LOG_BLUE, "Nonce : %08x %08x", n, swab32(n));
-                        applog_hash(ptarget);
-                        applog_compare_hash(hash32, ptarget);
-#endif
-                        pdata[DECRED_NONCE_INDEX] = n;
-                        return 1;
+                if (hash32[7] <= HTarget && fulltest(hash32, ptarget))
+                {
+                   pdata[DECRED_NONCE_INDEX] = n;
+                   submit_solution( work, hash32, mythr );
                 }
 
                 n++;

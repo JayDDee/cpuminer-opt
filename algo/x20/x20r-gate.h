@@ -44,15 +44,15 @@ bool register_xi20r_algo( algo_gate_t* gate );
 
 void x20r_4way_hash( void *state, const void *input );
 
-int scanhash_x20r_4way( int thr_id, struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done );
+int scanhash_x20r_4way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif
 
 void x20rhash( void *state, const void *input );
 
-int scanhash_x20r( int thr_id, struct work *work, uint32_t max_nonce,
-                  uint64_t *hashes_done );
+int scanhash_x20r( struct work *work, uint32_t max_nonce,
+                   uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif
 

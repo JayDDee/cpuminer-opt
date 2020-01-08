@@ -158,9 +158,6 @@ int scanhash_x12( struct work *work, uint32_t max_nonce,
 	// we need bigendian data...
         swab32_array( endiandata, pdata, 20 );
 
-#ifdef DEBUG_ALGO
-	printf("[%d] Htarg=%X\n", thr_id, Htarg);
-#endif
    for (int m=0; m < 6; m++) {
       if (Htarg <= htmax[m]) {
         uint32_t mask = masks[m];
@@ -168,33 +165,10 @@ int scanhash_x12( struct work *work, uint32_t max_nonce,
 	   pdata[19] = ++n;
 	   be32enc(&endiandata[19], n);
 	   x12hash(hash64, endiandata);
-#ifndef DEBUG_ALGO
 	   if (!(hash64[7] & mask))
-           { 
-              if ( fulltest(hash64, ptarget) )
-              {
-	     	*hashes_done = n - first_nonce + 1;
-	 	return true;
-              }
-//                                   else
-//                                  {
-//                                      applog(LOG_INFO, "Result does not validate on CPU!");
-//                                  }
-            }
-                                   
-#else
-	    if (!(n % 0x1000) && !thr_id) printf(".");
-		if (!(hash64[7] & mask)) {
-			printf("[%d]",thr_id);
-			if (fulltest(hash64, ptarget)) {
-                                work_set_target_ratio( work, hash );
-				*hashes_done = n - first_nonce + 1;
-				return true;
-			}
-		}
-#endif
+      if ( fulltest(hash64, ptarget) )
+         submit_solution( work, hash64, mythr );
 	} while (n < max_nonce && !work_restart[thr_id].restart);
-			// see blake.c if else to understand the loop on htmax => mask
 	break;
      }
   }

@@ -18,11 +18,6 @@
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
-#include "algo/blake/sse2/blake.c"
-#include "algo/bmw/sse2/bmw.c"
-#include "algo/keccak/sse2/keccak.c"
-#include "algo/skein/sse2/skein.c"
-#include "algo/jh/sse2/jh_sse2_opt64.h"
 #include <openssl/sha.h>
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"

@@ -67,8 +67,12 @@ HashReturn_gr init_groestl( hashState_groestl* ctx, int hashlen )
      ctx->chaining[i] = _mm_setzero_si128();
      ctx->buffer[i]   = _mm_setzero_si128();
   }
-  ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
-  INIT(ctx->chaining);
+
+  // The only non-zero in the IV is len. It can be hard coded.
+  ctx->chaining[ 6 ] = m128_const_64( 0x0200000000000000, 0 );
+//  ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
+//  INIT(ctx->chaining);
+
   ctx->buf_ptr = 0;
   ctx->rem_ptr = 0;
 

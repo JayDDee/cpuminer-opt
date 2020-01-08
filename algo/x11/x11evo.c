@@ -199,12 +199,8 @@ int scanhash_x11evo( struct work* work, uint32_t max_nonce,
           if ( ( hash64[7] & hmask ) == 0 )
           {
              if ( fulltest( hash64, ptarget ) )
-             {
-                 *hashes_done = n - first_nonce + 1;
-                 work_set_target_ratio( work, hash64 );
-                 return true;
-             }
-           }
+                submit_solution( work, hash64, mythr );
+          }
         } while ( n < max_nonce && !work_restart[thr_id].restart );
 
 	*hashes_done = n - first_nonce + 1;

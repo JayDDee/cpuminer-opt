@@ -1,5 +1,5 @@
-#ifndef __NIST5_GATE_H__
-#define __NIST5_GATE_H__ 1
+#ifndef NIST5_GATE_H__
+#define NIST5_GATE_H__ 1
 
 #include "algo-gate-api.h"
 #include <stdint.h>
@@ -30,7 +30,7 @@ void nist5hash( void *state, const void *input );
 
 int scanhash_nist5( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr );
-void init_nist5_ctx();
+
 #endif
 
 #endif

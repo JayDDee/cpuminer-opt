@@ -115,7 +115,7 @@ __m512i ALL_FF;
   \
   /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
   /* compute w_i : add y_{i+4} */\
-  b1 = ALL_1B;\
+  b1 = m512_const1_64( 0x1b1b1b1b1b1b1b1b );\
   MUL2(a0, b0, b1);\
   a0 = _mm512_xor_si512(a0, TEMP0);\
   MUL2(a1, b0, b1);\
@@ -276,7 +276,7 @@ __m512i ALL_FF;
   for ( round_counter = 0; round_counter < 14; round_counter += 2) \
   { \
     /* AddRoundConstant Q1024 */\
-    xmm1 = ALL_FF;\
+    xmm1 = m512_neg1;\
     xmm8  = _mm512_xor_si512( xmm8,  xmm1 );\
     xmm9  = _mm512_xor_si512( xmm9,  xmm1 );\
     xmm10 = _mm512_xor_si512( xmm10, xmm1 );\
@@ -298,7 +298,7 @@ __m512i ALL_FF;
     SUBMIX(xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7);\
     \
     /* AddRoundConstant Q1024 */\
-    xmm9 = ALL_FF;\
+    xmm9 = m512_neg1;\
     xmm0 = _mm512_xor_si512( xmm0, xmm9 );\
     xmm1 = _mm512_xor_si512( xmm1, xmm9 );\
     xmm2 = _mm512_xor_si512( xmm2, xmm9 );\

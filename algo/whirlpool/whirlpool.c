@@ -78,17 +78,12 @@ int scanhash_whirlpool( struct work* work, uint32_t max_nonce,
 	do {
 		const uint32_t Htarg = ptarget[7];
 		uint32_t vhash[8];
-                pdata[19] = ++n;
+      pdata[19] = ++n;
 		be32enc(&endiandata[19], n );
 		whirlpool_hash(vhash, endiandata);
 
 		if (vhash[7] <= Htarg && fulltest(vhash, ptarget))
-                {
-			work_set_target_ratio(work, vhash);
-                       *hashes_done = n - first_nonce + 1;
-			return true;
-		}
-
+             submit_solution( work, vhash, mythr );
 	} while ( n < max_nonce && !work_restart[thr_id].restart);
 
 	*hashes_done = n - first_nonce + 1;

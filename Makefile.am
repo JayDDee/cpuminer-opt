@@ -120,7 +120,6 @@ cpuminer_SOURCES = \
   algo/keccak/keccak-hash-4way.c \
   algo/keccak/keccak-4way.c\
   algo/keccak/keccak-gate.c \
-  algo/keccak/sse2/keccak.c \
   algo/lanehash/lane.c \
   algo/luffa/sph_luffa.c \
   algo/luffa/luffa.c \
@@ -150,6 +149,7 @@ cpuminer_SOURCES = \
   algo/nist5/nist5-4way.c \
   algo/nist5/nist5.c \
   algo/nist5/zr5.c \
+  algo/panama/panama-hash-4way.c \
   algo/panama/sph_panama.c \
   algo/radiogatun/sph_radiogatun.c \
   algo/quark/quark-gate.c \
@@ -175,7 +175,6 @@ cpuminer_SOURCES = \
   algo/scrypt/scrypt.c \
   algo/scrypt/neoscrypt.c \
   algo/scrypt/pluck.c \
-  algo/scryptjane/scrypt-jane.c \
   algo/sha/sph_sha2.c \
   algo/sha/sph_sha2big.c \
   algo/sha/sha256-hash-4way.c \

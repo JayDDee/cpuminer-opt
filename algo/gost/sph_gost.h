@@ -81,9 +81,9 @@ typedef struct {
  */
 typedef struct {
 #ifndef DOXYGEN_IGNORE
-	unsigned char buf[64];    /* first field, for alignment */
+	unsigned char buf[64] __attribute__((aligned(64))); 
+   sph_u32 V[5][8] __attribute__((aligned(64)));
 	size_t ptr;
-	sph_u32 V[5][8];
 #endif
 } sph_gost512_context;
 

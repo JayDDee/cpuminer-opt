@@ -8,9 +8,10 @@ Security warning
 
 Miner programs are often flagged as malware by antivirus programs. This is
 usually a false positive, they are flagged simply because they are
-cryptocurrency miners. However, some malware has been spread using the
-cover that miners are known to be subject to false positives. Always be on
-alert. The source code of cpuminer-opt is open for anyone to inspect.
+cryptocurrency miners. However, some malware masquerading as a miner has
+been spread using the cover that miners are known to be subject to false
+positives ans users will dismiss the AV alert. Always be on alert.
+The source code of cpuminer-opt is open for anyone to inspect.
 If you don't trust the software don't download it.
 
 The cryptographic hashing code has been taken from trusted sources but has been
@@ -29,11 +30,41 @@ Requirements
 Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
 supported.
 
-64 bit Linux or Windows operating system. Apple, Android and Rpi are
-not supported. FreeBSD YMMV.
+64 bit Linux or Windows operating system. Apple, Android and Raspberry Pi
+are not supported. FreeBSD YMMV.
 
 Change Log
 ----------
+
+v3.11.2
+
+Fixed x11gost (sib) AVX2 invalid shares.
+
+Fixed x16r, x16rv2, x16s, x16rt, x16rt-veil (veil), x21s.
+No shares were submitted when cube, shavite or echo were the first function
+in the hash order.
+
+Fixed all algos reporting stats problems when mining with SSE2.
+
+Faster Lyra2 AVX512: lyra2z +47%, lyra2rev3 +11%, allium +13%, x21s +6% 
+
+Other minor performance improvements.
+
+Known issue:
+
+Lyra2 AVX512 improvements paradoxically reduced performance on x22i and x25x.
+https://github.com/JayDDee/cpuminer-opt/issues/225
+
+v3.11.1
+
+Faster panama for x25x AVX2 & AVX512.
+
+Fixed echo VAES for Xevan.
+
+Removed support for scryptjane algo.
+
+Reverted macro implemtations of hash functions to SPH reference code
+for SSE2 versions of algos.
 
 v3.11.0
 

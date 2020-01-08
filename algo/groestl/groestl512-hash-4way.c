@@ -42,9 +42,12 @@ int groestl512_4way_init( groestl512_4way_context* ctx, uint64_t hashlen )
      ctx->buffer[i]   = m512_zero;
   }
 
-  uint64_t len = U64BIG((uint64_t)LENGTH);
-  ctx->chaining[ COLS/2 -1 ] = _mm512_set4_epi64( len, 0, len, 0 );
-  INIT_4way(ctx->chaining);
+  // The only non-zero in the IV is len. It can be hard coded.
+  ctx->chaining[ 6 ] = m512_const2_64( 0x0200000000000000, 0 );
+//  uint64_t len = U64BIG((uint64_t)LENGTH);
+//  ctx->chaining[ COLS/2 -1 ] = _mm512_set4_epi64( len, 0, len, 0 );
+//  INIT_4way(ctx->chaining);
+
   ctx->buf_ptr = 0;
   ctx->rem_ptr = 0;
 

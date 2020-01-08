@@ -228,8 +228,8 @@ void x20r_hash(void* output, const void* input)
    memcpy(output, hash, 32);
 }
 
-int scanhash_x20r( int thr_id, struct work *work, uint32_t max_nonce,
-	           uint64_t *hashes_done )
+int scanhash_x20r( struct work *work, uint32_t max_nonce,
+	           uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t _ALIGN(128) hash32[8];
    uint32_t _ALIGN(128) endiandata[20];
@@ -238,6 +238,7 @@ int scanhash_x20r( int thr_id, struct work *work, uint32_t max_nonce,
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t nonce = first_nonce;
+   int thr_id = mythr->id;
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
 
    for (int k=0; k < 19; k++)
@@ -259,11 +260,9 @@ int scanhash_x20r( int thr_id, struct work *work, uint32_t max_nonce,
 	x20r_hash( hash32, endiandata );
 
 	if ( hash32[7] <= Htarg && fulltest( hash32, ptarget ) )
-       	{
-           work_set_target_ratio( work, hash32 );
-	   pdata[19] = nonce;
-	   *hashes_done = pdata[19] - first_nonce;
-	   return 1;
+  	{
+        pdata[19] = nonce;
+        submit_solution( work, hash32, mythr );
 	}
 	nonce++;
 

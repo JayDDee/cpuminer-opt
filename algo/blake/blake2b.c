@@ -43,17 +43,14 @@ int scanhash_blake2b( struct work *work, uint32_t max_nonce,
 
 	do {
 		be32enc(&endiandata[19], n);
-		//blake2b_hash_end(vhashcpu, endiandata);
 		blake2b_hash(vhashcpu, endiandata);
 
-		if (vhashcpu[7] < Htarg && fulltest(vhashcpu, ptarget)) {
-			work_set_target_ratio(work, vhashcpu);
-			*hashes_done = n - first_nonce + 1;
+		if (vhashcpu[7] < Htarg && fulltest(vhashcpu, ptarget))
+      {
 			pdata[19] = n;
-			return 1;
-		}
-		n++;
-
+         submit_solution( work, vhashcpu, mythr );
+      }
+      n++;
 	} while (n < max_nonce && !work_restart[thr_id].restart);
 	*hashes_done = n - first_nonce + 1;
 	pdata[19] = n;

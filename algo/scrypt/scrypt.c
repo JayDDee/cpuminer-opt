@@ -753,10 +753,8 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
 		
 		for (i = 0; i < throughput; i++) {
 			if (unlikely(hash[i * 8 + 7] <= Htarg && fulltest(hash + i * 8, ptarget))) {
-				*hashes_done = n - pdata[19] + 1;
 				pdata[19] = data[i * 20 + 19];
-                                work_set_target_ratio( work, hash );
-				return 1;
+            submit_solution( work, hash, mythr );
 			}
 		}
 	} while (likely(n < max_nonce && !work_restart[thr_id].restart));

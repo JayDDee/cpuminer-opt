@@ -24,7 +24,7 @@
 #include "algo/lyra2/lyra2.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/swifftx/swifftx.h"
-#include "algo/panama/sph_panama.h"
+#include "algo/panama/panama-hash-4way.h"
 #include "algo/lanehash/lane.h"
 #if defined(__VAES__)
   #include "algo/groestl/groestl512-hash-4way.h"
@@ -80,7 +80,7 @@ union _x25x_8way_ctx_overlay
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
     sha256_8way_context     sha256;
-    sph_panama_context      panama;
+    panama_8way_context     panama;
     blake2s_8way_state      blake2s;
 #if defined(__VAES__)
     groestl512_4way_context groestl;
@@ -453,30 +453,11 @@ void x25x_8way_hash( void *output, const void *input )
    dintrlv_8x32_512( hash0[21], hash1[21], hash2[21], hash3[21],
                      hash4[21], hash5[21], hash6[21], hash7[21], vhash );
 
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash0[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash0[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash1[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash1[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash2[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash2[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash3[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash3[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash4[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash4[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash5[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash5[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash6[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash6[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash7[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash7[22]);
+   panama_8way_init( &ctx.panama );
+   panama_8way_update( &ctx.panama, vhash, 64 );
+   panama_8way_close( &ctx.panama, vhash );
+   dintrlv_8x32_512( hash0[22], hash1[22], hash2[22], hash3[22],
+                     hash4[22], hash5[22], hash6[22], hash7[22], vhash );
 
    laneHash(512, (const BitSequence*)hash0[22], 512, (BitSequence*)hash0[23]);
    laneHash(512, (const BitSequence*)hash1[22], 512, (BitSequence*)hash1[23]);
@@ -618,7 +599,7 @@ union _x25x_4way_ctx_overlay
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
     sha256_4way_context     sha256;
-    sph_panama_context      panama;
+    panama_4way_context     panama;
     blake2s_4way_state      blake2s;
 };
 typedef union _x25x_4way_ctx_overlay x25x_4way_ctx_overlay;
@@ -842,18 +823,10 @@ void x25x_4way_hash( void *output, const void *input )
    sha256_4way_close( &ctx.sha256, vhash );
    dintrlv_4x32_512( hash0[21], hash1[21], hash2[21], hash3[21], vhash );
 
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash0[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash0[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash1[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash1[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash2[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash2[22]);
-   sph_panama_init(&ctx.panama);
-   sph_panama (&ctx.panama, (const void*) hash3[21], 64 );
-   sph_panama_close(&ctx.panama, (void*) hash3[22]);
+   panama_4way_init( &ctx.panama );
+   panama_4way_update( &ctx.panama, vhash, 64 );
+   panama_4way_close( &ctx.panama, vhash );
+   dintrlv_4x32_512( hash0[22], hash1[22], hash2[22], hash3[22], vhash );
 
    laneHash(512, (const BitSequence*)hash0[22], 512, (BitSequence*)hash0[23]);
    laneHash(512, (const BitSequence*)hash1[22], 512, (BitSequence*)hash1[23]);

@@ -7,9 +7,9 @@
 
 #include "algo/gost/sph_gost.h"
 #include "algo/echo/sph_echo.h"
-#include "algo/fugue//sph_fugue.h"
+#include "algo/fugue/sph_fugue.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#include "algo/skein/sse2/skein.c"
+#include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
 
 #ifndef NO_AES_NI
@@ -115,11 +115,10 @@ int scanhash_phi1612( struct work *work, uint32_t max_nonce,
 		be32enc(&endiandata[19], nonce);
 		phi1612_hash(hash, endiandata);
 
-		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
+		if (hash[7] <= Htarg && fulltest(hash, ptarget))
+      {
 			pdata[19] = nonce;
-                        work_set_target_ratio( work, hash );
-			*hashes_done = pdata[19] - first_nonce;
-			return 1;
+         submit_solution( work, hash, mythr );
 		}
 		nonce++;
 

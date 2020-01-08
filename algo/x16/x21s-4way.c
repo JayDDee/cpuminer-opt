@@ -230,22 +230,22 @@ void x21s_8way_hash( void* output, const void* input )
          case CUBEHASH:
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
             cube_4way_init( &ctx.cube, 512, 16, 32 );
-            cube_4way_update_close( &ctx.cube, vhash, vhash, 64 );
+            cube_4way_update_close( &ctx.cube, vhash, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
             cube_4way_init( &ctx.cube, 512, 16, 32 );
-            cube_4way_update_close( &ctx.cube, vhash, vhash, 64 );
+            cube_4way_update_close( &ctx.cube, vhash, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
          break;
          case SHAVITE:
 #if defined(__VAES__)
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
             shavite512_4way_init( &ctx.shavite );
-            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, 64 );
+            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
             shavite512_4way_init( &ctx.shavite );
-            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, 64 );
+            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
 #else
             sph_shavite512_init( &ctx.shavite );
@@ -285,15 +285,14 @@ void x21s_8way_hash( void* output, const void* input )
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
          break;
          case ECHO:
-
 #if defined(__VAES__)
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
             echo_4way_init( &ctx.echo, 512 );
-            echo_4way_update_close( &ctx.echo, vhash, vhash, 512 );
+            echo_4way_update_close( &ctx.echo, vhash, vhash, size<<3 );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
             echo_4way_init( &ctx.echo, 512 );
-            echo_4way_update_close( &ctx.echo, vhash, vhash, 512 );
+            echo_4way_update_close( &ctx.echo, vhash, vhash, size<<3 );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
 #else
             init_echo( &ctx.echo, 512 );
@@ -517,7 +516,7 @@ int scanhash_x21s_8way( struct work *work, uint32_t max_nonce,
       x16_r_s_getAlgoString( (const uint8_t*)bedata1, hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );
+              applog( LOG_INFO, "hash order %s (%08x)", hashOrder, ntime );
    }
 
    do

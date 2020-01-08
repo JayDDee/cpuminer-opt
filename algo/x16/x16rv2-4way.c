@@ -42,15 +42,12 @@ union _x16rv2_8way_context_overlay
 {
     blake512_8way_context   blake;
     bmw512_8way_context     bmw;
-//    hashState_groestl       groestl;
     skein512_8way_context   skein;
     jh512_8way_context      jh;
     keccak512_8way_context  keccak;
     luffa_4way_context      luffa;
     cube_4way_context       cube;
-//    sph_shavite512_context  shavite;
     simd_4way_context       simd;
-//    hashState_echo          echo;
     hamsi512_8way_context   hamsi;
     sph_fugue512_context    fugue;
     shabal512_8way_context  shabal;
@@ -275,22 +272,22 @@ void x16rv2_8way_hash( void* output, const void* input )
          case CUBEHASH:
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
             cube_4way_init( &ctx.cube, 512, 16, 32 );
-            cube_4way_update_close( &ctx.cube, vhash, vhash, 64 );
+            cube_4way_update_close( &ctx.cube, vhash, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
             cube_4way_init( &ctx.cube, 512, 16, 32 );
-            cube_4way_update_close( &ctx.cube, vhash, vhash, 64 );
+            cube_4way_update_close( &ctx.cube, vhash, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
          break;
          case SHAVITE:
 #if defined(__VAES__)
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
             shavite512_4way_init( &ctx.shavite );
-            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, 64 );
+            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
             shavite512_4way_init( &ctx.shavite );
-            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, 64 );
+            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
 #else
             sph_shavite512_init( &ctx.shavite );
@@ -333,11 +330,11 @@ void x16rv2_8way_hash( void* output, const void* input )
 #if defined(__VAES__)
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
             echo_4way_init( &ctx.echo, 512 );
-            echo_4way_update_close( &ctx.echo, vhash, vhash, 512 );
+            echo_4way_update_close( &ctx.echo, vhash, vhash, size<<3 );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
             echo_4way_init( &ctx.echo, 512 );
-            echo_4way_update_close( &ctx.echo, vhash, vhash, 512 );
+            echo_4way_update_close( &ctx.echo, vhash, vhash, size<<3 );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
 #else
              init_echo( &ctx.echo, 512 );

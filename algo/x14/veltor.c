@@ -89,11 +89,10 @@ int scanhash_veltor( struct work *work, uint32_t max_nonce,
 		be32enc(&endiandata[19], nonce);
 		veltor_hash(hash, endiandata);
 
-		if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
-			work_set_target_ratio(work, hash);
+		if (hash[7] <= Htarg && fulltest(hash, ptarget))
+      {
 			pdata[19] = nonce;
-			*hashes_done = pdata[19] - first_nonce;
-			return 1;
+         submit_solution( work, hash, mythr );
 		}
 		nonce++;
 

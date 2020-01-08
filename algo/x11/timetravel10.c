@@ -334,14 +334,10 @@ int scanhash_timetravel10( struct work *work, uint32_t max_nonce,
 
         if ( hash[7] <= Htarg && fulltest( hash, ptarget) )
         {
-              work_set_target_ratio( work, hash );
               pdata[19] = nonce;
-              work_set_target_ratio( work, hash );
-              *hashes_done = pdata[19] - first_nonce;
-              return 1;
-         }
-         nonce++;
-
+              submit_solution( work, hash, mythr );
+        }
+        nonce++;
         } while (nonce < max_nonce && !(*restart));
 
         pdata[19] = nonce;
