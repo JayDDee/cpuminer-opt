@@ -6,18 +6,6 @@
 #define USER_AGENT PACKAGE_NAME "/" PACKAGE_VERSION
 #define MAX_CPUS 16
 
-//#ifndef NO_AES_NI
- #ifndef __AES__
-  #define NO_AES_NI
- #endif
-//#endif
-
-//#if defined(FOUR_WAY) && defined(__AVX2__)
-// keep this until all algos remove reference to HASH_4WAY
-//#if defined(__AVX2__)
-//  #define HASH_4WAY
-//#endif
-
 #ifdef _MSC_VER
 
 #undef USE_ASM  /* to fix */

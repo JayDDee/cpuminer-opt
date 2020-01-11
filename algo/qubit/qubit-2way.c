@@ -149,8 +149,8 @@ int scanhash_qubit_4way( struct work *work,uint32_t max_nonce,
         pdata[19] = n;
 
         for ( int lane = 0; lane < 4; lane++ )
-        if ( ( hash+(lane<<3) )[7] < Htarg )
-        if ( fulltest( hash+(lane<<3), ptarget) && !opt_benchmark )
+        if ( unlikely( ( hash+(lane<<3) )[7] <= Htarg ) )
+        if ( likely( fulltest( hash+(lane<<3), ptarget) && !opt_benchmark ) )
         {
            pdata[19] = n + lane;
            submit_lane_solution( work, hash+(lane<<3), mythr, lane );
@@ -233,10 +233,6 @@ int scanhash_qubit_2way( struct work *work,uint32_t max_nonce,
      uint32_t *noncep = vdata + 32+3;   // 4*8 + 3
      int thr_id = mythr->id;  // thr_id arg is deprecated
      const uint32_t Htarg = ptarget[7];
-     uint64_t htmax[] = {          0,        0xF,       0xFF,
-                               0xFFF,     0xFFFF, 0x10000000  };
-     uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
-                          0xFFFFF000, 0xFFFF0000,          0  };
 
      casti_m256i( endiandata, 0 ) = mm256_bswap_32( casti_m256i( pdata, 0 ) );
      casti_m256i( endiandata, 1 ) = mm256_bswap_32( casti_m256i( pdata, 1 ) );
@@ -248,32 +244,27 @@ int scanhash_qubit_2way( struct work *work,uint32_t max_nonce,
      luffa_2way_init( &qubit_2way_ctx.luffa, 512 );
      luffa_2way_update( &qubit_2way_ctx.luffa, vdata, 64 );
 
-     for ( int m=0; m < 6; m++ ) if ( Htarg <= htmax[m] )
+     do
      {
-        uint32_t mask = masks[m];
-        do
-        {
-            be32enc( noncep,   n   );
-            be32enc( noncep+4, n+1 );
-            qubit_2way_hash( hash, vdata );
-            pdata[19] = n;
+         be32enc( noncep,   n   );
+         be32enc( noncep+4, n+1 );
+         qubit_2way_hash( hash, vdata );
+         pdata[19] = n;
 
-            if ( !( hash[7] & mask ) )
-            if ( fulltest( hash, ptarget) && !opt_benchmark )
-            {
-                pdata[19] = n;
-                submit_lane_solution( work, hash, mythr, 0 );
-            }
-            if ( !( (hash+8)[7] & mask ) )
-            if ( fulltest( hash+8, ptarget) && !opt_benchmark )
-            {
-               pdata[19] = n+1;
-               submit_lane_solution( work, hash+8, mythr, 1 );
-            }
-            n += 2;
-         } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
-         break;
-     }
+         if ( unlikely( hash[7] <= Htarg ) )
+         if ( likely( fulltest( hash, ptarget) && !opt_benchmark ) )
+         {
+            pdata[19] = n;
+            submit_lane_solution( work, hash, mythr, 0 );
+         }
+         if ( unlikely( ( (hash+8))[7] <= Htarg ) )
+         if ( likely( fulltest( hash+8, ptarget) && !opt_benchmark ) )
+         {
+            pdata[19] = n+1;
+            submit_lane_solution( work, hash+8, mythr, 1 );
+         }
+         n += 2;
+     } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
      *hashes_done = n - first_nonce + 1;
      return 0;
 }

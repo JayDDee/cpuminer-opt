@@ -11,7 +11,7 @@
 #include "miner.h"
 #include "simd-utils.h"
 
-#ifndef NO_AES_NI
+#ifdef __AES__
 
 #include "groestl-version.h"
 
@@ -86,8 +86,11 @@ HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
      ctx->chaining[i] = _mm_setzero_si128();
      ctx->buffer[i]   = _mm_setzero_si128();
   }
-  ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
-  INIT256(ctx->chaining);
+
+  ctx->chaining[ 3 ] = m128_const_64( 0, 0x0100000000000000 );
+
+//  ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
+//  INIT256(ctx->chaining);
   ctx->buf_ptr = 0;
   ctx->rem_ptr = 0;
 

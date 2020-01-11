@@ -575,4 +575,138 @@ int LYRA2RE_2WAY( void *K, uint64_t kLen, const void *pwd,
    return 0;
 }
 
+int LYRA2X_2WAY( void *K, uint64_t kLen, const void *pwd,
+                  const uint64_t pwdlen, const uint64_t timeCost,
+                  const uint64_t nRows, const uint64_t nCols )
+{
+   //====================== Basic variables ============================//
+   uint64_t _ALIGN(256) state[32];
+   int64_t row = 2; //index of row to be processed
+   int64_t prev = 1; //index of prev (last row ever computed/modified)
+   int64_t rowa0 = 0;
+   int64_t rowa1 = 0;
+   int64_t tau; //Time Loop iterator
+   int64_t step = 1; //Visitation step (used during Setup and Wandering phases)
+   int64_t window = 2; //Visitation window (used to define which rows can be revisited during Setup)
+   int64_t gap = 1; //Modifier to the step, assuming the values 1 or -1
+   int64_t i; //auxiliary iteration counter
+   //====================================================================/
+
+   //=== Initializing the Memory Matrix and pointers to it =============//
+   //Tries to allocate enough space for the whole memory matrix
+
+   const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * nCols;
+   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+   // for Lyra2REv2, nCols = 4, v1 was using 8
+   const int64_t BLOCK_LEN = (nCols == 4) ? BLOCK_LEN_BLAKE2_SAFE_INT64
+                                          : BLOCK_LEN_BLAKE2_SAFE_BYTES;
+
+   i = (int64_t)ROW_LEN_BYTES * nRows;
+   uint64_t *wholeMatrix = _mm_malloc( 2*i, 64 );
+   if (wholeMatrix == NULL)
+      return -1;
+
+   memset_zero_512( (__m512i*)wholeMatrix, i>>5 );
+
+   uint64_t *ptrWord = wholeMatrix;
+   uint64_t *pw = (uint64_t*)pwd;
+
+   //First, we clean enough blocks for the password, salt, basil and padding
+   int64_t nBlocksInput = ( ( pwdlen + pwdlen + 6 * sizeof(uint64_t) )
+                              / BLOCK_LEN_BLAKE2_SAFE_BYTES ) + 1;
+
+   uint64_t *ptr = wholeMatrix;
+
+   memcpy( ptr, pw, 2*pwdlen ); // password 
+   ptr += pwdlen>>2;
+   memcpy( ptr, pw, 2*pwdlen ); // password lane 1
+   ptr += pwdlen>>2;
+
+   // now build the rest interleaving on the fly.
+
+   ptr[0] = ptr[ 4] = kLen;
+   ptr[1] = ptr[ 5] = pwdlen;
+   ptr[2] = ptr[ 6] = pwdlen;   // saltlen
+   ptr[3] = ptr[ 7] = timeCost;
+   ptr[8] = ptr[12] = nRows;
+   ptr[9] = ptr[13] = nCols;
+   ptr[10] = ptr[14] = 0x80;
+   ptr[11] = ptr[15] = 0x0100000000000000;
+
+   absorbBlockBlake2Safe_2way( state, ptrWord, nBlocksInput, BLOCK_LEN );
+
+   //Initializes M[0] and M[1]
+   reducedSqueezeRow0_2way( state, &wholeMatrix[0], nCols ); //The locally copied password is most likely overwritten here
+
+   reducedDuplexRow1_2way( state, &wholeMatrix[0],
+                                  &wholeMatrix[ 2 * ROW_LEN_INT64], nCols );
+
+   do
+   {
+      //M[row] = rand; //M[row*] = M[row*] XOR rotW(rand)
+
+      reducedDuplexRowSetup_2way( state, &wholeMatrix[ 2* prev*ROW_LEN_INT64 ],
+                                         &wholeMatrix[ 2* rowa0*ROW_LEN_INT64 ],
+                                         &wholeMatrix[ 2* row*ROW_LEN_INT64 ],
+                                         nCols );
+
+      //updates the value of row* (deterministically picked during Setup))
+      rowa0 = (rowa0 + step) & (window - 1);
+      //update prev: it now points to the last row ever computed
+
+      prev = row;
+      //updates row: goes to the next row to be computed
+      row++;
+
+      //Checks if all rows in the window where visited.
+      if (rowa0 == 0)
+      {
+         step = window + gap; //changes the step: approximately doubles its value
+         window *= 2; //doubles the size of the re-visitation window
+         gap = -gap; //inverts the modifier to the step
+      }
+
+   } while (row < nRows);
+
+   //===================== Wandering Phase =============================//
+   row = 0; //Resets the visitation to the first row of the memory matrix
+   for (tau = 1; tau <= timeCost; tau++)
+   {
+      step = ((tau & 1) == 0) ? -1 : (nRows >> 1) - 1;
+      do
+      {
+        rowa0 = state[ 0 ] & (unsigned int)(nRows-1);
+        rowa1 = state[ 4 ] & (unsigned int)(nRows-1);
+
+        reducedDuplexRow_2way_X( state, &wholeMatrix[ 2* prev * ROW_LEN_INT64 ],
+                                      &wholeMatrix[ 2* rowa0 * ROW_LEN_INT64 ],
+                                      &wholeMatrix[ 2* rowa1 * ROW_LEN_INT64 ],
+                                      &wholeMatrix[ 2* row *ROW_LEN_INT64 ],
+                                      nCols );
+
+           //update prev: it now points to the last row ever computed
+           prev = row;
+
+           //updates row: goes to the next row to be computed
+           //----------------------------------------------------
+           row = (row + step) & (unsigned int)(nRows-1); //(USE THIS IF nRows IS A POWER OF 2)
+           //row = (row + step) % nRows; //(USE THIS FOR THE "GENERIC" CASE)
+           //----------------------------------------------------
+
+       } while (row != 0);
+   }
+
+   //===================== Wrap-up Phase ===============================//
+   //Absorbs the last block of the memory matrix
+   absorbBlock_2way( state, &wholeMatrix[ 2 * rowa0 *ROW_LEN_INT64],
+                            &wholeMatrix[ 2 * rowa1 *ROW_LEN_INT64] );
+   //Squeezes the key
+   squeeze_2way( state, K, (unsigned int) kLen );
+
+   //================== Freeing the memory =============================//
+   _mm_free(wholeMatrix);
+
+   return 0;
+}
+      
 #endif

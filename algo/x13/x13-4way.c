@@ -315,7 +315,7 @@ int scanhash_x13_8way( struct work *work, uint32_t max_nonce,
          pdata[19] = n;
 
          for ( int i = 0; i < 8; i++ )
-         if ( ( hash+(i<<3) )[7] < Htarg
+         if ( ( hash+(i<<3) )[7] <= Htarg
               && fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
          {
              pdata[19] = n+i;

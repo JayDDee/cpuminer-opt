@@ -153,26 +153,26 @@ bool lyra2h_thread_init();
 //////////////////////////////////
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-  #define ALLIUM_8WAY 1
+  #define ALLIUM_16WAY 1
 #elif defined(__AVX2__) && defined(__AES__)
-  #define ALLIUM_4WAY 1
+  #define ALLIUM_8WAY 1
 #endif
 
 bool register_allium_algo( algo_gate_t* gate );
 
-#if defined(ALLIUM_8WAY)
+#if defined(ALLIUM_16WAY)
+
+void allium_16way_hash( void *state, const void *input );
+int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
+                          uint64_t *hashes_done, struct thr_info *mythr );
+bool init_allium_16way_ctx();
+
+#elif defined(ALLIUM_8WAY)
 
 void allium_8way_hash( void *state, const void *input );
 int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr );
 bool init_allium_8way_ctx();
-
-#elif defined(ALLIUM_4WAY)
-
-void allium_4way_hash( void *state, const void *input );
-int scanhash_allium_4way( struct work *work, uint32_t max_nonce,
-                          uint64_t *hashes_done, struct thr_info *mythr );
-bool init_allium_4way_ctx();
 
 #else
 

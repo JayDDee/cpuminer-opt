@@ -1,13 +1,10 @@
 #include "cpuminer-config.h"
 #include "x11evo-gate.h"
-
 #include <string.h>
 #include <stdint.h>
 #include <compat/portable_endian.h>
-
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
-#include "algo/groestl/sph_groestl.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
@@ -15,24 +12,24 @@
 #include "algo/cubehash/sph_cubehash.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/sph_simd.h"
-#include "algo/echo/sph_echo.h"
-
-#ifndef NO_AES_NI
+#ifdef __AES__
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
+#else
+  #include "algo/groestl/sph_groestl.h"
+  #include "algo/echo/sph_echo.h"
 #endif
-
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
 
 typedef struct {
-#ifdef NO_AES_NI
-    sph_groestl512_context  groestl;
-    sph_echo512_context     echo;
-#else
+#ifdef __AES__
     hashState_echo          echo;
     hashState_groestl       groestl;
+#else
+    sph_groestl512_context  groestl;
+    sph_echo512_context     echo;
 #endif
     hashState_luffa         luffa;
     cubehashParam           cube;
@@ -49,12 +46,12 @@ static x11evo_ctx_holder x11evo_ctx __attribute__ ((aligned (64)));
 
 void init_x11evo_ctx()
 {
-#ifdef NO_AES_NI
-     sph_groestl512_init( &x11evo_ctx.groestl );
-     sph_echo512_init( &x11evo_ctx.echo );
-#else
+#ifdef __AES__
      init_echo( &x11evo_ctx.echo, 512 );
      init_groestl( &x11evo_ctx.groestl, 64 );
+#else
+     sph_groestl512_init( &x11evo_ctx.groestl );
+     sph_echo512_init( &x11evo_ctx.echo );
 #endif
      init_luffa( &x11evo_ctx.luffa, 512 );
      cubehashInit( &x11evo_ctx.cube, 512, 16, 32 );
@@ -106,12 +103,12 @@ void x11evo_hash( void *state, const void *input )
 	      sph_bmw512_close( &ctx.bmw, (char*)hash );
 	      break;
 	   case 2:
-#ifdef NO_AES_NI
+#ifdef __AES__
+         update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                        (const char*)hash, 512 );
+#else
 	      sph_groestl512( &ctx.groestl, (char*)hash, size );
 	      sph_groestl512_close( &ctx.groestl, (char*)hash );
-#else
-              update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                        (const char*)hash, 512 );
 #endif
 	      break;
 	    case 3:
@@ -142,12 +139,12 @@ void x11evo_hash( void *state, const void *input )
               update_final_sd( &ctx.simd, (char*)hash, (const char*)hash, 512 );
 	      break;
 	    case 10:
-#ifdef NO_AES_NI
+#ifdef __AES__
+         update_final_echo( &ctx.echo, (char*)hash,
+                                 (const char*)hash, 512 );
+#else
 	      sph_echo512( &ctx.echo, (char*)hash, size );
 	      sph_echo512_close( &ctx.echo, (char*)hash );
-#else
-              update_final_echo( &ctx.echo, (char*)hash,
-                                 (const char*)hash, 512 );
 #endif
 	      break;
 	}

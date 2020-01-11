@@ -398,16 +398,16 @@ void x22i_8way_hash( void *output, const void *input )
    memset( hash7, 0, 64 );
 
    intrlv_2x256( vhash, hashA0, hashA1, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
+   LYRA2X_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
    dintrlv_2x256( hash0, hash1, vhash, 256 );
    intrlv_2x256( vhash, hashA2, hashA3, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
+   LYRA2X_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
    dintrlv_2x256( hash2, hash3, vhash, 256 );
    intrlv_2x256( vhash, hashA4, hashA5, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
+   LYRA2X_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
    dintrlv_2x256( hash4, hash5, vhash, 256 );
    intrlv_2x256( vhash, hashA6, hashA7, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
+   LYRA2X_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
    dintrlv_2x256( hash6, hash7, vhash, 256 );
 
    sph_gost512_init( &ctx.gost );

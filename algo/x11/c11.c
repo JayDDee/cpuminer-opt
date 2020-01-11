@@ -78,11 +78,9 @@ void c11_hash( void *output, const void *input )
     sph_bmw512_close( &ctx.bmw, hash );
 
 #if defined(__AES__)
-    init_groestl( &ctx.groestl, 64 );
     update_and_final_groestl( &ctx.groestl, (char*)hash,
                                       (const char*)hash, 512 );
 #else
-    sph_groestl512_init( &ctx.groestl );
     sph_groestl512( &ctx.groestl, hash, 64 );
     sph_groestl512_close( &ctx.groestl, hash );
 #endif
@@ -108,12 +106,12 @@ void c11_hash( void *output, const void *input )
      update_final_sd( &ctx.simd, (BitSequence *)hash,
                       (const BitSequence *)hash, 512 );
 
-#ifdef NO_AES_NI
-     sph_echo512( &ctx.echo, hash, 64 );
-     sph_echo512_close( &ctx.echo, hash );
-#else
+#if defined(__AES__)
      update_final_echo ( &ctx.echo, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
+#else
+     sph_echo512( &ctx.echo, hash, 64 );
+     sph_echo512_close( &ctx.echo, hash );
 #endif
 
         memcpy(output, hash, 32);

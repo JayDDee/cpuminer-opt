@@ -17,15 +17,6 @@
 
 #if defined(__VAES__)
 
-#define ROTL64(a,n) \
-   ( ( ( (a)<<(n) ) | ( (a) >> (64-(n)) ) ) & 0xffffffffffffffff )
-     
-#define U64BIG(a) \
-  ( ( ROTL64(a, 8) & 0x000000FF000000FF ) | \
-    ( ROTL64(a,24) & 0x0000FF000000FF00 ) | \
-    ( ROTL64(a,40) & 0x00FF000000FF0000 ) | \
-    ( ROTL64(a,56) & 0xFF000000FF000000 ) )
-
 int groestl512_4way_init( groestl512_4way_context* ctx, uint64_t hashlen )
 {
   int i;

@@ -3,19 +3,18 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
-#ifdef NO_AES_NI
-  #include "sph_groestl.h"
-#else
+#ifdef __AES__
   #include "algo/groestl/aes_ni/hash-groestl.h"
+#else
+  #include "sph_groestl.h"
 #endif
 
 typedef struct
 {
-#ifdef NO_AES_NI
-    sph_groestl512_context groestl1, groestl2;
-#else
+#ifdef __AES__
     hashState_groestl groestl1, groestl2;
+#else
+    sph_groestl512_context groestl1, groestl2;
 #endif
 
 } groestl_ctx_holder;
@@ -24,12 +23,12 @@ static groestl_ctx_holder groestl_ctx;
 
 void init_groestl_ctx()
 {
-#ifdef NO_AES_NI
-    sph_groestl512_init( &groestl_ctx.groestl1 );
-    sph_groestl512_init( &groestl_ctx.groestl2 );
-#else
+#ifdef __AES__
     init_groestl( &groestl_ctx.groestl1, 64 );
     init_groestl( &groestl_ctx.groestl2, 64 );
+#else
+    sph_groestl512_init( &groestl_ctx.groestl1 );
+    sph_groestl512_init( &groestl_ctx.groestl2 );
 #endif
 }
 
@@ -39,18 +38,18 @@ void groestlhash( void *output, const void *input )
      groestl_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &groestl_ctx, sizeof(groestl_ctx) );
 
-#ifdef NO_AES_NI
-     sph_groestl512(&ctx.groestl1, input, 80);
-     sph_groestl512_close(&ctx.groestl1, hash);
-
-     sph_groestl512(&ctx.groestl2, hash, 64);
-     sph_groestl512_close(&ctx.groestl2, hash);
-#else
+#ifdef __AES__
      update_and_final_groestl( &ctx.groestl1, (char*)hash,
                                (const char*)input, 640 );
 
      update_and_final_groestl( &ctx.groestl2, (char*)hash,
                                (const char*)hash, 512 );
+#else
+     sph_groestl512(&ctx.groestl1, input, 80);
+     sph_groestl512_close(&ctx.groestl1, hash);
+
+     sph_groestl512(&ctx.groestl2, hash, 64);
+     sph_groestl512_close(&ctx.groestl2, hash);
 #endif
      memcpy(output, hash, 32);
  }

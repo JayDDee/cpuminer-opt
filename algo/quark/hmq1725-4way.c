@@ -1513,10 +1513,10 @@ int scanhash_hmq1725_4way( struct work *work, uint32_t max_nonce,
        hmq1725_4way_hash( hash, vdata );
 
        for ( int lane = 0; lane < 4; lane++ )
-       if ( hash7[ lane<<1 ] <= Htarg )
+       if ( unlikely( hash7[ lane<<1 ] <= Htarg ) )
        {
           extr_lane_4x64( lane_hash, hash, lane, 256 );
-          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
+          if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
           {
              pdata[19] = n + lane;
              submit_lane_solution( work, lane_hash, mythr, lane );

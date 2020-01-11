@@ -24,7 +24,6 @@
 
 #if defined(X12_8WAY)
 
-
 typedef struct {
     blake512_8way_context   blake;
     bmw512_8way_context     bmw;
@@ -96,7 +95,6 @@ void x12_8way_hash( void *state, const void *input )
 
 #if defined(__VAES__)
 
-     shavite512_4way_init( &ctx.shavite );
      shavite512_4way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
      shavite512_4way_init( &ctx.shavite );
      shavite512_4way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
@@ -151,19 +149,16 @@ void x12_8way_hash( void *state, const void *input )
 
 #endif
 
-     simd_4way_init( &ctx.simd, 512 );
      simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
      simd_4way_init( &ctx.simd, 512 );
      simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
 
 #if defined(__VAES__)
 
-     echo_4way_init( &ctx.echo, 512 );
      echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
      echo_4way_init( &ctx.echo, 512 );
      echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
 
-     groestl512_4way_init( &ctx.groestl, 64 );
      groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
      groestl512_4way_init( &ctx.groestl, 64 );
      groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
@@ -174,7 +169,7 @@ void x12_8way_hash( void *state, const void *input )
 
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
-     
+
      update_final_echo( &ctx.echo, (BitSequence *)hash1,
                        (const BitSequence *) hash1, 512 );
      memcpy( &ctx.echo, &x12_8way_ctx.echo, sizeof(hashState_echo) );

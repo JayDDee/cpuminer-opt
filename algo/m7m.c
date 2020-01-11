@@ -267,6 +267,7 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
             SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
         }
 
+// rewrite to use 64 bit test.        
         const unsigned char *hash_ = (const unsigned char *)hash;
         const unsigned char *target_ = (const unsigned char *)ptarget;
         for ( i = 31; i >= 0; i-- )

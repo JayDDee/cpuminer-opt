@@ -15,7 +15,7 @@
 #ifndef HASH_API_H
 #define HASH_API_H
 
-#ifndef NO_AES_NI
+#ifdef __AES__
 #define HASH_IMPL_STR	"ECHO-aesni"
 #else
 #define HASH_IMPL_STR	"ECHO-vperm"

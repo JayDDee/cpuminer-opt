@@ -7,7 +7,6 @@
  * - implements NIST hash api
  * - assumes that message lenght is multiple of 8-bits
  * - _ECHO_VPERM_ must be defined if compiling with ../main.c
- * -  define NO_AES_NI for aes_ni version
  *
  * Cagdas Calik
  * ccalik@metu.edu.tr
@@ -21,13 +20,6 @@
 #include "hash_api.h"
 //#include "vperm.h"
 #include <immintrin.h>
-/*
-#ifndef NO_AES_NI
-#include <wmmintrin.h>
-#else
-#include <tmmintrin.h>
-#endif
-*/
 
 MYALIGN const unsigned int _k_s0F[] = {0x0F0F0F0F, 0x0F0F0F0F, 0x0F0F0F0F, 0x0F0F0F0F};
 MYALIGN const unsigned int _k_ipt[] = {0x5A2A7000, 0xC2B2E898, 0x52227808, 0xCABAE090, 0x317C4D00, 0x4C01307D, 0xB0FDCC81, 0xCD80B1FC};
