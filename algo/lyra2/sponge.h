@@ -203,13 +203,24 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-union _povly
+union _ovly_512
 {
-   __m512i *v512;
-   __m256i *v256;
-   uint64_t *u64;
+  __m512i v512;
+  struct
+  {
+     __m256i v256lo;
+     __m256i v256hi;
+  };
 };
-typedef union _povly povly;
+typedef union _ovly_512 ovly_512;
+
+
+union _inout_ovly
+{
+   __m512i v512[3];
+   __m256i v256[6];
+};
+typedef union _inout_ovly inout_ovly;
 
 //---- Housekeeping
 void initState_2way( uint64_t State[/*16*/] );
@@ -233,6 +244,10 @@ void reducedDuplexRowSetup_2way( uint64_t *State, uint64_t *rowIn,
 void reducedDuplexRow_2way( uint64_t *State, uint64_t *rowIn,
                             uint64_t *rowInOut0, uint64_t *rowInOut1,
                             uint64_t *rowOut, uint64_t nCols);
+
+void reducedDuplexRow_2way_X( uint64_t *State, uint64_t *rowIn,
+                              uint64_t *rowInOut0, uint64_t *rowInOut1,
+                              uint64_t *rowOut, uint64_t nCols);
 
 #endif
 

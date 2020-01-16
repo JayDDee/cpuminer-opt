@@ -21,15 +21,12 @@ typedef struct _cube_4way_context cube_4way_context;
 
 int cube_4way_init( cube_4way_context* sp, int hashbitlen, int rounds,
                        int blockbytes );
-// reinitialize context with same parameters, much faster.
-int cube_4way_reinit( cube_4way_context *sp );
-
 int cube_4way_update( cube_4way_context *sp, const void *data, size_t size );
-
 int cube_4way_close( cube_4way_context *sp, void *output );
-
 int cube_4way_update_close( cube_4way_context *sp, void *output,
                             const void *data, size_t size );
+int cube_4way_full( cube_4way_context *sp, void *output, int hashbitlen,
+                    const void *data, size_t size );
 
 #endif
 
@@ -48,15 +45,12 @@ typedef struct _cube_2way_context cube_2way_context;
 
 int cube_2way_init( cube_2way_context* sp, int hashbitlen, int rounds,
                        int blockbytes );
-// reinitialize context with same parameters, much faster.
-int cube_2way_reinit( cube_2way_context *sp );
-
 int cube_2way_update( cube_2way_context *sp, const void *data, size_t size );
-
 int cube_2way_close( cube_2way_context *sp, void *output );
-
 int cube_2way_update_close( cube_2way_context *sp, void *output,
                             const void *data, size_t size );
+int cube_2way_full( cube_2way_context *sp, void *output, int hashbitlen,
+                    const void *data, size_t size );
 
 
 #endif

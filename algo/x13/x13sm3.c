@@ -121,12 +121,12 @@ void x13sm3_hash(void *output, const void *input)
                          (const BitSequence *)hash, 512 );
 
         //11---echo---
-#ifdef NO_AES_NI
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hash);
-#else
+#ifdef __AES__
         update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
+#else
+        sph_echo512(&ctx.echo, hash, 64);
+        sph_echo512_close(&ctx.echo, hash);
 #endif
 
         uint32_t sm3_hash[32] __attribute__ ((aligned (32)));

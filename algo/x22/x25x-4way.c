@@ -408,16 +408,16 @@ void x25x_8way_hash( void *output, const void *input )
    sph_tiger_close(&ctx.tiger, (void*) hash7[18]);
 
    intrlv_2x256( vhash, hash0[18], hash1[18], 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
+   LYRA2X_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
    dintrlv_2x256( hash0[19], hash1[19], vhash, 256 );
    intrlv_2x256( vhash, hash2[18], hash3[18], 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
+   LYRA2X_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
    dintrlv_2x256( hash2[19], hash3[19], vhash, 256 );
    intrlv_2x256( vhash, hash4[18], hash5[18], 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
+   LYRA2X_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
    dintrlv_2x256( hash4[19], hash5[19], vhash, 256 );
    intrlv_2x256( vhash, hash6[18], hash7[18], 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
+   LYRA2X_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
    dintrlv_2x256( hash6[19], hash7[19], vhash, 256 );
 
 	sph_gost512_init(&ctx.gost);

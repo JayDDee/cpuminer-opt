@@ -32,5 +32,8 @@ int echo_close( echo_4way_context *state, void *hashval );
 int echo_4way_update_close( echo_4way_context *state, void *hashval,
                               const void *data, int databitlen );
 
+int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
+                    const void *data, int datalen );
+
 #endif 
 #endif

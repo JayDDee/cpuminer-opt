@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "algo/luffa/luffa_for_sse2.h" 
 #include "algo/cubehash/cubehash_sse2.h" 
-#ifndef NO_AES_NI
+#ifdef __AES__
 #include "algo/echo/aes_ni/hash_api.h"
 #else
 #include "algo/echo/sph_echo.h"
@@ -15,10 +15,10 @@ typedef struct
 {
         hashState_luffa         luffa;
         cubehashParam           cubehash;
-#ifdef NO_AES_NI
-        sph_echo512_context echo;
-#else
+#ifdef __AES__
         hashState_echo          echo;
+#else
+        sph_echo512_context echo;
 #endif
 } deep_ctx_holder;
 
@@ -29,10 +29,10 @@ void init_deep_ctx()
 {
         init_luffa( &deep_ctx.luffa, 512 );
         cubehashInit( &deep_ctx.cubehash, 512, 16, 32 );
-#ifdef NO_AES_NI
-        sph_echo512_init( &deep_ctx.echo );
-#else
+#ifdef __AES__
         init_echo( &deep_ctx.echo, 512 );
+#else
+        sph_echo512_init( &deep_ctx.echo );
 #endif
 };
 
@@ -59,12 +59,12 @@ void deep_hash(void *output, const void *input)
         cubehashUpdateDigest( &ctx.cubehash, (byte*)hash, 
                               (const byte*) hash,64);
 
-#ifdef NO_AES_NI
-        sph_echo512 (&ctx.echo, (const void*) hash, 64);
-        sph_echo512_close(&ctx.echo, (void*) hash);
-#else
+#ifdef __AES__
         update_final_echo ( &ctx.echo, (BitSequence *) hash,
                           (const BitSequence *) hash, 512);
+#else
+        sph_echo512 (&ctx.echo, (const void*) hash, 64);
+        sph_echo512_close(&ctx.echo, (void*) hash);
 #endif
 
         asm volatile ("emms");

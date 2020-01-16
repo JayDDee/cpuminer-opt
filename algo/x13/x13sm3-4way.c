@@ -227,7 +227,7 @@ int scanhash_x13sm3_4way( struct work *work, uint32_t max_nonce,
      mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
      blake512_4way_init( &x13sm3_ctx_mid );
-     blake512_4way( &x13sm3_ctx_mid, vdata, 64 );
+     blake512_4way_update( &x13sm3_ctx_mid, vdata, 64 );
 
      for ( int m=0; m < 6; m++ )
        if ( Htarg <= htmax[m] )

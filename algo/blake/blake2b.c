@@ -45,7 +45,7 @@ int scanhash_blake2b( struct work *work, uint32_t max_nonce,
 		be32enc(&endiandata[19], n);
 		blake2b_hash(vhashcpu, endiandata);
 
-		if (vhashcpu[7] < Htarg && fulltest(vhashcpu, ptarget))
+		if (vhashcpu[7] <= Htarg && fulltest(vhashcpu, ptarget))
       {
 			pdata[19] = n;
          submit_solution( work, vhashcpu, mythr );

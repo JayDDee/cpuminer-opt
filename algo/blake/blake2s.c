@@ -56,7 +56,7 @@ int scanhash_blake2s( struct work *work,
 	do {
 		be32enc(&endiandata[19], n);
 		blake2s_hash( hash64, endiandata );
-		if (hash64[7] < Htarg && fulltest(hash64, ptarget)) {
+		if (hash64[7] <= Htarg && fulltest(hash64, ptarget)) {
 			*hashes_done = n - first_nonce + 1;
 			pdata[19] = n;
 			return true;

@@ -248,11 +248,11 @@ void quark_8way_hash( void *state, const void *input )
        jh512_8way_close( &ctx.jh, vhashB );
     }
 
-    // Final blend, directly to state, only need 32 bytes.
-    casti_m512i( state,0 ) = _mm512_mask_blend_epi64( vh_mask, vhA[0], vhB[0] );
-    casti_m512i( state,1 ) = _mm512_mask_blend_epi64( vh_mask, vhA[1], vhB[1] );
-    casti_m512i( state,2 ) = _mm512_mask_blend_epi64( vh_mask, vhA[2], vhB[2] );
-    casti_m512i( state,3 ) = _mm512_mask_blend_epi64( vh_mask, vhA[3], vhB[3] );
+   // Final blend, directly to state, only need 32 bytes.
+   casti_m512i( state,0 ) = _mm512_mask_blend_epi64( vh_mask, vhA[0], vhB[0] );
+   casti_m512i( state,1 ) = _mm512_mask_blend_epi64( vh_mask, vhA[1], vhB[1] );
+   casti_m512i( state,2 ) = _mm512_mask_blend_epi64( vh_mask, vhA[2], vhB[2] );
+   casti_m512i( state,3 ) = _mm512_mask_blend_epi64( vh_mask, vhA[3], vhB[3] );
 }
 
 int scanhash_quark_8way( struct work *work, uint32_t max_nonce,
@@ -267,23 +267,24 @@ int scanhash_quark_8way( struct work *work, uint32_t max_nonce,
     uint32_t n = pdata[19];
     const uint32_t first_nonce = pdata[19];
     __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
-    int thr_id = mythr->id;  // thr_id arg is deprecated
+    int thr_id = mythr->id; 
+    const uint32_t Htarg = ptarget[7];
 
     mm512_bswap32_intrlv80_8x64( vdata, pdata );
     do
     {
        *noncev = mm512_intrlv_blend_32( mm512_bswap_32(
-                _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                                  n+3, 0, n+2, 0, n+1, 0, n  , 0 ) ), *noncev );
+              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                                n+3, 0, n+2, 0, n+1, 0, n  , 0 ) ), *noncev );
 
        quark_8way_hash( hash, vdata );
        pdata[19] = n;
 
        for ( int i = 0; i < 8; i++ )
-       if ( ( hash7[ i<<1 ] & 0xFFFFFF00 ) == 0 )
+       if ( unlikely( hash7[ i<<1 ] <= Htarg ) )
        {
           extr_lane_8x64( lane_hash, hash, i, 256 );
-          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark  )
+          if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
           {
             pdata[19] = n+i;
             submit_lane_solution( work, lane_hash, mythr, i );
@@ -295,7 +296,6 @@ int scanhash_quark_8way( struct work *work, uint32_t max_nonce,
     *hashes_done = n - first_nonce;
     return 0;
 }
-
 
 #elif defined (QUARK_4WAY)
 
@@ -460,8 +460,9 @@ int scanhash_quark_4way( struct work *work, uint32_t max_nonce,
     uint32_t n = pdata[19];
     const uint32_t first_nonce = pdata[19];
     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-    int thr_id = mythr->id;  // thr_id arg is deprecated
-
+    int thr_id = mythr->id;
+    const uint32_t Htarg = ptarget[7];
+ 
     mm256_bswap32_intrlv80_4x64( vdata, pdata );
     do
     {
@@ -472,10 +473,10 @@ int scanhash_quark_4way( struct work *work, uint32_t max_nonce,
        pdata[19] = n;
 
        for ( int i = 0; i < 4; i++ )
-       if ( ( hash7[ i<<1 ] & 0xFFFFFF00 ) == 0 )
+       if ( unlikely( hash7[ i<<1 ] <= Htarg ) )
        {
           extr_lane_4x64( lane_hash, hash, i, 256 );
-          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark  )
+          if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
           {
             pdata[19] = n+i;
             submit_lane_solution( work, lane_hash, mythr, i );

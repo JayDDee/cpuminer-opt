@@ -36,6 +36,23 @@ are not supported. FreeBSD YMMV.
 Change Log
 ----------
 
+v3.11.4
+
+Fixed scrypt segfault since v3.9.9.1.
+
+Stale shares counted and reported seperately from other rejected shares.
+
+Display of counters for solved blocks, rejects, stale shares suppressed in
+periodic summary when zero.
+
+v3.11.3
+
+Fixed x12 AVX2 again.
+
+More speed for allium: AVX2 +4%, AVX512 +6%, VAES +14%.
+
+Restored lost speed for x22i & x25x.
+
 v3.11.2
 
 Fixed x11gost (sib) AVX2 invalid shares.

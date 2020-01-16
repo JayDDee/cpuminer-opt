@@ -129,8 +129,8 @@ static inline __m512i m512_const_64( const uint64_t i7, const uint64_t i6,
 }
 
 // Equivalent of set1, broadcast 64 bit constant to all 64 bit elements.
-#define m512_const1_256( i )   _mm512_broadcast_i64x4( i )
-#define m512_const1_128( i )   _mm512_broadcast_i64x2( i )
+#define m512_const1_256( v )   _mm512_broadcast_i64x4( v )
+#define m512_const1_128( v )   _mm512_broadcast_i64x2( v )
 #define m512_const1_64( i )    _mm512_broadcastq_epi64( mm128_mov64_128( i ) )
 #define m512_const1_32( i )    _mm512_broadcastd_epi32( mm128_mov32_128( i ) )
 #define m512_const1_16( i )    _mm512_broadcastw_epi16( mm128_mov32_128( i ) )
@@ -547,8 +547,6 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 //
 //  Rotate elements from 2 512 bit vectors in place, source arguments
 //  are overwritten.
-//  These can all be done with 2 permutex2var instructions but they are
-//  slower than either xor or alignr and require AVX512VBMI.
 
 #define mm512_swap1024_512(v1, v2) \
    v1 = _mm512_xor_si512(v1, v2); \

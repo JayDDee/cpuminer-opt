@@ -65,6 +65,7 @@ union _x16r_8way_context_overlay
 
 typedef union _x16r_8way_context_overlay x16r_8way_context_overlay;
 
+
 void x16r_8way_hash( void* output, const void* input )
 {
    uint32_t vhash[24*8] __attribute__ ((aligned (128)));
@@ -98,18 +99,16 @@ void x16r_8way_hash( void* output, const void* input )
       switch ( algo )
       {
          case BLAKE:
-            blake512_8way_init( &ctx.blake );
             if ( i == 0 )
-               blake512_8way_update( &ctx.blake, input, size );
+               blake512_8way_full( &ctx.blake, vhash, input, size );
             else
             {
                intrlv_8x64( vhash, in0, in1, in2, in3, in4, in5, in6, in7, 
                             size<<3 );
-               blake512_8way_update( &ctx.blake, vhash, size );
+               blake512_8way_full( &ctx.blake, vhash, vhash, size );
             }
-            blake512_8way_close( &ctx.blake, vhash );
-            dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
-                          hash7, vhash );
+            dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5,
+                                 hash6, hash7, vhash );
          break;
          case BMW:
             bmw512_8way_init( &ctx.bmw );
@@ -128,40 +127,22 @@ void x16r_8way_hash( void* output, const void* input )
          case GROESTL:
 #if defined(__VAES__)
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
-            groestl512_4way_init( &ctx.groestl, 64 );
-            groestl512_4way_update_close( &ctx.groestl, vhash, vhash, size<<3 );
+            groestl512_4way_full( &ctx.groestl, vhash, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
-            groestl512_4way_init( &ctx.groestl, 64 );
-            groestl512_4way_update_close( &ctx.groestl, vhash, vhash, size<<3 );
+            groestl512_4way_full( &ctx.groestl, vhash, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
 #else
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash0,
-                                                (const char*)in0, size<<3 );
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash1,
-                                                (const char*)in1, size<<3 );
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash2,
-                                                (const char*)in2, size<<3 );
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash3,
-                                                (const char*)in3, size<<3 );
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash4,
-                                                (const char*)in4, size<<3 );
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash5,
-                                                (const char*)in5, size<<3 );
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash6,
-                                                (const char*)in6, size<<3 );
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash7,
-                                                (const char*)in7, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash0, (char*)in0, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash1, (char*)in1, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash2, (char*)in2, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash3, (char*)in3, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash4, (char*)in4, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash5, (char*)in5, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash6, (char*)in6, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash7, (char*)in7, size<<3 );
 #endif
-            break;
+         break;
          case SKEIN:
             skein512_8way_init( &ctx.skein );
             if ( i == 0 )
@@ -206,33 +187,27 @@ void x16r_8way_hash( void* output, const void* input )
          break;
          case LUFFA:
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
-            luffa_4way_init( &ctx.luffa, 512 );
-            luffa_4way_update_close( &ctx.luffa, vhash, vhash, size );
+            luffa512_4way_full( &ctx.luffa, vhash, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
-            luffa_4way_init( &ctx.luffa, 512 );
-            luffa_4way_update_close( &ctx.luffa, vhash, vhash, size);
+            luffa512_4way_full( &ctx.luffa, vhash, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
          break;
          case CUBEHASH:
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
-            cube_4way_init( &ctx.cube, 512, 16, 32 );
-            cube_4way_update_close( &ctx.cube, vhash, vhash, size );
+            cube_4way_full( &ctx.cube, vhash, 512, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
-            cube_4way_init( &ctx.cube, 512, 16, 32 );
-            cube_4way_update_close( &ctx.cube, vhash, vhash, size );
+            cube_4way_full( &ctx.cube, vhash, 512, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
          break;
          case SHAVITE:
 #if defined(__VAES__)
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
-            shavite512_4way_init( &ctx.shavite );
-            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, size );
+            shavite512_4way_full( &ctx.shavite, vhash, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
-            shavite512_4way_init( &ctx.shavite );
-            shavite512_4way_update_close( &ctx.shavite, vhash, vhash, size );
+            shavite512_4way_full( &ctx.shavite, vhash, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
 #else
             sph_shavite512_init( &ctx.shavite );
@@ -260,54 +235,42 @@ void x16r_8way_hash( void* output, const void* input )
             sph_shavite512( &ctx.shavite, in7, size );
             sph_shavite512_close( &ctx.shavite, hash7 );
 #endif
-            break;
+         break;
          case SIMD:
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
-            simd_4way_init( &ctx.simd, 512 );
-            simd_4way_update_close( &ctx.simd, vhash, vhash, size<<3 );
+            simd512_4way_full( &ctx.simd, vhash, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
-            simd_4way_init( &ctx.simd, 512 );
-            simd_4way_update_close( &ctx.simd, vhash, vhash, size<<3 );
+            simd512_4way_full( &ctx.simd, vhash, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
          break;
          case ECHO:
 #if defined(__VAES__)
             intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
-            echo_4way_init( &ctx.echo, 512 );
-            echo_4way_update_close( &ctx.echo, vhash, vhash, size<<3 );
+            echo_4way_full( &ctx.echo, vhash, 512, vhash, size );
             dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
             intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
-            echo_4way_init( &ctx.echo, 512 );
-            echo_4way_update_close( &ctx.echo, vhash, vhash, size<<3 );
+            echo_4way_full( &ctx.echo, vhash, 512, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
 #else
-            init_echo( &ctx.echo, 512 );
-            update_final_echo ( &ctx.echo, (BitSequence *)hash0,
-                               (const BitSequence*)in0, size<<3 );
-            init_echo( &ctx.echo, 512 );
-            update_final_echo ( &ctx.echo, (BitSequence *)hash1,
-                               (const BitSequence*)in1, size<<3 );
-            init_echo( &ctx.echo, 512 );
-            update_final_echo ( &ctx.echo, (BitSequence *)hash2,
-                               (const BitSequence*)in2, size<<3 );
-            init_echo( &ctx.echo, 512 );
-            update_final_echo ( &ctx.echo, (BitSequence *)hash3,
-                               (const BitSequence*)in3, size<<3 );
-            init_echo( &ctx.echo, 512 );
-            update_final_echo ( &ctx.echo, (BitSequence *)hash4,
-                               (const BitSequence*)in4, size<<3 );
-            init_echo( &ctx.echo, 512 );
-            update_final_echo ( &ctx.echo, (BitSequence *)hash5,
-                               (const BitSequence*)in5, size<<3 );
-            init_echo( &ctx.echo, 512 );
-            update_final_echo ( &ctx.echo, (BitSequence *)hash6,
-                               (const BitSequence*)in6, size<<3 );
-            init_echo( &ctx.echo, 512 );
-            update_final_echo ( &ctx.echo, (BitSequence *)hash7,
-                               (const BitSequence*)in7, size<<3 );
+            echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                              (const BitSequence *)in0, size );
+            echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                              (const BitSequence *)in1, size );
+            echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                              (const BitSequence *)in2, size );
+            echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                              (const BitSequence *)in3, size );
+            echo_full( &ctx.echo, (BitSequence *)hash4, 512,
+                              (const BitSequence *)in4, size );
+            echo_full( &ctx.echo, (BitSequence *)hash5, 512,
+                              (const BitSequence *)in5, size );
+            echo_full( &ctx.echo, (BitSequence *)hash6, 512,
+                              (const BitSequence *)in6, size );
+            echo_full( &ctx.echo, (BitSequence *)hash7, 512,
+                              (const BitSequence *)in7, size );
 #endif
-             break;
+         break;
          case HAMSI:
              intrlv_8x64( vhash, in0, in1, in2, in3, in4, in5, in6, in7,
                             size<<3 );
@@ -317,7 +280,7 @@ void x16r_8way_hash( void* output, const void* input )
              hamsi512_8way_close( &ctx.hamsi, vhash );
              dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                           hash7, vhash );
-             break;
+         break;
          case FUGUE:
              sph_fugue512_init( &ctx.fugue );
              sph_fugue512( &ctx.fugue, in0, size );
@@ -380,13 +343,18 @@ void x16r_8way_hash( void* output, const void* input )
              sph_whirlpool_close( &ctx.whirlpool, hash7 );
          break;
          case SHA_512:
-             intrlv_8x64( vhash, in0, in1, in2, in3, in4, in5, in6, in7,
-                            size<<3 );
              sha512_8way_init( &ctx.sha512 );
-             sha512_8way_update( &ctx.sha512, vhash, size );
+             if ( i == 0 )
+                sha512_8way_update( &ctx.sha512, input, size );
+             else
+             {
+                intrlv_8x64( vhash, in0, in1, in2, in3, in4, in5, in6, in7,
+                             size<<3 );
+                sha512_8way_update( &ctx.sha512, vhash, size );
+             }
              sha512_8way_close( &ctx.sha512, vhash );
              dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
-                          hash7, vhash );
+                               hash7, vhash );
          break;
       }
       size = 64;
@@ -431,7 +399,7 @@ int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
       x16_r_s_getAlgoString( (const uint8_t*)bedata1, hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );
+              applog( LOG_INFO, "hash order %s (%08x)", hashOrder, ntime );
    }
 
    do
@@ -505,15 +473,13 @@ void x16r_4way_hash( void* output, const void* input )
       switch ( algo )
       {
          case BLAKE:
-            blake512_4way_init( &ctx.blake );
             if ( i == 0 )
-               blake512_4way_update( &ctx.blake, input, size );
+               blake512_4way_full( &ctx.blake, vhash, input, size );
             else
             {
                intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
-               blake512_4way_update( &ctx.blake, vhash, size );
+               blake512_4way_full( &ctx.blake, vhash, vhash, size );
             }
-            blake512_4way_close( &ctx.blake, vhash );
             dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
          break;
          case BMW:
@@ -529,18 +495,10 @@ void x16r_4way_hash( void* output, const void* input )
             dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
          break;
          case GROESTL:
-               init_groestl( &ctx.groestl, 64 );
-               update_and_final_groestl( &ctx.groestl, (char*)hash0,
-                                                 (const char*)in0, size<<3 );
-               init_groestl( &ctx.groestl, 64 );
-               update_and_final_groestl( &ctx.groestl, (char*)hash1,
-                                                 (const char*)in1, size<<3 );
-               init_groestl( &ctx.groestl, 64 );
-               update_and_final_groestl( &ctx.groestl, (char*)hash2,
-                                                 (const char*)in2, size<<3 );
-               init_groestl( &ctx.groestl, 64 );
-               update_and_final_groestl( &ctx.groestl, (char*)hash3,
-                                                 (const char*)in3, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash0, (char*)in0, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash1, (char*)in1, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash2, (char*)in2, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash3, (char*)in3, size<<3 );
          break;
          case SKEIN:
             skein512_4way_init( &ctx.skein );
@@ -580,12 +538,10 @@ void x16r_4way_hash( void* output, const void* input )
          break;
          case LUFFA:
             intrlv_2x128( vhash, in0, in1, size<<3 );
-            luffa_2way_init( &ctx.luffa, 512 );
-            luffa_2way_update_close( &ctx.luffa, vhash, vhash, size );
+            luffa512_2way_full( &ctx.luffa, vhash, vhash, size );
             dintrlv_2x128_512( hash0, hash1, vhash );
             intrlv_2x128( vhash, in2, in3, size<<3 );
-            luffa_2way_init( &ctx.luffa, 512 );
-            luffa_2way_update_close( &ctx.luffa, vhash, vhash, size);
+            luffa512_2way_full( &ctx.luffa, vhash, vhash, size );
             dintrlv_2x128_512( hash2, hash3, vhash );
          break;
          case CUBEHASH:
@@ -618,27 +574,21 @@ void x16r_4way_hash( void* output, const void* input )
          break;
          case SIMD:
             intrlv_2x128( vhash, in0, in1, size<<3 );
-            simd_2way_init( &ctx.simd, 512 );
-            simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
+            simd512_2way_full( &ctx.simd, vhash, vhash, size );
             dintrlv_2x128_512( hash0, hash1, vhash );
             intrlv_2x128( vhash, in2, in3, size<<3 );
-            simd_2way_init( &ctx.simd, 512 );
-            simd_2way_update_close( &ctx.simd, vhash, vhash, size<<3 );
+            simd512_2way_full( &ctx.simd, vhash, vhash, size );
             dintrlv_2x128_512( hash2, hash3, vhash );
          break;
          case ECHO:
-             init_echo( &ctx.echo, 512 );
-             update_final_echo ( &ctx.echo, (BitSequence *)hash0,
-                                (const BitSequence*)in0, size<<3 );
-             init_echo( &ctx.echo, 512 );
-             update_final_echo ( &ctx.echo, (BitSequence *)hash1,
-                                (const BitSequence*)in1, size<<3 );
-             init_echo( &ctx.echo, 512 );
-             update_final_echo ( &ctx.echo, (BitSequence *)hash2,
-                                (const BitSequence*)in2, size<<3 );
-             init_echo( &ctx.echo, 512 );
-             update_final_echo ( &ctx.echo, (BitSequence *)hash3,
-                                (const BitSequence*)in3, size<<3 );
+            echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                              (const BitSequence *)in0, size );
+            echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                              (const BitSequence *)in1, size );
+            echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                              (const BitSequence *)in2, size );
+            echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                              (const BitSequence *)in3, size );
          break;
          case HAMSI:
              intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
@@ -727,7 +677,7 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
       x16_r_s_getAlgoString( (const uint8_t*)bedata1, hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );
+              applog( LOG_INFO, "hash order %s (%08x)", hashOrder, ntime );
    }
 
    do

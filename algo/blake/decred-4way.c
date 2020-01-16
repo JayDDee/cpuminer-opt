@@ -21,7 +21,7 @@ void decred_hash_4way( void *state, const void *input )
      blake256_4way_context ctx __attribute__ ((aligned (64)));
 
      memcpy( &ctx, &blake_mid, sizeof(blake_mid) );
-     blake256_4way( &ctx, tail, tail_len );
+     blake256_4way_update( &ctx, tail, tail_len );
      blake256_4way_close( &ctx, vhash );
      dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
@@ -46,7 +46,7 @@ int scanhash_decred_4way( struct work *work, uint32_t max_nonce,
    mm128_intrlv_4x32x( vdata, edata, edata, edata, edata, 180*8 );
 
    blake256_4way_init( &blake_mid );
-   blake256_4way( &blake_mid, vdata, DECRED_MIDSTATE_LEN );
+   blake256_4way_update( &blake_mid, vdata, DECRED_MIDSTATE_LEN );
 
    uint32_t *noncep = vdata + DECRED_NONCE_INDEX * 4;
    do {

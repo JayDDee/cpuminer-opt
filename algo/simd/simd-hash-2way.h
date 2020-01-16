@@ -26,6 +26,8 @@ int simd_4way_update( simd_4way_context *state, const void *data,
 int simd_4way_close( simd_4way_context *state, void *hashval );
 int simd_4way_update_close( simd_4way_context *state, void *hashval,
                             const void *data, int databitlen );
+int simd512_4way_full( simd_4way_context *state, void *hashval,
+                    const void *data, int datalen );
 
 #endif
 
@@ -45,5 +47,8 @@ int simd_2way_update( simd_2way_context *state, const void *data,
 int simd_2way_close( simd_2way_context *state, void *hashval );
 int simd_2way_update_close( simd_2way_context *state, void *hashval,
                             const void *data, int databitlen );
+int simd512_2way_full( simd_2way_context *state, void *hashval,
+                    const void *data, int datalen );
+
 #endif
 #endif

@@ -313,4 +313,92 @@ int echo_4way_update_close( echo_4way_context *state, void *hashval,
    return 0;
 }
 
+int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize, 
+                    const void *data, int datalen )
+{
+   int i, j;
+   int databitlen = datalen * 8;
+   ctx->k = m512_zero;
+   ctx->processed_bits = 0;
+   ctx->uBufferBytes = 0;
+
+   switch( nHashSize )
+   {
+      case 256:
+         ctx->uHashSize = 256;
+         ctx->uBlockLength = 192;
+         ctx->uRounds = 8;
+         ctx->hashsize = _mm512_set4_epi32( 0, 0, 0, 0x100 );
+         ctx->const1536 = _mm512_set4_epi32( 0, 0, 0, 0x600 );
+         break;
+
+      case 512:
+         ctx->uHashSize = 512;
+         ctx->uBlockLength = 128;
+         ctx->uRounds = 10;
+         ctx->hashsize = _mm512_set4_epi32( 0, 0, 0, 0x200 );
+         ctx->const1536 = _mm512_set4_epi32( 0, 0, 0, 0x400);
+         break;
+
+      default:
+         return 1;
+   }
+
+   for( i = 0; i < 4; i++ )
+      for( j = 0; j < nHashSize / 256; j++ )
+         ctx->state[ i ][ j ] = ctx->hashsize;
+
+   for( i = 0; i < 4; i++ )
+      for( j = nHashSize / 256; j < 4; j++ )
+         ctx->state[ i ][ j ] = m512_zero;
+
+   
+// bytelen is either 32 (maybe), 64 or 80 or 128!
+// all are less than full block.
+
+   int vlen = datalen / 32;  
+   const int vblen = ctx->uBlockLength / 16; //  16 bytes per lane
+   __m512i remainingbits;
+
+   if ( databitlen == 1024 )
+   {
+      echo_4way_compress( ctx, data, 1 );
+      ctx->processed_bits = 1024;
+      remainingbits = m512_const2_64( 0, -1024 );
+      vlen = 0;
+   }
+   else
+   {
+      vlen = databitlen / 128;  // * 4 lanes / 128 bits per lane
+      memcpy_512( ctx->buffer, data, vlen );
+      ctx->processed_bits += (unsigned int)( databitlen );
+      remainingbits = _mm512_set4_epi32( 0, 0, 0, databitlen );
+
+   }
+
+   ctx->buffer[ vlen ] = _mm512_set4_epi32( 0, 0, 0, 0x80 );
+   memset_zero_512( ctx->buffer + vlen + 1, vblen - vlen - 2 );
+   ctx->buffer[ vblen-2 ] =
+                _mm512_set4_epi32( (uint32_t)ctx->uHashSize << 16, 0, 0, 0 );
+   ctx->buffer[ vblen-1 ] =
+                   _mm512_set4_epi64( 0, ctx->processed_bits,
+                                      0, ctx->processed_bits );
+
+   ctx->k = _mm512_add_epi64( ctx->k, remainingbits );
+   ctx->k = _mm512_sub_epi64( ctx->k, ctx->const1536 );
+
+   echo_4way_compress( ctx, ctx->buffer, 1 );
+
+   _mm512_store_si512( (__m512i*)hashval + 0, ctx->state[ 0 ][ 0] );
+   _mm512_store_si512( (__m512i*)hashval + 1, ctx->state[ 1 ][ 0] );
+
+   if ( ctx->uHashSize == 512 )
+   {
+      _mm512_store_si512( (__m512i*)hashval + 2, ctx->state[ 2 ][ 0 ] );
+      _mm512_store_si512( (__m512i*)hashval + 3, ctx->state[ 3 ][ 0 ] );
+   }
+   return 0;
+}
+
+
 #endif

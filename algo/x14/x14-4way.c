@@ -317,7 +317,7 @@ int scanhash_x14_8way( struct work *work, uint32_t max_nonce,
 
         uint32_t *hash7 = &(hash[7<<3]);
         for ( int lane = 0; lane < 8; lane++ )
-        if ( hash7[ lane ] < Htarg )
+        if ( hash7[ lane ] <= Htarg )
         {
             uint32_t lane_hash[8] __attribute__ ((aligned (64)));
             extr_lane_8x32( lane_hash, hash, lane, 256 );
@@ -526,7 +526,7 @@ int scanhash_x14_4way( struct work *work, uint32_t max_nonce,
 
        uint32_t *hash7 = &(hash[7<<2]);
        for ( int lane = 0; lane < 4; lane++ )
-       if ( hash7[ lane ] < Htarg )
+       if ( hash7[ lane ] <= Htarg )
        {
            uint32_t lane_hash[8];
            extr_lane_4x32( lane_hash, hash, lane, 256 );

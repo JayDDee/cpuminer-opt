@@ -13,7 +13,7 @@ void blakehash_4way(void *state, const void *input)
      uint32_t vhash[8*4] __attribute__ ((aligned (64)));
      blake256r14_4way_context ctx;
      memcpy( &ctx, &blake_4w_ctx, sizeof ctx );
-     blake256r14_4way( &ctx, input + (64<<2), 16 );
+     blake256r14_4way_update( &ctx, input + (64<<2), 16 );
      blake256r14_4way_close( &ctx, vhash );
      dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
@@ -36,7 +36,7 @@ int scanhash_blake_4way( struct work *work, uint32_t max_nonce,
 
    mm128_bswap32_intrlv80_4x32( vdata, pdata );
    blake256r14_4way_init( &blake_4w_ctx );
-   blake256r14_4way( &blake_4w_ctx, vdata, 64 );
+   blake256r14_4way_update( &blake_4w_ctx, vdata, 64 );
 
    do {
       *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );

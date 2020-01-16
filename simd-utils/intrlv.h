@@ -2857,6 +2857,8 @@ static inline void rintrlv_2x256_8x64( void *dst, const void *src0,
 //#define mm256_intrlv_blend_64( hi, lo )   _mm256_blend_epi32( hi, lo, 0x33 )
 #define mm256_intrlv_blend_32( hi, lo )   _mm256_blend_epi32( hi, lo, 0x55 )
 
+// change to _mm256_blend_epi32
+//
 // Select lanes of 32 byte hash from 2 sources according to control mask.
 // macro due to 256 bit value arg.
 #define mm256_blend_hash_4x64( dst, a, b, mask ) \

@@ -102,7 +102,7 @@ int scanhash_nist5_8way( struct work *work, uint32_t max_nonce,
         nist5hash_8way( hash, vdata );
 
         for ( int lane = 0; lane < 8; lane++ )
-        if ( hash7[ lane<<1 ] < Htarg )
+        if ( hash7[ lane<<1 ] <= Htarg )
         {
            extr_lane_8x64( lane_hash, hash, lane, 256 );
            if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
@@ -190,7 +190,7 @@ int scanhash_nist5_4way( struct work *work, uint32_t max_nonce,
         nist5hash_4way( hash, vdata );
 
         for ( int lane = 0; lane < 4; lane++ )
-        if ( hash7[ lane<<1 ] < Htarg )
+        if ( hash7[ lane<<1 ] <= Htarg )
         {
            extr_lane_4x64( lane_hash, hash, lane, 256 );
            if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )

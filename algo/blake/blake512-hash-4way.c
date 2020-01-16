@@ -267,22 +267,22 @@ static const sph_u64 CB[16] = {
 #define CBx_(n)     CBx__(n)
 #define CBx__(n)    CB ## n
 
-#define CB0   SPH_C64(0x243F6A8885A308D3)
-#define CB1   SPH_C64(0x13198A2E03707344)
-#define CB2   SPH_C64(0xA4093822299F31D0)
-#define CB3   SPH_C64(0x082EFA98EC4E6C89)
-#define CB4   SPH_C64(0x452821E638D01377)
-#define CB5   SPH_C64(0xBE5466CF34E90C6C)
-#define CB6   SPH_C64(0xC0AC29B7C97C50DD)
-#define CB7   SPH_C64(0x3F84D5B5B5470917)
-#define CB8   SPH_C64(0x9216D5D98979FB1B)
-#define CB9   SPH_C64(0xD1310BA698DFB5AC)
-#define CBA   SPH_C64(0x2FFD72DBD01ADFB7)
-#define CBB   SPH_C64(0xB8E1AFED6A267E96)
-#define CBC   SPH_C64(0xBA7C9045F12C7F99)
-#define CBD   SPH_C64(0x24A19947B3916CF7)
-#define CBE   SPH_C64(0x0801F2E2858EFC16)
-#define CBF   SPH_C64(0x636920D871574E69)
+#define CB0   0x243F6A8885A308D3
+#define CB1   0x13198A2E03707344
+#define CB2   0xA4093822299F31D0
+#define CB3   0x082EFA98EC4E6C89
+#define CB4   0x452821E638D01377
+#define CB5   0xBE5466CF34E90C6C
+#define CB6   0xC0AC29B7C97C50DD
+#define CB7   0x3F84D5B5B5470917
+#define CB8   0x9216D5D98979FB1B
+#define CB9   0xD1310BA698DFB5AC
+#define CBA   0x2FFD72DBD01ADFB7
+#define CBB   0xB8E1AFED6A267E96
+#define CBC   0xBA7C9045F12C7F99
+#define CBD   0x24A19947B3916CF7
+#define CBE   0x0801F2E2858EFC16
+#define CBF   0x636920D871574E69
 
 #define READ_STATE64(state)   do { \
       H0 = (state)->H[0]; \
@@ -349,9 +349,9 @@ static const sph_u64 CB[16] = {
 #define DECL_STATE64_8WAY \
    __m512i H0, H1, H2, H3, H4, H5, H6, H7; \
         __m512i S0, S1, S2, S3; \
-   sph_u64 T0, T1;
+   uint64_t T0, T1;
 
-#define COMPRESS64_8WAY   do \
+#define COMPRESS64_8WAY( buf )   do \
 { \
   __m512i M0, M1, M2, M3, M4, M5, M6, M7; \
   __m512i M8, M9, MA, MB, MC, MD, ME, MF; \
@@ -424,6 +424,84 @@ static const sph_u64 CB[16] = {
   H7 = mm512_xor4( VF, V7, S3, H7 ); \
 } while (0)
 
+void blake512_8way_compress( blake_8way_big_context *sc )
+{ 
+  __m512i M0, M1, M2, M3, M4, M5, M6, M7;
+  __m512i M8, M9, MA, MB, MC, MD, ME, MF;
+  __m512i V0, V1, V2, V3, V4, V5, V6, V7;
+  __m512i V8, V9, VA, VB, VC, VD, VE, VF;
+  __m512i shuf_bswap64;
+
+  V0 = sc->H[0];
+  V1 = sc->H[1];
+  V2 = sc->H[2];
+  V3 = sc->H[3];
+  V4 = sc->H[4];
+  V5 = sc->H[5];
+  V6 = sc->H[6];
+  V7 = sc->H[7];
+  V8 = _mm512_xor_si512( sc->S[0], m512_const1_64( CB0 ) );
+  V9 = _mm512_xor_si512( sc->S[1], m512_const1_64( CB1 ) );
+  VA = _mm512_xor_si512( sc->S[2], m512_const1_64( CB2 ) );
+  VB = _mm512_xor_si512( sc->S[3], m512_const1_64( CB3 ) );
+  VC = _mm512_xor_si512( _mm512_set1_epi64( sc->T0 ),
+                            m512_const1_64( CB4 ) );
+  VD = _mm512_xor_si512( _mm512_set1_epi64( sc->T0 ),
+                            m512_const1_64( CB5 ) );
+  VE = _mm512_xor_si512( _mm512_set1_epi64( sc->T1 ),
+                            m512_const1_64( CB6 ) );
+  VF = _mm512_xor_si512( _mm512_set1_epi64( sc->T1 ),
+                            m512_const1_64( CB7 ) );
+
+  shuf_bswap64 = m512_const_64( 0x38393a3b3c3d3e3f, 0x3031323334353637,
+                                0x28292a2b2c2d2e2f, 0x2021222324252627,
+                                0x18191a1b1c1d1e1f, 0x1011121314151617,
+                                0x08090a0b0c0d0e0f, 0x0001020304050607 );
+
+  M0 = _mm512_shuffle_epi8( sc->buf[ 0], shuf_bswap64 );
+  M1 = _mm512_shuffle_epi8( sc->buf[ 1], shuf_bswap64 );
+  M2 = _mm512_shuffle_epi8( sc->buf[ 2], shuf_bswap64 );
+  M3 = _mm512_shuffle_epi8( sc->buf[ 3], shuf_bswap64 );
+  M4 = _mm512_shuffle_epi8( sc->buf[ 4], shuf_bswap64 );
+  M5 = _mm512_shuffle_epi8( sc->buf[ 5], shuf_bswap64 );
+  M6 = _mm512_shuffle_epi8( sc->buf[ 6], shuf_bswap64 );
+  M7 = _mm512_shuffle_epi8( sc->buf[ 7], shuf_bswap64 );
+  M8 = _mm512_shuffle_epi8( sc->buf[ 8], shuf_bswap64 );
+  M9 = _mm512_shuffle_epi8( sc->buf[ 9], shuf_bswap64 );
+  MA = _mm512_shuffle_epi8( sc->buf[10], shuf_bswap64 );
+  MB = _mm512_shuffle_epi8( sc->buf[11], shuf_bswap64 );
+  MC = _mm512_shuffle_epi8( sc->buf[12], shuf_bswap64 );
+  MD = _mm512_shuffle_epi8( sc->buf[13], shuf_bswap64 );
+  ME = _mm512_shuffle_epi8( sc->buf[14], shuf_bswap64 );
+  MF = _mm512_shuffle_epi8( sc->buf[15], shuf_bswap64 );
+
+  ROUND_B_8WAY(0);
+  ROUND_B_8WAY(1);
+  ROUND_B_8WAY(2);
+  ROUND_B_8WAY(3);
+  ROUND_B_8WAY(4);
+  ROUND_B_8WAY(5);
+  ROUND_B_8WAY(6);
+  ROUND_B_8WAY(7);
+  ROUND_B_8WAY(8);
+  ROUND_B_8WAY(9);
+  ROUND_B_8WAY(0);
+  ROUND_B_8WAY(1);
+  ROUND_B_8WAY(2);
+  ROUND_B_8WAY(3);
+  ROUND_B_8WAY(4);
+  ROUND_B_8WAY(5);
+
+  sc->H[0] = mm512_xor4( V8, V0, sc->S[0], sc->H[0] );
+  sc->H[1] = mm512_xor4( V9, V1, sc->S[1], sc->H[1] );
+  sc->H[2] = mm512_xor4( VA, V2, sc->S[2], sc->H[2] );
+  sc->H[3] = mm512_xor4( VB, V3, sc->S[3], sc->H[3] );
+  sc->H[4] = mm512_xor4( VC, V4, sc->S[0], sc->H[4] );
+  sc->H[5] = mm512_xor4( VD, V5, sc->S[1], sc->H[5] );
+  sc->H[6] = mm512_xor4( VE, V6, sc->S[2], sc->H[6] );
+  sc->H[7] = mm512_xor4( VF, V7, sc->S[3], sc->H[7] );
+}
+
 void blake512_8way_init( blake_8way_big_context *sc )
 {
    __m512i zero = m512_zero;
@@ -455,39 +533,43 @@ blake64_8way( blake_8way_big_context *sc, const void *data, size_t len )
 
    const int buf_size = 128;  //  sizeof/8
 
+// 64, 80 bytes: 1st pass copy data. 2nd pass copy padding and compress.   
+// 128 bytes: 1st pass copy data, compress. 2nd pass copy padding, compress.
+   
    buf = sc->buf;
    ptr = sc->ptr;
    if ( len < (buf_size - ptr) )
    {
-   memcpy_512( buf + (ptr>>3), vdata, len>>3 );
-   ptr += len;
-   sc->ptr = ptr;
-   return;
+      memcpy_512( buf + (ptr>>3), vdata, len>>3 );
+      ptr += len;
+      sc->ptr = ptr;
+      return;
    }
 
    READ_STATE64(sc);
    while ( len > 0 )
    {
-   size_t clen;
+      size_t clen;
 
-   clen = buf_size - ptr;
-   if ( clen > len )
+      clen = buf_size - ptr;
+      if ( clen > len )
       clen = len;
-   memcpy_512( buf + (ptr>>3), vdata, clen>>3 );
-   ptr += clen;
-   vdata = vdata + (clen>>3);
-   len -= clen;
-   if ( ptr == buf_size )
-        {
-      if ( ( T0 = SPH_T64(T0 + 1024) ) < 1024 )
-         T1 = SPH_T64(T1 + 1);
-      COMPRESS64_8WAY;
-      ptr = 0;
-   }
+      memcpy_512( buf + (ptr>>3), vdata, clen>>3 );
+      ptr += clen;
+      vdata = vdata + (clen>>3);
+      len -= clen;
+      if ( ptr == buf_size )
+      {
+         if ( ( T0 = T0 + 1024 ) < 1024 )
+            T1 = T1 + 1;
+         COMPRESS64_8WAY( buf );
+         ptr = 0;
+      }
    }
    WRITE_STATE64(sc);
    sc->ptr = ptr;
-}
+
+   }
 
 static void
 blake64_8way_close( blake_8way_big_context *sc, void *dst )
@@ -495,26 +577,22 @@ blake64_8way_close( blake_8way_big_context *sc, void *dst )
    __m512i buf[16];
    size_t ptr;
    unsigned bit_len;
-//   uint64_t z, zz;
-   sph_u64 th, tl;
+   uint64_t th, tl;
 
    ptr = sc->ptr;
    bit_len = ((unsigned)ptr << 3);
-//   z = 0x80 >> n;
-//   zz = ((ub & -z) | z) & 0xFF;
-//   buf[ptr>>3] = _mm512_set1_epi64( zz );
    buf[ptr>>3] = m512_const1_64( 0x80 );
    tl = sc->T0 + bit_len;
    th = sc->T1;
    if (ptr == 0 )
    {
-   sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL);
-   sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFFULL);
+   sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
+   sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
    }
    else if ( sc->T0 == 0 )
    {
-   sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL) + bit_len;
-   sc->T1 = SPH_T64(sc->T1 - 1);
+   sc->T0 = 0xFFFFFFFFFFFFFC00ULL + bit_len;
+   sc->T1 = sc->T1 - 1;
    }
    else
    {
@@ -535,8 +613,8 @@ blake64_8way_close( blake_8way_big_context *sc, void *dst )
        memset_zero_512( buf + (ptr>>3) + 1, (120 - ptr) >> 3 );
 
        blake64_8way( sc, buf + (ptr>>3), 128 - ptr );
-       sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL);
-       sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFFULL);
+       sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
+       sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
        memset_zero_512( buf, 112>>3 );
        buf[104>>3] = m512_const1_64( 0x0100000000000000ULL );
        buf[112>>3] = m512_const1_64( bswap_64( th ) );
@@ -547,6 +625,79 @@ blake64_8way_close( blake_8way_big_context *sc, void *dst )
    mm512_block_bswap_64( (__m512i*)dst, sc->H );
 }
 
+// init, update & close
+void blake512_8way_full( blake_8way_big_context *sc, void * dst, 
+                        const void *data, size_t len )
+{
+   
+// init
+
+   casti_m512i( sc->H, 0 ) = m512_const1_64( 0x6A09E667F3BCC908 );
+   casti_m512i( sc->H, 1 ) = m512_const1_64( 0xBB67AE8584CAA73B );
+   casti_m512i( sc->H, 2 ) = m512_const1_64( 0x3C6EF372FE94F82B );
+   casti_m512i( sc->H, 3 ) = m512_const1_64( 0xA54FF53A5F1D36F1 );
+   casti_m512i( sc->H, 4 ) = m512_const1_64( 0x510E527FADE682D1 );
+   casti_m512i( sc->H, 5 ) = m512_const1_64( 0x9B05688C2B3E6C1F );
+   casti_m512i( sc->H, 6 ) = m512_const1_64( 0x1F83D9ABFB41BD6B );
+   casti_m512i( sc->H, 7 ) = m512_const1_64( 0x5BE0CD19137E2179 );
+
+   casti_m512i( sc->S, 0 ) = m512_zero;
+   casti_m512i( sc->S, 1 ) = m512_zero;
+   casti_m512i( sc->S, 2 ) = m512_zero;
+   casti_m512i( sc->S, 3 ) = m512_zero;
+
+   sc->T0 = sc->T1 = 0;
+   sc->ptr = 0;
+
+// update
+
+   memcpy_512( sc->buf, (__m512i*)data, len>>3 );
+   sc->ptr = len;
+   if ( len == 128 )
+   {
+      if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
+            sc->T1 = sc->T1 + 1;
+      blake512_8way_compress( sc );
+      sc->ptr = 0;
+   }
+
+// close
+
+   size_t ptr64 = sc->ptr >> 3;
+   unsigned bit_len;
+   uint64_t th, tl;
+
+   bit_len = sc->ptr << 3;
+   sc->buf[ptr64] = m512_const1_64( 0x80 );
+   tl = sc->T0 + bit_len;
+   th = sc->T1;
+
+   if ( ptr64 == 0 )
+   {
+   sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
+   sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
+   }
+   else if ( sc->T0 == 0 )
+   {
+   sc->T0 = 0xFFFFFFFFFFFFFC00ULL + bit_len;
+   sc->T1 = sc->T1 - 1;
+   }
+   else
+      sc->T0 -= 1024 - bit_len;
+
+   memset_zero_512( sc->buf + ptr64 + 1, 13 - ptr64 );
+   sc->buf[13] = m512_const1_64( 0x0100000000000000ULL );
+   sc->buf[14] = m512_const1_64( bswap_64( th ) );
+   sc->buf[15] = m512_const1_64( bswap_64( tl ) );
+
+   if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
+       sc->T1 = sc->T1 + 1;
+
+   blake512_8way_compress( sc );
+   
+   mm512_block_bswap_64( (__m512i*)dst, sc->H );
+}
+   
 void
 blake512_8way_update(void *cc, const void *data, size_t len)
 {
@@ -555,12 +706,6 @@ blake512_8way_update(void *cc, const void *data, size_t len)
 
 void
 blake512_8way_close(void *cc, void *dst)
-{
-   blake512_8way_addbits_and_close(cc, 0, 0, dst);
-}
-
-void
-blake512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 {
    blake64_8way_close(cc, dst);
 }
@@ -596,7 +741,7 @@ blake512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 #define DECL_STATE64_4WAY \
 	__m256i H0, H1, H2, H3, H4, H5, H6, H7; \
         __m256i S0, S1, S2, S3; \
-	sph_u64 T0, T1;
+	uint64_t T0, T1;
 
 #define COMPRESS64_4WAY   do \
 { \
@@ -670,6 +815,81 @@ blake512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 } while (0)
 
 
+void blake512_4way_compress( blake_4way_big_context *sc )
+{
+  __m256i M0, M1, M2, M3, M4, M5, M6, M7;
+  __m256i M8, M9, MA, MB, MC, MD, ME, MF;
+  __m256i V0, V1, V2, V3, V4, V5, V6, V7;
+  __m256i V8, V9, VA, VB, VC, VD, VE, VF;
+  __m256i shuf_bswap64;
+
+  V0 = sc->H[0];
+  V1 = sc->H[1];
+  V2 = sc->H[2];
+  V3 = sc->H[3];
+  V4 = sc->H[4];
+  V5 = sc->H[5];
+  V6 = sc->H[6];
+  V7 = sc->H[7];
+  V8 = _mm256_xor_si256( sc->S[0], m256_const1_64( CB0 ) );
+  V9 = _mm256_xor_si256( sc->S[1], m256_const1_64( CB1 ) );
+  VA = _mm256_xor_si256( sc->S[2], m256_const1_64( CB2 ) );
+  VB = _mm256_xor_si256( sc->S[3], m256_const1_64( CB3 ) );
+  VC = _mm256_xor_si256( _mm256_set1_epi64x( sc->T0 ),
+                             m256_const1_64( CB4 ) );
+  VD = _mm256_xor_si256( _mm256_set1_epi64x( sc->T0 ),
+                             m256_const1_64( CB5 ) );
+  VE = _mm256_xor_si256( _mm256_set1_epi64x( sc->T1 ),
+                             m256_const1_64( CB6 ) );
+  VF = _mm256_xor_si256( _mm256_set1_epi64x( sc->T1 ),
+                             m256_const1_64( CB7 ) );
+  shuf_bswap64 = m256_const_64( 0x18191a1b1c1d1e1f, 0x1011121314151617,
+                                0x08090a0b0c0d0e0f, 0x0001020304050607 );
+
+  M0 = _mm256_shuffle_epi8( sc->buf[ 0], shuf_bswap64 );
+  M1 = _mm256_shuffle_epi8( sc->buf[ 1], shuf_bswap64 );
+  M2 = _mm256_shuffle_epi8( sc->buf[ 2], shuf_bswap64 );
+  M3 = _mm256_shuffle_epi8( sc->buf[ 3], shuf_bswap64 );
+  M4 = _mm256_shuffle_epi8( sc->buf[ 4], shuf_bswap64 );
+  M5 = _mm256_shuffle_epi8( sc->buf[ 5], shuf_bswap64 );
+  M6 = _mm256_shuffle_epi8( sc->buf[ 6], shuf_bswap64 );
+  M7 = _mm256_shuffle_epi8( sc->buf[ 7], shuf_bswap64 );
+  M8 = _mm256_shuffle_epi8( sc->buf[ 8], shuf_bswap64 );
+  M9 = _mm256_shuffle_epi8( sc->buf[ 9], shuf_bswap64 );
+  MA = _mm256_shuffle_epi8( sc->buf[10], shuf_bswap64 );
+  MB = _mm256_shuffle_epi8( sc->buf[11], shuf_bswap64 );
+  MC = _mm256_shuffle_epi8( sc->buf[12], shuf_bswap64 );
+  MD = _mm256_shuffle_epi8( sc->buf[13], shuf_bswap64 );
+  ME = _mm256_shuffle_epi8( sc->buf[14], shuf_bswap64 );
+  MF = _mm256_shuffle_epi8( sc->buf[15], shuf_bswap64 );
+
+  ROUND_B_4WAY(0);
+  ROUND_B_4WAY(1);
+  ROUND_B_4WAY(2);
+  ROUND_B_4WAY(3);
+  ROUND_B_4WAY(4);
+  ROUND_B_4WAY(5);
+  ROUND_B_4WAY(6);
+  ROUND_B_4WAY(7);
+  ROUND_B_4WAY(8);
+  ROUND_B_4WAY(9);
+  ROUND_B_4WAY(0);
+  ROUND_B_4WAY(1);
+  ROUND_B_4WAY(2);
+  ROUND_B_4WAY(3);
+  ROUND_B_4WAY(4);
+  ROUND_B_4WAY(5);
+
+  sc->H[0] = mm256_xor4( V8, V0, sc->S[0], sc->H[0] );
+  sc->H[1] = mm256_xor4( V9, V1, sc->S[1], sc->H[1] );
+  sc->H[2] = mm256_xor4( VA, V2, sc->S[2], sc->H[2] );
+  sc->H[3] = mm256_xor4( VB, V3, sc->S[3], sc->H[3] );
+  sc->H[4] = mm256_xor4( VC, V4, sc->S[0], sc->H[4] );
+  sc->H[5] = mm256_xor4( VD, V5, sc->S[1], sc->H[5] );
+  sc->H[6] = mm256_xor4( VE, V6, sc->S[2], sc->H[6] );
+  sc->H[7] = mm256_xor4( VF, V7, sc->S[3], sc->H[7] );
+}
+
 void blake512_4way_init( blake_4way_big_context *sc )
 {
    __m256i zero = m256_zero;
@@ -681,10 +901,12 @@ void blake512_4way_init( blake_4way_big_context *sc )
    casti_m256i( sc->H, 5 ) = m256_const1_64( 0x9B05688C2B3E6C1F );
    casti_m256i( sc->H, 6 ) = m256_const1_64( 0x1F83D9ABFB41BD6B );
    casti_m256i( sc->H, 7 ) = m256_const1_64( 0x5BE0CD19137E2179 );
+
    casti_m256i( sc->S, 0 ) = zero;
    casti_m256i( sc->S, 1 ) = zero;
    casti_m256i( sc->S, 2 ) = zero;
    casti_m256i( sc->S, 3 ) = zero;
+
    sc->T0 = sc->T1 = 0;
    sc->ptr = 0;
 }
@@ -703,31 +925,31 @@ blake64_4way( blake_4way_big_context *sc, const void *data, size_t len)
    ptr = sc->ptr;
    if ( len < (buf_size - ptr) )
    {
-	memcpy_256( buf + (ptr>>3), vdata, len>>3 );
-	ptr += len;
-	sc->ptr = ptr;
-	return;
+   	memcpy_256( buf + (ptr>>3), vdata, len>>3 );
+	   ptr += len;
+	   sc->ptr = ptr;
+	   return;
    }
 
    READ_STATE64(sc);
    while ( len > 0 )
    {
-	size_t clen;
+   	size_t clen;
 
-	clen = buf_size - ptr;
-	if ( clen > len )
-		clen = len;
-	memcpy_256( buf + (ptr>>3), vdata, clen>>3 );
-	ptr += clen;
-	vdata = vdata + (clen>>3);
-	len -= clen;
-	if (ptr == buf_size )
-        {
-		if ((T0 = SPH_T64(T0 + 1024)) < 1024)
-			T1 = SPH_T64(T1 + 1);
-		COMPRESS64_4WAY;
-		ptr = 0;
-	}
+	   clen = buf_size - ptr;
+	   if ( clen > len )
+		   clen = len;
+   	memcpy_256( buf + (ptr>>3), vdata, clen>>3 );
+	   ptr += clen;
+	   vdata = vdata + (clen>>3);
+	   len -= clen;
+	   if ( ptr == buf_size )
+      {
+		   if ( (T0 = T0 + 1024 ) < 1024 )
+			   T1 = SPH_T64(T1 + 1);
+	   	COMPRESS64_4WAY;
+		   ptr = 0;
+	   }
    }
    WRITE_STATE64(sc);
    sc->ptr = ptr;
@@ -739,7 +961,7 @@ blake64_4way_close( blake_4way_big_context *sc, void *dst )
    __m256i buf[16];
    size_t ptr;
    unsigned bit_len;
-   sph_u64 th, tl;
+   uint64_t th, tl;
 
    ptr = sc->ptr;
    bit_len = ((unsigned)ptr << 3);
@@ -748,13 +970,13 @@ blake64_4way_close( blake_4way_big_context *sc, void *dst )
    th = sc->T1;
    if (ptr == 0 )
    {
-	sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL);
-	sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFFULL);
+	sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
+	sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
    }
    else if ( sc->T0 == 0 )
    {
-	sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL) + bit_len;
-	sc->T1 = SPH_T64(sc->T1 - 1);
+	sc->T0 = 0xFFFFFFFFFFFFFC00ULL + bit_len;
+	sc->T1 = sc->T1 - 1;
    } 
    else
    {
@@ -788,13 +1010,77 @@ blake64_4way_close( blake_4way_big_context *sc, void *dst )
    mm256_block_bswap_64( (__m256i*)dst, sc->H );
 }
 
-/*
-void
-blake512_4way_init(void *cc)
+// init, update & close
+void blake512_4way_full( blake_4way_big_context *sc, void * dst,
+                         const void *data, size_t len )
 {
-	blake64_4way_init(cc, IV512, salt_zero_big);
+
+// init
+
+   casti_m256i( sc->H, 0 ) = m256_const1_64( 0x6A09E667F3BCC908 );
+   casti_m256i( sc->H, 1 ) = m256_const1_64( 0xBB67AE8584CAA73B );
+   casti_m256i( sc->H, 2 ) = m256_const1_64( 0x3C6EF372FE94F82B );
+   casti_m256i( sc->H, 3 ) = m256_const1_64( 0xA54FF53A5F1D36F1 );
+   casti_m256i( sc->H, 4 ) = m256_const1_64( 0x510E527FADE682D1 );
+   casti_m256i( sc->H, 5 ) = m256_const1_64( 0x9B05688C2B3E6C1F );
+   casti_m256i( sc->H, 6 ) = m256_const1_64( 0x1F83D9ABFB41BD6B );
+   casti_m256i( sc->H, 7 ) = m256_const1_64( 0x5BE0CD19137E2179 );
+
+   casti_m256i( sc->S, 0 ) = m256_zero;
+   casti_m256i( sc->S, 1 ) = m256_zero;
+   casti_m256i( sc->S, 2 ) = m256_zero;
+   casti_m256i( sc->S, 3 ) = m256_zero;
+
+   sc->T0 = sc->T1 = 0;
+   sc->ptr = 0;
+
+// update
+
+   memcpy_256( sc->buf, (__m256i*)data, len>>3 );
+   sc->ptr += len;
+   if ( len == 128 )
+   {
+      if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
+         sc->T1 =  sc->T1 + 1;
+      blake512_4way_compress( sc );
+      sc->ptr = 0;
+   }
+
+// close
+
+   size_t ptr64 = sc->ptr >> 3;
+   unsigned bit_len;
+   uint64_t th, tl;
+
+   bit_len = sc->ptr << 3;
+   sc->buf[ptr64] = m256_const1_64( 0x80 );
+   tl = sc->T0 + bit_len;
+   th = sc->T1;
+   if ( sc->ptr == 0 )
+   {
+      sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
+      sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
+   }
+   else if ( sc->T0 == 0 )
+   {
+      sc->T0 = 0xFFFFFFFFFFFFFC00ULL + bit_len;
+      sc->T1 = sc->T1 - 1;
+   }
+   else
+        sc->T0 -= 1024 - bit_len;
+
+   memset_zero_256( sc->buf + ptr64 + 1, 13 - ptr64 );
+   sc->buf[13] = m256_const1_64( 0x0100000000000000ULL );
+   sc->buf[14] = m256_const1_64( bswap_64( th ) );
+   sc->buf[15] = m256_const1_64( bswap_64( tl ) );
+
+   if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
+       sc->T1 = sc->T1 + 1;
+
+   blake512_4way_compress( sc );
+
+   mm256_block_bswap_64( (__m256i*)dst, sc->H );
 }
-*/
 
 void
 blake512_4way_update(void *cc, const void *data, size_t len)
@@ -806,17 +1092,8 @@ void
 blake512_4way_close(void *cc, void *dst)
 {
    blake64_4way_close( cc, dst );
-
-//   blake512_4way_addbits_and_close(cc, dst);
 }
 
-/*
-void
-blake512_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
-{
-	blake64_4way_close(cc, ub, n, dst, 8);
-}
-*/
 #ifdef __cplusplus
 }
 #endif

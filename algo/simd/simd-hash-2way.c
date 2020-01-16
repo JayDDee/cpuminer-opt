@@ -1173,6 +1173,91 @@ int simd_4way_update_close( simd_4way_context *state, void *hashval,
   return 0;
 }
 
+int simd512_4way_full( simd_4way_context *state, void *hashval,
+                    const void *data, int datalen )
+{
+  __m512i *A = (__m512i*)state->A;
+
+  state->hashbitlen = 512;
+  state->n_feistels = 8;
+  state->blocksize = 128*8;
+  state->count = 0;
+
+  for ( int i = 0; i < 8; i++ )
+       A[i] = _mm512_set4_epi32( SIMD_IV_512[4*i+3], SIMD_IV_512[4*i+2],
+                                 SIMD_IV_512[4*i+1], SIMD_IV_512[4*i+0] );
+
+  int current, i;
+  int bs = state->blocksize;  // bits in one lane
+  int isshort = 1;
+  uint64_t l;
+  int databitlen = datalen * 8;
+
+  current = state->count & (bs - 1);
+
+  while ( databitlen > 0 )
+  {
+    if ( current == 0 && databitlen >= bs )
+    {
+      // We can hash the data directly from the input buffer.
+      SIMD_4way_Compress( state, data, 0 );
+      databitlen -= bs;
+      data += 4*( bs/8 );
+      state->count += bs;
+    }
+    else
+    {
+      // Copy a chunk of data to the buffer
+      int len = bs - current;
+      if ( databitlen < len )
+      {
+        memcpy( state->buffer + 4*( current/8 ), data, 4*( (databitlen)/8 ) );
+        state->count += databitlen;
+        break;
+      }
+      else
+      {
+        memcpy( state->buffer + 4*(current/8), data, 4*(len/8) );
+        state->count += len;
+        databitlen -= len;
+        data += 4*( len/8 );
+        current = 0;
+        SIMD_4way_Compress( state, state->buffer, 0 );
+      }
+    }
+  }
+
+  current = state->count & (state->blocksize - 1);
+
+  // If there is still some data in the buffer, hash it
+  if ( current )
+  {
+    current = current / 8;
+    memset( state->buffer + 4*current, 0, 4*( state->blocksize/8 - current) );
+    SIMD_4way_Compress( state, state->buffer, 0 );
+  }
+
+  //* Input the message length as the last block
+  memset( state->buffer, 0, 4*( state->blocksize/8 ) );
+  l = state->count;
+  for ( i = 0; i < 8; i++ )
+  {
+    state->buffer[ i    ] = l & 0xff;
+    state->buffer[ i+16 ] = l & 0xff;
+    state->buffer[ i+32 ] = l & 0xff;
+    state->buffer[ i+48 ] = l & 0xff;
+    l >>= 8;
+  }
+  if ( state->count < 16384 )
+    isshort = 2;
+
+  SIMD_4way_Compress( state, state->buffer, isshort );
+  memcpy( hashval, state->A, 4*( state->hashbitlen / 8 ) );
+  return 0;
+}
+
+
+
 #endif // AVX512
 
 ////////////////////////////////////
@@ -1928,5 +2013,91 @@ int simd_2way_update_close( simd_2way_context *state, void *hashval,
   memcpy( hashval, state->A, 2*( state->hashbitlen / 8 ) );
   return 0;
 }
+
+int simd512_2way_full( simd_2way_context *state, void *hashval,
+                    const void *data, int datalen )
+{
+  __m256i *A = (__m256i*)state->A;
+
+  state->hashbitlen = 512;
+  state->n_feistels = 8;
+  state->blocksize = 128*8;
+  state->count = 0;
+
+  for ( int i = 0; i < 8; i++ )
+       A[i] = _mm256_set_epi32( SIMD_IV_512[4*i+3], SIMD_IV_512[4*i+2],
+                                SIMD_IV_512[4*i+1], SIMD_IV_512[4*i+0],
+                                SIMD_IV_512[4*i+3], SIMD_IV_512[4*i+2],
+                                SIMD_IV_512[4*i+1], SIMD_IV_512[4*i+0] );
+
+  int current, i;
+  int bs = state->blocksize;  // bits in one lane
+  int isshort = 1;
+  uint64_t l;
+  int databitlen = datalen * 8;
+
+  current = state->count & (bs - 1);
+
+  while ( databitlen > 0 )
+  {
+    if ( current == 0 && databitlen >= bs )
+    {
+      // We can hash the data directly from the input buffer.
+      SIMD_2way_Compress( state, data, 0 );
+
+      databitlen -= bs;
+      data += 2*( bs/8 );
+      state->count += bs;
+    }
+    else
+    {
+      // Copy a chunk of data to the buffer
+      int len = bs - current;
+      if ( databitlen < len )
+      {
+
+         memcpy( state->buffer + 2*( current/8 ), data, 2*( (databitlen+7)/8 ) );
+        state->count += databitlen;
+        break;
+      }
+      else
+      {
+        memcpy( state->buffer + 2*(current/8), data, 2*(len/8) );
+        state->count += len;
+        databitlen -= len;
+        data += 2*( len/8 );
+        current = 0;
+        SIMD_2way_Compress( state, state->buffer, 0 );
+      }
+    }
+  }
+
+  current = state->count & (state->blocksize - 1);
+
+  // If there is still some data in the buffer, hash it
+  if ( current )
+  {
+    current = ( current+7 ) / 8;
+    memset( state->buffer + 2*current, 0, 2*( state->blocksize/8 - current) );
+    SIMD_2way_Compress( state, state->buffer, 0 );
+  }
+
+  //* Input the message length as the last block
+  memset( state->buffer, 0, 2*( state->blocksize/8 ) );
+  l = state->count;
+  for ( i = 0; i < 8; i++ )
+  {
+    state->buffer[ i    ] = l & 0xff;
+    state->buffer[ i+16 ] = l & 0xff;
+    l >>= 8;
+  }
+  if ( state->count < 16384 )
+    isshort = 2;
+
+  SIMD_2way_Compress( state, state->buffer, isshort );
+  memcpy( hashval, state->A, 2*( state->hashbitlen / 8 ) );
+  return 0;
+}
+
 
 #endif

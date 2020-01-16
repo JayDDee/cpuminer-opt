@@ -157,6 +157,7 @@ bool opt_hash_meter = false;
 uint32_t submitted_share_count= 0;
 uint32_t accepted_share_count = 0;
 uint32_t rejected_share_count = 0;
+uint32_t stale_share_count = 0;
 uint32_t solved_block_count = 0;
 double *thr_hashrates;
 double global_hashrate = 0;
@@ -869,6 +870,7 @@ static struct   timeval five_min_start;
 static double   latency_sum = 0.;
 static uint64_t submit_sum  = 0;
 static uint64_t accept_sum  = 0;
+static uint64_t stale_sum  = 0;
 static uint64_t reject_sum  = 0;
 static double   norm_diff_sum = 0.;
 static uint32_t last_block_height = 0;
@@ -921,6 +923,7 @@ void report_summary_log( bool force )
    uint64_t submits = submit_sum;  submit_sum = 0;
    uint64_t accepts = accept_sum;  accept_sum = 0;
    uint64_t rejects = reject_sum;  reject_sum = 0;
+   uint64_t stales  = stale_sum;   stale_sum  = 0;
 //   int      latency  = latency_sum; latency_sum = 0;
    memcpy( &start_time, &five_min_start, sizeof start_time );
    memcpy( &five_min_start, &now, sizeof now );
@@ -976,7 +979,11 @@ void report_summary_log( bool force )
                        submits, submitted_share_count );
    applog2( LOG_INFO,"Accepted         %6d       %6d",
                        accepts, accepted_share_count );
-   applog2( LOG_INFO,"Rejected         %6d       %6d",
+   if ( stale_share_count )
+      applog2( LOG_INFO,"Stale            %6d       %6d",
+                       stales, stale_share_count );
+   if ( rejected_share_count )
+      applog2( LOG_INFO,"Rejected         %6d       %6d",
                        rejects, rejected_share_count );
    if ( solved_block_count )
       applog2( LOG_INFO,"Blocks solved                 %6d",
@@ -1012,8 +1019,10 @@ static int share_result( int result, struct work *null_work,
    struct share_stats_t my_stats = {0};
    struct timeval ack_time, latency_tv, et;
    const char *sres = NULL;
+   char job_id[48];
    bool solved = false; 
-
+   bool stale = false;
+   char *acol = NULL, *bcol = NULL, *scol = NULL, *rcol = NULL;
    // Mutex while we grab a snapshot of the stats.
    pthread_mutex_lock( &stats_lock );
 
@@ -1057,13 +1066,17 @@ static int share_result( int result, struct work *null_work,
       }
    }
    else
-      rejected_share_count++;
-/*
-   result ? accepted_share_count++ : rejected_share_count++;
-   solved = result && (my_stats.net_diff > 0.0 )
-            && ( my_stats.share_diff >= net_diff );
-   solved_block_count += solved ? 1 : 0 ;
-*/
+   {
+     if ( reason && strstr( reason, "Invalid job id" ) )
+     {
+        stale = true;
+        stale_share_count++;
+     }
+     else
+        rejected_share_count++;
+   }
+
+
    // update global counters for summary report
    pthread_mutex_lock( &stats_lock );
 
@@ -1077,31 +1090,85 @@ static int share_result( int result, struct work *null_work,
       norm_diff_sum += my_stats.target_diff;
    }
    else
-      reject_sum++;
+   {
+      if ( stale )
+         stale_sum++;
+      else
+         reject_sum++;
+   }
    submit_sum++;
    latency_sum += latency;
 
    pthread_mutex_unlock( &stats_lock );
 
-   if ( use_colors )
-      sres = solved ? ( CL_MAG "BLOCK SOLVED" CL_WHT )
-                    : ( result ? ( CL_GRN "Accepted" CL_WHT )
-                             : ( CL_RED "Rejected" CL_WHT ) );
-   else   // monochrome
-      sres = solved ? "BLOCK SOLVED" : ( result ? "Accepted" : "Rejected" );
+   sprintf( job_id, "job %s", my_stats.job_id );
+   bcol = acol = scol = rcol = "\0";
 
-   applog( LOG_NOTICE, "%s, %.3f secs (%dms), A/R/B: %d/%d/%d",
-                       sres, share_time, latency, accepted_share_count,
-                       rejected_share_count, solved_block_count );
+   if ( use_colors )
+   {
+      if ( unlikely( solved ) ) 
+      {
+         sres = CL_MAG "BLOCK SOLVED" CL_WHT;
+         bcol = CL_MAG;
+      }
+      if ( likely( result ) )
+      {
+         sres = CL_GRN "Accepted" CL_WHT;
+         acol = CL_GRN;
+      }
+      else
+      {
+         if ( stale )
+         {
+            sres = CL_YL2 "Stale share" CL_WHT;
+            scol = CL_YL2;
+            sprintf( job_id, "%sjob %s%s", CL_YL2, my_stats.job_id, CL_N );
+         }
+         else
+         {
+            sres = CL_RED "Rejected" CL_WHT;            
+            rcol = CL_RED;
+         }
+      }
+
+
+/*
+            sres = solved ? CL_MAG "BLOCK SOLVED" CL_WHT
+                    : ( result ? CL_GRN "Accepted" CL_WHT
+                               : ( stale ? CL_YL2 "Stale share" CL_WHT
+                                         : CL_RED "Rejected" CL_WHT ) );
+      
+
+      
+      if ( solved_block_count )   bcol = CL_MAG; else bcol = "\0";
+      if ( accepted_share_count ) acol = CL_GRN; else acol = "\0";
+      if ( stale_share_count )    scol = CL_YL2; else scol = "\0";
+      if ( rejected_share_count ) rcol = CL_RED; else rcol = "\0";
+
+      if ( stale ) sprintf( job_id, "%sjob %s%s",
+                             CL_YL2, my_stats.job_id, CL_N );
+*/
+
+   }
+   else   // monochrome
+      sres = solved ? "BLOCK SOLVED"
+                    : ( result ? "Accepted"
+                               : stale ? "Stale share" : "Rejected" );
+
+   applog( LOG_NOTICE, "%s, %.3f secs (%dms), %sA:%d" CL_WHT " %sS:%d" CL_WHT " %sR:%d" CL_WHT " %sB:%d" CL_WHT,
+           sres, share_time, latency, acol, accepted_share_count, scol,
+           stale_share_count, rcol, rejected_share_count, bcol,
+           solved_block_count );
 
    if ( have_stratum && !opt_quiet )
-      applog2( LOG_INFO, "Share diff %.3g (%5f%%), block %d, job %s",
+      applog2( LOG_INFO, "Share diff %.3g (%5f%%), block %d, %s",
                my_stats.share_diff, share_ratio, stratum.block_height,
-               my_stats.job_id );
+               job_id );
 
    if ( reason )
    {
-      applog( LOG_WARNING, "Reject reason: %s", reason );
+      if ( !opt_quiet && !stale )
+         applog( LOG_WARNING, "Reject reason: %s", reason );
       
       if ( opt_debug )
       {
@@ -1122,7 +1189,7 @@ static int share_result( int result, struct work *null_work,
          applog2( LOG_INFO, "Target: %s...", str3 );
       }
 
-      if ( opt_reset_on_stale && strstr( reason, "Invalid job id" ) )
+      if ( opt_reset_on_stale && stale )
          stratum_need_reset = true;
    }
 
@@ -1925,18 +1992,13 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
 {
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
 
-// the job_id check doesn't work as intended, it's a char pointer!
-// For stratum the pointers can be dereferenced and the strings compared,
-// benchmark not, getwork & gbt unsure.
-//    || ( have_straum && strcmp( work->job_id, g_work->job_id ) ) ) )
-// or
-//    || ( !benchmark && strcmp( work->job_id, g_work->job_id ) ) ) )
-// For now leave it as is, it seems stable.
-// strtoul seems to work.
-   if ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
-     && ( clean_job || ( *nonceptr >= *end_nonce_ptr )
-      || strtoul( work->job_id, NULL, 16 )
-          != strtoul( g_work->job_id, NULL, 16 ) ) )
+   bool force_new_work = work->job_id ? strtoul( work->job_id, NULL, 16 )
+                                     != strtoul( g_work->job_id, NULL, 16 )
+                                : true;
+
+   if ( force_new_work || *nonceptr >= *end_nonce_ptr
+   || ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
+        && clean_job ) )
    {
      work_free( work );
      work_copy( work, g_work );
@@ -2092,7 +2154,7 @@ static void *miner_thread( void *userdata )
    }
 
    // wait for stratum to send first job
-   if ( have_stratum ) while ( !stratum.job.job_id ) sleep(1);
+   if ( have_stratum ) while ( !g_work.job_id ) sleep(1);
 
    while (1)
    {
@@ -2764,25 +2826,6 @@ static void *stratum_thread(void *userdata )
         // check if this redundant
         stratum_disconnect( &stratum );
      }   
-/*
-     if ( !stratum_socket_full( &stratum, opt_timeout ) )
-     {
-        stratum_errors++;
-        applog(LOG_ERR, "Stratum connection timeout");
-        s = NULL;
-     }
-     else
-        s = stratum_recv_line(&stratum);
-     if ( !s )
-     {
-        stratum_disconnect(&stratum);
-        applog(LOG_WARNING, "Stratum connection interrupted");
-        continue;
-     }
-     if (!stratum_handle_method(&stratum, s))
-          stratum_handle_response(s);
-     free(s);
-*/
    }  // loop
 out:
   return NULL;

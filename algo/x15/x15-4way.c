@@ -360,7 +360,7 @@ int scanhash_x15_8way( struct work *work, uint32_t max_nonce,
         pdata[19] = n;
 
         for ( int i = 0; i < 8; i++ )
-        if ( ( hash+(i<<3) )[7] < Htarg )
+        if ( ( hash+(i<<3) )[7] <= Htarg )
         if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
         {
            pdata[19] = n+i;
@@ -588,7 +588,7 @@ int scanhash_x15_4way( struct work *work, uint32_t max_nonce,
          pdata[19] = n;
 
          for ( int i = 0; i < 4; i++ )
-         if ( ( hash+(i<<3) )[7] < Htarg )
+         if ( ( hash+(i<<3) )[7] <= Htarg )
          if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
          {
             pdata[19] = n+i;

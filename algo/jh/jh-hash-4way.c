@@ -41,55 +41,8 @@
 extern "C"{
 #endif
 
-
-#if SPH_SMALL_FOOTPRINT && !defined SPH_SMALL_FOOTPRINT_JH
-#define SPH_SMALL_FOOTPRINT_JH   1
-#endif
-
-#if !defined SPH_JH_64 && SPH_64_TRUE
-#define SPH_JH_64   1
-#endif
-
-#if !SPH_64
-#undef SPH_JH_64
-#endif
-
 #ifdef _MSC_VER
 #pragma warning (disable: 4146)
-#endif
-
-/*
- * The internal bitslice representation may use either big-endian or
- * little-endian (true bitslice operations do not care about the bit
- * ordering, and the bit-swapping linear operations in JH happen to
- * be invariant through endianness-swapping). The constants must be
- * defined according to the chosen endianness; we use some
- * byte-swapping macros for that.
- */
-
-#if SPH_LITTLE_ENDIAN
-
-#if SPH_64
-#define C64e(x)     ((SPH_C64(x) >> 56) \
-                    | ((SPH_C64(x) >> 40) & SPH_C64(0x000000000000FF00)) \
-                    | ((SPH_C64(x) >> 24) & SPH_C64(0x0000000000FF0000)) \
-                    | ((SPH_C64(x) >>  8) & SPH_C64(0x00000000FF000000)) \
-                    | ((SPH_C64(x) <<  8) & SPH_C64(0x000000FF00000000)) \
-                    | ((SPH_C64(x) << 24) & SPH_C64(0x0000FF0000000000)) \
-                    | ((SPH_C64(x) << 40) & SPH_C64(0x00FF000000000000)) \
-                    | ((SPH_C64(x) << 56) & SPH_C64(0xFF00000000000000)))
-#define dec64e_aligned   sph_dec64le_aligned
-#define enc64e           sph_enc64le
-#endif
-
-#else
-
-#if SPH_64
-#define C64e(x)     SPH_C64(x)
-#define dec64e_aligned   sph_dec64be_aligned
-#define enc64e           sph_enc64be
-#endif
-
 #endif
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
@@ -152,8 +105,97 @@ do { \
     x3 = _mm256_xor_si256( x3, x4 ); \
 } while (0)
 
-#if SPH_JH_64
+static const uint64_t C[] =
+{
+   0x67f815dfa2ded572, 0x571523b70a15847b,
+   0xf6875a4d90d6ab81, 0x402bd1c3c54f9f4e,
+   0x9cfa455ce03a98ea, 0x9a99b26699d2c503,
+   0x8a53bbf2b4960266, 0x31a2db881a1456b5,
+   0xdb0e199a5c5aa303, 0x1044c1870ab23f40,
+   0x1d959e848019051c, 0xdccde75eadeb336f,
+   0x416bbf029213ba10, 0xd027bbf7156578dc,
+   0x5078aa3739812c0a, 0xd3910041d2bf1a3f,
+   0x907eccf60d5a2d42, 0xce97c0929c9f62dd,
+   0xac442bc70ba75c18, 0x23fcc663d665dfd1,
+   0x1ab8e09e036c6e97, 0xa8ec6c447e450521,
+   0xfa618e5dbb03f1ee, 0x97818394b29796fd,
+   0x2f3003db37858e4a, 0x956a9ffb2d8d672a,
+   0x6c69b8f88173fe8a, 0x14427fc04672c78a,
+   0xc45ec7bd8f15f4c5, 0x80bb118fa76f4475,
+   0xbc88e4aeb775de52, 0xf4a3a6981e00b882,
+   0x1563a3a9338ff48e, 0x89f9b7d524565faa,
+   0xfde05a7c20edf1b6, 0x362c42065ae9ca36,
+   0x3d98fe4e433529ce, 0xa74b9a7374f93a53,
+   0x86814e6f591ff5d0, 0x9f5ad8af81ad9d0e,
+   0x6a6234ee670605a7, 0x2717b96ebe280b8b,
+   0x3f1080c626077447, 0x7b487ec66f7ea0e0,
+   0xc0a4f84aa50a550d, 0x9ef18e979fe7e391,
+   0xd48d605081727686, 0x62b0e5f3415a9e7e,
+   0x7a205440ec1f9ffc, 0x84c9f4ce001ae4e3,
+   0xd895fa9df594d74f, 0xa554c324117e2e55,
+   0x286efebd2872df5b, 0xb2c4a50fe27ff578,
+   0x2ed349eeef7c8905, 0x7f5928eb85937e44,
+   0x4a3124b337695f70, 0x65e4d61df128865e,
+   0xe720b95104771bc7, 0x8a87d423e843fe74,
+   0xf2947692a3e8297d, 0xc1d9309b097acbdd,
+   0xe01bdc5bfb301b1d, 0xbf829cf24f4924da,
+   0xffbf70b431bae7a4, 0x48bcf8de0544320d,
+   0x39d3bb5332fcae3b, 0xa08b29e0c1c39f45,
+   0x0f09aef7fd05c9e5, 0x34f1904212347094,
+   0x95ed44e301b771a2, 0x4a982f4f368e3be9,
+   0x15f66ca0631d4088, 0xffaf52874b44c147,
+   0x30c60ae2f14abb7e, 0xe68c6eccc5b67046,
+   0x00ca4fbd56a4d5a4, 0xae183ec84b849dda,
+   0xadd1643045ce5773, 0x67255c1468cea6e8,
+   0x16e10ecbf28cdaa3, 0x9a99949a5806e933,
+   0x7b846fc220b2601f, 0x1885d1a07facced1,
+   0xd319dd8da15b5932, 0x46b4a5aac01c9a50,
+   0xba6b04e467633d9f, 0x7eee560bab19caf6,
+   0x742128a9ea79b11f, 0xee51363b35f7bde9,
+   0x76d350755aac571d, 0x01707da3fec2463a,
+   0x42d8a498afc135f7, 0x79676b9e20eced78,
+   0xa8db3aea15638341, 0x832c83324d3bc3fa,
+   0xf347271c1f3b40a7, 0x9a762db734f04059,
+   0xfd4f21d26c4e3ee7, 0xef5957dc398dfdb8,
+   0xdaeb492b490c9b8d, 0x0d70f36849d7a25b,
+   0x84558d7ad0ae3b7d, 0x658ef8e4f0e9a5f5,
+   0x533b1036f4a2b8a0, 0x5aec3e759e07a80c,
+   0x4f88e85692946891, 0x4cbcbaf8555cb05b,
+   0x7b9487f3993bbbe3, 0x5d1c6b72d6f4da75,
+   0x6db334dc28acae64, 0x71db28b850a5346c,
+   0x2a518d10f2e261f8, 0xfc75dd593364dbe3,
+   0xa23fce43f1bcac1c, 0xb043e8023cd1bb67,
+   0x75a12988ca5b0a33, 0x5c5316b44d19347f,
+   0x1e4d790ec3943b92, 0x3fafeeb6d7757479,
+   0x21391abef7d4a8ea, 0x5127234c097ef45c,
+   0xd23c32ba5324a326, 0xadd5a66d4a17a344,
+   0x08c9f2afa63e1db5, 0x563c6b91983d5983,
+   0x4d608672a17cf84c, 0xf6c76e08cc3ee246,
+   0x5e76bcb1b333982f, 0x2ae6c4efa566d62b,
+   0x36d4c1bee8b6f406, 0x6321efbc1582ee74,
+   0x69c953f40d4ec1fd, 0x26585806c45a7da7,
+   0x16fae0061614c17e, 0x3f9d63283daf907e,
+   0x0cd29b00e3f2c9d2, 0x300cd4b730ceaa5f,
+   0x9832e0f216512a74, 0x9af8cee3d830eb0d,
+   0x9279f1b57b9ec54b, 0xd36886046ee651ff,
+   0x316796e6574d239b, 0x05750a17f3a6e6cc,
+   0xce6c3213d98176b1, 0x62a205f88452173c,
+   0x47154778b3cb2bf4, 0x486a9323825446ff,
+   0x65655e4e0758df38, 0x8e5086fc897cfcf2,
+   0x86ca0bd0442e7031, 0x4e477830a20940f0,
+   0x8338f7d139eea065, 0xbd3a2ce437e95ef7,
+   0x6ff8130126b29721, 0xe7de9fefd1ed44a3,
+   0xd992257615dfa08b, 0xbe42dc12f6f7853c,
+   0x7eb027ab7ceca7d8, 0xdea83eaada7d8d53,
+   0xd86902bd93ce25aa, 0xf908731afd43f65a,
+   0xa5194a17daef5fc0, 0x6a21fd4c33664d97,
+   0x701541db3198b435, 0x9b54cdedbb0f1eea,
+   0x72409751a163d09a, 0xe26f4791bf9d75f6
+};
 
+// Big endian version
+
+/*
 static const sph_u64 C[] = {
 	C64e(0x72d5dea2df15f867), C64e(0x7b84150ab7231557),
 	C64e(0x81abd6904d5a87f6), C64e(0x4e9f4fc5c3d12b40),
@@ -240,6 +282,7 @@ static const sph_u64 C[] = {
 	C64e(0x35b49831db411570), C64e(0xea1e0fbbedcd549b),
 	C64e(0x9ad063a151974072), C64e(0xf6759dbf91476fe2)
 };
+*/
 
 #define Ceven_hi(r)   (C[((r) << 2) + 0])
 #define Ceven_lo(r)   (C[((r) << 2) + 1])
@@ -427,7 +470,7 @@ do { \
    h7h = _mm256_xor_si256( h7h, m3h ); \
    h7l = _mm256_xor_si256( h7l, m3l ); \
 
-
+/*
 static const sph_u64 IV256[] = {
 	C64e(0xeb98a3412c20d3eb), C64e(0x92cdbe7b9cb245c1),
 	C64e(0x1c93519160d4c7fa), C64e(0x260082d67e508a03),
@@ -450,11 +493,8 @@ static const sph_u64 IV512[] = {
 	C64e(0xcf57f6ec9db1f856), C64e(0xa706887c5716b156),
 	C64e(0xe3c2fcdfe68517fb), C64e(0x545a4678cc8cdd4b)
 };
+*/
 
-#else
-
-
-#endif
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -484,57 +524,6 @@ static const sph_u64 IV512[] = {
 		W ## ro(h7); \
 	} while (0)
 
-#if SPH_SMALL_FOOTPRINT_JH
-
-#if SPH_JH_64
-
-/*
- * The "small footprint" 64-bit version just uses a partially unrolled
- * loop.
- */
-
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-
-#define E8_8W   do { \
-      unsigned r; \
-      for (r = 0; r < 42; r += 7) { \
-         SL_8W(0); \
-         SL_8W(1); \
-         SL_8W(2); \
-         SL_8W(3); \
-         SL_8W(4); \
-         SL_8W(5); \
-         SL_8W(6); \
-      } \
-   } while (0)
-
-#endif
-
-#define E8   do { \
-		unsigned r; \
-		for (r = 0; r < 42; r += 7) { \
-			SL(0); \
-			SL(1); \
-			SL(2); \
-			SL(3); \
-			SL(4); \
-			SL(5); \
-			SL(6); \
-		} \
-	} while (0)
-
-#else
-
-
-#endif
-
-#else
-
-#if SPH_JH_64
-
-/*
- * On a "true 64-bit" architecture, we can unroll at will.
- */
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -585,6 +574,7 @@ static const sph_u64 IV512[] = {
 
 #endif  // AVX512
 
+
 #define E8   do { \
       SLu( 0, 0); \
       SLu( 1, 1); \
@@ -629,13 +619,6 @@ static const sph_u64 IV512[] = {
       SLu(40, 5); \
       SLu(41, 6); \
    } while (0)
-
-#else
-
-
-#endif
-
-#endif
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -732,12 +715,12 @@ jh_8way_core( jh_8way_context *sc, const void *data, size_t len )
 
 static void
 jh_8way_close( jh_8way_context *sc, unsigned ub, unsigned n, void *dst,
-               size_t out_size_w32, const void *iv )
+               size_t out_size_w32 )
 {
    __m512i buf[16*4];
    __m512i *dst512 = (__m512i*)dst;
    size_t numz, u;
-   sph_u64 l0, l1, l0e, l1e;
+   uint64_t l0, l1;
 
    buf[0] = m512_const1_64( 0x80ULL );
 
@@ -748,12 +731,10 @@ jh_8way_close( jh_8way_context *sc, unsigned ub, unsigned n, void *dst,
 
    memset_zero_512( buf+1, (numz>>3) - 1 );
 
-   l0 = SPH_T64(sc->block_count << 9) + (sc->ptr << 3);
-   l1 = SPH_T64(sc->block_count >> 55);
-   sph_enc64be( &l0e, l0 );
-   sph_enc64be( &l1e, l1 );
-   *(buf + (numz>>3)    ) = _mm512_set1_epi64( l1e );
-   *(buf + (numz>>3) + 1) = _mm512_set1_epi64( l0e );
+   l0 = ( sc->block_count << 9 ) + ( sc->ptr << 3 );
+   l1 = ( sc->block_count >> 55 );
+   *(buf + (numz>>3)    ) = _mm512_set1_epi64( bswap_64( l1 ) );
+   *(buf + (numz>>3) + 1) = _mm512_set1_epi64( bswap_64( l0 ) );
 
    jh_8way_core( sc, buf, numz + 16 );
 
@@ -772,7 +753,7 @@ jh256_8way_update(void *cc, const void *data, size_t len)
 void
 jh256_8way_close(void *cc, void *dst)
 {
-   jh_8way_close(cc, 0, 0, dst, 8, IV256);
+   jh_8way_close(cc, 0, 0, dst, 8);
 }
 
 void
@@ -784,7 +765,7 @@ jh512_8way_update(void *cc, const void *data, size_t len)
 void
 jh512_8way_close(void *cc, void *dst)
 {
-   jh_8way_close(cc, 0, 0, dst, 16, IV512);
+   jh_8way_close(cc, 0, 0, dst, 16);
 }
 
 #endif
@@ -882,12 +863,12 @@ jh_4way_core( jh_4way_context *sc, const void *data, size_t len )
 
 static void
 jh_4way_close( jh_4way_context *sc, unsigned ub, unsigned n, void *dst,
-               size_t out_size_w32, const void *iv )
+               size_t out_size_w32 )
 {
    __m256i buf[16*4];
    __m256i *dst256 = (__m256i*)dst;
    size_t numz, u;
-   sph_u64 l0, l1, l0e, l1e;
+   uint64_t l0, l1;
 
    buf[0] = m256_const1_64( 0x80ULL );
 
@@ -898,12 +879,10 @@ jh_4way_close( jh_4way_context *sc, unsigned ub, unsigned n, void *dst,
 
    memset_zero_256( buf+1, (numz>>3) - 1 );   
 
-   l0 = SPH_T64(sc->block_count << 9) + (sc->ptr << 3);
-   l1 = SPH_T64(sc->block_count >> 55);
-   sph_enc64be( &l0e, l0 );
-   sph_enc64be( &l1e, l1 );
-   *(buf + (numz>>3)    ) = _mm256_set1_epi64x( l1e );
-   *(buf + (numz>>3) + 1) = _mm256_set1_epi64x( l0e ); 
+   l0 = ( sc->block_count << 9 ) + ( sc->ptr << 3 );
+   l1 = ( sc->block_count >> 55 );
+   *(buf + (numz>>3)    ) = _mm256_set1_epi64x( bswap_64( l1 ) );
+   *(buf + (numz>>3) + 1) = _mm256_set1_epi64x( bswap_64( l0 ) );
 
    jh_4way_core( sc, buf, numz + 16 );
 
@@ -922,7 +901,7 @@ jh256_4way_update(void *cc, const void *data, size_t len)
 void
 jh256_4way_close(void *cc, void *dst)
 {
-	jh_4way_close(cc, 0, 0, dst, 8, IV256);
+	jh_4way_close(cc, 0, 0, dst, 8 );
 }
 
 void
@@ -934,7 +913,7 @@ jh512_4way_update(void *cc, const void *data, size_t len)
 void
 jh512_4way_close(void *cc, void *dst)
 {
-	jh_4way_close(cc, 0, 0, dst, 16, IV512);
+	jh_4way_close(cc, 0, 0, dst, 16 );
 }
 
 

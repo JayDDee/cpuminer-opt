@@ -78,7 +78,7 @@ bool register_lyra2rev3_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_lyra2rev3;
   gate->hash      = (void*)&lyra2rev3_hash;
 #endif
-  gate->optimizations = SSE2_OPT | SSE42_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
   gate->miner_thread_init = (void*)&lyra2rev3_thread_init;
   opt_target_factor = 256.0;
   return true;
@@ -119,7 +119,7 @@ bool register_lyra2rev2_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_lyra2rev2;
   gate->hash      = (void*)&lyra2rev2_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
   gate->miner_thread_init = (void*)&lyra2rev2_thread_init;
   opt_target_factor = 256.0;
   return true;
@@ -146,7 +146,7 @@ bool register_lyra2z_algo( algo_gate_t* gate )
   gate->scanhash   = (void*)&scanhash_lyra2z;
   gate->hash       = (void*)&lyra2z_hash;
 #endif
-  gate->optimizations = SSE42_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
   opt_target_factor = 256.0;
   return true;
 };
@@ -165,7 +165,7 @@ bool register_lyra2h_algo( algo_gate_t* gate )
   gate->scanhash   = (void*)&scanhash_lyra2h;
   gate->hash       = (void*)&lyra2h_hash;
 #endif
-  gate->optimizations = SSE42_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT;
   opt_target_factor = 256.0;
   return true;
 };
@@ -174,20 +174,20 @@ bool register_lyra2h_algo( algo_gate_t* gate )
 
 bool register_allium_algo( algo_gate_t* gate )
 {
-#if defined (ALLIUM_8WAY)
+#if defined (ALLIUM_16WAY)
+  gate->miner_thread_init = (void*)&init_allium_16way_ctx;
+  gate->scanhash  = (void*)&scanhash_allium_16way;
+  gate->hash      = (void*)&allium_16way_hash;
+#elif defined (ALLIUM_8WAY)
   gate->miner_thread_init = (void*)&init_allium_8way_ctx;
   gate->scanhash  = (void*)&scanhash_allium_8way;
   gate->hash      = (void*)&allium_8way_hash;
-#elif defined (ALLIUM_4WAY)
-  gate->miner_thread_init = (void*)&init_allium_4way_ctx;
-  gate->scanhash  = (void*)&scanhash_allium_4way;
-  gate->hash      = (void*)&allium_4way_hash;
 #else
   gate->miner_thread_init = (void*)&init_allium_ctx;
   gate->scanhash  = (void*)&scanhash_allium;
   gate->hash      = (void*)&allium_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
   opt_target_factor = 256.0;
   return true;
 };
@@ -229,7 +229,7 @@ void phi2_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 bool register_phi2_algo( algo_gate_t* gate )
 {
 //   init_phi2_ctx();
-   gate->optimizations = SSE2_OPT | AES_OPT | SSE42_OPT | AVX2_OPT | AVX512_OPT;
+   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
    gate->get_work_data_size = (void*)&phi2_get_work_data_size;
    gate->decode_extra_data  = (void*)&phi2_decode_extra_data;
    gate->build_extraheader  = (void*)&phi2_build_extraheader;

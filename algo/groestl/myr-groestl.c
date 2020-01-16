@@ -1,22 +1,20 @@
 #include "myrgr-gate.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
-#ifdef NO_AES_NI
-  #include "sph_groestl.h"
-#else
+#ifdef __AES__
   #include "aes_ni/hash-groestl.h"
+#else
+  #include "sph_groestl.h"
 #endif
 #include <openssl/sha.h>
 
 typedef struct {
-#ifdef NO_AES_NI
-    sph_groestl512_context  groestl;
-#else
+#ifdef __AES__
     hashState_groestl       groestl;
+#else
+    sph_groestl512_context  groestl;
 #endif
     SHA256_CTX              sha;
 } myrgr_ctx_holder;
@@ -25,10 +23,10 @@ myrgr_ctx_holder myrgr_ctx;
 
 void init_myrgr_ctx()
 {
-#ifdef NO_AES_NI
-     sph_groestl512_init( &myrgr_ctx.groestl );
-#else
+#ifdef __AES__
      init_groestl ( &myrgr_ctx.groestl, 64 );
+#else
+     sph_groestl512_init( &myrgr_ctx.groestl );
 #endif
      SHA256_Init( &myrgr_ctx.sha );
 }
@@ -40,12 +38,12 @@ void myriad_hash(void *output, const void *input)
 
  	uint32_t _ALIGN(32) hash[16];
 
-#ifdef NO_AES_NI
-	sph_groestl512(&ctx.groestl, input, 80);
-	sph_groestl512_close(&ctx.groestl, hash);
-#else
+#ifdef __AES__
    update_groestl( &ctx.groestl, (char*)input, 640 );
    final_groestl( &ctx.groestl, (char*)hash);
+#else
+	sph_groestl512(&ctx.groestl, input, 80);
+	sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
    SHA256_Update( &ctx.sha, (unsigned char*)hash, 64 );
