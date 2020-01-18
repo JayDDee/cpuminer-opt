@@ -61,11 +61,23 @@ typedef struct {
 } luffa_4way_context __attribute((aligned(128)));
 
 int luffa_4way_init( luffa_4way_context *state, int hashbitlen );
-int luffa_4way_update( luffa_4way_context *state, const void *data,
-                       size_t len );
-int luffa_4way_close( luffa_4way_context *state, void *hashval );
+//int luffa_4way_update( luffa_4way_context *state, const void *data,
+//                       size_t len );
+//int luffa_4way_close( luffa_4way_context *state, void *hashval );
 int luffa_4way_update_close( luffa_4way_context *state, void *output,
                                    const void *data, size_t inlen );
+int luffa512_4way_full( luffa_4way_context *state, void *output,
+                         const void *data, size_t inlen );
+int luffa512_4way_init( luffa_4way_context *state );
+int luffa512_4way_update( luffa_4way_context *state, const void *data,
+                       size_t len );
+int luffa512_4way_close( luffa_4way_context *state, void *hashval );
+int luffa512_4way_update_close( luffa_4way_context *state, void *output,
+                                const void *data, size_t inlen );
+
+#define luffa_4way_update       luffa512_4way_update
+#define luffa_4way_close        luffa512_4way_close
+#define luffa_4way_update_close luffa512_4way_update_close
 
 #endif
 
@@ -82,6 +94,8 @@ int luffa_2way_update( luffa_2way_context *state, const void *data,
 int luffa_2way_close( luffa_2way_context *state, void *hashval );
 int luffa_2way_update_close( luffa_2way_context *state, void *output,
                                    const void *data, size_t inlen );
+int luffa512_2way_full( luffa_2way_context *state, void *output,
+                         const void *data, size_t inlen );
 
 #endif
 #endif

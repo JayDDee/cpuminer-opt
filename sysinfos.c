@@ -41,7 +41,7 @@
    "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input"
 
 #define HWMON_PATH3 \
-   "/sys/class/hwmon/hwmon0/temp1_input"
+   "/sys/devices/platform/coretemp.0/hwmon/hwmon2/temp1_input"
 
 #define HWMON_PATH \
  "/sys/class/hwmon/hwmon2/temp1_input"
@@ -83,21 +83,6 @@ static inline float linux_cputemp(int core)
 
    if (!fd)
       fd = fopen(HWMON_PATH, "r");
-
-	if (!fd)
-//		fd = fopen(HWMON_ALT1, "r");
-
-//	if (!fd)
-		fd = fopen(HWMON_ALT2, "r");
-
-	if (!fd)
-		fd = fopen(HWMON_ALT3, "r");
-
-	if (!fd)
-		fd = fopen(HWMON_ALT4, "r");
-
-	if (!fd)
-      fd = fopen(HWMON_ALT5, "r");
 
 	if (!fd)
 		return tc;

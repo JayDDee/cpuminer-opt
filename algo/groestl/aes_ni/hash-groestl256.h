@@ -93,9 +93,6 @@ typedef enum
 typedef struct {
   __attribute__ ((aligned (32))) __m128i chaining[SIZE256];
   __attribute__ ((aligned (32))) __m128i buffer[SIZE256];
-//  __attribute__ ((aligned (32))) u64 chaining[SIZE/8];      /* actual state */
-//  __attribute__ ((aligned (32))) BitSequence_gr buffer[SIZE];  /* data buffer */
-//  u64 block_counter;        /* message block counter */
   int hashlen;              // bytes
   int blk_count;
   int buf_ptr;              /* data buffer pointer */

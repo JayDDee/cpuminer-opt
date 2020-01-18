@@ -527,7 +527,7 @@ int scanhash_x13bcd_4way( struct work *work, uint32_t max_nonce,
      mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
      blake512_4way_init( &x13bcd_ctx_mid );
-     blake512_4way( &x13bcd_ctx_mid, vdata, 64 );
+     blake512_4way_update( &x13bcd_ctx_mid, vdata, 64 );
      do
      {
         *noncev = mm256_intrlv_blend_32( mm256_bswap_32(

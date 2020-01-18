@@ -89,6 +89,7 @@ cpuminer_SOURCES = \
   algo/gost/sph_gost.c \
   algo/groestl/groestl-gate.c \
   algo/groestl/groestl512-hash-4way.c \
+  algo/groestl/groestl256-hash-4way.c \
   algo/groestl/sph_groestl.c \
   algo/groestl/groestl.c \
   algo/groestl/groestl-4way.c \

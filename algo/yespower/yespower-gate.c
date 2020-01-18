@@ -55,7 +55,7 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
         do {
            be32enc(&endiandata[19], n);
            yespower_hash((char*) endiandata, (char*) vhash, 80);
-           if ( vhash[7] < Htarg && fulltest( vhash, ptarget )
+           if ( vhash[7] <= Htarg && fulltest( vhash, ptarget )
               && !opt_benchmark )
            {
                pdata[19] = n;

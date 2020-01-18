@@ -43,7 +43,6 @@ extern "C"{
 #endif
 
 #include <stddef.h>
-#include "algo/sha/sph_types.h"
 #include "simd-utils.h"
 
 #define SPH_SIZE_jh256   256

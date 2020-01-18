@@ -275,7 +275,7 @@ int scanhash_c11_8way( struct work *work, uint32_t max_nonce,
         pdata[19] = n;
 
         for ( int i = 0; i < 8; i++ )
-        if ( ( ( hash+(i<<3) )[7] < Htarg )
+        if ( ( ( hash+(i<<3) )[7] <= Htarg )
              && fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
         {
            pdata[19] = n+i;
@@ -443,37 +443,26 @@ int scanhash_c11_4way( struct work *work, uint32_t max_nonce,
      int thr_id = mythr->id;  // thr_id arg is deprecated
      __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
      const uint32_t Htarg = ptarget[7];
-     uint64_t htmax[] = {          0,        0xF,       0xFF,
-                               0xFFF,     0xFFFF, 0x10000000  };
-     uint32_t masks[] = { 0xFFFFFFFF, 0xFFFFFFF0, 0xFFFFFF00,
-                          0xFFFFF000, 0xFFFF0000,          0  };
 
      mm256_bswap32_intrlv80_4x64( vdata, pdata );
 
-     for (int m=0; m < 6; m++) 
-       if (Htarg <= htmax[m])
-       {
-         uint32_t mask = masks[m];
-         do
-         {
-           *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
-                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
+     do
+     {
+        *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
+             _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
 
-            c11_4way_hash( hash, vdata );
-            pdata[19] = n;
+        c11_4way_hash( hash, vdata );
+        pdata[19] = n;
 
-            for ( int i = 0; i < 4; i++ )
-            if ( ( ( (hash+(i<<3))[7] & mask ) == 0 )
-                 && fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
-            {
-               pdata[19] = n+i;
-               submit_lane_solution( work, hash+(i<<3), mythr, i );
-            }
-            n += 4;
-         } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
-         break;
-       }
-
+        for ( int i = 0; i < 4; i++ )
+        if ( ( ( hash+(i<<3) )[7] <= Htarg )
+            && fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
+        {
+           pdata[19] = n+i;
+           submit_lane_solution( work, hash+(i<<3), mythr, i );
+        }
+        n += 4;
+     } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
      *hashes_done = n - first_nonce + 1;
      return 0;
 }

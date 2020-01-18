@@ -459,6 +459,11 @@ int luffa_4way_init( luffa_4way_context *state, int hashbitlen )
     return 0;
 }
 
+int luffa512_4way_init( luffa_4way_context *state )
+{
+   return luffa_4way_init( state, 512 );
+}
+   
 // Do not call luffa_update_close after having called luffa_update.
 // Once luffa_update has been called only call luffa_update or luffa_close.
 int luffa_4way_update( luffa_4way_context *state, const void *data,
@@ -496,6 +501,14 @@ int luffa_4way_update( luffa_4way_context *state, const void *data,
     return 0;
 }
 
+/*
+int luffa512_4way_update( luffa_4way_context *state, const void *data,
+                       size_t len )
+{
+   return luffa_4way_update( state, data, len );
+}
+*/
+
 int luffa_4way_close( luffa_4way_context *state, void *hashval )
 {
     __m512i *buffer = (__m512i*)state->buffer;
@@ -515,6 +528,77 @@ int luffa_4way_close( luffa_4way_context *state, void *hashval )
 
     if ( state->hashbitlen > 512 )
         finalization512_4way( state, (uint32*)( hashval+32 ) );
+    return 0;
+}
+
+/*
+int luffa512_4way_close( luffa_4way_context *state, void *hashval )
+{
+   return luffa_4way_close( state, hashval );
+}
+*/
+
+int luffa512_4way_full( luffa_4way_context *state, void *output,
+                        const void *data, size_t inlen )
+{
+    state->hashbitlen = 512;
+    __m128i *iv = (__m128i*)IV;
+
+    state->chainv[0] = m512_const1_128( iv[0] );
+    state->chainv[1] = m512_const1_128( iv[1] );
+    state->chainv[2] = m512_const1_128( iv[2] );
+    state->chainv[3] = m512_const1_128( iv[3] );
+    state->chainv[4] = m512_const1_128( iv[4] );
+    state->chainv[5] = m512_const1_128( iv[5] );
+    state->chainv[6] = m512_const1_128( iv[6] );
+    state->chainv[7] = m512_const1_128( iv[7] );
+    state->chainv[8] = m512_const1_128( iv[8] );
+    state->chainv[9] = m512_const1_128( iv[9] );
+
+    ((__m512i*)state->buffer)[0] = m512_zero;
+    ((__m512i*)state->buffer)[1] = m512_zero;
+
+    const __m512i *vdata  = (__m512i*)data;
+    __m512i msg[2];
+    int i;
+    const int blocks = (int)( inlen >> 5 );
+    const __m512i shuff_bswap32 = m512_const_64(
+                                   0x3c3d3e3f38393a3b, 0x3435363730313233,
+                                   0x2c2d2e2f28292a2b, 0x2425262720212223,
+                                   0x1c1d1e1f18191a1b, 0x1415161710111213,
+                                   0x0c0d0e0f08090a0b, 0x0405060700010203 );
+
+    state->rembytes = inlen & 0x1F;
+
+    // full blocks
+    for ( i = 0; i < blocks; i++, vdata+=2 )
+    {
+       msg[0] = _mm512_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
+       msg[1] = _mm512_shuffle_epi8( vdata[ 1 ], shuff_bswap32 );
+       rnd512_4way( state, msg );
+    }
+
+    // 16 byte partial block exists for 80 byte len
+    if ( state->rembytes  )
+    {
+       // padding of partial block
+       msg[0] = _mm512_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
+       msg[1] = m512_const2_64( 0, 0x0000000080000000 );
+       rnd512_4way( state, msg );
+    }
+    else
+    {
+       // empty pad block
+       msg[0] = m512_const2_64( 0, 0x0000000080000000 );
+       msg[1] = m512_zero;
+       rnd512_4way( state, msg );
+    }
+
+    finalization512_4way( state, (uint32*)output );
+
+    if ( state->hashbitlen > 512 )
+        finalization512_4way( state, (uint32*)( output+64 ) );
+
     return 0;
 }
 
@@ -1028,6 +1112,69 @@ int luffa_2way_close( luffa_2way_context *state, void *hashval )
 
     if ( state->hashbitlen > 512 )
         finalization512_2way( state, (uint32*)( hashval+32 ) );
+    return 0;
+}
+
+int luffa512_2way_full( luffa_2way_context *state, void *output,
+                        const void *data, size_t inlen )
+{
+    state->hashbitlen = 512;
+    __m128i *iv = (__m128i*)IV;
+
+    state->chainv[0] = m256_const1_128( iv[0] );
+    state->chainv[1] = m256_const1_128( iv[1] );
+    state->chainv[2] = m256_const1_128( iv[2] );
+    state->chainv[3] = m256_const1_128( iv[3] );
+    state->chainv[4] = m256_const1_128( iv[4] );
+    state->chainv[5] = m256_const1_128( iv[5] );
+    state->chainv[6] = m256_const1_128( iv[6] );
+    state->chainv[7] = m256_const1_128( iv[7] );
+    state->chainv[8] = m256_const1_128( iv[8] );
+    state->chainv[9] = m256_const1_128( iv[9] );
+
+    ((__m256i*)state->buffer)[0] = m256_zero;
+    ((__m256i*)state->buffer)[1] = m256_zero;
+
+    const __m256i *vdata  = (__m256i*)data;
+    __m256i msg[2];
+    int i;
+    const int blocks = (int)( inlen >> 5 );
+    const __m256i shuff_bswap32 = m256_const_64( 0x1c1d1e1f18191a1b,
+                                                 0x1415161710111213,
+                                                 0x0c0d0e0f08090a0b,
+                                                 0x0405060700010203 );
+
+    state->rembytes = inlen & 0x1F;
+
+    // full blocks
+    for ( i = 0; i < blocks; i++, vdata+=2 )
+    {
+       msg[0] = _mm256_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
+       msg[1] = _mm256_shuffle_epi8( vdata[ 1 ], shuff_bswap32 );
+       rnd512_2way( state, msg );
+    }
+
+    // 16 byte partial block exists for 80 byte len
+    if ( state->rembytes  )
+    {
+       // padding of partial block
+       msg[0] = _mm256_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
+       msg[1] = m256_const2_64( 0, 0x0000000080000000 );
+       rnd512_2way( state, msg );
+    }
+    else
+    {
+       // empty pad block
+       msg[0] = m256_const2_64( 0, 0x0000000080000000 );
+       msg[1] = m256_zero;
+       rnd512_2way( state, msg );
+    }
+
+    finalization512_2way( state, (uint32*)output );
+
+    if ( state->hashbitlen > 512 )
+        finalization512_2way( state, (uint32*)( output+32 ) );
+
     return 0;
 }
 

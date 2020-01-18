@@ -1,13 +1,10 @@
 #include "algo-gate-api.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <openssl/sha.h>
 #include <stdint.h>
 #include <stdlib.h>
-
 #include "sph_hefty1.h"
-
 #include "algo/luffa/sph_luffa.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/skein/sph_skein.h"
@@ -16,8 +13,7 @@
 #include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/luffa/luffa_for_sse2.h"
-
-#ifndef NO_AES_NI
+#ifdef __AES__
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
 
@@ -25,30 +21,23 @@ void bastionhash(void *output, const void *input)
 {
 	unsigned char hash[64] __attribute__ ((aligned (64)));
 
-#ifdef NO_AES_NI
-        sph_echo512_context     ctx_echo;
+#ifdef __AES__
+   hashState_echo          ctx_echo;
 #else
-        hashState_echo          ctx_echo;
+   sph_echo512_context     ctx_echo;
 #endif
-        hashState_luffa         ctx_luffa;
+   hashState_luffa         ctx_luffa;
 	sph_fugue512_context ctx_fugue;
 	sph_whirlpool_context ctx_whirlpool;
 	sph_shabal512_context ctx_shabal;
    sph_hamsi512_context ctx_hamsi;
 	sph_skein512_context ctx_skein;
 
-//        unsigned char hashbuf[128] __attribute__ ((aligned (16)));
-//        sph_u64 hashctA;
-//        sph_u64 hashctB;
-//        size_t hashptr;
-
 	HEFTY1(input, 80, hash);
 
         init_luffa( &ctx_luffa, 512 );
         update_and_final_luffa( &ctx_luffa, (BitSequence*)hash,
                                 (const BitSequence*)hash, 64 );
-//        update_luffa( &ctx_luffa, hash, 64 );
-//        final_luffa( &ctx_luffa, hash );
 
 	if (hash[0] & 0x8)
 	{
@@ -71,23 +60,19 @@ void bastionhash(void *output, const void *input)
 
 	if (hash[0] & 0x8)
 	{
-#ifdef NO_AES_NI
+#ifdef __AES__
+      init_echo( &ctx_echo, 512 );
+      update_final_echo ( &ctx_echo,(BitSequence*)hash,
+                              (const BitSequence*)hash, 512 );
+#else
 		sph_echo512_init(&ctx_echo);
 		sph_echo512(&ctx_echo, hash, 64);
 		sph_echo512_close(&ctx_echo, hash);
-#else
-                init_echo( &ctx_echo, 512 );
-                update_final_echo ( &ctx_echo,(BitSequence*)hash,
-                                    (const BitSequence*)hash, 512 );
-//                update_echo ( &ctx_echo, hash, 512 );
-//                final_echo( &ctx_echo,  hash );
 #endif
 	} else {
-                init_luffa( &ctx_luffa, 512 );
-                update_and_final_luffa( &ctx_luffa, (BitSequence*)hash,
-                                        (const BitSequence*)hash, 64 );
-//                update_luffa( &ctx_luffa, hash, 64 );
-//                final_luffa( &ctx_luffa, hash );
+      init_luffa( &ctx_luffa, 512 );
+      update_and_final_luffa( &ctx_luffa, (BitSequence*)hash,
+                                    (const BitSequence*)hash, 64 );
 	}
 
 	sph_shabal512_init(&ctx_shabal);
@@ -119,11 +104,9 @@ void bastionhash(void *output, const void *input)
 		sph_hamsi512(&ctx_hamsi, hash, 64);
 		sph_hamsi512_close(&ctx_hamsi, hash);
 	} else {
-                init_luffa( &ctx_luffa, 512 );
-                update_and_final_luffa( &ctx_luffa, (BitSequence*)hash,
-                                        (const BitSequence*)hash, 64 );
-//                update_luffa( &ctx_luffa, hash, 64 );
-//                final_luffa( &ctx_luffa, hash );
+      init_luffa( &ctx_luffa, 512 );
+      update_and_final_luffa( &ctx_luffa, (BitSequence*)hash,
+                                    (const BitSequence*)hash, 64 );
 	}
 
 	memcpy(output, hash, 32);

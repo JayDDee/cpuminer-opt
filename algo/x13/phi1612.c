@@ -1,18 +1,15 @@
 #include "phi1612-gate.h"
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
 #include "algo/gost/sph_gost.h"
 #include "algo/echo/sph_echo.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
-
-#ifndef NO_AES_NI
+#ifdef __AES__
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
 
@@ -22,10 +19,10 @@ typedef struct {
      cubehashParam           cube;
      sph_fugue512_context    fugue;
      sph_gost512_context     gost;
-#ifdef NO_AES_NI
-     sph_echo512_context     echo;
-#else
+#ifdef __AES__
      hashState_echo          echo;
+#else
+     sph_echo512_context     echo;
 #endif
 } phi_ctx_holder;
 
@@ -40,10 +37,10 @@ void init_phi1612_ctx()
      cubehashInit( &phi_ctx.cube, 512, 16, 32 );
      sph_fugue512_init( &phi_ctx.fugue );
      sph_gost512_init( &phi_ctx.gost );
-#ifdef NO_AES_NI
-     sph_echo512_init( &phi_ctx.echo );
-#else
+#ifdef __AES__
      init_echo( &phi_ctx.echo, 512 );
+#else
+     sph_echo512_init( &phi_ctx.echo );
 #endif
 }
 
@@ -64,9 +61,6 @@ void phi1612_hash(void *output, const void *input)
      sph_skein512( &ctx.skein, input + 64, 16 );
      sph_skein512_close( &ctx.skein, hash );
 
-//     sph_skein512( &ctx.skein, input, 80 );
-//     sph_skein512_close( &ctx.skein, (void*)hash );
-
      sph_jh512( &ctx.jh, (const void*)hash, 64 );
      sph_jh512_close( &ctx.jh, (void*)hash );
 
@@ -78,12 +72,12 @@ void phi1612_hash(void *output, const void *input)
      sph_gost512( &ctx.gost, hash, 64 );
      sph_gost512_close( &ctx.gost, hash );
 
-#ifdef NO_AES_NI
-     sph_echo512( &ctx.echo, hash, 64 );
-     sph_echo512_close( &ctx.echo, hash );
-#else
+#ifdef __AES__
      update_final_echo ( &ctx.echo, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
+#else
+     sph_echo512( &ctx.echo, hash, 64 );
+     sph_echo512_close( &ctx.echo, hash );
 #endif
 
      memcpy(output, hash, 32);

@@ -22,23 +22,23 @@ extern void pentablakehash_4way( void *output, const void *input )
 
 
      blake512_4way_init( &ctx );
-     blake512_4way( &ctx, input, 80 );
+     blake512_4way_update( &ctx, input, 80 );
      blake512_4way_close( &ctx, vhash );
 
      blake512_4way_init( &ctx );
-     blake512_4way( &ctx, vhash, 64 );
+     blake512_4way_update( &ctx, vhash, 64 );
      blake512_4way_close( &ctx, vhash );
 
      blake512_4way_init( &ctx );
-     blake512_4way( &ctx, vhash, 64 );
+     blake512_4way_update( &ctx, vhash, 64 );
      blake512_4way_close( &ctx, vhash );
 
      blake512_4way_init( &ctx );
-     blake512_4way( &ctx, vhash, 64 );
+     blake512_4way_update( &ctx, vhash, 64 );
      blake512_4way_close( &ctx, vhash );
 
      blake512_4way_init( &ctx );
-     blake512_4way( &ctx, vhash, 64 );
+     blake512_4way_update( &ctx, vhash, 64 );
      blake512_4way_close( &ctx, vhash );
 
      memcpy( output,    hash0, 32 );

@@ -33,8 +33,69 @@ supported.
 64 bit Linux or Windows operating system. Apple, Android and Raspberry Pi
 are not supported. FreeBSD YMMV.
 
+Reporting bugs
+--------------
+
+Bugs can be reported by sending am email to JayDDee246@gmail.com or opening
+an issue in git: https://github.com/JayDDee/cpuminer-opt/issues
+
+Please include the following information:
+
+1. CPU model, operating system, cpuminer-opt version (must be latest),
+   binary file for Windows, changes to default build procedure for Linux.
+
+2. Exact comand line (except user and pw) and intial output showing
+   the above requested info.
+
+3. Additional program output showing any error messages or other
+   pertinent data.
+
+4. A clear description of the problem including history, scope,
+   persistence or intermittance, and reproduceability. 
+
+In simpler terms:
+
+What is it doing?
+What should it be doing instead?
+Did it work in a previous release?
+Does it happen for all algos? All pools? All options? Solo?
+Does it happen all the time?
+If not what makes it happen or not happen? 
+
 Change Log
 ----------
+
+v3.11.5
+
+Fixed AVX512 detection that could cause compilation errors on CPUs
+without AVX512.
+
+Fixed "BLOCK SOLVED" log incorrectly displaying "Accepted" when a block
+is solved.
+Added share counter to share submitited & accepted logs
+Added job id to share submitted log.
+Share submitted log is no longer highlighted blue, there was too much blue.
+
+Another CPU temperature fix for Linux.
+
+Added bug reporting tips to RELEASE NOTES.
+
+v3.11.4
+
+Fixed scrypt segfault since v3.9.9.1.
+
+Stale shares counted and reported seperately from other rejected shares.
+
+Display of counters for solved blocks, rejects, stale shares suppressed in
+periodic summary when zero.
+
+v3.11.3
+
+Fixed x12 AVX2 again.
+
+More speed for allium: AVX2 +4%, AVX512 +6%, VAES +14%.
+
+Restored lost speed for x22i & x25x.
 
 v3.11.2
 

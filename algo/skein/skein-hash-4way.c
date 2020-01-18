@@ -45,18 +45,18 @@ extern "C"{
 #endif
 
 /*
-static const sph_u64 IV256[] = {
-   SPH_C64(0xCCD044A12FDB3E13), SPH_C64(0xE83590301A79A9EB),
-   SPH_C64(0x55AEA0614F816E6F), SPH_C64(0x2A2767A4AE9B94DB),
-   SPH_C64(0xEC06025E74DD7683), SPH_C64(0xE7A436CDC4746251),
-   SPH_C64(0xC36FBAF9393AD185), SPH_C64(0x3EEDBA1833EDFC13)
+static const uint64_t IV256[] = {
+   0xCCD044A12FDB3E13, 0xE83590301A79A9EB,
+   0x55AEA0614F816E6F, 0x2A2767A4AE9B94DB,
+   0xEC06025E74DD7683, 0xE7A436CDC4746251,
+   0xC36FBAF9393AD185, 0x3EEDBA1833EDFC13
 };
 
-static const sph_u64 IV512[] = {
-   SPH_C64(0x4903ADFF749C51CE), SPH_C64(0x0D95DE399746DF03),
-   SPH_C64(0x8FD1934127C79BCE), SPH_C64(0x9A255629FF352CB1),
-   SPH_C64(0x5DB62599DF6CA7B0), SPH_C64(0xEABE394CA9D5C3F4),
-   SPH_C64(0x991112C71A75B523), SPH_C64(0xAE18A40B660FCC33)
+static const uint64_t IV512[] = {
+   0x4903ADFF749C51CE, 0x0D95DE399746DF03,
+   0x8FD1934127C79BCE, 0x9A255629FF352CB1,
+   0x5DB62599DF6CA7B0, 0xEABE394CA9D5C3F4,
+   0x991112C71A75B523, 0xAE18A40B660FCC33
 };
 */
    
@@ -372,7 +372,7 @@ do { \
 
 #define UBI_BIG_8WAY(etype, extra) \
 do { \
-  sph_u64 t0, t1, t2; \
+  uint64_t t0, t1, t2; \
   __m512i h8; \
   __m512i m0 =  buf[0]; \
   __m512i m1 =  buf[1]; \
@@ -391,8 +391,8 @@ do { \
   __m512i p5 = m5; \
   __m512i p6 = m6; \
   __m512i p7 = m7; \
-  t0 = SPH_T64(bcount << 6) + (sph_u64)(extra); \
-  t1 = (bcount >> 58) + ((sph_u64)(etype) << 55); \
+  t0 = (uint64_t)(bcount << 6) + (uint64_t)(extra); \
+  t1 = (bcount >> 58) + ((uint64_t)(etype) << 55); \
   TFBIG_KINIT_8WAY(h0, h1, h2, h3, h4, h5, h6, h7, h8, t0, t1, t2); \
   TFBIG_8WAY_4e(0); \
   TFBIG_8WAY_4o(1); \
@@ -425,7 +425,7 @@ do { \
 
 #define DECL_STATE_BIG_8WAY \
   __m512i h0, h1, h2, h3, h4, h5, h6, h7; \
-  sph_u64 bcount;
+  uint64_t bcount;
 
 
 #endif // AVX512
@@ -488,7 +488,7 @@ do { \
 // scale buf offset by 4
 #define UBI_BIG_4WAY(etype, extra) \
 do { \
-  sph_u64 t0, t1, t2; \
+  uint64_t t0, t1, t2; \
   __m256i h8; \
   __m256i m0 =  buf[0]; \
   __m256i m1 =  buf[1]; \
@@ -507,8 +507,8 @@ do { \
   __m256i p5 = m5; \
   __m256i p6 = m6; \
   __m256i p7 = m7; \
-  t0 = SPH_T64(bcount << 6) + (sph_u64)(extra); \
-  t1 = (bcount >> 58) + ((sph_u64)(etype) << 55); \
+  t0 = (uint64_t)(bcount << 6) + (uint64_t)(extra); \
+  t1 = (bcount >> 58) + ((uint64_t)(etype) << 55); \
   TFBIG_KINIT_4WAY(h0, h1, h2, h3, h4, h5, h6, h7, h8, t0, t1, t2); \
   TFBIG_4WAY_4e(0); \
   TFBIG_4WAY_4o(1); \
@@ -542,7 +542,7 @@ do { \
 
 #define DECL_STATE_BIG_4WAY \
   __m256i h0, h1, h2, h3, h4, h5, h6, h7; \
-  sph_u64 bcount;
+  uint64_t bcount;
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 

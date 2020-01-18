@@ -87,5 +87,6 @@ HashReturn_gr final_groestl( hashState_groestl*, void* );
 
 HashReturn_gr update_and_final_groestl( hashState_groestl*,  void*,
                                         const void*, DataLength_gr );
+int groestl512_full( hashState_groestl*,  void*, const void*, uint64_t );
 
 #endif /* __hash_h */

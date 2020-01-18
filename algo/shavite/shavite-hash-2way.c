@@ -3,11 +3,9 @@
 
 #include <stdio.h>
 
-// This implementation is deprecated, superseded by VAES in Icelake
-// which provides HW based 4 way aes.
-// It was created for AVX2 to eliminate interleaving between the 
-// preceding and following function.
-// This code can be removed when current users have reverted to one way.
+// This is a fake, it actually does not do parallel AES, that requires VAES.
+// This is only intended when the preceding and folllowing functions use the
+// same 2x128 interleave.
 
 #if defined(__AVX2__)
 
@@ -410,4 +408,94 @@ void shavite512_2way_update_close( shavite512_2way_context *ctx, void *dst,
    casti_m256i( dst, 3 ) = casti_m256i( ctx->h, 3 );
 }
 
+void shavite512_2way_full( shavite512_2way_context *ctx, void *dst,
+                           const void *data, size_t len )
+{
+    __m256i *h = (__m256i*)ctx->h;
+    __m128i *iv = (__m128i*)IV512;
+
+   h[0] = m256_const1_128( iv[0] );
+   h[1] = m256_const1_128( iv[1] );
+   h[2] = m256_const1_128( iv[2] );
+   h[3] = m256_const1_128( iv[3] );
+
+   ctx->ptr    =
+   ctx->count0 =
+   ctx->count1 =
+   ctx->count2 =
+   ctx->count3 = 0;
+
+   unsigned char *buf = ctx->buf;
+   size_t         ptr = ctx->ptr;
+
+   // process full blocks and load buf with remainder.
+   while ( len > 0 )
+   {
+      size_t clen;
+
+      clen = (sizeof ctx->buf) - ptr;
+      if ( clen > len << 1 )
+         clen = len << 1;
+      memcpy( buf + ptr, data, clen );
+      data = (const unsigned char *)data + clen;
+      ptr += clen;
+      len -= (clen >> 1);
+      if ( ptr == sizeof ctx->buf )
+      {
+         if ( ( ctx->count0 = ctx->count0 + 1024 )  == 0 )
+         {
+             ctx->count1 = ctx->count1 + 1;
+             if ( ctx->count1 == 0 )
+             {
+                ctx->count2 = ctx->count2 + 1;
+                if ( ctx->count2 == 0 )
+                   ctx->count3 = ctx->count3 + 1;
+             }
+         }
+         c512_2way( ctx, buf );
+         ptr = 0;
+      }
+   }
+
+   uint32_t vp = ptr>>5;
+   // Count = { 0, 16, 64, 80 }. Outsize = 16 u32 = 512 bits = 0x0200
+   // Count is misaligned to 16 bits and straddles 2 vectors.
+   // Use u32 overlay to stage then u16 to load buf.
+   union
+   {
+      uint32_t u32[4];
+      uint16_t u16[8];
+   } count;
+
+   count.u32[0] = ctx->count0 += (ptr << 2);  // ptr/2 * 8
+   count.u32[1] = ctx->count1;
+   count.u32[2] = ctx->count2;
+   count.u32[3] = ctx->count3;
+
+   if ( vp == 0 )    // empty buf, xevan.
+   {
+      casti_m256i( buf, 0 ) = m256_const2_64( 0, 0x0000000000000080 );
+      memset_zero_256( (__m256i*)buf + 1, 5 );
+      ctx->count0 = ctx->count1 = ctx->count2 = ctx->count3 = 0;
+   }
+   else     // half full buf, everyone else.
+   {
+    casti_m256i( buf, vp++ ) = m256_const2_64( 0, 0x0000000000000080 );
+      memset_zero_256( (__m256i*)buf + vp, 6 - vp );
+   }
+
+    casti_m256i( buf, 6 ) = m256_const1_128(
+                  _mm_insert_epi16( m128_zero, count.u16[0], 7 ) );
+    casti_m256i( buf, 7 ) = m256_const1_128( _mm_set_epi16(
+                  0x0200,       count.u16[7], count.u16[6], count.u16[5],
+                  count.u16[4], count.u16[3], count.u16[2], count.u16[1] ) );
+
+   c512_2way( ctx, buf);
+
+   casti_m256i( dst, 0 ) = casti_m256i( ctx->h, 0 );
+   casti_m256i( dst, 1 ) = casti_m256i( ctx->h, 1 );
+   casti_m256i( dst, 2 ) = casti_m256i( ctx->h, 2 );
+   casti_m256i( dst, 3 ) = casti_m256i( ctx->h, 3 );
+}
+   
 #endif // AVX2

@@ -168,6 +168,66 @@ int cube_4way_close( cube_4way_context *sp, void *output )
     return 0;
 }
 
+int cube_4way_full( cube_4way_context *sp, void *output,  int hashbitlen, 
+                    const void *data, size_t size )
+{
+    __m512i *h = (__m512i*)sp->h;
+    __m128i *iv = (__m128i*)( hashbitlen == 512 ? (__m128i*)IV512
+                                                : (__m128i*)IV256 );
+    sp->hashlen   = hashbitlen/128;
+    sp->blocksize = 32/16;
+    sp->rounds    = 16;
+    sp->pos       = 0;
+
+    h[ 0] = m512_const1_128( iv[0] );
+    h[ 1] = m512_const1_128( iv[1] );
+    h[ 2] = m512_const1_128( iv[2] );
+    h[ 3] = m512_const1_128( iv[3] );
+    h[ 4] = m512_const1_128( iv[4] );
+    h[ 5] = m512_const1_128( iv[5] );
+    h[ 6] = m512_const1_128( iv[6] );
+    h[ 7] = m512_const1_128( iv[7] );
+    h[ 0] = m512_const1_128( iv[0] );
+    h[ 1] = m512_const1_128( iv[1] );
+    h[ 2] = m512_const1_128( iv[2] );
+    h[ 3] = m512_const1_128( iv[3] );
+    h[ 4] = m512_const1_128( iv[4] );
+    h[ 5] = m512_const1_128( iv[5] );
+    h[ 6] = m512_const1_128( iv[6] );
+    h[ 7] = m512_const1_128( iv[7] );
+
+    const int len = size >> 4;
+    const __m512i *in = (__m512i*)data;
+    __m512i *hash = (__m512i*)output;
+    int i;
+
+    for ( i = 0; i < len; i++ )
+    {
+        sp->h[ sp->pos ] = _mm512_xor_si512( sp->h[ sp->pos ], in[i] );
+        sp->pos++;
+        if ( sp->pos == sp->blocksize )
+        {
+           transform_4way( sp );
+           sp->pos = 0;
+        }
+    }
+
+    // pos is zero for 64 byte data, 1 for 80 byte data.
+    sp->h[ sp->pos ] = _mm512_xor_si512( sp->h[ sp->pos ],
+                                    m512_const2_64( 0, 0x0000000000000080 ) );
+    transform_4way( sp );
+
+    sp->h[7] = _mm512_xor_si512( sp->h[7],
+                                    m512_const2_64( 0x0000000100000000, 0 ) );
+
+    for ( i = 0; i < 10; ++i )
+       transform_4way( sp );
+
+    memcpy( hash, sp->h, sp->hashlen<<6);
+    return 0;
+}
+
+
 int cube_4way_update_close( cube_4way_context *sp, void *output,
                                const void *data, size_t size )
 {
@@ -346,6 +406,64 @@ int cube_2way_close( cube_2way_context *sp, void *output )
 int cube_2way_update_close( cube_2way_context *sp, void *output,
                                const void *data, size_t size )
 {
+    const int len = size >> 4;
+    const __m256i *in = (__m256i*)data;
+    __m256i *hash = (__m256i*)output;
+    int i;
+
+    for ( i = 0; i < len; i++ )
+    {
+        sp->h[ sp->pos ] = _mm256_xor_si256( sp->h[ sp->pos ], in[i] );
+        sp->pos++;
+        if ( sp->pos == sp->blocksize )
+        {
+           transform_2way( sp );
+           sp->pos = 0;
+        }
+    }
+
+    // pos is zero for 64 byte data, 1 for 80 byte data.
+    sp->h[ sp->pos ] = _mm256_xor_si256( sp->h[ sp->pos ],
+                                    m256_const2_64( 0, 0x0000000000000080 ) );
+    transform_2way( sp );
+
+    sp->h[7] = _mm256_xor_si256( sp->h[7],
+                                    m256_const2_64( 0x0000000100000000, 0 ) );
+
+    for ( i = 0; i < 10; ++i )    transform_2way( sp );
+
+    memcpy( hash, sp->h, sp->hashlen<<5 );
+    return 0;
+}
+
+int cube_2way_full( cube_2way_context *sp, void *output, int hashbitlen,
+                               const void *data, size_t size )
+{
+    __m256i *h = (__m256i*)sp->h;
+    __m128i *iv = (__m128i*)( hashbitlen == 512 ? (__m128i*)IV512
+                                                : (__m128i*)IV256 );
+    sp->hashlen   = hashbitlen/128;
+    sp->blocksize = 32/16;
+    sp->rounds    = 16;
+    sp->pos       = 0;
+
+    h[ 0] = m256_const1_128( iv[0] );
+    h[ 1] = m256_const1_128( iv[1] );
+    h[ 2] = m256_const1_128( iv[2] );
+    h[ 3] = m256_const1_128( iv[3] );
+    h[ 4] = m256_const1_128( iv[4] );
+    h[ 5] = m256_const1_128( iv[5] );
+    h[ 6] = m256_const1_128( iv[6] );
+    h[ 7] = m256_const1_128( iv[7] );
+    h[ 0] = m256_const1_128( iv[0] );
+    h[ 1] = m256_const1_128( iv[1] );
+    h[ 2] = m256_const1_128( iv[2] );
+    h[ 3] = m256_const1_128( iv[3] );
+    h[ 4] = m256_const1_128( iv[4] );
+    h[ 5] = m256_const1_128( iv[5] );
+    h[ 6] = m256_const1_128( iv[6] );
+    h[ 7] = m256_const1_128( iv[7] );
+
     const int len = size >> 4;
     const __m256i *in = (__m256i*)data;
     __m256i *hash = (__m256i*)output;

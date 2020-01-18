@@ -1,11 +1,3 @@
-/* hash.h     Aug 2011
- *
- * Groestl implementation for different versions.
- * Author: Krystian Matusiewicz, Günther A. Roland, Martin Schläffer
- *
- * This code is placed in the public domain
- */
-
 #if !defined(GROESTL512_HASH_4WAY_H__)
 #define GROESTL512_HASH_4WAY_H__ 1
 
@@ -18,11 +10,9 @@
 #endif
 #include <stdlib.h>
 
-#define LENGTH (512)
+#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-//#include "brg_endian.h"
-//#define NEED_UINT_64T
-//#include "algo/sha/brg_types.h"
+#define LENGTH (512)
 
 /* some sizes (number of bytes) */
 #define ROWS (8)
@@ -44,34 +34,11 @@
 #define ROUNDS (ROUNDS1024)
 //#endif
 
-/*
-#define ROTL64(a,n) ((((a)<<(n))|((a)>>(64-(n))))&li_64(ffffffffffffffff))
-
-#if (PLATFORM_BYTE_ORDER == IS_BIG_ENDIAN)
-#define EXT_BYTE(var,n) ((u8)((u64)(var) >> (8*(7-(n)))))
-#define U64BIG(a) (a)
-#endif // IS_BIG_ENDIAN 
-
-#if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
-#define EXT_BYTE(var,n) ((u8)((u64)(var) >> (8*n)))
-#define U64BIG(a) \
-  ((ROTL64(a, 8) & li_64(000000FF000000FF)) | \
-   (ROTL64(a,24) & li_64(0000FF000000FF00)) | \
-   (ROTL64(a,40) & li_64(00FF000000FF0000)) | \
-   (ROTL64(a,56) & li_64(FF000000FF000000)))
-#endif // IS_LITTLE_ENDIAN 
-
-typedef unsigned char BitSequence_gr;
-typedef unsigned long long DataLength_gr;
-typedef enum { SUCCESS_GR = 0, FAIL_GR = 1, BAD_HASHBITLEN_GR = 2} HashReturn_gr;
-*/
-
 #define SIZE512 (SIZE_1024/16)
 
 typedef struct {
   __attribute__ ((aligned (128))) __m512i chaining[SIZE512];
   __attribute__ ((aligned (64))) __m512i buffer[SIZE512];
-  int hashlen;       // byte
   int blk_count;     // SIZE_m128i
   int buf_ptr;       // __m128i offset
   int rem_ptr;
@@ -85,10 +52,11 @@ int groestl512_4way_init( groestl512_4way_context*, uint64_t );
 
 int groestl512_4way_update( groestl512_4way_context*, const void*,
                               uint64_t );
-
 int groestl512_4way_close( groestl512_4way_context*, void* );
-
 int groestl512_4way_update_close( groestl512_4way_context*,  void*,
                                         const void*, uint64_t );
+int groestl512_4way_full( groestl512_4way_context*,  void*,
+                          const void*, uint64_t );
 
-#endif /* __hash_h */
+#endif   // VAES
+#endif   // GROESTL512_HASH_4WAY_H__

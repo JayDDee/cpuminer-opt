@@ -18,6 +18,8 @@ void shavite512_2way_update( shavite512_2way_context *ctx, const void *data,
 void shavite512_2way_close( shavite512_2way_context *ctx, void *dst );
 void shavite512_2way_update_close( shavite512_2way_context *ctx, void *dst,
 		                   const void *data, size_t len );
+void shavite512_2way_full( shavite512_2way_context *ctx, void *dst,
+                           const void *data, size_t len );
 
 #endif // AVX2
 

@@ -15,7 +15,7 @@
 #ifndef HASH_API_H
 #define HASH_API_H
 
-#ifndef NO_AES_NI
+#ifdef __AES__
 #define HASH_IMPL_STR	"ECHO-aesni"
 #else
 #define HASH_IMPL_STR	"ECHO-vperm"
@@ -55,6 +55,8 @@ HashReturn hash_echo(int hashbitlen, const BitSequence *data, DataLength databit
 
 HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
                               const BitSequence *data, DataLength databitlen );
+HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
+            int nHashSize, const BitSequence *data, DataLength databitlen );
 
 #endif // HASH_API_H
 

@@ -39,8 +39,12 @@
  #include <openssl/sha.h>
 #endif
 
+#if defined(X21S_8WAY) || defined(X21S_4WAY)
+
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
+
+#endif
 
 #if defined (X21S_8WAY)
 

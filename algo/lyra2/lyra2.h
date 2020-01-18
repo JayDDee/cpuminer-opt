@@ -74,6 +74,9 @@ int LYRA2REV3_2WAY( uint64_t*, void *K, uint64_t kLen, const void *pwd,
 int LYRA2Z_2WAY( uint64_t*, void *K, uint64_t kLen, const void *pwd,
           uint64_t pwdlen, uint64_t timeCost, uint64_t nRows, uint64_t nCols );
 
+int LYRA2X_2WAY( void *K, uint64_t kLen, const void *pwd, uint64_t pwdlen,
+                  uint64_t timeCost, uint64_t nRows, uint64_t nCols );
+
 #endif
 
 #endif /* LYRA2_H_ */

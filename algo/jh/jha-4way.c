@@ -65,7 +65,7 @@ void jha_hash_4way( void *out, const void *input )
           vh[i] = _mm256_blendv_epi8( vhA[i], vhB[i], vh_mask );
 
        blake512_4way_init( &ctx_blake );
-       blake512_4way( &ctx_blake, vhash, 64 );
+       blake512_4way_update( &ctx_blake, vhash, 64 );
        blake512_4way_close( &ctx_blake, vhashA );
 
        jh512_4way_init( &ctx_jh );

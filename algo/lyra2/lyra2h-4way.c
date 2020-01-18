@@ -33,7 +33,7 @@ void lyra2h_4way_hash( void *state, const void *input )
      blake256_4way_context ctx_blake __attribute__ ((aligned (64)));
 
      memcpy( &ctx_blake, &l2h_4way_blake_mid, sizeof l2h_4way_blake_mid );
-     blake256_4way( &ctx_blake, input + (64*4), 16 );
+     blake256_4way_update( &ctx_blake, input + (64*4), 16 );
      blake256_4way_close( &ctx_blake, vhash );
 
      dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );

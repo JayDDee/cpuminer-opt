@@ -163,7 +163,7 @@ static void keccak64_8way_close( keccak64_ctx_m512i *kc, void *dst,
     unsigned eb;
     union {
        __m512i tmp[lim + 1];
-       sph_u64 dummy;   /* for alignment */
+       uint64_t dummy;   /* for alignment */
     } u;
     size_t j;
     size_t m512_len = byte_len >> 3;
@@ -344,7 +344,7 @@ static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
     unsigned eb;
     union {
        __m256i tmp[lim + 1];
-       sph_u64 dummy;   /* for alignment */
+       uint64_t dummy;   /* for alignment */
     } u;
     size_t j;
     size_t m256_len = byte_len >> 3;

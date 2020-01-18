@@ -7,7 +7,7 @@
 #include "algo/cubehash/cubehash_sse2.h" 
 #include "algo/simd/nist.h"
 #include "algo/shavite/sph_shavite.h"
-#ifndef NO_AES_NI
+#ifdef __AES__
 #include "algo/echo/aes_ni/hash_api.h"
 #else
 #include "algo/echo/sph_echo.h"
@@ -19,10 +19,10 @@ typedef struct
         cubehashParam           cubehash;
         sph_shavite512_context  shavite;
         hashState_sd            simd;
-#ifdef NO_AES_NI
-        sph_echo512_context echo;
-#else
+#ifdef __AES__
         hashState_echo          echo;
+#else
+        sph_echo512_context echo;
 #endif
 } qubit_ctx_holder;
 
@@ -35,10 +35,10 @@ void init_qubit_ctx()
         cubehashInit(&qubit_ctx.cubehash,512,16,32);
         sph_shavite512_init(&qubit_ctx.shavite);
         init_sd(&qubit_ctx.simd,512);
-#ifdef NO_AES_NI
-        sph_echo512_init(&qubit_ctx.echo);
-#else
+#ifdef __AES__
         init_echo(&qubit_ctx.echo, 512);
+#else
+        sph_echo512_init(&qubit_ctx.echo);
 #endif
 };
 
@@ -71,12 +71,12 @@ void qubit_hash(void *output, const void *input)
         update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence*)hash,  512 );
 
-#ifdef NO_AES_NI
-        sph_echo512 (&ctx.echo, (const void*) hash, 64);
-        sph_echo512_close(&ctx.echo, (void*) hash);
-#else
+#ifdef __AES__
         update_final_echo( &ctx.echo, (BitSequence *) hash,
                      (const BitSequence *) hash, 512 );
+#else
+        sph_echo512 (&ctx.echo, (const void*) hash, 64);
+        sph_echo512_close(&ctx.echo, (void*) hash);
 #endif
 
         asm volatile ("emms");

@@ -149,7 +149,7 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
     char data_str[161], hash_str[65], target_str[65];
     //uint8_t *bdata = 0;
     uint8_t bdata[8192] __attribute__ ((aligned (64)));
-    int rc = 0, i, digits;
+    int i, digits;
     int bytes;
     size_t p = sizeof(unsigned long), a = 64/p, b = 32/p;
 
@@ -267,47 +267,36 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
             SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
         }
 
-        const unsigned char *hash_ = (const unsigned char *)hash;
-        const unsigned char *target_ = (const unsigned char *)ptarget;
-        for ( i = 31; i >= 0; i-- )
+        if ( unlikely( hash[7] <= ptarget[7] ) )
+        if ( likely( fulltest( hash, ptarget ) && !opt_benchmark ) )        
         {
-	        if ( hash_[i] != target_[i] )
+           if ( opt_debug )
            {
-		        rc = hash_[i] < target_[i];
-		        break;
-	        }
-        }
-        if ( unlikely(rc) )
-        {
-            if ( opt_debug )
-            {
-                bin2hex(hash_str, (unsigned char *)hash, 32);
-                bin2hex(target_str, (unsigned char *)ptarget, 32);
-                bin2hex(data_str, (unsigned char *)data, 80);
-                applog(LOG_DEBUG, "DEBUG: [%d thread] Found share!\ndata   %s\nhash   %s\ntarget %s", thr_id, 
-                    data_str,
-                    hash_str,
-                    target_str);
+                bin2hex( hash_str, (unsigned char *)hash, 32 );
+                bin2hex( target_str, (unsigned char *)ptarget, 32 );
+                bin2hex( data_str, (unsigned char *)data, 80 );
+                applog( LOG_DEBUG, "DEBUG: [%d thread] Found share!\ndata   %s\nhash   %s\ntarget %s",
+                      thr_id, data_str, hash_str, target_str );
             }
             pdata[19] = data[19];
             submit_solution( work, hash, mythr );
         }
-    } while (n < max_nonce && !work_restart[thr_id].restart);
+    } while ( n < max_nonce && !work_restart[thr_id].restart );
 
      pdata[19] = n;
 
-     mpf_set_prec_raw(magifpi, prec0);
-     mpf_set_prec_raw(magifpi0, prec0);
-     mpf_set_prec_raw(mptmp, prec0);
-     mpf_set_prec_raw(mpt1, prec0);
-     mpf_set_prec_raw(mpt2, prec0);
-     mpf_clear(magifpi);
-     mpf_clear(magifpi0);
-     mpf_clear(mpten);
-     mpf_clear(mptmp);
-     mpf_clear(mpt1);
-     mpf_clear(mpt2);
-     mpz_clears(magipi, magisw, product, bns0, bns1, NULL);
+     mpf_set_prec_raw( magifpi, prec0 );
+     mpf_set_prec_raw( magifpi0, prec0 );
+     mpf_set_prec_raw( mptmp, prec0 );
+     mpf_set_prec_raw( mpt1, prec0 );
+     mpf_set_prec_raw( mpt2, prec0 );
+     mpf_clear( magifpi );
+     mpf_clear( magifpi0 );
+     mpf_clear( mpten );
+     mpf_clear( mptmp );
+     mpf_clear( mpt1 );
+     mpf_clear( mpt2 );
+     mpz_clears( magipi, magisw, product, bns0, bns1, NULL );
 
     *hashes_done = n - first_nonce + 1;
     return 0;

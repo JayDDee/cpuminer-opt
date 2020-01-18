@@ -43,15 +43,7 @@ extern "C"{
 #ifdef  __AVX2__
 
 #include <stddef.h>
-#include "algo/sha/sph_types.h"
 #include "simd-utils.h"
-
-#define SPH_SIZE_keccak256   256
-
-/**
- * Output size (in bits) for Keccak-512.
- */
-#define SPH_SIZE_keccak512   512
 
 /**
  * This structure is a context for Keccak computations: it contains the
