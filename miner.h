@@ -313,12 +313,14 @@ size_t address_to_script( unsigned char *out, size_t outsz, const char *addr );
 int    timeval_subtract( struct timeval *result, struct timeval *x,
                            struct timeval *y);
 bool   fulltest( const uint32_t *hash, const uint32_t *target );
+bool   valid_hash( const void*, const void* );
+
 void   work_set_target( struct work* work, double diff );
 double target_to_diff( uint32_t* target );
 extern void diff_to_target(uint32_t *target, double diff);
 
 double hash_target_ratio( uint32_t* hash, uint32_t* target );
-void   work_set_target_ratio( struct work* work, uint32_t* hash );
+void   work_set_target_ratio( struct work* work, const void *hash );
 
 struct thr_info {
         int id;
@@ -330,10 +332,10 @@ struct thr_info {
 
 //struct thr_info *thr_info;
 
-bool   submit_solution( struct work *work, void *hash,
-                        struct thr_info *thr );
-bool   submit_lane_solution( struct work *work, void *hash,
-                             struct thr_info *thr, int lane );
+bool   submit_solution( struct work *work, const void *hash,
+                        const struct thr_info *thr );
+bool   submit_lane_solution( struct work *work, const void *hash,
+                             const struct thr_info *thr, const int lane );
 
 
 //bool submit_work( struct thr_info *thr, const struct work *work_in );

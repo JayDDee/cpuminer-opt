@@ -267,8 +267,13 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
             SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
         }
 
-        if ( unlikely( hash[7] <= ptarget[7] ) )
-        if ( likely( fulltest( hash, ptarget ) && !opt_benchmark ) )        
+
+        if ( unlikely( valid_hash( (uint64_t*)hash, (uint64_t*)ptarget ) 
+             && !opt_benchmark ) )
+
+
+//        if ( unlikely( hash[7] <= ptarget[7] ) )
+//        if ( likely( fulltest( hash, ptarget ) && !opt_benchmark ) )        
         {
            if ( opt_debug )
            {

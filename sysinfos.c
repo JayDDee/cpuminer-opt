@@ -46,10 +46,11 @@
 #define HWMON_PATH \
  "/sys/class/hwmon/hwmon2/temp1_input"
 
-/*
+// need this for Ryzen
 #define HWMON_ALT \
  "/sys/class/hwmon/hwmon0/temp1_input"
 
+/*
 #define HWMON_ALT1 \
  "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input"
 */
@@ -84,6 +85,9 @@ static inline float linux_cputemp(int core)
    if (!fd)
       fd = fopen(HWMON_PATH, "r");
 
+   if (!fd)
+      fd = fopen(HWMON_ALT, "r");
+   
 	if (!fd)
 		return tc;
 

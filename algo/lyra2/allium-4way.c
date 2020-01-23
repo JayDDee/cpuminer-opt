@@ -320,18 +320,19 @@ bool init_allium_8way_ctx()
    return true;
 }
 
-void allium_8way_hash( void *state, const void *input )
+void allium_8way_hash( void *hash, const void *input )
 {
-   uint32_t vhashA[8*8] __attribute__ ((aligned (64)));
-   uint32_t vhashB[8*8] __attribute__ ((aligned (64)));
-   uint32_t hash0[8] __attribute__ ((aligned (32)));
-   uint32_t hash1[8] __attribute__ ((aligned (32)));
-   uint32_t hash2[8] __attribute__ ((aligned (32)));
-   uint32_t hash3[8] __attribute__ ((aligned (32)));
-   uint32_t hash4[8] __attribute__ ((aligned (64)));
-   uint32_t hash5[8] __attribute__ ((aligned (32)));
-   uint32_t hash6[8] __attribute__ ((aligned (32)));
-   uint32_t hash7[8] __attribute__ ((aligned (32)));
+   uint64_t vhashA[4*8] __attribute__ ((aligned (64)));
+   uint64_t vhashB[4*8] __attribute__ ((aligned (64)));
+//   uint64_t hash[4*8] __attribute__ ((aligned (64)));
+   uint64_t *hash0 = (uint64_t*)hash;
+   uint64_t *hash1 = (uint64_t*)hash+ 4;
+   uint64_t *hash2 = (uint64_t*)hash+ 8;
+   uint64_t *hash3 = (uint64_t*)hash+12;
+   uint64_t *hash4 = (uint64_t*)hash+16;
+   uint64_t *hash5 = (uint64_t*)hash+20;
+   uint64_t *hash6 = (uint64_t*)hash+24;
+   uint64_t *hash7 = (uint64_t*)hash+28;
    allium_8way_ctx_holder ctx __attribute__ ((aligned (64))); 
 
    memcpy( &ctx, &allium_8way_ctx, sizeof(allium_8way_ctx) );
@@ -398,69 +399,74 @@ void allium_8way_hash( void *state, const void *input )
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhashA, 256 );
    dintrlv_4x64( hash4, hash5, hash6, hash7, vhashB, 256 );
 
-   update_and_final_groestl256( &ctx.groestl, state, hash0, 256 );
+   update_and_final_groestl256( &ctx.groestl, hash0, hash0, 256 );
    memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
            sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+32, hash1, 256 );
+   update_and_final_groestl256( &ctx.groestl, hash1, hash1, 256 );
    memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
            sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+64, hash2, 256 );
+   update_and_final_groestl256( &ctx.groestl, hash2, hash2, 256 );
    memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
            sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+96, hash3, 256 );
+   update_and_final_groestl256( &ctx.groestl, hash3, hash3, 256 );
    memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
            sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+128, hash4, 256 );
+   update_and_final_groestl256( &ctx.groestl, hash4, hash4, 256 );
    memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
            sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+160, hash5, 256 );
+   update_and_final_groestl256( &ctx.groestl, hash5, hash5, 256 );
    memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
            sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+192, hash6, 256 );
+   update_and_final_groestl256( &ctx.groestl, hash6, hash6, 256 );
    memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
            sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+224, hash7, 256 );
+   update_and_final_groestl256( &ctx.groestl, hash7, hash7, 256 );
 }
 
 int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
                              uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[8*8] __attribute__ ((aligned (64)));
+   uint64_t hash[4*8] __attribute__ ((aligned (64)));
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
+   uint64_t *ptarget = (uint64_t*)work->target;
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 8;
    uint32_t n = first_nonce;
-   const uint32_t Htarg = ptarget[7];
+   const uint64_t Htarg = ptarget[3];
    __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
-   int thr_id = mythr->id;  
+   const int thr_id = mythr->id;  
+   const bool bench = opt_benchmark;
 
-   if ( opt_benchmark )
+   if unlikely( bench )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
+   *noncev = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
+
    blake256_8way_init( &allium_8way_ctx.blake );
    blake256_8way_update( &allium_8way_ctx.blake, vdata, 64 );
 
    do {
-     *noncev = mm256_bswap_32( _mm256_set_epi32( n+7, n+6, n+5, n+4,
-                                                 n+3, n+2, n+1, n ) );
-
      allium_8way_hash( hash, vdata );
-     pdata[19] = n;
 
-     for ( int lane = 0; lane < 8; lane++ ) if ( (hash+(lane<<3))[7] <= Htarg )
+     for ( int lane = 0; lane < 8; lane++ )
      {
-        if ( fulltest( hash+(lane<<3), ptarget ) && !opt_benchmark )
+        const uint64_t *lane_hash = hash + (lane<<2);
+        if unlikely( lane_hash[3] <= Htarg )
         {
-           pdata[19] = n + lane;
-           submit_lane_solution( work, hash+(lane<<3), mythr, lane );
+        if likely( ( lane_hash[3] < Htarg && !bench )
+            || valid_hash( lane_hash, ptarget ) )
+        {
+           pdata[19] = bswap_32( n + lane );
+           submit_lane_solution( work, lane_hash, mythr, lane );
          }
+        }
      }
      n += 8;
-   } while ( (n < last_nonce) && !work_restart[thr_id].restart);
-
+     *noncev = _mm256_add_epi32( *noncev, m256_const1_32( 8 ) );
+   } while likely( (n <= last_nonce) && !work_restart[thr_id].restart );
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }

@@ -135,7 +135,7 @@ bool register_yespower_algo( algo_gate_t* gate )
   if ( yespower_params.pers )
      applog( LOG_NOTICE,"Key= \"%s\"\n", yespower_params.pers );
 
-  gate->optimizations = SSE2_OPT;
+  gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower;
   gate->hash          = (void*)&yespower_hash;
   opt_target_factor = 65536.0;
@@ -149,7 +149,7 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
   yespower_params.r       = 16;
   yespower_params.pers    = NULL;
   yespower_params.perslen = 0;
-  gate->optimizations = SSE2_OPT;
+  gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower;
   gate->hash          = (void*)&yespower_hash;
   opt_target_factor = 65536.0;
@@ -223,7 +223,7 @@ bool register_power2b_algo( algo_gate_t* gate )
   applog( LOG_NOTICE,"Key= \"%s\"", yespower_params.pers );
   applog( LOG_NOTICE,"Key length= %d\n", yespower_params.perslen );
 
-  gate->optimizations = SSE2_OPT;
+  gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_b2b;
   gate->hash          = (void*)&yespower_b2b_hash;
   opt_target_factor = 65536.0;

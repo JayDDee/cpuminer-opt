@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.11.6
+
+Fixed CPU temperature regression from v3.11.5.
+
+More improvements to share log. More compact, highlight incremented counter,
+block height when solved, job id when stale.
+
 v3.11.5
 
 Fixed AVX512 detection that could cause compilation errors on CPUs

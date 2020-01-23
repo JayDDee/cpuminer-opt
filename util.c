@@ -982,40 +982,59 @@ int timeval_subtract(struct timeval *result, struct timeval *x,
 	return x->tv_sec < y->tv_sec;
 }
 
-bool fulltest(const uint32_t *hash, const uint32_t *target)
+// Use this when deinterleaved
+// do 64 bit test 4 iterations
+inline bool valid_hash( const void *hash, const void *target )
+{
+   const uint64_t *h = (const uint64_t*)hash;
+   const uint64_t *t = (const uint64_t*)target;
+   if ( h[3] > t[3] ) return false;
+   if ( h[3] < t[3] ) return true;
+   if ( h[2] > t[2] ) return false;
+   if ( h[2] < t[2] ) return true;
+   if ( h[1] > t[1] ) return false;
+   if ( h[1] < t[1] ) return true;
+   if ( h[0] > t[0] ) return false;
+   return true;
+}
+
+bool fulltest( const uint32_t *hash, const uint32_t *target )
 {
 	int i;
 	bool rc = true;
 	
-	for (i = 7; i >= 0; i--) {
-		if (hash[i] > target[i]) {
+	for ( i = 7; i >= 0; i-- )
+   {
+		if ( hash[i] > target[i] )
+      {
 			rc = false;
 			break;
 		}
-		if (hash[i] < target[i]) {
+		if ( hash[i] < target[i] )
+      {
 			rc = true;
 			break;
 		}
 	}
 
-	if (opt_debug) {
+	if ( opt_debug )
+   {
 		uint32_t hash_be[8], target_be[8];
 		char hash_str[65], target_str[65];
 		
-		for (i = 0; i < 8; i++) {
-			be32enc(hash_be + i, hash[7 - i]);
-			be32enc(target_be + i, target[7 - i]);
+		for ( i = 0; i < 8; i++ )
+      {
+			be32enc( hash_be + i, hash[7 - i] );
+			be32enc( target_be + i, target[7 - i] );
 		}
-		bin2hex(hash_str, (unsigned char *)hash_be, 32);
-		bin2hex(target_str, (unsigned char *)target_be, 32);
+		bin2hex( hash_str, (unsigned char *)hash_be, 32 );
+		bin2hex( target_str, (unsigned char *)target_be, 32 );
 
-		applog(LOG_DEBUG, "DEBUG: %s\nHash:   %s\nTarget: %s",
-			rc ? "hash <= target"
-			   : "hash > target (false positive)",
-			hash_str,
-			target_str);
+		applog( LOG_DEBUG, "DEBUG: %s\nHash:   %s\nTarget: %s",
+                         rc ? "hash <= target"
+			                   : "hash > target (false positive)",
+	                      hash_str, target_str );
 	}
-
 	return rc;
 }
 

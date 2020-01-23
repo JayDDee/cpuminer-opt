@@ -351,7 +351,7 @@ typedef union _x17_4way_context_overlay x17_4way_context_overlay;
 
 void x17_4way_hash( void *state, const void *input )
 {
-     uint64_t vhash[8*4] __attribute__ ((aligned (128)));
+     uint64_t vhash[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashB[8*4] __attribute__ ((aligned (64)));
      uint64_t hash0[8] __attribute__ ((aligned (64)));
@@ -471,8 +471,8 @@ void x17_4way_hash( void *state, const void *input )
 int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[16*4] __attribute__ ((aligned (128)));
-   uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+   uint32_t hash[16*4] __attribute__ ((aligned (64)));
+   uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &(hash[7<<2]);
    uint32_t *pdata = work->data;
@@ -483,27 +483,30 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
    const uint32_t Htarg = ptarget[7];
+   const bool bench = opt_benchmark;
 
    mm256_bswap32_intrlv80_4x64( vdata, pdata );
+   *noncev = mm256_intrlv_blend_32(
+                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
    {
-      *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
-              _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
       x17_4way_hash( hash, vdata );
 
       for ( int lane = 0; lane < 4; lane++ )
-      if unlikely( ( hash7[ lane ] <= Htarg ) )
-      {
+      if ( unlikely( hash7[ lane ] <= Htarg && !bench ) )
+      {  
          extr_lane_4x32( lane_hash, hash, lane, 256 );
-         if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
+         if ( ( hash7[ lane ] < Htarg ) || valid_hash( lane_hash, ptarget ) )
          {
-            pdata[19] = n + lane;
+            pdata[19] = bswap_32( n + lane );
             submit_lane_solution( work, lane_hash, mythr, lane );
-         }
+         }            
       }
+      *noncev = _mm256_add_epi32( *noncev,
+                                  m256_const1_64( 0x0000000400000000 ) );
       n += 4;
-   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
-
+   } while ( likely( ( n <= last_nonce ) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }
