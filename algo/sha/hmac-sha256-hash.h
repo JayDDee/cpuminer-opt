@@ -26,23 +26,24 @@
  * $FreeBSD: src/lib/libmd/sha256_Y.h,v 1.2 2006/01/17 15:35:56 phk Exp $
  */
 
-#ifndef _SHA256_H_
-#define _SHA256_H_
+#ifndef HMAC_SHA256_H__
+#define HMAC_SHA256_H__
 
 #include <sys/types.h>
 #include <stdint.h>
 #include <openssl/sha.h>
 
-typedef struct HMAC_SHA256Context {
-        SHA256_CTX ictx;
-        SHA256_CTX octx;
+typedef struct HMAC_SHA256Context
+{
+     SHA256_CTX ictx;
+     SHA256_CTX octx;
 } HMAC_SHA256_CTX;
 
-void SHA256_Buf( const void * in, size_t len, uint8_t digest[32] );
+void SHA256_Buf( const void *, size_t len, uint8_t digest[32] );
 void HMAC_SHA256_Init( HMAC_SHA256_CTX *, const void *, size_t );
 void HMAC_SHA256_Update( HMAC_SHA256_CTX *, const void *, size_t );
 void HMAC_SHA256_Final( unsigned char [32], HMAC_SHA256_CTX * );
-void HMAC_SHA256_Buf( const void * K, size_t Klen, const void * in,
+void HMAC_SHA256_Buf( const void *, size_t Klen, const void *,
                       size_t len, uint8_t digest[32] );
 
 /**
@@ -53,4 +54,4 @@ void HMAC_SHA256_Buf( const void * K, size_t Klen, const void * in,
 void PBKDF2_SHA256( const uint8_t *, size_t, const uint8_t *, size_t,
                     uint64_t, uint8_t *, size_t);
 
-#endif /* !_SHA256_H_ */
+#endif // HMAC_SHA256_H__

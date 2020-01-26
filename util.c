@@ -923,7 +923,7 @@ bool jobj_binary(const json_t *obj, const char *key, void *buf, size_t buflen)
 
 size_t address_to_script(unsigned char *out, size_t outsz, const char *addr)
 {
-	unsigned char addrbin[25];
+	unsigned char addrbin[26];
 	int addrver;
 	size_t rv;
 
@@ -1038,27 +1038,33 @@ bool fulltest( const uint32_t *hash, const uint32_t *target )
 	return rc;
 }
 
-void diff_to_target(uint32_t *target, double diff)
+void diff_to_target(uint64_t *target, double diff)
 {
 	uint64_t m;
 	int k;
 	
-	for (k = 6; k > 0 && diff > 1.0; k--)
-		diff /= 4294967296.0;
-	m = (uint64_t)(4294901760.0 / diff);
-	if (m == 0 && k == 6)
-		memset(target, 0xff, 32);
-	else {
-		memset(target, 0, 32);
-		target[k] = (uint32_t)m;
-		target[k + 1] = (uint32_t)(m >> 32);
+   const double exp64 = (double)0xffffffffffffffff + 1.;   
+   for ( k = 3; k > 0 && diff > 1.0; k-- )
+      diff /= exp64;
+
+//   for (k = 6; k > 0 && diff > 1.0; k--)
+//		diff /= 4294967296.0;
+	m = (uint64_t)( 0xffff0000 / diff );
+	if unlikely( m == 0 && k == 3 )
+		memset( target, 0xff, 32 );
+	else
+   {
+		memset( target, 0, 32 );
+      target[k] = m;
+//		target[k] = (uint32_t)m;
+//		target[k + 1] = (uint32_t)(m >> 32);
 	}
 }
 
 // Only used by stratum pools
 void work_set_target(struct work* work, double diff)
 {
-	diff_to_target(work->target, diff);
+	diff_to_target( (uint64_t*)work->target, diff );
 	work->targetdiff = diff;
 }
 
@@ -1830,6 +1836,7 @@ static uint32_t getblocheight(struct stratum_ctx *sctx)
 static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 {
 	const char *job_id, *prevhash, *coinb1, *coinb2, *version, *nbits, *stime;
+   const char *finalsaplinghash = NULL;
    const char *denom10 = NULL, *denom100 = NULL, *denom1000 = NULL,
               *denom10000 = NULL, *prooffullnode = NULL;
    const char *extradata = NULL;
@@ -1890,6 +1897,18 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 		goto out;
 	}
 
+   hex2bin( sctx->job.version, version, 4 );
+   int ver = be32dec( sctx->job.version );
+   if ( ver == 5 )
+   {
+      finalsaplinghash = json_string_value( json_array_get( params, 9 ) );
+      if ( !finalsaplinghash || strlen(finalsaplinghash) != 64 )
+      {
+         applog( LOG_ERR, "Stratum notify: invalid version 5 parameters" );
+         goto out;
+      }
+   }
+   
    if ( is_veil )
    {
       if ( !denom10 || !denom100 || !denom1000 || !denom10000
@@ -1903,66 +1922,69 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
    }
 
    if ( merkle_count )
-      merkle = (uchar**) malloc(merkle_count * sizeof(char *));
+      merkle = (uchar**) malloc( merkle_count * sizeof(char *) );
 	for ( i = 0; i < merkle_count; i++ )
    {
-		const char *s = json_string_value(json_array_get(merkle_arr, i));
-		if (!s || strlen(s) != 64) {
-			while (i--)
-				free(merkle[i]);
-			free(merkle);
-			applog(LOG_ERR, "Stratum notify: invalid Merkle branch");
+		const char *s = json_string_value( json_array_get( merkle_arr, i ) );
+		if ( !s || strlen(s) != 64 )
+      {
+			while ( i-- ) free( merkle[i] );
+			free( merkle );
+			applog( LOG_ERR, "Stratum notify: invalid Merkle branch" );
 			goto out;
 		}
-		merkle[i] = (uchar*) malloc(32);
-		hex2bin(merkle[i], s, 32);
+		merkle[i] = (uchar*) malloc( 32 );
+		hex2bin( merkle[i], s, 32 );
 	}
 
-	pthread_mutex_lock(&sctx->work_lock);
+	pthread_mutex_lock( &sctx->work_lock );
 
-	coinb1_size = strlen(coinb1) / 2;
-	coinb2_size = strlen(coinb2) / 2;
+	coinb1_size = strlen( coinb1 ) / 2;
+	coinb2_size = strlen( coinb2 ) / 2;
 	sctx->job.coinbase_size = coinb1_size + sctx->xnonce1_size +
 	                          sctx->xnonce2_size + coinb2_size;
-	sctx->job.coinbase = (uchar*) realloc(sctx->job.coinbase, sctx->job.coinbase_size);
+	sctx->job.coinbase = (uchar*) realloc( sctx->job.coinbase,
+                                          sctx->job.coinbase_size );
 	sctx->job.xnonce2 = sctx->job.coinbase + coinb1_size + sctx->xnonce1_size;
-	hex2bin(sctx->job.coinbase, coinb1, coinb1_size);
-	memcpy(sctx->job.coinbase + coinb1_size, sctx->xnonce1, sctx->xnonce1_size);
-	if (!sctx->job.job_id || strcmp(sctx->job.job_id, job_id))
+	hex2bin( sctx->job.coinbase, coinb1, coinb1_size );
+	memcpy( sctx->job.coinbase + coinb1_size,
+           sctx->xnonce1, sctx->xnonce1_size );
+	if ( !sctx->job.job_id || strcmp( sctx->job.job_id, job_id ) )
 		memset(sctx->job.xnonce2, 0, sctx->xnonce2_size);
-	hex2bin(sctx->job.xnonce2 + sctx->xnonce2_size, coinb2, coinb2_size);
-	free(sctx->job.job_id);
-	sctx->job.job_id = strdup(job_id);
-	hex2bin(sctx->job.prevhash, prevhash, 32);
-        if (has_claim) hex2bin(sctx->job.extra, extradata, 32);
-        if (has_roots) hex2bin(sctx->job.extra, extradata, 64);
+	hex2bin( sctx->job.xnonce2 + sctx->xnonce2_size, coinb2, coinb2_size );
+	free( sctx->job.job_id );
+	sctx->job.job_id = strdup( job_id );
+	hex2bin( sctx->job.prevhash, prevhash, 32 );
+   if ( has_claim ) hex2bin( sctx->job.extra, extradata, 32 );
+   if ( has_roots ) hex2bin( sctx->job.extra, extradata, 64 );
+   if ( ver == 5 )
+      hex2bin( sctx->job.final_sapling_hash, finalsaplinghash, 32 );
 
    if ( is_veil )
    {
-      hex2bin(sctx->job.denom10, denom10, 32);
-      hex2bin(sctx->job.denom100, denom100, 32);
-      hex2bin(sctx->job.denom1000, denom1000, 32);
-      hex2bin(sctx->job.denom10000, denom10000, 32);
-      hex2bin(sctx->job.proofoffullnode, prooffullnode, 32);
+      hex2bin( sctx->job.denom10, denom10, 32 );
+      hex2bin( sctx->job.denom100, denom100, 32 );
+      hex2bin( sctx->job.denom1000, denom1000, 32 );
+      hex2bin( sctx->job.denom10000, denom10000, 32 );
+      hex2bin( sctx->job.proofoffullnode, prooffullnode, 32 );
    }
 
-	sctx->block_height = getblocheight(sctx);
+	sctx->block_height = getblocheight( sctx );
 
-	for (i = 0; i < sctx->job.merkle_count; i++)
-		free(sctx->job.merkle[i]);
+	for ( i = 0; i < sctx->job.merkle_count; i++ )
+		free( sctx->job.merkle[i] );
 
-	free(sctx->job.merkle);
+	free( sctx->job.merkle );
 	sctx->job.merkle = merkle;
 	sctx->job.merkle_count = merkle_count;
 
-	hex2bin(sctx->job.version, version, 4);
-	hex2bin(sctx->job.nbits, nbits, 4);
-	hex2bin(sctx->job.ntime, stime, 4);
+	hex2bin( sctx->job.nbits, nbits, 4 );
+	hex2bin( sctx->job.ntime, stime, 4 );
 	sctx->job.clean = clean;
 
 	sctx->job.diff = sctx->next_diff;
 
-	pthread_mutex_unlock(&sctx->work_lock);
+	pthread_mutex_unlock( &sctx->work_lock );
 
 	ret = true;
 

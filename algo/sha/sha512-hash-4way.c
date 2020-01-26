@@ -319,7 +319,7 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
 
 // SHA-512 4 way 64 bit
 
-
+/*
 #define CH(X, Y, Z) \
    _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( Y, Z ), X ), Z ) 
 
@@ -328,13 +328,23 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
                     _mm256_and_si256( _mm256_or_si256( X, Y ), Z ) )
 
 #define BSG5_0(x) \
+  mm256_ror_64( _mm256_xor_si256( mm256_ror_64( \
+                   _mm256_xor_si256( mm256_ror_64( x,  5 ), x ), 6 ), x ), 28 )
+
+#define BSG5_1(x) \
+  mm256_ror_64( _mm256_xor_si256( mm256_ror_64( \
+                   _mm256_xor_si256( mm256_ror_64( x, 23 ), x ), 4 ), x ), 14 )
+*/
+/*
+#define BSG5_0(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
         mm256_ror_64(x, 28), mm256_ror_64(x, 34) ), mm256_ror_64(x, 39) )
 
 #define BSG5_1(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
         mm256_ror_64(x, 14), mm256_ror_64(x, 18) ), mm256_ror_64(x, 41) )
-
+*/
+/*
 #define SSG5_0(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
         mm256_ror_64(x,  1), mm256_ror_64(x,  8) ), _mm256_srli_epi64(x, 7) ) 
@@ -342,7 +352,7 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
 #define SSG5_1(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
         mm256_ror_64(x, 19), mm256_ror_64(x, 61) ), _mm256_srli_epi64(x, 6) )
-
+*/
 // Interleave SSG0 & SSG1 for better throughput.
 // return ssg0(w0) + ssg1(w1)
 static inline __m256i ssg512_add( __m256i w0, __m256i w1 )
@@ -361,7 +371,7 @@ static inline __m256i ssg512_add( __m256i w0, __m256i w1 )
    return _mm256_add_epi64( w0a, w1a );
 }
 
-
+/*
 #define SSG512x2_0( w0, w1, i ) do \
 { \
    __m256i X0a, X1a, X0b, X1b; \
@@ -391,7 +401,51 @@ static inline __m256i ssg512_add( __m256i w0, __m256i w1 )
   w0  = _mm256_xor_si256( X0a, X0b ); \
   w1  = _mm256_xor_si256( X1a, X1b ); \
 } while(0)
+*/
 
+#define SHA3_4WAY_STEP(A, B, C, D, E, F, G, H, i) \
+do { \
+  __m256i K = _mm256_set1_epi64x( K512[ i ] ); \
+  __m256i T1 = mm256_ror_64( E, 23 ); \
+  __m256i T2 = mm256_ror_64( A,  5 ); \
+  __m256i T3 = _mm256_xor_si256( F, G ); \
+  __m256i T4 = _mm256_or_si256( A, B ); \
+  __m256i T5 = _mm256_and_si256( A, B ); \
+  K = _mm256_add_epi64( K, W[i] ); \
+  T1 = _mm256_xor_si256( T1, E ); \
+  T2 = _mm256_xor_si256( T2, A ); \
+  T3 = _mm256_and_si256( T3, E ); \
+  T4 = _mm256_and_si256( T4, C ); \
+  K = _mm256_add_epi64( H, K ); \
+  T1 = mm256_ror_64( T1, 4 ); \
+  T2 = mm256_ror_64( T2, 6 ); \
+  T3 = _mm256_xor_si256( T3, G ); \
+  T4 = _mm256_or_si256( T4, T5 ); \
+  T1 = _mm256_xor_si256( T1, E ); \
+  T2 = _mm256_xor_si256( T2, A ); \
+  T1 = mm256_ror_64( T1, 14 ); \
+  T2 = mm256_ror_64( T2, 28 ); \
+  T1 = _mm256_add_epi64( T1, T3 ); \
+  T2 = _mm256_add_epi64( T2, T4 ); \
+  T1 = _mm256_add_epi64( T1, K ); \
+  H  = _mm256_add_epi64( T1, T2 ); \
+  D  = _mm256_add_epi64( D, T1 ); \
+} while (0)
+
+/*
+#define SHA3_4WAY_STEP(A, B, C, D, E, F, G, H, i) \
+do { \
+  __m256i K = _mm256_add_epi64( W[i], _mm256_set1_epi64x( K512[ i ] ) ); \
+  __m256i T1 = BSG5_1(E); \
+  __m256i T2 = BSG5_0(A); \
+  T1 = mm256_add4_64( T1, H, CH(E, F, G), K ); \
+  T2 = _mm256_add_epi64( T2, MAJ(A, B, C) ); \
+  D  = _mm256_add_epi64( D, T1 ); \
+  H  = _mm256_add_epi64( T1, T2 ); \
+} while (0)
+*/
+
+/*
 #define SHA3_4WAY_STEP(A, B, C, D, E, F, G, H, i) \
 do { \
   __m256i T1, T2; \
@@ -402,7 +456,7 @@ do { \
   D  = _mm256_add_epi64( D, T1 ); \
   H  = _mm256_add_epi64( T1, T2 ); \
 } while (0)
-
+*/
 
 static void
 sha512_4way_round( sha512_4way_context *ctx,  __m256i *in, __m256i r[8] )

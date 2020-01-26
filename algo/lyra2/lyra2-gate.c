@@ -220,7 +220,7 @@ void phi2_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    // Assemble block header
    algo_gate.build_block_header( g_work, le32dec( sctx->job.version ),
                   (uint32_t*) sctx->job.prevhash, (uint32_t*) merkle_tree,
-                  le32dec( sctx->job.ntime ), le32dec(sctx->job.nbits) );
+                  le32dec( sctx->job.ntime ), le32dec(sctx->job.nbits), NULL );
    for ( t = 0; t < 16; t++ )
       g_work->data[ 20+t ] = ((uint32_t*)sctx->job.extra)[t];
 }

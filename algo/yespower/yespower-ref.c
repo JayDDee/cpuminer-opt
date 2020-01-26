@@ -51,8 +51,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sha256_p.h"
-#include "sysendian.h"
+#include "algo/sha/hmac-sha256-hash.h"
+//#include "sysendian.h"
 
 #include "yespower.h"
 
@@ -346,7 +346,7 @@ static void smix1(uint32_t *B, size_t r, uint32_t N,
 	/* 1: X <-- B */
 	for (k = 0; k < 2 * r; k++)
 		for (i = 0; i < 16; i++)
-			X[k * 16 + i] = le32dec(&B[k * 16 + (i * 5 % 16)]);
+			X[k * 16 + i] = B[k * 16 + (i * 5 % 16)];
 
 	if (ctx->version != YESPOWER_0_5) {
 		for (k = 1; k < r; k++) {
@@ -378,7 +378,7 @@ static void smix1(uint32_t *B, size_t r, uint32_t N,
 	/* B' <-- X */
 	for (k = 0; k < 2 * r; k++)
 		for (i = 0; i < 16; i++)
-			le32enc(&B[k * 16 + (i * 5 % 16)], X[k * 16 + i]);
+			B[k * 16 + (i * 5 % 16)] = X[k * 16 + i];
 }
 
 /**
@@ -398,7 +398,7 @@ static void smix2(uint32_t *B, size_t r, uint32_t N, uint32_t Nloop,
 	/* X <-- B */
 	for (k = 0; k < 2 * r; k++)
 		for (i = 0; i < 16; i++)
-			X[k * 16 + i] = le32dec(&B[k * 16 + (i * 5 % 16)]);
+			X[k * 16 + i] = B[k * 16 + (i * 5 % 16)];
 
 	/* 6: for i = 0 to N - 1 do */
 	for (i = 0; i < Nloop; i++) {
@@ -418,7 +418,7 @@ static void smix2(uint32_t *B, size_t r, uint32_t N, uint32_t Nloop,
 	/* 10: B' <-- X */
 	for (k = 0; k < 2 * r; k++)
 		for (i = 0; i < 16; i++)
-			le32enc(&B[k * 16 + (i * 5 % 16)], X[k * 16 + i]);
+			B[k * 16 + (i * 5 % 16)] = X[k * 16 + i];
 }
 
 /**

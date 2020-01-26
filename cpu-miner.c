@@ -506,6 +506,7 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
    uint32_t version, curtime, bits;
    uint32_t prevhash[8];
    uint32_t target[8];
+   unsigned char final_sapling_hash[32];
    int cbtx_size;
    uchar *cbtx = NULL;
    int tx_count, tx_size;
@@ -529,8 +530,8 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
             continue;
          if      ( !strcmp( s, "coinbase/append" ) ) coinbase_append = true;
          else if ( !strcmp( s, "submit/coinbase" ) ) submit_coinbase = true;
-         else if ( !strcmp( s, "version/force" ) )   version_force   = true;
-         else if ( !strcmp( s, "version/reduce" ) )  version_reduce  = true;
+         else if ( !strcmp( s, "version/force"   ) ) version_force   = true;
+         else if ( !strcmp( s, "version/reduce"  ) ) version_reduce  = true;
       }
    }
 
@@ -550,12 +551,13 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
       goto out;
    }
    version = (uint32_t) json_integer_value( tmp );
-   if ( (version & 0xffU) > BLOCK_VERSION_CURRENT )
+   if ( version == 5 )
+      work->sapling = true;
+   else if ( version > 4 )
+//   if ( (version & 0xffU) > BLOCK_VERSION_CURRENT )
    {
       if ( version_reduce )
-      {
          version = ( version & ~0xffU ) | BLOCK_VERSION_CURRENT;
-      }
       else if ( have_gbt && allow_getwork && !version_force )
       {
          applog( LOG_DEBUG, "Switching to getwork, gbt version %d", version );
@@ -590,6 +592,16 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
       goto out;
    }
 
+   if ( work->sapling )
+   {
+      if ( unlikely( !jobj_binary( val, "finalsaplingroothash",
+                  final_sapling_hash, sizeof(final_sapling_hash) ) ) )
+      {
+         applog( LOG_ERR, "JSON invalid finalsaplingroothash" );
+         goto out;
+      }
+   }
+   
    /* find count and size of transactions */
    txa = json_object_get(val, "transactions" );
    if ( !txa || !json_is_array( txa ) )
@@ -772,7 +784,8 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
    /* assemble block header */
    algo_gate.build_block_header( work, swab32( version ),
                                  (uint32_t*) prevhash, (uint32_t*) merkle_tree,
-                                 swab32( curtime ), le32dec( &bits ) );
+                                 swab32( curtime ), le32dec( &bits ),
+                                 final_sapling_hash );
 
    if ( unlikely( !jobj_binary(val, "target", target, sizeof(target)) ) )
    {
@@ -1175,13 +1188,13 @@ static int share_result( int result, struct work *null_work,
          char str3[65];
 
          // display share hash and target for troubleshooting
-         diff_to_target( str1, my_stats.share_diff );
+         diff_to_target( (uint64_t*)str1, my_stats.share_diff );
          for ( int i = 0; i < 8; i++ )
             be32enc( str2 + i, str1[7 - i] );
          bin2hex( str3, (unsigned char*)str2, 12 );
          applog2( LOG_INFO, "Hash:   %s...", str3 );
 
-         diff_to_target( str1, my_stats.target_diff );
+         diff_to_target( (uint64_t*)str1, my_stats.target_diff );
          for ( int i = 0; i < 8; i++ )
             be32enc( str2 + i, str1[7 - i] );
          bin2hex( str3, (unsigned char*)str2, 12 );
@@ -1364,9 +1377,11 @@ char* std_malloc_txs_request( struct work *work )
   char data_str[2 * sizeof(work->data) + 1];
   int i;
 
+  int datasize = work->sapling ? 112 : 80;
+
   for ( i = 0; i < ARRAY_SIZE(work->data); i++ )
      be32enc( work->data + i, work->data[i] );
-  bin2hex( data_str, (unsigned char *)work->data, 80 );
+  bin2hex( data_str, (unsigned char *)work->data, datasize );
   if ( work->workid )
   {
     char *params;
@@ -1374,7 +1389,7 @@ char* std_malloc_txs_request( struct work *work )
     json_object_set_new( val, "workid", json_string( work->workid ) );
     params = json_dumps( val, 0 );
     json_decref( val );
-    req = (char*) malloc( 128 + 2 * 80 + strlen( work->txs )
+    req = (char*) malloc( 128 + 2 * datasize + strlen( work->txs )
                             + strlen( params ) );
     sprintf( req,
      "{\"method\": \"submitblock\", \"params\": [\"%s%s\", %s], \"id\":4}\r\n",
@@ -1383,7 +1398,7 @@ char* std_malloc_txs_request( struct work *work )
   }
   else
   {
-    req = (char*) malloc( 128 + 2 * 80 + strlen( work->txs ) );
+    req = (char*) malloc( 128 + 2 * datasize + strlen( work->txs ) );
     sprintf( req,
          "{\"method\": \"submitblock\", \"params\": [\"%s%s\"], \"id\":4}\r\n",
          data_str, work->txs);
@@ -1777,7 +1792,7 @@ static bool get_work(struct thr_info *thr, struct work *work)
 	return true;
 }
 
-static bool submit_work( const struct thr_info *thr,
+static bool submit_work( struct thr_info *thr,
                          const struct work *work_in )
 {
 	struct workio_cmd *wc;
@@ -1843,7 +1858,7 @@ void work_set_target_ratio( struct work* work, const void *hash )
 }
 
 bool submit_solution( struct work *work, const void *hash,
-                      const struct thr_info *thr )
+                      struct thr_info *thr )
 {
   if ( likely( submit_work( thr, work ) ) )
   {
@@ -1861,7 +1876,7 @@ bool submit_solution( struct work *work, const void *hash,
 }
 
 bool submit_lane_solution( struct work *work, const void *hash,
-                           const struct thr_info *thr, const int lane )
+                           struct thr_info *thr, const int lane )
 {
   if ( likely( submit_work( thr, work ) ) )
   {
@@ -1992,7 +2007,7 @@ uint32_t *jr2_get_nonceptr( uint32_t *work_data )
 }
 
 void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
-                     uint32_t *end_nonce_ptr, bool clean_job )
+                     uint32_t *end_nonce_ptr )
 {
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
 
@@ -2000,9 +2015,7 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
                                         strtoul( g_work->job_id, NULL, 16 )
                                       : true;
 
-   if ( force_new_work || *nonceptr >= *end_nonce_ptr
-   || ( memcmp( work->data, g_work->data, algo_gate.work_cmp_size )
-        && clean_job ) )
+   if ( force_new_work || *nonceptr >= *end_nonce_ptr )
    {
      work_free( work );
      work_copy( work, g_work );
@@ -2165,8 +2178,7 @@ static void *miner_thread( void *userdata )
       	     pthread_mutex_lock( &g_work_lock );
               if ( *algo_gate.get_nonceptr( work.data ) >= end_nonce )
                  algo_gate.stratum_gen_work( &stratum, &g_work );
-              algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce,
-                                      stratum.job.clean );
+              algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce );
               pthread_mutex_unlock( &g_work_lock );
           }
           else
@@ -2186,7 +2198,7 @@ static void *miner_thread( void *userdata )
 	             }
                 g_work_time = time(NULL);
 	          }
-             algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce, true );
+             algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce );
 
              pthread_mutex_unlock( &g_work_lock );
           }
@@ -2579,13 +2591,14 @@ out:
 
 // used by stratum and gbt
 void std_build_block_header( struct work* g_work, uint32_t version,
-                             uint32_t *prevhash, uint32_t *merkle_tree, 
-                             uint32_t ntime, uint32_t nbits )
+       uint32_t *prevhash, uint32_t *merkle_tree, uint32_t ntime,
+       uint32_t nbits, unsigned char *final_sapling_hash )
 {
    int i;
 
    memset( g_work->data, 0, sizeof(g_work->data) );
    g_work->data[0] = version;
+   g_work->sapling = be32dec( &version ) == 5 ? true : false;
 
    if ( have_stratum )
       for ( i = 0; i < 8; i++ )
@@ -2599,8 +2612,27 @@ void std_build_block_header( struct work* g_work, uint32_t version,
 
    g_work->data[ algo_gate.ntime_index ] = ntime;
    g_work->data[ algo_gate.nbits_index ] = nbits;
-   g_work->data[20] = 0x80000000;
-   g_work->data[31] = 0x00000280;
+   if ( g_work->sapling )
+   {
+      if ( have_stratum )
+         for ( i = 0; i < 8; i++ )
+            g_work->data[20 + i] = le32dec( (uint32_t*)final_sapling_hash + i );
+      else
+      {
+         for ( i = 0; i < 8; i++ )
+            g_work->data[27 - i] = le32dec( (uint32_t*)final_sapling_hash + i );
+         g_work->data[19] = 0;
+      }      
+      g_work->data[28] = 0x80000000;
+      g_work->data[29] = 0x00000000;
+      g_work->data[30] = 0x00000000;
+      g_work->data[31] = 0x00000380;
+   }
+   else
+   {
+      g_work->data[20] = 0x80000000;
+      g_work->data[31] = 0x00000280;
+   }
 }
 
 void std_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
@@ -2614,7 +2646,8 @@ void std_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    // Assemble block header
    algo_gate.build_block_header( g_work, le32dec( sctx->job.version ),
           (uint32_t*) sctx->job.prevhash, (uint32_t*) merkle_tree,
-          le32dec( sctx->job.ntime ), le32dec(sctx->job.nbits) );
+          le32dec( sctx->job.ntime ), le32dec(sctx->job.nbits),
+          sctx->job.final_sapling_hash );
 }
 
 void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
@@ -3765,6 +3798,9 @@ int main(int argc, char *argv[])
       }
 */
    }
+
+   applog( LOG_INFO, "Extranonce subscribe: %s",
+                           opt_extranonce ? "YES" : "NO" );
 
 #ifdef HAVE_SYSLOG_H
 	if (use_syslog)

@@ -18,36 +18,34 @@ void keccakhash(void *state, const void *input)
 	memcpy(state, hash, 32);
 }
 
-int scanhash_keccak( struct work *work,
-	uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr )
+int scanhash_keccak( struct work *work, uint32_t max_nonce,
+                     uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
-	uint32_t n = pdata[19] - 1;
-	const uint32_t first_nonce = pdata[19];
-	//const uint32_t Htarg = ptarget[7];
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   uint32_t _ALIGN(64) hash64[8];
+   uint32_t _ALIGN(64) endiandata[32];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   uint32_t n = pdata[19];
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce;
+   const int thr_id = mythr->id;
 
-	uint32_t _ALIGN(32) hash64[8];
-	uint32_t endiandata[32];
+   for ( int i=0; i < 19; i++ )
+      be32enc( &endiandata[i], pdata[i] );
 
-        for (int i=0; i < 19; i++) 
-                be32enc(&endiandata[i], pdata[i]);
+   do {
+      be32enc( &endiandata[19], n );
+      keccakhash( hash64, endiandata );
+      if ( valid_hash( hash64, ptarget ) && !opt_benchmark )
+      {
+         pdata[19] = n;
+         submit_solution( work, hash64, mythr );
+      }
+      n++;
+   } while ( n < last_nonce && !work_restart[thr_id].restart );
 
-	do {
-	
-		pdata[19] = ++n;
-		be32enc(&endiandata[19], n); 
-		keccakhash(hash64, endiandata);
-        if (((hash64[7]&0xFFFFFF00)==0) && 
-				fulltest(hash64, ptarget)) {
-            *hashes_done = n - first_nonce + 1;
-			return true;
-		}
-	} while (n < max_nonce && !work_restart[thr_id].restart);
-	
-	*hashes_done = n - first_nonce + 1;
-	pdata[19] = n;
-	return 0;
+   *hashes_done = n - first_nonce;
+   pdata[19] = n;
+   return 0;
 }
 

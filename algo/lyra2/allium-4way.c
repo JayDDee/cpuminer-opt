@@ -263,37 +263,31 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    const uint32_t last_nonce = max_nonce - 16;
-   const uint32_t Htarg = ptarget[7];
    __m512i  *noncev = (__m512i*)vdata + 19;   // aligned
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
 
-   if ( opt_benchmark )
-      ( (uint32_t*)ptarget )[7] = 0x0000ff;
+   if ( bench ) ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
    mm512_bswap32_intrlv80_16x32( vdata, pdata );
+   *noncev = _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+ 9, n+ 8,
+                               n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
+
    blake256_16way_init( &allium_16way_ctx.blake );
    blake256_16way_update( &allium_16way_ctx.blake, vdata, 64 );
 
    do {
-     *noncev = mm512_bswap_32( _mm512_set_epi32( n+15, n+14, n+13, n+12,
-                                                 n+11, n+10, n+ 9, n+ 8,
-                                                 n+ 7, n+ 6, n+ 5, n+ 4,
-                                                 n+ 3, n+ 2, n +1, n ) );
-
      allium_16way_hash( hash, vdata );
-     pdata[19] = n;
 
-     for ( int lane = 0; lane < 16; lane++ ) if ( (hash+(lane<<3))[7] <= Htarg )
+     for ( int lane = 0; lane < 16; lane++ ) 
+     if unlikely( valid_hash( hash+(lane<<3), ptarget ) && !bench )
      {
-        if ( fulltest( hash+(lane<<3), ptarget ) && !opt_benchmark )
-        {
-           pdata[19] = n + lane;
-           submit_lane_solution( work, hash+(lane<<3), mythr, lane );
-         }
+         pdata[19] = bswap_32( n + lane );
+         submit_lane_solution( work, hash+(lane<<3), mythr, lane );
      }
+     *noncev = _mm512_add_epi32( *noncev, m512_const1_32( 16 ) );
      n += 16;
    } while ( (n < last_nonce) && !work_restart[thr_id].restart);
-
    *hashes_done = n - first_nonce;
    return 0;
 }
@@ -433,13 +427,9 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 8;
    uint32_t n = first_nonce;
-   const uint64_t Htarg = ptarget[3];
    __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
    const int thr_id = mythr->id;  
    const bool bench = opt_benchmark;
-
-   if unlikely( bench )
-      ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
    *noncev = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
@@ -453,14 +443,10 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
      for ( int lane = 0; lane < 8; lane++ )
      {
         const uint64_t *lane_hash = hash + (lane<<2);
-        if unlikely( lane_hash[3] <= Htarg )
-        {
-        if likely( ( lane_hash[3] < Htarg && !bench )
-            || valid_hash( lane_hash, ptarget ) )
+        if unlikely( valid_hash( lane_hash, ptarget ) && !bench )
         {
            pdata[19] = bswap_32( n + lane );
            submit_lane_solution( work, lane_hash, mythr, lane );
-         }
         }
      }
      n += 8;

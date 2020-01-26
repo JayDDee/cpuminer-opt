@@ -25,7 +25,7 @@
 #include "compat.h"
 
 #include "yescrypt.h"
-#include "sha256_Y.h"
+#include "algo/sha/hmac-sha256-hash.h"
 #include "algo-gate-api.h"
 
 #define BYTES2CHARS(bytes) \
@@ -385,35 +385,30 @@ void yescrypthash(void *output, const void *input)
 int scanhash_yescrypt( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t _ALIGN(64) vhash[8];
-        uint32_t _ALIGN(64) endiandata[20];
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
+   uint32_t _ALIGN(64) vhash[8];
+   uint32_t _ALIGN(64) endiandata[20];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce;
+   uint32_t n = first_nonce;
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
-        const uint32_t Htarg = ptarget[7];
-        const uint32_t first_nonce = pdata[19];
-        uint32_t n = first_nonce;
-        int thr_id = mythr->id;  // thr_id arg is deprecated
-
-        for (int k = 0; k < 19; k++)
-                be32enc(&endiandata[k], pdata[k]);
-
-        do {
-           be32enc(&endiandata[19], n);
-           yescrypt_hash((char*) endiandata, (char*) vhash, 80);
-           if (vhash[7] <= Htarg && fulltest(vhash, ptarget ) 
-               && !opt_benchmark )
-           {
-               pdata[19] = n;
-               submit_solution( work, vhash, mythr );
-           }
-           n++;
-        } while (n < max_nonce && !work_restart[thr_id].restart);
-
-        *hashes_done = n - first_nonce + 1;
-        pdata[19] = n;
-
-        return 0;
+   for ( int k = 0; k < 19; k++ )
+      be32enc( &endiandata[k], pdata[k] );
+   endiandata[19] = n;
+   do {
+      yescrypt_hash((char*) endiandata, (char*) vhash, 80);
+      if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
+      {
+          be32enc( pdata+19, n );
+          submit_solution( work, vhash, mythr );
+      }
+      endiandata[19] = ++n;
+   } while ( n < last_nonce && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce;
+   pdata[19] = n;
+   return 0;
 }
 
 void yescrypt_gate_base(algo_gate_t *gate )

@@ -48,9 +48,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sha256_Y.h"
-#include "sysendian.h"
-
+#include "algo/sha/hmac-sha256-hash.h"
 #include "yescrypt.h"
 #include "yescrypt-platform.h"
 
@@ -1312,7 +1310,7 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	}
 
 	/* 1: (B_0 ... B_{p-1}) <-- PBKDF2(P, S, 1, p * MFLen) */
-	PBKDF2_SHA256_Y(passwd, passwdlen, salt, saltlen, 1, B, B_size);
+	PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, 1, B, B_size);
 
 	if (t || flags)
 		memcpy(sha256, B, sizeof(sha256));
@@ -1342,7 +1340,7 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	}
 
 	/* 5: DK <-- PBKDF2(P, B, 1, dkLen) */
-	PBKDF2_SHA256_Y(passwd, passwdlen, B, B_size, 1, buf, buflen);
+	PBKDF2_SHA256(passwd, passwdlen, B, B_size, 1, buf, buflen);
 
 	/*
 	 * Except when computing classic scrypt, allow all computation so far
@@ -1354,14 +1352,14 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	if ((t || flags) && buflen == sizeof(sha256)) {
 	   /* Compute ClientKey */
 	   {
-		HMAC_SHA256_CTX_Y ctx;
-		HMAC_SHA256_Init_Y(&ctx, buf, buflen);
+		HMAC_SHA256_CTX ctx;
+		HMAC_SHA256_Init(&ctx, buf, buflen);
                 if ( yescrypt_client_key )
-                    HMAC_SHA256_Update_Y( &ctx, (uint8_t*)yescrypt_client_key,
+                    HMAC_SHA256_Update( &ctx, (uint8_t*)yescrypt_client_key,
                                         yescrypt_client_key_len );
                 else
-                    HMAC_SHA256_Update_Y( &ctx, salt, saltlen );
-		HMAC_SHA256_Final_Y(sha256, &ctx);
+                    HMAC_SHA256_Update( &ctx, salt, saltlen );
+		HMAC_SHA256_Final(sha256, &ctx);
 	   }
 	   /* Compute StoredKey */
 	   {

@@ -80,7 +80,6 @@ cpuminer_SOURCES = \
   algo/cryptonight/cryptonight-common.c\
   algo/cryptonight/cryptonight-aesni.c\
   algo/cryptonight/cryptonight.c\
-  algo/cubehash/sph_cubehash.c \
   algo/cubehash/cubehash_sse2.c\
   algo/cubehash/cube-hash-2way.c \
   algo/echo/sph_echo.c \
@@ -121,6 +120,8 @@ cpuminer_SOURCES = \
   algo/keccak/keccak-hash-4way.c \
   algo/keccak/keccak-4way.c\
   algo/keccak/keccak-gate.c \
+  algo/keccak/sha3d-4way.c \
+  algo/keccak/sha3d.c \
   algo/lanehash/lane.c \
   algo/luffa/sph_luffa.c \
   algo/luffa/luffa.c \
@@ -180,6 +181,7 @@ cpuminer_SOURCES = \
   algo/sha/sph_sha2big.c \
   algo/sha/sha256-hash-4way.c \
   algo/sha/sha512-hash-4way.c \
+  algo/sha/hmac-sha256-hash.c \
   algo/sha/sha2.c \
   algo/sha/sha256t-gate.c \
   algo/sha/sha256t-4way.c \
@@ -292,12 +294,11 @@ cpuminer_SOURCES = \
   algo/x22/x25x.c \
   algo/x22/x25x-4way.c \
   algo/yescrypt/yescrypt.c \
-  algo/yescrypt/sha256_Y.c \
   algo/yescrypt/yescrypt-best.c \
   algo/yespower/yespower-gate.c \
   algo/yespower/yespower-blake2b.c \
   algo/yespower/crypto/blake2b-yp.c \
-  algo/yespower/sha256_p.c \
+  algo/yespower/yescrypt-r8g.c \
   algo/yespower/yespower-opt.c
 
 disable_flags =

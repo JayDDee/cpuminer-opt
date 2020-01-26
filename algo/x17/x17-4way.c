@@ -299,25 +299,28 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
    const uint32_t Htarg = ptarget[7];
+   const bool bench = opt_benchmark;
 
    mm512_bswap32_intrlv80_8x64( vdata, pdata );
+   *noncev = mm512_intrlv_blend_32(
+              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                                n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      *noncev = mm512_intrlv_blend_32( mm512_bswap_32(
-              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                                n+3, 0, n+2, 0, n+1, 0, n,   0 ) ), *noncev );
       x17_8way_hash( hash, vdata );
 
       for ( int lane = 0; lane < 8; lane++ )
-      if unlikely( ( hash7[ lane ] <= Htarg ) )
+      if unlikely( ( hash7[ lane ] <= Htarg ) && !bench )
       {
          extr_lane_8x32( lane_hash, hash, lane, 256 );
-         if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
+         if likely( valid_hash( lane_hash, ptarget ) )
          {
-            pdata[19] = n + lane;
+            pdata[19] = bswap_32( n + lane );
             submit_lane_solution( work, lane_hash, mythr, lane );
          }
       }
+      *noncev = _mm512_add_epi32( *noncev,
+                                  m512_const1_64( 0x0000000800000000 ) );
       n += 8;
    } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
 
@@ -496,7 +499,7 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
       if ( unlikely( hash7[ lane ] <= Htarg && !bench ) )
       {  
          extr_lane_4x32( lane_hash, hash, lane, 256 );
-         if ( ( hash7[ lane ] < Htarg ) || valid_hash( lane_hash, ptarget ) )
+         if ( valid_hash( lane_hash, ptarget ) )
          {
             pdata[19] = bswap_32( n + lane );
             submit_lane_solution( work, lane_hash, mythr, lane );

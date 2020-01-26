@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "keccak-hash-4way.h"
+#include "keccak-gate.h"
 
 static const uint64_t RC[] = {
         0x0000000000000001, 0x0000000000008082,
@@ -168,7 +169,7 @@ static void keccak64_8way_close( keccak64_ctx_m512i *kc, void *dst,
     size_t j;
     size_t m512_len = byte_len >> 3;
 
-    eb = 0x100  >> 8;
+    eb = hard_coded_eb;
     if ( kc->ptr == (lim - 8) )
     {
         const uint64_t t = eb | 0x8000000000000000;
@@ -349,7 +350,7 @@ static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
     size_t j;
     size_t m256_len = byte_len >> 3;
 
-    eb = 0x100  >> 8;
+    eb = hard_coded_eb;
     if ( kc->ptr == (lim - 8) )
     {
         const uint64_t t = eb | 0x8000000000000000;

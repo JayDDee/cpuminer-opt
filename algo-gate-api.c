@@ -209,6 +209,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_SHA256D:       register_sha256d_algo       ( gate ); break;
     case ALGO_SHA256Q:       register_sha256q_algo       ( gate ); break;
     case ALGO_SHA256T:       register_sha256t_algo       ( gate ); break;
+    case ALGO_SHA3D:         register_sha3d_algo         ( gate ); break;
     case ALGO_SHAVITE3:      register_shavite_algo       ( gate ); break;
     case ALGO_SKEIN:         register_skein_algo         ( gate ); break;
     case ALGO_SKEIN2:        register_skein2_algo        ( gate ); break;
@@ -247,6 +248,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
 */
     case ALGO_YESCRYPT:      register_yescrypt_algo      ( gate ); break;
     case ALGO_YESCRYPTR8:    register_yescryptr8_algo    ( gate ); break;
+    case ALGO_YESCRYPTR8G:   register_yescryptr8g_algo   ( gate ); break;
     case ALGO_YESCRYPTR16:   register_yescryptr16_algo   ( gate ); break;
     case ALGO_YESCRYPTR32:   register_yescryptr32_algo   ( gate ); break;
     case ALGO_YESPOWER:      register_yespower_algo      ( gate ); break;

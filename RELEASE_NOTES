@@ -65,6 +65,17 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.11.7
+
+Added yescryptr8g algo fotr KOTO, including support for block version 5.
+
+Added sha3d algo for BSHA3.
+
+Removed memcmp and clean_job checks from get_new_work, now only check job_id.
+
+Small improvement to sha512 and sha256 parallel implementations that don't
+use SHA.
+
 v3.11.6
 
 Fixed CPU temperature regression from v3.11.5.

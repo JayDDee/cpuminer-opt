@@ -214,14 +214,14 @@ int scanhash_drop( struct work *work, uint32_t max_nonce,
 }
 
 void drop_get_new_work( struct work* work, struct work* g_work, int thr_id,
-                        uint32_t* end_nonce_ptr, bool clean_job )
+                        uint32_t* end_nonce_ptr )
 {
    // ignore POK in first word
 // const int nonce_i = 19;
    const int wkcmp_sz = 72;  // (19-1) * sizeof(uint32_t)
    uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
    if ( memcmp( &work->data[1], &g_work->data[1], wkcmp_sz )
-       && ( clean_job || ( *nonceptr >= *end_nonce_ptr ) ) )
+       || ( *nonceptr >= *end_nonce_ptr ) )
    {
       work_free( work );
       work_copy( work, g_work );

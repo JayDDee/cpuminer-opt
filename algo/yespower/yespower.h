@@ -71,7 +71,7 @@ typedef struct {
  */
 typedef struct {
 	unsigned char uc[32];
-} yespower_binary_t;
+} yespower_binary_t __attribute__ ((aligned (64)));
 
 /**
  * yespower_init_local(local):

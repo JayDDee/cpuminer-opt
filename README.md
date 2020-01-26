@@ -97,10 +97,10 @@ Supported Algorithms
                           qubit         Qubit
                           scrypt        scrypt(1024, 1, 1) (default)
                           scrypt:N      scrypt(N, 1, 1)
-                          scryptjane:nf
                           sha256d       Double SHA-256
                           sha256q       Quad SHA-256, Pyrite (PYE)
                           sha256t       Triple SHA-256, Onecoin (OC)
+                          sha3d         Double keccak256 (BSHA3)
                           shavite3      Shavite3
                           skein         Skein+Sha (Skeincoin)
                           skein2        Double Skein (Woodcoin)
@@ -134,6 +134,7 @@ Supported Algorithms
                           xevan         Bitsend (BSD)
                           yescrypt      Globalboost-Y (BSTY)
                           yescryptr8    BitZeny (ZNY)
+                          yescryptr8g   Koto (KOTO)
                           yescryptr16   Eli
                           yescryptr32   WAVI
                           yespower      Cryply

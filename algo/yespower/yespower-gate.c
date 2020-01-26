@@ -32,6 +32,8 @@
 
 static yespower_params_t yespower_params;
 
+// YESPOWER
+
 void yespower_hash( const char *input, char *output, uint32_t len )
 {
    yespower_tls( input, len, &yespower_params, (yespower_binary_t*)output ); 
@@ -40,36 +42,33 @@ void yespower_hash( const char *input, char *output, uint32_t len )
 int scanhash_yespower( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t _ALIGN(64) vhash[8];
-        uint32_t _ALIGN(64) endiandata[20];
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
+   uint32_t _ALIGN(64) vhash[8];
+   uint32_t _ALIGN(64) endiandata[20];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
 
-        const uint32_t Htarg = ptarget[7];
-        const uint32_t first_nonce = pdata[19];
-        uint32_t n = first_nonce;
-        int thr_id = mythr->id;  // thr_id arg is deprecated
-
-        for (int k = 0; k < 19; k++)
-                be32enc(&endiandata[k], pdata[k]);
-        do {
-           be32enc(&endiandata[19], n);
-           yespower_hash((char*) endiandata, (char*) vhash, 80);
-           if ( vhash[7] <= Htarg && fulltest( vhash, ptarget )
-              && !opt_benchmark )
-           {
-               pdata[19] = n;
-               submit_solution( work, vhash, mythr );
-            }
-            n++;
-        } while (n < max_nonce && !work_restart[thr_id].restart);
-
-        *hashes_done = n - first_nonce + 1;
-        pdata[19] = n;
-
-        return 0;
+   for ( int k = 0; k < 19; k++ )
+      be32enc( &endiandata[k], pdata[k] );
+   endiandata[19] = n;
+   do {
+      yespower_hash( (char*)endiandata, (char*)vhash, 80 );
+      if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
+      {
+          be32enc( pdata+19, n );
+          submit_solution( work, vhash, mythr );
+      }
+      endiandata[19] = ++n;
+   } while ( n < last_nonce && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce;
+   pdata[19] = n;
+   return 0;
 }
 
+// YESPOWER-B2B
 
 void yespower_b2b_hash( const char *input, char *output, uint32_t len )
 {
@@ -79,34 +78,30 @@ void yespower_b2b_hash( const char *input, char *output, uint32_t len )
 int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t _ALIGN(64) vhash[8];
-        uint32_t _ALIGN(64) endiandata[20];
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
+   uint32_t _ALIGN(64) vhash[8];
+   uint32_t _ALIGN(64) endiandata[20];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   uint32_t n = first_nonce;
+   const uint32_t last_nonce = max_nonce;
+   const int thr_id = mythr->id;  // thr_id arg is deprecated
 
-        const uint32_t Htarg = ptarget[7];
-        const uint32_t first_nonce = pdata[19];
-        uint32_t n = first_nonce;
-        int thr_id = mythr->id;  // thr_id arg is deprecated
-
-        for (int k = 0; k < 19; k++)
-                be32enc(&endiandata[k], pdata[k]);
-        do {
-           be32enc(&endiandata[19], n);
-           yespower_b2b_hash((char*) endiandata, (char*) vhash, 80);
-           if ( vhash[7] < Htarg && fulltest( vhash, ptarget )
-              && !opt_benchmark )
-           {
-               pdata[19] = n;
-               submit_solution( work, vhash, mythr );
-            }
-            n++;
-        } while (n < max_nonce && !work_restart[thr_id].restart);
-
-        *hashes_done = n - first_nonce + 1;
-        pdata[19] = n;
-
-        return 0;
+   for ( int k = 0; k < 19; k++ )
+      be32enc( &endiandata[k], pdata[k] );
+   endiandata[19] = n;
+   do {
+      yespower_b2b_hash( (char*) endiandata, (char*) vhash, 80 );
+      if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
+      {
+          be32enc( pdata+19, n );
+          submit_solution( work, vhash, mythr );
+      }
+      endiandata[19] = ++n;
+   } while ( n < last_nonce && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce;
+   pdata[19] = n;
+   return 0;
 }
 
 bool register_yespower_algo( algo_gate_t* gate )
@@ -156,7 +151,7 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
   return true;
  };
 
-
+/* not used
 bool register_yescrypt_05_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
@@ -208,6 +203,9 @@ bool register_yescryptr32_05_algo( algo_gate_t* gate )
    opt_target_factor = 65536.0;
    return true;
 }
+*/
+
+// POWER2B
 
 bool register_power2b_algo( algo_gate_t* gate )
 {

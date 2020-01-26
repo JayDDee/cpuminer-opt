@@ -96,6 +96,37 @@ static const uint32_t K256[64] =
 
 #define SHA2s_4WAY_STEP(A, B, C, D, E, F, G, H, i, j) \
 do { \
+  __m128i K = _mm_set1_epi32( K256[( (j)+(i) )] ); \
+  __m128i T1 = mm128_ror_32( E, 14 ); \
+  __m128i T2 = mm128_ror_32( A,  9 ); \
+  __m128i T3 = _mm_xor_si128( F, G ); \
+  __m128i T4 = _mm_or_si128( A, B ); \
+  __m128i T5 = _mm_and_si128( A, B ); \
+  K  = _mm_add_epi32( K, W[i] ); \
+  T1 = _mm_xor_si128( T1, E ); \
+  T2 = _mm_xor_si128( T2, A ); \
+  T3 = _mm_and_si128( T3, E ); \
+  T4 = _mm_and_si128( T4, C ); \
+  K  = _mm_add_epi32( H, K ); \
+  T1 = mm128_ror_32( T1,  5 ); \
+  T2 = mm128_ror_32( T2, 11 ); \
+  T3 = _mm_xor_si128( T3, G ); \
+  T4 = _mm_or_si128( T4, T5 ); \
+  T1 = _mm_xor_si128( T1, E ); \
+  T2 = _mm_xor_si128( T2, A ); \
+  T1 = mm128_ror_32( T1,  6 ); \
+  T2 = mm128_ror_32( T2,  2 ); \
+  T1 = _mm_add_epi32( T1, T3 ); \
+  T2 = _mm_add_epi32( T2, T4 ); \
+  T1 = _mm_add_epi32( T1, K ); \
+  H  = _mm_add_epi32( T1, T2 ); \
+  D  = _mm_add_epi32( D, T1 ); \
+} while (0)
+
+
+/*
+#define SHA2s_4WAY_STEP(A, B, C, D, E, F, G, H, i, j) \
+do { \
   __m128i T1, T2; \
   __m128i K = _mm_set1_epi32( K256[( (j)+(i) )] ); \
   T1 = _mm_add_epi32( H, mm128_add4_32( BSG2_1(E), CHs(E, F, G), \
@@ -104,6 +135,8 @@ do { \
   D  = _mm_add_epi32( D,  T1 ); \
   H  = _mm_add_epi32( T1, T2 ); \
 } while (0)
+*/
+
 
 static void
 sha256_4way_round( sha256_4way_context *ctx, __m128i *in, __m128i r[8] )

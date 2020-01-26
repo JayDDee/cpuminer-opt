@@ -30,9 +30,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
+#include "simd-utils.h"
 #include <algo/yespower/crypto/sph_types.h>
-#include <algo/yespower/utils/sysendian.h>
 #include "blake2b-yp.h"
 
 // Cyclic right rotation.
@@ -272,7 +271,7 @@ void pbkdf2_blake2b_yp(const uint8_t * passwd, size_t passwdlen, const uint8_t *
 {
     hmac_yp_ctx PShctx, hctx;
     size_t i;
-    uint8_t ivec[4];
+    uint32_t ivec;
     uint8_t U[32];
     uint8_t T[32];
     uint64_t j;
@@ -286,11 +285,11 @@ void pbkdf2_blake2b_yp(const uint8_t * passwd, size_t passwdlen, const uint8_t *
     /* Iterate through the blocks. */
     for (i = 0; i * 32 < dkLen; i++) {
         /* Generate INT(i + 1). */
-        be32enc(ivec, (uint32_t)(i + 1));
+        ivec = bswap_32( i+1 );
 
         /* Compute U_1 = PRF(P, S || INT(i)). */
         memcpy(&hctx, &PShctx, sizeof(hmac_yp_ctx));
-        hmac_blake2b_yp_update(&hctx, ivec, 4);
+        hmac_blake2b_yp_update(&hctx, &ivec, 4);
         hmac_blake2b_yp_final(&hctx, U);
 
         /* T_i = U_1 ... */

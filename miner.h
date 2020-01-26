@@ -317,7 +317,7 @@ bool   valid_hash( const void*, const void* );
 
 void   work_set_target( struct work* work, double diff );
 double target_to_diff( uint32_t* target );
-extern void diff_to_target(uint32_t *target, double diff);
+extern void diff_to_target( uint64_t *target, double diff );
 
 double hash_target_ratio( uint32_t* hash, uint32_t* target );
 void   work_set_target_ratio( struct work* work, const void *hash );
@@ -333,9 +333,9 @@ struct thr_info {
 //struct thr_info *thr_info;
 
 bool   submit_solution( struct work *work, const void *hash,
-                        const struct thr_info *thr );
+                        struct thr_info *thr );
 bool   submit_lane_solution( struct work *work, const void *hash,
-                             const struct thr_info *thr, const int lane );
+                             struct thr_info *thr, const int lane );
 
 
 //bool submit_work( struct thr_info *thr, const struct work *work_in );
@@ -363,7 +363,7 @@ float cpu_temp( int core );
 
 struct work {
 	uint32_t data[48] __attribute__ ((aligned (64)));
-	uint32_t target[8];
+	uint32_t target[8] __attribute__ ((aligned (64)));
 
 	double targetdiff;
 //	double shareratio;
@@ -376,6 +376,8 @@ struct work {
 	char *job_id;
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
+   bool sapling;
+
    // x16rt
    uint32_t merkleroothash[8];
    uint32_t witmerkleroothash[8];
@@ -387,8 +389,9 @@ struct work {
 } __attribute__ ((aligned (64)));
 
 struct stratum_job {
-	char *job_id;
 	unsigned char prevhash[32];
+   unsigned char final_sapling_hash[32];
+   char *job_id;
 	size_t coinbase_size;
 	unsigned char *coinbase;
 	unsigned char *xnonce2;
@@ -571,6 +574,7 @@ enum algos {
         ALGO_SHA256D,
         ALGO_SHA256Q,
         ALGO_SHA256T,
+        ALGO_SHA3D,
         ALGO_SHAVITE3,    
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
@@ -604,6 +608,7 @@ enum algos {
         ALGO_XEVAN,
         ALGO_YESCRYPT,
         ALGO_YESCRYPTR8,
+        ALGO_YESCRYPTR8G,
         ALGO_YESCRYPTR16,
         ALGO_YESCRYPTR32,
         ALGO_YESPOWER,
@@ -669,6 +674,7 @@ static const char* const algo_names[] = {
         "sha256d",
         "sha256q",
         "sha256t",
+        "sha3d",
         "shavite3",
         "skein",
         "skein2",
@@ -702,6 +708,7 @@ static const char* const algo_names[] = {
         "xevan",
         "yescrypt",
         "yescryptr8",
+        "yescryptr8g",
         "yescryptr16",
         "yescryptr32",
         "yespower",
@@ -834,7 +841,8 @@ Options:\n\
                           sha256d       Double SHA-256\n\
                           sha256q       Quad SHA-256, Pyrite (PYE)\n\
                           sha256t       Triple SHA-256, Onecoin (OC)\n\
-			                 shavite3      Shavite3\n\
+			                 sha3d         Double Keccak256 (BSHA3)\n\
+                          shavite3      Shavite3\n\
                           skein         Skein+Sha (Skeincoin)\n\
                           skein2        Double Skein (Woodcoin)\n\
                           skunk         Signatum (SIGT)\n\
@@ -867,6 +875,7 @@ Options:\n\
                           xevan         Bitsend (BSD)\n\
                           yescrypt      Globalboost-Y (BSTY)\n\
                           yescryptr8    BitZeny (ZNY)\n\
+                          yescryptr8g   Koto (KOTO)\n\
                           yescryptr16   Eli\n\
                           yescryptr32   WAVI\n\
                           yespower      Cryply\n\
