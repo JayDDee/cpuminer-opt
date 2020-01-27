@@ -12,5 +12,5 @@ before_script:
 
 script:
   - ./configure --with-crypto --with-curl
-  - make
+  - make CFLAGS="-fno-common"
   - ./cpuminer --cputest
