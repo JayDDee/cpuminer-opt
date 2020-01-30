@@ -71,9 +71,7 @@ void x17_hash(void *output, const void *input)
     sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-    init_groestl( &ctx.groestl, 64 );
-    update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                      (const char*)hash, 512 );
+    groestl512_full( &ctx.groestl, (char*)hash, (const char*)hash, 512 );
 #else
     sph_groestl512_init( &ctx.groestl );
     sph_groestl512( &ctx.groestl, hash, 64 );
@@ -92,14 +90,11 @@ void x17_hash(void *output, const void *input)
     sph_keccak512(&ctx.keccak, (const void*) hash, 64);
     sph_keccak512_close(&ctx.keccak, hash);
 
-    init_luffa( &ctx.luffa, 512 );
-    update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                  (const BitSequence*)hash, 64 );
+    luffa_full( &ctx.luffa, (BitSequence*)hash, 512,
+                            (const BitSequence*)hash, 64 );
 
     // 8 Cube
-    cubehashInit( &ctx.cube, 512, 16, 32 );
-    cubehashUpdateDigest( &ctx.cube, (byte*) hash,
-                                (const byte*)hash, 64 );
+    cubehash_full( &ctx.cube, (byte*) hash, 512, (const byte*)hash, 64 );
 
     // 9 Shavite
     sph_shavite512_init( &ctx.shavite );
@@ -107,15 +102,13 @@ void x17_hash(void *output, const void *input)
     sph_shavite512_close( &ctx.shavite, hash);
 
     // 10 Simd
-    init_sd( &ctx.simd, 512 );
-    update_final_sd( &ctx.simd, (BitSequence*)hash,
+    simd_full( &ctx.simd, (BitSequence*)hash,
                           (const BitSequence*)hash, 512 );
 
     //11---echo---
 #if defined(__AES__)
-    init_echo( &ctx.echo, 512 );
-    update_final_echo ( &ctx.echo, (BitSequence*)hash,
-                             (const BitSequence*)hash, 512 );
+    echo_full( &ctx.echo, (BitSequence *)hash, 512,
+                    (const BitSequence *)hash, 64 );
 #else
     sph_echo512_init( &ctx.echo );
     sph_echo512( &ctx.echo, hash, 64 );
@@ -161,27 +154,7 @@ int scanhash_x17( struct work *work, uint32_t max_nonce,
    uint32_t *ptarget = work->target;
    uint32_t n = pdata[19] - 1;
    const uint32_t first_nonce = pdata[19];
-   const uint32_t Htarg = ptarget[7];
    int thr_id = mythr->id;  // thr_id arg is deprecated
-
-   uint64_t htmax[] =
-   {
-	0,
-	0xF,
-	0xFF,
-	0xFFF,
-	0xFFFF,
-	0x10000000
-   };
-   uint32_t masks[] =
-   {
-	0xFFFFFFFF,
-	0xFFFFFFF0,
-	0xFFFFFF00,
-	0xFFFFF000,
-	0xFFFF0000,
-	0
-   };
 
    // we need bigendian data...
    casti_m128i( endiandata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
@@ -190,23 +163,14 @@ int scanhash_x17( struct work *work, uint32_t max_nonce,
    casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
    casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
-   for ( int m = 0; m < 6; m++ )
+   do
    {
-      if ( Htarg <= htmax[m] )
-	   {
-	      uint32_t mask = masks[m];
-	      do
-	      {
-	         pdata[19] = ++n;
-		      be32enc( &endiandata[19], n );
-		      x17_hash( hash64, endiandata );
-		      if ( !( hash64[7] & mask ) )
-            if ( fulltest( hash64, ptarget ) && !opt_benchmark )
-                submit_solution( work, hash64, mythr );
-	      } while ( n < max_nonce && !work_restart[thr_id].restart);
-	      break;
-	   }
-   }
+      pdata[19] = ++n;
+      be32enc( &endiandata[19], n );
+      x17_hash( hash64, endiandata );
+      if unlikely( valid_hash( hash64, ptarget ) && !opt_benchmark )
+             submit_solution( work, hash64, mythr );
+   } while ( n < max_nonce && !work_restart[thr_id].restart);
    *hashes_done = n - first_nonce + 1;
    pdata[19] = n;
    return 0;

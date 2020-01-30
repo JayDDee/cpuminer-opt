@@ -110,6 +110,7 @@ int opt_param_r = 0;
 int opt_pluck_n = 128;
 int opt_n_threads = 0;
 bool opt_reset_on_stale = false;
+bool opt_sapling = false;
 
 // Windows doesn't support 128 bit affinity mask.
 // Need compile time and run time test.
@@ -551,10 +552,11 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
       goto out;
    }
    version = (uint32_t) json_integer_value( tmp );
-   if ( version == 5 )
+
+   // yescryptr8g uses block version 5 and sapling.
+   if ( opt_sapling )
       work->sapling = true;
-   else if ( version > 4 )
-//   if ( (version & 0xffU) > BLOCK_VERSION_CURRENT )
+   if ( (version & 0xffU) > BLOCK_VERSION_CURRENT )
    {
       if ( version_reduce )
          version = ( version & ~0xffU ) | BLOCK_VERSION_CURRENT;
@@ -1057,7 +1059,7 @@ static int share_result( int result, struct work *null_work,
    }
 
    // calculate latency and share time.
-   if ( my_stats.submit_time.tv_sec )
+   if likely( my_stats.submit_time.tv_sec )
    {
       gettimeofday( &ack_time, NULL );
       timeval_subtract( &latency_tv, &ack_time, &my_stats.submit_time );
@@ -1075,7 +1077,8 @@ static int share_result( int result, struct work *null_work,
    if ( likely( result ) )
    {
       accepted_share_count++;
-      if ( ( my_stats.net_diff > 0. ) && ( my_stats.share_diff >= net_diff ) )
+      if unlikely( ( my_stats.net_diff > 0. )
+                && ( my_stats.share_diff >= net_diff ) )
       {
          solved = true;
          solved_block_count++;
@@ -1106,17 +1109,14 @@ static int share_result( int result, struct work *null_work,
    }
    else
    {
-      if ( stale )
-         stale_sum++;
-      else
-         reject_sum++;
+      if ( stale )  stale_sum++;
+      else          reject_sum++;
    }
    submit_sum++;
    latency_sum += latency;
 
    pthread_mutex_unlock( &stats_lock );
 
-   bcol = acol = scol = rcol = "\0";
    if ( likely( result ) )
    {
      if ( unlikely( solved ) )
@@ -1148,25 +1148,19 @@ static int share_result( int result, struct work *null_work,
      }
    } 
 
-   bcol = acol = scol = rcol = CL_WHT;
-
    if ( use_colors )
    {
+     bcol = acol = scol = rcol = CL_WHT;
      if ( likely( result ) )
      {
-       if ( unlikely( solved ) )
-       {
-         bcol = CL_MAG;
-         acol = CL_GRN;
-       }
-       else
-         acol = CL_GRN; 
+       acol = CL_GRN;  
+       if ( unlikely( solved ) ) bcol = CL_MAG;
      }        
-     else if ( stale )
-       scol = CL_YL2;
-     else
-       rcol = CL_RED;
+     else if ( stale ) scol = CL_YL2;
+     else              rcol = CL_RED;
    }
+   else
+      bcol = acol = scol = rcol = "\0";
 
    applog( LOG_NOTICE, "%d %s%s %s%s %s%s %s%s" CL_WHT ", %.3f sec (%dms)",
            my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
@@ -1180,31 +1174,29 @@ static int share_result( int result, struct work *null_work,
    if ( unlikely( reason && !result ) )
    {
       if ( !( opt_quiet || stale ) )
+      {
          applog( LOG_WARNING, "Reject reason: %s", reason );
       
-      if ( opt_debug )
-      {
          uint32_t str1[8], str2[8];
          char str3[65];
 
          // display share hash and target for troubleshooting
-         diff_to_target( (uint64_t*)str1, my_stats.share_diff );
+         diff_to_target( str1, my_stats.share_diff );
          for ( int i = 0; i < 8; i++ )
             be32enc( str2 + i, str1[7 - i] );
          bin2hex( str3, (unsigned char*)str2, 12 );
-         applog2( LOG_INFO, "Hash:   %s...", str3 );
+         applog2( LOG_INFO, "Share diff:  %g, Hash: %s...", my_stats.share_diff, str3 );
 
-         diff_to_target( (uint64_t*)str1, my_stats.target_diff );
+         diff_to_target( str1, my_stats.target_diff );
          for ( int i = 0; i < 8; i++ )
             be32enc( str2 + i, str1[7 - i] );
          bin2hex( str3, (unsigned char*)str2, 12 );
-         applog2( LOG_INFO, "Target: %s...", str3 );
+         applog2( LOG_INFO, "Target diff: %g, Targ: %s...", str3 );
       }
 
       if ( unlikely( opt_reset_on_stale && stale ) )
          stratum_need_reset = true;
    }
-
    return 1;
 }
 
@@ -1265,7 +1257,7 @@ bool std_le_submit_getwork_result( CURL *curl, struct work *work )
    for ( int i = 0; i < data_size / sizeof(uint32_t); i++ )
      le32enc( &work->data[i], work->data[i] );
    gw_str = abin2hex( (uchar*)work->data, data_size );
-   if ( unlikely(!gw_str) )
+   if ( unlikely( !gw_str ) )
    {
       applog(LOG_ERR, "submit_upstream_work OOM");
       return false;
@@ -1299,7 +1291,7 @@ bool std_be_submit_getwork_result( CURL *curl, struct work *work )
    for ( int i = 0; i < data_size / sizeof(uint32_t); i++ )
      be32enc( &work->data[i], work->data[i] );
    gw_str = abin2hex( (uchar*)work->data, data_size );
-   if ( unlikely(!gw_str) )
+   if ( unlikely( !gw_str ) )
    {
       applog(LOG_ERR, "submit_upstream_work OOM");
       return false;
@@ -1755,7 +1747,7 @@ static bool get_work(struct thr_info *thr, struct work *work)
 	struct workio_cmd *wc;
 	struct work *work_heap;
 
-	if (opt_benchmark)
+	if unlikely( opt_benchmark )
    {
 		uint32_t ts = (uint32_t) time(NULL);
 
@@ -2020,8 +2012,8 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
      work_free( work );
      work_copy( work, g_work );
      *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
-     if ( opt_randomize )
-       *nonceptr += ( (rand() *4 ) & UINT32_MAX ) / opt_n_threads;
+//     if ( opt_randomize )
+//       *nonceptr += ( (rand() *4 ) & UINT32_MAX ) / opt_n_threads;
      *end_nonce_ptr = ( 0xffffffffU / opt_n_threads ) * (thr_id+1) - 0x20;
    }
    else
@@ -2214,7 +2206,7 @@ static void *miner_thread( void *userdata )
 	       continue;
        }
        // adjust max_nonce to meet target scan time
-       if (have_stratum)
+       if ( have_stratum )
           max64 = LP_SCANTIME;
        else
           max64 = g_work_time + ( have_longpoll ? LP_SCANTIME : opt_scantime )
@@ -2294,7 +2286,7 @@ static void *miner_thread( void *userdata )
 
           // prevent stale work in solo
           // we can't submit twice a block!
-          if ( !have_stratum && !have_longpoll )
+          if unlikely( !have_stratum && !have_longpoll )
           {
              pthread_mutex_lock( &g_work_lock );
              // will force getwork
@@ -2598,20 +2590,17 @@ void std_build_block_header( struct work* g_work, uint32_t version,
 
    memset( g_work->data, 0, sizeof(g_work->data) );
    g_work->data[0] = version;
-   g_work->sapling = be32dec( &version ) == 5 ? true : false;
+   g_work->sapling = opt_sapling;
 
-   if ( have_stratum )
-      for ( i = 0; i < 8; i++ )
+   if ( have_stratum ) for ( i = 0; i < 8; i++ )
          g_work->data[ 1+i ] = le32dec( prevhash + i );
-   else
-      for (i = 0; i < 8; i++)
+   else for (i = 0; i < 8; i++)
          g_work->data[ 8-i ] = le32dec( prevhash + i );
-
    for ( i = 0; i < 8; i++ )
       g_work->data[ 9+i ] = be32dec( merkle_tree + i );
-
    g_work->data[ algo_gate.ntime_index ] = ntime;
    g_work->data[ algo_gate.nbits_index ] = nbits;
+
    if ( g_work->sapling )
    {
       if ( have_stratum )
@@ -2653,7 +2642,6 @@ void std_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 {
    pthread_mutex_lock( &sctx->work_lock );
-
    free( g_work->job_id );
    g_work->job_id = strdup( sctx->job.job_id );
    g_work->xnonce2_len = sctx->xnonce2_size;
@@ -2690,7 +2678,7 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    else if ( last_block_height != sctx->block_height )
       applog( LOG_BLUE, "New block %d, job %s",
                          sctx->block_height, g_work->job_id );
-   else
+   else if ( g_work->job_id ) 
       applog( LOG_BLUE,"New job %s", g_work->job_id );
 
    // Update data and calculate new estimates.
@@ -2710,6 +2698,7 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
          applog2( LOG_INFO, "%s: %s", algo_names[opt_algo], short_url );
          applog2( LOG_INFO, "Diff: Net %.3g, Stratum %.3g, Target %.3g",
                             net_diff, stratum_diff, last_targetdiff );
+
          if ( likely( hr > 0. ) )
          {
             char hr_units[4] = {0};
@@ -2719,26 +2708,25 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
             sprintf_et( block_ttf, net_diff * diff_to_hash / hr );
             sprintf_et( share_ttf, last_targetdiff * diff_to_hash / hr );
             scale_hash_for_display ( &hr, hr_units );
- 
             applog2( LOG_INFO, "TTF @ %.2f %sh/s: block %s, share %s",
                                hr, hr_units, block_ttf, share_ttf );
-            if ( !multipool && net_diff > 0. )
+
+            if ( !multipool && last_block_height > session_first_block )
             {
                struct timeval now, et;
                gettimeofday( &now, NULL );
                timeval_subtract( &et, &now, &session_start );
-               double net_hr = net_diff * diff_to_hash;
-               char net_ttf[32];
+               uint64_t net_ttf =
+                    ( last_block_height - session_first_block ) == 0 ? 0
+                    : et.tv_sec / ( last_block_height - session_first_block );
+               double net_hr = net_diff * diff_to_hash / net_ttf;
+               char net_ttf_str[32];
                char net_hr_units[4] = {0};
 
-               sprintf_et( net_ttf,
-                   ( last_block_height - session_first_block ) == 0 ? 0 :
-                     et.tv_sec / ( last_block_height - session_first_block ) );
-
+               sprintf_et( net_ttf_str, net_ttf );
                scale_hash_for_display ( &net_hr, net_hr_units );
-
-               applog2( LOG_INFO, "TTF @ %.2f %sh/s: %s",
-                                  net_hr, net_hr_units, net_ttf );
+               applog2( LOG_INFO, "Net TTF @ %.2f %sh/s: %s",
+                                  net_hr, net_hr_units, net_ttf_str );
             }
          }  // hr > 0
       } // !quiet

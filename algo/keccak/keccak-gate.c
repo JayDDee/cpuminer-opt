@@ -74,7 +74,7 @@ void sha3d_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 bool register_sha3d_algo( algo_gate_t* gate )
 {
   hard_coded_eb = 6;
-  opt_extranonce = false;
+//  opt_extranonce = false;
   gate->optimizations = AVX2_OPT | AVX512_OPT;
   gate->gen_merkle_root = (void*)&sha3d_gen_merkle_root;
 #if defined (KECCAK_8WAY)

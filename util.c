@@ -1038,7 +1038,7 @@ bool fulltest( const uint32_t *hash, const uint32_t *target )
 	return rc;
 }
 
-void diff_to_target(uint64_t *target, double diff)
+void diff_to_target(uint32_t *target, double diff)
 {
 	uint64_t m;
 	int k;
@@ -1055,7 +1055,7 @@ void diff_to_target(uint64_t *target, double diff)
 	else
    {
 		memset( target, 0, 32 );
-      target[k] = m;
+      ((uint64_t*)target)[k] = m;
 //		target[k] = (uint32_t)m;
 //		target[k + 1] = (uint32_t)(m >> 32);
 	}
@@ -1064,7 +1064,7 @@ void diff_to_target(uint64_t *target, double diff)
 // Only used by stratum pools
 void work_set_target(struct work* work, double diff)
 {
-	diff_to_target( (uint64_t*)work->target, diff );
+	diff_to_target( work->target, diff );
 	work->targetdiff = diff;
 }
 
@@ -1574,8 +1574,9 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 		goto out;
 
 	if (!socket_full(sctx->sock, 3)) {
-		if (opt_debug)
-			applog(LOG_DEBUG, "stratum extranonce subscribe timed out");
+         applog(LOG_WARNING, "stratum extranonce subscribe timed out");
+//		if (opt_debug)
+//			applog(LOG_DEBUG, "stratum extranonce subscribe timed out");
 		goto out;
 	}
 
@@ -1590,7 +1591,7 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 				if (!stratum_handle_method(sctx, sret))
 					applog(LOG_WARNING, "Stratum answer id is not correct!");
 			}
-//			res_val = json_object_get(extra, "result");
+			res_val = json_object_get(extra, "result");
 //			if (opt_debug && (!res_val || json_is_false(res_val)))
 //				applog(LOG_DEBUG, "extranonce subscribe not supported");
 			json_decref(extra);
@@ -1898,13 +1899,13 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	}
 
    hex2bin( sctx->job.version, version, 4 );
-   int ver = be32dec( sctx->job.version );
-   if ( ver == 5 )
+
+   if ( opt_sapling )
    {
       finalsaplinghash = json_string_value( json_array_get( params, 9 ) );
       if ( !finalsaplinghash || strlen(finalsaplinghash) != 64 )
       {
-         applog( LOG_ERR, "Stratum notify: invalid version 5 parameters" );
+         applog( LOG_ERR, "Stratum notify: invalid sapling parameters" );
          goto out;
       }
    }
@@ -1957,7 +1958,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	hex2bin( sctx->job.prevhash, prevhash, 32 );
    if ( has_claim ) hex2bin( sctx->job.extra, extradata, 32 );
    if ( has_roots ) hex2bin( sctx->job.extra, extradata, 64 );
-   if ( ver == 5 )
+   if ( opt_sapling )
       hex2bin( sctx->job.final_sapling_hash, finalsaplinghash, 32 );
 
    if ( is_veil )

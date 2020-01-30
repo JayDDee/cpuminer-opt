@@ -76,10 +76,13 @@ union _hex_context_overlay
 };
 typedef union _hex_context_overlay hex_context_overlay;
 
+static __thread hex_context_overlay hex_ctx;
+
 void hex_hash( void* output, const void* input )
 {
    uint32_t _ALIGN(128) hash[16];
    hex_context_overlay ctx;
+   memcpy( &ctx, &hex_ctx, sizeof(ctx) );
    void *in = (void*) input;
    int size = 80;
 /*
@@ -109,23 +112,21 @@ void hex_hash( void* output, const void* input )
          break;
          case GROESTL:
 #if defined(__AES__)
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                      (const char*)in, size<<3 );
+            groestl512_full( &ctx.groestl, (char*)hash, (char*)in, size<<3 );
 #else
             sph_groestl512_init( &ctx.groestl );
             sph_groestl512( &ctx.groestl, in, size );
             sph_groestl512_close(&ctx.groestl, hash);
 #endif
          break;
-         case SKEIN:
-            sph_skein512_init( &ctx.skein );
-            sph_skein512( &ctx.skein, in, size );
-            sph_skein512_close( &ctx.skein, hash );
-         break;
          case JH:
-            sph_jh512_init( &ctx.jh );
-            sph_jh512(&ctx.jh, in, size );
+            if ( i == 0 )
+               sph_jh512(&ctx.jh, in+64, 16 );
+            else
+            {   
+               sph_jh512_init( &ctx.jh );
+               sph_jh512(&ctx.jh, in, size );
+            }
             sph_jh512_close(&ctx.jh, hash );
          break;
          case KECCAK:
@@ -133,15 +134,37 @@ void hex_hash( void* output, const void* input )
             sph_keccak512( &ctx.keccak, in, size );
             sph_keccak512_close( &ctx.keccak, hash );
          break;
-         case LUFFA:
-            init_luffa( &ctx.luffa, 512 );
-            update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                    (const BitSequence*)in, size );
+         case SKEIN:
+            if ( i == 0 )
+               sph_skein512(&ctx.skein, in+64, 16 );
+            else
+            {
+               sph_skein512_init( &ctx.skein );
+               sph_skein512( &ctx.skein, in, size );
+            }
+            sph_skein512_close( &ctx.skein, hash );
          break;
+         case LUFFA:
+            if ( i == 0 )
+            update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+                                          (const BitSequence*)in+64, 16 );
+            else
+            {
+               init_luffa( &ctx.luffa, 512 );
+               update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+                                             (const BitSequence*)in, size );
+            }
+            break;
          case CUBEHASH:
-            cubehashInit( &ctx.cube, 512, 16, 32 );
-            cubehashUpdateDigest( &ctx.cube, (byte*) hash,
-                                  (const byte*)in, size );
+            if ( i == 0 )
+               cubehashUpdateDigest( &ctx.cube, (byte*)hash,
+                                          (const byte*)in+64, 16 );
+            else
+            {
+               cubehashInit( &ctx.cube, 512, 16, 32 );
+               cubehashUpdateDigest( &ctx.cube, (byte*)hash,
+                                          (const byte*)in, size );
+            }
          break;
          case SHAVITE:
             sph_shavite512_init( &ctx.shavite );
@@ -155,9 +178,8 @@ void hex_hash( void* output, const void* input )
          break;
          case ECHO:
 #if defined(__AES__)
-             init_echo( &ctx.echo, 512 );
-             update_final_echo ( &ctx.echo, (BitSequence *)hash,
-                                (const BitSequence*)in, size<<3 );
+            echo_full( &ctx.echo, (BitSequence *)hash, 512,
+                              (const BitSequence *)in, size );
 #else
              sph_echo512_init( &ctx.echo );
              sph_echo512( &ctx.echo, in, size );
@@ -165,9 +187,14 @@ void hex_hash( void* output, const void* input )
 #endif
          break;
          case HAMSI:
-             sph_hamsi512_init( &ctx.hamsi );
-             sph_hamsi512( &ctx.hamsi, in, size );
-             sph_hamsi512_close( &ctx.hamsi, hash );
+            if ( i == 0 ) 
+               sph_hamsi512( &ctx.hamsi, in+64, 16 );
+            else
+            {
+               sph_hamsi512_init( &ctx.hamsi );
+               sph_hamsi512( &ctx.hamsi, in, size );
+            }
+            sph_hamsi512_close( &ctx.hamsi, hash );
          break;
          case FUGUE:
              sph_fugue512_init( &ctx.fugue );
@@ -175,14 +202,24 @@ void hex_hash( void* output, const void* input )
              sph_fugue512_close( &ctx.fugue, hash );
          break;
          case SHABAL:
-             sph_shabal512_init( &ctx.shabal );
-             sph_shabal512( &ctx.shabal, in, size );
-             sph_shabal512_close( &ctx.shabal, hash );
+            if ( i == 0 ) 
+               sph_shabal512( &ctx.shabal, in+64, 16 );
+            else
+            {
+               sph_shabal512_init( &ctx.shabal );
+               sph_shabal512( &ctx.shabal, in, size );
+            }
+            sph_shabal512_close( &ctx.shabal, hash );
          break;
          case WHIRLPOOL:
-             sph_whirlpool_init( &ctx.whirlpool );
-             sph_whirlpool( &ctx.whirlpool, in, size );
-             sph_whirlpool_close( &ctx.whirlpool, hash );
+            if ( i == 0 ) 
+                sph_whirlpool( &ctx.whirlpool, in+64, 16 );
+            else
+            {
+                sph_whirlpool_init( &ctx.whirlpool );
+                sph_whirlpool( &ctx.whirlpool, in, size );
+            }
+            sph_whirlpool_close( &ctx.whirlpool, hash );
          break;
          case SHA_512:
              SHA512_Init( &ctx.sha512 );
@@ -201,47 +238,77 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
                   uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t _ALIGN(128) hash32[8];
-   uint32_t _ALIGN(128) endiandata[20];
+   uint32_t _ALIGN(128) edata[20];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
-   const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   const uint32_t last_nonce = max_nonce - 4;
+   const int thr_id = mythr->id;
    uint32_t nonce = first_nonce;
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
+   const bool bench = opt_benchmark;
+   if ( bench )  ptarget[7] = 0x0cff;
 
-   casti_m128i( endiandata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( endiandata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( endiandata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
+   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
+   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
+   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
+   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
+   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
    uint32_t ntime = swab32(pdata[17]);
    if ( s_ntime != ntime )
    {
-      hex_getAlgoString( (const uint32_t*) (&endiandata[1]), hashOrder );
+      hex_getAlgoString( (const uint32_t*) (&edata[1]), hashOrder );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );
+              applog( LOG_INFO, "hash order %s (%08x)", hashOrder, ntime );
    }
 
-   if ( opt_benchmark )
-      ptarget[7] = 0x0cff;
-
+   // Do midstate prehash on hash functions with block size <= 64 bytes.
+   const char elem = hashOrder[0];
+   const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
+   switch ( algo )
+   {
+      case JH:
+         sph_jh512_init( &hex_ctx.jh );
+         sph_jh512( &hex_ctx.jh, edata, 64 );
+      break;
+      case SKEIN:
+         sph_skein512_init( &hex_ctx.skein );
+         sph_skein512( &hex_ctx.skein, edata, 64 );
+      break;
+      case CUBEHASH:
+         cubehashInit( &hex_ctx.cube, 512, 16, 32 );
+         cubehashUpdate( &hex_ctx.cube, (const byte*)edata, 64 );
+      break;
+      case HAMSI:
+         sph_hamsi512_init( &hex_ctx.hamsi );
+         sph_hamsi512( &hex_ctx.hamsi, edata, 64 );
+      break;
+      case SHABAL:
+         sph_shabal512_init( &hex_ctx.shabal );
+         sph_shabal512( &hex_ctx.shabal, edata, 64 );
+      break;
+      case WHIRLPOOL:
+         sph_whirlpool_init( &hex_ctx.whirlpool );
+         sph_whirlpool( &hex_ctx.whirlpool, edata, 64 );
+      break;
+   }
+   
    do
    {
-      be32enc( &endiandata[19], nonce );
-      hex_hash( hash32, endiandata );
+      edata[19] = nonce;
+      hex_hash( hash32, edata );
 
-      if ( hash32[7] <= Htarg )
-      if (fulltest( hash32, ptarget ) && !opt_benchmark )
+      if ( unlikely( valid_hash( hash32, ptarget ) && !bench ) )
       {
-         pdata[19] = nonce;
+         be32enc( &pdata[19], nonce );
          submit_solution( work, hash32, mythr );
       }
       nonce++;
-   } while ( nonce < max_nonce && !(*restart) );
+   } while ( nonce < last_nonce && !(*restart) );
    pdata[19] = nonce;
-   *hashes_done = pdata[19] - first_nonce + 1;
+   *hashes_done = pdata[19] - first_nonce;
    return 0;
 }
+

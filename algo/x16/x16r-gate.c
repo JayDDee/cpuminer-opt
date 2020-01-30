@@ -1,5 +1,7 @@
 #include "x16r-gate.h"
 
+void (*x16_r_s_getAlgoString) ( const uint8_t*, char* ) = NULL;
+
 void x16r_getAlgoString( const uint8_t* prevblock, char *output )
 {
    char *sptr = output;

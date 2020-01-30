@@ -11,18 +11,6 @@
 #include <wmmintrin.h>
 #include "hash-groestl256.h"
 
-/* global constants  */
-__m128i ROUND_CONST_Lx;
-__m128i ROUND_CONST_L0[ROUNDS512];
-__m128i ROUND_CONST_L7[ROUNDS512];
-//__m128i ROUND_CONST_P[ROUNDS1024];
-//__m128i ROUND_CONST_Q[ROUNDS1024];
-__m128i TRANSP_MASK;
-__m128i SUBSH_MASK[8];
-__m128i ALL_1B;
-__m128i ALL_FF;
-
-
 #define tos(a)    #a
 #define tostr(a)  tos(a)
 
@@ -113,7 +101,7 @@ __m128i ALL_FF;
   \
   /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
   /* compute w_i : add y_{i+4} */\
-  b1 = ALL_1B;\
+  b1 = m128_const1_64( 0x1b1b1b1b1b1b1b1b );\
   MUL2(a0, b0, b1);\
   a0 = _mm_xor_si128(a0, TEMP0);\
   MUL2(a1, b0, b1);\
@@ -153,24 +141,35 @@ __m128i ALL_FF;
   b1 = _mm_xor_si128(b1, a4);\
 }/*MixBytes*/
 
-#define SET_CONSTANTS(){\
-   ALL_1B = _mm_set_epi32(0x1b1b1b1b, 0x1b1b1b1b, 0x1b1b1b1b, 0x1b1b1b1b);\
-  TRANSP_MASK = _mm_set_epi32(0x0f070b03, 0x0e060a02, 0x0d050901, 0x0c040800);\
-  SUBSH_MASK[0] = _mm_set_epi32(0x03060a0d, 0x08020509, 0x0c0f0104, 0x070b0e00);\
-  SUBSH_MASK[1] = _mm_set_epi32(0x04070c0f, 0x0a03060b, 0x0e090205, 0x000d0801);\
-  SUBSH_MASK[2] = _mm_set_epi32(0x05000e09, 0x0c04070d, 0x080b0306, 0x010f0a02);\
-  SUBSH_MASK[3] = _mm_set_epi32(0x0601080b, 0x0e05000f, 0x0a0d0407, 0x02090c03);\
-  SUBSH_MASK[4] = _mm_set_epi32(0x0702090c, 0x0f060108, 0x0b0e0500, 0x030a0d04);\
-  SUBSH_MASK[5] = _mm_set_epi32(0x00030b0e, 0x0907020a, 0x0d080601, 0x040c0f05);\
-  SUBSH_MASK[6] = _mm_set_epi32(0x01040d08, 0x0b00030c, 0x0f0a0702, 0x050e0906);\
-  SUBSH_MASK[7] = _mm_set_epi32(0x02050f0a, 0x0d01040e, 0x090c0003, 0x06080b07);\
-  for(i = 0; i < ROUNDS512; i++)\
-  {\
-    ROUND_CONST_L0[i] = _mm_set_epi32(0xffffffff, 0xffffffff, 0x70605040 ^ (i * 0x01010101), 0x30201000 ^ (i * 0x01010101));\
-    ROUND_CONST_L7[i] = _mm_set_epi32(0x8f9fafbf ^ (i * 0x01010101), 0xcfdfefff ^ (i * 0x01010101), 0x00000000, 0x00000000);\
-  }\
-  ROUND_CONST_Lx = _mm_set_epi32(0xffffffff, 0xffffffff, 0x00000000, 0x00000000);\
-}while(0); \
+
+static const uint64_t round_const_l0[] __attribute__ ((aligned (64))) =
+{
+  0x7060504030201000, 0xffffffffffffffff,
+  0x7161514131211101, 0xffffffffffffffff,
+  0x7262524232221202, 0xffffffffffffffff,
+  0x7363534333231303, 0xffffffffffffffff,
+  0x7464544434241404, 0xffffffffffffffff,
+  0x7565554535251505, 0xffffffffffffffff,
+  0x7666564636261606, 0xffffffffffffffff,
+  0x7767574737271707, 0xffffffffffffffff,
+  0x7868584838281808, 0xffffffffffffffff,
+  0x7969594939291909, 0xffffffffffffffff
+};
+
+static const uint64_t round_const_l7[] __attribute__ ((aligned (64))) =
+{
+0x0000000000000000, 0x8f9fafbfcfdfefff,
+0x0000000000000000, 0x8e9eaebecedeeefe,
+0x0000000000000000, 0x8d9dadbdcdddedfd,
+0x0000000000000000, 0x8c9cacbcccdcecfc,
+0x0000000000000000, 0x8b9babbbcbdbebfb,
+0x0000000000000000, 0x8a9aaabacadaeafa,
+0x0000000000000000, 0x8999a9b9c9d9e9f9,
+0x0000000000000000, 0x8898a8b8c8d8e8f8,
+0x0000000000000000, 0x8797a7b7c7d7e7f7,
+0x0000000000000000, 0x8696a6b6c6d6e6f6
+};
+
 
 /* one round
  * i = round number
@@ -179,34 +178,42 @@ __m128i ALL_FF;
  */
 #define ROUND(i, a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* AddRoundConstant */\
-  b1 = ROUND_CONST_Lx;\
-  a0 = _mm_xor_si128(a0, (ROUND_CONST_L0[i]));\
-  a1 = _mm_xor_si128(a1, b1);\
-  a2 = _mm_xor_si128(a2, b1);\
-  a3 = _mm_xor_si128(a3, b1);\
-  a4 = _mm_xor_si128(a4, b1);\
-  a5 = _mm_xor_si128(a5, b1);\
-  a6 = _mm_xor_si128(a6, b1);\
-  a7 = _mm_xor_si128(a7, (ROUND_CONST_L7[i]));\
+  b1 = m128_const_64( 0xffffffffffffffff, 0 ); \
+  a0 = _mm_xor_si128( a0, casti_m128i( round_const_l0, i ) ); \
+  a1 = _mm_xor_si128( a1, b1 ); \
+  a2 = _mm_xor_si128( a2, b1 ); \
+  a3 = _mm_xor_si128( a3, b1 ); \
+  a4 = _mm_xor_si128( a4, b1 ); \
+  a5 = _mm_xor_si128( a5, b1 ); \
+  a6 = _mm_xor_si128( a6, b1 ); \
+  a7 = _mm_xor_si128( a7, casti_m128i( round_const_l7, i ) ); \
   \
   /* ShiftBytes + SubBytes (interleaved) */\
   b0 = _mm_xor_si128(b0,  b0);\
-  a0 = _mm_shuffle_epi8(a0, (SUBSH_MASK[0]));\
-  a0 = _mm_aesenclast_si128(a0, b0);\
-  a1 = _mm_shuffle_epi8(a1, (SUBSH_MASK[1]));\
-  a1 = _mm_aesenclast_si128(a1, b0);\
-  a2 = _mm_shuffle_epi8(a2, (SUBSH_MASK[2]));\
-  a2 = _mm_aesenclast_si128(a2, b0);\
-  a3 = _mm_shuffle_epi8(a3, (SUBSH_MASK[3]));\
-  a3 = _mm_aesenclast_si128(a3, b0);\
-  a4 = _mm_shuffle_epi8(a4, (SUBSH_MASK[4]));\
-  a4 = _mm_aesenclast_si128(a4, b0);\
-  a5 = _mm_shuffle_epi8(a5, (SUBSH_MASK[5]));\
-  a5 = _mm_aesenclast_si128(a5, b0);\
-  a6 = _mm_shuffle_epi8(a6, (SUBSH_MASK[6]));\
-  a6 = _mm_aesenclast_si128(a6, b0);\
-  a7 = _mm_shuffle_epi8(a7, (SUBSH_MASK[7]));\
-  a7 = _mm_aesenclast_si128(a7, b0);\
+  a0 = _mm_shuffle_epi8( a0, m128_const_64( 0x03060a0d08020509, \
+                                            0x0c0f0104070b0e00 ) ); \
+  a0 = _mm_aesenclast_si128( a0, b0 );\
+  a1 = _mm_shuffle_epi8( a1, m128_const_64( 0x04070c0f0a03060b, \
+                                            0x0e090205000d0801 ) ); \
+  a1 = _mm_aesenclast_si128( a1, b0 );\
+  a2 = _mm_shuffle_epi8( a2, m128_const_64( 0x05000e090c04070d, \
+                                            0x080b0306010f0a02 ) ); \
+  a2 = _mm_aesenclast_si128( a2, b0 );\
+  a3 = _mm_shuffle_epi8( a3, m128_const_64( 0x0601080b0e05000f, \
+                                            0x0a0d040702090c03 ) ); \
+  a3 = _mm_aesenclast_si128( a3, b0 );\
+  a4 = _mm_shuffle_epi8( a4, m128_const_64( 0x0702090c0f060108, \
+                                            0x0b0e0500030a0d04 ) ); \
+  a4 = _mm_aesenclast_si128( a4, b0 );\
+  a5 = _mm_shuffle_epi8( a5, m128_const_64( 0x00030b0e0907020a, \
+                                            0x0d080601040c0f05 ) ); \
+  a5 = _mm_aesenclast_si128( a5, b0 );\
+  a6 = _mm_shuffle_epi8( a6, m128_const_64( 0x01040d080b00030c, \
+                                            0x0f0a0702050e0906 ) ); \
+  a6 = _mm_aesenclast_si128( a6, b0 );\
+  a7 = _mm_shuffle_epi8( a7, m128_const_64( 0x02050f0a0d01040e, \
+                                            0x090c000306080b07 ) ); \
+  a7 = _mm_aesenclast_si128( a7, b0 );\
   \
   /* MixBytes */\
   MixBytes(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7);\
@@ -235,7 +242,7 @@ __m128i ALL_FF;
  * clobbers: t0
  */
 #define Matrix_Transpose_A(i0, i1, i2, i3, o1, o2, o3, t0){\
-  t0 = TRANSP_MASK;\
+  t0 = m128_const_64( 0x0f070b030e060a02, 0x0d0509010c040800 ); \
   \
   i0 = _mm_shuffle_epi8(i0, t0);\
   i1 = _mm_shuffle_epi8(i1, t0);\

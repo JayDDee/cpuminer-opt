@@ -17,8 +17,6 @@ static __thread jh512_8way_context ctx_mid;
 void tribus_hash_8way( void *state, const void *input )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
-     uint64_t vhashA[4*8] __attribute__ ((aligned (64)));
-     uint64_t vhashB[4*8] __attribute__ ((aligned (64)));
      uint64_t hash0[8] __attribute__ ((aligned (64)));
      uint64_t hash1[8] __attribute__ ((aligned (64)));
      uint64_t hash2[8] __attribute__ ((aligned (64)));
@@ -44,6 +42,8 @@ void tribus_hash_8way( void *state, const void *input )
      keccak512_8way_close( &ctx_keccak, vhash );
 
 #if defined(__VAES__)
+     uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
+     uint64_t vhashB[8*4] __attribute__ ((aligned (64)));
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
      

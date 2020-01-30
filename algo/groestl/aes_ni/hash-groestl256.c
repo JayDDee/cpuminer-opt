@@ -13,41 +13,7 @@
 
 #ifdef __AES__
 
-#include "groestl-version.h"
-
-#ifdef TASM
-  #ifdef VAES
-    #include "groestl256-asm-aes.h"
-  #else
-    #ifdef VAVX
-      #include "groestl256-asm-avx.h"
-    #else
-      #ifdef VVPERM
-        #include "groestl256-asm-vperm.h"
-      #else
-        #error NO VERSION SPECIFIED (-DV[AES/AVX/VVPERM])
-      #endif
-    #endif
-  #endif
-#else
-  #ifdef TINTR
-    #ifdef VAES
-      #include "groestl256-intr-aes.h"
-    #else
-      #ifdef VAVX
-        #include "groestl256-intr-avx.h"
-      #else
-        #ifdef VVPERM
-          #include "groestl256-intr-vperm.h"
-        #else
-          #error NO VERSION SPECIFIED (-DV[AES/AVX/VVPERM])
-        #endif
-      #endif
-    #endif
-  #else
-    #error NO TYPE SPECIFIED (-DT[ASM/INTR])
-  #endif
-#endif
+#include "groestl256-intr-aes.h"
 
 /* initialise context */
 HashReturn_gr init_groestl256( hashState_groestl256* ctx, int hashlen )
@@ -55,7 +21,6 @@ HashReturn_gr init_groestl256( hashState_groestl256* ctx, int hashlen )
   int i;
 
   ctx->hashlen = hashlen;
-  SET_CONSTANTS();
 
   if (ctx->chaining == NULL || ctx->buffer == NULL)
     return FAIL_GR;

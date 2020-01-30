@@ -317,7 +317,7 @@ bool   valid_hash( const void*, const void* );
 
 void   work_set_target( struct work* work, double diff );
 double target_to_diff( uint32_t* target );
-extern void diff_to_target( uint64_t *target, double diff );
+extern void diff_to_target( uint32_t *target, double diff );
 
 double hash_target_ratio( uint32_t* hash, uint32_t* target );
 void   work_set_target_ratio( struct work* work, const void *hash );
@@ -779,7 +779,7 @@ extern pthread_mutex_t rpc2_job_lock;
 extern pthread_mutex_t rpc2_login_lock;
 extern pthread_mutex_t applog_lock;
 extern pthread_mutex_t stats_lock;
-
+extern bool opt_sapling;
 
 static char const usage[] = "\
 Usage: " PACKAGE_NAME " [OPTIONS]\n\

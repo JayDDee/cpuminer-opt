@@ -65,5 +65,6 @@ HashReturn final_luffa( hashState_luffa *state, BitSequence *hashval );
 HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
                                    const BitSequence* data, size_t inlen );
 
-
+int luffa_full( hashState_luffa *state, BitSequence* output, int hashbitlen,
+                                   const BitSequence* data, size_t inlen );
 

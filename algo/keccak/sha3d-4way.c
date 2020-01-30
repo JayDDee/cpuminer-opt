@@ -46,7 +46,7 @@ int scanhash_sha3d_8way( struct work *work, uint32_t max_nonce,
       sha3d_hash_8way( hash, vdata );
 
       for ( int lane = 0; lane < 8; lane++ )
-      if unlikely( hash7[ lane<<1 ] <= Htarg && !bench ) 
+      if ( unlikely( hash7[ lane<<1 ] <= Htarg && !bench ) )
       {
           extr_lane_8x64( lane_hash, hash, lane, 256 );
           if ( valid_hash( lane_hash, ptarget ) )
@@ -59,8 +59,8 @@ int scanhash_sha3d_8way( struct work *work, uint32_t max_nonce,
                                   m512_const1_64( 0x0000000800000000 ) );
       n += 8;
 
-   } while ( (n < last_nonce) && !work_restart[thr_id].restart);
-
+   } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }
@@ -105,7 +105,7 @@ int scanhash_sha3d_4way( struct work *work, uint32_t max_nonce,
       sha3d_hash_4way( hash, vdata );
 
       for ( int lane = 0; lane < 4; lane++ )
-      if unlikely( hash7[ lane<<1 ] <= Htarg && !bench )
+      if ( unlikely( hash7[ lane<<1 ] <= Htarg && !bench ) )
       {
           extr_lane_4x64( lane_hash, hash, lane, 256 );
           if ( valid_hash( lane_hash, ptarget ) )
@@ -117,8 +117,8 @@ int scanhash_sha3d_4way( struct work *work, uint32_t max_nonce,
       *noncev = _mm256_add_epi32( *noncev,
                                   m256_const1_64( 0x0000000400000000 ) );
       n += 4;
-   } while ( (n < last_nonce) && !work_restart[thr_id].restart);
-
+   } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }

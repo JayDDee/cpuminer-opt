@@ -344,17 +344,12 @@ HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
 
     // 16 byte partial block exists for 80 byte len
     if ( state->rembytes  )
-    {
-      // padding of partial block
-      rnd512( state, _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ),
+       // padding of partial block
+       rnd512( state, m128_const_64( 0, 0x80000000 ),
                       mm128_bswap_32( cast_m128i( data ) ) );
-    }
     else
-    {
-      // empty pad block
-     rnd512( state, _mm_setzero_si128(), 
-                       _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
-    }
+       // empty pad block
+       rnd512( state, m128_zero, m128_const_64( 0, 0x80000000 ) );
 
     finalization512( state, (uint32*) output );
     if ( state->hashbitlen > 512 )
@@ -362,6 +357,56 @@ HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
 
     return SUCCESS;
 }
+
+
+int luffa_full( hashState_luffa *state, BitSequence* output, int hashbitlen,
+              const BitSequence* data, size_t inlen )
+{
+// Optimized for integrals of 16 bytes, good for 64 and 80 byte len
+    int i;
+    state->hashbitlen = hashbitlen;
+    /* set the lower 32 bits to '1' */
+    MASK= _mm_set_epi32(0x00000000, 0x00000000, 0x00000000, 0xffffffff);
+    /* set all bits to '1' */
+    ALLONE = _mm_set_epi32(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+    /* set the 32-bit round constant values to the 128-bit data field */
+    for ( i=0; i<32; i++ )
+        CNS128[i] = _mm_load_si128( (__m128i*)&CNS_INIT[i*4] );
+    for ( i=0; i<10; i++ )
+    state->chainv[i] = _mm_load_si128( (__m128i*)&IV[i*4] );
+    memset(state->buffer, 0, sizeof state->buffer );
+
+    // update
+
+    int blocks = (int)( inlen / 32 );
+    state->rembytes = inlen % 32;
+
+    // full blocks
+    for ( i = 0; i < blocks; i++ )
+    {
+       rnd512( state, mm128_bswap_32( casti_m128i( data, 1 ) ),
+                      mm128_bswap_32( casti_m128i( data, 0 ) ) );
+       data += MSG_BLOCK_BYTE_LEN;
+    }
+
+    // final
+
+    // 16 byte partial block exists for 80 byte len
+    if ( state->rembytes  )
+       // padding of partial block
+       rnd512( state, m128_const_64( 0, 0x80000000 ),
+                      mm128_bswap_32( cast_m128i( data ) ) );
+    else
+       // empty pad block
+       rnd512( state, m128_zero, m128_const_64( 0, 0x80000000 ) );
+
+    finalization512( state, (uint32*) output );
+    if ( state->hashbitlen > 512 )
+        finalization512( state, (uint32*)( output+128 ) );
+
+    return SUCCESS;
+}
+
 
 /***************************************************/
 /* Round function         */

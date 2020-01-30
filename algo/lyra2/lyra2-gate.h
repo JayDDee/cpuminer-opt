@@ -189,7 +189,7 @@ bool init_allium_ctx();
 //  #define PHI2_4WAY
 #endif
 
-bool phi2_has_roots;
+extern bool phi2_has_roots;
 
 bool register_phi2_algo( algo_gate_t* gate );
 #if defined(PHI2_4WAY)

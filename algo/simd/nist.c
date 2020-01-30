@@ -360,18 +360,116 @@ HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
   return SUCCESS;
 }
 
+int simd_full( hashState_sd *state, BitSequence *hashval,
+                            const BitSequence *data, DataLength databitlen )
+{
+ 
 
-/*HashReturn Hash(int hashbitlen, const BitSequence *data, DataLength databitlen,
-                BitSequence *hashval) {
-  hashState_sd s;
-  HashReturn r;
-  r = Init(&s, hashbitlen);
-  if (r != SUCCESS)
-    return r;
-  r = Update(&s, data, databitlen);
-  if (r != SUCCESS)
-    return r;
-  r = Final(&s, hashval);
-  return r;
+  InitIV( state, 512, IV_512 );
+ 
+  int current, i;
+  unsigned int bs = state->blocksize;
+  static int align = -1;
+  BitSequence out[64];
+  int isshort = 1;
+  u64 l;
+
+  if (align == -1)
+    align = RequiredAlignment();
+
+#ifdef HAS_64
+  current = state->count & (bs - 1);
+#else
+  current = state->count_low & (bs - 1);
+#endif
+
+  if ( current & 7 )
+  {
+    // The number of hashed bits is not a multiple of 8.
+    // Very painfull to implement and not required by the NIST API.
+    return FAIL;
+  }
+
+  while ( databitlen > 0 )
+  {
+    if ( IS_ALIGNED(data,align) && current == 0 && databitlen >= bs )
+    {
+       // We can hash the data directly from the input buffer.
+      SIMD_Compress(state, data, 0);
+      databitlen -= bs;
+      data += bs/8;
+      IncreaseCounter(state, bs);
+    }
+    else
+    {
+       // Copy a chunk of data to the buffer
+      unsigned int len = bs - current;
+      if ( databitlen < len )
+      {
+        memcpy( state->buffer+current/8, data, (databitlen+7)/8 );
+        IncreaseCounter( state, databitlen );
+        break;
+      }
+      else
+      {
+        memcpy( state->buffer+current/8, data, len/8 );
+        IncreaseCounter( state,len );
+        databitlen -= len;
+        data += len/8;
+        current = 0;
+        SIMD_Compress( state, state->buffer, 0 );
+      }
+    }
+  }
+
+  current = state->count & (state->blocksize - 1);
+
+  // If there is still some data in the buffer, hash it
+  if ( current )
+  {
+    // We first need to zero out the end of the buffer.
+    if ( current & 7 )
+    {
+      BitSequence mask = 0xff >> ( current & 7 );
+      state->buffer[current/8] &= ~mask;
+    }
+    current = ( current+7 ) / 8;
+    memset( state->buffer+current, 0, state->blocksize/8 - current );
+    SIMD_Compress( state, state->buffer, 0 );
+  }
+
+  //* Input the message length as the last block
+  memset( state->buffer, 0, state->blocksize / 8 );
+  l = state->count;
+  for ( i=0; i<8; i++ )
+  {
+    state->buffer[i] = l & 0xff;
+    l >>= 8;
+  }
+  if ( state->count < 16384 )
+    isshort = 2;
+
+  SIMD_Compress( state, state->buffer, isshort );
+
+  // Decode the 32-bit words into a BitSequence
+  for ( i=0; i < 2*state->n_feistels; i++ )
+  {
+    u32 x = state->A[i];
+    out[4*i  ] = x & 0xff;
+    x >>= 8;
+    out[4*i+1] = x & 0xff;
+    x >>= 8;
+    out[4*i+2] = x & 0xff;
+    x >>= 8;
+    out[4*i+3] = x & 0xff;
+  }
+
+  memcpy( hashval, out, state->hashbitlen / 8 );
+  if ( state->hashbitlen % 8 )
+  {
+    BitSequence mask = 0xff << ( 8 - (state->hashbitlen % 8) );
+    hashval[state->hashbitlen/8 + 1] = out[state->hashbitlen/8 + 1] & mask;
+  }
+  return SUCCESS;
 }
-*/
+

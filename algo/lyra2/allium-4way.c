@@ -280,14 +280,15 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
      allium_16way_hash( hash, vdata );
 
      for ( int lane = 0; lane < 16; lane++ ) 
-     if unlikely( valid_hash( hash+(lane<<3), ptarget ) && !bench )
+     if ( unlikely( valid_hash( hash+(lane<<3), ptarget ) && !bench ) )
      {
          pdata[19] = bswap_32( n + lane );
          submit_lane_solution( work, hash+(lane<<3), mythr, lane );
      }
      *noncev = _mm512_add_epi32( *noncev, m512_const1_32( 16 ) );
      n += 16;
-   } while ( (n < last_nonce) && !work_restart[thr_id].restart);
+   } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart) );
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }
@@ -318,7 +319,6 @@ void allium_8way_hash( void *hash, const void *input )
 {
    uint64_t vhashA[4*8] __attribute__ ((aligned (64)));
    uint64_t vhashB[4*8] __attribute__ ((aligned (64)));
-//   uint64_t hash[4*8] __attribute__ ((aligned (64)));
    uint64_t *hash0 = (uint64_t*)hash;
    uint64_t *hash1 = (uint64_t*)hash+ 4;
    uint64_t *hash2 = (uint64_t*)hash+ 8;
@@ -443,7 +443,7 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
      for ( int lane = 0; lane < 8; lane++ )
      {
         const uint64_t *lane_hash = hash + (lane<<2);
-        if unlikely( valid_hash( lane_hash, ptarget ) && !bench )
+        if ( unlikely( valid_hash( lane_hash, ptarget ) && !bench ) )
         {
            pdata[19] = bswap_32( n + lane );
            submit_lane_solution( work, lane_hash, mythr, lane );
@@ -451,7 +451,7 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
      }
      n += 8;
      *noncev = _mm256_add_epi32( *noncev, m256_const1_32( 8 ) );
-   } while likely( (n <= last_nonce) && !work_restart[thr_id].restart );
+   } while ( likely( (n <= last_nonce) && !work_restart[thr_id].restart ) );
    pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;

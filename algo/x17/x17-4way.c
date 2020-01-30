@@ -310,10 +310,10 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
       x17_8way_hash( hash, vdata );
 
       for ( int lane = 0; lane < 8; lane++ )
-      if unlikely( ( hash7[ lane ] <= Htarg ) && !bench )
+      if ( unlikely( ( hash7[ lane ] <= Htarg ) && !bench ) )
       {
          extr_lane_8x32( lane_hash, hash, lane, 256 );
-         if likely( valid_hash( lane_hash, ptarget ) )
+         if ( likely( valid_hash( lane_hash, ptarget ) ) )
          {
             pdata[19] = bswap_32( n + lane );
             submit_lane_solution( work, lane_hash, mythr, lane );
@@ -323,7 +323,7 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
                                   m512_const1_64( 0x0000000800000000 ) );
       n += 8;
    } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
-
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }

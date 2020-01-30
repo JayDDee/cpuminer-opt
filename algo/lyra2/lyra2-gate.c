@@ -194,7 +194,7 @@ bool register_allium_algo( algo_gate_t* gate )
 
 /////////////////////////////////////////
 
-bool phi2_has_roots;
+bool phi2_has_roots = false;
 bool phi2_use_roots = false;
 
 int phi2_get_work_data_size() { return phi2_use_roots ? 144 : 128; }

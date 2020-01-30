@@ -50,7 +50,7 @@ enum x16r_Algo {
         X16R_HASH_FUNC_COUNT
 };
 
-void (*x16_r_s_getAlgoString) ( const uint8_t*, char* );
+extern void (*x16_r_s_getAlgoString) ( const uint8_t*, char* );
 void x16r_getAlgoString( const uint8_t *prevblock, char *output );
 void x16s_getAlgoString( const uint8_t *prevblock, char *output );
 void x16rt_getAlgoString( const uint32_t *timeHash, char *output );

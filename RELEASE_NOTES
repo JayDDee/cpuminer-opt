@@ -65,9 +65,21 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.11.8
+
+Fixed network hashrate showing incorrect data, should be close now.
+
+Fixed compile errors when using GCC 10 with default flag -fno-common.
+
+Faster x16r, x16rv2, x16rt, x16s, x21s, veil, hex with midstate prehash.
+
+Decoupled sapling usage from block version 5 in yescryptr8g.
+
+More detailed data reporting for low difficulty rejected shares.
+
 v3.11.7
 
-Added yescryptr8g algo fotr KOTO, including support for block version 5.
+Added yescryptr8g algo for KOTO, including support for block version 5.
 
 Added sha3d algo for BSHA3.
 

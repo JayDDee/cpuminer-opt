@@ -53,7 +53,7 @@ int scanhash_keccak_8way( struct work *work, uint32_t max_nonce,
       n += 8;
 
    } while ( (n < max_nonce-8) && !work_restart[thr_id].restart);
-
+   pdata[19] = n;
    *hashes_done = n - first_nonce + 1;
    return 0;
 }
@@ -104,7 +104,7 @@ int scanhash_keccak_4way( struct work *work, uint32_t max_nonce,
                                   m256_const1_64( 0x0000000400000000 ) );
       n += 4;
    } while ( (n < max_nonce-4) && !work_restart[thr_id].restart);
-
+   pdata[19] = n;
    *hashes_done = n - first_nonce + 1;
    return 0;
 }
