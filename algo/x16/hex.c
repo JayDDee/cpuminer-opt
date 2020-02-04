@@ -85,13 +85,6 @@ void hex_hash( void* output, const void* input )
    memcpy( &ctx, &hex_ctx, sizeof(ctx) );
    void *in = (void*) input;
    int size = 80;
-/*
-   if ( s_ntime == UINT32_MAX )
-   {
-      const uint8_t* in8 = (uint8_t*) input;
-      x16_r_s_getAlgoString( &in8[4], hashOrder );
-   }
-*/
 
    char elem = hashOrder[0];
    uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
@@ -249,12 +242,8 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
    if ( bench )  ptarget[7] = 0x0cff;
 
-   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
-
+   mm128_bswap32_80( edata, pdata );
+   
    uint32_t ntime = swab32(pdata[17]);
    if ( s_ntime != ntime )
    {
@@ -276,6 +265,10 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
       case SKEIN:
          sph_skein512_init( &hex_ctx.skein );
          sph_skein512( &hex_ctx.skein, edata, 64 );
+      break;
+      case LUFFA:
+         init_luffa( &hex_ctx.luffa, 512 );
+         update_luffa( &hex_ctx.luffa, (const BitSequence*)edata, 64 );
       break;
       case CUBEHASH:
          cubehashInit( &hex_ctx.cube, 512, 16, 32 );

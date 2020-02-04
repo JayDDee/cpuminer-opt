@@ -4,6 +4,9 @@
  */
 
 #include "blake2b-gate.h"
+
+#if !defined(BLAKE2B_8WAY) && !defined(BLAKE2B_4WAY)
+
 #include <string.h>
 #include <stdint.h>
 #include "algo/blake/sph_blake2b.h"
@@ -58,3 +61,4 @@ int scanhash_blake2b( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+#endif

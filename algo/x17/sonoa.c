@@ -1,4 +1,7 @@
 #include "sonoa-gate.h"
+
+#if !defined(SONOA_8WAY) && !defined(SONOA_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -616,3 +619,5 @@ int scanhash_sonoa( struct work *work, uint32_t max_nonce,
    pdata[19] = n;
    return 0;
 }
+
+#endif

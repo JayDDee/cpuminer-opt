@@ -1,4 +1,7 @@
 #include "blakecoin-gate.h"
+
+#if !defined(BLAKECOIN_8WAY) && !defined(BLAKECOIN_4WAY)
+
 #define BLAKE32_ROUNDS 8
 #include "sph_blake.h"
 
@@ -93,3 +96,4 @@ int scanhash_blakecoin( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+#endif

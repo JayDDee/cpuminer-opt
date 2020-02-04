@@ -1,5 +1,7 @@
 #include "xevan-gate.h"
 
+#if !defined(XEVAN_8WAY) && !defined(XEVAN_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -268,3 +270,4 @@ int scanhash_xevan( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+#endif

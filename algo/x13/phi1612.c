@@ -1,4 +1,7 @@
 #include "phi1612-gate.h"
+
+#if !defined(PHI1612_8WAY) && !defined(PHI1612_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -123,3 +126,4 @@ int scanhash_phi1612( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+#endif

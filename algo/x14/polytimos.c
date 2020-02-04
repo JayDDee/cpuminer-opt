@@ -1,4 +1,7 @@
 #include "polytimos-gate.h"
+
+#if !defined(POLYTIMOS_8WAY) && !defined(POLYTIMOS_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -111,3 +114,4 @@ int scanhash_polytimos( struct work *work, uint32_t max_nonce,
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
+#endif

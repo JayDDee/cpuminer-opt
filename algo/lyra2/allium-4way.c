@@ -115,9 +115,8 @@ void allium_16way_hash( void *state, const void *input )
    intrlv_4x128( vhashA, hash0, hash1, hash2, hash3, 256 );
    intrlv_4x128( vhashB, hash4, hash5, hash6, hash7, 256 );
 
-   cube_4way_update_close( &ctx.cube, vhashA, vhashA, 32 );
-   cube_4way_init( &ctx.cube, 256, 16, 32 );
-   cube_4way_update_close( &ctx.cube, vhashB, vhashB, 32 );
+   cube_4way_full( &ctx.cube, vhashA, 256, vhashA, 32 );
+   cube_4way_full( &ctx.cube, vhashB, 256, vhashB, 32 );
 
    dintrlv_4x128( hash0, hash1, hash2, hash3, vhashA, 256 );
    dintrlv_4x128( hash4, hash5, hash6, hash7, vhashB, 256 );
@@ -125,10 +124,8 @@ void allium_16way_hash( void *state, const void *input )
    intrlv_4x128( vhashA, hash8, hash9, hash10, hash11, 256 );
    intrlv_4x128( vhashB, hash12, hash13, hash14, hash15, 256 );
 
-   cube_4way_init( &ctx.cube, 256, 16, 32 );
-   cube_4way_update_close( &ctx.cube, vhashA, vhashA, 32 );
-   cube_4way_init( &ctx.cube, 256, 16, 32 );
-   cube_4way_update_close( &ctx.cube, vhashB, vhashB, 32 );
+   cube_4way_full( &ctx.cube, vhashA, 256, vhashA, 32 );
+   cube_4way_full( &ctx.cube, vhashB, 256, vhashB, 32 );
 
    dintrlv_4x128( hash8, hash9, hash10, hash11, vhashA, 256 );
    dintrlv_4x128( hash12, hash13, hash14, hash15, vhashB, 256 );
@@ -169,7 +166,6 @@ void allium_16way_hash( void *state, const void *input )
    skein256_8way_update( &ctx.skein, vhashB, 32 );
    skein256_8way_close( &ctx.skein, vhashB );
 
-
    dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                  vhashA, 256 );
    dintrlv_8x64( hash8, hash9, hash10, hash11, hash12, hash13, hash14, hash15,
@@ -179,77 +175,43 @@ void allium_16way_hash( void *state, const void *input )
 
    intrlv_4x128( vhash, hash0, hash1, hash2, hash3, 256 );
 
-   groestl256_4way_update_close( &ctx.groestl, vhash, vhash, 256 );
+   groestl256_4way_full( &ctx.groestl, vhash, vhash, 256 );
 
    dintrlv_4x128( state, state+32, state+64, state+96, vhash, 256 );
    intrlv_4x128( vhash, hash4, hash5, hash6, hash7, 256 );
 
-   groestl256_4way_init( &ctx.groestl, 32 );
-   groestl256_4way_update_close( &ctx.groestl, vhash, vhash, 256 );
+   groestl256_4way_full( &ctx.groestl, vhash, vhash, 256 );
    
    dintrlv_4x128( state+128, state+160, state+192, state+224, vhash, 256 );
    intrlv_4x128( vhash, hash8, hash9, hash10, hash11, 256 );
 
-   groestl256_4way_init( &ctx.groestl, 32 );
-   groestl256_4way_update_close( &ctx.groestl, vhash, vhash, 256 );
+   groestl256_4way_full( &ctx.groestl, vhash, vhash, 256 );
 
    dintrlv_4x128( state+256, state+288, state+320, state+352, vhash, 256 );
    intrlv_4x128( vhash, hash12, hash13, hash14, hash15, 256 );
 
-   groestl256_4way_init( &ctx.groestl, 32 );
-   groestl256_4way_update_close( &ctx.groestl, vhash, vhash, 256 );
+   groestl256_4way_full( &ctx.groestl, vhash, vhash, 256 );
  
    dintrlv_4x128( state+384, state+416, state+448, state+480, vhash, 256 );
    
 #else
 
-   update_and_final_groestl256( &ctx.groestl, state, hash0, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+32, hash1, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+64, hash2, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+96, hash3, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+128, hash4, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+160, hash5, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+192, hash6, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+224, hash7, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+256, hash8, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+288, hash9, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+320, hash10, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+352, hash11, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+384, hash12, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+416, hash13, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+448, hash14, 256 );
-   memcpy( &ctx.groestl, &allium_16way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, state+480, hash15, 256 );
-
+   groestl256_full( &ctx.groestl, state,     hash0,  256 );
+   groestl256_full( &ctx.groestl, state+32,  hash1,  256 );
+   groestl256_full( &ctx.groestl, state+64,  hash2,  256 );
+   groestl256_full( &ctx.groestl, state+96,  hash3,  256 );
+   groestl256_full( &ctx.groestl, state+128, hash4,  256 );
+   groestl256_full( &ctx.groestl, state+160, hash5,  256 );
+   groestl256_full( &ctx.groestl, state+192, hash6,  256 );
+   groestl256_full( &ctx.groestl, state+224, hash7,  256 );
+   groestl256_full( &ctx.groestl, state+256, hash8,  256 );
+   groestl256_full( &ctx.groestl, state+288, hash9,  256 );
+   groestl256_full( &ctx.groestl, state+320, hash10, 256 );
+   groestl256_full( &ctx.groestl, state+352, hash11, 256 );
+   groestl256_full( &ctx.groestl, state+384, hash12, 256 );
+   groestl256_full( &ctx.groestl, state+416, hash13, 256 );
+   groestl256_full( &ctx.groestl, state+448, hash14, 256 );
+   groestl256_full( &ctx.groestl, state+480, hash15, 256 );
 #endif
 }
 
@@ -393,28 +355,14 @@ void allium_8way_hash( void *hash, const void *input )
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhashA, 256 );
    dintrlv_4x64( hash4, hash5, hash6, hash7, vhashB, 256 );
 
-   update_and_final_groestl256( &ctx.groestl, hash0, hash0, 256 );
-   memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash1, hash1, 256 );
-   memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash2, hash2, 256 );
-   memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash3, hash3, 256 );
-   memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash4, hash4, 256 );
-   memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash5, hash5, 256 );
-   memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash6, hash6, 256 );
-   memcpy( &ctx.groestl, &allium_8way_ctx.groestl,
-           sizeof(hashState_groestl256) );
-   update_and_final_groestl256( &ctx.groestl, hash7, hash7, 256 );
+   groestl256_full( &ctx.groestl, hash0, hash0, 256 );
+   groestl256_full( &ctx.groestl, hash1, hash1, 256 );
+   groestl256_full( &ctx.groestl, hash2, hash2, 256 );
+   groestl256_full( &ctx.groestl, hash3, hash3, 256 );
+   groestl256_full( &ctx.groestl, hash4, hash4, 256 );
+   groestl256_full( &ctx.groestl, hash5, hash5, 256 );
+   groestl256_full( &ctx.groestl, hash6, hash6, 256 );
+   groestl256_full( &ctx.groestl, hash7, hash7, 256 );
 }
 
 int scanhash_allium_8way( struct work *work, uint32_t max_nonce,

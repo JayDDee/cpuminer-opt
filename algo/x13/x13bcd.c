@@ -1,4 +1,7 @@
 #include "x13sm3-gate.h"
+
+#if !defined(X13BCD_8WAY) && !defined(X13VCD_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -10,7 +13,6 @@
 #include "algo/sm3/sph_sm3.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/simd/sph_simd.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/cubehash/cubehash_sse2.h"
@@ -184,3 +186,4 @@ int scanhash_x13bcd( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+#endif

@@ -1,6 +1,9 @@
 #include <memory.h>
 #include <mm_malloc.h>
 #include "lyra2-gate.h"
+
+#if !( defined(LYRA2Z_16WAY) || defined(LYRA2Z_8WAY) || defined(LYRA2Z_4WAY) )
+
 #include "lyra2.h"
 #include "algo/blake/sph_blake.h"
 #include "simd-utils.h"
@@ -80,4 +83,4 @@ int scanhash_lyra2z( struct work *work, uint32_t max_nonce,
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
-
+#endif

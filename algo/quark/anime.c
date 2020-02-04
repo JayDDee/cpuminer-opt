@@ -1,5 +1,8 @@
 #include "cpuminer-config.h"
 #include "anime-gate.h"
+
+#if !defined(ANIME_8WAY) && !defined(ANIME_4WAY)
+
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -169,4 +172,4 @@ int scanhash_anime( struct work *work, uint32_t max_nonce,
     pdata[19] = n;
     return 0;
 }
-
+#endif

@@ -79,19 +79,16 @@ void lyra2rev3_16way_hash( void *state, const void *input )
    dintrlv_2x256( hash14, hash15, vhash, 256 );
 
    intrlv_4x128( vhash, hash0, hash1, hash2, hash3, 256 );
-   cube_4way_update_close( &ctx.cube, vhash, vhash, 32 );
+   cube_4way_full( &ctx.cube, vhash, 256, vhash, 32 );
    dintrlv_4x128( hash0, hash1, hash2, hash3, vhash, 256 );
    intrlv_4x128( vhash, hash4, hash5, hash6, hash7, 256 );
-   cube_4way_init( &ctx.cube, 256, 16, 32 );
-   cube_4way_update_close( &ctx.cube, vhash, vhash, 32 );
+   cube_4way_full( &ctx.cube, vhash, 256, vhash, 32 );
    dintrlv_4x128( hash4, hash5, hash6, hash7, vhash, 256 );
    intrlv_4x128( vhash, hash8, hash9, hash10, hash11, 256 );
-   cube_4way_init( &ctx.cube, 256, 16, 32 );
-   cube_4way_update_close( &ctx.cube, vhash, vhash, 32 );
+   cube_4way_full( &ctx.cube, vhash, 256, vhash, 32 );
    dintrlv_4x128( hash8, hash9, hash10, hash11, vhash, 256 );
    intrlv_4x128( vhash, hash12, hash13, hash14, hash15, 256 );
-   cube_4way_init( &ctx.cube, 256, 16, 32 );
-   cube_4way_update_close( &ctx.cube, vhash, vhash, 32 );
+   cube_4way_full( &ctx.cube, vhash, 256, vhash, 32 );
    dintrlv_4x128( hash12, hash13, hash14, hash15, vhash, 256 );
 
    intrlv_2x256( vhash, hash0, hash1, 256 );
@@ -224,21 +221,14 @@ void lyra2rev3_8way_hash( void *state, const void *input )
    LYRA2REV3( l2v3_wholeMatrix, hash6, 32, hash6, 32, hash6, 32, 1, 4, 4 );
    LYRA2REV3( l2v3_wholeMatrix, hash7, 32, hash7, 32, hash7, 32, 1, 4, 4 );
 
-   cubehashUpdateDigest( &ctx.cube, (byte*) hash0, (const byte*) hash0, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*) hash1, (const byte*) hash1, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*) hash2, (const byte*) hash2, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*) hash3, (const byte*) hash3, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*) hash4, (const byte*) hash4, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*) hash5, (const byte*) hash5, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*) hash6, (const byte*) hash6, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*) hash7, (const byte*) hash7, 32 );
+   cubehash_full( &ctx.cube, (byte*) hash0, 256, (const byte*) hash0, 32 );
+   cubehash_full( &ctx.cube, (byte*) hash1, 256, (const byte*) hash1, 32 );
+   cubehash_full( &ctx.cube, (byte*) hash2, 256, (const byte*) hash2, 32 );
+   cubehash_full( &ctx.cube, (byte*) hash3, 256, (const byte*) hash3, 32 );
+   cubehash_full( &ctx.cube, (byte*) hash4, 256, (const byte*) hash4, 32 );
+   cubehash_full( &ctx.cube, (byte*) hash5, 256, (const byte*) hash5, 32 );
+   cubehash_full( &ctx.cube, (byte*) hash6, 256, (const byte*) hash6, 32 );
+   cubehash_full( &ctx.cube, (byte*) hash7, 256, (const byte*) hash7, 32 );
 
    LYRA2REV3( l2v3_wholeMatrix, hash0, 32, hash0, 32, hash0, 32, 1, 4, 4 );
    LYRA2REV3( l2v3_wholeMatrix, hash1, 32, hash1, 32, hash1, 32, 1, 4, 4 );
@@ -265,25 +255,24 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
    uint32_t *hash7 = &hash[7<<3];
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
-   const uint32_t *ptarget = work->target;
+   uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 8;
    uint32_t n = first_nonce;
    const uint32_t Htarg = ptarget[7];
    __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
    const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
 
-   if ( opt_benchmark )  ( (uint32_t*)ptarget )[7] = 0x0000ff;
+   if ( bench )  ptarget[7] = 0x0000ff;
 
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
-
+   *noncev = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
    blake256_8way_init( &l2v3_8way_ctx.blake );
    blake256_8way_update( &l2v3_8way_ctx.blake, vdata, 64 );
 
    do
    {
-      *noncev = mm256_bswap_32( _mm256_set_epi32( n+7, n+6, n+5, n+4,
-                                                  n+3, n+2, n+1, n ) );
-
       lyra2rev3_8way_hash( hash, vdata );
       pdata[19] = n;
 
@@ -291,15 +280,17 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
       if ( unlikely( hash7[lane] <= Htarg ) )
       {
          extr_lane_8x32( lane_hash, hash, lane, 256 );
-         if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
+         if ( likely( valid_hash( lane_hash, ptarget ) && !bench ) )
          {
-             pdata[19] = n + lane;
+             pdata[19] = bswap_32( n + lane );
              submit_lane_solution( work, lane_hash, mythr, lane );
          }
       }
+      *noncev = _mm256_add_epi32( *noncev, m256_const1_32( 8 ) );
       n += 8;
-   } while ( likely( (n < max_nonce-8) && !work_restart[thr_id].restart ) );
-   *hashes_done = n - first_nonce + 1;
+   } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
    return 0;
 }
 

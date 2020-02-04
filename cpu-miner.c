@@ -107,7 +107,6 @@ enum algos opt_algo = ALGO_NULL;
 char* opt_param_key = NULL;
 int opt_param_n = 0;
 int opt_param_r = 0;
-int opt_pluck_n = 128;
 int opt_n_threads = 0;
 bool opt_reset_on_stale = false;
 bool opt_sapling = false;
@@ -175,7 +174,8 @@ uint64_t net_blocks = 0;
   uint32_t opt_work_size = 0;
   char *opt_api_allow = NULL;
   int opt_api_remote = 0;
-  int opt_api_listen = 4048; 
+  int opt_api_listen = 0;
+//  int opt_api_listen = 4048; 
 
   pthread_mutex_t rpc2_job_lock;
   pthread_mutex_t rpc2_login_lock;
@@ -1003,7 +1003,7 @@ void report_summary_log( bool force )
    if ( solved_block_count )
       applog2( LOG_INFO,"Blocks solved                 %6d",
                          solved_block_count );
-
+/*
 #if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
 
    int temp = cpu_temp(0);
@@ -1023,6 +1023,7 @@ void report_summary_log( bool force )
    applog2(LOG_INFO,"CPU temp             %s      max %dC", tempstr, hi_temp );
 
 #endif
+*/
 }
 
 static int share_result( int result, struct work *null_work,
@@ -1784,7 +1785,7 @@ static bool get_work(struct thr_info *thr, struct work *work)
 	return true;
 }
 
-static bool submit_work( struct thr_info *thr,
+bool submit_work( struct thr_info *thr,
                          const struct work *work_in )
 {
 	struct workio_cmd *wc;
@@ -2059,6 +2060,7 @@ static void *miner_thread( void *userdata )
    struct   thr_info *mythr = (struct thr_info *) userdata;
    int      thr_id = mythr->id;
    uint32_t max_nonce;
+   struct timeval cpu_temp_time = {0}; 
 
    // end_nonce gets read before being set so it needs to be initialized
    // what is an appropriate value that is completely neutral?
@@ -2294,6 +2296,34 @@ static void *miner_thread( void *userdata )
              pthread_mutex_unlock( &g_work_lock );
           }
        }
+
+#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
+       if (!opt_quiet && mythr->id == 0 )
+       {
+          int temp = cpu_temp(0);
+          timeval_subtract( &diff, &tv_end, &cpu_temp_time );
+          int wait = temp >= 80 ? 30 : temp >= 70 ? 90 : 180;
+          if ( ( diff.tv_sec > wait ) || ( temp > hi_temp ) )
+          {
+             char tempstr[32];
+             int lo_freq, hi_freq;
+             linux_cpu_hilo_freq( &lo_freq, &hi_freq );
+             memcpy( &cpu_temp_time, &tv_end, sizeof(cpu_temp_time) );
+             if ( temp > hi_temp ) hi_temp = temp;
+             if ( use_colors && ( temp >= 70 ) )
+             {
+                if ( temp >= 80 )
+                   sprintf( tempstr, "%s%d C%s", CL_WHT CL_RED, temp, CL_N );
+                else
+                   sprintf( tempstr, "%s%d C%s", CL_WHT CL_YLW, temp, CL_N );
+             }
+             else
+                sprintf( tempstr, "%d C", temp );
+             applog( LOG_INFO,"CPU temp: curr %s (max %d), Freq: %.3f/%.3f GHz",
+                     tempstr, hi_temp, (float)lo_freq / 1e6, (float)hi_freq/ 1e6 );
+          }
+       }
+#endif
        // display hashrate
        if ( unlikely( opt_hash_meter ) )
        {
@@ -2719,14 +2749,17 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
                uint64_t net_ttf =
                     ( last_block_height - session_first_block ) == 0 ? 0
                     : et.tv_sec / ( last_block_height - session_first_block );
-               double net_hr = net_diff * diff_to_hash / net_ttf;
-               char net_ttf_str[32];
-               char net_hr_units[4] = {0};
+               if ( net_diff && net_ttf )
+               {
+                  double net_hr = net_diff * diff_to_hash / net_ttf;
+                  char net_ttf_str[32];
+                  char net_hr_units[4] = {0};
 
-               sprintf_et( net_ttf_str, net_ttf );
-               scale_hash_for_display ( &net_hr, net_hr_units );
-               applog2( LOG_INFO, "Net TTF @ %.2f %sh/s: %s",
-                                  net_hr, net_hr_units, net_ttf_str );
+                  sprintf_et( net_ttf_str, net_ttf );
+                  scale_hash_for_display ( &net_hr, net_hr_units );
+                  applog2( LOG_INFO, "Net TTF @ %.2f %sh/s: %s",
+                                     net_hr, net_hr_units, net_ttf_str );
+               }
             }
          }  // hr > 0
       } // !quiet
@@ -2739,8 +2772,23 @@ void jr2_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    work_free( g_work );
    work_copy( g_work, &sctx->work );
    pthread_mutex_unlock( &sctx->work_lock );
+/*
+   if ( stratum_diff != sctx->job.diff )
+      applog( LOG_BLUE, "New stratum diff %g, block %d, job %s",
+                        sctx->job.diff, sctx->block_height, g_work->job_id );
+   else if ( last_block_height != sctx->block_height )
+      applog( LOG_BLUE, "New block %d, job %s",
+                         sctx->block_height, g_work->job_id );
+   else if ( g_work->job_id )
+      applog( LOG_BLUE,"New job %s", g_work->job_id );
+*/   
    if ( last_block_height != stratum.block_height )
-       last_block_height = stratum.block_height;
+   {
+      applog(LOG_BLUE, "Stratum detected new block");
+      last_block_height = stratum.block_height;
+   }
+   if ( stratum_diff != g_work->stratum_diff )
+      stratum_diff = g_work->stratum_diff;
 }
 
 static void *stratum_thread(void *userdata )
@@ -2751,7 +2799,7 @@ static void *stratum_thread(void *userdata )
    stratum.url = (char*) tq_pop(mythr->q, NULL);
    if (!stratum.url)
       goto out;
-   applog(LOG_INFO, "Starting Stratum on %s", stratum.url);
+   applog( LOG_INFO, "Stratum connect %s", short_url );
 
    while (1)
    {
@@ -2794,6 +2842,8 @@ static void *stratum_thread(void *userdata )
                 applog(LOG_ERR, "...retry after %d seconds", opt_fail_pause);
             sleep(opt_fail_pause);
          }
+         else
+            applog(LOG_BLUE,"Stratum connection established" );
          if ( unlikely( jsonrpc_2 ) )
          {
              work_free(&g_work);
@@ -2979,7 +3029,7 @@ void parse_arg(int key, char *arg )
 			/* port or 0 to disable */
 			opt_api_listen = atoi(arg);
 		}
-		break;
+      break;
 	case 1030: /* --api-remote */
 		opt_api_remote = 1;
 		break;
@@ -3585,7 +3635,7 @@ int main(int argc, char *argv[])
 
 	rpc_user = strdup("");
 	rpc_pass = strdup("");
-	opt_api_allow = strdup("127.0.0.1"); /* 0.0.0.0 for all ips */
+//	opt_api_allow = strdup("127.0.0.1"); /* 0.0.0.0 for all ips */
 
    parse_cmdline(argc, argv);
 
@@ -3870,16 +3920,21 @@ int main(int argc, char *argv[])
 		thr->q = tq_new();
 		if (!thr->q)
 			return 1;
-		err = thread_create(thr, api_thread);
-		if (err) {
-			applog(LOG_ERR, "api thread create failed");
+		err = thread_create( thr, api_thread );
+		if ( err )
+      {
+			applog( LOG_ERR, "api thread create failed" );
 			return 1;
 		}
-	}
+      if ( !opt_quiet )
+         applog( LOG_INFO,"API listnening to %s:%d", opt_api_allow,
+                                                     opt_api_listen );
+   }
 
 	/* start mining threads */
 	for (i = 0; i < opt_n_threads; i++)
    {
+      usleep( 5000 );
 		thr = &thr_info[i];
 		thr->id = i;
 		thr->q = tq_new();
@@ -3890,7 +3945,7 @@ int main(int argc, char *argv[])
 			applog(LOG_ERR, "thread %d create failed", i);
 			return 1;
 		}
-	}
+   }
 
 	applog(LOG_INFO, "%d miner threads started, "
 		"using '%s' algorithm.",

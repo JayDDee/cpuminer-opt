@@ -1,19 +1,17 @@
 #include "x14-gate.h"
+
+#if !defined(X14_8WAY) && !defined(X14_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
-#include "algo/groestl/sph_groestl.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/sph_luffa.h"
-#include "algo/cubehash/sph_cubehash.h"
-#include "algo/simd/sph_simd.h"
-#include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
@@ -186,3 +184,4 @@ int scanhash_x14( struct work *work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
+#endif

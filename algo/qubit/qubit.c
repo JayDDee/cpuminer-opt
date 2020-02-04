@@ -1,4 +1,7 @@
 #include "qubit-gate.h"
+
+#if !defined(QUBIT_8WAY) && !defined(QUBIT_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -126,4 +129,4 @@ int scanhash_qubit( struct work *work,	uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
-
+#endif

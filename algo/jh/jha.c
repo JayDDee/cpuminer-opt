@@ -1,4 +1,7 @@
 #include "jha-gate.h"
+
+#if !defined(JHA_8WAY) && !defined(JHA_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -133,3 +136,4 @@ int scanhash_jha( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+#endif

@@ -1,3 +1,6 @@
+#if !defined(LUFFA_FOR_SSE2_H__)
+#define LUFFA_FOR_SSE2_H__ 1
+
 /*
  * luffa_for_sse2.h
  * Version 2.0 (Sep 15th 2009)
@@ -48,8 +51,6 @@
 typedef struct {
     uint32 buffer[8] __attribute((aligned(32)));
     __m128i chainv[10] __attribute((aligned(32)));   /* Chaining values */
-//    uint64 bitlen[2]; /* Message length in bits */
-//    uint32 rembitlen; /* Length of buffer data to be hashed */
     int hashbitlen;
     int rembytes;
 } hashState_luffa;
@@ -67,4 +68,4 @@ HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
 
 int luffa_full( hashState_luffa *state, BitSequence* output, int hashbitlen,
                                    const BitSequence* data, size_t inlen );
-
+#endif   // LUFFA_FOR_SSE2_H___

@@ -105,6 +105,9 @@ int scanhash_cryptonight( struct work *work, uint32_t max_nonce,
 
 bool register_cryptonight_algo( algo_gate_t* gate )
 {
+  applog(LOG_WARNING,"Cryptonight algorithm and variants are no longer");
+  applog(LOG_WARNING,"supported by cpuminer-opt. Shares submitted will");
+  applog(LOG_WARNING,"likely be rejected. Proceed at your own risk.\n");
   cryptonightV7 = false;
   register_json_rpc2( gate );
   gate->optimizations = SSE2_OPT | AES_OPT;
@@ -116,6 +119,9 @@ bool register_cryptonight_algo( algo_gate_t* gate )
 
 bool register_cryptonightv7_algo( algo_gate_t* gate )
 {
+  applog(LOG_WARNING,"Cryptonight algorithm and variants are no longer");
+  applog(LOG_WARNING,"supported by cpuminer-opt. Shares submitted will");
+  applog(LOG_WARNING,"likely be rejected. Proceed at your own risk.\n");
   cryptonightV7 = true;
   register_json_rpc2( gate );
   gate->optimizations = SSE2_OPT | AES_OPT;

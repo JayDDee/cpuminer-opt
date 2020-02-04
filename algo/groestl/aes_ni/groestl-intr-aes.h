@@ -1,3 +1,6 @@
+#if !defined GROESTL_INTR_AES_H__
+#define GROESTL_INTR_AES_H__
+
 /* groestl-intr-aes.h     Aug 2011
  *
  * Groestl implementation with intrinsics using ssse3, sse4.1, and aes
@@ -10,6 +13,52 @@
 #include <smmintrin.h>
 #include <wmmintrin.h>
 #include "hash-groestl.h"
+
+static const __m128i round_const_p[] __attribute__ ((aligned (64))) =
+{
+   { 0x7060504030201000, 0xf0e0d0c0b0a09080 },
+   { 0x7161514131211101, 0xf1e1d1c1b1a19181 },
+   { 0x7262524232221202, 0xf2e2d2c2b2a29282 },
+   { 0x7363534333231303, 0xf3e3d3c3b3a39383 },
+   { 0x7464544434241404, 0xf4e4d4c4b4a49484 },
+   { 0x7565554535251505, 0xf5e5d5c5b5a59585 },
+   { 0x7666564636261606, 0xf6e6d6c6b6a69686 },
+   { 0x7767574737271707, 0xf7e7d7c7b7a79787 },
+   { 0x7868584838281808, 0xf8e8d8c8b8a89888 },
+   { 0x7969594939291909, 0xf9e9d9c9b9a99989 },
+   { 0x7a6a5a4a3a2a1a0a, 0xfaeadacabaaa9a8a },
+   { 0x7b6b5b4b3b2b1b0b, 0xfbebdbcbbbab9b8b },
+   { 0x7c6c5c4c3c2c1c0c, 0xfcecdcccbcac9c8c },
+   { 0x7d6d5d4d3d2d1d0d, 0xfdedddcdbdad9d8d }
+};
+
+static const __m128i round_const_q[] __attribute__ ((aligned (64))) =
+{
+   { 0x8f9fafbfcfdfefff, 0x0f1f2f3f4f5f6f7f },
+   { 0x8e9eaebecedeeefe, 0x0e1e2e3e4e5e6e7e },
+   { 0x8d9dadbdcdddedfd, 0x0d1d2d3d4d5d6d7d },
+   { 0x8c9cacbcccdcecfc, 0x0c1c2c3c4c5c6c7c },
+   { 0x8b9babbbcbdbebfb, 0x0b1b2b3b4b5b6b7b },
+   { 0x8a9aaabacadaeafa, 0x0a1a2a3a4a5a6a7a },
+   { 0x8999a9b9c9d9e9f9, 0x0919293949596979 },
+   { 0x8898a8b8c8d8e8f8, 0x0818283848586878 },
+   { 0x8797a7b7c7d7e7f7, 0x0717273747576777 },
+   { 0x8696a6b6c6d6e6f6, 0x0616263646566676 },
+   { 0x8595a5b5c5d5e5f5, 0x0515253545556575 },
+   { 0x8494a4b4c4d4e4f4, 0x0414243444546474 },
+   { 0x8393a3b3c3d3e3f3, 0x0313233343536373 },
+   { 0x8292a2b2c2d2e2f2, 0x0212223242526272 }
+};
+
+static const __m128i TRANSP_MASK = { 0x0d0509010c040800, 0x0f070b030e060a02 };
+static const __m128i SUBSH_MASK0 = { 0x0b0e0104070a0d00, 0x0306090c0f020508 };
+static const __m128i SUBSH_MASK1 = { 0x0c0f0205080b0e01, 0x04070a0d00030609 };
+static const __m128i SUBSH_MASK2 = { 0x0d000306090c0f02, 0x05080b0e0104070a };
+static const __m128i SUBSH_MASK3 = { 0x0e0104070a0d0003, 0x06090c0f0205080b };
+static const __m128i SUBSH_MASK4 = { 0x0f0205080b0e0104, 0x070a0d000306090c };
+static const __m128i SUBSH_MASK5 = { 0x000306090c0f0205, 0x080b0e0104070a0d };
+static const __m128i SUBSH_MASK6 = { 0x0104070a0d000306, 0x090c0f0205080b0e };
+static const __m128i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003 };
 
 #define tos(a)    #a
 #define tostr(a)  tos(a)
@@ -141,42 +190,6 @@
 }/*MixBytes*/
 
 
-static const uint64_t round_const_p[] __attribute__ ((aligned (64))) =
-{
-  0x7060504030201000, 0xf0e0d0c0b0a09080,
-  0x7161514131211101, 0xf1e1d1c1b1a19181,
-  0x7262524232221202, 0xf2e2d2c2b2a29282,
-  0x7363534333231303, 0xf3e3d3c3b3a39383,
-  0x7464544434241404, 0xf4e4d4c4b4a49484,
-  0x7565554535251505, 0xf5e5d5c5b5a59585,
-  0x7666564636261606, 0xf6e6d6c6b6a69686,
-  0x7767574737271707, 0xf7e7d7c7b7a79787,
-  0x7868584838281808, 0xf8e8d8c8b8a89888,
-  0x7969594939291909, 0xf9e9d9c9b9a99989,
-  0x7a6a5a4a3a2a1a0a, 0xfaeadacabaaa9a8a,
-  0x7b6b5b4b3b2b1b0b, 0xfbebdbcbbbab9b8b,
-  0x7c6c5c4c3c2c1c0c, 0xfcecdcccbcac9c8c,
-  0x7d6d5d4d3d2d1d0d, 0xfdedddcdbdad9d8d
-};
-
-static const uint64_t round_const_q[] __attribute__ ((aligned (64))) =
-{
-  0x8f9fafbfcfdfefff, 0x0f1f2f3f4f5f6f7f,
-  0x8e9eaebecedeeefe, 0x0e1e2e3e4e5e6e7e,
-  0x8d9dadbdcdddedfd, 0x0d1d2d3d4d5d6d7d,
-  0x8c9cacbcccdcecfc, 0x0c1c2c3c4c5c6c7c,
-  0x8b9babbbcbdbebfb, 0x0b1b2b3b4b5b6b7b,
-  0x8a9aaabacadaeafa, 0x0a1a2a3a4a5a6a7a,
-  0x8999a9b9c9d9e9f9, 0x0919293949596979,
-  0x8898a8b8c8d8e8f8, 0x0818283848586878,
-  0x8797a7b7c7d7e7f7, 0x0717273747576777,
-  0x8696a6b6c6d6e6f6, 0x0616263646566676,
-  0x8595a5b5c5d5e5f5, 0x0515253545556575,
-  0x8494a4b4c4d4e4f4, 0x0414243444546474,
-  0x8393a3b3c3d3e3f3, 0x0313233343536373,
-  0x8292a2b2c2d2e2f2, 0x0212223242526272
-};
-
 /* one round
  * a0-a7 = input rows
  * b0-b7 = output rows
@@ -203,22 +216,14 @@ static const uint64_t round_const_q[] __attribute__ ((aligned (64))) =
     xmm8 = _mm_xor_si128( xmm8, \
              casti_m128i( round_const_p, round_counter ) ); \
      /* ShiftBytes P1024 + pre-AESENCLAST */\
-    xmm8  = _mm_shuffle_epi8( xmm8,  m128_const_64( 0x0306090c0f020508, \
-                                                    0x0b0e0104070a0d00 ) ); \
-    xmm9  = _mm_shuffle_epi8( xmm9,  m128_const_64( 0x04070a0d00030609, \
-                                                    0x0c0f0205080b0e01 ) ); \
-    xmm10 = _mm_shuffle_epi8( xmm10, m128_const_64( 0x05080b0e0104070a, \
-                                                    0x0d000306090c0f02 ) ); \
-    xmm11 = _mm_shuffle_epi8( xmm11, m128_const_64( 0x06090c0f0205080b, \
-                                                    0x0e0104070a0d0003 ) ); \
-    xmm12 = _mm_shuffle_epi8( xmm12, m128_const_64( 0x070a0d000306090c, \
-                                                    0x0f0205080b0e0104 ) ); \
-    xmm13 = _mm_shuffle_epi8( xmm13, m128_const_64( 0x080b0e0104070a0d, \
-                                                    0x000306090c0f0205 ) ); \
-    xmm14 = _mm_shuffle_epi8( xmm14, m128_const_64( 0x090c0f0205080b0e, \
-                                                    0x0104070a0d000306 ) ); \
-    xmm15 = _mm_shuffle_epi8( xmm15, m128_const_64( 0x0e0104070a0d0003, \
-                                                    0x06090c0f0205080b ) ); \
+    xmm8  = _mm_shuffle_epi8( xmm8,  SUBSH_MASK0 ); \
+    xmm9  = _mm_shuffle_epi8( xmm9,  SUBSH_MASK1 ); \
+    xmm10 = _mm_shuffle_epi8( xmm10, SUBSH_MASK2 ); \
+    xmm11 = _mm_shuffle_epi8( xmm11, SUBSH_MASK3 ); \
+    xmm12 = _mm_shuffle_epi8( xmm12, SUBSH_MASK4 ); \
+    xmm13 = _mm_shuffle_epi8( xmm13, SUBSH_MASK5 ); \
+    xmm14 = _mm_shuffle_epi8( xmm14, SUBSH_MASK6 ); \
+    xmm15 = _mm_shuffle_epi8( xmm15, SUBSH_MASK7 ); \
     /* SubBytes + MixBytes */\
     SUBMIX( xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, \
             xmm0, xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6,  xmm7 ); \
@@ -226,22 +231,14 @@ static const uint64_t round_const_q[] __attribute__ ((aligned (64))) =
     /* AddRoundConstant P1024 */\
     xmm0 = _mm_xor_si128( xmm0, \
              casti_m128i( round_const_p, round_counter+1 ) ); \
-    xmm0 = _mm_shuffle_epi8( xmm0, m128_const_64( 0x0306090c0f020508, \
-                                                  0x0b0e0104070a0d00 ) ); \
-    xmm1 = _mm_shuffle_epi8( xmm1, m128_const_64( 0x04070a0d00030609, \
-                                                  0x0c0f0205080b0e01 ) ); \
-    xmm2 = _mm_shuffle_epi8( xmm2, m128_const_64( 0x05080b0e0104070a, \
-                                                  0x0d000306090c0f02 ) ); \
-    xmm3 = _mm_shuffle_epi8( xmm3, m128_const_64( 0x06090c0f0205080b, \
-                                                  0x0e0104070a0d0003 ) ); \
-    xmm4 = _mm_shuffle_epi8( xmm4, m128_const_64( 0x070a0d000306090c, \
-                                                  0x0f0205080b0e0104 ) ); \
-    xmm5 = _mm_shuffle_epi8( xmm5, m128_const_64( 0x080b0e0104070a0d, \
-                                                  0x000306090c0f0205 ) ); \
-    xmm6 = _mm_shuffle_epi8( xmm6, m128_const_64( 0x090c0f0205080b0e, \
-                                                  0x0104070a0d000306 ) ); \
-    xmm7 = _mm_shuffle_epi8( xmm7, m128_const_64( 0x0e0104070a0d0003, \
-                                                  0x06090c0f0205080b ) ); \
+    xmm0 = _mm_shuffle_epi8( xmm0, SUBSH_MASK0 ); \
+    xmm1 = _mm_shuffle_epi8( xmm1, SUBSH_MASK1 ); \
+    xmm2 = _mm_shuffle_epi8( xmm2, SUBSH_MASK2 ); \
+    xmm3 = _mm_shuffle_epi8( xmm3, SUBSH_MASK3 ); \
+    xmm4 = _mm_shuffle_epi8( xmm4, SUBSH_MASK4 ); \
+    xmm5 = _mm_shuffle_epi8( xmm5, SUBSH_MASK5 ); \
+    xmm6 = _mm_shuffle_epi8( xmm6, SUBSH_MASK6 ); \
+    xmm7 = _mm_shuffle_epi8( xmm7, SUBSH_MASK7 ); \
     SUBMIX( xmm0, xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6,  xmm7, \
             xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 ); \
   }\
@@ -262,22 +259,14 @@ static const uint64_t round_const_q[] __attribute__ ((aligned (64))) =
     xmm15 = _mm_xor_si128( xmm15, \
               casti_m128i( round_const_q, round_counter ) ); \
     /* ShiftBytes Q1024 + pre-AESENCLAST */\
-    xmm8  = _mm_shuffle_epi8( xmm8,  m128_const_64( 0x04070a0d00030609, \
-                                                    0x0c0f0205080b0e01 ) ); \
-    xmm9  = _mm_shuffle_epi8( xmm9,  m128_const_64( 0x06090c0f0205080b, \
-                                                    0x0e0104070a0d0003 ) ); \
-    xmm10 = _mm_shuffle_epi8( xmm10, m128_const_64( 0x080b0e0104070a0d, \
-                                                    0x000306090c0f0205 ) ); \
-    xmm11 = _mm_shuffle_epi8( xmm11, m128_const_64( 0x0e0104070a0d0003, \
-                                                    0x06090c0f0205080b ) ); \
-    xmm12 = _mm_shuffle_epi8( xmm12, m128_const_64( 0x0306090c0f020508, \
-                                                    0x0b0e0104070a0d00 ) ); \
-    xmm13 = _mm_shuffle_epi8( xmm13, m128_const_64( 0x05080b0e0104070a, \
-                                                    0x0d000306090c0f02 ) ); \
-    xmm14 = _mm_shuffle_epi8( xmm14, m128_const_64( 0x070a0d000306090c, \
-                                                    0x0f0205080b0e0104 ) ); \
-    xmm15 = _mm_shuffle_epi8( xmm15, m128_const_64( 0x090c0f0205080b0e, \
-                                                    0x0104070a0d000306 ) ); \
+    xmm8  = _mm_shuffle_epi8( xmm8,  SUBSH_MASK1 ); \
+    xmm9  = _mm_shuffle_epi8( xmm9,  SUBSH_MASK3 ); \
+    xmm10 = _mm_shuffle_epi8( xmm10, SUBSH_MASK5 ); \
+    xmm11 = _mm_shuffle_epi8( xmm11, SUBSH_MASK7 ); \
+    xmm12 = _mm_shuffle_epi8( xmm12, SUBSH_MASK0 ); \
+    xmm13 = _mm_shuffle_epi8( xmm13, SUBSH_MASK2 ); \
+    xmm14 = _mm_shuffle_epi8( xmm14, SUBSH_MASK4 ); \
+    xmm15 = _mm_shuffle_epi8( xmm15, SUBSH_MASK6 ); \
     /* SubBytes + MixBytes */\
     SUBMIX( xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, \
             xmm0, xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6 , xmm7 ); \
@@ -294,22 +283,14 @@ static const uint64_t round_const_q[] __attribute__ ((aligned (64))) =
     xmm7 = _mm_xor_si128( xmm7, \
              casti_m128i( round_const_q, round_counter+1 ) ); \
     /* ShiftBytes Q1024 + pre-AESENCLAST */\
-    xmm0 = _mm_shuffle_epi8( xmm0, m128_const_64( 0x04070a0d00030609, \
-                                                  0x0c0f0205080b0e01 ) ); \
-    xmm1 = _mm_shuffle_epi8( xmm1, m128_const_64( 0x06090c0f0205080b, \
-                                                  0x0e0104070a0d0003 ) ); \
-    xmm2 = _mm_shuffle_epi8( xmm2, m128_const_64( 0x080b0e0104070a0d, \
-                                                  0x000306090c0f0205 ) ); \
-    xmm3 = _mm_shuffle_epi8( xmm3, m128_const_64( 0x0e0104070a0d0003, \
-                                                  0x06090c0f0205080b ) ); \
-    xmm4 = _mm_shuffle_epi8( xmm4, m128_const_64( 0x0306090c0f020508, \
-                                                  0x0b0e0104070a0d00 ) ); \
-    xmm5 = _mm_shuffle_epi8( xmm5, m128_const_64( 0x05080b0e0104070a, \
-                                                  0x0d000306090c0f02 ) ); \
-    xmm6 = _mm_shuffle_epi8( xmm6, m128_const_64( 0x070a0d000306090c, \
-                                                  0x0f0205080b0e0104 ) ); \
-    xmm7 = _mm_shuffle_epi8( xmm7, m128_const_64( 0x090c0f0205080b0e, \
-                                                  0x0104070a0d000306 ) ); \
+    xmm0 = _mm_shuffle_epi8( xmm0, SUBSH_MASK1 ); \
+    xmm1 = _mm_shuffle_epi8( xmm1, SUBSH_MASK3 ); \
+    xmm2 = _mm_shuffle_epi8( xmm2, SUBSH_MASK5 ); \
+    xmm3 = _mm_shuffle_epi8( xmm3, SUBSH_MASK7 ); \
+    xmm4 = _mm_shuffle_epi8( xmm4, SUBSH_MASK0 ); \
+    xmm5 = _mm_shuffle_epi8( xmm5, SUBSH_MASK2 ); \
+    xmm6 = _mm_shuffle_epi8( xmm6, SUBSH_MASK4 ); \
+    xmm7 = _mm_shuffle_epi8( xmm7, SUBSH_MASK6 ); \
     /* SubBytes + MixBytes */\
     SUBMIX( xmm0,  xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6,  xmm7, \
             xmm8,  xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 ); \
@@ -324,7 +305,7 @@ static const uint64_t round_const_q[] __attribute__ ((aligned (64))) =
  * clobbers: t0-t7
  */
 #define Matrix_Transpose(i0, i1, i2, i3, i4, i5, i6, i7, t0, t1, t2, t3, t4, t5, t6, t7){\
-  t0 = m128_const_64( 0x0f070b030e060a02, 0x0d0509010c040800 );\
+  t0 = TRANSP_MASK; \
 \
   i6 = _mm_shuffle_epi8(i6, t0);\
   i0 = _mm_shuffle_epi8(i0, t0);\
@@ -412,7 +393,7 @@ static const uint64_t round_const_q[] __attribute__ ((aligned (64))) =
   i4 = _mm_unpacklo_epi64(i4, i5);\
   t1 = _mm_unpackhi_epi64(t1, i5);\
   t2 = i6;\
-  o0 = m128_const_64( 0x0f070b030e060a02, 0x0d0509010c040800 ); \
+  o0 = TRANSP_MASK; \
   i6 = _mm_unpacklo_epi64(i6, i7);\
   t2 = _mm_unpackhi_epi64(t2, i7);\
   /* load transpose mask into a register, because it will be used 8 times */\
@@ -653,3 +634,4 @@ void OF1024( __m128i* chaining )
   return;
 }
 
+#endif

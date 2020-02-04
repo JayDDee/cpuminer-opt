@@ -1,4 +1,7 @@
 #include "hmq1725-gate.h"
+
+#if !defined(HMQ1725_8WAY) && !defined(HMQ1725_4WAY)
+
 #include <string.h>
 #include <stdint.h>
 #include "algo/blake/sph_blake.h"
@@ -7,10 +10,7 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#include "algo/luffa/sph_luffa.h"
-#include "algo/cubehash/sph_cubehash.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/simd/sph_simd.h"
 #include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
@@ -21,6 +21,9 @@
 #if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
+#else
+  #include "algo/groestl/sph_groestl.h"
+  #include "algo/echo/sph_echo.h"
 #endif
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
@@ -392,3 +395,4 @@ int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
+#endif

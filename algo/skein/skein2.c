@@ -1,4 +1,7 @@
 #include "skein-gate.h"
+
+#if !defined(SKEIN_8WAY) && !defined(SKEIN_4WAY)
+
 #include <string.h>
 #include <stdint.h>
 
@@ -66,4 +69,4 @@ int scanhash_skein2( struct work *work,	uint32_t max_nonce,
 	return 0;
 }
 
-
+#endif

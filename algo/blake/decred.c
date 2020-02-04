@@ -1,4 +1,7 @@
 #include "decred-gate.h"
+
+#if !defined(DECRED_8WAY) && !defined(DECRED_4WAY)
+
 #include "sph_blake.h"
 
 #include <string.h>
@@ -275,3 +278,5 @@ bool register_decred_algo( algo_gate_t* gate )
   return true;
 }
 */
+
+#endif

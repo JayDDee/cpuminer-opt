@@ -1,4 +1,7 @@
 #include "c11-gate.h"
+
+#if !defined(C11_8WAY) && !defined(C11_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -9,9 +12,6 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/sph_luffa.h"
-#include "algo/cubehash/sph_cubehash.h"
-#include "algo/simd/sph_simd.h"
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
@@ -149,3 +149,4 @@ int scanhash_c11( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+#endif

@@ -1,4 +1,7 @@
 #include "lyra2-gate.h"
+
+#if !( defined(ALLIUM_16WAY) || defined(ALLIUM_8WAY) || defined(ALLIUM_4WAY) )
+
 #include <memory.h>
 #include "algo/blake/sph_blake.h"
 #include "algo/keccak/sph_keccak.h"
@@ -107,3 +110,4 @@ int scanhash_allium( struct work *work, uint32_t max_nonce,
     return 0;
 }
 
+#endif

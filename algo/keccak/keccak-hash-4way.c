@@ -3,6 +3,8 @@
 #include "keccak-hash-4way.h"
 #include "keccak-gate.h"
 
+#if defined(__AVX2__)
+
 static const uint64_t RC[] = {
         0x0000000000000001, 0x0000000000008082,
         0x800000000000808A, 0x8000000080008000,
@@ -239,7 +241,7 @@ keccak512_8way_close(void *cc, void *dst)
 
 #endif  // AVX512
 
-#if defined(__AVX2__)
+// AVX2
 
 #define INPUT_BUF(size)   do { \
     size_t j; \

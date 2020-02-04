@@ -6,6 +6,8 @@
  */
 #include "x16r-gate.h"
 
+#if !defined(X16R_8WAY) && !defined(X16R_4WAY)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -245,3 +247,5 @@ int scanhash_x16rv2( struct work *work, uint32_t max_nonce,
    *hashes_done = pdata[19] - first_nonce + 1;
    return 0;
 }
+
+#endif

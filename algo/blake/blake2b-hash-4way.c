@@ -33,6 +33,8 @@
 
 #include "blake2b-hash-4way.h"
 
+#if defined(__AVX2__)
+
 static const uint8_t sigma[12][16] =
 {
       { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
@@ -203,9 +205,9 @@ void blake2b_8way_final( blake2b_8way_ctx *ctx, void *out )
    casti_m512i( out, 3 ) = ctx->h[3];
 }
 
-#endif
+#endif   // AVX512
 
-#if defined(__AVX2__)
+// AVX2
 
 // G Mixing function.
 
@@ -369,4 +371,4 @@ void blake2b_4way_final( blake2b_4way_ctx *ctx, void *out )
    casti_m256i( out, 3 ) = ctx->h[3];
 }
 
-#endif
+#endif  // AVX2

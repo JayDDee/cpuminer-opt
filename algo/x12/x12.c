@@ -1,5 +1,7 @@
 #include "x12-gate.h"
 
+#if !defined(X12_8WAY) && !defined(X12_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -12,9 +14,6 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/sph_luffa.h"
-#include "algo/cubehash/sph_cubehash.h"
-#include "algo/simd/sph_simd.h"
 #include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/luffa/luffa_for_sse2.h" 
@@ -177,3 +176,4 @@ int scanhash_x12( struct work *work, uint32_t max_nonce,
   pdata[19] = n;
   return 0;
 }
+#endif

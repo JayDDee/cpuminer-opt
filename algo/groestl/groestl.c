@@ -1,4 +1,7 @@
 #include "groestl-gate.h"
+
+#if !defined(GROESTL_8WAY) && !defined(GROESTLX16R_4WAY)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -88,4 +91,4 @@ int scanhash_groestl( struct work *work, uint32_t max_nonce,
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
-
+#endif

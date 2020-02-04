@@ -1,5 +1,8 @@
 #include "cpuminer-config.h"
 #include "x11evo-gate.h"
+
+#if !defined(X11EVO_8WAY) && !defined(X11EVO_4WAY)
+
 #include <string.h>
 #include <stdint.h>
 #include <compat/portable_endian.h>
@@ -8,10 +11,7 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#include "algo/luffa/sph_luffa.h"
-#include "algo/cubehash/sph_cubehash.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/simd/sph_simd.h"
 #ifdef __AES__
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
@@ -204,3 +204,4 @@ int scanhash_x11evo( struct work* work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
+#endif

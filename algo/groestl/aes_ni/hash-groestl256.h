@@ -115,4 +115,7 @@ HashReturn_gr hash_groestli256( int, const BitSequence_gr*, DataLength_gr,
 HashReturn_gr update_and_final_groestl256( hashState_groestl256*, void*,
                                            const void*, DataLength_gr );
 
+int groestl256_full( hashState_groestl256* ctx,
+                   void* output, const void* input, DataLength_gr databitlen );
+
 #endif /* __hash_h */

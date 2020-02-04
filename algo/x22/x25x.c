@@ -1,4 +1,7 @@
 #include "x22i-gate.h"
+
+#if !( defined(X25X_8WAY) || defined(X25X_4WAY) )
+
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
 #if defined(__AES__)
@@ -201,7 +204,7 @@ void x25x_hash( void *output, const void *input )
 int scanhash_x25x( struct work* work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t endiandata[20] __attribute__((aligned(64)));
+   uint32_t edata[20] __attribute__((aligned(64)));
    uint32_t hash[8] __attribute__((aligned(64)));
 	uint32_t *pdata = work->data;
 	uint32_t *ptarget = work->target;
@@ -213,17 +216,19 @@ int scanhash_x25x( struct work* work, uint32_t max_nonce,
 	if (opt_benchmark)
 		((uint32_t*)ptarget)[7] = 0x08ff;
 
+   mm128_bswap32_80( edata, pdata );
+   
 	for (int k=0; k < 20; k++)
-		be32enc(&endiandata[k], pdata[k]);
+		be32enc(&edata[k], pdata[k]);
 
    InitializeSWIFFTX();
 
    do
    {
        pdata[19] = ++n;
-       be32enc( &endiandata[19], n );
+       be32enc( &edata[19], n );
 
-       x25x_hash( hash, endiandata );
+       x25x_hash( hash, edata );
 
        if ( hash[7] < Htarg )
        if ( fulltest( hash, ptarget ) && !opt_benchmark )
@@ -234,3 +239,4 @@ int scanhash_x25x( struct work* work, uint32_t max_nonce,
 	 return 0;
 }
 
+#endif

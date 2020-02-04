@@ -11,6 +11,45 @@
 #include <wmmintrin.h>
 #include "hash-groestl256.h"
 
+static const __m128i round_const_l0[] __attribute__ ((aligned (64))) =
+{
+   { 0x7060504030201000, 0xffffffffffffffff },
+   { 0x7161514131211101, 0xffffffffffffffff },
+   { 0x7262524232221202, 0xffffffffffffffff },
+   { 0x7363534333231303, 0xffffffffffffffff },
+   { 0x7464544434241404, 0xffffffffffffffff },
+   { 0x7565554535251505, 0xffffffffffffffff },
+   { 0x7666564636261606, 0xffffffffffffffff },
+   { 0x7767574737271707, 0xffffffffffffffff },
+   { 0x7868584838281808, 0xffffffffffffffff },
+   { 0x7969594939291909, 0xffffffffffffffff }
+};
+
+static const __m128i round_const_l7[] __attribute__ ((aligned (64))) =
+{
+   { 0x0000000000000000, 0x8f9fafbfcfdfefff },
+   { 0x0000000000000000, 0x8e9eaebecedeeefe },
+   { 0x0000000000000000, 0x8d9dadbdcdddedfd },
+   { 0x0000000000000000, 0x8c9cacbcccdcecfc },
+   { 0x0000000000000000, 0x8b9babbbcbdbebfb },
+   { 0x0000000000000000, 0x8a9aaabacadaeafa },
+   { 0x0000000000000000, 0x8999a9b9c9d9e9f9 },
+   { 0x0000000000000000, 0x8898a8b8c8d8e8f8 },
+   { 0x0000000000000000, 0x8797a7b7c7d7e7f7 },
+   { 0x0000000000000000, 0x8696a6b6c6d6e6f6 }
+};
+
+static const __m128i TRANSP_MASK = { 0x0d0509010c040800, 0x0f070b030e060a02 };
+
+static const __m128i SUBSH_MASK0 = { 0x0c0f0104070b0e00, 0x03060a0d08020509 };
+static const __m128i SUBSH_MASK1 = { 0x0e090205000d0801, 0x04070c0f0a03060b };
+static const __m128i SUBSH_MASK2 = { 0x080b0306010f0a02, 0x05000e090c04070d };
+static const __m128i SUBSH_MASK3 = { 0x0a0d040702090c03, 0x0601080b0e05000f };
+static const __m128i SUBSH_MASK4 = { 0x0b0e0500030a0d04, 0x0702090c0f060108 };
+static const __m128i SUBSH_MASK5 = { 0x0d080601040c0f05, 0x00030b0e0907020a };
+static const __m128i SUBSH_MASK6 = { 0x0f0a0702050e0906, 0x01040d080b00030c };
+static const __m128i SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e };
+
 #define tos(a)    #a
 #define tostr(a)  tos(a)
 
@@ -25,8 +64,6 @@
   j = _mm_and_si128(j, k);\
   i = _mm_xor_si128(i, j);\
 } 
-
- /**/
 
 /* Yet another implementation of MixBytes.
    This time we use the formulae (3) from the paper "Byte Slicing Groestl".
@@ -141,36 +178,6 @@
   b1 = _mm_xor_si128(b1, a4);\
 }/*MixBytes*/
 
-
-static const uint64_t round_const_l0[] __attribute__ ((aligned (64))) =
-{
-  0x7060504030201000, 0xffffffffffffffff,
-  0x7161514131211101, 0xffffffffffffffff,
-  0x7262524232221202, 0xffffffffffffffff,
-  0x7363534333231303, 0xffffffffffffffff,
-  0x7464544434241404, 0xffffffffffffffff,
-  0x7565554535251505, 0xffffffffffffffff,
-  0x7666564636261606, 0xffffffffffffffff,
-  0x7767574737271707, 0xffffffffffffffff,
-  0x7868584838281808, 0xffffffffffffffff,
-  0x7969594939291909, 0xffffffffffffffff
-};
-
-static const uint64_t round_const_l7[] __attribute__ ((aligned (64))) =
-{
-0x0000000000000000, 0x8f9fafbfcfdfefff,
-0x0000000000000000, 0x8e9eaebecedeeefe,
-0x0000000000000000, 0x8d9dadbdcdddedfd,
-0x0000000000000000, 0x8c9cacbcccdcecfc,
-0x0000000000000000, 0x8b9babbbcbdbebfb,
-0x0000000000000000, 0x8a9aaabacadaeafa,
-0x0000000000000000, 0x8999a9b9c9d9e9f9,
-0x0000000000000000, 0x8898a8b8c8d8e8f8,
-0x0000000000000000, 0x8797a7b7c7d7e7f7,
-0x0000000000000000, 0x8696a6b6c6d6e6f6
-};
-
-
 /* one round
  * i = round number
  * a0-a7 = input rows
@@ -190,29 +197,21 @@ static const uint64_t round_const_l7[] __attribute__ ((aligned (64))) =
   \
   /* ShiftBytes + SubBytes (interleaved) */\
   b0 = _mm_xor_si128(b0,  b0);\
-  a0 = _mm_shuffle_epi8( a0, m128_const_64( 0x03060a0d08020509, \
-                                            0x0c0f0104070b0e00 ) ); \
+  a0 = _mm_shuffle_epi8( a0, SUBSH_MASK0 ); \
   a0 = _mm_aesenclast_si128( a0, b0 );\
-  a1 = _mm_shuffle_epi8( a1, m128_const_64( 0x04070c0f0a03060b, \
-                                            0x0e090205000d0801 ) ); \
+  a1 = _mm_shuffle_epi8( a1, SUBSH_MASK1 ); \
   a1 = _mm_aesenclast_si128( a1, b0 );\
-  a2 = _mm_shuffle_epi8( a2, m128_const_64( 0x05000e090c04070d, \
-                                            0x080b0306010f0a02 ) ); \
+  a2 = _mm_shuffle_epi8( a2, SUBSH_MASK2 ); \
   a2 = _mm_aesenclast_si128( a2, b0 );\
-  a3 = _mm_shuffle_epi8( a3, m128_const_64( 0x0601080b0e05000f, \
-                                            0x0a0d040702090c03 ) ); \
+  a3 = _mm_shuffle_epi8( a3, SUBSH_MASK3 ); \
   a3 = _mm_aesenclast_si128( a3, b0 );\
-  a4 = _mm_shuffle_epi8( a4, m128_const_64( 0x0702090c0f060108, \
-                                            0x0b0e0500030a0d04 ) ); \
+  a4 = _mm_shuffle_epi8( a4, SUBSH_MASK4 ); \
   a4 = _mm_aesenclast_si128( a4, b0 );\
-  a5 = _mm_shuffle_epi8( a5, m128_const_64( 0x00030b0e0907020a, \
-                                            0x0d080601040c0f05 ) ); \
+  a5 = _mm_shuffle_epi8( a5, SUBSH_MASK5 ); \
   a5 = _mm_aesenclast_si128( a5, b0 );\
-  a6 = _mm_shuffle_epi8( a6, m128_const_64( 0x01040d080b00030c, \
-                                            0x0f0a0702050e0906 ) ); \
+  a6 = _mm_shuffle_epi8( a6, SUBSH_MASK6 ); \
   a6 = _mm_aesenclast_si128( a6, b0 );\
-  a7 = _mm_shuffle_epi8( a7, m128_const_64( 0x02050f0a0d01040e, \
-                                            0x090c000306080b07 ) ); \
+  a7 = _mm_shuffle_epi8( a7, SUBSH_MASK7 ); \
   a7 = _mm_aesenclast_si128( a7, b0 );\
   \
   /* MixBytes */\
@@ -241,8 +240,9 @@ static const uint64_t round_const_l7[] __attribute__ ((aligned (64))) =
  * outputs: i0, o1-o3
  * clobbers: t0
  */
+
 #define Matrix_Transpose_A(i0, i1, i2, i3, o1, o2, o3, t0){\
-  t0 = m128_const_64( 0x0f070b030e060a02, 0x0d0509010c040800 ); \
+  t0 = TRANSP_MASK; \
   \
   i0 = _mm_shuffle_epi8(i0, t0);\
   i1 = _mm_shuffle_epi8(i1, t0);\

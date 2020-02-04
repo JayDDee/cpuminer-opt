@@ -1,4 +1,7 @@
 #include "skunk-gate.h"
+
+#if !defined(SKUNK_8WAY) && !defined(SKUNK_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -88,3 +91,4 @@ bool skunk_thread_init()
    sph_gost512_init( &skunk_ctx.gost );
    return true;
 }
+#endif

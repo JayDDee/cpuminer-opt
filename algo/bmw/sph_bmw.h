@@ -77,6 +77,9 @@ extern "C"{
  * computation can be cloned by copying the context (e.g. with a simple
  * <code>memcpy()</code>).
  */
+
+#if !defined(__AVX2__)
+
 typedef struct {
 #ifndef DOXYGEN_IGNORE
 	unsigned char buf[64];    /* first field, for alignment */
@@ -101,6 +104,8 @@ typedef sph_bmw_small_context sph_bmw224_context;
  * identical to the common <code>sph_bmw_small_context</code>.
  */
 typedef sph_bmw_small_context sph_bmw256_context;
+
+#endif // !AVX2
 
 #if SPH_64
 
@@ -136,6 +141,8 @@ typedef sph_bmw_big_context sph_bmw384_context;
 typedef sph_bmw_big_context sph_bmw512_context;
 
 #endif
+
+#if !defined(__AVX2__)
 
 /**
  * Initialize a BMW-224 context. This process performs no memory allocation.
@@ -226,6 +233,8 @@ void sph_bmw256_close(void *cc, void *dst);
  */
 void sph_bmw256_addbits_and_close(
 	void *cc, unsigned ub, unsigned n, void *dst);
+
+#endif // !AVX2
 
 #if SPH_64
 

@@ -1,4 +1,7 @@
 #include "deep-gate.h"
+
+#if !defined(DEEP_8WAY) && !defined(DEEP_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -114,4 +117,4 @@ int scanhash_deep( struct work *work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
-
+#endif

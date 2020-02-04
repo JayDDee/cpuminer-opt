@@ -19,10 +19,6 @@
 
 int groestl512_4way_init( groestl512_4way_context* ctx, uint64_t hashlen )
 {
-  int i;
-
-  SET_CONSTANTS();
-
   if (ctx->chaining == NULL || ctx->buffer == NULL)
     return 1;
 
@@ -99,7 +95,6 @@ int groestl512_4way_full( groestl512_4way_context* ctx, void* output,
 
    // --- init ---
 
-   SET_CONSTANTS();
    memset_zero_512( ctx->chaining, SIZE512 );
    memset_zero_512( ctx->buffer, SIZE512 );
    ctx->chaining[ 6 ] = m512_const2_64( 0x0200000000000000, 0 );

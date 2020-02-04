@@ -1777,8 +1777,9 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 		   double diff = trunc( ( ((double)0xffffffff) / target ) );
 		   if ( !opt_quiet )
 		      // xmr pool diff can change a lot...
-		      applog(LOG_WARNING, "Stratum difficulty set to %g", diff);
-		   stratum_diff = diff;
+		      applog(LOG_BLUE, "Stratum difficulty set to %g", diff);
+         work->stratum_diff = diff;
+         stratum_diff = diff;
 		   rpc2_target = target;
 		}
 

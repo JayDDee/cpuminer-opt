@@ -1,4 +1,7 @@
 #include "myrgr-gate.h"
+
+#if !defined(MYRGR_8WAY) && !defined(MYRGR_4WAY)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -86,3 +89,4 @@ int scanhash_myriad( struct work *work, uint32_t max_nonce,
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
+#endif

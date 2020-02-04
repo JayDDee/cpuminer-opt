@@ -1,4 +1,7 @@
 #include "lyra2-gate.h"
+
+#if !( defined(LYRA2H_8WAY) || defined(LYRA2H_4WAY) )
+
 #include <memory.h>
 #include <mm_malloc.h>
 #include "lyra2.h"
@@ -71,3 +74,4 @@ int scanhash_lyra2h( struct work *work, uint32_t max_nonce,
 	*hashes_done = pdata[19] - first_nonce + 1;
 	return 0;
 }
+#endif

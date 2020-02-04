@@ -1,4 +1,7 @@
 #include "sha256t-gate.h"
+
+#if !defined(SHA256T_16WAY) && !defined(SHA256T_8WAY) && !defined(SHA256T_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -102,3 +105,4 @@ int scanhash_sha256q( struct work *work, uint32_t max_nonce,
    pdata[19] = n;
    return 0;
 }
+#endif

@@ -171,7 +171,6 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
    LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7)
 
-
 #endif // AVX2 else SSE2
 
 // Scalar
@@ -199,7 +198,6 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
     G(r,5,v[ 1],v[ 6],v[11],v[12]); \
     G(r,6,v[ 2],v[ 7],v[ 8],v[13]); \
     G(r,7,v[ 3],v[ 4],v[ 9],v[14]);
-
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 

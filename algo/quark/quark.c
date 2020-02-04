@@ -1,5 +1,8 @@
 #include "cpuminer-config.h"
 #include "quark-gate.h"
+
+#if !defined(QUARK_8WAY) && !defined(QUARK_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -137,4 +140,4 @@ int scanhash_quark( struct work *work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
-
+#endif

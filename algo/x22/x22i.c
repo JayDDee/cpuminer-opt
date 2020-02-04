@@ -1,3 +1,7 @@
+#include "x22i-gate.h"
+
+#if !( defined(X22I_8WAY) || defined(X22I_4WAY) )
+
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
 #if defined(__AES__)
@@ -24,7 +28,6 @@
 #include "algo/lyra2/lyra2.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/swifftx/swifftx.h"
-#include "x22i-gate.h"
 
 union _x22i_context_overlay
 {
@@ -200,3 +203,4 @@ int scanhash_x22i( struct work* work, uint32_t max_nonce,
 	 return 0;
 }
 
+#endif

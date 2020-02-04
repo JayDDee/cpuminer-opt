@@ -1,5 +1,7 @@
 #include "algo-gate-api.h"
 
+#if !defined(BMW512_8WAY) && !defined(BMW512_4WAY)
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -50,4 +52,4 @@ int scanhash_bmw512( struct work *work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
-
+#endif

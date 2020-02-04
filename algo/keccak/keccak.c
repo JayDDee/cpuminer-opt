@@ -1,4 +1,6 @@
-#include "algo-gate-api.h"
+#include "keccak-gate.h"
+
+#if !defined(KECCAK_8WAY) && !defined(KECCAK_4WAY)
 
 #include <stdlib.h>
 #include <string.h>
@@ -49,3 +51,4 @@ int scanhash_keccak( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
+#endif

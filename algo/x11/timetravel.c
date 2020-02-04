@@ -1,5 +1,7 @@
 #include "timetravel-gate.h"
 
+#if !defined(TIMETRAVEL_8WAY) && !defined(TIMETRAVEL_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -290,4 +292,4 @@ int scanhash_timetravel( struct work *work, uint32_t max_nonce,
   return 0;
 }
 
-
+#endif

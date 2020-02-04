@@ -89,6 +89,9 @@ inline void initState( uint64_t State[/*16*/] )
  *
  * @param v     A 1024-bit (16 uint64_t) array to be processed by Blake2b's G function
  */
+
+#if !defined(__AVX512F__) && !defined(__AVX2__) && !defined(__SSE2__)
+
 inline static void blake2bLyra( uint64_t *v )
 {
     ROUND_LYRA(0);
@@ -113,6 +116,8 @@ inline static void reducedBlake2bLyra( uint64_t *v )
 {
     ROUND_LYRA(0);
 }
+
+#endif
 
 /**
  * Performs a squeeze operation, using Blake2b's G function as the

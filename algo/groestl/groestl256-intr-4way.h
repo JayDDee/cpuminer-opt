@@ -14,17 +14,78 @@
 #include "groestl256-hash-4way.h"
 
 #if defined(__VAES__)
+static const __m128i round_const_l0[] __attribute__ ((aligned (64))) =
+{
+   { 0x7060504030201000, 0xffffffffffffffff },
+   { 0x7161514131211101, 0xffffffffffffffff },
+   { 0x7262524232221202, 0xffffffffffffffff },
+   { 0x7363534333231303, 0xffffffffffffffff },
+   { 0x7464544434241404, 0xffffffffffffffff },
+   { 0x7565554535251505, 0xffffffffffffffff },
+   { 0x7666564636261606, 0xffffffffffffffff },
+   { 0x7767574737271707, 0xffffffffffffffff },
+   { 0x7868584838281808, 0xffffffffffffffff },
+   { 0x7969594939291909, 0xffffffffffffffff }
+};
 
-/* global constants  */
-__m512i ROUND_CONST_Lx;
-__m512i ROUND_CONST_L0[ROUNDS512];
-__m512i ROUND_CONST_L7[ROUNDS512];
-//__m512i ROUND_CONST_P[ROUNDS1024];
-//__m512i ROUND_CONST_Q[ROUNDS1024];
-__m512i TRANSP_MASK;
-__m512i SUBSH_MASK[8];
-__m512i ALL_1B;
-__m512i ALL_FF;
+static const __m128i round_const_l7[] __attribute__ ((aligned (64))) =
+{
+   { 0x0000000000000000, 0x8f9fafbfcfdfefff },
+   { 0x0000000000000000, 0x8e9eaebecedeeefe },
+   { 0x0000000000000000, 0x8d9dadbdcdddedfd },
+   { 0x0000000000000000, 0x8c9cacbcccdcecfc },
+   { 0x0000000000000000, 0x8b9babbbcbdbebfb },
+   { 0x0000000000000000, 0x8a9aaabacadaeafa },
+   { 0x0000000000000000, 0x8999a9b9c9d9e9f9 },
+   { 0x0000000000000000, 0x8898a8b8c8d8e8f8 },
+   { 0x0000000000000000, 0x8797a7b7c7d7e7f7 },
+   { 0x0000000000000000, 0x8696a6b6c6d6e6f6 }
+};
+
+static const __m512i TRANSP_MASK = { 0x0d0509010c040800, 0x0f070b030e060a02,
+                                     0x1d1519111c141810, 0x1f171b131e161a12,
+                                     0x2d2529212c242820, 0x2f272b232e262a22,
+                                     0x3d3539313c343830, 0x3f373b333e363a32 };
+
+static const __m512i SUBSH_MASK0 = { 0x0c0f0104070b0e00, 0x03060a0d08020509,
+                                     0x1c1f1114171b1e10, 0x13161a1d18121519,
+                                     0x2c2f2124272b2e20, 0x23262a2d28222529,
+                                     0x3c3f3134373b3e30, 0x33363a3d38323539 };
+
+static const __m512i SUBSH_MASK1 = { 0x0e090205000d0801, 0x04070c0f0a03060b,
+                                     0x1e191215101d1801, 0x14171c1f1a13161b,
+                                     0x2e292225202d2821, 0x24272c2f2a23262b,
+                                     0x3e393235303d3831, 0x34373c3f3a33363b };
+
+static const __m512i SUBSH_MASK2 = { 0x080b0306010f0a02, 0x05000e090c04070d,
+                                     0x181b1316111f1a12, 0x15101e191c14171d,
+                                     0x282b2326212f2a22, 0x25202e292c24272d,
+                                     0x383b3336313f3a32, 0x35303e393c34373d };
+
+static const __m512i SUBSH_MASK3 = { 0x0a0d040702090c03, 0x0601080b0e05000f,
+                                     0x1a1d141712191c13, 0x1611181b1e15101f,
+                                     0x2a2d242722292c23, 0x2621282b2e25202f,
+                                     0x3a3d343732393c33, 0x3631383b3e35303f };
+
+static const __m512i SUBSH_MASK4 = { 0x0b0e0500030a0d04, 0x0702090c0f060108,
+                                     0x1b1e1510131a1d14, 0x1712191c1f161118,
+                                     0x2b2e2520232a2d24, 0x2722292c2f262128,
+                                     0x3b3e3530333a3d34, 0x3732393c3f363138 };
+
+static const __m512i SUBSH_MASK5 = { 0x0d080601040c0f05, 0x00030b0e0907020a,
+                                     0x1d181611141c1f15, 0x10131b1e1917121a,
+                                     0x2d282621242c2f25, 0x20232b2e2927222a,
+                                     0x3d383631343c3f35, 0x30333b3e3937323a };
+
+static const __m512i SUBSH_MASK6 = { 0x0f0a0702050e0906, 0x01040d080b00030c,
+                                     0x1f1a1712151e1916, 0x11141d181b10131c,
+                                     0x2f2a2722252e2926, 0x21242d282b20232c,
+                                     0x3f3a3732353e3936, 0x31343d383b30333c };
+
+static const __m512i SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e,
+                                     0x191c101316181b17, 0x12151f1a1d11141e,
+                                     0x292c202326282b27, 0x22252f2a2d21242e,
+                                     0x393c303336383b37, 0x32353f3a3d31343e };
 
 #define tos(a)    #a
 #define tostr(a)  tos(a)
@@ -39,8 +100,6 @@ __m512i ALL_FF;
   j = _mm512_and_si512(j, k);\
   i = _mm512_xor_si512(i, j);\
 } 
-
- /**/
 
 /* Yet another implementation of MixBytes.
    This time we use the formulae (3) from the paper "Byte Slicing Groestl".
@@ -155,95 +214,36 @@ __m512i ALL_FF;
   b1 = _mm512_xor_si512(b1, a4);\
 }/*MixBytes*/
 
-// calculate the round constants seperately and load at startup
-
-#define SET_CONSTANTS(){\
-  ALL_1B = _mm512_set1_epi32( 0x1b1b1b1b );\
-  TRANSP_MASK   = _mm512_set_epi32( \
-                         0x3f373b33, 0x3e363a32, 0x3d353931, 0x3c343830, \
-                         0x2f272b23, 0x2e262a22, 0x2d252921, 0x2c242820, \
-                         0x1f171b13, 0x1e161a12, 0x1d151911, 0x1c141810, \
-                         0x0f070b03, 0x0e060a02, 0x0d050901, 0x0c040800 ); \
-  SUBSH_MASK[0] = _mm512_set_epi32( \
-                         0x33363a3d, 0x38323539, 0x3c3f3134, 0x373b3e30, \
-                         0x23262a2d, 0x28222529, 0x2c2f2124, 0x272b2e20, \
-                         0x13161a1d, 0x18121519, 0x1c1f1114, 0x171b1e10, \
-                         0x03060a0d, 0x08020509, 0x0c0f0104, 0x070b0e00 ); \
-  SUBSH_MASK[1] = _mm512_set_epi32( \
-                         0x34373c3f, 0x3a33363b, 0x3e393235, 0x303d3831, \
-                         0x24272c2f, 0x2a23262b, 0x2e292225, 0x202d2821, \
-                         0x14171c1f, 0x1a13161b, 0x1e191215, 0x101d1801, \
-                         0x04070c0f, 0x0a03060b, 0x0e090205, 0x000d0801 );\
-  SUBSH_MASK[2] = _mm512_set_epi32( \
-                         0x35303e39, 0x3c34373d, 0x383b3336, 0x313f3a32, \
-                         0x25202e29, 0x2c24272d, 0x282b2326, 0x212f2a22, \
-                         0x15101e19, 0x1c14171d, 0x181b1316, 0x111f1a12, \
-                         0x05000e09, 0x0c04070d, 0x080b0306, 0x010f0a02 );\
-  SUBSH_MASK[3] = _mm512_set_epi32( \
-                         0x3631383b, 0x3e35303f, 0x3a3d3437, 0x32393c33, \
-                         0x2621282b, 0x2e25202f, 0x2a2d2427, 0x22292c23, \
-                         0x1611181b, 0x1e15101f, 0x1a1d1417, 0x12191c13, \
-                         0x0601080b, 0x0e05000f, 0x0a0d0407, 0x02090c03 );\
-  SUBSH_MASK[4] = _mm512_set_epi32( \
-                         0x3732393c, 0x3f363138, 0x3b3e3530, 0x333a3d34, \
-                         0x2722292c, 0x2f262128, 0x2b2e2520, 0x232a2d24, \
-                         0x1712191c, 0x1f161118, 0x1b1e1510, 0x131a1d14, \
-                         0x0702090c, 0x0f060108, 0x0b0e0500, 0x030a0d04 );\
-  SUBSH_MASK[5] = _mm512_set_epi32( \
-                         0x30333b3e, 0x3937323a, 0x3d383631, 0x343c3f35, \
-                         0x20232b2e, 0x2927222a, 0x2d282621, 0x242c2f25, \
-                         0x10131b1e, 0x1917121a, 0x1d181611, 0x141c1f15, \
-                         0x00030b0e, 0x0907020a, 0x0d080601, 0x040c0f05 );\
-  SUBSH_MASK[6] = _mm512_set_epi32( \
-                         0x31343d38, 0x3b30333c, 0x3f3a3732, 0x353e3936, \
-                         0x21242d28, 0x2b20232c, 0x2f2a2722, 0x252e2926, \
-                         0x11141d18, 0x1b10131c, 0x1f1a1712, 0x151e1916, \
-                         0x01040d08, 0x0b00030c, 0x0f0a0702, 0x050e0906 );\
-  SUBSH_MASK[7] = _mm512_set_epi32( \
-                         0x32353f3a, 0x3d31343e, 0x393c3033, 0x36383b37, \
-                         0x22252f2a, 0x2d21242e, 0x292c2023, 0x26282b27, \
-                         0x12151f1a, 0x1d11141e, 0x191c1013, 0x16181b17, \
-                         0x02050f0a, 0x0d01040e, 0x090c0003, 0x06080b07 );\
-  for ( i = 0; i < ROUNDS512; i++ ) \
-  {\
-    ROUND_CONST_L0[i] = _mm512_set4_epi32( 0xffffffff, 0xffffffff, \
-          0x70605040 ^ ( i * 0x01010101 ), 0x30201000 ^ ( i * 0x01010101 ) ); \
-    ROUND_CONST_L7[i] = _mm512_set4_epi32( 0x8f9fafbf ^ ( i * 0x01010101 ), \
-          0xcfdfefff ^ ( i * 0x01010101 ), 0x00000000, 0x00000000 ); \
-  }\
-  ROUND_CONST_Lx = _mm512_set4_epi32( 0xffffffff, 0xffffffff, \
-                                      0x00000000, 0x00000000 ); \
-}while(0);\
 
 #define ROUND(i, a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* AddRoundConstant */\
-  b1 = ROUND_CONST_Lx;\
-  a0 = _mm512_xor_si512( a0, (ROUND_CONST_L0[i]) );\
+  b1 = m512_const2_64( 0xffffffffffffffff, 0 ); \
+  a0 = _mm512_xor_si512( a0, m512_const1_128( round_const_l0[i] ) );\
   a1 = _mm512_xor_si512( a1, b1 );\
   a2 = _mm512_xor_si512( a2, b1 );\
   a3 = _mm512_xor_si512( a3, b1 );\
   a4 = _mm512_xor_si512( a4, b1 );\
   a5 = _mm512_xor_si512( a5, b1 );\
   a6 = _mm512_xor_si512( a6, b1 );\
-  a7 = _mm512_xor_si512( a7, (ROUND_CONST_L7[i]) );\
+  a7 = _mm512_xor_si512( a7, m512_const1_128( round_const_l7[i] ) );\
   \
   /* ShiftBytes + SubBytes (interleaved) */\
   b0 = _mm512_xor_si512( b0, b0 );\
-  a0 = _mm512_shuffle_epi8( a0, (SUBSH_MASK[0]) );\
+  a0 = _mm512_shuffle_epi8( a0, SUBSH_MASK0 );\
   a0 = _mm512_aesenclast_epi128(a0, b0 );\
-  a1 = _mm512_shuffle_epi8( a1, (SUBSH_MASK[1]) );\
+  a1 = _mm512_shuffle_epi8( a1, SUBSH_MASK1 );\
   a1 = _mm512_aesenclast_epi128(a1, b0 );\
-  a2 = _mm512_shuffle_epi8( a2, (SUBSH_MASK[2]) );\
+  a2 = _mm512_shuffle_epi8( a2, SUBSH_MASK2 );\
   a2 = _mm512_aesenclast_epi128(a2, b0 );\
-  a3 = _mm512_shuffle_epi8( a3, (SUBSH_MASK[3]) );\
+  a3 = _mm512_shuffle_epi8( a3, SUBSH_MASK3 );\
   a3 = _mm512_aesenclast_epi128(a3, b0 );\
-  a4 = _mm512_shuffle_epi8( a4, (SUBSH_MASK[4]) );\
+  a4 = _mm512_shuffle_epi8( a4, SUBSH_MASK4 );\
   a4 = _mm512_aesenclast_epi128(a4, b0 );\
-  a5 = _mm512_shuffle_epi8( a5, (SUBSH_MASK[5]) );\
+  a5 = _mm512_shuffle_epi8( a5, SUBSH_MASK5 );\
   a5 = _mm512_aesenclast_epi128(a5, b0 );\
-  a6 = _mm512_shuffle_epi8( a6, (SUBSH_MASK[6]) );\
+  a6 = _mm512_shuffle_epi8( a6, SUBSH_MASK6 );\
   a6 = _mm512_aesenclast_epi128(a6, b0 );\
-  a7 = _mm512_shuffle_epi8( a7, (SUBSH_MASK[7]) );\
+  a7 = _mm512_shuffle_epi8( a7, SUBSH_MASK7 );\
   a7 = _mm512_aesenclast_epi128( a7, b0 );\
   \
   /* MixBytes */\
@@ -389,29 +389,6 @@ __m512i ALL_FF;
   i6 = _mm512_unpacklo_epi64( i6, i7 );\
 }/**/
 
-
-
-void INIT256_4way( __m512i* chaining )
-{
-  static __m512i xmm0, xmm2, xmm6, xmm7;
-  static __m512i xmm12, xmm13, xmm14, xmm15;
-
-  /* load IV into registers xmm12 - xmm15 */
-  xmm12 = chaining[0];
-  xmm13 = chaining[1];
-  xmm14 = chaining[2];
-  xmm15 = chaining[3];
-
-  /* transform chaining value from column ordering into row ordering */
-  /* we put two rows (64 bit) of the IV into one 128-bit XMM register */
-  Matrix_Transpose_A(xmm12, xmm13, xmm14, xmm15, xmm2, xmm6, xmm7, xmm0);
-
-  /* store transposed IV */
-  chaining[0] = xmm12;
-  chaining[1] = xmm2;
-  chaining[2] = xmm6;
-  chaining[3] = xmm7;
-}
 
 void TF512_4way( __m512i* chaining, __m512i* message )
 {

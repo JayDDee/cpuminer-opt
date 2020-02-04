@@ -1,4 +1,7 @@
 #include "lyra2-gate.h"
+
+#if !( defined(LYRA2REV3_16WAY) || defined(LYRA2REV3_8WAY) || defined(LYRA2REV3_4WAY) )
+
 #include <memory.h>
 #include "algo/blake/sph_blake.h"
 #include "algo/cubehash/sph_cubehash.h"
@@ -96,4 +99,4 @@ int scanhash_lyra2rev3( struct work *work,
    *hashes_done = pdata[19] - first_nonce + 1;
    return 0;
 }
-
+#endif

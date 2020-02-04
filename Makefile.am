@@ -102,9 +102,6 @@ cpuminer_SOURCES = \
   algo/hamsi/hamsi-hash-4way.c \
   algo/haval/haval.c \
   algo/haval/haval-hash-4way.c \
-  algo/heavy/sph_hefty1.c \
-  algo/heavy/heavy.c \
-  algo/heavy/bastion.c \
   algo/hodl/aes.c \
   algo/hodl/hodl-gate.c \
   algo/hodl/hodl-wolf.c \
@@ -123,8 +120,6 @@ cpuminer_SOURCES = \
   algo/keccak/sha3d-4way.c \
   algo/keccak/sha3d.c \
   algo/lanehash/lane.c \
-  algo/luffa/sph_luffa.c \
-  algo/luffa/luffa.c \
   algo/luffa/luffa_for_sse2.c \
   algo/luffa/luffa-hash-2way.c \
   algo/lyra2/lyra2.c \
@@ -153,7 +148,6 @@ cpuminer_SOURCES = \
   algo/nist5/zr5.c \
   algo/panama/panama-hash-4way.c \
   algo/panama/sph_panama.c \
-  algo/radiogatun/sph_radiogatun.c \
   algo/quark/quark-gate.c \
   algo/quark/quark.c \
   algo/quark/quark-4way.c \
@@ -176,7 +170,6 @@ cpuminer_SOURCES = \
   algo/ripemd/lbry-4way.c \
   algo/scrypt/scrypt.c \
   algo/scrypt/neoscrypt.c \
-  algo/scrypt/pluck.c \
   algo/sha/sph_sha2.c \
   algo/sha/sph_sha2big.c \
   algo/sha/sha256-hash-4way.c \
@@ -195,7 +188,6 @@ cpuminer_SOURCES = \
   algo/shavite/shavite-hash-2way.c \
   algo/shavite/shavite-hash-4way.c \
   algo/shavite/shavite.c \
-  algo/simd/sph_simd.c \
   algo/simd/nist.c \
   algo/simd/vector.c \
   algo/simd/simd-hash-2way.c \
@@ -233,7 +225,6 @@ cpuminer_SOURCES = \
   algo/x11/timetravel10-gate.c \
   algo/x11/timetravel10.c \
   algo/x11/timetravel10-4way.c \
-  algo/x11/fresh.c \
   algo/x11/x11evo.c \
   algo/x11/x11evo-4way.c \
   algo/x11/x11evo-gate.c \
@@ -252,7 +243,6 @@ cpuminer_SOURCES = \
   algo/x13/skunk-gate.c \
   algo/x13/skunk-4way.c \
   algo/x13/skunk.c \
-  algo/x13/drop.c \
   algo/x13/x13bcd-4way.c \
   algo/x13/x13bcd.c \
   algo/x14/x14-gate.c \
@@ -287,7 +277,6 @@ cpuminer_SOURCES = \
   algo/x17/sonoa-gate.c \
   algo/x17/sonoa-4way.c \
   algo/x17/sonoa.c \
-  algo/x20/x20r.c \
   algo/x22/x22i-4way.c \
   algo/x22/x22i.c \
   algo/x22/x22i-gate.c \

@@ -137,7 +137,7 @@ static inline __m512i m512_const_64( const uint64_t i7, const uint64_t i6,
 #define m512_const1_8( i )     _mm512_broadcastb_epi8 ( mm128_mov32_128( i ) )
 
 #define m512_const2_128( v1, v0 ) \
-   m512_const1_256( _mm512_inserti64x2( _mm512_castsi128_si512( lo ), hi, 1 ) )
+   m512_const1_256( _mm512_inserti64x2( _mm512_castsi128_si512( v0 ), v1, 1 ) )
 
 #define m512_const2_64( i1, i0 ) \
    m512_const1_128( m128_const_64( i1, i0 ) )

@@ -42,6 +42,7 @@ extern "C"{
 #include <stddef.h>
 #include "algo/sha/sph_types.h"
 
+#if !defined(__AES__)   
 /**
  * Output size (in bits) for Groestl-224.
  */
@@ -326,4 +327,5 @@ void sph_groestl512_addbits_and_close(
 }
 #endif
 
+#endif  // !AES
 #endif

@@ -48,6 +48,8 @@ extern "C"{
 #pragma warning (disable: 4146)
 #endif
 
+#if !defined(__AVX2__)
+
 static const sph_u32 IV224[] = {
 	SPH_C32(0x00010203), SPH_C32(0x04050607),
 	SPH_C32(0x08090A0B), SPH_C32(0x0C0D0E0F),
@@ -69,6 +71,8 @@ static const sph_u32 IV256[] = {
 	SPH_C32(0x70717273), SPH_C32(0x74757677),
 	SPH_C32(0x78797A7B), SPH_C32(0x7C7D7E7F)
 };
+
+#endif // !AVX2
 
 #if SPH_64
 
@@ -135,6 +139,8 @@ static const sph_u64 IV512[] = {
 #define M16_30   14, 15,  1,  2,  5,  8,  9
 #define M16_31   15, 16,  2,  3,  6,  9, 10
 
+#if !defined(__AVX2__)
+
 #define ss0(x)    (((x) >> 1) ^ SPH_T32((x) << 3) \
                   ^ SPH_ROTL32(x,  4) ^ SPH_ROTL32(x, 19))
 #define ss1(x)    (((x) >> 1) ^ SPH_T32((x) << 2) \
@@ -188,6 +194,8 @@ static const sph_u64 IV512[] = {
 	expand2s_(qf, mf, hf, i16, I16_ ## i16, M16_ ## i16)
 #define expand2s_(qf, mf, hf, i16, ix, iy) \
 	expand2s_inner LPAR qf, mf, hf, i16, ix, iy)
+
+#endif // !AVX2
 
 #if SPH_64
 
@@ -290,6 +298,8 @@ static const sph_u64 Kb_tab[] = {
 #define MAKE_W(tt, i0, op01, i1, op12, i2, op23, i3, op34, i4) \
 	tt((M(i0) ^ H(i0)) op01 (M(i1) ^ H(i1)) op12 (M(i2) ^ H(i2)) \
 	op23 (M(i3) ^ H(i3)) op34 (M(i4) ^ H(i4)))
+
+#if !defined(__AVX2__)
 
 #define Ws0    MAKE_W(SPH_T32,  5, -,  7, +, 10, +, 13, +, 14)
 #define Ws1    MAKE_W(SPH_T32,  6, -,  8, +, 11, +, 14, -, 15)
@@ -406,6 +416,8 @@ static const sph_u64 Kb_tab[] = {
 	} while (0)
 
 #define Qs(j)   (qt[j])
+
+#endif  // !AVX2
 
 #if SPH_64
 
@@ -557,13 +569,16 @@ static const sph_u64 Kb_tab[] = {
 			+ ((xl >> 2) ^ qf(22) ^ qf(15))); \
 	} while (0)
 
-#define FOLDs   FOLD(sph_u32, MAKE_Qs, SPH_T32, SPH_ROTL32, M, Qs, dH)
 
 #if SPH_64
 
 #define FOLDb   FOLD(sph_u64, MAKE_Qb, SPH_T64, SPH_ROTL64, M, Qb, dH)
 
 #endif
+
+#if !defined(__AVX2__)
+
+#define FOLDs   FOLD(sph_u32, MAKE_Qs, SPH_T32, SPH_ROTL32, M, Qs, dH)
 
 static void
 compress_small(const unsigned char *data, const sph_u32 h[16], sph_u32 dh[16])
@@ -711,6 +726,8 @@ bmw32_close(sph_bmw_small_context *sc, unsigned ub, unsigned n,
 		sph_enc32le(out + 4 * u, h1[v]);
 }
 
+#endif // !AVX2
+
 #if SPH_64
 
 static void
@@ -840,6 +857,8 @@ bmw64_close(sph_bmw_big_context *sc, unsigned ub, unsigned n,
 
 #endif
 
+#if !defined(__AVX2__)
+
 /* see sph_bmw.h */
 void
 sph_bmw224_init(void *cc)
@@ -897,6 +916,8 @@ sph_bmw256_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 	bmw32_close(cc, ub, n, dst, 8);
 //	sph_bmw256_init(cc);
 }
+
+#endif // !AVX2
 
 #if SPH_64
 

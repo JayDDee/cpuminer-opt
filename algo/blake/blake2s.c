@@ -1,5 +1,7 @@
 #include "blake2s-gate.h"
 
+#if  !defined(BLAKE2S_16WAY) && !defined(BLAKE2S_8WAY) && !defined(BLAKE2S)
+
 #include <string.h>
 #include <stdint.h>
 
@@ -70,3 +72,4 @@ int scanhash_blake2s( struct work *work,
 
 	return 0;
 }
+#endif

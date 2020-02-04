@@ -1,4 +1,7 @@
 #include "timetravel10-gate.h"
+
+#if !defined(TIMETRAVEL10_8WAY) && !defined(TIMETRAVEL10_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -329,3 +332,4 @@ int scanhash_timetravel10( struct work *work, uint32_t max_nonce,
         *hashes_done = pdata[19] - first_nonce + 1;
   return 0;
 }
+#endif

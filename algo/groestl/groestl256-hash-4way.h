@@ -71,5 +71,8 @@ int groestl256_4way_init( groestl256_4way_context*, uint64_t );
 int groestl256_4way_update_close( groestl256_4way_context*,  void*,
                                         const void*, uint64_t );
 
+int groestl256_4way_full( groestl256_4way_context*, void*,
+                          const void*, uint64_t );
+
 #endif
 #endif 

@@ -65,6 +65,20 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.11.9
+
+Fixed x16r invalid shares when Luffa was first in hash order.
+
+New startup message for status of stratum connection, API & extranonce.
+
+New log report for CPU temperature, frequency of fastest and slowest cores.
+
+Compile time is a little shorter and binary file size a little smaller
+using conditional compilation..
+
+Removed code for Bastion, Drop, Heavy, Luffa an Pluck algos and other unused
+code.
+
 v3.11.8
 
 Fixed network hashrate showing incorrect data, should be close now.

@@ -1,4 +1,7 @@
 #include "x15-gate.h"
+
+#if !defined(X15_8WAY) && !defined(X15_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -9,9 +12,6 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/sph_luffa.h"
-#include "algo/cubehash/sph_cubehash.h"
-#include "algo/simd/sph_simd.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
@@ -217,3 +217,4 @@ int scanhash_x15( struct work *work, uint32_t max_nonce,
 	pdata[19] = n;
 	return 0;
 }
+#endif

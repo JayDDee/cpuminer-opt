@@ -96,32 +96,30 @@ int scanhash_phi2( struct work *work, uint32_t max_nonce,
 	           uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t _ALIGN(128) hash[8];
-   uint32_t _ALIGN(128) endiandata[36];
+   uint32_t _ALIGN(128) edata[36];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
-   int thr_id = mythr->id;  // thr_id arg is deprecated
-
-   if(opt_benchmark){
-   	ptarget[7] = 0x00ff;
-   }
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+   if( bench )   	ptarget[7] = 0x00ff;
 
    phi2_has_roots = false;
-   for ( int i=0; i < 36; i++ )
+
+   for ( int i = 0; i < 36; i++ )
    {
-	   be32enc(&endiandata[i], pdata[i]);
+	   be32enc( &edata[i], pdata[i] );
       if ( i >= 20 && pdata[i] ) phi2_has_roots = true;
    }
 
    do {
-	be32enc( &endiandata[19], n );
-	phi2_hash( hash, endiandata );
-	if ( hash[7] < Htarg )
-   if ( fulltest( hash, ptarget ) && !opt_benchmark )
+	edata[19] = n;
+	phi2_hash( hash, edata );
+   if ( valid_hash( hash, ptarget ) && !opt_benchmark )
   	{
-       pdata[19] = n;
+       be32enc( pdata+19, n );
        submit_solution( work, hash, mythr );
    }
 	n++;

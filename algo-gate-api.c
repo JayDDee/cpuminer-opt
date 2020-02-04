@@ -162,7 +162,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_ARGON2D500:    register_argon2d_dyn_algo   ( gate ); break;
     case ALGO_ARGON2D4096:   register_argon2d4096_algo   ( gate ); break;
     case ALGO_AXIOM:         register_axiom_algo         ( gate ); break;
-    case ALGO_BASTION:       register_bastion_algo       ( gate ); break;
     case ALGO_BLAKE:         register_blake_algo         ( gate ); break;
     case ALGO_BLAKE2B:       register_blake2b_algo       ( gate ); break;
     case ALGO_BLAKE2S:       register_blake2s_algo       ( gate ); break;
@@ -175,10 +174,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_DECRED:        register_decred_algo        ( gate ); break;
     case ALGO_DEEP:          register_deep_algo          ( gate ); break;
     case ALGO_DMD_GR:        register_dmd_gr_algo        ( gate ); break;
-    case ALGO_DROP:          register_drop_algo          ( gate ); break;
-    case ALGO_FRESH:         register_fresh_algo         ( gate ); break;
     case ALGO_GROESTL:       register_groestl_algo       ( gate ); break;
-    case ALGO_HEAVY:         register_heavy_algo         ( gate ); break;
     case ALGO_HEX:           register_hex_algo           ( gate ); break;
     case ALGO_HMQ1725:       register_hmq1725_algo       ( gate ); break;
     case ALGO_HODL:          register_hodl_algo          ( gate ); break;
@@ -186,7 +182,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_KECCAK:        register_keccak_algo        ( gate ); break;
     case ALGO_KECCAKC:       register_keccakc_algo       ( gate ); break;
     case ALGO_LBRY:          register_lbry_algo          ( gate ); break;
-    case ALGO_LUFFA:         register_luffa_algo         ( gate ); break;
     case ALGO_LYRA2H:        register_lyra2h_algo        ( gate ); break;
     case ALGO_LYRA2RE:       register_lyra2re_algo       ( gate ); break;
     case ALGO_LYRA2REV2:     register_lyra2rev2_algo     ( gate ); break;
@@ -200,7 +195,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_PENTABLAKE:    register_pentablake_algo    ( gate ); break;
     case ALGO_PHI1612:       register_phi1612_algo       ( gate ); break;
     case ALGO_PHI2:          register_phi2_algo          ( gate ); break;
-    case ALGO_PLUCK:         register_pluck_algo         ( gate ); break;
     case ALGO_POLYTIMOS:     register_polytimos_algo     ( gate ); break;
     case ALGO_POWER2B:       register_power2b_algo       ( gate ); break;
     case ALGO_QUARK:         register_quark_algo         ( gate ); break;
@@ -275,10 +269,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
 // override std defaults with jr2 defaults
 bool register_json_rpc2( algo_gate_t *gate )
 {
-  applog(LOG_WARNING,"\nCryptonight algorithm and variants are no longer");
-  applog(LOG_WARNING,"supported by cpuminer-opt. Shares submitted will");
-  applog(LOG_WARNING,"likely be rejected. Proceed at your own risk.\n");
-
 //  gate->wait_for_diff           = (void*)&do_nothing;
   gate->get_new_work            = (void*)&jr2_get_new_work;
   gate->get_nonceptr            = (void*)&jr2_get_nonceptr;
@@ -360,7 +350,7 @@ void get_algo_alias( char** algo_or_alias )
     if ( !strcasecmp( *algo_or_alias, algo_alias_map[i][ ALIAS ] ) )
     {
       // found valid alias, return proper name
-      *algo_or_alias = (char* const)( algo_alias_map[i][ PROPER ] );
+      *algo_or_alias = (const char*)( algo_alias_map[i][ PROPER ] );
       return;
     }
 }

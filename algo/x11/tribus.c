@@ -1,12 +1,13 @@
 #include "tribus-gate.h"
+
+#if !defined(TRIBUS_8WAY) && !defined(TRIBUS_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
 #include "algo/jh//sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
-
 #ifdef __AES__
   #include "algo/echo/aes_ni/hash_api.h"
 #else
@@ -117,4 +118,4 @@ int scanhash_tribus( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
-
+#endif

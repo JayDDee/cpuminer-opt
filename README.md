@@ -53,7 +53,6 @@ Supported Algorithms
                           argon2d500    argon2d-dyn,  Dynamic (DYN)
                           argon2d4096   argon2d-uis, Unitus, (UIS)
                           axiom         Shabal-256 MemoHash
-                          bastion
                           blake         Blake-256 (SFR)
                           blake2b       Blake2b 256
                           blake2s       Blake-2 S
@@ -64,10 +63,7 @@ Supported Algorithms
                           decred
                           deep          Deepcoin (DCN)
                           dmd-gr        Diamond-Groestl
-                          drop          Dropcoin
-                          fresh         Fresh
                           groestl       Groestl coin
-                          heavy         Heavy
                           hex           x16r-hex
                           hmq1725       Espers
                           hodl          Hodlcoin

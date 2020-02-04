@@ -5,29 +5,60 @@
 #include "simd-utils.h"
 #include <stdint.h>
 #include <unistd.h>
-
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-  #define X16R_8WAY 1
-#elif defined(__AVX2__) && defined(__AES__)
-  #define X16R_4WAY 1
+#include "algo/blake/sph_blake.h"
+#include "algo/bmw/sph_bmw.h"
+#include "algo/groestl/sph_groestl.h"
+#include "algo/jh/sph_jh.h"
+#include "algo/keccak/sph_keccak.h"
+#include "algo/skein/sph_skein.h"
+#include "algo/shavite/sph_shavite.h"
+#include "algo/luffa/luffa_for_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
+#include "algo/simd/nist.h"
+#include "algo/echo/sph_echo.h"
+#include "algo/hamsi/sph_hamsi.h"
+#include "algo/fugue/sph_fugue.h"
+#include "algo/shabal/sph_shabal.h"
+#include "algo/whirlpool/sph_whirlpool.h"
+#include <openssl/sha.h>
+#if defined(__AES__)
+  #include "algo/echo/aes_ni/hash_api.h"
+  #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
+#if defined (__AVX2__)
+#include "algo/blake/blake-hash-4way.h"
+#include "algo/bmw/bmw-hash-4way.h"
+#include "algo/groestl/aes_ni/hash-groestl.h"
+#include "algo/skein/skein-hash-4way.h"
+#include "algo/jh/jh-hash-4way.h"
+#include "algo/keccak/keccak-hash-4way.h"
+#include "algo/luffa/luffa-hash-2way.h"
+#include "algo/simd/simd-hash-2way.h"
+#include "algo/echo/aes_ni/hash_api.h"
+#include "algo/hamsi/hamsi-hash-4way.h"
+#include "algo/shabal/shabal-hash-4way.h"
+#include "algo/sha/sha-hash-4way.h"
+#if defined(__VAES__)
+  #include "algo/groestl/groestl512-hash-4way.h"
+  #include "algo/shavite/shavite-hash-4way.h"
+  #include "algo/echo/echo-hash-4way.h"
+#endif
+#endif // AVX2
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+  #define X16R_8WAY   1
   #define X16RV2_8WAY 1
+  #define X16RT_8WAY  1
+  #define X21S_8WAY   1
+
 #elif defined(__AVX2__) && defined(__AES__)
+
   #define X16RV2_4WAY 1
-#endif
+  #define X16RT_4WAY  1
+  #define X21S_4WAY   1
+  #define X16R_4WAY   1
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-  #define X16RT_8WAY 1
-#elif defined(__AVX2__) && defined(__AES__)
-  #define X16RT_4WAY 1
-#endif
-
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-  #define X21S_8WAY 1
-#elif defined(__AVX2__) && defined(__AES__)
-  #define X21S_4WAY 1
 #endif
 
 enum x16r_Algo {
@@ -50,6 +81,8 @@ enum x16r_Algo {
         X16R_HASH_FUNC_COUNT
 };
 
+extern __thread char x16r_hash_order[ X16R_HASH_FUNC_COUNT + 1 ];
+
 extern void (*x16_r_s_getAlgoString) ( const uint8_t*, char* );
 void x16r_getAlgoString( const uint8_t *prevblock, char *output );
 void x16s_getAlgoString( const uint8_t *prevblock, char *output );
@@ -67,24 +100,114 @@ bool register_x21s__algo( algo_gate_t* gate );
 // x16r, x16s
 #if defined(X16R_8WAY)
 
-void x16r_8way_hash( void *state, const void *input );
-int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
-                        uint64_t *hashes_done, struct thr_info *mythr );
+union _x16r_8way_context_overlay
+{
+    blake512_8way_context   blake;
+    bmw512_8way_context     bmw;
+    skein512_8way_context   skein;
+    jh512_8way_context      jh;
+    keccak512_8way_context  keccak;
+    luffa_4way_context      luffa;
+    cubehashParam           cube;
+    simd_4way_context       simd;
+    hamsi512_8way_context   hamsi;
+    sph_fugue512_context    fugue;
+    shabal512_8way_context  shabal;
+    sph_whirlpool_context   whirlpool;
+    sha512_8way_context     sha512;
+#if defined(__VAES__)
+    groestl512_4way_context groestl;
+    shavite512_4way_context shavite;
+    echo_4way_context       echo;
+#else
+    hashState_groestl       groestl;
+    sph_shavite512_context  shavite;
+    hashState_echo          echo;
+#endif
+} __attribute__ ((aligned (64)));
+
+typedef union _x16r_8way_context_overlay x16r_8way_context_overlay;
+
+extern __thread x16r_8way_context_overlay x16r_ctx;
+
+void x16r_8way_prehash( void *, void * );
+void x16r_8way_hash_generic( void *, const void * );
+void x16r_8way_hash( void *, const void * );
+int scanhash_x16r_8way( struct work *, uint32_t ,
+                        uint64_t *, struct thr_info * );
+extern __thread x16r_8way_context_overlay x16r_ctx;
 
 
 #elif defined(X16R_4WAY)
 
-void x16r_4way_hash( void *state, const void *input );
-int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
-                        uint64_t *hashes_done, struct thr_info *mythr );
+union _x16r_4way_context_overlay
+{
+    blake512_4way_context   blake;
+    bmw512_4way_context     bmw;
+    hashState_echo          echo;
+    hashState_groestl       groestl;
+    skein512_4way_context   skein;
+    jh512_4way_context      jh;
+    keccak512_4way_context  keccak;
+    luffa_2way_context      luffa;
+    hashState_luffa         luffa1;
+    cubehashParam           cube;
+    sph_shavite512_context  shavite;
+    simd_2way_context       simd;
+    hamsi512_4way_context   hamsi;
+    sph_fugue512_context    fugue;
+    shabal512_4way_context  shabal;
+    sph_whirlpool_context   whirlpool;
+    sha512_4way_context     sha512;
+} __attribute__ ((aligned (64)));
 
-#else
+typedef union _x16r_4way_context_overlay x16r_4way_context_overlay;
 
-void x16r_hash( void *state, const void *input );
-int scanhash_x16r( struct work *work, uint32_t max_nonce,
-                   uint64_t *hashes_done, struct thr_info *mythr );
+extern __thread x16r_4way_context_overlay x16r_ctx;
+
+void x16r_4way_prehash( void *, void * );
+void x16r_4way_hash_generic( void *, const void * );
+void x16r_4way_hash( void *, const void * );
+int scanhash_x16r_4way( struct work *, uint32_t,
+                        uint64_t *, struct thr_info * );
+extern __thread x16r_4way_context_overlay x16r_ctx;
 
 #endif
+
+// needed for hex
+union _x16r_context_overlay
+{
+#if defined(__AES__)
+        hashState_echo          echo;
+        hashState_groestl       groestl;
+#else
+        sph_groestl512_context   groestl;
+        sph_echo512_context      echo;
+#endif
+        sph_blake512_context    blake;
+        sph_bmw512_context      bmw;
+        sph_skein512_context    skein;
+        sph_jh512_context       jh;
+        sph_keccak512_context   keccak;
+        hashState_luffa         luffa;
+        cubehashParam           cube;
+        sph_shavite512_context  shavite;
+        hashState_sd            simd;
+        sph_hamsi512_context    hamsi;
+        sph_fugue512_context    fugue;
+        sph_shabal512_context   shabal;
+        sph_whirlpool_context   whirlpool;
+        SHA512_CTX              sha512;
+} __attribute__ ((aligned (64)));
+
+typedef union _x16r_context_overlay x16r_context_overlay;
+
+extern __thread x16r_context_overlay x16_ctx;
+
+void x16r_prehash( void *, void * );
+void x16r_hash_generic( void *, const void * );
+void x16r_hash( void *, const void * );
+int scanhash_x16r( struct work *, uint32_t, uint64_t *, struct thr_info * );
 
 // x16Rv2
 #if defined(X16RV2_8WAY)
@@ -108,35 +231,35 @@ int scanhash_x16rv2( struct work *work, uint32_t max_nonce,
 #endif
 
 // x16rt, veil
-#if defined(X16RT_8WAY)
+#if defined(X16R_8WAY)
 
-void x16rt_8way_hash( void *state, const void *input );
+//void x16rt_8way_hash( void *state, const void *input );
 int scanhash_x16rt_8way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
-#elif defined(X16RT_4WAY)
+#elif defined(X16R_4WAY)
 
-void x16rt_4way_hash( void *state, const void *input );
+//void x16rt_4way_hash( void *state, const void *input );
 int scanhash_x16rt_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
 #else
 
-void x16rt_hash( void *state, const void *input );
+//void x16rt_hash( void *state, const void *input );
 int scanhash_x16rt( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif
 
 // x21s
-#if defined(X21S_8WAY)
+#if defined(X16R_8WAY)
 
 void x21s_8way_hash( void *state, const void *input );
 int scanhash_x21s_8way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 bool x21s_8way_thread_init();
 
-#elif defined(X21S_4WAY)
+#elif defined(X16R_4WAY)
 
 void x21s_4way_hash( void *state, const void *input );
 int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
@@ -152,7 +275,7 @@ bool x21s_thread_init();
 
 #endif
 
-void hex_hash( void *state, const void *input );
+//void hex_hash( void *state, const void *input );
 int scanhash_hex( struct work *work, uint32_t max_nonce,
                   uint64_t *hashes_done, struct thr_info *mythr );
 

@@ -338,7 +338,7 @@ bool   submit_lane_solution( struct work *work, const void *hash,
                              struct thr_info *thr, const int lane );
 
 
-//bool submit_work( struct thr_info *thr, const struct work *work_in );
+bool submit_work( struct thr_info *thr, const struct work *work_in );
 
 
 void   get_currentalgo( char* buf, int sz );
@@ -368,6 +368,7 @@ struct work {
 	double targetdiff;
 //	double shareratio;
 	double sharediff;
+   double stratum_diff;
 
 	int height;
 	char *txs;
@@ -526,7 +527,6 @@ enum algos {
         ALGO_ARGON2D500,
         ALGO_ARGON2D4096,
         ALGO_AXIOM,       
-        ALGO_BASTION,
         ALGO_BLAKE,       
         ALGO_BLAKE2B,
         ALGO_BLAKE2S,     
@@ -540,10 +540,7 @@ enum algos {
         ALGO_DECRED,
         ALGO_DEEP,
         ALGO_DMD_GR,
-        ALGO_DROP,        
-        ALGO_FRESH,       
         ALGO_GROESTL,     
-        ALGO_HEAVY,
         ALGO_HEX,
         ALGO_HMQ1725,
         ALGO_HODL,
@@ -551,7 +548,6 @@ enum algos {
         ALGO_KECCAK,
         ALGO_KECCAKC,
         ALGO_LBRY,
-        ALGO_LUFFA,       
         ALGO_LYRA2H,
         ALGO_LYRA2RE,       
         ALGO_LYRA2REV2,   
@@ -565,7 +561,6 @@ enum algos {
         ALGO_PENTABLAKE,  
         ALGO_PHI1612,
 	     ALGO_PHI2,
-        ALGO_PLUCK,       
         ALGO_POLYTIMOS,
         ALGO_POWER2B,
         ALGO_QUARK,
@@ -626,7 +621,6 @@ static const char* const algo_names[] = {
         "argon2d500",
         "argon2d4096",
         "axiom",
-        "bastion",
         "blake",
         "blake2b",
         "blake2s",
@@ -640,10 +634,7 @@ static const char* const algo_names[] = {
         "decred",
         "deep",
         "dmd-gr",
-        "drop",
-        "fresh",
         "groestl",
-        "heavy",
         "hex",
         "hmq1725",
         "hodl",
@@ -651,7 +642,6 @@ static const char* const algo_names[] = {
         "keccak",
         "keccakc",
         "lbry",
-        "luffa",
         "lyra2h",
         "lyra2re",
         "lyra2rev2",
@@ -665,7 +655,6 @@ static const char* const algo_names[] = {
         "pentablake",
         "phi1612",
         "phi2",
-	     "pluck",
         "polytimos",
         "power2b",
         "quark",
@@ -758,7 +747,6 @@ extern double stratum_diff;
 extern bool opt_reset_on_stale;
 extern double net_diff;
 extern double net_hashrate;
-extern int opt_pluck_n;
 extern int opt_param_n;
 extern int opt_param_r;
 extern char* opt_param_key;
@@ -792,7 +780,6 @@ Options:\n\
                           argon2d500    argon2d-dyn, Dynamic (DYN)\n\
                           argon2d4096   argon2d-uis, Unitus (UIS)\n\
                           axiom         Shabal-256 MemoHash\n\
-                          bastion\n\
                           blake         blake256r14 (SFR)\n\
                           blake2b       Blake2b 256\n\
                           blake2s       Blake-2 S\n\
@@ -806,10 +793,7 @@ Options:\n\
                           decred        Blake256r14dcr\n\
                           deep          Deepcoin (DCN)\n\
                           dmd-gr        Diamond\n\
-                          drop          Dropcoin\n\
-                          fresh         Fresh\n\
                           groestl       Groestl coin\n\
-                          heavy         Heavy\n\
                           hex           x16r-hex\n\
                           hmq1725       Espers\n\
                           hodl          Hodlcoin\n\
@@ -817,7 +801,6 @@ Options:\n\
                           keccak        Maxcoin\n\
                           keccakc       Creative Coin\n\
                           lbry          LBC, LBRY Credits\n\
-                          luffa         Luffa\n\
                           lyra2h        Hppcoin\n\
                           lyra2re       lyra2\n\
                           lyra2rev2     lyrav2\n\
@@ -831,7 +814,6 @@ Options:\n\
                           pentablake    5 x blake512\n\
                           phi1612       phi\n\
                           phi2\n\
-			                 pluck         Pluck:128 (Supcoin)\n\
                           polytimos\n\
                           power2b       MicroBitcoin (MBC)\n\
                           quark         Quark\n\

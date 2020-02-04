@@ -15,16 +15,86 @@
 
 #if defined(__VAES__)
 
-/* global constants  */
-__m512i ROUND_CONST_Lx;
-//__m128i ROUND_CONST_L0[ROUNDS512];
-//__m128i ROUND_CONST_L7[ROUNDS512];
-__m512i ROUND_CONST_P[ROUNDS1024];
-__m512i ROUND_CONST_Q[ROUNDS1024];
-__m512i TRANSP_MASK;
-__m512i SUBSH_MASK[8];
-__m512i ALL_1B;
-__m512i ALL_FF;
+static const __m128i round_const_p[] __attribute__ ((aligned (64))) =
+{
+   { 0x7060504030201000, 0xf0e0d0c0b0a09080 },
+   { 0x7161514131211101, 0xf1e1d1c1b1a19181 }, 
+   { 0x7262524232221202, 0xf2e2d2c2b2a29282 },
+   { 0x7363534333231303, 0xf3e3d3c3b3a39383 },
+   { 0x7464544434241404, 0xf4e4d4c4b4a49484 },
+   { 0x7565554535251505, 0xf5e5d5c5b5a59585 },
+   { 0x7666564636261606, 0xf6e6d6c6b6a69686 },
+   { 0x7767574737271707, 0xf7e7d7c7b7a79787 },
+   { 0x7868584838281808, 0xf8e8d8c8b8a89888 },
+   { 0x7969594939291909, 0xf9e9d9c9b9a99989 },
+   { 0x7a6a5a4a3a2a1a0a, 0xfaeadacabaaa9a8a },
+   { 0x7b6b5b4b3b2b1b0b, 0xfbebdbcbbbab9b8b },
+   { 0x7c6c5c4c3c2c1c0c, 0xfcecdcccbcac9c8c },
+   { 0x7d6d5d4d3d2d1d0d, 0xfdedddcdbdad9d8d }
+};
+
+static const __m128i round_const_q[] __attribute__ ((aligned (64))) =
+{
+   { 0x8f9fafbfcfdfefff, 0x0f1f2f3f4f5f6f7f },
+   { 0x8e9eaebecedeeefe, 0x0e1e2e3e4e5e6e7e },
+   { 0x8d9dadbdcdddedfd, 0x0d1d2d3d4d5d6d7d },
+   { 0x8c9cacbcccdcecfc, 0x0c1c2c3c4c5c6c7c },
+   { 0x8b9babbbcbdbebfb, 0x0b1b2b3b4b5b6b7b },
+   { 0x8a9aaabacadaeafa, 0x0a1a2a3a4a5a6a7a },
+   { 0x8999a9b9c9d9e9f9, 0x0919293949596979 },
+   { 0x8898a8b8c8d8e8f8, 0x0818283848586878 },
+   { 0x8797a7b7c7d7e7f7, 0x0717273747576777 },
+   { 0x8696a6b6c6d6e6f6, 0x0616263646566676 },
+   { 0x8595a5b5c5d5e5f5, 0x0515253545556575 },
+   { 0x8494a4b4c4d4e4f4, 0x0414243444546474 },
+   { 0x8393a3b3c3d3e3f3, 0x0313233343536373 },
+   { 0x8292a2b2c2d2e2f2, 0x0212223242526272 }
+};
+
+static const __m512i TRANSP_MASK = { 0x0d0509010c040800, 0x0f070b030e060a02,
+                                     0x1d1519111c141810, 0x1f171b131e161a12,
+                                     0x2d2529212c242820, 0x2f272b232e262a22,
+                                     0x3d3539313c343830, 0x3f373b333e363a32 };
+
+static const __m512i SUBSH_MASK0 = { 0x0b0e0104070a0d00, 0x0306090c0f020508,
+                                     0x1b1e1114171a1d10, 0x1316191c1f121518,
+                                     0x2b2e2124272a2d20, 0x2326292c2f222528,
+                                     0x3b3e3134373a3d30, 0x3336393c3f323538 };
+
+static const __m512i SUBSH_MASK1 = { 0x0c0f0205080b0e01, 0x04070a0d00030609,
+                                     0x1c1f1215181b1e11, 0x14171a1d10131619,
+                                     0x2c2f2225282b2e21, 0x24272a2d20232629,
+                                     0x3c3f3235383b3e31, 0x34373a3d30333639 };
+
+static const __m512i SUBSH_MASK2 = { 0x0d000306090c0f02, 0x05080b0e0104070a,
+                                     0x1d101316191c1f12, 0x15181b1e1114171a,
+                                     0x2d202326292c2f22, 0x25282b2e2124272a,
+                                     0x3d303336393c3f32, 0x35383b3e3134373a };
+
+static const __m512i SUBSH_MASK3 = { 0x0e0104070a0d0003, 0x06090c0f0205080b,
+                                     0x1e1114171a1d1013, 0x16191c1f1215181b,
+                                     0x2e2124272a2d2023, 0x26292c2f2225282b,
+                                     0x3e3134373a3d3033, 0x36393c3f3235383b };
+
+static const __m512i SUBSH_MASK4 = { 0x0f0205080b0e0104, 0x070a0d000306090c,
+                                     0x1f1215181b1e1114, 0x171a1d101316191c,
+                                     0x2f2225282b2e2124, 0x272a2d202326292c,
+                                     0x3f3235383b3e3134, 0x373a3d303336393c };
+
+static const __m512i SUBSH_MASK5 = { 0x000306090c0f0205, 0x080b0e0104070a0d,
+                                     0x101316191c1f1215, 0x181b1e1114171a1d,
+                                     0x202326292c2f2225, 0x282b2e2124272a2d,
+                                     0x303336393c3f3235, 0x383b3e3134373a3d };
+
+static const __m512i SUBSH_MASK6 = { 0x0104070a0d000306, 0x090c0f0205080b0e,
+                                     0x1114171a1d101316, 0x191c1f1215181b1e,
+                                     0x2124272a2d202326, 0x292c2f2225282b2e,
+                                     0x3134373a3d303336, 0x393c3f3235383b3e };
+
+static const __m512i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003,
+                                     0x16191c1f1215181b, 0x1e1114171a1d1013,
+                                     0x26292c2f2225282b, 0x2e2124272a2d2023,
+                                     0x36393c3f3235383b, 0x3e3134373a3d3033 };
 
 #define tos(a)    #a
 #define tostr(a)  tos(a)
@@ -155,69 +225,6 @@ __m512i ALL_FF;
   b1 = _mm512_xor_si512(b1, a4);\
 }/*MixBytes*/
 
-// calculate the round constants seperately and load at startup
-
-#define SET_CONSTANTS(){\
-  ALL_FF = _mm512_set1_epi32( 0xffffffff );\
-  ALL_1B = _mm512_set1_epi32( 0x1b1b1b1b );\
-  TRANSP_MASK   = _mm512_set_epi32( \
-                         0x3f373b33, 0x3e363a32, 0x3d353931, 0x3c343830, \
-                         0x2f272b23, 0x2e262a22, 0x2d252921, 0x2c242820, \
-                         0x1f171b13, 0x1e161a12, 0x1d151911, 0x1c141810, \
-                         0x0f070b03, 0x0e060a02, 0x0d050901, 0x0c040800 ); \
-  SUBSH_MASK[0] = _mm512_set_epi32( \
-                         0x3336393c, 0x3f323538, 0x3b3e3134, 0x373a3d30, \
-                         0x2326292c, 0x2f222528, 0x2b2e2124, 0x272a2d20, \
-                         0x1316191c, 0x1f121518, 0x1b1e1114, 0x171a1d10, \
-                         0x0306090c, 0x0f020508, 0x0b0e0104, 0x070a0d00 ); \
-  SUBSH_MASK[1] = _mm512_set_epi32( \
-                         0x34373a3d, 0x30333639, 0x3c3f3235, 0x383b3e31, \
-                         0x24272a2d, 0x20232629, 0x2c2f2225, 0x282b2e21, \
-                         0x14171a1d, 0x10131619, 0x1c1f1215, 0x181b1e11, \
-                         0x04070a0d, 0x00030609, 0x0c0f0205, 0x080b0e01 ); \
-  SUBSH_MASK[2] = _mm512_set_epi32( \
-                         0x35383b3e, 0x3134373a, 0x3d303336, 0x393c3f32, \
-                         0x25282b2e, 0x2124272a, 0x2d202326, 0x292c2f22, \
-                         0x15181b1e, 0x1114171a, 0x1d101316, 0x191c1f12, \
-                         0x05080b0e, 0x0104070a, 0x0d000306, 0x090c0f02 ); \
-  SUBSH_MASK[3] = _mm512_set_epi32( \
-                         0x36393c3f, 0x3235383b, 0x3e313437, 0x3a3d3033, \
-                         0x26292c2f, 0x2225282b, 0x2e212427, 0x2a2d2023, \
-                         0x16191c1f, 0x1215181b, 0x1e111417, 0x1a1d1013, \
-                         0x06090c0f, 0x0205080b, 0x0e010407, 0x0a0d0003 ); \
-  SUBSH_MASK[4] = _mm512_set_epi32( \
-                         0x373a3d30, 0x3336393c, 0x3f323538, 0x3b3e3134, \
-                         0x272a2d20, 0x2326292c, 0x2f222528, 0x2b2e2124, \
-                         0x171a1d10, 0x1316191c, 0x1f121518, 0x1b1e1114, \
-                         0x070a0d00, 0x0306090c, 0x0f020508, 0x0b0e0104 ); \
-  SUBSH_MASK[5] = _mm512_set_epi32( \
-                         0x383b3e31, 0x34373a3d, 0x30333639, 0x3c3f3235, \
-                         0x282b2e21, 0x24272a2d, 0x20232629, 0x2c2f2225, \
-                         0x181b1e11, 0x14171a1d, 0x10131619, 0x1c1f1215, \
-                         0x080b0e01, 0x04070a0d, 0x00030609, 0x0c0f0205 ); \
-  SUBSH_MASK[6] = _mm512_set_epi32( \
-                         0x393c3f32, 0x35383b3e, 0x3134373a, 0x3d303336, \
-                         0x292c2f22, 0x25282b2e, 0x2124272a, 0x2d202326, \
-                         0x191c1f12, 0x15181b1e, 0x1114171a, 0x1d101316, \
-                         0x090c0f02, 0x05080b0e, 0x0104070a, 0x0d000306 ); \
-  SUBSH_MASK[7] = _mm512_set_epi32( \
-                         0x3e313437, 0x3a3d3033, 0x36393c3f, 0x3235383b, \
-                         0x2e212427, 0x2a2d2023, 0x26292c2f, 0x2225282b, \
-                         0x1e111417, 0x1a1d1013, 0x16191c1f, 0x1215181b, \
-                         0x0e010407, 0x0a0d0003, 0x06090c0f, 0x0205080b ); \
-  for( i = 0; i < ROUNDS1024; i++ ) \
-  { \
-    ROUND_CONST_P[i] = _mm512_set4_epi32( 0xf0e0d0c0 ^ (i * 0x01010101), \
-                                          0xb0a09080 ^ (i * 0x01010101), \
-                                          0x70605040 ^ (i * 0x01010101), \
-                                          0x30201000 ^ (i * 0x01010101) ); \
-    ROUND_CONST_Q[i] = _mm512_set4_epi32( 0x0f1f2f3f ^ (i * 0x01010101), \
-                                          0x4f5f6f7f ^ (i * 0x01010101), \
-                                          0x8f9fafbf ^ (i * 0x01010101), \
-                                          0xcfdfefff ^ (i * 0x01010101));\
-  } \
-}while(0);\
-
 /* one round
  * a0-a7 = input rows
  * b0-b7 = output rows
@@ -242,30 +249,32 @@ __m512i ALL_FF;
   for ( round_counter = 0; round_counter < 14; round_counter += 2 ) \
   { \
     /* AddRoundConstant P1024 */\
-    xmm8 = _mm512_xor_si512( xmm8, ( ROUND_CONST_P[ round_counter ] ) );\
+    xmm8 = _mm512_xor_si512( xmm8, m512_const1_128( \
+             casti_m128i( round_const_p, round_counter ) ) ); \
     /* ShiftBytes P1024 + pre-AESENCLAST */\
-    xmm8  = _mm512_shuffle_epi8( xmm8,  ( SUBSH_MASK[0] ) );\
-    xmm9  = _mm512_shuffle_epi8( xmm9,  ( SUBSH_MASK[1] ) );\
-    xmm10 = _mm512_shuffle_epi8( xmm10, ( SUBSH_MASK[2] ) );\
-    xmm11 = _mm512_shuffle_epi8( xmm11, ( SUBSH_MASK[3] ) );\
-    xmm12 = _mm512_shuffle_epi8( xmm12, ( SUBSH_MASK[4] ) );\
-    xmm13 = _mm512_shuffle_epi8( xmm13, ( SUBSH_MASK[5] ) );\
-    xmm14 = _mm512_shuffle_epi8( xmm14, ( SUBSH_MASK[6] ) );\
-    xmm15 = _mm512_shuffle_epi8( xmm15, ( SUBSH_MASK[7] ) );\
+    xmm8  = _mm512_shuffle_epi8( xmm8,  SUBSH_MASK0 ); \
+    xmm9  = _mm512_shuffle_epi8( xmm9,  SUBSH_MASK1 );\
+    xmm10 = _mm512_shuffle_epi8( xmm10, SUBSH_MASK2 );\
+    xmm11 = _mm512_shuffle_epi8( xmm11, SUBSH_MASK3 );\
+    xmm12 = _mm512_shuffle_epi8( xmm12, SUBSH_MASK4 );\
+    xmm13 = _mm512_shuffle_epi8( xmm13, SUBSH_MASK5 );\
+    xmm14 = _mm512_shuffle_epi8( xmm14, SUBSH_MASK6 );\
+    xmm15 = _mm512_shuffle_epi8( xmm15, SUBSH_MASK7 );\
     /* SubBytes + MixBytes */\
     SUBMIX(xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7);\
     \
      /* AddRoundConstant P1024 */\
-    xmm0 = _mm512_xor_si512( xmm0, ( ROUND_CONST_P[ round_counter+1 ] ) );\
+    xmm0 = _mm512_xor_si512( xmm0, m512_const1_128( \
+             casti_m128i( round_const_p, round_counter+1 ) ) ); \
     /* ShiftBytes P1024 + pre-AESENCLAST */\
-    xmm0 = _mm512_shuffle_epi8( xmm0, ( SUBSH_MASK[0] ) );\
-    xmm1 = _mm512_shuffle_epi8( xmm1, ( SUBSH_MASK[1] ) );\
-    xmm2 = _mm512_shuffle_epi8( xmm2, ( SUBSH_MASK[2] ) );\
-    xmm3 = _mm512_shuffle_epi8( xmm3, ( SUBSH_MASK[3] ) );\
-    xmm4 = _mm512_shuffle_epi8( xmm4, ( SUBSH_MASK[4] ) );\
-    xmm5 = _mm512_shuffle_epi8( xmm5, ( SUBSH_MASK[5] ) );\
-    xmm6 = _mm512_shuffle_epi8( xmm6, ( SUBSH_MASK[6] ) );\
-    xmm7 = _mm512_shuffle_epi8( xmm7, ( SUBSH_MASK[7] ) );\
+    xmm0 = _mm512_shuffle_epi8( xmm0, SUBSH_MASK0 );\
+    xmm1 = _mm512_shuffle_epi8( xmm1, SUBSH_MASK1 );\
+    xmm2 = _mm512_shuffle_epi8( xmm2, SUBSH_MASK2 );\
+    xmm3 = _mm512_shuffle_epi8( xmm3, SUBSH_MASK3 );\
+    xmm4 = _mm512_shuffle_epi8( xmm4, SUBSH_MASK4 );\
+    xmm5 = _mm512_shuffle_epi8( xmm5, SUBSH_MASK5 );\
+    xmm6 = _mm512_shuffle_epi8( xmm6, SUBSH_MASK6 );\
+    xmm7 = _mm512_shuffle_epi8( xmm7, SUBSH_MASK7 );\
     /* SubBytes + MixBytes */\
      SUBMIX(xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15);\
   }\
@@ -284,16 +293,17 @@ __m512i ALL_FF;
     xmm12 = _mm512_xor_si512( xmm12, xmm1 );\
     xmm13 = _mm512_xor_si512( xmm13, xmm1 );\
     xmm14 = _mm512_xor_si512( xmm14, xmm1 );\
-    xmm15 = _mm512_xor_si512( xmm15, ( ROUND_CONST_Q[ round_counter ] ) );\
+    xmm15 = _mm512_xor_si512( xmm15, m512_const1_128( \
+                 casti_m128i( round_const_q, round_counter ) ) ); \
     /* ShiftBytes Q1024 + pre-AESENCLAST */\
-    xmm8  = _mm512_shuffle_epi8( xmm8,  ( SUBSH_MASK[1] ) );\
-    xmm9  = _mm512_shuffle_epi8( xmm9,  ( SUBSH_MASK[3] ) );\
-    xmm10 = _mm512_shuffle_epi8( xmm10, ( SUBSH_MASK[5] ) );\
-    xmm11 = _mm512_shuffle_epi8( xmm11, ( SUBSH_MASK[7] ) );\
-    xmm12 = _mm512_shuffle_epi8( xmm12, ( SUBSH_MASK[0] ) );\
-    xmm13 = _mm512_shuffle_epi8( xmm13, ( SUBSH_MASK[2] ) );\
-    xmm14 = _mm512_shuffle_epi8( xmm14, ( SUBSH_MASK[4] ) );\
-    xmm15 = _mm512_shuffle_epi8( xmm15, ( SUBSH_MASK[6] ) );\
+    xmm8  = _mm512_shuffle_epi8( xmm8,  SUBSH_MASK1 );\
+    xmm9  = _mm512_shuffle_epi8( xmm9,  SUBSH_MASK3 );\
+    xmm10 = _mm512_shuffle_epi8( xmm10, SUBSH_MASK5 );\
+    xmm11 = _mm512_shuffle_epi8( xmm11, SUBSH_MASK7 );\
+    xmm12 = _mm512_shuffle_epi8( xmm12, SUBSH_MASK0 );\
+    xmm13 = _mm512_shuffle_epi8( xmm13, SUBSH_MASK2 );\
+    xmm14 = _mm512_shuffle_epi8( xmm14, SUBSH_MASK4 );\
+    xmm15 = _mm512_shuffle_epi8( xmm15, SUBSH_MASK6 );\
     /* SubBytes + MixBytes */\
     SUBMIX(xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7);\
     \
@@ -306,16 +316,17 @@ __m512i ALL_FF;
     xmm4 = _mm512_xor_si512( xmm4, xmm9 );\
     xmm5 = _mm512_xor_si512( xmm5, xmm9 );\
     xmm6 = _mm512_xor_si512( xmm6, xmm9 );\
-    xmm7 = _mm512_xor_si512( xmm7, ( ROUND_CONST_Q[ round_counter+1 ] ) );\
+    xmm7 = _mm512_xor_si512( xmm7, m512_const1_128( \
+             casti_m128i( round_const_q, round_counter+1 ) ) ); \
     /* ShiftBytes Q1024 + pre-AESENCLAST */\
-    xmm0 = _mm512_shuffle_epi8( xmm0, ( SUBSH_MASK[1] ) );\
-    xmm1 = _mm512_shuffle_epi8( xmm1, ( SUBSH_MASK[3] ) );\
-    xmm2 = _mm512_shuffle_epi8( xmm2, ( SUBSH_MASK[5] ) );\
-    xmm3 = _mm512_shuffle_epi8( xmm3, ( SUBSH_MASK[7] ) );\
-    xmm4 = _mm512_shuffle_epi8( xmm4, ( SUBSH_MASK[0] ) );\
-    xmm5 = _mm512_shuffle_epi8( xmm5, ( SUBSH_MASK[2] ) );\
-    xmm6 = _mm512_shuffle_epi8( xmm6, ( SUBSH_MASK[4] ) );\
-    xmm7 = _mm512_shuffle_epi8( xmm7, ( SUBSH_MASK[6] ) );\
+    xmm0 = _mm512_shuffle_epi8( xmm0, SUBSH_MASK1 );\
+    xmm1 = _mm512_shuffle_epi8( xmm1, SUBSH_MASK3 );\
+    xmm2 = _mm512_shuffle_epi8( xmm2, SUBSH_MASK5 );\
+    xmm3 = _mm512_shuffle_epi8( xmm3, SUBSH_MASK7 );\
+    xmm4 = _mm512_shuffle_epi8( xmm4, SUBSH_MASK0 );\
+    xmm5 = _mm512_shuffle_epi8( xmm5, SUBSH_MASK2 );\
+    xmm6 = _mm512_shuffle_epi8( xmm6, SUBSH_MASK4 );\
+    xmm7 = _mm512_shuffle_epi8( xmm7, SUBSH_MASK6 );\
     /* SubBytes + MixBytes */\
     SUBMIX(xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15);\
   }\

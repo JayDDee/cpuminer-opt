@@ -98,7 +98,13 @@ static inline float linux_cputemp(int core)
 }
 
 #define CPUFREQ_PATH \
- "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq"
+ "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"
+
+#define CPUFREQ_PATHn \
+ "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq"
+
+
+// "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq"
 static inline uint32_t linux_cpufreq(int core)
 {
 	FILE *fd = fopen(CPUFREQ_PATH, "r");
@@ -113,13 +119,38 @@ static inline uint32_t linux_cpufreq(int core)
 	return freq;
 }
 
+static inline void linux_cpu_hilo_freq( uint32_t* lo, uint32_t *hi )
+{
+   uint64_t freq = 0, hi_freq = 0, lo_freq = 0xffffffffffffffff;
+
+   for ( int i = 0; i < num_cpus; i++ )
+   {
+      char path[64];
+      sprintf( path, CPUFREQ_PATHn, i );   
+
+      FILE *fd = fopen( path, "r" );
+      if ( fd )
+      {
+         if ( fscanf( fd, "%ld", &freq ) )
+         {
+            if ( freq > hi_freq ) hi_freq = freq;
+            if ( freq < lo_freq ) lo_freq = freq;
+         }
+      }
+   }
+   *hi = hi_freq;
+   *lo = lo_freq;
+}
+
+
 #else /* WIN32 */
 
-static inline float win32_cputemp(int core)
+static inline float win32_cputemp( int core )
 {
 	// todo
 	return 0.0;
 }
+
 
 #endif /* !WIN32 */
 
@@ -127,21 +158,21 @@ static inline float win32_cputemp(int core)
 /* exports */
 
 
-static inline float cpu_temp(int core)
+static inline float cpu_temp( int core )
 {
 #ifdef WIN32
-	return win32_cputemp(core);
+	return win32_cputemp( core );
 #else
-	return linux_cputemp(core);
+	return linux_cputemp( core );
 #endif
 }
 
-static inline uint32_t cpu_clock(int core)
+static inline uint32_t cpu_clock( int core )
 {
 #ifdef WIN32
 	return 0;
 #else
-	return linux_cpufreq(core);
+	return linux_cpufreq( core );
 #endif
 }
 

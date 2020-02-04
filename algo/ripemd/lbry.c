@@ -1,4 +1,7 @@
 #include "lbry-gate.h"
+
+#if !defined(LBRY_16WAY) && !defined(LBRY_8WAY) && !defined(LBRY_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -100,3 +103,4 @@ int scanhash_lbry( struct work *work, uint32_t max_nonce,
 	pdata[27] = n;
 	return 0;
 }
+#endif

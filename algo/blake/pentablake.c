@@ -1,4 +1,7 @@
 #include "pentablake-gate.h"
+
+#if !defined(PENTABLAKE_8WAY) && !defined(PENTABLAKE_4WAY)
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -111,3 +114,4 @@ int scanhash_pentablake( struct work *work, uint32_t max_nonce,
 	return 0;
 } 
 
+#endif

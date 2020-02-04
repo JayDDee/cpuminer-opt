@@ -579,6 +579,32 @@ static inline void mm128_bswap32_80( void *d, void *s )
   casti_m128i( d, 4 ) = _mm_shuffle_epi8( casti_m128i( s, 4 ), bswap_shuf );
 }
 
+#else
+
+static inline void mm128_bswap32_80( void *d, void *s )
+{
+  ( (uint32_t*)d )[ 0] = bswap_32( ( (uint32_t*)s )[ 0] );
+  ( (uint32_t*)d )[ 1] = bswap_32( ( (uint32_t*)s )[ 1] );
+  ( (uint32_t*)d )[ 2] = bswap_32( ( (uint32_t*)s )[ 2] );
+  ( (uint32_t*)d )[ 3] = bswap_32( ( (uint32_t*)s )[ 3] );
+  ( (uint32_t*)d )[ 4] = bswap_32( ( (uint32_t*)s )[ 4] );
+  ( (uint32_t*)d )[ 5] = bswap_32( ( (uint32_t*)s )[ 5] );
+  ( (uint32_t*)d )[ 6] = bswap_32( ( (uint32_t*)s )[ 6] );
+  ( (uint32_t*)d )[ 7] = bswap_32( ( (uint32_t*)s )[ 7] );
+  ( (uint32_t*)d )[ 8] = bswap_32( ( (uint32_t*)s )[ 8] );
+  ( (uint32_t*)d )[ 9] = bswap_32( ( (uint32_t*)s )[ 9] );
+  ( (uint32_t*)d )[10] = bswap_32( ( (uint32_t*)s )[10] );
+  ( (uint32_t*)d )[11] = bswap_32( ( (uint32_t*)s )[11] );
+  ( (uint32_t*)d )[12] = bswap_32( ( (uint32_t*)s )[12] );
+  ( (uint32_t*)d )[13] = bswap_32( ( (uint32_t*)s )[13] );
+  ( (uint32_t*)d )[14] = bswap_32( ( (uint32_t*)s )[14] );
+  ( (uint32_t*)d )[15] = bswap_32( ( (uint32_t*)s )[15] );
+  ( (uint32_t*)d )[16] = bswap_32( ( (uint32_t*)s )[16] );
+  ( (uint32_t*)d )[17] = bswap_32( ( (uint32_t*)s )[17] );
+  ( (uint32_t*)d )[18] = bswap_32( ( (uint32_t*)s )[18] );
+  ( (uint32_t*)d )[19] = bswap_32( ( (uint32_t*)s )[19] );
+}
+
 #endif
 
 static inline void mm128_bswap32_intrlv80_4x32( void *d, const void *src )
