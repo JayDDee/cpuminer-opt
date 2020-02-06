@@ -158,7 +158,7 @@ void zr5_get_new_work( struct work* work, struct work* g_work, int thr_id,
 {
    // ignore POK in first word
    const int wkcmp_sz = 72;  // (19-1) * sizeof(uint32_t)
-   uint32_t *nonceptr = algo_gate.get_nonceptr( work->data );
+   uint32_t *nonceptr = work->data + algo_gate.nonce_index;
    if ( memcmp( &work->data[1], &g_work->data[1], wkcmp_sz )
       || ( *nonceptr >= *end_nonce_ptr ) )
    {

@@ -21,15 +21,6 @@ cpuminer_SOURCES = \
   api.c \
   sysinfos.c \
   algo-gate-api.c\
-  crypto/oaes_lib.c \
-  crypto/c_keccak.c \
-  crypto/c_groestl.c \
-  crypto/c_blake256.c \
-  crypto/c_jh.c \
-  crypto/c_skein.c \
-  crypto/hash.c \
-  crypto/aesb.c \
-  crypto/magimath.cpp \
   algo/argon2/argon2a/argon2a.c \
   algo/argon2/argon2a/ar2/argon2.c \
   algo/argon2/argon2a/ar2/opt.c \
@@ -76,10 +67,6 @@ cpuminer_SOURCES = \
   algo/bmw/bmw512-gate.c \
   algo/bmw/bmw512.c \
   algo/bmw/bmw512-4way.c \
-  algo/cryptonight/cryptolight.c \
-  algo/cryptonight/cryptonight-common.c\
-  algo/cryptonight/cryptonight-aesni.c\
-  algo/cryptonight/cryptonight.c\
   algo/cubehash/cubehash_sse2.c\
   algo/cubehash/cube-hash-2way.c \
   algo/echo/sph_echo.c \
@@ -141,7 +128,8 @@ cpuminer_SOURCES = \
   algo/lyra2/allium.c \
   algo/lyra2/phi2-4way.c \
   algo/lyra2/phi2.c \
-  algo/m7m.c \
+  algo//m7m/m7m.c \
+  algo/m7m/magimath.cpp \
   algo/nist5/nist5-gate.c \
   algo/nist5/nist5-4way.c \
   algo/nist5/nist5.c \

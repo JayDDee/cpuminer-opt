@@ -113,7 +113,6 @@ void init_algo_gate( algo_gate_t* gate )
    gate->hash                    = (void*)&null_hash;
    gate->hash_suw                = (void*)&null_hash_suw;
    gate->get_new_work            = (void*)&std_get_new_work;
-   gate->get_nonceptr            = (void*)&std_get_nonceptr;
    gate->work_decode             = (void*)&std_le_work_decode;
    gate->decode_extra_data       = (void*)&do_nothing;
    gate->gen_merkle_root         = (void*)&sha256d_gen_merkle_root;
@@ -129,7 +128,6 @@ void init_algo_gate( algo_gate_t* gate )
    gate->resync_threads          = (void*)&do_nothing;
    gate->do_this_thread          = (void*)&return_true;
    gate->longpoll_rpc_call       = (void*)&std_longpoll_rpc_call;
-   gate->stratum_handle_response = (void*)&std_stratum_handle_response;
    gate->get_work_data_size      = (void*)&std_get_work_data_size;
    gate->optimizations           = EMPTY_SET;
    gate->ntime_index             = STD_NTIME_INDEX;
@@ -168,9 +166,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_BLAKECOIN:     register_blakecoin_algo     ( gate ); break;
     case ALGO_BMW512:        register_bmw512_algo        ( gate ); break;
     case ALGO_C11:           register_c11_algo           ( gate ); break;
-    case ALGO_CRYPTOLIGHT:   register_cryptolight_algo   ( gate ); break;
-    case ALGO_CRYPTONIGHT:   register_cryptonight_algo   ( gate ); break;
-    case ALGO_CRYPTONIGHTV7: register_cryptonightv7_algo ( gate ); break;
     case ALGO_DECRED:        register_decred_algo        ( gate ); break;
     case ALGO_DEEP:          register_deep_algo          ( gate ); break;
     case ALGO_DMD_GR:        register_dmd_gr_algo        ( gate ); break;
@@ -266,25 +261,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
 // restore warnings
 #pragma GCC diagnostic pop
 
-// override std defaults with jr2 defaults
-bool register_json_rpc2( algo_gate_t *gate )
-{
-//  gate->wait_for_diff           = (void*)&do_nothing;
-  gate->get_new_work            = (void*)&jr2_get_new_work;
-  gate->get_nonceptr            = (void*)&jr2_get_nonceptr;
-  gate->stratum_gen_work        = (void*)&jr2_stratum_gen_work;
-  gate->build_stratum_request   = (void*)&jr2_build_stratum_request;
-  gate->submit_getwork_result   = (void*)&jr2_submit_getwork_result;
-  gate->longpoll_rpc_call       = (void*)&jr2_longpoll_rpc_call;
-  gate->work_decode             = (void*)&jr2_work_decode;
-  gate->stratum_handle_response = (void*)&jr2_stratum_handle_response;
-  gate->nonce_index             = JR2_NONCE_INDEX;
-  jsonrpc_2 = true;   // still needed
-  opt_extranonce = false;
-//  have_gbt = false;
-  return true;
- }
-
 // run the alternate hash function for a specific algo
 void exec_hash_function( int algo, void *output, const void *pdata )
 {
@@ -350,7 +326,7 @@ void get_algo_alias( char** algo_or_alias )
     if ( !strcasecmp( *algo_or_alias, algo_alias_map[i][ ALIAS ] ) )
     {
       // found valid alias, return proper name
-      *algo_or_alias = (const char*)( algo_alias_map[i][ PROPER ] );
+      *algo_or_alias = (char*)( algo_alias_map[i][ PROPER ] );
       return;
     }
 }

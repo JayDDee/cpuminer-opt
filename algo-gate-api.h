@@ -129,9 +129,6 @@ void ( *stratum_gen_work )      ( struct stratum_ctx*, struct work* );
 // Get thread local copy of blockheader with unique nonce.
 void ( *get_new_work )          ( struct work*, struct work*, int, uint32_t* );
 
-// Return pointer to nonce in blockheader.
-uint32_t *( *get_nonceptr )     ( uint32_t* );
-
 // Decode getwork blockheader
 bool ( *work_decode )           ( const json_t*, struct work* );
 
@@ -169,7 +166,6 @@ bool ( *do_this_thread )        ( int );
 void ( *resync_threads )        ( struct work* );
 
 json_t* (*longpoll_rpc_call)      ( CURL*, int*, char* );
-bool ( *stratum_handle_response ) ( json_t* );
 set_t optimizations;
 int  ( *get_work_data_size )     ();
 int  ntime_index;
@@ -222,31 +218,22 @@ void null_hash_suw();
 
 // optional safe targets, default listed first unless noted.
 
-uint32_t *std_get_nonceptr( uint32_t *work_data );
-uint32_t *jr2_get_nonceptr( uint32_t *work_data );
-
 void std_get_new_work( struct work *work, struct work *g_work, int thr_id,
-                       uint32_t* end_nonce_ptr );
-void jr2_get_new_work( struct work *work, struct work *g_work, int thr_id,
                        uint32_t* end_nonce_ptr );
 
 void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *work );
-void jr2_stratum_gen_work( struct stratum_ctx *sctx, struct work *work );
 
 void sha256d_gen_merkle_root( char *merkle_root, struct stratum_ctx *sctx );
 void SHA256_gen_merkle_root ( char *merkle_root, struct stratum_ctx *sctx );
 
 bool std_le_work_decode( const json_t *val, struct work *work );
 bool std_be_work_decode( const json_t *val, struct work *work );
-bool jr2_work_decode(    const json_t *val, struct work *work );
 
 bool std_le_submit_getwork_result( CURL *curl, struct work *work );
 bool std_be_submit_getwork_result( CURL *curl, struct work *work );
-bool jr2_submit_getwork_result(    CURL *curl, struct work *work );
 
 void std_le_build_stratum_request( char *req, struct work *work );
 void std_be_build_stratum_request( char *req, struct work *work );
-void jr2_build_stratum_request   ( char *req, struct work *work );
 
 char* std_malloc_txs_request( struct work *work );
 
@@ -263,10 +250,10 @@ void std_build_block_header( struct work* g_work, uint32_t version,
 void std_build_extraheader( struct work *work, struct stratum_ctx *sctx );
 
 json_t* std_longpoll_rpc_call( CURL *curl, int *err, char *lp_url );
-json_t* jr2_longpoll_rpc_call( CURL *curl, int *err );
+//json_t* jr2_longpoll_rpc_call( CURL *curl, int *err );
 
-bool std_stratum_handle_response( json_t *val );
-bool jr2_stratum_handle_response( json_t *val );
+//bool std_stratum_handle_response( json_t *val );
+//bool jr2_stratum_handle_response( json_t *val );
 
 bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
                         int thr_id );
@@ -288,7 +275,7 @@ bool register_algo( algo_gate_t *gate );
 // Overrides a common set of functions used by RPC2 and other RPC2-specific
 // init. Called by algo's register function before initializing algo-specific
 // functions and data.
-bool register_json_rpc2( algo_gate_t *gate );
+//bool register_json_rpc2( algo_gate_t *gate );
 
 // use this to call the hash function of an algo directly, ie util.c test.
 void exec_hash_function( int algo, void *output, const void *pdata );

@@ -447,25 +447,13 @@ bool stratum_subscribe(struct stratum_ctx *sctx);
 bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *pass);
 bool stratum_handle_method(struct stratum_ctx *sctx, const char *s);
 
-/* rpc 2.0 (xmr) */
+extern bool lowdiff_debug;
 
 
-extern bool jsonrpc_2;
+
 extern bool aes_ni_supported;
-extern char rpc2_id[64];
-extern char *rpc2_blob;
-extern size_t rpc2_bloblen;
-extern uint32_t rpc2_target;
-extern char *rpc2_job_id;
 extern char *rpc_user;
 extern char *short_url;
-
-json_t *json_rpc2_call(CURL *curl, const char *url, const char *userpass, const char *rpc_req, int *curl_err, int flags);
-bool rpc2_login(CURL *curl);
-bool rpc2_login_decode(const json_t *val);
-bool rpc2_workio_login(CURL *curl);
-bool rpc2_stratum_job(struct stratum_ctx *sctx, json_t *params);
-bool rpc2_job_decode(const json_t *job, struct work *work);
 
 struct thread_q;
 
@@ -763,8 +751,6 @@ extern bool opt_hash_meter;
 extern uint32_t accepted_share_count;
 extern uint32_t rejected_share_count;
 extern uint32_t solved_block_count;
-extern pthread_mutex_t rpc2_job_lock;
-extern pthread_mutex_t rpc2_login_lock;
 extern pthread_mutex_t applog_lock;
 extern pthread_mutex_t stats_lock;
 extern bool opt_sapling;

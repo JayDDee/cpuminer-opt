@@ -65,9 +65,34 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.0
+
+Faster phi2 AVX2 +62%, AVX512 +150% on Intel CPUs. AMD Ryzen AVX2 is
+YMMV due to its inferiour AVX2 implementation.
+
+Fixed Hodl stats, rejects are still an issue since v3.9.5, git issue #237.
+
+API can now be enabled with "-b port" or "--api-bind port".
+It will use the default address 127.0.0.1.
+
+Editorial: Short form options should only be used on the command line to save
+typing. Configuration files and scripts should always use the long form
+"--api-bind addr:port" without relying on any defaults. This is a general
+recommendation that applies to all options for any application.
+
+Removed obsolete cryptonight, all variants, and supporting code for more
+size reduction and faster compiling.
+
+Tweaked the timing of the CPU temperature and frequency log (Linux only).
+
+Added some debug code to collect more info aboout low difficulty rejects,
+git issue #236.
+
 v3.11.9
 
 Fixed x16r invalid shares when Luffa was first in hash order.
+
+API is disabled by default.
 
 New startup message for status of stratum connection, API & extranonce.
 

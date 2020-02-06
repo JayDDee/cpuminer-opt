@@ -134,7 +134,8 @@ void x16r_hash_generic( void* output, const void* input )
          break;
          case ECHO:
 #if defined(__AES__)
-            echo_full( &ctx.echo, hash, 512, in, size );
+            echo_full( &ctx.echo, (BitSequence*)hash, 512,
+                            (const BitSequence*)in, size );
 #else
             sph_echo512_init( &ctx.echo );
             sph_echo512( &ctx.echo, in, size );

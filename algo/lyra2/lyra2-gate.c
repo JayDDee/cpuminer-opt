@@ -228,13 +228,14 @@ void phi2_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 
 bool register_phi2_algo( algo_gate_t* gate )
 {
-//   init_phi2_ctx();
-   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
    gate->get_work_data_size = (void*)&phi2_get_work_data_size;
    gate->decode_extra_data  = (void*)&phi2_decode_extra_data;
    gate->build_extraheader  = (void*)&phi2_build_extraheader;
    opt_target_factor = 256.0;
-#if defined(PHI2_4WAY)
+#if defined(PHI2_8WAY)
+   gate->scanhash           = (void*)&scanhash_phi2_8way;
+#elif defined(PHI2_4WAY)
    gate->scanhash           = (void*)&scanhash_phi2_4way;
 #else
    init_phi2_ctx();

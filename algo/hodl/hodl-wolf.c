@@ -129,9 +129,10 @@ int scanhash_hodl_wolf( struct work* work, uint32_t max_nonce,
 	      if( FinalPoW[7] <= ptarget[7] )
 	      {
 	          pdata[20] = swab32( BlockHdr[20] );
-		  pdata[21] = swab32( BlockHdr[21] );
-		  *hashes_done = CollisionCount;
-		  return(1);
+             pdata[21] = swab32( BlockHdr[21] );
+		       *hashes_done = CollisionCount;
+             submit_solution( work, FinalPoW, mythr );
+             return(0);
 	      }
 	   }
 	}
@@ -198,7 +199,8 @@ int scanhash_hodl_wolf( struct work* work, uint32_t max_nonce,
                   pdata[20] = swab32( BlockHdr[20] );
                   pdata[21] = swab32( BlockHdr[21] );
                   *hashes_done = CollisionCount;
-                  return(1);
+                  submit_solution( work, FinalPoW, mythr );
+                  return(0);
               }
            }
         }

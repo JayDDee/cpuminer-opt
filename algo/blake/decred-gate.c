@@ -153,7 +153,7 @@ bool register_decred_algo( algo_gate_t* gate )
   gate->hash      = (void*)&decred_hash;
 #endif
   gate->optimizations = AVX2_OPT;
-  gate->get_nonceptr          = (void*)&decred_get_nonceptr;
+//  gate->get_nonceptr          = (void*)&decred_get_nonceptr;
   gate->decode_extra_data     = (void*)&decred_decode_extradata;
   gate->build_stratum_request = (void*)&decred_be_build_stratum_request;
   gate->work_decode           = (void*)&std_be_work_decode;
