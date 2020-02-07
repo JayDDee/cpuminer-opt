@@ -998,7 +998,7 @@ void report_summary_log( bool force )
                          solved_block_count );
 }
 
-bool lowdiff_debug = true;
+bool lowdiff_debug = false;
 
 static int share_result( int result, struct work *null_work,
                          const char *reason )
@@ -1068,7 +1068,7 @@ static int share_result( int result, struct work *null_work,
      else
      {
         rejected_share_count++;
-        if ( strstr( reason, "Low diff " ) ) lowdiff_debug = true;
+        lowdiff_debug = true;
   
      }
    }
@@ -1145,7 +1145,7 @@ static int share_result( int result, struct work *null_work,
            bres, share_time, latency );
 
    if ( have_stratum && !opt_quiet )
-      applog2( LOG_NOTICE, "Diff %.3g (%.3g%), %sBlock %d, %sJob %s" CL_WHT,
+      applog2( LOG_NOTICE, "Diff %.5g (%.3g%), %sBlock %d, %sJob %s" CL_WHT,
                my_stats.share_diff, share_ratio, bcol, stratum.block_height,
                scol, my_stats.job_id );
 
@@ -1163,13 +1163,15 @@ static int share_result( int result, struct work *null_work,
          for ( int i = 0; i < 8; i++ )
             be32enc( str2 + i, str1[7 - i] );
          bin2hex( str3, (unsigned char*)str2, 12 );
-         applog2( LOG_INFO, "Share diff:  %g, Hash: %s...", my_stats.share_diff, str3 );
+         applog2( LOG_INFO, "Share diff:  %.5g, Hash: %s...",
+                             my_stats.share_diff, str3 );
 
          diff_to_target( str1, my_stats.target_diff );
          for ( int i = 0; i < 8; i++ )
             be32enc( str2 + i, str1[7 - i] );
          bin2hex( str3, (unsigned char*)str2, 12 );
-         applog2( LOG_INFO, "Target diff: %g, Targ: %s...", str3 );
+         applog2( LOG_INFO, "Target diff: %.5g, Targ: %s...",
+                            my_stats.target_diff, str3 );
       }
 
       if ( unlikely( opt_reset_on_stale && stale ) )
@@ -1710,9 +1712,9 @@ if ( lowdiff_debug )
 {
    uint32_t* h = (uint32_t*)hash;
    uint32_t* t = (uint32_t*)work->target;
-   applog(LOG_INFO,"Hash[7:0}: %08x %08x %08x %08x %08x %08x %08x %08x",
+   applog(LOG_INFO,"Hash[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
                               h[7],h[6],h[5],h[4],h[3],h[2],h[1],h[0]);
-   applog(LOG_INFO,"Targ[7:0}: %08x %08x %08x %08x %08x %08x %08x %08x",
+   applog(LOG_INFO,"Targ[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
                               t[7],t[6],t[5],t[4],t[3],t[2],t[1],t[0]);
 }
     return true;
@@ -1733,6 +1735,18 @@ bool submit_lane_solution( struct work *work, const void *hash,
      if ( !opt_quiet )
         applog( LOG_NOTICE, "%d submitted by thread %d, lane %d, job %s",
             submitted_share_count, thr->id, lane, work->job_id );
+
+if ( lowdiff_debug )
+{
+   uint32_t* h = (uint32_t*)hash;
+   uint32_t* t = (uint32_t*)work->target;
+   applog(LOG_INFO,"Hash[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
+                              h[7],h[6],h[5],h[4],h[3],h[2],h[1],h[0]);
+   applog(LOG_INFO,"Targ[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
+                              t[7],t[6],t[5],t[4],t[3],t[2],t[1],t[0]);
+}
+
+
      return true;
   }
   else
@@ -2117,7 +2131,6 @@ static void *miner_thread( void *userdata )
              int lo_freq, hi_freq;
              linux_cpu_hilo_freq( &lo_freq, &hi_freq );
              memcpy( &cpu_temp_time, &tv_end, sizeof(cpu_temp_time) );
-             if ( temp > hi_temp ) hi_temp = temp;
              if ( use_colors && ( temp >= 70 ) )
              {
                 if ( temp >= 80 )
@@ -2129,6 +2142,7 @@ static void *miner_thread( void *userdata )
                 sprintf( tempstr, "%d C", temp );
              applog( LOG_INFO,"CPU temp: curr %s (max %d), Freq: %.3f/%.3f GHz",
                      tempstr, hi_temp, (float)lo_freq / 1e6, (float)hi_freq/ 1e6 );
+             if ( temp > hi_temp ) hi_temp = temp;
           }
        }
 #endif
@@ -2483,7 +2497,7 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
       if ( !opt_quiet )
       {
          applog2( LOG_INFO, "%s: %s", algo_names[opt_algo], short_url );
-         applog2( LOG_INFO, "Diff: Net %.3g, Stratum %.3g, Target %.3g",
+         applog2( LOG_INFO, "Diff: Net %.5g, Stratum %.5g, Target %.5g",
                             net_diff, stratum_diff, last_targetdiff );
 
          if ( likely( hr > 0. ) )

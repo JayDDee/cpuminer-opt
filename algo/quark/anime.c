@@ -126,49 +126,28 @@ int scanhash_anime( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr)
 {
     uint32_t hash[8] __attribute__ ((aligned (64)));
-    uint32_t endiandata[20] __attribute__((aligned(64)));
+    uint32_t edata[20] __attribute__((aligned(64)));
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
     uint32_t n = pdata[19];
     const uint32_t first_nonce = pdata[19];
-    int thr_id = mythr->id;  // thr_id arg is deprecated
-    const uint32_t Htarg = ptarget[7];
-    uint64_t htmax[] = {
-                0,
-                0xF,
-                0xFF,
-                0xFFF,
-                0xFFFF,
-                0x10000000
-        };
-    uint32_t masks[] = {
-                0xFFFFFFFF,
-                0xFFFFFFF0,
-                0xFFFFFF00,
-                0xFFFFF000,
-                0xFFFF0000,
-                0
-        };
+    const int thr_id = mythr->id;
+    const int bench = opt_benchmark;
+    
+    swab32_array( edata, pdata, 20 );
 
-    swab32_array( endiandata, pdata, 20 );
-
-    for (int m=0; m < 6; m++)
-       if (Htarg <= htmax[m])
-       {
-          uint32_t mask = masks[m];
-          do
-          {
-              be32enc( &endiandata[19], n );
-              anime_hash( hash, endiandata );
-              pdata[19] = n;
-
-             if ( ( hash[7] & mask ) == 0 && fulltest( hash, ptarget ) ) 
-                submit_solution( work, hash, mythr );
-             n++;
-          } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
-          break;
-       }
-    *hashes_done = n - first_nonce + 1;
+    do
+    {
+        edata[19] = n;
+        anime_hash( hash, edata );
+        if ( valid_hash( hash, ptarget ) && !bench )
+        {
+           be32enc( &pdata[19], n );
+           submit_solution( work, hash, mythr );
+        }
+        n++;
+    } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );
+    *hashes_done = n - first_nonce;
     pdata[19] = n;
     return 0;
 }

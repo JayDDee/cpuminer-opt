@@ -144,7 +144,7 @@ int hodl_scanhash( struct work* work, uint32_t max_nonce,
 #if defined(__AES__)
   GenRandomGarbage( (CacheEntry*)hodl_scratchbuf, work->data, mythr->id );
   pthread_barrier_wait( &hodl_barrier );
-  return scanhash_hodl_wolf( work, max_nonce, hashes_done, thr_info );
+  return scanhash_hodl_wolf( work, max_nonce, hashes_done, mythr );
 #endif
   return false;
 }
