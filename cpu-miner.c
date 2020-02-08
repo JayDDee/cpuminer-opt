@@ -883,8 +883,6 @@ static double   norm_diff_sum = 0.;
 static uint32_t last_block_height = 0;
 //static bool     new_job = false;
 static double   last_targetdiff = 0.;
-static double   ref_rate_hi = 0.;
-static double   ref_rate_lo = 1e100;
 #if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
 static uint32_t hi_temp = 0;
 #endif
@@ -932,7 +930,6 @@ void report_summary_log( bool force )
    uint64_t accepts = accept_sum;  accept_sum = 0;
    uint64_t rejects = reject_sum;  reject_sum = 0;
    uint64_t stales  = stale_sum;   stale_sum  = 0;
-//   int      latency  = latency_sum; latency_sum = 0;
    memcpy( &start_time, &five_min_start, sizeof start_time );
    memcpy( &five_min_start, &now, sizeof now );
 
@@ -943,34 +940,21 @@ void report_summary_log( bool force )
    
    double share_time = (double)et.tv_sec + (double)et.tv_usec / 1e6;
    double ghrate = global_hashrate;
-   double scaled_ghrate = ghrate;
+
    double shrate = share_time == 0. ? 0. : diff_to_hash * last_targetdiff
                                            * (double)(accepts) / share_time;
    double sess_hrate = uptime.tv_sec == 0. ? 0. : diff_to_hash * norm_diff_sum
                                                    / (double)uptime.tv_sec;
-   double scaled_shrate = shrate;
-//   int    avg_latency = 0;
-//   double latency_pc  = 0.;
-   double submit_rate = 0.;
+
+   double submit_rate = share_time == 0. ? 0. : (double)submits*60. / share_time;
    char shr_units[4] = {0};
    char ghr_units[4] = {0};
    char sess_hr_units[4] = {0};
    char et_str[24];
    char upt_str[24];
 
-//   if ( submits )  avg_latency = latency / submits;
-
-   if ( share_time != 0. )
-   {
-      submit_rate = (double)submits*60. / share_time;
-//      latency_pc =  (double)latency / (share_time * 10.);
-   }
-
-   if ( ghrate > ref_rate_hi )  ref_rate_hi = ghrate;
-   if ( ghrate < ref_rate_lo )  ref_rate_lo = ghrate;
-
-   scale_hash_for_display( &scaled_shrate, shr_units );
-   scale_hash_for_display( &scaled_ghrate, ghr_units );
+   scale_hash_for_display( &shrate, shr_units );
+   scale_hash_for_display( &ghrate, ghr_units );
    scale_hash_for_display( &sess_hrate, sess_hr_units );
 
    sprintf_et( et_str, et.tv_sec );
@@ -981,8 +965,29 @@ void report_summary_log( bool force )
                       submit_rate, (double)submitted_share_count*60. /
                     ( (double)uptime.tv_sec + (double)uptime.tv_usec / 1e6 ) );
    applog2( LOG_INFO, "Hash rate       %7.2f%sh/s   %7.2f%sh/s   (%.2f%sh/s)",
-                     scaled_shrate, shr_units, sess_hrate, sess_hr_units, 
-                     scaled_ghrate, ghr_units );
+                     shrate, shr_units, sess_hrate, sess_hr_units, 
+                     ghrate, ghr_units );
+
+   if ( accepted_share_count < submitted_share_count )
+   {
+      double lost_ghrate = uptime.tv_sec == 0. ? 0.
+                  : diff_to_hash * last_targetdiff
+                      * (double)(submitted_share_count - accepted_share_count )
+                    / (double)uptime.tv_sec;
+
+      double shrate = share_time == 0. ? 0. : diff_to_hash * last_targetdiff
+                                           * (double)(accepts) / share_time;
+      double lost_shrate = share_time == 0. ? 0.
+               : diff_to_hash * last_targetdiff  * (double)(submits - accepts )
+                / share_time;
+      char lshr_units[4] = {0};
+      char lghr_units[4] = {0};
+      scale_hash_for_display( &lost_shrate, lshr_units );
+      scale_hash_for_display( &lost_ghrate, lghr_units );
+      applog2( LOG_INFO, "Lost hash rate  %7.2f%sh/s   %7.2f%sh/s",
+                     lost_shrate, lshr_units, lost_ghrate, lghr_units );
+   }
+
    applog2( LOG_INFO,"Submitted        %6d       %6d",
                        submits, submitted_share_count );
    applog2( LOG_INFO,"Accepted         %6d       %6d",

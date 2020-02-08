@@ -287,10 +287,10 @@ void x17_8way_hash( void *state, const void *input )
 int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[8*16] __attribute__ ((aligned (128)));
-   uint32_t vdata[24*8] __attribute__ ((aligned (64)));
+   uint32_t hash[8*8] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hash7 = &(hash[7<<3]);
+   uint32_t *hash32 = &(hash[7*8]);
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -298,7 +298,7 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
    __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
-   const uint32_t Htarg = ptarget[7];
+   const uint32_t targ32 = ptarget[7];
    const bool bench = opt_benchmark;
 
    mm512_bswap32_intrlv80_8x64( vdata, pdata );
@@ -310,7 +310,7 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
       x17_8way_hash( hash, vdata );
 
       for ( int lane = 0; lane < 8; lane++ )
-      if ( unlikely( ( hash7[ lane ] <= Htarg ) && !bench ) )
+      if ( unlikely( ( hash32[ lane ] <= targ32 ) && !bench ) )
       {
          extr_lane_8x32( lane_hash, hash, lane, 256 );
          if ( likely( valid_hash( lane_hash, ptarget ) ) )
@@ -474,18 +474,18 @@ void x17_4way_hash( void *state, const void *input )
 int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[16*4] __attribute__ ((aligned (64)));
+   uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hash7 = &(hash[7<<2]);
+   uint32_t *hash32 = &(hash[ 7*4 ]);
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
-   const uint32_t last_nonce = max_nonce -4;
-   __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
+   const uint32_t last_nonce = max_nonce - 4;
+   __m256i  *noncev = (__m256i*)vdata + 9;
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
-   const uint32_t Htarg = ptarget[7];
+   const uint32_t targ32 = ptarget[7];
    const bool bench = opt_benchmark;
 
    mm256_bswap32_intrlv80_4x64( vdata, pdata );
@@ -496,7 +496,7 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
       x17_4way_hash( hash, vdata );
 
       for ( int lane = 0; lane < 4; lane++ )
-      if ( unlikely( hash7[ lane ] <= Htarg && !bench ) )
+      if ( unlikely( hash32[ lane ] <= targ32 && !bench ) )
       {  
          extr_lane_4x32( lane_hash, hash, lane, 256 );
          if ( valid_hash( lane_hash, ptarget ) )

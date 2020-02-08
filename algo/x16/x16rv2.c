@@ -34,7 +34,6 @@
 #endif
 
 static __thread uint32_t s_ntime = UINT32_MAX;
-static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
 
 union _x16rv2_context_overlay
 {
@@ -74,16 +73,10 @@ void x16rv2_hash( void* output, const void* input )
    x16rv2_context_overlay ctx;
    void *in = (void*) input;
    int size = 80;
-/*
-   if ( s_ntime == UINT32_MAX )
-   {
-      const uint8_t* in8 = (uint8_t*) input;
-      x16_r_s_getAlgoString( &in8[4], hashOrder );
-   }
-*/
+
    for ( int i = 0; i < 16; i++ )
    {
-      const char elem = hashOrder[i];
+      const char elem = x16r_hash_order[i];
       const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
 
       switch ( algo )
@@ -203,42 +196,42 @@ int scanhash_x16rv2( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t _ALIGN(128) hash32[8];
-   uint32_t _ALIGN(128) endiandata[20];
+   uint32_t _ALIGN(128) edata[20];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
-   const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   const int thr_id = mythr->id;  
    uint32_t nonce = first_nonce;
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
+   const bool bench = opt_benchmark;
 
-   casti_m128i( endiandata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( endiandata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( endiandata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
+   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
+   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
+   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
+   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
+   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
 
+   static __thread uint32_t s_ntime = UINT32_MAX;
    if ( s_ntime != pdata[17] )
    {
       uint32_t ntime = swab32(pdata[17]);
-      x16_r_s_getAlgoString( (const uint8_t*) (&endiandata[1]), hashOrder );
+      x16_r_s_getAlgoString( (const uint8_t*) (&edata[1]), x16r_hash_order );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );
+              applog( LOG_DEBUG, "hash order %s (%08x)",
+                                 x16r_hash_order, ntime );
    }
 
-   if ( opt_benchmark )
-      ptarget[7] = 0x0cff;
+   if ( bench )   ptarget[7] = 0x0cff;
 
    do
    {
-      be32enc( &endiandata[19], nonce );
-      x16rv2_hash( hash32, endiandata );
+      edata[19] = nonce;
+      x16rv2_hash( hash32, edata );
 
-      if ( hash32[7] <= Htarg )
-      if (fulltest( hash32, ptarget ) && !opt_benchmark )
+      if ( unlikely( valid_hash( hash32, ptarget ) && !bench ) )
       {
-         pdata[19] = nonce;
+         pdata[19] = bswap_32( nonce );
          submit_solution( work, hash32, mythr );
       }
       nonce++;

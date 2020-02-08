@@ -121,12 +121,13 @@ do { \
 
 
 // Horizontal vector testing
-
+// needs a proper test, seems to be working in the code but polarity appears
+// reversed.
 #define mm256_allbits0( a )    _mm256_testz_si256(   a, a )
 #define mm256_allbits1( a )    _mm256_testc_si256(   a, m256_neg1 )
 //broken
 //#define mm256_allbitsne( a )   _mm256_testnzc_si256( a, m256_neg1 )
-#define mm256_anybits0( a )    !mm256_allbits1( a )
+#define mm256_anybits0( a )   !mm256_allbits1( a )
 #define mm256_anybits1( a )   !mm256_allbits0( a )
 
 

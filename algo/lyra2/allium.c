@@ -76,37 +76,34 @@ int scanhash_allium( struct work *work, uint32_t max_nonce,
                      uint64_t *hashes_done, struct thr_info *mythr )
 {
     uint32_t _ALIGN(128) hash[8];
-    uint32_t _ALIGN(128) endiandata[20];
+    uint32_t _ALIGN(128) edata[20];
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
-
-    const uint32_t Htarg = ptarget[7];
     const uint32_t first_nonce = pdata[19];
     uint32_t nonce = first_nonce;
-    int thr_id = mythr->id;  // thr_id arg is deprecated
+    const int thr_id = mythr->id; 
 
     if ( opt_benchmark )
         ptarget[7] = 0x3ffff;
 
     for ( int i = 0; i < 19; i++ )
-        be32enc( &endiandata[i], pdata[i] );
+        edata[i] = bswap_32( pdata[i] );
 
     sph_blake256_init( &allium_ctx.blake );
-    sph_blake256( &allium_ctx.blake, endiandata, 64 );
+    sph_blake256( &allium_ctx.blake, edata, 64 );
 
     do {
-        be32enc( &endiandata[19], nonce );
-        allium_hash( hash, endiandata );
-        if ( hash[7] <= Htarg )
-        if ( fulltest( hash, ptarget ) && !opt_benchmark )
+        edata[19] = nonce;
+        allium_hash( hash, edata );
+        if ( valid_hash( hash, ptarget ) && !opt_benchmark )
         {
-            pdata[19] = nonce;
+            pdata[19] = bswap_32( nonce );
             submit_solution( work, hash, mythr );
         }
         nonce++;
     } while ( nonce < max_nonce && !work_restart[thr_id].restart );
     pdata[19] = nonce;
-    *hashes_done = pdata[19] - first_nonce + 1;
+    *hashes_done = pdata[19] - first_nonce;
     return 0;
 }
 

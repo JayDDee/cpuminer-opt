@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.1
+
+Fixed anime AVX2 low difficulty shares, git issue #236.
+
+Periodic summary now reports lost hash rate due to rejected and stale shares,
+displayed only when non-zero.
+
 v3.12.0.1
 
 Fixed hodl rejects, git issue #237.
