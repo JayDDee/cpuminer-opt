@@ -76,9 +76,7 @@ void xevan_8way_hash( void *output, const void *input )
      blake512_8way_full( &ctx.blake, vhash, input, 80 );
      memset( &vhash[8<<3], 0, 64<<3 );
 
-     bmw512_8way_init( &ctx.bmw );
-     bmw512_8way_update( &ctx.bmw, vhash, dataLen );
-     bmw512_8way_close( &ctx.bmw, vhash );
+     bmw512_8way_full( &ctx.bmw, vhash, vhash, dataLen );
 
 #if defined(__VAES__)
 
@@ -108,9 +106,7 @@ void xevan_8way_hash( void *output, const void *input )
 
 #endif
 
-     skein512_8way_init( &ctx.skein );
-     skein512_8way_update( &ctx.skein, vhash, dataLen );
-     skein512_8way_close( &ctx.skein, vhash );
+     skein512_8way_full( &ctx.skein, vhash, vhash, dataLen );
 
      jh512_8way_init( &ctx.jh );
      jh512_8way_update( &ctx.jh, vhash, dataLen );
@@ -291,9 +287,7 @@ void xevan_8way_hash( void *output, const void *input )
 
      blake512_8way_full( &ctx.blake, vhash, vhash, dataLen );
 
-     bmw512_8way_init( &ctx.bmw );
-     bmw512_8way_update( &ctx.bmw, vhash, dataLen );
-     bmw512_8way_close( &ctx.bmw, vhash );
+     bmw512_8way_full( &ctx.bmw, vhash, vhash, dataLen );
 
 #if defined(__VAES__)
 
@@ -323,9 +317,7 @@ void xevan_8way_hash( void *output, const void *input )
 
 #endif
 
-     skein512_8way_init( &ctx.skein );
-     skein512_8way_update( &ctx.skein, vhash, dataLen );
-     skein512_8way_close( &ctx.skein, vhash );
+     skein512_8way_full( &ctx.skein, vhash, vhash, dataLen );
 
      jh512_8way_init( &ctx.jh );
      jh512_8way_update( &ctx.jh, vhash, dataLen );
@@ -504,40 +496,43 @@ void xevan_8way_hash( void *output, const void *input )
 int scanhash_xevan_8way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[8*16] __attribute__ ((aligned (128)));
-   uint32_t vdata[24*8] __attribute__ ((aligned (64)));
+   uint32_t hash[8*8] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hash7 = &(hash[7<<3]);
+   uint32_t *hashd7 = &(hash[7*8]);
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 8;
-   __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
+   __m512i  *noncev = (__m512i*)vdata + 9;
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
-   const uint32_t Htarg = ptarget[7];
+   const uint32_t targ32 = ptarget[7];
+   const bool bench = opt_benchmark;
 
    mm512_bswap32_intrlv80_8x64( vdata, pdata );
+   *noncev = mm512_intrlv_blend_32(
+              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                                n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      *noncev = mm512_intrlv_blend_32( mm512_bswap_32(
-              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                                n+3, 0, n+2, 0, n+1, 0, n,   0 ) ), *noncev );
       xevan_8way_hash( hash, vdata );
 
       for ( int lane = 0; lane < 8; lane++ )
-      if unlikely( ( hash7[ lane ] <= Htarg ) )
+      if ( unlikely( ( hashd7[ lane ] <= targ32 ) && !bench ) )
       {
          extr_lane_8x32( lane_hash, hash, lane, 256 );
-         if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
+         if ( likely( valid_hash( lane_hash, ptarget ) ) )
          {
-            pdata[19] = n + lane;
+            pdata[19] = bswap_32( n + lane );
             submit_lane_solution( work, lane_hash, mythr, lane );
          }
       }
+      *noncev = _mm512_add_epi32( *noncev,
+                                  m512_const1_64( 0x0000000800000000 ) );
       n += 8;
    } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
-
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }
@@ -578,8 +573,6 @@ void xevan_4way_hash( void *output, const void *input )
      const int dataLen = 128;
      xevan_4way_context_overlay ctx __attribute__ ((aligned (64)));
 
-     // parallel 4 way
-
      blake512_4way_full( &ctx.blake, vhash, input, 80 );
      memset( &vhash[8<<2], 0, 64<<2 );
 
@@ -598,9 +591,7 @@ void xevan_4way_hash( void *output, const void *input )
      // Parallel 4way
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, vhash, dataLen );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, vhash, dataLen );
 
      jh512_4way_init( &ctx.jh );
      jh512_4way_update( &ctx.jh, vhash, dataLen );
@@ -618,15 +609,11 @@ void xevan_4way_hash( void *output, const void *input )
      cube_2way_full( &ctx.cube, vhashA, 512, vhashA, dataLen );
      cube_2way_full( &ctx.cube, vhashB, 512, vhashB, dataLen );
 
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, dataLen );
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, dataLen );
+     shavite512_2way_full( &ctx.shavite, vhashA, vhashA, dataLen );
+     shavite512_2way_full( &ctx.shavite, vhashB, vhashB, dataLen );
 
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashA, vhashA, dataLen<<3 );
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashB, vhashB, dataLen<<3 );
+     simd512_2way_full( &ctx.simd, vhashA, vhashA, dataLen );
+     simd512_2way_full( &ctx.simd, vhashB, vhashB, dataLen );
 
      dintrlv_2x128( hash0, hash1, vhashA, dataLen<<3 );
      dintrlv_2x128( hash2, hash3, vhashB, dataLen<<3 );
@@ -718,9 +705,7 @@ void xevan_4way_hash( void *output, const void *input )
 
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, vhash, dataLen );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, vhash, dataLen );
 
      jh512_4way_init( &ctx.jh );
      jh512_4way_update( &ctx.jh, vhash, dataLen );
@@ -738,15 +723,11 @@ void xevan_4way_hash( void *output, const void *input )
      cube_2way_full( &ctx.cube, vhashA, 512, vhashA, dataLen );
      cube_2way_full( &ctx.cube, vhashB, 512, vhashB, dataLen );
 
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, dataLen );
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, dataLen );
+     shavite512_2way_full( &ctx.shavite, vhashA, vhashA, dataLen );
+     shavite512_2way_full( &ctx.shavite, vhashB, vhashB, dataLen );
 
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashA, vhashA, dataLen<<3 );
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashB, vhashB, dataLen<<3 );
+     simd512_2way_full( &ctx.simd, vhashA, vhashA, dataLen );
+     simd512_2way_full( &ctx.simd, vhashB, vhashB, dataLen );
 
      dintrlv_2x128( hash0, hash1, vhashA, dataLen<<3 );
      dintrlv_2x128( hash2, hash3, vhashB, dataLen<<3 );
@@ -818,41 +799,43 @@ void xevan_4way_hash( void *output, const void *input )
 int scanhash_xevan_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[4*16] __attribute__ ((aligned (64)));
-   uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
-   uint32_t *hash7 = &(hash[7<<2]);
+   uint32_t hash[16*4] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*4] __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
+   uint32_t *hashd7 = &(hash[7<<2]);
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    int thr_id = mythr->id;
-   __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-
-   const uint32_t Htarg = ptarget[7];
+   __m256i  *noncev = (__m256i*)vdata + 9; 
+   const uint32_t targ32 = ptarget[7];
    const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 4;
    uint32_t n = first_nonce;
+   const bool bench = opt_benchmark;
 
-   if ( opt_benchmark )
-      ptarget[7] = 0x0cff;
+   if ( bench )  ptarget[7] = 0x0cff;
 
    mm256_bswap32_intrlv80_4x64( vdata, pdata );
+   *noncev = mm256_intrlv_blend_32(
+                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do {
-      *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
-               _mm256_set_epi32( n+3, 0,n+2, 0,n+1, 0, n, 0 ) ), *noncev );
-
       xevan_4way_hash( hash, vdata );
       for ( int lane = 0; lane < 4; lane++ )
-      if ( hash7[ lane ] <= Htarg )
+      if ( unlikely( hashd7[ lane ] <= targ32 ) && ! bench )
       {
          extr_lane_4x32( lane_hash, hash, lane, 256 );
-	      if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
+	      if ( valid_hash( lane_hash, ptarget ) )
          {
-             pdata[19] = n + lane;
+             pdata[19] = bswap_32( n + lane );
              submit_lane_solution( work, lane_hash, mythr, lane );
          }
       }
+      *noncev = _mm256_add_epi32( *noncev,
+                                  m256_const1_64( 0x0000000400000000 ) );
       n += 4;
-   } while ( ( n < max_nonce-4 ) && !work_restart[thr_id].restart );
-   *hashes_done = n - first_nonce + 1;
+   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
    return 0;
 }
 

@@ -35,9 +35,6 @@
 
 #if defined (X16RV2_8WAY)
 
-static __thread uint32_t s_ntime = UINT32_MAX;
-static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
-
 union _x16rv2_8way_context_overlay
 {
     blake512_8way_context   blake;
@@ -96,7 +93,7 @@ void x16rv2_8way_hash( void* output, const void* input )
 
    for ( int i = 0; i < 16; i++ )
    {
-      const char elem = hashOrder[i];
+      const char elem = x16r_hash_order[i];
       const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
 
       switch ( algo )
@@ -651,17 +648,19 @@ int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
 
    bedata1[0] = bswap_32( pdata[1] );
    bedata1[1] = bswap_32( pdata[2] );
+
+   static __thread uint32_t s_ntime = UINT32_MAX;
    const uint32_t ntime = bswap_32( pdata[17] );
    if ( s_ntime != ntime )
    {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, hashOrder );
+      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
-              applog( LOG_INFO, "hash order %s (%08x)", hashOrder, ntime );
+         applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
    }
 
    // Do midstate prehash on hash functions with block size <= 64 bytes.
-   const char elem = hashOrder[0];
+   const char elem = x16r_hash_order[0];
    const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
    switch ( algo )
    {
@@ -737,9 +736,6 @@ int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
 
 #elif defined (X16RV2_4WAY)
 
-static __thread uint32_t s_ntime = UINT32_MAX;
-static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
-
 union _x16rv2_4way_context_overlay
 {
     blake512_4way_context   blake;
@@ -789,7 +785,7 @@ void x16rv2_4way_hash( void* output, const void* input )
 
    for ( int i = 0; i < 16; i++ )
    {
-      const char elem = hashOrder[i];
+      const char elem = x16r_hash_order[i];
       const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
 
       switch ( algo )
@@ -1130,17 +1126,19 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
 
    bedata1[0] = bswap_32( pdata[1] );
    bedata1[1] = bswap_32( pdata[2] );
+
+   static __thread uint32_t s_ntime = UINT32_MAX;
    const uint32_t ntime = bswap_32(pdata[17]);
    if ( s_ntime != ntime )
    {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, hashOrder );
+      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)", hashOrder, ntime );
+              applog( LOG_DEBUG, "hash order %s (%08x)", x16r_hash_order, ntime );
    }
 
    // Do midstate prehash on hash functions with block size <= 64 bytes.
-   const char elem = hashOrder[0];
+   const char elem = x16r_hash_order[0];
    const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
    switch ( algo )
    {

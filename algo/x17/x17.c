@@ -169,8 +169,8 @@ int scanhash_x17( struct work *work, uint32_t max_nonce,
          submit_solution( work, hash64, mythr );
       }
       n++;
-   } while ( n < max_nonce && !work_restart[thr_id].restart);
-   *hashes_done = n - first_nonce + 1;
+   } while ( n < max_nonce && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce;
    pdata[19] = n;
    return 0;
 }

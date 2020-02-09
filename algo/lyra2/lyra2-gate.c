@@ -119,7 +119,7 @@ bool register_lyra2rev2_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_lyra2rev2;
   gate->hash      = (void*)&lyra2rev2_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
   gate->miner_thread_init = (void*)&lyra2rev2_thread_init;
   opt_target_factor = 256.0;
   return true;

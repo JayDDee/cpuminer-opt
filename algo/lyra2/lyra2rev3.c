@@ -88,7 +88,7 @@ int scanhash_lyra2rev3( struct work *work,
 	lyra2rev3_hash(hash, endiandata);
 
       if (hash[7] <= Htarg )
-      if( fulltest( hash, ptarget ) && !opt_benchmark )
+      if( valid_hash( hash, ptarget ) && !opt_benchmark )
       {
           pdata[19] = nonce;
           submit_solution( work, hash, mythr );

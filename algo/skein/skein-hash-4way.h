@@ -63,6 +63,8 @@ typedef struct
 typedef skein_8way_big_context skein512_8way_context;
 typedef skein_8way_big_context skein256_8way_context;
 
+void skein512_8way_full( skein512_8way_context *sc, void *out,
+                         const void *data, size_t len );
 void skein512_8way_init( skein512_8way_context *sc );
 void skein512_8way_update( void *cc, const void *data, size_t len );
 void skein512_8way_close( void *cc, void *dst );
@@ -85,6 +87,8 @@ typedef skein_4way_big_context skein512_4way_context;
 typedef skein_4way_big_context skein256_4way_context;
 
 void skein512_4way_init( skein512_4way_context *sc );
+void skein512_4way_full( skein512_4way_context *sc, void *out,
+                         const void *data, size_t len );
 void skein512_4way_update( void *cc, const void *data, size_t len );
 void skein512_4way_close( void *cc, void *dst );
 

@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.2
+
+Fixed xevan, skein, skein2 AVX2, #238.
+
+Reversed polarity of AVX2 vector bit test utilities, and all users, to be
+logically and semantically correct. Follow up to issue #236. 
+
 v3.12.1
 
 Fixed anime AVX2 low difficulty shares, git issue #236.

@@ -56,8 +56,6 @@ typedef struct {
 } xevan_ctx_holder;
 
 xevan_ctx_holder xevan_ctx __attribute__ ((aligned (64)));
-static __thread sph_blake512_context xevan_blake_mid
-                                        __attribute__ ((aligned (64)));
 
 void init_xevan_ctx()
 {
@@ -85,34 +83,23 @@ void init_xevan_ctx()
 #endif
 };
 
-void xevan_blake512_midstate( const void* input )
-{
-    memcpy( &xevan_blake_mid, &xevan_ctx.blake, sizeof xevan_blake_mid );
-    sph_blake512( &xevan_blake_mid, input, 64 );
-}
-
 void xevan_hash(void *output, const void *input)
 {
-        uint32_t _ALIGN(64) hash[32]; // 128 bytes required
+   uint32_t _ALIGN(64) hash[32]; // 128 bytes required
 	const int dataLen = 128;
-        xevan_ctx_holder ctx __attribute__ ((aligned (64)));
-        memcpy( &ctx, &xevan_ctx, sizeof(xevan_ctx) );
+   xevan_ctx_holder ctx __attribute__ ((aligned (64)));
+   memcpy( &ctx, &xevan_ctx, sizeof(xevan_ctx) );
 
-        const int midlen = 64;            // bytes
-        const int tail   = 80 - midlen;   // 16
-
-        memcpy( &ctx.blake, &xevan_blake_mid, sizeof xevan_blake_mid );
-        sph_blake512( &ctx.blake, input + midlen, tail );
-	sph_blake512_close(&ctx.blake, hash);
-
+   sph_blake512( &ctx.blake, input, 80 );
+   sph_blake512_close( &ctx.blake, hash );
 	memset(&hash[16], 0, 64);
 
 	sph_bmw512(&ctx.bmw, hash, dataLen);
 	sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                  (const char*)hash, dataLen*8 );
+   update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                     (const char*)hash, dataLen*8 );
 #else
 	sph_groestl512(&ctx.groestl, hash, dataLen);
 	sph_groestl512_close(&ctx.groestl, hash);
@@ -127,20 +114,20 @@ void xevan_hash(void *output, const void *input)
 	sph_keccak512(&ctx.keccak, hash, dataLen);
 	sph_keccak512_close(&ctx.keccak, hash);
 
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)hash, dataLen );
+   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+                                 (const BitSequence*)hash, dataLen );
 
-        cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
-                              (const byte*) hash, dataLen );
+   cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
+                                 (const byte*) hash, dataLen );
 
 	sph_shavite512(&ctx.shavite, hash, dataLen);
 	sph_shavite512_close(&ctx.shavite, hash);
 
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
+   update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, dataLen*8 );
 
 #if defined(__AES__)
-        update_final_echo( &ctx.echo, (BitSequence *) hash,
+   update_final_echo( &ctx.echo, (BitSequence *) hash,
                            (const BitSequence *) hash, dataLen*8 );
 #else
 	sph_echo512(&ctx.echo, hash, dataLen);
@@ -159,15 +146,15 @@ void xevan_hash(void *output, const void *input)
 	sph_whirlpool(&ctx.whirlpool, hash, dataLen);
 	sph_whirlpool_close(&ctx.whirlpool, hash);
 
-        SHA512_Update( &ctx.sha512, hash, dataLen );
-        SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+   SHA512_Update( &ctx.sha512, hash, dataLen );
+   SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
 
 	sph_haval256_5(&ctx.haval,(const void*) hash, dataLen);
 	sph_haval256_5_close(&ctx.haval, hash);
 
 	memset(&hash[8], 0, dataLen - 32);
 
-        memcpy( &ctx, &xevan_ctx, sizeof(xevan_ctx) );
+   memcpy( &ctx, &xevan_ctx, sizeof(xevan_ctx) );
 
 	sph_blake512(&ctx.blake, hash, dataLen);
 	sph_blake512_close(&ctx.blake, hash);
@@ -176,11 +163,11 @@ void xevan_hash(void *output, const void *input)
 	sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                  (const BitSequence*)hash, dataLen*8 );
+   update_and_final_groestl( &ctx.groestl, (char*)hash,
+                              (const BitSequence*)hash, dataLen*8 );
 #else
 	sph_groestl512(&ctx.groestl, hash, dataLen);
-        sph_groestl512_close(&ctx.groestl, hash);
+   sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
 	sph_skein512(&ctx.skein, hash, dataLen);
@@ -191,24 +178,25 @@ void xevan_hash(void *output, const void *input)
 
 	sph_keccak512(&ctx.keccak, hash, dataLen);
 	sph_keccak512_close(&ctx.keccak, hash);
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)hash, dataLen );
 
-        cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
-                              (const byte*) hash, dataLen );
+   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+                                 (const BitSequence*)hash, dataLen );
+
+   cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
+                                 (const byte*) hash, dataLen );
 
 	sph_shavite512(&ctx.shavite, hash, dataLen);
 	sph_shavite512_close(&ctx.shavite, hash);
 
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
+   update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, dataLen*8 );
 
 #if defined(__AES__)
-        update_final_echo( &ctx.echo, (BitSequence *) hash,
+   update_final_echo( &ctx.echo, (BitSequence *) hash,
                            (const BitSequence *) hash, dataLen*8 );
 #else
-        sph_echo512(&ctx.echo, hash, dataLen);
-        sph_echo512_close(&ctx.echo, hash);
+   sph_echo512(&ctx.echo, hash, dataLen);
+   sph_echo512_close(&ctx.echo, hash);
 #endif
 
 	sph_hamsi512(&ctx.hamsi, hash, dataLen);
@@ -223,8 +211,8 @@ void xevan_hash(void *output, const void *input)
 	sph_whirlpool(&ctx.whirlpool, hash, dataLen);
 	sph_whirlpool_close(&ctx.whirlpool, hash);
 
-        SHA512_Update( &ctx.sha512, hash, dataLen );
-        SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+   SHA512_Update( &ctx.sha512, hash, dataLen );
+   SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
 
 	sph_haval256_5(&ctx.haval,(const void*) hash, dataLen);
 	sph_haval256_5_close(&ctx.haval, hash);
@@ -233,41 +221,33 @@ void xevan_hash(void *output, const void *input)
 }
 
 int scanhash_xevan( struct work *work, uint32_t max_nonce,
-	            uint64_t *hashes_done, struct thr_info *mythr )
+             uint64_t *hashes_done, struct thr_info *mythr)
 {
-	uint32_t _ALIGN(64) hash[8];
-	uint32_t _ALIGN(64) endiandata[20];
-	uint32_t *pdata = work->data;
-	uint32_t *ptarget = work->target;
-   int thr_id = mythr->id;  // thr_id arg is deprecated
-	const uint32_t Htarg = ptarget[7];
-	const uint32_t first_nonce = pdata[19];
-	uint32_t nonce = first_nonce;
-	volatile uint8_t *restart = &(work_restart[thr_id].restart);
+   uint32_t edata[20] __attribute__((aligned(64)));
+   uint32_t hash64[8] __attribute__((aligned(64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   uint32_t n = pdata[19];
+   const uint32_t first_nonce = pdata[19];
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
 
-	if (opt_benchmark)
-		ptarget[7] = 0x0cff;
+   mm128_bswap32_80( edata, pdata );
 
-	for (int k=0; k < 19; k++)
-		be32enc(&endiandata[k], pdata[k]);
-
-   xevan_blake512_midstate( endiandata );
-	do {
-		be32enc(&endiandata[19], nonce);
-		xevan_hash(hash, endiandata);
-
-		if (hash[7] <= Htarg )
-      if ( fulltest( hash, ptarget ) && !opt_benchmark )
-	   {
-         pdata[19] = nonce;
-         submit_solution( work, hash, mythr );
-		}
-		nonce++;
-	} while ( nonce < max_nonce && !(*restart) );
-
-	pdata[19] = nonce;
-	*hashes_done = pdata[19] - first_nonce + 1;
-	return 0;
+   do
+   {
+      edata[19] = n;
+      xevan_hash( hash64, edata );
+      if ( unlikely( valid_hash( hash64, ptarget ) && !bench ) )
+      {
+         pdata[19] = bswap_32( n );
+         submit_solution( work, hash64, mythr );
+      }
+      n++;
+   } while ( n < max_nonce && !work_restart[thr_id].restart );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
 }
 
 #endif

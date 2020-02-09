@@ -56,7 +56,7 @@ int scanhash_lyra2z( struct work *work, uint32_t max_nonce,
 	const uint32_t Htarg = ptarget[7];
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id; 
 
 	if (opt_benchmark)
 		ptarget[7] = 0x0000ff;
@@ -65,14 +65,13 @@ int scanhash_lyra2z( struct work *work, uint32_t max_nonce,
 		be32enc(&endiandata[i], pdata[i]);
 	}
 
-        lyra2z_midstate( endiandata );
+   lyra2z_midstate( endiandata );
 
 	do {
 		be32enc(&endiandata[19], nonce);
                 lyra2z_hash( hash, endiandata );
 
-      if ( hash[7] <= Htarg )
-      if ( fulltest( hash, ptarget ) && !opt_benchmark )
+      if ( valid_hash( hash, ptarget ) && !opt_benchmark )
       {
 			pdata[19] = nonce;
 			submit_solution( work, hash, mythr );

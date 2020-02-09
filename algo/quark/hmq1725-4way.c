@@ -1028,7 +1028,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
 // B
 
-     if ( mm256_anybits1( vh_mask ) )
+     if ( mm256_anybits0( vh_mask ) )
      {
        skein512_4way_init( &ctx.skein );
        skein512_4way_update( &ctx.skein, vhash, 64 );
@@ -1050,14 +1050,14 @@ extern void hmq1725_4way_hash(void *state, const void *input)
      vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], vmask ),
                                    m256_zero );
 
-     if ( mm256_anybits0( vh_mask ) )
+     if ( mm256_anybits1( vh_mask ) )
      {
        blake512_4way_init( &ctx.blake );
        blake512_4way_update( &ctx.blake, vhash, 64 );
        blake512_4way_close( &ctx.blake, vhashA );
      }
 
-     if ( mm256_anybits1( vh_mask ) )
+     if ( mm256_anybits0( vh_mask ) )
      {
        bmw512_4way_init( &ctx.bmw );
        bmw512_4way_update( &ctx.bmw, vhash, 64 );
@@ -1101,14 +1101,14 @@ extern void hmq1725_4way_hash(void *state, const void *input)
      vh_mask = _mm256_cmpeq_epi64( _mm256_and_si256( vh[0], vmask ),
                                   m256_zero );
 
-     if ( mm256_anybits0( vh_mask ) )
+     if ( mm256_anybits1( vh_mask ) )
      {
         keccak512_4way_init( &ctx.keccak );
         keccak512_4way_update( &ctx.keccak, vhash, 64 );
         keccak512_4way_close( &ctx.keccak, vhashA );
      }
 
-     if ( mm256_anybits1( vh_mask ) )
+     if ( mm256_anybits0( vh_mask ) )
      {
         jh512_4way_init( &ctx.jh );
         jh512_4way_update( &ctx.jh, vhash, 64 );
@@ -1180,7 +1180,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
      intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
 // B
-     if ( mm256_anybits1( vh_mask ) )
+     if ( mm256_anybits0( vh_mask ) )
      {
         haval256_5_4way_init( &ctx.haval );
         haval256_5_4way_update( &ctx.haval, vhash, 64 );
@@ -1407,7 +1407,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
    intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 512 );
 
-   if ( mm256_anybits1( vh_mask ) )
+   if ( mm256_anybits0( vh_mask ) )
    {
       sha512_4way_init( &ctx.sha512 );
       sha512_4way_update( &ctx.sha512, vhash, 64 );
@@ -1443,7 +1443,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
    // 4x32 for haval
    intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
-   if ( mm256_anybits0( vh_mask ) )
+   if ( mm256_anybits1( vh_mask ) )
    {
       haval256_5_4way_init( &ctx.haval );
       haval256_5_4way_update( &ctx.haval, vhash, 64 );

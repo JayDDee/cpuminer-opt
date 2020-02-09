@@ -75,22 +75,16 @@ void sonoa_8way_hash( void *state, const void *input )
 
 // 1
      
-     blake512_8way_init( &ctx.blake );
-     blake512_8way_update( &ctx.blake, input, 80 );
-     blake512_8way_close( &ctx.blake, vhash );
+     blake512_8way_full( &ctx.blake, vhash, input, 80 );
 
-     bmw512_8way_init( &ctx.bmw );
-     bmw512_8way_update( &ctx.bmw, vhash, 64 );
-     bmw512_8way_close( &ctx.bmw, vhash );
+     bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
 
 #if defined(__VAES__)
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+     groestl512_4way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashB, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -99,32 +93,22 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
 
 #endif
 
-     skein512_8way_init( &ctx.skein );
-     skein512_8way_update( &ctx.skein, vhash, 64 );
-     skein512_8way_close( &ctx.skein, vhash );
-
+     skein512_8way_full( &ctx.skein, vhash, vhash, 64 );
+     
      jh512_8way_init( &ctx.jh );
      jh512_8way_update( &ctx.jh, vhash, 64 );
      jh512_8way_close( &ctx.jh, vhash );
@@ -135,15 +119,11 @@ void sonoa_8way_hash( void *state, const void *input )
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_4way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_4way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
 #if defined(__VAES__)
 
@@ -187,17 +167,13 @@ void sonoa_8way_hash( void *state, const void *input )
 
 #endif
 
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_4way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_4way_full( &ctx.simd, vhashB, vhashB, 64 );
 
 #if defined(__VAES__)
 
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+     echo_4way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+     echo_4way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -206,30 +182,22 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash4,
-                       (const BitSequence *) hash4, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash5,
-                       (const BitSequence *) hash5, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash6,
-                       (const BitSequence *) hash6, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash7,
-                       (const BitSequence *) hash7, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash4, 512,
+                     (const BitSequence *)hash4, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash5, 512,
+                     (const BitSequence *)hash5, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash6, 512,
+                     (const BitSequence *)hash6, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash7, 512,
+                     (const BitSequence *)hash7, 64 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -238,18 +206,14 @@ void sonoa_8way_hash( void *state, const void *input )
 
 // 2
 
-     bmw512_8way_init( &ctx.bmw );
-     bmw512_8way_update( &ctx.bmw, vhash, 64 );
-     bmw512_8way_close( &ctx.bmw, vhash );
+     bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
 
 #if defined(__VAES__)
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+     groestl512_4way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashB, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -258,22 +222,14 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -294,15 +250,11 @@ void sonoa_8way_hash( void *state, const void *input )
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_4way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_4way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
 #if defined(__VAES__)
 
@@ -346,17 +298,13 @@ void sonoa_8way_hash( void *state, const void *input )
 
 #endif
 
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_4way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_4way_full( &ctx.simd, vhashB, vhashB, 64 );
 
 #if defined(__VAES__)
 
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+     echo_4way_full( &ctx.echo, vhashA, 512, vhashA, 64 );    
+     echo_4way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -365,30 +313,22 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash4,
-                       (const BitSequence *) hash4, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash5,
-                       (const BitSequence *) hash5, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash6,
-                       (const BitSequence *) hash6, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash7,
-                       (const BitSequence *) hash7, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash4, 512,
+                     (const BitSequence *)hash4, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash5, 512,
+                     (const BitSequence *)hash5, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash6, 512,
+                     (const BitSequence *)hash6, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash7, 512,
+                     (const BitSequence *)hash7, 64 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -401,18 +341,14 @@ void sonoa_8way_hash( void *state, const void *input )
 
 // 3
 
-     bmw512_8way_init( &ctx.bmw );
-     bmw512_8way_update( &ctx.bmw, vhash, 64 );
-     bmw512_8way_close( &ctx.bmw, vhash );
+     bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
 
 #if defined(__VAES__)
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+     groestl512_4way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashB, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -421,22 +357,14 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -457,15 +385,11 @@ void sonoa_8way_hash( void *state, const void *input )
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_4way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_4way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
 #if defined(__VAES__)
 
@@ -509,17 +433,13 @@ void sonoa_8way_hash( void *state, const void *input )
 
 #endif
 
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_4way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_4way_full( &ctx.simd, vhashB, vhashB, 64 );
 
 #if defined(__VAES__)
 
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+     echo_4way_full( &ctx.echo, vhashA, 512, vhashA, 64 );    
+     echo_4way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -528,30 +448,22 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash4,
-                       (const BitSequence *) hash4, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash5,
-                       (const BitSequence *) hash5, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash6,
-                       (const BitSequence *) hash6, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash7,
-                       (const BitSequence *) hash7, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash4, 512,
+                     (const BitSequence *)hash4, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash5, 512,
+                     (const BitSequence *)hash5, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash6, 512,
+                     (const BitSequence *)hash6, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash7, 512,
+                     (const BitSequence *)hash7, 64 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -595,18 +507,14 @@ void sonoa_8way_hash( void *state, const void *input )
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
 
-     bmw512_8way_init( &ctx.bmw );
-     bmw512_8way_update( &ctx.bmw, vhash, 64 );
-     bmw512_8way_close( &ctx.bmw, vhash );
+     bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
 
 #if defined(__VAES__)
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+     groestl512_4way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashB, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -615,22 +523,14 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -651,15 +551,11 @@ void sonoa_8way_hash( void *state, const void *input )
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_4way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_4way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
 #if defined(__VAES__)
 
@@ -703,17 +599,13 @@ void sonoa_8way_hash( void *state, const void *input )
 
 #endif
 
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_4way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_4way_full( &ctx.simd, vhashB, vhashB, 64 );
 
 #if defined(__VAES__)
 
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+     echo_4way_full( &ctx.echo, vhashA, 512, vhashA, 64 );    
+     echo_4way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -722,30 +614,22 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash4,
-                       (const BitSequence *) hash4, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash5,
-                       (const BitSequence *) hash5, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash6,
-                       (const BitSequence *) hash6, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash7,
-                       (const BitSequence *) hash7, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash4, 512,
+                     (const BitSequence *)hash4, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash5, 512,
+                     (const BitSequence *)hash5, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash6, 512,
+                     (const BitSequence *)hash6, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash7, 512,
+                     (const BitSequence *)hash7, 64 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -801,40 +685,30 @@ void sonoa_8way_hash( void *state, const void *input )
      
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+     echo_4way_full( &ctx.echo, vhashA, 512, vhashA, 64 );    
+     echo_4way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
      
 #else
 
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash4,
-                       (const BitSequence *) hash4, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash5,
-                       (const BitSequence *) hash5, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash6,
-                       (const BitSequence *) hash6, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash7,
-                       (const BitSequence *) hash7, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash4, 512,
+                     (const BitSequence *)hash4, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash5, 512,
+                     (const BitSequence *)hash5, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash6, 512,
+                     (const BitSequence *)hash6, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash7, 512,
+                     (const BitSequence *)hash7, 64 );
 
 #endif
 
@@ -881,9 +755,7 @@ void sonoa_8way_hash( void *state, const void *input )
 
 // 5
 
-     bmw512_8way_init( &ctx.bmw );
-     bmw512_8way_update( &ctx.bmw, vhash, 64 );
-     bmw512_8way_close( &ctx.bmw, vhash );
+     bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
 
      rintrlv_8x64_8x32( vhashA, vhash, 512 );
 
@@ -895,10 +767,8 @@ void sonoa_8way_hash( void *state, const void *input )
 
      rintrlv_8x32_4x128( vhashA, vhashB, vhash, 512 );
 
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+     groestl512_4way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashB, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -907,22 +777,14 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_8x32_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -943,15 +805,11 @@ void sonoa_8way_hash( void *state, const void *input )
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_4way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_4way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
 #if defined(__VAES__)
 
@@ -995,17 +853,13 @@ void sonoa_8way_hash( void *state, const void *input )
 
 #endif
 
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_4way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_4way_full( &ctx.simd, vhashB, vhashB, 64 );
 
 #if defined(__VAES__)
 
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+     echo_4way_full( &ctx.echo, vhashA, 512, vhashA, 64 );    
+     echo_4way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -1014,30 +868,22 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
      
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash4,
-                       (const BitSequence *) hash4, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash5,
-                       (const BitSequence *) hash5, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash6,
-                       (const BitSequence *) hash6, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash7,
-                       (const BitSequence *) hash7, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash4, 512,
+                     (const BitSequence *)hash4, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash5, 512,
+                     (const BitSequence *)hash5, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash6, 512,
+                     (const BitSequence *)hash6, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash7, 512,
+                     (const BitSequence *)hash7, 64 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -1116,18 +962,14 @@ void sonoa_8way_hash( void *state, const void *input )
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
 
-     bmw512_8way_init( &ctx.bmw );
-     bmw512_8way_update( &ctx.bmw, vhash, 64 );
-     bmw512_8way_close( &ctx.bmw, vhash );
+     bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
 
 #if defined(__VAES__)
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+     groestl512_4way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashB, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -1136,22 +978,14 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -1172,15 +1006,11 @@ void sonoa_8way_hash( void *state, const void *input )
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_4way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_4way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
 #if defined(__VAES__)
 
@@ -1224,17 +1054,13 @@ void sonoa_8way_hash( void *state, const void *input )
 
 #endif
 
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_4way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_4way_full( &ctx.simd, vhashB, vhashB, 64 );
 
 #if defined(__VAES__)
 
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+     echo_4way_full( &ctx.echo, vhashA, 512, vhashA, 64 );    
+     echo_4way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -1243,30 +1069,22 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash4,
-                       (const BitSequence *) hash4, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash5,
-                       (const BitSequence *) hash5, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash6,
-                       (const BitSequence *) hash6, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash7,
-                       (const BitSequence *) hash7, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash4, 512,
+                     (const BitSequence *)hash4, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash5, 512,
+                     (const BitSequence *)hash5, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash6, 512,
+                     (const BitSequence *)hash6, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash7, 512,
+                     (const BitSequence *)hash7, 64 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -1380,18 +1198,14 @@ void sonoa_8way_hash( void *state, const void *input )
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
 
-     bmw512_8way_init( &ctx.bmw );
-     bmw512_8way_update( &ctx.bmw, vhash, 64 );
-     bmw512_8way_close( &ctx.bmw, vhash );
+     bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
 
 #if defined(__VAES__)
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 512 );
-     groestl512_4way_init( &ctx.groestl, 64 );
-     groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 512 );
+     groestl512_4way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashB, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -1400,31 +1214,21 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
 
 #endif
 
-     skein512_8way_init( &ctx.skein );
-     skein512_8way_update( &ctx.skein, vhash, 64 );
-     skein512_8way_close( &ctx.skein, vhash );
+     skein512_8way_full( &ctx.skein, vhash, vhash, 64 );
 
      jh512_8way_init( &ctx.jh );
      jh512_8way_update( &ctx.jh, vhash, 64 );
@@ -1436,15 +1240,11 @@ void sonoa_8way_hash( void *state, const void *input )
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_4way_init( &ctx.luffa, 512 );
-     luffa_4way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_4way_init( &ctx.cube, 512, 16, 32 );
-     cube_4way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_4way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_4way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
 #if defined(__VAES__)
 
@@ -1488,17 +1288,13 @@ void sonoa_8way_hash( void *state, const void *input )
 
 #endif
 
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_4way_init( &ctx.simd, 512 );
-     simd_4way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_4way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_4way_full( &ctx.simd, vhashB, vhashB, 64 );
 
 #if defined(__VAES__)
 
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashA, vhashA, 512 );
-     echo_4way_init( &ctx.echo, 512 );
-     echo_4way_update_close( &ctx.echo, vhashB, vhashB, 512 );
+     echo_4way_full( &ctx.echo, vhashA, 512, vhashA, 64 );    
+     echo_4way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -1507,30 +1303,22 @@ void sonoa_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash4,
-                       (const BitSequence *) hash4, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash5,
-                       (const BitSequence *) hash5, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash6,
-                       (const BitSequence *) hash6, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash7,
-                       (const BitSequence *) hash7, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash4, 512,
+                     (const BitSequence *)hash4, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash5, 512,
+                     (const BitSequence *)hash5, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash6, 512,
+                     (const BitSequence *)hash6, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash7, 512,
+                     (const BitSequence *)hash7, 64 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                        hash7 );
@@ -1622,9 +1410,9 @@ int scanhash_sonoa_8way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*16] __attribute__ ((aligned (128)));
-   uint32_t vdata[24*8] __attribute__ ((aligned (64)));
+   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hash7 = &(hash[7<<3]);
+   uint32_t *hashd7 = &(hash[7<<3]);
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -1632,29 +1420,32 @@ int scanhash_sonoa_8way( struct work *work, uint32_t max_nonce,
    __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
-   const uint32_t Htarg = ptarget[7];
+   const uint32_t targ32 = ptarget[7];
 
    mm512_bswap32_intrlv80_8x64( vdata, pdata );
+   *noncev = mm512_intrlv_blend_32(
+              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                                n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
+
    do
    {
-      *noncev = mm512_intrlv_blend_32( mm512_bswap_32(
-              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                                n+3, 0, n+2, 0, n+1, 0, n,   0 ) ), *noncev );
       sonoa_8way_hash( hash, vdata );
 
       for ( int lane = 0; lane < 8; lane++ )
-      if unlikely( ( hash7[ lane ] <= Htarg ) )
+      if unlikely( ( hashd7[ lane ] <= targ32 ) )
       {
          extr_lane_8x32( lane_hash, hash, lane, 256 );
-         if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
+         if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ) )
          {
-            pdata[19] = n + lane;
+            pdata[19] = bswap_32( n + lane );
             submit_lane_solution( work, lane_hash, mythr, lane );
          }
       }
+      *noncev = _mm512_add_epi32( *noncev,
+                                  m512_const1_64( 0x0000000800000000 ) );
       n += 8;
    } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
-
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }
@@ -1697,9 +1488,7 @@ void sonoa_4way_hash( void *state, const void *input )
 
 // 1
 
-     blake512_4way_init( &ctx.blake );
-     blake512_4way_update( &ctx.blake, input, 80 );
-     blake512_4way_close( &ctx.blake, vhash );
+     blake512_4way_full( &ctx.blake, vhash, input, 80 );
 
      bmw512_4way_init( &ctx.bmw );
      bmw512_4way_update( &ctx.bmw, vhash, 64 );
@@ -1707,20 +1496,14 @@ void sonoa_4way_hash( void *state, const void *input )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, vhash, 64 );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
      jh512_4way_init( &ctx.jh );
      jh512_4way_update( &ctx.jh, vhash, 64 );
@@ -1732,42 +1515,30 @@ void sonoa_4way_hash( void *state, const void *input )
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashB, vhashB, 64 );
+     
+     cube_2way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_2way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashA, vhashA, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashB, vhashB, 64 );
 
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
-
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
-
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
+     
 // 2
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
@@ -1778,20 +1549,14 @@ void sonoa_4way_hash( void *state, const void *input )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, vhash, 64 );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
      jh512_4way_init( &ctx.jh );
      jh512_4way_update( &ctx.jh, vhash, 64 );
@@ -1803,41 +1568,29 @@ void sonoa_4way_hash( void *state, const void *input )
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_2way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_2way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashA, vhashA, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashB, vhashB, 64 );
 
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -1853,20 +1606,14 @@ void sonoa_4way_hash( void *state, const void *input )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, vhash, 64 );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
      jh512_4way_init( &ctx.jh );
      jh512_4way_update( &ctx.jh, vhash, 64 );
@@ -1878,41 +1625,29 @@ void sonoa_4way_hash( void *state, const void *input )
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_2way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_2way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashA, vhashA, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashB, vhashB, 64 );
 
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -1944,20 +1679,14 @@ void sonoa_4way_hash( void *state, const void *input )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, vhash, 64 );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
      jh512_4way_init( &ctx.jh );
      jh512_4way_update( &ctx.jh, vhash, 64 );
@@ -1969,41 +1698,29 @@ void sonoa_4way_hash( void *state, const void *input )
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_2way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_2way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashA, vhashA, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashB, vhashB, 64 );
 
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -2040,18 +1757,14 @@ void sonoa_4way_hash( void *state, const void *input )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
 
      intrlv_2x128_512( vhashA, hash0, hash1 );
      intrlv_2x128_512( vhashB, hash2, hash3 );
@@ -2076,20 +1789,14 @@ void sonoa_4way_hash( void *state, const void *input )
 
      dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, vhash, 64 );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
      jh512_4way_init( &ctx.jh );
      jh512_4way_update( &ctx.jh, vhash, 64 );
@@ -2101,41 +1808,29 @@ void sonoa_4way_hash( void *state, const void *input )
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_2way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_2way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashA, vhashA, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashB, vhashB, 64 );
 
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -2189,20 +1884,14 @@ void sonoa_4way_hash( void *state, const void *input )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, vhash, 64 );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
      jh512_4way_init( &ctx.jh );
      jh512_4way_update( &ctx.jh, vhash, 64 );
@@ -2214,41 +1903,29 @@ void sonoa_4way_hash( void *state, const void *input )
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_2way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_2way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashA, vhashA, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashB, vhashB, 64 );
 
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -2323,20 +2000,14 @@ void sonoa_4way_hash( void *state, const void *input )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     init_groestl( &ctx.groestl, 64 );
-     update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, vhash, 64 );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
      jh512_4way_init( &ctx.jh );
      jh512_4way_update( &ctx.jh, vhash, 64 );
@@ -2348,41 +2019,29 @@ void sonoa_4way_hash( void *state, const void *input )
 
      rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashA, vhashA, 64 );
-     luffa_2way_init( &ctx.luffa, 512 );
-     luffa_2way_update_close( &ctx.luffa, vhashB, vhashB, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashA, vhashA, 64 );
+     luffa512_2way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashA, vhashA, 64 );
-     cube_2way_init( &ctx.cube, 512, 16, 32 );
-     cube_2way_update_close( &ctx.cube, vhashB, vhashB, 64 );
+     cube_2way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+     cube_2way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
-     shavite512_2way_init( &ctx.shavite );
-     shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashA, vhashA, 64 );
+     shavite512_2way_full( &ctx.shavite, vhashB, vhashB, 64 );
 
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashA, vhashA, 512 );
-     simd_2way_init( &ctx.simd, 512 );
-     simd_2way_update_close( &ctx.simd, vhashB, vhashB, 512 );
+     simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
+     simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash0,
-                       (const BitSequence *) hash0, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash1,
-                       (const BitSequence *) hash1, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash2,
-                       (const BitSequence *) hash2, 512 );
-     init_echo( &ctx.echo, 512 );
-     update_final_echo( &ctx.echo, (BitSequence *)hash3,
-                       (const BitSequence *) hash3, 512 );
+     echo_full( &ctx.echo, (BitSequence *)hash0, 512,
+                     (const BitSequence *)hash0, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash1, 512,
+                     (const BitSequence *)hash1, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash2, 512,
+                     (const BitSequence *)hash2, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash3, 512,
+                     (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -2445,35 +2104,40 @@ int scanhash_sonoa_4way( struct work *work, const uint32_t max_nonce,
      uint32_t hash[4*16] __attribute__ ((aligned (64)));
      uint32_t vdata[24*4] __attribute__ ((aligned (64)));
      uint32_t lane_hash[8] __attribute__ ((aligned (32)));
-     uint32_t *hash7 = &( hash[7<<2] );
+     uint32_t *hashd7 = &( hash[7<<2] );
      uint32_t *pdata = work->data;
      const uint32_t *ptarget = work->target;
      const uint32_t first_nonce = pdata[19];
-     const uint32_t Htarg = ptarget[7];
+     const uint32_t last_nonce = max_nonce - 4;
+     const uint32_t targ32 = ptarget[7];
      uint32_t n = first_nonce;
-     __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
+     __m256i  *noncev = (__m256i*)vdata + 9;  
      const int thr_id = mythr->id;
 
      mm256_bswap32_intrlv80_4x64( vdata, pdata );
+     *noncev = mm256_intrlv_blend_32(
+                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
+
      do
      {
-        *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
-                _mm256_set_epi32( n+3, 0,n+2, 0,n+1, 0, n, 0 ) ), *noncev );
         sonoa_4way_hash( hash, vdata );
 
         for ( int lane = 0; lane < 4; lane++ )
-        if ( unlikely( hash7[ lane ] <= Htarg ) )
+        if ( unlikely( hashd7[ lane ] <= targ32 ) )
         {
            extr_lane_4x32( lane_hash, hash, lane, 256 );
-           if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
+           if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ) )
            {
-              pdata[19] = n + lane;
+              pdata[19] = bswap_32( n + lane );
               submit_lane_solution( work, lane_hash, mythr, lane );
            }
         }
+        *noncev = _mm256_add_epi32( *noncev,
+                                    m256_const1_64( 0x0000000400000000 ) );
         n += 4;
-     } while ( ( n < max_nonce - 4 ) && !work_restart[thr_id].restart );
-     *hashes_done = n - first_nonce + 1;
+     } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
+     pdata[19] = n;
+     *hashes_done = n - first_nonce;
      return 0;
 }
 

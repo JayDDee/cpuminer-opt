@@ -692,14 +692,15 @@ void x16r_4way_hash_generic( void* output, const void* input )
          break;
          case SKEIN:
             if ( i == 0 )
+            {
                skein512_4way_update( &ctx.skein, input + (64<<2), 16 );
+               skein512_4way_close( &ctx.skein, vhash );
+            }
             else
             {
                intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
-               skein512_4way_init( &ctx.skein );
-               skein512_4way_update( &ctx.skein, vhash, size );
+               skein512_4way_full( &ctx.skein, vhash, vhash, size );
             }
-            skein512_4way_close( &ctx.skein, vhash );
             dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
          break;
          case LUFFA:

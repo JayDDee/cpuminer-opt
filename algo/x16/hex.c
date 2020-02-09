@@ -30,9 +30,6 @@
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
 
-static __thread uint32_t s_ntime = UINT32_MAX;
-static __thread char hashOrder[X16R_HASH_FUNC_COUNT + 1] = { 0 };
-
 static void hex_getAlgoString(const uint32_t* prevblock, char *output)
 {
    char *sptr = output;
@@ -86,7 +83,7 @@ void hex_hash( void* output, const void* input )
    void *in = (void*) input;
    int size = 80;
 
-   char elem = hashOrder[0];
+   char elem = x16r_hash_order[0];
    uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
 
    for ( int i = 0; i < 16; i++ )
@@ -235,7 +232,7 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
-   const uint32_t last_nonce = max_nonce - 4;
+   const uint32_t last_nonce = max_nonce;
    const int thr_id = mythr->id;
    uint32_t nonce = first_nonce;
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
@@ -244,17 +241,18 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
 
    mm128_bswap32_80( edata, pdata );
    
+   static __thread uint32_t s_ntime = UINT32_MAX;
    uint32_t ntime = swab32(pdata[17]);
    if ( s_ntime != ntime )
    {
-      hex_getAlgoString( (const uint32_t*) (&edata[1]), hashOrder );
+      hex_getAlgoString( (const uint32_t*) (&edata[1]), x16r_hash_order );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
-              applog( LOG_INFO, "hash order %s (%08x)", hashOrder, ntime );
+              applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
    }
 
    // Do midstate prehash on hash functions with block size <= 64 bytes.
-   const char elem = hashOrder[0];
+   const char elem = x16r_hash_order[0];
    const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
    switch ( algo )
    {

@@ -1507,6 +1507,93 @@ void bmw512_8way_close( bmw512_8way_context *ctx, void *dst )
       casti_m512i( dst, u ) = h1[ v ];
 }
 
+void bmw512_8way_full( bmw512_8way_context *ctx, void *out, const void *data,
+                                size_t len )
+{
+   __m512i *vdata = (__m512i*)data;
+   __m512i *buf = ctx->buf;
+   __m512i htmp[16];
+   __m512i *H = ctx->H;
+   __m512i *h2 = htmp;
+   uint64_t bit_count = len * 8;
+   size_t ptr = 0;
+   const int buf_size = 128;  // bytes of one lane, compatible with len
+
+// Init
+
+   H[ 0] = m512_const1_64( 0x8081828384858687 );
+   H[ 1] = m512_const1_64( 0x88898A8B8C8D8E8F );
+   H[ 2] = m512_const1_64( 0x9091929394959697 );
+   H[ 3] = m512_const1_64( 0x98999A9B9C9D9E9F );
+   H[ 4] = m512_const1_64( 0xA0A1A2A3A4A5A6A7 );
+   H[ 5] = m512_const1_64( 0xA8A9AAABACADAEAF );
+   H[ 6] = m512_const1_64( 0xB0B1B2B3B4B5B6B7 );
+   H[ 7] = m512_const1_64( 0xB8B9BABBBCBDBEBF );
+   H[ 8] = m512_const1_64( 0xC0C1C2C3C4C5C6C7 );
+   H[ 9] = m512_const1_64( 0xC8C9CACBCCCDCECF );
+   H[10] = m512_const1_64( 0xD0D1D2D3D4D5D6D7 );
+   H[11] = m512_const1_64( 0xD8D9DADBDCDDDEDF );
+   H[12] = m512_const1_64( 0xE0E1E2E3E4E5E6E7 );
+   H[13] = m512_const1_64( 0xE8E9EAEBECEDEEEF );
+   H[14] = m512_const1_64( 0xF0F1F2F3F4F5F6F7 );
+   H[15] = m512_const1_64( 0xF8F9FAFBFCFDFEFF );
+
+// Update
+
+   while ( len > 0 )
+   {
+      size_t clen;
+      clen = buf_size - ptr;
+      if ( clen > len )
+         clen = len;
+      memcpy_512( buf + (ptr>>3), vdata, clen >> 3 );
+      vdata = vdata + (clen>>3);
+      len -= clen;
+      ptr += clen;
+      if ( ptr == buf_size )
+      {
+         __m512i *ht;
+         compress_big_8way( buf, H, h2 );
+         ht = H;
+         H = h2;
+         h2 = ht;
+         ptr = 0;
+      }
+   }
+   if ( H != ctx->H )
+      memcpy_512( ctx->H, H, 16 );
+
+// Close   
+{
+   __m512i h1[16], h2[16];
+   size_t u, v;
+
+   buf[ ptr>>3 ] = m512_const1_64( 0x80 );
+   ptr += 8;
+
+   if (  ptr > (buf_size - 8) )
+   {
+      memset_zero_512( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+      compress_big_8way( buf, H, h1 );
+      ptr = 0;
+      H = h1;
+   }
+   memset_zero_512( buf + (ptr>>3), (buf_size - 8 - ptr) >> 3 );
+   buf[ (buf_size - 8) >> 3 ] = _mm512_set1_epi64( bit_count );
+   compress_big_8way( buf, H, h2 );
+   for ( u = 0; u < 16; u ++ )
+      buf[ u ] = h2[ u ];
+   compress_big_8way( buf, final_b8, h1 );
+   for (u = 0, v = 8; u < 8; u ++, v ++)
+      casti_m512i( out, u ) = h1[ v ];
+}
+
+
+
+}   
+
+
+
 #endif // AVX512
 
 #ifdef __cplusplus

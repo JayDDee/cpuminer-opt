@@ -974,9 +974,6 @@ void report_summary_log( bool force )
                   : diff_to_hash * last_targetdiff
                       * (double)(submitted_share_count - accepted_share_count )
                     / (double)uptime.tv_sec;
-
-      double shrate = share_time == 0. ? 0. : diff_to_hash * last_targetdiff
-                                           * (double)(accepts) / share_time;
       double lost_shrate = share_time == 0. ? 0.
                : diff_to_hash * last_targetdiff  * (double)(submits - accepts )
                 / share_time;

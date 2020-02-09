@@ -238,7 +238,7 @@ int scanhash_x16r( struct work *work, uint32_t max_nonce,
       nonce++;
    } while ( nonce < max_nonce && !(*restart) );
    pdata[19] = nonce;
-   *hashes_done = pdata[19] - first_nonce + 1;
+   *hashes_done = pdata[19] - first_nonce;
    return 0;
 }
 

@@ -654,6 +654,80 @@ skein_big_close_8way( skein512_8way_context *sc, unsigned ub, unsigned n,
    memcpy_512( dst, buf, out_len >> 3 );
 }
 
+void skein512_8way_full( skein512_8way_context *sc, void *out, const void *data,
+                     size_t len )
+{
+   __m512i h0, h1, h2, h3, h4, h5, h6, h7;
+   __m512i *vdata = (__m512i*)data;
+   __m512i *buf = sc->buf;
+   size_t ptr = 0;
+   unsigned first;
+   uint64_t bcount = 0;
+   const int buf_size = 64;   // 64 * _m256i
+
+// Init
+
+        h0 = m512_const1_64( 0x4903ADFF749C51CE );
+        h1 = m512_const1_64( 0x0D95DE399746DF03 );
+        h2 = m512_const1_64( 0x8FD1934127C79BCE );
+        h3 = m512_const1_64( 0x9A255629FF352CB1 );
+        h4 = m512_const1_64( 0x5DB62599DF6CA7B0 );
+        h5 = m512_const1_64( 0xEABE394CA9D5C3F4 );
+        h6 = m512_const1_64( 0x991112C71A75B523 );
+        h7 = m512_const1_64( 0xAE18A40B660FCC33 );
+
+// Update
+
+   if ( len <= buf_size - ptr )
+   {
+       memcpy_512( buf + (ptr>>3), vdata, len>>3 );
+       ptr += len;
+   }
+   else
+   {
+      first = ( bcount == 0 ) << 7;
+      do {
+         size_t clen;
+
+         if ( ptr == buf_size )
+         {
+            bcount ++;
+            UBI_BIG_8WAY( 96 + first, 0 );
+            first = 0;
+            ptr = 0;
+         }
+         clen = buf_size - ptr;
+         if ( clen > len )
+            clen = len;
+         memcpy_512( buf + (ptr>>3), vdata, clen>>3 );
+         ptr += clen;
+         vdata += (clen>>3);
+         len -= clen;
+      } while ( len > 0 );
+   }
+
+// Close
+
+   unsigned et;
+
+   memset_zero_512( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+   et = 352 + ((bcount == 0) << 7);
+   UBI_BIG_8WAY( et, ptr );
+
+   memset_zero_512( buf, buf_size >> 3 );
+   bcount = 0;
+   UBI_BIG_8WAY( 510, 8 );
+
+   casti_m512i( out, 0 ) = h0;
+   casti_m512i( out, 1 ) = h1;
+   casti_m512i( out, 2 ) = h2;
+   casti_m512i( out, 3 ) = h3;
+   casti_m512i( out, 4 ) = h4;
+   casti_m512i( out, 5 ) = h5;
+   casti_m512i( out, 6 ) = h6;
+   casti_m512i( out, 7 ) = h7;
+}
+
 void
 skein256_8way_update(void *cc, const void *data, size_t len)
 {
@@ -709,6 +783,7 @@ void skein512_4way_init( skein512_4way_context *sc )
         sc->ptr = 0;
 }
 
+// Do not use for 128 bt data length
 static void
 skein_big_core_4way( skein512_4way_context *sc, const void *data,
                      size_t len )
@@ -795,6 +870,79 @@ skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
 }
 
 void
+skein512_4way_full( skein512_4way_context *sc, void *out, const void *data,
+                     size_t len )
+{
+   __m256i h0, h1, h2, h3, h4, h5, h6, h7;
+   __m256i *vdata = (__m256i*)data;
+   __m256i *buf = sc->buf;
+   size_t ptr = 0;
+   unsigned first;
+   const int buf_size = 64;   // 64 * __m256i
+   uint64_t bcount = 0;
+
+   h0 = m256_const1_64( 0x4903ADFF749C51CE );
+   h1 = m256_const1_64( 0x0D95DE399746DF03 );
+   h2 = m256_const1_64( 0x8FD1934127C79BCE );
+   h3 = m256_const1_64( 0x9A255629FF352CB1 );
+   h4 = m256_const1_64( 0x5DB62599DF6CA7B0 );
+   h5 = m256_const1_64( 0xEABE394CA9D5C3F4 );
+   h6 = m256_const1_64( 0x991112C71A75B523 );
+   h7 = m256_const1_64( 0xAE18A40B660FCC33 );
+
+// Update     
+
+   if ( len <= buf_size - ptr )
+   {
+       memcpy_256( buf + (ptr>>3), vdata, len>>3 );
+       ptr += len;
+   }
+   else
+   {
+      first = ( bcount == 0 ) << 7;
+      do {
+         size_t clen;
+
+         if ( ptr == buf_size )
+         {
+            bcount ++;
+            UBI_BIG_4WAY( 96 + first, 0 );
+            first = 0;
+            ptr = 0;
+         }
+         clen = buf_size - ptr;
+         if ( clen > len )
+            clen = len;
+         memcpy_256( buf + (ptr>>3), vdata, clen>>3 );
+         ptr += clen;
+         vdata += (clen>>3);
+         len -= clen;
+      } while ( len > 0 );
+   }
+
+// Close
+
+   unsigned et;
+
+   memset_zero_256( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+   et = 352 + ((bcount == 0) << 7);
+   UBI_BIG_4WAY( et, ptr );
+
+   memset_zero_256( buf, buf_size >> 3 );
+   bcount = 0;
+   UBI_BIG_4WAY( 510, 8 );
+
+   casti_m256i( out, 0 ) = h0;
+   casti_m256i( out, 1 ) = h1;
+   casti_m256i( out, 2 ) = h2;
+   casti_m256i( out, 3 ) = h3;
+   casti_m256i( out, 4 ) = h4;
+   casti_m256i( out, 5 ) = h5;
+   casti_m256i( out, 6 ) = h6;
+   casti_m256i( out, 7 ) = h7;
+}
+
+void
 skein256_4way_update(void *cc, const void *data, size_t len)
 {
 	skein_big_core_4way(cc, data, len);
@@ -806,6 +954,9 @@ skein256_4way_close(void *cc, void *dst)
         skein_big_close_4way(cc, 0, 0, dst, 32);
 }
 
+
+
+// Do not use with 128 bit data
 void
 skein512_4way_update(void *cc, const void *data, size_t len)
 {

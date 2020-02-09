@@ -563,59 +563,31 @@ void sonoa_hash( void *state, const void *input )
 }
 
 int scanhash_sonoa( struct work *work, uint32_t max_nonce,
-	            uint64_t *hashes_done, struct thr_info *mythr )
+             uint64_t *hashes_done, struct thr_info *mythr)
 {
-   uint32_t _ALIGN(128) hash32[8];
-   uint32_t _ALIGN(128) endiandata[20];
+   uint32_t edata[20] __attribute__((aligned(64)));
+   uint32_t hash64[8] __attribute__((aligned(64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
+   uint32_t n = pdata[19];
    const uint32_t first_nonce = pdata[19];
-   const uint32_t Htarg = ptarget[7];
-   uint32_t n = pdata[19] - 1;
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
 
-   uint64_t htmax[] =
+   mm128_bswap32_80( edata, pdata );
+
+   do
    {
-	0,
-	0xF,
-	0xFF,
-	0xFFF,
-	0xFFFF,
-	0x10000000
-   };
-   uint32_t masks[] =
-   {
-	0xFFFFFFFF,
-	0xFFFFFFF0,
-	0xFFFFFF00,
-	0xFFFFF000,
-	0xFFFF0000,
-	0
-   };
-
-
-   // we need bigendian data...
-   casti_m128i( endiandata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( endiandata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( endiandata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
-
-   for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
-   {
-      uint32_t mask = masks[m];
-      do
+      edata[19] = n;
+      sonoa_hash( hash64, edata );
+      if ( unlikely( valid_hash( hash64, ptarget ) && !bench ) )
       {
-         pdata[19] = ++n;
-         be32enc(&endiandata[19], n);
-         sonoa_hash(hash32, endiandata);
-         if ( !( hash32[7] & mask ) )
-         if ( fulltest( hash32, ptarget ) && !opt_benchmark )
-            submit_solution( work, hash32, mythr );
-	   } while (n < max_nonce && !work_restart[thr_id].restart);
-	   break;
-	}
-   *hashes_done = n - first_nonce + 1;
+         pdata[19] = bswap_32( n );
+         submit_solution( work, hash64, mythr );
+      }
+      n++;
+   } while ( n < max_nonce && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce;
    pdata[19] = n;
    return 0;
 }
