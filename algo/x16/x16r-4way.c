@@ -287,30 +287,14 @@ void x16r_8way_hash_generic( void* output, const void* input )
             shavite512_4way_full( &ctx.shavite, vhash, vhash, size );
             dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
 #else
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in0, size );
-            sph_shavite512_close( &ctx.shavite, hash0 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in1, size );
-            sph_shavite512_close( &ctx.shavite, hash1 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in2, size );
-            sph_shavite512_close( &ctx.shavite, hash2 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in3, size );
-            sph_shavite512_close( &ctx.shavite, hash3 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in4, size );
-            sph_shavite512_close( &ctx.shavite, hash4 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in5, size );
-            sph_shavite512_close( &ctx.shavite, hash5 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in6, size );
-            sph_shavite512_close( &ctx.shavite, hash6 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in7, size );
-            sph_shavite512_close( &ctx.shavite, hash7 );
+            shavite512_full( &ctx.shavite, hash0, in0, size );
+            shavite512_full( &ctx.shavite, hash1, in1, size );
+            shavite512_full( &ctx.shavite, hash2, in2, size );
+            shavite512_full( &ctx.shavite, hash3, in3, size );
+            shavite512_full( &ctx.shavite, hash4, in4, size );
+            shavite512_full( &ctx.shavite, hash5, in5, size );
+            shavite512_full( &ctx.shavite, hash6, in6, size );
+            shavite512_full( &ctx.shavite, hash7, in7, size );
 #endif
          break;
          case SIMD:
@@ -363,30 +347,14 @@ void x16r_8way_hash_generic( void* output, const void* input )
                           hash7, vhash );
          break;
          case FUGUE:
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in0, size );
-             sph_fugue512_close( &ctx.fugue, hash0 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in1, size );
-             sph_fugue512_close( &ctx.fugue, hash1 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in2, size );
-             sph_fugue512_close( &ctx.fugue, hash2 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in3, size );
-             sph_fugue512_close( &ctx.fugue, hash3 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in4, size );
-             sph_fugue512_close( &ctx.fugue, hash4 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in5, size );
-             sph_fugue512_close( &ctx.fugue, hash5 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in6, size );
-             sph_fugue512_close( &ctx.fugue, hash6 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in7, size );
-             sph_fugue512_close( &ctx.fugue, hash7 );
+             sph_fugue512_full( &ctx.fugue, hash0, in0, size );
+             sph_fugue512_full( &ctx.fugue, hash1, in1, size );
+             sph_fugue512_full( &ctx.fugue, hash2, in2, size );
+             sph_fugue512_full( &ctx.fugue, hash3, in3, size );
+             sph_fugue512_full( &ctx.fugue, hash4, in4, size );
+             sph_fugue512_full( &ctx.fugue, hash5, in5, size );
+             sph_fugue512_full( &ctx.fugue, hash6, in6, size );
+             sph_fugue512_full( &ctx.fugue, hash7, in7, size );
          break;
          case SHABAL:
              intrlv_8x32( vhash, in0, in1, in2, in3, in4, in5, in6, in7,
@@ -431,30 +399,14 @@ void x16r_8way_hash_generic( void* output, const void* input )
             }
             else
             {
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in0, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash0 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in1, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash1 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in2, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash2 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in3, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash3 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in4, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash4 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in5, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash5 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in6, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash6 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in7, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash7 );
+               sph_whirlpool512_full( &ctx.whirlpool, hash0, in0, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash1, in1, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash2, in2, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash3, in3, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash4, in4, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash5, in5, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash6, in6, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash7, in7, size );
             }
          break;
          case SHA_512:
@@ -576,8 +528,7 @@ void x16r_4way_prehash( void *vdata, void *pdata )
       break;
       case SKEIN:
          mm256_bswap32_intrlv80_4x64( vdata, pdata );
-         skein512_4way_init( &x16r_ctx.skein );
-         skein512_4way_update( &x16r_ctx.skein, vdata, 64 );
+         skein512_4way_prehash64( &x16r_ctx.skein, vdata );
       break;
       case LUFFA:
          mm128_bswap32_80( edata, pdata );
@@ -692,10 +643,7 @@ void x16r_4way_hash_generic( void* output, const void* input )
          break;
          case SKEIN:
             if ( i == 0 )
-            {
-               skein512_4way_update( &ctx.skein, input + (64<<2), 16 );
-               skein512_4way_close( &ctx.skein, vhash );
-            }
+               skein512_4way_final16( &ctx.skein, vhash, input + (64*4) );
             else
             {
                intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
@@ -756,18 +704,10 @@ void x16r_4way_hash_generic( void* output, const void* input )
             }
          break;
          case SHAVITE:
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in0, size );
-            sph_shavite512_close( &ctx.shavite, hash0 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in1, size );
-            sph_shavite512_close( &ctx.shavite, hash1 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in2, size );
-            sph_shavite512_close( &ctx.shavite, hash2 );
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in3, size );
-            sph_shavite512_close( &ctx.shavite, hash3 );
+            shavite512_full( &ctx.shavite, hash0, in0, size );
+            shavite512_full( &ctx.shavite, hash1, in1, size );
+            shavite512_full( &ctx.shavite, hash2, in2, size );
+            shavite512_full( &ctx.shavite, hash3, in3, size );
          break;
          case SIMD:
             intrlv_2x128( vhash, in0, in1, size<<3 );
@@ -800,18 +740,10 @@ void x16r_4way_hash_generic( void* output, const void* input )
             dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
          break;
          case FUGUE:
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in0, size );
-             sph_fugue512_close( &ctx.fugue, hash0 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in1, size );
-             sph_fugue512_close( &ctx.fugue, hash1 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in2, size );
-             sph_fugue512_close( &ctx.fugue, hash2 );
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in3, size );
-             sph_fugue512_close( &ctx.fugue, hash3 );
+             sph_fugue512_full( &ctx.fugue, hash0, in0, size );
+             sph_fugue512_full( &ctx.fugue, hash1, in1, size );
+             sph_fugue512_full( &ctx.fugue, hash2, in2, size );
+             sph_fugue512_full( &ctx.fugue, hash3, in3, size );
          break;
          case SHABAL:
              intrlv_4x32( vhash, in0, in1, in2, in3, size<<3 );
@@ -842,18 +774,10 @@ void x16r_4way_hash_generic( void* output, const void* input )
             }
             else
             {
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in0, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash0 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in1, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash1 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in2, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash2 );
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in3, size );
-               sph_whirlpool_close( &ctx.whirlpool, hash3 );
+               sph_whirlpool512_full( &ctx.whirlpool, hash0, in0, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash1, in1, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash2, in2, size );
+               sph_whirlpool512_full( &ctx.whirlpool, hash3, in3, size );
             }
          break;
          case SHA_512:

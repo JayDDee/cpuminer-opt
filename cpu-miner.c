@@ -2458,6 +2458,8 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 
    pthread_mutex_unlock( &sctx->work_lock );
 
+   restart_threads();
+
    if ( opt_debug )
    {
       unsigned char *xnonce2str = abin2hex( g_work->xnonce2,

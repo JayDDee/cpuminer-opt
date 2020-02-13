@@ -35,8 +35,7 @@ void skunk_8way_hash( void *output, const void *input )
      skunk_8way_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &skunk_8way_ctx, sizeof(skunk_8way_ctx) );
 
-     skein512_8way_update( &ctx.skein, input, 80 );
-     skein512_8way_close( &ctx.skein, vhash );
+     skein512_8way_final16( &ctx.skein, vhash, input );
      dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                         hash7, vhash, 512 );
   
@@ -104,35 +103,35 @@ int scanhash_skunk_8way( struct work *work, uint32_t max_nonce,
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 8;
    uint32_t n = first_nonce;
-   __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
-   const uint32_t Htarg = ptarget[7];
-   int thr_id = mythr->id;  
+   __m512i  *noncev = (__m512i*)vdata + 9; 
+   const int thr_id = mythr->id;  
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
+   const bool bench = opt_benchmark;
 
-   if ( opt_benchmark )
-      ((uint32_t*)ptarget)[7] = 0x0cff;
+   if ( bench )  ptarget[7] = 0x0fff;
 
    mm512_bswap32_intrlv80_8x64( vdata, pdata );
+   skein512_8way_prehash64( &skunk_8way_ctx.skein, vdata );
+   *noncev = mm512_intrlv_blend_32( 
+             _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                               n+3, 0, n+2, 0, n+1, 0, n  , 0 ), *noncev );
    do
    {
-      *noncev = mm512_intrlv_blend_32( mm512_bswap_32(
-              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                                n+3, 0, n+2, 0, n+1, 0, n  , 0 ) ), *noncev );
-
       skunk_8way_hash( hash, vdata );
-      pdata[19] = n;
 
       for ( int i = 0; i < 8; i++ )
-      if ( unlikely( (hash+(i<<3))[7] <= Htarg ) )
-      if ( likely( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark ) )
+      if ( unlikely( valid_hash( hash+(i<<3), ptarget ) && !bench ) )
       {
-         pdata[19] = n+i;
+         pdata[19] = bswap_32( n+i );
          submit_lane_solution( work, hash+(i<<3), mythr, i );
       }
+      *noncev = _mm512_add_epi32( *noncev,
+                                  m512_const1_64( 0x0000000800000000 ) );
       n +=8;
-   } while ( likely( ( n < max_nonce-8 ) && !(*restart) ) );
-
+   } while ( likely( ( n < last_nonce ) && !( *restart ) ) );
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }
@@ -159,17 +158,16 @@ static __thread skunk_4way_ctx_holder skunk_4way_ctx;
 
 void skunk_4way_hash( void *output, const void *input )
 {
+     uint64_t vhash[8*4] __attribute__ ((aligned (128)));
      uint64_t hash0[8] __attribute__ ((aligned (64)));
      uint64_t hash1[8] __attribute__ ((aligned (64)));
      uint64_t hash2[8] __attribute__ ((aligned (64)));
      uint64_t hash3[8] __attribute__ ((aligned (64)));
-     uint64_t vhash[8*4] __attribute__ ((aligned (64)));
 
      skunk_4way_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &skunk_4way_ctx, sizeof(skunk_4way_ctx) );
 
-     skein512_4way_update( &ctx.skein, input, 80 );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_final16( &ctx.skein, vhash, input + (64*4) );
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      cubehashUpdateDigest( &ctx.cube, (byte*) hash0, (const byte*)hash0, 64 );
@@ -213,40 +211,40 @@ void skunk_4way_hash( void *output, const void *input )
 int scanhash_skunk_4way( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[4*8] __attribute__ ((aligned (64)));
-   uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+   uint32_t hash[4*8] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 4;
    uint32_t n = first_nonce;
-   __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-   const uint32_t Htarg = ptarget[7];
-   int thr_id = mythr->id;  // thr_id arg is deprecated
-   volatile uint8_t *restart = &(work_restart[thr_id].restart);
+   __m256i  *noncev = (__m256i*)vdata + 9; 
+   const int thr_id = mythr->id; 
+   volatile uint8_t *restart = &( work_restart[ thr_id ].restart );
+   const bool bench = opt_benchmark;
 
-   if ( opt_benchmark )
-      ((uint32_t*)ptarget)[7] = 0x0cff;
+   if ( bench )  ptarget[7] = 0x0fff;
 
    mm256_bswap32_intrlv80_4x64( vdata, pdata );
+   skein512_4way_prehash64( &skunk_4way_ctx.skein, vdata );
+   *noncev = mm256_intrlv_blend_32(
+             _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
    {
-      *noncev = mm256_intrlv_blend_32( mm256_bswap_32(
-                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
-
       skunk_4way_hash( hash, vdata );
-      pdata[19] = n;
 
       for ( int i = 0; i < 4; i++ )
-      if ( (hash+(i<<3))[7] <= Htarg )
-      if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
+      if ( unlikely( valid_hash( hash+(i<<3), ptarget ) && !bench ) )
       {
-         pdata[19] = n+i;
+         pdata[19] = bswap_32( n + i );
          submit_lane_solution( work, hash+(i<<3), mythr, i );
       }
+      *noncev = _mm256_add_epi32( *noncev,
+                                  m256_const1_64( 0x0000000400000000 ) );
       n +=4;
-   } while ( ( n < max_nonce ) && !(*restart) );
-
-   *hashes_done = n - first_nonce + 1;
+   } while ( likely( ( n < last_nonce ) && !( *restart ) ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
    return 0;
 }
 

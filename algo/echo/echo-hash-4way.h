@@ -22,18 +22,26 @@ typedef struct
 } echo_4way_context __attribute__ ((aligned (64)));
 
 int echo_4way_init( echo_4way_context *state, int hashbitlen );
-
+#define echo512_4way_init( state ) echo_4way_init( state, 512 )
+#define echo256_4way_init( state ) echo_4way_init( state, 256 )
 
 int echo_4way_update( echo_4way_context *state, const void *data,
     unsigned int databitlen);
+#define echo512_4way_update echo_4way_update
 
 int echo_close( echo_4way_context *state, void *hashval );
+#define echo512_4way_close echo_4way_close
 
 int echo_4way_update_close( echo_4way_context *state, void *hashval,
                               const void *data, int databitlen );
+#define echo512_4way_update_close echo_4way_update_close
 
 int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
                     const void *data, int datalen );
+#define echo512_4way_full( state, hashval, data, datalen ) \
+           echo_4way_full( state, hashval, 512, data, datalen )
+#define echo256_4way_full( state, hashval, data, datalen ) \
+           echo_4way_full( state, hashval, 256, data, datalen )
 
 #endif 
 #endif

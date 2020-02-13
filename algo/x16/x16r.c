@@ -124,9 +124,7 @@ void x16r_hash_generic( void* output, const void* input )
                                          (byte*)in, size );
          break;
          case SHAVITE:
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in, size );
-            sph_shavite512_close( &ctx.shavite, hash );
+            shavite512_full( &ctx.shavite, hash, in, size );
          break;
          case SIMD:
             simd_full( &ctx.simd, (BitSequence *)hash,
@@ -153,9 +151,7 @@ void x16r_hash_generic( void* output, const void* input )
             sph_hamsi512_close( &ctx.hamsi, hash );
          break;
          case FUGUE:
-            sph_fugue512_init( &ctx.fugue );
-            sph_fugue512( &ctx.fugue, in, size );
-            sph_fugue512_close( &ctx.fugue, hash );
+            sph_fugue512_full( &ctx.fugue, hash, in, size );
          break;
          case SHABAL:
             if ( i == 0 )
@@ -169,13 +165,12 @@ void x16r_hash_generic( void* output, const void* input )
          break;
          case WHIRLPOOL:
             if ( i == 0 )
-               sph_whirlpool( &ctx.whirlpool, in+64, 16 );
-            else
             {
-               sph_whirlpool_init( &ctx.whirlpool );
-               sph_whirlpool( &ctx.whirlpool, in, size );
+               sph_whirlpool( &ctx.whirlpool, in+64, 16 );
+               sph_whirlpool_close( &ctx.whirlpool, hash );
             }
-            sph_whirlpool_close( &ctx.whirlpool, hash );
+            else
+               sph_whirlpool512_full( &ctx.whirlpool, hash, in, size );
          break;
          case SHA_512:
             SHA512_Init( &ctx.sha512 );

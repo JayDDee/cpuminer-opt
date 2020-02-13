@@ -5,20 +5,16 @@
 
 #if defined(SKEIN_8WAY)
 
-// static __thread skein512_8way_context skein512_8way_ctx
-//                                             __attribute__ ((aligned (64)));
+ static __thread skein512_8way_context skein512_8way_ctx
+                                             __attribute__ ((aligned (64)));
 
 void skein2hash_8way( void *output, const void *input )
 {
    uint64_t hash[16*8] __attribute__ ((aligned (128)));
    skein512_8way_context ctx;
-//   memcpy( &ctx, &skein512_8way_ctx, sizeof( ctx ) );
+   memcpy( &ctx, &skein512_8way_ctx, sizeof( ctx ) );
 
-   skein512_8way_full( &ctx, hash, input, 80 );
-
-//   skein512_8way_update( &ctx, input + (64*8), 16 );
-//   skein512_8way_close( &ctx, hash );
-
+   skein512_8way_final16( &ctx, hash, input + (64*8) );
    skein512_8way_full( &ctx, output, hash, 64 );
 }
 
@@ -38,16 +34,17 @@ int scanhash_skein2_8way( struct work *work, uint32_t max_nonce,
     __m512i  *noncev = (__m512i*)vdata + 9; 
     const int thr_id = mythr->id; 
     const bool bench = opt_benchmark;
+    skein512_8way_context ctx;
 
     mm512_bswap32_intrlv80_8x64( vdata, pdata );
     *noncev = mm512_intrlv_blend_32(
                 _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
                                   n+3, 0, n+2, 0, n+1, 0, n  , 0 ), *noncev );
-//    skein512_8way_init( &skein512_8way_ctx );
-//    skein512_8way_update( &skein512_8way_ctx, vdata, 64 );
+    skein512_8way_prehash64( &ctx, vdata );
     do
     {
-       skein2hash_8way( hash, vdata );
+       skein512_8way_final16( &ctx, hash, vdata + (16*8) );
+       skein512_8way_full( &ctx, hash, hash, 64 );
 
        for ( int lane = 0; lane < 8; lane++ )
        if ( unlikely( hashq3[ lane ] <= targq3 && !bench ) )
@@ -71,19 +68,16 @@ int scanhash_skein2_8way( struct work *work, uint32_t max_nonce,
 
 #elif defined(SKEIN_4WAY)
 
-//static __thread skein512_4way_context skein512_4way_ctx
-//                                           __attribute__ ((aligned (64)));
+static __thread skein512_4way_context skein512_4way_ctx
+                                           __attribute__ ((aligned (64)));
 
 void skein2hash_4way( void *output, const void *input )
 {
    skein512_4way_context ctx;
-//   memcpy( &ctx, &skein512_4way_ctx, sizeof( ctx ) ); 
+   memcpy( &ctx, &skein512_4way_ctx, sizeof( ctx ) ); 
    uint64_t hash[16*4] __attribute__ ((aligned (64)));
 
-//   skein512_4way_update( &ctx, input + (64*4), 16 );
-//   skein512_4way_close( &ctx, hash );
-
-   skein512_4way_full( &ctx, hash, input, 80 );
+   skein512_4way_final16( &ctx, hash, input + (64*4) );
    skein512_4way_full( &ctx, output, hash, 64 );
 }
 
@@ -103,15 +97,16 @@ int scanhash_skein2_4way( struct work *work, uint32_t max_nonce,
     __m256i  *noncev = (__m256i*)vdata + 9; 
     const int thr_id = mythr->id;  
     const bool bench = opt_benchmark;
+    skein512_4way_context ctx;
 
     mm256_bswap32_intrlv80_4x64( vdata, pdata );
-//    skein512_4way_init( &skein512_4way_ctx );
-//    skein512_4way_update( &skein512_4way_ctx, vdata, 64 );
+    skein512_4way_prehash64( &ctx, vdata );
     *noncev = mm256_intrlv_blend_32(
                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
     do 
     {
-       skein2hash_4way( hash, vdata );
+       skein512_4way_final16( &ctx, hash, vdata + (16*4) );
+       skein512_4way_full( &ctx, hash, hash, 64 );
 
        for ( int lane = 0; lane < 4; lane++ )
        if ( hash_q3[ lane ] <= targ_q3 )

@@ -33,7 +33,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#ifdef __AES__
+#if defined(__AES__)
 
 #include "sph_shavite.h"
 #include "simd-utils.h"

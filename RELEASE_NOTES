@@ -65,6 +65,17 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.3
+
+Issue #238: Fixed skunk AVX2.
+
+Issue #239: Faster AVX2 & AVX512 for skein +44%, skein2 +30%, plus marginal
+increases for skunk, x16r, x16rv2, x16rt, x16rt-veil, x16s, x21s.
+
+Faster anime VAES +57%, AVX512 +21%, AVX2 +3%.
+
+Redesigned code reponsible for #236.
+
 v3.12.2
 
 Fixed xevan, skein, skein2 AVX2, #238.

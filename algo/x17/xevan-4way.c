@@ -134,30 +134,14 @@ void xevan_8way_hash( void *output, const void *input )
      dintrlv_4x128( hash0, hash1, hash2, hash3, vhashA, dataLen<<3 );
      dintrlv_4x128( hash4, hash5, hash6, hash7, vhashB, dataLen<<3 );
 
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash0, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash0 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash1, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash1 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash2, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash2 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash3, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash3 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash4, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash4 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash5, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash5 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash6, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash6 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash7, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash7 );
+     shavite512_full( &ctx.shavite, hash0, hash0, dataLen );
+     shavite512_full( &ctx.shavite, hash1, hash1, dataLen );
+     shavite512_full( &ctx.shavite, hash2, hash2, dataLen );
+     shavite512_full( &ctx.shavite, hash3, hash3, dataLen );
+     shavite512_full( &ctx.shavite, hash4, hash4, dataLen );
+     shavite512_full( &ctx.shavite, hash5, hash5, dataLen );
+     shavite512_full( &ctx.shavite, hash6, hash6, dataLen );
+     shavite512_full( &ctx.shavite, hash7, hash7, dataLen );
 
      intrlv_4x128( vhashA, hash0, hash1, hash2, hash3, dataLen<<3 );
      intrlv_4x128( vhashB, hash4, hash5, hash6, hash7, dataLen<<3 );
@@ -208,30 +192,14 @@ void xevan_8way_hash( void *output, const void *input )
      dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                    vhash, dataLen<<3 );
 
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash0, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash0 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash1, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash1 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash2, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash2 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash3, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash3 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash4, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash4 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash5, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash5 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash6, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash6 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash7, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash7 );
+     sph_fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash4, hash4, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash5, hash5, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash6, hash6, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash7, hash7, dataLen );
 
      intrlv_8x32( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                   hash7, dataLen<<3 );
@@ -243,30 +211,14 @@ void xevan_8way_hash( void *output, const void *input )
      dintrlv_8x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                    vhash, dataLen<<3 );
 
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash0, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash0 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash1, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash1 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash2, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash2 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash3, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash3 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash4, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash4 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash5, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash5 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash6, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash6 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash7, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash7 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash0, hash0, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash1, hash1, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash4, hash4, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash5, hash5, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash6, hash6, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash7, hash7, dataLen );
 
      intrlv_8x64( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                   hash7, dataLen<<3 );
@@ -345,30 +297,14 @@ void xevan_8way_hash( void *output, const void *input )
      dintrlv_4x128( hash0, hash1, hash2, hash3, vhashA, dataLen<<3 );
      dintrlv_4x128( hash4, hash5, hash6, hash7, vhashB, dataLen<<3 );
 
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash0, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash0 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash1, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash1 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash2, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash2 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash3, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash3 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash4, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash4 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash5, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash5 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash6, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash6 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash7, dataLen );
-     sph_shavite512_close( &ctx.shavite, hash7 );
+     shavite512_full( &ctx.shavite, hash0, hash0, dataLen );
+     shavite512_full( &ctx.shavite, hash1, hash1, dataLen );
+     shavite512_full( &ctx.shavite, hash2, hash2, dataLen );
+     shavite512_full( &ctx.shavite, hash3, hash3, dataLen );
+     shavite512_full( &ctx.shavite, hash4, hash4, dataLen );
+     shavite512_full( &ctx.shavite, hash5, hash5, dataLen );
+     shavite512_full( &ctx.shavite, hash6, hash6, dataLen );
+     shavite512_full( &ctx.shavite, hash7, hash7, dataLen );
 
      intrlv_4x128( vhashA, hash0, hash1, hash2, hash3, dataLen<<3 );
      intrlv_4x128( vhashB, hash4, hash5, hash6, hash7, dataLen<<3 );
@@ -419,30 +355,14 @@ void xevan_8way_hash( void *output, const void *input )
      dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                    vhash, dataLen<<3 );
 
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash0, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash0 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash1, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash1 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash2, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash2 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash3, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash3 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash4, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash4 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash5, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash5 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash6, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash6 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash7, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash7 );
+     sph_fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash4, hash4, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash5, hash5, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash6, hash6, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash7, hash7, dataLen );
 
      intrlv_8x32( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                   hash7, dataLen<<3 );
@@ -454,30 +374,14 @@ void xevan_8way_hash( void *output, const void *input )
      dintrlv_8x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                    vhash, dataLen<<3 );
 
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash0, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash0 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash1, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash1 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash2, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash2 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash3, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash3 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash4, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash4 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash5, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash5 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash6, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash6 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash7, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash7 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash0, hash0, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash1, hash1, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash4, hash4, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash5, hash5, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash6, hash6, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash7, hash7, dataLen );
 
      intrlv_8x64( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                   hash7, dataLen<<3 );
@@ -636,18 +540,10 @@ void xevan_4way_hash( void *output, const void *input )
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash0, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash0 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash1, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash1 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash2, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash2 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash3, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash3 );
+     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
      // Parallel 4way 32 bit
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
@@ -659,18 +555,10 @@ void xevan_4way_hash( void *output, const void *input )
      dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      // Serial
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash0, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash0 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash1, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash1 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash2, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash2 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash3, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash3 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash0, hash0, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash1, hash1, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, dataLen );
 
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
@@ -749,18 +637,10 @@ void xevan_4way_hash( void *output, const void *input )
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash0, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash0 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash1, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash1 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash2, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash2 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash3, dataLen );
-     sph_fugue512_close( &ctx.fugue, hash3 );
+     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
@@ -770,18 +650,10 @@ void xevan_4way_hash( void *output, const void *input )
 
      dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash0, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash0 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash1, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash1 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash2, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash2 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash3, dataLen );
-     sph_whirlpool_close( &ctx.whirlpool, hash3 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash0, hash0, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash1, hash1, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, dataLen );
+     sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, dataLen );
 
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 

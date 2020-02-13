@@ -69,6 +69,10 @@ void skein512_8way_init( skein512_8way_context *sc );
 void skein512_8way_update( void *cc, const void *data, size_t len );
 void skein512_8way_close( void *cc, void *dst );
 
+void skein512_8way_prehash64( skein512_8way_context *sc, const void *data );
+void skein512_8way_final16( skein512_8way_context *sc, void *out,
+     const void *data );
+
 void skein256_8way_init( skein256_8way_context *sc );
 void skein256_8way_update( void *cc, const void *data, size_t len );
 void skein256_8way_close( void *cc, void *dst );
@@ -95,6 +99,10 @@ void skein512_4way_close( void *cc, void *dst );
 void skein256_4way_init( skein256_4way_context *sc );
 void skein256_4way_update( void *cc, const void *data, size_t len );
 void skein256_4way_close( void *cc, void *dst );
+
+void skein512_4way_prehash64( skein512_4way_context *sc, const void *data );
+void skein512_4way_final16( skein512_4way_context *sc, void *out,
+     const void *data );
 
 #ifdef __cplusplus
 }

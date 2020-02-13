@@ -120,6 +120,13 @@ void sph_whirlpool(void *cc, const void *data, size_t len);
  */
 void sph_whirlpool_close(void *cc, void *dst);
 
+#define sph_whirlpool512_full( cc, dst, data, len ) \
+do{ \
+   sph_whirlpool_init( cc ); \
+   sph_whirlpool( cc, data, len ); \
+   sph_whirlpool_close( cc, dst ); \
+}while(0)
+
 /**
  * WHIRLPOOL-0 uses the same structure than plain WHIRLPOOL.
  */

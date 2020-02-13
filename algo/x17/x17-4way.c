@@ -132,30 +132,14 @@ void x17_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
 
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash0, 64 );
-     sph_shavite512_close( &ctx.shavite, hash0 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash1, 64 );
-     sph_shavite512_close( &ctx.shavite, hash1 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash2, 64 );
-     sph_shavite512_close( &ctx.shavite, hash2 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash3, 64 );
-     sph_shavite512_close( &ctx.shavite, hash3 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash4, 64 );
-     sph_shavite512_close( &ctx.shavite, hash4 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash5, 64 );
-     sph_shavite512_close( &ctx.shavite, hash5 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash6, 64 );
-     sph_shavite512_close( &ctx.shavite, hash6 );
-     sph_shavite512_init( &ctx.shavite );
-     sph_shavite512( &ctx.shavite, hash7, 64 );
-     sph_shavite512_close( &ctx.shavite, hash7 );
+     shavite512_full( &ctx.shavite, hash0, hash0, 64 );
+     shavite512_full( &ctx.shavite, hash1, hash1, 64 );
+     shavite512_full( &ctx.shavite, hash2, hash2, 64 );
+     shavite512_full( &ctx.shavite, hash3, hash3, 64 );
+     shavite512_full( &ctx.shavite, hash4, hash4, 64 );
+     shavite512_full( &ctx.shavite, hash5, hash5, 64 );
+     shavite512_full( &ctx.shavite, hash6, hash6, 64 );
+     shavite512_full( &ctx.shavite, hash7, hash7, 64 );
 
      intrlv_4x128_512( vhashA, hash0, hash1, hash2, hash3 );
      intrlv_4x128_512( vhashB, hash4, hash5, hash6, hash7 );
@@ -206,30 +190,14 @@ void x17_8way_hash( void *state, const void *input )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash0, 64 );
-     sph_fugue512_close( &ctx.fugue, hash0 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash1, 64 );
-     sph_fugue512_close( &ctx.fugue, hash1 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash2, 64 );
-     sph_fugue512_close( &ctx.fugue, hash2 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash3, 64 );
-     sph_fugue512_close( &ctx.fugue, hash3 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash4, 64 );
-     sph_fugue512_close( &ctx.fugue, hash4 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash5, 64 );
-     sph_fugue512_close( &ctx.fugue, hash5 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash6, 64 );
-     sph_fugue512_close( &ctx.fugue, hash6 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash7, 64 );
-     sph_fugue512_close( &ctx.fugue, hash7 );
+     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     sph_fugue512_full( &ctx.fugue, hash4, hash4, 64 );
+     sph_fugue512_full( &ctx.fugue, hash5, hash5, 64 );
+     sph_fugue512_full( &ctx.fugue, hash6, hash6, 64 );
+     sph_fugue512_full( &ctx.fugue, hash7, hash7, 64 );
 
      intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                       hash7 );
@@ -241,30 +209,14 @@ void x17_8way_hash( void *state, const void *input )
      dintrlv_8x32_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash0, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash0 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash1, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash1 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash2, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash2 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash3, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash3 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash4, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash4 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash5, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash5 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash6, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash6 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash7, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash7 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash0, hash0, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash1, hash1, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash4, hash4, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash5, hash5, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash6, hash6, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash7, hash7, 64 );
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                       hash7 );
@@ -283,10 +235,10 @@ void x17_8way_hash( void *state, const void *input )
 int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[8*8] __attribute__ ((aligned (128)));
+   uint32_t hash32[8*8] __attribute__ ((aligned (128)));
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hashd7 = &(hash[7*8]);
+   uint32_t *hash32_d7 = &(hash32[7*8]);
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -294,7 +246,7 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
    __m512i  *noncev = (__m512i*)vdata + 9; 
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
-   const uint32_t targ32 = ptarget[7];
+   const uint32_t targ32_d7 = ptarget[7];
    const bool bench = opt_benchmark;
 
    mm512_bswap32_intrlv80_8x64( vdata, pdata );
@@ -303,12 +255,12 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
                                 n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      x17_8way_hash( hash, vdata );
+      x17_8way_hash( hash32, vdata );
 
       for ( int lane = 0; lane < 8; lane++ )
-      if ( unlikely( ( hashd7[ lane ] <= targ32 ) && !bench ) )
+      if ( unlikely( ( hash32_d7[ lane ] <= targ32_d7 ) && !bench ) )
       {
-         extr_lane_8x32( lane_hash, hash, lane, 256 );
+         extr_lane_8x32( lane_hash, hash32, lane, 256 );
          if ( likely( valid_hash( lane_hash, ptarget ) ) )
          {
             pdata[19] = bswap_32( n + lane );
@@ -418,18 +370,10 @@ void x17_4way_hash( void *state, const void *input )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash0, 64 );
-     sph_fugue512_close( &ctx.fugue, hash0 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash1, 64 );
-     sph_fugue512_close( &ctx.fugue, hash1 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash2, 64 );
-     sph_fugue512_close( &ctx.fugue, hash2 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash3, 64 );
-     sph_fugue512_close( &ctx.fugue, hash3 );
+     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -439,18 +383,10 @@ void x17_4way_hash( void *state, const void *input )
 
      dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
        
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash0, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash0 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash1, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash1 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash2, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash2 );
-     sph_whirlpool_init( &ctx.whirlpool );
-     sph_whirlpool( &ctx.whirlpool, hash3, 64 );
-     sph_whirlpool_close( &ctx.whirlpool, hash3 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash0, hash0, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash1, hash1, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -468,10 +404,10 @@ void x17_4way_hash( void *state, const void *input )
 int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t hash[8*4] __attribute__ ((aligned (64)));
+   uint32_t hash32[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hashd7 = &(hash[ 7*4 ]);
+   uint32_t *hash32_d7 = &(hash32[ 7*4 ]);
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -479,7 +415,7 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
    __m256i  *noncev = (__m256i*)vdata + 9;
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
-   const uint32_t targ32 = ptarget[7];
+   const uint32_t targ32_d7 = ptarget[7];
    const bool bench = opt_benchmark;
 
    mm256_bswap32_intrlv80_4x64( vdata, pdata );
@@ -487,12 +423,12 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
    {
-      x17_4way_hash( hash, vdata );
+      x17_4way_hash( hash32, vdata );
 
       for ( int lane = 0; lane < 4; lane++ )
-      if ( unlikely( hashd7[ lane ] <= targ32 && !bench ) )
+      if ( unlikely( hash32_d7[ lane ] <= targ32_d7 && !bench ) )
       {  
-         extr_lane_4x32( lane_hash, hash, lane, 256 );
+         extr_lane_4x32( lane_hash, hash32, lane, 256 );
          if ( valid_hash( lane_hash, ptarget ) )
          {
             pdata[19] = bswap_32( n + lane );

@@ -120,11 +120,26 @@ do { \
 } while(0)
 
 
-// Horizontal vector testing
-#define mm256_allbits0( a )    _mm256_testc_si256(   a, m256_neg1 )
-#define mm256_allbits1( a )    _mm256_testz_si256(   a, a )
-#define mm256_anybits0( a )   !mm256_allbits1( a )
-#define mm256_anybits1( a )   !mm256_allbits0( a )
+// Bytewise test of all 256 bits
+#define mm256_all0_8( a ) \
+     ( _mm256_movemask_epi8( a ) == 0 )
+
+#define mm256_all1_8( a ) \
+    ( _mm256_movemask_epi8( a ) == -1 )
+
+
+#define mm256_anybits0( a ) \
+   (  _mm256_movemask_epi8( a ) & 0xffffffff  )
+
+#define mm256_anybits1( a ) \
+   ( ( _mm256_movemask_epi8( a ) & 0xffffffff ) != 0xffffffff )
+
+
+// Bitwise test of all 256 bits
+#define mm256_allbits0( a )   _mm256_testc_si256( a, m256_neg1 )
+#define mm256_allbits1( a )   _mm256_testc_si256( m256_zero, a )
+//#define mm256_anybits0( a )   !mm256_allbits1( a )
+//#define mm256_anybits1( a )   !mm256_allbits0( a )
 
 
 // Parallel AES, for when x is expected to be in a 256 bit register.

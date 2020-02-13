@@ -187,14 +187,6 @@ int cube_4way_full( cube_4way_context *sp, void *output,  int hashbitlen,
     h[ 5] = m512_const1_128( iv[5] );
     h[ 6] = m512_const1_128( iv[6] );
     h[ 7] = m512_const1_128( iv[7] );
-    h[ 0] = m512_const1_128( iv[0] );
-    h[ 1] = m512_const1_128( iv[1] );
-    h[ 2] = m512_const1_128( iv[2] );
-    h[ 3] = m512_const1_128( iv[3] );
-    h[ 4] = m512_const1_128( iv[4] );
-    h[ 5] = m512_const1_128( iv[5] );
-    h[ 6] = m512_const1_128( iv[6] );
-    h[ 7] = m512_const1_128( iv[7] );
 
     const int len = size >> 4;
     const __m512i *in = (__m512i*)data;
@@ -447,14 +439,6 @@ int cube_2way_full( cube_2way_context *sp, void *output, int hashbitlen,
     sp->rounds    = 16;
     sp->pos       = 0;
 
-    h[ 0] = m256_const1_128( iv[0] );
-    h[ 1] = m256_const1_128( iv[1] );
-    h[ 2] = m256_const1_128( iv[2] );
-    h[ 3] = m256_const1_128( iv[3] );
-    h[ 4] = m256_const1_128( iv[4] );
-    h[ 5] = m256_const1_128( iv[5] );
-    h[ 6] = m256_const1_128( iv[6] );
-    h[ 7] = m256_const1_128( iv[7] );
     h[ 0] = m256_const1_128( iv[0] );
     h[ 1] = m256_const1_128( iv[1] );
     h[ 2] = m256_const1_128( iv[2] );

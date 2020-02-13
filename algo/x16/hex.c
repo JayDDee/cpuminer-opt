@@ -47,6 +47,7 @@ static void hex_getAlgoString(const uint32_t* prevblock, char *output)
    *sptr = '\0';
 }
 
+/*
 union _hex_context_overlay
 {
 #if defined(__AES__)
@@ -63,7 +64,7 @@ union _hex_context_overlay
         sph_keccak512_context   keccak;
         hashState_luffa         luffa;
         cubehashParam           cube;
-        sph_shavite512_context  shavite;
+        shavite512_context      shavite;
         hashState_sd            simd;
         sph_hamsi512_context    hamsi;
         sph_fugue512_context    fugue;
@@ -72,13 +73,14 @@ union _hex_context_overlay
         SHA512_CTX              sha512;
 };
 typedef union _hex_context_overlay hex_context_overlay;
+*/
 
-static __thread hex_context_overlay hex_ctx;
+static __thread x16r_context_overlay hex_ctx;
 
 void hex_hash( void* output, const void* input )
 {
    uint32_t _ALIGN(128) hash[16];
-   hex_context_overlay ctx;
+   x16r_context_overlay ctx;
    memcpy( &ctx, &hex_ctx, sizeof(ctx) );
    void *in = (void*) input;
    int size = 80;
@@ -157,9 +159,7 @@ void hex_hash( void* output, const void* input )
             }
          break;
          case SHAVITE:
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in, size );
-            sph_shavite512_close( &ctx.shavite, hash );
+            shavite512_full( &ctx.shavite, hash, in, size );
          break;
          case SIMD:
              init_sd( &ctx.simd, 512 );
@@ -187,9 +187,7 @@ void hex_hash( void* output, const void* input )
             sph_hamsi512_close( &ctx.hamsi, hash );
          break;
          case FUGUE:
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in, size );
-             sph_fugue512_close( &ctx.fugue, hash );
+             sph_fugue512_full( &ctx.fugue, hash, in, size );
          break;
          case SHABAL:
             if ( i == 0 ) 
@@ -203,13 +201,12 @@ void hex_hash( void* output, const void* input )
          break;
          case WHIRLPOOL:
             if ( i == 0 ) 
-                sph_whirlpool( &ctx.whirlpool, in+64, 16 );
-            else
             {
-                sph_whirlpool_init( &ctx.whirlpool );
-                sph_whirlpool( &ctx.whirlpool, in, size );
+                sph_whirlpool( &ctx.whirlpool, in+64, 16 );
+                sph_whirlpool_close( &ctx.whirlpool, hash );
             }
-            sph_whirlpool_close( &ctx.whirlpool, hash );
+            else
+                sph_whirlpool512_full( &ctx.whirlpool, hash, in,  size );
          break;
          case SHA_512:
              SHA512_Init( &ctx.sha512 );

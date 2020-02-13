@@ -121,7 +121,7 @@ union _x16r_8way_context_overlay
     echo_4way_context       echo;
 #else
     hashState_groestl       groestl;
-    sph_shavite512_context  shavite;
+    shavite512_context      shavite;
     hashState_echo          echo;
 #endif
 } __attribute__ ((aligned (64)));
@@ -152,7 +152,7 @@ union _x16r_4way_context_overlay
     luffa_2way_context      luffa;
     hashState_luffa         luffa1;
     cubehashParam           cube;
-    sph_shavite512_context  shavite;
+    shavite512_context      shavite;
     simd_2way_context       simd;
     hamsi512_4way_context   hamsi;
     sph_fugue512_context    fugue;
@@ -191,7 +191,7 @@ union _x16r_context_overlay
         sph_keccak512_context   keccak;
         hashState_luffa         luffa;
         cubehashParam           cube;
-        sph_shavite512_context  shavite;
+        shavite512_context      shavite;
         hashState_sd            simd;
         sph_hamsi512_context    hamsi;
         sph_fugue512_context    fugue;

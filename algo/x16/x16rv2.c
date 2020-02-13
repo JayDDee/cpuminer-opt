@@ -51,7 +51,7 @@ union _x16rv2_context_overlay
         sph_keccak512_context   keccak;
         hashState_luffa         luffa;
         cubehashParam           cube;
-        sph_shavite512_context  shavite;
+        shavite512_context      shavite;
         hashState_sd            simd;
         sph_hamsi512_context    hamsi;
         sph_fugue512_context    fugue;
@@ -136,9 +136,7 @@ void x16rv2_hash( void* output, const void* input )
                                   (const byte*)in, size );
          break;
          case SHAVITE:
-            sph_shavite512_init( &ctx.shavite );
-            sph_shavite512( &ctx.shavite, in, size );
-            sph_shavite512_close( &ctx.shavite, hash );
+            shavite512_full( &ctx.shavite, hash, in, size );
          break;
          case SIMD:
              init_sd( &ctx.simd, 512 );
@@ -162,9 +160,7 @@ void x16rv2_hash( void* output, const void* input )
              sph_hamsi512_close( &ctx.hamsi, hash );
          break;
          case FUGUE:
-             sph_fugue512_init( &ctx.fugue );
-             sph_fugue512( &ctx.fugue, in, size );
-             sph_fugue512_close( &ctx.fugue, hash );
+             sph_fugue512_full( &ctx.fugue, hash, in, size );
          break;
          case SHABAL:
              sph_shabal512_init( &ctx.shabal );
@@ -172,9 +168,7 @@ void x16rv2_hash( void* output, const void* input )
              sph_shabal512_close( &ctx.shabal, hash );
          break;
          case WHIRLPOOL:
-             sph_whirlpool_init( &ctx.whirlpool );
-             sph_whirlpool( &ctx.whirlpool, in, size );
-             sph_whirlpool_close( &ctx.whirlpool, hash );
+             sph_whirlpool512_full( &ctx.whirlpool, hash, in, size );
          break;
          case SHA_512:
              sph_tiger_init( &ctx.tiger );

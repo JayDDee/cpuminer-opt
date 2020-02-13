@@ -262,15 +262,9 @@ void sph_shavite384_close(void *cc, void *dst);
 void sph_shavite384_addbits_and_close(
 	void *cc, unsigned ub, unsigned n, void *dst);
 
-// Always define sw but only define aesni when available
-// Define fptrs for aesni or sw, not both.
-void sph_shavite512_sw_init(void *cc);
-void sph_shavite512_sw(void *cc, const void *data, size_t len);
-void sph_shavite512_sw_close(void *cc, void *dst);
-void sph_shavite512_sw_addbits_and_close(
-	void *cc, unsigned ub, unsigned n, void *dst);
-
+//Don't call these directly from application code, use the macros below.
 #ifdef __AES__
+
 void sph_shavite512_aesni_init(void *cc);
 void sph_shavite512_aesni(void *cc, const void *data, size_t len);
 void sph_shavite512_aesni_close(void *cc, void *dst);
@@ -285,6 +279,13 @@ void sph_shavite512_aesni_addbits_and_close(
 
 #else
 
+void sph_shavite512_sw_init(void *cc);
+void sph_shavite512_sw(void *cc, const void *data, size_t len);
+void sph_shavite512_sw_close(void *cc, void *dst);
+void sph_shavite512_sw_addbits_and_close(
+   void *cc, unsigned ub, unsigned n, void *dst);
+
+
 #define sph_shavite512_init  sph_shavite512_sw_init
 #define sph_shavite512       sph_shavite512_sw
 #define sph_shavite512_close sph_shavite512_sw_close
@@ -292,6 +293,20 @@ void sph_shavite512_aesni_addbits_and_close(
                              sph_shavite512_sw_addbits_and_close
 
 #endif
+
+// Use these macros from application code.
+#define shavite512_context sph_shavite512_context
+
+#define shavite512_init   sph_shavite512_init
+#define shavite512_update sph_shavite512
+#define shavite512_close  sph_shavite512_close
+
+#define shavite512_full( cc, dst, data, len ) \
+do{ \
+   shavite512_init( cc ); \
+   shavite512_update( cc, data, len ); \
+   shavite512_close( cc, dst ); \
+}while(0)
 
 #ifdef __cplusplus
 }

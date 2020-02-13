@@ -707,6 +707,7 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
    int thr_id = mythr->id;  // thr_id arg is deprecated
 	int throughput = scrypt_best_throughput();
 	int i;
+   volatile uint8_t *restart = &(work_restart[thr_id].restart);
 	
 #ifdef HAVE_SHA256_4WAY
 	if (sha256_use_4way())
@@ -757,7 +758,7 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
             submit_solution( work, hash, mythr );
 			}
 		}
-	} while (likely(n < max_nonce && !work_restart[thr_id].restart));
+	} while ( likely( n < max_nonce && !(*restart) ) );
 	
 	*hashes_done = n - pdata[19] + 1;
 	pdata[19] = n;

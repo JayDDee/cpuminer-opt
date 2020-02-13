@@ -729,6 +729,86 @@ void skein512_8way_full( skein512_8way_context *sc, void *out, const void *data,
 }
 
 void
+skein512_8way_prehash64( skein512_8way_context *sc, const void *data )
+{
+   __m512i *vdata = (__m512*)data;
+   __m512i *buf = sc->buf;
+   buf[0] = vdata[0];
+   buf[1] = vdata[1];
+   buf[2] = vdata[2];
+   buf[3] = vdata[3];
+   buf[4] = vdata[4];
+   buf[5] = vdata[5];
+   buf[6] = vdata[6];
+   buf[7] = vdata[7];
+   register __m512i h0 = m512_const1_64( 0x4903ADFF749C51CE );
+   register __m512i h1 = m512_const1_64( 0x0D95DE399746DF03 );
+   register __m512i h2 = m512_const1_64( 0x8FD1934127C79BCE );
+   register __m512i h3 = m512_const1_64( 0x9A255629FF352CB1 );
+   register __m512i h4 = m512_const1_64( 0x5DB62599DF6CA7B0 );
+   register __m512i h5 = m512_const1_64( 0xEABE394CA9D5C3F4 );
+   register __m512i h6 = m512_const1_64( 0x991112C71A75B523 );
+   register __m512i h7 = m512_const1_64( 0xAE18A40B660FCC33 );
+   uint64_t bcount = 1;
+
+   UBI_BIG_8WAY( 224, 0 );
+   sc->h0 = h0;
+   sc->h1 = h1;
+   sc->h2 = h2;
+   sc->h3 = h3;
+   sc->h4 = h4;
+   sc->h5 = h5;
+   sc->h6 = h6;
+   sc->h7 = h7;
+}
+
+void
+skein512_8way_final16( skein512_8way_context *sc,  void *output,
+                       const void *data )
+{
+   __m512i *in = (__m512i*)data;
+   __m512i *buf = sc->buf;
+   __m512i *out = (__m512i*)output;
+   register __m512i h0 = sc->h0;
+   register __m512i    h1 = sc->h1;
+   register __m512i    h2 = sc->h2;
+   register __m512i    h3 = sc->h3;
+   register __m512i    h4 = sc->h4;
+   register __m512i    h5 = sc->h5;
+   register __m512i    h6 = sc->h6;
+   register __m512i    h7 = sc->h7;
+
+   const __m512i zero = m512_zero;
+   buf[0] = in[0];
+   buf[1] = in[1];
+   buf[2] = zero;
+   buf[3] = zero;
+   buf[4] = zero;
+   buf[5] = zero;
+   buf[6] = zero;
+   buf[7] = zero;
+
+   uint64_t bcount = 1;
+   UBI_BIG_8WAY( 352, 16 );
+
+   buf[0] = zero;
+   buf[1] = zero;
+
+   bcount = 0;
+   UBI_BIG_8WAY( 510, 8 );
+
+   out[0] = h0;
+   out[1] = h1;
+   out[2] = h2;
+   out[3] = h3;
+   out[4] = h4;
+   out[5] = h5;
+   out[6] = h6;
+   out[7] = h7;
+}
+
+
+void
 skein256_8way_update(void *cc, const void *data, size_t len)
 {
    skein_big_core_8way(cc, data, len);
@@ -929,6 +1009,83 @@ skein512_4way_full( skein512_4way_context *sc, void *out, const void *data,
    UBI_BIG_4WAY( et, ptr );
 
    memset_zero_256( buf, buf_size >> 3 );
+   bcount = 0;
+   UBI_BIG_4WAY( 510, 8 );
+
+   casti_m256i( out, 0 ) = h0;
+   casti_m256i( out, 1 ) = h1;
+   casti_m256i( out, 2 ) = h2;
+   casti_m256i( out, 3 ) = h3;
+   casti_m256i( out, 4 ) = h4;
+   casti_m256i( out, 5 ) = h5;
+   casti_m256i( out, 6 ) = h6;
+   casti_m256i( out, 7 ) = h7;
+}
+
+void
+skein512_4way_prehash64( skein512_4way_context *sc, const void *data )
+{
+   __m256i *vdata = (__m256i*)data;
+   __m256i *buf = sc->buf;
+   buf[0] = vdata[0];
+   buf[1] = vdata[1];
+   buf[2] = vdata[2];
+   buf[3] = vdata[3];
+   buf[4] = vdata[4];
+   buf[5] = vdata[5];
+   buf[6] = vdata[6];
+   buf[7] = vdata[7];
+   register __m256i h0 = m256_const1_64( 0x4903ADFF749C51CE );
+   register __m256i h1 = m256_const1_64( 0x0D95DE399746DF03 );
+   register __m256i h2 = m256_const1_64( 0x8FD1934127C79BCE );
+   register __m256i h3 = m256_const1_64( 0x9A255629FF352CB1 );
+   register __m256i h4 = m256_const1_64( 0x5DB62599DF6CA7B0 );
+   register __m256i h5 = m256_const1_64( 0xEABE394CA9D5C3F4 );
+   register __m256i h6 = m256_const1_64( 0x991112C71A75B523 );
+   register __m256i h7 = m256_const1_64( 0xAE18A40B660FCC33 );
+   uint64_t bcount = 1;
+
+   UBI_BIG_4WAY( 224, 0 );
+   sc->h0 = h0;
+   sc->h1 = h1;
+   sc->h2 = h2;
+   sc->h3 = h3;
+   sc->h4 = h4;
+   sc->h5 = h5;
+   sc->h6 = h6;
+   sc->h7 = h7;
+}
+
+void
+skein512_4way_final16( skein512_4way_context *sc,  void *out, const void *data )
+{
+   __m256i *vdata = (__m256i*)data;
+   __m256i *buf = sc->buf;
+   register __m256i h0 = sc->h0;
+   register __m256i    h1 = sc->h1;
+   register __m256i    h2 = sc->h2;
+   register __m256i    h3 = sc->h3;
+   register __m256i    h4 = sc->h4;
+   register __m256i    h5 = sc->h5;
+   register __m256i    h6 = sc->h6;
+   register __m256i    h7 = sc->h7;
+
+   const __m256i zero = m256_zero;
+   buf[0] = vdata[0];
+   buf[1] = vdata[1];
+   buf[2] = zero;
+   buf[3] = zero;
+   buf[4] = zero;
+   buf[5] = zero;
+   buf[6] = zero;
+   buf[7] = zero;
+
+   uint64_t bcount = 1;
+   UBI_BIG_4WAY( 352, 16 );
+
+   buf[0] = zero;
+   buf[1] = zero;
+
    bcount = 0;
    UBI_BIG_4WAY( 510, 8 );
 

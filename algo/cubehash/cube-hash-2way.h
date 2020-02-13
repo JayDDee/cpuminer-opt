@@ -28,6 +28,27 @@ int cube_4way_update_close( cube_4way_context *sp, void *output,
 int cube_4way_full( cube_4way_context *sp, void *output, int hashbitlen,
                     const void *data, size_t size );
 
+int cube_4x256_full( cube_4way_context *sp, void *output, int hashbitlen,
+                     const void *data, size_t size );
+
+#define cube512_4way_init( sp ) cube_4way_update( sp, 512 )
+#define cube512_4way_update cube_4way_update
+#define cube512_4way_update_close cube_4way_update
+#define cube512_4way_close cube_4way_update
+#define cube512_4way_full( sp, output, data, size ) \
+           cube_4way_full( sp, output, 512, data, size )
+#define cube512_4x256_full( sp, output, data, size ) \
+           cube_4x256_full( sp, output, 512, data, size )
+
+#define cube256_4way_init( sp ) cube_4way_update( sp, 256 )
+#define cube256_4way_update cube_4way_update
+#define cube256_4way_update_close cube_4way_update
+#define cube256_4way_close cube_4way_update
+#define cube256_4way_full( sp, output, data, size ) \
+           cube_4way_full( sp, output, 256, data, size )
+#define cube256_4x256_full( sp, output, data, size ) \
+           cube_4x256_full( sp, output, 256, data, size )
+
 #endif
 
 // 2x128, 2 way parallel SSE2

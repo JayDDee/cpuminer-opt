@@ -35,6 +35,8 @@
 
 #include "sph_shavite.h"
 
+#if !defined(__AES__)
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -1762,3 +1764,6 @@ sph_shavite512_sw_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst
 #ifdef __cplusplus
 }
 #endif
+
+#endif   // !AES
+
