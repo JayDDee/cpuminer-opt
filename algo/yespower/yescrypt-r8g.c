@@ -73,6 +73,7 @@ bool register_yescryptr8g_algo( algo_gate_t* gate )
   gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_r8g;
   gate->hash          = (void*)&yespower_tls;
+  pk_buffer_size      = 26;
   opt_sapling         = true;
   opt_target_factor   = 65536.0;
   return true;

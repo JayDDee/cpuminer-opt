@@ -16,6 +16,11 @@ https://bitcointalk.org/index.php?topic=1326803.0
 
 mailto://jayddee246@gmail.com
 
+
+I created a new BCT user JayDDee to match my github user id.
+Over timme all discussion will be migrated using the new user.
+This note is to confirm JayDDee is the sae person as joblo.
+
 See file RELEASE_NOTES for change log and INSTALL_LINUX or INSTALL_WINDOWS
 for compile instructions.
 

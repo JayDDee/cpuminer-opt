@@ -129,7 +129,13 @@ char *rpc_url = NULL;;
 char *rpc_userpass = NULL;
 char *rpc_user, *rpc_pass;
 char *short_url = NULL;
-static unsigned char pk_script[25] = { 0 };
+char *coinbase_address;
+
+// pk_buffer_size is used as a version selector by b58 code, therefore
+// it must be set correctly to work.
+const int pk_buffer_size_max = 26;
+int pk_buffer_size = 25;
+static unsigned char pk_script[ 26 ] = { 0 };
 static size_t pk_script_size = 0;
 static char coinbase_sig[101] = { 0 };
 char *opt_cert;
@@ -1118,7 +1124,7 @@ static int share_result( int result, struct work *null_work,
      sprintf( bres, "B%d", solved_block_count );
      if ( stale )
      {
-        sprintf( sres, "Stale job %d", stale_share_count );
+        sprintf( sres, "Stale %d", stale_share_count );
         sprintf( rres, "R%d", rejected_share_count );
      }
      else
@@ -2984,11 +2990,7 @@ void parse_arg(int key, char *arg )
       opt_hash_meter = true;
       break;
    case 1016:			/* --coinbase-addr */
-		pk_script_size = address_to_script(pk_script, sizeof(pk_script), arg);
-		if (!pk_script_size) {
-			fprintf(stderr, "invalid address -- '%s'\n", arg);
-			show_usage_and_exit(1);
-		}
+      if ( arg ) coinbase_address = strdup( arg );
 		break;
 	case 1015:			/* --coinbase-sig */
 		if (strlen(arg) + 1 > sizeof(coinbase_sig)) {
@@ -3470,6 +3472,17 @@ int main(int argc, char *argv[])
 
    // All options must be set before starting the gate
    if ( !register_algo_gate( opt_algo, &algo_gate ) ) exit(1);
+
+   if ( coinbase_address )
+   {
+      pk_script_size = address_to_script( pk_script, pk_buffer_size,
+                                          coinbase_address );
+      if ( !pk_script_size )
+      {
+         applog(LOG_ERR,"Invalid coinbase address: '%s'", coinbase_address );
+         exit(0);
+      }
+   }
 
    // Initialize stats times and counters
    memset( share_stats, 0, 2 *  sizeof (struct share_stats_t) );

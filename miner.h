@@ -754,6 +754,8 @@ extern uint32_t solved_block_count;
 extern pthread_mutex_t applog_lock;
 extern pthread_mutex_t stats_lock;
 extern bool opt_sapling;
+extern const int pk_buffer_size_max;
+extern int pk_buffer_size;
 
 static char const usage[] = "\
 Usage: " PACKAGE_NAME " [OPTIONS]\n\

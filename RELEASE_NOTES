@@ -65,6 +65,10 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.3.1
+
+Issue #241: Fixed regression that broke GBT in v3.11.2.
+
 v3.12.3
 
 Issue #238: Fixed skunk AVX2.
