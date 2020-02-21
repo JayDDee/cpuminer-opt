@@ -51,30 +51,32 @@ bool init_lyra2rev3_ctx();
 //////////////////////////////////
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-  #define LYRA2REV2_8WAY 1
+  #define LYRA2REV2_16WAY 1
 #elif defined(__AVX2__)
-  #define LYRA2REV2_4WAY 1
+  #define LYRA2REV2_8WAY 1
 #endif
 
 extern __thread uint64_t* l2v2_wholeMatrix;
 
 bool register_lyra2rev2_algo( algo_gate_t* gate );
 
-#if defined(LYRA2REV2_8WAY)
+#if defined(LYRA2REV2_16WAY)
+
+void lyra2rev2_16way_hash( void *state, const void *input );
+int scanhash_lyra2rev2_16way( struct work *work, uint32_t max_nonce,
+                             uint64_t *hashes_done, struct thr_info *mythr );
+bool init_lyra2rev2_16way_ctx();
+
+#elif defined(LYRA2REV2_8WAY)
 
 void lyra2rev2_8way_hash( void *state, const void *input );
 int scanhash_lyra2rev2_8way( struct work *work, uint32_t max_nonce,
                              uint64_t *hashes_done, struct thr_info *mythr );
 bool init_lyra2rev2_8way_ctx();
 
-#elif defined(LYRA2REV2_4WAY)
-
-void lyra2rev2_4way_hash( void *state, const void *input );
-int scanhash_lyra2rev2_4way( struct work *work, uint32_t max_nonce,
-                             uint64_t *hashes_done, struct thr_info *mythr );
-bool init_lyra2rev2_4way_ctx();
 
 #else
+
 void lyra2rev2_hash( void *state, const void *input );
 int scanhash_lyra2rev2( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );

@@ -12,14 +12,23 @@ a false positive, they are flagged simply because they are cryptocurrency
 miners. The source code is open for anyone to inspect. If you don't trust 
 the software, don't use it.
 
+
+New thread:
+
+https://bitcointalk.org/index.php?topic=5226770.msg53865575#msg53865575
+
+Old thread:
+
 https://bitcointalk.org/index.php?topic=1326803.0
 
 mailto://jayddee246@gmail.com
 
+This note is to confirm that bitcointalk users JayDDee and joblo are the
+same person.
 
 I created a new BCT user JayDDee to match my github user id.
-Over timme all discussion will be migrated using the new user.
-This note is to confirm JayDDee is the sae person as joblo.
+The old thread has been locked but still contains useful information for
+reading.
 
 See file RELEASE_NOTES for change log and INSTALL_LINUX or INSTALL_WINDOWS
 for compile instructions.

@@ -94,12 +94,12 @@ bool lyra2rev2_thread_init()
    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
 
    int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
-#if defined (LYRA2REV2_8WAY)
+#if defined (LYRA2REV2_16WAY)
    l2v2_wholeMatrix = _mm_malloc( 2 * size, 64 );   // 2 way
-   init_lyra2rev2_8way_ctx();;
-#elif defined (LYRA2REV2_4WAY)
+   init_lyra2rev2_16way_ctx();;
+#elif defined (LYRA2REV2_8WAY)
    l2v2_wholeMatrix = _mm_malloc( size, 64 );
-   init_lyra2rev2_4way_ctx();;
+   init_lyra2rev2_8way_ctx();;
 #else
    l2v2_wholeMatrix = _mm_malloc( size, 64 );
    init_lyra2rev2_ctx();
@@ -109,12 +109,12 @@ bool lyra2rev2_thread_init()
 
 bool register_lyra2rev2_algo( algo_gate_t* gate )
 {
-#if defined (LYRA2REV2_8WAY)
+#if defined (LYRA2REV2_16WAY)
+  gate->scanhash  = (void*)&scanhash_lyra2rev2_16way;
+  gate->hash      = (void*)&lyra2rev2_16way_hash;
+#elif defined (LYRA2REV2_8WAY)
   gate->scanhash  = (void*)&scanhash_lyra2rev2_8way;
   gate->hash      = (void*)&lyra2rev2_8way_hash;
-#elif defined (LYRA2REV2_4WAY)
-  gate->scanhash  = (void*)&scanhash_lyra2rev2_4way;
-  gate->hash      = (void*)&lyra2rev2_4way_hash;
 #else
   gate->scanhash  = (void*)&scanhash_lyra2rev2;
   gate->hash      = (void*)&lyra2rev2_hash;

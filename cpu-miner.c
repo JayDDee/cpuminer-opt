@@ -1152,10 +1152,25 @@ static int share_result( int result, struct work *null_work,
            my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
            bres, share_time, latency );
 
+// purge job id when solo, diff is good   
+   if ( !opt_quiet )
+   {
+      if ( have_stratum )
+         applog2( LOG_NOTICE, "Diff %.5g (%.3g%), %sBlock %d, %sJob %s" CL_WHT,
+               my_stats.share_diff, share_ratio, bcol, stratum.block_height,
+               scol, my_stats.job_id );
+      else
+         applog2( LOG_NOTICE, "Diff %.5g (%.3g%), %sBlock %d" CL_WHT,
+               my_stats.share_diff, share_ratio, bcol, stratum.block_height,
+               scol );
+    }
+
+/*
    if ( have_stratum && !opt_quiet )
       applog2( LOG_NOTICE, "Diff %.5g (%.3g%), %sBlock %d, %sJob %s" CL_WHT,
                my_stats.share_diff, share_ratio, bcol, stratum.block_height,
                scol, my_stats.job_id );
+*/
 
    if ( unlikely( reason && !result ) )
    {
@@ -1698,8 +1713,12 @@ void work_set_target_ratio( struct work* work, const void *hash )
    share_stats[ s_put_ptr ].net_diff = net_diff;
    share_stats[ s_put_ptr ].stratum_diff = stratum_diff;
    share_stats[ s_put_ptr ].target_diff = work->targetdiff;
-   ( (uint64_t*)share_stats[ s_put_ptr ].job_id )[3] = 0;
-   strncpy( share_stats[ s_put_ptr ].job_id, work->job_id, 30 );
+
+
+//purge job id when solo
+   if ( have_stratum )
+      strncpy( share_stats[ s_put_ptr ].job_id, work->job_id, 30 );
+   
    s_put_ptr = stats_ptr_incr( s_put_ptr );
 
    pthread_mutex_unlock( &stats_lock );
@@ -1712,9 +1731,16 @@ bool submit_solution( struct work *work, const void *hash,
   {
      submitted_share_count++;
      work_set_target_ratio( work, hash );
+//purge job id when solo
      if ( !opt_quiet )
-        applog( LOG_NOTICE, "%d submitted by thread %d, job %s",
-            submitted_share_count, thr->id, work->job_id );
+     {
+        if ( have_stratum )
+           applog( LOG_NOTICE, "%d submitted by thread %d, job %s",
+               submitted_share_count, thr->id, work->job_id );
+        else
+           applog( LOG_NOTICE, "%d submitted by thread %d",
+               submitted_share_count, thr->id );
+     }
 
 if ( lowdiff_debug )
 {
@@ -1740,9 +1766,16 @@ bool submit_lane_solution( struct work *work, const void *hash,
   {
      submitted_share_count++;
      work_set_target_ratio( work, hash );
+//purge job id when solo
      if ( !opt_quiet )
-        applog( LOG_NOTICE, "%d submitted by thread %d, lane %d, job %s",
-            submitted_share_count, thr->id, lane, work->job_id );
+     {
+        if ( have_stratum )
+           applog( LOG_NOTICE, "%d submitted by thread %d, lane %d, job %s",
+               submitted_share_count, thr->id, lane, work->job_id );
+        else
+           applog( LOG_NOTICE, "%d submitted by thread %d, lane %d",
+               submitted_share_count, thr->id, lane );
+     }
 
 if ( lowdiff_debug )
 {
@@ -1854,9 +1887,14 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
 {
    uint32_t *nonceptr = work->data + algo_gate.nonce_index;
 
-   bool force_new_work = work->job_id ? strtoul(   work->job_id, NULL, 16 ) !=
-                                        strtoul( g_work->job_id, NULL, 16 )
-                                      : true;
+//purge job id when solo
+   bool force_new_work; 
+   if ( have_stratum ) 
+      force_new_work = work->job_id ?    strtoul(   work->job_id, NULL, 16 )
+                                      != strtoul( g_work->job_id, NULL, 16 )
+                                     : true;
+   else
+      force_new_work = false;
 
    if ( force_new_work || *nonceptr >= *end_nonce_ptr )
    {
@@ -2292,13 +2330,18 @@ start:
       soval = json_object_get(res, "submitold");
       submit_old = soval ? json_is_true(soval) : false;
 	   pthread_mutex_lock(&g_work_lock);
-	   start_job_id = g_work.job_id ? strdup(g_work.job_id) : NULL;
+
+// This code has been here for a long time even though job_id isn't used.
+// This needs to be changed eventually to test the block height properly
+// using g_work.block_height .     
+      start_job_id = g_work.job_id ? strdup(g_work.job_id) : NULL;
 	   if (have_gbt)
 	      rc = gbt_work_decode(res, &g_work);
 	   else
 	      rc = work_decode(res, &g_work);
 	   if (rc)
       {
+// purge job id from solo mining
         bool newblock = g_work.job_id && strcmp(start_job_id, g_work.job_id);
 	     newblock |= (start_diff != net_diff); // the best is the height but... longpoll...
         if (newblock)

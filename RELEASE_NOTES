@@ -65,9 +65,15 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.4
+
+Issue #244: Change longpoll to ignore job id.
+
+Lyra2rev2 AVX2 +3%, AVX512 +6%.
+
 v3.12.3.1
 
-Issue #241: Fixed regression that broke GBT in v3.11.2.
+Issue #241: Fixed regression that broke coinbase address in v3.11.7.
 
 v3.12.3
 
