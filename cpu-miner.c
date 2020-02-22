@@ -2074,12 +2074,28 @@ static void *miner_thread( void *userdata )
           sleep(5);
 	       continue;
        }
-       // adjust max_nonce to meet target scan time
+
+// LP_SCANTIME overrides opt_scantime option, is this right?
+
+       // adjust max_nonce to meet target scan time. Startum and longpoll
+       // can go longer because they can rely on restart_threads to signal
+       // an early abort. get_work on the other hand can't rely on
+       // restart_threads so need a much shorter scantime
+       if ( have_stratum )
+          max64 = 60 * thr_hashrates[thr_id];
+       else if ( have_longpoll )
+          max64 = LP_SCANTIME * thr_hashrates[thr_id];
+       else  // getwork inline
+          max64 = opt_scantime * thr_hashrates[thr_id];   
+
+/*       
        if ( have_stratum )
           max64 = LP_SCANTIME;
        else
           max64 = g_work_time + ( have_longpoll ? LP_SCANTIME : opt_scantime )
 	                      - time(NULL);
+*/
+
        // time limit
        if ( unlikely( opt_time_limit && firstwork_time ) )
        {
@@ -2106,17 +2122,20 @@ static void *miner_thread( void *userdata )
           }
           if ( remain < max64 ) max64 = remain;
        }
-       // Select nonce range for approx 1 min duration based
-       // on hashrate, initial value arbitrarilly set to 1000 just to get
+
+       // Select nonce range based on max64, the estimated number of hashes
+       // to meet the desired scan time.
+       // Initial value arbitrarilly set to 1000 just to get
        // a sample hashrate for the next time.
        uint32_t work_nonce = *nonceptr;
-       max64 = 60 * thr_hashrates[thr_id];
+//       max64 = 60 * thr_hashrates[thr_id];
        if ( max64 <= 0)
           max64 = 1000;
        if ( work_nonce + max64 > end_nonce )
           max_nonce = end_nonce;
        else
           max_nonce = work_nonce + (uint32_t)max64;
+
        // init time
        if ( firstwork_time == 0 )
           firstwork_time = time(NULL);
@@ -3677,7 +3696,10 @@ int main(int argc, char *argv[])
 	/* ESET-NOD32 Detects these 2 thread_create... */
 	if (want_longpoll && !have_stratum)
    {
-		/* init longpoll thread info */
+      if ( opt_debug )
+         applog(LOG_INFO,"Creating long poll thread");
+
+      /* init longpoll thread info */
 		longpoll_thr_id = opt_n_threads + 1;
 		thr = &thr_info[longpoll_thr_id];
 		thr->id = longpoll_thr_id;
@@ -3693,7 +3715,10 @@ int main(int argc, char *argv[])
 	}
 	if (want_stratum)
    {
-		/* init stratum thread info */
+      if ( opt_debug )
+         applog(LOG_INFO,"Creating stratum thread");
+
+      /* init stratum thread info */
 		stratum_thr_id = opt_n_threads + 2;
 		thr = &thr_info[stratum_thr_id];
 		thr->id = stratum_thr_id;
@@ -3713,7 +3738,10 @@ int main(int argc, char *argv[])
 
 	if ( opt_api_enabled )
    {
-		/* api thread */
+      if ( opt_debug )
+         applog(LOG_INFO,"Creating API thread");
+
+      /* api thread */
 		api_thr_id = opt_n_threads + 3;
 		thr = &thr_info[api_thr_id];
 		thr->id = api_thr_id;
@@ -3723,7 +3751,7 @@ int main(int argc, char *argv[])
 		err = thread_create( thr, api_thread );
 		if ( err )
       {
-			applog( LOG_ERR, "api thread create failed" );
+			applog( LOG_ERR, "API thread create failed" );
 			return 1;
 		}
       if ( !opt_quiet )
