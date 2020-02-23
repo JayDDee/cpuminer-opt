@@ -431,68 +431,71 @@ static bool work_decode( const json_t *val, struct work *work )
 static const char *info_req =
 "{\"method\": \"getmininginfo\", \"params\": [], \"id\":8}\r\n";
 
-static bool get_mininginfo(CURL *curl, struct work *work)
+static bool get_mininginfo( CURL *curl, struct work *work )
 {
-	if (have_stratum || !allow_mininginfo)
+	if ( have_stratum || !allow_mininginfo )
 		return false;
 
 	int curl_err = 0;
-	json_t *val = json_rpc_call(curl, rpc_url, rpc_userpass, info_req, &curl_err, 0);
+	json_t *val = json_rpc_call( curl, rpc_url, rpc_userpass, info_req,
+                                &curl_err, 0 );
 
-	if (!val && curl_err == -1) {
+	if ( !val && curl_err == -1 )
+   {
 		allow_mininginfo = false;
-		if (opt_debug) {
-			applog(LOG_DEBUG, "getmininginfo not supported");
-		}
+		if ( opt_debug )
+			applog( LOG_DEBUG, "getmininginfo not supported" );
 		return false;
 	}
-	else
-        {
-	   json_t *res = json_object_get(val, "result");
-	   // "blocks": 491493 (= current work height - 1)
-	   // "difficulty": 0.99607860999999998
-	   // "networkhashps": 56475980
-	   if (res)
-           {
-		json_t *key = json_object_get(res, "difficulty");
-		if (key) {
-			if (json_is_object(key))
-				key = json_object_get(key, "proof-of-work");
-			if (json_is_real(key))
-				net_diff = json_real_value(key);
-		}
-		key = json_object_get(res, "networkhashps");
-		if (key && json_is_integer(key)) {
-			net_hashrate = (double) json_integer_value(key);
-		}
-		key = json_object_get(res, "blocks");
-		if (key && json_is_integer(key)) {
-			net_blocks = json_integer_value(key);
-		}
-		if (!work->height)
-                {
-		   // complete missing data from getwork
-		   work->height = (uint32_t) net_blocks + 1;
-		   if (work->height > g_work.height)
-                   {
-			restart_threads();
-			if (!opt_quiet) {
-			   char netinfo[64] = { 0 };
-			   char srate[32] = { 0 };
-			   sprintf(netinfo, "diff %.2f", net_diff);
-			   if (net_hashrate) {
-				format_hashrate(net_hashrate, srate);
-				strcat(netinfo, ", net ");
-				strcat(netinfo, srate);
-			   }
-			   applog(LOG_BLUE, "%s block %d, %s",
-				algo_names[opt_algo], work->height, netinfo);
-			}
-		   }
-		}
+
+   json_t *res = json_object_get( val, "result" );
+   // "blocks": 491493 (= current work height - 1)
+   // "difficulty": 0.99607860999999998
+   // "networkhashps": 56475980
+   if ( res )
+   {
+  		json_t *key = json_object_get( res, "difficulty" );
+   	if ( key )
+      {
+	   	if ( json_is_object( key ) )
+		   	key = json_object_get( key, "proof-of-work" );
+		   if ( json_is_real( key ) )
+			   net_diff = json_real_value( key );
 	   }
+
+      key = json_object_get( res, "networkhashps" );
+	   if ( key && json_is_integer( key ) )
+		   net_hashrate = (double) json_integer_value( key );
+
+      key = json_object_get( res, "blocks" );
+	   if ( key && json_is_integer( key ) )
+		  	net_blocks = json_integer_value( key );
+
+      if ( !work->height )
+      {
+	      // complete missing data from getwork
+	      work->height = (uint32_t) net_blocks + 1;
+	      if ( work->height > g_work.height )
+         {
+            restart_threads();
+		      if ( !opt_quiet )
+            {
+		         char netinfo[64] = { 0 };
+		         char srate[32] = { 0 };
+		         sprintf( netinfo, "diff %.2f", net_diff );
+		         if ( net_hashrate )
+               {
+	               format_hashrate( net_hashrate, srate );
+                  strcat( netinfo, ", net " );
+			         strcat( netinfo, srate );
+		         }
+		         applog( LOG_BLUE, "%s block %d, %s",
+			                algo_names[opt_algo], work->height, netinfo );
+		      }
+		   } 
+	   }  // res
 	}
-	json_decref(val);
+	json_decref( val );
 	return true;
 }
 
@@ -1152,7 +1155,6 @@ static int share_result( int result, struct work *null_work,
            my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
            bres, share_time, latency );
 
-// purge job id when solo, diff is good   
    if ( !opt_quiet )
    {
       if ( have_stratum )
@@ -1163,14 +1165,7 @@ static int share_result( int result, struct work *null_work,
          applog2( LOG_NOTICE, "Diff %.5g (%.3g%), %sBlock %d" CL_WHT,
                my_stats.share_diff, share_ratio, bcol, stratum.block_height,
                scol );
-    }
-
-/*
-   if ( have_stratum && !opt_quiet )
-      applog2( LOG_NOTICE, "Diff %.5g (%.3g%), %sBlock %d, %sJob %s" CL_WHT,
-               my_stats.share_diff, share_ratio, bcol, stratum.block_height,
-               scol, my_stats.job_id );
-*/
+   }
 
    if ( unlikely( reason && !result ) )
    {
@@ -1492,6 +1487,36 @@ start:
    json_decref( val );
    // store work height in solo
    get_mininginfo(curl, work);
+
+   applog( LOG_BLUE, "%s %s block %d, diff %.5g", work->height, net_diff );
+
+   if ( !opt_quiet && net_diff && net_hashrate )
+   {
+      double miner_hr = 0.;
+      pthread_mutex_lock( &stats_lock );
+
+      for ( int i = 0; i < opt_n_threads; i++ )
+         miner_hr += thr_hashrates[i];
+      global_hashrate = miner_hr;
+
+      pthread_mutex_unlock( &stats_lock );
+
+      if ( miner_hr )
+      {
+         char net_hr_units[4] = {0};
+         char miner_hr_units[4] = {0};
+         char net_ttf[32];
+         char miner_ttf[32];
+
+         sprintf_et( net_ttf, net_diff * diff_to_hash / net_hashrate );
+         sprintf_et( miner_ttf, net_diff * diff_to_hash / miner_hr );
+         scale_hash_for_display ( &miner_hr, miner_hr_units );
+         scale_hash_for_display ( &net_hashrate, net_hr_units );
+         applog2(LOG_INFO, "Miner TTF @ %.2f %sh/s %s, net TTF @ %.2f %sh/s %s",
+                             miner_hr, miner_hr_units, miner_ttf,
+                             net_hashrate, net_hr_units, net_ttf );
+      }
+   }
    return rc;
 }
 
@@ -1537,6 +1562,8 @@ static bool workio_get_work(struct workio_cmd *wc, CURL *curl)
 			opt_fail_pause);
 	sleep(opt_fail_pause);
    }
+
+   report_summary_log( false );
 
    /* send work to requesting thread */
    if (!tq_push(wc->thr->q, ret_work))
@@ -1713,12 +1740,8 @@ void work_set_target_ratio( struct work* work, const void *hash )
    share_stats[ s_put_ptr ].net_diff = net_diff;
    share_stats[ s_put_ptr ].stratum_diff = stratum_diff;
    share_stats[ s_put_ptr ].target_diff = work->targetdiff;
-
-
-//purge job id when solo
    if ( have_stratum )
       strncpy( share_stats[ s_put_ptr ].job_id, work->job_id, 30 );
-   
    s_put_ptr = stats_ptr_incr( s_put_ptr );
 
    pthread_mutex_unlock( &stats_lock );
@@ -1731,7 +1754,7 @@ bool submit_solution( struct work *work, const void *hash,
   {
      submitted_share_count++;
      work_set_target_ratio( work, hash );
-//purge job id when solo
+
      if ( !opt_quiet )
      {
         if ( have_stratum )
@@ -1742,20 +1765,20 @@ bool submit_solution( struct work *work, const void *hash,
                submitted_share_count, thr->id );
      }
 
-if ( lowdiff_debug )
-{
-   uint32_t* h = (uint32_t*)hash;
-   uint32_t* t = (uint32_t*)work->target;
-   applog(LOG_INFO,"Hash[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
-                              h[7],h[6],h[5],h[4],h[3],h[2],h[1],h[0]);
-   applog(LOG_INFO,"Targ[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
-                              t[7],t[6],t[5],t[4],t[3],t[2],t[1],t[0]);
-}
-    return true;
+     if ( lowdiff_debug )
+     {
+        uint32_t* h = (uint32_t*)hash;
+        uint32_t* t = (uint32_t*)work->target;
+        applog(LOG_INFO,"Hash[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
+                                    h[7],h[6],h[5],h[4],h[3],h[2],h[1],h[0]);
+        applog(LOG_INFO,"Targ[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
+                                    t[7],t[6],t[5],t[4],t[3],t[2],t[1],t[0]);
+     }
+     return true;
   }
   else
-     applog( LOG_WARNING, "%d failed to submit share.",
-             submitted_share_count );
+     applog( LOG_WARNING, "%d failed to submit share thread %d.",
+             submitted_share_count, thr->id );
   return false;
 }
 
@@ -1766,7 +1789,7 @@ bool submit_lane_solution( struct work *work, const void *hash,
   {
      submitted_share_count++;
      work_set_target_ratio( work, hash );
-//purge job id when solo
+
      if ( !opt_quiet )
      {
         if ( have_stratum )
@@ -1777,22 +1800,20 @@ bool submit_lane_solution( struct work *work, const void *hash,
                submitted_share_count, thr->id, lane );
      }
 
-if ( lowdiff_debug )
-{
-   uint32_t* h = (uint32_t*)hash;
-   uint32_t* t = (uint32_t*)work->target;
-   applog(LOG_INFO,"Hash[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
-                              h[7],h[6],h[5],h[4],h[3],h[2],h[1],h[0]);
-   applog(LOG_INFO,"Targ[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
-                              t[7],t[6],t[5],t[4],t[3],t[2],t[1],t[0]);
-}
-
-
-     return true;
+     if ( lowdiff_debug )
+     {
+        uint32_t* h = (uint32_t*)hash;
+        uint32_t* t = (uint32_t*)work->target;
+        applog(LOG_INFO,"Hash[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
+                                    h[7],h[6],h[5],h[4],h[3],h[2],h[1],h[0]);
+         applog(LOG_INFO,"Targ[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
+                                     t[7],t[6],t[5],t[4],t[3],t[2],t[1],t[0]);
+    }
+    return true;
   }
   else
-     applog( LOG_WARNING, "%d failed to submit share.",
-          submitted_share_count );
+     applog( LOG_WARNING, "%d failed to submit share, thread %d, lane %d.",
+          submitted_share_count, thr->id, lane );
   return false;
 }
 
@@ -1886,15 +1907,15 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
                      uint32_t *end_nonce_ptr )
 {
    uint32_t *nonceptr = work->data + algo_gate.nonce_index;
-
-//purge job id when solo
    bool force_new_work; 
+
    if ( have_stratum ) 
       force_new_work = work->job_id ?    strtoul(   work->job_id, NULL, 16 )
                                       != strtoul( g_work->job_id, NULL, 16 )
                                      : true;
-   else
-      force_new_work = false;
+   else 
+      force_new_work = memcmp( work->data, g_work->data,
+                               algo_gate.work_cmp_size );
 
    if ( force_new_work || *nonceptr >= *end_nonce_ptr )
    {

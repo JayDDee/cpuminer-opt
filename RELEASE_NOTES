@@ -65,6 +65,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.4.2
+
+Issue #245: fixed getwork stale shares, solo mining with getwork now works.
+
+Issue #246: implemented block and summary logs for getwork.
+
 v3.12.4.1
 
 Issue #245: fix scantime when mining solo with getwork.
