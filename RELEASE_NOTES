@@ -65,6 +65,14 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.5
+
+Issue #246: Fixed net hashrate in getwork block log,
+            removed duplicate getwork block log, 
+            other small tweaks to stats logs for getwork.
+
+Issue #248: Fixed chronic stale shares with scrypt:1048576 (scryptn2). 
+
 v3.12.4.3
 
 Fixed segfault in new block log for getwork.

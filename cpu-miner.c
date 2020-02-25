@@ -184,7 +184,23 @@ int default_api_listen = 4048;
   pthread_mutex_t applog_lock;
   pthread_mutex_t stats_lock;
 
+static struct   timeval session_start;
+static struct   timeval five_min_start;
+static uint64_t session_first_block = 0;
+static double   latency_sum = 0.;
+static uint64_t submit_sum  = 0;
+static uint64_t accept_sum  = 0;
+static uint64_t stale_sum  = 0;
+static uint64_t reject_sum  = 0;
+static double   norm_diff_sum = 0.;
+static uint32_t last_block_height = 0;
+//static bool     new_job = false;
+static double   last_targetdiff = 0.;
+#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
+static uint32_t hi_temp = 0;
+#endif
 
+  
 static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 	"S"
@@ -421,7 +437,9 @@ static bool work_decode( const json_t *val, struct work *work )
         net_diff = algo_gate.calc_network_diff( work );
     work->targetdiff = target_to_diff( work->target );
     // for api stats, on longpoll pools
-    stratum_diff = work->targetdiff;
+    // This needs cleanup, stratum_diff doean't apply  solo mining
+    // and targetdiff is redundant, same as net_diff.
+    stratum_diff = last_targetdiff = work->targetdiff;
     work->sharediff = 0;
     algo_gate.decode_extra_data( work, &net_blocks );
     return true;
@@ -478,7 +496,9 @@ static bool get_mininginfo( CURL *curl, struct work *work )
 	      if ( work->height > g_work.height )
          {
             restart_threads();
-		      if ( !opt_quiet )
+
+/* redundant with new block log
+            if ( !opt_quiet )
             {
 		         char netinfo[64] = { 0 };
 		         char srate[32] = { 0 };
@@ -492,7 +512,8 @@ static bool get_mininginfo( CURL *curl, struct work *work )
 		         applog( LOG_BLUE, "%s block %d, %s",
 			                algo_names[opt_algo], work->height, netinfo );
 		      }
-		   } 
+*/
+         } 
 	   }  // res
 	}
 	json_decref( val );
@@ -880,23 +901,6 @@ static inline void sprintf_et( char *str, int seconds )
 
 const double diff_to_hash = 4294967296.;
 
-static struct   timeval session_start;
-static struct   timeval five_min_start;
-static uint64_t session_first_block = 0;
-static double   latency_sum = 0.;
-static uint64_t submit_sum  = 0;
-static uint64_t accept_sum  = 0;
-static uint64_t stale_sum  = 0;
-static uint64_t reject_sum  = 0;
-static double   norm_diff_sum = 0.;
-static uint32_t last_block_height = 0;
-//static bool     new_job = false;
-static double   last_targetdiff = 0.;
-#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
-static uint32_t hi_temp = 0;
-#endif
-//static uint32_t stratum_errors = 0;
-
 struct share_stats_t
 {
    int share_count;
@@ -970,6 +974,7 @@ void report_summary_log( bool force )
    sprintf_et( upt_str, uptime.tv_sec );
 
    applog( LOG_NOTICE, "Periodic Report     %s        %s", et_str, upt_str );
+   applog2( LOG_INFO, "%s: %s", algo_names[ opt_algo ], short_url );
    applog2( LOG_INFO, "Share rate        %.2f/min     %.2f/min",
                       submit_rate, (double)submitted_share_count*60. /
                     ( (double)uptime.tv_sec + (double)uptime.tv_usec / 1e6 ) );
@@ -1507,8 +1512,7 @@ start:
    // store work height in solo
    get_mininginfo(curl, work);
 
-   applog( LOG_BLUE, "%s %s block %d, diff %.5g", algo_names[ opt_algo ],
-                      short_url, work->height, net_diff );
+   applog( LOG_BLUE, "New block %d, diff %.5g", work->height, net_diff );
 
    if ( !opt_quiet && net_diff && net_hashrate )
    {
@@ -1523,18 +1527,19 @@ start:
 
       if ( miner_hr )
       {
+         double net_hr = net_hashrate;
          char net_hr_units[4] = {0};
          char miner_hr_units[4] = {0};
          char net_ttf[32];
          char miner_ttf[32];
 
-         sprintf_et( net_ttf, net_diff * diff_to_hash / net_hashrate );
+         sprintf_et( net_ttf, net_diff * diff_to_hash / net_hr );
          sprintf_et( miner_ttf, net_diff * diff_to_hash / miner_hr );
          scale_hash_for_display ( &miner_hr, miner_hr_units );
-         scale_hash_for_display ( &net_hashrate, net_hr_units );
+         scale_hash_for_display ( &net_hr, net_hr_units );
          applog2(LOG_INFO, "Miner TTF @ %.2f %sh/s %s, net TTF @ %.2f %sh/s %s",
                              miner_hr, miner_hr_units, miner_ttf,
-                             net_hashrate, net_hr_units, net_ttf );
+                             net_hr, net_hr_units, net_ttf );
       }
    }
    return rc;
@@ -1558,37 +1563,37 @@ static void workio_cmd_free(struct workio_cmd *wc)
 	free(wc);
 }
 
-static bool workio_get_work(struct workio_cmd *wc, CURL *curl)
+static bool workio_get_work( struct workio_cmd *wc, CURL *curl )
 {
    struct work *ret_work;
    int failures = 0;
 
-   ret_work = (struct work*) calloc(1, sizeof(*ret_work));
-   if (!ret_work)
+   ret_work = (struct work*) calloc( 1, sizeof(*ret_work) );
+   if ( !ret_work )
 	return false;
 
    /* obtain new work from bitcoin via JSON-RPC */
-   while (!get_upstream_work(curl, ret_work))
+   while ( !get_upstream_work( curl, ret_work ) )
    {
-	if (unlikely((opt_retries >= 0) && (++failures > opt_retries)))
-        {
-           applog(LOG_ERR, "json_rpc_call failed, terminating workio thread");
-           free(ret_work);
-	   return false;
-        }
+      if ( unlikely( ( opt_retries >= 0 ) && ( ++failures > opt_retries ) ) )
+      {
+         applog( LOG_ERR, "json_rpc_call failed, terminating workio thread" );
+         free( ret_work );
+	      return false;
+      }
 
-	/* pause, then restart work-request loop */
-	applog(LOG_ERR, "json_rpc_call failed, retry after %d seconds",
-			opt_fail_pause);
-	sleep(opt_fail_pause);
+      /* pause, then restart work-request loop */
+	   applog( LOG_ERR, "json_rpc_call failed, retry after %d seconds",
+		        opt_fail_pause );
+      sleep( opt_fail_pause );
    }
 
-   report_summary_log( false );
-
    /* send work to requesting thread */
-   if (!tq_push(wc->thr->q, ret_work))
-	free(ret_work);
+   if ( !tq_push(wc->thr->q, ret_work ) )
+   	free( ret_work );
 
+   report_summary_log( false );
+   
    return true;
 }
 
@@ -2609,7 +2614,6 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 
       if ( !opt_quiet )
       {
-         applog2( LOG_INFO, "%s: %s", algo_names[opt_algo], short_url );
          applog2( LOG_INFO, "Diff: Net %.5g, Stratum %.5g, Target %.5g",
                             net_diff, stratum_diff, last_targetdiff );
 

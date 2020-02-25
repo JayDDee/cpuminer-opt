@@ -380,7 +380,7 @@ static inline void PBKDF2_SHA256_128_32_8way(uint32_t *tstate,
 #endif /* HAVE_SHA256_8WAY */
 
 
-#if defined(USE_ASM) && defined(__x86_64__)
+//#if defined(USE_ASM) && defined(__x86_64__)
 
 #define SCRYPT_MAX_WAYS 12
 #define HAVE_SCRYPT_3WAY 1
@@ -394,113 +394,6 @@ void scrypt_core_3way(uint32_t *X, uint32_t *V, int N);
 void scrypt_core_6way(uint32_t *X, uint32_t *V, int N);
 #endif
 
-#elif defined(USE_ASM) && defined(__i386__)
-
-#define SCRYPT_MAX_WAYS 4
-#define scrypt_best_throughput() 1
-void scrypt_core(uint32_t *X, uint32_t *V, int N);
-
-#elif defined(USE_ASM) && defined(__arm__) && defined(__APCS_32__)
-
-void scrypt_core(uint32_t *X, uint32_t *V, int N);
-#if defined(__ARM_NEON__)
-#undef HAVE_SHA256_4WAY
-#define SCRYPT_MAX_WAYS 3
-#define HAVE_SCRYPT_3WAY 1
-#define scrypt_best_throughput() 3
-void scrypt_core_3way(uint32_t *X, uint32_t *V, int N);
-#endif
-
-#else
-
-static inline void xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
-{
-	uint32_t x00,x01,x02,x03,x04,x05,x06,x07,x08,x09,x10,x11,x12,x13,x14,x15;
-	int i;
-
-	x00 = (B[ 0] ^= Bx[ 0]);
-	x01 = (B[ 1] ^= Bx[ 1]);
-	x02 = (B[ 2] ^= Bx[ 2]);
-	x03 = (B[ 3] ^= Bx[ 3]);
-	x04 = (B[ 4] ^= Bx[ 4]);
-	x05 = (B[ 5] ^= Bx[ 5]);
-	x06 = (B[ 6] ^= Bx[ 6]);
-	x07 = (B[ 7] ^= Bx[ 7]);
-	x08 = (B[ 8] ^= Bx[ 8]);
-	x09 = (B[ 9] ^= Bx[ 9]);
-	x10 = (B[10] ^= Bx[10]);
-	x11 = (B[11] ^= Bx[11]);
-	x12 = (B[12] ^= Bx[12]);
-	x13 = (B[13] ^= Bx[13]);
-	x14 = (B[14] ^= Bx[14]);
-	x15 = (B[15] ^= Bx[15]);
-	for (i = 0; i < 8; i += 2) {
-#define R(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
-		/* Operate on columns. */
-		x04 ^= R(x00+x12, 7);	x09 ^= R(x05+x01, 7);
-		x14 ^= R(x10+x06, 7);	x03 ^= R(x15+x11, 7);
-		
-		x08 ^= R(x04+x00, 9);	x13 ^= R(x09+x05, 9);
-		x02 ^= R(x14+x10, 9);	x07 ^= R(x03+x15, 9);
-		
-		x12 ^= R(x08+x04,13);	x01 ^= R(x13+x09,13);
-		x06 ^= R(x02+x14,13);	x11 ^= R(x07+x03,13);
-		
-		x00 ^= R(x12+x08,18);	x05 ^= R(x01+x13,18);
-		x10 ^= R(x06+x02,18);	x15 ^= R(x11+x07,18);
-		
-		/* Operate on rows. */
-		x01 ^= R(x00+x03, 7);	x06 ^= R(x05+x04, 7);
-		x11 ^= R(x10+x09, 7);	x12 ^= R(x15+x14, 7);
-		
-		x02 ^= R(x01+x00, 9);	x07 ^= R(x06+x05, 9);
-		x08 ^= R(x11+x10, 9);	x13 ^= R(x12+x15, 9);
-		
-		x03 ^= R(x02+x01,13);	x04 ^= R(x07+x06,13);
-		x09 ^= R(x08+x11,13);	x14 ^= R(x13+x12,13);
-		
-		x00 ^= R(x03+x02,18);	x05 ^= R(x04+x07,18);
-		x10 ^= R(x09+x08,18);	x15 ^= R(x14+x13,18);
-#undef R
-	}
-	B[ 0] += x00;
-	B[ 1] += x01;
-	B[ 2] += x02;
-	B[ 3] += x03;
-	B[ 4] += x04;
-	B[ 5] += x05;
-	B[ 6] += x06;
-	B[ 7] += x07;
-	B[ 8] += x08;
-	B[ 9] += x09;
-	B[10] += x10;
-	B[11] += x11;
-	B[12] += x12;
-	B[13] += x13;
-	B[14] += x14;
-	B[15] += x15;
-}
-
-static inline void scrypt_core(uint32_t *X, uint32_t *V, int N)
-{
-	int i;
-
-	for (i = 0; i < N; i++) {
-		memcpy(&V[i * 32], X, 128);
-		xor_salsa8(&X[0], &X[16]);
-		xor_salsa8(&X[16], &X[0]);
-	}
-	for (i = 0; i < N; i++) {
-		uint32_t j = 32 * (X[16] & (N - 1));
-		for (uint8_t k = 0; k < 32; k++)
-			X[k] ^= V[j + k];
-		xor_salsa8(&X[0], &X[16]);
-		xor_salsa8(&X[16], &X[0]);
-	}
-}
-
-#endif
-
 #ifndef SCRYPT_MAX_WAYS
 #define SCRYPT_MAX_WAYS 1
 #define scrypt_best_throughput() 1
@@ -511,8 +404,8 @@ unsigned char *scrypt_buffer_alloc(int N)
 	return (uchar*) malloc((size_t)N * SCRYPT_MAX_WAYS * 128 + 63);
 }
 
-static void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
-	uint32_t *midstate, unsigned char *scratchpad, int N)
+static bool scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
+	uint32_t *midstate, unsigned char *scratchpad, int N, int thr_id )
 {
 	uint32_t tstate[8], ostate[8];
 	uint32_t X[32];
@@ -527,11 +420,13 @@ static void scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
 	scrypt_core(X, V, N);
 
 	PBKDF2_SHA256_128_32(tstate, ostate, X, output);
+   return true;
 }
 
 #ifdef HAVE_SHA256_4WAY
-static void scrypt_1024_1_1_256_4way(const uint32_t *input,
-	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N)
+static bool scrypt_1024_1_1_256_4way(const uint32_t *input,
+	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N, 
+   int thrid )
 {
 	uint32_t _ALIGN(128) tstate[4 * 8];
 	uint32_t _ALIGN(128) ostate[4 * 8];
@@ -548,29 +443,38 @@ static void scrypt_1024_1_1_256_4way(const uint32_t *input,
 	for (i = 0; i < 8; i++)
 		for (k = 0; k < 4; k++)
 			tstate[4 * i + k] = midstate[i];
-	HMAC_SHA256_80_init_4way(W, tstate, ostate);
-	PBKDF2_SHA256_80_128_4way(tstate, ostate, W, W);
-	for (i = 0; i < 32; i++)
+
+   HMAC_SHA256_80_init_4way(W, tstate, ostate);
+
+   PBKDF2_SHA256_80_128_4way(tstate, ostate, W, W);
+
+   for (i = 0; i < 32; i++)
 		for (k = 0; k < 4; k++)
 			X[k * 32 + i] = W[4 * i + k];
-	scrypt_core(X + 0 * 32, V, N);
+
+   scrypt_core(X + 0 * 32, V, N);
 	scrypt_core(X + 1 * 32, V, N);
 	scrypt_core(X + 2 * 32, V, N);
 	scrypt_core(X + 3 * 32, V, N);
-	for (i = 0; i < 32; i++)
+
+   for (i = 0; i < 32; i++)
 		for (k = 0; k < 4; k++)
 			W[4 * i + k] = X[k * 32 + i];
-	PBKDF2_SHA256_128_32_4way(tstate, ostate, W, W);
-	for (i = 0; i < 8; i++)
+
+   PBKDF2_SHA256_128_32_4way(tstate, ostate, W, W);
+
+   for (i = 0; i < 8; i++)
 		for (k = 0; k < 4; k++)
 			output[k * 8 + i] = W[4 * i + k];
+   return true;
 }
 #endif /* HAVE_SHA256_4WAY */
 
 #ifdef HAVE_SCRYPT_3WAY
 
-static void scrypt_1024_1_1_256_3way(const uint32_t *input,
-	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N)
+static bool scrypt_1024_1_1_256_3way(const uint32_t *input,
+	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N, 
+   int thrid )
 {
 	uint32_t _ALIGN(64) tstate[3 * 8], ostate[3 * 8];
 	uint32_t _ALIGN(64) X[3 * 32];
@@ -581,23 +485,33 @@ static void scrypt_1024_1_1_256_3way(const uint32_t *input,
 	memcpy(tstate +  0, midstate, 32);
 	memcpy(tstate +  8, midstate, 32);
 	memcpy(tstate + 16, midstate, 32);
-	HMAC_SHA256_80_init(input +  0, tstate +  0, ostate +  0);
+
+   HMAC_SHA256_80_init(input +  0, tstate +  0, ostate +  0);
 	HMAC_SHA256_80_init(input + 20, tstate +  8, ostate +  8);
 	HMAC_SHA256_80_init(input + 40, tstate + 16, ostate + 16);
-	PBKDF2_SHA256_80_128(tstate +  0, ostate +  0, input +  0, X +  0);
+
+   if ( work_restart[thrid].restart ) return false;
+
+   PBKDF2_SHA256_80_128(tstate +  0, ostate +  0, input +  0, X +  0);
 	PBKDF2_SHA256_80_128(tstate +  8, ostate +  8, input + 20, X + 32);
 	PBKDF2_SHA256_80_128(tstate + 16, ostate + 16, input + 40, X + 64);
 
-	scrypt_core_3way(X, V, N);
+   if ( work_restart[thrid].restart ) return false;
 
-	PBKDF2_SHA256_128_32(tstate +  0, ostate +  0, X +  0, output +  0);
+   scrypt_core_3way(X, V, N);
+
+   if ( work_restart[thrid].restart ) return false;
+
+   PBKDF2_SHA256_128_32(tstate +  0, ostate +  0, X +  0, output +  0);
 	PBKDF2_SHA256_128_32(tstate +  8, ostate +  8, X + 32, output +  8);
 	PBKDF2_SHA256_128_32(tstate + 16, ostate + 16, X + 64, output + 16);
+   return true;
 }
 
 #ifdef HAVE_SHA256_4WAY
-static void scrypt_1024_1_1_256_12way(const uint32_t *input,
-	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N)
+static bool scrypt_1024_1_1_256_12way(const uint32_t *input,
+	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N,
+   int thrid )
 {
 	uint32_t _ALIGN(128) tstate[12 * 8];
 	uint32_t _ALIGN(128) ostate[12 * 8];
@@ -616,39 +530,54 @@ static void scrypt_1024_1_1_256_12way(const uint32_t *input,
 		for (i = 0; i < 8; i++)
 			for (k = 0; k < 4; k++)
 				tstate[32 * j + 4 * i + k] = midstate[i];
-	HMAC_SHA256_80_init_4way(W +   0, tstate +  0, ostate +  0);
+
+   HMAC_SHA256_80_init_4way(W +   0, tstate +  0, ostate +  0);
 	HMAC_SHA256_80_init_4way(W + 128, tstate + 32, ostate + 32);
 	HMAC_SHA256_80_init_4way(W + 256, tstate + 64, ostate + 64);
-	PBKDF2_SHA256_80_128_4way(tstate +  0, ostate +  0, W +   0, W +   0);
+
+   if ( work_restart[thrid].restart ) return false;
+
+   PBKDF2_SHA256_80_128_4way(tstate +  0, ostate +  0, W +   0, W +   0);
 	PBKDF2_SHA256_80_128_4way(tstate + 32, ostate + 32, W + 128, W + 128);
 	PBKDF2_SHA256_80_128_4way(tstate + 64, ostate + 64, W + 256, W + 256);
-	for (j = 0; j < 3; j++)
+
+   if ( work_restart[thrid].restart ) return false;
+
+   for (j = 0; j < 3; j++)
 		for (i = 0; i < 32; i++)
 			for (k = 0; k < 4; k++)
 				X[128 * j + k * 32 + i] = W[128 * j + 4 * i + k];
-	scrypt_core_3way(X + 0 * 96, V, N);
+
+   scrypt_core_3way(X + 0 * 96, V, N);
 	scrypt_core_3way(X + 1 * 96, V, N);
 	scrypt_core_3way(X + 2 * 96, V, N);
 	scrypt_core_3way(X + 3 * 96, V, N);
-	for (j = 0; j < 3; j++)
+
+   if ( work_restart[thrid].restart ) return false;
+
+   for (j = 0; j < 3; j++)
 		for (i = 0; i < 32; i++)
 			for (k = 0; k < 4; k++)
 				W[128 * j + 4 * i + k] = X[128 * j + k * 32 + i];
-	PBKDF2_SHA256_128_32_4way(tstate +  0, ostate +  0, W +   0, W +   0);
+
+   PBKDF2_SHA256_128_32_4way(tstate +  0, ostate +  0, W +   0, W +   0);
 	PBKDF2_SHA256_128_32_4way(tstate + 32, ostate + 32, W + 128, W + 128);
 	PBKDF2_SHA256_128_32_4way(tstate + 64, ostate + 64, W + 256, W + 256);
-	for (j = 0; j < 3; j++)
+
+   for (j = 0; j < 3; j++)
 		for (i = 0; i < 8; i++)
 			for (k = 0; k < 4; k++)
 				output[32 * j + k * 8 + i] = W[128 * j + 4 * i + k];
+   return true;
 }
 #endif /* HAVE_SHA256_4WAY */
 
 #endif /* HAVE_SCRYPT_3WAY */
 
 #ifdef HAVE_SCRYPT_6WAY
-static void scrypt_1024_1_1_256_24way(const uint32_t *input,
-	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N)
+static bool scrypt_1024_1_1_256_24way(const uint32_t *input,
+	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N, 
+   int thrid )
 {
 	uint32_t _ALIGN(128) tstate[24 * 8];
 	uint32_t _ALIGN(128) ostate[24 * 8];
@@ -667,31 +596,45 @@ static void scrypt_1024_1_1_256_24way(const uint32_t *input,
 		for (i = 0; i < 8; i++)
 			for (k = 0; k < 8; k++)
 				tstate[8 * 8 * j + 8 * i + k] = midstate[i];
-	HMAC_SHA256_80_init_8way(W +   0, tstate +   0, ostate +   0);
+
+   HMAC_SHA256_80_init_8way(W +   0, tstate +   0, ostate +   0);
 	HMAC_SHA256_80_init_8way(W + 256, tstate +  64, ostate +  64);
 	HMAC_SHA256_80_init_8way(W + 512, tstate + 128, ostate + 128);
-	PBKDF2_SHA256_80_128_8way(tstate +   0, ostate +   0, W +   0, W +   0);
+
+   if ( work_restart[thrid].restart ) return false;
+   
+   PBKDF2_SHA256_80_128_8way(tstate +   0, ostate +   0, W +   0, W +   0);
 	PBKDF2_SHA256_80_128_8way(tstate +  64, ostate +  64, W + 256, W + 256);
 	PBKDF2_SHA256_80_128_8way(tstate + 128, ostate + 128, W + 512, W + 512);
-	for (j = 0; j < 3; j++)
+
+   if ( work_restart[thrid].restart ) return false;
+
+   for (j = 0; j < 3; j++)
 		for (i = 0; i < 32; i++)
 			for (k = 0; k < 8; k++)
 				X[8 * 32 * j + k * 32 + i] = W[8 * 32 * j + 8 * i + k];
-	scrypt_core_6way(X + 0 * 32, V, N);
+
+   scrypt_core_6way(X + 0 * 32, V, N);
 	scrypt_core_6way(X + 6 * 32, V, N);
 	scrypt_core_6way(X + 12 * 32, V, N);
 	scrypt_core_6way(X + 18 * 32, V, N);
-	for (j = 0; j < 3; j++)
+
+   if ( work_restart[thrid].restart ) return false;
+   
+   for (j = 0; j < 3; j++)
 		for (i = 0; i < 32; i++)
 			for (k = 0; k < 8; k++)
 				W[8 * 32 * j + 8 * i + k] = X[8 * 32 * j + k * 32 + i];
-	PBKDF2_SHA256_128_32_8way(tstate +   0, ostate +   0, W +   0, W +   0);
+
+   PBKDF2_SHA256_128_32_8way(tstate +   0, ostate +   0, W +   0, W +   0);
 	PBKDF2_SHA256_128_32_8way(tstate +  64, ostate +  64, W + 256, W + 256);
 	PBKDF2_SHA256_128_32_8way(tstate + 128, ostate + 128, W + 512, W + 512);
-	for (j = 0; j < 3; j++)
+
+   for (j = 0; j < 3; j++)
 		for (i = 0; i < 8; i++)
 			for (k = 0; k < 8; k++)
 				output[8 * 8 * j + k * 8 + i] = W[8 * 32 * j + 8 * i + k];
+   return true;
 }
 #endif /* HAVE_SCRYPT_6WAY */
 
@@ -703,7 +646,6 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
 	uint32_t data[SCRYPT_MAX_WAYS * 20], hash[SCRYPT_MAX_WAYS * 8];
 	uint32_t midstate[8];
 	uint32_t n = pdata[19] - 1;
-	const uint32_t Htarg = ptarget[7];
    int thr_id = mythr->id;  // thr_id arg is deprecated
 	int throughput = scrypt_best_throughput();
 	int i;
@@ -714,6 +656,8 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
 		throughput *= 4;
 #endif
 	
+//   applog(LOG_INFO,"Scrypt thoughput %d",throughput);
+
 	for (i = 0; i < throughput; i++)
 		memcpy(data + i * 20, pdata, 80);
 	
@@ -721,46 +665,49 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
 	sha256_transform(midstate, data, 0);
 	
 	do {
-
+      bool rc = true;
 		for (i = 0; i < throughput; i++)
 			data[i * 20 + 19] = ++n;
 		
 #if defined(HAVE_SHA256_4WAY)
 		if (throughput == 4)
-			scrypt_1024_1_1_256_4way(data, hash, midstate,
-                             scratchbuf, scratchbuf_size );
+			rc = scrypt_1024_1_1_256_4way(data, hash, midstate,
+                             scratchbuf, scratchbuf_size, thr_id );
 		else
 #endif
 #if defined(HAVE_SCRYPT_3WAY) && defined(HAVE_SHA256_4WAY)
 		if (throughput == 12)
-			scrypt_1024_1_1_256_12way(data, hash, midstate,
-                              scratchbuf, scratchbuf_size );
+			rc = scrypt_1024_1_1_256_12way(data, hash, midstate,
+                              scratchbuf, scratchbuf_size, thr_id );
 		else
 #endif
 #if defined(HAVE_SCRYPT_6WAY)
 		if (throughput == 24)
-			scrypt_1024_1_1_256_24way(data, hash, midstate,
-                               scratchbuf, scratchbuf_size );
+			rc = scrypt_1024_1_1_256_24way(data, hash, midstate,
+                               scratchbuf, scratchbuf_size, thr_id );
 		else
 #endif
 #if defined(HAVE_SCRYPT_3WAY)
 		if (throughput == 3)
-			scrypt_1024_1_1_256_3way(data, hash, midstate,
-                                scratchbuf, scratchbuf_size );
+			rc = scrypt_1024_1_1_256_3way(data, hash, midstate,
+                                scratchbuf, scratchbuf_size, thr_id );
 		else
 #endif
-		scrypt_1024_1_1_256(data, hash, midstate, scratchbuf,
-                                scratchbuf_size );
+		rc = scrypt_1024_1_1_256(data, hash, midstate, scratchbuf,
+                                scratchbuf_size, thr_id );
 		
-		for (i = 0; i < throughput; i++) {
-			if (unlikely(hash[i * 8 + 7] <= Htarg && fulltest(hash + i * 8, ptarget))) {
+      if ( rc )
+      for ( i = 0; i < throughput; i++ )
+      {
+			if ( unlikely( valid_hash( hash + i * 8, ptarget ) ) )
+         {
 				pdata[19] = data[i * 20 + 19];
-            submit_solution( work, hash, mythr );
+            submit_lane_solution( work, hash, mythr, i );
 			}
 		}
-	} while ( likely( n < max_nonce && !(*restart) ) );
+	} while ( likely( ( n < ( max_nonce - throughput ) ) && !(*restart) ) );
 	
-	*hashes_done = n - pdata[19] + 1;
+	*hashes_done = n - pdata[19];
 	pdata[19] = n;
 	return 0;
 }
@@ -779,7 +726,6 @@ bool register_scrypt_algo( algo_gate_t* gate )
   gate->optimizations = SSE2_OPT | AVX2_OPT;
   gate->miner_thread_init =(void*)&scrypt_miner_thread_init;
   gate->scanhash         = (void*)&scanhash_scrypt;
-//  gate->hash             = (void*)&scrypt_1024_1_1_256_24way;
   opt_target_factor = 65536.0;
 
   if ( !opt_param_n )
