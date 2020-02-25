@@ -1062,25 +1062,39 @@ static int share_result( int result, struct work *null_work,
    if ( likely( result ) )
    {
       accepted_share_count++;
+      sprintf( sres, "S%d", stale_share_count );
+      sprintf( rres, "R%d", rejected_share_count );
       if unlikely( ( my_stats.net_diff > 0. )
                 && ( my_stats.share_diff >= net_diff ) )
       {
          solved = true;
          solved_block_count++;
+         sprintf( bres, "BLOCK SOLVED %d", solved_block_count );
+         sprintf( ares, "A%d", accepted_share_count );
+      }
+      else
+      {
+         sprintf( bres, "B%d", solved_block_count );
+         sprintf( ares, "Accepted %d", accepted_share_count );
       }
    }
    else
    {
+     sprintf( ares, "A%d", accepted_share_count );
+     sprintf( bres, "B%d", solved_block_count );
      if ( reason && strstr( reason, "Invalid job id" ) )
      {
         stale = true;
         stale_share_count++;
+        sprintf( sres, "Stale %d", stale_share_count );
+        sprintf( rres, "R%d", rejected_share_count );
      }
      else
      {
         rejected_share_count++;
+        sprintf( sres, "S%d", stale_share_count );
+        sprintf( rres, "Rejected %d" , rejected_share_count );
         lowdiff_debug = true;
-  
      }
    }
 
@@ -1106,6 +1120,7 @@ static int share_result( int result, struct work *null_work,
 
    pthread_mutex_unlock( &stats_lock );
 
+/*
    if ( likely( result ) )
    {
      if ( unlikely( solved ) )
@@ -1136,6 +1151,7 @@ static int share_result( int result, struct work *null_work,
         sprintf( rres, "Rejected %d" , rejected_share_count );
      }
    } 
+*/
 
    if ( use_colors )
    {
@@ -1163,8 +1179,7 @@ static int share_result( int result, struct work *null_work,
                scol, my_stats.job_id );
       else
          applog2( LOG_NOTICE, "Diff %.5g (%.3g%), %sBlock %d" CL_WHT,
-               my_stats.share_diff, share_ratio, bcol, stratum.block_height,
-               scol );
+               my_stats.share_diff, share_ratio, bcol, stratum.block_height );
    }
 
    if ( unlikely( reason && !result ) )
@@ -1198,6 +1213,9 @@ static int share_result( int result, struct work *null_work,
    return 1;
 }
 
+static const char *json_submit_req =
+   "{\"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\"], \"id\":4}";
+
 void std_le_build_stratum_request( char *req, struct work *work )
 {
    unsigned char *xnonce2str;
@@ -1208,9 +1226,8 @@ void std_le_build_stratum_request( char *req, struct work *work )
    bin2hex( ntimestr, (char*)(&ntime), sizeof(uint32_t) );
    bin2hex( noncestr, (char*)(&nonce), sizeof(uint32_t) );
    xnonce2str = abin2hex( work->xnonce2, work->xnonce2_len );
-   snprintf( req, JSON_BUF_LEN,
-        "{\"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\"], \"id\":4}",
-         rpc_user, work->job_id, xnonce2str, ntimestr, noncestr );
+   snprintf( req, JSON_BUF_LEN, json_submit_req, rpc_user, work->job_id,
+             xnonce2str, ntimestr, noncestr );
    free( xnonce2str );
 }
 
@@ -1225,11 +1242,13 @@ void std_be_build_stratum_request( char *req, struct work *work )
    bin2hex( ntimestr, (char*)(&ntime), sizeof(uint32_t) );
    bin2hex( noncestr, (char*)(&nonce), sizeof(uint32_t) );
    xnonce2str = abin2hex( work->xnonce2, work->xnonce2_len );
-   snprintf( req, JSON_BUF_LEN,
-        "{\"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\"], \"id\":4}",
-         rpc_user, work->job_id, xnonce2str, ntimestr, noncestr );
+   snprintf( req, JSON_BUF_LEN, json_submit_req, rpc_user, work->job_id,
+             xnonce2str, ntimestr, noncestr );
    free( xnonce2str );
 }
+
+static const char *json_getwork_req = 
+  "{\"method\": \"getwork\", \"params\": [\"%s\"], \"id\":4}\r\n";
 
 bool std_le_submit_getwork_result( CURL *curl, struct work *work )
 {
@@ -1247,8 +1266,7 @@ bool std_le_submit_getwork_result( CURL *curl, struct work *work )
       return false;
    }
    // build JSON-RPC request 
-   snprintf( req, JSON_BUF_LEN,
-     "{\"method\": \"getwork\", \"params\": [\"%s\"], \"id\":4}\r\n", gw_str );
+   snprintf( req, JSON_BUF_LEN, json_getwork_req, gw_str );
    free( gw_str );
    // issue JSON-RPC request 
    val = json_rpc_call( curl, rpc_url, rpc_userpass, req, NULL, 0 );
@@ -1281,8 +1299,7 @@ bool std_be_submit_getwork_result( CURL *curl, struct work *work )
       return false;
    }
    // build JSON-RPC request 
-   snprintf( req, JSON_BUF_LEN,
-     "{\"method\": \"getwork\", \"params\": [\"%s\"], \"id\":4}\r\n", gw_str );
+   snprintf( req, JSON_BUF_LEN, json_getwork_req, gw_str );
    free( gw_str );
    // issue JSON-RPC request 
    val = json_rpc_call( curl, rpc_url, rpc_userpass, req, NULL, 0 );
@@ -1337,25 +1354,27 @@ char* std_malloc_txs_request( struct work *work )
 
 static bool submit_upstream_work( CURL *curl, struct work *work )
 {
+
    /* pass if the previous hash is not the current previous hash */
+/* Submit anyway, discardring here messes up the stats
    if ( !submit_old && memcmp( &work->data[1], &g_work.data[1], 32 ) )
    {
-      if (opt_debug)
-         applog(LOG_DEBUG, "DEBUG: stale work detected, discarding");
+      applog( LOG_WARNING, "Stale work detected, discarding" );
       return true;
    }
 
    if ( !have_stratum && allow_mininginfo )
    {
-      struct work wheight;
-      get_mininginfo( curl, &wheight );
-      if ( work->height && work->height <= net_blocks )
+      struct work mining_info;
+      get_mininginfo( curl, &mining_info );
+      if ( work->height < mining_info.height )
       {
-         if (opt_debug)
- 	        applog(LOG_WARNING, "block %u was already solved", work->height);
+ 	      applog( LOG_WARNING, "Block %u was already solved, current block %d",
+                               work->height, mining_info.height );
 	      return true;
       }
    }
+*/
 
    if ( have_stratum )
    {
@@ -1488,7 +1507,8 @@ start:
    // store work height in solo
    get_mininginfo(curl, work);
 
-   applog( LOG_BLUE, "%s %s block %d, diff %.5g", work->height, net_diff );
+   applog( LOG_BLUE, "%s %s block %d, diff %.5g", algo_names[ opt_algo ],
+                      short_url, work->height, net_diff );
 
    if ( !opt_quiet && net_diff && net_hashrate )
    {
@@ -1907,17 +1927,15 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
                      uint32_t *end_nonce_ptr )
 {
    uint32_t *nonceptr = work->data + algo_gate.nonce_index;
-   bool force_new_work; 
+   bool force_new_work = false; 
 
    if ( have_stratum ) 
       force_new_work = work->job_id ?    strtoul(   work->job_id, NULL, 16 )
                                       != strtoul( g_work->job_id, NULL, 16 )
-                                     : true;
-   else 
-      force_new_work = memcmp( work->data, g_work->data,
-                               algo_gate.work_cmp_size );
+                                     : false;
 
-   if ( force_new_work || *nonceptr >= *end_nonce_ptr )
+   if ( force_new_work || ( *nonceptr >= *end_nonce_ptr )
+     || memcmp( work->data, g_work->data, algo_gate.work_cmp_size ) )
    {
      work_free( work );
      work_copy( work, g_work );
@@ -2287,6 +2305,8 @@ void restart_threads(void)
 {
 	for ( int i = 0; i < opt_n_threads; i++)
 		work_restart[i].restart = 1;
+   if ( opt_debug )
+      applog( LOG_INFO, "Threads restarted for new work."); 
 }
 
 json_t *std_longpoll_rpc_call( CURL *curl, int *err, char* lp_url )

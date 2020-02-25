@@ -65,6 +65,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.4.3
+
+Fixed segfault in new block log for getwork.
+
+Disabled silent discarding of stale work after the submit is logged.
+
 v3.12.4.2
 
 Issue #245: fixed getwork stale shares, solo mining with getwork now works.
