@@ -3,7 +3,7 @@
 #include "algo/blake/sph_blake.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#include "algo/cubehash/sse2/cubehash_sse2.h" 
+//#include "algo/cubehash/sse2/cubehash_sse2.h" 
 #include "algo/cubehash/sph_cubehash.h"
 #if defined(__AES__)
 #include "algo/groestl/aes_ni/hash-groestl256.h"

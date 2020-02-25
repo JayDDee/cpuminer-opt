@@ -6,8 +6,9 @@
 #include <stdio.h>
 
 #include "sph_luffa.h"
+#if !defined(__arm__)
 #include "sse2/luffa_for_sse2.h"
-
+#endif
 
 void luffahash(void *output, const void *input)
 {
@@ -63,6 +64,7 @@ bool register_luffa_algo( algo_gate_t* gate )
     return true;
 };
 
+#if !defined(__arm__)
 HashReturn init_luffa(hashState_luffa *state, int hashbitlen)
 {
 	printf("USE UNDEFINED LUFFA\n");
@@ -180,3 +182,4 @@ HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
     return SUCCESS;
     */
 }
+#endif

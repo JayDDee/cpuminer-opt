@@ -1,3 +1,5 @@
+#if !defined(__arm__)
+
 #ifndef __HODL_H
 #define __HODL_H
 
@@ -25,3 +27,5 @@ int scanhash_hodl_wolf( int thr_id, struct work* work, uint32_t max_nonce,
 void GenRandomGarbage( CacheEntry *Garbage, uint32_t *pdata, int thr_id);
 
 #endif		// __HODL_H
+
+#endif		// ! arm

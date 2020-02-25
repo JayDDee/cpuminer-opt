@@ -35,12 +35,12 @@
 #include "algo/keccak/sph_keccak.h"
 
 #ifndef NO_AES_NI
-  #include "algo/groestl/aes_ni/hash-groestl.h"
-#endif
-
+#include "algo/groestl/aes_ni/hash-groestl.h"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
 #include "algo/skein/sse2/skein.c"
 #include "algo/blake/sse2/blake.c"
+#endif
+
 
 /*define data alignment for different C compilers*/
 #if defined(__GNUC__)
@@ -69,6 +69,7 @@ zr5_ctx_holder zr5_ctx;
 
 void init_zr5_ctx()
 {
+    printf("ZR5 disabled for arm!\n Modify source if needed\nDelete them at 2021\n");
   #ifdef NO_AES_NI
      sph_groestl512_init( &zr5_ctx.groestl );
   #else
@@ -106,7 +107,7 @@ static const int arrOrder[][4] =
   
     unsigned int nOrder = *(unsigned int *)(&hash) % 24;
     unsigned int i = 0;
-
+/*
     for (i = 0; i < 4; i++)
     {
        switch (arrOrder[nOrder][i])
@@ -136,7 +137,8 @@ static const int arrOrder[][4] =
            break;
        }
     }
-//	asm volatile ("emms");
+	asm volatile ("emms");
+*/
 	memcpy(state, hash, 32);
 }
 

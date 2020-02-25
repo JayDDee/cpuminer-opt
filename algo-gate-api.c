@@ -158,7 +158,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_ALLIUM:       register_allium_algo      ( gate ); break;
 //     case ALGO_ANIME:        register_anime_algo       ( gate ); break;
      case ALGO_ARGON2:       register_argon2_algo      ( gate ); break;
-     case ALGO_BASTION:      register_bastion_algo     ( gate ); break;
      case ALGO_BLAKE:        register_blake_algo       ( gate ); break;
      case ALGO_BLAKECOIN:    register_blakecoin_algo   ( gate ); break;
 //     case ALGO_BLAKE2B:      register_blake2b_algo    ( gate ); break;
@@ -166,7 +165,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_CRYPTOLIGHT:  register_cryptolight_algo ( gate ); break;
      case ALGO_CRYPTONIGHT:  register_cryptonight_algo ( gate ); break;
      case ALGO_DECRED:       register_decred_algo      ( gate ); break;
-     case ALGO_DEEP:         register_deep_algo        ( gate ); break;
      case ALGO_DMD_GR:       register_dmd_gr_algo      ( gate ); break;
      case ALGO_GROESTL:      register_groestl_algo     ( gate ); break;
      case ALGO_HEAVY:        register_heavy_algo       ( gate ); break;
@@ -188,7 +186,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
      case ALGO_PENTABLAKE:   register_pentablake_algo  ( gate ); break;
      case ALGO_PLUCK:        register_pluck_algo       ( gate ); break;
      case ALGO_QUARK:        register_quark_algo       ( gate ); break;
-     case ALGO_QUBIT:        register_qubit_algo       ( gate ); break;
      case ALGO_SCRYPT:       register_scrypt_algo      ( gate ); break;
      case ALGO_SCRYPTJANE:   register_scryptjane_algo  ( gate ); break;
      case ALGO_SHA256D:      register_sha256d_algo     ( gate ); break;

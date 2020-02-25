@@ -12,11 +12,13 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 
+#if !defined(__arm__)
 #include "algo/blake/sse2/blake.c"
 #include "algo/bmw/sse2/bmw.c"
 #include "algo/keccak/sse2/keccak.c"
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
+#endif
 
 #ifndef NO_AES_NI
  #include "algo/groestl/aes_ni/hash-groestl.h"
@@ -40,6 +42,7 @@
 
 void init_quark_ctx()
 {
+    printf("Quark diasblen for arm\nDelete it in 2021\n");
 #ifdef NO_AES_NI
    sph_groestl512_init( &quark_ctx );
 #else
@@ -49,6 +52,7 @@ void init_quark_ctx()
 
 void quark_hash(void *state, const void *input)
 {
+#if !defined(__arm__)
     unsigned char hashbuf[128];
     size_t hashptr;
     sph_u64 hashctA;
@@ -170,6 +174,7 @@ void quark_hash(void *state, const void *input)
 
 //    asm volatile ("emms");
   memcpy(state, hash, 32);
+#endif
 }
 
 int scanhash_quark( int thr_id, struct work *work, uint32_t max_nonce,

@@ -11,13 +11,12 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 
+#ifndef NO_AES_NI
 #include "algo/blake/sse2/blake.c"
 #include "algo/keccak/sse2/keccak.c"
 #include "algo/skein/sse2/skein.c"
 #include "algo/jh/sse2/jh_sse2_opt64.h"
-
-#ifndef NO_AES_NI
-  #include "algo/groestl/aes_ni/hash-groestl.h"
+#include "algo/groestl/aes_ni/hash-groestl.h"
 #endif
 
 typedef struct {
@@ -32,6 +31,7 @@ nist5_ctx_holder nist5_ctx;
 
 void init_nist5_ctx()
 {
+    printf("NIST5 disabled for arm!\n Modify source if needed\n");
 #ifdef NO_AES_NI
      sph_groestl512_init( &nist5_ctx.groestl );
 #else
@@ -41,6 +41,7 @@ void init_nist5_ctx()
 
 void nist5hash(void *output, const void *input)
 {
+/*
      size_t hashptr;
      unsigned char hashbuf[128];
      sph_u64 hashctA;
@@ -77,8 +78,8 @@ void nist5hash(void *output, const void *input)
      SKN_I;
      SKN_U;
      SKN_C;
-
      memcpy(output, hash, 32);
+*/
 }
 
 int scanhash_nist5(int thr_id, struct work *work,

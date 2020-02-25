@@ -483,16 +483,14 @@ enum algos {
         ALGO_NULL,
         ALGO_ALLIUM,
         ALGO_ARGON2,
-        ALGO_BASTION,
-        ALGO_BLAKE,       
-        ALGO_BLAKECOIN,   
+        ALGO_BLAKE,
+        ALGO_BLAKECOIN,
 //        ALGO_BLAKE2B,
         ALGO_BLAKE2S,     
         ALGO_BMW,        
         ALGO_CRYPTOLIGHT, 
         ALGO_CRYPTONIGHT, 
         ALGO_DECRED,
-        ALGO_DEEP,
         ALGO_DMD_GR,
         ALGO_GROESTL,     
         ALGO_HEAVY,
@@ -514,7 +512,6 @@ enum algos {
         ALGO_PENTABLAKE,  
         ALGO_PLUCK,       
         ALGO_QUARK,
-        ALGO_QUBIT,       
         ALGO_SCRYPT,
         ALGO_SCRYPTJANE,
         ALGO_SHA256D,
@@ -539,7 +536,6 @@ static const char* const algo_names[] = {
         NULL,
         "allium",
         "argon2",
-        "bastion",
         "blake",
         "blakecoin",
 //        "blake2b",
@@ -548,7 +544,6 @@ static const char* const algo_names[] = {
         "cryptolight",
         "cryptonight",
         "decred",
-        "deep",
         "dmd-gr",
         "groestl",
         "heavy",
@@ -570,7 +565,6 @@ static const char* const algo_names[] = {
         "pentablake",
         "pluck",
         "quark",
-        "qubit",
         "scrypt",
         "scryptjane",
         "sha256d",
@@ -652,7 +646,6 @@ Usage: " PACKAGE_NAME " [OPTIONS]\n\
 Options:\n\
   -a, --algo=ALGO       specify the algorithm to use\n\
                           argon2\n\
-                          bastion\n\
                           blake        blake256r14 (SFR)\n\
                           blakecoin    blake256r8\n\
                           blake2s      Blake-2 S\n\
@@ -660,7 +653,6 @@ Options:\n\
                           cryptolight  Cryptonight-light\n\
                           cryptonight  cryptonote, Monero (XMR)\n\
                           decred       Blake256r14dcr\n\
-                          deep         Deepcoin (DCN)\n\
                           dmd-gr       Diamond\n\
                           groestl      Groestl coin\n\
                           heavy        Heavy\n\
@@ -682,7 +674,6 @@ Options:\n\
                           pentablake   5 x blake512\n\
                           pluck        Pluck:128 (Supcoin)\n\
                           quark        Quark\n\
-                          qubit        Qubit\n\
                           scrypt       scrypt(1024, 1, 1) (default)\n\
                           scrypt:N     scrypt(N, 1, 1)\n\
                           scryptjane:nf\n\

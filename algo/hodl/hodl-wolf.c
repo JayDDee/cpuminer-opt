@@ -1,14 +1,16 @@
 #include <string.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
+#ifdef __AVX__
 #include <x86intrin.h>
 #include "sha512-avx.h"
 #include "wolf-aes.h"
 #include "hodl-gate.h"
 #include "hodl-wolf.h"
+#endif
 #include "miner.h"
 
-#ifndef NO_AES_NI               
+#ifndef NO_AES_NI
 
 void GenerateGarbageCore(CacheEntry *Garbage, int ThreadID, int ThreadCount, void *MidHash)
 {

@@ -53,11 +53,14 @@ static float linux_cputemp(int core)
 	if (fscanf(fd, "%d", &val))
 		tc = val;// / 1000.0;
 	fclose(fd);
+	if (tc > 500.0) tc /= 1000.0;
 	return tc;
 }
 
 #define CPUFREQ_PATH \
  "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq"
+// "/sys/devices/system/cpu/cpufreq/policy0/cpuinfo_cur_freq"
+
 static uint32_t linux_cpufreq(int core)
 {
 	FILE *fd = fopen(CPUFREQ_PATH, "r");

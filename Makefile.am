@@ -43,7 +43,7 @@ cpuminer_SOURCES = \
   crypto/magimath.cpp \
   algo/argon2/argon2a.c \
   algo/argon2/ar2/argon2.c \
-  algo/argon2/ar2/opt.c \
+  algo/argon2/ar2/ar2-best.c \
   algo/argon2/ar2/cores.c \
   algo/argon2/ar2/ar2-scrypt-jane.c \
   algo/argon2/ar2/blake2b.c \
@@ -84,7 +84,6 @@ cpuminer_SOURCES = \
   algo/haval/haval.c\
   algo/heavy/sph_hefty1.c \
   algo/heavy/heavy.c \
-  algo/heavy/bastion.c \
   algo/hodl/aes.c \
   algo/hodl/hodl-gate.c \
   algo/hodl/hodl-wolf.c \
@@ -129,8 +128,6 @@ cpuminer_SOURCES = \
   algo/quark/quark-gate.c \
   algo/quark/quark.c \
   algo/quark/quark-4way.c \
-  algo/qubit/qubit.c \
-  algo/qubit/deep.c \
   algo/ripemd/sph_ripemd.c \
   algo/scrypt.c \
   algo/scryptjane/scrypt-jane.c \

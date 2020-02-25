@@ -1,3 +1,5 @@
+#if !defined(__arm__)
+
 #include <stdint.h>
 #include <x86intrin.h>
 #include "wolf-aes.h"
@@ -179,3 +181,4 @@ void AES256CBC(__m128i *Ciphertext, const __m128i *Plaintext, const __m128i *Exp
 
 #endif
 
+#endif

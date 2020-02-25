@@ -1,4 +1,5 @@
 /* CubeHash 16/32 is recommended for SHA-3 "normal", 16/1 for "formal" */
+#if (defined(__aarch64__) || defined(__SSE2__))
 #define CUBEHASH_ROUNDS	16
 #define CUBEHASH_BLOCKBYTES 32
 #define OPTIMIZE_SSE2
@@ -253,4 +254,32 @@ int cubehashUpdateDigest( cubehashParam *sp, byte *digest,
 
     return SUCCESS;
 }
+#else
+#include "miner.h"
+/*
+int cubehashInit(cubehashParam* sp, int hashbitlen, int rounds, int blockbytes)
+{
+    applog(LOG_ERR, "CubeHash_SSE2 call without SSE2 or NEON");
+    return 0;
+}
 
+int cubehashUpdate(cubehashParam* sp, const byte *data, size_t size)
+{
+    applog(LOG_ERR, "CubeHash_SSE2 call without SSE2 or NEON");
+    return 0;
+}
+
+int cubehashDigest(cubehashParam* sp, byte *digest)
+{
+    applog(LOG_ERR, "CubeHash_SSE2 call without SSE2 or NEON");
+    return 0;
+}
+
+int cubehashUpdateDigest( cubehashParam *sp, byte *digest, const byte *data,
+                          size_t size )
+{
+    applog(LOG_ERR, "CubeHash_SSE2 call without SSE2 or NEON");
+    return 0;
+}
+*/
+#endif
