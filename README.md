@@ -1,5 +1,5 @@
 This cpuminer-opt is a fork of cpuminer-opt by Jay D Dee.
-Special edit for armv7 and armv8 (aarch64)
+Special edit for ARMv7 and ARMv8(aarch64)
 
 All of the code is believed to be open and free. If anyone has a
 claim to any of it post your case in the cpuminer-opt Bitcoin Talk forum
@@ -8,7 +8,9 @@ or by email.
 https://github.com/JayDDee/cpuminer-opt
 https://bitcointalk.org/index.php?topic=1326803.0
 mailto://jayddee246@gmail.com
-See file RELEASE_NOTES for change log and compile instructions.
+
+This fork:
+mailto://glukolog@gmail.com
 
 Supported Algorithms
 --------------------
@@ -63,14 +65,29 @@ Supported Algorithms
 Unix install
 ------------
 common code
-    git clone https://github.com/glukolog/cpuminer-opt.git
-    cd cpuminer-opt
-    ./autogen.sh
-    CFLAGS="-O3 -march=armv7l -mtune=cortex-a55" ./configure --with-curl --with-crypto
-    make -j2
-    ./cpuminer --help
+```
+git clone https://github.com/glukolog/cpuminer-opt.git
+cd cpuminer-opt
+./autogen.sh
+CFLAGS="-O3 -march=armv7l -mtune=cortex-a55" ./configure --with-curl --with-crypto
+make -j2
+./cpuminer --help
+```
 for aarch64 configure string
-    ./configure CFLAGS="-O3 -march=armv8-a+crypto -mtune=cortex-a53" --with-curl --with-crypto
+```
+./configure CFLAGS="-O3 -march=armv8-a+crypto -mtune=cortex-a53" --with-curl --with-crypto
+```
+
+HOWTO mine YESPOWER algos
+-------------------------
+#### yespowerR16 Yenten (YTN)
+> ./cpuminer -a yespowerR16 -o stratum+tcp://hosname.org:port -O user:pass
+#### cpupower CPUChain (CPU)
+> ./cpuminer -a yespower -K "CPUpower: The number of CPU working or available for proof-of-work mining" -o stratum+tcp://hosname.org:port -O user:pass
+#### power2b MicroBitcoin (MBC)
+> ./cpuminer -a yespower-b2b -N 2048 -R 32 -K "Now I am become Death, the destroyer of worlds" -o stratum+tcp://hosname.org:port -O user:pass
+#### SugarCoin (sugar)
+> ./cpuminer -a yespower -N 2048 -R 32 -K "Satoshi Nakamoto 31/Oct/2008 Proof-of-work is essentially one-CPU-one-vote" -o stratum+tcp://hosname.org:port -O user:pass
 
 Donations
 ---------

@@ -156,7 +156,7 @@ void init_m7m_ctx()
 #define SW_DIVS 5
 #define M7_MIDSTATE_LEN 76
 int scanhash_m7m_hash( int thr_id, struct work* work,
-                       uint64_t max_nonce, unsigned long *hashes_done )
+                       uint32_t max_nonce, uint64_t *hashes_done )
 {
     uint32_t *pdata = work->data;
     uint32_t *ptarget = work->target;
@@ -377,7 +377,7 @@ bool register_m7m_algo( algo_gate_t *gate )
 {
   gate->optimizations = SSE2_OPT | AES_OPT | AVX_OPT | AVX2_OPT | SHA_OPT;
   init_m7m_ctx();
-  gate->scanhash              = (void*)scanhash_m7m_hash;
+  gate->scanhash              = (void*)&scanhash_m7m_hash;
   gate->build_stratum_request = (void*)&std_be_build_stratum_request;
   gate->work_decode           = (void*)&std_be_work_decode;
   gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;
