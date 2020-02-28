@@ -65,6 +65,18 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.4.6
+
+Issue #246: fixed getwork repeated new block logs with same height. New work
+for the same block is now reported as "New work" instead of New block".
+Also added a check that work is new before generating "New work" log.
+
+Added target diff to getwork new block log.
+
+Changed share ratio in share result log to simple fraction, no longer %.
+
+Added debug log to display mininginfo, use -D.
+
 v3.12.4.5
 
 Issue #246: better stale share detection for getwork, and enhanced logging

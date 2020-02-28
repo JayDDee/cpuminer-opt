@@ -489,6 +489,10 @@ static bool get_mininginfo( CURL *curl, struct work *work )
 	   if ( key && json_is_integer( key ) )
 		  	net_blocks = json_integer_value( key );
 
+      if ( opt_debug )
+         applog(LOG_INFO," Mining info: diff %.5g, net_hashrate %f, height %d",
+                              net_diff, net_hashrate, net_blocks );
+      
       if ( !work->height )
       {
 	      // complete missing data from getwork
@@ -1053,7 +1057,7 @@ static int share_result( int result, struct work *work,
    }
 
    share_ratio = my_stats.net_diff == 0. ? 0. : my_stats.share_diff /
-                                                my_stats.net_diff * 100.;
+                                                my_stats.net_diff;
    // check result
    if ( likely( result ) )
    {
@@ -1138,11 +1142,11 @@ static int share_result( int result, struct work *work,
    if ( !opt_quiet )
    {
       if ( have_stratum )
-         applog2( LOG_INFO, "Diff %.5g (%.3g%), %sBlock %d, %sJob %s",
+         applog2( LOG_INFO, "Diff %.5g (%.3g), %sBlock %d" CL_N ", %sJob %s",
                my_stats.share_diff, share_ratio, bcol, stratum.block_height,
                scol, my_stats.job_id );
       else
-         applog2( LOG_INFO, "Diff %.5g (%.3g%), %sBlock %d",
+         applog2( LOG_INFO, "Diff %.5g (%.3g), %sBlock %d",
                my_stats.share_diff, share_ratio, bcol, stratum.block_height );
    }
 
@@ -1462,47 +1466,78 @@ start:
    else
       rc = work_decode( json_object_get( val, "result" ), work );
 
-   if ( opt_protocol && rc )
+   if ( rc ) 
    {
-      timeval_subtract( &diff, &tv_end, &tv_start );
-      applog( LOG_DEBUG, "got new work in %.2f ms",
-              ( 1000.0 * diff.tv_sec ) + ( 0.001 * diff.tv_usec ) );
-   }
-
-   json_decref( val );
-   // store work height in solo
-   get_mininginfo(curl, work);
-
-   applog( LOG_BLUE, "New block %d, diff %.5g", work->height, net_diff );
-
-   if ( !opt_quiet && net_diff && net_hashrate )
-   {
-      double miner_hr = 0.;
-      pthread_mutex_lock( &stats_lock );
-
-      for ( int i = 0; i < opt_n_threads; i++ )
-         miner_hr += thr_hashrates[i];
-      global_hashrate = miner_hr;
-
-      pthread_mutex_unlock( &stats_lock );
-
-      if ( miner_hr )
+      if ( opt_protocol )
       {
-         double net_hr = net_hashrate;
-         char net_hr_units[4] = {0};
-         char miner_hr_units[4] = {0};
-         char net_ttf[32];
-         char miner_ttf[32];
-
-         sprintf_et( net_ttf, net_diff * exp32 / net_hr );
-         sprintf_et( miner_ttf, net_diff * exp32 / miner_hr );
-         scale_hash_for_display ( &miner_hr, miner_hr_units );
-         scale_hash_for_display ( &net_hr, net_hr_units );
-         applog2(LOG_INFO, "Miner TTF @ %.2f %sh/s %s, net TTF @ %.2f %sh/s %s",
-                             miner_hr, miner_hr_units, miner_ttf,
-                             net_hr, net_hr_units, net_ttf );
+         timeval_subtract( &diff, &tv_end, &tv_start );
+         applog( LOG_DEBUG, "got new work in %.2f ms",
+              ( 1000.0 * diff.tv_sec ) + ( 0.001 * diff.tv_usec ) );
       }
-   }
+
+      json_decref( val );
+      // store work height in solo
+      get_mininginfo(curl, work);
+
+      if ( work->height > last_block_height )
+      {
+         last_block_height = work->height;
+         applog( LOG_BLUE, "New block %d, net diff %.5g, target diff %.5g",
+                 work->height, net_diff, work->targetdiff );
+
+         if ( !opt_quiet && net_diff && net_hashrate )
+         {
+            double miner_hr = 0.;
+            pthread_mutex_lock( &stats_lock );
+
+            for ( int i = 0; i < opt_n_threads; i++ )
+               miner_hr += thr_hashrates[i];
+            global_hashrate = miner_hr;
+
+            pthread_mutex_unlock( &stats_lock );
+
+            if ( miner_hr )
+            {
+               double net_hr = net_hashrate;
+               char net_hr_units[4] = {0};
+               char miner_hr_units[4] = {0};
+               char net_ttf[32];
+               char miner_ttf[32];
+
+               sprintf_et( net_ttf, ( work->targetdiff * exp32 ) / net_hr );
+               sprintf_et( miner_ttf, ( work->targetdiff * exp32 ) / miner_hr );
+               scale_hash_for_display ( &miner_hr, miner_hr_units );
+               scale_hash_for_display ( &net_hr, net_hr_units );
+               applog2( LOG_INFO,
+                         "Miner TTF @ %.2f %sh/s %s, net TTF @ %.2f %sh/s %s",
+                                miner_hr, miner_hr_units, miner_ttf,
+                                net_hr, net_hr_units, net_ttf );
+            }
+         }
+      }  // work->height > last_block_height
+      else if ( memcmp( &work->data[1], &g_work.data[1], 32 ) )
+      {
+         applog( LOG_BLUE, "New work" );
+         if ( opt_debug )
+         {
+            uint32_t *old = g_work.data;
+            uint32_t *new = work->data;
+            printf("old: %08x %08x %08x %08x %08x %08x %08x %08x/n",
+              old[0],old[1],old[2],old[3],old[4],old[5],old[6],old[7]); 
+            printf("     %08x %08x %08x %08x %08x %08x %08x %08x/n",
+              old[8],old[9],old[10],old[11],old[12],old[13],old[14],old[15]); 
+            printf("     %08x %08x %08x %08x/n",
+                    old[16],old[17],old[18],old[19]); 
+            printf("new: %08x %08x %08x %08x %08x %08x %08x %08x/n",
+              new[0],new[1],new[2],new[3],new[4],new[5],new[6],new[7]);       
+            printf("     %08x %08x %08x %08x %08x %08x %08x %08x/n",
+              new[8],new[9],new[10],new[11],new[12],new[13],new[14],new[15]);  
+            printf("     %08x %08x %08x %08x/n",
+                    new[16],new[17],new[18],new[19]);                        
+         }
+      }
+   }  // rc
+
    return rc;
 }
 
@@ -1704,6 +1739,11 @@ static inline double u256_to_double( const uint64_t *u )
 
 static void update_submit_stats( struct work *work, const void *hash )
 {
+  // Workaround until problems with target_to_diff are resolved.
+  work->sharediff = work->targetdiff * (double)( ((uint64_t*)hash)[3] )
+                                / (double)( ((uint64_t*)work->target)[3] );
+//     work->sharediff = likely( hash ) ? target_to_diff( (uint32_t*)hash ) : 0.;
+
    pthread_mutex_lock( &stats_lock );
 
    submitted_share_count++;
@@ -1752,12 +1792,7 @@ bool submit_solution( struct work *work, const void *hash,
 {
   if ( likely( submit_work( thr, work ) ) )
   {
-     work->sharediff = work->targetdiff * (double)( ((uint64_t*)hash)[3] )
-                                / (double)( ((uint64_t*)work->target)[3] );
-//     work->sharediff = likely( hash ) ? target_to_diff( (uint32_t*)hash ) : 0.;
      update_submit_stats( work, hash );
-//     submitted_share_count++;
-//     work_set_target_ratio( work, hash );
 
      if ( !opt_quiet )
      {
@@ -1770,7 +1805,7 @@ bool submit_solution( struct work *work, const void *hash,
                       submitted_share_count, work->sharediff, work->height );
      }
 
-     if ( lowdiff_debug )
+     if ( unlikely( lowdiff_debug ) )
      {
         uint32_t* h = (uint32_t*)hash;
         uint32_t* t = (uint32_t*)work->target;
@@ -1782,22 +1817,17 @@ bool submit_solution( struct work *work, const void *hash,
      return true;
   }
   else
-     applog( LOG_WARNING, "%d failed to submit share, thread %d",
-             submitted_share_count, thr->id );
+     applog( LOG_WARNING, "%d failed to submit share", submitted_share_count );
   return false;
 }
 
+// deprecated, use submit_solution
 bool submit_lane_solution( struct work *work, const void *hash,
                            struct thr_info *thr, const int lane )
 {
   if ( likely( submit_work( thr, work ) ) )
   {
-     work->sharediff = work->targetdiff * (double)( ((uint64_t*)hash)[3] )
-                                / (double)( ((uint64_t*)work->target)[3] );
-//     work->sharediff = likely( hash ) ? target_to_diff( (uint32_t*)hash ) : 0.;
      update_submit_stats( work, hash );
-//     submitted_share_count++;
-//     work_set_target_ratio( work, hash );
 
      if ( !opt_quiet )
      {
@@ -1822,8 +1852,8 @@ bool submit_lane_solution( struct work *work, const void *hash,
     return true;
   }
   else
-     applog( LOG_WARNING, "%d failed to submit share, thread %d, lane %d",
-          submitted_share_count, thr->id, lane );
+     applog( LOG_WARNING, "%d failed to submit share", submitted_share_count );
+
   return false;
 }
 
@@ -1835,7 +1865,6 @@ bool test_hash_and_submit( struct work *work, const void *hash,
    work->sharediff = work->targetdiff * (double)( ((uint64_t*)hash)[3] )
                                 / (double)( ((uint64_t*)work->target)[3] );
 
-//   work->sharediff = likely( hash ) ? target_to_diff( (uint32_t*)hash ) : 0.;
    if ( work->sharediff >= work->targetdiff )
    {
       if ( likely( submit_work( thr, work ) ) )
@@ -2656,7 +2685,7 @@ void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
             char block_ttf[32];
             char share_ttf[32];
 
-            sprintf_et( block_ttf, net_diff * exp32 / hr );
+            sprintf_et( block_ttf, ( net_diff * exp32 ) /  hr );
             sprintf_et( share_ttf, last_targetdiff * exp32 / hr );
             scale_hash_for_display ( &hr, hr_units );
             applog2( LOG_INFO, "TTF @ %.2f %sh/s: block %s, share %s",

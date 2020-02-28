@@ -983,6 +983,7 @@ int timeval_subtract(struct timeval *result, struct timeval *x,
 	return x->tv_sec < y->tv_sec;
 }
 
+// deprecated, use test_hash_and_submit
 // Use this when deinterleaved
 // do 64 bit test 4 iterations
 inline bool valid_hash( const void *hash, const void *target )
@@ -999,6 +1000,7 @@ inline bool valid_hash( const void *hash, const void *target )
    return true;
 }
 
+// deprecated, use test_hash_and_submit
 bool fulltest( const uint32_t *hash, const uint32_t *target )
 {
 	int i;
@@ -1067,7 +1069,6 @@ void diff_to_target(uint32_t *target, double diff)
    uint64_t m;
 	int k;
 	
-//   static const double exp64 = (double)0xffffffffffffffff + 1.;   
    for ( k = 3; k > 0 && diff > 1.0; k-- )
       diff /= exp64;
 
@@ -1081,7 +1082,6 @@ void diff_to_target(uint32_t *target, double diff)
       t[k] = m;
 	}
 }
-
 
 // deprecated
 void work_set_target(struct work* work, double diff)

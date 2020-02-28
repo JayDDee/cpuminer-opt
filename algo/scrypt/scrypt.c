@@ -709,8 +709,7 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
 			if ( unlikely( valid_hash( hash + i * 8, ptarget ) ) )
          {
 				pdata[19] = data[i * 20 + 19];
-            test_hash_and_submit( work, hash, mythr );
-//            submit_lane_solution( work, hash, mythr, i );
+            submit_lane_solution( work, hash, mythr, i );
 			}
 		}
 	} while ( likely( ( n < ( max_nonce - throughput ) ) && !(*restart) ) );
