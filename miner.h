@@ -312,6 +312,19 @@ int    varint_encode( unsigned char *p, uint64_t n );
 size_t address_to_script( unsigned char *out, size_t outsz, const char *addr );
 int    timeval_subtract( struct timeval *result, struct timeval *x,
                            struct timeval *y);
+
+// Bitcoin formula for converting difficulty to an equivalent
+// number of hashes.
+//
+//     https://en.bitcoin.it/wiki/Difficulty
+//
+//     hash = diff * 2**32
+//
+// diff_to_hash = 2**32 = 0x100000000 = 4294967296 = exp32;
+
+const double exp32;  // 2**32
+const double exp64;  // 2**64
+
 bool   fulltest( const uint32_t *hash, const uint32_t *target );
 bool   valid_hash( const void*, const void* );
 
@@ -332,11 +345,12 @@ struct thr_info {
 
 //struct thr_info *thr_info;
 
-bool   submit_solution( struct work *work, const void *hash,
-                        struct thr_info *thr );
-bool   submit_lane_solution( struct work *work, const void *hash,
-                             struct thr_info *thr, const int lane );
+bool submit_solution( struct work *work, const void *hash,
+                      struct thr_info *thr );
+bool submit_lane_solution( struct work *work, const void *hash,
+                           struct thr_info *thr, const int lane );
 
+bool test_hash_and_submit( struct work*, const void*, struct thr_info* );
 
 bool submit_work( struct thr_info *thr, const struct work *work_in );
 
@@ -378,6 +392,7 @@ struct work {
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
    bool sapling;
+   bool stale;
 
    // x16rt
    uint32_t merkleroothash[8];

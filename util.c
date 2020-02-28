@@ -1039,37 +1039,57 @@ bool fulltest( const uint32_t *hash, const uint32_t *target )
 	return rc;
 }
 
+/*
 void diff_to_target(uint32_t *target, double diff)
 {
-	uint64_t m;
+   uint64_t m;
+   int k;
+
+   for (k = 6; k > 0 && diff > 1.0; k--)
+      diff /= 4294967296.0;
+
+   m = (uint64_t)(4294901760.0 / diff);
+
+   if (m == 0 && k == 6)
+      memset(target, 0xff, 32);
+   else {
+      memset(target, 0, 32);
+      target[k] = (uint32_t)m;
+      target[k + 1] = (uint32_t)(m >> 32);
+   }
+}
+*/
+
+
+void diff_to_target(uint32_t *target, double diff)
+{
+   uint64_t *t = (uint64_t*)target;
+   uint64_t m;
 	int k;
 	
-   const double exp64 = (double)0xffffffffffffffff + 1.;   
+//   static const double exp64 = (double)0xffffffffffffffff + 1.;   
    for ( k = 3; k > 0 && diff > 1.0; k-- )
       diff /= exp64;
 
-//   for (k = 6; k > 0 && diff > 1.0; k--)
-//		diff /= 4294967296.0;
-	m = (uint64_t)( 0xffff0000 / diff );
-	if unlikely( m == 0 && k == 3 )
-		memset( target, 0xff, 32 );
+   m = (uint64_t)( 0xffff0000 / diff );
+
+   if unlikely( m == 0 && k == 3 )
+		memset( t, 0xff, 32 );
 	else
    {
-		memset( target, 0, 32 );
-      ((uint64_t*)target)[k] = m;
-//		target[k] = (uint32_t)m;
-//		target[k + 1] = (uint32_t)(m >> 32);
+		memset( t, 0, 32 );
+      t[k] = m;
 	}
 }
 
-// Only used by stratum pools
+
+// deprecated
 void work_set_target(struct work* work, double diff)
 {
 	diff_to_target( work->target, diff );
 	work->targetdiff = diff;
 }
 
-// Only used by longpoll pools
 double target_to_diff(uint32_t* target)
 {
 	uchar* tgt = (uchar*) target;
@@ -1546,35 +1566,44 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 
 	ret = true;
 
-	if (!opt_extranonce)
+	if ( !opt_extranonce )
 		goto out;
 
 	// subscribe to extranonce (optional)
 	sprintf(s, "{\"id\": 3, \"method\": \"mining.extranonce.subscribe\", \"params\": []}");
 
-	if (!stratum_send_line(sctx, s))
+	if ( !stratum_send_line( sctx, s ) )
 		goto out;
 
-	if (!socket_full(sctx->sock, 3)) {
-         applog(LOG_WARNING, "stratum extranonce subscribe timed out");
-		goto out;
+	if ( !socket_full( sctx->sock, 3 ) )
+   {
+      applog( LOG_WARNING, "Extranonce disabled, subscribe timed out" );
+		opt_extranonce = false;
+      goto out;
 	}
+   if ( !opt_quiet )
+      applog( LOG_INFO, "Extranonce subscription enabled" );
 
-	sret = stratum_recv_line(sctx);
-	if (sret) {
-		json_t *extra = JSON_LOADS(sret, &err);
-		if (!extra) {
+	sret = stratum_recv_line( sctx );
+	if ( sret )
+   {
+		json_t *extra = JSON_LOADS( sret, &err );
+		if ( !extra )
+      {
 			applog(LOG_WARNING, "JSON decode failed(%d): %s", err.line, err.text);
-		} else {
-			if (json_integer_value(json_object_get(extra, "id")) != 3) {
+		}
+      else
+      {
+			if ( json_integer_value(json_object_get( extra, "id" ) ) != 3 )
+         {
 				// we receive a standard method if extranonce is ignored
-				if (!stratum_handle_method(sctx, sret))
-					applog(LOG_WARNING, "Stratum answer id is not correct!");
+				if ( !stratum_handle_method( sctx, sret ) )
+					applog( LOG_WARNING, "Stratum answer id is not correct!" );
 			}
-			res_val = json_object_get(extra, "result");
+			res_val = json_object_get( extra, "result" );
 //			if (opt_debug && (!res_val || json_is_false(res_val)))
 //				applog(LOG_DEBUG, "extranonce subscribe not supported");
-			json_decref(extra);
+			json_decref( extra );
 		}
 		free(sret);
 	}

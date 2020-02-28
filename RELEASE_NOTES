@@ -65,7 +65,19 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
-v3.12.5
+v3.12.4.5
+
+Issue #246: better stale share detection for getwork, and enhanced logging
+of stale shares for stratum & getwork.
+
+Issue #251: fixed incorrect share difficulty and share ratio in share
+result log.
+
+Changed submit log to include share diff and block height.
+
+Small cosmetic changes to logs. 
+
+v3.12.4.4
 
 Issue #246: Fixed net hashrate in getwork block log,
             removed duplicate getwork block log, 
