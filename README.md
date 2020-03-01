@@ -152,6 +152,27 @@ Supported Algorithms
                           yespower-b2b  generic yespower + blake2b
                           zr5           Ziftr
 
+Many variations of scrypt based algos can be mine by specifying their
+parameters:
+
+scryptn2: --algo scrypt --param-n 1048576
+
+cpupower: --algo yespower --param-key "CPUpower: The number of CPU working or available for proof-of-work mining"
+
+power2b: --algo yespower-b2b --param-n 2048 --param-r 32 --param-key "Now I am become Death, the destroyer of worlds"
+
+sugarchain: --algo yespower --param-n 2048 -param-r 32 --param-key "Satoshi Nakamoto 31/Oct/2008 Proof-of-work is essentially one-CPU-one-vote"
+
+yespoweriots: --a yespower --param-n 2048 --param-key "Iots is committed to the development of IOT"
+
+yespowerlitb: --algo yespower --param-n 2048 --param-r 32 --param-key "LITBpower: The number of LITB working or available for proof-of-work mini"
+
+yespoweric: --algo yespower --param-n 2048 --param-r 32 --param-key "IsotopeC" 
+
+yespowerurx: --algo yespower --param-n 2048 --param-r 32 --param-key "UraniumX"
+
+yespowerltncg: --algo yespower --param-n 2048 --param-r 32 --param-key "LTNCGYES"
+
 Errata
 ------
 

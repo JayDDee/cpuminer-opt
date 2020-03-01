@@ -1041,16 +1041,19 @@ bool fulltest( const uint32_t *hash, const uint32_t *target )
 	return rc;
 }
 
-/*
 void diff_to_target(uint32_t *target, double diff)
 {
    uint64_t m;
    int k;
 
    for (k = 6; k > 0 && diff > 1.0; k--)
-      diff /= 4294967296.0;
+      diff /= exp32;
 
-   m = (uint64_t)(4294901760.0 / diff);
+//      diff /= 4294967296.0;
+
+//   m = (uint64_t)(4294901760.0 / diff);
+
+   m = (uint64_t)(exp32 / diff);
 
    if (m == 0 && k == 6)
       memset(target, 0xff, 32);
@@ -1060,28 +1063,7 @@ void diff_to_target(uint32_t *target, double diff)
       target[k + 1] = (uint32_t)(m >> 32);
    }
 }
-*/
 
-
-void diff_to_target(uint32_t *target, double diff)
-{
-   uint64_t *t = (uint64_t*)target;
-   uint64_t m;
-	int k;
-	
-   for ( k = 3; k > 0 && diff > 1.0; k-- )
-      diff /= exp64;
-
-   m = (uint64_t)( 0xffff0000 / diff );
-
-   if unlikely( m == 0 && k == 3 )
-		memset( t, 0xff, 32 );
-	else
-   {
-		memset( t, 0, 32 );
-      t[k] = m;
-	}
-}
 
 // deprecated
 void work_set_target(struct work* work, double diff)
@@ -1090,6 +1072,16 @@ void work_set_target(struct work* work, double diff)
 	work->targetdiff = diff;
 }
 
+double target_to_diff( uint32_t* target )
+{
+   uint64_t *targ = (uint64_t*)target;
+   return target ? 1. / ( ( (double)targ[3] / exp32 )
+                        + ( (double)targ[2]         )
+                        + ( (double)targ[1] * exp32 )
+                        + ( (double)targ[0] * exp64 ) )
+                  : 0.;       
+}
+/*
 double target_to_diff(uint32_t* target)
 {
 	uchar* tgt = (uchar*) target;
@@ -1108,6 +1100,7 @@ double target_to_diff(uint32_t* target)
 	else
 		return (double)0x0000ffff00000000/m;
 }
+*/
 
 #ifdef WIN32
 #define socket_blocks() (WSAGetLastError() == WSAEWOULDBLOCK)

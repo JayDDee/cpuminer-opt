@@ -347,10 +347,10 @@ struct thr_info {
 
 bool submit_solution( struct work *work, const void *hash,
                       struct thr_info *thr );
+
+// deprecated
 bool submit_lane_solution( struct work *work, const void *hash,
                            struct thr_info *thr, const int lane );
-
-bool test_hash_and_submit( struct work*, const void*, struct thr_info* );
 
 bool submit_work( struct thr_info *thr, const struct work *work_in );
 
@@ -869,7 +869,7 @@ Options:\n\
                           zr5           Ziftr\n\
   -N, --param-n         N parameter for scrypt based algos\n\
   -R, --patam-r         R parameter for scrypt based algos\n\
-  -K, --param-key       Key parameter for algos that use it\n\
+  -K, --param-key       Key (pers) parameter for algos that use it\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
   -u, --user=USERNAME   username for mining server\n\

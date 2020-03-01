@@ -65,6 +65,19 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.5
+
+Issues #246 & #251: fixed incorrect share diff for stratum and getwork,
+fixed incorrect target diff for getwork. Stats should now be correct for
+getwork as well as stratum.
+
+Getwork: reduce stale blocks, faster response to new work.
+
+Added ntime to new job/work logs.
+
+README.md now lists the parameters for yespower variations that don't have
+a specific algo name.
+
 v3.12.4.6
 
 Issue #246: fixed getwork repeated new block logs with same height. New work
