@@ -37,25 +37,25 @@ Requirements
 ------------
 
 1. A x86_64 architecture CPU with a minimum of SSE2 support. This includes
-Intel Core2 and newer and AMD equivalents. In order to take advantage of AES_NI
-optimizations a CPU with AES_NI is required. This includes Intel Westmere
-and newer and AMD equivalents. Further optimizations are available on some
-algoritms for CPUs with AVX and AVX2, Sandybridge and Haswell respectively.
+Intel Core2 and newer and AMD equivalents. Further optimizations are available
+on some algoritms for CPUs with AES, AVX, AVX2, SHA, AVX512 and VAES.
 
 Older CPUs are supported by cpuminer-multi by TPruvot but at reduced
 performance.
 
-ARM CPUs are not supported.
+ARM and Aarch64 CPUs are not supported.
 
-2. 64 bit Linux OS. Ubuntu and Fedora based distributions, including Mint and
-Centos, are known to work and have all dependencies in their repositories.
-Others may work but may require more effort. Older versions such as Centos 6
-don't work due to missing features. 
+2. 64 bit Linux or Windows OS. Ubuntu and Fedora based distributions,
+including Mint and Centos, are known to work and have all dependencies
+in their repositories. Others may work but may require more effort. Older
+versions such as Centos 6 don't work due to missing features. 
 64 bit Windows OS is supported with mingw_w64 and msys or pre-built binaries.
 
 MacOS, OSx and Android are not supported.
 
-3. Stratum pool. Some algos may work wallet mining using getwork or GBT. YMMV.
+3. Stratum pool supporting stratum+tcp:// or stratum+ssl:// protocols or
+RPC getwork using http:// or https://.
+GBT is YMMV.
 
 Supported Algorithms
 --------------------
@@ -163,7 +163,7 @@ power2b: --algo yespower-b2b --param-n 2048 --param-r 32 --param-key "Now I am b
 
 sugarchain: --algo yespower --param-n 2048 -param-r 32 --param-key "Satoshi Nakamoto 31/Oct/2008 Proof-of-work is essentially one-CPU-one-vote"
 
-yespoweriots: --a yespower --param-n 2048 --param-key "Iots is committed to the development of IOT"
+yespoweriots: --algo yespower --param-n 2048 --param-key "Iots is committed to the development of IOT"
 
 yespowerlitb: --algo yespower --param-n 2048 --param-r 32 --param-key "LITBpower: The number of LITB working or available for proof-of-work mini"
 

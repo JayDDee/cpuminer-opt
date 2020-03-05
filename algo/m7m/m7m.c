@@ -311,7 +311,7 @@ bool register_m7m_algo( algo_gate_t *gate )
 {
   gate->optimizations = SHA_OPT;
   init_m7m_ctx();
-  gate->scanhash              = (void*)scanhash_m7m_hash;
+  gate->scanhash              = (void*)&scanhash_m7m_hash;
   gate->build_stratum_request = (void*)&std_be_build_stratum_request;
   gate->work_decode           = (void*)&std_be_work_decode;
   gate->submit_getwork_result = (void*)&std_be_submit_getwork_result;

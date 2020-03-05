@@ -1064,7 +1064,6 @@ void diff_to_target(uint32_t *target, double diff)
    }
 }
 
-
 // deprecated
 void work_set_target(struct work* work, double diff)
 {
@@ -1075,12 +1074,11 @@ void work_set_target(struct work* work, double diff)
 double target_to_diff( uint32_t* target )
 {
    uint64_t *targ = (uint64_t*)target;
-   return target ? 1. / ( ( (double)targ[3] / exp32 )
-                        + ( (double)targ[2]         )
-                        + ( (double)targ[1] * exp32 )
-                        + ( (double)targ[0] * exp64 ) )
-                  : 0.;       
+   // extract 64 bits from target[ 240:176 ]
+   uint64_t m = ( targ[3] << 16 ) | ( targ[2] >> 48 );
+   return m ? (exp48-1.) / (double)m : 0.;
 }
+
 /*
 double target_to_diff(uint32_t* target)
 {
@@ -1095,6 +1093,7 @@ double target_to_diff(uint32_t* target)
 		(uint64_t)tgt[23] << 8  |
 		(uint64_t)tgt[22] << 0;
 
+   
 	if (!m)
 		return 0.;
 	else

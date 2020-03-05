@@ -65,6 +65,20 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.6
+
+Issue #246: improved stale share detection for getwork.
+
+Improved precision of target_to_diff conversion from 4 digits to 20+.
+
+Display hash and target debug data for all rejected shares.
+
+A graphical representation of CPU affinity is displayed when using --threads.
+
+Added highest and lowest accepted share to summary log.
+
+Other small changes to logs to improve consistency and clarity.
+
 v3.12.5
 
 Issues #246 & #251: fixed incorrect share diff for stratum and getwork,

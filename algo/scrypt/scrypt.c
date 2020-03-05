@@ -711,6 +711,7 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
 				pdata[19] = data[i * 20 + 19];
             submit_solution( work, hash + i * 8, mythr );
 			}
+
       }
 	} while ( likely( ( n < ( max_nonce - throughput ) ) && !(*restart) ) );
 	

@@ -323,6 +323,7 @@ int    timeval_subtract( struct timeval *result, struct timeval *x,
 // diff_to_hash = 2**32 = 0x100000000 = 4294967296 = exp32;
 
 const double exp32;  // 2**32
+const double exp48;  // 2**48
 const double exp64;  // 2**64
 
 bool   fulltest( const uint32_t *hash, const uint32_t *target );
@@ -344,6 +345,9 @@ struct thr_info {
 };
 
 //struct thr_info *thr_info;
+
+void test_hash_and_submit( struct work *work, const void *hash,
+                           struct thr_info *thr );
 
 bool submit_solution( struct work *work, const void *hash,
                       struct thr_info *thr );
