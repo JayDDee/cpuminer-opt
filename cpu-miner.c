@@ -3572,8 +3572,8 @@ int main(int argc, char *argv[])
 	pthread_mutex_init( &stratum.work_lock, NULL );
 
 	flags = !opt_benchmark
-               || ( strncasecmp( rpc_url, "https:", 6 )
-                 && strncasecmp( rpc_url, "stratum+tcps://", 15 ) )
+               && ( strncasecmp( rpc_url, "https:", 6 )
+                 || strncasecmp( rpc_url, "stratum+tcps://", 15 ) )
 	        ? ( CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL )
 	        : CURL_GLOBAL_ALL;
 	if ( curl_global_init( flags ) )
