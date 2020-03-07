@@ -53,7 +53,7 @@ int scanhash_yespower_r8g( struct work *work, uint32_t max_nonce,
 
     do {
        yespower_tls( (unsigned char *)endiandata, params.perslen,
-                      &params, (yespower_binary_t*)hash );
+                      &params, (yespower_binary_t*)hash, thr_id );
       
        if unlikely( valid_hash( hash, ptarget ) && !opt_benchmark )
        {

@@ -65,7 +65,7 @@ union _x16rv2_8way_context_overlay
 typedef union _x16rv2_8way_context_overlay x16rv2_8way_context_overlay;
 static __thread x16rv2_8way_context_overlay x16rv2_ctx;
 
-void x16rv2_8way_hash( void* output, const void* input )
+int x16rv2_8way_hash( void* output, const void* input, int thrid )
 {
    uint32_t vhash[24*8] __attribute__ ((aligned (128)));
    uint32_t hash0[24] __attribute__ ((aligned (64)));
@@ -563,6 +563,9 @@ void x16rv2_8way_hash( void* output, const void* input )
                           hash7, vhash );
          break;
       }
+
+      if ( work_restart[thrid].restart ) return 0;
+
       size = 64;
    }
 
@@ -574,6 +577,7 @@ void x16rv2_8way_hash( void* output, const void* input )
    memcpy( output+160, hash5, 32 );
    memcpy( output+192, hash6, 32 );
    memcpy( output+224, hash7, 32 );
+   return 1;
 }
 
 int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
@@ -669,8 +673,7 @@ int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
                              n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      x16rv2_8way_hash( hash, vdata );
-
+      if ( x16rv2_8way_hash( hash, vdata, thr_id ) )
       for ( int i = 0; i < 8; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {
@@ -718,7 +721,7 @@ inline void padtiger512( uint32_t* hash )
   for ( int i = 6; i < 16; i++ ) hash[i] = 0;
 }
 
-void x16rv2_4way_hash( void* output, const void* input )
+int x16rv2_4way_hash( void* output, const void* input, int thrid )
 {
    uint32_t hash0[20] __attribute__ ((aligned (64)));
    uint32_t hash1[20] __attribute__ ((aligned (64)));
@@ -1023,12 +1026,16 @@ void x16rv2_4way_hash( void* output, const void* input )
              dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
          break;
       }
+ 
+      if ( work_restart[thrid].restart ) return 0;
+
       size = 64;
    }
    memcpy( output,    hash0, 32 );
    memcpy( output+32, hash1, 32 );
    memcpy( output+64, hash2, 32 );
    memcpy( output+96, hash3, 32 );
+   return 1;
 }
 
 int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
@@ -1119,7 +1126,7 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
 
    do
    {
-      x16rv2_4way_hash( hash, vdata );
+      if ( x16rv2_4way_hash( hash, vdata, thr_id ) )
       for ( int i = 0; i < 4; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {

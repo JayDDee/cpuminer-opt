@@ -62,7 +62,7 @@ union _x22i_8way_ctx_overlay
 };
 typedef union _x22i_8way_ctx_overlay x22i_8way_ctx_overlay;
 
-void x22i_8way_hash( void *output, const void *input )
+int x22i_8way_hash( void *output, const void *input, int thrid )
 {
    uint64_t vhash[8*8] __attribute__ ((aligned (128)));
    uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
@@ -129,6 +129,8 @@ void x22i_8way_hash( void *output, const void *input )
    keccak512_8way_update( &ctx.keccak, vhash, 64 );
    keccak512_8way_close( &ctx.keccak, vhash );
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
    luffa512_4way_full( &ctx.luffa, vhashA, vhashA, 64 );
@@ -214,6 +216,8 @@ void x22i_8way_hash( void *output, const void *input )
 
 #endif
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    hamsi512_8way_init( &ctx.hamsi );
    hamsi512_8way_update( &ctx.hamsi, vhash, 64 );
    hamsi512_8way_close( &ctx.hamsi, vhash );
@@ -346,6 +350,8 @@ void x22i_8way_hash( void *output, const void *input )
    sph_tiger (&ctx.tiger, (const void*) hash7, 64);
    sph_tiger_close(&ctx.tiger, (void*) hashA7);
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    memset( hash0, 0, 64 );
    memset( hash1, 0, 64 );
    memset( hash2, 0, 64 );
@@ -399,6 +405,8 @@ void x22i_8way_hash( void *output, const void *input )
    sha256_8way_init( &ctx.sha256 );
    sha256_8way_update( &ctx.sha256, vhash, 64 );
    sha256_8way_close( &ctx.sha256, output );
+
+   return 1;
 }
 
 int scanhash_x22i_8way( struct work *work, uint32_t max_nonce,
@@ -428,8 +436,7 @@ int scanhash_x22i_8way( struct work *work, uint32_t max_nonce,
                                 n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      x22i_8way_hash( hash, vdata );
-
+      if ( x22i_8way_hash( hash, vdata, thr_id ) )
       for ( int lane = 0; lane < 8; lane++ )
       if ( unlikely( ( hashd7[ lane ] <= targ32 ) && !bench ) )
       {
@@ -437,7 +444,7 @@ int scanhash_x22i_8way( struct work *work, uint32_t max_nonce,
          if ( likely( valid_hash( lane_hash, ptarget ) ) )
          {
             pdata[19] = bswap_32( n + lane );
-            submit_lane_solution( work, lane_hash, mythr, lane );
+            submit_solution( work, lane_hash, mythr );
          }
       }
       *noncev = _mm512_add_epi32( *noncev,
@@ -524,7 +531,7 @@ union _x22i_4way_ctx_overlay
 };
 typedef union _x22i_4way_ctx_overlay x22i_ctx_overlay;
 
-void x22i_4way_hash( void *output, const void *input )
+int x22i_4way_hash( void *output, const void *input, int thrid )
 {
    uint64_t hash0[8*4] __attribute__ ((aligned (64)));
    uint64_t hash1[8*4] __attribute__ ((aligned (64)));
@@ -563,6 +570,8 @@ void x22i_4way_hash( void *output, const void *input )
    keccak512_4way_update( &ctx.keccak, vhash, 64 );
    keccak512_4way_close( &ctx.keccak, vhash );
 
+   if ( work_restart[thrid].restart ) return false;
+   
    rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
    luffa512_2way_full( &ctx.luffa, vhashA, vhashA, 64 );
@@ -591,6 +600,8 @@ void x22i_4way_hash( void *output, const void *input )
 
    intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
+   if ( work_restart[thrid].restart ) return false;
+   
    hamsi512_4way_init( &ctx.hamsi );
    hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
    hamsi512_4way_close( &ctx.hamsi, vhash );
@@ -636,6 +647,8 @@ void x22i_4way_hash( void *output, const void *input )
    sha512_4way_close( &ctx.sha512, vhash );
    dintrlv_4x64_512( &hash0[24], &hash1[24], &hash2[24], &hash3[24], vhash );
 
+   if ( work_restart[thrid].restart ) return false;
+   
 	ComputeSingleSWIFFTX((unsigned char*)hash0, (unsigned char*)hashA0);
    ComputeSingleSWIFFTX((unsigned char*)hash1, (unsigned char*)hashA1);
    ComputeSingleSWIFFTX((unsigned char*)hash2, (unsigned char*)hashA2);
@@ -667,6 +680,8 @@ void x22i_4way_hash( void *output, const void *input )
    sph_tiger_init(&ctx.tiger);
 	sph_tiger (&ctx.tiger, (const void*) hash3, 64);
 	sph_tiger_close(&ctx.tiger, (void*) hashA3);
+
+   if ( work_restart[thrid].restart ) return false;
 
 	memset( hash0, 0, 64 );
    memset( hash1, 0, 64 );
@@ -700,8 +715,9 @@ void x22i_4way_hash( void *output, const void *input )
    sha256_4way_init( &ctx.sha256 );
    sha256_4way_update( &ctx.sha256, vhash, 64 );
    sha256_4way_close( &ctx.sha256, output );
-}
 
+   return 1;
+}
 
 int scanhash_x22i_4way( struct work* work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr )
@@ -729,8 +745,7 @@ int scanhash_x22i_4way( struct work* work, uint32_t max_nonce,
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
    {
-      x22i_4way_hash( hash, vdata );
-
+      if ( x22i_4way_hash( hash, vdata, thr_id ) )
       for ( int lane = 0; lane < 4; lane++ )
       if ( unlikely( hashd7[ lane ] <= targ32 && !bench ) )
       {
@@ -738,7 +753,7 @@ int scanhash_x22i_4way( struct work* work, uint32_t max_nonce,
          if ( valid_hash( lane_hash, ptarget ) )
          {
             pdata[19] = bswap_32( n + lane );
-            submit_lane_solution( work, lane_hash, mythr, lane );
+            submit_solution( work, lane_hash, mythr );
          }
       }
       *noncev = _mm256_add_epi32( *noncev,

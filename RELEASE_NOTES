@@ -65,6 +65,15 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.6.1
+
+Issue #252: Fixed SSL mining (stratum+tcps://)
+
+Issue #254 Fixed benchmark.
+
+Issue #253: Implemented stale share reduction for yespower, x25x, x22i, x21s,
+x16*, scryptn2, more to come.
+
 v3.12.6
 
 Issue #246: improved stale share detection for getwork.
@@ -84,6 +93,8 @@ v3.12.5
 Issues #246 & #251: fixed incorrect share diff for stratum and getwork,
 fixed incorrect target diff for getwork. Stats should now be correct for
 getwork as well as stratum.
+
+Issue #252: Fixed stratum+tcps not using curl ssl.
 
 Getwork: reduce stale blocks, faster response to new work.
 

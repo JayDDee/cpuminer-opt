@@ -27,12 +27,13 @@ union _x21s_context_overlay
 };
 typedef union _x21s_context_overlay x21s_context_overlay;
 
-void x21s_hash( void* output, const void* input )
+int x21s_hash( void* output, const void* input, int thrid )
 {
    uint32_t _ALIGN(128) hash[16];
    x21s_context_overlay ctx;
 
-   x16r_hash_generic( hash, input );
+   if ( !x16r_hash_generic( hash, input, thrid ) )
+      return 0;
 
    sph_haval256_5_init( &ctx.haval );
    sph_haval256_5( &ctx.haval, (const void*) hash, 64) ;
@@ -54,6 +55,8 @@ void x21s_hash( void* output, const void* input )
    SHA256_Final( (unsigned char*)hash, &ctx.sha256 );
 
    memcpy( output, hash, 32 );
+
+   return 1;
 }
 
 int scanhash_x21s( struct work *work, uint32_t max_nonce,
@@ -87,8 +90,7 @@ int scanhash_x21s( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = nonce;
-      x21s_hash( hash32, edata );
-
+      if ( x21s_hash( hash32, edata, thr_id ) )
       if ( unlikely( valid_hash( hash32, ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( nonce );

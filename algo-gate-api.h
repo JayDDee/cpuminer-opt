@@ -113,9 +113,10 @@ typedef struct
 // mandatory functions, must be overwritten
 int ( *scanhash ) ( struct work*, uint32_t, uint64_t*, struct thr_info* );
 
+// not used anywhere
 // optional unsafe, must be overwritten if algo uses function
-void ( *hash )     ( void*, const void*, uint32_t ) ;
-void ( *hash_suw ) ( void*, const void* );
+int ( *hash )     ( void*, const void*, uint32_t ) ;
+//void ( *hash_suw ) ( void*, const void* );
 
 //optional, safe to use default in most cases
 
@@ -213,8 +214,8 @@ void four_way_not_tested();
 int null_scanhash();
 
 // displays warning
-void null_hash    ();
-void null_hash_suw();
+int null_hash    ();
+//void null_hash_suw();
 
 // optional safe targets, default listed first unless noted.
 

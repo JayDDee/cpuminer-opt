@@ -79,7 +79,7 @@ int main(int argc, const char * const *argv)
 	for (i = 0; i < sizeof(src); i++)
 		src.u8[i] = i * 3;
 
-	if (yespower_tls(src.u8, sizeof(src), &params, &dst)) {
+	if (!yespower_tls(src.u8, sizeof(src), &params, &dst)) {
 		puts("FAILED");
 		return 1;
 	}

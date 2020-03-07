@@ -77,7 +77,7 @@ typedef union _hex_context_overlay hex_context_overlay;
 
 static __thread x16r_context_overlay hex_ctx;
 
-void hex_hash( void* output, const void* input )
+int hex_hash( void* output, const void* input, int thrid )
 {
    uint32_t _ALIGN(128) hash[16];
    x16r_context_overlay ctx;
@@ -214,11 +214,15 @@ void hex_hash( void* output, const void* input )
              SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
          break;
       }
+
+      if ( work_restart[thrid].restart ) return 0;
+
       algo = (uint8_t)hash[0] % X16R_HASH_FUNC_COUNT;
       in = (void*) hash;
       size = 64;
    }
    memcpy(output, hash, 32);
+   return 1;
 }
 
 int scanhash_hex( struct work *work, uint32_t max_nonce,
@@ -286,8 +290,7 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = nonce;
-      hex_hash( hash32, edata );
-
+      if ( hex_hash( hash32, edata, thr_id ) );
       if ( unlikely( valid_hash( hash32, ptarget ) && !bench ) )
       {
          be32enc( &pdata[19], nonce );

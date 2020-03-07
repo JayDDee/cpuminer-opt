@@ -131,8 +131,8 @@ typedef union _x16r_8way_context_overlay x16r_8way_context_overlay;
 extern __thread x16r_8way_context_overlay x16r_ctx;
 
 void x16r_8way_prehash( void *, void * );
-void x16r_8way_hash_generic( void *, const void * );
-void x16r_8way_hash( void *, const void * );
+int x16r_8way_hash_generic( void *, const void *, int );
+int x16r_8way_hash( void *, const void *, int );
 int scanhash_x16r_8way( struct work *, uint32_t ,
                         uint64_t *, struct thr_info * );
 extern __thread x16r_8way_context_overlay x16r_ctx;
@@ -166,8 +166,8 @@ typedef union _x16r_4way_context_overlay x16r_4way_context_overlay;
 extern __thread x16r_4way_context_overlay x16r_ctx;
 
 void x16r_4way_prehash( void *, void * );
-void x16r_4way_hash_generic( void *, const void * );
-void x16r_4way_hash( void *, const void * );
+int x16r_4way_hash_generic( void *, const void *, int );
+int x16r_4way_hash( void *, const void *, int );
 int scanhash_x16r_4way( struct work *, uint32_t,
                         uint64_t *, struct thr_info * );
 extern __thread x16r_4way_context_overlay x16r_ctx;
@@ -205,26 +205,26 @@ typedef union _x16r_context_overlay x16r_context_overlay;
 extern __thread x16r_context_overlay x16_ctx;
 
 void x16r_prehash( void *, void * );
-void x16r_hash_generic( void *, const void * );
-void x16r_hash( void *, const void * );
+int x16r_hash_generic( void *, const void *, int );
+int x16r_hash( void *, const void *, int );
 int scanhash_x16r( struct work *, uint32_t, uint64_t *, struct thr_info * );
 
 // x16Rv2
 #if defined(X16RV2_8WAY)
 
-void x16rv2_8way_hash( void *state, const void *input );
+int x16rv2_8way_hash( void *state, const void *input, int thrid );
 int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr );
 
 #elif defined(X16RV2_4WAY)
 
-void x16rv2_4way_hash( void *state, const void *input );
+int x16rv2_4way_hash( void *state, const void *input, int thrid );
 int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
 #else
 
-void x16rv2_hash( void *state, const void *input );
+int x16rv2_hash( void *state, const void *input, int thr_id );
 int scanhash_x16rv2( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr );
 
@@ -254,21 +254,21 @@ int scanhash_x16rt( struct work *work, uint32_t max_nonce,
 // x21s
 #if defined(X16R_8WAY)
 
-void x21s_8way_hash( void *state, const void *input );
+int x21s_8way_hash( void *state, const void *input, int thrid );
 int scanhash_x21s_8way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 bool x21s_8way_thread_init();
 
 #elif defined(X16R_4WAY)
 
-void x21s_4way_hash( void *state, const void *input );
+int x21s_4way_hash( void *state, const void *input, int thrid );
 int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 bool x21s_4way_thread_init();
 
 #else
 
-void x21s_hash( void *state, const void *input );
+int x21s_hash( void *state, const void *input, int thr_id );
 int scanhash_x21s( struct work *work, uint32_t max_nonce,
                   uint64_t *hashes_done, struct thr_info *mythr );
 bool x21s_thread_init();

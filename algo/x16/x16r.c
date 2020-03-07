@@ -48,7 +48,7 @@ void x16r_prehash( void *edata, void *pdata )
    }
 }
 
-void x16r_hash_generic( void* output, const void* input )
+int x16r_hash_generic( void* output, const void* input, int thrid )
 {
    uint32_t _ALIGN(128) hash[16];
    x16r_context_overlay ctx;
@@ -178,18 +178,24 @@ void x16r_hash_generic( void* output, const void* input )
             SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
          break;
       }
+
+      if ( work_restart[thrid].restart ) return 0;
+
       in = (void*) hash;
       size = 64;
    }
    memcpy( output, hash, 64 );
+   return true;
 }
 
-void x16r_hash( void* output, const void* input )
+int x16r_hash( void* output, const void* input, int thrid )
 {  
    uint8_t hash[64] __attribute__ ((aligned (64)));
-   x16r_hash_generic( hash, input );
+   if ( !x16r_hash_generic( hash, input, thrid ) )
+      return 0;
    
-   memcpy( output, hash, 32 );
+    memcpy( output, hash, 32 );
+    return 1;
 }
 
 int scanhash_x16r( struct work *work, uint32_t max_nonce,
@@ -223,8 +229,7 @@ int scanhash_x16r( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = nonce;
-      x16r_hash( hash32, edata );
-
+      if ( x16r_hash( hash32, edata, thr_id ) )
       if ( unlikely( valid_hash( hash32, ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( nonce );

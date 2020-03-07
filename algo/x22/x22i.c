@@ -59,7 +59,7 @@ union _x22i_context_overlay
 };
 typedef union _x22i_context_overlay x22i_context_overlay;
 
-void x22i_hash( void *output, const void *input )
+int x22i_hash( void *output, const void *input, int thrid )
 {
    unsigned char hash[64 * 4] __attribute__((aligned(64))) = {0};
    unsigned char hash2[65]    __attribute__((aligned(64))) = {0};
@@ -95,6 +95,8 @@ void x22i_hash( void *output, const void *input )
 	sph_keccak512(&ctx.keccak, (const void*) hash, 64);
 	sph_keccak512_close(&ctx.keccak, hash);
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    init_luffa( &ctx.luffa, 512 );
    update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                 (const BitSequence*)hash, 64 );
@@ -121,6 +123,8 @@ void x22i_hash( void *output, const void *input )
    sph_echo512_close( &ctx.echo, hash );
 #endif
 
+   if ( work_restart[thrid].restart ) return 0;
+   
 	sph_hamsi512_init(&ctx.hamsi);
 	sph_hamsi512(&ctx.hamsi, (const void*) hash, 64);
 	sph_hamsi512_close(&ctx.hamsi, hash);
@@ -143,6 +147,8 @@ void x22i_hash( void *output, const void *input )
 
 	ComputeSingleSWIFFTX((unsigned char*)hash, (unsigned char*)hash2);
 
+   if ( work_restart[thrid].restart ) return 0;
+   
 	memset(hash, 0, 64);
 	sph_haval256_5_init(&ctx.haval);
 	sph_haval256_5(&ctx.haval,(const void*) hash2, 64);
@@ -165,6 +171,8 @@ void x22i_hash( void *output, const void *input )
    SHA256_Final( (unsigned char*) hash, &ctx.sha256 );
 
 	memcpy(output, hash, 32);
+
+   return 1;
 }
 
 int scanhash_x22i( struct work *work, uint32_t max_nonce,
@@ -188,7 +196,7 @@ int scanhash_x22i( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = n;
-      x22i_hash( hash64, edata );
+      if ( x22i_hash( hash64, edata, thr_id ) );
       if ( unlikely( valid_hash( hash64, ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( n );

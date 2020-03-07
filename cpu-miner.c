@@ -1992,7 +1992,7 @@ static void *miner_thread( void *userdata )
       {  
          affine_to_cpu_mask( thr_id, (uint128_t)1 << (thr_id % num_cpus) );
          if ( opt_debug )
-            applog( LOG_DEBUG, "Binding thread %d to cpu %d.",
+            applog( LOG_INFO, "Binding thread %d to cpu %d.",
                     thr_id, thr_id % num_cpus,
 	                 u128_hi64( (uint128_t)1 << (thr_id % num_cpus) ),
 		              u128_lo64( (uint128_t)1 << (thr_id % num_cpus) ) );
@@ -2013,14 +2013,14 @@ static void *miner_thread( void *userdata )
          {
 #if AFFINITY_USES_UINT128
             if ( num_cpus > 64 )
-               applog( LOG_DEBUG, "Binding thread %d to mask %016llx %016llx",
+               applog( LOG_INFO, "Binding thread %d to mask %016llx %016llx",
                                 thr_id, u128_hi64( opt_affinity ), 
                                         u128_lo64( opt_affinity ) );
             else
-               applog( LOG_DEBUG, "Binding thread %d to mask %016llx",
+               applog( LOG_INFO, "Binding thread %d to mask %016llx",
                                  thr_id, opt_affinity );
 #else
-            applog( LOG_DEBUG, "Binding thread %d to mask %016llx",
+            applog( LOG_INFO, "Binding thread %d to mask %016llx",
                                  thr_id, opt_affinity );
 #endif
          }
@@ -3477,7 +3477,7 @@ int main(int argc, char *argv[])
 	   num_cpus += cpus;
 
 	   if (opt_debug)
-		applog(LOG_DEBUG, "Found %d cpus on cpu group %d", cpus, i);
+         applog(LOG_DEBUG, "Found %d cpus on cpu group %d", cpus, i);
 	}
 #else
    SYSTEM_INFO sysinfo;
@@ -3496,7 +3496,6 @@ int main(int argc, char *argv[])
 #endif
 	if (num_cpus < 1)
 		num_cpus = 1;
-
 
    if (!opt_n_threads)
       opt_n_threads = num_cpus;
@@ -3571,12 +3570,13 @@ int main(int argc, char *argv[])
 	pthread_mutex_init( &stratum.sock_lock, NULL );
 	pthread_mutex_init( &stratum.work_lock, NULL );
 
-	flags = !opt_benchmark
-               || ( strncasecmp( rpc_url, "https:", 6 )
-                 && strncasecmp( rpc_url, "stratum+tcps://", 15 ) )
-	        ? ( CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL )
-	        : CURL_GLOBAL_ALL;
-	if ( curl_global_init( flags ) )
+   flags = CURL_GLOBAL_ALL;
+   if ( !opt_benchmark )
+     if ( strncasecmp( rpc_url, "https:", 6 )
+       && strncasecmp( rpc_url, "stratum+tcps://", 15 ) )
+         flags &= ~CURL_GLOBAL_SSL;
+
+   if ( curl_global_init( flags ) )
    {
 		applog(LOG_ERR, "CURL initialization failed");
 		return 1;
@@ -3633,12 +3633,6 @@ int main(int argc, char *argv[])
 		SetPriorityClass(GetCurrentProcess(), prio);
 	}
 #endif
-
-/*   
-   if ( num_cpus != opt_n_threads )   
-     applog( LOG_INFO,"%u CPU cores available, %u miner threads selected",
-             num_cpus, opt_n_threads );
-*/
 
 // To be confirmed with more than 64 cpus
    if ( opt_affinity != -1 )
@@ -3728,7 +3722,7 @@ int main(int argc, char *argv[])
 		/* start longpoll thread */
 		err = thread_create(thr, longpoll_thread);
 		if (err) {
-			applog(LOG_ERR, "long poll thread create failed");
+			applog(LOG_ERR, "Long poll thread create failed");
 			return 1;
 		}
 	}
@@ -3748,7 +3742,7 @@ int main(int argc, char *argv[])
 		err = thread_create(thr, stratum_thread);
 		if (err)
                 {
-			applog(LOG_ERR, "stratum thread create failed");
+			applog(LOG_ERR, "Stratum thread create failed");
 			return 1;
 		}
 		if (have_stratum)
@@ -3789,7 +3783,7 @@ int main(int argc, char *argv[])
 			return 1;
          err = thread_create(thr, miner_thread);
 		if (err) {
-			applog(LOG_ERR, "thread %d create failed", i);
+			applog(LOG_ERR, "Miner thread %d create failed", i);
 			return 1;
 		}
    }

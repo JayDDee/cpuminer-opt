@@ -36,8 +36,7 @@ int scanhash_x16rt( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = nonce;
-      x16r_hash( hash32, edata );
-
+      if ( x16r_hash( hash32, edata, thr_id ) )
       if ( valid_hash( hash32, ptarget ) && !bench )
       {
          pdata[19] = bswap_32( nonce );

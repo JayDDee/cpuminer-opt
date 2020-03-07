@@ -16,19 +16,19 @@ bool register_x22i_algo( algo_gate_t* gate );
 
 #if defined(X22I_8WAY)
 
-void x22i_8way_hash( void *state, const void *input );
+int x22i_8way_hash( void *state, const void *input, int thrid );
 int scanhash_x22i_8way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
 #elif defined(X22I_4WAY)
 
-void x22i_4way_hash( void *state, const void *input );
+int x22i_4way_hash( void *state, const void *input, int thrid );
 int scanhash_x22i_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
 #else
 
-void x22i_hash( void *state, const void *input );
+int x22i_hash( void *state, const void *input, int thrid );
 int scanhash_x22i( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr );
 
@@ -44,19 +44,19 @@ bool register_x25i_algo( algo_gate_t* gate );
 
 #if defined(X25X_8WAY)
 
-void x25x_8way_hash( void *state, const void *input );
+int x25x_8way_hash( void *state, const void *input, int thrid );
 int scanhash_x25x_8way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
 #elif defined(X25X_4WAY)
 
-void x25x_4way_hash( void *state, const void *input );
+int x25x_4way_hash( void *state, const void *input, int thrid );
 int scanhash_x25x_4way( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr );
 
 #else
 
-void x25x_hash( void *state, const void *input );
+int x25x_hash( void *state, const void *input, int thrif );
 int scanhash_x25x( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr );
 

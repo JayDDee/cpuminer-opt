@@ -424,7 +424,7 @@ static bool scrypt_1024_1_1_256(const uint32_t *input, uint32_t *output,
 }
 
 #ifdef HAVE_SHA256_4WAY
-static bool scrypt_1024_1_1_256_4way(const uint32_t *input,
+static int scrypt_1024_1_1_256_4way(const uint32_t *input,
 	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N, 
    int thrid )
 {
@@ -449,6 +449,8 @@ static bool scrypt_1024_1_1_256_4way(const uint32_t *input,
 
    PBKDF2_SHA256_80_128_4way(tstate, ostate, W, W);
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    for (i = 0; i < 32; i++)
 		for (k = 0; k < 4; k++)
 			X[k * 32 + i] = W[4 * i + k];
@@ -457,6 +459,8 @@ static bool scrypt_1024_1_1_256_4way(const uint32_t *input,
 	scrypt_core(X + 1 * 32, V, N);
 	scrypt_core(X + 2 * 32, V, N);
 	scrypt_core(X + 3 * 32, V, N);
+
+   if ( work_restart[thrid].restart ) return 0;
 
    for (i = 0; i < 32; i++)
 		for (k = 0; k < 4; k++)
@@ -468,13 +472,13 @@ static bool scrypt_1024_1_1_256_4way(const uint32_t *input,
 		for (k = 0; k < 4; k++)
 			output[k * 8 + i] = W[4 * i + k];
 
-   return true;
+   return 1;
 }
 #endif /* HAVE_SHA256_4WAY */
 
 #ifdef HAVE_SCRYPT_3WAY
 
-static bool scrypt_1024_1_1_256_3way(const uint32_t *input,
+static int scrypt_1024_1_1_256_3way(const uint32_t *input,
 	uint32_t *output, uint32_t *midstate, unsigned char *scratchpad, int N, 
    int thrid )
 {
@@ -492,23 +496,23 @@ static bool scrypt_1024_1_1_256_3way(const uint32_t *input,
 	HMAC_SHA256_80_init(input + 20, tstate +  8, ostate +  8);
 	HMAC_SHA256_80_init(input + 40, tstate + 16, ostate + 16);
 
-   if ( work_restart[thrid].restart ) return false;
+   if ( work_restart[thrid].restart ) return 0;
 
    PBKDF2_SHA256_80_128(tstate +  0, ostate +  0, input +  0, X +  0);
 	PBKDF2_SHA256_80_128(tstate +  8, ostate +  8, input + 20, X + 32);
 	PBKDF2_SHA256_80_128(tstate + 16, ostate + 16, input + 40, X + 64);
 
-   if ( work_restart[thrid].restart ) return false;
+   if ( work_restart[thrid].restart ) return 0;
 
    scrypt_core_3way(X, V, N);
 
-   if ( work_restart[thrid].restart ) return false;
+   if ( work_restart[thrid].restart ) return 0;
 
    PBKDF2_SHA256_128_32(tstate +  0, ostate +  0, X +  0, output +  0);
 	PBKDF2_SHA256_128_32(tstate +  8, ostate +  8, X + 32, output +  8);
 	PBKDF2_SHA256_128_32(tstate + 16, ostate + 16, X + 64, output + 16);
 
-   return true;
+   return 1;
 }
 
 #ifdef HAVE_SHA256_4WAY
@@ -539,13 +543,13 @@ static bool scrypt_1024_1_1_256_12way(const uint32_t *input,
 	HMAC_SHA256_80_init_4way(W + 128, tstate + 32, ostate + 32);
 	HMAC_SHA256_80_init_4way(W + 256, tstate + 64, ostate + 64);
 
-   if ( work_restart[thrid].restart ) return false;
+   if ( work_restart[thrid].restart ) return 0;
 
    PBKDF2_SHA256_80_128_4way(tstate +  0, ostate +  0, W +   0, W +   0);
 	PBKDF2_SHA256_80_128_4way(tstate + 32, ostate + 32, W + 128, W + 128);
 	PBKDF2_SHA256_80_128_4way(tstate + 64, ostate + 64, W + 256, W + 256);
 
-   if ( work_restart[thrid].restart ) return false;
+   if ( work_restart[thrid].restart ) return 0;
 
    for (j = 0; j < 3; j++)
 		for (i = 0; i < 32; i++)
@@ -557,7 +561,7 @@ static bool scrypt_1024_1_1_256_12way(const uint32_t *input,
 	scrypt_core_3way(X + 2 * 96, V, N);
 	scrypt_core_3way(X + 3 * 96, V, N);
 
-   if ( work_restart[thrid].restart ) return false;
+   if ( work_restart[thrid].restart ) return 0;
 
    for (j = 0; j < 3; j++)
 		for (i = 0; i < 32; i++)
@@ -573,14 +577,14 @@ static bool scrypt_1024_1_1_256_12way(const uint32_t *input,
 			for (k = 0; k < 4; k++)
 				output[32 * j + k * 8 + i] = W[128 * j + 4 * i + k];
 
-   return true;
+   return 1;
 }
 #endif /* HAVE_SHA256_4WAY */
 
 #endif /* HAVE_SCRYPT_3WAY */
 
 #ifdef HAVE_SCRYPT_6WAY
-static bool scrypt_1024_1_1_256_24way( const uint32_t *input,
+static int scrypt_1024_1_1_256_24way( const uint32_t *input,
                                uint32_t *output, uint32_t *midstate,
                                unsigned char *scratchpad, int N, int thrid )
 {
@@ -607,13 +611,13 @@ static bool scrypt_1024_1_1_256_24way( const uint32_t *input,
 	HMAC_SHA256_80_init_8way( W + 256, tstate +  64, ostate +  64 );
 	HMAC_SHA256_80_init_8way( W + 512, tstate + 128, ostate + 128 );
 
-   if ( work_restart[thrid].restart ) return false;
+   if ( work_restart[thrid].restart ) return 0;
    
    PBKDF2_SHA256_80_128_8way( tstate +   0, ostate +   0, W +   0, W +   0 );
 	PBKDF2_SHA256_80_128_8way( tstate +  64, ostate +  64, W + 256, W + 256 );
 	PBKDF2_SHA256_80_128_8way( tstate + 128, ostate + 128, W + 512, W + 512 );
 
-   if ( work_restart[thrid].restart ) return false;
+   if ( work_restart[thrid].restart ) return 0;
 
    for ( j = 0; j < 3; j++ )
 		for ( i = 0; i < 32; i++ )
@@ -622,10 +626,13 @@ static bool scrypt_1024_1_1_256_24way( const uint32_t *input,
 
    scrypt_core_6way( X +  0 * 32, V, N );
 	scrypt_core_6way( X +  6 * 32, V, N );
-	scrypt_core_6way( X + 12 * 32, V, N );
+
+   if ( work_restart[thrid].restart ) return 0;
+
+   scrypt_core_6way( X + 12 * 32, V, N );
 	scrypt_core_6way( X + 18 * 32, V, N );
 
-   if ( work_restart[thrid].restart ) return false;
+   if ( work_restart[thrid].restart ) return 0;
    
    for ( j = 0; j < 3; j++ )
 		for ( i = 0; i < 32; i++ )
@@ -641,7 +648,7 @@ static bool scrypt_1024_1_1_256_24way( const uint32_t *input,
 			for ( k = 0; k < 8; k++ )
 				output[8 * 8 * j + k * 8 + i] = W[8 * 32 * j + 8 * i + k];
 
-   return true;
+   return 1;
 }
 #endif /* HAVE_SCRYPT_6WAY */
 

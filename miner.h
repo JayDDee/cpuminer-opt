@@ -777,7 +777,7 @@ extern const int pk_buffer_size_max;
 extern int pk_buffer_size;
 
 static char const usage[] = "\
-Usage: " PACKAGE_NAME " [OPTIONS]\n\
+Usage: cpuminer [OPTIONS]\n\
 Options:\n\
   -a, --algo=ALGO       specify the algorithm to use\n\
                           allium        Garlicoin (GRLC)\n\
@@ -872,7 +872,7 @@ Options:\n\
                           yespower-b2b  generic yespower + blake2b\n\
                           zr5           Ziftr\n\
   -N, --param-n         N parameter for scrypt based algos\n\
-  -R, --patam-r         R parameter for scrypt based algos\n\
+  -R, --param-r         R parameter for scrypt based algos\n\
   -K, --param-key       Key (pers) parameter for algos that use it\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
@@ -890,7 +890,7 @@ Options:\n\
                           long polling is unavailable, in seconds (default: 5)\n\
       --randomize       Randomize scan range start to reduce duplicates\n\
       --reset-on-stale  Workaround reset stratum if too many stale shares\n\
-      -f, --diff-factor     Divide req. difficulty by this factor (std is 1.0)\n\
+  -f, --diff-factor     Divide req. difficulty by this factor (std is 1.0)\n\
   -m, --diff-multiplier Multiply difficulty by this factor (std is 1.0)\n\
       --hash-meter      Display thread hash rates\n\
       --coinbase-addr=ADDR  payout address for solo mining\n\
@@ -912,7 +912,6 @@ Options:\n\
 "\
   -B, --background      run the miner in the background\n\
       --benchmark       run in offline benchmark mode\n\
-      --cputest         debug hashes from cpu algorithms\n\
       --cpu-affinity    set process affinity to cpu core(s), mask 0x3 for cores 0 and 1\n\
       --cpu-priority    set process priority (default: 0 idle, 2 normal to 5 highest)\n\
   -b, --api-bind        IP/Port for the miner API (default: 127.0.0.1:4048)\n\

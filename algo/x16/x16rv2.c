@@ -67,7 +67,7 @@ inline void padtiger512(uint32_t* hash) {
    for (int i = (24/4); i < (64/4); i++) hash[i] = 0;
 }
 
-void x16rv2_hash( void* output, const void* input )
+int x16rv2_hash( void* output, const void* input, int thrid )
 {
    uint32_t _ALIGN(128) hash[16];
    x16rv2_context_overlay ctx;
@@ -180,10 +180,14 @@ void x16rv2_hash( void* output, const void* input )
              SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
          break;
       }
+
+      if ( work_restart[thrid].restart ) return 0;
+
       in = (void*) hash;
       size = 64;
    }
    memcpy(output, hash, 32);
+   return 1;
 }
 
 int scanhash_x16rv2( struct work *work, uint32_t max_nonce,
@@ -221,8 +225,7 @@ int scanhash_x16rv2( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = nonce;
-      x16rv2_hash( hash32, edata );
-
+      if ( x16rv2_hash( hash32, edata, thr_id ) )
       if ( unlikely( valid_hash( hash32, ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( nonce );

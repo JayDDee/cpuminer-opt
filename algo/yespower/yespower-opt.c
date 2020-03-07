@@ -107,11 +107,13 @@
 #define restrict
 #endif
 
+/*
 #ifdef __GNUC__
 #define unlikely(exp) __builtin_expect(exp, 0)
 #else
 #define unlikely(exp) (exp)
 #endif
+*/
 
 #ifdef __SSE__
 #define PREFETCH(x, hint) _mm_prefetch((const char *)(x), (hint));
@@ -1023,7 +1025,7 @@ static void smix(uint8_t *B, size_t r, uint32_t N,
 int yespower(yespower_local_t *local,
     const uint8_t *src, size_t srclen,
     const yespower_params_t *params,
-    yespower_binary_t *dst)
+    yespower_binary_t *dst, int thrid )
 {
 	yespower_version_t version = params->version;
 	uint32_t N = params->N;
@@ -1077,15 +1079,24 @@ int yespower(yespower_local_t *local,
 	if (version == YESPOWER_0_5) {
 		PBKDF2_SHA256(sha256, sizeof(sha256), src, srclen, 1,
 		    B, B_size);
-		memcpy(sha256, B, sizeof(sha256));
+
+      if ( work_restart[thrid].restart ) return false;
+   
+      memcpy(sha256, B, sizeof(sha256));
 		smix(B, r, N, V, XY, &ctx);
-		PBKDF2_SHA256(sha256, sizeof(sha256), B, B_size, 1,
+
+      if ( work_restart[thrid].restart ) return false;
+
+      PBKDF2_SHA256(sha256, sizeof(sha256), B, B_size, 1,
 		    (uint8_t *)dst, sizeof(*dst));
 
 		if (pers) {
 			HMAC_SHA256_Buf(dst, sizeof(*dst), pers, perslen,
 			    sha256);
-			SHA256_Buf(sha256, sizeof(sha256), (uint8_t *)dst);
+
+         if ( work_restart[thrid].restart ) return false;
+
+         SHA256_Buf(sha256, sizeof(sha256), (uint8_t *)dst);
 		}
 	} else {
 		ctx.S2 = S + 2 * Swidth_to_Sbytes1(Swidth);
@@ -1106,7 +1117,7 @@ int yespower(yespower_local_t *local,
 	}
 
 	/* Success! */
-	return 0;
+	return 1;
 }
 
 /**
@@ -1117,7 +1128,7 @@ int yespower(yespower_local_t *local,
  * Return 0 on success; or -1 on error.
  */
 int yespower_tls(const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst)
+    const yespower_params_t *params, yespower_binary_t *dst, int thrid )
 {
 	static __thread int initialized = 0;
 	static __thread yespower_local_t local;
@@ -1128,7 +1139,7 @@ int yespower_tls(const uint8_t *src, size_t srclen,
 		initialized = 1;
 	}
 
-	return yespower(&local, src, srclen, params, dst);
+	return yespower( &local, src, srclen, params, dst, thrid );
 }
 
 int yespower_init_local(yespower_local_t *local)

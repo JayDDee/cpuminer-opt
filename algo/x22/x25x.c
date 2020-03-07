@@ -64,7 +64,7 @@ union _x25x_context_overlay
 };
 typedef union _x25x_context_overlay x25x_context_overlay;
 
-void x25x_hash( void *output, const void *input )
+int x25x_hash( void *output, const void *input, int thrid )
 {
    unsigned char hash[25][64] __attribute__((aligned(64))) = {0};
    x25x_context_overlay ctx;
@@ -99,6 +99,8 @@ void x25x_hash( void *output, const void *input )
 	sph_keccak512(&ctx.keccak, (const void*) &hash[4], 64);
 	sph_keccak512_close(&ctx.keccak, &hash[5]);
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    init_luffa( &ctx.luffa, 512 );
    update_and_final_luffa( &ctx.luffa, (BitSequence*)&hash[6],
                                 (const BitSequence*)&hash[5], 64 );
@@ -125,7 +127,9 @@ void x25x_hash( void *output, const void *input )
    sph_echo512_close( &ctx.echo, &hash[10] );
 #endif
 
-	sph_hamsi512_init(&ctx.hamsi);
+   if ( work_restart[thrid].restart ) return 0;
+
+   sph_hamsi512_init(&ctx.hamsi);
 	sph_hamsi512(&ctx.hamsi, (const void*) &hash[10], 64);
 	sph_hamsi512_close(&ctx.hamsi, &hash[11]);
 
@@ -151,6 +155,8 @@ void x25x_hash( void *output, const void *input )
 	sph_haval256_5(&ctx.haval,(const void*) &hash[16], 64);
 	sph_haval256_5_close(&ctx.haval,&hash[17]);
 
+   if ( work_restart[thrid].restart ) return 0;
+   
 	sph_tiger_init(&ctx.tiger);
 	sph_tiger (&ctx.tiger, (const void*) &hash[17], 64);
 	sph_tiger_close(&ctx.tiger, (void*) &hash[18]);
@@ -199,6 +205,8 @@ void x25x_hash( void *output, const void *input )
    blake2s_simple( (uint8_t*)&hash[24], (const void*)(&hash[0]), 64 * 24 );
    
 	memcpy(output, &hash[24], 32);
+
+   return 1;
 }
 
 int scanhash_x25x( struct work *work, uint32_t max_nonce,
@@ -222,7 +230,7 @@ int scanhash_x25x( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = n;
-      x25x_hash( hash64, edata );
+      if ( x25x_hash( hash64, edata, thr_id ) );
       if ( unlikely( valid_hash( hash64, ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( n );

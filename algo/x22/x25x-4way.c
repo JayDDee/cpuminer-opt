@@ -94,7 +94,7 @@ union _x25x_8way_ctx_overlay
 };
 typedef union _x25x_8way_ctx_overlay x25x_8way_ctx_overlay;
 
-void x25x_8way_hash( void *output, const void *input )
+int x25x_8way_hash( void *output, const void *input, int thrid )
 {
    uint64_t vhash[8*8] __attribute__ ((aligned (128)));
    unsigned char hash0[25][64] __attribute__((aligned(64))) = {0};
@@ -179,13 +179,15 @@ void x25x_8way_hash( void *output, const void *input )
    jh512_8way_close( &ctx.jh, vhash );
    dintrlv_8x64_512( hash0[4], hash1[4], hash2[4], hash3[4],
                      hash4[4], hash5[4], hash6[4], hash7[4], vhash );
-
+   
    keccak512_8way_init( &ctx.keccak );
    keccak512_8way_update( &ctx.keccak, vhash, 64 );
    keccak512_8way_close( &ctx.keccak, vhash );
    dintrlv_8x64_512( hash0[5], hash1[5], hash2[5], hash3[5],
                      hash4[5], hash5[5], hash6[5], hash7[5], vhash );
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
    luffa_4way_init( &ctx.luffa, 512 );
@@ -261,6 +263,7 @@ void x25x_8way_hash( void *output, const void *input )
    intrlv_8x64_512( vhash, hash0[10], hash1[10], hash2[10], hash3[10],
                            hash4[10], hash5[10], hash6[10], hash7[10] );
 
+   
 #else
 
    init_echo( &ctx.echo, 512 );
@@ -292,6 +295,8 @@ void x25x_8way_hash( void *output, const void *input )
 
 #endif
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    hamsi512_8way_init( &ctx.hamsi );
    hamsi512_8way_update( &ctx.hamsi, vhash, 64 );
    hamsi512_8way_close( &ctx.hamsi, vhash );
@@ -407,6 +412,8 @@ void x25x_8way_hash( void *output, const void *input )
    sph_tiger (&ctx.tiger, (const void*) hash7[17], 64);
    sph_tiger_close(&ctx.tiger, (void*) hash7[18]);
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    intrlv_2x256( vhash, hash0[18], hash1[18], 256 );
    LYRA2X_2WAY( vhash, 32, vhash, 32, 1, 4, 4 );
    dintrlv_2x256( hash0[19], hash1[19], vhash, 256 );
@@ -468,6 +475,8 @@ void x25x_8way_hash( void *output, const void *input )
    laneHash(512, (const BitSequence*)hash6[22], 512, (BitSequence*)hash6[23]);
    laneHash(512, (const BitSequence*)hash7[22], 512, (BitSequence*)hash7[23]);
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    x25x_shuffle( hash0 );
    x25x_shuffle( hash1 );
    x25x_shuffle( hash2 );
@@ -528,6 +537,8 @@ void x25x_8way_hash( void *output, const void *input )
 
    blake2s_8way_init( &ctx.blake2s, 32 );
    blake2s_8way_full_blocks( &ctx.blake2s, output, vhashX, 64*24 );
+
+   return 1;
 }
 
 int scanhash_x25x_8way( struct work *work, uint32_t max_nonce,
@@ -557,7 +568,7 @@ int scanhash_x25x_8way( struct work *work, uint32_t max_nonce,
                                 n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      x25x_8way_hash( hash, vdata );
+      if ( x25x_8way_hash( hash, vdata, thr_id ) );
 
       for ( int lane = 0; lane < 8; lane++ )
       if ( unlikely( ( hashd7[ lane ] <= targ32 ) && !bench ) )
@@ -566,7 +577,7 @@ int scanhash_x25x_8way( struct work *work, uint32_t max_nonce,
          if ( likely( valid_hash( lane_hash, ptarget ) ) )
          {
             pdata[19] = bswap_32( n + lane );
-            submit_lane_solution( work, lane_hash, mythr, lane );
+            submit_solution( work, lane_hash, mythr );
          }
       }
       *noncev = _mm512_add_epi32( *noncev,
@@ -654,7 +665,7 @@ union _x25x_4way_ctx_overlay
 };
 typedef union _x25x_4way_ctx_overlay x25x_4way_ctx_overlay;
 
-void x25x_4way_hash( void *output, const void *input )
+int x25x_4way_hash( void *output, const void *input, int thrid )
 {
    uint64_t vhash[8*4] __attribute__ ((aligned (128)));
    unsigned char hash0[25][64] __attribute__((aligned(64))) = {0};
@@ -686,6 +697,8 @@ void x25x_4way_hash( void *output, const void *input )
    jh512_4way_close( &ctx.jh, vhash );
    dintrlv_4x64_512( hash0[4], hash1[4], hash2[4], hash3[4], vhash );
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    keccak512_4way_init( &ctx.keccak );
    keccak512_4way_update( &ctx.keccak, vhash, 64 );
    keccak512_4way_close( &ctx.keccak, vhash );
@@ -738,6 +751,8 @@ void x25x_4way_hash( void *output, const void *input )
 
    intrlv_4x64_512( vhash, hash0[10], hash1[10], hash2[10], hash3[10] );
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    hamsi512_4way_init( &ctx.hamsi );
    hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
    hamsi512_4way_close( &ctx.hamsi, vhash );
@@ -819,6 +834,8 @@ void x25x_4way_hash( void *output, const void *input )
    LYRA2RE( (void*)hash3[19], 32, (const void*)hash3[18], 32,
             (const void*)hash3[18], 32, 1, 4, 4 );
 
+   if ( work_restart[thrid].restart ) return 0;
+   
    sph_gost512_init(&ctx.gost);
    sph_gost512 (&ctx.gost, (const void*) hash0[19], 64);
    sph_gost512_close(&ctx.gost, (void*) hash0[20]);
@@ -850,6 +867,8 @@ void x25x_4way_hash( void *output, const void *input )
    laneHash(512, (const BitSequence*)hash2[22], 512, (BitSequence*)hash2[23]);
    laneHash(512, (const BitSequence*)hash3[22], 512, (BitSequence*)hash3[23]);
 
+   if ( work_restart[thrid].restart ) return 0;
+  
    x25x_shuffle( hash0 );
    x25x_shuffle( hash1 );
    x25x_shuffle( hash2 );
@@ -882,6 +901,8 @@ void x25x_4way_hash( void *output, const void *input )
 
    blake2s_4way_init( &ctx.blake2s, 32 );
    blake2s_4way_full_blocks( &ctx.blake2s, output, vhashX, 64*24 );
+
+   return 1;
 }
 
 int scanhash_x25x_4way( struct work* work, uint32_t max_nonce,
@@ -910,8 +931,7 @@ int scanhash_x25x_4way( struct work* work, uint32_t max_nonce,
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
    {
-      x25x_4way_hash( hash, vdata );
-
+      if ( x25x_4way_hash( hash, vdata, thr_id ) )
       for ( int lane = 0; lane < 4; lane++ )
       if ( unlikely( hashd7[ lane ] <= targ32 && !bench ) )
       {
@@ -919,7 +939,7 @@ int scanhash_x25x_4way( struct work* work, uint32_t max_nonce,
          if ( valid_hash( lane_hash, ptarget ) )
          {
             pdata[19] = bswap_32( n + lane );
-            submit_lane_solution( work, lane_hash, mythr, lane );
+            submit_solution( work, lane_hash, mythr );
          }
       }
       *noncev = _mm256_add_epi32( *noncev,

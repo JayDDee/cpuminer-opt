@@ -32,6 +32,7 @@
 
 #include <stdint.h>
 #include <stdlib.h> /* for size_t */
+#include "miner.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,11 +110,11 @@ extern int yespower_free_local(yespower_local_t *local);
  */
 extern int yespower(yespower_local_t *local,
     const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst);
+    const yespower_params_t *params, yespower_binary_t *dst, int thrid);
 
 extern int yespower_b2b(yespower_local_t *local,
     const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst);
+    const yespower_params_t *params, yespower_binary_t *dst, int thrid );
 
 /**
  * yespower_tls(src, srclen, params, dst):
@@ -125,10 +126,10 @@ extern int yespower_b2b(yespower_local_t *local,
  * MT-safe as long as dst is local to the thread.
  */
 extern int yespower_tls(const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst);
+    const yespower_params_t *params, yespower_binary_t *dst, int thr_id);
 
 extern int yespower_b2b_tls(const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst);
+    const yespower_params_t *params, yespower_binary_t *dst, int thr_id);
 
 #ifdef __cplusplus
 }

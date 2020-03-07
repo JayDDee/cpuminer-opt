@@ -194,11 +194,13 @@ static int free_region(yespower_region_t *region)
 #define restrict
 #endif
 
+/*
 #ifdef __GNUC__
 #define unlikely(exp) __builtin_expect(exp, 0)
 #else
 #define unlikely(exp) (exp)
 #endif
+*/
 
 #ifdef __SSE__
 #define PREFETCH(x, hint) _mm_prefetch((const char *)(x), (hint));
@@ -1113,7 +1115,7 @@ static void smix(uint8_t *B, size_t r, uint32_t N,
 int yespower_b2b(yespower_local_t *local,
     const uint8_t *src, size_t srclen,
     const yespower_params_t *params,
-    yespower_binary_t *dst)
+    yespower_binary_t *dst, int thrid )
 {
     uint32_t N = params->N;
     uint32_t r = params->r;
@@ -1168,17 +1170,25 @@ int yespower_b2b(yespower_local_t *local,
         srclen = 0;
     }
 
+    if ( work_restart[thrid].restart ) return false;
+    
     pbkdf2_blake2b_yp(init_hash, sizeof(init_hash), src, srclen, 1, B, 128);
+
+    if ( work_restart[thrid].restart ) return false;
+
     memcpy(init_hash, B, sizeof(init_hash));
     smix_1_0(B, r, N, V, XY, &ctx);
+
+    if ( work_restart[thrid].restart ) return false;
+
     hmac_blake2b_yp_hash((uint8_t *)dst, B + B_size - 64, 64, init_hash, sizeof(init_hash));
 
     /* Success! */
-    return 0;
+    return 1;
 
 fail:
     memset(dst, 0xff, sizeof(*dst));
-    return -1;
+    return 0;
 }
 
 /**
@@ -1189,7 +1199,7 @@ fail:
  * Return 0 on success; or -1 on error.
  */
 int yespower_b2b_tls(const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst)
+    const yespower_params_t *params, yespower_binary_t *dst, int thrid )
 {
     static __thread int initialized = 0;
     static __thread yespower_local_t local;
@@ -1199,7 +1209,7 @@ int yespower_b2b_tls(const uint8_t *src, size_t srclen,
         initialized = 1;
     }
 
-    return yespower_b2b(&local, src, srclen, params, dst);
+    return yespower_b2b(&local, src, srclen, params, dst, thrid);
 }
 /*
 int yespower_init_local(yespower_local_t *local)

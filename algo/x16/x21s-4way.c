@@ -30,7 +30,7 @@ union _x21s_8way_context_overlay
 
 typedef union _x21s_8way_context_overlay x21s_8way_context_overlay;
 
-void x21s_8way_hash( void* output, const void* input )
+int x21s_8way_hash( void* output, const void* input, int thrid )
 {
    uint32_t vhash[16*8] __attribute__ ((aligned (128)));
    uint8_t shash[64*8] __attribute__ ((aligned (64)));
@@ -44,7 +44,8 @@ void x21s_8way_hash( void* output, const void* input )
    uint32_t *hash7 = (uint32_t*)( shash+448 );
    x21s_8way_context_overlay ctx;
 
-   x16r_8way_hash_generic( shash, input );
+   if ( !x16r_8way_hash_generic( shash, input, thrid ) )
+      return 0;
 
    intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                     hash7 );
@@ -124,6 +125,8 @@ void x21s_8way_hash( void* output, const void* input )
    sha256_8way_init( &ctx.sha256 );
    sha256_8way_update( &ctx.sha256, vhash, 64 );
    sha256_8way_close( &ctx.sha256, output );
+
+   return 1;
 }
 
 int scanhash_x21s_8way( struct work *work, uint32_t max_nonce,
@@ -166,8 +169,7 @@ int scanhash_x21s_8way( struct work *work, uint32_t max_nonce,
                              n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      x21s_8way_hash( hash, vdata );
-
+      if ( x21s_8way_hash( hash, vdata, thr_id ) )
       for ( int lane = 0; lane < 8; lane++ )
       if ( unlikely( hash7[lane] <= Htarg ) )
       {
@@ -215,7 +217,7 @@ union _x21s_4way_context_overlay
 
 typedef union _x21s_4way_context_overlay x21s_4way_context_overlay;
 
-void x21s_4way_hash( void* output, const void* input )
+int x21s_4way_hash( void* output, const void* input, int thrid )
 {
    uint32_t vhash[16*4] __attribute__ ((aligned (64)));
    uint8_t  shash[64*4] __attribute__ ((aligned (64)));
@@ -225,8 +227,9 @@ void x21s_4way_hash( void* output, const void* input )
    uint32_t *hash2 = (uint32_t*)( shash+128 );
    uint32_t *hash3 = (uint32_t*)( shash+192 );
 
-   x16r_4way_hash_generic( shash, input );
-   
+   if ( !x16r_4way_hash_generic( shash, input, thrid ) )
+      return 0;
+
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3,  512 );
 
    haval256_5_4way_init( &ctx.haval );
@@ -299,6 +302,8 @@ void x21s_4way_hash( void* output, const void* input )
    dintrlv_4x32( output, output+32, output+64,output+96, vhash, 256 );
 
 #endif
+
+   return 1;
 }
 
 int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
@@ -337,7 +342,7 @@ int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
    {
-      x21s_4way_hash( hash, vdata );
+      if ( x21s_4way_hash( hash, vdata, thr_id ) )
       for ( int i = 0; i < 4; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {

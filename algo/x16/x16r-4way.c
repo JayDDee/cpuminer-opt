@@ -80,7 +80,7 @@ void x16r_8way_prehash( void *vdata, void *pdata )
 // Called by wrapper hash function to optionally continue hashing and
 // convert to final hash.
 
-void x16r_8way_hash_generic( void* output, const void* input )
+int x16r_8way_hash_generic( void* output, const void* input, int thrid )
 {
    uint32_t vhash[20*8] __attribute__ ((aligned (128)));
    uint32_t hash0[20] __attribute__ ((aligned (64)));
@@ -424,6 +424,9 @@ void x16r_8way_hash_generic( void* output, const void* input )
                                hash7, vhash );
           break;
       }
+
+      if ( work_restart[thrid].restart ) return 0;
+
       size = 64;
    }
 
@@ -435,14 +438,17 @@ void x16r_8way_hash_generic( void* output, const void* input )
    memcpy( output+320, hash5, 64 );
    memcpy( output+384, hash6, 64 );
    memcpy( output+448, hash7, 64 );
+
+   return 1;
 }
 
 // x16-r,-s,-rt wrapper called directly by scanhash to repackage 512 bit
 // hash to 256 bit final hash.
-void x16r_8way_hash( void* output, const void* input )
+int x16r_8way_hash( void* output, const void* input, int thrid )
 {
    uint8_t hash[64*8] __attribute__ ((aligned (128)));
-   x16r_8way_hash_generic( hash, input );
+   if ( !x16r_8way_hash_generic( hash, input, thrid ) )
+      return 0;
 
    memcpy( output,     hash,     32 );
    memcpy( output+32,  hash+64,  32 );
@@ -452,7 +458,9 @@ void x16r_8way_hash( void* output, const void* input )
    memcpy( output+160, hash+320, 32 );
    memcpy( output+192, hash+384, 32 );
    memcpy( output+224, hash+448, 32 );
-}
+
+   return 1;
+   }
 
 // x16r only
 int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
@@ -492,8 +500,7 @@ int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
                              n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      x16r_8way_hash( hash, vdata );
-
+      if( x16r_8way_hash( hash, vdata, thr_id ) );
       for ( int i = 0; i < 8; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {
@@ -565,7 +572,7 @@ void x16r_4way_prehash( void *vdata, void *pdata )
    }
 }
 
-void x16r_4way_hash_generic( void* output, const void* input )
+int x16r_4way_hash_generic( void* output, const void* input, int thrid )
 {
    uint32_t vhash[20*4] __attribute__ ((aligned (128)));
    uint32_t hash0[20] __attribute__ ((aligned (64)));
@@ -794,23 +801,31 @@ void x16r_4way_hash_generic( void* output, const void* input )
             dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
          break;
       }
+
+      if ( work_restart[thrid].restart ) return 0;
+      
       size = 64;
    }
    memcpy( output,     hash0, 64 );
    memcpy( output+64,  hash1, 64 );
    memcpy( output+128, hash2, 64 );
    memcpy( output+192, hash3, 64 );
+
+   return 1;
 }
 
-void x16r_4way_hash( void* output, const void* input )
+int x16r_4way_hash( void* output, const void* input, int thrid )
 {
    uint8_t hash[64*4] __attribute__ ((aligned (64)));
-   x16r_4way_hash_generic( hash, input );
+   if ( !x16r_4way_hash_generic( hash, input, thrid ) )
+      return 0;
 
    memcpy( output,     hash,     32 );
    memcpy( output+32,  hash+64,  32 );
    memcpy( output+64,  hash+128, 32 );
    memcpy( output+96,  hash+192, 32 );
+
+   return 1;
 }
 
 int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
@@ -849,7 +864,7 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
    {
-      x16r_4way_hash( hash, vdata );
+      if ( x16r_4way_hash( hash, vdata, thr_id ) );
       for ( int i = 0; i < 4; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {

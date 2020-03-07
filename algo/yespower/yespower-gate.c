@@ -34,9 +34,10 @@ static yespower_params_t yespower_params;
 
 // YESPOWER
 
-void yespower_hash( const char *input, char *output, uint32_t len )
+int yespower_hash( const char *input, char *output, uint32_t len, int thrid )
 {
-   yespower_tls( input, len, &yespower_params, (yespower_binary_t*)output ); 
+   return yespower_tls( input, len, &yespower_params,
+           (yespower_binary_t*)output, thrid ); 
 }
 
 int scanhash_yespower( struct work *work, uint32_t max_nonce,
@@ -55,7 +56,7 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
       be32enc( &endiandata[k], pdata[k] );
    endiandata[19] = n;
    do {
-      yespower_hash( (char*)endiandata, (char*)vhash, 80 );
+      if ( yespower_hash( (char*)endiandata, (char*)vhash, 80, thr_id ) )
       if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
       {
           be32enc( pdata+19, n );
@@ -70,9 +71,9 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
 
 // YESPOWER-B2B
 
-void yespower_b2b_hash( const char *input, char *output, uint32_t len )
+int yespower_b2b_hash( const char *input, char *output, uint32_t len, int thrid )
 {
-  yespower_b2b_tls( input, len, &yespower_params, (yespower_binary_t*)output );
+  return yespower_b2b_tls( input, len, &yespower_params, (yespower_binary_t*)output, thrid );
 }
 
 int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
@@ -91,7 +92,7 @@ int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
       be32enc( &endiandata[k], pdata[k] );
    endiandata[19] = n;
    do {
-      yespower_b2b_hash( (char*) endiandata, (char*) vhash, 80 );
+      if (yespower_b2b_hash( (char*) endiandata, (char*) vhash, 80, thr_id ) )
       if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
       {
           be32enc( pdata+19, n );
