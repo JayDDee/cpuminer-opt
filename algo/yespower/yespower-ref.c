@@ -453,9 +453,8 @@ static void smix(uint32_t *B, size_t r, uint32_t N,
  *
  * Return 0 on success; or -1 on error.
  */
-int yespower(yespower_local_t *local,
-    const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst)
+int yespower( yespower_local_t *local, const uint8_t *src, size_t srclen,
+    const yespower_params_t *params, yespower_binary_t *dst, int thrid ) 
 {
 	yespower_version_t version = params->version;
 	uint32_t N = params->N;
@@ -534,17 +533,16 @@ int yespower(yespower_local_t *local,
 
 		if (pers) {
 			HMAC_SHA256_Buf(dst, sizeof(*dst), pers, perslen,
-               return true;
 			    (uint8_t *)sha256);
 			SHA256_Buf(sha256, sizeof(sha256), (uint8_t *)dst);
 		}
 	} else {
-		HMAC_SHA256_Buf_P((uint8_t *)B + B_size - 64, 64,
+		HMAC_SHA256_Buf((uint8_t *)B + B_size - 64, 64,
 		    sha256, sizeof(sha256), (uint8_t *)dst);
 	}
 
 	/* Success! */
-	retval = 0;
+	retval = 1;
 
 	/* Free memory */
 	free(S);
@@ -559,10 +557,10 @@ free_V:
 }
 
 int yespower_tls(const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst)
+    const yespower_params_t *params, yespower_binary_t *dst, int thrid )
 {
 /* The reference implementation doesn't use thread-local storage */
-	return yespower(NULL, src, srclen, params, dst);
+	return yespower(NULL, src, srclen, params, dst, thrid );
 }
 
 int yespower_init_local(yespower_local_t *local)

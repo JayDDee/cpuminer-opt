@@ -193,6 +193,7 @@ static uint64_t submit_sum  = 0;
 static uint64_t accept_sum  = 0;
 static uint64_t stale_sum  = 0;
 static uint64_t reject_sum  = 0;
+static uint64_t solved_sum  = 0;
 static double   norm_diff_sum = 0.;
 static uint32_t last_block_height = 0;
 static double   highest_share = 0;   // all shares include discard and reject
@@ -954,6 +955,7 @@ void report_summary_log( bool force )
    uint64_t accepts = accept_sum;  accept_sum = 0;
    uint64_t rejects = reject_sum;  reject_sum = 0;
    uint64_t stales  = stale_sum;   stale_sum  = 0;
+   uint64_t solved  = solved_sum;  solved_sum = 0;
 
    memcpy( &start_time, &five_min_start, sizeof start_time );
    memcpy( &five_min_start, &now, sizeof now );
@@ -1020,8 +1022,8 @@ void report_summary_log( bool force )
       applog2( LOG_INFO,"Rejected         %6d       %6d",
                        rejects, rejected_share_count );
    if ( solved_block_count )
-      applog2( LOG_INFO,"Blocks Solved                 %6d",
-                         solved_block_count );
+      applog2( LOG_INFO,"Blocks Solved    %6d       %6d",
+                         solved, solved_block_count );
    applog2( LOG_INFO, "Hi/Lo Share Diff  %.5g /  %.5g",
                        highest_share, lowest_share );
 
@@ -1132,6 +1134,7 @@ static int share_result( int result, struct work *work,
    {
       accept_sum++;
       norm_diff_sum += my_stats.target_diff;
+      if ( solved ) solved_sum++;
    }
    else
    {
@@ -2197,16 +2200,18 @@ static void *miner_thread( void *userdata )
        }
 
 #if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
+       // Display CPU temperature and clock rate.
        if (!opt_quiet && mythr->id == 0 )
        {
           int temp = cpu_temp(0);
           static struct timeval cpu_temp_time = {0};
           timeval_subtract( &diff, &tv_end, &cpu_temp_time );
           int wait = temp >= 80 ? 30 : temp >= 70 ? 60 : 120;
+
           if ( ( diff.tv_sec > wait ) || ( temp > hi_temp ) )
           {
              char tempstr[32];
-             int lo_freq, hi_freq;
+             float lo_freq = 0., hi_freq = 0.;
              linux_cpu_hilo_freq( &lo_freq, &hi_freq );
              memcpy( &cpu_temp_time, &tv_end, sizeof(cpu_temp_time) );
              if ( use_colors && ( temp >= 70 ) )
@@ -2219,11 +2224,12 @@ static void *miner_thread( void *userdata )
              else
                 sprintf( tempstr, "%d C", temp );
              applog( LOG_NOTICE,"CPU temp: curr %s (max %d), Freq: %.3f/%.3f GHz",
-                     tempstr, hi_temp, (float)lo_freq / 1e6, (float)hi_freq/ 1e6 );
+                     tempstr, hi_temp, lo_freq / 1e6, hi_freq / 1e6 );
              if ( temp > hi_temp ) hi_temp = temp;
           }
        }
 #endif
+
        // display hashrate
        if ( unlikely( opt_hash_meter ) )
        {

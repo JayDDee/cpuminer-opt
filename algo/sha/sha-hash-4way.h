@@ -58,6 +58,7 @@ void sha256_4way_init( sha256_4way_context *sc );
 void sha256_4way_update( sha256_4way_context *sc, const void *data,
                          size_t len );
 void sha256_4way_close( sha256_4way_context *sc, void *dst );
+void sha256_4way_full( void *dst, const void *data, size_t len );
 
 #endif  // SSE2
 
@@ -75,6 +76,7 @@ typedef struct {
 void sha256_8way_init( sha256_8way_context *sc );
 void sha256_8way_update( sha256_8way_context *sc, const void *data, size_t len );
 void sha256_8way_close( sha256_8way_context *sc, void *dst );
+void sha256_8way_full( void *dst, const void *data, size_t len );
 
 #endif  // AVX2
 
@@ -92,6 +94,7 @@ typedef struct {
 void sha256_16way_init( sha256_16way_context *sc );
 void sha256_16way_update( sha256_16way_context *sc, const void *data, size_t len );
 void sha256_16way_close( sha256_16way_context *sc, void *dst );
+void sha256_16way_full( void *dst, const void *data, size_t len );
 
 #endif // AVX512
 
@@ -110,6 +113,7 @@ void sha512_4way_init( sha512_4way_context *sc);
 void sha512_4way_update( sha512_4way_context *sc, const void *data,
                          size_t len );
 void sha512_4way_close( sha512_4way_context *sc, void *dst );
+void sha512_4way_full( void *dst, const void *data, size_t len );
 
 #endif  // AVX2
 
@@ -128,6 +132,7 @@ void sha512_8way_init( sha512_8way_context *sc);
 void sha512_8way_update( sha512_8way_context *sc, const void *data, 
                          size_t len );
 void sha512_8way_close( sha512_8way_context *sc, void *dst );
+void sha512_8way_full( void *dst, const void *data, size_t len );
 
 #endif  // AVX512
 

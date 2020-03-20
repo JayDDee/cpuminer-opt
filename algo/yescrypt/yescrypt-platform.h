@@ -31,6 +31,7 @@
 #undef HUGEPAGE_SIZE
 #endif
 
+/*
 static __inline uint32_t
 le32dec(const void *pp)
 {
@@ -50,6 +51,7 @@ le32enc(void *pp, uint32_t x)
 	p[2] = (x >> 16) & 0xff;
 	p[3] = (x >> 24) & 0xff;
 }
+*/
 
 static void *
 alloc_region(yescrypt_region_t * region, size_t size)
@@ -154,7 +156,7 @@ int yescrypt_init_shared(yescrypt_shared_t * shared, const uint8_t * param, size
 	if (yescrypt_kdf(&dummy, shared1,
 	    param, paramlen, NULL, 0, N, r, p, 0,
 	    YESCRYPT_RW | YESCRYPT_PARALLEL_SMIX | __YESCRYPT_INIT_SHARED_1,
-	    salt, sizeof(salt)))
+	    salt, sizeof(salt), 0 ) )
 		goto out;
 
 	half1 = half2 = *shared;
@@ -166,19 +168,19 @@ int yescrypt_init_shared(yescrypt_shared_t * shared, const uint8_t * param, size
 	if (p > 1 && yescrypt_kdf(&half1, &half2.shared1,
 	    param, paramlen, salt, sizeof(salt), N, r, p, 0,
 	    YESCRYPT_RW | YESCRYPT_PARALLEL_SMIX | __YESCRYPT_INIT_SHARED_2,
-	    salt, sizeof(salt)))
+	    salt, sizeof(salt), 0 ))
 		goto out;
 
 	if (yescrypt_kdf(&half2, &half1.shared1,
 	    param, paramlen, salt, sizeof(salt), N, r, p, 0,
 	    YESCRYPT_RW | YESCRYPT_PARALLEL_SMIX | __YESCRYPT_INIT_SHARED_1,
-	    salt, sizeof(salt)))
+	    salt, sizeof(salt), 0))
 		goto out;
 
 	if (yescrypt_kdf(&half1, &half2.shared1,
 	    param, paramlen, salt, sizeof(salt), N, r, p, 0,
 	    YESCRYPT_RW | YESCRYPT_PARALLEL_SMIX | __YESCRYPT_INIT_SHARED_1,
-	    buf, buflen))
+	    buf, buflen, 0))
 		goto out;
 
 	shared->mask1 = mask;

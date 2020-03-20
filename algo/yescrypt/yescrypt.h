@@ -38,12 +38,13 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h> /* for size_t */
 #include <stdbool.h>
+#include "miner.h"
 
 //#define  __SSE4_1__
 
-void yescrypt_hash(const char* input, char* output, uint32_t len);
+int yescrypt_hash(const char* input, char* output, uint32_t len, int thrid );
 
-void yescrypthash(void *output, const void *input);
+int yescrypthash(void *output, const void *input, int thrid );
 
 /**
  * crypto_scrypt(passwd, passwdlen, salt, saltlen, N, r, p, buf, buflen):
@@ -301,7 +302,7 @@ extern int yescrypt_kdf(const yescrypt_shared_t * __shared,
     const uint8_t * __salt, size_t __saltlen,
     uint64_t __N, uint32_t __r, uint32_t __p, uint32_t __t,
     yescrypt_flags_t __flags,
-    uint8_t * __buf, size_t __buflen);
+    uint8_t * __buf, size_t __buflen, int thrid);
 
 /**
  * yescrypt_r(shared, local, passwd, passwdlen, setting, buf, buflen):
@@ -321,7 +322,7 @@ extern uint8_t * yescrypt_r(const yescrypt_shared_t * __shared,
     yescrypt_local_t * __local,
     const uint8_t * __passwd, size_t __passwdlen,
     const uint8_t * __setting,
-    uint8_t * __buf, size_t __buflen);
+    uint8_t * __buf, size_t __buflen, int thrid);
 
 /**
  * yescrypt(passwd, setting):
@@ -339,7 +340,7 @@ extern uint8_t * yescrypt_r(const yescrypt_shared_t * __shared,
  *
  * MT-unsafe.
  */
-extern uint8_t * yescrypt(const uint8_t * __passwd, const uint8_t * __setting);
+extern uint8_t * yescrypt(const uint8_t * __passwd, const uint8_t * __setting, int thrid );
 
 /**
  * yescrypt_gensalt_r(N_log2, r, p, flags, src, srclen, buf, buflen):

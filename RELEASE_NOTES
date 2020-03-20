@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.7
+
+Issue #257: fixed a file descriptor leak which caused the CPU temperature
+and frequency query to report zeros after mining for a couple of hours.
+
+Issue #253: stale share reduction for yescrypt, sonoa.
+
 v3.12.6.1
 
 Issue #252: Fixed SSL mining (stratum+tcps://)
@@ -106,7 +113,7 @@ a specific algo name.
 v3.12.4.6
 
 Issue #246: fixed getwork repeated new block logs with same height. New work
-for the same block is now reported as "New work" instead of New block".
+for the same block is now reported as "New work" instead of "New block".
 Also added a check that work is new before generating "New work" log.
 
 Added target diff to getwork new block log.

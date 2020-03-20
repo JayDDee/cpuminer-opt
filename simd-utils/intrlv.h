@@ -676,6 +676,14 @@ static inline void mm128_bswap32_intrlv80_4x32( void *d, const void *src )
   d[7] = *( (const uint32_t*)(s7) +(i) ); \
 } while(0)
   
+static inline void intrlv_8x32b( void *dst, const void *s0, const void *s1,
+           const void *s2, const void *s3, const void *s4, const void *s5,
+           const void *s6, const void *s7, const int bit_len )
+{
+   for ( int i = 0; i < bit_len/32; i++ )
+      ILEAVE_8x32( i );
+}
+
 static inline void intrlv_8x32( void *dst, const void *s0, const void *s1,
            const void *s2, const void *s3, const void *s4, const void *s5,
            const void *s6, const void *s7, const int bit_len )
@@ -729,6 +737,14 @@ static inline void intrlv_8x32_512( void *dst, const void *s0, const void *s1,
    *( (uint32_t*)(d6) +(i) ) = s[6]; \
    *( (uint32_t*)(d7) +(i) ) = s[7]; \
 } while(0)
+
+static inline void dintrlv_8x32b( void *d0, void *d1, void *d2, void *d3,
+             void *d4, void *d5, void *d6, void *d7, const void *src,
+             const int bit_len )
+{
+   for ( int i = 0; i < bit_len/32; i++ )
+      DLEAVE_8x32( i );
+}
 
 static inline void dintrlv_8x32( void *d0, void *d1, void *d2, void *d3,
              void *d4, void *d5, void *d6, void *d7, const void *src,

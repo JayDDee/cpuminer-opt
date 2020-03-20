@@ -58,7 +58,7 @@ union _sonoa_8way_context_overlay
 
 typedef union _sonoa_8way_context_overlay sonoa_8way_context_overlay;
 
-void sonoa_8way_hash( void *state, const void *input )
+int sonoa_8way_hash( void *state, const void *input, int thrid )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
      uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
@@ -186,6 +186,7 @@ void sonoa_8way_hash( void *state, const void *input )
 
 #endif
 
+     if ( work_restart[thrid].restart ) return 0;
 // 2
 
      bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
@@ -301,6 +302,7 @@ void sonoa_8way_hash( void *state, const void *input )
      hamsi512_8way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_8way_close( &ctx.hamsi, vhash );
 
+     if ( work_restart[thrid].restart ) return 0;
 // 3
 
      bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
@@ -430,6 +432,7 @@ void sonoa_8way_hash( void *state, const void *input )
      sph_fugue512_full( &ctx.fugue, hash6, hash6, 64 );
      sph_fugue512_full( &ctx.fugue, hash7, hash7, 64 );
 
+     if ( work_restart[thrid].restart ) return 0;
 // 4
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
@@ -627,6 +630,7 @@ void sonoa_8way_hash( void *state, const void *input )
 
 #endif
 
+     if ( work_restart[thrid].restart ) return 0;
 // 5
 
      bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
@@ -779,6 +783,7 @@ void sonoa_8way_hash( void *state, const void *input )
      sph_whirlpool512_full( &ctx.whirlpool, hash6, hash6, 64 );
      sph_whirlpool512_full( &ctx.whirlpool, hash7, hash7, 64 );
 
+     if ( work_restart[thrid].restart ) return 0;
 // 6
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
@@ -947,6 +952,7 @@ void sonoa_8way_hash( void *state, const void *input )
      sph_whirlpool512_full( &ctx.whirlpool, hash6, hash6, 64 );
      sph_whirlpool512_full( &ctx.whirlpool, hash7, hash7, 64 );
 
+     if ( work_restart[thrid].restart ) return 0;
 // 7
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
@@ -1108,6 +1114,8 @@ void sonoa_8way_hash( void *state, const void *input )
      haval256_5_8way_init( &ctx.haval );
      haval256_5_8way_update( &ctx.haval, vhashA, 64 );
      haval256_5_8way_close( &ctx.haval, state );
+
+     return 1;
 }
      
 int scanhash_sonoa_8way( struct work *work, uint32_t max_nonce,
@@ -1133,8 +1141,7 @@ int scanhash_sonoa_8way( struct work *work, uint32_t max_nonce,
 
    do
    {
-      sonoa_8way_hash( hash, vdata );
-
+      if ( sonoa_8way_hash( hash, vdata, thr_id ) )
       for ( int lane = 0; lane < 8; lane++ )
       if unlikely( ( hashd7[ lane ] <= targ32 ) )
       {
@@ -1142,7 +1149,7 @@ int scanhash_sonoa_8way( struct work *work, uint32_t max_nonce,
          if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ) )
          {
             pdata[19] = bswap_32( n + lane );
-            submit_lane_solution( work, lane_hash, mythr, lane );
+            submit_solution( work, lane_hash, mythr );
          }
       }
       *noncev = _mm512_add_epi32( *noncev,
@@ -1179,7 +1186,7 @@ union _sonoa_4way_context_overlay
 
 typedef union _sonoa_4way_context_overlay sonoa_4way_context_overlay;
 
-void sonoa_4way_hash( void *state, const void *input )
+int sonoa_4way_hash( void *state, const void *input, int thrid )
 {
      uint64_t hash0[8] __attribute__ ((aligned (64)));
      uint64_t hash1[8] __attribute__ ((aligned (64)));
@@ -1243,6 +1250,7 @@ void sonoa_4way_hash( void *state, const void *input )
      echo_full( &ctx.echo, (BitSequence *)hash3, 512,
                      (const BitSequence *)hash3, 64 );
      
+     if ( work_restart[thrid].restart ) return 0;
 // 2
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
@@ -1302,6 +1310,7 @@ void sonoa_4way_hash( void *state, const void *input )
      hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
+     if ( work_restart[thrid].restart ) return 0;
 // 3
 
      bmw512_4way_init( &ctx.bmw );
@@ -1366,6 +1375,7 @@ void sonoa_4way_hash( void *state, const void *input )
      sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
      sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
+     if ( work_restart[thrid].restart ) return 0;
 // 4
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -1462,6 +1472,7 @@ void sonoa_4way_hash( void *state, const void *input )
      shavite512_2way_init( &ctx.shavite );
      shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
 
+     if ( work_restart[thrid].restart ) return 0;
 // 5
      rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
 
@@ -1546,6 +1557,7 @@ void sonoa_4way_hash( void *state, const void *input )
      sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, 64 );
      sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, 64 );
 
+     if ( work_restart[thrid].restart ) return 0;
 // 6
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
@@ -1638,6 +1650,7 @@ void sonoa_4way_hash( void *state, const void *input )
      sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, 64 );
      sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, 64 );
 
+     if ( work_restart[thrid].restart ) return 0;    
 // 7
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
@@ -1728,6 +1741,8 @@ void sonoa_4way_hash( void *state, const void *input )
      haval256_5_4way_init( &ctx.haval );
      haval256_5_4way_update( &ctx.haval, vhashB, 64 );
      haval256_5_4way_close( &ctx.haval, state );
+
+     return 1;
 }
 
 int scanhash_sonoa_4way( struct work *work, const uint32_t max_nonce,
@@ -1752,8 +1767,7 @@ int scanhash_sonoa_4way( struct work *work, const uint32_t max_nonce,
 
      do
      {
-        sonoa_4way_hash( hash, vdata );
-
+        if ( sonoa_4way_hash( hash, vdata, thr_id ) )
         for ( int lane = 0; lane < 4; lane++ )
         if ( unlikely( hashd7[ lane ] <= targ32 ) )
         {
@@ -1761,7 +1775,7 @@ int scanhash_sonoa_4way( struct work *work, const uint32_t max_nonce,
            if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ) )
            {
               pdata[19] = bswap_32( n + lane );
-              submit_lane_solution( work, lane_hash, mythr, lane );
+              submit_solution( work, lane_hash, mythr );
            }
         }
         *noncev = _mm256_add_epi32( *noncev,

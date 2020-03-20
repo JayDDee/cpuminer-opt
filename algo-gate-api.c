@@ -232,11 +232,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_X22I:          register_x22i_algo          ( gate ); break;
     case ALGO_X25X:          register_x25x_algo          ( gate ); break;
     case ALGO_XEVAN:         register_xevan_algo         ( gate ); break;
-/*    case ALGO_YESCRYPT:     register_yescrypt_05_algo     ( gate ); break;
-     case ALGO_YESCRYPTR8:   register_yescryptr8_05_algo   ( gate ); break;
-     case ALGO_YESCRYPTR16:  register_yescryptr16_05_algo  ( gate ); break;
-     case ALGO_YESCRYPTR32:  register_yescryptr32_05_algo  ( gate ); break;
-*/
     case ALGO_YESCRYPT:      register_yescrypt_algo      ( gate ); break;
     case ALGO_YESCRYPTR8:    register_yescryptr8_algo    ( gate ); break;
     case ALGO_YESCRYPTR8G:   register_yescryptr8g_algo   ( gate ); break;

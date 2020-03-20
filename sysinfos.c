@@ -67,7 +67,6 @@
 #define HWMON_ALT5 \
 "/sys/class/hwmon/hwmon0/device/temp1_input"
 
-
 static inline float linux_cputemp(int core)
 {
 	float tc = 0.0;
@@ -97,49 +96,43 @@ static inline float linux_cputemp(int core)
 	return tc;
 }
 
-#define CPUFREQ_PATH \
+
+#define CPUFREQ_PATH0\
  "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"
 
 #define CPUFREQ_PATHn \
  "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq"
 
-
-// "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq"
-static inline uint32_t linux_cpufreq(int core)
+static inline float linux_cpufreq(int core)
 {
-	FILE *fd = fopen(CPUFREQ_PATH, "r");
-	uint32_t freq = 0;
+	FILE *fd = fopen( CPUFREQ_PATH0, "r" );
+	long int freq = 0;
 
-	if (!fd)
-		return freq;
-
-	if (!fscanf(fd, "%d", &freq))
-		return freq;
-
-	return freq;
+	if ( !fd ) return (float)freq;
+	if ( !fscanf( fd, "%ld", &freq ) ) freq = 0;
+   fclose( fd );
+	return (float)freq;
 }
 
-static inline void linux_cpu_hilo_freq( uint32_t* lo, uint32_t *hi )
+static inline void linux_cpu_hilo_freq( float *lo, float *hi )
 {
-   uint64_t freq = 0, hi_freq = 0, lo_freq = 0xffffffffffffffff;
+   long int freq = 0, hi_freq = 0, lo_freq = 0x7fffffff;
 
    for ( int i = 0; i < num_cpus; i++ )
    {
       char path[64];
       sprintf( path, CPUFREQ_PATHn, i );   
-
       FILE *fd = fopen( path, "r" );
-      if ( fd )
+      if ( !fd ) return;
+      else if ( fscanf( fd, "%ld", &freq ) )
       {
-         if ( fscanf( fd, "%ld", &freq ) )
-         {
-            if ( freq > hi_freq ) hi_freq = freq;
-            if ( freq < lo_freq ) lo_freq = freq;
-         }
+         if ( freq > hi_freq ) hi_freq = freq;
+         if ( freq < lo_freq ) lo_freq = freq;
       }
+      fclose( fd );
    }
-   *hi = hi_freq;
-   *lo = lo_freq;
+   *hi = (float)hi_freq;
+   *lo = (float)lo_freq;
 }
 
 

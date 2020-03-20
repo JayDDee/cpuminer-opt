@@ -96,6 +96,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "algo/sha/hmac-sha256-hash.h"
+#include "algo/sha/hmac-sha256-hash-4way.h"
+
 #include "yespower.h"
 #include "yespower-platform.c"
 
@@ -1038,12 +1040,13 @@ int yespower(yespower_local_t *local,
 	salsa20_blk_t *V, *XY;
 	pwxform_ctx_t ctx;
 	uint8_t sha256[32];
+   SHA256_CTX sha256_ctx;
 
 	/* Sanity-check parameters */
-	if ((version != YESPOWER_0_5 && version != YESPOWER_1_0) ||
-	    N < 1024 || N > 512 * 1024 || r < 8 || r > 32 ||
-	    (N & (N - 1)) != 0 ||
-	    (!pers && perslen)) {
+	if ( (version != YESPOWER_0_5 && version != YESPOWER_1_0)
+      || N < 1024 || N > 512 * 1024 || r < 8 || r > 32
+      || (N & (N - 1)) != 0 || ( !pers && perslen ) )
+   {
 		errno = EINVAL;
 		return -1;
 	}
@@ -1051,20 +1054,22 @@ int yespower(yespower_local_t *local,
 	/* Allocate memory */
 	B_size = (size_t)128 * r;
 	V_size = B_size * N;
-	if (version == YESPOWER_0_5) {
+	if ( version == YESPOWER_0_5 )
+   {
 		XY_size = B_size * 2;
 		Swidth = Swidth_0_5;
-		ctx.Sbytes = 2 * Swidth_to_Sbytes1(Swidth);
+		ctx.Sbytes = 2 * Swidth_to_Sbytes1( Swidth );
 	} else {
 		XY_size = B_size + 64;
 		Swidth = Swidth_1_0;
-		ctx.Sbytes = 3 * Swidth_to_Sbytes1(Swidth);
+		ctx.Sbytes = 3 * Swidth_to_Sbytes1( Swidth );
 	}
 	need = B_size + V_size + XY_size + ctx.Sbytes;
-	if (local->aligned_size < need) {
-		if (free_region(local))
+	if ( local->aligned_size < need )
+   {
+		if ( free_region( local ) )
 			return -1;
-		if (!alloc_region(local, need))
+		if ( !alloc_region( local, need ) )
 			return -1;
 	}
 	B = (uint8_t *)local->aligned;
@@ -1072,48 +1077,81 @@ int yespower(yespower_local_t *local,
 	XY = (salsa20_blk_t *)((uint8_t *)V + V_size);
 	S = (uint8_t *)XY + XY_size;
 	ctx.S0 = S;
-	ctx.S1 = S + Swidth_to_Sbytes1(Swidth);
+	ctx.S1 = S + Swidth_to_Sbytes1( Swidth );
 
-	SHA256_Buf(src, srclen, sha256);
 
-	if (version == YESPOWER_0_5) {
-		PBKDF2_SHA256(sha256, sizeof(sha256), src, srclen, 1,
-		    B, B_size);
+// copy prehash, do tail   
+   memcpy( &sha256_ctx, &sha256_prehash_ctx, sizeof sha256_ctx );
+   SHA256_Update( &sha256_ctx, src+64, srclen-64 );
+   SHA256_Final( sha256, &sha256_ctx );
 
-      if ( work_restart[thrid].restart ) return false;
+//   SHA256_Buf(src, srclen, sha256);
+
+	if ( version == YESPOWER_0_5 )
+   {
+      PBKDF2_SHA256( sha256, sizeof(sha256), src, srclen, 1, B, B_size );
+
+      if ( work_restart[thrid].restart ) return 0;
    
-      memcpy(sha256, B, sizeof(sha256));
-		smix(B, r, N, V, XY, &ctx);
+      memcpy( sha256, B, sizeof(sha256) );
+		smix( B, r, N, V, XY, &ctx );
 
-      if ( work_restart[thrid].restart ) return false;
+      if ( work_restart[thrid].restart ) return 0;
 
-      PBKDF2_SHA256(sha256, sizeof(sha256), B, B_size, 1,
-		    (uint8_t *)dst, sizeof(*dst));
+      PBKDF2_SHA256( sha256, sizeof(sha256), B, B_size, 1, (uint8_t *)dst,
+                     sizeof(*dst) );
 
-		if (pers) {
-			HMAC_SHA256_Buf(dst, sizeof(*dst), pers, perslen,
-			    sha256);
+      if ( work_restart[thrid].restart ) return 0;
 
-         if ( work_restart[thrid].restart ) return false;
+      if ( pers )
+      {
+         src = pers;
+         srclen = perslen;
+      }
+      else
+         srclen = 0;
+      
+      HMAC_SHA256_CTX ctx;
+      HMAC_SHA256_Init( &ctx, dst, sizeof(*dst) );
+      HMAC_SHA256_Update( &ctx, src, srclen );
+      HMAC_SHA256_Final( sha256, &ctx );
 
-         SHA256_Buf(sha256, sizeof(sha256), (uint8_t *)dst);
+//      SHA256_CTX ctx;
+      SHA256_Init( &sha256_ctx );
+      SHA256_Update( &sha256_ctx, sha256, sizeof(sha256) );
+      SHA256_Final( (unsigned char*)dst, &sha256_ctx );
+
+
+/*
+      if ( pers )
+      {
+			HMAC_SHA256_Buf( dst, sizeof(*dst), pers, perslen, sha256 );
+         SHA256_Buf( sha256, sizeof(sha256), (uint8_t *)dst );
 		}
-	} else {
-		ctx.S2 = S + 2 * Swidth_to_Sbytes1(Swidth);
+*/
+   }
+   else
+   {
+		ctx.S2 = S + 2 * Swidth_to_Sbytes1( Swidth );
 		ctx.w = 0;
 
-		if (pers) {
+		if ( pers )
+      {
 			src = pers;
 			srclen = perslen;
-		} else {
-			srclen = 0;
 		}
+      else
+			srclen = 0;
 
-		PBKDF2_SHA256(sha256, sizeof(sha256), src, srclen, 1, B, 128);
-		memcpy(sha256, B, sizeof(sha256));
-		smix_1_0(B, r, N, V, XY, &ctx);
-		HMAC_SHA256_Buf(B + B_size - 64, 64,
-		    sha256, sizeof(sha256), (uint8_t *)dst);
+		PBKDF2_SHA256( sha256, sizeof(sha256), src, srclen, 1, B, 128 );
+		memcpy( sha256, B, sizeof(sha256) );
+
+      if ( work_restart[thrid].restart ) return 0;
+
+      smix_1_0( B, r, N, V, XY, &ctx );
+
+      HMAC_SHA256_Buf( B + B_size - 64, 64, sha256, sizeof(sha256),
+                       (uint8_t *)dst );
 	}
 
 	/* Success! */

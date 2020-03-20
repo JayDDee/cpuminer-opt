@@ -330,6 +330,14 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
     mm128_block_bswap_32( dst, sc->val );
 }
 
+void sha256_4way_full( void *dst, const void *data, size_t len )
+{
+   sha256_4way_context ctx;
+   sha256_4way_init( &ctx );
+   sha256_4way_update( &ctx, data, len );
+   sha256_4way_close( &ctx, dst );
+}
+
 #if defined(__AVX2__)
 
 // SHA-256 8 way
@@ -498,6 +506,10 @@ void sha256_8way_init( sha256_8way_context *sc )
 */
 }
 
+
+// need to handle odd byte length for yespower.
+// Assume only last update is odd.
+
 void sha256_8way_update( sha256_8way_context *sc, const void *data, size_t len )
 {
    __m256i *vdata = (__m256i*)data;
@@ -564,6 +576,13 @@ void sha256_8way_close( sha256_8way_context *sc, void *dst )
     mm256_block_bswap_32( dst, sc->val );
 }
 
+void sha256_8way_full( void *dst, const void *data, size_t len )
+{
+   sha256_8way_context ctx;
+   sha256_8way_init( &ctx );
+   sha256_8way_update( &ctx, data, len );
+   sha256_8way_close( &ctx, dst );
+}
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -789,6 +808,14 @@ void sha256_16way_close( sha256_16way_context *sc, void *dst )
     sha256_16way_round( sc, sc->buf, sc->val );
 
     mm512_block_bswap_32( dst, sc->val );
+}
+
+void sha256_16way_full( void *dst, const void *data, size_t len )
+{
+   sha256_16way_context ctx;
+   sha256_16way_init( &ctx );
+   sha256_16way_update( &ctx, data, len );
+   sha256_16way_close( &ctx, dst );
 }
 
 #endif  // AVX512

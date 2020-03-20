@@ -1149,7 +1149,7 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
     const uint8_t * passwd, size_t passwdlen,
     const uint8_t * salt, size_t saltlen,
     uint64_t N, uint32_t r, uint32_t p, uint32_t t, yescrypt_flags_t flags,
-    uint8_t * buf, size_t buflen)
+    uint8_t * buf, size_t buflen, int thrid )
 {
 	uint8_t _ALIGN(128) sha256[32];
 	yescrypt_region_t tmp;
@@ -1157,6 +1157,7 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	size_t B_size, V_size, XY_size, need;
 	uint8_t * B, * S;
 	salsa20_blk_t * V, * XY;
+   int retval = 1;
 
 	/*
 	 * YESCRYPT_PARALLEL_SMIX is a no-op at p = 1 for its intended purpose,
@@ -1312,6 +1313,12 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	/* 1: (B_0 ... B_{p-1}) <-- PBKDF2(P, S, 1, p * MFLen) */
 	PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, 1, B, B_size);
 
+   if ( work_restart[thrid].restart ) 
+   { 
+     retval = 0; 
+     goto out;
+   }
+   
 	if (t || flags)
 		memcpy(sha256, B, sizeof(sha256));
 
@@ -1339,9 +1346,21 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 		}
 	}
 
+   if ( work_restart[thrid].restart )
+   {
+     retval = 0;
+     goto out;
+   }
+
 	/* 5: DK <-- PBKDF2(P, B, 1, dkLen) */
 	PBKDF2_SHA256(passwd, passwdlen, B, B_size, 1, buf, buflen);
 
+   if ( work_restart[thrid].restart ) 
+   { 
+     retval = 0; 
+     goto out;
+   }
+   
 	/*
 	 * Except when computing classic scrypt, allow all computation so far
 	 * to be performed on the client.  The final steps below match those of
@@ -1370,9 +1389,10 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 	   }
 	}
 
+out:   
 	if (free_region(&tmp))
 		return -1;
 
 	/* Success! */
-	return 0;
+	return retval;
 }

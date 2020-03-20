@@ -30,7 +30,9 @@
 
 #include "algo-gate-api.h"
 
-static yespower_params_t yespower_params;
+yespower_params_t yespower_params;
+
+SHA256_CTX sha256_prehash_ctx;
 
 // YESPOWER
 
@@ -55,6 +57,11 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
    for ( int k = 0; k < 19; k++ )
       be32enc( &endiandata[k], pdata[k] );
    endiandata[19] = n;
+
+// do sha256 prehash
+   SHA256_Init( &sha256_prehash_ctx );
+   SHA256_Update( &sha256_prehash_ctx, endiandata, 64 );
+
    do {
       if ( yespower_hash( (char*)endiandata, (char*)vhash, 80, thr_id ) )
       if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
@@ -86,11 +93,16 @@ int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    const uint32_t last_nonce = max_nonce;
-   const int thr_id = mythr->id;  // thr_id arg is deprecated
+   const int thr_id = mythr->id;
 
    for ( int k = 0; k < 19; k++ )
       be32enc( &endiandata[k], pdata[k] );
    endiandata[19] = n;
+
+// do sha256 prehash
+   SHA256_Init( &sha256_prehash_ctx );
+   SHA256_Update( &sha256_prehash_ctx, endiandata, 64 );
+
    do {
       if (yespower_b2b_hash( (char*) endiandata, (char*) vhash, 80, thr_id ) )
       if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
@@ -152,7 +164,7 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
   return true;
  };
 
-/* not used
+/* not used, doesn't work
 bool register_yescrypt_05_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
@@ -165,6 +177,40 @@ bool register_yescrypt_05_algo( algo_gate_t* gate )
    opt_target_factor = 65536.0;
    return true;
 }
+
+bool register_yescrypt_05_algo( algo_gate_t* gate )
+{
+   gate->optimizations = SSE2_OPT | SHA_OPT;
+   gate->scanhash   = (void*)&scanhash_yespower;
+   yespower_params.version = YESPOWER_0_5;
+
+   if ( opt_param_n )  yespower_params.N = opt_param_n;
+   else                yespower_params.N = 2048;
+
+   if ( opt_param_r )  yespower_params.r = opt_param_r;
+   else                yespower_params.r = 8;
+
+   if ( opt_param_key )
+   {
+     yespower_params.pers = opt_param_key;
+     yespower_params.perslen = strlen( opt_param_key );
+   }
+   else
+   {
+     yespower_params.pers = NULL;
+     yespower_params.perslen = 0;
+   }
+
+//   YESCRYPT_P = 1;
+
+   applog( LOG_NOTICE,"Yescrypt parameters: N= %d, R= %d.",
+                                      yespower_params.N, yespower_params.r );
+   if ( yespower_params.pers )
+     applog( LOG_NOTICE,"Key= \"%s\"\n", yespower_params.pers );
+
+   return true;
+}
+
 
 bool register_yescryptr8_05_algo( algo_gate_t* gate )
 {

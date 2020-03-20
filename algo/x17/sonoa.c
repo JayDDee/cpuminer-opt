@@ -83,27 +83,27 @@ void init_sonoa_ctx()
         sph_haval256_5_init(&sonoa_ctx.haval);
 };
 
-void sonoa_hash( void *state, const void *input )
+int sonoa_hash( void *state, const void *input, int thrid )
 {
 	uint8_t hash[128] __attribute__ ((aligned (64)));
-        sonoa_ctx_holder ctx __attribute__ ((aligned (64)));
-        memcpy( &ctx, &sonoa_ctx, sizeof(sonoa_ctx) );
+   sonoa_ctx_holder ctx __attribute__ ((aligned (64)));
+   memcpy( &ctx, &sonoa_ctx, sizeof(sonoa_ctx) );
 
-        sph_blake512(&ctx.blake, input, 80);
+   sph_blake512(&ctx.blake, input, 80);
 	sph_blake512_close(&ctx.blake, hash);
 
 	sph_bmw512(&ctx.bmw, hash, 64);
 	sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                  (const char*)hash, 512 );
+   update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                     (const char*)hash, 512 );
 #else
-        sph_groestl512(&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+   sph_groestl512(&ctx.groestl, hash, 64);
+   sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
-	sph_skein512(&ctx.skein, hash, 64);
+   sph_skein512(&ctx.skein, hash, 64);
 	sph_skein512_close(&ctx.skein, hash);
 
 	sph_jh512(&ctx.jh, hash, 64);
@@ -112,454 +112,461 @@ void sonoa_hash( void *state, const void *input )
 	sph_keccak512(&ctx.keccak, hash, 64);
 	sph_keccak512_close(&ctx.keccak, hash);
 
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)hash, 64 );
+   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+                                 (const BitSequence*)hash, 64 );
 
-        cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                              (const byte*)hash, 64 );
+   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
+                                   (const byte*)hash, 64 );
 
 	sph_shavite512(&ctx.shavite, hash, 64);
 	sph_shavite512_close(&ctx.shavite, hash);
 
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
+   update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
 
 #if defined(__AES__)
-        update_final_echo ( &ctx.echo, (BitSequence *)hash,
+   update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
 #else
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hash);
+   sph_echo512(&ctx.echo, hash, 64);
+   sph_echo512_close(&ctx.echo, hash);
 #endif
 
+   if ( work_restart[thrid].restart ) return 0;
 //
 
-        sph_bmw512_init( &ctx.bmw);
-        sph_bmw512(&ctx.bmw, hash, 64);
-        sph_bmw512_close(&ctx.bmw, hash);
+   sph_bmw512_init( &ctx.bmw);
+   sph_bmw512(&ctx.bmw, hash, 64);
+   sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-        init_groestl( &ctx.groestl, 64 );
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                  (const char*)hash, 512 );
+   init_groestl( &ctx.groestl, 64 );
+   update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                     (const char*)hash, 512 );
 #else
-        sph_groestl512_init(&ctx.groestl );
-        sph_groestl512(&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+   sph_groestl512_init(&ctx.groestl );
+   sph_groestl512(&ctx.groestl, hash, 64);
+   sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
-        sph_skein512_init( &ctx.skein);
-        sph_skein512(&ctx.skein, hash, 64);
-        sph_skein512_close(&ctx.skein, hash);
+   sph_skein512_init( &ctx.skein);
+   sph_skein512(&ctx.skein, hash, 64);
+   sph_skein512_close(&ctx.skein, hash);
 
-        sph_jh512_init( &ctx.jh);
-        sph_jh512(&ctx.jh, hash, 64);
-        sph_jh512_close(&ctx.jh, hash);
+   sph_jh512_init( &ctx.jh);
+   sph_jh512(&ctx.jh, hash, 64);
+   sph_jh512_close(&ctx.jh, hash);
 
-        sph_keccak512_init( &ctx.keccak );
-        sph_keccak512(&ctx.keccak, hash, 64);
-        sph_keccak512_close(&ctx.keccak, hash);
+   sph_keccak512_init( &ctx.keccak );
+   sph_keccak512(&ctx.keccak, hash, 64);
+   sph_keccak512_close(&ctx.keccak, hash);
 
-        init_luffa( &ctx.luffa, 512 );
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)hash, 64 );
+   init_luffa( &ctx.luffa, 512 );
+   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+                                 (const BitSequence*)hash, 64 );
 
-        cubehashInit( &ctx.cubehash, 512, 16, 32 );
-        cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                              (const byte*)hash, 64 );
+   cubehashInit( &ctx.cubehash, 512, 16, 32 );
+   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
+                                   (const byte*)hash, 64 );
 
-        sph_shavite512_init( &ctx.shavite );
-        sph_shavite512(&ctx.shavite, hash, 64);
-        sph_shavite512_close(&ctx.shavite, hash);
+   sph_shavite512_init( &ctx.shavite );
+   sph_shavite512(&ctx.shavite, hash, 64);
+   sph_shavite512_close(&ctx.shavite, hash);
 
-        init_sd( &ctx.simd, 512 );
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
+   init_sd( &ctx.simd, 512 );
+   update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
 
 #if defined(__AES__)
-        init_echo( &ctx.echo, 512 );
-        update_final_echo ( &ctx.echo, (BitSequence *)hash,
+   init_echo( &ctx.echo, 512 );
+   update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
 #else
-        sph_echo512_init( &ctx.echo );
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hash);
+   sph_echo512_init( &ctx.echo );
+   sph_echo512(&ctx.echo, hash, 64);
+   sph_echo512_close(&ctx.echo, hash);
 #endif
 
-        sph_hamsi512(&ctx.hamsi, hash, 64);
-        sph_hamsi512_close(&ctx.hamsi, hash);
+   sph_hamsi512(&ctx.hamsi, hash, 64);
+   sph_hamsi512_close(&ctx.hamsi, hash);
 	
+   if ( work_restart[thrid].restart ) return 0;
 //
 
-        sph_bmw512_init( &ctx.bmw);
-	sph_bmw512(&ctx.bmw, hash, 64);
-        sph_bmw512_close(&ctx.bmw, hash);
+   sph_bmw512_init( &ctx.bmw);
+   sph_bmw512(&ctx.bmw, hash, 64);
+   sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-        init_groestl( &ctx.groestl, 64 );
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                  (const char*)hash, 512 );
+   init_groestl( &ctx.groestl, 64 );
+   update_and_final_groestl( &ctx.groestl, (char*)hash,
+                                     (const char*)hash, 512 );
 #else
-        sph_groestl512_init(&ctx.groestl );
-        sph_groestl512(&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+   sph_groestl512_init(&ctx.groestl );
+   sph_groestl512(&ctx.groestl, hash, 64);
+   sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
-        sph_skein512_init( &ctx.skein);
-        sph_skein512(&ctx.skein, hash, 64);
-        sph_skein512_close(&ctx.skein, hash);
+   sph_skein512_init( &ctx.skein);
+   sph_skein512(&ctx.skein, hash, 64);
+   sph_skein512_close(&ctx.skein, hash);
 
-        sph_jh512_init( &ctx.jh);
-        sph_jh512(&ctx.jh, hash, 64);
-        sph_jh512_close(&ctx.jh, hash);
+   sph_jh512_init( &ctx.jh);
+   sph_jh512(&ctx.jh, hash, 64);
+   sph_jh512_close(&ctx.jh, hash);
 
-        sph_keccak512_init( &ctx.keccak );
-        sph_keccak512(&ctx.keccak, hash, 64);
-        sph_keccak512_close(&ctx.keccak, hash);
+   sph_keccak512_init( &ctx.keccak );
+   sph_keccak512(&ctx.keccak, hash, 64);
+   sph_keccak512_close(&ctx.keccak, hash);
 
-        init_luffa( &ctx.luffa, 512 );
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)hash, 64 );
+   init_luffa( &ctx.luffa, 512 );
+   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+                                 (const BitSequence*)hash, 64 );
 
-        cubehashInit( &ctx.cubehash, 512, 16, 32 );
-        cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                              (const byte*)hash, 64 );
+   cubehashInit( &ctx.cubehash, 512, 16, 32 );
+   cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
+                                  (const byte*)hash, 64 );
 
-        sph_shavite512_init( &ctx.shavite );
-        sph_shavite512(&ctx.shavite, hash, 64);
-        sph_shavite512_close(&ctx.shavite, hash);
+   sph_shavite512_init( &ctx.shavite );
+   sph_shavite512(&ctx.shavite, hash, 64);
+   sph_shavite512_close(&ctx.shavite, hash);
 
-        init_sd( &ctx.simd, 512 );
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
+   init_sd( &ctx.simd, 512 );
+   update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
 
 #if defined(__AES__)
-        init_echo( &ctx.echo, 512 );
-        update_final_echo ( &ctx.echo, (BitSequence *)hash,
+   init_echo( &ctx.echo, 512 );
+   update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
 #else
-        sph_echo512_init( &ctx.echo );
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hash);
+   sph_echo512_init( &ctx.echo );
+   sph_echo512(&ctx.echo, hash, 64);
+   sph_echo512_close(&ctx.echo, hash);
 #endif
 
-        sph_hamsi512_init( &ctx.hamsi );
-        sph_hamsi512(&ctx.hamsi, hash, 64);
-        sph_hamsi512_close(&ctx.hamsi, hash);
+   sph_hamsi512_init( &ctx.hamsi );
+   sph_hamsi512(&ctx.hamsi, hash, 64);
+   sph_hamsi512_close(&ctx.hamsi, hash);
 
-        sph_fugue512(&ctx.fugue, hash, 64);
-        sph_fugue512_close(&ctx.fugue, hash);
+   sph_fugue512(&ctx.fugue, hash, 64);
+   sph_fugue512_close(&ctx.fugue, hash);
 
+   if ( work_restart[thrid].restart ) return 0;
 //
 
-        sph_bmw512_init( &ctx.bmw);
-        sph_bmw512(&ctx.bmw, hash, 64);
-        sph_bmw512_close(&ctx.bmw, hash);
+   sph_bmw512_init( &ctx.bmw);
+   sph_bmw512(&ctx.bmw, hash, 64);
+   sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-        init_groestl( &ctx.groestl, 64 );
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
+   init_groestl( &ctx.groestl, 64 );
+   update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
 #else
-        sph_groestl512_init(&ctx.groestl );
-        sph_groestl512(&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+   sph_groestl512_init(&ctx.groestl );
+   sph_groestl512(&ctx.groestl, hash, 64);
+   sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
-        sph_skein512_init( &ctx.skein);
-        sph_skein512(&ctx.skein, hash, 64);
-        sph_skein512_close(&ctx.skein, hash);
+   sph_skein512_init( &ctx.skein);
+   sph_skein512(&ctx.skein, hash, 64);
+   sph_skein512_close(&ctx.skein, hash);
 
-        sph_jh512_init( &ctx.jh);
-        sph_jh512(&ctx.jh, hash, 64);
-        sph_jh512_close(&ctx.jh, hash);
+   sph_jh512_init( &ctx.jh);
+   sph_jh512(&ctx.jh, hash, 64);
+   sph_jh512_close(&ctx.jh, hash);
 
-        sph_keccak512_init( &ctx.keccak );
-        sph_keccak512(&ctx.keccak, hash, 64);
-        sph_keccak512_close(&ctx.keccak, hash);
+   sph_keccak512_init( &ctx.keccak );
+   sph_keccak512(&ctx.keccak, hash, 64);
+   sph_keccak512_close(&ctx.keccak, hash);
 
-        init_luffa( &ctx.luffa, 512 );
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+   init_luffa( &ctx.luffa, 512 );
+   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                 (const BitSequence*)hash, 64 );
 
-        cubehashInit( &ctx.cubehash, 512, 16, 32 );
-        cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
+   cubehashInit( &ctx.cubehash, 512, 16, 32 );
+   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
                               (const byte*)hash, 64 );
 
-        sph_shavite512_init( &ctx.shavite );
-        sph_shavite512(&ctx.shavite, hash, 64);
-        sph_shavite512_close(&ctx.shavite, hash);
+   sph_shavite512_init( &ctx.shavite );
+   sph_shavite512(&ctx.shavite, hash, 64);
+   sph_shavite512_close(&ctx.shavite, hash);
 
-        init_sd( &ctx.simd, 512 );
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
+   init_sd( &ctx.simd, 512 );
+   update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
 
 #if defined(__AES__)
-        init_echo( &ctx.echo, 512 );
-        update_final_echo ( &ctx.echo, (BitSequence *)hash,
+   init_echo( &ctx.echo, 512 );
+   update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
 #else
-        sph_echo512_init( &ctx.echo );
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hash);
+   sph_echo512_init( &ctx.echo );
+   sph_echo512(&ctx.echo, hash, 64);
+   sph_echo512_close(&ctx.echo, hash);
 #endif
 
-        sph_hamsi512_init( &ctx.hamsi );
-        sph_hamsi512(&ctx.hamsi, hash, 64);
-        sph_hamsi512_close(&ctx.hamsi, hash);
+   sph_hamsi512_init( &ctx.hamsi );
+   sph_hamsi512(&ctx.hamsi, hash, 64);
+   sph_hamsi512_close(&ctx.hamsi, hash);
 
-        sph_fugue512_init( &ctx.fugue );
-        sph_fugue512(&ctx.fugue, hash, 64);
-        sph_fugue512_close(&ctx.fugue, hash);
+   sph_fugue512_init( &ctx.fugue );
+   sph_fugue512(&ctx.fugue, hash, 64);
+   sph_fugue512_close(&ctx.fugue, hash);
 
-        sph_shabal512(&ctx.shabal, hash, 64);
-        sph_shabal512_close(&ctx.shabal, hash);
+   sph_shabal512(&ctx.shabal, hash, 64);
+   sph_shabal512_close(&ctx.shabal, hash);
 
-        sph_hamsi512_init( &ctx.hamsi );
-        sph_hamsi512(&ctx.hamsi, hash, 64);
-        sph_hamsi512_close(&ctx.hamsi, hash);
+   sph_hamsi512_init( &ctx.hamsi );
+   sph_hamsi512(&ctx.hamsi, hash, 64);
+   sph_hamsi512_close(&ctx.hamsi, hash);
 
 #if defined(__AES__)
-        init_echo( &ctx.echo, 512 );
-        update_final_echo ( &ctx.echo, (BitSequence *)hash,
+   init_echo( &ctx.echo, 512 );
+   update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
 #else
-        sph_echo512_init( &ctx.echo );
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hash);
+   sph_echo512_init( &ctx.echo );
+   sph_echo512(&ctx.echo, hash, 64);
+   sph_echo512_close(&ctx.echo, hash);
 #endif
 
-        sph_shavite512_init( &ctx.shavite );
-        sph_shavite512(&ctx.shavite, hash, 64);
-        sph_shavite512_close(&ctx.shavite, hash);
+   sph_shavite512_init( &ctx.shavite );
+   sph_shavite512(&ctx.shavite, hash, 64);
+   sph_shavite512_close(&ctx.shavite, hash);
 
+   if ( work_restart[thrid].restart ) return 0;
 //
 
-        sph_bmw512_init( &ctx.bmw);
-        sph_bmw512(&ctx.bmw, hash, 64);
-        sph_bmw512_close(&ctx.bmw, hash);
+   sph_bmw512_init( &ctx.bmw);
+   sph_bmw512(&ctx.bmw, hash, 64);
+   sph_bmw512_close(&ctx.bmw, hash);
 
-        sph_shabal512_init( &ctx.shabal );
+   sph_shabal512_init( &ctx.shabal );
 	sph_shabal512(&ctx.shabal, hash, 64);
-        sph_shabal512_close(&ctx.shabal, hash);
+   sph_shabal512_close(&ctx.shabal, hash);
 
 #if defined(__AES__)
-        init_groestl( &ctx.groestl, 64 );
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
+   init_groestl( &ctx.groestl, 64 );
+   update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
 #else
-        sph_groestl512_init(&ctx.groestl );
-        sph_groestl512(&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+   sph_groestl512_init(&ctx.groestl );
+   sph_groestl512(&ctx.groestl, hash, 64);
+   sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
-        sph_skein512_init( &ctx.skein);
-        sph_skein512(&ctx.skein, hash, 64);
-        sph_skein512_close(&ctx.skein, hash);
+   sph_skein512_init( &ctx.skein);
+   sph_skein512(&ctx.skein, hash, 64);
+   sph_skein512_close(&ctx.skein, hash);
 
-        sph_jh512_init( &ctx.jh);
-        sph_jh512(&ctx.jh, hash, 64);
-        sph_jh512_close(&ctx.jh, hash);
+   sph_jh512_init( &ctx.jh);
+   sph_jh512(&ctx.jh, hash, 64);
+   sph_jh512_close(&ctx.jh, hash);
 
-        sph_keccak512_init( &ctx.keccak );
-        sph_keccak512(&ctx.keccak, hash, 64);
-        sph_keccak512_close(&ctx.keccak, hash);
+   sph_keccak512_init( &ctx.keccak );
+   sph_keccak512(&ctx.keccak, hash, 64);
+   sph_keccak512_close(&ctx.keccak, hash);
 
-        init_luffa( &ctx.luffa, 512 );
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+   init_luffa( &ctx.luffa, 512 );
+   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                 (const BitSequence*)hash, 64 );
 
-        cubehashInit( &ctx.cubehash, 512, 16, 32 );
-        cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
+   cubehashInit( &ctx.cubehash, 512, 16, 32 );
+   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
                               (const byte*)hash, 64 );
 
-        sph_shavite512_init( &ctx.shavite );
-        sph_shavite512(&ctx.shavite, hash, 64);
-        sph_shavite512_close(&ctx.shavite, hash);
+   sph_shavite512_init( &ctx.shavite );
+   sph_shavite512(&ctx.shavite, hash, 64);
+   sph_shavite512_close(&ctx.shavite, hash);
 
-        init_sd( &ctx.simd, 512 );
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
+   init_sd( &ctx.simd, 512 );
+   update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
 
 #if defined(__AES__)
-        init_echo( &ctx.echo, 512 );
-        update_final_echo ( &ctx.echo, (BitSequence *)hash,
+   init_echo( &ctx.echo, 512 );
+   update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
 #else
-        sph_echo512_init( &ctx.echo );
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hash);
+   sph_echo512_init( &ctx.echo );
+   sph_echo512(&ctx.echo, hash, 64);
+   sph_echo512_close(&ctx.echo, hash);
 #endif
 
-        sph_hamsi512_init( &ctx.hamsi );
-        sph_hamsi512(&ctx.hamsi, hash, 64);
-        sph_hamsi512_close(&ctx.hamsi, hash);
+   sph_hamsi512_init( &ctx.hamsi );
+   sph_hamsi512(&ctx.hamsi, hash, 64);
+   sph_hamsi512_close(&ctx.hamsi, hash);
 
-        sph_fugue512_init( &ctx.fugue );
-        sph_fugue512(&ctx.fugue, hash, 64);
-        sph_fugue512_close(&ctx.fugue, hash);
+   sph_fugue512_init( &ctx.fugue );
+   sph_fugue512(&ctx.fugue, hash, 64);
+   sph_fugue512_close(&ctx.fugue, hash);
 
-        sph_shabal512_init( &ctx.shabal );
-        sph_shabal512(&ctx.shabal, hash, 64);
-        sph_shabal512_close(&ctx.shabal, hash);
+   sph_shabal512_init( &ctx.shabal );
+   sph_shabal512(&ctx.shabal, hash, 64);
+   sph_shabal512_close(&ctx.shabal, hash);
 
-        sph_whirlpool(&ctx.whirlpool, hash, 64);
-        sph_whirlpool_close(&ctx.whirlpool, hash);
+   sph_whirlpool(&ctx.whirlpool, hash, 64);
+   sph_whirlpool_close(&ctx.whirlpool, hash);
 
+   if ( work_restart[thrid].restart ) return 0;
 //
-        sph_bmw512_init( &ctx.bmw);
-        sph_bmw512(&ctx.bmw, hash, 64);
-        sph_bmw512_close(&ctx.bmw, hash);
+   sph_bmw512_init( &ctx.bmw);
+   sph_bmw512(&ctx.bmw, hash, 64);
+   sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-        init_groestl( &ctx.groestl, 64 );
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
+   init_groestl( &ctx.groestl, 64 );
+   update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
 #else
-        sph_groestl512_init(&ctx.groestl );
-        sph_groestl512(&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+   sph_groestl512_init(&ctx.groestl );
+   sph_groestl512(&ctx.groestl, hash, 64);
+   sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
-        sph_skein512_init( &ctx.skein);
-        sph_skein512(&ctx.skein, hash, 64);
-        sph_skein512_close(&ctx.skein, hash);
+   sph_skein512_init( &ctx.skein);
+   sph_skein512(&ctx.skein, hash, 64);
+   sph_skein512_close(&ctx.skein, hash);
 
-        sph_jh512_init( &ctx.jh);
-        sph_jh512(&ctx.jh, hash, 64);
-        sph_jh512_close(&ctx.jh, hash);
+   sph_jh512_init( &ctx.jh);
+   sph_jh512(&ctx.jh, hash, 64);
+   sph_jh512_close(&ctx.jh, hash);
 
-        sph_keccak512_init( &ctx.keccak );
-        sph_keccak512(&ctx.keccak, hash, 64);
-        sph_keccak512_close(&ctx.keccak, hash);
+   sph_keccak512_init( &ctx.keccak );
+   sph_keccak512(&ctx.keccak, hash, 64);
+   sph_keccak512_close(&ctx.keccak, hash);
 
-        init_luffa( &ctx.luffa, 512 );
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+   init_luffa( &ctx.luffa, 512 );
+   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                 (const BitSequence*)hash, 64 );
 
-        cubehashInit( &ctx.cubehash, 512, 16, 32 );
-        cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
+   cubehashInit( &ctx.cubehash, 512, 16, 32 );
+   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
                               (const byte*)hash, 64 );
 
-        sph_shavite512_init( &ctx.shavite );
-        sph_shavite512(&ctx.shavite, hash, 64);
-        sph_shavite512_close(&ctx.shavite, hash);
+   sph_shavite512_init( &ctx.shavite );
+   sph_shavite512(&ctx.shavite, hash, 64);
+   sph_shavite512_close(&ctx.shavite, hash);
 
-        init_sd( &ctx.simd, 512 );
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
+   init_sd( &ctx.simd, 512 );
+   update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
 
 #if defined(__AES__)
-        init_echo( &ctx.echo, 512 );
-        update_final_echo ( &ctx.echo, (BitSequence *)hash,
+   init_echo( &ctx.echo, 512 );
+   update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
 #else
-        sph_echo512_init( &ctx.echo );
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hash);
+   sph_echo512_init( &ctx.echo );
+   sph_echo512(&ctx.echo, hash, 64);
+   sph_echo512_close(&ctx.echo, hash);
 #endif
 
-        sph_hamsi512_init( &ctx.hamsi );
-        sph_hamsi512(&ctx.hamsi, hash, 64);
-        sph_hamsi512_close(&ctx.hamsi, hash);
+   sph_hamsi512_init( &ctx.hamsi );
+   sph_hamsi512(&ctx.hamsi, hash, 64);
+   sph_hamsi512_close(&ctx.hamsi, hash);
 
-        sph_fugue512_init( &ctx.fugue );
-        sph_fugue512(&ctx.fugue, hash, 64);
-        sph_fugue512_close(&ctx.fugue, hash);
+   sph_fugue512_init( &ctx.fugue );
+   sph_fugue512(&ctx.fugue, hash, 64);
+   sph_fugue512_close(&ctx.fugue, hash);
 
-        sph_shabal512_init( &ctx.shabal );
-        sph_shabal512(&ctx.shabal, hash, 64);
-        sph_shabal512_close(&ctx.shabal, hash);
+   sph_shabal512_init( &ctx.shabal );
+   sph_shabal512(&ctx.shabal, hash, 64);
+   sph_shabal512_close(&ctx.shabal, hash);
 
-        sph_whirlpool_init( &ctx.whirlpool );
-        sph_whirlpool(&ctx.whirlpool, hash, 64);
-        sph_whirlpool_close(&ctx.whirlpool, hash);
+   sph_whirlpool_init( &ctx.whirlpool );
+   sph_whirlpool(&ctx.whirlpool, hash, 64);
+   sph_whirlpool_close(&ctx.whirlpool, hash);
 
-        SHA512_Update( &ctx.sha512, hash, 64 );
-        SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+   SHA512_Update( &ctx.sha512, hash, 64 );
+   SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
 
-        sph_whirlpool_init( &ctx.whirlpool );
-        sph_whirlpool(&ctx.whirlpool, hash, 64);
-        sph_whirlpool_close(&ctx.whirlpool, hash);
+   sph_whirlpool_init( &ctx.whirlpool );
+   sph_whirlpool(&ctx.whirlpool, hash, 64);
+   sph_whirlpool_close(&ctx.whirlpool, hash);
 
+   if ( work_restart[thrid].restart ) return 0;
 //
 
-        sph_bmw512_init( &ctx.bmw);
-        sph_bmw512(&ctx.bmw, hash, 64);
-        sph_bmw512_close(&ctx.bmw, hash);
+   sph_bmw512_init( &ctx.bmw);
+   sph_bmw512(&ctx.bmw, hash, 64);
+   sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-        init_groestl( &ctx.groestl, 64 );
-        update_and_final_groestl( &ctx.groestl, (char*)hash,
+   init_groestl( &ctx.groestl, 64 );
+   update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
 #else
-        sph_groestl512_init(&ctx.groestl );
-        sph_groestl512(&ctx.groestl, hash, 64);
-        sph_groestl512_close(&ctx.groestl, hash);
+   sph_groestl512_init(&ctx.groestl );
+   sph_groestl512(&ctx.groestl, hash, 64);
+   sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
-        sph_skein512_init( &ctx.skein);
-        sph_skein512(&ctx.skein, hash, 64);
-        sph_skein512_close(&ctx.skein, hash);
+   sph_skein512_init( &ctx.skein);
+   sph_skein512(&ctx.skein, hash, 64);
+   sph_skein512_close(&ctx.skein, hash);
 
-        sph_jh512_init( &ctx.jh);
-        sph_jh512(&ctx.jh, hash, 64);
-        sph_jh512_close(&ctx.jh, hash);
+   sph_jh512_init( &ctx.jh);
+   sph_jh512(&ctx.jh, hash, 64);
+   sph_jh512_close(&ctx.jh, hash);
 
-        sph_keccak512_init( &ctx.keccak );
-        sph_keccak512(&ctx.keccak, hash, 64);
-        sph_keccak512_close(&ctx.keccak, hash);
+   sph_keccak512_init( &ctx.keccak );
+   sph_keccak512(&ctx.keccak, hash, 64);
+   sph_keccak512_close(&ctx.keccak, hash);
 
-        init_luffa( &ctx.luffa, 512 );
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+   init_luffa( &ctx.luffa, 512 );
+   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                 (const BitSequence*)hash, 64 );
 
-        cubehashInit( &ctx.cubehash, 512, 16, 32 );
-        cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
+   cubehashInit( &ctx.cubehash, 512, 16, 32 );
+   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
                               (const byte*)hash, 64 );
 
-        sph_shavite512_init( &ctx.shavite );
-        sph_shavite512(&ctx.shavite, hash, 64);
-        sph_shavite512_close(&ctx.shavite, hash);
+   sph_shavite512_init( &ctx.shavite );
+   sph_shavite512(&ctx.shavite, hash, 64);
+   sph_shavite512_close(&ctx.shavite, hash);
 
-        init_sd( &ctx.simd, 512 );
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
+   init_sd( &ctx.simd, 512 );
+   update_final_sd( &ctx.simd, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
 
 #if defined(__AES__)
-        init_echo( &ctx.echo, 512 );
-        update_final_echo ( &ctx.echo, (BitSequence *)hash,
+   init_echo( &ctx.echo, 512 );
+   update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
 #else
-        sph_echo512_init( &ctx.echo );
-        sph_echo512(&ctx.echo, hash, 64);
-        sph_echo512_close(&ctx.echo, hash);
+   sph_echo512_init( &ctx.echo );
+   sph_echo512(&ctx.echo, hash, 64);
+   sph_echo512_close(&ctx.echo, hash);
 #endif
 
-        sph_hamsi512_init( &ctx.hamsi );
-        sph_hamsi512(&ctx.hamsi, hash, 64);
-        sph_hamsi512_close(&ctx.hamsi, hash);
+   sph_hamsi512_init( &ctx.hamsi );
+   sph_hamsi512(&ctx.hamsi, hash, 64);
+   sph_hamsi512_close(&ctx.hamsi, hash);
 
-        sph_fugue512_init( &ctx.fugue );
-        sph_fugue512(&ctx.fugue, hash, 64);
-        sph_fugue512_close(&ctx.fugue, hash);
+   sph_fugue512_init( &ctx.fugue );
+   sph_fugue512(&ctx.fugue, hash, 64);
+   sph_fugue512_close(&ctx.fugue, hash);
 
-        sph_shabal512_init( &ctx.shabal );
-        sph_shabal512(&ctx.shabal, hash, 64);
-        sph_shabal512_close(&ctx.shabal, hash);
+   sph_shabal512_init( &ctx.shabal );
+   sph_shabal512(&ctx.shabal, hash, 64);
+   sph_shabal512_close(&ctx.shabal, hash);
 
-        sph_whirlpool_init( &ctx.whirlpool );
-        sph_whirlpool(&ctx.whirlpool, hash, 64);
-        sph_whirlpool_close(&ctx.whirlpool, hash);
+   sph_whirlpool_init( &ctx.whirlpool );
+   sph_whirlpool(&ctx.whirlpool, hash, 64);
+   sph_whirlpool_close(&ctx.whirlpool, hash);
 
-        SHA512_Init( &ctx.sha512 );
-        SHA512_Update( &ctx.sha512, hash, 64 );
-        SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+   SHA512_Init( &ctx.sha512 );
+   SHA512_Update( &ctx.sha512, hash, 64 );
+   SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
 
-        sph_haval256_5(&ctx.haval,(const void*) hash, 64);
-        sph_haval256_5_close(&ctx.haval, hash);
+   sph_haval256_5(&ctx.haval,(const void*) hash, 64);
+   sph_haval256_5_close(&ctx.haval, hash);
 
    memcpy(state, hash, 32);
+   return 1;
 }
 
 int scanhash_sonoa( struct work *work, uint32_t max_nonce,
@@ -579,7 +586,7 @@ int scanhash_sonoa( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = n;
-      sonoa_hash( hash64, edata );
+      if ( sonoa_hash( hash64, edata, thr_id ) )
       if ( unlikely( valid_hash( hash64, ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( n );
