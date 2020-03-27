@@ -91,7 +91,7 @@ Supported Algorithms
                           lyra2rev2     lyra2v2
                           lyra2rev3     lyrav2v3, Vertcoin
                           lyra2z        
-                          lyra2z330     Lyra2 330 rows, Zoin (ZOI)
+                          lyra2z330     Lyra2 330 rows, Noir (NOR)
                           m7m           Magi (XMG)
                           myr-gr        Myriad-Groestl
                           neoscrypt     NeoScrypt(128, 2, 1)
