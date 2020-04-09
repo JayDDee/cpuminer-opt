@@ -23,24 +23,16 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This file was originally written by Cryply team as part of the Cryply
- * coin.
  */
 #include "yespower.h"
-
 #include "algo-gate-api.h"
 
 yespower_params_t yespower_params;
 
-SHA256_CTX sha256_prehash_ctx;
+// Give each thread its own copy to avoid requiring mutex.
+__thread SHA256_CTX sha256_prehash_ctx;
 
 // YESPOWER
-
-int yespower_hash( const char *input, char *output, uint32_t len, int thrid )
-{
-   return yespower_tls( input, len, &yespower_params,
-           (yespower_binary_t*)output, thrid ); 
-}
 
 int scanhash_yespower( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
@@ -54,6 +46,16 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
 
+   static __thread int initialized = 0;
+   static __thread yespower_local_t local;
+
+   if ( !initialized )
+   {   
+      if ( yespower_init_local( &local ) )
+         return -1;
+      initialized = 1;
+   }
+   
    for ( int k = 0; k < 19; k++ )
       be32enc( &endiandata[k], pdata[k] );
    endiandata[19] = n;
@@ -63,7 +65,8 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
    SHA256_Update( &sha256_prehash_ctx, endiandata, 64 );
 
    do {
-      if ( yespower_hash( (char*)endiandata, (char*)vhash, 80, thr_id ) )
+      if ( yespower_hash( &local, (char*)endiandata, 80, &yespower_params,
+                         (char*)vhash, thr_id ) )
       if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
       {
           be32enc( pdata+19, n );
@@ -78,11 +81,6 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
 
 // YESPOWER-B2B
 
-int yespower_b2b_hash( const char *input, char *output, uint32_t len, int thrid )
-{
-  return yespower_b2b_tls( input, len, &yespower_params, (yespower_binary_t*)output, thrid );
-}
-
 int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
 {
@@ -95,6 +93,16 @@ int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
    const uint32_t last_nonce = max_nonce;
    const int thr_id = mythr->id;
 
+   static __thread int initialized = 0;
+   static __thread yespower_local_t local;
+
+   if ( !initialized )
+   {
+      if ( yespower_init_local( &local ) )
+         return -1;
+      initialized = 1;
+   }
+   
    for ( int k = 0; k < 19; k++ )
       be32enc( &endiandata[k], pdata[k] );
    endiandata[19] = n;
@@ -104,7 +112,8 @@ int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
    SHA256_Update( &sha256_prehash_ctx, endiandata, 64 );
 
    do {
-      if (yespower_b2b_hash( (char*) endiandata, (char*) vhash, 80, thr_id ) )
+      if (yespower_b2b_hash( &local, (char*) endiandata, 80, &yespower_params,
+                            (char*) vhash, thr_id ) )
       if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
       {
           be32enc( pdata+19, n );
@@ -145,7 +154,6 @@ bool register_yespower_algo( algo_gate_t* gate )
 
   gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower;
-  gate->hash          = (void*)&yespower_hash;
   opt_target_factor = 65536.0;
   return true;
 };
@@ -159,7 +167,6 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
   yespower_params.perslen = 0;
   gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower;
-  gate->hash          = (void*)&yespower_hash;
   opt_target_factor = 65536.0;
   return true;
  };
@@ -268,9 +275,8 @@ bool register_power2b_algo( algo_gate_t* gate )
   applog( LOG_NOTICE,"Key= \"%s\"", yespower_params.pers );
   applog( LOG_NOTICE,"Key length= %d\n", yespower_params.perslen );
 
-  gate->optimizations = SSE2_OPT | SHA_OPT;
+  gate->optimizations = SSE2_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_b2b;
-  gate->hash          = (void*)&yespower_b2b_hash;
   opt_target_factor = 65536.0;
   return true;
 };
@@ -310,7 +316,6 @@ bool register_yespower_b2b_algo( algo_gate_t* gate )
 
   gate->optimizations = SSE2_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_b2b;
-  gate->hash          = (void*)&yespower_b2b_hash;
   opt_target_factor = 65536.0;
   return true;
 };

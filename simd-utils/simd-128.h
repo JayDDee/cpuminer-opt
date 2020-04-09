@@ -273,6 +273,20 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_ror_1x32( v )   _mm_shuffle_epi32( v, 0x39 )
 #define mm128_rol_1x32( v )   _mm_shuffle_epi32( v, 0x93 )
 
+
+//#define mm128_swap_64( v )    _mm_alignr_epi8( v, v,  8 )
+//#define mm128_ror_1x32( v )   _mm_alignr_epi8( v, v,  4 )
+//#define mm128_rol_1x32( v )   _mm_alignr_epi8( v, v, 12 )
+#define mm128_ror_1x16( v )   _mm_alignr_epi8( v, v,  2 )
+#define mm128_rol_1x16( v )   _mm_alignr_epi8( v, v, 14 )
+#define mm128_ror_1x8( v )    _mm_alignr_epi8( v, v,  1 )
+#define mm128_rol_1x8( v )    _mm_alignr_epi8( v, v, 15 )
+
+#define mm128_ror_x8( v, c )  _mm_alignr_epi8( v, c )
+#define mm128_rol_x8( v, c )  _mm_alignr_epi8( v, 16-(c) )
+
+
+/*
 // Rotate 16 byte (128 bit) vector by c bytes.
 // Less efficient using shift but more versatile. Use only for odd number
 // byte rotations. Use shuffle above whenever possible.
@@ -312,6 +326,8 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
    _mm_or_si128( _mm_slli_si128( v, 1 ), _mm_srli_si128( v, 15 ) )
 
 #endif   // SSE3 else SSE2
+*/
+
 
 // Invert vector: {3,2,1,0} -> {0,1,2,3}
 #define mm128_invert_32( v ) _mm_shuffle_epi32( v, 0x1b )
@@ -331,7 +347,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 //
 // Rotate elements within lanes.
 
-#define mm128_swap_64_32( v )  _mm_shuffle_epi32( v, 0xb1 )
+#define mm128_swap64_32( v )  _mm_shuffle_epi32( v, 0xb1 )
 
 #define mm128_rol64_8( v, c ) \
      _mm_or_si128( _mm_slli_epi64( v, ( ( (c)<<3 ) ), \

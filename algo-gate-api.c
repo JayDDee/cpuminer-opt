@@ -102,23 +102,16 @@ int null_hash()
    applog(LOG_WARNING,"SWERR: null_hash unsafe null function");
    return 0;
 };
-/*
-void null_hash_suw()
-{
-  applog(LOG_WARNING,"SWERR: null_hash_suw unsafe null function");
-};
-*/
+
 void init_algo_gate( algo_gate_t* gate )
 {
    gate->miner_thread_init       = (void*)&return_true;
    gate->scanhash                = (void*)&null_scanhash;
    gate->hash                    = (void*)&null_hash;
-//   gate->hash_suw                = (void*)&null_hash_suw;
    gate->get_new_work            = (void*)&std_get_new_work;
    gate->work_decode             = (void*)&std_le_work_decode;
    gate->decode_extra_data       = (void*)&do_nothing;
    gate->gen_merkle_root         = (void*)&sha256d_gen_merkle_root;
-   gate->stratum_gen_work        = (void*)&std_stratum_gen_work;
    gate->build_stratum_request   = (void*)&std_le_build_stratum_request;
    gate->malloc_txs_request      = (void*)&std_malloc_txs_request;
    gate->submit_getwork_result   = (void*)&std_le_submit_getwork_result;

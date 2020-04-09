@@ -53,7 +53,7 @@ int scanhash_groestl_4way( struct work *work, uint32_t max_nonce,
         if ( fulltest( hash+(lane<<3), ptarget) && !opt_benchmark )
         {
            pdata[19] = n + lane;
-           submit_lane_solution( work, hash+(lane<<3), mythr, lane );
+           submit_solution( work, hash+(lane<<3), mythr );
         }
         n += 4;
      } while ( ( n < last_nonce ) && !work_restart[thr_id].restart );

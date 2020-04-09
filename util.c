@@ -44,7 +44,7 @@
 #include <libgen.h>
 #endif
 
-#include "miner.h"
+//#include "miner.h"
 #include "elist.h"
 #include "algo-gate-api.h"
 
@@ -983,24 +983,7 @@ int timeval_subtract(struct timeval *result, struct timeval *x,
 	return x->tv_sec < y->tv_sec;
 }
 
-// deprecated, use test_hash_and_submit
-// Use this when deinterleaved
-// do 64 bit test 4 iterations
-inline bool valid_hash( const void *hash, const void *target )
-{
-   const uint64_t *h = (const uint64_t*)hash;
-   const uint64_t *t = (const uint64_t*)target;
-   if ( h[3] > t[3] ) return false;
-   if ( h[3] < t[3] ) return true;
-   if ( h[2] > t[2] ) return false;
-   if ( h[2] < t[2] ) return true;
-   if ( h[1] > t[1] ) return false;
-   if ( h[1] < t[1] ) return true;
-   if ( h[0] > t[0] ) return false;
-   return true;
-}
-
-// deprecated, use test_hash_and_submit
+// Deprecated
 bool fulltest( const uint32_t *hash, const uint32_t *target )
 {
 	int i;
@@ -1041,65 +1024,121 @@ bool fulltest( const uint32_t *hash, const uint32_t *target )
 	return rc;
 }
 
-void diff_to_target(uint32_t *target, double diff)
+// Mathmatically the difficulty is simply the reciprocal of the hash.
+// Both are real numbers but the hash (target) is represented as a 256 bit
+// number with the upper 32 bits representing the whole integer part and the
+// lower 224 bits representing the fractional part:
+//   target[ 255:224 ] = trunc( 1/diff )
+//   target[ 223:  0 ] = frac( 1/diff )
+//
+// The 256 bit hash is exact but any floating point representation is not.
+// Stratum provides the target difficulty as double precision, inexcact, and
+// which must be converted to a hash target. The converted hash target will
+// likely be less precise to to inexact input and conversion error.
+// converted to 256 bit hash which will also be inexact and likelyless
+// accurate to to error in conversion.
+// On the other hand getwork provides a 256 bit hash target which is exact.
+//
+// How much precision is needed?
+//
+// 128 bit types are implemented in software by the compiler using 64 bit
+// hardware resulting in lower performance and more error than would be
+// expected with a hardware 128 bit implementtaion.
+// Float80 exploits the internals of the FP unit which provide a 64 bit
+// mantissa in an 80 bit register with hardware rounding. When the destination
+// is double the data is rounded to float64 format. Long double returns all
+// 80 bits without rounding and including any accumulated computation error.
+// Float80 does not fit efficiently in memory.
+//
+// 256 bit hash: 76
+// float:         7     (float32, 80 bits with rounding to 32 bits)
+// double:       15     (float64, 80 bits with rounding to 64 bits)
+// long double   19     (float80, 80 bits with no rounding)
+// __float128    33     (128 bits with no rounding)
+// uint32_t:      9
+// uint64_t:     19
+// uint128_t     38
+//
+// The concept of significant digits doesn't apply to the 256 bit hash
+// representation. It's fixed point making leading zeros significant
+// Leading zeros count in the 256 bit 
+//
+// Doing calculations with float128 and uint128 increases precision for
+// target_to_diff, but doesn't help with stratum diff being limited to
+// double precision. Is the extra precision really worth the extra cost?
+//
+// With double the error rate is 1/1e15, or one hash in every Petahash
+// with a very low difficulty, not a likely sitiation. Higher difficulty
+// increases the effective precision. Due to the floating nature of the 
+// decimal point leading zeros aren't counted.
+//
+// Unfortunately I can't get float128 to work so long double it is.
+// All calculations will be done using long double then converted to double.
+// This prevent introducing significant new error while taking advantage
+// of HW rounding.
+
+#if defined(GCC_INT128)
+
+void diff_to_hash( uint32_t *target, const double diff )
 {
-   uint64_t m;
-   int k;
-
-   for (k = 6; k > 0 && diff > 1.0; k--)
-      diff /= exp32;
-
-//      diff /= 4294967296.0;
-
-//   m = (uint64_t)(4294901760.0 / diff);
-
-   m = (uint64_t)(exp32 / diff);
-
-   if (m == 0 && k == 6)
-      memset(target, 0xff, 32);
-   else {
-      memset(target, 0, 32);
-      target[k] = (uint32_t)m;
-      target[k + 1] = (uint32_t)(m >> 32);
-   }
+  uint128_t *targ = (uint128_t*)target;
+  register long double m = 1. / diff;
+  targ[0] = 0;
+  targ[1] = (uint128_t)( m * exp96 );
 }
 
-// deprecated
-void work_set_target(struct work* work, double diff)
+double hash_to_diff( const void *target )
 {
-	diff_to_target( work->target, diff );
-	work->targetdiff = diff;
+   const uint128_t *targ = (const uint128_t*)target;
+   register long double m = ( (long double)targ[1] / exp96 );
+//                        + ( (long double)targ[0] / exp160 );
+   return (double)( 1. / m );
 }
 
-double target_to_diff( uint32_t* target )
+inline bool valid_hash( const void *hash, const void *target )
 {
-   uint64_t *targ = (uint64_t*)target;
-   // extract 64 bits from target[ 240:176 ]
-   uint64_t m = ( targ[3] << 16 ) | ( targ[2] >> 48 );
-   return m ? (exp48-1.) / (double)m : 0.;
+   const uint128_t *h = (const uint128_t*)hash;
+   const uint128_t *t = (const uint128_t*)target;
+   if ( h[1] > t[1] ) return false;
+   if ( h[1] < t[1] ) return true;
+   if ( h[0] > t[0] ) return false;
+   return true;
 }
 
-/*
-double target_to_diff(uint32_t* target)
-{
-	uchar* tgt = (uchar*) target;
-	uint64_t m =
-		(uint64_t)tgt[29] << 56 |
-		(uint64_t)tgt[28] << 48 |
-		(uint64_t)tgt[27] << 40 |
-		(uint64_t)tgt[26] << 32 |
-		(uint64_t)tgt[25] << 24 |
-		(uint64_t)tgt[24] << 16 |
-		(uint64_t)tgt[23] << 8  |
-		(uint64_t)tgt[22] << 0;
+#else
 
-   
-	if (!m)
-		return 0.;
-	else
-		return (double)0x0000ffff00000000/m;
+void diff_to_hash( uint32_t *target, const double diff )
+{
+  uint64_t *targ = (uint64_t*)target;
+  register long double m = ( 1. / diff ) * exp32;
+  targ[1] = targ[0] = 0;
+  targ[3] = (uint64_t)m;
+  targ[2] = (uint64_t)( ( m - (long double)targ[3] ) * exp64 );
 }
-*/
+
+double hash_to_diff( const void *target )
+{
+   const uint64_t *targ = (const uint64_t*)target;
+   register long double m = ( (long double)targ[3] / exp32 )
+                          + ( (long double)targ[2] / exp96 );
+   return (double)( 1. / m );
+}
+
+inline bool valid_hash( const void *hash, const void *target )
+{
+   const uint64_t *h = (const uint64_t*)hash;
+   const uint64_t *t = (const uint64_t*)target;
+   if ( h[3] > t[3] ) return false;
+   if ( h[3] < t[3] ) return true;
+   if ( h[2] > t[2] ) return false;
+   if ( h[2] < t[2] ) return true;
+   if ( h[1] > t[1] ) return false;
+   if ( h[1] < t[1] ) return true;
+   if ( h[0] > t[0] ) return false;
+   return true;
+}
+
+#endif 
 
 #ifdef WIN32
 #define socket_blocks() (WSAGetLastError() == WSAEWOULDBLOCK)

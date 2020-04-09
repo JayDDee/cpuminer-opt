@@ -165,7 +165,7 @@ int scanhash_lyra2rev3_16way( struct work *work, const uint32_t max_nonce,
          if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ) )
          {
              pdata[19] = n + lane;
-             submit_lane_solution( work, lane_hash, mythr, lane );
+             submit_solution( work, lane_hash, mythr );
          }
       }
       n += 16;
@@ -284,7 +284,7 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
          if ( likely( valid_hash( lane_hash, ptarget ) && !bench ) )
          {
              pdata[19] = bswap_32( n + lane );
-             submit_lane_solution( work, lane_hash, mythr, lane );
+             submit_solution( work, lane_hash, mythr );
          }
       }
       *noncev = _mm256_add_epi32( *noncev, m256_const1_32( 8 ) );
@@ -386,7 +386,7 @@ int scanhash_lyra2rev3_4way( struct work *work, const uint32_t max_nonce,
          if ( valid_hash( lane_hash, ptarget ) && !opt_benchmark ) 
          {
               pdata[19] = bswap_32( n + lane );    
-              submit_lane_solution( work, lane_hash, mythr, lane );
+              submit_solution( work, lane_hash, mythr );
 	      }
       }
       *noncev = _mm_add_epi32( *noncev, m128_const1_32( 4 ) );

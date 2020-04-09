@@ -511,7 +511,9 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_ror128_32( v )   _mm512_shuffle_epi32( v, 0x39 )
 #define mm512_rol128_32( v )   _mm512_shuffle_epi32( v, 0x93 )
 
+#define mm512_ror128_x8( v, c )  _mm512_alignr_epi8( v, v, c )
 
+/*
 // Rotate 128 bit lanes by c bytes, faster than building that monstrous 
 // constant above.  
 #define mm512_ror128_8( v, c ) \
@@ -520,7 +522,7 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_rol128_8( v, c ) \
    _mm512_or_si512( _mm512_bslli_epi128( v, c ), \
                     _mm512_bsrli_epi128( v, 16-(c) ) )
-
+*/
 
 //
 // Rotate elements within 64 bit lanes.

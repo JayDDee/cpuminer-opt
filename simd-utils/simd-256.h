@@ -442,16 +442,19 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 
 #define mm256_ror128_32( v )  _mm256_shuffle_epi32( v, 0x39 )
 
-#define mm256_rol128_1x32( v )  _mm256_shuffle_epi32( v, 0x93 )
+#define mm256_rol128_32( v )  _mm256_shuffle_epi32( v, 0x93 )
 
-// Rotave each 128 bit lane by c elements.
+#define mm256_ror128_x8( v, c )  _mm256_alignr_epi8( v, v, c ) 
+
+/*
+// Rotate each 128 bit lane by c elements.
 #define mm256_ror128_8( v, c ) \
   _mm256_or_si256( _mm256_bsrli_epi128( v, c ), \
                    _mm256_bslli_epi128( v, 16-(c) ) )
 #define mm256_rol128_8( v, c ) \
   _mm256_or_si256( _mm256_bslli_epi128( v, c ), \
                    _mm256_bsrli_epi128( v, 16-(c) ) )
-
+*/
 
 // Rotate elements in each 64 bit lane
 

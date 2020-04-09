@@ -1112,10 +1112,10 @@ static void smix(uint8_t *B, size_t r, uint32_t N,
  *
  * Return 0 on success; or -1 on error.
  */
-int yespower_b2b(yespower_local_t *local,
+int yespower_b2b_hash(yespower_local_t *local,
     const uint8_t *src, size_t srclen,
     const yespower_params_t *params,
-    yespower_binary_t *dst, int thrid )
+    void *dst, int thrid )
 {
     uint32_t N = params->N;
     uint32_t r = params->r;
@@ -1190,38 +1190,5 @@ fail:
     memset(dst, 0xff, sizeof(*dst));
     return 0;
 }
-
-/**
- * yespower_tls(src, srclen, params, dst):
- * Compute yespower(src[0 .. srclen - 1], N, r), to be checked for "< target".
- * The memory allocation is maintained internally using thread-local storage.
- *
- * Return 0 on success; or -1 on error.
- */
-int yespower_b2b_tls(const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst, int thrid )
-{
-    static __thread int initialized = 0;
-    static __thread yespower_local_t local;
-
-    if (!initialized) {
-        init_region(&local);
-        initialized = 1;
-    }
-
-    return yespower_b2b(&local, src, srclen, params, dst, thrid);
-}
-/*
-int yespower_init_local(yespower_local_t *local)
-{
-    init_region(local);
-    return 0;
-}
-
-int yespower_free_local(yespower_local_t *local)
-{
-    return free_region(local);
-}
-*/
 
 #endif

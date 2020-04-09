@@ -245,7 +245,7 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
      if ( unlikely( valid_hash( hash+(lane<<3), ptarget ) && !bench ) )
      {
          pdata[19] = bswap_32( n + lane );
-         submit_lane_solution( work, hash+(lane<<3), mythr, lane );
+         submit_solution( work, hash+(lane<<3), mythr );
      }
      *noncev = _mm512_add_epi32( *noncev, m512_const1_32( 16 ) );
      n += 16;
@@ -394,7 +394,7 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
         if ( unlikely( valid_hash( lane_hash, ptarget ) && !bench ) )
         {
            pdata[19] = bswap_32( n + lane );
-           submit_lane_solution( work, lane_hash, mythr, lane );
+           submit_solution( work, lane_hash, mythr );
         }
      }
      n += 8;

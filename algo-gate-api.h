@@ -75,7 +75,7 @@
 
 // my hack at creating a set data type using bit masks. Set inclusion,
 // exclusion union and intersection operations are provided for convenience. In // some cases it may be desireable to use boolean algebra directly on the
-// data to perfomr set operations. Sets can be represented as single
+// data to perform set operations. Sets can be represented as single
 // elements, a bitwise OR of multiple elements, a bitwise OR of multiple
 // set variables or constants, or combinations of the above.
 // Examples:
@@ -110,22 +110,17 @@ inline bool set_excl ( set_t a, set_t b ) { return (a & b) == 0; }
 
 typedef struct
 {
-// mandatory functions, must be overwritten
+// mandatory function, must be overwritten
 int ( *scanhash ) ( struct work*, uint32_t, uint64_t*, struct thr_info* );
 
-// not used anywhere
-// optional unsafe, must be overwritten if algo uses function
+// Deprecated, will be removed
 int ( *hash )     ( void*, const void*, uint32_t ) ;
-//void ( *hash_suw ) ( void*, const void* );
 
 //optional, safe to use default in most cases
 
 // Allocate thread local buffers and other initialization specific to miner
 // threads.
 bool ( *miner_thread_init )     ( int );
-
-// Generate global blockheader from stratum data.
-void ( *stratum_gen_work )      ( struct stratum_ctx*, struct work* );
 
 // Get thread local copy of blockheader with unique nonce.
 void ( *get_new_work )          ( struct work*, struct work*, int, uint32_t* );
@@ -166,7 +161,9 @@ bool ( *do_this_thread )        ( int );
 // After do_this_thread
 void ( *resync_threads )        ( struct work* );
 
+// No longer needed
 json_t* (*longpoll_rpc_call)      ( CURL*, int*, char* );
+
 set_t optimizations;
 int  ( *get_work_data_size )     ();
 int  ntime_index;
@@ -215,14 +212,11 @@ int null_scanhash();
 
 // displays warning
 int null_hash    ();
-//void null_hash_suw();
 
 // optional safe targets, default listed first unless noted.
 
 void std_get_new_work( struct work *work, struct work *g_work, int thr_id,
                        uint32_t* end_nonce_ptr );
-
-void std_stratum_gen_work( struct stratum_ctx *sctx, struct work *work );
 
 void sha256d_gen_merkle_root( char *merkle_root, struct stratum_ctx *sctx );
 void SHA256_gen_merkle_root ( char *merkle_root, struct stratum_ctx *sctx );
@@ -251,10 +245,6 @@ void std_build_block_header( struct work* g_work, uint32_t version,
 void std_build_extraheader( struct work *work, struct stratum_ctx *sctx );
 
 json_t* std_longpoll_rpc_call( CURL *curl, int *err, char *lp_url );
-//json_t* jr2_longpoll_rpc_call( CURL *curl, int *err );
-
-//bool std_stratum_handle_response( json_t *val );
-//bool jr2_stratum_handle_response( json_t *val );
 
 bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
                         int thr_id );
@@ -272,11 +262,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate );
 // The register functions for all the algos can be declared here to reduce
 // compiler warnings but that's just more work for devs adding new algos.
 bool register_algo( algo_gate_t *gate );
-
-// Overrides a common set of functions used by RPC2 and other RPC2-specific
-// init. Called by algo's register function before initializing algo-specific
-// functions and data.
-//bool register_json_rpc2( algo_gate_t *gate );
 
 // use this to call the hash function of an algo directly, ie util.c test.
 void exec_hash_function( int algo, void *output, const void *pdata );

@@ -302,7 +302,7 @@ int scanhash_phi2_8way( struct work *work, uint32_t max_nonce,
          if ( valid_hash( lane_hash, ptarget ) )
          {
             be32enc( pdata + 19, n + lane );
-            submit_lane_solution( work, lane_hash, mythr, lane );
+            submit_solution( work, lane_hash, mythr );
          }
       }
       n += 8;
@@ -483,7 +483,7 @@ int scanhash_phi2_4way( struct work *work, uint32_t max_nonce,
          if ( valid_hash( lane_hash, ptarget ) )
          {
             be32enc( pdata + 19, n + lane );
-            submit_lane_solution( work, lane_hash, mythr, lane );
+            submit_solution( work, lane_hash, mythr );
          }
       }
       edata[        19 ] += 4;

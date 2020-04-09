@@ -235,7 +235,7 @@ int scanhash_quark_8way( struct work *work, uint32_t max_nonce,
           if ( valid_hash( lane_hash, ptarget ) )
           {
              pdata[19] = bswap_32( n + lane );
-             submit_lane_solution( work, lane_hash, mythr, lane );
+             submit_solution( work, lane_hash, mythr );
           }
        }
        *noncev = _mm512_add_epi32( *noncev,
@@ -408,7 +408,7 @@ int scanhash_quark_4way( struct work *work, uint32_t max_nonce,
           if ( valid_hash( lane_hash, ptarget ) )
           {
              pdata[19] = bswap_32( n + lane );
-             submit_lane_solution( work, lane_hash, mythr, lane );
+             submit_solution( work, lane_hash, mythr );
           }
        }
        *noncev = _mm256_add_epi32( *noncev,

@@ -129,7 +129,7 @@ int scanhash_jha_4way( struct work *work, uint32_t max_nonce,
                  if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
                  {
                     pdata[19] = n+i;
-                    submit_lane_solution( work, lane_hash, mythr, i );
+                    submit_solution( work, lane_hash, mythr );
                  }
               }
               n += 4;

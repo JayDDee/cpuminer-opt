@@ -324,7 +324,7 @@ int scanhash_x14_8way( struct work *work, uint32_t max_nonce,
             if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
             {
                 pdata[19] = n + lane;
-                submit_lane_solution( work, lane_hash, mythr, lane );
+                submit_solution( work, lane_hash, mythr );
             }
          }
          n += 8;
@@ -534,7 +534,7 @@ int scanhash_x14_4way( struct work *work, uint32_t max_nonce,
            if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
            {
                pdata[19] = n + lane;
-               submit_lane_solution( work, lane_hash, mythr, lane );
+               submit_solution( work, lane_hash, mythr );
            }
         }
         n += 4;

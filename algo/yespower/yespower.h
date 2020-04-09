@@ -76,67 +76,21 @@ typedef struct {
 	unsigned char uc[32];
 } yespower_binary_t __attribute__ ((aligned (64)));
 
-yespower_params_t yespower_params;
+extern yespower_params_t yespower_params;
 
-SHA256_CTX sha256_prehash_ctx;
+extern __thread SHA256_CTX sha256_prehash_ctx;
 
-/**
- * yespower_init_local(local):
- * Initialize the thread-local (RAM) data structure.  Actual memory allocation
- * is currently fully postponed until a call to yespower().
- *
- * Return 0 on success; or -1 on error.
- *
- * MT-safe as long as local is local to the thread.
- */
 extern int yespower_init_local(yespower_local_t *local);
 
-/**
- * yespower_free_local(local):
- * Free memory that may have been allocated for an initialized thread-local
- * (RAM) data structure.
- *
- * Return 0 on success; or -1 on error.
- *
- * MT-safe as long as local is local to the thread.
- */
 extern int yespower_free_local(yespower_local_t *local);
 
-/**
- * yespower(local, src, srclen, params, dst):
- * Compute yespower(src[0 .. srclen - 1], N, r), to be checked for "< target".
- * local is the thread-local data structure, allowing to preserve and reuse a
- * memory allocation across calls, thereby reducing processing overhead.
- *
- * Return 0 on success; or -1 on error.
- *
- * local must be initialized with yespower_init_local().
- *
- * MT-safe as long as local and dst are local to the thread.
- */
-extern int yespower(yespower_local_t *local,
+extern int yespower_hash(yespower_local_t *local,
     const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst, int thrid);
+    const yespower_params_t *params, void *dst, int thrid);
 
-extern int yespower_b2b(yespower_local_t *local,
+extern int yespower_b2b_hash(yespower_local_t *local,
     const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst, int thrid );
-
-/**
- * yespower_tls(src, srclen, params, dst):
- * Compute yespower(src[0 .. srclen - 1], N, r), to be checked for "< target".
- * The memory allocation is maintained internally using thread-local storage.
- *
- * Return 0 on success; or -1 on error.
- *
- * MT-safe as long as dst is local to the thread.
- */
-extern int yespower_tls(const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst, int thr_id);
-
-extern int yespower_b2b_tls(const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst, int thr_id);
-
+    const yespower_params_t *params, void *dst, int thrid );
 
 #if defined(__AVX2__)
 
@@ -148,7 +102,6 @@ typedef struct
 extern int yespower_8way( yespower_local_t *local, const __m256i *src,
                           size_t srclen, const yespower_params_t *params,
                           yespower_8way_binary_t *dst, int thrid );
-
 
 extern int yespower_8way_tls( const __m256i *src, size_t srclen,
     const yespower_params_t *params, yespower_8way_binary_t *dst, int thr_id );

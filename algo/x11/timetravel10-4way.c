@@ -256,7 +256,7 @@ int scanhash_timetravel10_4way( struct work *work,
             && !opt_benchmark )
       {
          pdata[19] = n+i;
-         submit_lane_solution( work, hash+(i<<3), mythr, i );
+         submit_solution( work, hash+(i<<3), mythr );
       }
       n += 4;
    } while ( ( n < max_nonce ) && !(*restart) );

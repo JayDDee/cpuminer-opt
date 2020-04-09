@@ -65,6 +65,16 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.8
+
+Yespower sha256 prehash made thread safe.
+
+Rewrote diff conversion functions from scratch to be simpler and use 
+long double (float80) and int128 arithmetic for improved accuracy and
+precision.
+
+Some code cleanup and assorted small changes.
+
 v3.12.7
 
 Issue #257: fixed a file descriptor leak which caused the CPU temperature

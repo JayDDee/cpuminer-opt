@@ -364,7 +364,7 @@ int scanhash_x15_8way( struct work *work, uint32_t max_nonce,
         if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
         {
            pdata[19] = n+i;
-           submit_lane_solution( work, hash, mythr, i );
+           submit_solution( work, hash, mythr );
         }
         n += 8;
      } while ( ( n < last_nonce ) && !work_restart[thr_id].restart );
@@ -592,7 +592,7 @@ int scanhash_x15_4way( struct work *work, uint32_t max_nonce,
          if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
          {
             pdata[19] = n+i;
-            submit_lane_solution( work, hash, mythr, i );
+            submit_solution( work, hash, mythr );
          }
          n += 4;
      } while ( ( n < last_nonce ) && !work_restart[thr_id].restart );

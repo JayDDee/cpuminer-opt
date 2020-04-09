@@ -322,16 +322,20 @@ int    timeval_subtract( struct timeval *result, struct timeval *x,
 //
 // diff_to_hash = 2**32 = 0x100000000 = 4294967296 = exp32;
 
-const double exp32;  // 2**32
-const double exp48;  // 2**48
-const double exp64;  // 2**64
+#define EXP16 65536.
+#define EXP32 4294967296.
+const long double exp32;  // 2**32
+const long double exp48;  // 2**48
+const long double exp64;  // 2**64
+const long double exp96;  // 2**96
+const long double exp128; // 2**128
+const long double exp160; // 2**160
 
 bool   fulltest( const uint32_t *hash, const uint32_t *target );
 bool   valid_hash( const void*, const void* );
 
-void   work_set_target( struct work* work, double diff );
-double target_to_diff( uint32_t* target );
-extern void diff_to_target( uint32_t *target, double diff );
+double hash_to_diff( const void* );
+extern void diff_to_hash( uint32_t*, const double );
 
 double hash_target_ratio( uint32_t* hash, uint32_t* target );
 void   work_set_target_ratio( struct work* work, const void *hash );
@@ -344,20 +348,11 @@ struct thr_info {
         struct cpu_info cpu;
 };
 
-//struct thr_info *thr_info;
-
-void test_hash_and_submit( struct work *work, const void *hash,
-                           struct thr_info *thr );
+//int test_hash_and_submit( struct work *work, const void *hash,
+//                           struct thr_info *thr );
 
 bool submit_solution( struct work *work, const void *hash,
                       struct thr_info *thr );
-
-// deprecated
-bool submit_lane_solution( struct work *work, const void *hash,
-                           struct thr_info *thr, const int lane );
-
-bool submit_work( struct thr_info *thr, const struct work *work_in );
-
 
 void   get_currentalgo( char* buf, int sz );
 /*
@@ -541,9 +536,6 @@ enum algos {
         ALGO_BMW,        
         ALGO_BMW512,
         ALGO_C11,         
-        ALGO_CRYPTOLIGHT, 
-        ALGO_CRYPTONIGHT,
-        ALGO_CRYPTONIGHTV7, 
         ALGO_DECRED,
         ALGO_DEEP,
         ALGO_DMD_GR,
@@ -635,9 +627,6 @@ static const char* const algo_names[] = {
         "bmw",
         "bmw512",
         "c11",
-        "cryptolight",
-        "cryptonight",
-        "cryptonightv7",
         "decred",
         "deep",
         "dmd-gr",
@@ -794,9 +783,6 @@ Options:\n\
                           bmw           BMW 256\n\
                           bmw512        BMW 512\n\
                           c11           Chaincoin\n\
-                          cryptolight   Cryptonight-light\n\
-                          cryptonight   Cryptonote legacy\n\
-                          cryptonightv7 variant 7, Monero (XMR)\n\
                           decred        Blake256r14dcr\n\
                           deep          Deepcoin (DCN)\n\
                           dmd-gr        Diamond\n\
@@ -812,8 +798,8 @@ Options:\n\
                           lyra2re       lyra2\n\
                           lyra2rev2     lyrav2\n\
                           lyra2rev3     lyrav2v3, Vertcoin\n\
-                          lyra2z        Zcoin (XZC)\n\
-                          lyra2z330     Lyra2 330 rows, Zoin (ZOI)\n\
+                          lyra2z\n\
+                          lyra2z330     Lyra2 330 rows\n\
                           m7m           Magi (XMG)\n\
                           myr-gr        Myriad-Groestl\n\
                           neoscrypt     NeoScrypt(128, 2, 1)\n\
@@ -853,7 +839,7 @@ Options:\n\
                           x14           X14\n\
                           x15           X15\n\
                           x16r\n\
-                          x16rv2        Ravencoin (RVN)\n\
+                          x16rv2\n\
                           x16rt         Gincoin (GIN)\n\
                           x16rt-veil    Veil (VEIL)\n\
                           x16s\n\

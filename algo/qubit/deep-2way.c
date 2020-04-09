@@ -106,13 +106,13 @@ int scanhash_deep_2way( struct work *work,uint32_t max_nonce,
             if ( fulltest( hash, ptarget) && !opt_benchmark )
             {
                 pdata[19] = n;
-                submit_lane_solution( work, hash, mythr, 0 );
+                submit_solution( work, hash, mythr );
             }
             if ( !( (hash+8)[7] & mask ) )
             if ( fulltest( hash+8, ptarget) && !opt_benchmark )
             {
                pdata[19] = n+1;
-               submit_lane_solution( work, hash+8, mythr, 1 );
+               submit_solution( work, hash+8, mythr );
             }
             n += 2;
          } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );

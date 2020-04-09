@@ -132,7 +132,7 @@ int scanhash_lbry_16way( struct work *work, uint32_t max_nonce,
          if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
          {
             pdata[27] = n + i;
-            submit_lane_solution( work, lane_hash, mythr, i );
+            submit_solution( work, lane_hash, mythr );
          }
       }
       n += 16;
@@ -251,7 +251,7 @@ int scanhash_lbry_8way( struct work *work, uint32_t max_nonce,
          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
          {
             pdata[27] = n + i;
-            submit_lane_solution( work, lane_hash, mythr, i );
+            submit_solution( work, lane_hash, mythr );
          }
       }
       n += 8;

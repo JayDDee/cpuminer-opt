@@ -46,7 +46,7 @@ int scanhash_x16rt_8way( struct work *work, uint32_t max_nonce,
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( n+i );
-         submit_lane_solution( work, hash+(i<<3), mythr, i );
+         submit_solution( work, hash+(i<<3), mythr );
       }
       *noncev = _mm512_add_epi32( *noncev,
                                   m512_const1_64( 0x0000000800000000 ) );
@@ -99,7 +99,7 @@ int scanhash_x16rt_4way( struct work *work, uint32_t max_nonce,
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( n+i );
-         submit_lane_solution( work, hash+(i<<3), mythr, i );
+         submit_solution( work, hash+(i<<3), mythr );
       }
       *noncev = _mm256_add_epi32( *noncev,
                                   m256_const1_64( 0x0000000400000000 ) );

@@ -48,7 +48,7 @@ int scanhash_blake_4way( struct work *work, uint32_t max_nonce,
       if ( fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
       {
           pdata[19] = n+i;
-          submit_lane_solution( work, hash+(i<<3), mythr, i );
+          submit_solution( work, hash+(i<<3), mythr );
       }
       n += 4;
 
@@ -107,7 +107,7 @@ int scanhash_blake_8way( struct work *work, uint32_t max_nonce,
       if ( (hash+i)[7] <= HTarget && fulltest( hash+i, ptarget ) )
       {
           pdata[19] = n+i;
-          submit_lane_solution( work, hash+(i<<3), mythr, i );
+          submit_solution( work, hash+(i<<3), mythr );
       }
       n += 8;
 

@@ -153,7 +153,7 @@ int scanhash_qubit_4way( struct work *work,uint32_t max_nonce,
         if ( likely( fulltest( hash+(lane<<3), ptarget) && !opt_benchmark ) )
         {
            pdata[19] = n + lane;
-           submit_lane_solution( work, hash+(lane<<3), mythr, lane );
+           submit_solution( work, hash+(lane<<3), mythr );
         }
         n += 4;
      } while ( ( n < max_nonce-4 ) && !work_restart[thr_id].restart );
@@ -255,13 +255,13 @@ int scanhash_qubit_2way( struct work *work,uint32_t max_nonce,
          if ( likely( fulltest( hash, ptarget) && !opt_benchmark ) )
          {
             pdata[19] = n;
-            submit_lane_solution( work, hash, mythr, 0 );
+            submit_solution( work, hash, mythr );
          }
          if ( unlikely( ( (hash+8))[7] <= Htarg ) )
          if ( likely( fulltest( hash+8, ptarget) && !opt_benchmark ) )
          {
             pdata[19] = n+1;
-            submit_lane_solution( work, hash+8, mythr, 1 );
+            submit_solution( work, hash+8, mythr );
          }
          n += 2;
      } while ( ( n < max_nonce ) && !work_restart[thr_id].restart );

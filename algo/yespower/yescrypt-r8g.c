@@ -19,11 +19,12 @@
  */
 
 #include "cpuminer-config.h"
-#include "miner.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "yescrypt-r8g.h"
+#include <stdlib.h> 
+#include "algo-gate-api.h"
+#include "yespower.h"
 
 int scanhash_yespower_r8g( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
@@ -37,7 +38,17 @@ int scanhash_yespower_r8g( struct work *work, uint32_t max_nonce,
     const uint32_t last_nonce = max_nonce;
     const int thr_id = mythr->id;
 
-    yespower_params_t params =
+   static __thread int initialized = 0;
+   static __thread yespower_local_t local;
+
+   if ( !initialized )
+   {
+      if ( yespower_init_local( &local ) )
+         return -1;
+      initialized = 1;
+   }
+
+   yespower_params_t params =
     {
 		.version = YESPOWER_0_5,
 		.N = 2048,
@@ -56,7 +67,7 @@ int scanhash_yespower_r8g( struct work *work, uint32_t max_nonce,
    SHA256_Update( &sha256_prehash_ctx, endiandata, 64 );
     
     do {
-       yespower_tls( (unsigned char *)endiandata, params.perslen,
+       yespower_hash( &local, (unsigned char *)endiandata, params.perslen,
                       &params, (yespower_binary_t*)hash, thr_id );
       
        if unlikely( valid_hash( hash, ptarget ) && !opt_benchmark )
@@ -76,7 +87,6 @@ bool register_yescryptr8g_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_r8g;
-  gate->hash          = (void*)&yespower_tls;
   pk_buffer_size      = 26;
   opt_sapling         = true;
   opt_target_factor   = 65536.0;

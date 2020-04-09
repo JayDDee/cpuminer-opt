@@ -68,7 +68,7 @@ bool lyra2z330_thread_init()
 
 bool register_lyra2z330_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE42_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT;
   gate->miner_thread_init = (void*)&lyra2z330_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z330;
   gate->hash       = (void*)&lyra2z330_hash;

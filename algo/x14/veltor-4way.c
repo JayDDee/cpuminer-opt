@@ -108,7 +108,7 @@ int scanhash_veltor_4way( struct work *work, uint32_t max_nonce,
          if ( (hash+(i<<3))[7] <= Htarg && fulltest( hash+(i<<3), ptarget ) )
          {
             pdata[19] = n+i;
-            submit_lane_solution( work, hash+(i<<3), mythr, i );
+            submit_solution( work, hash+(i<<3), mythr );
          }
          n += 4;
      } while ( ( n < max_nonce ) && !(*restart) );
