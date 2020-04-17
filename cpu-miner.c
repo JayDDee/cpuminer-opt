@@ -3285,7 +3285,7 @@ bool check_cpu_capability ()
 //     #endif
 
      cpu_brand_string( cpu_brand );
-     printf( "CPU: %s.\n", cpu_brand );
+     printf( "CPU: %s\n", cpu_brand );
      
      printf("SW built on " __DATE__
      #ifdef _MSC_VER
@@ -3294,7 +3294,7 @@ bool check_cpu_capability ()
          " with GCC");
         printf(" %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
      #else
-        printf(".\n");
+        printf("\n");
      #endif
 
      printf("CPU features: ");

@@ -65,6 +65,10 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.8.1
+
+Issue #261: Fixed yescryptr8g invalid shares.
+
 v3.12.8
 
 Yespower sha256 prehash made thread safe.
