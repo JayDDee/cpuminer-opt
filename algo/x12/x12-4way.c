@@ -170,6 +170,9 @@ void x12_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
 
+     update_final_echo( &ctx.echo, (BitSequence *)hash0,
+                       (const BitSequence *) hash0, 512 );
+     memcpy( &ctx.echo, &x12_8way_ctx.echo, sizeof(hashState_echo) );
      update_final_echo( &ctx.echo, (BitSequence *)hash1,
                        (const BitSequence *) hash1, 512 );
      memcpy( &ctx.echo, &x12_8way_ctx.echo, sizeof(hashState_echo) );
@@ -363,6 +366,18 @@ void x12_4way_hash( void *state, const void *input )
      simd_2way_update_close( &ctx.simd, vhash, vhash, 512 );
      dintrlv_2x128( hash2, hash3, vhash, 512 );
 
+     update_final_echo( &ctx.echo, (BitSequence *)hash0,
+                       (const BitSequence *) hash0, 512 );
+     memcpy( &ctx.echo, &x12_4way_ctx.echo, sizeof(hashState_echo) );
+     update_final_echo( &ctx.echo, (BitSequence *)hash1,
+                       (const BitSequence *) hash1, 512 );
+     memcpy( &ctx.echo, &x12_4way_ctx.echo, sizeof(hashState_echo) );
+     update_final_echo( &ctx.echo, (BitSequence *)hash2,
+                       (const BitSequence *) hash2, 512 );
+     memcpy( &ctx.echo, &x12_4way_ctx.echo, sizeof(hashState_echo) );
+     update_final_echo( &ctx.echo, (BitSequence *)hash3,
+                       (const BitSequence *) hash3, 512 );
+     
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
      memcpy( &ctx.groestl, &x12_4way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );

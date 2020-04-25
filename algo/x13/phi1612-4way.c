@@ -251,8 +251,12 @@ void phi1612_4way_hash( void *state, const void *input )
      memcpy( &ctx, &phi1612_4way_ctx, sizeof(phi1612_4way_ctx) );
 
      // Skein parallel 4way
-     skein512_4way_update( &ctx.skein, input, 80 );
-     skein512_4way_close( &ctx.skein, vhash );
+
+// skein 4way is broken for 80 bytes
+//     skein512_4way_update( &ctx.skein, input, 80 );
+//     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_prehash64( &ctx.skein, input );
+     skein512_4way_final16( &ctx.skein, vhash, input + (64*4) );
 
      // JH
      jh512_4way_update( &ctx.jh, vhash, 64 );

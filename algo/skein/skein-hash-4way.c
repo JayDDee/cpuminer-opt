@@ -1099,6 +1099,7 @@ skein512_4way_final16( skein512_4way_context *sc,  void *out, const void *data )
    casti_m256i( out, 7 ) = h7;
 }
 
+// Broken for 80 bytes, use prehash.
 void
 skein256_4way_update(void *cc, const void *data, size_t len)
 {

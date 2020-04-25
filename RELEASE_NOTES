@@ -65,6 +65,11 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.12.8.2
+
+Fixed x12 AVX2 rejects.
+Fixed phi AVX2 crash.
+
 v3.12.8.1
 
 Issue #261: Fixed yescryptr8g invalid shares.
