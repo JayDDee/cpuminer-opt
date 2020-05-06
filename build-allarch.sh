@@ -4,11 +4,18 @@
 # during develpment. However the information contained may provide compilation
 # tips to users.
 
-rm cpuminer-avx512 cpuminer-avx2 cpuminer-aes-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen  > /dev/null
+rm cpuminer-avx512-sha-vaes cpuminer-avx512 cpuminer-avx2 cpuminer-aes-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen  > /dev/null
 
 make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
+CFLAGS="-O3 -march=icelake-client -Wall" ./configure --with-curl
+make -j 16
+strip -s cpuminer.exe
+mv cpuminer.exe cpuminer-avx512-sha-vaes.exe
+strip -s cpuminer
+mv cpuminer cpuminer-avx512-sha-vaes
+
 CFLAGS="-O3 -march=skylake-avx512 -Wall" ./configure --with-curl
 make -j 16
 strip -s cpuminer.exe

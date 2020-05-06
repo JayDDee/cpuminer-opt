@@ -1,8 +1,8 @@
 This file is included in the Windows binary package. Compile instructions
 for Linux and Windows can be found in RELEASE_NOTES.
 
-cpuminer is a console program that is executed from a DOS command prompt.
-There is no GUI and no mouse support.
+cpuminer is a console program that is executed from a DOS or Powershell
+prompt. There is no GUI and no mouse support.
 
 Miner programs are often flagged as malware by antivirus programs. This is
 a false positive, they are flagged simply because they are cryptocurrency 
@@ -15,8 +15,8 @@ the features listed at cpuminer startup to ensure you are mining at
 optimum speed using the best available features.
 
 Architecture names and compile options used are only provided for Intel
-Core series. Budget CPUs like Pentium and Celeron are often missing the
-latest features.
+Core series. Budget CPUs like Pentium and Celeron are often missing some
+features.
 
 AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
 supported by cpuminer-opt due to an incompatible implementation of SSE2 on
@@ -31,14 +31,20 @@ https://en.wikipedia.org/wiki/List_of_Intel_CPU_microarchitectures
 https://en.wikipedia.org/wiki/List_of_AMD_CPU_microarchitectures
 
 
-Exe name                Compile flags            Arch name
+Exe file name              Compile flags              Arch name
 
-cpuminer-sse2.exe      "-msse2"                  Core2, Nehalem   
-cpuminer-aes-sse42.exe "-march=westmere"         Westmere
-cpuminer-avx.exe       "-march=corei7-avx"       Sandybridge
-cpuminer-avx2.exe      "-march=core-avx2 -maes"  Haswell, Skylake, Coffeelake
-cpuminer-avx512.exe    "-march=skylake-avx512"   Skylake-X, Cascadelake-X
-cpuminer-zen           "-march=znver1"           AMD Ryzen, Threadripper
+cpuminer-sse2.exe            "-msse2"                 Core2, Nehalem   
+cpuminer-aes-sse42.exe       "-march=westmere"        Westmere
+cpuminer-avx.exe             "-march=corei7-avx"      Sandybridge, Ivybridge
+cpuminer-avx2.exe            "-march=core-avx2 -maes" Haswell*
+cpuminer-avx512.exe          "-march=skylake-avx512"  Skylake-X, Cascadelake-X
+cpuminer-zen.exe             "-march=znver1"          AMD Ryzen, Threadripper
+cpuminer-avx512-sha-vaes.exe "-march=icelake-client"  Icelake*
+
+* Haswell includes Broadwell, Skylake, Kabylake, Coffeelake & Cometlake. 
+Icelake is only available on some laptops. Mining with a laptop is not
+recommended. The icelake build is included in anticipation of Intel eventually
+releasing a desktop CPU with a microarchitecture newer than Skylake.
 
 If you like this software feel free to donate:
 
