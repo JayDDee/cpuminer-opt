@@ -65,6 +65,10 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.13.0.1
+
+Issue #262: Fixed xevan AVX2 invalid shares.
+
 v3.13.0
 
 Updated Windows binaries compiled with GCC 9. Included DLLs also updated.

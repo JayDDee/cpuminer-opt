@@ -540,10 +540,10 @@ void xevan_4way_hash( void *output, const void *input )
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     sph_fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
 
      // Parallel 4way 32 bit
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
@@ -637,10 +637,10 @@ void xevan_4way_hash( void *output, const void *input )
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     sph_fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
+     sph_fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
 
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 
