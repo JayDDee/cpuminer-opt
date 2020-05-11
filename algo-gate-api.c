@@ -90,10 +90,42 @@ void algo_not_implemented()
 }
 
 // default null functions
-
+// deprecated, use generic as default
 int null_scanhash()
 {
    applog(LOG_WARNING,"SWERR: undefined scanhash function in algo_gate");
+   return 0;
+}
+
+// Default generic scanhash can be used in many cases.
+int scanhash_generic( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t edata[20] __attribute__((aligned(64)));
+   uint32_t hash[8] __attribute__((aligned(64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   uint32_t n = pdata[19];
+   const uint32_t first_nonce = pdata[19];
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+
+   mm128_bswap32_80( edata, pdata );
+
+   do
+   {
+      edata[19] = n;
+
+      if ( likely( algo_gate.hash( hash, edata, thr_id ) ) )
+      if ( unlikely( valid_hash( hash, ptarget ) && !bench ) )
+      {
+         pdata[19] = bswap_32( n );
+         submit_solution( work, hash, mythr );
+      }
+      n++;
+   } while ( n < max_nonce && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce;
+   pdata[19] = n;
    return 0;
 }
 
@@ -106,7 +138,7 @@ int null_hash()
 void init_algo_gate( algo_gate_t* gate )
 {
    gate->miner_thread_init       = (void*)&return_true;
-   gate->scanhash                = (void*)&null_scanhash;
+   gate->scanhash                = (void*)&scanhash_generic;
    gate->hash                    = (void*)&null_hash;
    gate->get_new_work            = (void*)&std_get_new_work;
    gate->work_decode             = (void*)&std_le_work_decode;
@@ -179,6 +211,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_LYRA2Z:        register_lyra2z_algo        ( gate ); break;
     case ALGO_LYRA2Z330:     register_lyra2z330_algo     ( gate ); break;
     case ALGO_M7M:           register_m7m_algo           ( gate ); break;
+    case ALGO_MINOTAUR:      register_minotaur_algo      ( gate ); break;
     case ALGO_MYR_GR:        register_myriad_algo        ( gate ); break;
     case ALGO_NEOSCRYPT:     register_neoscrypt_algo     ( gate ); break;
     case ALGO_NIST5:         register_nist5_algo         ( gate ); break;
@@ -251,7 +284,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
 // restore warnings
 #pragma GCC diagnostic pop
 
-// run the alternate hash function for a specific algo
 void exec_hash_function( int algo, void *output, const void *pdata )
 {
   algo_gate_t gate;   

@@ -93,6 +93,7 @@ Supported Algorithms
                           lyra2z        
                           lyra2z330     Lyra2 330 rows, Zoin (ZOI)
                           m7m           Magi (XMG)
+                          minotaur      Ringcoin (RNG)
                           myr-gr        Myriad-Groestl
                           neoscrypt     NeoScrypt(128, 2, 1)
                           nist5         Nist5

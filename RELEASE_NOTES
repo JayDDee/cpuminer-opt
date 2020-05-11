@@ -65,6 +65,10 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.13.1
+
+Added minotaur algo for Ringcoin.
+
 v3.13.0.1
 
 Issue #262: Fixed xevan AVX2 invalid shares.

@@ -113,8 +113,8 @@ typedef struct
 // mandatory function, must be overwritten
 int ( *scanhash ) ( struct work*, uint32_t, uint64_t*, struct thr_info* );
 
-// Deprecated, will be removed
-int ( *hash )     ( void*, const void*, uint32_t ) ;
+//int ( *hash )     ( void*, const void*, uint32_t ) ;
+int ( *hash )     ( void*, const void*, int );
 
 //optional, safe to use default in most cases
 
@@ -207,8 +207,12 @@ void four_way_not_tested();
 #define JR2_WORK_CMP_INDEX_2 43
 #define JR2_WORK_CMP_SIZE_2 33
 
-// allways returns failure
+// deprecated, use generic instead
 int null_scanhash();
+
+// Default generic, may be used in many cases.
+int scanhash_generic( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr );
 
 // displays warning
 int null_hash    ();
