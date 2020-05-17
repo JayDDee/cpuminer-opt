@@ -57,7 +57,7 @@ union _x17_8way_context_overlay
 } __attribute__ ((aligned (64)));
 typedef union _x17_8way_context_overlay x17_8way_context_overlay;
 
-void x17_8way_hash( void *state, const void *input )
+int x17_8way_hash( void *state, const void *input )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
      uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
@@ -230,6 +230,8 @@ void x17_8way_hash( void *state, const void *input )
      haval256_5_8way_init( &ctx.haval );
      haval256_5_8way_update( &ctx.haval, vhashA, 64 );
      haval256_5_8way_close( &ctx.haval, state );
+
+     return 1;
 }
 
 int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
@@ -300,7 +302,7 @@ union _x17_4way_context_overlay
 };  
 typedef union _x17_4way_context_overlay x17_4way_context_overlay;
 
-void x17_4way_hash( void *state, const void *input )
+int x17_4way_hash( void *state, const void *input )
 {
      uint64_t vhash[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
@@ -399,6 +401,8 @@ void x17_4way_hash( void *state, const void *input )
      haval256_5_4way_init( &ctx.haval );
      haval256_5_4way_update( &ctx.haval, vhashB, 64 );
      haval256_5_4way_close( &ctx.haval, state );
+
+     return 1;
 }
 
 int scanhash_x17_4way( struct work *work, uint32_t max_nonce,

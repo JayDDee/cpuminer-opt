@@ -57,7 +57,7 @@ union _xevan_8way_context_overlay
 } __attribute__ ((aligned (64)));
 typedef union _xevan_8way_context_overlay xevan_8way_context_overlay;
 
-void xevan_8way_hash( void *output, const void *input )
+int xevan_8way_hash( void *output, const void *input )
 {
      uint64_t vhash[16<<3] __attribute__ ((aligned (128)));
      uint64_t vhashA[16<<3] __attribute__ ((aligned (64)));
@@ -395,6 +395,8 @@ void xevan_8way_hash( void *output, const void *input )
      haval256_5_8way_init( &ctx.haval );
      haval256_5_8way_update( &ctx.haval, vhashA, dataLen );
      haval256_5_8way_close( &ctx.haval, output );
+
+     return 1;
 }
 
 int scanhash_xevan_8way( struct work *work, uint32_t max_nonce,
@@ -465,7 +467,7 @@ union _xevan_4way_context_overlay
 };
 typedef union _xevan_4way_context_overlay xevan_4way_context_overlay;
 
-void xevan_4way_hash( void *output, const void *input )
+int xevan_4way_hash( void *output, const void *input )
 {
      uint64_t hash0[16] __attribute__ ((aligned (64)));
      uint64_t hash1[16] __attribute__ ((aligned (64)));
@@ -666,6 +668,8 @@ void xevan_4way_hash( void *output, const void *input )
      haval256_5_4way_init( &ctx.haval );
      haval256_5_4way_update( &ctx.haval, vhashA, dataLen );
      haval256_5_4way_close( &ctx.haval, output );
+
+     return 1;
 }
 
 int scanhash_xevan_4way( struct work *work, uint32_t max_nonce,

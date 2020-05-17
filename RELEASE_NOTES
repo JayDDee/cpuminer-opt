@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.13.1.1
+
+Fixed Windows crash mining minotaur algo.
+
+Fixed GCC 10 compile again.
+Added -fno-common to testing to be consistent with GCC 10 default.
+
 v3.13.1
 
 Added minotaur algo for Ringcoin.

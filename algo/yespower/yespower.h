@@ -76,7 +76,7 @@ typedef struct {
 	unsigned char uc[32];
 } yespower_binary_t __attribute__ ((aligned (64)));
 
-yespower_params_t yespower_params;
+extern yespower_params_t yespower_params;
 
 //SHA256_CTX sha256_prehash_ctx;
 extern __thread SHA256_CTX sha256_prehash_ctx;

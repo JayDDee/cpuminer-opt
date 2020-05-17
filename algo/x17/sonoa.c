@@ -569,34 +569,4 @@ int sonoa_hash( void *state, const void *input, int thrid )
    return 1;
 }
 
-int scanhash_sonoa( struct work *work, uint32_t max_nonce,
-             uint64_t *hashes_done, struct thr_info *mythr)
-{
-   uint32_t edata[20] __attribute__((aligned(64)));
-   uint32_t hash64[8] __attribute__((aligned(64)));
-   uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
-   uint32_t n = pdata[19];
-   const uint32_t first_nonce = pdata[19];
-   const int thr_id = mythr->id;
-   const bool bench = opt_benchmark;
-
-   mm128_bswap32_80( edata, pdata );
-
-   do
-   {
-      edata[19] = n;
-      if ( sonoa_hash( hash64, edata, thr_id ) )
-      if ( unlikely( valid_hash( hash64, ptarget ) && !bench ) )
-      {
-         pdata[19] = bswap_32( n );
-         submit_solution( work, hash64, mythr );
-      }
-      n++;
-   } while ( n < max_nonce && !work_restart[thr_id].restart );
-   *hashes_done = n - first_nonce;
-   pdata[19] = n;
-   return 0;
-}
-
 #endif

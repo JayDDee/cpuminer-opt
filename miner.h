@@ -324,12 +324,12 @@ int    timeval_subtract( struct timeval *result, struct timeval *x,
 
 #define EXP16 65536.
 #define EXP32 4294967296.
-const long double exp32;  // 2**32
-const long double exp48;  // 2**48
-const long double exp64;  // 2**64
-const long double exp96;  // 2**96
-const long double exp128; // 2**128
-const long double exp160; // 2**160
+extern const long double exp32;  // 2**32
+extern const long double exp48;  // 2**48
+extern const long double exp64;  // 2**64
+extern const long double exp96;  // 2**96
+extern const long double exp128; // 2**128
+extern const long double exp160; // 2**160
 
 bool   fulltest( const uint32_t *hash, const uint32_t *target );
 bool   valid_hash( const void*, const void* );

@@ -56,7 +56,7 @@ union _x17_context_overlay
 };
 typedef union _x17_context_overlay x17_context_overlay;
 
-void x17_hash(void *output, const void *input)
+int x17_hash(void *output, const void *input, int thr_id )
 {
 //    unsigned char hash[64 * 4] __attribute__((aligned(64))) = {0};
     unsigned char hash[64] __attribute__((aligned(64)));
@@ -143,36 +143,8 @@ void x17_hash(void *output, const void *input)
     sph_haval256_5_init(&ctx.haval);
     sph_haval256_5( &ctx.haval, (const void*)hash, 64 );
     sph_haval256_5_close( &ctx.haval, output );
-}
 
-int scanhash_x17( struct work *work, uint32_t max_nonce,
-	          uint64_t *hashes_done, struct thr_info *mythr)
-{
-   uint32_t edata[20] __attribute__((aligned(64)));
-   uint32_t hash64[8] __attribute__((aligned(64)));
-   uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
-   uint32_t n = pdata[19] - 1;
-   const uint32_t first_nonce = pdata[19];
-   const int thr_id = mythr->id;
-   const bool bench = opt_benchmark;
-
-   mm128_bswap32_80( edata, pdata );
-   
-   do
-   {
-      edata[19] = n;
-      x17_hash( hash64, edata );
-      if ( unlikely( valid_hash( hash64, ptarget ) && !bench ) )
-      {
-         pdata[19] = bswap_32( n );
-         submit_solution( work, hash64, mythr );
-      }
-      n++;
-   } while ( n < max_nonce && !work_restart[thr_id].restart );
-   *hashes_done = n - first_nonce;
-   pdata[19] = n;
-   return 0;
+    return 1;
 }
 
 #endif

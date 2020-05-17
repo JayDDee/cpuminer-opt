@@ -44,14 +44,14 @@ cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
 rm -f config.status
 ./autogen.sh || echo done
 CFLAGS="-O3 -march=icelake-client -Wall" ./configure $CONFIGURE_ARGS
-make -j 16
+make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx512-sha-vaes.exe
 
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=znver1 -Wall" ./configure $CONFIGURE_ARGS
-make -j 16
+make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-zen.exe
 
@@ -60,7 +60,7 @@ make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=skylake-avx512 -Wall" ./configure $CONFIGURE_ARGS
 #CFLAGS="-O3 -march=skylake-avx512 -Wall -fno-asynchronous-unwind-tables" ./configure $CONFIGURE_ARGS
-make -j 16
+make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx512.exe
 
@@ -68,7 +68,7 @@ make clean || echo clean
 rm -f config.status
 # GCC 9 doesn't include AES in -march=core-avx2
 CFLAGS="-O3 -march=core-avx2 -maes -Wall" ./configure $CONFIGURE_ARGS
-make -j 16
+make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx2.exe
 
@@ -76,7 +76,7 @@ make clean || echo clean
 rm -f config.status
 # -march=corei7-avx still includes aes, but just in case
 CFLAGS="-O3 -march=corei7-avx -maes -Wall" ./configure $CONFIGURE_ARGS 
-make -j 16
+make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx.exe
 
@@ -85,7 +85,7 @@ make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=westmere -Wall" ./configure $CONFIGURE_ARGS
 #CFLAGS="-O3 -maes -msse4.2 -Wall" ./configure $CONFIGURE_ARGS
-make -j 16
+make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-aes-sse42.exe
 
@@ -107,7 +107,7 @@ mv cpuminer.exe release/cpuminer-aes-sse42.exe
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -msse2 -Wall" ./configure $CONFIGURE_ARGS
-make -j 16
+make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-sse2.exe
 make clean || echo clean

@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
-#include "algo/groestl/sph_groestl.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
@@ -15,7 +14,6 @@
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
-#include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
@@ -24,8 +22,10 @@
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
+#else
+  #include "algo/echo/sph_echo.h"
+  #include "algo/groestl/sph_groestl.h"
 #endif
-
 
 // Config
 #define MINOTAUR_ALGO_COUNT	16
@@ -39,8 +39,8 @@ struct TortureGarden {
         hashState_echo          echo;
         hashState_groestl       groestl;
 #else
-        sph_groestl512_context   groestl;
         sph_echo512_context      echo;
+        sph_groestl512_context   groestl;
 #endif
         sph_blake512_context    blake;
         sph_bmw512_context      bmw;
@@ -62,13 +62,13 @@ struct TortureGarden {
         TortureNode *childLeft;
         TortureNode *childRight;
     } nodes[22];
-};
+} __attribute__ ((aligned (64)));
 
 // Get a 64-byte hash for given 64-byte input, using given TortureGarden contexts and given algo index
 static void get_hash( void *output, const void *input, TortureGarden *garden,
 	              unsigned int algo )
 {    
-	unsigned char _ALIGN(64) hash[64];
+	unsigned char hash[64] __attribute__ ((aligned (64)));
 
     switch (algo) {
         case 0:
@@ -170,7 +170,7 @@ static void get_hash( void *output, const void *input, TortureGarden *garden,
 static void traverse_garden( TortureGarden *garden, void *hash,
 	                     TortureNode *node )
 {
-    unsigned char _ALIGN(64) partialHash[64];
+    unsigned char partialHash[64] __attribute__ ((aligned (64)));
     get_hash(partialHash, hash, garden, node->algo);
 
     if ( partialHash[63] % 2 == 0 )
@@ -195,9 +195,9 @@ static inline void link_nodes( TortureNode *parent, TortureNode *childLeft,
     parent->childRight = childRight;
 }
 
-static TortureGarden garden;
+static __thread TortureGarden garden;
 
-void initialize_torture_garden()
+bool initialize_torture_garden()
 {
     // Create torture garden nodes. Note that both sides of 19 and 20 lead to 21, and 21 has no children (to make traversal complete).
     link_nodes(&garden.nodes[0], &garden.nodes[1], &garden.nodes[2]);
@@ -223,12 +223,13 @@ void initialize_torture_garden()
     link_nodes(&garden.nodes[20], &garden.nodes[21], &garden.nodes[21]);
     garden.nodes[21].childLeft = NULL;
     garden.nodes[21].childRight = NULL;
+    return true;
 }
 
 // Produce a 32-byte hash from 80-byte input data
 int minotaur_hash( void *output, const void *input )
 {    
-    unsigned char _ALIGN(64) hash[64];
+    unsigned char hash[64] __attribute__ ((aligned (64)));
 
     // Find initial sha512 hash
     SHA512_Init( &garden.sha512 );
@@ -251,7 +252,7 @@ bool register_minotaur_algo( algo_gate_t* gate )
 {
   gate->hash      = (void*)&minotaur_hash;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
-  initialize_torture_garden();
+  gate->miner_thread_init = (void*)&initialize_torture_garden;
   return true;
 };
 

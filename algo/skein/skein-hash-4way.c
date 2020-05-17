@@ -731,7 +731,7 @@ void skein512_8way_full( skein512_8way_context *sc, void *out, const void *data,
 void
 skein512_8way_prehash64( skein512_8way_context *sc, const void *data )
 {
-   __m512i *vdata = (__m512*)data;
+   __m512i *vdata = (__m512i*)data;
    __m512i *buf = sc->buf;
    buf[0] = vdata[0];
    buf[1] = vdata[1];

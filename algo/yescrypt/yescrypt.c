@@ -445,7 +445,7 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 
    YESCRYPT_P = 1;
 
-   applog( LOG_NOTICE,"Yescrypt parameters: N= %d, R= %d.", YESCRYPT_N,
+   applog( LOG_NOTICE,"Yescrypt parameters: N= %d, R= %d", YESCRYPT_N,
                                                             YESCRYPT_R );
    if ( yescrypt_client_key )
      applog( LOG_NOTICE,"Key= \"%s\"\n", yescrypt_client_key );

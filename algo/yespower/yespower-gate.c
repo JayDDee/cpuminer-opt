@@ -139,7 +139,7 @@ bool register_yespower_algo( algo_gate_t* gate )
      yespower_params.perslen = 0;
   }
 
-  applog( LOG_NOTICE,"Yespower parameters: N= %d, R= %d.", yespower_params.N,
+  applog( LOG_NOTICE,"Yespower parameters: N= %d, R= %d", yespower_params.N,
                                                            yespower_params.r );
   if ( yespower_params.pers )
      applog( LOG_NOTICE,"Key= \"%s\"\n", yespower_params.pers );
@@ -264,7 +264,7 @@ bool register_power2b_algo( algo_gate_t* gate )
   yespower_params.pers = "Now I am become Death, the destroyer of worlds";
   yespower_params.perslen = 46;
 
-  applog( LOG_NOTICE,"yespower-b2b parameters: N= %d, R= %d.", yespower_params.N,
+  applog( LOG_NOTICE,"yespower-b2b parameters: N= %d, R= %d", yespower_params.N,
                                                            yespower_params.r );
   applog( LOG_NOTICE,"Key= \"%s\"", yespower_params.pers );
   applog( LOG_NOTICE,"Key length= %d\n", yespower_params.perslen );

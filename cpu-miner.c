@@ -55,9 +55,12 @@
 #endif
 
 // GCC 9 warning sysctl.h is deprecated
+#if ( __GNUC__ < 9 )
 #include <sys/sysctl.h>
 #endif
-#endif
+
+#endif  // HAVE_SYS_SYSCTL_H
+#endif  // _MSC_VER ELSE
 
 #ifndef WIN32
 #include <sys/resource.h>

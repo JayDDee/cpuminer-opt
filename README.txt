@@ -46,6 +46,15 @@ Icelake is only available on some laptops. Mining with a laptop is not
 recommended. The icelake build is included in anticipation of Intel eventually
 releasing a desktop CPU with a microarchitecture newer than Skylake.
 
+Notes about included DLL files:
+
+Downloading DLL files from alternative sources presents an inherent
+security risk if their source is unknown. All DLL files included have
+been copied from the Ubuntu-20.04 instalation or compiled by me from
+source code obtained from the author's official repository. The exact
+procedure is documented in the build instructions for Windows:
+https://github.com/JayDDee/cpuminer-opt/wiki/Compiling-from-source
+
 If you like this software feel free to donate:
 
 BTC: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT

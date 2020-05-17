@@ -110,7 +110,9 @@ inline bool set_excl ( set_t a, set_t b ) { return (a & b) == 0; }
 
 typedef struct
 {
-// mandatory function, must be overwritten
+// Mandatory functions, one of these is mandatory. If the default scanhash
+// is used a custom hash function must be registered, with a custom scanhash
+// the hash function is not necessary. 
 int ( *scanhash ) ( struct work*, uint32_t, uint64_t*, struct thr_info* );
 
 //int ( *hash )     ( void*, const void*, uint32_t ) ;
