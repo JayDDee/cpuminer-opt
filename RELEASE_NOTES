@@ -65,6 +65,14 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.13.2-segwit-test
+
+Added support for SegWit.
+
+This is a test release, it may contain bugs and additional debug logging.
+Solo miners are invited to test it and report their results. Other users
+may want to wait for the next general release before upgrading.
+
 v3.13.1.1
 
 Fixed Windows crash mining minotaur algo.

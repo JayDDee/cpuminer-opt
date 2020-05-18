@@ -313,6 +313,10 @@ size_t address_to_script( unsigned char *out, size_t outsz, const char *addr );
 int    timeval_subtract( struct timeval *result, struct timeval *x,
                            struct timeval *y);
 
+// Segwit BEGIN
+extern void memrev(unsigned char *p, size_t len);
+// Segwit END
+
 // Bitcoin formula for converting difficulty to an equivalent
 // number of hashes.
 //
