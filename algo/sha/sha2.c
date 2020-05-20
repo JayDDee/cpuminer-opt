@@ -479,8 +479,8 @@ static inline void sha256d_ms(uint32_t *hash, uint32_t *W,
 void sha256d_ms_4way(uint32_t *hash,  uint32_t *data,
 	const uint32_t *midstate, const uint32_t *prehash);
 
-static inline int scanhash_sha256d_4way(int thr_id, struct work *work,
-             uint32_t max_nonce, uint64_t *hashes_done)
+static inline int scanhash_sha256d_4way( struct work *work,
+             uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
@@ -492,6 +492,7 @@ static inline int scanhash_sha256d_4way(int thr_id, struct work *work,
 	uint32_t n = pdata[19] - 1;
 	const uint32_t first_nonce = pdata[19];
 	const uint32_t Htarg = ptarget[7];
+   int thr_id = mythr->id;
 	int i, j;
 	
 	memcpy(data, pdata + 16, 64);
@@ -521,10 +522,8 @@ static inline int scanhash_sha256d_4way(int thr_id, struct work *work,
 			if (swab32(hash[4 * 7 + i]) <= Htarg) {
 				pdata[19] = data[4 * 3 + i];
 				sha256d_80_swap(hash, pdata);
-				if (fulltest(hash, ptarget)) {
-					*hashes_done = n - first_nonce + 1;
-					return 1;
-				}
+            if ( fulltest( hash, ptarget ) && !opt_benchmark )
+               submit_solution( work, hash, mythr );
 			}
 		}
 	} while (n < max_nonce && !work_restart[thr_id].restart);
@@ -541,8 +540,8 @@ static inline int scanhash_sha256d_4way(int thr_id, struct work *work,
 void sha256d_ms_8way(uint32_t *hash,  uint32_t *data,
 	const uint32_t *midstate, const uint32_t *prehash);
 
-static inline int scanhash_sha256d_8way(int thr_id, struct work *work,
-                              uint32_t max_nonce, uint64_t *hashes_done)
+static inline int scanhash_sha256d_8way( struct work *work,
+            uint32_t max_nonce, uint64_t *hashes_done, struct thr_info *mythr )
 {
         uint32_t *pdata = work->data;
         uint32_t *ptarget = work->target;
@@ -554,6 +553,7 @@ static inline int scanhash_sha256d_8way(int thr_id, struct work *work,
 	uint32_t n = pdata[19] - 1;
 	const uint32_t first_nonce = pdata[19];
 	const uint32_t Htarg = ptarget[7];
+   int thr_id = mythr->id;
 	int i, j;
 	
 	memcpy(data, pdata + 16, 64);
@@ -583,10 +583,8 @@ static inline int scanhash_sha256d_8way(int thr_id, struct work *work,
 			if (swab32(hash[8 * 7 + i]) <= Htarg) {
 				pdata[19] = data[8 * 3 + i];
 				sha256d_80_swap(hash, pdata);
-				if (fulltest(hash, ptarget)) {
-					*hashes_done = n - first_nonce + 1;
-					return 1;
-				}
+            if ( fulltest( hash, ptarget ) && !opt_benchmark )
+               submit_solution( work, hash, mythr );
 			}
 		}
 	} while (n < max_nonce && !work_restart[thr_id].restart);
@@ -614,13 +612,11 @@ int scanhash_sha256d( struct work *work,
 
 #ifdef HAVE_SHA256_8WAY
 	if (sha256_use_8way())
-		return scanhash_sha256d_8way(thr_id, work,
-			max_nonce, hashes_done);
+		return scanhash_sha256d_8way( work,	max_nonce, hashes_done, mythr );
 #endif
 #ifdef HAVE_SHA256_4WAY
 	if (sha256_use_4way())
-		return scanhash_sha256d_4way(thr_id, work,
-			max_nonce, hashes_done);
+		return scanhash_sha256d_4way( work,	max_nonce, hashes_done, mythr );
 #endif
 	
 	memcpy(data, pdata + 16, 64);
@@ -657,7 +653,7 @@ int scanhash_SHA256d( struct work *work, const uint32_t max_nonce,
    uint32_t n = pdata[19] - 1;
    const uint32_t first_nonce = pdata[19];
    const uint32_t Htarg = ptarget[7];
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;
 
    memcpy( data, pdata, 80 );
 

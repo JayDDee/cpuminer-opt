@@ -65,13 +65,16 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
-v3.13.2-segwit-test
+v3.14.0
 
-Added support for SegWit.
+Changes to solo mining:
+  - segwit is supported by getblocktemplate,
+  - longpolling is not working and is disabled,
+  - Periodic Report log is output,
+  - New Block log includes TTF estimates,
+  - Stratum thread no longer created when using getwork or GBT.
 
-This is a test release, it may contain bugs and additional debug logging.
-Solo miners are invited to test it and report their results. Other users
-may want to wait for the next general release before upgrading.
+Fixed BUG log mining sha256d.
 
 v3.13.1.1
 

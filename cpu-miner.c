@@ -88,7 +88,7 @@ bool opt_protocol = false;
 bool opt_benchmark = false;
 bool opt_redirect = true;
 bool opt_extranonce = true;
-bool want_longpoll = true;
+bool want_longpoll = false;
 bool have_longpoll = false;
 bool have_gbt = true;
 bool allow_getwork = true;
@@ -494,7 +494,7 @@ static bool get_mininginfo( CURL *curl, struct work *work )
 	   	if ( json_is_object( key ) )
 		   	key = json_object_get( key, "proof-of-work" );
 		   if ( json_is_real( key ) )
-			   net_diff = json_real_value( key );
+			   net_diff = work->targetdiff = json_real_value( key );
 	   }
 
       key = json_object_get( res, "networkhashps" );
@@ -565,21 +565,21 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
 
 // Segwit BEGIN
    bool segwit = false;
-   tmp = json_object_get(val, "rules");
-   if (tmp && json_is_array(tmp)) {
-      n = json_array_size(tmp);
-      for (i = 0; i < n; i++) {
-         const char *s = json_string_value(json_array_get(tmp, i));
-         if (!s)
+   tmp = json_object_get( val, "rules" );
+   if ( tmp && json_is_array( tmp ) )
+   {
+      n = json_array_size( tmp );
+      for ( i = 0; i < n; i++ )
+      {
+         const char *s = json_string_value( json_array_get( tmp, i ) );
+         if ( !s )
             continue;
-         if (!strcmp(s, "segwit") || !strcmp(s, "!segwit"))
+         if ( !strcmp( s, "segwit" ) || !strcmp( s, "!segwit" ) )
             segwit = true;
       }
    }
 // Segwit END
    
-if ( segwit ) applog( LOG_INFO, "SEGWIT test, segwit is enabled");
-
    tmp = json_object_get( val, "mutable" );
    if ( tmp && json_is_array( tmp ) )
    {
@@ -612,9 +612,6 @@ if ( segwit ) applog( LOG_INFO, "SEGWIT test, segwit is enabled");
       goto out;
    }
    version = (uint32_t) json_integer_value( tmp );
-
-   applog( LOG_INFO, "SEGWIT test, block version= %d", version );
-
    // yescryptr8g uses block version 5 and sapling.
    if ( opt_sapling )
       work->sapling = true;
@@ -754,10 +751,8 @@ if ( segwit ) applog( LOG_INFO, "SEGWIT test, segwit is enabled");
       cbtx_size += (int) pk_script_size;
 
 // Segwit BEGIN
-       if (segwit) {
-
-applog( LOG_INFO, "SEGWIT test: add segwit to tx"); 
- 
+       if ( segwit )
+       {
           unsigned char (*wtree)[32] = calloc(tx_count + 2, 32);
          memset(cbtx+cbtx_size, 0, 8); /* value */
          cbtx_size += 8;
@@ -768,28 +763,32 @@ applog( LOG_INFO, "SEGWIT test: add segwit to tx");
          cbtx[cbtx_size++] = 0x21;
          cbtx[cbtx_size++] = 0xa9;
          cbtx[cbtx_size++] = 0xed;
-         for (i = 0; i < tx_count; i++) {
-            const json_t *tx = json_array_get(txa, i);
-            const json_t *hash = json_object_get(tx, "hash");
-            if (!hash || !hex2bin(wtree[1+i], json_string_value(hash), 32)) {
+         for ( i = 0; i < tx_count; i++ )
+         {
+            const json_t *tx = json_array_get( txa, i );
+            const json_t *hash = json_object_get(tx, "hash" );
+            if ( !hash || !hex2bin( wtree[1+i],
+                                    json_string_value( hash ), 32 ) )
+            {
                applog(LOG_ERR, "JSON invalid transaction hash");
                free(wtree);
                goto out;
             }
-            memrev(wtree[1+i], 32);
+            memrev( wtree[1+i], 32 );
          }
          n = tx_count + 1;
-         while (n > 1) {
-            if (n % 2)
-               memcpy(wtree[n], wtree[n-1], 32);
-            n = (n + 1) / 2;
-            for (i = 0; i < n; i++)
-               sha256d(wtree[i], wtree[2*i], 64);
+         while ( n > 1 )
+         {
+            if ( n % 2 )
+               memcpy( wtree[n], wtree[n-1], 32 );
+            n = ( n + 1 ) / 2;
+            for ( i = 0; i < n; i++ )
+               sha256d( wtree[i], wtree[2*i], 64 );
          }
-         memset(wtree[1], 0, 32);  /* witness reserved value = 0 */
-         sha256d(cbtx+cbtx_size, wtree[0], 64);
+         memset( wtree[1], 0, 32 );  /* witness reserved value = 0 */
+         sha256d( cbtx+cbtx_size, wtree[0], 64 );
          cbtx_size += 32;
-         free(wtree);
+         free( wtree );
       }
 // Segwit END
 
@@ -860,8 +859,8 @@ applog( LOG_INFO, "SEGWIT test: add segwit to tx");
    bin2hex( work->txs + 2*n, cbtx, cbtx_size );
 
    /* generate merkle root */
-   merkle_tree = (uchar(*)[32]) calloc(((1 + tx_count + 1) & ~1), 32);
-   sha256d(merkle_tree[0], cbtx, cbtx_size);
+   merkle_tree = (uchar(*)[32]) calloc( ( (1 + tx_count + 1) & ~1 ), 32 );
+   sha256d( merkle_tree[0], cbtx, cbtx_size );
    for ( i = 0; i < tx_count; i++ )
    {
       tmp = json_array_get( txa, i );
@@ -871,13 +870,13 @@ applog( LOG_INFO, "SEGWIT test: add segwit to tx");
 // Segwit BEGIN      
       if ( segwit )
       {
-         const char *txid = json_string_value(json_object_get(tmp, "txid"));
-         if (!txid || !hex2bin(merkle_tree[1 + i], txid, 32))
+         const char *txid = json_string_value( json_object_get( tmp, "txid" ) );
+         if ( !txid || !hex2bin( merkle_tree[1 + i], txid, 32 ) )
          {
             applog(LOG_ERR, "JSON invalid transaction txid");
             goto out;
          }
-         memrev(merkle_tree[1 + i], 32);
+         memrev( merkle_tree[1 + i], 32 );
       }
       else
       {
@@ -1567,25 +1566,27 @@ start:
 
    if ( rc ) 
    {
-      if ( opt_protocol )
+      json_decref( val );
+
+      get_mininginfo( curl, work );
+      report_summary_log( false );
+      
+      if ( opt_protocol | opt_debug )
       {
          timeval_subtract( &diff, &tv_end, &tv_start );
-         applog( LOG_DEBUG, "got new work in %.2f ms",
+         applog( LOG_INFO, "%s new work received in %.2f ms",
+              ( have_gbt ? "GBT" : "GetWork" ),
               ( 1000.0 * diff.tv_sec ) + ( 0.001 * diff.tv_usec ) );
       }
-
-      json_decref( val );
-      // store work height in solo
-      get_mininginfo(curl, work);
 
       if ( work->height > last_block_height )
       {
          last_block_height = work->height;
-         applog( LOG_BLUE, "New Block %d, Net Diff %.5g, Target Diff %.5g, Ntime %08x",
-                           work->height, net_diff, work->targetdiff,
+         applog( LOG_BLUE, "New Block %d, Net Diff %.5g, Ntime %08x",
+                           work->height, net_diff,
                            bswap_32( work->data[ algo_gate.ntime_index ] ) );
 
-         if ( !opt_quiet && net_diff && net_hashrate )
+         if ( !opt_quiet && net_diff && ( net_hashrate > 0. ) )
          {
             double miner_hr = 0.;
             pthread_mutex_lock( &stats_lock );
@@ -1596,7 +1597,7 @@ start:
 
             pthread_mutex_unlock( &stats_lock );
 
-            if ( miner_hr )
+            if ( miner_hr > 0. )
             {
                double net_hr = net_hashrate;
                char net_hr_units[4] = {0};
@@ -1604,8 +1605,8 @@ start:
                char net_ttf[32];
                char miner_ttf[32];
 
-               sprintf_et( net_ttf, ( work->targetdiff * exp32 ) / net_hr );
-               sprintf_et( miner_ttf, ( work->targetdiff * exp32 ) / miner_hr );
+               sprintf_et( net_ttf, ( net_diff * exp32 ) / net_hr );
+               sprintf_et( miner_ttf, ( net_diff * exp32 ) / miner_hr );
                scale_hash_for_display ( &miner_hr, miner_hr_units );
                scale_hash_for_display ( &net_hr, net_hr_units );
                applog2( LOG_INFO,
@@ -3316,15 +3317,8 @@ static void show_credits()
 {
    printf("\n         **********  "PACKAGE_NAME" "PACKAGE_VERSION"  *********** \n");
    printf("     A CPU miner with multi algo support and optimized for CPUs\n");
-   printf("     with AVX512, SHA and VAES extensions.\n");
+   printf("     with AVX512, SHA and VAES extensions by JayDDee.\n");
    printf("     BTC donation address: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT\n\n");
-
-printf("/nWarning: this is a test release, it may contain bugs and aditional\n");
-printf("debug log output. Users who solo mine using getwork or GBT are invited\n\n");
-printf("to use it for testing purposes. Please report any regressions. Other\n");
-printf("users may prefer to continue using the latest general release.\n\n");
-      
-
 }
 
 bool check_cpu_capability ()
