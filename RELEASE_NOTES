@@ -65,6 +65,17 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.14.1
+
+GBT and getwork log changes:
+ fixed missing TTF in New Block log,
+ ntime no longer byte-swapped for display in New Work log,
+ fixed zero effective hash rate in Periodic Report log,
+ deleted "Current block is..." log.
+
+Renamed stratum "New Job" log to "New Work" to be consistent with the solo
+version of the log. Added more data to both versions.
+
 v3.14.0
 
 Changes to solo mining:

@@ -2,8 +2,8 @@
  * Copyright 2010 Jeff Garzik
  * Copyright 2012-2014 pooler
  * Copyright 2014 Lucas Jones
- * Copyright 2014 Tanguy Pruvot
- * Copyright 2016 Jay D Dee
+ * Copyright 2014-2016 Tanguy Pruvot
+ * Copyright 2016-2020 Jay D Dee
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -603,7 +603,6 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
       goto out;
    }
    work->height = (int) json_integer_value( tmp );
-   applog( LOG_BLUE, "Current block is %d", work->height );
 
    tmp = json_object_get(val, "version");
    if ( !tmp || !json_is_integer( tmp ) )
@@ -1569,7 +1568,7 @@ start:
       json_decref( val );
 
       get_mininginfo( curl, work );
-      report_summary_log( false );
+         report_summary_log( false );
       
       if ( opt_protocol | opt_debug )
       {
@@ -1582,13 +1581,16 @@ start:
       if ( work->height > last_block_height )
       {
          last_block_height = work->height;
-         applog( LOG_BLUE, "New Block %d, Net Diff %.5g, Ntime %08x",
-                           work->height, net_diff,
-                           bswap_32( work->data[ algo_gate.ntime_index ] ) );
+         last_targetdiff = net_diff;
 
-         if ( !opt_quiet && net_diff && ( net_hashrate > 0. ) )
+         applog( LOG_BLUE, "New Block %d, Net Diff %.5g, Ntime %08x",
+                                work->height, net_diff,
+                                work->data[ algo_gate.ntime_index ] );
+
+         if ( !opt_quiet && ( net_diff > 0. ) && ( net_hashrate > 0. ) )
          {
             double miner_hr = 0.;
+
             pthread_mutex_lock( &stats_lock );
 
             for ( int i = 0; i < opt_n_threads; i++ )
@@ -1611,14 +1613,15 @@ start:
                scale_hash_for_display ( &net_hr, net_hr_units );
                applog2( LOG_INFO,
                         "Miner TTF @ %.2f %sh/s %s, Net TTF @ %.2f %sh/s %s",
-                        miner_hr, miner_hr_units, miner_ttf,
-                        net_hr, net_hr_units, net_ttf );
+                        miner_hr, miner_hr_units, miner_ttf, net_hr,
+                        net_hr_units, net_ttf );
             }
          }
       }  // work->height > last_block_height
       else if ( memcmp( &work->data[1], &g_work.data[1], 32 ) )
-         applog( LOG_BLUE, "New Work, Ntime %08lx",
-                           bswap_32( work->data[ algo_gate.ntime_index ] ) );
+         applog( LOG_BLUE, "New Work: Block %d, Net Diff %.5g, Ntime %08x",
+                                      work->height, net_diff,
+                                      work->data[ algo_gate.ntime_index ] );
    }  // rc
 
    return rc;
@@ -2018,13 +2021,14 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    pthread_mutex_unlock( &stats_lock );
 
    if ( stratum_diff != sctx->job.diff )
-      applog( LOG_BLUE, "New Diff %g, Block %d, Job %s",
+      applog( LOG_BLUE, "New Stratum Diff %g, Block %d, Job %s",
                         sctx->job.diff, sctx->block_height, g_work->job_id );
    else if ( last_block_height != sctx->block_height )
       applog( LOG_BLUE, "New Block %d, Job %s",
                         sctx->block_height, g_work->job_id );
    else if ( g_work->job_id )
-      applog( LOG_BLUE,"New Job %s", g_work->job_id );
+      applog( LOG_BLUE, "New Work: Block %d, Net diff %.5g, Job %s",
+                         sctx->block_height, net_diff, g_work->job_id );
 
    // Update data and calculate new estimates.
    if ( ( stratum_diff != sctx->job.diff )
@@ -2068,10 +2072,8 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
                if ( net_diff && net_ttf )
                {
                   double net_hr = net_diff * exp32 / net_ttf;
-//                  char net_ttf_str[32];
                   char net_hr_units[4] = {0};
 
-//                 sprintf_et( net_ttf_str, net_ttf );
                   scale_hash_for_display ( &net_hr, net_hr_units );
                   applog2( LOG_INFO, "Net hash rate (est) %.2f %sh/s",
                                      net_hr, net_hr_units );
