@@ -756,6 +756,7 @@ extern double opt_diff_factor;
 extern double opt_target_factor;
 extern bool opt_randomize;
 extern bool allow_mininginfo;
+extern pthread_mutex_t g_work_lock;
 extern time_t g_work_time;
 extern bool opt_stratum_stats;
 extern int num_cpus;

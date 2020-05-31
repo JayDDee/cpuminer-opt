@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.14.2
+
+The second line of the Share Accepted log is no longer displayed,
+new Xnonce log is added and other small log tweaks.
+
+#265: Cleanup use of mutex.
+
 v3.14.1
 
 GBT and getwork log changes:

@@ -215,7 +215,7 @@ static char const short_options[] =
 
 static struct work g_work __attribute__ ((aligned (64))) = {{ 0 }};
 time_t g_work_time = 0;
-static        pthread_mutex_t g_work_lock;
+pthread_mutex_t g_work_lock;
 static bool   submit_old = false;
 char*  lp_id;
 
@@ -398,24 +398,12 @@ void work_copy(struct work *dest, const struct work *src)
 int std_get_work_data_size() { return STD_WORK_DATA_SIZE; }
 
 // Default
-bool std_le_work_decode( const json_t *val, struct work *work )
+bool std_le_work_decode( struct work *work )
 {
     int i;
-    const int data_size   = algo_gate.get_work_data_size();
-    const int target_size = sizeof(work->target);
-    const int adata_sz    = data_size / 4;
+    const int adata_sz    = algo_gate.get_work_data_size() / 4;
     const int atarget_sz  = ARRAY_SIZE(work->target);
 
-    if (unlikely( !jobj_binary(val, "data", work->data, data_size) ))
-    {
-       applog(LOG_ERR, "JSON invalid data");
-       return false;
-    }
-    if (unlikely( !jobj_binary(val, "target", work->target, target_size) ))
-    {
-       applog(LOG_ERR, "JSON invalid target");
-       return false;
-    }
     for ( i = 0; i < adata_sz; i++ )
           work->data[i] = le32dec( work->data + i );
     for ( i = 0; i < atarget_sz; i++ )
@@ -423,24 +411,12 @@ bool std_le_work_decode( const json_t *val, struct work *work )
     return true;
 }
 
-bool std_be_work_decode( const json_t *val, struct work *work )
+bool std_be_work_decode( struct work *work )
 {
     int i;
-    const int data_size   = algo_gate.get_work_data_size();
-    const int target_size = sizeof(work->target);
-    const int adata_sz    = data_size / 4;
+    const int adata_sz    = algo_gate.get_work_data_size() / 4;
     const int atarget_sz  = ARRAY_SIZE(work->target);
 
-    if (unlikely( !jobj_binary(val, "data", work->data, data_size) ))
-    {
-       applog(LOG_ERR, "JSON invalid data");
-       return false;
-    }
-    if (unlikely( !jobj_binary(val, "target", work->target, target_size) ))
-    {
-       applog(LOG_ERR, "JSON invalid target");
-       return false;
-    }
     for ( i = 0; i < adata_sz; i++ )
           work->data[i] = be32dec( work->data + i );
     for ( i = 0; i < atarget_sz; i++ )
@@ -450,14 +426,31 @@ bool std_be_work_decode( const json_t *val, struct work *work )
 
 static bool work_decode( const json_t *val, struct work *work )
 {
-    if ( !algo_gate.work_decode( val, work ) )
+    const int data_size   = algo_gate.get_work_data_size();
+    const int target_size = sizeof(work->target);
+
+    if (unlikely( !jobj_binary(val, "data", work->data, data_size) ))
+    {
+       applog(LOG_ERR, "JSON invalid data");
+       return false;
+    }
+    if (unlikely( !jobj_binary(val, "target", work->target, target_size) ))
+    {
+       applog(LOG_ERR, "JSON invalid target");
+       return false;
+    }
+
+    if ( unlikely( !algo_gate.work_decode( work ) ) )
         return false;
+
     if ( !allow_mininginfo )
         net_diff = algo_gate.calc_network_diff( work );
+
     work->targetdiff = hash_to_diff( work->target );
     stratum_diff = last_targetdiff = work->targetdiff;
     work->sharediff = 0;
     algo_gate.decode_extra_data( work, &net_blocks );
+
     return true;
 }
 
@@ -477,8 +470,7 @@ static bool get_mininginfo( CURL *curl, struct work *work )
 	if ( !val && curl_err == -1 )
    {
 		allow_mininginfo = false;
-		if ( opt_debug )
-			applog( LOG_DEBUG, "getmininginfo not supported" );
+      applog( LOG_NOTICE, "\"getmininginfo\" not supported, some stats not available" );
 		return false;
 	}
 
@@ -917,7 +909,7 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
                                  swab32( curtime ), le32dec( &bits ),
                                  final_sapling_hash );
 
-   if ( unlikely( !jobj_binary(val, "target", target, sizeof(target)) ) )
+   if ( unlikely( !jobj_binary( val, "target", target, sizeof(target) ) ) )
    {
       applog( LOG_ERR, "JSON invalid target" );
       goto out;
@@ -1116,7 +1108,6 @@ void report_summary_log( bool force )
                          solved, solved_block_count );
    applog2( LOG_INFO, "Hi/Lo Share Diff  %.5g /  %.5g",
                        highest_share, lowest_share );
-
 }
 
 bool lowdiff_debug = false;
@@ -1124,7 +1115,7 @@ bool lowdiff_debug = false;
 static int share_result( int result, struct work *work,
                          const char *reason )
 {
-   double share_time = 0., share_ratio = 0.;
+   double share_time = 0.; //, share_ratio = 0.;
    double hashrate = 0.;
    int latency = 0;
    struct share_stats_t my_stats = {0};
@@ -1136,7 +1127,7 @@ static int share_result( int result, struct work *work,
    bool solved = false; 
    bool stale = false;
    char *acol = NULL, *bcol = NULL, *scol = NULL, *rcol = NULL;
-   // Mutex while we grab a snapshot of the stats.
+
    pthread_mutex_lock( &stats_lock );
 
    if ( likely( share_stats[ s_get_ptr ].submit_time.tv_sec ) )
@@ -1165,8 +1156,11 @@ static int share_result( int result, struct work *work,
               sizeof last_submit_time );
    }
 
+/*   
    share_ratio = my_stats.net_diff == 0. ? 0. : my_stats.share_diff /
                                                 my_stats.net_diff;
+*/
+
    // check result
    if ( likely( result ) )
    {
@@ -1247,13 +1241,12 @@ static int share_result( int result, struct work *work,
      else if ( stale ) scol = CL_WHT CL_YL2;
      else              rcol = CL_WHT CL_RED;
    }
-   else
-      bcol = acol = scol = rcol = "\0";
 
    applog( LOG_NOTICE, "%d %s%s %s%s %s%s %s%s" CL_N ", %.3f sec (%dms)",
            my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
            bres, share_time, latency );
 
+/*   
    if ( !opt_quiet )
    {
       if ( have_stratum )
@@ -1267,6 +1260,7 @@ static int share_result( int result, struct work *work,
                my_stats.share_diff, share_ratio, bcol, height );
       }
    }
+*/
 
    if ( unlikely( opt_debug || !( opt_quiet || result || stale ) ) )
    {
@@ -1568,7 +1562,7 @@ start:
       json_decref( val );
 
       get_mininginfo( curl, work );
-         report_summary_log( false );
+      report_summary_log( false );
       
       if ( opt_protocol | opt_debug )
       {
@@ -1587,9 +1581,14 @@ start:
                                 work->height, net_diff,
                                 work->data[ algo_gate.ntime_index ] );
 
-         if ( !opt_quiet && ( net_diff > 0. ) && ( net_hashrate > 0. ) )
+         if ( !opt_quiet )
          {
             double miner_hr = 0.;
+            double net_hr = net_hashrate;
+            char net_hr_units[4] = {0};
+            char miner_hr_units[4] = {0};
+            char net_ttf[32];
+            char miner_ttf[32];
 
             pthread_mutex_lock( &stats_lock );
 
@@ -1599,23 +1598,21 @@ start:
 
             pthread_mutex_unlock( &stats_lock );
 
-            if ( miner_hr > 0. )
-            {
-               double net_hr = net_hashrate;
-               char net_hr_units[4] = {0};
-               char miner_hr_units[4] = {0};
-               char net_ttf[32];
-               char miner_ttf[32];
-
+            if ( net_hr > 0. )
                sprintf_et( net_ttf, ( net_diff * exp32 ) / net_hr );
+            else
+               sprintf( net_ttf, "NA" );
+            if ( miner_hr > 0. )
                sprintf_et( miner_ttf, ( net_diff * exp32 ) / miner_hr );
-               scale_hash_for_display ( &miner_hr, miner_hr_units );
-               scale_hash_for_display ( &net_hr, net_hr_units );
-               applog2( LOG_INFO,
-                        "Miner TTF @ %.2f %sh/s %s, Net TTF @ %.2f %sh/s %s",
-                        miner_hr, miner_hr_units, miner_ttf, net_hr,
-                        net_hr_units, net_ttf );
-            }
+            else
+               sprintf( miner_ttf, "NA" );
+
+            scale_hash_for_display ( &miner_hr, miner_hr_units );
+            scale_hash_for_display ( &net_hr, net_hr_units );
+            applog2( LOG_INFO,
+                     "Miner TTF @ %.2f %sh/s %s, Net TTF @ %.2f %sh/s %s",
+                     miner_hr, miner_hr_units, miner_ttf, net_hr,
+                     net_hr_units, net_ttf );
          }
       }  // work->height > last_block_height
       else if ( memcmp( &work->data[1], &g_work.data[1], 32 ) )
@@ -1835,6 +1832,14 @@ bool submit_solution( struct work *work, const void *hash,
    if ( likely( submit_work( thr, work ) ) )
    {
      update_submit_stats( work, hash );
+
+     if unlikely( !have_stratum && !have_longpoll )
+     {   // block solved, force getwork
+         pthread_mutex_lock( &g_work_lock );
+         g_work_time = 0;
+         pthread_mutex_unlock( &g_work_lock );
+     }
+
      if ( !opt_quiet )
      {
         if ( have_stratum )
@@ -1955,6 +1960,8 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
    uint32_t *nonceptr = work->data + algo_gate.nonce_index;
    bool force_new_work = false; 
 
+   pthread_mutex_lock( &g_work_lock );
+   
    if ( have_stratum ) 
       force_new_work = work->job_id ?    strtoul(   work->job_id, NULL, 16 )
                                       != strtoul( g_work->job_id, NULL, 16 )
@@ -1970,6 +1977,8 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
    }
    else
        ++(*nonceptr);
+
+   pthread_mutex_unlock( &g_work_lock );
 }
 
 bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
@@ -1985,7 +1994,13 @@ bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
 
 static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 {
+   // Safer than testing the job id
+   bool new_job =  *get_stratum_job_ntime()
+                   != g_work->data[ algo_gate.ntime_index ];
+
+   pthread_mutex_lock( &g_work_lock );
    pthread_mutex_lock( &sctx->work_lock );
+
    free( g_work->job_id );
    g_work->job_id = strdup( sctx->job.job_id );
    g_work->xnonce2_len = sctx->xnonce2_size;
@@ -1996,28 +2011,21 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    algo_gate.set_work_data_endian( g_work );
    g_work->height = sctx->block_height;
    g_work->targetdiff = sctx->job.diff
-                                   / ( opt_target_factor * opt_diff_factor );
+                           / ( opt_target_factor * opt_diff_factor );
    diff_to_hash( g_work->target, g_work->targetdiff );
-
-   pthread_mutex_unlock( &sctx->work_lock );
-
+   g_work_time = time(NULL);
    restart_threads();
 
-   if ( opt_debug )
-   {
-      unsigned char *xnonce2str = abin2hex( g_work->xnonce2,
-                                           g_work->xnonce2_len );
-      applog( LOG_DEBUG, "DEBUG: job_id='%s' extranonce2=%s ntime=%08x",
-                    g_work->job_id, xnonce2str, swab32( g_work->data[17] ) );
-      free( xnonce2str );
-   }
+   pthread_mutex_unlock( &sctx->work_lock );
+   pthread_mutex_unlock( &g_work_lock );
 
-   double hr = 0.;
    pthread_mutex_lock( &stats_lock );
 
+   double hr = 0.;
    for ( int i = 0; i < opt_n_threads; i++ )
       hr += thr_hashrates[i];
    global_hashrate = hr;
+
    pthread_mutex_unlock( &stats_lock );
 
    if ( stratum_diff != sctx->job.diff )
@@ -2026,9 +2034,17 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    else if ( last_block_height != sctx->block_height )
       applog( LOG_BLUE, "New Block %d, Job %s",
                         sctx->block_height, g_work->job_id );
-   else if ( g_work->job_id )
+   else if ( new_job && g_work->job_id )
       applog( LOG_BLUE, "New Work: Block %d, Net diff %.5g, Job %s",
                          sctx->block_height, net_diff, g_work->job_id );
+   else if ( opt_debug )
+   {
+      unsigned char *xnonce2str = abin2hex( g_work->xnonce2,
+                                            g_work->xnonce2_len );
+      applog( LOG_INFO, "Extranonce2 %s, Block %d, Net Diff %.5g",
+                  xnonce2str, sctx->block_height, net_diff );
+      free( xnonce2str );
+   }
 
    // Update data and calculate new estimates.
    if ( ( stratum_diff != sctx->job.diff )
@@ -2056,7 +2072,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
             char share_ttf[32];
 
             sprintf_et( block_ttf, ( net_diff * exp32 ) /  hr );
-            sprintf_et( share_ttf, g_work->targetdiff * exp32 / hr );
+            sprintf_et( share_ttf, ( g_work->targetdiff * exp32 ) / hr );
             scale_hash_for_display ( &hr, hr_units );
             applog2( LOG_INFO, "TTF @ %.2f %sh/s: Block %s, Share %s",
                                hr, hr_units, block_ttf, share_ttf );
@@ -2201,35 +2217,33 @@ static void *miner_thread( void *userdata )
        {
           if ( have_stratum )
           {
-      	     pthread_mutex_lock( &g_work_lock );
-
-              if ( *nonceptr >= end_nonce )
-                 stratum_gen_work( &stratum, &g_work );
-              algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce );
-              pthread_mutex_unlock( &g_work_lock );
+             if ( *nonceptr >= end_nonce )
+                stratum_gen_work( &stratum, &g_work );
           }
           else
           {
              int scantime = have_longpoll ? LP_SCANTIME : opt_scantime;
 	          pthread_mutex_lock( &g_work_lock );
 
-             if ( time(NULL) - g_work_time >= scantime
-                  || *nonceptr >= end_nonce )
+             if ( ( ( time(NULL) - g_work_time ) >= scantime )
+               || ( *nonceptr >= end_nonce ) )
              {
                 if ( unlikely( !get_work( mythr, &g_work ) ) )
                 {
+                   pthread_mutex_unlock( &g_work_lock );
 		             applog( LOG_ERR, "work retrieval failed, exiting "
 		                                      "mining thread %d", thr_id );
-                   pthread_mutex_unlock( &g_work_lock );
 		             goto out;
 	             }
                 g_work_time = time(NULL);
                 restart_threads();
              }
-             algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce );
 
              pthread_mutex_unlock( &g_work_lock );
           }
+
+          algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce );
+
        } // do_this_thread
        algo_gate.resync_threads( &work );
 
@@ -2244,7 +2258,7 @@ static void *miner_thread( void *userdata )
 
 // LP_SCANTIME overrides opt_scantime option, is this right?
 
-       // adjust max_nonce to meet target scan time. Startum and longpoll
+       // adjust max_nonce to meet target scan time. Stratum and longpoll
        // can go longer because they can rely on restart_threads to signal
        // an early abort. get_work on the other hand can't rely on
        // restart_threads so need a much shorter scantime
@@ -2315,6 +2329,7 @@ static void *miner_thread( void *userdata )
           hashes_done / ( diff.tv_sec + diff.tv_usec * 1e-6 );
           pthread_mutex_unlock( &stats_lock );
        }
+
        // If unsubmiited nonce(s) found, submit now. 
        if ( unlikely( nonce_found && !opt_benchmark ) )
        {  
@@ -2342,34 +2357,47 @@ static void *miner_thread( void *userdata )
        }
 
 #if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
-       // Display CPU temperature and clock rate.
-       if (!opt_quiet && mythr->id == 0 )
-       {
-          int temp = cpu_temp(0);
-          static struct timeval cpu_temp_time = {0};
-          timeval_subtract( &diff, &tv_end, &cpu_temp_time );
-          int wait = temp >= 80 ? 30 : temp >= 70 ? 60 : 120;
 
-          if ( ( diff.tv_sec > wait ) || ( temp > hi_temp ) )
+       // Display CPU temperature and clock rate.
+       int curr_temp, prev_hi_temp;
+       static struct timeval cpu_temp_time = {0};
+
+       pthread_mutex_lock( &stats_lock );
+
+       prev_hi_temp = hi_temp;
+       curr_temp = cpu_temp(0);
+       timeval_subtract( &diff, &tv_end, &cpu_temp_time );
+       if ( curr_temp > hi_temp ) hi_temp = curr_temp;
+
+       pthread_mutex_unlock( &stats_lock );
+
+       if ( !opt_quiet || ( curr_temp >= 80 ) )
+       {
+          int wait_time = curr_temp >= 80 ? 30 : curr_temp >= 70 ? 60 : 120;
+          if ( ( diff.tv_sec > wait_time ) || ( curr_temp > prev_hi_temp ) )
           {
              char tempstr[32];
              float lo_freq = 0., hi_freq = 0.;
+
+             memcpy( &cpu_temp_time, &tv_end, sizeof(cpu_temp_time) ); 
              linux_cpu_hilo_freq( &lo_freq, &hi_freq );
-             memcpy( &cpu_temp_time, &tv_end, sizeof(cpu_temp_time) );
-             if ( use_colors && ( temp >= 70 ) )
+             if ( use_colors && ( curr_temp >= 70 ) )
              {
-                if ( temp >= 80 )
-                   sprintf( tempstr, "%s%d C%s", CL_WHT CL_RED, temp, CL_N );
+                if ( curr_temp >= 80 )
+                   sprintf( tempstr, "%s%d C%s",
+                                     CL_WHT CL_RED, curr_temp, CL_N );
                 else
-                   sprintf( tempstr, "%s%d C%s", CL_WHT CL_YLW, temp, CL_N );
+                   sprintf( tempstr, "%s%d C%s",
+                                     CL_WHT CL_YLW, curr_temp, CL_N );
              }
              else
-                sprintf( tempstr, "%d C", temp );
+                sprintf( tempstr, "%d C", curr_temp );
+
              applog( LOG_NOTICE,"CPU temp: curr %s (max %d), Freq: %.3f/%.3f GHz",
-                     tempstr, hi_temp, lo_freq / 1e6, hi_freq / 1e6 );
-             if ( temp > hi_temp ) hi_temp = temp;
+                     tempstr, prev_hi_temp, lo_freq / 1e6, hi_freq / 1e6 );
           }
        }
+
 #endif
 
        // display hashrate
@@ -2395,25 +2423,25 @@ static void *miner_thread( void *userdata )
             && thr_id == opt_n_threads - 1 ) )
        {
           double hashrate  = 0.;
+
+          pthread_mutex_lock( &stats_lock );
           for ( i = 0; i < opt_n_threads; i++ )
               hashrate  += thr_hashrates[i];
+          global_hashrate  = hashrate;
+          pthread_mutex_unlock( &stats_lock );
 
-          if ( hashrate != 0. )
+          if ( opt_benchmark )
           {
-             global_hashrate  = hashrate;
-             if ( opt_benchmark )
-             {
-                char hr[16];
-                char hr_units[2] = {0,0};
-                scale_hash_for_display( &hashrate,  hr_units );
-                sprintf( hr, "%.2f", hashrate );
+             char hr[16];
+             char hr_units[2] = {0,0};
+             scale_hash_for_display( &hashrate,  hr_units );
+             sprintf( hr, "%.2f", hashrate );
 #if ((defined(_WIN64) || defined(__WINDOWS__)) || defined(_WIN32))
-                applog( LOG_NOTICE, "Total: %s %sH/s", hr, hr_units );
+             applog( LOG_NOTICE, "Total: %s %sH/s", hr, hr_units );
 #else
-                applog( LOG_NOTICE, "Total: %s %sH/s, CPU temp: %dC",
-                                     hr, hr_units, (uint32_t)cpu_temp(0) );
+             applog( LOG_NOTICE, "Total: %s %sH/s, CPU temp: %dC",
+                                  hr, hr_units, (uint32_t)cpu_temp(0) );
 #endif
-             }
 	       }
        }  // benchmark
    }  // miner_thread loop
@@ -2731,35 +2759,30 @@ static void *stratum_thread(void *userdata )
       report_summary_log( ( stratum_diff != stratum.job.diff )
                        && ( stratum_diff != 0. ) );
       
-      if ( stratum.job.job_id
-          && ( !g_work_time || strcmp( stratum.job.job_id, g_work.job_id ) ) )
-      {
-         pthread_mutex_lock( &g_work_lock );
+      if ( stratum.job.job_id && ( !g_work_time
+                             || ( *get_stratum_job_ntime()
+                                != g_work.data[ algo_gate.ntime_index ] ) ) )
          stratum_gen_work( &stratum, &g_work );
-         time( &g_work_time );
-         pthread_mutex_unlock( &g_work_lock );
-         restart_threads();
-      } 
 
-     if ( likely( stratum_socket_full( &stratum, opt_timeout ) ) )
-     {
-        if ( likely( s = stratum_recv_line( &stratum ) ) )
-        {
-           if ( likely( !stratum_handle_method( &stratum, s ) ) )
-              stratum_handle_response( s );
-           free( s );
-        }
-        else
-        {
-           applog(LOG_WARNING, "Stratum connection interrupted");
-           stratum_disconnect( &stratum );
-        }
-     }
-     else
-     {
-        applog(LOG_ERR, "Stratum connection timeout");
-        stratum_disconnect( &stratum );
-     }
+      if ( likely( stratum_socket_full( &stratum, opt_timeout ) ) )
+      {
+         if ( likely( s = stratum_recv_line( &stratum ) ) )
+         {
+            if ( likely( !stratum_handle_method( &stratum, s ) ) )
+               stratum_handle_response( s );
+            free( s );
+         }
+         else
+         {
+            applog(LOG_WARNING, "Stratum connection interrupted");
+            stratum_disconnect( &stratum );
+         }
+      }
+      else
+      {
+         applog(LOG_ERR, "Stratum connection timeout");
+         stratum_disconnect( &stratum );
+      }
 
    }  // loop
 out:

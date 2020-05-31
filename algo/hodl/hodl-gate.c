@@ -99,9 +99,13 @@ void hodl_build_block_header( struct work* g_work, uint32_t version,
 // called only by thread 0, saves a backup of g_work
 void hodl_get_new_work( struct work* work, struct work* g_work)
 {
-     work_free( &hodl_work );
-     work_copy( &hodl_work, g_work );
-     hodl_work.data[ algo_gate.nonce_index ] = ( clock() + rand() ) % 9999;
+   pthread_mutex_lock( &g_work_lock );
+
+   work_free( &hodl_work );
+   work_copy( &hodl_work, g_work );
+   hodl_work.data[ algo_gate.nonce_index ] = ( clock() + rand() ) % 9999;
+
+   pthread_mutex_unlock( &g_work_lock );
 }
 
 json_t *hodl_longpoll_rpc_call( CURL *curl, int *err, char* lp_url )

@@ -128,7 +128,7 @@ bool ( *miner_thread_init )     ( int );
 void ( *get_new_work )          ( struct work*, struct work*, int, uint32_t* );
 
 // Decode getwork blockheader
-bool ( *work_decode )           ( const json_t*, struct work* );
+bool ( *work_decode )           ( struct work* );
 
 // Extra getwork data
 void ( *decode_extra_data )     ( struct work*, uint64_t* );
@@ -227,8 +227,8 @@ void std_get_new_work( struct work *work, struct work *g_work, int thr_id,
 void sha256d_gen_merkle_root( char *merkle_root, struct stratum_ctx *sctx );
 void SHA256_gen_merkle_root ( char *merkle_root, struct stratum_ctx *sctx );
 
-bool std_le_work_decode( const json_t *val, struct work *work );
-bool std_be_work_decode( const json_t *val, struct work *work );
+bool std_le_work_decode( struct work *work );
+bool std_be_work_decode( struct work *work );
 
 bool std_le_submit_getwork_result( CURL *curl, struct work *work );
 bool std_be_submit_getwork_result( CURL *curl, struct work *work );
