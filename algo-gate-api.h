@@ -110,12 +110,12 @@ inline bool set_excl ( set_t a, set_t b ) { return (a & b) == 0; }
 
 typedef struct
 {
-// Mandatory functions, one of these is mandatory. If the default scanhash
+// Mandatory functions, one of these is mandatory. If a generic scanhash
 // is used a custom hash function must be registered, with a custom scanhash
-// the hash function is not necessary. 
+// the custom hash function can be called directly and doesn't need to be
+// registered in the gate. 
 int ( *scanhash ) ( struct work*, uint32_t, uint64_t*, struct thr_info* );
 
-//int ( *hash )     ( void*, const void*, uint32_t ) ;
 int ( *hash )     ( void*, const void*, int );
 
 //optional, safe to use default in most cases
@@ -203,18 +203,60 @@ void four_way_not_tested();
 #define STD_WORK_DATA_SIZE 128
 #define STD_WORK_CMP_SIZE 76
 
-#define JR2_NONCE_INDEX 39  // 8 bit offset
+//#define JR2_NONCE_INDEX 39  // 8 bit offset
 
 // These indexes are only used with JSON RPC2 and are not gated.
-#define JR2_WORK_CMP_INDEX_2 43
-#define JR2_WORK_CMP_SIZE_2 33
+//#define JR2_WORK_CMP_INDEX_2 43
+//#define JR2_WORK_CMP_SIZE_2 33
 
 // deprecated, use generic instead
 int null_scanhash();
 
 // Default generic, may be used in many cases.
+// N-way is more complicated, requires many different implementations
+// depending on architecture, input format, and output format.
+// Naming convention is scanhash_[N]way_[input format]in_[output format]out
+// N = number of lanes
+// input/output format:
+//    32: 32 bit interleaved parallel lanes
+//    64: 64 bit interleaved parallel lanes
+//    640: input only, not interleaved, contiguous serial 640 bit lanes.
+//    256: output only, not interleaved, contiguous serial 256 bit lanes.
+
 int scanhash_generic( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr );
+
+#if defined(__AVX2__)
+
+//int scanhash_4way_64in_64out( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr );
+
+//int scanhash_4way_64in_256out( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr );
+
+int scanhash_4way_64in_32out( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr );
+
+//int scanhash_8way_32in_32out( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr );
+
+#endif
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+//int scanhash_8way_64in_64out( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr );
+
+//int scanhash_8way_64in_256out( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr );
+
+int scanhash_8way_64in_32out( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr );
+
+//int scanhash_16way_32in_32out( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr );
+
+#endif
 
 // displays warning
 int null_hash    ();
@@ -263,7 +305,7 @@ int std_get_work_data_size();
 // by calling the algo's register function.
 bool register_algo_gate( int algo, algo_gate_t *gate );
 
-// Called by algos toverride any default gate functions that are applicable
+// Called by algos to verride any default gate functions that are applicable
 // and do any other algo-specific initialization.
 // The register functions for all the algos can be declared here to reduce
 // compiler warnings but that's just more work for devs adding new algos.

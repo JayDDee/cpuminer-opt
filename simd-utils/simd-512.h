@@ -375,10 +375,10 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 
 // Generic for odd rotations
 #define mm512_ror_x64( v, n )      _mm512_alignr_epi64( v, v, n )
-#define mm512_rol_x64( v, n )      _mm512_alignr_epi64( v, v, 8-n )
+#define mm512_rol_x64( v, n )      _mm512_alignr_epi64( v, v, 8-(n) )
 
 #define mm512_ror_x32( v, n )      _mm512_alignr_epi32( v, v, n )
-#define mm512_rol_x32( v, n )      _mm512_alignr_epi32( v, v, 16-n )
+#define mm512_rol_x32( v, n )      _mm512_alignr_epi32( v, v, 16-(n) )
 
 #define mm512_ror_1x16( v ) \
    _mm512_permutexvar_epi16( m512_const_64( \

@@ -227,7 +227,7 @@ bool initialize_torture_garden()
 }
 
 // Produce a 32-byte hash from 80-byte input data
-int minotaur_hash( void *output, const void *input )
+int minotaur_hash( void *output, const void *input, int thr_id )
 {    
     unsigned char hash[64] __attribute__ ((aligned (64)));
 

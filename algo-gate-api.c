@@ -128,6 +128,119 @@ int scanhash_generic( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
+#if defined(__AVX2__)
+
+//int scanhash_4way_64_64( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr )
+
+//int scanhash_4way_64_640( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr )
+
+int scanhash_4way_64in_32out( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t hash32[8*4] __attribute__ ((aligned (64)));
+   uint32_t vdata[20*4] __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
+   uint32_t *hash32_d7 = &(hash32[ 7*4 ]);
+   uint32_t *pdata = work->data;
+   const uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 4;
+   __m256i  *noncev = (__m256i*)vdata + 9;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const uint32_t targ32_d7 = ptarget[7];
+   const bool bench = opt_benchmark;
+
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
+   *noncev = mm256_intrlv_blend_32(
+                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
+   do
+   {
+      if ( likely( algo_gate.hash( hash32, vdata, thr_id ) ) )
+      for ( int lane = 0; lane < 4; lane++ )
+      if ( unlikely( hash32_d7[ lane ] <= targ32_d7 && !bench ) )
+      {
+         extr_lane_4x32( lane_hash, hash32, lane, 256 );
+         if ( valid_hash( lane_hash, ptarget ) )
+         {
+            pdata[19] = bswap_32( n + lane );
+            submit_solution( work, lane_hash, mythr );
+         }
+      }
+      *noncev = _mm256_add_epi32( *noncev,
+                                  m256_const1_64( 0x0000000400000000 ) );
+      n += 4;
+   } while ( likely( ( n <= last_nonce ) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+//int scanhash_8way_32_32( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr )
+
+#endif
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+//int scanhash_8way_64_64( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr )
+
+//int scanhash_8way_64_640( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr )
+
+int scanhash_8way_64in_32out( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t hash32[8*8] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
+   uint32_t *hash32_d7 = &(hash32[7*8]);
+   uint32_t *pdata = work->data;
+   const uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 8;
+   __m512i  *noncev = (__m512i*)vdata + 9;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const uint32_t targ32_d7 = ptarget[7];
+   const bool bench = opt_benchmark;
+
+   mm512_bswap32_intrlv80_8x64( vdata, pdata );
+   *noncev = mm512_intrlv_blend_32(
+              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                                n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
+   do
+   {
+      if ( likely( algo_gate.hash( hash32, vdata, thr_id ) ) )
+      for ( int lane = 0; lane < 8; lane++ )
+      if ( unlikely( ( hash32_d7[ lane ] <= targ32_d7 ) && !bench ) )
+      {
+         extr_lane_8x32( lane_hash, hash32, lane, 256 );
+         if ( likely( valid_hash( lane_hash, ptarget ) ) )
+         {
+            pdata[19] = bswap_32( n + lane );
+            submit_solution( work, lane_hash, mythr );
+         }
+      }
+      *noncev = _mm512_add_epi32( *noncev,
+                                  m512_const1_64( 0x0000000800000000 ) );
+      n += 8;
+   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+//int scanhash_16way_32_32( struct work *work, uint32_t max_nonce,
+//                      uint64_t *hashes_done, struct thr_info *mythr )
+
+#endif
+
+
+
 int null_hash()
 {
    applog(LOG_WARNING,"SWERR: null_hash unsafe null function");

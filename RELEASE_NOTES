@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.14.3
+
+#265: more mutex changes to reduce blocking with high thread count.
+
+#267: fixed hodl algo potential memory alignment issue,
+      add warning when thread count is not valid for mining hodl algo.
+
 v3.14.2
 
 The second line of the Share Accepted log is no longer displayed,

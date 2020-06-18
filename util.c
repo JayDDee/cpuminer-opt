@@ -81,6 +81,15 @@ struct thread_q {
 	pthread_cond_t		cond;
 };
 
+bool is_power_of_2( int n ) 
+{ 
+  while ( n > 1 ) 
+  { 
+      if ( n % 2 != 0 ) return false; 
+      n = n / 2; 
+  } 
+  return true; 
+} 
 
 void applog2( int prio, const char *fmt, ... )
 {
@@ -609,6 +618,8 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 		goto err_out;
 	}
 
+// want_stratum is useless, and so is this code it seems. Nothing in
+// hi appears to be set.   
 	/* If X-Stratum was found, activate Stratum */
 	if (want_stratum && hi.stratum_url &&
 	    !strncasecmp(hi.stratum_url, "stratum+tcp://", 14)) {

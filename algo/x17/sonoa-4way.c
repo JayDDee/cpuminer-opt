@@ -58,7 +58,7 @@ union _sonoa_8way_context_overlay
 
 typedef union _sonoa_8way_context_overlay sonoa_8way_context_overlay;
 
-int sonoa_8way_hash( void *state, const void *input, int thrid )
+int sonoa_8way_hash( void *state, const void *input, int thr_id )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
      uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
@@ -186,7 +186,7 @@ int sonoa_8way_hash( void *state, const void *input, int thrid )
 
 #endif
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 2
 
      bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
@@ -302,7 +302,7 @@ int sonoa_8way_hash( void *state, const void *input, int thrid )
      hamsi512_8way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_8way_close( &ctx.hamsi, vhash );
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 3
 
      bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
@@ -432,7 +432,7 @@ int sonoa_8way_hash( void *state, const void *input, int thrid )
      sph_fugue512_full( &ctx.fugue, hash6, hash6, 64 );
      sph_fugue512_full( &ctx.fugue, hash7, hash7, 64 );
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 4
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
@@ -630,7 +630,7 @@ int sonoa_8way_hash( void *state, const void *input, int thrid )
 
 #endif
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 5
 
      bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
@@ -783,7 +783,7 @@ int sonoa_8way_hash( void *state, const void *input, int thrid )
      sph_whirlpool512_full( &ctx.whirlpool, hash6, hash6, 64 );
      sph_whirlpool512_full( &ctx.whirlpool, hash7, hash7, 64 );
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 6
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
@@ -952,7 +952,7 @@ int sonoa_8way_hash( void *state, const void *input, int thrid )
      sph_whirlpool512_full( &ctx.whirlpool, hash6, hash6, 64 );
      sph_whirlpool512_full( &ctx.whirlpool, hash7, hash7, 64 );
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 7
 
      intrlv_8x64_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
@@ -1117,49 +1117,6 @@ int sonoa_8way_hash( void *state, const void *input, int thrid )
 
      return 1;
 }
-     
-int scanhash_sonoa_8way( struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done, struct thr_info *mythr )
-{
-   uint32_t hash[8*16] __attribute__ ((aligned (128)));
-   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hashd7 = &(hash[7<<3]);
-   uint32_t *pdata = work->data;
-   const uint32_t *ptarget = work->target;
-   const uint32_t first_nonce = pdata[19];
-   const uint32_t last_nonce = max_nonce - 8;
-   __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
-   uint32_t n = first_nonce;
-   const int thr_id = mythr->id;
-   const uint32_t targ32 = ptarget[7];
-
-   mm512_bswap32_intrlv80_8x64( vdata, pdata );
-   *noncev = mm512_intrlv_blend_32(
-              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                                n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
-
-   do
-   {
-      if ( sonoa_8way_hash( hash, vdata, thr_id ) )
-      for ( int lane = 0; lane < 8; lane++ )
-      if unlikely( ( hashd7[ lane ] <= targ32 ) )
-      {
-         extr_lane_8x32( lane_hash, hash, lane, 256 );
-         if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ) )
-         {
-            pdata[19] = bswap_32( n + lane );
-            submit_solution( work, lane_hash, mythr );
-         }
-      }
-      *noncev = _mm512_add_epi32( *noncev,
-                                  m512_const1_64( 0x0000000800000000 ) );
-      n += 8;
-   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
-   pdata[19] = n;
-   *hashes_done = n - first_nonce;
-   return 0;
-}
 
 #elif defined(SONOA_4WAY)
 
@@ -1186,7 +1143,7 @@ union _sonoa_4way_context_overlay
 
 typedef union _sonoa_4way_context_overlay sonoa_4way_context_overlay;
 
-int sonoa_4way_hash( void *state, const void *input, int thrid )
+int sonoa_4way_hash( void *state, const void *input, int thr_id )
 {
      uint64_t hash0[8] __attribute__ ((aligned (64)));
      uint64_t hash1[8] __attribute__ ((aligned (64)));
@@ -1250,7 +1207,7 @@ int sonoa_4way_hash( void *state, const void *input, int thrid )
      echo_full( &ctx.echo, (BitSequence *)hash3, 512,
                      (const BitSequence *)hash3, 64 );
      
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 2
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
@@ -1310,7 +1267,7 @@ int sonoa_4way_hash( void *state, const void *input, int thrid )
      hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 3
 
      bmw512_4way_init( &ctx.bmw );
@@ -1375,7 +1332,7 @@ int sonoa_4way_hash( void *state, const void *input, int thrid )
      sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
      sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 4
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -1472,7 +1429,7 @@ int sonoa_4way_hash( void *state, const void *input, int thrid )
      shavite512_2way_init( &ctx.shavite );
      shavite512_2way_update_close( &ctx.shavite, vhashB, vhashB, 64 );
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 5
      rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
 
@@ -1557,7 +1514,7 @@ int sonoa_4way_hash( void *state, const void *input, int thrid )
      sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, 64 );
      sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, 64 );
 
-     if ( work_restart[thrid].restart ) return 0;
+     if ( work_restart[thr_id].restart ) return 0;
 // 6
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
@@ -1650,7 +1607,7 @@ int sonoa_4way_hash( void *state, const void *input, int thrid )
      sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, 64 );
      sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, 64 );
 
-     if ( work_restart[thrid].restart ) return 0;    
+     if ( work_restart[thr_id].restart ) return 0;    
 // 7
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
@@ -1743,48 +1700,6 @@ int sonoa_4way_hash( void *state, const void *input, int thrid )
      haval256_5_4way_close( &ctx.haval, state );
 
      return 1;
-}
-
-int scanhash_sonoa_4way( struct work *work, const uint32_t max_nonce,
-	            uint64_t *hashes_done, struct thr_info *mythr )
-{
-     uint32_t hash[4*16] __attribute__ ((aligned (64)));
-     uint32_t vdata[24*4] __attribute__ ((aligned (64)));
-     uint32_t lane_hash[8] __attribute__ ((aligned (32)));
-     uint32_t *hashd7 = &( hash[7<<2] );
-     uint32_t *pdata = work->data;
-     const uint32_t *ptarget = work->target;
-     const uint32_t first_nonce = pdata[19];
-     const uint32_t last_nonce = max_nonce - 4;
-     const uint32_t targ32 = ptarget[7];
-     uint32_t n = first_nonce;
-     __m256i  *noncev = (__m256i*)vdata + 9;  
-     const int thr_id = mythr->id;
-
-     mm256_bswap32_intrlv80_4x64( vdata, pdata );
-     *noncev = mm256_intrlv_blend_32(
-                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
-
-     do
-     {
-        if ( sonoa_4way_hash( hash, vdata, thr_id ) )
-        for ( int lane = 0; lane < 4; lane++ )
-        if ( unlikely( hashd7[ lane ] <= targ32 ) )
-        {
-           extr_lane_4x32( lane_hash, hash, lane, 256 );
-           if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ) )
-           {
-              pdata[19] = bswap_32( n + lane );
-              submit_solution( work, lane_hash, mythr );
-           }
-        }
-        *noncev = _mm256_add_epi32( *noncev,
-                                    m256_const1_64( 0x0000000400000000 ) );
-        n += 4;
-     } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
-     pdata[19] = n;
-     *hashes_done = n - first_nonce;
-     return 0;
 }
 
 #endif

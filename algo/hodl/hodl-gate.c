@@ -99,13 +99,13 @@ void hodl_build_block_header( struct work* g_work, uint32_t version,
 // called only by thread 0, saves a backup of g_work
 void hodl_get_new_work( struct work* work, struct work* g_work)
 {
-   pthread_mutex_lock( &g_work_lock );
+   pthread_rwlock_rdlock( &g_work_lock );
 
    work_free( &hodl_work );
    work_copy( &hodl_work, g_work );
    hodl_work.data[ algo_gate.nonce_index ] = ( clock() + rand() ) % 9999;
 
-   pthread_mutex_unlock( &g_work_lock );
+   pthread_rwlock_unlock( &g_work_lock );
 }
 
 json_t *hodl_longpoll_rpc_call( CURL *curl, int *err, char* lp_url )
@@ -159,11 +159,10 @@ bool register_hodl_algo( algo_gate_t* gate )
   applog( LOG_ERR, "Only CPUs with AES are supported, use legacy version.");
   return false;
 #endif
-//  if ( TOTAL_CHUNKS % opt_n_threads )
-//  {
-//     applog(LOG_ERR,"Thread count must be power of 2.");
-//     return false;
-//  }
+
+  if ( GARBAGE_SIZE % opt_n_threads )
+     applog( LOG_WARNING,"WARNING: Thread count must be power of 2. Miner may crash or produce invalid hash!" );
+
   pthread_barrier_init( &hodl_barrier, NULL, opt_n_threads );
   gate->optimizations         = SSE42_OPT | AES_OPT | AVX2_OPT;
   gate->scanhash              = (void*)&hodl_scanhash;
@@ -175,7 +174,7 @@ bool register_hodl_algo( algo_gate_t* gate )
   gate->resync_threads        = (void*)&hodl_resync_threads;
   gate->do_this_thread        = (void*)&hodl_do_this_thread;
   gate->work_cmp_size         = 76;
-  hodl_scratchbuf = (unsigned char*)malloc( 1 << 30 );
+  hodl_scratchbuf = (unsigned char*)_mm_malloc( 1 << 30, 64 );
   allow_getwork = false;
   opt_target_factor = 8388608.0;
   return ( hodl_scratchbuf != NULL );

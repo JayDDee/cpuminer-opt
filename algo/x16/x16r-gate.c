@@ -135,18 +135,16 @@ void x16rt_getAlgoString( const uint32_t *timeHash, char *output)
 
 void veil_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
+   uint32_t merkleroothash[8];
+   uint32_t witmerkleroothash[8];
+   uint32_t denom10[8];
+   uint32_t denom100[8];
+   uint32_t denom1000[8];
+   uint32_t denom10000[8];
+   int i;
    uchar merkle_tree[64] = { 0 };
-   size_t t;
 
    algo_gate.gen_merkle_root( merkle_tree, sctx );
-   // Increment extranonce2
-   for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
-
-   // Assemble block header
-//   algo_gate.build_block_header( g_work, le32dec( sctx->job.version ),
-//          (uint32_t*) sctx->job.prevhash, (uint32_t*) merkle_tree,
-//          le32dec( sctx->job.ntime ), le32dec(sctx->job.nbits) );
-   int i;
 
    memset( g_work->data, 0, sizeof(g_work->data) );
    g_work->data[0] = le32dec( sctx->job.version );
@@ -164,35 +162,35 @@ void veil_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    g_work->data[31] = 0x00000280;
 
    for ( i = 0; i < 8; i++ )
-      g_work->merkleroothash[7 - i] = be32dec((uint32_t *)merkle_tree + i);
+      merkleroothash[7 - i] = be32dec((uint32_t *)merkle_tree + i);
    for ( i = 0; i < 8; i++ )
-      g_work->witmerkleroothash[7 - i] = be32dec((uint32_t *)merkle_tree + i);
+      witmerkleroothash[7 - i] = be32dec((uint32_t *)merkle_tree + i);
    for ( i = 0; i < 8; i++ )
-      g_work->denom10[i] =    le32dec((uint32_t *)sctx->job.denom10 + i);
+      denom10[i] =    le32dec((uint32_t *)sctx->job.denom10 + i);
    for ( i = 0; i < 8; i++ )
-      g_work->denom100[i] =   le32dec((uint32_t *)sctx->job.denom100 + i);
+      denom100[i] =   le32dec((uint32_t *)sctx->job.denom100 + i);
    for ( i = 0; i < 8; i++ )
-      g_work->denom1000[i] =  le32dec((uint32_t *)sctx->job.denom1000 + i);
+      denom1000[i] =  le32dec((uint32_t *)sctx->job.denom1000 + i);
    for ( i = 0; i < 8; i++ )
-      g_work->denom10000[i] = le32dec((uint32_t *)sctx->job.denom10000 + i);
+      denom10000[i] = le32dec((uint32_t *)sctx->job.denom10000 + i);
 
    uint32_t pofnhash[8];
    memset(pofnhash, 0x00, 32);
 
-   char denom10_str      [ 2 * sizeof( g_work->denom10 )           + 1 ];
-   char denom100_str     [ 2 * sizeof( g_work->denom100 )          + 1 ];
-   char denom1000_str    [ 2 * sizeof( g_work->denom1000 )         + 1 ];
-   char denom10000_str   [ 2 * sizeof( g_work->denom10000 )        + 1 ];
-   char merkleroot_str   [ 2 * sizeof( g_work->merkleroothash )    + 1 ];
-   char witmerkleroot_str[ 2 * sizeof( g_work->witmerkleroothash ) + 1 ];
+   char denom10_str      [ 2 * sizeof( denom10 )           + 1 ];
+   char denom100_str     [ 2 * sizeof( denom100 )          + 1 ];
+   char denom1000_str    [ 2 * sizeof( denom1000 )         + 1 ];
+   char denom10000_str   [ 2 * sizeof( denom10000 )        + 1 ];
+   char merkleroot_str   [ 2 * sizeof( merkleroothash )    + 1 ];
+   char witmerkleroot_str[ 2 * sizeof( witmerkleroothash ) + 1 ];
    char pofn_str         [ 2 * sizeof( pofnhash )                  + 1 ];
 
-   cbin2hex( denom10_str,       (char*) g_work->denom10,           32 );
-   cbin2hex( denom100_str,      (char*) g_work->denom100,          32 );
-   cbin2hex( denom1000_str,     (char*) g_work->denom1000,         32 );
-   cbin2hex( denom10000_str,    (char*) g_work->denom10000,        32 );
-   cbin2hex( merkleroot_str,    (char*) g_work->merkleroothash,    32 );
-   cbin2hex( witmerkleroot_str, (char*) g_work->witmerkleroothash, 32 );
+   cbin2hex( denom10_str,       (char*) denom10,           32 );
+   cbin2hex( denom100_str,      (char*) denom100,          32 );
+   cbin2hex( denom1000_str,     (char*) denom1000,         32 );
+   cbin2hex( denom10000_str,    (char*) denom10000,        32 );
+   cbin2hex( merkleroot_str,    (char*) merkleroothash,    32 );
+   cbin2hex( witmerkleroot_str, (char*) witmerkleroothash, 32 );
    cbin2hex( pofn_str,          (char*) pofnhash,                  32 );
 
    if ( true )

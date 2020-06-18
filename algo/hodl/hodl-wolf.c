@@ -70,7 +70,7 @@ int scanhash_hodl_wolf( struct work* work, uint32_t max_nonce,
     uint32_t *ptarget = work->target;
     int threadNumber = mythr->id;
     CacheEntry *Garbage = (CacheEntry*)hodl_scratchbuf;
-    CacheEntry Cache[AES_PARALLEL_N];
+    CacheEntry Cache[AES_PARALLEL_N] __attribute__ ((aligned (64)));
     __m128i* data[AES_PARALLEL_N];
     const __m128i* next[AES_PARALLEL_N];
     uint32_t CollisionCount = 0;

@@ -83,7 +83,7 @@ void init_sonoa_ctx()
         sph_haval256_5_init(&sonoa_ctx.haval);
 };
 
-int sonoa_hash( void *state, const void *input, int thrid )
+int sonoa_hash( void *state, const void *input, int thr_id )
 {
 	uint8_t hash[128] __attribute__ ((aligned (64)));
    sonoa_ctx_holder ctx __attribute__ ((aligned (64)));
@@ -132,7 +132,7 @@ int sonoa_hash( void *state, const void *input, int thrid )
    sph_echo512_close(&ctx.echo, hash);
 #endif
 
-   if ( work_restart[thrid].restart ) return 0;
+   if ( work_restart[thr_id].restart ) return 0;
 //
 
    sph_bmw512_init( &ctx.bmw);
@@ -190,7 +190,7 @@ int sonoa_hash( void *state, const void *input, int thrid )
    sph_hamsi512(&ctx.hamsi, hash, 64);
    sph_hamsi512_close(&ctx.hamsi, hash);
 	
-   if ( work_restart[thrid].restart ) return 0;
+   if ( work_restart[thr_id].restart ) return 0;
 //
 
    sph_bmw512_init( &ctx.bmw);
@@ -252,7 +252,7 @@ int sonoa_hash( void *state, const void *input, int thrid )
    sph_fugue512(&ctx.fugue, hash, 64);
    sph_fugue512_close(&ctx.fugue, hash);
 
-   if ( work_restart[thrid].restart ) return 0;
+   if ( work_restart[thr_id].restart ) return 0;
 //
 
    sph_bmw512_init( &ctx.bmw);
@@ -336,7 +336,7 @@ int sonoa_hash( void *state, const void *input, int thrid )
    sph_shavite512(&ctx.shavite, hash, 64);
    sph_shavite512_close(&ctx.shavite, hash);
 
-   if ( work_restart[thrid].restart ) return 0;
+   if ( work_restart[thr_id].restart ) return 0;
 //
 
    sph_bmw512_init( &ctx.bmw);
@@ -410,7 +410,7 @@ int sonoa_hash( void *state, const void *input, int thrid )
    sph_whirlpool(&ctx.whirlpool, hash, 64);
    sph_whirlpool_close(&ctx.whirlpool, hash);
 
-   if ( work_restart[thrid].restart ) return 0;
+   if ( work_restart[thr_id].restart ) return 0;
 //
    sph_bmw512_init( &ctx.bmw);
    sph_bmw512(&ctx.bmw, hash, 64);
@@ -487,7 +487,7 @@ int sonoa_hash( void *state, const void *input, int thrid )
    sph_whirlpool(&ctx.whirlpool, hash, 64);
    sph_whirlpool_close(&ctx.whirlpool, hash);
 
-   if ( work_restart[thrid].restart ) return 0;
+   if ( work_restart[thr_id].restart ) return 0;
 //
 
    sph_bmw512_init( &ctx.bmw);

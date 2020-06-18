@@ -57,7 +57,7 @@ union _x17_8way_context_overlay
 } __attribute__ ((aligned (64)));
 typedef union _x17_8way_context_overlay x17_8way_context_overlay;
 
-int x17_8way_hash( void *state, const void *input )
+int x17_8way_hash( void *state, const void *input, int thr_id )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
      uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
@@ -234,50 +234,6 @@ int x17_8way_hash( void *state, const void *input )
      return 1;
 }
 
-int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done, struct thr_info *mythr )
-{
-   uint32_t hash32[8*8] __attribute__ ((aligned (128)));
-   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hash32_d7 = &(hash32[7*8]);
-   uint32_t *pdata = work->data;
-   const uint32_t *ptarget = work->target;
-   const uint32_t first_nonce = pdata[19];
-   const uint32_t last_nonce = max_nonce - 8;
-   __m512i  *noncev = (__m512i*)vdata + 9; 
-   uint32_t n = first_nonce;
-   const int thr_id = mythr->id;
-   const uint32_t targ32_d7 = ptarget[7];
-   const bool bench = opt_benchmark;
-
-   mm512_bswap32_intrlv80_8x64( vdata, pdata );
-   *noncev = mm512_intrlv_blend_32(
-              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                                n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
-   do
-   {
-      x17_8way_hash( hash32, vdata );
-
-      for ( int lane = 0; lane < 8; lane++ )
-      if ( unlikely( ( hash32_d7[ lane ] <= targ32_d7 ) && !bench ) )
-      {
-         extr_lane_8x32( lane_hash, hash32, lane, 256 );
-         if ( likely( valid_hash( lane_hash, ptarget ) ) )
-         {
-            pdata[19] = bswap_32( n + lane );
-            submit_solution( work, lane_hash, mythr );
-         }
-      }
-      *noncev = _mm512_add_epi32( *noncev,
-                                  m512_const1_64( 0x0000000800000000 ) );
-      n += 8;
-   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
-   pdata[19] = n;
-   *hashes_done = n - first_nonce;
-   return 0;
-}
-
 #elif defined(X17_4WAY)
 
 union _x17_4way_context_overlay
@@ -302,7 +258,7 @@ union _x17_4way_context_overlay
 };  
 typedef union _x17_4way_context_overlay x17_4way_context_overlay;
 
-int x17_4way_hash( void *state, const void *input )
+int x17_4way_hash( void *state, const void *input, int thr_id )
 {
      uint64_t vhash[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
@@ -403,49 +359,6 @@ int x17_4way_hash( void *state, const void *input )
      haval256_5_4way_close( &ctx.haval, state );
 
      return 1;
-}
-
-int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done, struct thr_info *mythr )
-{
-   uint32_t hash32[8*4] __attribute__ ((aligned (64)));
-   uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hash32_d7 = &(hash32[ 7*4 ]);
-   uint32_t *pdata = work->data;
-   const uint32_t *ptarget = work->target;
-   const uint32_t first_nonce = pdata[19];
-   const uint32_t last_nonce = max_nonce - 4;
-   __m256i  *noncev = (__m256i*)vdata + 9;
-   uint32_t n = first_nonce;
-   const int thr_id = mythr->id;
-   const uint32_t targ32_d7 = ptarget[7];
-   const bool bench = opt_benchmark;
-
-   mm256_bswap32_intrlv80_4x64( vdata, pdata );
-   *noncev = mm256_intrlv_blend_32(
-                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
-   do
-   {
-      x17_4way_hash( hash32, vdata );
-
-      for ( int lane = 0; lane < 4; lane++ )
-      if ( unlikely( hash32_d7[ lane ] <= targ32_d7 && !bench ) )
-      {  
-         extr_lane_4x32( lane_hash, hash32, lane, 256 );
-         if ( valid_hash( lane_hash, ptarget ) )
-         {
-            pdata[19] = bswap_32( n + lane );
-            submit_solution( work, lane_hash, mythr );
-         }            
-      }
-      *noncev = _mm256_add_epi32( *noncev,
-                                  m256_const1_64( 0x0000000400000000 ) );
-      n += 4;
-   } while ( likely( ( n <= last_nonce ) && !work_restart[thr_id].restart ) );
-   pdata[19] = n;
-   *hashes_done = n - first_nonce;
-   return 0;
 }
 
 #endif

@@ -92,7 +92,7 @@ bool want_longpoll = false;
 bool have_longpoll = false;
 bool have_gbt = true;
 bool allow_getwork = true;
-bool want_stratum = true;
+bool want_stratum = true;    // pretty useless
 bool have_stratum = false;
 bool allow_mininginfo = true;
 bool use_syslog = false;
@@ -215,7 +215,7 @@ static char const short_options[] =
 
 static struct work g_work __attribute__ ((aligned (64))) = {{ 0 }};
 time_t g_work_time = 0;
-pthread_mutex_t g_work_lock;
+pthread_rwlock_t g_work_lock;
 static bool   submit_old = false;
 char*  lp_id;
 
@@ -1232,7 +1232,7 @@ static int share_result( int result, struct work *work,
 
    if ( use_colors )
    {
-     bcol = acol = scol = rcol = CL_N;
+     bcol = acol = scol = rcol = CL_WHT;
      if ( likely( result ) )
      {
        acol = CL_WHT CL_GRN;  
@@ -1242,27 +1242,22 @@ static int share_result( int result, struct work *work,
      else              rcol = CL_WHT CL_RED;
    }
 
-   applog( LOG_NOTICE, "%d %s%s %s%s %s%s %s%s" CL_N ", %.3f sec (%dms)",
+   applog( LOG_NOTICE, "%d %s%s %s%s %s%s %s%s" CL_WHT ", %.3f sec (%dms)",
            my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
            bres, share_time, latency );
 
-/*   
-   if ( !opt_quiet )
+   if ( unlikely( opt_debug || !result || solved ) )
    {
       if ( have_stratum )
-         applog2( LOG_INFO, "Diff %.5g (%.3g), %sBlock %d" CL_N ", %sJob %s",
-               my_stats.share_diff, share_ratio, bcol, stratum.block_height,
-               scol, my_stats.job_id );
+         applog2( LOG_INFO, "Diff %.5g, Block %d, Job %s",
+               my_stats.share_diff, stratum.block_height,
+               my_stats.job_id );
       else
-      {
-         uint64_t height = work ? work->height : last_block_height;
-         applog2( LOG_INFO, "Diff %.5g (%.3g), %sBlock %d",
-               my_stats.share_diff, share_ratio, bcol, height );
-      }
+         applog2( LOG_INFO, "Diff %.5g, Block %d",
+               my_stats.share_diff, work ? work->height : last_block_height );
    }
-*/
 
-   if ( unlikely( opt_debug || !( opt_quiet || result || stale ) ) )
+   if ( unlikely( !( opt_quiet || result || stale ) ) )
    {
       uint32_t str[8];
 
@@ -1835,9 +1830,9 @@ bool submit_solution( struct work *work, const void *hash,
 
      if unlikely( !have_stratum && !have_longpoll )
      {   // block solved, force getwork
-         pthread_mutex_lock( &g_work_lock );
+         pthread_rwlock_wrlock( &g_work_lock );
          g_work_time = 0;
-         pthread_mutex_unlock( &g_work_lock );
+         pthread_rwlock_unlock( &g_work_lock );
      }
 
      if ( !opt_quiet )
@@ -1960,7 +1955,7 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
    uint32_t *nonceptr = work->data + algo_gate.nonce_index;
    bool force_new_work = false; 
 
-   pthread_mutex_lock( &g_work_lock );
+   pthread_rwlock_rdlock( &g_work_lock );
    
    if ( have_stratum ) 
       force_new_work = work->job_id ?    strtoul(   work->job_id, NULL, 16 )
@@ -1978,7 +1973,7 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
    else
        ++(*nonceptr);
 
-   pthread_mutex_unlock( &g_work_lock );
+   pthread_rwlock_unlock( &g_work_lock );
 }
 
 bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
@@ -1998,7 +1993,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    bool new_job =  *get_stratum_job_ntime()
                    != g_work->data[ algo_gate.ntime_index ];
 
-   pthread_mutex_lock( &g_work_lock );
+   pthread_rwlock_wrlock( &g_work_lock );
    pthread_mutex_lock( &sctx->work_lock );
 
    free( g_work->job_id );
@@ -2013,11 +2008,13 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    g_work->targetdiff = sctx->job.diff
                            / ( opt_target_factor * opt_diff_factor );
    diff_to_hash( g_work->target, g_work->targetdiff );
+   // Increment extranonce2
+   for ( int t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
    g_work_time = time(NULL);
    restart_threads();
 
    pthread_mutex_unlock( &sctx->work_lock );
-   pthread_mutex_unlock( &g_work_lock );
+   pthread_rwlock_unlock( &g_work_lock );
 
    pthread_mutex_lock( &stats_lock );
 
@@ -2037,11 +2034,11 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    else if ( new_job && g_work->job_id )
       applog( LOG_BLUE, "New Work: Block %d, Net diff %.5g, Job %s",
                          sctx->block_height, net_diff, g_work->job_id );
-   else if ( opt_debug )
+   else if ( !opt_quiet )
    {
       unsigned char *xnonce2str = abin2hex( g_work->xnonce2,
                                             g_work->xnonce2_len );
-      applog( LOG_INFO, "Extranonce2 %s, Block %d, Net Diff %.5g",
+      applog( LOG_INFO, "Extranonce %s, Block %d, Net Diff %.5g",
                   xnonce2str, sctx->block_height, net_diff );
       free( xnonce2str );
    }
@@ -2222,24 +2219,24 @@ static void *miner_thread( void *userdata )
           }
           else
           {
-             int scantime = have_longpoll ? LP_SCANTIME : opt_scantime;
-	          pthread_mutex_lock( &g_work_lock );
+             pthread_rwlock_wrlock( &g_work_lock );
 
-             if ( ( ( time(NULL) - g_work_time ) >= scantime )
+             if ( ( ( time(NULL) - g_work_time )
+                 >= ( have_longpoll ? LP_SCANTIME : opt_scantime ) )
                || ( *nonceptr >= end_nonce ) )
              {
                 if ( unlikely( !get_work( mythr, &g_work ) ) )
                 {
-                   pthread_mutex_unlock( &g_work_lock );
+                   pthread_rwlock_unlock( &g_work_lock );
 		             applog( LOG_ERR, "work retrieval failed, exiting "
-		                                      "mining thread %d", thr_id );
+		                              "mining thread %d", thr_id );
 		             goto out;
 	             }
                 g_work_time = time(NULL);
                 restart_threads();
              }
 
-             pthread_mutex_unlock( &g_work_lock );
+             pthread_rwlock_unlock( &g_work_lock );
           }
 
           algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce );
@@ -2349,10 +2346,10 @@ static void *miner_thread( void *userdata )
           // we can't submit twice a block!
           if unlikely( !have_stratum && !have_longpoll )
           {
-             pthread_mutex_lock( &g_work_lock );
+             pthread_rwlock_wrlock( &g_work_lock );
              // will force getwork
              g_work_time = 0;
-             pthread_mutex_unlock( &g_work_lock );
+             pthread_rwlock_unlock( &g_work_lock );
           }
        }
 
@@ -2384,11 +2381,9 @@ static void *miner_thread( void *userdata )
              if ( use_colors && ( curr_temp >= 70 ) )
              {
                 if ( curr_temp >= 80 )
-                   sprintf( tempstr, "%s%d C%s",
-                                     CL_WHT CL_RED, curr_temp, CL_N );
+                   sprintf( tempstr, "%s%d C%s", CL_RED, curr_temp, CL_WHT );
                 else
-                   sprintf( tempstr, "%s%d C%s",
-                                     CL_WHT CL_YLW, curr_temp, CL_N );
+                   sprintf( tempstr, "%s%d C%s", CL_YLW, curr_temp, CL_WHT );
              }
              else
                 sprintf( tempstr, "%d C", curr_temp );
@@ -2539,7 +2534,8 @@ start:
 	   res = json_object_get(val, "result");
       soval = json_object_get(res, "submitold");
       submit_old = soval ? json_is_true(soval) : false;
-	   pthread_mutex_lock(&g_work_lock);
+
+      pthread_rwlock_wrlock( &g_work_lock );
 
 // This code has been here for a long time even though job_id isn't used.
 // This needs to be changed eventually to test the block height properly
@@ -2573,14 +2569,16 @@ start:
 	     }
       }
       free(start_job_id);
-      pthread_mutex_unlock(&g_work_lock);
+
+      pthread_rwlock_unlock( &g_work_lock );
+
       json_decref(val);
     }
     else   // !val
     {
-       pthread_mutex_lock(&g_work_lock);
-   	 g_work_time -= LP_SCANTIME;
-	    pthread_mutex_unlock(&g_work_lock);
+       pthread_rwlock_wrlock( &g_work_lock );
+       g_work_time -= LP_SCANTIME;
+       pthread_rwlock_unlock( &g_work_lock );
 	    if (err == CURLE_OPERATION_TIMEDOUT)
        {
 	       restart_threads();
@@ -2689,12 +2687,8 @@ void std_build_block_header( struct work* g_work, uint32_t version,
 void std_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
    uchar merkle_tree[64] = { 0 };
-   size_t t;
 
    algo_gate.gen_merkle_root( merkle_tree, sctx );
-   // Increment extranonce2
-   for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
-   // Assemble block header
    algo_gate.build_block_header( g_work, le32dec( sctx->job.version ),
           (uint32_t*) sctx->job.prevhash, (uint32_t*) merkle_tree,
           le32dec( sctx->job.ntime ), le32dec(sctx->job.nbits),
@@ -2733,10 +2727,10 @@ static void *stratum_thread(void *userdata )
 
       while ( !stratum.curl )
       {
-         pthread_mutex_lock( &g_work_lock );
+         pthread_rwlock_wrlock( &g_work_lock );
          g_work_time = 0;
-         pthread_mutex_unlock( &g_work_lock );
-         restart_threads();
+         pthread_rwlock_unlock( &g_work_lock );
+//         restart_threads();
          if ( !stratum_connect( &stratum, stratum.url )
               || !stratum_subscribe( &stratum )
               || !stratum_authorize( &stratum, rpc_user, rpc_pass ) )
@@ -2872,167 +2866,180 @@ void parse_arg(int key, char *arg )
 	uint64_t ul;
 	double d;
 
-	switch(key)
-        {
-	   case 'a':
-              get_algo_alias( &arg );
-              for (i = 1; i < ALGO_COUNT; i++)
-              {
-	          v = (int) strlen(algo_names[i]);
-		  if (v && !strncasecmp(arg, algo_names[i], v))
-                  {
-			if (arg[v] == '\0')
-                        {
-				opt_algo = (enum algos) i;
-				break;
-			}
-			if (arg[v] == ':')
-                        {
-				char *ep;
-				v = strtol(arg+v+1, &ep, 10);
-            if (*ep || v < 2)
-					continue;
-				opt_algo = (enum algos) i;
-				opt_param_n = v;
-				break;
-			}
-		  }
+	switch( key )
+   {
+	   case 'a':  // algo
+         get_algo_alias( &arg );
+         for (i = 1; i < ALGO_COUNT; i++)
+         {
+	          v = (int) strlen( algo_names[i] );
+             if ( v && !strncasecmp( arg, algo_names[i], v ) )
+             {
+	             if ( arg[v] == '\0' )
+                {
+		             opt_algo = (enum algos) i;
+			          break;
+		          }
+			       if ( arg[v] == ':' )
+                {
+		             char *ep;
+				       v = strtol( arg+v+1, &ep, 10 );
+                   if ( *ep || v < 2 )
+					       continue;
+				       opt_algo = (enum algos) i;
+				       opt_param_n = v;
+				       break;
+			       }
+		      }
 	      }
-              if (i == ALGO_COUNT)
-              {
-                 applog(LOG_ERR,"Unknown algo: %s",arg);
-                 show_usage_and_exit(1);
-              }
-           break;
+         if ( i == ALGO_COUNT )
+         {
+            applog( LOG_ERR,"Unknown algo: %s",arg );
+            show_usage_and_exit( 1 );
+         }
+      break;
 
-	case 'b':
+	case 'b':  // api-bind
       opt_api_enabled = true;
       p = strstr(arg, ":");
-		if (p) {
+		if ( p )
+      {
 			/* ip:port */
-			if (p - arg > 0) {
+			if ( p - arg > 0 )
+         {
 				opt_api_allow = strdup(arg);
 				opt_api_allow[p - arg] = '\0';
 			}
 			opt_api_listen = atoi(p + 1);
 		}
-		else if (arg && strstr(arg, ".")) {
+		else if ( arg && strstr( arg, "." ) )
+      {
 			/* ip only */
 			free(opt_api_allow);
 			opt_api_allow = strdup(arg);
          opt_api_listen = default_api_listen;
       }
-		else if (arg) {
+		else if ( arg )
+      {
 			/* port or 0 to disable */
          opt_api_allow = default_api_allow;      
          opt_api_listen = atoi(arg);
 		}
       break;
-	case 1030: /* --api-remote */
+	case 1030: // api-remote
 		opt_api_remote = 1;
 		break;
-	case 'B':
+	case 'B':  // background
 		opt_background = true;
 		use_colors = false;
 		break;
-	case 'c': {
+	case 'c': {  // config
 		json_error_t err;
 		json_t *config;
                 
 		if (arg && strstr(arg, "://"))
 			config = json_load_url(arg, &err);
-                else
+      else
 			config = JSON_LOADF(arg, &err);
 		if (!json_is_object(config))
-                {
+      {
 			if (err.line < 0)
 				fprintf(stderr, "%s\n", err.text);
 			else
-				fprintf(stderr, "%s:%d: %s\n",
-					arg, err.line, err.text);
+				fprintf(stderr, "%s:%d: %s\n", arg, err.line, err.text);
 		}
-                else
-                {
+      else
+      {
 			parse_config(config, arg);
 			json_decref(config);
 		}
 		break;
 	}
-	case 'q':
-		opt_quiet = true;
+
+   // debug overrides quiet          
+	case 'q':  // quiet
+		if ( !( opt_debug || opt_protocol ) ) opt_quiet = true;
 		break;
-	case 'D':
+	case 'D':  // debug
 		opt_debug = true;
-		break;
-	case 'p':
+      opt_quiet =	false;
+      break;
+	case 'p':  // pass
 		free(rpc_pass);
 		rpc_pass = strdup(arg);
 		strhide(arg);
 		break;
-	case 'P':
+	case 'P':  // protocol
 		opt_protocol = true;
+      opt_quiet = false;
 		break;
-	case 'r':
+	case 'r':  // retries
 		v = atoi(arg);
 		if (v < -1 || v > 9999) /* sanity check */
 			show_usage_and_exit(1);
 		opt_retries = v;
 		break;
-   case 1025:
+   case 1025:  // retry-pause
       v = atoi(arg);
 		if (v < 1 || v > 9999) /* sanity check */
 			show_usage_and_exit(1);
 		opt_fail_pause = v;
 		break;
-	case 's':
+	case 's':  // scantime
 		v = atoi(arg);
 		if (v < 1 || v > 9999) /* sanity check */
 			show_usage_and_exit(1);
 		opt_scantime = v;
 		break;
-	case 'T':
+	case 'T':  // timeout
 		v = atoi(arg);
 		if (v < 1 || v > 99999) /* sanity check */
 			show_usage_and_exit(1);
 		opt_timeout = v;
 		break;
-	case 't':
+	case 't':  // threads
 		v = atoi(arg);
 		if (v < 0 || v > 9999) /* sanity check */
 			show_usage_and_exit(1);
 		opt_n_threads = v;
 		break;
-	case 'u':
+	case 'u':  // user
 		free(rpc_user);
 		rpc_user = strdup(arg);
 		break;
-	case 'o': {			/* --url */
+	case 'o':  // url
+   {
 		char *ap, *hp;
-		ap = strstr(arg, "://");
+		ap = strstr( arg, "://" );
 		ap = ap ? ap + 3 : arg;
-		hp = strrchr(arg, '@');
-		if (hp) {
+		hp = strrchr( arg, '@' );
+		if ( hp )
+      {
 			*hp = '\0';
-			p = strchr(ap, ':');
-			if (p) {
-				free(rpc_userpass);
-				rpc_userpass = strdup(ap);
-				free(rpc_user);
-				rpc_user = (char*) calloc(p - ap + 1, 1);
-				strncpy(rpc_user, ap, p - ap);
-				free(rpc_pass);
-				rpc_pass = strdup(++p);
-				if (*p) *p++ = 'x';
-				v = (int) strlen(hp + 1) + 1;
-				memmove(p + 1, hp + 1, v);
-				memset(p + v, 0, hp - p);
+			p = strchr( ap, ':' );
+			if ( p )
+         {
+				free( rpc_userpass );
+				rpc_userpass = strdup( ap );
+				free( rpc_user );
+				rpc_user = (char*)calloc( p - ap + 1, 1 );
+				strncpy( rpc_user, ap, p - ap );
+				free( rpc_pass );
+				rpc_pass = strdup( ++p );
+				if ( *p ) *p++ = 'x';
+				v = (int)strlen( hp + 1 ) + 1;
+				memmove( p + 1, hp + 1, v );
+				memset( p + v, 0, hp - p );
 				hp = p;
-			} else {
-				free(rpc_user);
-				rpc_user = strdup(ap);
+			}
+         else
+         {
+				free( rpc_user );
+				rpc_user = strdup( ap );
 			}
 			*hp++ = '@';
-		} else
+		}
+      else
 			hp = ap;
 		if ( ap != arg )
       {
@@ -3048,23 +3055,26 @@ void parse_arg(int key, char *arg )
 			rpc_url = strdup(arg);
 			strcpy(rpc_url + (ap - arg), hp);
 			short_url = &rpc_url[ap - arg];
-		} else {
-			if (*hp == '\0' || *hp == '/') {
-				fprintf(stderr, "invalid URL -- '%s'\n",
-					arg);
-				show_usage_and_exit(1);
+		}
+      else
+      {
+			if ( *hp == '\0' || *hp == '/' )
+         {
+				fprintf( stderr, "invalid URL -- '%s'\n",	arg );
+				show_usage_and_exit( 1 );
 			}
-			free(rpc_url);
+			free( rpc_url );
 			rpc_url = (char*) malloc( strlen(hp) + 15 );
 			sprintf( rpc_url, "stratum+tcp://%s", hp );
 			short_url = &rpc_url[ sizeof("stratum+tcp://") - 1 ];
 		}
-		have_stratum = !opt_benchmark && !strncasecmp(rpc_url, "stratum", 7);
+		have_stratum = !opt_benchmark && !strncasecmp( rpc_url, "stratum", 7 );
 		break;
 	}
-	case 'O':			/* --userpass */
+	case 'O':  // userpass
 		p = strchr(arg, ':');
-		if (!p) {
+		if (!p)
+      {
 			fprintf(stderr, "invalid username:password pair -- '%s'\n", arg);
 			show_usage_and_exit(1);
 		}
@@ -3077,15 +3087,15 @@ void parse_arg(int key, char *arg )
 		rpc_pass = strdup(++p);
 		strhide(p);
 		break;
-	case 'x':			/* --proxy */
-		if (!strncasecmp(arg, "socks4://", 9))
+	case 'x':  // proxy
+		if ( !strncasecmp( arg, "socks4://", 9 ) )
 			opt_proxy_type = CURLPROXY_SOCKS4;
-		else if (!strncasecmp(arg, "socks5://", 9))
+		else if ( !strncasecmp( arg, "socks5://", 9 ) )
 			opt_proxy_type = CURLPROXY_SOCKS5;
 #if LIBCURL_VERSION_NUM >= 0x071200
-		else if (!strncasecmp(arg, "socks4a://", 10))
+		else if ( !strncasecmp( arg, "socks4a://", 10 ) )
 			opt_proxy_type = CURLPROXY_SOCKS4A;
-		else if (!strncasecmp(arg, "socks5h://", 10))
+		else if ( !strncasecmp( arg, "socks5h://", 10 ) )
 			opt_proxy_type = CURLPROXY_SOCKS5_HOSTNAME;
 #endif
 		else
@@ -3093,42 +3103,42 @@ void parse_arg(int key, char *arg )
 		free(opt_proxy);
 		opt_proxy = strdup(arg);
 		break;
-	case 1001:
+	case 1001:  // cert
 		free(opt_cert);
 		opt_cert = strdup(arg);
 		break;
-	case 1002:
+	case 1002:  // no-color
 		use_colors = false;
 		break;
-	case 1003:
+	case 1003:  // no-longpoll
 		want_longpoll = false;
 		break;
-	case 1005:
+	case 1005:  // benchmark
 		opt_benchmark = true;
 		want_longpoll = false;
 		want_stratum = false;
 		have_stratum = false;
 		break;
-	case 1006:
+	case 1006:  // cputest
 //		print_hash_tests();
 		exit(0);
-	case 1007:
+	case 1007:  // no-stratum
 		want_stratum = false;
 		opt_extranonce = false;
 		break;
-	case 1008:
+	case 1008:  // time-limit
 		opt_time_limit = atoi(arg);
 		break;
-	case 1009:
+	case 1009:  // no-redirect
 		opt_redirect = false;
 		break;
-	case 1010:
+	case 1010:  // no-getwork
 		allow_getwork = false;
 		break;
-	case 1011:
+	case 1011:  // no-gbt
 		have_gbt = false;
 		break;
-	case 1012:
+	case 1012:  // no-extranonce
 		opt_extranonce = false;
 		break;
    case 1014:   // hash-meter
@@ -3138,11 +3148,12 @@ void parse_arg(int key, char *arg )
       if ( arg ) coinbase_address = strdup( arg );
 		break;
 	case 1015:			/* --coinbase-sig */
-		if (strlen(arg) + 1 > sizeof(coinbase_sig)) {
-			fprintf(stderr, "coinbase signature too long\n");
-			show_usage_and_exit(1);
+		if ( strlen( arg ) + 1 > sizeof(coinbase_sig) )
+      {
+			fprintf( stderr, "coinbase signature too long\n" );
+			show_usage_and_exit( 1 );
 		}
-		strcpy(coinbase_sig, arg);
+		strcpy( coinbase_sig, arg );
 		break;
 	case 'f':
 		d = atof(arg);
@@ -3156,11 +3167,13 @@ void parse_arg(int key, char *arg )
 			show_usage_and_exit(1);
 		opt_diff_factor = 1.0/d;
 		break;
-	case 'S':
+#ifdef HAVE_SYSLOG_H
+	case 'S':  // syslog
 		use_syslog = true;
 		use_colors = false;
 		break;
-	case 1020:
+#endif
+	case 1020:  // cpu-affinity
 		p = strstr(arg, "0x");
 		if ( p )
 			ul = strtoull( p, NULL, 16 );
@@ -3171,14 +3184,14 @@ void parse_arg(int key, char *arg )
 #if AFFINITY_USES_UINT128
 // replicate the low 64 bits to make a full 128 bit mask if there are more
 // than 64 CPUs, otherwise zero extend the upper half.
-                opt_affinity = (uint128_t)ul;
-                if ( num_cpus > 64 )
-                   opt_affinity = (opt_affinity << 64 ) | opt_affinity;
+         opt_affinity = (uint128_t)ul;
+         if ( num_cpus > 64 )
+            opt_affinity = (opt_affinity << 64 ) | opt_affinity;
 #else
-                   opt_affinity = ul;
+         opt_affinity = ul;
 #endif
 		break;
-	case 1021:
+	case 1021:  // cpu-priority
 		v = atoi(arg);
 		if (v < 0 || v > 5)	/* sanity check */
 			show_usage_and_exit(1);
@@ -3637,7 +3650,7 @@ int main(int argc, char *argv[])
    if ( !check_cpu_capability() ) exit(1);
 
 	pthread_mutex_init( &stats_lock, NULL );
-	pthread_mutex_init( &g_work_lock, NULL );
+   pthread_rwlock_init( &g_work_lock, NULL );
 	pthread_mutex_init( &stratum.sock_lock, NULL );
 	pthread_mutex_init( &stratum.work_lock, NULL );
 
@@ -3797,7 +3810,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 	}
-	if (want_stratum)
+	if ( have_stratum )
    {
       if ( opt_debug )
          applog(LOG_INFO,"Creating stratum thread");

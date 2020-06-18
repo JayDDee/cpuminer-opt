@@ -78,7 +78,6 @@ void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    uint32_t extraheader[32] = { 0 };
    int headersize = 0;
    uint32_t* extradata = (uint32_t*) sctx->xnonce1;
-   size_t t;
    int i;
 
    // getwork over stratum, getwork merkle + header passed in coinb1
@@ -86,9 +85,6 @@ void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    headersize = min((int)sctx->job.coinbase_size - 32,
                   sizeof(extraheader) );
    memcpy( extraheader, &sctx->job.coinbase[32], headersize );
-
-   // Increment extranonce2 
-   for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
 
    // Assemble block header 
    memset( g_work->data, 0, sizeof(g_work->data) );

@@ -14,16 +14,11 @@ bool register_xevan_algo( algo_gate_t* gate );
 
 #if defined(XEVAN_8WAY)
 
-int xevan_8way_hash( void *state, const void *input );
-int scanhash_xevan_8way( struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done, struct thr_info *mythr );
+int xevan_8way_hash( void *state, const void *input, int thr_id );
+
 #elif defined(XEVAN_4WAY)
 
-int xevan_4way_hash( void *state, const void *input );
-int scanhash_xevan_4way( struct work *work, uint32_t max_nonce,
-                       uint64_t *hashes_done, struct thr_info *mythr );
-
-//void init_xevan_4way_ctx();
+int xevan_4way_hash( void *state, const void *input, int thr_id );
 
 #else
 

@@ -3,10 +3,10 @@
 bool register_xevan_algo( algo_gate_t* gate )
 {
 #if defined (XEVAN_8WAY)
-  gate->scanhash  = (void*)&scanhash_xevan_8way;
+  gate->scanhash  = (void*)&scanhash_8way_64in_32out;
   gate->hash      = (void*)&xevan_8way_hash;
 #elif defined (XEVAN_4WAY)
-  gate->scanhash  = (void*)&scanhash_xevan_4way;
+  gate->scanhash  = (void*)&scanhash_4way_64in_32out;
   gate->hash      = (void*)&xevan_4way_hash;
 #else
   init_xevan_ctx();

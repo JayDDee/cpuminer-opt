@@ -69,13 +69,9 @@ void lbry_build_block_header( struct work* g_work, uint32_t version,
 void lbry_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
    unsigned char merkle_root[64] = { 0 };
-   size_t t;
    int i;
 
    algo_gate.gen_merkle_root( merkle_root, sctx );
-   // Increment extranonce2 
-   for ( t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
-   // Assemble block header 
 
    memset( g_work->data, 0, sizeof(g_work->data) );
    g_work->data[0] = le32dec( sctx->job.version );

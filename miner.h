@@ -83,6 +83,8 @@ enum {
 };
 #endif
 
+extern bool is_power_of_2( int n );
+
 static inline bool is_windows(void)
 {
 #ifdef WIN32
@@ -378,36 +380,25 @@ void   cpu_brand_string( char* s );
 float cpu_temp( int core );
 */
 
-struct work {
+struct work
+{
+   uint32_t target[8] __attribute__ ((aligned (64)));
 	uint32_t data[48] __attribute__ ((aligned (64)));
-	uint32_t target[8] __attribute__ ((aligned (64)));
-
 	double targetdiff;
-//	double shareratio;
 	double sharediff;
    double stratum_diff;
-
 	int height;
 	char *txs;
 	char *workid;
-
 	char *job_id;
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
    bool sapling;
    bool stale;
-
-   // x16rt
-   uint32_t merkleroothash[8];
-   uint32_t witmerkleroothash[8];
-   uint32_t denom10[8];
-   uint32_t denom100[8];
-   uint32_t denom1000[8];
-   uint32_t denom10000[8];
-
 } __attribute__ ((aligned (64)));
 
-struct stratum_job {
+struct stratum_job
+{
 	unsigned char prevhash[32];
    unsigned char final_sapling_hash[32];
    char *job_id;
@@ -421,7 +412,7 @@ struct stratum_job {
 	unsigned char ntime[4];
 	double diff;
    bool clean;
-   // for x16rt
+   // for x16rt-veil
    unsigned char extra[64];
    unsigned char denom10[32];
    unsigned char denom100[32];
@@ -756,7 +747,7 @@ extern double opt_diff_factor;
 extern double opt_target_factor;
 extern bool opt_randomize;
 extern bool allow_mininginfo;
-extern pthread_mutex_t g_work_lock;
+extern pthread_rwlock_t g_work_lock;
 extern time_t g_work_time;
 extern bool opt_stratum_stats;
 extern int num_cpus;

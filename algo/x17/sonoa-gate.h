@@ -14,21 +14,15 @@ bool register_sonoa_algo( algo_gate_t* gate );
 
 #if defined(SONOA_8WAY)
 
-int sonoa_8way_hash( void *state, const void *input, int thrid );
-int scanhash_sonoa_8way( struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done, struct thr_info *mythr );
+int sonoa_8way_hash( void *state, const void *input, int thr_id );
 
 #elif defined(SONOA_4WAY)
 
-int sonoa_4way_hash( void *state, const void *input, int thrid );
-int scanhash_sonoa_4way( struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done, struct thr_info *mythr );
+int sonoa_4way_hash( void *state, const void *input, int thr_id );
 
 #else
 
-int sonoa_hash( void *state, const void *input, int thrid );
-int scanhash_sonoa( struct work *work, uint32_t max_nonce,
-                  uint64_t *hashes_done, struct thr_info *mythr );
+int sonoa_hash( void *state, const void *input, int thr_id );
 void init_sonoa_ctx();
 
 #endif
