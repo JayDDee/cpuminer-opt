@@ -1,4 +1,4 @@
-#if !defined(SYSINJFOS_C___)
+#if !defined(SYSINFOS_C__)
 #define SYSINFOS_C__
 
 /**

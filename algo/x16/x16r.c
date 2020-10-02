@@ -151,8 +151,12 @@ int x16r_hash_generic( void* output, const void* input, int thrid )
             sph_hamsi512_close( &ctx.hamsi, hash );
          break;
          case FUGUE:
-            sph_fugue512_full( &ctx.fugue, hash, in, size );
-         break;
+#if defined(__AES__)
+         fugue512_full( &ctx.fugue, hash, in, size );
+#else
+	 sph_fugue512_full( &ctx.fugue, hash, in, size );
+#endif
+	 break;
          case SHABAL:
             if ( i == 0 )
                sph_shabal512( &ctx.shabal, in+64, 16 );

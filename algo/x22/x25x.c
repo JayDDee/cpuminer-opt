@@ -7,9 +7,11 @@
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
+  #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
+  #include "algo/fugue/sph_fugue.h"
 #endif
 #include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
@@ -19,7 +21,6 @@
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/nist.h"
 #include "algo/hamsi/sph_hamsi.h"
-#include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include <openssl/sha.h>
@@ -39,9 +40,11 @@ union _x25x_context_overlay
 #if defined(__AES__)
         hashState_groestl       groestl;
         hashState_echo          echo;
+        hashState_fugue         fugue;
 #else
         sph_groestl512_context  groestl;
         sph_echo512_context     echo;
+        sph_fugue512_context    fugue;
 #endif
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
@@ -51,7 +54,6 @@ union _x25x_context_overlay
         sph_shavite512_context  shavite;
         hashState_sd            simd;
         sph_hamsi512_context    hamsi;
-        sph_fugue512_context    fugue;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
         SHA512_CTX              sha512;
@@ -133,9 +135,13 @@ int x25x_hash( void *output, const void *input, int thrid )
 	sph_hamsi512(&ctx.hamsi, (const void*) &hash[10], 64);
 	sph_hamsi512_close(&ctx.hamsi, &hash[11]);
 
+#if defined(__AES__)
+        fugue512_full( &ctx.fugue, &hash[12], &hash[11], 64 );
+#else
 	sph_fugue512_init(&ctx.fugue);
 	sph_fugue512(&ctx.fugue, (const void*) &hash[11], 64);
 	sph_fugue512_close(&ctx.fugue, &hash[12]);
+#endif
 
 	sph_shabal512_init(&ctx.shabal);
 	sph_shabal512(&ctx.shabal, (const void*) &hash[12], 64);

@@ -21,9 +21,11 @@
 #if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
+  #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
+  #include "algo/fugue/sph_fugue.h"
 #endif
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
@@ -40,7 +42,6 @@ typedef struct {
   sph_shavite512_context  shavite1, shavite2;
   hashState_sd            simd1, simd2;
   sph_hamsi512_context    hamsi1;
-  sph_fugue512_context    fugue1, fugue2;
   sph_shabal512_context   shabal1;
   sph_whirlpool_context   whirlpool1, whirlpool2, whirlpool3, whirlpool4;
   SHA512_CTX              sha1, sha2;
@@ -48,9 +49,11 @@ typedef struct {
 #if defined(__AES__)
   hashState_echo          echo1, echo2;
   hashState_groestl       groestl1, groestl2;
+  hashState_fugue         fugue1, fugue2;
 #else
   sph_groestl512_context  groestl1, groestl2;
   sph_echo512_context     echo1, echo2;
+  sph_fugue512_context    fugue1, fugue2;
 #endif
 } hmq1725_ctx_holder;
 
@@ -88,8 +91,13 @@ void init_hmq1725_ctx()
 
     sph_hamsi512_init(&hmq1725_ctx.hamsi1);
 
+#if defined(__AES__)
+    fugue512_Init( &hmq1725_ctx.fugue1, 512 );
+    fugue512_Init( &hmq1725_ctx.fugue2, 512 );
+#else
     sph_fugue512_init(&hmq1725_ctx.fugue1);
     sph_fugue512_init(&hmq1725_ctx.fugue2);
+#endif
 
     sph_shabal512_init(&hmq1725_ctx.shabal1);
 
@@ -235,8 +243,13 @@ extern void hmq1725hash(void *state, const void *input)
     sph_hamsi512 (&h_ctx.hamsi1, hashA, 64); //3
     sph_hamsi512_close(&h_ctx.hamsi1, hashB); //4
 
+#if defined(__AES__)
+    fugue512_Update( &h_ctx.fugue1, hashB, 512 ); //2   ////
+    fugue512_Final( &h_ctx.fugue1, hashA ); //3 
+#else
     sph_fugue512 (&h_ctx.fugue1, hashB, 64); //2   ////
     sph_fugue512_close(&h_ctx.fugue1, hashA); //3 
+#endif
 
     if ( hashA[0] & mask ) //4
     {
@@ -262,8 +275,13 @@ extern void hmq1725hash(void *state, const void *input)
 
     if ( hashB[0] & mask ) //7
     {
+#if defined(__AES__)
+        fugue512_Update( &h_ctx.fugue2, hashB, 512 ); //
+        fugue512_Final( &h_ctx.fugue2, hashA ); //8
+#else
         sph_fugue512 (&h_ctx.fugue2, hashB, 64); //
         sph_fugue512_close(&h_ctx.fugue2, hashA); //8
+#endif
     }
     else
     {

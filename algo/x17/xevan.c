@@ -15,7 +15,6 @@
 #include "algo/shavite/sph_shavite.h"
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/hamsi/sph_hamsi.h"
-#include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/sph-haval.h"
@@ -25,9 +24,11 @@
 #if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
+  #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
+  #include "algo/fugue/sph_fugue.h"
 #endif
 
 typedef struct {
@@ -41,7 +42,6 @@ typedef struct {
         sph_shavite512_context  shavite;
         hashState_sd            simd;
         sph_hamsi512_context    hamsi;
-        sph_fugue512_context    fugue;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
         SHA512_CTX              sha512;
@@ -49,9 +49,11 @@ typedef struct {
 #if defined(__AES__)
         hashState_echo          echo;
         hashState_groestl       groestl;
+        hashState_fugue         fugue;
 #else
 	sph_groestl512_context  groestl;
         sph_echo512_context     echo;
+        sph_fugue512_context    fugue;
 #endif
 } xevan_ctx_holder;
 
@@ -69,7 +71,6 @@ void init_xevan_ctx()
         sph_shavite512_init( &xevan_ctx.shavite );
         init_sd( &xevan_ctx.simd, 512 );
         sph_hamsi512_init( &xevan_ctx.hamsi );
-        sph_fugue512_init( &xevan_ctx.fugue );
         sph_shabal512_init( &xevan_ctx.shabal );
         sph_whirlpool_init( &xevan_ctx.whirlpool );
         SHA512_Init( &xevan_ctx.sha512 );
@@ -77,9 +78,11 @@ void init_xevan_ctx()
 #if defined(__AES__)
         init_groestl( &xevan_ctx.groestl, 64 );
         init_echo( &xevan_ctx.echo, 512 );
+        fugue512_Init( &xevan_ctx.fugue, 512 );
 #else
 	sph_groestl512_init( &xevan_ctx.groestl );
         sph_echo512_init( &xevan_ctx.echo );
+        sph_fugue512_init( &xevan_ctx.fugue );
 #endif
 };
 
@@ -137,8 +140,13 @@ int xevan_hash(void *output, const void *input, int thr_id )
 	sph_hamsi512(&ctx.hamsi, hash, dataLen);
 	sph_hamsi512_close(&ctx.hamsi, hash);
 
+#if defined(__AES__)
+    fugue512_Update( &ctx.fugue, hash, dataLen*8 );
+    fugue512_Final( &ctx.fugue, hash ); 
+#else
 	sph_fugue512(&ctx.fugue, hash, dataLen);
 	sph_fugue512_close(&ctx.fugue, hash);
+#endif
 
 	sph_shabal512(&ctx.shabal, hash, dataLen);
 	sph_shabal512_close(&ctx.shabal, hash);
@@ -202,8 +210,13 @@ int xevan_hash(void *output, const void *input, int thr_id )
 	sph_hamsi512(&ctx.hamsi, hash, dataLen);
 	sph_hamsi512_close(&ctx.hamsi, hash);
 
+#if defined(__AES__)
+    fugue512_Update( &ctx.fugue, hash, dataLen*8 );
+    fugue512_Final( &ctx.fugue, hash );   
+#else
 	sph_fugue512(&ctx.fugue, hash, dataLen);
 	sph_fugue512_close(&ctx.fugue, hash);
+#endif
 
 	sph_shabal512(&ctx.shabal, hash, dataLen);
 	sph_shabal512_close(&ctx.shabal, hash);

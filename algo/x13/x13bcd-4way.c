@@ -16,7 +16,7 @@
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/sm3/sm3-hash-4way.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
-#include "algo/fugue/sph_fugue.h"
+#include "algo/fugue/fugue-aesni.h"
 #if defined(__VAES__)
   #include "algo/groestl/groestl512-hash-4way.h"
   #include "algo/shavite/shavite-hash-4way.h"
@@ -35,7 +35,7 @@ typedef struct {
     simd_4way_context       simd;
     sm3_8way_ctx_t          sm3;
     hamsi512_8way_context   hamsi;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
 #if defined(__VAES__)
     groestl512_4way_context groestl;
     shavite512_4way_context shavite;
@@ -61,7 +61,7 @@ void init_x13bcd_8way_ctx()
      simd_4way_init( &x13bcd_8way_ctx.simd, 512 );
      sm3_8way_init( &x13bcd_8way_ctx.sm3 );
      hamsi512_8way_init( &x13bcd_8way_ctx.hamsi );
-     sph_fugue512_init( &x13bcd_8way_ctx.fugue );
+     fugue512_Init( &x13bcd_8way_ctx.fugue, 512 );
 #if defined(__VAES__)
      groestl512_4way_init( &x13bcd_8way_ctx.groestl, 64 );
      shavite512_4way_init( &x13bcd_8way_ctx.shavite );
@@ -257,36 +257,30 @@ void x13bcd_8way_hash( void *state, const void *input )
                        hash4, hash5, hash6, hash7, vhash );
 
      // Fugue serial
-     sph_fugue512( &ctx.fugue, hash0, 64 );
-     sph_fugue512_close( &ctx.fugue, state );
-     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash1, 64 );
-     sph_fugue512_close( &ctx.fugue, state+32 );
-     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash2, 64 );
-     sph_fugue512_close( &ctx.fugue, state+64 );
-     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash3, 64 );
-     sph_fugue512_close( &ctx.fugue, state+96 );
-     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash4, 64 );
-     sph_fugue512_close( &ctx.fugue, state+128 );
-     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash5, 64 );
-     sph_fugue512_close( &ctx.fugue, state+160 );
-     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash6, 64 );
-     sph_fugue512_close( &ctx.fugue, state+192 );
-     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash7, 64 );
-     sph_fugue512_close( &ctx.fugue, state+224 );
+     fugue512_Update( &ctx.fugue, hash0, 512 );
+     fugue512_Final( &ctx.fugue, state );
+     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash1, 512 );
+     fugue512_Final( &ctx.fugue, state+32 );
+     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash2, 512 );
+     fugue512_Final( &ctx.fugue, state+64 );
+     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash3, 512 );
+     fugue512_Final( &ctx.fugue, state+96 );
+     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash4, 512 );
+     fugue512_Final( &ctx.fugue, state+128 );
+     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash5, 512 );
+     fugue512_Final( &ctx.fugue, state+160 );
+     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash6, 512 );
+     fugue512_Final( &ctx.fugue, state+192 );
+     memcpy( &ctx.fugue, &x13bcd_8way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash7, 512 );
+     fugue512_Final( &ctx.fugue, state+224 );
+
 }
 
 int scanhash_x13bcd_8way( struct work *work, uint32_t max_nonce,
@@ -346,7 +340,7 @@ typedef struct {
     hashState_echo          echo;
     sm3_4way_ctx_t          sm3;
     hamsi512_4way_context   hamsi;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
 } x13bcd_4way_ctx_holder;
 
 x13bcd_4way_ctx_holder x13bcd_4way_ctx __attribute__ ((aligned (64)));
@@ -366,7 +360,7 @@ void init_x13bcd_4way_ctx()
      init_echo( &x13bcd_4way_ctx.echo, 512 );
      sm3_4way_init( &x13bcd_4way_ctx.sm3 );
      hamsi512_4way_init( &x13bcd_4way_ctx.hamsi );
-     sph_fugue512_init( &x13bcd_4way_ctx.fugue );
+     fugue512_Init( &x13bcd_4way_ctx.fugue, 512 );
 };
 
 void x13bcd_4way_hash( void *state, const void *input )
@@ -489,20 +483,17 @@ void x13bcd_4way_hash( void *state, const void *input )
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
      // Fugue serial
-     sph_fugue512( &ctx.fugue, hash0, 64 );
-     sph_fugue512_close( &ctx.fugue, hash0 );
-     memcpy( &ctx.fugue, &x13bcd_4way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash1, 64 );
-     sph_fugue512_close( &ctx.fugue, hash1 );
-     memcpy( &ctx.fugue, &x13bcd_4way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash2, 64 );
-     sph_fugue512_close( &ctx.fugue, hash2 );
-     memcpy( &ctx.fugue, &x13bcd_4way_ctx.fugue,
-                         sizeof(sph_fugue512_context) );
-     sph_fugue512( &ctx.fugue, hash3, 64 );
-     sph_fugue512_close( &ctx.fugue, hash3 );
+     fugue512_Update( &ctx.fugue, hash0, 512 );
+     fugue512_Final( &ctx.fugue, hash0 );
+     memcpy( &ctx.fugue, &x13bcd_4way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash1, 512 );
+     fugue512_Final( &ctx.fugue, hash1 );
+     memcpy( &ctx.fugue, &x13bcd_4way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash2, 512 );
+     fugue512_Final( &ctx.fugue, hash2 );
+     memcpy( &ctx.fugue, &x13bcd_4way_ctx.fugue, sizeof(hashState_fugue) );
+     fugue512_Update( &ctx.fugue, hash3, 512 );
+     fugue512_Final( &ctx.fugue, hash3 );
 
      memcpy( state,    hash0, 32 );
      memcpy( state+32, hash1, 32 );

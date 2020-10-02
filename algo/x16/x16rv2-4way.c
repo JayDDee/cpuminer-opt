@@ -8,30 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "algo/blake/blake-hash-4way.h"
-#include "algo/bmw/bmw-hash-4way.h"
-#include "algo/groestl/aes_ni/hash-groestl.h"
-#include "algo/groestl/aes_ni/hash-groestl.h"
-#include "algo/skein/skein-hash-4way.h"
-#include "algo/jh/jh-hash-4way.h"
-#include "algo/keccak/keccak-hash-4way.h"
-#include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/luffa-hash-2way.h"
-#include "algo/cubehash/cubehash_sse2.h"
-#include "algo/cubehash/cube-hash-2way.h"
-#include "algo/simd/simd-hash-2way.h"
-#include "algo/echo/aes_ni/hash_api.h"
-#include "algo/hamsi/hamsi-hash-4way.h"
-#include "algo/fugue/sph_fugue.h"
-#include "algo/shabal/shabal-hash-4way.h"
-#include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/sha/sha-hash-4way.h"
 #include "algo/tiger/sph_tiger.h"
-#if defined(__VAES__)
-  #include "algo/groestl/groestl512-hash-4way.h"
-  #include "algo/shavite/shavite-hash-4way.h"
-  #include "algo/echo/echo-hash-4way.h"
-#endif
 
 #if defined (X16RV2_8WAY)
 
@@ -46,7 +23,7 @@ union _x16rv2_8way_context_overlay
     cubehashParam           cube;
     simd_4way_context       simd;
     hamsi512_8way_context   hamsi;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
     shabal512_8way_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_8way_context     sha512;
@@ -432,14 +409,14 @@ int x16rv2_8way_hash( void* output, const void* input, int thrid )
                           hash7, vhash );
          break;
          case FUGUE:
-            sph_fugue512_full( &ctx.fugue, hash0, in0, size );
-            sph_fugue512_full( &ctx.fugue, hash1, in1, size );
-            sph_fugue512_full( &ctx.fugue, hash2, in2, size );
-            sph_fugue512_full( &ctx.fugue, hash3, in3, size );
-            sph_fugue512_full( &ctx.fugue, hash4, in4, size );
-            sph_fugue512_full( &ctx.fugue, hash5, in5, size );
-            sph_fugue512_full( &ctx.fugue, hash6, in6, size );
-            sph_fugue512_full( &ctx.fugue, hash7, in7, size );
+            fugue512_full( &ctx.fugue, hash0, in0, size );
+            fugue512_full( &ctx.fugue, hash1, in1, size );
+            fugue512_full( &ctx.fugue, hash2, in2, size );
+            fugue512_full( &ctx.fugue, hash3, in3, size );
+            fugue512_full( &ctx.fugue, hash4, in4, size );
+            fugue512_full( &ctx.fugue, hash5, in5, size );
+            fugue512_full( &ctx.fugue, hash6, in6, size );
+            fugue512_full( &ctx.fugue, hash7, in7, size );
          break;
          case SHABAL:
             intrlv_8x32( vhash, in0, in1, in2, in3, in4, in5, in6, in7,
@@ -705,7 +682,7 @@ union _x16rv2_4way_context_overlay
     shavite512_context      shavite;
     simd_2way_context       simd;
     hamsi512_4way_context   hamsi;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
     shabal512_4way_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_4way_context     sha512;
@@ -946,10 +923,10 @@ int x16rv2_4way_hash( void* output, const void* input, int thrid )
             dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
          break;
          case FUGUE:
-            sph_fugue512_full( &ctx.fugue, hash0, in0, size );
-            sph_fugue512_full( &ctx.fugue, hash1, in1, size );
-            sph_fugue512_full( &ctx.fugue, hash2, in2, size );
-            sph_fugue512_full( &ctx.fugue, hash3, in3, size );
+            fugue512_full( &ctx.fugue, hash0, in0, size );
+            fugue512_full( &ctx.fugue, hash1, in1, size );
+            fugue512_full( &ctx.fugue, hash2, in2, size );
+            fugue512_full( &ctx.fugue, hash3, in3, size );
          break;
          case SHABAL:
              intrlv_4x32( vhash, in0, in1, in2, in3, size<<3 );

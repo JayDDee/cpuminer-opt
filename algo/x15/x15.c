@@ -23,9 +23,11 @@
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
+  #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
+  #include "algo/fugue/sph_fugue.h"
 #endif
 
 typedef struct {
@@ -34,9 +36,11 @@ typedef struct {
 #if defined(__AES__)
    hashState_echo          echo;
    hashState_groestl       groestl;
+   hashState_fugue         fugue;
 #else
    sph_groestl512_context   groestl;
    sph_echo512_context      echo;
+   sph_fugue512_context    fugue;
 #endif
    sph_jh512_context       jh;
    sph_keccak512_context   keccak;
@@ -46,7 +50,6 @@ typedef struct {
    sph_shavite512_context  shavite;
    hashState_sd            simd;
    sph_hamsi512_context    hamsi;
-   sph_fugue512_context    fugue;
    sph_shabal512_context   shabal;
    sph_whirlpool_context   whirlpool;
 } x15_ctx_holder;
@@ -60,9 +63,11 @@ void init_x15_ctx()
 #if defined(__AES__)
    init_groestl( &x15_ctx.groestl, 64 );
    init_echo( &x15_ctx.echo, 512 );
+   fugue512_Init( &x15_ctx.fugue, 512 );
 #else
    sph_groestl512_init( &x15_ctx.groestl );
    sph_echo512_init( &x15_ctx.echo );
+   sph_fugue512_init( &x15_ctx.fugue );
 #endif
    sph_skein512_init( &x15_ctx.skein );
    sph_jh512_init( &x15_ctx.jh );
@@ -72,7 +77,6 @@ void init_x15_ctx()
    sph_shavite512_init( &x15_ctx.shavite );
    init_sd( &x15_ctx.simd, 512 );
    sph_hamsi512_init( &x15_ctx.hamsi );
-   sph_fugue512_init( &x15_ctx.fugue );
    sph_shabal512_init( &x15_ctx.shabal );
    sph_whirlpool_init( &x15_ctx.whirlpool );
 };
@@ -131,8 +135,13 @@ void x15hash(void *output, const void *input)
     sph_hamsi512( &ctx.hamsi, hash, 64 );
     sph_hamsi512_close( &ctx.hamsi, hash );
 
+#if defined(__AES__)
+    fugue512_Update( &ctx.fugue, hash, 512 );
+    fugue512_Final( &ctx.fugue, hash );
+#else
     sph_fugue512( &ctx.fugue, hash, 64 );
     sph_fugue512_close( &ctx.fugue, hash );
+#endif
 
     sph_shabal512( &ctx.shabal, hash, 64 );
     sph_shabal512_close( &ctx.shabal, hash );

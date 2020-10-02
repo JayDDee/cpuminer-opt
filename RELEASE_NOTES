@@ -44,7 +44,7 @@ Please include the following information:
 1. CPU model, operating system, cpuminer-opt version (must be latest),
    binary file for Windows, changes to default build procedure for Linux.
 
-2. Exact comand line (except user and pw) and intial output showing
+2. Exact command line (except user and pw) and intial output showing
    the above requested info.
 
 3. Additional program output showing any error messages or other
@@ -65,6 +65,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.15.0
+
+Fugue optimized with AES, improves many sha3 algos.
+Minotaur algo optimized for all architectures.
+Fixed neoscrypt BUG log.
+ 
 v3.14.3
 
 #265: more mutex changes to reduce blocking with high thread count.

@@ -16,7 +16,7 @@
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
-#include "algo/fugue/sph_fugue.h"
+#include "algo/fugue/fugue-aesni.h"
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha/sha-hash-4way.h"
@@ -40,7 +40,7 @@ union _xevan_8way_context_overlay
    cube_4way_context       cube;
    simd_4way_context       simd;
    hamsi512_8way_context   hamsi;
-   sph_fugue512_context    fugue;
+   hashState_fugue         fugue;
    shabal512_8way_context  shabal;
    sph_whirlpool_context   whirlpool;
    sha512_8way_context     sha512;
@@ -192,14 +192,14 @@ int xevan_8way_hash( void *output, const void *input, int thr_id )
      dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                    vhash, dataLen<<3 );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash4, hash4, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash5, hash5, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash6, hash6, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash7, hash7, dataLen );
+     fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
+     fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
+     fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
+     fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
+     fugue512_full( &ctx.fugue, hash4, hash4, dataLen );
+     fugue512_full( &ctx.fugue, hash5, hash5, dataLen );
+     fugue512_full( &ctx.fugue, hash6, hash6, dataLen );
+     fugue512_full( &ctx.fugue, hash7, hash7, dataLen );
 
      intrlv_8x32( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                   hash7, dataLen<<3 );
@@ -355,14 +355,14 @@ int xevan_8way_hash( void *output, const void *input, int thr_id )
      dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                    vhash, dataLen<<3 );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash4, hash4, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash5, hash5, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash6, hash6, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash7, hash7, dataLen );
+     fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
+     fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
+     fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
+     fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
+     fugue512_full( &ctx.fugue, hash4, hash4, dataLen );
+     fugue512_full( &ctx.fugue, hash5, hash5, dataLen );
+     fugue512_full( &ctx.fugue, hash6, hash6, dataLen );
+     fugue512_full( &ctx.fugue, hash7, hash7, dataLen );
 
      intrlv_8x32( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                   hash7, dataLen<<3 );
@@ -415,7 +415,7 @@ union _xevan_4way_context_overlay
         simd_2way_context       simd;
         hashState_echo          echo;
         hamsi512_4way_context   hamsi;
-        sph_fugue512_context    fugue;
+        hashState_fugue         fugue;
         shabal512_4way_context  shabal;
         sph_whirlpool_context   whirlpool;
         sha512_4way_context     sha512;
@@ -498,10 +498,10 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
+     fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
+     fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
+     fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
+     fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
 
      // Parallel 4way 32 bit
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
@@ -595,10 +595,10 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
+     fugue512_full( &ctx.fugue, hash0, hash0, dataLen );
+     fugue512_full( &ctx.fugue, hash1, hash1, dataLen );
+     fugue512_full( &ctx.fugue, hash2, hash2, dataLen );
+     fugue512_full( &ctx.fugue, hash3, hash3, dataLen );
 
      intrlv_4x32( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
 

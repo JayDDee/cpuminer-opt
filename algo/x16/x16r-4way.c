@@ -347,14 +347,14 @@ int x16r_8way_hash_generic( void* output, const void* input, int thrid )
                           hash7, vhash );
          break;
          case FUGUE:
-             sph_fugue512_full( &ctx.fugue, hash0, in0, size );
-             sph_fugue512_full( &ctx.fugue, hash1, in1, size );
-             sph_fugue512_full( &ctx.fugue, hash2, in2, size );
-             sph_fugue512_full( &ctx.fugue, hash3, in3, size );
-             sph_fugue512_full( &ctx.fugue, hash4, in4, size );
-             sph_fugue512_full( &ctx.fugue, hash5, in5, size );
-             sph_fugue512_full( &ctx.fugue, hash6, in6, size );
-             sph_fugue512_full( &ctx.fugue, hash7, in7, size );
+             fugue512_full( &ctx.fugue, hash0, in0, size );
+             fugue512_full( &ctx.fugue, hash1, in1, size );
+             fugue512_full( &ctx.fugue, hash2, in2, size );
+             fugue512_full( &ctx.fugue, hash3, in3, size );
+             fugue512_full( &ctx.fugue, hash4, in4, size );
+             fugue512_full( &ctx.fugue, hash5, in5, size );
+             fugue512_full( &ctx.fugue, hash6, in6, size );
+             fugue512_full( &ctx.fugue, hash7, in7, size );
          break;
          case SHABAL:
              intrlv_8x32( vhash, in0, in1, in2, in3, in4, in5, in6, in7,
@@ -747,10 +747,10 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid )
             dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
          break;
          case FUGUE:
-             sph_fugue512_full( &ctx.fugue, hash0, in0, size );
-             sph_fugue512_full( &ctx.fugue, hash1, in1, size );
-             sph_fugue512_full( &ctx.fugue, hash2, in2, size );
-             sph_fugue512_full( &ctx.fugue, hash3, in3, size );
+             fugue512_full( &ctx.fugue, hash0, in0, size );
+             fugue512_full( &ctx.fugue, hash1, in1, size );
+             fugue512_full( &ctx.fugue, hash2, in2, size );
+             fugue512_full( &ctx.fugue, hash3, in3, size );
          break;
          case SHABAL:
              intrlv_4x32( vhash, in0, in1, in2, in3, size<<3 );

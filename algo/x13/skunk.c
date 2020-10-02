@@ -8,13 +8,21 @@
 #include <stdio.h>
 #include "algo/gost/sph_gost.h"
 #include "algo/skein/sph_skein.h"
-#include "algo/fugue/sph_fugue.h"
 #include "algo/cubehash/cubehash_sse2.h"
+#if defined(__AES__)
+  #include "algo/fugue/fugue-aesni.h"
+#else
+  #include "algo/fugue/sph_fugue.h"
+#endif
 
 typedef struct {
     sph_skein512_context  skein;
     cubehashParam         cube;
+#if defined(__AES__)
+    hashState_fugue       fugue;
+#else
     sph_fugue512_context  fugue;
+#endif
     sph_gost512_context   gost;
 } skunk_ctx_holder;
 
@@ -32,8 +40,13 @@ void skunkhash( void *output, const void *input )
 
      cubehashUpdateDigest( &ctx.cube, (byte*) hash, (const byte*)hash, 64 );
 
+#if defined(__AES__)
+     fugue512_Update( &ctx.fugue, hash, 512 ); 
+     fugue512_Final( &ctx.fugue, hash ); 
+#else
      sph_fugue512( &ctx.fugue, hash, 64 );
      sph_fugue512_close( &ctx.fugue, hash );
+#endif
 
      sph_gost512( &ctx.gost, hash, 64 );
      sph_gost512_close( &ctx.gost, hash );
@@ -87,8 +100,12 @@ bool skunk_thread_init()
 {
    sph_skein512_init( &skunk_ctx.skein );
    cubehashInit( &skunk_ctx.cube, 512, 16, 32 );
-   sph_fugue512_init( &skunk_ctx.fugue );
-   sph_gost512_init( &skunk_ctx.gost );
+#if defined(__AES__)
+    fugue512_Init( &skunk_ctx.fugue, 512 );
+#else
+    sph_fugue512_init( &skunk_ctx.fugue );
+#endif
+    sph_gost512_init( &skunk_ctx.gost );
    return true;
 }
 #endif

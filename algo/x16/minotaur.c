@@ -15,16 +15,17 @@
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
 #include "algo/hamsi/sph_hamsi.h"
-#include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include <openssl/sha.h>
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
+  #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/echo/sph_echo.h"
   #include "algo/groestl/sph_groestl.h"
+  #include "algo/fugue/sph_fugue.h"
 #endif
 
 // Config
@@ -34,13 +35,16 @@ typedef struct TortureNode TortureNode;
 typedef struct TortureGarden TortureGarden;
 
 // Graph of hash algos plus SPH contexts
-struct TortureGarden {
+struct TortureGarden
+{
 #if defined(__AES__)
         hashState_echo          echo;
         hashState_groestl       groestl;
+        hashState_fugue         fugue;
 #else
-        sph_echo512_context      echo;
-        sph_groestl512_context   groestl;
+        sph_echo512_context     echo;
+        sph_groestl512_context  groestl;
+        sph_fugue512_context    fugue;
 #endif
         sph_blake512_context    blake;
         sph_bmw512_context      bmw;
@@ -52,15 +56,13 @@ struct TortureGarden {
         shavite512_context      shavite;
         hashState_sd            simd;
         sph_hamsi512_context    hamsi;
-        sph_fugue512_context    fugue;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
         SHA512_CTX              sha512;
 
     struct TortureNode {
         unsigned int algo;
-        TortureNode *childLeft;
-        TortureNode *childRight;
+        TortureNode *child[2];
     } nodes[22];
 } __attribute__ ((aligned (64)));
 
@@ -97,10 +99,12 @@ static void get_hash( void *output, const void *input, TortureGarden *garden,
 #endif
 	    break;
         case 4:
-            sph_fugue512_init(&garden->fugue);
-            sph_fugue512(&garden->fugue, input, 64);
-            sph_fugue512_close(&garden->fugue, hash);          
-            break;
+#if defined(__AES__)
+            fugue512_full( &garden->fugue, hash, input, 64 );
+#else
+            sph_fugue512_full( &garden->fugue, hash, input, 64 );
+#endif
+	    break;
         case 5:
 #if defined(__AES__)
             groestl512_full( &garden->groestl, (char*)hash, (char*)input, 512 );
@@ -162,37 +166,7 @@ static void get_hash( void *output, const void *input, TortureGarden *garden,
             break;
     }
 
-    // Output the hash
     memcpy(output, hash, 64);
-}
-
-// Recursively traverse a given torture garden starting with a given hash and given node within the garden. The hash is overwritten with the final hash.
-static void traverse_garden( TortureGarden *garden, void *hash,
-	                     TortureNode *node )
-{
-    unsigned char partialHash[64] __attribute__ ((aligned (64)));
-    get_hash(partialHash, hash, garden, node->algo);
-
-    if ( partialHash[63] % 2 == 0 )
-    {   // Last byte of output hash is even
-        if ( node->childLeft != NULL )
-            traverse_garden( garden, partialHash, node->childLeft );
-    }
-    else
-    {   // Last byte of output hash is odd
-        if ( node->childRight != NULL )
-            traverse_garden( garden, partialHash, node->childRight );
-    }
-
-    memcpy( hash, partialHash, 64 );
-}
-
-// Associate child nodes with a parent node
-static inline void link_nodes( TortureNode *parent, TortureNode *childLeft,
-	                       TortureNode *childRight ) 
-{
-    parent->childLeft = childLeft;
-    parent->childRight = childRight;
 }
 
 static __thread TortureGarden garden;
@@ -200,30 +174,53 @@ static __thread TortureGarden garden;
 bool initialize_torture_garden()
 {
     // Create torture garden nodes. Note that both sides of 19 and 20 lead to 21, and 21 has no children (to make traversal complete).
-    link_nodes(&garden.nodes[0], &garden.nodes[1], &garden.nodes[2]);
-    link_nodes(&garden.nodes[1], &garden.nodes[3], &garden.nodes[4]);
-    link_nodes(&garden.nodes[2], &garden.nodes[5], &garden.nodes[6]);
-    link_nodes(&garden.nodes[3], &garden.nodes[7], &garden.nodes[8]);
-    link_nodes(&garden.nodes[4], &garden.nodes[9], &garden.nodes[10]);
-    link_nodes(&garden.nodes[5], &garden.nodes[11], &garden.nodes[12]);
-    link_nodes(&garden.nodes[6], &garden.nodes[13], &garden.nodes[14]);
-    link_nodes(&garden.nodes[7], &garden.nodes[15], &garden.nodes[16]);
-    link_nodes(&garden.nodes[8], &garden.nodes[15], &garden.nodes[16]);
-    link_nodes(&garden.nodes[9], &garden.nodes[15], &garden.nodes[16]);
-    link_nodes(&garden.nodes[10], &garden.nodes[15], &garden.nodes[16]);
-    link_nodes(&garden.nodes[11], &garden.nodes[17], &garden.nodes[18]);
-    link_nodes(&garden.nodes[12], &garden.nodes[17], &garden.nodes[18]);
-    link_nodes(&garden.nodes[13], &garden.nodes[17], &garden.nodes[18]);
-    link_nodes(&garden.nodes[14], &garden.nodes[17], &garden.nodes[18]);
-    link_nodes(&garden.nodes[15], &garden.nodes[19], &garden.nodes[20]);
-    link_nodes(&garden.nodes[16], &garden.nodes[19], &garden.nodes[20]);
-    link_nodes(&garden.nodes[17], &garden.nodes[19], &garden.nodes[20]);
-    link_nodes(&garden.nodes[18], &garden.nodes[19], &garden.nodes[20]);
-    link_nodes(&garden.nodes[19], &garden.nodes[21], &garden.nodes[21]);
-    link_nodes(&garden.nodes[20], &garden.nodes[21], &garden.nodes[21]);
-    garden.nodes[21].childLeft = NULL;
-    garden.nodes[21].childRight = NULL;
-    return true;
+
+   garden.nodes[ 0].child[0] = &garden.nodes[ 1];
+   garden.nodes[ 0].child[1] = &garden.nodes[ 2];
+   garden.nodes[ 1].child[0] = &garden.nodes[ 3];
+   garden.nodes[ 1].child[1] = &garden.nodes[ 4];
+   garden.nodes[ 2].child[0] = &garden.nodes[ 5];
+   garden.nodes[ 2].child[1] = &garden.nodes[ 6];
+   garden.nodes[ 3].child[0] = &garden.nodes[ 7];
+   garden.nodes[ 3].child[1] = &garden.nodes[ 8];
+   garden.nodes[ 4].child[0] = &garden.nodes[ 9];
+   garden.nodes[ 4].child[1] = &garden.nodes[10];
+   garden.nodes[ 5].child[0] = &garden.nodes[11];
+   garden.nodes[ 5].child[1] = &garden.nodes[12];
+   garden.nodes[ 6].child[0] = &garden.nodes[13];
+   garden.nodes[ 6].child[1] = &garden.nodes[14];
+   garden.nodes[ 7].child[0] = &garden.nodes[15];
+   garden.nodes[ 7].child[1] = &garden.nodes[16];
+   garden.nodes[ 8].child[0] = &garden.nodes[15];
+   garden.nodes[ 8].child[1] = &garden.nodes[16];
+   garden.nodes[ 9].child[0] = &garden.nodes[15];
+   garden.nodes[ 9].child[1] = &garden.nodes[16];
+   garden.nodes[10].child[0] = &garden.nodes[15];
+   garden.nodes[10].child[1] = &garden.nodes[16];
+   garden.nodes[11].child[0] = &garden.nodes[17];
+   garden.nodes[11].child[1] = &garden.nodes[18];
+   garden.nodes[12].child[0] = &garden.nodes[17];
+   garden.nodes[12].child[1] = &garden.nodes[18];
+   garden.nodes[13].child[0] = &garden.nodes[17];
+   garden.nodes[13].child[1] = &garden.nodes[18];
+   garden.nodes[14].child[0] = &garden.nodes[17];
+   garden.nodes[14].child[1] = &garden.nodes[18];
+   garden.nodes[15].child[0] = &garden.nodes[19];
+   garden.nodes[15].child[1] = &garden.nodes[20];
+   garden.nodes[16].child[0] = &garden.nodes[19];
+   garden.nodes[16].child[1] = &garden.nodes[20];
+   garden.nodes[17].child[0] = &garden.nodes[19];
+   garden.nodes[17].child[1] = &garden.nodes[20];
+   garden.nodes[18].child[0] = &garden.nodes[19];
+   garden.nodes[18].child[1] = &garden.nodes[20];
+   garden.nodes[19].child[0] = &garden.nodes[21];
+   garden.nodes[19].child[1] = &garden.nodes[21];
+   garden.nodes[20].child[0] = &garden.nodes[21];
+   garden.nodes[20].child[1] = &garden.nodes[21];
+   garden.nodes[21].child[0] = NULL;
+   garden.nodes[21].child[1] = NULL;
+
+   return true;
 }
 
 // Produce a 32-byte hash from 80-byte input data
@@ -236,20 +233,67 @@ int minotaur_hash( void *output, const void *input, int thr_id )
     SHA512_Update( &garden.sha512, input, 80 );
     SHA512_Final( (unsigned char*) hash, &garden.sha512 );
 
+    // algo 6 (Hamsi) is very slow. It's faster to skip hashing this nonce
+    // if Hamsi is needed but only the first and last functions are
+    // currently known. Abort if either is Hamsi.
+    if ( ( ( hash[ 0] % MINOTAUR_ALGO_COUNT ) == 6 )
+      || ( ( hash[21] % MINOTAUR_ALGO_COUNT ) == 6 ) )
+         return 0;
+
     // Assign algos to torture garden nodes based on initial hash
     for ( int i = 0; i < 22; i++ )
         garden.nodes[i].algo = hash[i] % MINOTAUR_ALGO_COUNT;
 
     // Send the initial hash through the torture garden
-    traverse_garden( &garden, hash, &garden.nodes[0] );
+    TortureNode *node = &garden.nodes[0];
+
+    while ( node )
+    {
+      get_hash( hash, hash, &garden, node->algo );
+      node = node->child[ hash[63] & 1 ];
+    }
 
     memcpy( output, hash, 32 );
-
     return 1;
+}
+
+int scanhash_minotaur( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t edata[20] __attribute__((aligned(64)));
+   uint32_t hash[8] __attribute__((aligned(64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 1;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+   uint64_t skipped = 0;
+
+   mm128_bswap32_80( edata, pdata );
+   do
+   {
+      edata[19] = n;
+      if ( likely( algo_gate.hash( hash, edata, thr_id ) ) )
+      {
+	 if ( unlikely( valid_hash( hash, ptarget ) && !bench ) )
+         {
+            pdata[19] = bswap_32( n );
+            submit_solution( work, hash, mythr );
+         }
+      }
+      else skipped++;
+      n++;
+   } while ( n < last_nonce && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce - skipped;
+   pdata[19] = n;
+   return 0;
 }
 
 bool register_minotaur_algo( algo_gate_t* gate )
 {
+  gate->scanhash = (void*)&scanhash_minotaur;
   gate->hash      = (void*)&minotaur_hash;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
   gate->miner_thread_init = (void*)&initialize_torture_garden;

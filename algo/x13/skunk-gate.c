@@ -2,7 +2,7 @@
 
 bool register_skunk_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+   gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | AES_OPT;
 #if defined (SKUNK_8WAY)
    gate->miner_thread_init = (void*)&skunk_8way_thread_init;
    gate->scanhash = (void*)&scanhash_skunk_8way;

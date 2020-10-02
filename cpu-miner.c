@@ -2330,8 +2330,8 @@ static void *miner_thread( void *userdata )
        // If unsubmiited nonce(s) found, submit now. 
        if ( unlikely( nonce_found && !opt_benchmark ) )
        {  
-          applog( LOG_WARNING, "BUG: See RELEASE_NOTES for reporting bugs. Algo = %s.",
-                               algo_names[ opt_algo ] );
+//          applog( LOG_WARNING, "BUG: See RELEASE_NOTES for reporting bugs. Algo = %s.",
+//                               algo_names[ opt_algo ] );
           if ( !submit_work( mythr, &work ) )
           {
              applog( LOG_WARNING, "Failed to submit share." );
@@ -2363,14 +2363,14 @@ static void *miner_thread( void *userdata )
 
        prev_hi_temp = hi_temp;
        curr_temp = cpu_temp(0);
-       timeval_subtract( &diff, &tv_end, &cpu_temp_time );
        if ( curr_temp > hi_temp ) hi_temp = curr_temp;
 
        pthread_mutex_unlock( &stats_lock );
 
        if ( !opt_quiet || ( curr_temp >= 80 ) )
        {
-          int wait_time = curr_temp >= 80 ? 30 : curr_temp >= 70 ? 60 : 120;
+          int wait_time = curr_temp >= 80 ? 20 : curr_temp >= 70 ? 60 : 120;
+          timeval_subtract( &diff, &tv_end, &cpu_temp_time );
           if ( ( diff.tv_sec > wait_time ) || ( curr_temp > prev_hi_temp ) )
           {
              char tempstr[32];
@@ -2747,7 +2747,10 @@ static void *stratum_thread(void *userdata )
             sleep(opt_fail_pause);
          }
          else
+         {
+            restart_threads();
             applog(LOG_BLUE,"Stratum connection established" );
+         }
       }
 
       report_summary_log( ( stratum_diff != stratum.job.diff )

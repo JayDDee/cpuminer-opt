@@ -6,30 +6,6 @@
  */
 #include "x16r-gate.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "algo/blake/sph_blake.h"
-#include "algo/bmw/sph_bmw.h"
-#include "algo/groestl/sph_groestl.h"
-#include "algo/jh/sph_jh.h"
-#include "algo/keccak/sph_keccak.h"
-#include "algo/skein/sph_skein.h"
-#include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/luffa_for_sse2.h"
-#include "algo/cubehash/cubehash_sse2.h"
-#include "algo/simd/nist.h"
-#include "algo/echo/sph_echo.h"
-#include "algo/hamsi/sph_hamsi.h"
-#include "algo/fugue/sph_fugue.h"
-#include "algo/shabal/sph_shabal.h"
-#include "algo/whirlpool/sph_whirlpool.h"
-#include <openssl/sha.h>
-#if defined(__AES__)
-  #include "algo/echo/aes_ni/hash_api.h"
-  #include "algo/groestl/aes_ni/hash-groestl.h"
-#endif
-
 static void hex_getAlgoString(const uint32_t* prevblock, char *output)
 {
    char *sptr = output;
@@ -46,34 +22,6 @@ static void hex_getAlgoString(const uint32_t* prevblock, char *output)
    }
    *sptr = '\0';
 }
-
-/*
-union _hex_context_overlay
-{
-#if defined(__AES__)
-        hashState_echo          echo;
-        hashState_groestl       groestl;
-#else
-        sph_groestl512_context   groestl;
-        sph_echo512_context      echo;
-#endif
-        sph_blake512_context    blake;
-        sph_bmw512_context      bmw;
-        sph_skein512_context    skein;
-        sph_jh512_context       jh;
-        sph_keccak512_context   keccak;
-        hashState_luffa         luffa;
-        cubehashParam           cube;
-        shavite512_context      shavite;
-        hashState_sd            simd;
-        sph_hamsi512_context    hamsi;
-        sph_fugue512_context    fugue;
-        sph_shabal512_context   shabal;
-        sph_whirlpool_context   whirlpool;
-        SHA512_CTX              sha512;
-};
-typedef union _hex_context_overlay hex_context_overlay;
-*/
 
 static __thread x16r_context_overlay hex_ctx;
 
@@ -187,8 +135,12 @@ int hex_hash( void* output, const void* input, int thrid )
             sph_hamsi512_close( &ctx.hamsi, hash );
          break;
          case FUGUE:
+#if defined(__AES__)
+             fugue512_full( &ctx.fugue, hash, in, size );
+#else
              sph_fugue512_full( &ctx.fugue, hash, in, size );
-         break;
+#endif
+	     break;
          case SHABAL:
             if ( i == 0 ) 
                sph_shabal512( &ctx.shabal, in+64, 16 );

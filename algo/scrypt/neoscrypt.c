@@ -1051,16 +1051,16 @@ int scanhash_neoscrypt( struct work *work,
     uint32_t _ALIGN(64) hash[8];
     const uint32_t Htarg = ptarget[7];
     const uint32_t first_nonce = pdata[19];
-    int thr_id = mythr->id;  // thr_id arg is deprecated
+    int thr_id = mythr->id; 
 
     while (pdata[19] < max_nonce && !work_restart[thr_id].restart)
     {
         neoscrypt((uint8_t *) hash, (uint8_t *) pdata );
 
         /* Quick hash check */
-        if (hash[7] <= Htarg && fulltest_le(hash, ptarget)) {
-            *hashes_done = pdata[19] - first_nonce + 1;
-            return 1;
+        if (hash[7] <= Htarg && fulltest_le(hash, ptarget))
+        {
+          submit_solution( work, hash, mythr );
         }
 
         pdata[19]++;

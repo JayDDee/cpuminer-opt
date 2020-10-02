@@ -1096,9 +1096,10 @@ bool fulltest( const uint32_t *hash, const uint32_t *target )
 // increases the effective precision. Due to the floating nature of the 
 // decimal point leading zeros aren't counted.
 //
-// Unfortunately I can't get float128 to work so long double it is.
+// Unfortunately I can't get float128 to work so long double (float80) is
+// as precise as it gets.
 // All calculations will be done using long double then converted to double.
-// This prevent introducing significant new error while taking advantage
+// This prevents introducing significant new error while taking advantage
 // of HW rounding.
 
 #if defined(GCC_INT128)
@@ -1107,7 +1108,8 @@ void diff_to_hash( uint32_t *target, const double diff )
 {
   uint128_t *targ = (uint128_t*)target;
   register long double m = 1. / diff;
-  targ[0] = 0;
+//  targ[0] = 0;
+  targ[0] = -1;
   targ[1] = (uint128_t)( m * exp96 );
 }
 
@@ -1135,7 +1137,8 @@ void diff_to_hash( uint32_t *target, const double diff )
 {
   uint64_t *targ = (uint64_t*)target;
   register long double m = ( 1. / diff ) * exp32;
-  targ[1] = targ[0] = 0;
+//  targ[1] = targ[0] = 0;
+  targ[1] = targ[0] = -1;
   targ[3] = (uint64_t)m;
   targ[2] = (uint64_t)( ( m - (long double)targ[3] ) * exp64 );
 }

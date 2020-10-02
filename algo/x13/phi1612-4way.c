@@ -7,7 +7,7 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/cubehash/cube-hash-2way.h"
-#include "algo/fugue/sph_fugue.h"
+#include "algo/fugue/fugue-aesni.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #if defined(__VAES__)
@@ -20,7 +20,7 @@ typedef struct {
     skein512_8way_context   skein;
     jh512_8way_context      jh;
     cube_4way_context       cube;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
     sph_gost512_context     gost;
 #if defined(__VAES__)
     echo_4way_context       echo;
@@ -36,7 +36,7 @@ void init_phi1612_8way_ctx()
      skein512_8way_init( &phi1612_8way_ctx.skein );
      jh512_8way_init( &phi1612_8way_ctx.jh );
      cube_4way_init( &phi1612_8way_ctx.cube, 512, 16, 32 );
-     sph_fugue512_init( &phi1612_8way_ctx.fugue );
+     fugue512_Init( &phi1612_8way_ctx.fugue, 512 );
      sph_gost512_init( &phi1612_8way_ctx.gost );
 #if defined(__VAES__)
      echo_4way_init( &phi1612_8way_ctx.echo, 512 );
@@ -79,29 +79,14 @@ void phi1612_8way_hash( void *state, const void *input )
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
 
      // Fugue
-     sph_fugue512( &ctx.fugue, hash0, 64 );
-     sph_fugue512_close( &ctx.fugue, hash0 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash1, 64 );
-     sph_fugue512_close( &ctx.fugue, hash1 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash2, 64 );
-     sph_fugue512_close( &ctx.fugue, hash2 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash3, 64 );
-     sph_fugue512_close( &ctx.fugue, hash3 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash4, 64 );
-     sph_fugue512_close( &ctx.fugue, hash4 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash5, 64 );
-     sph_fugue512_close( &ctx.fugue, hash5 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash6, 64 );
-     sph_fugue512_close( &ctx.fugue, hash6 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash7, 64 );
-     sph_fugue512_close( &ctx.fugue, hash7 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash4, hash4, 64 );
+     fugue512_full( &ctx.fugue, hash5, hash5, 64 );
+     fugue512_full( &ctx.fugue, hash6, hash6, 64 );
+     fugue512_full( &ctx.fugue, hash7, hash7, 64 );
 
      // Gost
      sph_gost512( &ctx.gost, hash0, 64 );
@@ -223,7 +208,7 @@ typedef struct {
     skein512_4way_context   skein;
     jh512_4way_context      jh;
     cubehashParam           cube;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
     sph_gost512_context     gost;
     hashState_echo          echo;
 } phi1612_4way_ctx_holder;
@@ -235,7 +220,6 @@ void init_phi1612_4way_ctx()
      skein512_4way_init( &phi1612_4way_ctx.skein );
      jh512_4way_init( &phi1612_4way_ctx.jh );
      cubehashInit( &phi1612_4way_ctx.cube, 512, 16, 32 );
-     sph_fugue512_init( &phi1612_4way_ctx.fugue );
      sph_gost512_init( &phi1612_4way_ctx.gost );
      init_echo( &phi1612_4way_ctx.echo, 512 );
 };
@@ -275,17 +259,10 @@ void phi1612_4way_hash( void *state, const void *input )
      cubehashUpdateDigest( &ctx.cube, (byte*)hash3, (const byte*) hash3, 64 );
 
      // Fugue
-     sph_fugue512( &ctx.fugue, hash0, 64 );
-     sph_fugue512_close( &ctx.fugue, hash0 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash1, 64 );
-     sph_fugue512_close( &ctx.fugue, hash1 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash2, 64 );
-     sph_fugue512_close( &ctx.fugue, hash2 );
-     sph_fugue512_init( &ctx.fugue );
-     sph_fugue512( &ctx.fugue, hash3, 64 );
-     sph_fugue512_close( &ctx.fugue, hash3 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
      // Gost
      sph_gost512( &ctx.gost, hash0, 64 );

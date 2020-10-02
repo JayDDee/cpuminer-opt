@@ -18,7 +18,7 @@
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/nist.h"
 #include "algo/simd/simd-hash-2way.h"
-#include "algo/fugue/sph_fugue.h"
+#include "algo/fugue/fugue-aesni.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/tiger/sph_tiger.h"
 #include "algo/lyra2/lyra2.h"
@@ -72,7 +72,7 @@ union _x25x_8way_ctx_overlay
     cube_4way_context       cube;
     simd_4way_context       simd;
     hamsi512_8way_context   hamsi;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
     shabal512_8way_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_8way_context     sha512;
@@ -303,30 +303,15 @@ int x25x_8way_hash( void *output, const void *input, int thrid )
    dintrlv_8x64_512( hash0[11], hash1[11], hash2[11], hash3[11],
                      hash4[11], hash5[11], hash6[11], hash7[11], vhash );
    
-	sph_fugue512_init(&ctx.fugue);
-	sph_fugue512(&ctx.fugue, (const void*) hash0[11], 64);
-	sph_fugue512_close(&ctx.fugue, hash0[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash1[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash1[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash2[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash2[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash3[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash3[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash4[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash4[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash5[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash5[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash6[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash6[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash7[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash7[12]);
+   fugue512_full( &ctx.fugue, hash0[12], hash0[11], 64 );
+   fugue512_full( &ctx.fugue, hash1[12], hash1[11], 64 );
+   fugue512_full( &ctx.fugue, hash2[12], hash2[11], 64 );
+   fugue512_full( &ctx.fugue, hash3[12], hash3[11], 64 );
+   fugue512_full( &ctx.fugue, hash4[12], hash4[11], 64 );
+   fugue512_full( &ctx.fugue, hash5[12], hash5[11], 64 );
+   fugue512_full( &ctx.fugue, hash6[12], hash6[11], 64 );
+   fugue512_full( &ctx.fugue, hash7[12], hash7[11], 64 );
+
    intrlv_8x32_512( vhash, hash0[12], hash1[12], hash2[12], hash3[12],
                            hash4[12], hash5[12], hash6[12], hash7[12] );
 
@@ -652,7 +637,7 @@ union _x25x_4way_ctx_overlay
     sph_shavite512_context  shavite;
     hashState_sd            simd;
     hamsi512_4way_context   hamsi;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
     shabal512_4way_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_4way_context     sha512;
@@ -758,18 +743,10 @@ int x25x_4way_hash( void *output, const void *input, int thrid )
    hamsi512_4way_close( &ctx.hamsi, vhash );
    dintrlv_4x64_512( hash0[11], hash1[11], hash2[11], hash3[11], vhash );
 
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash0[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash0[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash1[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash1[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash2[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash2[12]);
-   sph_fugue512_init(&ctx.fugue);
-   sph_fugue512(&ctx.fugue, (const void*) hash3[11], 64);
-   sph_fugue512_close(&ctx.fugue, hash3[12]);
+   fugue512_full( &ctx.fugue, hash0[12], hash0[11], 64 );
+   fugue512_full( &ctx.fugue, hash1[12], hash1[11], 64 );
+   fugue512_full( &ctx.fugue, hash2[12], hash2[11], 64 );
+   fugue512_full( &ctx.fugue, hash3[12], hash3[11], 64 );
 
    intrlv_4x32_512( vhash, hash0[12], hash1[12], hash2[12], hash3[12] );
 

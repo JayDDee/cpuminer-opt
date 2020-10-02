@@ -8,41 +8,18 @@
 
 #if !defined(X16R_8WAY) && !defined(X16R_4WAY)
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "algo/blake/sph_blake.h"
-#include "algo/bmw/sph_bmw.h"
-#include "algo/groestl/sph_groestl.h"
-#include "algo/jh/sph_jh.h"
-#include "algo/keccak/sph_keccak.h"
-#include "algo/skein/sph_skein.h"
-#include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/luffa_for_sse2.h"
-#include "algo/cubehash/cubehash_sse2.h"
-#include "algo/simd/nist.h"
-#include "algo/echo/sph_echo.h"
-#include "algo/hamsi/sph_hamsi.h"
-#include "algo/fugue/sph_fugue.h"
-#include "algo/shabal/sph_shabal.h"
-#include "algo/whirlpool/sph_whirlpool.h"
-#include <openssl/sha.h>
 #include "algo/tiger/sph_tiger.h"
-#if defined(__AES__)
-  #include "algo/echo/aes_ni/hash_api.h"
-  #include "algo/groestl/aes_ni/hash-groestl.h"
-#endif
-
-static __thread uint32_t s_ntime = UINT32_MAX;
 
 union _x16rv2_context_overlay
 {
 #if defined(__AES__)
         hashState_echo          echo;
         hashState_groestl       groestl;
+        hashState_fugue         fugue;
 #else
         sph_groestl512_context   groestl;
         sph_echo512_context      echo;
+        sph_fugue512_context    fugue;
 #endif
         sph_blake512_context    blake;
         sph_bmw512_context      bmw;
@@ -54,7 +31,6 @@ union _x16rv2_context_overlay
         shavite512_context      shavite;
         hashState_sd            simd;
         sph_hamsi512_context    hamsi;
-        sph_fugue512_context    fugue;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
         SHA512_CTX              sha512;
@@ -160,8 +136,12 @@ int x16rv2_hash( void* output, const void* input, int thrid )
              sph_hamsi512_close( &ctx.hamsi, hash );
          break;
          case FUGUE:
+#if defined(__AES__)
+             fugue512_full( &ctx.fugue, hash, in, size );
+#else
              sph_fugue512_full( &ctx.fugue, hash, in, size );
-         break;
+#endif
+	     break;
          case SHABAL:
              sph_shabal512_init( &ctx.shabal );
              sph_shabal512( &ctx.shabal, in, size );

@@ -16,7 +16,7 @@
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
-#include "algo/fugue/sph_fugue.h"
+#include "algo/fugue/fugue-aesni.h"
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/haval-hash-4way.h"
@@ -40,7 +40,7 @@ union _sonoa_8way_context_overlay
     cube_4way_context       cube;
     simd_4way_context       simd;
     hamsi512_8way_context   hamsi;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
     shabal512_8way_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_8way_context     sha512;
@@ -423,14 +423,14 @@ int sonoa_8way_hash( void *state, const void *input, int thr_id )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
-     sph_fugue512_full( &ctx.fugue, hash4, hash4, 64 );
-     sph_fugue512_full( &ctx.fugue, hash5, hash5, 64 );
-     sph_fugue512_full( &ctx.fugue, hash6, hash6, 64 );
-     sph_fugue512_full( &ctx.fugue, hash7, hash7, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash4, hash4, 64 );
+     fugue512_full( &ctx.fugue, hash5, hash5, 64 );
+     fugue512_full( &ctx.fugue, hash6, hash6, 64 );
+     fugue512_full( &ctx.fugue, hash7, hash7, 64 );
 
      if ( work_restart[thr_id].restart ) return 0;
 // 4
@@ -554,14 +554,14 @@ int sonoa_8way_hash( void *state, const void *input, int thr_id )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
-     sph_fugue512_full( &ctx.fugue, hash4, hash4, 64 );
-     sph_fugue512_full( &ctx.fugue, hash5, hash5, 64 );
-     sph_fugue512_full( &ctx.fugue, hash6, hash6, 64 );
-     sph_fugue512_full( &ctx.fugue, hash7, hash7, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash4, hash4, 64 );
+     fugue512_full( &ctx.fugue, hash5, hash5, 64 );
+     fugue512_full( &ctx.fugue, hash6, hash6, 64 );
+     fugue512_full( &ctx.fugue, hash7, hash7, 64 );
 
      intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                       hash7 );
@@ -755,14 +755,14 @@ int sonoa_8way_hash( void *state, const void *input, int thr_id )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
-     sph_fugue512_full( &ctx.fugue, hash4, hash4, 64 );
-     sph_fugue512_full( &ctx.fugue, hash5, hash5, 64 );
-     sph_fugue512_full( &ctx.fugue, hash6, hash6, 64 );
-     sph_fugue512_full( &ctx.fugue, hash7, hash7, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash4, hash4, 64 );
+     fugue512_full( &ctx.fugue, hash5, hash5, 64 );
+     fugue512_full( &ctx.fugue, hash6, hash6, 64 );
+     fugue512_full( &ctx.fugue, hash7, hash7, 64 );
 
      intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                       hash7 );
@@ -905,14 +905,14 @@ int sonoa_8way_hash( void *state, const void *input, int thr_id )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
-     sph_fugue512_full( &ctx.fugue, hash4, hash4, 64 );
-     sph_fugue512_full( &ctx.fugue, hash5, hash5, 64 );
-     sph_fugue512_full( &ctx.fugue, hash6, hash6, 64 );
-     sph_fugue512_full( &ctx.fugue, hash7, hash7, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash4, hash4, 64 );
+     fugue512_full( &ctx.fugue, hash5, hash5, 64 );
+     fugue512_full( &ctx.fugue, hash6, hash6, 64 );
+     fugue512_full( &ctx.fugue, hash7, hash7, 64 );
 
      intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                       hash7 );
@@ -1074,14 +1074,14 @@ int sonoa_8way_hash( void *state, const void *input, int thr_id )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
-     sph_fugue512_full( &ctx.fugue, hash4, hash4, 64 );
-     sph_fugue512_full( &ctx.fugue, hash5, hash5, 64 );
-     sph_fugue512_full( &ctx.fugue, hash6, hash6, 64 );
-     sph_fugue512_full( &ctx.fugue, hash7, hash7, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash4, hash4, 64 );
+     fugue512_full( &ctx.fugue, hash5, hash5, 64 );
+     fugue512_full( &ctx.fugue, hash6, hash6, 64 );
+     fugue512_full( &ctx.fugue, hash7, hash7, 64 );
 
      intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                       hash7 );
@@ -1134,7 +1134,7 @@ union _sonoa_4way_context_overlay
     simd_2way_context       simd;
     hashState_echo          echo;
     hamsi512_4way_context   hamsi;
-    sph_fugue512_context    fugue;
+    hashState_fugue         fugue;
     shabal512_4way_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_4way_context     sha512;
@@ -1327,10 +1327,10 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
      if ( work_restart[thr_id].restart ) return 0;
 // 4
@@ -1393,10 +1393,10 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -1496,10 +1496,10 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -1576,10 +1576,10 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -1669,10 +1669,10 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
-     sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
-     sph_fugue512_full( &ctx.fugue, hash2, hash2, 64 );
-     sph_fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+     fugue512_full( &ctx.fugue, hash2, hash2, 64 );
+     fugue512_full( &ctx.fugue, hash3, hash3, 64 );
 
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
