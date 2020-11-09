@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
+//#include "algo/jh/jh-hash-sse2.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
@@ -49,6 +50,7 @@ struct TortureGarden
         sph_blake512_context    blake;
         sph_bmw512_context      bmw;
         sph_skein512_context    skein;
+//        jh512_sse2_hashState    jh;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
         hashState_luffa         luffa;
@@ -125,6 +127,7 @@ static void get_hash( void *output, const void *input, TortureGarden *garden,
             SHA512_Final( (unsigned char*)hash, &garden->sha512 );
             break;
         case 8:
+//            jh512_sse2_full( &garden->jh, hash, input, 64 );
             sph_jh512_init(&garden->jh);
             sph_jh512(&garden->jh, input, 64);
             sph_jh512_close(&garden->jh, hash);          

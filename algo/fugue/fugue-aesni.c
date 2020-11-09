@@ -34,13 +34,11 @@ MYALIGN const unsigned long long _supermix4c[]	= {0x0706050403020000, 0x03020000
 MYALIGN const unsigned long long _supermix7a[]	= {0x010c0b060d080702, 0x0904030e03000104};
 MYALIGN const unsigned long long _supermix7b[]	= {0x8080808080808080, 0x0504070605040f06};
 MYALIGN const unsigned long long _k_n[] = {0x4E4E4E4E4E4E4E4E, 0x1B1B1B1B0E0E0E0E};
-MYALIGN const unsigned int _maskd3n[] = {0xffffffff, 0xffffffff, 0xffffffff, 0x00000000};
 MYALIGN const unsigned char _shift_one_mask[]   = {7, 4, 5, 6, 11, 8, 9, 10, 15, 12, 13, 14, 3, 0, 1, 2};
 MYALIGN const unsigned char _shift_four_mask[]  = {13, 14, 15, 12, 1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8};
 MYALIGN const unsigned char _shift_seven_mask[] = {10, 11, 8, 9, 14, 15, 12, 13, 2, 3, 0, 1, 6, 7, 4, 5};
 MYALIGN const unsigned char _aes_shift_rows[]   = {0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11};
 MYALIGN const unsigned int _inv_shift_rows[] = {0x070a0d00, 0x0b0e0104, 0x0f020508, 0x0306090c};
-MYALIGN const unsigned int _zero[] = {0x00000000, 0x00000000, 0x00000000, 0x00000000};
 MYALIGN const unsigned int _mul2mask[] = {0x1b1b0000, 0x00000000, 0x00000000, 0x00000000};
 MYALIGN const unsigned int _mul4mask[] = {0x2d361b00, 0x00000000, 0x00000000, 0x00000000};
 MYALIGN const unsigned int _lsbmask2[] = {0x03030303, 0x03030303, 0x03030303, 0x03030303};
@@ -61,7 +59,7 @@ MYALIGN const unsigned int _IV512[] = {
 
 #define UNPACK_S0(s0, s1, t1)\
    s1 = _mm_castps_si128(_mm_insert_ps(_mm_castsi128_ps(s1), _mm_castsi128_ps(s0), 0xc0));\
-   s0 = _mm_and_si128(s0, M128(_maskd3n))
+   s0 = mm128_mask_32( s0, 8 )
 
 #define CMIX(s1, s2, r1, r2, t1, t2)\
    t1 = s1;\
@@ -78,7 +76,7 @@ MYALIGN const unsigned int _IV512[] = {
 #define UNPACK_S0(s0, s1, t1)\
    t1 = _mm_shuffle_epi32(s0, _MM_SHUFFLE(3, 3, 3, 3));\
    s1 = _mm_castps_si128(_mm_move_ss(_mm_castsi128_ps(s1), _mm_castsi128_ps(t1)));\
-   s0 = _mm_and_si128(s0, M128(_maskd3n))
+   s0 = mm128_mask_32( s0, 8 )
 
 #define CMIX(s1, s2, r1, r2, t1, t2)\
    t1 = _mm_shuffle_epi32(s1, 0xf9);\
@@ -138,7 +136,7 @@ MYALIGN const unsigned int _IV512[] = {
 
 #define SUBSTITUTE(r0, _t1, _t2, _t3, _t0)\
 	_t2 = _mm_shuffle_epi8(r0, M128(_inv_shift_rows));\
-	_t2 = _mm_aesenclast_si128(_t2, M128(_zero))
+	_t2 = _mm_aesenclast_si128( _t2, m128_zero )
 	
 #define SUPERMIX(t0, t1, t2, t3, t4)\
 	PRESUPERMIX(t0, t1, t2, t3, t4);\
@@ -181,14 +179,14 @@ MYALIGN const unsigned int _IV512[] = {
 	SUPERMIX(_t2, _t3, _t0, _t1, r1c);\
 	_t0 = _mm_shuffle_epi32(r1c, 0x39);\
 	r2c = _mm_xor_si128(r2c, _t0);\
-	_t0 = _mm_and_si128(_t0, M128(_maskd3n));\
+   _t0 = mm128_mask_32( _t0, 8 ); \
 	r2d = _mm_xor_si128(r2d, _t0);\
 	UNPACK_S0(r1c, r1a, _t3);\
 	SUBSTITUTE(r2c, _t1, _t2, _t3, _t0);\
 	SUPERMIX(_t2, _t3, _t0, _t1, r2c);\
 	_t0 = _mm_shuffle_epi32(r2c, 0x39);\
 	r3c = _mm_xor_si128(r3c, _t0);\
-	_t0 = _mm_and_si128(_t0, M128(_maskd3n));\
+   _t0 = mm128_mask_32( _t0, 8 ); \
 	r3d = _mm_xor_si128(r3d, _t0);\
 	UNPACK_S0(r2c, r2a, _t3);\
 	SUBSTITUTE(r3c, _t1, _t2, _t3, _t0);\
@@ -203,21 +201,21 @@ MYALIGN const unsigned int _IV512[] = {
 	SUPERMIX(_t2, _t3, _t0, _t1, r1c);\
 	_t0 = _mm_shuffle_epi32(r1c, 0x39);\
 	r2c = _mm_xor_si128(r2c, _t0);\
-	_t0 = _mm_and_si128(_t0, M128(_maskd3n));\
+   _t0 = mm128_mask_32( _t0, 8 ); \
 	r2d = _mm_xor_si128(r2d, _t0);\
 	UNPACK_S0(r1c, r1a, _t3);\
 	SUBSTITUTE(r2c, _t1, _t2, _t3, _t0);\
 	SUPERMIX(_t2, _t3, _t0, _t1, r2c);\
 	_t0 = _mm_shuffle_epi32(r2c, 0x39);\
 	r3c = _mm_xor_si128(r3c, _t0);\
-	_t0 = _mm_and_si128(_t0, M128(_maskd3n));\
+   _t0 = mm128_mask_32( _t0, 8 ); \
 	r3d = _mm_xor_si128(r3d, _t0);\
 	UNPACK_S0(r2c, r2a, _t3);\
 	SUBSTITUTE(r3c, _t1, _t2, _t3, _t0);\
 	SUPERMIX(_t2, _t3, _t0, _t1, r3c);\
 	_t0 = _mm_shuffle_epi32(r3c, 0x39);\
 	r4c = _mm_xor_si128(r4c, _t0);\
-	_t0 = _mm_and_si128(_t0, M128(_maskd3n));\
+   _t0 = mm128_mask_32( _t0, 8 ); \
 	r4d = _mm_xor_si128(r4d, _t0);\
 	UNPACK_S0(r3c, r3a, _t3);\
 	SUBSTITUTE(r4c, _t1, _t2, _t3, _t0);\
@@ -462,7 +460,7 @@ HashReturn fugue512_Init(hashState_fugue *ctx, int nHashSize)
 	ctx->uBlockLength = 4;
 
 	for(i = 0; i < 6; i++)
-		ctx->state[i] = _mm_setzero_si128();
+		ctx->state[i] = m128_zero;
 
 	ctx->state[6]  = _mm_load_si128((__m128i*)_IV512 + 0);
 	ctx->state[7]  = _mm_load_si128((__m128i*)_IV512 + 1);

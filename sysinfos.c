@@ -331,16 +331,20 @@ static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 // Feature flags
 
 // CPU_INFO ECX
-#define XSAVE_Flag    (1<<26) 
-#define OSXSAVE_Flag  (1<<27)
-#define AVX_Flag     (1<<28)
+#define SSE3_Flag      1    
+#define SSSE3_Flag    (1<< 9)
 #define XOP_Flag      (1<<11)
 #define FMA3_Flag     (1<<12)
 #define AES_Flag      (1<<25)
+#define SSE41_Flag    (1<<19)
 #define SSE42_Flag    (1<<20)
+#define AES_Flag      (1<<25)
+#define XSAVE_Flag    (1<<26) 
+#define OSXSAVE_Flag  (1<<27)
+#define AVX_Flag      (1<<28)
 
 // CPU_INFO EDX
-#define SSE_Flag      (1<<25) // EDX
+#define SSE_Flag      (1<<25)
 #define SSE2_Flag     (1<<26) 
 
 // EXTENDED_FEATURES EBX
@@ -359,8 +363,8 @@ static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 
 // Use this to detect presence of feature
 #define AVX_mask     (AVX_Flag|XSAVE_Flag|OSXSAVE_Flag)
-#define FMA3_mask     (FMA3_Flag|AVX_mask)
-#define AVX512_mask   (AVX512VL_Flag|AVX512BW_Flag|AVX512DQ_Flag|AVX512F_Flag)
+#define FMA3_mask    (FMA3_Flag|AVX_mask)
+#define AVX512_mask  (AVX512VL_Flag|AVX512BW_Flag|AVX512DQ_Flag|AVX512F_Flag)
 
 static inline bool has_sha()
 {
@@ -475,6 +479,15 @@ static inline bool has_avx512()
     return ( ( cpu_info[ EBX_Reg ] & AVX512_mask ) == AVX512_mask );
 #endif
 }
+
+// AMD Zen3 added support for 256 bit VAES without requiring AVX512.
+// The original Intel spec requires AVX512F to support 512 bit VAES and 
+// requires AVX512VL to support 256 bit VAES.
+// cpuminer-opt only uses VAES512, simply testing the VAES bit is sufficient.
+// However, proper detection of VAES512 and VAES256 requires more work:
+// VAES512 = VAES && AVX512F  (may not support VAES256)
+// VAES256 = AVX512VL ? VAES : ( AVX && VAES )   (may not support VAES512) 
+// VAES    = VAES && AVX512F && AVX512VL (supports both)
 
 static inline bool has_vaes()
 {

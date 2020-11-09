@@ -65,6 +65,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.15.1
+
+Fix compile on AMD Zen3 CPUs with VAES.
+Force new work immediately after solving a block solo.
+
+
 v3.15.0
 
 Fugue optimized with AES, improves many sha3 algos.

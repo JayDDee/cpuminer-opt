@@ -1829,10 +1829,11 @@ bool submit_solution( struct work *work, const void *hash,
      update_submit_stats( work, hash );
 
      if unlikely( !have_stratum && !have_longpoll )
-     {   // block solved, force getwork
+     {   // solo, block solved, force getwork
          pthread_rwlock_wrlock( &g_work_lock );
          g_work_time = 0;
          pthread_rwlock_unlock( &g_work_lock );
+         restart_threads();
      }
 
      if ( !opt_quiet )
@@ -1868,25 +1869,25 @@ static bool wanna_mine(int thr_id)
 	bool state = true;
 
 	if (opt_max_temp > 0.0)
-        {
+   {
 		float temp = cpu_temp(0);
 		if (temp > opt_max_temp)
-                {
+      {
 			if (!thr_id && !conditional_state[thr_id] && !opt_quiet)
 				applog(LOG_INFO, "temperature too high (%.0fC), waiting...", temp);
 			state = false;
 		}
 	}
 	if (opt_max_diff > 0.0 && net_diff > opt_max_diff)
-        {
+   {
 		if (!thr_id && !conditional_state[thr_id] && !opt_quiet)
 			applog(LOG_INFO, "network diff too high, waiting...");
 		state = false;
 	}
 	if (opt_max_rate > 0.0 && net_hashrate > opt_max_rate)
-        {
+   {
 		if (!thr_id && !conditional_state[thr_id] && !opt_quiet)
-                {
+      {
 			char rate[32];
 			format_hashrate(opt_max_rate, rate);
 			applog(LOG_INFO, "network hashrate too high, waiting %s...", rate);
@@ -1903,7 +1904,7 @@ static bool wanna_mine(int thr_id)
 // default
 void sha256d_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 {
-  sha256d(merkle_root, sctx->job.coinbase, (int) sctx->job.coinbase_size);
+  sha256d( merkle_root, sctx->job.coinbase, (int) sctx->job.coinbase_size );
   for ( int i = 0; i < sctx->job.merkle_count; i++ )
   {
      memcpy( merkle_root + 32, sctx->job.merkle[i], 32 );
@@ -2038,7 +2039,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    {
       unsigned char *xnonce2str = abin2hex( g_work->xnonce2,
                                             g_work->xnonce2_len );
-      applog( LOG_INFO, "Extranonce %s, Block %d, Net Diff %.5g",
+      applog( LOG_INFO, "Extranonce2 %s, Block %d, Net Diff %.5g",
                   xnonce2str, sctx->block_height, net_diff );
       free( xnonce2str );
    }
@@ -3509,7 +3510,7 @@ bool check_cpu_capability ()
      use_avx2   = cpu_has_avx2   && sw_has_avx2   && algo_has_avx2;
      use_avx512 = cpu_has_avx512 && sw_has_avx512 && algo_has_avx512;
      use_sha    = cpu_has_sha    && sw_has_sha    && algo_has_sha;
-     use_vaes   = cpu_has_vaes   && sw_has_vaes   && algo_has_vaes;
+     use_vaes   = cpu_has_vaes && sw_has_vaes && algo_has_vaes && use_avx512;
      use_none = !( use_sse2 || use_aes || use_sse42 || use_avx512 || use_avx2 ||
                    use_sha || use_vaes );
       

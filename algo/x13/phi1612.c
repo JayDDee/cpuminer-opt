@@ -42,7 +42,6 @@ void init_phi1612_ctx()
      sph_skein512_init( &phi_ctx.skein );
      sph_jh512_init( &phi_ctx.jh );
      cubehashInit( &phi_ctx.cube, 512, 16, 32 );
-     sph_fugue512_init( &phi_ctx.fugue );
      sph_gost512_init( &phi_ctx.gost );
 #ifdef __AES__
      init_echo( &phi_ctx.echo, 512 );

@@ -7,13 +7,13 @@
  * This code is placed in the public domain
  */
 
-
 #if !defined(GROESTL256_INTR_4WAY_H__)
 #define GROESTL256_INTR_4WAY_H__ 1
       
 #include "groestl256-hash-4way.h"
 
-#if defined(__VAES__)
+#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
 static const __m128i round_const_l0[] __attribute__ ((aligned (64))) =
 {
    { 0x7060504030201000, 0xffffffffffffffff },

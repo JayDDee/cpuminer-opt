@@ -17,7 +17,7 @@
 #if defined(__AES__)
 
 #include "algo/sha/sha3_common.h"
-#include <x86intrin.h>
+#include "simd-utils.h"
 
 
 typedef struct

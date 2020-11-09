@@ -135,10 +135,16 @@ static inline __m128i mm128_neg1_fn()
 // Bitwise not (~v)  
 #define mm128_not( v )          _mm_xor_si128( (v), m128_neg1 ) 
 
-// Unary negation of elements
+// Unary negation of elements (-v)
 #define mm128_negate_64( v )    _mm_sub_epi64( m128_zero, v )
 #define mm128_negate_32( v )    _mm_sub_epi32( m128_zero, v )  
 #define mm128_negate_16( v )    _mm_sub_epi16( m128_zero, v )  
+
+// Clear (zero) 32 bit elements based on bits set in 4 bit mask.
+// Fast, avoids using vector mask, but only available for 128 bit vectors.
+#define mm128_mask_32( a, mask ) \
+   _mm_castps_si128( _mm_insert_ps( _mm_castsi128_ps( a ), \
+                                    _mm_castsi128_ps( a ), mask ) )
 
 // Add 4 values, fewer dependencies than sequential addition.
 #define mm128_add4_64( a, b, c, d ) \
@@ -269,11 +275,8 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 // Rotate vector elements accross all lanes
 
 #define mm128_swap_64( v )    _mm_shuffle_epi32( v, 0x4e )
-
 #define mm128_ror_1x32( v )   _mm_shuffle_epi32( v, 0x39 )
 #define mm128_rol_1x32( v )   _mm_shuffle_epi32( v, 0x93 )
-
-
 //#define mm128_swap_64( v )    _mm_alignr_epi8( v, v,  8 )
 //#define mm128_ror_1x32( v )   _mm_alignr_epi8( v, v,  4 )
 //#define mm128_rol_1x32( v )   _mm_alignr_epi8( v, v, 12 )
@@ -282,51 +285,9 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_ror_1x8( v )    _mm_alignr_epi8( v, v,  1 )
 #define mm128_rol_1x8( v )    _mm_alignr_epi8( v, v, 15 )
 
+// Rotate by c bytes
 #define mm128_ror_x8( v, c )  _mm_alignr_epi8( v, c )
 #define mm128_rol_x8( v, c )  _mm_alignr_epi8( v, 16-(c) )
-
-
-/*
-// Rotate 16 byte (128 bit) vector by c bytes.
-// Less efficient using shift but more versatile. Use only for odd number
-// byte rotations. Use shuffle above whenever possible.
-#define mm128_ror_x8( v, c ) \
-   _mm_or_si128( _mm_srli_si128( v, c ), _mm_slli_si128( v, 16-(c) ) )
-
-#define mm128_rol_x8( v, c ) \
-   _mm_or_si128( _mm_slli_si128( v, c ), _mm_srli_si128( v, 16-(c) ) )
-
-#if defined (__SSE3__)
-// no SSE2 implementation, no current users
-
-#define mm128_ror_1x16( v ) \
-   _mm_shuffle_epi8( v, m128_const_64( 0x01000f0e0d0c0b0a, \
-                                       0x0908070605040302 ) )
-#define mm128_rol_1x16( v ) \
-   _mm_shuffle_epi8( v, m128_const_64( 0x0d0c0b0a09080706, \
-                                       0x0504030201000f0e ) )
-#define mm128_ror_1x8( v ) \
-   _mm_shuffle_epi8( v, m128_const_64( 0x000f0e0d0c0b0a09, \
-                                       0x0807060504030201 ) )
-#define mm128_rol_1x8( v ) \
-   _mm_shuffle_epi8( v, m128_const_64( 0x0e0d0c0b0a090807, \
-                                       0x060504030201000f ) )
-#else  // SSE2
-
-#define mm128_ror_1x16( v ) \
-   _mm_or_si128( _mm_srli_si128( v, 2 ), _mm_slli_si128( v, 14 ) )
-
-#define mm128_rol_1x16( v ) \
-   _mm_or_si128( _mm_slli_si128( v, 2 ), _mm_srli_si128( v, 14 ) )
-
-#define mm128_ror_1x8( v ) \
-   _mm_or_si128( _mm_srli_si128( v, 1 ), _mm_slli_si128( v, 15 ) )
-
-#define mm128_rol_1x8( v ) \
-   _mm_or_si128( _mm_slli_si128( v, 1 ), _mm_srli_si128( v, 15 ) )
-
-#endif   // SSE3 else SSE2
-*/
 
 
 // Invert vector: {3,2,1,0} -> {0,1,2,3}

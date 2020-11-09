@@ -56,15 +56,15 @@
 //    If an expensive constant is to be reused in the same function it should
 //    be declared as a local variable defined once and reused.
 //
-//    Permutations cab be very exppensive if they use a vector control index,
+//    Permutations can be very expensive if they use a vector control index,
 //    even if the permutation itself is quite efficient.
 //    The index is essentially a constant with all the baggage that brings.
 //    The same rules apply, if an index is to be reused it should be defined
 //    as a local. This applies specifically to bswap operations.
 //
 //    Additionally, permutations using smaller vectors can be more efficient
-//    if the permutation doesn't cross lane boundaries ,typically 128 bits,
-//    ans the smnaller vector can use an imm comtrol.
+//    if the permutation doesn't cross lane boundaries, typically 128 bits,
+//    and the smnaller vector can use an imm comtrol.
 //
 //    If the permutation doesn't cross lane boundaries a shuffle instructions
 //    can be used with imm control instead of permute.
@@ -182,7 +182,10 @@ static inline __m512i m512_const4_64( const uint64_t i3, const uint64_t i2,
 //
 // Basic operations without SIMD equivalent
 
+// ~x
 #define mm512_not( x )       _mm512_xor_si512( x, m512_neg1 )
+
+// -x
 #define mm512_negate_64( x ) _mm512_sub_epi64( m512_zero, x )
 #define mm512_negate_32( x ) _mm512_sub_epi32( m512_zero, x )  
 #define mm512_negate_16( x ) _mm512_sub_epi16( m512_zero, x )  
@@ -443,19 +446,12 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 //
 // Rotate elements within 256 bit lanes of 512 bit vector.
 
-// Rename these for consistency. Element size is always last.
-// mm<vectorsize>_<op><lanesize>_<elementsize>
-
-
 // Swap hi & lo 128 bits in each 256 bit lane
-
 #define mm512_swap256_128( v )   _mm512_permutex_epi64( v, 0x4e )
 
 // Rotate 256 bit lanes by one 64 bit element
-
 #define mm512_ror256_64( v )   _mm512_permutex_epi64( v, 0x39 )
 #define mm512_rol256_64( v )   _mm512_permutex_epi64( v, 0x93 )
-
 
 // Rotate 256 bit lanes by one 32 bit element
 

@@ -4,7 +4,7 @@
 # during develpment. However the information contained may provide compilation
 # tips to users.
 
-rm cpuminer-avx512-sha-vaes cpuminer-avx512 cpuminer-avx2 cpuminer-aes-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen  > /dev/null
+rm cpuminer-avx512-sha-vaes cpuminer-avx512 cpuminer-avx2 cpuminer-aes-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen cpuminer-zen3  > /dev/null
 
 make distclean || echo clean
 rm -f config.status
@@ -86,6 +86,16 @@ strip -s cpuminer.exe
 mv cpuminer.exe cpuminer-zen.exe
 strip -s cpuminer
 mv cpuminer cpuminer-zen
+
+make clean || echo done
+rm -f config.status
+CFLAGS="-O3 -march=znver2 -mvaes -Wall -fno-common" ./configure --with-curl
+# CFLAGS="-O3 -march=znver3 -Wall -fno-common" ./configure --with-curl
+make -j 8
+strip -s cpuminer.exe
+mv cpuminer.exe cpuminer-zen3.exe
+strip -s cpuminer
+mv cpuminer cpuminer-zen3
 
 make clean || echo done
 rm -f config.status

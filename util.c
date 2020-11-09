@@ -1485,9 +1485,12 @@ static bool stratum_parse_extranonce(struct stratum_ctx *sctx, json_t *params, i
 	sctx->xnonce2_size = xn2_size;
 	pthread_mutex_unlock(&sctx->work_lock);
 
-        if (pndx == 0 && opt_debug) /* pool dynamic change */
-		applog(LOG_DEBUG, "Stratum set nonce %s with extranonce2 size=%d",
-			xnonce1, xn2_size);
+   if ( !opt_quiet ) /* pool dynamic change */
+      applog( LOG_INFO, "Stratum extranonce1= %s, extranonce2 size= %d",
+         xnonce1, xn2_size);
+//   if (pndx == 0 && opt_debug)
+//		applog(LOG_DEBUG, "Stratum set nonce %s with extranonce2 size=%d",
+//			xnonce1, xn2_size);
 
 	return true;
 out:
@@ -1580,8 +1583,6 @@ out:
 
 	return ret;
 }
-
-extern bool opt_extranonce;
 
 bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *pass)
 {

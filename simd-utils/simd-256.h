@@ -26,8 +26,6 @@
 #define mm256_concat_128( hi, lo ) \
    _mm256_inserti128_si256( _mm256_castsi128_si256( lo ), hi, 1 )
 
-#define m256_const1_128( v ) \
-         _mm256_broadcastsi128_si256( v )
 
 // Equavalent of set, move 64 bit integer constants to respective 64 bit
 // elements.
@@ -144,10 +142,11 @@ do { \
 
 // Parallel AES, for when x is expected to be in a 256 bit register.
 // Use same 128 bit key.
-#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
+//#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if 0
 #define mm256_aesenc_2x128( x, k ) \
-   _mm256_aesenc_epi128( x, m256_const1_128(k ) )
+   _mm256_aesenc_epi128( x, k )
 
 #else
 
