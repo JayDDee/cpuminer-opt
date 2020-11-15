@@ -143,8 +143,8 @@ do { \
 // Parallel AES, for when x is expected to be in a 256 bit register.
 // Use same 128 bit key.
 
-//#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-#if 0
+#if defined(__VAES__)
+
 #define mm256_aesenc_2x128( x, k ) \
    _mm256_aesenc_epi128( x, k )
 

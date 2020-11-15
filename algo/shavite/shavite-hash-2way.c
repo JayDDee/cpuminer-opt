@@ -26,7 +26,11 @@ static const uint32_t IV512[] =
 static void
 c512_2way( shavite512_2way_context *ctx, const void *msg )
 {
+#if defined(__VAES__)
+   const __m256i zero = _mm256_setzero_si256();
+#else
    const __m128i zero = _mm_setzero_si128();
+#endif
    __m256i p0, p1, p2, p3, x;
    __m256i k00, k01, k02, k03, k10, k11, k12, k13;
    __m256i *m = (__m256i*)msg;

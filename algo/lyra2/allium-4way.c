@@ -174,24 +174,19 @@ void allium_16way_hash( void *state, const void *input )
 #if defined(__VAES__)
 
    intrlv_4x128( vhash, hash0, hash1, hash2, hash3, 256 );
-
-   groestl256_4way_full( &ctx.groestl, vhash, vhash, 256 );
-
+   groestl256_4way_full( &ctx.groestl, vhash, vhash, 32 );
    dintrlv_4x128( state, state+32, state+64, state+96, vhash, 256 );
+
    intrlv_4x128( vhash, hash4, hash5, hash6, hash7, 256 );
-
-   groestl256_4way_full( &ctx.groestl, vhash, vhash, 256 );
-   
+   groestl256_4way_full( &ctx.groestl, vhash, vhash, 32 );
    dintrlv_4x128( state+128, state+160, state+192, state+224, vhash, 256 );
+
    intrlv_4x128( vhash, hash8, hash9, hash10, hash11, 256 );
-
-   groestl256_4way_full( &ctx.groestl, vhash, vhash, 256 );
-
+   groestl256_4way_full( &ctx.groestl, vhash, vhash, 32 );
    dintrlv_4x128( state+256, state+288, state+320, state+352, vhash, 256 );
-   intrlv_4x128( vhash, hash12, hash13, hash14, hash15, 256 );
 
-   groestl256_4way_full( &ctx.groestl, vhash, vhash, 256 );
- 
+   intrlv_4x128( vhash, hash12, hash13, hash14, hash15, 256 );
+   groestl256_4way_full( &ctx.groestl, vhash, vhash, 32 );
    dintrlv_4x128( state+384, state+416, state+448, state+480, vhash, 256 );
    
 #else
@@ -262,8 +257,11 @@ typedef struct {
    keccak256_4way_context    keccak;
    cubehashParam             cube;
    skein256_4way_context     skein;
+#if defined(__VAES__)
+   groestl256_2way_context   groestl;
+#else
    hashState_groestl256      groestl;
-
+#endif
 } allium_8way_ctx_holder;
 
 static __thread allium_8way_ctx_holder allium_8way_ctx;
@@ -273,7 +271,11 @@ bool init_allium_8way_ctx()
    keccak256_4way_init( &allium_8way_ctx.keccak );
    cubehashInit( &allium_8way_ctx.cube, 256, 16, 32 );
    skein256_4way_init( &allium_8way_ctx.skein );
+#if defined(__VAES__)
+   groestl256_2way_init( &allium_8way_ctx.groestl, 32 );
+#else
    init_groestl256( &allium_8way_ctx.groestl, 32 );
+#endif
    return true;
 }
 
@@ -352,9 +354,28 @@ void allium_8way_hash( void *hash, const void *input )
    skein256_4way_update( &ctx.skein, vhashB, 32 );
    skein256_4way_close( &ctx.skein, vhashB );
 
+#if defined(__VAES__)
+
+   uint64_t vhashC[4*2] __attribute__ ((aligned (64)));
+   uint64_t vhashD[4*2] __attribute__ ((aligned (64)));
+   
+   rintrlv_4x64_2x128( vhashC, vhashD, vhashA, 256 );
+   groestl256_2way_full( &ctx.groestl, vhashC, vhashC, 32 );
+   groestl256_2way_full( &ctx.groestl, vhashD, vhashD, 32 );
+   dintrlv_2x128( hash0, hash1, vhashC, 256 );
+   dintrlv_2x128( hash2, hash3, vhashD, 256 );
+
+   rintrlv_4x64_2x128( vhashC, vhashD, vhashB, 256 );
+   groestl256_2way_full( &ctx.groestl, vhashC, vhashC, 32 );
+   groestl256_2way_full( &ctx.groestl, vhashD, vhashD, 32 );
+   dintrlv_2x128( hash4, hash5, vhashC, 256 );
+   dintrlv_2x128( hash6, hash7, vhashD, 256 );
+
+#else
+
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhashA, 256 );
    dintrlv_4x64( hash4, hash5, hash6, hash7, vhashB, 256 );
-
+   
    groestl256_full( &ctx.groestl, hash0, hash0, 256 );
    groestl256_full( &ctx.groestl, hash1, hash1, 256 );
    groestl256_full( &ctx.groestl, hash2, hash2, 256 );
@@ -363,6 +384,8 @@ void allium_8way_hash( void *hash, const void *input )
    groestl256_full( &ctx.groestl, hash5, hash5, 256 );
    groestl256_full( &ctx.groestl, hash6, hash6, 256 );
    groestl256_full( &ctx.groestl, hash7, hash7, 256 );
+
+#endif
 }
 
 int scanhash_allium_8way( struct work *work, uint32_t max_nonce,

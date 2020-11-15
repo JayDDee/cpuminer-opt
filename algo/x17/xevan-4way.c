@@ -405,15 +405,20 @@ union _xevan_4way_context_overlay
 {
 	blake512_4way_context   blake;
         bmw512_4way_context     bmw;
-        hashState_groestl       groestl;
-        skein512_4way_context   skein;
+#if defined(__VAES__)
+        groestl512_2way_context groestl;
+        echo_2way_context       echo;
+#else
+	hashState_groestl       groestl;
+        hashState_echo          echo;
+#endif
+	skein512_4way_context   skein;
         jh512_4way_context      jh;
         keccak512_4way_context  keccak;
         luffa_2way_context      luffa;
         cube_2way_context       cube;
         shavite512_2way_context shavite;
         simd_2way_context       simd;
-        hashState_echo          echo;
         hamsi512_4way_context   hamsi;
         hashState_fugue         fugue;
         shabal512_4way_context  shabal;
@@ -442,7 +447,17 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
      bmw512_4way_update( &ctx.bmw, vhash, dataLen );
      bmw512_4way_close( &ctx.bmw, vhash );
 
-     // Serial
+#if defined(__VAES__)
+
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, dataLen<<3 );
+
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, dataLen );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, dataLen );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, dataLen<<3 );
+
+#else
+     
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, dataLen<<3 );
@@ -450,8 +465,9 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
      groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, dataLen<<3 );
      groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, dataLen<<3 );
 
-     // Parallel 4way
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+
+#endif
 
      skein512_4way_full( &ctx.skein, vhash, vhash, dataLen );
 
@@ -477,6 +493,15 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
      simd512_2way_full( &ctx.simd, vhashA, vhashA, dataLen );
      simd512_2way_full( &ctx.simd, vhashB, vhashB, dataLen );
 
+#if defined(__VAES__)
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, dataLen );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, dataLen );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, dataLen<<3 );
+
+#else
+     
      dintrlv_2x128( hash0, hash1, vhashA, dataLen<<3 );
      dintrlv_2x128( hash2, hash3, vhashB, dataLen<<3 );
 
@@ -489,8 +514,9 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
      echo_full( &ctx.echo, (BitSequence *)hash3, 512,
                      (const BitSequence *)hash3, dataLen );
 
-     // Parallel
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+
+#endif
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way_update( &ctx.hamsi, vhash, dataLen );
@@ -542,6 +568,17 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
      bmw512_4way_update( &ctx.bmw, vhash, dataLen );
      bmw512_4way_close( &ctx.bmw, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, dataLen<<3 );
+
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, dataLen );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, dataLen );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, dataLen<<3 );
+
+#else
+
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, dataLen<<3 );
 
      groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, dataLen<<3 );
@@ -550,6 +587,8 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
      groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, dataLen<<3 );
 
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+
+#endif
 
      skein512_4way_full( &ctx.skein, vhash, vhash, dataLen );
 
@@ -575,6 +614,15 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
      simd512_2way_full( &ctx.simd, vhashA, vhashA, dataLen );
      simd512_2way_full( &ctx.simd, vhashB, vhashB, dataLen );
 
+#if defined(__VAES__)
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, dataLen );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, dataLen );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, dataLen<<3 );
+
+#else
+
      dintrlv_2x128( hash0, hash1, vhashA, dataLen<<3 );
      dintrlv_2x128( hash2, hash3, vhashB, dataLen<<3 );
 
@@ -588,6 +636,8 @@ int xevan_4way_hash( void *output, const void *input, int thr_id )
                      (const BitSequence *)hash3, dataLen );
 
      intrlv_4x64( vhash, hash0, hash1, hash2, hash3, dataLen<<3 );
+
+#endif
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way_update( &ctx.hamsi, vhash, dataLen );

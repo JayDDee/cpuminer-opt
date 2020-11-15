@@ -11,7 +11,7 @@
 #include "algo/shavite/shavite-hash-2way.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/simd-hash-2way.h"
-#include "algo/shavite/sph_shavite.h"
+#include "algo/shavite/shavite-hash-2way.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
 #include "algo/fugue/fugue-aesni.h"
 #include "algo/shabal/shabal-hash-4way.h"
@@ -494,14 +494,19 @@ union _x22i_4way_ctx_overlay
 {
     blake512_4way_context   blake;
     bmw512_4way_context     bmw;
+#if defined(__VAES__)
+    groestl512_2way_context groestl;
+    echo_2way_context       echo;
+#else
     hashState_groestl       groestl;
     hashState_echo          echo;
+#endif
+    shavite512_2way_context shavite;
     skein512_4way_context   skein;
     jh512_4way_context      jh;
     keccak512_4way_context  keccak;
     luffa_2way_context      luffa;
     cube_2way_context       cube;
-    shavite512_2way_context shavite;
     simd_2way_context       simd;
     hamsi512_4way_context   hamsi;
     hashState_fugue         fugue;
@@ -535,14 +540,28 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
    bmw512_4way_init( &ctx.bmw );
    bmw512_4way_update( &ctx.bmw, vhash, 64 );
    bmw512_4way_close( &ctx.bmw, vhash );
-   dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-   groestl512_full( &ctx.groestl, (char*)hash0, (const char*)hash0, 512 );
-   groestl512_full( &ctx.groestl, (char*)hash1, (const char*)hash1, 512 );
-   groestl512_full( &ctx.groestl, (char*)hash2, (const char*)hash2, 512 );
-   groestl512_full( &ctx.groestl, (char*)hash3, (const char*)hash3, 512 );
+#if defined(__VAES__)
 
-   intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
+
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
+     dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
+
+     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+
+     intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
 
    skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
@@ -570,6 +589,15 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
    simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
    simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
+#if defined(__VAES__)
+
+   echo_2way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+   echo_2way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
+
+   rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
    dintrlv_2x128_512( hash0, hash1, vhashA );
    dintrlv_2x128_512( hash2, hash3, vhashB );
    
@@ -583,6 +611,8 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
                    (const BitSequence *)hash3, 64 );
 
    intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
 
    if ( work_restart[thrid].restart ) return false;
    

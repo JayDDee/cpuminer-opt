@@ -1,6 +1,10 @@
 This file is included in the Windows binary package. Compile instructions
 for Linux and Windows can be found in RELEASE_NOTES.
 
+This package is officially avalable only from:
+ https://github.com/JayDDee/cpuminer-opt
+No other sources should be trusted.
+
 cpuminer is a console program that is executed from a DOS or Powershell
 prompt. There is no GUI and no mouse support.
 
@@ -31,20 +35,22 @@ https://en.wikipedia.org/wiki/List_of_Intel_CPU_microarchitectures
 https://en.wikipedia.org/wiki/List_of_AMD_CPU_microarchitectures
 
 
-Exe file name              Compile flags              Arch name
+Exe file name                Compile flags            Arch name
 
 cpuminer-sse2.exe            "-msse2"                 Core2, Nehalem   
-cpuminer-aes-sse42.exe       "-march=westmere"        Westmere
+cpuminer-aes-sse42.exe       "-marxh=westmere"        Westmere
 cpuminer-avx.exe             "-march=corei7-avx"      Sandybridge, Ivybridge
-cpuminer-avx2.exe            "-march=core-avx2 -maes" Haswell*
+cpuminer-avx2.exe            "-march=core-avx2 -maes" Haswell(1)
 cpuminer-avx512.exe          "-march=skylake-avx512"  Skylake-X, Cascadelake-X
-cpuminer-zen.exe             "-march=znver1"          AMD Ryzen, Threadripper
-cpuminer-avx512-sha-vaes.exe "-march=icelake-client"  Icelake*
+cpuminer-zen.exe             "-march=znver1"          Zen1, Zen2
+cpuminer-zen3.exe            "-march=znver2 -mvaes"   Zen3(2) 
+cpuminer-avx512-sha-vaes.exe "-march=icelake-client"  Icelake(3)
 
-* Haswell includes Broadwell, Skylake, Kabylake, Coffeelake & Cometlake. 
-Icelake is only available on some laptops. Mining with a laptop is not
-recommended. The icelake build is included in anticipation of Intel eventually
-releasing a desktop CPU with a microarchitecture newer than Skylake.
+(1) Haswell includes Broadwell, Skylake, Kabylake, Coffeelake & Cometlake. 
+(2) Zen3 build uses Zen2+VAES as workaround until Zen3 compiler support is
+    available. Zen2 CPUs should use Zen build.
+(3) Icelake is only available on some laptops. Mining with a laptop is not
+recommended.
 
 Notes about included DLL files:
 

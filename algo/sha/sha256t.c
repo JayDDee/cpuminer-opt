@@ -1,5 +1,7 @@
 #include "sha256t-gate.h"
 
+// Obsolete
+
 #if !defined(SHA256T_16WAY) && !defined(SHA256T_8WAY) && !defined(SHA256T_4WAY)
 
 #include <stdlib.h>

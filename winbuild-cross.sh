@@ -40,6 +40,7 @@ cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
 
 # Start building...
 
+# Icelake AVX512 SHA VAES
 ./clean-all.sh || echo clean
 rm -f config.status
 ./autogen.sh || echo done
@@ -48,6 +49,7 @@ make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx512-sha-vaes.exe
 
+# Zen1 AVX2 SHA
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=znver1 -Wall" ./configure $CONFIGURE_ARGS
@@ -55,6 +57,16 @@ make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-zen.exe
 
+# Zen3 AVX2 SHA VAES
+make clean || echo clean
+rm -f config.status
+CFLAGS="-O3 -march=znver2 -mvaes -Wall" ./configure $CONFIGURE_ARGS
+# CFLAGS="-O3 -march=znver3 -Wall" ./configure $CONFIGURE_ARGS
+make -j 8
+strip -s cpuminer.exe
+mv cpuminer.exe release/cpuminer-zen3.exe
+
+# Slylake-X AVX512 AES
 # mingw won't compile avx512 without -fno-asynchronous-unwind-tables
 make clean || echo clean
 rm -f config.status
@@ -64,6 +76,7 @@ make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx512.exe
 
+# Haswell AVX2 AES
 make clean || echo clean
 rm -f config.status
 # GCC 9 doesn't include AES in -march=core-avx2
@@ -72,6 +85,7 @@ make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx2.exe
 
+# Sandybridge AVX AES
 make clean || echo clean
 rm -f config.status
 # -march=corei7-avx still includes aes, but just in case
@@ -80,6 +94,7 @@ make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx.exe
 
+# Westmere SSE4.2 AES
 # -march=westmere is supported in gcc5
 make clean || echo clean
 rm -f config.status
@@ -104,6 +119,7 @@ mv cpuminer.exe release/cpuminer-aes-sse42.exe
 #mv cpuminer.exe release/cpuminer-ssse3.exe
 #make clean || echo clean
 
+# Generic SSE2
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -msse2 -Wall" ./configure $CONFIGURE_ARGS

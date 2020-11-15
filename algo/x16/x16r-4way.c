@@ -619,11 +619,20 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid )
             dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
          break;
          case GROESTL:
+#if defined(__VAES__)
+            intrlv_2x128( vhash, in0, in1, size<<3 );
+            groestl512_2way_full( &ctx.groestl, vhash, vhash, size );
+            dintrlv_2x128_512( hash0, hash1, vhash );
+            intrlv_2x128( vhash, in2, in3, size<<3 );
+            groestl512_2way_full( &ctx.groestl, vhash, vhash, size );
+            dintrlv_2x128_512( hash2, hash3, vhash );
+#else
             groestl512_full( &ctx.groestl, (char*)hash0, (char*)in0, size<<3 );
             groestl512_full( &ctx.groestl, (char*)hash1, (char*)in1, size<<3 );
             groestl512_full( &ctx.groestl, (char*)hash2, (char*)in2, size<<3 );
             groestl512_full( &ctx.groestl, (char*)hash3, (char*)in3, size<<3 );
-         break;
+#endif
+   	    break;
          case JH:
             if ( i == 0 )
                jh512_4way_update( &ctx.jh, input + (64<<2), 16 );
@@ -711,11 +720,20 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid )
             }
          break;
          case SHAVITE:
+#if defined(__VAES__)
+            intrlv_2x128( vhash, in0, in1, size<<3 );
+            shavite512_2way_full( &ctx.shavite, vhash, vhash, size );
+            dintrlv_2x128_512( hash0, hash1, vhash );
+            intrlv_2x128( vhash, in2, in3, size<<3 );
+            shavite512_2way_full( &ctx.shavite, vhash, vhash, size );
+            dintrlv_2x128_512( hash2, hash3, vhash );
+#else
             shavite512_full( &ctx.shavite, hash0, in0, size );
             shavite512_full( &ctx.shavite, hash1, in1, size );
             shavite512_full( &ctx.shavite, hash2, in2, size );
             shavite512_full( &ctx.shavite, hash3, in3, size );
-         break;
+#endif
+   	    break;
          case SIMD:
             intrlv_2x128( vhash, in0, in1, size<<3 );
             simd512_2way_full( &ctx.simd, vhash, vhash, size );
@@ -725,6 +743,14 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid )
             dintrlv_2x128_512( hash2, hash3, vhash );
          break;
          case ECHO:
+#if defined(__VAES__)
+            intrlv_2x128( vhash, in0, in1, size<<3 );
+            echo_2way_full( &ctx.echo, vhash, 512, vhash, size );
+            dintrlv_2x128_512( hash0, hash1, vhash );
+            intrlv_2x128( vhash, in2, in3, size<<3 );
+            echo_2way_full( &ctx.echo, vhash, 512, vhash, size );
+            dintrlv_2x128_512( hash2, hash3, vhash );
+#else
             echo_full( &ctx.echo, (BitSequence *)hash0, 512,
                               (const BitSequence *)in0, size );
             echo_full( &ctx.echo, (BitSequence *)hash1, 512,
@@ -733,7 +759,8 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid )
                               (const BitSequence *)in2, size );
             echo_full( &ctx.echo, (BitSequence *)hash3, 512,
                               (const BitSequence *)in3, size );
-         break;
+#endif
+   	    break;
          case HAMSI:
             if ( i == 0 )
                hamsi512_4way_update( &ctx.hamsi, input + (64<<2), 16 );

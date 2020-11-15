@@ -4,13 +4,10 @@
 #include <stdint.h>
 #include "algo-gate-api.h"
 
-// Override multi way on ryzen, SHA is better.
-#if !defined(__SHA__)
- #if defined(__AVX2__)
+#if defined(__AVX2__)
   #define SHA256T_8WAY
- #elif defined(__SSE2__)
+#else
   #define SHA256T_4WAY
- #endif
 #endif
 
 bool register_sha256t_algo( algo_gate_t* gate );
@@ -36,12 +33,13 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
                            uint64_t *hashes_done, struct thr_info *mythr );
 #endif
 
+/*
 void sha256t_hash( void *output, const void *input );
 int scanhash_sha256t( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr );
 void sha256q_hash( void *output, const void *input );
 int scanhash_sha256q( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr );
-
+*/
 #endif
 

@@ -61,7 +61,8 @@ bool register_x16r_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x16r;
   gate->hash      = (void*)&x16r_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT |
+	                VAES_OPT | VAES256_OPT;
   x16_r_s_getAlgoString = (void*)&x16r_getAlgoString;
   opt_target_factor = 256.0;
   return true;
@@ -79,7 +80,8 @@ bool register_x16rv2_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x16rv2;
   gate->hash      = (void*)&x16rv2_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT |
+	                VAES_OPT | VAES256_OPT;
   x16_r_s_getAlgoString = (void*)&x16r_getAlgoString;
   opt_target_factor = 256.0;
   return true;
@@ -97,7 +99,8 @@ bool register_x16s_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x16r;
   gate->hash      = (void*)&x16r_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT |
+	                VAES_OPT | VAES256_OPT;
   x16_r_s_getAlgoString = (void*)&x16s_getAlgoString;
   opt_target_factor = 256.0;
   return true;
@@ -230,7 +233,8 @@ bool register_x16rt_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x16rt;
   gate->hash      = (void*)&x16r_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT |
+	                VAES_OPT | VAES256_OPT;
   opt_target_factor = 256.0;
   return true;
 };
@@ -247,7 +251,8 @@ bool register_x16rt_veil_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x16rt;
   gate->hash      = (void*)&x16r_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT |
+	                VAES_OPT | VAES256_OPT;
   gate->build_extraheader = (void*)&veil_build_extraheader;
   opt_target_factor = 256.0;
   return true;
@@ -277,22 +282,17 @@ bool register_x21s_algo( algo_gate_t* gate )
   gate->scanhash          = (void*)&scanhash_x21s_8way;
   gate->hash              = (void*)&x21s_8way_hash;
   gate->miner_thread_init = (void*)&x21s_8way_thread_init;
-  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT
-                            | VAES_OPT;
 #elif defined (X16R_4WAY)
   gate->scanhash          = (void*)&scanhash_x21s_4way;
   gate->hash              = (void*)&x21s_4way_hash;
   gate->miner_thread_init = (void*)&x21s_4way_thread_init;
-  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT
-                            | AVX512_OPT | VAES_OPT;
 #else
   gate->scanhash          = (void*)&scanhash_x21s;
   gate->hash              = (void*)&x21s_hash;
   gate->miner_thread_init = (void*)&x21s_thread_init;
-  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT
-                          | AVX512_OPT | VAES_OPT;
 #endif
-//  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT | AVX512_OPT;
+  gate->optimizations     = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT |
+	                    VAES_OPT | VAES256_OPT;
   x16_r_s_getAlgoString   = (void*)&x16s_getAlgoString;
   opt_target_factor = 256.0;
   return true;

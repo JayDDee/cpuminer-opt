@@ -18,8 +18,8 @@
 #endif
 #include <stdlib.h>
 
-#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-   
+#if defined(__AVX2__) && defined(__VAES__)
+
 #define LENGTH (256)
 
 //#include "brg_endian.h"
@@ -48,6 +48,8 @@
 
 #define SIZE256 (SIZE_512/16)
 
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
 typedef struct {
   __attribute__ ((aligned (128))) __m512i chaining[SIZE256];
   __attribute__ ((aligned (64))) __m512i buffer[SIZE256];
@@ -55,7 +57,7 @@ typedef struct {
   int blk_count;     // SIZE_m128i
   int buf_ptr;       // __m128i offset
   int rem_ptr;
-  int databitlen;    // bits
+//  int databitlen;    // bits
 } groestl256_4way_context;
 
 
@@ -74,5 +76,25 @@ int groestl256_4way_update_close( groestl256_4way_context*,  void*,
 int groestl256_4way_full( groestl256_4way_context*, void*,
                           const void*, uint64_t );
 
-#endif
-#endif 
+#endif  // AVX512
+
+typedef struct {
+  __attribute__ ((aligned (128))) __m256i chaining[SIZE256];
+  __attribute__ ((aligned (64))) __m256i buffer[SIZE256];
+  int hashlen;       // byte
+  int blk_count;     // SIZE_m128i
+  int buf_ptr;       // __m128i offset
+  int rem_ptr;
+//  int databitlen;    // bits
+} groestl256_2way_context;
+
+int groestl256_2way_init( groestl256_2way_context*, uint64_t );
+
+int groestl256_2way_update_close( groestl256_2way_context*,  void*,
+                                        const void*, uint64_t );
+
+int groestl256_2way_full( groestl256_2way_context*, void*,
+                          const void*, uint64_t );
+
+#endif  // VAES
+#endif  // GROESTL256_HASH_4WAY_H__

@@ -41,6 +41,7 @@
 #include "algo/sha/sha-hash-4way.h"
 #if defined(__VAES__)
   #include "algo/groestl/groestl512-hash-4way.h"
+  #include "algo/shavite/shavite-hash-2way.h"
   #include "algo/shavite/shavite-hash-4way.h"
   #include "algo/echo/echo-hash-4way.h"
 #endif
@@ -145,15 +146,21 @@ union _x16r_4way_context_overlay
 {
     blake512_4way_context   blake;
     bmw512_4way_context     bmw;
-    hashState_echo          echo;
+#if defined(__VAES__)
+    groestl512_2way_context groestl;
+    shavite512_2way_context shavite;
+    echo_2way_context       echo;
+#else
     hashState_groestl       groestl;
+    shavite512_context      shavite;
+    hashState_echo          echo;
+#endif
     skein512_4way_context   skein;
     jh512_4way_context      jh;
     keccak512_4way_context  keccak;
     luffa_2way_context      luffa;
     hashState_luffa         luffa1;
     cubehashParam           cube;
-    shavite512_context      shavite;
     simd_2way_context       simd;
     hamsi512_4way_context   hamsi;
     hashState_fugue         fugue;

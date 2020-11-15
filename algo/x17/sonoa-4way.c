@@ -1124,7 +1124,13 @@ union _sonoa_4way_context_overlay
 {
     blake512_4way_context   blake;
     bmw512_4way_context     bmw;
+#if defined(__VAES__)
+    groestl512_2way_context groestl;
+    echo512_2way_context    echo;
+#else
     hashState_groestl       groestl;
+    hashState_echo          echo;
+#endif
     skein512_4way_context   skein;
     jh512_4way_context      jh;
     keccak512_4way_context  keccak;
@@ -1132,7 +1138,6 @@ union _sonoa_4way_context_overlay
     cube_2way_context       cube;
     shavite512_2way_context shavite;
     simd_2way_context       simd;
-    hashState_echo          echo;
     hamsi512_4way_context   hamsi;
     hashState_fugue         fugue;
     shabal512_4way_context  shabal;
@@ -1162,6 +1167,17 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
+
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
      groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -1170,6 +1186,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
      
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
 
      skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
@@ -1195,6 +1213,15 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
      simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
+#if defined(__VAES__)
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
@@ -1206,16 +1233,29 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
                      (const BitSequence *)hash2, 64 );
      echo_full( &ctx.echo, (BitSequence *)hash3, 512,
                      (const BitSequence *)hash3, 64 );
+
+     intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
      
      if ( work_restart[thr_id].restart ) return 0;
 // 2
-
-     intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
      bmw512_4way_init( &ctx.bmw );
      bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 ); 
+
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
+ 
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
      groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -1224,6 +1264,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif     
 
      skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
@@ -1249,6 +1291,15 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
      simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
+#if defined(__VAES__)
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
@@ -1262,6 +1313,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
                      (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
@@ -1274,6 +1327,17 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 ); 
+
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
+ 
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
      groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -1282,6 +1346,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif     
 
      skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
@@ -1307,6 +1373,15 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
      simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
+#if defined(__VAES__)
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
@@ -1320,6 +1395,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
                      (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
@@ -1340,6 +1417,17 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 ); 
+
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
+ 
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
      groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -1348,6 +1436,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif     
 
      skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
@@ -1373,6 +1463,15 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
      simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
+#if defined(__VAES__)
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
@@ -1386,6 +1485,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
                      (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
@@ -1410,6 +1511,15 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      hamsi512_4way_update( &ctx.hamsi, vhashB, 64 );
      hamsi512_4way_close( &ctx.hamsi, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
+
+#else
+
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
      echo_full( &ctx.echo, (BitSequence *)hash0, 512,
@@ -1423,6 +1533,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
 
      intrlv_2x128_512( vhashA, hash0, hash1 );
      intrlv_2x128_512( vhashB, hash2, hash3 );
+
+#endif
 
      shavite512_2way_init( &ctx.shavite );
      shavite512_2way_update_close( &ctx.shavite, vhashA, vhashA, 64 );
@@ -1443,6 +1555,20 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      shabal512_4way_update( &ctx.shabal, vhashB, 64 );
      shabal512_4way_close( &ctx.shabal, vhash );
 
+#if defined(__VAES__)
+
+//     rintrlv_4x32_2x128( vhashA, vhashB, vhash, 512 ); 
+     dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
+     intrlv_2x128_512( vhashA, hash0, hash1 );
+     intrlv_2x128_512( vhashB, hash2, hash3 );
+     
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
+ 
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
 
      groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -1451,6 +1577,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif     
 
      skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
@@ -1476,6 +1604,15 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
      simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
+#if defined(__VAES__)
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
@@ -1489,6 +1626,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
                      (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
@@ -1523,6 +1662,17 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 ); 
+
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
+ 
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
      groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -1531,6 +1681,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif     
 
      skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
@@ -1556,6 +1708,15 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
      simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
+#if defined(__VAES__)
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
@@ -1569,6 +1730,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
                      (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
@@ -1616,6 +1779,17 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      bmw512_4way_update( &ctx.bmw, vhash, 64 );
      bmw512_4way_close( &ctx.bmw, vhash );
 
+#if defined(__VAES__)
+
+     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 ); 
+
+     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
+ 
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
      groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
@@ -1624,6 +1798,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif     
 
      skein512_4way_full( &ctx.skein, vhash, vhash, 64 );
 
@@ -1649,6 +1825,15 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
      simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
      simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
 
+#if defined(__VAES__)
+
+     echo_2way_full( &ctx.echo, vhashA, 512, vhashA, 64 );
+     echo_2way_full( &ctx.echo, vhashB, 512, vhashB, 64 );
+
+     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
      dintrlv_2x128_512( hash0, hash1, vhashA );
      dintrlv_2x128_512( hash2, hash3, vhashB );
 
@@ -1662,6 +1847,8 @@ int sonoa_4way_hash( void *state, const void *input, int thr_id )
                      (const BitSequence *)hash3, 64 );
 
      intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+
+#endif
 
      hamsi512_4way_init( &ctx.hamsi );
      hamsi512_4way_update( &ctx.hamsi, vhash, 64 );

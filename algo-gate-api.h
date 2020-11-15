@@ -90,10 +90,11 @@ typedef  uint32_t set_t;
 #define AES_OPT          2  
 #define SSE42_OPT        4
 #define AVX_OPT          8   // Sandybridge
-#define AVX2_OPT      0x10   // Haswell
-#define SHA_OPT       0x20   // sha256 (Ryzen, Ice Lake)
-#define AVX512_OPT    0x40   // AVX512- F, VL, DQ, BW (Skylake-X)
-#define VAES_OPT      0x80   // VAES (Ice Lake)
+#define AVX2_OPT      0x10   // Haswell, Zen1
+#define SHA_OPT       0x20   // Zen1, Icelake (sha256)
+#define AVX512_OPT    0x40   // Skylake-X (AVX512[F,VL,DQ,BW])
+#define VAES_OPT      0x80   // Icelake (VAES & AVX512)
+#define VAES256_OPT   0x100  // Zen3 (VAES without AVX512)
 
 
 // return set containing all elements from sets a & b
@@ -111,9 +112,9 @@ inline bool set_excl ( set_t a, set_t b ) { return (a & b) == 0; }
 typedef struct
 {
 // Mandatory functions, one of these is mandatory. If a generic scanhash
-// is used a custom hash function must be registered, with a custom scanhash
-// the custom hash function can be called directly and doesn't need to be
-// registered in the gate. 
+// is used a custom target hash function must be registered, with a custom
+// scanhash the target hash function can be called directly and doesn't need
+// to be registered in the gate. 
 int ( *scanhash ) ( struct work*, uint32_t, uint64_t*, struct thr_info* );
 
 int ( *hash )     ( void*, const void*, int );

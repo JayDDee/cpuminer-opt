@@ -483,11 +483,13 @@ static inline bool has_avx512()
 // AMD Zen3 added support for 256 bit VAES without requiring AVX512.
 // The original Intel spec requires AVX512F to support 512 bit VAES and 
 // requires AVX512VL to support 256 bit VAES.
-// cpuminer-opt only uses VAES512, simply testing the VAES bit is sufficient.
-// However, proper detection of VAES512 and VAES256 requires more work:
-// VAES512 = VAES && AVX512F  (may not support VAES256)
-// VAES256 = AVX512VL ? VAES : ( AVX && VAES )   (may not support VAES512) 
-// VAES    = VAES && AVX512F && AVX512VL (supports both)
+// The CPUID VAES bit alone can't distiguish 256 vs 512 bit.
+// If necessary:
+// VAES 256 & 512 = VAES && AVX512VL
+// VAES 512 = VAES && AVX512F  
+// VAES 256 = ( VAES && AVX512VL ) || ( VAES && !AVX512F )
+// VAES 512 only = VAES && AVX512F && !AVX512VL
+// VAES 256 only = VAES && !AVX512F
 
 static inline bool has_vaes()
 {

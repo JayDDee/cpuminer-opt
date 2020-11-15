@@ -187,7 +187,8 @@ bool register_allium_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_allium;
   gate->hash      = (void*)&allium_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT
+	              | VAES_OPT | VAES256_OPT;
   opt_target_factor = 256.0;
   return true;
 };
