@@ -49,7 +49,16 @@ make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx512-sha-vaes.exe
 
-# Zen1 AVX2 SHA
+# Rocketlake AVX512 SHA AES
+make clean || echo clean
+rm -f config.status
+CFLAGS="-O3 -march=cascadelake -msha -Wall" ./configure $CONFIGURE_ARGS
+#CFLAGS="-O3 -march=rocketlake -Wall" ./configure $CONFIGURE_ARGS
+make -j 8
+strip -s cpuminer.exe
+mv cpuminer.exe release/cpuminer-avx512-sha.exe
+
+# Zen1 AVX2 AES SHA
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=znver1 -Wall" ./configure $CONFIGURE_ARGS
@@ -95,7 +104,6 @@ strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx.exe
 
 # Westmere SSE4.2 AES
-# -march=westmere is supported in gcc5
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=westmere -Wall" ./configure $CONFIGURE_ARGS
@@ -104,6 +112,7 @@ make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-aes-sse42.exe
 
+# Nehalem SSE4.2
 #make clean || echo clean
 #rm -f config.status
 #CFLAGS="-O3 -march=corei7 -Wall" ./configure $CONFIGURE_ARGS
@@ -111,6 +120,7 @@ mv cpuminer.exe release/cpuminer-aes-sse42.exe
 #strip -s cpuminer.exe
 #mv cpuminer.exe release/cpuminer-sse42.exe
 
+# Core2 SSSE3
 #make clean || echo clean
 #rm -f config.status
 #CFLAGS="-O3 -march=core2 -Wall" ./configure $CONFIGURE_ARGS

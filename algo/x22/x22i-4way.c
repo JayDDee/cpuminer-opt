@@ -27,7 +27,9 @@
   #include "algo/shavite/shavite-hash-4way.h"
   #include "algo/echo/echo-hash-4way.h"
 #endif
-
+#if defined(__SHA__)
+  #include "algo/sha/sph_sha2.h"
+#endif
 
 #if defined(X22I_8WAY)
 
@@ -49,7 +51,11 @@ union _x22i_8way_ctx_overlay
     haval256_5_8way_context haval;
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
+#if defined(X22I_8WAY_SHA)
+    sph_sha256_context      sha256;
+#else
     sha256_8way_context     sha256;
+#endif
 #if defined(__VAES__)
     groestl512_4way_context groestl;
     shavite512_4way_context shavite;
@@ -383,6 +389,35 @@ int x22i_8way_hash( void *output, const void *input, int thrid )
    sph_gost512 ( &ctx.gost, (const void*) hash7, 64 );
    sph_gost512_close( &ctx.gost, (void*) hash7 );
 
+#if defined(X22I_8WAY_SHA)
+
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash0, 64 );
+   sph_sha256_close( &ctx.sha256, output );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash1, 64 );
+   sph_sha256_close( &ctx.sha256, output+32 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash2, 64 );
+   sph_sha256_close( &ctx.sha256, output+64 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash3, 64 );
+   sph_sha256_close( &ctx.sha256, output+96 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash4, 64 );
+   sph_sha256_close( &ctx.sha256, output+128 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash5, 64 );
+   sph_sha256_close( &ctx.sha256, output+160 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash6, 64 );
+   sph_sha256_close( &ctx.sha256, output+192 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash7, 64 );
+   sph_sha256_close( &ctx.sha256, output+224 );
+   
+#else
+
    intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3,
                            hash4, hash5, hash6, hash7 );
 
@@ -390,8 +425,54 @@ int x22i_8way_hash( void *output, const void *input, int thrid )
    sha256_8way_update( &ctx.sha256, vhash, 64 );
    sha256_8way_close( &ctx.sha256, output );
 
+#endif
+
    return 1;
 }
+
+#if defined(X22I_8WAY_SHA)
+
+int scanhash_x22i_8way_sha( struct work *work, uint32_t max_nonce,
+                       uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t hash[8*8] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 8;
+   __m512i  *noncev = (__m512i*)vdata + 9;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+
+   if ( bench )  ptarget[7] = 0x08ff;
+
+   InitializeSWIFFTX();
+
+   mm512_bswap32_intrlv80_8x64( vdata, pdata );
+   *noncev = mm512_intrlv_blend_32(
+              _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                                n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
+   do
+   {
+      if ( x22i_8way_hash( hash, vdata, thr_id ) )
+      for ( int i = 0; i < 8; i++ )
+      if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
+      {
+         pdata[19] = bswap_32( n+i );
+         submit_solution( work, hash+(i<<3), mythr );
+      }
+      *noncev = _mm512_add_epi32( *noncev,
+                                  m512_const1_64( 0x0000000800000000 ) );
+      n += 8;
+   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+#else
 
 int scanhash_x22i_8way( struct work *work, uint32_t max_nonce,
                        uint64_t *hashes_done, struct thr_info *mythr )
@@ -440,53 +521,7 @@ int scanhash_x22i_8way( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
-/*
-int scanhash_x22i_8way( struct work* work, uint32_t max_nonce,
-                   uint64_t *hashes_done, struct thr_info *mythr )
-{
-   uint32_t hash[8*16] __attribute__ ((aligned (128)));
-   uint32_t vdata[24*8] __attribute__ ((aligned (64)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t *hash7 = &(hash[7<<3]);
-   uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
-   const uint32_t first_nonce = pdata[19];
-   __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
-   uint32_t n = first_nonce;
-   const uint32_t last_nonce = max_nonce - 8;
-   const int thr_id = mythr->id;
-   const uint32_t Htarg = ptarget[7];
-
-   if (opt_benchmark)
-      ((uint32_t*)ptarget)[7] = 0x08ff;
-
-   InitializeSWIFFTX();
-
-   mm512_bswap32_intrlv80_8x64( vdata, pdata );
-   do
-   {
-      *noncev = mm512_intrlv_blend_32( mm512_bswap_32(
-               _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                                 n+3, 0, n+2, 0, n+1, 0, n, 0 ) ), *noncev );
-      x22i_8way_hash( hash, vdata );
-
-      for ( int lane = 0; lane < 8; lane++ )
-      if unlikely( ( hash7[ lane ] <= Htarg ) )
-      {
-         extr_lane_8x32( lane_hash, hash, lane, 256 );
-         if ( likely( fulltest( lane_hash, ptarget ) && !opt_benchmark ) )
-         {
-            pdata[19] = n + lane;
-            submit_solution( work, lane_hash, mythr );
-         }
-      }
-      n += 8;
-   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
-
-   *hashes_done = n - first_nonce;
-   return 0;
-}
-*/
+#endif
 
 #elif defined(X22I_4WAY)
 
@@ -516,7 +551,11 @@ union _x22i_4way_ctx_overlay
     haval256_5_4way_context haval;
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
+#if defined(X22I_4WAY_SHA)
+    sph_sha256_context      sha256;
+#else
     sha256_4way_context     sha256;
+#endif
 };
 typedef union _x22i_4way_ctx_overlay x22i_ctx_overlay;
 
@@ -543,23 +582,23 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
 
 #if defined(__VAES__)
 
-     rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
+   rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
 
-     groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
-     groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
+   groestl512_2way_full( &ctx.groestl, vhashA, vhashA, 64 );
+   groestl512_2way_full( &ctx.groestl, vhashB, vhashB, 64 );
 
-     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+   rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
 
 #else
 
-     dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
+   dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
-     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-     groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+   groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+   groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+   groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+   groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
-     intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
+   intrlv_4x64_512( vhash, hash0, hash1, hash2, hash3 );
 
 #endif
 
@@ -655,7 +694,7 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
 
    if ( work_restart[thrid].restart ) return false;
    
-	ComputeSingleSWIFFTX((unsigned char*)hash0, (unsigned char*)hashA0);
+   ComputeSingleSWIFFTX((unsigned char*)hash0, (unsigned char*)hashA0);
    ComputeSingleSWIFFTX((unsigned char*)hash1, (unsigned char*)hashA1);
    ComputeSingleSWIFFTX((unsigned char*)hash2, (unsigned char*)hashA2);
    ComputeSingleSWIFFTX((unsigned char*)hash3, (unsigned char*)hashA3);
@@ -669,7 +708,7 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
    haval256_5_4way_close( &ctx.haval, vhash );
    dintrlv_4x32_512( hash0, hash1, hash2, hash3, vhash );
      
-	memset( hashA0, 0, 64 );
+   memset( hashA0, 0, 64 );
    memset( hashA1, 0, 64 );
    memset( hashA2, 0, 64 );
    memset( hashA3, 0, 64 );
@@ -684,8 +723,8 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
    sph_tiger (&ctx.tiger, (const void*) hash2, 64);
    sph_tiger_close(&ctx.tiger, (void*) hashA2);
    sph_tiger_init(&ctx.tiger);
-	sph_tiger (&ctx.tiger, (const void*) hash3, 64);
-	sph_tiger_close(&ctx.tiger, (void*) hashA3);
+   sph_tiger (&ctx.tiger, (const void*) hash3, 64);
+   sph_tiger_close(&ctx.tiger, (void*) hashA3);
 
    if ( work_restart[thrid].restart ) return false;
 
@@ -712,9 +751,26 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
    sph_gost512_init(&ctx.gost);
    sph_gost512 (&ctx.gost, (const void*) hash2, 64);
    sph_gost512_close(&ctx.gost, (void*) hash2);
-	sph_gost512_init(&ctx.gost);
-	sph_gost512 (&ctx.gost, (const void*) hash3, 64);
-	sph_gost512_close(&ctx.gost, (void*) hash3);
+   sph_gost512_init(&ctx.gost);
+   sph_gost512 (&ctx.gost, (const void*) hash3, 64);
+   sph_gost512_close(&ctx.gost, (void*) hash3);
+
+#if defined(X22I_4WAY_SHA)
+
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash0, 64 );
+   sph_sha256_close( &ctx.sha256, output );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash1, 64 );
+   sph_sha256_close( &ctx.sha256, output+32 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash2, 64 );
+   sph_sha256_close( &ctx.sha256, output+64 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash3, 64 );
+   sph_sha256_close( &ctx.sha256, output+96 );
+
+#else
 
    intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 
@@ -722,11 +778,56 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
    sha256_4way_update( &ctx.sha256, vhash, 64 );
    sha256_4way_close( &ctx.sha256, output );
 
+#endif
+
    return 1;
 }
 
+#if defined(X22I_4WAY_SHA)
+
+int scanhash_x22i_4way_sha( struct work* work, uint32_t max_nonce,
+                            uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t hash[8*4] __attribute__ ((aligned (64)));
+   uint32_t vdata[20*4] __attribute__ ((aligned (64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 4;
+   __m256i  *noncev = (__m256i*)vdata + 9;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+
+   if ( bench ) ptarget[7] = 0x08ff;
+
+   InitializeSWIFFTX();
+
+   mm256_bswap32_intrlv80_4x64( vdata, pdata );
+   *noncev = mm256_intrlv_blend_32(
+                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
+   do
+   {
+      if ( x22i_4way_hash( hash, vdata, thr_id ) )
+      for ( int i = 0; i < 4; i++ )
+      if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
+      {
+         pdata[19] = bswap_32( n+i );
+         submit_solution( work, hash+(i<<3), mythr );
+      }
+      *noncev = _mm256_add_epi32( *noncev,
+                                  m256_const1_64( 0x0000000400000000 ) );
+      n += 4;
+   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+#else
+
 int scanhash_x22i_4way( struct work* work, uint32_t max_nonce,
-                   uint64_t *hashes_done, struct thr_info *mythr )
+                        uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
@@ -770,5 +871,7 @@ int scanhash_x22i_4way( struct work* work, uint32_t max_nonce,
    *hashes_done = n - first_nonce;
    return 0;
 }
+
+#endif
 
 #endif  // X22I_4WAY

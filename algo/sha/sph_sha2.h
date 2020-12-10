@@ -73,7 +73,7 @@ typedef struct {
 	sph_u32 count_high, count_low;
 #endif
 #endif
-} sph_sha224_context;
+} sph_sha224_context __attribute__((aligned(64)));
 
 /**
  * This structure is a context for SHA-256 computations. It is identical

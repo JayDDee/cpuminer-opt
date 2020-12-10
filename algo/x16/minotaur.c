@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include "algo/blake/sph_blake.h"
 #include "algo/bmw/sph_bmw.h"
-//#include "algo/jh/jh-hash-sse2.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
@@ -18,7 +17,7 @@
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include <openssl/sha.h>
+#include "algo/sha/sph_sha2.h"
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
@@ -50,7 +49,6 @@ struct TortureGarden
         sph_blake512_context    blake;
         sph_bmw512_context      bmw;
         sph_skein512_context    skein;
-//        jh512_sse2_hashState    jh;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
         hashState_luffa         luffa;
@@ -60,7 +58,7 @@ struct TortureGarden
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
-        SHA512_CTX              sha512;
+        sph_sha512_context      sha512;
 
     struct TortureNode {
         unsigned int algo;
@@ -122,12 +120,11 @@ static void get_hash( void *output, const void *input, TortureGarden *garden,
             sph_hamsi512_close(&garden->hamsi, hash);          
             break;
         case 7:
-            SHA512_Init( &garden->sha512 );
-            SHA512_Update( &garden->sha512, input, 64 );
-            SHA512_Final( (unsigned char*)hash, &garden->sha512 );
+            sph_sha512_init( &garden->sha512 );
+            sph_sha512( &garden->sha512, input, 64 );
+            sph_sha512_close( &garden->sha512, hash );
             break;
         case 8:
-//            jh512_sse2_full( &garden->jh, hash, input, 64 );
             sph_jh512_init(&garden->jh);
             sph_jh512(&garden->jh, input, 64);
             sph_jh512_close(&garden->jh, hash);          
@@ -232,9 +229,9 @@ int minotaur_hash( void *output, const void *input, int thr_id )
     unsigned char hash[64] __attribute__ ((aligned (64)));
 
     // Find initial sha512 hash
-    SHA512_Init( &garden.sha512 );
-    SHA512_Update( &garden.sha512, input, 80 );
-    SHA512_Final( (unsigned char*) hash, &garden.sha512 );
+    sph_sha512_init( &garden.sha512 );
+    sph_sha512( &garden.sha512, input, 80 );
+    sph_sha512_close( &garden.sha512, hash );
 
     // algo 6 (Hamsi) is very slow. It's faster to skip hashing this nonce
     // if Hamsi is needed but only the first and last functions are

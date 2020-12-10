@@ -65,11 +65,20 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.15.3
+
+Yescrypt algos now use yespower v0.5, a little faster.
+New implementation of sha256 using SHA CPU extension.
+Replace Openssl with SPH for sha256 & sha512.
+AVX512 optimization for sha256t & sha256q.
+Faster sha256t, sha256q, x21s, x22i & x25x on CPUs with SHA without AVX512.
+AVX512+SHA build for Intel Rocketlake added to Windows binary package. 
+
 v3.15.2
 
 Zen3 AVX2+VAES optimization for x16*, x17, sonoa, xevan, x21s, x22i, x25x,
 allium.
-Zen3 build added to Windows binary package.
+Zen3 (AVX2+SHA+VAES) build added to Windows binary package.
 
 v3.15.1
 

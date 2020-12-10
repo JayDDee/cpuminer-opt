@@ -32,6 +32,9 @@
   #include "algo/shavite/shavite-hash-4way.h"
   #include "algo/echo/echo-hash-4way.h"
 #endif
+#if defined(__SHA__)
+  #include "algo/sha/sph_sha2.h"
+#endif
 
 void x25x_shuffle( void *hash )
 {
@@ -80,7 +83,11 @@ union _x25x_8way_ctx_overlay
     haval256_5_8way_context haval;
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
+#if defined(X25X_8WAY_SHA)
+    sph_sha256_context      sha256;
+#else
     sha256_8way_context     sha256;
+#endif
     panama_8way_context     panama;
     blake2s_8way_state      blake2s;
 #if defined(__VAES__)
@@ -216,9 +223,9 @@ int x25x_8way_hash( void *output, const void *input, int thrid )
 
 #else
 
-	sph_shavite512_init(&ctx.shavite);
-	sph_shavite512(&ctx.shavite, (const void*) hash0[7], 64);
-	sph_shavite512_close(&ctx.shavite, hash0[8]);
+   sph_shavite512_init(&ctx.shavite);
+   sph_shavite512(&ctx.shavite, (const void*) hash0[7], 64);
+   sph_shavite512_close(&ctx.shavite, hash0[8]);
    sph_shavite512_init(&ctx.shavite);
    sph_shavite512(&ctx.shavite, (const void*) hash1[7], 64);
    sph_shavite512_close(&ctx.shavite, hash1[8]);
@@ -322,9 +329,9 @@ int x25x_8way_hash( void *output, const void *input, int thrid )
    dintrlv_8x32_512( hash0[13], hash1[13], hash2[13], hash3[13],
                      hash4[13], hash5[13], hash6[13], hash7[13], vhash );
 
-	sph_whirlpool_init(&ctx.whirlpool);
-	sph_whirlpool (&ctx.whirlpool, (const void*) hash0[13], 64);
-	sph_whirlpool_close(&ctx.whirlpool, hash0[14]);
+   sph_whirlpool_init(&ctx.whirlpool);
+   sph_whirlpool (&ctx.whirlpool, (const void*) hash0[13], 64);
+   sph_whirlpool_close(&ctx.whirlpool, hash0[14]);
    sph_whirlpool_init(&ctx.whirlpool);
    sph_whirlpool (&ctx.whirlpool, (const void*) hash1[13], 64);
    sph_whirlpool_close(&ctx.whirlpool, hash1[14]);
@@ -373,9 +380,9 @@ int x25x_8way_hash( void *output, const void *input, int thrid )
    dintrlv_8x32_512( hash0[17], hash1[17], hash2[17], hash3[17],
                      hash4[17], hash5[17], hash6[17], hash7[17], vhash );
 
-	sph_tiger_init(&ctx.tiger);
-	sph_tiger (&ctx.tiger, (const void*) hash0[17], 64);
-	sph_tiger_close(&ctx.tiger, (void*) hash0[18]);
+   sph_tiger_init(&ctx.tiger);
+   sph_tiger (&ctx.tiger, (const void*) hash0[17], 64);
+   sph_tiger_close(&ctx.tiger, (void*) hash0[18]);
    sph_tiger_init(&ctx.tiger);
    sph_tiger (&ctx.tiger, (const void*) hash1[17], 64);
    sph_tiger_close(&ctx.tiger, (void*) hash1[18]);
@@ -437,6 +444,39 @@ int x25x_8way_hash( void *output, const void *input, int thrid )
    sph_gost512_init(&ctx.gost);
    sph_gost512 (&ctx.gost, (const void*) hash7[19], 64);
    sph_gost512_close(&ctx.gost, (void*) hash7[20]);
+
+#if defined(X25X_8WAY_SHA)
+
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash0[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash0[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash1[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash1[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash2[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash2[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash3[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash3[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash4[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash4[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash5[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash5[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash6[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash6[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash7[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash7[21] );
+
+   intrlv_8x32_512( vhash, hash0[21], hash1[21], hash2[21], hash3[21],
+                           hash4[21], hash5[21], hash6[21], hash7[21] );
+   
+#else
+
    intrlv_8x32_512( vhashA, hash0[20], hash1[20], hash2[20], hash3[20],
                             hash4[20], hash5[20], hash6[20], hash7[20] );
 
@@ -445,6 +485,8 @@ int x25x_8way_hash( void *output, const void *input, int thrid )
    sha256_8way_close( &ctx.sha256, vhash );
    dintrlv_8x32_512( hash0[21], hash1[21], hash2[21], hash3[21],
                      hash4[21], hash5[21], hash6[21], hash7[21], vhash );
+
+#endif
 
    panama_8way_init( &ctx.panama );
    panama_8way_update( &ctx.panama, vhash, 64 );
@@ -603,7 +645,11 @@ union _x25x_4way_ctx_overlay
     haval256_5_4way_context haval;
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
+#if defined(X25X_4WAY_SHA)
+    sph_sha256_context      sha256;
+#else
     sha256_4way_context     sha256;
+#endif
     panama_4way_context     panama;
     blake2s_4way_state      blake2s;
 };
@@ -800,6 +846,25 @@ int x25x_4way_hash( void *output, const void *input, int thrid )
    sph_gost512 (&ctx.gost, (const void*) hash3[19], 64);
    sph_gost512_close(&ctx.gost, (void*) hash3[20]);
 
+#if defined(X25X_4WAY_SHA)
+
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash0[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash0[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash1[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash1[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash2[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash2[21] );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash3[20], 64 );
+   sph_sha256_close( &ctx.sha256, hash3[21] );
+
+   intrlv_4x32_512( vhash, hash0[21], hash1[21], hash2[21], hash3[21] );
+
+#else   
+
    intrlv_4x32_512( vhashX[0], hash0[20], hash1[20], hash2[20], hash3[20] );
    memset( vhash, 0, 64*4 );
 
@@ -807,6 +872,8 @@ int x25x_4way_hash( void *output, const void *input, int thrid )
    sha256_4way_update( &ctx.sha256, vhashX[0], 64 );
    sha256_4way_close( &ctx.sha256, vhash );
    dintrlv_4x32_512( hash0[21], hash1[21], hash2[21], hash3[21], vhash );
+
+#endif
 
    panama_4way_init( &ctx.panama );
    panama_4way_update( &ctx.panama, vhash, 64 );

@@ -71,7 +71,11 @@ static const sph_u32 H256[8] = {
  * of the compression function.
  */
 
-#if SPH_SMALL_FOOTPRINT_SHA2
+#if defined(__SHA__)
+
+#include "sha256-hash-opt.c"
+
+#else   // no SHA
 
 static const sph_u32 K[64] = {
 	SPH_C32(0x428A2F98), SPH_C32(0x71374491),
@@ -107,6 +111,8 @@ static const sph_u32 K[64] = {
 	SPH_C32(0x90BEFFFA), SPH_C32(0xA4506CEB),
 	SPH_C32(0xBEF9A3F7), SPH_C32(0xC67178F2)
 };
+
+#if SPH_SMALL_FOOTPRINT_SHA2
 
 #define SHA2_MEXP1(in, pc)   do { \
 		W[pc] = in(pc); \
@@ -191,7 +197,7 @@ static const sph_u32 K[64] = {
 		(r)[7] = SPH_T32((r)[7] + H); \
 	} while (0)
 
-#else
+#else  // large footprint (default)
 
 #define SHA2_ROUND_BODY(in, r)   do { \
 		sph_u32 A, B, C, D, E, F, G, H, T1, T2; \
@@ -600,7 +606,7 @@ static const sph_u32 K[64] = {
 		(r)[7] = SPH_T32((r)[7] + H); \
 	} while (0)
 
-#endif
+#endif  // small footprint else
 
 /*
  * One round of SHA-224 / SHA-256. The data must be aligned for 32-bit access.
@@ -612,6 +618,9 @@ sha2_round(const unsigned char *data, sph_u32 r[8])
 	SHA2_ROUND_BODY(SHA2_IN, r);
 #undef SHA2_IN
 }
+
+#endif   // SHA else
+
 
 /* see sph_sha2.h */
 void
@@ -653,7 +662,7 @@ void
 sph_sha224_close(void *cc, void *dst)
 {
 	sha224_close(cc, dst, 7);
-	sph_sha224_init(cc);
+//	sph_sha224_init(cc);
 }
 
 /* see sph_sha2.h */
@@ -661,7 +670,7 @@ void
 sph_sha224_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 {
 	sha224_addbits_and_close(cc, ub, n, dst, 7);
-	sph_sha224_init(cc);
+//	sph_sha224_init(cc);
 }
 
 /* see sph_sha2.h */
@@ -677,14 +686,14 @@ void
 sph_sha256_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 {
 	sha224_addbits_and_close(cc, ub, n, dst, 8);
-	sph_sha256_init(cc);
+//	sph_sha256_init(cc);
 }
 
 /* see sph_sha2.h */
-void
-sph_sha224_comp(const sph_u32 msg[16], sph_u32 val[8])
-{
-#define SHA2_IN(x)   msg[x]
-	SHA2_ROUND_BODY(SHA2_IN, val);
-#undef SHA2_IN
-}
+//void
+//sph_sha224_comp(const sph_u32 msg[16], sph_u32 val[8])
+//{
+//#define SHA2_IN(x)   msg[x]
+//	SHA2_ROUND_BODY(SHA2_IN, val);
+//#undef SHA2_IN
+//}

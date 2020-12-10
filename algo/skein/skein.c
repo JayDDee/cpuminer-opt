@@ -5,21 +5,21 @@
 #include <string.h>
 #include <stdint.h>
 #include "sph_skein.h"
-#include <openssl/sha.h>
+#include "algo/sha/sph_sha2.h"
 
 void skeinhash(void *state, const void *input)
 {
      uint32_t hash[16] __attribute__ ((aligned (64)));
      sph_skein512_context ctx_skein;
-     SHA256_CTX           ctx_sha256;
+     sph_sha256_context   ctx_sha256;
 
      sph_skein512_init( &ctx_skein );
      sph_skein512( &ctx_skein, input, 80 );
      sph_skein512_close( &ctx_skein, hash );
 
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash, 64 );
-     SHA256_Final( (unsigned char*) hash, &ctx_sha256 );
+     sph_sha256_init( &ctx_sha256 );
+     sph_sha256( &ctx_sha256, hash, 64 );
+     sph_sha256_close( &ctx_sha256, hash );
 
      memcpy(state, hash, 32);
 }

@@ -18,7 +18,7 @@
 #include "algo/radiogatun/sph_radiogatun.h"
 #include "algo/panama/sph_panama.h"
 #include "algo/gost/sph_gost.h"
-#include <openssl/sha.h>
+#include "algo/sha/sph_sha2.h"
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
@@ -56,7 +56,7 @@ union _x20r_context_overlay
     sph_fugue512_context     fugue;
     sph_shabal512_context    shabal;
     sph_whirlpool_context    whirlpool;
-    SHA512_CTX               sha512;
+    sph_sha512_context       sha512;
     sph_haval256_5_context   haval;
     sph_gost512_context      gost;
     sph_radiogatun64_context radiogatun;
@@ -68,28 +68,6 @@ void x20r_hash(void* output, const void* input)
 {
    uint32_t _ALIGN(128) hash[64/4];
    x20r_context_overlay ctx;
-/*
-	sph_blake512_context     ctx_blake;
-	sph_bmw512_context       ctx_bmw;
-	sph_groestl512_context   ctx_groestl;
-	sph_skein512_context     ctx_skein;
-	sph_jh512_context        ctx_jh;
-	sph_keccak512_context    ctx_keccak;
-	sph_luffa512_context     ctx_luffa;
-	sph_cubehash512_context  ctx_cubehash;
-	sph_shavite512_context   ctx_shavite;
-	sph_simd512_context      ctx_simd;
-	sph_echo512_context      ctx_echo;
-	sph_hamsi512_context     ctx_hamsi;
-	sph_fugue512_context     ctx_fugue;
-	sph_shabal512_context    ctx_shabal;
-	sph_whirlpool_context    ctx_whirlpool;
-	sph_sha512_context       ctx_sha512;
-	sph_haval256_5_context   ctx_haval;
-	sph_gost512_context      ctx_gost;
-	sph_radiogatun64_context ctx_radiogatun;
-	sph_panama_context       ctx_panama;
-*/
    void *in = (void*) input;
    int size = 80;
 
@@ -194,9 +172,9 @@ void x20r_hash(void* output, const void* input)
 		sph_whirlpool_close(&ctx.whirlpool, hash);
 		break;
 	   case SHA_512:
-                SHA512_Init( &ctx.sha512 );
-                SHA512_Update( &ctx.sha512, in, size );
-                SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+                sph_sha512_Init( &ctx.sha512 );
+                sph_sha512( &ctx.sha512, in, size );
+                sph_sha512_close( &ctx.sha512, hash );
 		break;
 	   case HAVAL:
 		sph_haval256_5_init(&ctx.haval);

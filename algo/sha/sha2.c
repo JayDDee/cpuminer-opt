@@ -12,7 +12,6 @@
 
 #include <string.h>
 #include <inttypes.h>
-#include <openssl/sha.h>
 
 #if defined(USE_ASM) && defined(__arm__) && defined(__APCS_32__)
 #define EXTERN_SHA256
@@ -198,16 +197,6 @@ static void sha256d_80_swap(uint32_t *hash, const uint32_t *data)
 
 extern void sha256d(unsigned char *hash, const unsigned char *data, int len)
 {
-#if defined(__SHA__)
-   SHA256_CTX ctx;
-   SHA256_Init( &ctx );
-   SHA256_Update( &ctx, data, len );
-   SHA256_Final( (unsigned char*)hash, &ctx );
-   SHA256_Init( &ctx );
-   SHA256_Update( &ctx, hash, 32 );
-   SHA256_Final( (unsigned char*)hash, &ctx );
-#else
-
    uint32_t S[16], T[16];
 	int i, r;
 
@@ -229,7 +218,6 @@ extern void sha256d(unsigned char *hash, const unsigned char *data, int len)
 	sha256_transform(T, S, 0);
 	for (i = 0; i < 8; i++)
 		be32enc((uint32_t *)hash + i, T[i]);
-#endif
 }
 
 static inline void sha256d_preextend(uint32_t *W)
@@ -676,14 +664,9 @@ int scanhash_SHA256d( struct work *work, const uint32_t max_nonce,
 
 bool register_sha256d_algo( algo_gate_t* gate )
 {
-#if defined(__SHA__)
-   gate->optimizations = SHA_OPT;
-   gate->scanhash = (void*)&scanhash_SHA256d;
-#else
    gate->optimizations = SSE2_OPT | AVX2_OPT;
    gate->scanhash = (void*)&scanhash_sha256d;
-#endif
-    gate->hash     = (void*)&sha256d;
-    return true;
+   gate->hash     = (void*)&sha256d;
+   return true;
 };
 

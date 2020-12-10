@@ -33,7 +33,8 @@
 yespower_params_t yespower_params;
 
 //SHA256_CTX sha256_prehash_ctx;
-__thread SHA256_CTX sha256_prehash_ctx;
+__thread sph_sha256_context sha256_prehash_ctx;
+//__thread SHA256_CTX sha256_prehash_ctx;
 
 // YESPOWER
 
@@ -59,9 +60,9 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
       be32enc( &endiandata[k], pdata[k] );
    endiandata[19] = n;
 
-// do sha256 prehash
-   SHA256_Init( &sha256_prehash_ctx );
-   SHA256_Update( &sha256_prehash_ctx, endiandata, 64 );
+   // do sha256 prehash
+   sph_sha256_init( &sha256_prehash_ctx );
+   sph_sha256( &sha256_prehash_ctx, endiandata, 64 );
 
    do {
       if ( yespower_hash( (char*)endiandata, (char*)vhash, 80, thr_id ) )
@@ -100,9 +101,9 @@ int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
       be32enc( &endiandata[k], pdata[k] );
    endiandata[19] = n;
 
-// do sha256 prehash
-   SHA256_Init( &sha256_prehash_ctx );
-   SHA256_Update( &sha256_prehash_ctx, endiandata, 64 );
+   // do sha256 prehash
+   sph_sha256_init( &sha256_prehash_ctx );
+   sph_sha256( &sha256_prehash_ctx, endiandata, 64 );
 
    do {
       if (yespower_b2b_hash( (char*) endiandata, (char*) vhash, 80, thr_id ) )
@@ -165,25 +166,14 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
   return true;
  };
 
-/* not used, doesn't work
-bool register_yescrypt_05_algo( algo_gate_t* gate )
-{
-   gate->optimizations = SSE2_OPT | SHA_OPT;
-   gate->scanhash   = (void*)&scanhash_yespower;
-   yespower_params.version = YESPOWER_0_5;
-   yespower_params.N       = 2048;
-   yespower_params.r       = 8;
-   yespower_params.pers    = NULL;
-   yespower_params.perslen = 0;
-   opt_target_factor = 65536.0;
-   return true;
-}
+// Legacy Yescrypt (yespower v0.5)
 
 bool register_yescrypt_05_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
    yespower_params.version = YESPOWER_0_5;
+   opt_target_factor = 65536.0;
 
    if ( opt_param_n )  yespower_params.N = opt_param_n;
    else                yespower_params.N = 2048;
@@ -201,8 +191,6 @@ bool register_yescrypt_05_algo( algo_gate_t* gate )
      yespower_params.pers = NULL;
      yespower_params.perslen = 0;
    }
-
-//   YESCRYPT_P = 1;
 
    applog( LOG_NOTICE,"Yescrypt parameters: N= %d, R= %d.",
                                       yespower_params.N, yespower_params.r );
@@ -251,7 +239,6 @@ bool register_yescryptr32_05_algo( algo_gate_t* gate )
    opt_target_factor = 65536.0;
    return true;
 }
-*/
 
 // POWER2B
 

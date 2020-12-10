@@ -39,10 +39,17 @@
 void
 SHA256_Buf( const void * in, size_t len, uint8_t digest[32] )
 {
-	SHA256_CTX ctx;
+#if defined(HMAC_SPH_SHA)
+   sph_sha256_context ctx;
+   sph_sha256_init( &ctx );
+   sph_sha256( &ctx, in, len );
+   sph_sha256_close( &ctx, digest );
+#else
+   SHA256_CTX ctx;
    SHA256_Init( &ctx );
    SHA256_Update( &ctx, in, len );
    SHA256_Final( digest, &ctx );
+#endif
 }
 
 /**
@@ -64,35 +71,59 @@ HMAC_SHA256_Buf( const void *K, size_t Klen, const void *in, size_t len,
 void
 HMAC_SHA256_Init( HMAC_SHA256_CTX *ctx, const void *_K, size_t Klen )
 {
-	unsigned char pad[64];
-	unsigned char khash[32];
-	const unsigned char * K = _K;
-	size_t i;
+   unsigned char pad[64];
+   unsigned char khash[32];
+   const unsigned char * K = _K;
+   size_t i;
 
-	/* If Klen > 64, the key is really SHA256(K). */
-	if ( Klen > 64 )
+   /* If Klen > 64, the key is really SHA256(K). */
+   if ( Klen > 64 )
    {
-		SHA256_Init( &ctx->ictx );
-		SHA256_Update( &ctx->ictx, K, Klen );
-		SHA256_Final( khash, &ctx->ictx );
-		K = khash;
-		Klen = 32;
-	}
+	   
+#if defined(HMAC_SPH_SHA)
+      sph_sha256_init( &ctx->ictx );
+      sph_sha256( &ctx->ictx, K, Klen );
+      sph_sha256_close( &ctx->ictx, khash );
+#else
+      SHA256_Init( &ctx->ictx );
+      SHA256_Update( &ctx->ictx, K, Klen );
+      SHA256_Final( khash, &ctx->ictx );
+#endif
+       K = khash;
+       Klen = 32;
+   }
 
-	/* Inner SHA256 operation is SHA256(K xor [block of 0x36] || data). */
+   /* Inner SHA256 operation is SHA256(K xor [block of 0x36] || data). */
+#if defined(HMAC_SPH_SHA)
+   sph_sha256_init( &ctx->ictx );
+#else
    SHA256_Init( &ctx->ictx );
-
+#endif
 
    for ( i = 0; i < Klen; i++ )  pad[i] = K[i] ^ 0x36;
-   memset( pad + Klen, 0x36, 64 - Klen );
-	SHA256_Update( &ctx->ictx, pad, 64 );
 
-	/* Outer SHA256 operation is SHA256(K xor [block of 0x5c] || hash). */
-	SHA256_Init( &ctx->octx );
+   memset( pad + Klen, 0x36, 64 - Klen );
+#if defined(HMAC_SPH_SHA)
+   sph_sha256( &ctx->ictx, pad, 64 );
+#else
+   SHA256_Update( &ctx->ictx, pad, 64 );
+#endif
+
+   /* Outer SHA256 operation is SHA256(K xor [block of 0x5c] || hash). */
+#if defined(HMAC_SPH_SHA)
+   sph_sha256_init( &ctx->octx );
+#else   
+   SHA256_Init( &ctx->octx );
+#endif
 
    for ( i = 0; i < Klen; i++ )  pad[i] = K[i] ^ 0x5c;
+
    memset( pad + Klen, 0x5c, 64 - Klen );
-	SHA256_Update( &ctx->octx, pad, 64 );
+#if defined(HMAC_SPH_SHA)
+   sph_sha256( &ctx->octx, pad, 64 );
+#else
+   SHA256_Update( &ctx->octx, pad, 64 );
+#endif
 }
 
 /* Add bytes to the HMAC-SHA256 operation. */
@@ -100,23 +131,33 @@ void
 HMAC_SHA256_Update( HMAC_SHA256_CTX *ctx, const void *in, size_t len )
 {
 	/* Feed data to the inner SHA256 operation. */
-	SHA256_Update( &ctx->ictx, in, len );
+#if defined(HMAC_SPH_SHA)
+   sph_sha256( &ctx->ictx, in, len );
+#else
+   SHA256_Update( &ctx->ictx, in, len );
+#endif
 }
 
 /* Finish an HMAC-SHA256 operation. */
 void
 HMAC_SHA256_Final( unsigned char digest[32], HMAC_SHA256_CTX *ctx )
 {
-	unsigned char ihash[32];
+   unsigned char ihash[32];
 
-	/* Finish the inner SHA256 operation. */
-	SHA256_Final( ihash, &ctx->ictx );
+#if defined(HMAC_SPH_SHA)
+   sph_sha256_close( &ctx->ictx, ihash );
+   sph_sha256( &ctx->octx, ihash, 32 );
+   sph_sha256_close( &ctx->octx, digest );
+#else
+   /* Finish the inner SHA256 operation. */
+   SHA256_Final( ihash, &ctx->ictx );
 
-	/* Feed the inner hash to the outer SHA256 operation. */
-	SHA256_Update( &ctx->octx, ihash, 32 );
+   /* Feed the inner hash to the outer SHA256 operation. */
+   SHA256_Update( &ctx->octx, ihash, 32 );
 
-	/* Finish the outer SHA256 operation. */
-	SHA256_Final( digest, &ctx->octx );
+   /* Finish the outer SHA256 operation. */
+   SHA256_Final( digest, &ctx->octx );
+#endif
 }
 
 /**

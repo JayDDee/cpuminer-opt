@@ -13,7 +13,7 @@
 #include "algo/gost/sph_gost.h"
 #include "algo/lyra2/lyra2.h"
 #if defined(__SHA__)
- #include <openssl/sha.h>
+  #include "algo/sha/sph_sha2.h"
 #endif
 
 #if defined (X21S_8WAY)
@@ -209,7 +209,7 @@ union _x21s_4way_context_overlay
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
 #if defined(__SHA__)
-    SHA256_CTX              sha256;
+    sph_sha256_context      sha256;
 #else
     sha256_4way_context     sha256;
 #endif
@@ -275,23 +275,18 @@ int x21s_4way_hash( void* output, const void* input, int thrid )
 
 #if defined(__SHA__)
 
-   SHA256_Init( &ctx.sha256 );
-   SHA256_Update( &ctx.sha256, hash0, 64 );
-   SHA256_Final( (unsigned char*)hash0, &ctx.sha256 );
-   SHA256_Init( &ctx.sha256 );
-   SHA256_Update( &ctx.sha256, hash1, 64 );
-   SHA256_Final( (unsigned char*)hash1, &ctx.sha256 );
-   SHA256_Init( &ctx.sha256 );
-   SHA256_Update( &ctx.sha256, hash2, 64 );
-   SHA256_Final( (unsigned char*)hash2, &ctx.sha256 );
-   SHA256_Init( &ctx.sha256 );
-   SHA256_Update( &ctx.sha256, hash3, 64 );
-   SHA256_Final( (unsigned char*)hash3, &ctx.sha256 );
-
-   memcpy( output,    hash0, 32 );
-   memcpy( output+32, hash1, 32 );
-   memcpy( output+64, hash2, 32 );
-   memcpy( output+96, hash3, 32 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash0, 64 );
+   sph_sha256_close( &ctx.sha256, output );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash1, 64 );
+   sph_sha256_close( &ctx.sha256, output+32 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash2, 64 );
+   sph_sha256_close( &ctx.sha256, output+64 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash3, 64 );
+   sph_sha256_close( &ctx.sha256, output+96 );
 
 #else
 

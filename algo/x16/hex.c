@@ -161,9 +161,9 @@ int hex_hash( void* output, const void* input, int thrid )
                 sph_whirlpool512_full( &ctx.whirlpool, hash, in,  size );
          break;
          case SHA_512:
-             SHA512_Init( &ctx.sha512 );
-             SHA512_Update( &ctx.sha512, in, size );
-             SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+             sph_sha512_init( &ctx.sha512 );
+             sph_sha512( &ctx.sha512, in, size );
+             sph_sha512_close( &ctx.sha512, hash );
          break;
       }
 

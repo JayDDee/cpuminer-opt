@@ -12,8 +12,7 @@
 #include "algo/tiger/sph_tiger.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/ripemd/sph_ripemd.h"
-#include <openssl/sha.h>
-
+#include "algo/sha/sph_sha2.h"
 
 #define EPSa DBL_EPSILON
 #define EPS1 DBL_EPSILON
@@ -105,8 +104,8 @@ uint32_t sw2_( int nnounce )
 }
 
 typedef struct {
-    SHA256_CTX               sha256;
-    SHA512_CTX               sha512;
+    sph_sha256_context      sha256;
+    sph_sha512_context      sha512;
     sph_keccak512_context    keccak;
     sph_whirlpool_context    whirlpool;
     sph_haval256_5_context   haval;
@@ -118,8 +117,8 @@ m7m_ctx_holder m7m_ctx;
 
 void init_m7m_ctx()
 {
-    SHA256_Init( &m7m_ctx.sha256 );
-    SHA512_Init( &m7m_ctx.sha512 );
+    sph_sha256_init( &m7m_ctx );
+    sph_sha512_init( &m7m_ctx.sha512 );
     sph_keccak512_init( &m7m_ctx.keccak );
     sph_whirlpool_init( &m7m_ctx.whirlpool );
     sph_haval256_5_init( &m7m_ctx.haval );
@@ -143,11 +142,10 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
     uint32_t hash[8] __attribute__((aligned(64)));
     uint8_t bhash[7][64] __attribute__((aligned(64)));
     uint32_t n = pdata[19] - 1;
-    int thr_id = mythr->id;  // thr_id arg is deprecated
+    int thr_id = mythr->id;
     uint32_t usw_, mpzscale;
     const uint32_t first_nonce = pdata[19];
     char data_str[161], hash_str[65], target_str[65];
-    //uint8_t *bdata = 0;
     uint8_t bdata[8192] __attribute__ ((aligned (64)));
     int i, digits;
     int bytes;
@@ -155,12 +153,12 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
 
     m7m_ctx_holder ctx1, ctx2 __attribute__ ((aligned (64)));
     memcpy( &ctx1, &m7m_ctx, sizeof(m7m_ctx) );
-    SHA256_CTX         ctxf_sha256;
+    sph_sha256_context ctxf_sha256;
 
     memcpy(data, pdata, 80);
 
-    SHA256_Update(  &ctx1.sha256,    data, M7_MIDSTATE_LEN );
-    SHA512_Update(  &ctx1.sha512,    data, M7_MIDSTATE_LEN );
+    sph_sha256(     &ctx1.sha256,    data, M7_MIDSTATE_LEN );
+    sph_sha512(     &ctx1.sha512,    data, M7_MIDSTATE_LEN );
     sph_keccak512(  &ctx1.keccak,    data, M7_MIDSTATE_LEN );
     sph_whirlpool(  &ctx1.whirlpool, data, M7_MIDSTATE_LEN );
     sph_haval256_5( &ctx1.haval,     data, M7_MIDSTATE_LEN );
@@ -191,11 +189,11 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
 
         memcpy( &ctx2, &ctx1, sizeof(m7m_ctx) );
 
-        SHA256_Update(  &ctx2.sha256, data_p64, 80 - M7_MIDSTATE_LEN );
-        SHA256_Final( (unsigned char*) (bhash[0]), &ctx2.sha256 );
+        sph_sha256( &ctx2.sha256, data_p64, 80 - M7_MIDSTATE_LEN );
+        sph_sha256_close( &ctx2.sha256, bhash[0] );
 
-        SHA512_Update(  &ctx2.sha512, data_p64, 80 - M7_MIDSTATE_LEN );
-        SHA512_Final( (unsigned char*) (bhash[1]), &ctx2.sha512 );
+        sph_sha512(  &ctx2.sha512, data_p64, 80 - M7_MIDSTATE_LEN );
+        sph_sha512_close( &ctx2.sha512, bhash[1] );
 
         sph_keccak512( &ctx2.keccak, data_p64, 80 - M7_MIDSTATE_LEN );
         sph_keccak512_close( &ctx2.keccak, (void*)(bhash[2]) );
@@ -227,9 +225,9 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
         bytes = mpz_sizeinbase(product, 256);
         mpz_export((void *)bdata, NULL, -1, 1, 0, 0, product);
 
-        SHA256_Init( &ctxf_sha256 );
-        SHA256_Update(  &ctxf_sha256, bdata, bytes );
-        SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
+        sph_sha256_init( &ctxf_sha256 );
+        sph_sha256( &ctxf_sha256, bdata, bytes );
+        sph_sha256_close( &ctxf_sha256, hash );
 
         digits=(int)((sqrt((double)(n/2))*(1.+EPS))/9000+75);
         mp_bitcnt_t prec = (long int)(digits*BITS_PER_DIGIT+16);
@@ -262,18 +260,13 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
             mpzscale=bytes;
             mpz_export(bdata, NULL, -1, 1, 0, 0, product);
 
-            SHA256_Init( &ctxf_sha256 );
-            SHA256_Update(  &ctxf_sha256, bdata, bytes );
-            SHA256_Final( (unsigned char*) hash, &ctxf_sha256 );
-        }
-
+            sph_sha256_init( &ctxf_sha256 );
+            sph_sha256( &ctxf_sha256, bdata, bytes );
+            sph_sha256_close( &ctxf_sha256, hash );
+	}
 
         if ( unlikely( valid_hash( (uint64_t*)hash, (uint64_t*)ptarget ) 
              && !opt_benchmark ) )
-
-
-//        if ( unlikely( hash[7] <= ptarget[7] ) )
-//        if ( likely( fulltest( hash, ptarget ) && !opt_benchmark ) )        
         {
            if ( opt_debug )
            {

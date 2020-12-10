@@ -7,21 +7,32 @@
 bool register_x22i_algo( algo_gate_t* gate )
 {
 #if defined (X22I_8WAY)
-  gate->scanhash  = (void*)&scanhash_x22i_8way;
-  gate->hash      = (void*)&x22i_8way_hash;
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT
-                      | AVX512_OPT | VAES_OPT;
-#elif defined (X22I_4WAY)
-  gate->scanhash  = (void*)&scanhash_x22i_4way;
-  gate->hash      = (void*)&x22i_4way_hash;
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT
-                      | AVX512_OPT | VAES_OPT;
+
+#if defined(X22I_8WAY_SHA)
+  gate->scanhash  = (void*)&scanhash_x22i_8way_sha;
 #else
+  gate->scanhash  = (void*)&scanhash_x22i_8way;
+#endif
+  gate->hash      = (void*)&x22i_8way_hash;
+
+#elif defined (X22I_4WAY)
+
+#if defined(X22I_4WAY_SHA)
+  gate->scanhash  = (void*)&scanhash_x22i_4way_sha;
+#else
+  gate->scanhash  = (void*)&scanhash_x22i_4way;
+#endif
+  gate->hash      = (void*)&x22i_4way_hash;
+
+#else
+
   gate->scanhash  = (void*)&scanhash_x22i;
   gate->hash      = (void*)&x22i_hash;
+
+#endif
+
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT
                       | AVX512_OPT | VAES_OPT | VAES256_OPT;
-#endif
   return true;
 };
 
@@ -37,9 +48,8 @@ bool register_x25x_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_x25x;
   gate->hash      = (void*)&x25x_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT |
-	                VAES_OPT | VAES256_OPT;
-
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | SHA_OPT |
+                        AVX512_OPT | VAES_OPT | VAES256_OPT;
   return true;
 };
 

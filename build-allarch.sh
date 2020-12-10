@@ -17,10 +17,11 @@ mv cpuminer.exe cpuminer-avx512-sha-vaes.exe
 strip -s cpuminer
 mv cpuminer cpuminer-avx512-sha-vaes
 
-# Rocketlake AVX512 AES SHA
+# Rocketlake AVX512 SHA AES
 make clean || echo clean
 rm -f config.status
-CFLAGS="-O3 -march=skylake-avx512 -msha -Wall -fno-common" ./configure --with-curl
+CFLAGS="-O3 -march=cascadelake -msha -Wall -fno-common" ./configure --with-curl
+#CFLAGS="-O3 -march=skylake-avx512 -msha -Wall -fno-common" ./configure --with-curl
 # CFLAGS="-O3 -march=rocketlake -Wall -fno-common" ./configure --with-curl
 make -j 8
 strip -s cpuminer.exe
@@ -99,7 +100,7 @@ mv cpuminer.exe cpuminer-sse2.exe
 strip -s cpuminer
 mv cpuminer cpuminer-sse2
 
-# Zen1 AVX2 SHA
+# AMD Zen1 AVX2 SHA
 make clean || echo done
 rm -f config.status
 CFLAGS="-O3 -march=znver1 -Wall -fno-common" ./configure --with-curl
@@ -109,7 +110,7 @@ mv cpuminer.exe cpuminer-zen.exe
 strip -s cpuminer
 mv cpuminer cpuminer-zen
 
-# Zen3 AVX2 SHA VAES
+# AMD Zen3 AVX2 SHA VAES
 make clean || echo done
 rm -f config.status
 CFLAGS="-O3 -march=znver2 -mvaes -Wall -fno-common" ./configure --with-curl

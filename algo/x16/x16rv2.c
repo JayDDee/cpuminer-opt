@@ -33,7 +33,7 @@ union _x16rv2_context_overlay
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
-        SHA512_CTX              sha512;
+        sph_sha512_context      sha512;
         sph_tiger_context       tiger;
 };
 typedef union _x16rv2_context_overlay x16rv2_context_overlay;
@@ -155,9 +155,9 @@ int x16rv2_hash( void* output, const void* input, int thrid )
              sph_tiger( &ctx.tiger, in, size );
              sph_tiger_close( &ctx.tiger, hash );
              padtiger512( hash );
-             SHA512_Init( &ctx.sha512 );
-             SHA512_Update( &ctx.sha512, hash, 64 );
-             SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+             sph_sha512_init( &ctx.sha512 );
+             sph_sha512( &ctx.sha512, hash, 64 );
+             sph_sha512_close( &ctx.sha512, hash );
          break;
       }
 

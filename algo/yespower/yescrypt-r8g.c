@@ -52,8 +52,8 @@ int scanhash_yespower_r8g( struct work *work, uint32_t max_nonce,
     endiandata[19] = n;
 
 // do sha256 prehash
-   SHA256_Init( &sha256_prehash_ctx );
-   SHA256_Update( &sha256_prehash_ctx, endiandata, 64 );
+   sph_sha256_init( &sha256_prehash_ctx );
+   sph_sha256( &sha256_prehash_ctx, endiandata, 64 );
     
     do {
        yespower_tls( (unsigned char *)endiandata, params.perslen,

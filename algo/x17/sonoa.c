@@ -20,7 +20,7 @@
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
-#include <openssl/sha.h>
+#include "algo/sha/sph_sha2.h"
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
@@ -53,7 +53,7 @@ typedef struct {
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
-        SHA512_CTX              sha512;
+        sph_sha512_context      sha512;
         sph_haval256_5_context  haval;
 } sonoa_ctx_holder;
 
@@ -82,7 +82,7 @@ void init_sonoa_ctx()
         sph_hamsi512_init( &sonoa_ctx.hamsi );
         sph_shabal512_init( &sonoa_ctx.shabal );
         sph_whirlpool_init( &sonoa_ctx.whirlpool );
-        SHA512_Init( &sonoa_ctx.sha512 );
+        sph_sha512_init( &sonoa_ctx.sha512 );
         sph_haval256_5_init(&sonoa_ctx.haval);
 };
 
@@ -494,8 +494,8 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_whirlpool(&ctx.whirlpool, hash, 64);
    sph_whirlpool_close(&ctx.whirlpool, hash);
 
-   SHA512_Update( &ctx.sha512, hash, 64 );
-   SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+   sph_sha512( &ctx.sha512, hash, 64 );
+   sph_sha512_close( &ctx.sha512, hash );
 
    sph_whirlpool_init( &ctx.whirlpool );
    sph_whirlpool(&ctx.whirlpool, hash, 64);
@@ -574,9 +574,9 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_whirlpool(&ctx.whirlpool, hash, 64);
    sph_whirlpool_close(&ctx.whirlpool, hash);
 
-   SHA512_Init( &ctx.sha512 );
-   SHA512_Update( &ctx.sha512, hash, 64 );
-   SHA512_Final( (unsigned char*) hash, &ctx.sha512 );
+   sph_sha512_init( &ctx.sha512 );
+   sph_sha512( &ctx.sha512, hash, 64 );
+   sph_sha512_close( &ctx.sha512, hash );
 
    sph_haval256_5(&ctx.haval,(const void*) hash, 64);
    sph_haval256_5_close(&ctx.haval, hash);

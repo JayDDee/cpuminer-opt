@@ -17,7 +17,7 @@
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/sph-haval.h"
-#include <openssl/sha.h>
+#include "algo/sha/sph_sha2.h"
 #if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
@@ -44,7 +44,7 @@ typedef struct {
   sph_hamsi512_context    hamsi1;
   sph_shabal512_context   shabal1;
   sph_whirlpool_context   whirlpool1, whirlpool2, whirlpool3, whirlpool4;
-  SHA512_CTX              sha1, sha2;
+  sph_sha512_context      sha1, sha2;
   sph_haval256_5_context  haval1, haval2;
 #if defined(__AES__)
   hashState_echo          echo1, echo2;
@@ -106,8 +106,8 @@ void init_hmq1725_ctx()
     sph_whirlpool_init(&hmq1725_ctx.whirlpool3);
     sph_whirlpool_init(&hmq1725_ctx.whirlpool4);
 
-    SHA512_Init( &hmq1725_ctx.sha1 );
-    SHA512_Init( &hmq1725_ctx.sha2 );
+    sph_sha512_init( &hmq1725_ctx.sha1 );
+    sph_sha512_init( &hmq1725_ctx.sha2 );
 
     sph_haval256_5_init(&hmq1725_ctx.haval1);
     sph_haval256_5_init(&hmq1725_ctx.haval2);
@@ -285,8 +285,8 @@ extern void hmq1725hash(void *state, const void *input)
     }
     else
     {
-        SHA512_Update( &h_ctx.sha1, hashB, 64 );
-        SHA512_Final( (unsigned char*) hashA, &h_ctx.sha1 );
+        sph_sha512( &h_ctx.sha1, hashB, 64 );
+        sph_sha512_close( &h_ctx.sha1, hashA );
     }
 
 #if defined(__AES__)
@@ -297,8 +297,8 @@ extern void hmq1725hash(void *state, const void *input)
     sph_groestl512_close(&h_ctx.groestl2, hashB); //4
 #endif
 
-    SHA512_Update( &h_ctx.sha2, hashB, 64 );
-    SHA512_Final( (unsigned char*) hashA, &h_ctx.sha2 );
+    sph_sha512( &h_ctx.sha2, hashB, 64 );
+    sph_sha512_close( &h_ctx.sha2, hashA );
 
     if ( hashA[0] & mask ) //4
     {

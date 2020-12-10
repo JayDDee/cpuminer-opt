@@ -14,7 +14,7 @@ miners. The source code is open for anyone to inspect. If you don't trust
 the software, don't use it.
 
 Choose the exe that best matches you CPU's features or use trial and
-error to find the fastest one that doesn't crash. Pay attention to
+error to find the fastest one that works. Pay attention to
 the features listed at cpuminer startup to ensure you are mining at
 optimum speed using the best available features.
 
@@ -35,22 +35,25 @@ https://en.wikipedia.org/wiki/List_of_Intel_CPU_microarchitectures
 https://en.wikipedia.org/wiki/List_of_AMD_CPU_microarchitectures
 
 
-Exe file name                Compile flags            Arch name
+Exe file name                Compile flags              Arch name
 
-cpuminer-sse2.exe            "-msse2"                 Core2, Nehalem   
-cpuminer-aes-sse42.exe       "-marxh=westmere"        Westmere
-cpuminer-avx.exe             "-march=corei7-avx"      Sandybridge, Ivybridge
-cpuminer-avx2.exe            "-march=core-avx2 -maes" Haswell(1)
-cpuminer-avx512.exe          "-march=skylake-avx512"  Skylake-X, Cascadelake-X
-cpuminer-zen.exe             "-march=znver1"          Zen1, Zen2
-cpuminer-zen3.exe            "-march=znver2 -mvaes"   Zen3(2) 
-cpuminer-avx512-sha-vaes.exe "-march=icelake-client"  Icelake(3)
+cpuminer-sse2.exe            "-msse2"                   Core2, Nehalem   
+cpuminer-aes-sse42.exe       "-march=westmere"          Westmere
+cpuminer-avx.exe             "-march=corei7-avx"        Sandybridge, Ivybridge
+cpuminer-avx2.exe            "-march=core-avx2 -maes"   Haswell(1)
+cpuminer-avx512.exe          "-march=skylake-avx512"    Skylake-X, Cascadelake
+cpuminer-avx512-sha.exe      "-march=cascadelake -msha" Rocketlake(2)
+cpuminer-avx512-sha-vaes.exe "-march=icelake-client"    Icelake, Tigerlake(3)
+cpuminer-zen.exe             "-march=znver1"            AMD Zen1, Zen2
+cpuminer-zen3.exe            "-march=znver2 -mvaes"     Zen3(4)
 
 (1) Haswell includes Broadwell, Skylake, Kabylake, Coffeelake & Cometlake. 
-(2) Zen3 build uses Zen2+VAES as workaround until Zen3 compiler support is
-    available. Zen2 CPUs should use Zen build.
-(3) Icelake is only available on some laptops. Mining with a laptop is not
-recommended.
+(2) Rocketlake build uses cascadelake+sha as a workaround until Rocketlake
+    compiler support is avalable.
+(3) Icelake & Tigerlake are only available on some laptops. Mining with a
+    laptop is not recommended.
+(4) Zen3 build uses zen2+vaes as a workaround until Zen3 compiler support is
+    available. Zen2 CPUs should use Zen1 build.
 
 Notes about included DLL files:
 

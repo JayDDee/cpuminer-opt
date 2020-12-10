@@ -2,14 +2,8 @@
 #include <string.h>
 #include <stdint.h>
 #include "skein-hash-4way.h"
-
-// 8 way is faster than SHA on Icelake
-// SHA is faster than 4 way on Ryzen
-//
-#if defined(__SHA__)
-  #include <openssl/sha.h>
-#endif
 #include "algo/sha/sha-hash-4way.h"
+#include "algo/sha/sph_sha2.h"
 
 #if defined (SKEIN_8WAY)
 
@@ -93,7 +87,7 @@ void skeinhash_4way( void *state, const void *input )
      uint32_t hash1[16] __attribute__ ((aligned (64)));
      uint32_t hash2[16] __attribute__ ((aligned (64)));
      uint32_t hash3[16] __attribute__ ((aligned (64)));
-     SHA256_CTX ctx_sha256;
+     sph_sha256_context ctx_sha256;
 #else
      uint32_t vhash32[16*4] __attribute__ ((aligned (64)));
      sha256_4way_context ctx_sha256;
@@ -102,31 +96,29 @@ void skeinhash_4way( void *state, const void *input )
      skein512_4way_final16( &ctx_skein, vhash64, input + (64*4) );
 
 #if defined(__SHA__)      
+
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 512 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash0, 64 );
-     SHA256_Final( (unsigned char*)hash0, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash1, 64 );
-     SHA256_Final( (unsigned char*)hash1, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash2, 64 );
-     SHA256_Final( (unsigned char*)hash2, &ctx_sha256 );
-
-     SHA256_Init( &ctx_sha256 );
-     SHA256_Update( &ctx_sha256, (unsigned char*)hash3, 64 );
-     SHA256_Final( (unsigned char*)hash3, &ctx_sha256 );
-
+     sph_sha256_init( &ctx_sha256 );
+     sph_sha256( &ctx_sha256, hash0, 64 );
+     sph_sha256_close( &ctx_sha256, hash0 );
+     sph_sha256_init( &ctx_sha256 );
+     sph_sha256( &ctx_sha256, hash1, 64 );
+     sph_sha256_close( &ctx_sha256, hash1 );
+     sph_sha256_init( &ctx_sha256 );
+     sph_sha256( &ctx_sha256, hash2, 64 );
+     sph_sha256_close( &ctx_sha256, hash2 );
+     sph_sha256_init( &ctx_sha256 );
+     sph_sha256( &ctx_sha256, hash3, 64 );
+     sph_sha256_close( &ctx_sha256, hash3 );
      intrlv_4x32( state, hash0, hash1, hash2, hash3, 256 );
-#else
-     rintrlv_4x64_4x32( vhash32, vhash64, 512 );
 
+#else
+
+     rintrlv_4x64_4x32( vhash32, vhash64, 512 );
      sha256_4way_init( &ctx_sha256 );
      sha256_4way_update( &ctx_sha256, vhash32, 64 );
      sha256_4way_close( &ctx_sha256, state );
+
 #endif
 }
 

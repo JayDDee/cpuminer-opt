@@ -23,7 +23,7 @@
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include <openssl/sha.h>
+#include "algo/sha/sph_sha2.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/tiger/sph_tiger.h"
 #include "algo/lyra2/lyra2.h"
@@ -53,11 +53,11 @@ union _x22i_context_overlay
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
-        SHA512_CTX              sha512;
+        sph_sha512_context      sha512;
         sph_haval256_5_context  haval;
         sph_tiger_context       tiger;
         sph_gost512_context     gost;
-        SHA256_CTX              sha256;
+        sph_sha256_context      sha256;
 };
 typedef union _x22i_context_overlay x22i_context_overlay;
 
@@ -67,13 +67,13 @@ int x22i_hash( void *output, const void *input, int thrid )
    unsigned char hash2[65]    __attribute__((aligned(64))) = {0};
    x22i_context_overlay ctx;
 
-	sph_blake512_init(&ctx.blake);
-	sph_blake512(&ctx.blake, input, 80);
-	sph_blake512_close(&ctx.blake, hash);
+   sph_blake512_init(&ctx.blake);
+   sph_blake512(&ctx.blake, input, 80);
+   sph_blake512_close(&ctx.blake, hash);
 
-	sph_bmw512_init(&ctx.bmw);
-	sph_bmw512(&ctx.bmw, (const void*) hash, 64);
-	sph_bmw512_close(&ctx.bmw, hash);
+   sph_bmw512_init(&ctx.bmw);
+   sph_bmw512(&ctx.bmw, (const void*) hash, 64);
+   sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
    init_groestl( &ctx.groestl, 64 );
@@ -85,17 +85,17 @@ int x22i_hash( void *output, const void *input, int thrid )
    sph_groestl512_close( &ctx.groestl, hash );
 #endif
    
-	sph_skein512_init(&ctx.skein);
-	sph_skein512(&ctx.skein, (const void*) hash, 64);
-	sph_skein512_close(&ctx.skein, hash);
+   sph_skein512_init(&ctx.skein);
+   sph_skein512(&ctx.skein, (const void*) hash, 64);
+   sph_skein512_close(&ctx.skein, hash);
 
-	sph_jh512_init(&ctx.jh);
-	sph_jh512(&ctx.jh, (const void*) hash, 64);
-	sph_jh512_close(&ctx.jh, hash);
+   sph_jh512_init(&ctx.jh);
+   sph_jh512(&ctx.jh, (const void*) hash, 64);
+   sph_jh512_close(&ctx.jh, hash);
 
-	sph_keccak512_init(&ctx.keccak);
-	sph_keccak512(&ctx.keccak, (const void*) hash, 64);
-	sph_keccak512_close(&ctx.keccak, hash);
+   sph_keccak512_init(&ctx.keccak);
+   sph_keccak512(&ctx.keccak, (const void*) hash, 64);
+   sph_keccak512_close(&ctx.keccak, hash);
 
    if ( work_restart[thrid].restart ) return 0;
    
@@ -107,9 +107,9 @@ int x22i_hash( void *output, const void *input, int thrid )
    cubehashUpdateDigest( &ctx.cube, (byte*) hash,
                               (const byte*)hash, 64 );
 
-	sph_shavite512_init(&ctx.shavite);
-	sph_shavite512(&ctx.shavite, (const void*) hash, 64);
-	sph_shavite512_close(&ctx.shavite, hash);
+   sph_shavite512_init(&ctx.shavite);
+   sph_shavite512(&ctx.shavite, (const void*) hash, 64);
+   sph_shavite512_close(&ctx.shavite, hash);
 
    init_sd( &ctx.simd, 512 );
    update_final_sd( &ctx.simd, (BitSequence*)hash,
@@ -127,56 +127,56 @@ int x22i_hash( void *output, const void *input, int thrid )
 
    if ( work_restart[thrid].restart ) return 0;
    
-	sph_hamsi512_init(&ctx.hamsi);
-	sph_hamsi512(&ctx.hamsi, (const void*) hash, 64);
-	sph_hamsi512_close(&ctx.hamsi, hash);
+   sph_hamsi512_init(&ctx.hamsi);
+   sph_hamsi512(&ctx.hamsi, (const void*) hash, 64);
+   sph_hamsi512_close(&ctx.hamsi, hash);
 
 #if defined(__AES__)
-        fugue512_full( &ctx.fugue, hash, hash, 64 );
+   fugue512_full( &ctx.fugue, hash, hash, 64 );
 #else
-	sph_fugue512_init(&ctx.fugue);
-	sph_fugue512(&ctx.fugue, (const void*) hash, 64);
-	sph_fugue512_close(&ctx.fugue, hash);
+   sph_fugue512_init(&ctx.fugue);
+   sph_fugue512(&ctx.fugue, (const void*) hash, 64);
+   sph_fugue512_close(&ctx.fugue, hash);
 #endif
 
-	sph_shabal512_init(&ctx.shabal);
-	sph_shabal512(&ctx.shabal, (const void*) hash, 64);
-	sph_shabal512_close(&ctx.shabal, &hash[64]);
+   sph_shabal512_init(&ctx.shabal);
+   sph_shabal512(&ctx.shabal, (const void*) hash, 64);
+   sph_shabal512_close(&ctx.shabal, &hash[64]);
 
-	sph_whirlpool_init(&ctx.whirlpool);
-	sph_whirlpool (&ctx.whirlpool, (const void*) &hash[64], 64);
-	sph_whirlpool_close(&ctx.whirlpool, &hash[128]);
+   sph_whirlpool_init(&ctx.whirlpool);
+   sph_whirlpool (&ctx.whirlpool, (const void*) &hash[64], 64);
+   sph_whirlpool_close(&ctx.whirlpool, &hash[128]);
 
-   SHA512_Init( &ctx.sha512 );
-   SHA512_Update(  &ctx.sha512, (const void*) &hash[128], 64);
-   SHA512_Final( (void*) &hash[192], &ctx.sha512 );
-
-	ComputeSingleSWIFFTX((unsigned char*)hash, (unsigned char*)hash2);
+   sph_sha512_init( &ctx.sha512 );
+   sph_sha512( &ctx.sha512, &hash[128], 64 );
+   sph_sha512_close( &ctx.sha512, &hash[192] );
+   
+   ComputeSingleSWIFFTX((unsigned char*)hash, (unsigned char*)hash2);
 
    if ( work_restart[thrid].restart ) return 0;
    
-	memset(hash, 0, 64);
-	sph_haval256_5_init(&ctx.haval);
-	sph_haval256_5(&ctx.haval,(const void*) hash2, 64);
-	sph_haval256_5_close(&ctx.haval,hash);
+   memset(hash, 0, 64);
+   sph_haval256_5_init(&ctx.haval);
+   sph_haval256_5(&ctx.haval,(const void*) hash2, 64);
+   sph_haval256_5_close(&ctx.haval,hash);
 
-	memset(hash2, 0, 64);
-	sph_tiger_init(&ctx.tiger);
-	sph_tiger (&ctx.tiger, (const void*) hash, 64);
-	sph_tiger_close(&ctx.tiger, (void*) hash2);
+   memset(hash2, 0, 64);
+   sph_tiger_init(&ctx.tiger);
+   sph_tiger (&ctx.tiger, (const void*) hash, 64);
+   sph_tiger_close(&ctx.tiger, (void*) hash2);
 
-	memset(hash, 0, 64);
-	LYRA2RE((void*) hash, 32, (const void*) hash2, 32, (const void*) hash2, 32, 1, 4, 4);
+   memset(hash, 0, 64);
+   LYRA2RE((void*) hash, 32, (const void*) hash2, 32, (const void*) hash2, 32, 1, 4, 4);
 
-	sph_gost512_init(&ctx.gost);
-	sph_gost512 (&ctx.gost, (const void*) hash, 64);
-	sph_gost512_close(&ctx.gost, (void*) hash);
+   sph_gost512_init(&ctx.gost);
+   sph_gost512 (&ctx.gost, (const void*) hash, 64);
+   sph_gost512_close(&ctx.gost, (void*) hash);
 
-   SHA256_Init( &ctx.sha256 );
-   SHA256_Update(  &ctx.sha256, (const void*) hash, 64 );
-   SHA256_Final( (unsigned char*) hash, &ctx.sha256 );
+   sph_sha256_init( &ctx.sha256 );
+   sph_sha256( &ctx.sha256, hash, 64 );
+   sph_sha256_close( &ctx.sha256, hash );
 
-	memcpy(output, hash, 32);
+   memcpy(output, hash, 32);
 
    return 1;
 }
