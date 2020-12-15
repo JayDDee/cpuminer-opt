@@ -65,6 +65,10 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.15.4
+
+Fixed yescryptr16 broken in v3.15.3.
+
 v3.15.3
 
 Yescrypt algos now use yespower v0.5, a little faster.

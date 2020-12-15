@@ -221,8 +221,8 @@ bool register_yescryptr16_05_algo( algo_gate_t* gate )
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 4096;
    yespower_params.r       = 16;
-   yespower_params.pers    = NULL;
-   yespower_params.perslen = 0;
+   yespower_params.pers    = "Client Key";
+   yespower_params.perslen = 10;
    opt_target_factor = 65536.0;
    return true;
 }
