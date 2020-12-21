@@ -162,7 +162,7 @@ bool ( *ready_to_mine )         ( struct work*, struct stratum_ctx*, int );
 bool ( *do_this_thread )        ( int );
 
 // After do_this_thread
-void ( *resync_threads )        ( struct work* );
+void ( *resync_threads )        ( int, struct work* );
 
 // No longer needed
 json_t* (*longpoll_rpc_call)      ( CURL*, int*, char* );

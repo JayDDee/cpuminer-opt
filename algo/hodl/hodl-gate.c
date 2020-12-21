@@ -99,13 +99,13 @@ void hodl_build_block_header( struct work* g_work, uint32_t version,
 // called only by thread 0, saves a backup of g_work
 void hodl_get_new_work( struct work* work, struct work* g_work)
 {
-   pthread_rwlock_rdlock( &g_work_lock );
+//   pthread_rwlock_rdlock( &g_work_lock );
 
    work_free( &hodl_work );
    work_copy( &hodl_work, g_work );
    hodl_work.data[ algo_gate.nonce_index ] = ( clock() + rand() ) % 9999;
 
-   pthread_rwlock_unlock( &g_work_lock );
+//   pthread_rwlock_unlock( &g_work_lock );
 }
 
 json_t *hodl_longpoll_rpc_call( CURL *curl, int *err, char* lp_url )
@@ -125,7 +125,7 @@ json_t *hodl_longpoll_rpc_call( CURL *curl, int *err, char* lp_url )
 }
 
 // called by every thread, copies the backup to each thread's work.
-void hodl_resync_threads( struct work* work )
+void hodl_resync_threads( int thr_id, struct work* work )
 {
    int nonce_index = algo_gate.nonce_index;
    pthread_barrier_wait( &hodl_barrier );
@@ -135,6 +135,7 @@ void hodl_resync_threads( struct work* work )
       work_copy( work, &hodl_work );
    }
    work->data[ nonce_index ] = swab32( hodl_work.data[ nonce_index ] );
+   work_restart[thr_id].restart = 0;
 }
 
 bool hodl_do_this_thread( int thr_id )

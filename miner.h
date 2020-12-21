@@ -444,7 +444,8 @@ struct stratum_ctx {
 	struct work work __attribute__ ((aligned (64)));
 	pthread_mutex_t work_lock;
 
-	int block_height;
+   int block_height;
+   bool new_job;  
 } __attribute__ ((aligned (64)));
 
 bool stratum_socket_full(struct stratum_ctx *sctx, int timeout);

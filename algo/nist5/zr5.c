@@ -156,7 +156,7 @@ int scanhash_zr5( struct work *work, uint32_t max_nonce,
 void zr5_get_new_work( struct work* work, struct work* g_work, int thr_id,
                        uint32_t* end_nonce_ptr )
 {
-   pthread_rwlock_rdlock( &g_work_lock );
+//   pthread_rwlock_rdlock( &g_work_lock );
 
    // ignore POK in first word
    const int wkcmp_sz = 72;  // (19-1) * sizeof(uint32_t)
@@ -174,7 +174,7 @@ void zr5_get_new_work( struct work* work, struct work* g_work, int thr_id,
    else
        ++(*nonceptr);
 
-   pthread_rwlock_unlock( &g_work_lock );
+//   pthread_rwlock_unlock( &g_work_lock );
 }
 
 void zr5_display_pok( struct work* work )

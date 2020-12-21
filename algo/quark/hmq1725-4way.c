@@ -912,7 +912,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
    sph_whirlpool512_full( &ctx.whirlpool, hash2, hash2, 64 );
    sph_whirlpool512_full( &ctx.whirlpool, hash3, hash3, 64 );
 
-// A = fugue serial, B = sha512 prarallel
+// A = fugue serial, B = sha512 parallel
    
    intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 

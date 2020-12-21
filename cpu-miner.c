@@ -1192,7 +1192,7 @@ static int share_result( int result, struct work *work,
      sprintf( bres, "B%d", solved_block_count );
      stale = work ? work->data[ algo_gate.ntime_index ]
                  != g_work.data[ algo_gate.ntime_index ] : false; 
-     if ( reason ) stale = stale || strstr( reason, "Invalid job id" );
+     if ( reason ) stale = stale || strstr( reason, "job" );
      if ( stale )
      {
         stale_share_count++;
@@ -1956,8 +1956,6 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
    uint32_t *nonceptr = work->data + algo_gate.nonce_index;
    bool force_new_work = false; 
 
-   pthread_rwlock_rdlock( &g_work_lock );
-   
    if ( have_stratum ) 
       force_new_work = work->job_id ?    strtoul(   work->job_id, NULL, 16 )
                                       != strtoul( g_work->job_id, NULL, 16 )
@@ -1973,8 +1971,6 @@ void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
    }
    else
        ++(*nonceptr);
-
-   pthread_rwlock_unlock( &g_work_lock );
 }
 
 bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
@@ -1990,13 +1986,14 @@ bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
 
 static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 {
-   // Safer than testing the job id
-   bool new_job =  *get_stratum_job_ntime()
-                   != g_work->data[ algo_gate.ntime_index ];
+   bool new_job;
 
    pthread_rwlock_wrlock( &g_work_lock );
    pthread_mutex_lock( &sctx->work_lock );
 
+   new_job =  sctx->new_job;
+   sctx->new_job = false;
+   
    free( g_work->job_id );
    g_work->job_id = strdup( sctx->job.job_id );
    g_work->xnonce2_len = sctx->xnonce2_size;
@@ -2009,8 +2006,12 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    g_work->targetdiff = sctx->job.diff
                            / ( opt_target_factor * opt_diff_factor );
    diff_to_hash( g_work->target, g_work->targetdiff );
+
    // Increment extranonce2
-   for ( int t = 0; t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] ); t++ );
+   for ( int t = 0;
+         t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] );
+         t++ );
+
    g_work_time = time(NULL);
    restart_threads();
 
@@ -2032,7 +2033,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    else if ( last_block_height != sctx->block_height )
       applog( LOG_BLUE, "New Block %d, Job %s",
                         sctx->block_height, g_work->job_id );
-   else if ( new_job && g_work->job_id )
+   else if ( g_work->job_id && new_job )
       applog( LOG_BLUE, "New Work: Block %d, Net diff %.5g, Job %s",
                          sctx->block_height, net_diff, g_work->job_id );
    else if ( !opt_quiet )
@@ -2240,10 +2241,15 @@ static void *miner_thread( void *userdata )
              pthread_rwlock_unlock( &g_work_lock );
           }
 
+          pthread_rwlock_rdlock( &g_work_lock );
+
           algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce );
+          work_restart[thr_id].restart = 0;
+
+          pthread_rwlock_unlock( &g_work_lock );
 
        } // do_this_thread
-       algo_gate.resync_threads( &work );
+       algo_gate.resync_threads( thr_id, &work );
 
        if ( unlikely( !algo_gate.ready_to_mine( &work, &stratum, thr_id ) ) )
           continue;
@@ -2309,7 +2315,6 @@ static void *miner_thread( void *userdata )
        // init time
        if ( firstwork_time == 0 )
           firstwork_time = time(NULL);
-       work_restart[thr_id].restart = 0;
        hashes_done = 0;
        gettimeofday( (struct timeval *) &tv_start, NULL );
 
@@ -2731,7 +2736,6 @@ static void *stratum_thread(void *userdata )
          pthread_rwlock_wrlock( &g_work_lock );
          g_work_time = 0;
          pthread_rwlock_unlock( &g_work_lock );
-//         restart_threads();
          if ( !stratum_connect( &stratum, stratum.url )
               || !stratum_subscribe( &stratum )
               || !stratum_authorize( &stratum, rpc_user, rpc_pass ) )
@@ -2757,9 +2761,7 @@ static void *stratum_thread(void *userdata )
       report_summary_log( ( stratum_diff != stratum.job.diff )
                        && ( stratum_diff != 0. ) );
       
-      if ( stratum.job.job_id && ( !g_work_time
-                             || ( *get_stratum_job_ntime()
-                                != g_work.data[ algo_gate.ntime_index ] ) ) )
+      if ( stratum.new_job )
          stratum_gen_work( &stratum, &g_work );
 
       if ( likely( stratum_socket_full( &stratum, opt_timeout ) ) )
