@@ -201,6 +201,7 @@
 #define IOTA(r)   XOR64_IOTA(a00, a00, r)
 
 #ifdef P0
+#undef P0
 #undef P1
 #undef P2
 #undef P3

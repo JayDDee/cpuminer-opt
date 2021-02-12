@@ -490,8 +490,13 @@ static bool get_mininginfo( CURL *curl, struct work *work )
 	   }
 
       key = json_object_get( res, "networkhashps" );
-	   if ( key && json_is_integer( key ) )
-		   net_hashrate = (double) json_integer_value( key );
+      if ( key )
+      {
+         if ( json_is_integer( key ) )
+            net_hashrate = (double) json_integer_value( key );
+         else if ( json_is_real( key ) )
+            net_hashrate = (double) json_real_value( key );
+      }
 
       key = json_object_get( res, "blocks" );
 	   if ( key && json_is_integer( key ) )
@@ -506,26 +511,7 @@ static bool get_mininginfo( CURL *curl, struct work *work )
 	      // complete missing data from getwork
 	      work->height = (uint32_t) net_blocks + 1;
 	      if ( work->height > g_work.height )
-         {
             restart_threads();
-
-/* redundant with new block log
-            if ( !opt_quiet )
-            {
-		         char netinfo[64] = { 0 };
-		         char srate[32] = { 0 };
-		         sprintf( netinfo, "diff %.2f", net_diff );
-		         if ( net_hashrate )
-               {
-	               format_hashrate( net_hashrate, srate );
-                  strcat( netinfo, ", net " );
-			         strcat( netinfo, srate );
-		         }
-		         applog( LOG_BLUE, "%s block %d, %s",
-			                algo_names[opt_algo], work->height, netinfo );
-		      }
-*/
-         } 
 	   }  // res
 	}
 	json_decref( val );
@@ -920,12 +906,12 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
    tmp = json_object_get( val, "workid" );
    if ( tmp )
    {
-   if ( !json_is_string( tmp ) )
-   {
-      applog( LOG_ERR, "JSON invalid workid" );
-      goto out;
-   }
-   work->workid = strdup( json_string_value( tmp ) );
+      if ( !json_is_string( tmp ) )
+      {
+         applog( LOG_ERR, "JSON invalid workid" );
+         goto out;
+      }
+      work->workid = strdup( json_string_value( tmp ) );
    }
 
    rc = true;
@@ -1078,13 +1064,12 @@ void report_summary_log( bool force )
 
    if ( accepted_share_count < submitted_share_count )
    {
+      double ltd = exp32 * last_targetdiff;
       double lost_ghrate = uptime.tv_sec == 0 ? 0.
-                  : exp32 * last_targetdiff
-                      * (double)(submitted_share_count - accepted_share_count )
-                    / (double)uptime.tv_sec;
+                : ltd * (double)(submitted_share_count - accepted_share_count )
+                  / (double)uptime.tv_sec;
       double lost_shrate = share_time == 0. ? 0.
-               : exp32 * last_targetdiff  * (double)(submits - accepts )
-                / share_time;
+               : ltd  * (double)(submits - accepts ) / share_time;
       char lshr_units[4] = {0};
       char lghr_units[4] = {0};
       scale_hash_for_display( &lost_shrate, lshr_units );
@@ -1190,9 +1175,11 @@ static int share_result( int result, struct work *work,
    {
      sprintf( ares, "A%d", accepted_share_count );
      sprintf( bres, "B%d", solved_block_count );
-     stale = work ? work->data[ algo_gate.ntime_index ]
-                 != g_work.data[ algo_gate.ntime_index ] : false; 
-     if ( reason ) stale = stale || strstr( reason, "job" );
+     if ( reason )
+        stale = strstr( reason, "job" );
+     else if ( work )
+        stale =  work->data[ algo_gate.ntime_index ]
+             != g_work.data[ algo_gate.ntime_index ];
      if ( stale )
      {
         stale_share_count++;
@@ -1260,14 +1247,13 @@ static int share_result( int result, struct work *work,
    if ( unlikely( !( opt_quiet || result || stale ) ) )
    {
       uint32_t str[8];
+      uint32_t *targ;
 
-      if ( reason )
-         applog( LOG_WARNING, "Reject reason: %s", reason );
+      if ( reason ) applog( LOG_WARNING, "Reject reason: %s", reason );
          
-      // display share hash and target for troubleshooting
       diff_to_hash( str, my_stats.share_diff );
       applog2( LOG_INFO, "Hash:   %08x%08x%08x...", str[7], str[6], str[5] );
-      uint32_t *targ;
+
       if ( work )
          targ = work->target;
       else
@@ -1580,6 +1566,7 @@ start:
          {
             double miner_hr = 0.;
             double net_hr = net_hashrate;
+            double nd = net_diff * exp32;
             char net_hr_units[4] = {0};
             char miner_hr_units[4] = {0};
             char net_ttf[32];
@@ -1594,11 +1581,11 @@ start:
             pthread_mutex_unlock( &stats_lock );
 
             if ( net_hr > 0. )
-               sprintf_et( net_ttf, ( net_diff * exp32 ) / net_hr );
+               sprintf_et( net_ttf, nd / net_hr );
             else
                sprintf( net_ttf, "NA" );
             if ( miner_hr > 0. )
-               sprintf_et( miner_ttf, ( net_diff * exp32 ) / miner_hr );
+               sprintf_et( miner_ttf, nd / miner_hr );
             else
                sprintf( miner_ttf, "NA" );
 
@@ -1848,10 +1835,19 @@ bool submit_solution( struct work *work, const void *hash,
                    work->data[ algo_gate.ntime_index ] );
      }
 
-     if ( unlikely( lowdiff_debug ) )
+     if ( opt_debug )
      {
         uint32_t* h = (uint32_t*)hash;
         uint32_t* t = (uint32_t*)work->target;
+        uint32_t* d = (uint32_t*)work->data;
+
+        unsigned char *xnonce2str = abin2hex( work->xnonce2,
+                                              work->xnonce2_len );
+        applog(LOG_INFO,"Thread %d, Nonce %08x, Xnonce2 %s", thr->id,
+                       work->data[ algo_gate.nonce_index ], xnonce2str );
+        free( xnonce2str );
+        applog(LOG_INFO,"Data[0:19]: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x", d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7],d[8],d[9] );
+        applog(LOG_INFO,"          : %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x", d[10],d[11],d[12],d[13],d[14],d[15],d[16],d[17],d[18],d[19]);
         applog(LOG_INFO,"Hash[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
                                     h[7],h[6],h[5],h[4],h[3],h[2],h[1],h[0]);
         applog(LOG_INFO,"Targ[7:0]: %08x %08x %08x %08x %08x %08x %08x %08x",
@@ -2066,11 +2062,12 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 
          if ( likely( hr > 0. ) )
          {
+            double nd = net_diff * exp32;
             char hr_units[4] = {0};
             char block_ttf[32];
             char share_ttf[32];
 
-            sprintf_et( block_ttf, ( net_diff * exp32 ) /  hr );
+            sprintf_et( block_ttf, nd /  hr );
             sprintf_et( share_ttf, ( g_work->targetdiff * exp32 ) / hr );
             scale_hash_for_display ( &hr, hr_units );
             applog2( LOG_INFO, "TTF @ %.2f %sh/s: Block %s, Share %s",
@@ -2086,7 +2083,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
                     : et.tv_sec / ( last_block_height - session_first_block );
                if ( net_diff && net_ttf )
                {
-                  double net_hr = net_diff * exp32 / net_ttf;
+                  double net_hr = nd / net_ttf;
                   char net_hr_units[4] = {0};
 
                   scale_hash_for_display ( &net_hr, net_hr_units );
@@ -2253,12 +2250,6 @@ static void *miner_thread( void *userdata )
 
        if ( unlikely( !algo_gate.ready_to_mine( &work, &stratum, thr_id ) ) )
           continue;
-       // conditional mining
-       if ( unlikely( !wanna_mine( thr_id ) ) )
-       {
-          sleep(5);
-	       continue;
-       }
 
 // LP_SCANTIME overrides opt_scantime option, is this right?
 
@@ -2445,6 +2436,14 @@ static void *miner_thread( void *userdata )
 #endif
 	       }
        }  // benchmark
+
+       // conditional mining
+       if ( unlikely( !wanna_mine( thr_id ) ) )
+       {
+          sleep(5);
+          continue;
+       }
+
    }  // miner_thread loop
 
 out:

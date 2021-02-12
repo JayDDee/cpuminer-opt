@@ -65,6 +65,14 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.15.6
+
+Implement keccak pre-hash optimization for x16* algos.
+Move conditional mining test to before get_new_work in miner thread.
+Add test for share reject reason when solo mining.
+Add support for floating point, as well as integer, "networkhasps" in
+RPC getmininginfo method.
+
 v3.15.5
 
 Fix stratum jobs lost if 2 jobs received in less than one second.

@@ -59,7 +59,7 @@ Notes about included DLL files:
 
 Downloading DLL files from alternative sources presents an inherent
 security risk if their source is unknown. All DLL files included have
-been copied from the Ubuntu-20.04 instalation or compiled by me from
+been copied from the Ubuntu-20.04 installation or compiled by me from
 source code obtained from the author's official repository. The exact
 procedure is documented in the build instructions for Windows:
 https://github.com/JayDDee/cpuminer-opt/wiki/Compiling-from-source
