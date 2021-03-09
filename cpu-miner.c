@@ -204,6 +204,7 @@ static double   lowest_share = 9e99; // lowest accepted share diff
 static double   last_targetdiff = 0.;
 #if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
 static uint32_t hi_temp = 0;
+static uint32_t prev_temp = 0;
 #endif
 
   
@@ -998,32 +999,67 @@ static struct timeval last_submit_time = {0};
 
 static inline int stats_ptr_incr( int p )
 {
-   return ++p < s_stats_size ? p : 0;
+   return ++p % s_stats_size;
 }
 
 void report_summary_log( bool force )
 {
    struct timeval now, et, uptime, start_time;
 
-   pthread_mutex_lock( &stats_lock );
-
    gettimeofday( &now, NULL );
    timeval_subtract( &et, &now, &five_min_start );
 
-   if ( !( force && ( submit_sum || ( et.tv_sec > 5 ) ) )
-        && ( et.tv_sec < 300 ) )
+#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
+
+   // Display CPU temperature and clock rate.
+   int curr_temp = cpu_temp(0); 
+   static struct timeval cpu_temp_time = {0};
+   struct timeval diff;
+
+   if ( !opt_quiet || ( curr_temp >= 80 ) )
    {
-      pthread_mutex_unlock( &stats_lock );
-      return;
+      int wait_time = curr_temp >= 90 ? 5 : curr_temp >= 80 ? 30 :
+                                            curr_temp >= 70 ? 60 : 120;
+      timeval_subtract( &diff, &now, &cpu_temp_time );
+      if ( ( diff.tv_sec > wait_time )
+        || ( ( curr_temp > prev_temp ) && ( curr_temp >= 75 ) ) )
+      {
+         char tempstr[32];
+         float lo_freq = 0., hi_freq = 0.;
+
+         memcpy( &cpu_temp_time, &now, sizeof(cpu_temp_time) );
+         linux_cpu_hilo_freq( &lo_freq, &hi_freq );
+         if ( use_colors && ( curr_temp >= 70 ) )
+         {
+            if ( curr_temp >= 80 )
+               sprintf( tempstr, "%s%d C%s", CL_RED, curr_temp, CL_WHT );
+            else
+               sprintf( tempstr, "%s%d C%s", CL_YLW, curr_temp, CL_WHT );
+         }
+         else
+            sprintf( tempstr, "%d C", curr_temp );
+
+         applog( LOG_NOTICE,"CPU temp: curr %s max %d, Freq: %.3f/%.3f GHz",
+                 tempstr, hi_temp, lo_freq / 1e6, hi_freq / 1e6 );
+         if ( curr_temp > hi_temp ) hi_temp = curr_temp;
+         prev_temp = curr_temp;
+      }
    }
+
+#endif
+
+   if ( !( force && ( submit_sum || ( et.tv_sec > 5 ) ) )
+     && ( et.tv_sec < 300 ) )
+      return;
    
    // collect and reset periodic counters
+   pthread_mutex_lock( &stats_lock );
+
    uint64_t submits = submit_sum;  submit_sum = 0;
    uint64_t accepts = accept_sum;  accept_sum = 0;
    uint64_t rejects = reject_sum;  reject_sum = 0;
    uint64_t stales  = stale_sum;   stale_sum  = 0;
    uint64_t solved  = solved_sum;  solved_sum = 0;
-
    memcpy( &start_time, &five_min_start, sizeof start_time );
    memcpy( &five_min_start, &now, sizeof now );
 
@@ -1080,27 +1116,38 @@ void report_summary_log( bool force )
 
    applog2( LOG_INFO,"Submitted        %6d       %6d",
                        submits, submitted_share_count );
-   applog2( LOG_INFO,"Accepted         %6d       %6d",
-                       accepts, accepted_share_count );
+   applog2( LOG_INFO,"Accepted         %6d       %6d      %5.1f%%",
+                       accepts, accepted_share_count,
+                      100. * accepted_share_count / submitted_share_count );
    if ( stale_share_count )
-      applog2( LOG_INFO,"Stale            %6d       %6d",
-                       stales, stale_share_count );
+      applog2( LOG_INFO,"Stale            %6d       %6d      %5.1f%%",
+                       stales, stale_share_count,
+                       100. * stale_share_count / submitted_share_count );
    if ( rejected_share_count )
-      applog2( LOG_INFO,"Rejected         %6d       %6d",
-                       rejects, rejected_share_count );
+      applog2( LOG_INFO,"Rejected         %6d       %6d      %5.1f%%",
+                       rejects, rejected_share_count,
+                       100. * rejected_share_count / submitted_share_count );
    if ( solved_block_count )
       applog2( LOG_INFO,"Blocks Solved    %6d       %6d",
                          solved, solved_block_count );
    applog2( LOG_INFO, "Hi/Lo Share Diff  %.5g /  %.5g",
                        highest_share, lowest_share );
-}
 
-bool lowdiff_debug = false;
+   static int64_t no_acks = 0;
+   if ( no_acks )
+   {
+      no_acks = submitted_share_count
+         - ( accepted_share_count + stale_share_count + rejected_share_count );
+      if ( no_acks )  // 2 consecutive cycles non zero
+         applog(LOG_WARNING,"Share count mismatch: %d, stats may be incorrect",
+                no_acks );
+   }
+}
 
 static int share_result( int result, struct work *work,
                          const char *reason )
 {
-   double share_time = 0.; //, share_ratio = 0.;
+   double share_time = 0.; 
    double hashrate = 0.;
    int latency = 0;
    struct share_stats_t my_stats = {0};
@@ -1140,11 +1187,6 @@ static int share_result( int result, struct work *work,
       memcpy( &last_submit_time, &my_stats.submit_time,
               sizeof last_submit_time );
    }
-
-/*   
-   share_ratio = my_stats.net_diff == 0. ? 0. : my_stats.share_diff /
-                                                my_stats.net_diff;
-*/
 
    // check result
    if ( likely( result ) )
@@ -2324,6 +2366,8 @@ static void *miner_thread( void *userdata )
           pthread_mutex_unlock( &stats_lock );
        }
 
+       // This code is deprecated, scanhash should never return true.
+       // This remains as a backup in case some old implementations still exist.
        // If unsubmiited nonce(s) found, submit now. 
        if ( unlikely( nonce_found && !opt_benchmark ) )
        {  
@@ -2349,48 +2393,6 @@ static void *miner_thread( void *userdata )
              pthread_rwlock_unlock( &g_work_lock );
           }
        }
-
-#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
-
-       // Display CPU temperature and clock rate.
-       int curr_temp, prev_hi_temp;
-       static struct timeval cpu_temp_time = {0};
-
-       pthread_mutex_lock( &stats_lock );
-
-       prev_hi_temp = hi_temp;
-       curr_temp = cpu_temp(0);
-       if ( curr_temp > hi_temp ) hi_temp = curr_temp;
-
-       pthread_mutex_unlock( &stats_lock );
-
-       if ( !opt_quiet || ( curr_temp >= 80 ) )
-       {
-          int wait_time = curr_temp >= 80 ? 20 : curr_temp >= 70 ? 60 : 120;
-          timeval_subtract( &diff, &tv_end, &cpu_temp_time );
-          if ( ( diff.tv_sec > wait_time ) || ( curr_temp > prev_hi_temp ) )
-          {
-             char tempstr[32];
-             float lo_freq = 0., hi_freq = 0.;
-
-             memcpy( &cpu_temp_time, &tv_end, sizeof(cpu_temp_time) ); 
-             linux_cpu_hilo_freq( &lo_freq, &hi_freq );
-             if ( use_colors && ( curr_temp >= 70 ) )
-             {
-                if ( curr_temp >= 80 )
-                   sprintf( tempstr, "%s%d C%s", CL_RED, curr_temp, CL_WHT );
-                else
-                   sprintf( tempstr, "%s%d C%s", CL_YLW, curr_temp, CL_WHT );
-             }
-             else
-                sprintf( tempstr, "%d C", curr_temp );
-
-             applog( LOG_NOTICE,"CPU temp: curr %s (max %d), Freq: %.3f/%.3f GHz",
-                     tempstr, prev_hi_temp, lo_freq / 1e6, hi_freq / 1e6 );
-          }
-       }
-
-#endif
 
        // display hashrate
        if ( unlikely( opt_hash_meter ) )

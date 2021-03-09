@@ -131,7 +131,7 @@
 // If a sequence of constants is to be used it can be more efficient to
 // use arithmetic with already existing constants to generate new ones.
 //
-// ex: const __m512i one = _mm512_const1_64( 1 );
+// ex: const __m512i one = m512_one_64;
 //     const __m512i two = _mm512_add_epi64( one, one );
 //     
 //////////////////////////////////////////////////////////////////////////

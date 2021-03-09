@@ -43,7 +43,7 @@ int groestl512_4way_update_close( groestl512_4way_context* ctx, void* output,
    const int hashlen_m128i = 64 / 16;   // bytes to __m128i
    const int hash_offset = SIZE512 - hashlen_m128i;
    int rem = ctx->rem_ptr;
-   int blocks = len / SIZE512;
+   uint64_t blocks = len / SIZE512;
    __m512i* in = (__m512i*)input;
    int i;
 
@@ -64,16 +64,14 @@ int groestl512_4way_update_close( groestl512_4way_context* ctx, void* output,
    if ( i == SIZE512 - 1 )
    {        
        // only 1 vector left in buffer, all padding at once
-       ctx->buffer[i] = m512_const1_128( _mm_set_epi8(
-                      blocks, blocks>>8,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0x80 ) );
+       ctx->buffer[i] = m512_const2_64( blocks << 56, 0x80 );
    }   
    else
    {
-       ctx->buffer[i] = m512_const4_64( 0, 0x80, 0, 0x80 );
+       ctx->buffer[i] = m512_const2_64( 0, 0x80 );
        for ( i += 1; i < SIZE512 - 1; i++ )
            ctx->buffer[i] = m512_zero;
-       ctx->buffer[i] = m512_const1_128( _mm_set_epi8(
-                   blocks, blocks>>8, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0 ) );
+       ctx->buffer[i] = m512_const2_64( blocks << 56, 0 );
    }
 
    TF1024_4way( ctx->chaining, ctx->buffer );
@@ -124,7 +122,7 @@ int groestl512_4way_full( groestl512_4way_context* ctx, void* output,
    }
    else
    {
-       ctx->buffer[i] = m512_const4_64( 0, 0x80, 0, 0x80 );
+       ctx->buffer[i] = m512_const2_64( 0, 0x80 );
        for ( i += 1; i < SIZE512 - 1; i++ )
            ctx->buffer[i] = m512_zero;
        ctx->buffer[i] = m512_const2_64( blocks << 56, 0 );
@@ -168,7 +166,7 @@ int groestl512_2way_update_close( groestl512_2way_context* ctx, void* output,
    const int hashlen_m128i = 64 / 16;   // bytes to __m128i
    const int hash_offset = SIZE512 - hashlen_m128i;
    int rem = ctx->rem_ptr;
-   int blocks = len / SIZE512;
+   uint64_t blocks = len / SIZE512;
    __m256i* in = (__m256i*)input;
    int i;
 
@@ -189,16 +187,14 @@ int groestl512_2way_update_close( groestl512_2way_context* ctx, void* output,
    if ( i == SIZE512 - 1 )
    {
        // only 1 vector left in buffer, all padding at once
-       ctx->buffer[i] = m256_const1_128( _mm_set_epi8(
-                      blocks, blocks>>8,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0x80 ) );
+       ctx->buffer[i] = m256_const2_64( blocks << 56, 0x80 );
    }
    else
    {
        ctx->buffer[i] = m256_const2_64( 0, 0x80 );
        for ( i += 1; i < SIZE512 - 1; i++ )
            ctx->buffer[i] = m256_zero;
-       ctx->buffer[i] = m256_const1_128( _mm_set_epi8(
-                   blocks, blocks>>8, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0 ) );
+       ctx->buffer[i] = m256_const2_64( blocks << 56, 0 );
    }
 
    TF1024_2way( ctx->chaining, ctx->buffer );

@@ -292,7 +292,7 @@ void shavite512_4way_close( shavite512_4way_context *ctx, void *dst )
     uint32_t vp = ctx->ptr>>6;
 
     // Terminating byte then zero pad
-    casti_m512i( buf, vp++ ) = m512_const2_64( 0, 0x0000000000000080 );
+    casti_m512i( buf, vp++ ) = m512_const1_i128( 0x0000000000000080 );
 
     // Zero pad full vectors up to count
     for ( ; vp < 6; vp++ )      
@@ -372,13 +372,13 @@ void shavite512_4way_update_close( shavite512_4way_context *ctx, void *dst,
 
    if ( vp == 0 )    // empty buf, xevan.
    { 
-      casti_m512i( buf, 0 ) = m512_const2_64( 0, 0x0000000000000080 );
+      casti_m512i( buf, 0 ) = m512_const1_i128( 0x0000000000000080 );
       memset_zero_512( (__m512i*)buf + 1, 5 );
       ctx->count0 = ctx->count1 = ctx->count2 = ctx->count3 = 0;
    }
    else     // half full buf, everyone else.
    {
-    casti_m512i( buf, vp++ ) = m512_const2_64( 0, 0x0000000000000080 );
+    casti_m512i( buf, vp++ ) = m512_const1_i128( 0x0000000000000080 );
       memset_zero_512( (__m512i*)buf + vp, 6 - vp );
    }
 
@@ -463,13 +463,13 @@ void shavite512_4way_full( shavite512_4way_context *ctx, void *dst,
 
    if ( vp == 0 )    // empty buf, xevan.
    {
-      casti_m512i( buf, 0 ) = m512_const2_64( 0, 0x0000000000000080 );
+      casti_m512i( buf, 0 ) = m512_const1_i128( 0x0000000000000080 );
       memset_zero_512( (__m512i*)buf + 1, 5 );
       ctx->count0 = ctx->count1 = ctx->count2 = ctx->count3 = 0;
    }
    else     // half full buf, everyone else.
    {
-    casti_m512i( buf, vp++ ) = m512_const2_64( 0, 0x0000000000000080 );
+    casti_m512i( buf, vp++ ) = m512_const1_i128( 0x0000000000000080 );
       memset_zero_512( (__m512i*)buf + vp, 6 - vp );
    }
 

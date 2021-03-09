@@ -457,9 +457,6 @@ bool stratum_subscribe(struct stratum_ctx *sctx);
 bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *pass);
 bool stratum_handle_method(struct stratum_ctx *sctx, const char *s);
 
-extern bool lowdiff_debug;
-
-
 
 extern bool aes_ni_supported;
 extern char *rpc_user;
@@ -549,7 +546,7 @@ enum algos {
         ALGO_LYRA2REV3,
         ALGO_LYRA2Z,
         ALGO_LYRA2Z330,
-	ALGO_M7M,
+        ALGO_M7M,
         ALGO_MINOTAUR,
         ALGO_MYR_GR,      
         ALGO_NEOSCRYPT,

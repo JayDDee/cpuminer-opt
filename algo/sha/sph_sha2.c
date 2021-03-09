@@ -77,6 +77,7 @@ static const sph_u32 H256[8] = {
 
 #else   // no SHA
 
+/*
 static const sph_u32 K[64] = {
 	SPH_C32(0x428A2F98), SPH_C32(0x71374491),
 	SPH_C32(0xB5C0FBCF), SPH_C32(0xE9B5DBA5),
@@ -111,6 +112,7 @@ static const sph_u32 K[64] = {
 	SPH_C32(0x90BEFFFA), SPH_C32(0xA4506CEB),
 	SPH_C32(0xBEF9A3F7), SPH_C32(0xC67178F2)
 };
+*/
 
 #if SPH_SMALL_FOOTPRINT_SHA2
 

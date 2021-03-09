@@ -55,8 +55,8 @@ MYALIGN const unsigned int	mul2ipt[]		= {0x728efc00, 0x6894e61a, 0x3fc3b14d, 0x2
 
 #define ECHO_SUBBYTES(state, i, j) \
 	state[i][j] = _mm_aesenc_si128(state[i][j], k1);\
-	state[i][j] = _mm_aesenc_si128(state[i][j], M128(zero));\
-	k1 = _mm_add_epi32(k1, M128(const1))
+   k1 = _mm_add_epi32(k1, M128(const1));\
+	state[i][j] = _mm_aesenc_si128(state[i][j], M128(zero))
 
 #define ECHO_MIXBYTES(state1, state2, j, t1, t2, s2) \
 	s2 = _mm_add_epi8(state1[0][j], state1[0][j]);\

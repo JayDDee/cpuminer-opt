@@ -10,22 +10,20 @@ static const unsigned int mul2ipt[] __attribute__ ((aligned (64))) =
    0xfd5ba600, 0x2a8c71d7, 0x1eb845e3, 0xc96f9234
 };
 */
-// do these need to be reversed?
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 
-#define mul2mask \
-     m512_const2_64( 0, 0x00001b00 )
+//#define mul2mask    m512_const2_64( 0, 0x00001b00 )
 //_mm512_set4_epi32( 0, 0, 0, 0x00001b00 ) 
-//   _mm512_set4_epi32( 0x00001b00, 0, 0, 0 )  
+//_mm512_set4_epi32( 0x00001b00, 0, 0, 0 )  
 
-#define lsbmask    m512_const1_32( 0x01010101 ) 
+//#define lsbmask    m512_const1_32( 0x01010101 ) 
 
 #define ECHO_SUBBYTES( state, i, j ) \
 	state[i][j] = _mm512_aesenc_epi128( state[i][j], k1 ); \
-	state[i][j] = _mm512_aesenc_epi128( state[i][j], m512_zero ); \
-	k1 = _mm512_add_epi32( k1, m512_one_128 );
+   k1 = _mm512_add_epi32( k1, one ); \
+	state[i][j] = _mm512_aesenc_epi128( state[i][j], m512_zero );
 
 #define ECHO_MIXBYTES( state1, state2, j, t1, t2, s2 ) do \
 { \
@@ -140,6 +138,9 @@ void echo_4way_compress( echo_4way_context *ctx, const __m512i *pmsg,
   unsigned int r, b, i, j;
   __m512i t1, t2, s2, k1;
   __m512i _state[4][4], _state2[4][4], _statebackup[4][4]; 
+  __m512i one = m512_one_128;
+  __m512i mul2mask = m512_const2_64( 0, 0x00001b00 );
+  __m512i lsbmask  = m512_const1_32( 0x01010101 ); 
 
   _state[ 0 ][ 0 ] = ctx->state[ 0 ][ 0 ];
   _state[ 0 ][ 1 ] = ctx->state[ 0 ][ 1 ];
@@ -406,8 +407,8 @@ int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
 
 #define ECHO_SUBBYTES_2WAY( state, i, j ) \
         state[i][j] = _mm256_aesenc_epi128( state[i][j], k1 ); \
+        k1 = _mm256_add_epi32( k1, m256_one_128 ); \
         state[i][j] = _mm256_aesenc_epi128( state[i][j], m256_zero ); \
-        k1 = _mm256_add_epi32( k1, m256_one_128 );
 
 #define ECHO_MIXBYTES_2WAY( state1, state2, j, t1, t2, s2 ) do \
 { \

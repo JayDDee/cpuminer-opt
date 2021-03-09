@@ -548,7 +548,7 @@ static const sph_u32 T512[64][16] = {
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-// Hamsi 8 way 
+// Hamsi 8 way AVX512 
 
 #define INPUT_BIG8 \
 do { \
@@ -849,13 +849,11 @@ void hamsi512_8way_update( hamsi_8way_big_context *sc, const void *data,
 void hamsi512_8way_close( hamsi_8way_big_context *sc, void *dst )
 {
    __m512i pad[1];
-   int ch, cl;
+   uint32_t ch, cl;
 
    sph_enc32be( &ch, sc->count_high );
    sph_enc32be( &cl, sc->count_low + ( sc->partial_len << 3 ) );
-   pad[0] =  _mm512_set_epi32( cl, ch, cl, ch, cl, ch, cl, ch,
-                               cl, ch, cl, ch, cl, ch, cl, ch );
-//   pad[0] =  m512_const2_32( cl, ch );
+   pad[0] = _mm512_set1_epi64( ((uint64_t)cl << 32 ) | (uint64_t)ch );
    sc->buf[0] = m512_const1_64( 0x80 );
    hamsi_8way_big( sc, sc->buf, 1 );
    hamsi_8way_big_final( sc, pad );
@@ -863,11 +861,9 @@ void hamsi512_8way_close( hamsi_8way_big_context *sc, void *dst )
    mm512_block_bswap_32( (__m512i*)dst, sc->h );
 }
 
-
 #endif // AVX512
 
-
-// Hamsi 4 way
+// Hamsi 4 way AVX2
 
 #define INPUT_BIG \
 do { \
@@ -1186,14 +1182,12 @@ void hamsi512_4way_update( hamsi_4way_big_context *sc, const void *data,
 void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 {
    __m256i pad[1];
-   int ch, cl;
+   uint32_t ch, cl;
 
    sph_enc32be( &ch, sc->count_high );
    sph_enc32be( &cl, sc->count_low + ( sc->partial_len << 3 ) );
-   pad[0] =  _mm256_set_epi32( cl, ch, cl, ch, cl, ch, cl, ch );
+   pad[0] = _mm256_set1_epi64x( ((uint64_t)cl << 32 ) | (uint64_t)ch );
    sc->buf[0] = m256_const1_64( 0x80 );
-//      sc->buf[0] = _mm256_set_epi32( 0UL, 0x80UL, 0UL, 0x80UL,
-//                                  0UL, 0x80UL, 0UL, 0x80UL );
    hamsi_big( sc, sc->buf, 1 );
    hamsi_big_final( sc, pad );
 

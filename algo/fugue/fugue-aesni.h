@@ -14,7 +14,11 @@
 #ifndef FUGUE_HASH_API_H
 #define FUGUE_HASH_API_H
 
-#if defined(__AES__)
+#if defined(__AES__) 
+
+#if !defined(__SSE4_1__)
+#error "Unsupported configuration, AES needs SSE4.1. Compile without AES."
+#endif
 
 #include "algo/sha/sha3_common.h"
 #include "simd-utils.h"

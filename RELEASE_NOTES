@@ -65,6 +65,14 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.15.7
+
+Added accepted/stale/rejected percentage to summary log report.
+Added warning if share counters mismatch which could corrupt stats.
+Linux: CPU temperature reporting is more responsive to rising temperature.
+A few AVX2 & AVX512 tweaks.
+Removed some dead code and other cleanup.
+
 v3.15.6
 
 Implement keccak pre-hash optimization for x16* algos.

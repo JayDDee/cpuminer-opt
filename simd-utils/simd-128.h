@@ -27,13 +27,15 @@
 // All of the utilities here assume all data is in registers except
 // in rare cases where arguments are pointers.
 //
+// Some constants are generated using a memory overlay on the stack.
+//
 // Intrinsics automatically promote from REX to VEX when AVX is available
 // but ASM needs to be done manually.
 //
 ///////////////////////////////////////////////////////////////////////////
 
 
-// Efficient and convenient moving bwtween GP & low bits of XMM.
+// Efficient and convenient moving between GP & low bits of XMM.
 // Use VEX when available to give access to xmm8-15 and zero extend for
 // larger vectors.
 
@@ -81,6 +83,23 @@ static inline uint32_t mm128_mov128_32( const __m128i a )
   return  n;
 }
 
+// Equivalent of set1, broadcast integer to all elements.
+#define m128_const_i128( i ) mm128_mov64_128( i )
+#define m128_const1_64( i ) _mm_shuffle_epi32( mm128_mov64_128( i ), 0x44 )
+#define m128_const1_32( i ) _mm_shuffle_epi32( mm128_mov32_128( i ), 0x00 )
+
+#if defined(__SSE4_1__)
+
+// Assign 64 bit integers to respective elements: {hi, lo}
+#define m128_const_64( hi, lo ) \
+   _mm_insert_epi64( mm128_mov64_128( lo ), hi, 1 )
+
+#else  // No insert in SSE2
+
+#define m128_const_64  _mm_set_epi64x
+
+#endif
+
 // Pseudo constants
 
 #define m128_zero      _mm_setzero_si128()
@@ -107,27 +126,53 @@ static inline __m128i mm128_neg1_fn()
 }
 #define m128_neg1    mm128_neg1_fn()
 
-
-// const functions work best when arguments are immediate constants or
-// are known to be in registers. If data needs to loaded from memory or cache
-// use set.
-
-// Equivalent of set1, broadcast 64 bit integer to all elements.
-#define m128_const1_64( i ) _mm_shuffle_epi32( mm128_mov64_128( i ), 0x44 )
-#define m128_const1_32( i ) _mm_shuffle_epi32( mm128_mov32_128( i ), 0x00 )
-
 #if defined(__SSE4_1__)
 
-// Assign 64 bit integers to respective elements: {hi, lo}
-#define m128_const_64( hi, lo ) \
-   _mm_insert_epi64( mm128_mov64_128( lo ), hi, 1 )
+/////////////////////////////
+//
+//      _mm_insert_ps( _mm128i v1, __m128i v2, imm8 c )
+//
+// Fast and powerful but very limited in its application.
+// It requires SSE4.1 but only works with 128 bit vectors with 32 bit
+// elements. There is no equivalent instruction for 256 bit or 512 bit vectors.
+// There's no integer version. There's no 64 bit, 16 bit or byte element
+// sizing. It's unique.
+//
+// It can:
+//   - zero 32 bit elements of a 128 bit vector.
+//   - extract any 32 bit element from one 128 bit vector and insert the
+//     data to any 32 bit element of another 128 bit vector, or the same vector.
+//   - do both simultaneoulsly.
+//
+//   It can be used as a more efficient replacement for _mm_insert_epi32
+//   or _mm_extract_epi32.
+//
+// Control byte definition:
+//    c[3:0] zero mask
+//    c[5:4] destination element selector
+//    c[7:6] source element selector
 
-#else  // No insert in SSE2
+// Convert type and abbreviate name: e"x"tract "i"nsert "m"ask
+#define mm128_xim_32( v1, v2, c ) \
+   _mm_castps_si128( _mm_insert_ps( _mm_castsi128_ps( v1 ), \
+                                    _mm_castsi128_ps( v2 ), c ) )
 
-#define m128_const_64  _mm_set_epi64x
+// Some examples of simple operations:
 
-#endif
+// Insert 32 bit integer into v at element c and return modified v.
+static inline __m128i mm128_insert_32( const __m128i v, const uint32_t i,
+                                       const int c )
+{   return mm128_xim_32( v, mm128_mov32_128( i ), c<<4 ); }
 
+// Extract 32 bit element c from v and return as integer.
+static inline uint32_t mm128_extract_32( const __m128i v, const int c )
+{   return mm128_mov128_32( mm128_xim_32( v, v, c<<6 ) ); }
+
+// Clear (zero) 32 bit elements based on bits set in 4 bit mask.
+static inline __m128i mm128_mask_32( const __m128i v, const int m ) 
+{   return mm128_xim_32( v, v, m ); }
+
+#endif  // SSE4_1
 
 //
 // Basic operations without equivalent SIMD intrinsic
@@ -140,11 +185,6 @@ static inline __m128i mm128_neg1_fn()
 #define mm128_negate_32( v )    _mm_sub_epi32( m128_zero, v )  
 #define mm128_negate_16( v )    _mm_sub_epi16( m128_zero, v )  
 
-// Clear (zero) 32 bit elements based on bits set in 4 bit mask.
-// Fast, avoids using vector mask, but only available for 128 bit vectors.
-#define mm128_mask_32( a, mask ) \
-   _mm_castps_si128( _mm_insert_ps( _mm_castsi128_ps( a ), \
-                                    _mm_castsi128_ps( a ), mask ) )
 
 // Add 4 values, fewer dependencies than sequential addition.
 #define mm128_add4_64( a, b, c, d ) \
@@ -162,27 +202,6 @@ static inline __m128i mm128_neg1_fn()
 #define mm128_xor4( a, b, c, d ) \
    _mm_xor_si128( _mm_xor_si128( a, b ), _mm_xor_si128( c, d ) )
 
-// Horizontal vector testing
-
-#if defined(__SSE4_1__)
-
-#define mm128_allbits0( a )    _mm_testz_si128(   a, a )
-#define mm128_allbits1( a )    _mm_testc_si128(   a, m128_neg1 )
-// probably broken, avx2 is
-//#define mm128_allbitsne( a )   _mm_testnzc_si128( a, m128_neg1 )
-#define mm128_anybits0( a )    mm128_allbits1( a )
-#define mm128_anybits1( a )    mm128_allbits0( a )
-
-#else   // SSE2
-
-// Bit-wise test of entire vector, useful to test results of cmp.
-#define mm128_anybits0( a ) (uint128_t)(a)
-#define mm128_anybits1( a ) (((uint128_t)(a))+1)
-
-#define mm128_allbits0( a ) ( !mm128_anybits1(a) )
-#define mm128_allbits1( a ) ( !mm128_anybits0(a) )
-
-#endif // SSE4.1 else SSE2
 
 //
 // Vector pointer cast
@@ -203,11 +222,6 @@ static inline __m128i mm128_neg1_fn()
 // returns pointer p+o
 #define casto_m128i(p,o) (((__m128i*)(p))+(o))
 
-
-// Memory functions
-// Mostly for convenience, avoids calculating bytes.
-// Assumes data is alinged and integral.
-// n = number of __m128i, bytes/16
 
 // Memory functions
 // Mostly for convenience, avoids calculating bytes.
@@ -256,14 +270,14 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_ror_32    _mm_ror_epi32
 #define mm128_rol_32    _mm_rol_epi32
 
-#else
+#else  // SSE2
 
 #define mm128_ror_64   mm128_ror_var_64
 #define mm128_rol_64   mm128_rol_var_64
 #define mm128_ror_32   mm128_ror_var_32
 #define mm128_rol_32   mm128_rol_var_32
 
-#endif   // AVX512 else
+#endif   // AVX512 else SSE2
 
 #define mm128_ror_16( v, c ) \
    _mm_or_si128( _mm_srli_epi16( v, c ), _mm_slli_epi16( v, 16-(c) ) )
@@ -280,57 +294,18 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 //#define mm128_swap_64( v )    _mm_alignr_epi8( v, v,  8 )
 //#define mm128_ror_1x32( v )   _mm_alignr_epi8( v, v,  4 )
 //#define mm128_rol_1x32( v )   _mm_alignr_epi8( v, v, 12 )
-#define mm128_ror_1x16( v )   _mm_alignr_epi8( v, v,  2 )
-#define mm128_rol_1x16( v )   _mm_alignr_epi8( v, v, 14 )
-#define mm128_ror_1x8( v )    _mm_alignr_epi8( v, v,  1 )
-#define mm128_rol_1x8( v )    _mm_alignr_epi8( v, v, 15 )
 
-// Rotate by c bytes
-#define mm128_ror_x8( v, c )  _mm_alignr_epi8( v, c )
-#define mm128_rol_x8( v, c )  _mm_alignr_epi8( v, 16-(c) )
-
-
-// Invert vector: {3,2,1,0} -> {0,1,2,3}
-#define mm128_invert_32( v ) _mm_shuffle_epi32( v, 0x1b )
+// Swap 32 bit elements in 64 bit lanes
+#define mm128_swap64_32( v )  _mm_shuffle_epi32( v, 0xb1 )
 
 #if defined(__SSSE3__)
 
-#define mm128_invert_16( v ) \
-   _mm_shuffle_epi8( v, mm128_const_64( 0x0100030205040706, \
-                                        0x09080b0a0d0c0f0e )
-#define mm128_invert_8( v ) \
-   _mm_shuffle_epi8( v, mm128_const_64( 0x0001020304050607, \
-                                        0x08090a0b0c0d0e0f )
-
-#endif   // SSSE3
-
-
-//
-// Rotate elements within lanes.
-
-#define mm128_swap64_32( v )  _mm_shuffle_epi32( v, 0xb1 )
-
-#define mm128_rol64_8( v, c ) \
-     _mm_or_si128( _mm_slli_epi64( v, ( ( (c)<<3 ) ), \
-                   _mm_srli_epi64( v, ( ( 64 - ( (c)<<3 ) ) ) )
-
-#define mm128_ror64_8( v, c ) \
-     _mm_or_si128( _mm_srli_epi64( v, ( ( (c)<<3 ) ), \
-                   _mm_slli_epi64( v, ( ( 64 - ( (c)<<3 ) ) ) )
-
-#define mm128_rol32_8( v, c ) \
-     _mm_or_si128( _mm_slli_epi32( v, ( ( (c)<<3 ) ), \
-                   _mm_srli_epi32( v, ( ( 32 - ( (c)<<3 ) ) ) )
-
-#define mm128_ror32_8( v, c ) \
-     _mm_or_si128( _mm_srli_epi32( v, ( ( (c)<<3 ) ), \
-                   _mm_slli_epi32( v, ( ( 32 - ( (c)<<3 ) ) ) )
-           
+// Rotate right by c bytes
+static inline __m128i mm128_ror_x8( const __m128i v, const int c )
+{ return _mm_alignr_epi8( v, v, c ); }
 
 //
 // Endian byte swap.
-
-#if defined(__SSSE3__)
 
 #define mm128_bswap_64( v ) \
    _mm_shuffle_epi8( v, m128_const_64( 0x08090a0b0c0d0e0f, \
@@ -374,7 +349,6 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 #else  // SSE2
 
-// Use inline function instead of macro due to multiple statements.
 static inline __m128i mm128_bswap_64( __m128i v )
 {
       v = _mm_or_si128( _mm_slli_epi16( v, 8 ), _mm_srli_epi16( v, 8 ) );

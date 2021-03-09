@@ -26,9 +26,6 @@
 //    _mm512_permutex_epi64 only shuffles within 256 bit lanes. Permute
 //    usually shuffles accross all lanes.
 //
-//    Some instructions like cmp and blend use a mask regsiter now instead
-//    a mask vector.
-//
 //    permutexvar has args reversed, index is first arg. Previously all
 //    permutes and shuffles have the index last.
 //
@@ -85,52 +82,43 @@
 #define mm512_mov256_64( a ) mm128_mov128_64( _mm256_castsi512_si128( a ) )
 #define mm512_mov256_32( a ) mm128_mov128_32( _mm256_castsi512_si128( a ) )
 
-
-// Insert and extract integers is a multistage operation.
-// Insert integer into __m128i, then insert __m128i to __m256i, finally
-// insert __256i into __m512i. Reverse the order for extract.
-// Do not use __m512_insert_epi64 or _mm256_insert_epi64 to perform multiple
-// inserts.
-// Avoid small integers for multiple inserts.
-// Shortcuts:
-// Use castsi to reference the low bits of a vector or sub-vector. (free)
-// Use mov to insert integer into low bits of vector or sub-vector. (cheap)
-// Use _mm_insert only to reference the high bits of __m128i. (expensive)
-// Sequence instructions to minimize data dependencies.
-// Use const or const1 only when integer is either immediate or known to be in 
-// a GP register. Use set/set1 when data needs to be loaded from memory or
-// cache.
+// A simple 128 bit permute, using function instead of macro avoids
+// problems if the v arg passed as an expression.
+static inline __m512i mm512_perm_128( const __m512i v, const int c )
+{  return _mm512_shuffle_i64x2( v, v, c ); }
 
 // Concatenate two 256 bit vectors into one 512 bit vector {hi, lo}
 #define mm512_concat_256( hi, lo ) \
    _mm512_inserti64x4( _mm512_castsi256_si512( lo ), hi, 1 )
 
 // Equivalent of set, assign 64 bit integers to respective 64 bit elements.
+// Use stack memory overlay
 static inline __m512i m512_const_64( const uint64_t i7, const uint64_t i6,
                                      const uint64_t i5, const uint64_t i4,
                                      const uint64_t i3, const uint64_t i2,
                                      const uint64_t i1, const uint64_t i0 )
 {
-   __m256i hi, lo;
-   __m128i hi1, lo1;
-   lo  = mm256_mov64_256( i0 );
-   lo1 = mm128_mov64_128( i2 );
-   hi  = mm256_mov64_256( i4 );
-   hi1 = mm128_mov64_128( i6 );
-   lo  = _mm256_castsi128_si256(
-         _mm_insert_epi64( _mm256_castsi256_si128( lo ), i1, 1 ) );
-   lo1 = _mm_insert_epi64( lo1, i3, 1 );
-   hi  = _mm256_castsi128_si256(
-         _mm_insert_epi64( _mm256_castsi256_si128( hi ), i5, 1 ) );
-   hi1 = _mm_insert_epi64( hi1, i7, 1 );
-   lo  = _mm256_inserti128_si256( lo, lo1, 1 );
-   hi  = _mm256_inserti128_si256( hi, hi1, 1 );
-   return mm512_concat_256( hi, lo );
+  union { __m512i m512i;
+          uint64_t u64[8]; } v;   
+  v.u64[0] = i0;     v.u64[1] = i1;
+  v.u64[2] = i2;     v.u64[3] = i3;
+  v.u64[4] = i4;     v.u64[5] = i5;
+  v.u64[6] = i6;     v.u64[7] = i7;
+  return v.m512i;
 }
 
-// Equivalent of set1, broadcast 64 bit constant to all 64 bit elements.
-#define m512_const1_256( v )   _mm512_broadcast_i64x4( v )
-#define m512_const1_128( v )   _mm512_broadcast_i64x2( v )
+// Equivalent of set1, broadcast lo element all elements.
+static inline __m512i m512_const1_256( const __m256i v )
+{ return _mm512_inserti64x4( _mm512_castsi256_si512( v ), v, 1 ); }  
+
+#define m512_const1_128( v ) \
+    mm512_perm_128( _mm512_castsi128_si512( v ), 0 )
+// Integer input argument up to 64 bits
+#define m512_const1_i128( i ) \
+    mm512_perm_128( _mm512_castsi128_si512( mm128_mov64_128( i ) ), 0 )
+
+//#define m512_const1_256( v )   _mm512_broadcast_i64x4( v )
+//#define m512_const1_128( v )   _mm512_broadcast_i64x2( v )
 #define m512_const1_64( i )    _mm512_broadcastq_epi64( mm128_mov64_128( i ) )
 #define m512_const1_32( i )    _mm512_broadcastd_epi32( mm128_mov32_128( i ) )
 #define m512_const1_16( i )    _mm512_broadcastw_epi16( mm128_mov32_128( i ) )
@@ -142,23 +130,17 @@ static inline __m512i m512_const_64( const uint64_t i7, const uint64_t i6,
 #define m512_const2_64( i1, i0 ) \
    m512_const1_128( m128_const_64( i1, i0 ) )
 
-#define m512_const2_32( i1, i0 ) \
-   m512_const1_64( ( (uint64_t)(i1) << 32 ) | ( (uint64_t)(i0) & 0xffffffff ) )
-
-// { m128_1, m128_1, m128_0, m128_0 }
-#define m512_const_2x128( v1, v0 ) \
-   m512_mask_blend_epi64( 0x0f, m512_const1_128( v1 ), m512_const1_128( v0 ) )
 
 static inline __m512i m512_const4_64( const uint64_t i3, const uint64_t i2,
                                       const uint64_t i1, const uint64_t i0 )
 {
-   __m256i lo = mm256_mov64_256( i0 );
-   __m128i hi = mm128_mov64_128( i2 );
-   lo = _mm256_castsi128_si256(
-        _mm_insert_epi64( _mm256_castsi256_si128(
-                          lo ), i1, 1 ) );
-   hi = _mm_insert_epi64( hi,   i3, 1 );
-   return _mm512_broadcast_i64x4( _mm256_inserti128_si256( lo, hi, 1 ) );
+  union  {  __m512i m512i;
+            uint64_t u64[8];   } v;
+  v.u64[0] = v.u64[4] = i0;
+  v.u64[1] = v.u64[5] = i1;
+  v.u64[2] = v.u64[6] = i2;
+  v.u64[3] = v.u64[7] = i3;
+  return v.m512i;
 }
 
 //
@@ -170,14 +152,15 @@ static inline __m512i m512_const4_64( const uint64_t i3, const uint64_t i2,
 
 #define m512_zero       _mm512_setzero_si512()
 #define m512_one_512    mm512_mov64_512( 1 )
-#define m512_one_256    _mm512_broadcast_i64x4 ( mm256_mov64_256( 1 ) )
-#define m512_one_128    _mm512_broadcast_i64x2 ( mm128_mov64_128( 1 ) )
-#define m512_one_64     _mm512_broadcastq_epi64( mm128_mov64_128( 1 ) )
-#define m512_one_32     _mm512_broadcastd_epi32( mm128_mov64_128( 1 ) )
-#define m512_one_16     _mm512_broadcastw_epi16( mm128_mov64_128( 1 ) )
-#define m512_one_8      _mm512_broadcastb_epi8 ( mm128_mov64_128( 1 ) )
+#define m512_one_256    _mm512_inserti64x4( m512_one_512, m256_one_256, 1 )  
+#define m512_one_128    m512_const1_i128( 1 )
+#define m512_one_64     m512_const1_64( 1 )
+#define m512_one_32     m512_const1_32( 1 )
+#define m512_one_16     m512_const1_16( 1 )
+#define m512_one_8      m512_const1_8( 1 )
 
-#define m512_neg1 m512_const1_64( 0xffffffffffffffff )
+//#define m512_neg1 m512_const1_64( 0xffffffffffffffff )
+#define m512_neg1 _mm512_movm_epi64( 0xff )
 
 //
 // Basic operations without SIMD equivalent
@@ -242,15 +225,6 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
    _mm512_xor_si512( _mm512_xor_si512( a, b ), _mm512_xor_si512( c, d ) )
 
 
-
-// Horizontal vector testing
-// Returns bit __mmask8
-#define mm512_allbits0( a )    _mm512_cmpeq_epi64_mask( a, m512_zero )
-#define mm512_allbits1( a )    _mm512_cmpeq_epi64_mask( a, m512_neg1 )
-#define mm512_anybits0( a )    _mm512_cmpneq_epi64_mask( a, m512_neg1 )
-#define mm512_anybits1( a )    _mm512_cmpneq_epi64_mask( a, m512_zero )
-
-
 //
 // Bit rotations.
 
@@ -262,37 +236,47 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 // _mm512_rolv_epi64, _mm512_rorv_epi64, _mm512_rolv_epi32, _mm512_rorv_epi32
 //
 
+// For convenience and consistency with AVX2
 #define mm512_ror_64 _mm512_ror_epi64
 #define mm512_rol_64 _mm512_rol_epi64
 #define mm512_ror_32 _mm512_ror_epi32
 #define mm512_rol_32 _mm512_rol_epi32
 
-#define mm512_ror_var_64( v, c ) \
-   _mm512_or_si512( _mm512_srli_epi64( v, c ), \
-                    _mm512_slli_epi64( v, 64-(c) ) )
+static inline __m512i mm512_ror_var_64( const __m512i v, const int c )
+{
+   return _mm512_or_si512( _mm512_srli_epi64( v, c ),
+                           _mm512_slli_epi64( v, 64-c ) );
+}
 
-#define mm512_rol_var_64( v, c ) \
-   _mm512_or_si512( _mm512_slli_epi64( v, c ), \
-                    _mm512_srli_epi64( v, 64-(c) ) )
+static inline __m512i mm512_rol_var_64( const __m512i v, const int c )
+{
+   return _mm512_or_si512( _mm512_slli_epi64( v, c ),
+                           _mm512_srli_epi64( v, 64-c ) );
+}
 
-#define mm512_ror_var_32( v, c ) \
-   _mm512_or_si512( _mm512_srli_epi32( v, c ), \
-                    _mm512_slli_epi32( v, 32-(c) ) )
+static inline __m512i mm512_ror_var_32( const __m512i v, const int c )
+{
+   return _mm512_or_si512( _mm512_srli_epi32( v, c ),
+                           _mm512_slli_epi32( v, 32-c ) );
+}
 
-#define mm512_rol_var_32( v, c ) \
-   _mm512_or_si512( _mm512_slli_epi32( v, c ), \
-                    _mm512_srli_epi32( v, 32-(c) ) )
+static inline __m512i mm512_rol_var_32( const __m512i v, const int c )
+{
+   return _mm512_or_si512( _mm512_slli_epi32( v, c ),
+                           _mm512_srli_epi32( v, 32-c ) );
+}
 
+static inline __m512i mm512_ror_16( __m512i const v, const int c )
+{
+   return _mm512_or_si512( _mm512_srli_epi16( v, c ),
+                           _mm512_slli_epi16( v, 16-c ) );
+}
 
-// Here is a fixed bit rotate for 16 bit elements:
-#define mm512_ror_16( v, c ) \
-    _mm512_or_si512( _mm512_srli_epi16( v, c ), \
-                     _mm512_slli_epi16( v, 16-(c) )
-#define mm512_rol_16( v, c ) \
-    _mm512_or_si512( _mm512_slli_epi16( v, c ), \
-                     _mm512_srli_epi16( v, 16-(c) )
-
-
+static inline __m512i mm512_rol_16( const __m512i v, const int c )
+{
+   return _mm512_or_si512( _mm512_slli_epi16( v, c ),
+                           _mm512_srli_epi16( v, 16-c ) );
+}
 
 // Rotations using a vector control index are very slow due to overhead
 // to generate the index vector. Repeated rotations using the same index
@@ -363,25 +347,32 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 //
 // Rotate elements in 512 bit vector.
 
+static inline __m512i mm512_swap_256( const __m512i v )
+{ return _mm512_alignr_epi64( v, v, 4 ); }
 
-#define mm512_swap_256( v )        _mm512_alignr_epi64( v, v, 4 )
+static inline __m512i mm512_ror_1x128( const __m512i v )
+{ return _mm512_alignr_epi64( v, v, 2 ); }
 
-// 1x64 notation used to disinguish from bit rotation.
-#define mm512_ror_1x128( v )       _mm512_alignr_epi64( v, v, 2 )
-#define mm512_rol_1x128( v )       _mm512_alignr_epi64( v, v, 6 )
+static inline __m512i mm512_rol_1x128( const __m512i v )
+{ return _mm512_alignr_epi64( v, v, 6 ); }
 
-#define mm512_ror_1x64( v )        _mm512_alignr_epi64( v, v, 1 )
-#define mm512_rol_1x64( v )        _mm512_alignr_epi64( v, v, 7 )
+static inline __m512i mm512_ror_1x64( const __m512i v )
+{ return _mm512_alignr_epi64( v, v, 1 ); }
 
-#define mm512_ror_1x32( v )        _mm512_alignr_epi32( v, v, 1 )
-#define mm512_rol_1x32( v )        _mm512_alignr_epi32( v, v, 15 )
+static inline __m512i mm512_rol_1x64( const __m512i v )
+{ return _mm512_alignr_epi64( v, v, 7 ); }
 
-// Generic for odd rotations
-#define mm512_ror_x64( v, n )      _mm512_alignr_epi64( v, v, n )
-#define mm512_rol_x64( v, n )      _mm512_alignr_epi64( v, v, 8-(n) )
+static inline __m512i mm512_ror_1x32( const __m512i v )
+{ return _mm512_alignr_epi32( v, v, 1 ); }
 
-#define mm512_ror_x32( v, n )      _mm512_alignr_epi32( v, v, n )
-#define mm512_rol_x32( v, n )      _mm512_alignr_epi32( v, v, 16-(n) )
+static inline __m512i mm512_rol_1x32( const __m512i v )
+{ return _mm512_alignr_epi32( v, v, 15 ); }
+
+static inline __m512i mm512_ror_x64( const __m512i v, const int n )
+{ return _mm512_alignr_epi64( v, v, n ); }
+
+static inline __m512i mm512_ror_x32( const __m512i v, const int n )
+{ return _mm512_alignr_epi32( v, v, n ); }
 
 #define mm512_ror_1x16( v ) \
    _mm512_permutexvar_epi16( m512_const_64( \
@@ -411,38 +402,6 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
                        0x1E1D1C1B1A191817, 0x161514131211100F, \
                        0x0E0D0C0B0A090807, 0x060504030201003F ) )
 
-
-// Invert vector: {3,2,1,0} -> {0,1,2,3}
-#define mm512_invert_256( v ) \
-   _mm512_permutexvar_epi64( v, m512_const_64( 3,2,1,0,7,6,5,4 ) )
-
-#define mm512_invert_128( v ) \
-   _mm512_permutexvar_epi64( v, m512_const_64( 1,0,3,2,5,4,7,6 ) )
-
-#define mm512_invert_64( v ) \
-   _mm512_permutexvar_epi64( v, m512_const_64( 0,1,2,3,4,5,6,7 ) )
-
-#define mm512_invert_32( v ) \
-   _mm512_permutexvar_epi32( m512_const_64( \
-                      0x0000000000000001,0x0000000200000003, \
-                      0x0000000400000005,0x0000000600000007, \
-                      0x0000000800000009,0x0000000a0000000b, \
-                      0x0000000c0000000d,0x0000000e0000000f ), v )
-
-#define mm512_invert_16( v ) \
-   _mm512_permutexvar_epi16( m512_const_64( \
-                       0x0000000100020003, 0x0004000500060007, \
-                       0x00080009000A000B, 0x000C000D000E000F, \
-                       0x0010001100120013, 0x0014001500160017, \
-                       0x00180019001A001B, 0x001C001D001E001F ), v )
-
-#define mm512_invert_8(  v ) \
-   _mm512_shuffle_epi8( v, m512_const_64( \
-                       0x0001020304050607, 0x08090A0B0C0D0E0F, \
-                       0x1011121314151617, 0x18191A1B1C1D1E1F, \
-                       0x2021222324252627, 0x28292A2B2C2D2E2F, \
-                       0x3031323334353637, 0x38393A3B3C3D3E3F ) )
-
 //
 // Rotate elements within 256 bit lanes of 512 bit vector.
 
@@ -450,11 +409,10 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_swap256_128( v )   _mm512_permutex_epi64( v, 0x4e )
 
 // Rotate 256 bit lanes by one 64 bit element
-#define mm512_ror256_64( v )   _mm512_permutex_epi64( v, 0x39 )
-#define mm512_rol256_64( v )   _mm512_permutex_epi64( v, 0x93 )
+#define mm512_ror256_64( v )     _mm512_permutex_epi64( v, 0x39 )
+#define mm512_rol256_64( v )     _mm512_permutex_epi64( v, 0x93 )
 
 // Rotate 256 bit lanes by one 32 bit element
-
 #define mm512_ror256_32( v ) \
    _mm512_permutexvar_epi32( m512_const_64( \
                       0x000000080000000f, 0x0000000e0000000d, \
@@ -488,68 +446,41 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
                      0x203f3e3d3c3b3a39, 0x3837363534333231, \
                      0x302f2e2d2c2b2a29, 0x2827262524232221, \
                      0x001f1e1d1c1b1a19, 0x1817161514131211, \
-                     0x100f0e0d0c0b0a09, 0x0807060504030201 ), v )
+                     0x100f0e0d0c0b0a09, 0x0807060504030201 ) )
 
 #define mm512_rol256_8( v ) \
    _mm512_shuffle_epi8( v, m512_const_64( \
                      0x3e3d3c3b3a393837, 0x363534333231302f, \
                      0x2e2d2c2b2a292827, 0x262524232221203f, \
                      0x1e1d1c1b1a191817, 0x161514131211100f, \
-                     0x0e0d0c0b0a090807, 0x060504030201001f ), v )
+                     0x0e0d0c0b0a090807, 0x060504030201001f ) )
 
 //
 // Rotate elements within 128 bit lanes of 512 bit vector.
 
-// Swap hi & lo 64 bits in each 128 bit lane
-#define mm512_swap128_64( v )    _mm512_shuffle_epi32( v, 0x4e )
+// Swap 64 bits in each 128 bit lane
+#define mm512_swap128_64( v )   _mm512_shuffle_epi32( v, 0x4e )
 
 // Rotate 128 bit lanes by one 32 bit element
-#define mm512_ror128_32( v )   _mm512_shuffle_epi32( v, 0x39 )
-#define mm512_rol128_32( v )   _mm512_shuffle_epi32( v, 0x93 )
+#define mm512_ror128_32( v )    _mm512_shuffle_epi32( v, 0x39 )
+#define mm512_rol128_32( v )    _mm512_shuffle_epi32( v, 0x93 )
 
-#define mm512_ror128_x8( v, c )  _mm512_alignr_epi8( v, v, c )
+// Rotate right 128 bit lanes by c bytes
+static inline __m512i mm512_ror128_x8( const __m512i v, const int c )
+{  return _mm512_alignr_epi8( v, v, c ); }
 
-/*
-// Rotate 128 bit lanes by c bytes, faster than building that monstrous 
-// constant above.  
-#define mm512_ror128_8( v, c ) \
-   _mm512_or_si512( _mm512_bsrli_epi128( v, c ), \
-                    _mm512_bslli_epi128( v, 16-(c) ) )
-#define mm512_rol128_8( v, c ) \
-   _mm512_or_si512( _mm512_bslli_epi128( v, c ), \
-                    _mm512_bsrli_epi128( v, 16-(c) ) )
-*/
-
-//
-// Rotate elements within 64 bit lanes.
-
-#define mm512_rol64_x8( v, c )   _mm512_rol_epi64( v, ((c)<<3) )
-#define mm512_ror64_x8( v, c )   _mm512_ror_epi64( v, ((c)<<3) )
-
-// Swap 32 bit elements in each 64 bit lane
-#define mm512_swap64_32( v )      _mm512_shuffle_epi32( v, 0xb1 )
-
-// Rotate each 64 bit lane by one 16 bit element.
-#define mm512_ror64_16( v )   _mm512_ror_epi64( v, 16 )
-#define mm512_rol64_16( v )   _mm512_rol_epi64( v, 16 )
-#define mm512_ror64_8( v )    _mm512_ror_epi64( v, 8 )
-#define mm512_rol64_8( v )    _mm512_rol_epi64( v, 8 )
-
-//
-// Rotate elements within 32 bit lanes.
-
-#define mm512_rol32_x8( v, c )   _mm512_rol_epi32( v, ((c)<<2) )
-#define mm512_ror32_x8( v, c )   _mm512_ror_epi32( v, ((c)<<2) )
+// Swap 32 bits in each 64 bit lane.
+#define mm512_swap64_32( v )    _mm512_shuffle_epi32( v, 0xb1 )
 
 
 //
 //  Rotate elements from 2 512 bit vectors in place, source arguments
 //  are overwritten.
 
-#define mm512_swap1024_512(v1, v2) \
-   v1 = _mm512_xor_si512(v1, v2); \
-   v2 = _mm512_xor_si512(v1, v2); \
-   v1 = _mm512_xor_si512(v1, v2);
+#define mm512_swap1024_512( v1, v2 ) \
+   v1 = _mm512_xor_si512( v1, v2 ); \
+   v2 = _mm512_xor_si512( v1, v2 ); \
+   v1 = _mm512_xor_si512( v1, v2 );
 
 #define mm512_ror1024_256( v1, v2 ) \
 do { \
