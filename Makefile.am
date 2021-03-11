@@ -68,6 +68,7 @@ cpuminer_SOURCES = \
   algo/bmw/bmw512.c \
   algo/bmw/bmw512-4way.c \
   algo/cubehash/cubehash_sse2.c\
+  algo/cubehash/sph_cubehash.c\
   algo/cubehash/cube-hash-2way.c \
   algo/echo/sph_echo.c \
   algo/echo/echo-hash-4way.c \
@@ -110,6 +111,7 @@ cpuminer_SOURCES = \
   algo/lanehash/lane.c \
   algo/luffa/luffa_for_sse2.c \
   algo/luffa/luffa-hash-2way.c \
+  algo/luffa/sph_luffa.c \
   algo/lyra2/lyra2.c \
   algo/lyra2/sponge.c \
   algo/lyra2/sponge-2way.c \
@@ -129,7 +131,7 @@ cpuminer_SOURCES = \
   algo/lyra2/allium.c \
   algo/lyra2/phi2-4way.c \
   algo/lyra2/phi2.c \
-  algo//m7m/m7m.c \
+  algo/m7m/m7m.c \
   algo/m7m/magimath.cpp \
   algo/nist5/nist5-gate.c \
   algo/nist5/nist5-4way.c \
@@ -178,6 +180,24 @@ cpuminer_SOURCES = \
   algo/shavite/shavite-hash-2way.c \
   algo/shavite/shavite-hash-4way.c \
   algo/shavite/shavite.c \
+  algo/gr/cryptonote/crypto/oaes_lib.c \
+  algo/gr/cryptonote/crypto/c_keccak.c \
+  algo/gr/cryptonote/crypto/c_groestl.c \
+  algo/gr/cryptonote/crypto/c_blake256.c \
+  algo/gr/cryptonote/crypto/c_jh.c \
+  algo/gr/cryptonote/crypto/c_skein.c \
+  algo/gr/cryptonote/crypto/hash.c \
+  algo/gr/cryptonote/crypto/aesb.c \
+  algo/gr/cryptonote/cryptonight.c \
+  algo/gr/cryptonote/cryptonight_dark.c \
+  algo/gr/cryptonote/cryptonight_dark_lite.c \
+  algo/gr/cryptonote/cryptonight_fast.c \
+  algo/gr/cryptonote/cryptonight_lite.c \
+  algo/gr/cryptonote/cryptonight_soft_shell.c \
+  algo/gr/cryptonote/cryptonight_turtle.c \
+  algo/gr/cryptonote/cryptonight_turtle_lite.c \
+  algo/gr/gr-gate.c \
+  algo/simd/sph_simd.c \
   algo/simd/nist.c \
   algo/simd/vector.c \
   algo/simd/simd-hash-2way.c \

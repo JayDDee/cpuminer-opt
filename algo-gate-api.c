@@ -309,6 +309,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_DEEP:          register_deep_algo          ( gate ); break;
     case ALGO_DMD_GR:        register_dmd_gr_algo        ( gate ); break;
     case ALGO_GROESTL:       register_groestl_algo       ( gate ); break;
+	case ALGO_GR:            register_gr_algo            ( gate ); break;
     case ALGO_HEX:           register_hex_algo           ( gate ); break;
     case ALGO_HMQ1725:       register_hmq1725_algo       ( gate ); break;
     case ALGO_HODL:          register_hodl_algo          ( gate ); break;
@@ -431,6 +432,7 @@ const char* const algo_alias_map[][2] =
   { "diamond",           "dmd-gr"         },
   { "espers",            "hmq1725"        },
   { "flax",              "c11"            },
+  { "grhash",            "gr"          	  },
   { "hsr",               "x13sm3"         },
   { "jackpot",           "jha"            },
   { "jane",              "scryptjane"     }, 
