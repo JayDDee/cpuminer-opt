@@ -691,6 +691,14 @@ sph_sha256_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 //	sph_sha256_init(cc);
 }
 
+void sph_sha256_full( void *dst, const void *data, size_t len )
+{
+   sph_sha256_context cc;
+   sph_sha256_init( &cc );
+   sph_sha256( &cc, data, len );
+   sph_sha256_close( &cc, dst );
+}   
+
 /* see sph_sha2.h */
 //void
 //sph_sha224_comp(const sph_u32 msg[16], sph_u32 val[8])

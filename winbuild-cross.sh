@@ -31,6 +31,7 @@ mkdir release
 cp README.txt release/
 cp README.md release/
 cp RELEASE_NOTES release/
+cp verthash-help.txt release/
 cp $MINGW_LIB/zlib1.dll release/
 cp $MINGW_LIB/libwinpthread-1.dll release/
 cp $GCC_MINGW_LIB/libstdc++-6.dll release/

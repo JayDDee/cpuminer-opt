@@ -205,6 +205,10 @@ void sph_sha256_comp(const sph_u32 msg[16], sph_u32 val[8]);
 #define sph_sha256_comp   sph_sha224_comp
 #endif
 
+void sph_sha256_full( void *dst, const void *data, size_t len );
+
+
+
 #if SPH_64
 
 /**

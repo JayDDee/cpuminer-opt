@@ -1,0 +1,17 @@
+
+The verthash data file must be named verthash.dat and located in the same
+directory as the cpuminer executable. A Linux symlink works.
+
+The verthash data file must be obtained seperately. If you already use
+VerthashMiner you can simply copy or link the existing data file to the
+cpuminer directory, using the required name.
+
+Otherwise it may be created using
+https://github.com/CryptoGraphics/VerthashMiner/releases
+following the instructions. A GPU is not necessary to create the file.
+
+The same data file can be used by both cpuminer and VerthashMiner
+simultaneously.
+
+Launching cpuminer to mine verthash is the same as any other algorithm,
+no extra options are required. 

@@ -129,7 +129,7 @@ cpuminer_SOURCES = \
   algo/lyra2/allium.c \
   algo/lyra2/phi2-4way.c \
   algo/lyra2/phi2.c \
-  algo//m7m/m7m.c \
+  algo/m7m/m7m.c \
   algo/m7m/magimath.cpp \
   algo/nist5/nist5-gate.c \
   algo/nist5/nist5-4way.c \
@@ -192,6 +192,10 @@ cpuminer_SOURCES = \
   algo/sm3/sm3-hash-4way.c \
   algo/swifftx/swifftx.c \
   algo/tiger/sph_tiger.c \
+  algo/verthash/verthash-gate.c \
+  algo/verthash/Verthash.c \
+  algo/verthash/fopen_utf8.c \
+  algo/verthash/tiny_sha3/sha3.c \
   algo/whirlpool/sph_whirlpool.c \
   algo/whirlpool/whirlpool-hash-4way.c \
   algo/whirlpool/whirlpool-gate.c \

@@ -573,6 +573,7 @@ enum algos {
         ALGO_TRIBUS,
         ALGO_VANILLA,
         ALGO_VELTOR,
+        ALGO_VERTHASH,
         ALGO_WHIRLPOOL,
         ALGO_WHIRLPOOLX,
         ALGO_X11,
@@ -665,6 +666,7 @@ static const char* const algo_names[] = {
         "tribus",
         "vanilla",
         "veltor",
+        "verthash",
         "whirlpool",
         "whirlpoolx",
         "x11",
@@ -824,6 +826,7 @@ Options:\n\
                           tribus        Denarius (DNR)\n\
                           vanilla       blake256r8vnl (VCash)\n\
                           veltor\n\
+                          verthash\n\
                           whirlpool\n\
                           whirlpoolx\n\
                           x11           Dash\n\

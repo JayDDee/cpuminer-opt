@@ -65,6 +65,10 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.16.0
+
+Added verthash algo.
+
 v3.15.7
 
 Added accepted/stale/rejected percentage to summary log report.

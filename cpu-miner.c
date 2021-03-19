@@ -119,14 +119,14 @@ bool opt_sapling = false;
 // Need compile time and run time test.
 #if defined(__linux) && defined(GCC_INT128)  
 #define AFFINITY_USES_UINT128 1
-uint128_t opt_affinity = -1;
+static uint128_t opt_affinity = -1;
 static bool affinity_uses_uint128 = true;
 #else
-uint64_t opt_affinity = -1;
+static uint64_t opt_affinity = -1;
 static bool affinity_uses_uint128 = false;
 #endif
 
-int opt_priority = 0;
+int opt_priority = 0;  // deprecated
 int num_cpus = 1;
 int num_cpugroups = 1;
 char *rpc_url = NULL;;
@@ -3186,14 +3186,12 @@ void parse_arg(int key, char *arg )
 			ul = strtoull( p, NULL, 16 );
 		else
 			ul = atoll( arg );
-//		if ( ul > ( 1ULL << num_cpus ) - 1ULL )
-//			ul = -1LL;
 #if AFFINITY_USES_UINT128
 // replicate the low 64 bits to make a full 128 bit mask if there are more
 // than 64 CPUs, otherwise zero extend the upper half.
          opt_affinity = (uint128_t)ul;
          if ( num_cpus > 64 )
-            opt_affinity = (opt_affinity << 64 ) | opt_affinity;
+            opt_affinity |= opt_affinity << 64;
 #else
          opt_affinity = ul;
 #endif
@@ -3202,6 +3200,8 @@ void parse_arg(int key, char *arg )
 		v = atoi(arg);
 		if (v < 0 || v > 5)	/* sanity check */
 			show_usage_and_exit(1);
+      // option is deprecated, show warning
+      applog( LOG_WARNING, "High priority mining threads may cause system instability");
 		opt_priority = v;
 		break;
    case 'N':    // N parameter for various scrypt algos
