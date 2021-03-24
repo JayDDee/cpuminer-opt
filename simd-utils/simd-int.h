@@ -5,6 +5,10 @@
 #define bswap_64( a ) __builtin_bswap64( a )
 #define bswap_32( a ) __builtin_bswap32( a )
 
+// safe division, integer or floating point
+#define safe_div( dividend, divisor, safe_result ) \
+   ( (divisor) == 0 ? safe_result : ( (dividend) / (divisor) )  )
+
 
 ///////////////////////////////////////
 // 

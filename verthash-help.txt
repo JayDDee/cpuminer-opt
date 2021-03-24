@@ -1,17 +1,80 @@
+Quickstart:
+----------
 
-The verthash data file must be named verthash.dat and located in the same
-directory as the cpuminer executable. A Linux symlink works.
+First time mining verthash or don't have a Verthash data file:
 
-The verthash data file must be obtained seperately. If you already use
-VerthashMiner you can simply copy or link the existing data file to the
-cpuminer directory, using the required name.
+--algo verthash --verify --url ...
 
-Otherwise it may be created using
-https://github.com/CryptoGraphics/VerthashMiner/releases
-following the instructions. A GPU is not necessary to create the file.
+Verthash data file already exists:
 
-The same data file can be used by both cpuminer and VerthashMiner
-simultaneously.
+--algo verthash --data-file /path/to/verthash.dat --url ...
 
-Launching cpuminer to mine verthash is the same as any other algorithm,
-no extra options are required. 
+
+Background:
+----------
+
+Verthash algorithm requires a data file for hashing. This file is
+static, portable, and only needs to be created once.
+
+A Verthash data file created by VerthashMiner can also be used by cpuminer-opt
+and used simultaneously by both miners.
+
+Due to its size >1GB it is recommened one data file be created and
+stored in a permanent location accessible to any miner that wants to use it.
+
+New command line options:
+------------------------
+
+cpuminer-opt adds two new command line options for verthash. The names
+and some behaviour is changed from VerthashMiner.
+
+--data-file /path/to/verthash.dat
+  default when not used is verthash.dat in current working directory.  
+
+--verify
+  verify integrity of file specified by --data-file, or if not specified
+  the default data file if it exists, or create a default file and verify it
+  if one does not yet exist. Data file verification is disabled by default.
+
+Detailed usage:
+--------------
+
+If a data file already exists it can be selected using the --data-file
+option to specify the path and name of the file.
+
+--algo verthash --datafile /path/to/verthash.dat --url ...
+
+If the --data-file option is not used the default is to use 'verthash.dat'
+from the current working directory.
+
+If no data file exists it can be created by using the --verify option
+without the --data-file option. If the default data file is not found in
+the current directory it will be created.
+
+--algo verthash --verify --url ...
+
+Data file creation can take up to 30 minutes on a spinning hard drive. 
+Once created the new data file will be verified and used immediately
+if a valid url and user were included on the command line.
+
+A default data file can be created by ommitting the url option. That will
+either verify an existing default data file or create one and verify it,
+then exit.
+
+--algo verthash --verify
+
+A data file will never be created if --data-file is specified. The miner
+will exit with an error if the file is not found. This is to avoid accidentally
+creating an unwanted data file due to a typo.
+
+After creation the data file can moved to a more convenient location and
+referenced by --data-file, or left where it is and used by default without the
+--data-file option.
+
+Data file verification takes a few seconds and is disabled by default.
+VerthashMiner enables data file verification by default and has an option to
+disable it.
+
+The --verify option is intended primarily to create a new file. It's 
+not necessary or useful to verify a file every time the miner is started.
+

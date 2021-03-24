@@ -114,15 +114,15 @@ typedef struct
 // Mandatory functions, one of these is mandatory. If a generic scanhash
 // is used a custom target hash function must be registered, with a custom
 // scanhash the target hash function can be called directly and doesn't need
-// to be registered in the gate. 
+// to be registered with the gate. 
 int ( *scanhash ) ( struct work*, uint32_t, uint64_t*, struct thr_info* );
 
 int ( *hash )     ( void*, const void*, int );
 
 //optional, safe to use default in most cases
 
-// Allocate thread local buffers and other initialization specific to miner
-// threads.
+// Called once by each miner thread to allocate thread local buffers and
+// other initialization specific to miner threads.
 bool ( *miner_thread_init )     ( int );
 
 // Get thread local copy of blockheader with unique nonce.
@@ -150,7 +150,7 @@ void ( *build_stratum_request ) ( char*, struct work*, struct stratum_ctx* );
 
 char* ( *malloc_txs_request )   ( struct work* );
 
-// Big or little
+// Big endian or little endian
 void ( *set_work_data_endian )  ( struct work* );
 
 double ( *calc_network_diff )   ( struct work* );
@@ -260,7 +260,7 @@ int scanhash_8way_64in_32out( struct work *work, uint32_t max_nonce,
 #endif
 
 // displays warning
-int null_hash    ();
+int null_hash();
 
 // optional safe targets, default listed first unless noted.
 
@@ -281,7 +281,7 @@ void std_be_build_stratum_request( char *req, struct work *work );
 
 char* std_malloc_txs_request( struct work *work );
 
-// Default is do_nothing (assumed LE)
+// Default is do_nothing, little endian is assumed
 void set_work_data_big_endian( struct work *work );
 
 double std_calc_network_diff( struct work *work );

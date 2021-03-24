@@ -7,7 +7,9 @@
  * any later version. See LICENSE for more details.
  */
 
+#include "algo-gate-api.h"
 #include "Verthash.h"
+#include "mm_malloc.h"
 
 //-----------------------------------------------------------------------------
 // Verthash info management
@@ -18,34 +20,71 @@ int verthash_info_init(verthash_info_t* info, const char* file_name)
     info->data = NULL;
     info->dataSize = 0;
     info->bitmask = 0;
+    size_t fileNameLen;
 
-    // get name
-    if (file_name == NULL) { return 1; }
-    size_t fileNameLen = strlen(file_name);
-    if (fileNameLen == 0) { return 1; }
-
-    info->fileName = (char*)malloc(fileNameLen+1);
-    if (!info->fileName)
+    if ( !file_name || !( fileNameLen = strlen( file_name ) ) ) 
+    { 
+       applog( LOG_ERR, "Invalid file specification" );
+       return -1; 
+    }
+    
+    info->fileName = (char*)malloc( fileNameLen + 1 );
+    if ( !info->fileName )
     {
-        // Memory allocation fatal error.
-        return 2;
+        applog( LOG_ERR, "Failed to allocate memory for Verthash data" );
+        return -1;
     }
 
-    memset(info->fileName, 0, fileNameLen+1);
-    memcpy(info->fileName, file_name, fileNameLen);
+    memset( info->fileName, 0, fileNameLen + 1 );
+    memcpy( info->fileName, file_name, fileNameLen );
 
-    // Load data
-    FILE *fileMiningData = fopen_utf8(info->fileName, "rb");
-    // Failed to open file for reading
-    if (!fileMiningData) { return 1; }
+    FILE *fileMiningData = fopen_utf8( info->fileName, "rb" );
+    if ( !fileMiningData )
+    {
+       if ( opt_data_file || !opt_verify ) 
+       {
+          if ( opt_data_file )
+             applog( LOG_ERR,
+                     "Verthash data file not found or invalid: %s", info->fileName );
+          else
+          {
+             applog( LOG_ERR,
+                     "No Verthash data file specified and default not found");
+             applog( LOG_NOTICE,
+                     "Add '--verify' to create default 'verthash.dat'");
+          }
+          return -1;
+       }
+       else
+       {
+          applog( LOG_NOTICE, "Creating default 'verthash.dat' in current directory, this will take several minutes");
+          if ( verthash_generate_data_file( info->fileName ) )
+             return -1;
+
+          fileMiningData = fopen_utf8( info->fileName, "rb" );
+          if ( !fileMiningData )
+          {
+              applog( LOG_ERR, "File system error opening %s", info->fileName );
+              return -1;
+          }
+
+          applog( LOG_NOTICE, "Verthash data file created successfully" );
+       }
+    }
 
     // Get file size
     fseek(fileMiningData, 0, SEEK_END);
-    uint64_t fileSize = (uint64_t)ftell(fileMiningData);
+    int fileSize = ftell(fileMiningData);
     fseek(fileMiningData, 0, SEEK_SET);
 
+    if ( fileSize < 0 ) 
+    {
+        fclose(fileMiningData);
+        return 1;
+    }
+
     // Allocate data
-    info->data = (uint8_t *)malloc(fileSize);
+    info->data = (uint8_t *)_mm_malloc( fileSize, 64 );
     if (!info->data)
     {
         fclose(fileMiningData);
@@ -54,13 +93,20 @@ int verthash_info_init(verthash_info_t* info, const char* file_name)
     }
 
     // Load data
-    fread(info->data, fileSize, 1, fileMiningData);
+    if ( !fread( info->data, fileSize, 1, fileMiningData ) )
+    {
+        applog( LOG_ERR, "File system error reading %s", info->fileName );
+        fclose(fileMiningData);
+        return -1;
+    }
+
     fclose(fileMiningData);
 
     // Update fields
     info->bitmask = ((fileSize - VH_HASH_OUT_SIZE)/VH_BYTE_ALIGNMENT) + 1;
     info->dataSize = fileSize;
 
+    applog( LOG_NOTICE, "Using Verthash data file '%s'", info->fileName );
     return 0;
 }
 
@@ -83,20 +129,6 @@ void verthash_info_free(verthash_info_t* info)
 #define VH_N_INDEXES 4096
 #define VH_BYTE_ALIGNMENT 16
 
-static __thread sha3_ctx_t sha3_midstate_ctx;
-
-void verthash_sha3_prehash_72( const void *data )
-{
-   sha3_init( &sha3_midstate_ctx, 256 );
-   sha3_update( &sha3_midstate_ctx, data, 72 );
-}
-
-void verthash_sha3_final_8( sha3_ctx_t *ctx, void *out, const void *data )
-{
-   sha3_update( ctx, data, 8 );
-   sha3_final( out, ctx );
-}
-
 static inline uint32_t fnv1a(const uint32_t a, const uint32_t b)
 {
     return (a ^ b) * 0x1000193;
@@ -107,16 +139,12 @@ void verthash_hash(const unsigned char* blob_bytes,
                    const unsigned char(*input)[VH_HEADER_SIZE],
                    unsigned char(*output)[VH_HASH_OUT_SIZE])
 {
-    unsigned char p1[VH_HASH_OUT_SIZE];
-//    sha3_ctx_t sha3_ctx;
-//    memcpy ( &sha3_ctx, &sha3_midstate_ctx, sizeof sha3_ctx );
-//    verthash_sha3_final_8( &sha3_ctx, &p1[0], &input[72] );
-
+    unsigned char p1[VH_HASH_OUT_SIZE] __attribute__ ((aligned (64)));
     sha3(&input[0], VH_HEADER_SIZE, &p1[0], VH_HASH_OUT_SIZE);
 
     unsigned char p0[VH_N_SUBSET];
 
-    unsigned char input_header[VH_HEADER_SIZE];
+    unsigned char input_header[VH_HEADER_SIZE] __attribute__ ((aligned (64)));
     memcpy(input_header, input, VH_HEADER_SIZE);
 
     for (size_t i = 0; i < VH_N_ITER; ++i)
@@ -126,17 +154,47 @@ void verthash_hash(const unsigned char* blob_bytes,
     }
 
     uint32_t* p0_index = (uint32_t*)p0;
-    uint32_t seek_indexes[VH_N_INDEXES];
+    uint32_t seek_indexes[VH_N_INDEXES] __attribute__ ((aligned (64)));
 
-    for (size_t x = 0; x < VH_N_ROT; ++x)
+    for ( size_t x = 0; x < VH_N_ROT; ++x )
     {
         memcpy( seek_indexes + x * (VH_N_SUBSET / sizeof(uint32_t)),
                 p0, VH_N_SUBSET);
-        for (size_t y = 0; y < VH_N_SUBSET / sizeof(uint32_t); ++y)
+
+//#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)        
+// 512 bit vector processing is actually slower because it reduces the CPU
+// clock significantly, which also slows mem access. The AVX512 rol instruction
+// is still available for smaller vectors.
+
+//        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(uint32_t); y += 16 )
+//        {
+//            __m512i *p0_v = (__m512i*)( p0_index + y );
+//            *p0_v = mm512_rol_32( *p0_v, 1 );
+//        }
+
+#if defined(__AVX2__)
+
+        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(uint32_t); y += 8 )
         {
-            *(p0_index + y) = ( *(p0_index + y) << 1 )
-            | ( 1 & (*(p0_index + y) >> 31) );
+            __m256i *p0_v = (__m256i*)( p0_index + y );
+            *p0_v = mm256_rol_32( *p0_v, 1 );
         }
+
+#else
+
+        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(uint32_t); y += 4 )
+        {
+            __m128i *p0_v = (__m128i*)( p0_index + y );
+            *p0_v = mm128_rol_32( *p0_v, 1 );
+        }
+
+#endif
+
+//        for (size_t y = 0; y < VH_N_SUBSET / sizeof(uint32_t); ++y)
+//        {
+//            *(p0_index + y) = ( *(p0_index + y) << 1 )
+//            | ( 1 & (*(p0_index + y) >> 31) );
+//        }
     }
 
     uint32_t* p1_32 = (uint32_t*)p1;
@@ -146,13 +204,13 @@ void verthash_hash(const unsigned char* blob_bytes,
     for (size_t i = 0; i < VH_N_INDEXES; i++)
     {
         const uint32_t offset = (fnv1a(seek_indexes[i], value_accumulator) % mdiv) * VH_BYTE_ALIGNMENT / sizeof(uint32_t);
+        const uint32_t *blob_off = blob_bytes_32 + offset;
         for (size_t i2 = 0; i2 < VH_HASH_OUT_SIZE / sizeof(uint32_t); i2++)
         {
-            const uint32_t value = *(blob_bytes_32 + offset + i2);
+            const uint32_t value = *( blob_off + i2 );
             uint32_t* p1_ptr = p1_32 + i2;
-            *p1_ptr = fnv1a(*p1_ptr, value);
-
-            value_accumulator = fnv1a(value_accumulator, value);
+            *p1_ptr = fnv1a( *p1_ptr, value );
+            value_accumulator = fnv1a( value_accumulator, value );
         }
     }
 
@@ -591,6 +649,9 @@ struct Graph *NewGraph(int64_t index, const char* targetFile, uint8_t *pk)
     int64_t pow2 = 1 << ((uint64_t)log2);
 
     struct Graph *g = (struct Graph *)malloc(sizeof(struct Graph));
+
+    if ( !g ) return NULL;
+
     g->db = db;
     g->log2 = log2;
     g->pow2 = pow2;
@@ -607,14 +668,27 @@ struct Graph *NewGraph(int64_t index, const char* targetFile, uint8_t *pk)
 }
 
 //-----------------------------------------------------------------------------
+
+// use info for _mm_malloc, then verify file
 int verthash_generate_data_file(const char* output_file_name)
 {
     const char *hashInput = "Verthash Proof-of-Space Datafile";
-    uint8_t *pk = (uint8_t*)malloc(NODE_SIZE);
-    sha3(hashInput, 32, pk, NODE_SIZE);
+    uint8_t *pk = (uint8_t*)malloc( NODE_SIZE );
+    
+    if ( !pk )
+    {
+      applog( LOG_ERR, "Verthash data memory allocation failed");
+      return -1;
+    }
+
+    sha3( hashInput, 32, pk, NODE_SIZE );
 
     int64_t index = 17;
-    NewGraph(index, output_file_name, pk);
+    if ( !NewGraph( index, output_file_name, pk ) )
+    {
+       applog( LOG_ERR, "Verthash file creation failed");
+       return -1;
+    }
 
     return 0;
 }

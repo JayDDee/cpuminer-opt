@@ -12,8 +12,6 @@ static const uint8_t verthashDatFileHash_bytes[32] =
   0x29, 0xec, 0xf8, 0x8f, 0x8a, 0xd4, 0x76, 0x39,
   0xb6, 0xed, 0xed, 0xaf, 0xd7, 0x21, 0xaa, 0x48 };
 
-static const char* verthash_data_file_name = "verthash.dat"; 
-
 int scanhash_verthash( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
@@ -28,7 +26,6 @@ int scanhash_verthash( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
 
    mm128_bswap32_80( edata, pdata );
-//   verthash_sha3_prehash_72( edata );
    do
    {
       edata[19] = n;
@@ -47,6 +44,7 @@ int scanhash_verthash( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
+const char *default_verthash_data_file = "verthash.dat";
 
 bool register_verthash_algo( algo_gate_t* gate )
 {
@@ -55,42 +53,49 @@ bool register_verthash_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_verthash;
    
   // verthash data file
-  int vhLoadResult = verthash_info_init(&verthashInfo, verthash_data_file_name );
-  // Check Verthash initialization status
-  if (vhLoadResult == 0) // No Error
-  {
-      applog(LOG_INFO, "Verthash data file has been loaded succesfully!");
-
+  char *verthash_data_file = opt_data_file ? opt_data_file
+                                           : default_verthash_data_file;
+  
+   int vhLoadResult = verthash_info_init( &verthashInfo, verthash_data_file );
+   if (vhLoadResult == 0) // No Error
+   {
       //  and verify data file(if it was enabled)
-      if ( true )
-//            if (!cmdr.disableVerthashDataFileVerification)
+      if ( opt_verify )
       {
          uint8_t vhDataFileHash[32] = { 0 };
+
+         applog( LOG_NOTICE, "Verifying Verthash data" );
          sph_sha256_full( vhDataFileHash, verthashInfo.data,
                           verthashInfo.dataSize );
-
          if ( memcmp( vhDataFileHash, verthashDatFileHash_bytes,
                       sizeof(verthashDatFileHash_bytes) ) == 0 )
-            applog(LOG_INFO, "Verthash data file has been verified succesfully!");
+            applog( LOG_NOTICE, "Verthash data has been verified" );
          else
-            applog(LOG_ERR, "Verthash data file verification has failed!");
+         {
+            applog( LOG_ERR, "Verthash data verification has failed" );
+            return false;
+         }
       }
-      else
-         applog(LOG_WARNING, "Verthash data file verification stage is disabled!");
    }
    else
+
    {
-       // Handle Verthash error codes
-       if (vhLoadResult == 1)
-          applog(LOG_ERR, "Verthash data file name is invalid");
-       else if (vhLoadResult == 2)
-          applog(LOG_ERR, "Failed to allocate memory for Verthash data");
-       else // for debugging purposes
-          applog(LOG_ERR, "Verthash data initialization unknown error code: %d",
-                 vhLoadResult);
-       return false;
+      // Handle Verthash error codes
+      if ( vhLoadResult == 1 )
+      {
+         applog( LOG_ERR, "Verthash data file not found: %s", verthash_data_file );
+         if ( !opt_data_file )
+            applog( LOG_NOTICE, "Add '--verify' to create verthash.dat");
+      }
+      else if ( vhLoadResult == 2 )
+         applog( LOG_ERR, "Failed to allocate memory for Verthash data" );
+//       else // for debugging purposes
+//          applog( LOG_ERR, "Verthash data initialization unknown error code: %d",
+//                 vhLoadResult );
+      return false;
    }
 
+   printf("\n");
    return true;
 }
 

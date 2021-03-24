@@ -89,7 +89,7 @@ Supported Algorithms
                           lyra2h        Hppcoin
                           lyra2re       lyra2
                           lyra2rev2     lyra2v2
-                          lyra2rev3     lyrav2v3, Vertcoin
+                          lyra2rev3     lyrav2v3
                           lyra2z        
                           lyra2z330     Lyra2 330 rows, Zoin (ZOI)
                           m7m           Magi (XMG)
@@ -122,6 +122,7 @@ Supported Algorithms
                           tribus        Denarius (DNR)
                           vanilla       blake256r8vnl (VCash)
                           veltor        (VLT)
+                          verthash      Vertcoin
                           whirlpool
                           whirlpoolx
                           x11           Dash

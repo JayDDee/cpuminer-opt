@@ -47,10 +47,6 @@ void verthash_info_free(verthash_info_t* info);
 //! Generate verthash data file and save it to specified location.
 int verthash_generate_data_file(const char* output_file_name);
 
-void verthash_sha3_prehash_72( const void *data );
-
-void verthash_sha3_final_8( sha3_ctx_t *ctx, void *out, const void *data );
-
 void verthash_hash(const unsigned char* blob_bytes,
                    const size_t blob_size,
                    const unsigned char(*input)[VH_HEADER_SIZE],
