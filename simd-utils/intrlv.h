@@ -1225,37 +1225,6 @@ static inline void intrlv_4x64( void *dst, const void *src0,
    d[31] = _mm_unpackhi_epi64( s2[7], s3[7] );
 }
 
-/*
-static inline void intrlv_4x64( void *dst, void *src0,
-           void *src1, void *src2, void *src3, int bit_len )
-{
-   uint64_t *d = (uint64_t*)dst;
-   uint64_t *s0 = (uint64_t*)src0;
-   uint64_t *s1 = (uint64_t*)src1;
-   uint64_t *s2 = (uint64_t*)src2;
-   uint64_t *s3 = (uint64_t*)src3;
-   d[  0] = s0[ 0];   d[  1] = s1[ 0];   d[  2] = s2[ 0];   d[  3] = s3[ 0];
-   d[  4] = s0[ 1];   d[  5] = s1[ 1];   d[  6] = s2[ 1];   d[  7] = s3[ 1];
-   d[  8] = s0[ 2];   d[  9] = s1[ 2];   d[ 10] = s2[ 2];   d[ 11] = s3[ 2];
-   d[ 12] = s0[ 3];   d[ 13] = s1[ 3];   d[ 14] = s2[ 3];   d[ 15] = s3[ 3];
-   if ( bit_len <= 256 ) return;
-   d[ 16] = s0[ 4];   d[ 17] = s1[ 4];   d[ 18] = s2[ 4];   d[ 19] = s3[ 4];
-   d[ 20] = s0[ 5];   d[ 21] = s1[ 5];   d[ 22] = s2[ 5];   d[ 23] = s3[ 5];
-   d[ 24] = s0[ 6];   d[ 25] = s1[ 6];   d[ 26] = s2[ 6];   d[ 27] = s3[ 6];
-   d[ 28] = s0[ 7];   d[ 29] = s1[ 7];   d[ 30] = s2[ 7];   d[ 31] = s3[ 7];
-   if ( bit_len <= 512 ) return;
-   d[ 32] = s0[ 8];   d[ 33] = s1[ 8];   d[ 34] = s2[ 8];   d[ 35] = s3[ 8];
-   d[ 36] = s0[ 9];   d[ 37] = s1[ 9];   d[ 38] = s2[ 9];   d[ 39] = s3[ 9];
-   if ( bit_len <= 640 ) return;
-   d[ 40] = s0[10];   d[ 41] = s1[10];   d[ 42] = s2[10];   d[ 43] = s3[10];
-   d[ 44] = s0[11];   d[ 45] = s1[11];   d[ 46] = s2[11];   d[ 47] = s3[11];
-   d[ 48] = s0[12];   d[ 49] = s1[12];   d[ 50] = s2[12];   d[ 51] = s3[12];
-   d[ 52] = s0[13];   d[ 53] = s1[13];   d[ 54] = s2[13];   d[ 55] = s3[13];
-   d[ 56] = s0[14];   d[ 57] = s1[14];   d[ 58] = s2[14];   d[ 59] = s3[14];
-   d[ 60] = s0[15];   d[ 61] = s1[15];   d[ 62] = s2[15];   d[ 63] = s3[15];
-}
-*/
-
 static inline void intrlv_4x64_512( void *dst, const void *src0,
            const void *src1, const void *src2, const void *src3 )
 {
@@ -1281,26 +1250,6 @@ static inline void intrlv_4x64_512( void *dst, const void *src0,
    d[14] = _mm_unpackhi_epi64( s0[3], s1[3] );
    d[15] = _mm_unpackhi_epi64( s2[3], s3[3] );
 }
-
-/*
-static inline void intrlv_4x64_512( void *dst, const void *src0,
-                      const void *src1, const void *src2, const void *src3 )
-{
-   uint64_t *d = (uint64_t*)dst;
-   const uint64_t *s0 = (const uint64_t*)src0;
-   const uint64_t *s1 = (const uint64_t*)src1;
-   const uint64_t *s2 = (const uint64_t*)src2;
-   const uint64_t *s3 = (const uint64_t*)src3;
-   d[  0] = s0[ 0];   d[  1] = s1[ 0];   d[  2] = s2[ 0];   d[  3] = s3[ 0];
-   d[  4] = s0[ 1];   d[  5] = s1[ 1];   d[  6] = s2[ 1];   d[  7] = s3[ 1];
-   d[  8] = s0[ 2];   d[  9] = s1[ 2];   d[ 10] = s2[ 2];   d[ 11] = s3[ 2];
-   d[ 12] = s0[ 3];   d[ 13] = s1[ 3];   d[ 14] = s2[ 3];   d[ 15] = s3[ 3];
-   d[ 16] = s0[ 4];   d[ 17] = s1[ 4];   d[ 18] = s2[ 4];   d[ 19] = s3[ 4];
-   d[ 20] = s0[ 5];   d[ 21] = s1[ 5];   d[ 22] = s2[ 5];   d[ 23] = s3[ 5];
-   d[ 24] = s0[ 6];   d[ 25] = s1[ 6];   d[ 26] = s2[ 6];   d[ 27] = s3[ 6];
-   d[ 28] = s0[ 7];   d[ 29] = s1[ 7];   d[ 30] = s2[ 7];   d[ 31] = s3[ 7];
-}
-*/
 
 static inline void dintrlv_4x64( void *dst0, void *dst1, void *dst2,
                            void *dst3, const void *src, const int bit_len )
@@ -1347,38 +1296,6 @@ static inline void dintrlv_4x64( void *dst0, void *dst1, void *dst2,
    d3[7] = _mm_unpackhi_epi64( s[29], s[31] );
 }
 
-
-/*
-static inline void dintrlv_4x64( void *dst0, void *dst1, void *dst2,
-                                 void *dst3, const void *src, int bit_len )
-{
-   uint64_t *d0 = (uint64_t*)dst0;
-   uint64_t *d1 = (uint64_t*)dst1;
-   uint64_t *d2 = (uint64_t*)dst2;
-   uint64_t *d3 = (uint64_t*)dst3;
-   const uint64_t *s = (const uint64_t*)src;
-   d0[ 0] = s[ 0];   d1[ 0] = s[ 1];    d2[ 0] = s[ 2];   d3[ 0] = s[ 3];
-   d0[ 1] = s[ 4];   d1[ 1] = s[ 5];    d2[ 1] = s[ 6];   d3[ 1] = s[ 7];
-   d0[ 2] = s[ 8];   d1[ 2] = s[ 9];    d2[ 2] = s[10];   d3[ 2] = s[11];
-   d0[ 3] = s[12];   d1[ 3] = s[13];    d2[ 3] = s[14];   d3[ 3] = s[15];
-   if ( bit_len <= 256 ) return;
-   d0[ 4] = s[16];   d1[ 4] = s[17];    d2[ 4] = s[18];   d3[ 4] = s[19];
-   d0[ 5] = s[20];   d1[ 5] = s[21];    d2[ 5] = s[22];   d3[ 5] = s[23];
-   d0[ 6] = s[24];   d1[ 6] = s[25];    d2[ 6] = s[26];   d3[ 6] = s[27];
-   d0[ 7] = s[28];   d1[ 7] = s[29];    d2[ 7] = s[30];   d3[ 7] = s[31];
-   if ( bit_len <= 512 ) return;
-   d0[ 8] = s[32];   d1[ 8] = s[33];    d2[ 8] = s[34];   d3[ 8] = s[35];
-   d0[ 9] = s[36];   d1[ 9] = s[37];    d2[ 9] = s[38];   d3[ 9] = s[39];
-   if ( bit_len <= 640 ) return;
-   d0[10] = s[40];   d1[10] = s[41];    d2[10] = s[42];   d3[10] = s[43];
-   d0[11] = s[44];   d1[11] = s[45];    d2[11] = s[46];   d3[11] = s[47];
-   d0[12] = s[48];   d1[12] = s[49];    d2[12] = s[50];   d3[12] = s[51];
-   d0[13] = s[52];   d1[13] = s[53];    d2[13] = s[54];   d3[13] = s[55];
-   d0[14] = s[56];   d1[14] = s[57];    d2[14] = s[58];   d3[14] = s[59];
-   d0[15] = s[60];   d1[15] = s[61];    d2[15] = s[62];   d3[15] = s[63];
-}
-*/
-
 static inline void dintrlv_4x64_512( void *dst0, void *dst1, void *dst2,
                                      void *dst3, const void *src )
 {
@@ -1405,26 +1322,6 @@ static inline void dintrlv_4x64_512( void *dst0, void *dst1, void *dst2,
    d3[3] = _mm_unpackhi_epi64( s[13], s[15] );
 }
 
-/*
-static inline void dintrlv_4x64_512( void *dst0, void *dst1, void *dst2,
-                                     void *dst3, const void *src )
-{
-   uint64_t *d0 = (uint64_t*)dst0;
-   uint64_t *d1 = (uint64_t*)dst1;
-   uint64_t *d2 = (uint64_t*)dst2;
-   uint64_t *d3 = (uint64_t*)dst3;
-   const uint64_t *s = (const uint64_t*)src;
-   d0[ 0] = s[ 0];   d1[ 0] = s[ 1];    d2[ 0] = s[ 2];   d3[ 0] = s[ 3];
-   d0[ 1] = s[ 4];   d1[ 1] = s[ 5];    d2[ 1] = s[ 6];   d3[ 1] = s[ 7];
-   d0[ 2] = s[ 8];   d1[ 2] = s[ 9];    d2[ 2] = s[10];   d3[ 2] = s[11];
-   d0[ 3] = s[12];   d1[ 3] = s[13];    d2[ 3] = s[14];   d3[ 3] = s[15];
-   d0[ 4] = s[16];   d1[ 4] = s[17];    d2[ 4] = s[18];   d3[ 4] = s[19];
-   d0[ 5] = s[20];   d1[ 5] = s[21];    d2[ 5] = s[22];   d3[ 5] = s[23];
-   d0[ 6] = s[24];   d1[ 6] = s[25];    d2[ 6] = s[26];   d3[ 6] = s[27];
-   d0[ 7] = s[28];   d1[ 7] = s[29];    d2[ 7] = s[30];   d3[ 7] = s[31];
-}
-*/
-
 static inline void extr_lane_4x64( void *d, const void *s,
                                    const int lane, const int bit_len )
 {
@@ -1440,9 +1337,41 @@ static inline void extr_lane_4x64( void *d, const void *s,
 }
 
 #if defined(__AVX2__)
+// Doesn't really need AVX2, just SSSE3, but is only used with AVX2 code.
 
-// There a alignment problems with the source buffer on Wwindows,
-// can't use 256 bit bswap.
+static inline void mm256_intrlv80_4x64( void *d, const void *src )
+{
+  __m128i s0 = casti_m128i( src,0 );
+  __m128i s1 = casti_m128i( src,1 );
+  __m128i s2 = casti_m128i( src,2 );
+  __m128i s3 = casti_m128i( src,3 );
+  __m128i s4 = casti_m128i( src,4 );
+
+  casti_m128i( d,  0 ) =
+  casti_m128i( d,  1 ) = _mm_shuffle_epi32( s0, 0x44 );
+  casti_m128i( d,  2 ) =
+  casti_m128i( d,  3 ) = _mm_shuffle_epi32( s0, 0xee );
+
+  casti_m128i( d,  4 ) =
+  casti_m128i( d,  5 ) = _mm_shuffle_epi32( s1, 0x44 );
+  casti_m128i( d,  6 ) =
+  casti_m128i( d,  7 ) = _mm_shuffle_epi32( s1, 0xee );
+
+  casti_m128i( d,  8 ) =
+  casti_m128i( d,  9 ) = _mm_shuffle_epi32( s2, 0x44 );
+  casti_m128i( d, 10 ) =
+  casti_m128i( d, 11 ) = _mm_shuffle_epi32( s2, 0xee );
+
+  casti_m128i( d, 12 ) =
+  casti_m128i( d, 13 ) = _mm_shuffle_epi32( s3, 0x44 );
+  casti_m128i( d, 14 ) =
+  casti_m128i( d, 15 ) = _mm_shuffle_epi32( s3, 0xee );
+
+  casti_m128i( d, 16 ) =
+  casti_m128i( d, 17 ) = _mm_shuffle_epi32( s4, 0x44 );
+  casti_m128i( d, 18 ) =
+  casti_m128i( d, 19 ) = _mm_shuffle_epi32( s4, 0xee );
+}
 
 static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
 {
@@ -1636,40 +1565,6 @@ static inline void intrlv_8x64_512( void *dst, const void *src0,
    d[31] = _mm_unpackhi_epi64( s6[3], s7[3] );
 }
 
-/*
-#define ILEAVE_8x64( i ) do \
-{ \
-  uint64_t *d = (uint64_t*)(dst) + ( (i) << 3 ); \
-  d[0] = *( (const uint64_t*)(s0) +(i) ); \
-  d[1] = *( (const uint64_t*)(s1) +(i) ); \
-  d[2] = *( (const uint64_t*)(s2) +(i) ); \
-  d[3] = *( (const uint64_t*)(s3) +(i) ); \
-  d[4] = *( (const uint64_t*)(s4) +(i) ); \
-  d[5] = *( (const uint64_t*)(s5) +(i) ); \
-  d[6] = *( (const uint64_t*)(s6) +(i) ); \
-  d[7] = *( (const uint64_t*)(s7) +(i) ); \
-} while(0)
-
-static inline void intrlv_8x64( void *dst, const void *s0,
-        const void *s1, const void *s2, const void *s3, const void *s4,
-        const void *s5, const void *s6, const void *s7, int bit_len )
-{
-   ILEAVE_8x64(  0 );   ILEAVE_8x64(  1 );
-   ILEAVE_8x64(  2 );   ILEAVE_8x64(  3 );
-   if ( bit_len <= 256 ) return;
-   ILEAVE_8x64(  4 );   ILEAVE_8x64(  5 );
-   ILEAVE_8x64(  6 );   ILEAVE_8x64(  7 );
-   if ( bit_len <= 512 ) return;
-   ILEAVE_8x64(  8 );   ILEAVE_8x64(  9 );
-   if ( bit_len <= 640 ) return;
-   ILEAVE_8x64( 10 );   ILEAVE_8x64( 11 );
-   ILEAVE_8x64( 12 );   ILEAVE_8x64( 13 );
-   ILEAVE_8x64( 14 );   ILEAVE_8x64( 15 );
-}
-
-#undef ILEAVE_8x64
-*/
-
 
 static inline void dintrlv_8x64( void *dst0, void *dst1, void *dst2,
          void *dst3, void *dst4, void *dst5, void *dst6, void *dst7,
@@ -1814,39 +1709,6 @@ static inline void dintrlv_8x64_512( void *dst0, void *dst1, void *dst2,
    d6[3] = _mm_unpacklo_epi64( s[27], s[31] );
    d7[3] = _mm_unpackhi_epi64( s[27], s[31] );
 }
-
-/*
-#define DLEAVE_8x64( i ) do \
-{ \
-   const uint64_t *s = (const uint64_t*)(src) + ( (i) << 3 ); \
-   *( (uint64_t*)(d0) +(i) ) = s[0]; \
-   *( (uint64_t*)(d1) +(i) ) = s[1]; \
-   *( (uint64_t*)(d2) +(i) ) = s[2]; \
-   *( (uint64_t*)(d3) +(i) ) = s[3]; \
-   *( (uint64_t*)(d4) +(i) ) = s[4]; \
-   *( (uint64_t*)(d5) +(i) ) = s[5]; \
-   *( (uint64_t*)(d6) +(i) ) = s[6]; \
-   *( (uint64_t*)(d7) +(i) ) = s[7]; \
-} while(0)
-
-static inline void dintrlv_8x64( void *d0, void *d1, void *d2, void *d3,
-      void *d4, void *d5, void *d6, void *d7, const void *src, int bit_len )
-{
-   DLEAVE_8x64(  0 );   DLEAVE_8x64(  1 );
-   DLEAVE_8x64(  2 );   DLEAVE_8x64(  3 );
-   if ( bit_len <= 256 ) return;
-   DLEAVE_8x64(  4 );   DLEAVE_8x64(  5 );
-   DLEAVE_8x64(  6 );   DLEAVE_8x64(  7 );
-   if ( bit_len <= 512 ) return;
-   DLEAVE_8x64(  8 );   DLEAVE_8x64(  9 );
-   if ( bit_len <= 640 ) return;
-   DLEAVE_8x64( 10 );   DLEAVE_8x64( 11 );
-   DLEAVE_8x64( 12 );   DLEAVE_8x64( 13 );
-   DLEAVE_8x64( 14 );   DLEAVE_8x64( 15 );
-}
-
-#undef DLEAVE_8x64
-*/
 
 static inline void extr_lane_8x64( void *d, const void *s,
                                    const int lane, const int bit_len )

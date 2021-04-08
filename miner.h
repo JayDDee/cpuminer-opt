@@ -900,7 +900,7 @@ Options:\n\
       --benchmark       run in offline benchmark mode\n\
       --cpu-affinity    set process affinity to cpu core(s), mask 0x3 for cores 0 and 1\n\
       --cpu-priority    set process priority (default: 0 idle, 2 normal to 5 highest)\n\
-  -b, --api-bind        IP/Port for the miner API (default: 127.0.0.1:4048)\n\
+  -b, --api-bind=address[:port]   IP address for the miner API, default port is 4048)\n\
       --api-remote      Allow remote control\n\
       --max-temp=N      Only mine if cpu temp is less than specified value (linux)\n\
       --max-rate=N[KMG] Only mine if net hashrate is less than specified value\n\

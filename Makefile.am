@@ -196,6 +196,7 @@ cpuminer_SOURCES = \
   algo/verthash/Verthash.c \
   algo/verthash/fopen_utf8.c \
   algo/verthash/tiny_sha3/sha3.c \
+  algo/verthash/tiny_sha3/sha3-4way.c \
   algo/whirlpool/sph_whirlpool.c \
   algo/whirlpool/whirlpool-hash-4way.c \
   algo/whirlpool/whirlpool-gate.c \

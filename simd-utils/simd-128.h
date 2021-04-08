@@ -178,7 +178,7 @@ static inline __m128i mm128_mask_32( const __m128i v, const int m )
 // Basic operations without equivalent SIMD intrinsic
 
 // Bitwise not (~v)  
-#define mm128_not( v )          _mm_xor_si128( (v), m128_neg1 ) 
+#define mm128_not( v )          _mm_xor_si128( v, m128_neg1 ) 
 
 // Unary negation of elements (-v)
 #define mm128_negate_64( v )    _mm_sub_epi64( m128_zero, v )
@@ -263,7 +263,8 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
    _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(__AVX512VL__)
+//#if defined(__AVX512F__) && defined(__AVX512VL__)
 
 #define mm128_ror_64    _mm_ror_epi64
 #define mm128_rol_64    _mm_rol_epi64
@@ -291,16 +292,13 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_swap_64( v )    _mm_shuffle_epi32( v, 0x4e )
 #define mm128_ror_1x32( v )   _mm_shuffle_epi32( v, 0x39 )
 #define mm128_rol_1x32( v )   _mm_shuffle_epi32( v, 0x93 )
-//#define mm128_swap_64( v )    _mm_alignr_epi8( v, v,  8 )
-//#define mm128_ror_1x32( v )   _mm_alignr_epi8( v, v,  4 )
-//#define mm128_rol_1x32( v )   _mm_alignr_epi8( v, v, 12 )
 
 // Swap 32 bit elements in 64 bit lanes
 #define mm128_swap64_32( v )  _mm_shuffle_epi32( v, 0xb1 )
 
 #if defined(__SSSE3__)
 
-// Rotate right by c bytes
+// Rotate right by c bytes, no SSE2 equivalent.
 static inline __m128i mm128_ror_x8( const __m128i v, const int c )
 { return _mm_alignr_epi8( v, v, c ); }
 

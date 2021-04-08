@@ -555,7 +555,11 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
          if ( !s )
             continue;
          if ( !strcmp( s, "segwit" ) || !strcmp( s, "!segwit" ) )
+         {
             segwit = true;
+            if ( opt_debug )
+               applog( LOG_INFO, "GBT: SegWit is enabled" );
+         }
       }
    }
 // Segwit END
@@ -954,25 +958,25 @@ void scale_hash_for_display ( double* hashrate, char* prefix )
   else                          { *prefix = 'Y';  *hashrate /= 1e24; }
 }
 
-static inline void sprintf_et( char *str, int seconds )
+static inline void sprintf_et( char *str, long unsigned int seconds )
 {
-   // sprintf doesn't like uint64_t, Linux thinks it's long, Windows long long.
-   unsigned int min = seconds / 60;
-   unsigned int sec = seconds % 60;
-   unsigned int hrs = min / 60;
+   long unsigned int min = seconds / 60;
+   long unsigned int sec = seconds % 60;
+   long unsigned int hrs = min / 60;
+   
    if ( unlikely( hrs ) )   
    {
-      unsigned int years = hrs / (24*365);
-      unsigned int days = hrs / 24;
-      if ( years )
-         sprintf( str, "%uy%ud", years, years % 365 );
-      else if ( days )  //0d00h
-         sprintf( str, "%ud%02uh", days, hrs % 24 );
+      long unsigned int days = hrs / 24;
+      long unsigned int years = days / 365;
+      if ( years )      // 0y000d
+         sprintf( str, "%luy%lud", years, years % 365 );
+      else if ( days )  // 0d00h
+         sprintf( str, "%lud%02luh", days, hrs % 24 );
       else         // 0h00m  
-         sprintf( str, "%uh%02um", hrs, min % 60 );
+         sprintf( str, "%luh%02lum", hrs, min % 60 );
    }
    else         // 0m00s
-      sprintf( str, "%um%02us", min, sec );
+      sprintf( str, "%lum%02lus", min, sec );
 }
 
 const long double exp32 = EXP32;                                  // 2**32
@@ -1071,7 +1075,8 @@ void report_summary_log( bool force )
    
    double share_time = (double)et.tv_sec + (double)et.tv_usec / 1e6;
    double ghrate = global_hashrate;
-   double shrate = safe_div( exp32 * last_targetdiff * (double)(accepts),
+   double target_diff = exp32 * last_targetdiff;
+   double shrate = safe_div( target_diff * (double)(accepts),
                              share_time, 0. );
    double sess_hrate = safe_div( exp32 * norm_diff_sum,
                                  (double)uptime.tv_sec, 0. );
@@ -1099,12 +1104,12 @@ void report_summary_log( bool force )
 
    if ( accepted_share_count < submitted_share_count )
    {
-      double ltd = exp32 * last_targetdiff;
       double lost_ghrate = uptime.tv_sec == 0 ? 0.
-                : ltd * (double)(submitted_share_count - accepted_share_count )
+                : target_diff
+                       * (double)(submitted_share_count - accepted_share_count )
                   / (double)uptime.tv_sec;
       double lost_shrate = share_time == 0. ? 0.
-               : ltd  * (double)(submits - accepts ) / share_time;
+               : target_diff  * (double)(submits - accepts ) / share_time;
       char lshr_units[4] = {0};
       char lghr_units[4] = {0};
       scale_hash_for_display( &lost_shrate, lshr_units );
@@ -2437,10 +2442,14 @@ static void *miner_thread( void *userdata )
 #if ((defined(_WIN64) || defined(__WINDOWS__)) || defined(_WIN32))
              applog( LOG_NOTICE, "Total: %s %sH/s", hr, hr_units );
 #else
-             applog( LOG_NOTICE, "Total: %s %sH/s, CPU temp: %dC",
-                                  hr, hr_units, (uint32_t)cpu_temp(0) );
+             float lo_freq = 0., hi_freq = 0.;
+             linux_cpu_hilo_freq( &lo_freq, &hi_freq );
+             applog( LOG_NOTICE,
+                     "Total: %s %sH/s, Temp: %dC, Freq: %.3f/%.3f GHz",
+                     hr, hr_units, (uint32_t)cpu_temp(0), lo_freq / 1e6,
+                     hi_freq / 1e6 );
 #endif
-	       }
+          }
        }  // benchmark
 
        // conditional mining

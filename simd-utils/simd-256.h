@@ -18,7 +18,7 @@
 #define mm256_mov64_256( i ) _mm256_castsi128_si256( mm128_mov64_128( i ) )
 #define mm256_mov32_256( i ) _mm256_castsi128_si256( mm128_mov32_128( i ) )
 
-// Mo0ve low element of vector to integer.
+// Move low element of vector to integer.
 #define mm256_mov256_64( v ) mm128_mov128_64( _mm256_castsi256_si128( v ) )
 #define mm256_mov256_32( v ) mm128_mov128_32( _mm256_castsi256_si128( v ) )
 
@@ -42,7 +42,7 @@ static inline __m256i m256_const_64( const uint64_t i3, const uint64_t i2,
 // 128 bit vector argument
 #define m256_const1_128( v ) \
    _mm256_permute4x64_epi64( _mm256_castsi128_si256( v ), 0x44 )
-// 64 bit integer argument
+// 64 bit integer argument zero extended to 128 bits.
 #define m256_const1_i128( i ) m256_const1_128( mm128_mov64_128( i ) )
 #define m256_const1_64( i )  _mm256_broadcastq_epi64( mm128_mov64_128( i ) )
 #define m256_const1_32( i )  _mm256_broadcastd_epi32( mm128_mov32_128( i ) )
@@ -168,7 +168,10 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
                     _mm256_srli_epi32( v, 32-(c) ) )
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+// The spec says both F & VL are required, but just in case AMD
+// decides to implement ROL/R without AVX512F.
+#if defined(__AVX512VL__)
+//#if defined(__AVX512F__) && defined(__AVX512VL__)
 
 // AVX512, control must be 8 bit immediate.
 
@@ -198,21 +201,14 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 //
 // Rotate elements accross all lanes.
 //
-// AVX2 has no full vector permute for elements less than 32 bits.
-// AVX512 has finer granularity full vector permutes.
-// AVX512 has full vector alignr which might be faster, especially for 32 bit
+// Swap 128 bit elements in 256 bit vector.
+#define mm256_swap_128( v )     _mm256_permute4x64_epi64( v, 0x4e )
 
+// Rotate 256 bit vector by one 64 bit element
+#define mm256_ror_1x64( v )     _mm256_permute4x64_epi64( v, 0x39 )
+#define mm256_rol_1x64( v )     _mm256_permute4x64_epi64( v, 0x93 )
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-
-static inline __m256i mm256_swap_128( const __m256i v )
-{ return _mm256_alignr_epi64( v, v, 2 ); }
-
-static inline __m256i mm256_ror_1x64( const __m256i v )
-{ return _mm256_alignr_epi64( v, v, 1 ); }
-
-static inline __m256i mm256_rol_1x64( const __m256i v )
-{ return _mm256_alignr_epi64( v, v, 3 ); }
+#if defined(__AVX512F__) && defined(__AVX512VL__)
 
 static inline __m256i mm256_ror_1x32( const __m256i v )
 { return _mm256_alignr_epi32( v, v, 1 ); }
@@ -220,20 +216,7 @@ static inline __m256i mm256_ror_1x32( const __m256i v )
 static inline __m256i mm256_rol_1x32( const __m256i v )
 { return _mm256_alignr_epi32( v, v, 7 ); }
 
-static inline __m256i mm256_ror_3x32( const __m256i v )
-{ return _mm256_alignr_epi32( v, v, 3 ); }
-
-static inline __m256i mm256_rol_3x32( const __m256i v )
-{ return _mm256_alignr_epi32( v, v, 5 ); }
-
 #else   // AVX2
-
-// Swap 128 bit elements in 256 bit vector.
-#define mm256_swap_128( v )     _mm256_permute4x64_epi64( v, 0x4e )
-
-// Rotate 256 bit vector by one 64 bit element
-#define mm256_ror_1x64( v )     _mm256_permute4x64_epi64( v, 0x39 )
-#define mm256_rol_1x64( v )     _mm256_permute4x64_epi64( v, 0x93 )
 
 // Rotate 256 bit vector by one 32 bit element.
 #define mm256_ror_1x32( v ) \
@@ -245,17 +228,6 @@ static inline __m256i mm256_rol_3x32( const __m256i v )
     _mm256_permutevar8x32_epi32( v, \
                      m256_const_64( 0x0000000600000005,  0x0000000400000003, \
                                     0x0000000200000001,  0x0000000000000007 )
-
-// Rotate 256 bit vector by three 32 bit elements (96 bits).
-#define mm256_ror_3x32( v ) \
-    _mm256_permutevar8x32_epi32( v, \
-                     m256_const_64( 0x0000000200000001, 0x0000000000000007, \
-                                    0x0000000600000005, 0x0000000400000003 ) 
-
-#define mm256_rol_3x32( v ) \
-    _mm256_permutevar8x32_epi32( v, \
-                     m256_const_64( 0x0000000400000003, 0x0000000200000001, \
-                                    0x0000000000000007, 0x0000000600000005 )
 
 #endif    // AVX512 else AVX2
 

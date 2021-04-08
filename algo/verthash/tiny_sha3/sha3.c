@@ -5,6 +5,7 @@
 // Revised 03-Sep-15 for portability + OpenSSL - style API
 
 #include "sha3.h"
+#include <string.h>
 
 // update the state with given number of rounds
 
@@ -21,6 +22,7 @@ void sha3_keccakf(uint64_t st[25])
         0x000000000000800a, 0x800000008000000a, 0x8000000080008081,
         0x8000000000008080, 0x0000000080000001, 0x8000000080008008
     };
+/*
     const int keccakf_rotc[24] = {
         1,  3,  6,  10, 15, 21, 28, 36, 45, 55, 2,  14,
         27, 41, 56, 8,  25, 43, 62, 18, 39, 61, 20, 44
@@ -29,6 +31,7 @@ void sha3_keccakf(uint64_t st[25])
         10, 7,  11, 17, 18, 3, 5,  16, 8,  21, 24, 4,
         15, 23, 19, 13, 12, 2, 20, 14, 22, 9,  6,  1
     };
+*/
 
     // variables
     int i, j, r;
@@ -60,14 +63,50 @@ void sha3_keccakf(uint64_t st[25])
                 st[j + i] ^= t;
         }
 
+        
         // Rho Pi
+#define RHO_PI( i, c ) \
+   bc[0] = st[ i ]; \
+   st[ i ] = ROTL64( t, c ); \
+   t = bc[0]
+
         t = st[1];
+
+        RHO_PI( 10,  1 );
+        RHO_PI(  7,  3 );
+        RHO_PI( 11,  6 );
+        RHO_PI( 17, 10 );
+        RHO_PI( 18, 15 );
+        RHO_PI(  3, 21 );
+        RHO_PI(  5, 28 );
+        RHO_PI( 16, 36 );
+        RHO_PI(  8, 45 );
+        RHO_PI( 21, 55 );
+        RHO_PI( 24,  2 );
+        RHO_PI(  4, 14 );
+        RHO_PI( 15, 27 );
+        RHO_PI( 23, 41 );
+        RHO_PI( 19, 56 );
+        RHO_PI( 13,  8 );
+        RHO_PI( 12, 25 );
+        RHO_PI(  2, 43 );
+        RHO_PI( 20, 62 );
+        RHO_PI( 14, 18 );
+        RHO_PI( 22, 39 );
+        RHO_PI(  9, 61 );
+        RHO_PI(  6, 20 );
+        RHO_PI(  1, 44 );
+
+#undef RHO_PI        
+
+/*        
         for (i = 0; i < 24; i++) {
             j = keccakf_piln[i];
             bc[0] = st[j];
             st[j] = ROTL64(t, keccakf_rotc[i]);
             t = bc[0];
         }
+*/
 
         //  Chi
         for (j = 0; j < 25; j += 5) {
@@ -118,17 +157,20 @@ int sha3_init(sha3_ctx_t *c, int mdlen)
 int sha3_update(sha3_ctx_t *c, const void *data, size_t len)
 {
     size_t i;
-    int j;
+    int j = c->pt / 8;
+    const int rsiz = c->rsiz / 8;
+    const int l = len / 8;
 
-    j = c->pt;
-    for (i = 0; i < len; i++) {
-        c->st.b[j++] ^= ((const uint8_t *) data)[i];
-        if (j >= c->rsiz) {
-            sha3_keccakf(c->st.q);
+    for ( i = 0; i < l; i++ )
+    {
+        c->st.q[ j++ ] ^= ( ((const uint64_t *) data) [i] );
+        if ( j >= rsiz )
+        {
+            sha3_keccakf( c->st.q );
             j = 0;
         }
     }
-    c->pt = j;
+    c->pt = j*8;
 
     return 1;
 }
@@ -137,16 +179,10 @@ int sha3_update(sha3_ctx_t *c, const void *data, size_t len)
 
 int sha3_final(void *md, sha3_ctx_t *c)
 {
-    int i;
-
-    c->st.b[c->pt] ^= 0x06;
-    c->st.b[c->rsiz - 1] ^= 0x80;
+    c->st.q[ c->pt / 8 ] ^= 6;
+    c->st.q[ c->rsiz / 8 - 1 ] ^= 0x8000000000000000;
     sha3_keccakf(c->st.q);
-
-    for (i = 0; i < c->mdlen; i++) {
-        ((uint8_t *) md)[i] = c->st.b[i];
-    }
-
+    memcpy( md, c->st.q, c->mdlen );
     return 1;
 }
 
@@ -155,7 +191,6 @@ int sha3_final(void *md, sha3_ctx_t *c)
 void *sha3(const void *in, size_t inlen, void *md, int mdlen)
 {
     sha3_ctx_t sha3;
-
     sha3_init(&sha3, mdlen);
     sha3_update(&sha3, in, inlen);
     sha3_final(md, &sha3);

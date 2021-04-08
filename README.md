@@ -135,7 +135,7 @@ Supported Algorithms
                           x14           X14
                           x15           X15
                           x16r          
-                          x16rv2        Ravencoin (RVN)
+                          x16rv2        
                           x16rt         Gincoin (GIN)
                           x16rt-veil    Veil (VEIL)
                           x16s          Pigeoncoin (PGN)

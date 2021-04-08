@@ -134,87 +134,117 @@ static inline uint32_t fnv1a(const uint32_t a, const uint32_t b)
     return (a ^ b) * 0x1000193;
 }
 
-void verthash_hash(const unsigned char* blob_bytes,
-                   const size_t blob_size,
-                   const unsigned char(*input)[VH_HEADER_SIZE],
-                   unsigned char(*output)[VH_HASH_OUT_SIZE])
+void verthash_hash( const unsigned char* blob_bytes,
+                    const size_t blob_size,
+                    const unsigned char(*input)[VH_HEADER_SIZE],
+                    unsigned char(*output)[VH_HASH_OUT_SIZE] )
 {
-    unsigned char p1[VH_HASH_OUT_SIZE] __attribute__ ((aligned (64)));
-    sha3(&input[0], VH_HEADER_SIZE, &p1[0], VH_HASH_OUT_SIZE);
-
-    unsigned char p0[VH_N_SUBSET];
-
-    unsigned char input_header[VH_HEADER_SIZE] __attribute__ ((aligned (64)));
-    memcpy(input_header, input, VH_HEADER_SIZE);
-
-    for (size_t i = 0; i < VH_N_ITER; ++i)
-    {
-        input_header[0] += 1;
-        sha3(&input_header[0], VH_HEADER_SIZE, p0 + i * VH_P0_SIZE, VH_P0_SIZE);
-    }
-
-    uint32_t* p0_index = (uint32_t*)p0;
+    unsigned char p1[ VH_HASH_OUT_SIZE ] __attribute__ ((aligned (64)));
+    unsigned char p0[ VH_N_SUBSET ] __attribute__ ((aligned (64)));
     uint32_t seek_indexes[VH_N_INDEXES] __attribute__ ((aligned (64)));
+    uint32_t* p0_index = (uint32_t*)p0;
 
+    verthash_sha3_512_final_8( p0, ( (uint64_t*)input )[ 9 ] );
+    
     for ( size_t x = 0; x < VH_N_ROT; ++x )
     {
         memcpy( seek_indexes + x * (VH_N_SUBSET / sizeof(uint32_t)),
                 p0, VH_N_SUBSET);
 
-//#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)        
-// 512 bit vector processing is actually slower because it reduces the CPU
-// clock significantly, which also slows mem access. The AVX512 rol instruction
-// is still available for smaller vectors.
-
-//        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(uint32_t); y += 16 )
-//        {
-//            __m512i *p0_v = (__m512i*)( p0_index + y );
-//            *p0_v = mm512_rol_32( *p0_v, 1 );
-//        }
-
 #if defined(__AVX2__)
 
-        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(uint32_t); y += 8 )
+        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(__m256i); y += 8)
         {
-            __m256i *p0_v = (__m256i*)( p0_index + y );
-            *p0_v = mm256_rol_32( *p0_v, 1 );
+           casti_m256i( p0_index, y   ) = mm256_rol_32(
+                                            casti_m256i( p0_index, y   ), 1 );
+           casti_m256i( p0_index, y+1 ) = mm256_rol_32( 
+                                            casti_m256i( p0_index, y+1 ), 1 );
+           casti_m256i( p0_index, y+2 ) = mm256_rol_32(
+                                            casti_m256i( p0_index, y+2 ), 1 );
+           casti_m256i( p0_index, y+3 ) = mm256_rol_32(
+                                            casti_m256i( p0_index, y+3 ), 1 );
+           casti_m256i( p0_index, y+4 ) = mm256_rol_32(
+                                            casti_m256i( p0_index, y+4 ), 1 );
+           casti_m256i( p0_index, y+5 ) = mm256_rol_32(
+                                            casti_m256i( p0_index, y+5 ), 1 );
+           casti_m256i( p0_index, y+6 ) = mm256_rol_32(
+                                            casti_m256i( p0_index, y+6 ), 1 );
+           casti_m256i( p0_index, y+7 ) = mm256_rol_32(
+                                            casti_m256i( p0_index, y+7 ), 1 );
         }
 
 #else
 
-        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(uint32_t); y += 4 )
+        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(__m128i); y += 8)
         {
-            __m128i *p0_v = (__m128i*)( p0_index + y );
-            *p0_v = mm128_rol_32( *p0_v, 1 );
+           casti_m128i( p0_index, y   ) = mm128_rol_32(
+                                            casti_m128i( p0_index, y   ), 1 );
+           casti_m128i( p0_index, y+1 ) = mm128_rol_32(
+                                            casti_m128i( p0_index, y+1 ), 1 );
+           casti_m128i( p0_index, y+2 ) = mm128_rol_32(
+                                            casti_m128i( p0_index, y+2 ), 1 );
+           casti_m128i( p0_index, y+3 ) = mm128_rol_32(
+                                            casti_m128i( p0_index, y+3 ), 1 );
+           casti_m128i( p0_index, y+4 ) = mm128_rol_32(
+                                            casti_m128i( p0_index, y+4 ), 1 );
+           casti_m128i( p0_index, y+5 ) = mm128_rol_32(
+                                            casti_m128i( p0_index, y+5 ), 1 );
+           casti_m128i( p0_index, y+6 ) = mm128_rol_32(
+                                            casti_m128i( p0_index, y+6 ), 1 );
+           casti_m128i( p0_index, y+7 ) = mm128_rol_32(
+                                            casti_m128i( p0_index, y+7 ), 1 );
         }
-
+        
 #endif
 
-//        for (size_t y = 0; y < VH_N_SUBSET / sizeof(uint32_t); ++y)
-//        {
-//            *(p0_index + y) = ( *(p0_index + y) << 1 )
-//            | ( 1 & (*(p0_index + y) >> 31) );
-//        }
     }
 
+    sha3( &input[0], VH_HEADER_SIZE, &p1[0], VH_HASH_OUT_SIZE );
+    
     uint32_t* p1_32 = (uint32_t*)p1;
     uint32_t* blob_bytes_32 = (uint32_t*)blob_bytes;
     uint32_t value_accumulator = 0x811c9dc5;
-    const uint32_t mdiv = ((blob_size - VH_HASH_OUT_SIZE) / VH_BYTE_ALIGNMENT) + 1;
-    for (size_t i = 0; i < VH_N_INDEXES; i++)
+    const uint32_t mdiv = ( ( blob_size - VH_HASH_OUT_SIZE )
+                             / VH_BYTE_ALIGNMENT ) + 1;
+#if defined (__AVX2__)        
+    const __m256i k = _mm256_set1_epi32( 0x1000193 );
+#elif defined(__SSE41__)
+    const __m128i k = _mm_set1_epi32( 0x1000193 );
+#endif
+
+    for ( size_t i = 0; i < VH_N_INDEXES; i++ )
     {
-        const uint32_t offset = (fnv1a(seek_indexes[i], value_accumulator) % mdiv) * VH_BYTE_ALIGNMENT / sizeof(uint32_t);
+        const uint32_t offset =
+                      ( fnv1a( seek_indexes[i], value_accumulator) % mdiv )
+                      * ( VH_BYTE_ALIGNMENT / sizeof(uint32_t) );
         const uint32_t *blob_off = blob_bytes_32 + offset;
-        for (size_t i2 = 0; i2 < VH_HASH_OUT_SIZE / sizeof(uint32_t); i2++)
-        {
-            const uint32_t value = *( blob_off + i2 );
-            uint32_t* p1_ptr = p1_32 + i2;
-            *p1_ptr = fnv1a( *p1_ptr, value );
-            value_accumulator = fnv1a( value_accumulator, value );
-        }
+
+        // update value accumulator for next seek index
+        value_accumulator = fnv1a( value_accumulator, blob_off[0] );
+        value_accumulator = fnv1a( value_accumulator, blob_off[1] );
+        value_accumulator = fnv1a( value_accumulator, blob_off[2] );
+        value_accumulator = fnv1a( value_accumulator, blob_off[3] );
+        value_accumulator = fnv1a( value_accumulator, blob_off[4] );
+        value_accumulator = fnv1a( value_accumulator, blob_off[5] );
+        value_accumulator = fnv1a( value_accumulator, blob_off[6] );
+        value_accumulator = fnv1a( value_accumulator, blob_off[7] );
+        
+#if defined (__AVX2__)        
+        *(__m256i*)p1_32 = _mm256_mullo_epi32( _mm256_xor_si256(
+                                  *(__m256i*)p1_32, *(__m256i*)blob_off ), k );
+#elif defined(__SSE41__)
+        casti_m128i( p1_32, 0 ) = _mm_mullo_epi32( _mm_xor_si128( 
+                    casti_m128i( p1_32, 0 ), casti_m128i( blob_off, 0 ) ), k );
+        casti_m128i( p1_32, 1 ) = _mm_mullo_epi32( _mm_xor_si128( 
+                    casti_m128i( p1_32, 1 ), casti_m128i( blob_off, 1 ) ), k );
+#else
+         for ( size_t i2 = 0; i2 < VH_HASH_OUT_SIZE / sizeof(uint32_t); i2++ )
+            p1_32[i2] = fnv1a( p1_32[i2], blob_off[i2] );
+#endif
+
     }
 
-    memcpy(output, p1, VH_HASH_OUT_SIZE);
+    memcpy( output, p1, VH_HASH_OUT_SIZE );
 }
 
 //-----------------------------------------------------------------------------
