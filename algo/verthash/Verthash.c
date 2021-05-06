@@ -44,8 +44,8 @@ int verthash_info_init(verthash_info_t* info, const char* file_name)
        if ( opt_data_file || !opt_verify ) 
        {
           if ( opt_data_file )
-             applog( LOG_ERR,
-                     "Verthash data file not found or invalid: %s", info->fileName );
+             applog( LOG_ERR, "Verthash data file not found or invalid: %s",
+                     info->fileName );
           else
           {
              applog( LOG_ERR,
@@ -134,76 +134,117 @@ static inline uint32_t fnv1a(const uint32_t a, const uint32_t b)
     return (a ^ b) * 0x1000193;
 }
 
-void verthash_hash( const unsigned char* blob_bytes,
-                    const size_t blob_size,
-                    const unsigned char(*input)[VH_HEADER_SIZE],
-                    unsigned char(*output)[VH_HASH_OUT_SIZE] )
+#if 0
+static void rotate_indexes( uint32_t *p )
 {
-    unsigned char p1[ VH_HASH_OUT_SIZE ] __attribute__ ((aligned (64)));
-    unsigned char p0[ VH_N_SUBSET ] __attribute__ ((aligned (64)));
-    uint32_t seek_indexes[VH_N_INDEXES] __attribute__ ((aligned (64)));
-    uint32_t* p0_index = (uint32_t*)p0;
-
-    verthash_sha3_512_final_8( p0, ( (uint64_t*)input )[ 9 ] );
-    
-    for ( size_t x = 0; x < VH_N_ROT; ++x )
-    {
-        memcpy( seek_indexes + x * (VH_N_SUBSET / sizeof(uint32_t)),
-                p0, VH_N_SUBSET);
-
 #if defined(__AVX2__)
 
-        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(__m256i); y += 8)
-        {
-           casti_m256i( p0_index, y   ) = mm256_rol_32(
-                                            casti_m256i( p0_index, y   ), 1 );
-           casti_m256i( p0_index, y+1 ) = mm256_rol_32( 
-                                            casti_m256i( p0_index, y+1 ), 1 );
-           casti_m256i( p0_index, y+2 ) = mm256_rol_32(
-                                            casti_m256i( p0_index, y+2 ), 1 );
-           casti_m256i( p0_index, y+3 ) = mm256_rol_32(
-                                            casti_m256i( p0_index, y+3 ), 1 );
-           casti_m256i( p0_index, y+4 ) = mm256_rol_32(
-                                            casti_m256i( p0_index, y+4 ), 1 );
-           casti_m256i( p0_index, y+5 ) = mm256_rol_32(
-                                            casti_m256i( p0_index, y+5 ), 1 );
-           casti_m256i( p0_index, y+6 ) = mm256_rol_32(
-                                            casti_m256i( p0_index, y+6 ), 1 );
-           casti_m256i( p0_index, y+7 ) = mm256_rol_32(
-                                            casti_m256i( p0_index, y+7 ), 1 );
-        }
+   for ( size_t x = 0; x < VH_N_SUBSET / sizeof(__m256i); x += 8 )
+   {
+      __m256i *px = (__m256i*)p + x;
+
+      px[0] = mm256_rol_32( px[0], 1 );
+      px[1] = mm256_rol_32( px[1], 1 );
+      px[2] = mm256_rol_32( px[2], 1 );
+      px[3] = mm256_rol_32( px[3], 1 );
+      px[4] = mm256_rol_32( px[4], 1 );
+      px[5] = mm256_rol_32( px[5], 1 );
+      px[6] = mm256_rol_32( px[6], 1 );
+      px[7] = mm256_rol_32( px[7], 1 );
+   }
 
 #else
 
-        for ( size_t y = 0; y < VH_N_SUBSET / sizeof(__m128i); y += 8)
-        {
-           casti_m128i( p0_index, y   ) = mm128_rol_32(
-                                            casti_m128i( p0_index, y   ), 1 );
-           casti_m128i( p0_index, y+1 ) = mm128_rol_32(
-                                            casti_m128i( p0_index, y+1 ), 1 );
-           casti_m128i( p0_index, y+2 ) = mm128_rol_32(
-                                            casti_m128i( p0_index, y+2 ), 1 );
-           casti_m128i( p0_index, y+3 ) = mm128_rol_32(
-                                            casti_m128i( p0_index, y+3 ), 1 );
-           casti_m128i( p0_index, y+4 ) = mm128_rol_32(
-                                            casti_m128i( p0_index, y+4 ), 1 );
-           casti_m128i( p0_index, y+5 ) = mm128_rol_32(
-                                            casti_m128i( p0_index, y+5 ), 1 );
-           casti_m128i( p0_index, y+6 ) = mm128_rol_32(
-                                            casti_m128i( p0_index, y+6 ), 1 );
-           casti_m128i( p0_index, y+7 ) = mm128_rol_32(
-                                            casti_m128i( p0_index, y+7 ), 1 );
-        }
-        
+   for ( size_t x = 0; x < VH_N_SUBSET / sizeof(__m128i); x += 8 )
+   {
+      __m128i *px = (__m128i*)p0_index + x;
+
+      px[0] = mm128_rol_32( px[0], 1 );
+      px[1] = mm128_rol_32( px[1], 1 );
+      px[2] = mm128_rol_32( px[2], 1 );
+      px[3] = mm128_rol_32( px[3], 1 );
+      px[4] = mm128_rol_32( px[4], 1 );
+      px[5] = mm128_rol_32( px[5], 1 );
+      px[6] = mm128_rol_32( px[6], 1 );
+      px[7] = mm128_rol_32( px[7], 1 );
+   }
+
+#endif
+/*   
+   for ( size_t x = 0; x < VH_N_SUBSET / sizeof(uint32_t); ++x )
+      p[x] = ( p[x] << 1 ) | ( p[x] >> 31 );
+*/
+}
 #endif
 
-    }
+static inline uint32_t rotl32( uint32_t a, size_t r )
+{
+   return ( a << r ) | ( a >> (32-r) );
+}
 
-    sha3( &input[0], VH_HEADER_SIZE, &p1[0], VH_HASH_OUT_SIZE );
-    
-    uint32_t* p1_32 = (uint32_t*)p1;
-    uint32_t* blob_bytes_32 = (uint32_t*)blob_bytes;
-    uint32_t value_accumulator = 0x811c9dc5;
+// Vectorized and targetted version of fnv1a
+#if defined (__AVX2__)        
+
+#define MULXOR \
+   *(__m256i*)hash = _mm256_mullo_epi32( _mm256_xor_si256( \
+                                 *(__m256i*)hash, *(__m256i*)blob_off ), k );
+
+#elif defined(__SSE41__)
+
+#define MULXOR \
+   casti_m128i( hash, 0 ) = _mm_mullo_epi32( _mm_xor_si128( \
+                  casti_m128i( hash, 0 ), casti_m128i( blob_off, 0 ) ), k ); \
+   casti_m128i( hash, 1 ) = _mm_mullo_epi32( _mm_xor_si128( \
+                  casti_m128i( hash, 1 ), casti_m128i( blob_off, 1 ) ), k );
+
+#else
+
+#define MULXOR \
+   for ( size_t j = 0; j < VH_HASH_OUT_SIZE / sizeof(uint32_t); j++ ) \
+       hash[j] = fnv1a( hash[j], blob_off[j] ); \
+
+#endif
+
+#define UPDATE_ACCUMULATOR \
+   accumulator = fnv1a( accumulator, blob_off[0] ); \
+   accumulator = fnv1a( accumulator, blob_off[1] ); \
+   accumulator = fnv1a( accumulator, blob_off[2] ); \
+   accumulator = fnv1a( accumulator, blob_off[3] ); \
+   accumulator = fnv1a( accumulator, blob_off[4] ); \
+   accumulator = fnv1a( accumulator, blob_off[5] ); \
+   accumulator = fnv1a( accumulator, blob_off[6] ); \
+   accumulator = fnv1a( accumulator, blob_off[7] )
+
+
+// first pass no rotate
+#define ROUND_0 \
+for ( size_t i = 0; i < VH_N_SUBSET / sizeof(uint32_t); i++ ) \
+{ \
+   const uint32_t *blob_off = blob + \
+                         ( ( fnv1a( subset[i], accumulator ) % mdiv ) \
+                         * ( VH_BYTE_ALIGNMENT / sizeof(uint32_t) ) ); \
+   UPDATE_ACCUMULATOR; \
+   MULXOR; \
+}
+
+// subsequent passes rotate by r on demand, no need for mass rotate
+#define ROUND_r( r ) \
+for ( size_t i = 0; i < VH_N_SUBSET / sizeof(uint32_t); i++ ) \
+{ \
+   const uint32_t *blob_off = blob + \
+                 ( ( fnv1a( rotl32( subset[i], r ), accumulator ) % mdiv ) \
+                 * ( VH_BYTE_ALIGNMENT / sizeof(uint32_t) ) ); \
+   UPDATE_ACCUMULATOR; \
+   MULXOR; \
+}
+
+void verthash_hash( const void *blob_bytes, const size_t blob_size,
+                    const void *input, void *output )
+{
+    uint32_t hash[ VH_HASH_OUT_SIZE / 4 ] __attribute__ ((aligned (64)));
+    uint32_t subset[ VH_N_SUBSET / 4 ] __attribute__ ((aligned (64)));
+    const uint32_t *blob = (const uint32_t*)blob_bytes;
+    uint32_t accumulator = 0x811c9dc5;
     const uint32_t mdiv = ( ( blob_size - VH_HASH_OUT_SIZE )
                              / VH_BYTE_ALIGNMENT ) + 1;
 #if defined (__AVX2__)        
@@ -211,40 +252,15 @@ void verthash_hash( const unsigned char* blob_bytes,
 #elif defined(__SSE41__)
     const __m128i k = _mm_set1_epi32( 0x1000193 );
 #endif
+    
+    sha3( input, VH_HEADER_SIZE, hash, VH_HASH_OUT_SIZE );
+    verthash_sha3_512_final_8( subset, ( (uint64_t*)input )[ 9 ] );
 
-    for ( size_t i = 0; i < VH_N_INDEXES; i++ )
-    {
-        const uint32_t offset =
-                      ( fnv1a( seek_indexes[i], value_accumulator) % mdiv )
-                      * ( VH_BYTE_ALIGNMENT / sizeof(uint32_t) );
-        const uint32_t *blob_off = blob_bytes_32 + offset;
+    ROUND_0;
+    for ( size_t r = 1; r < VH_N_ROT; ++r )
+       ROUND_r( r );
 
-        // update value accumulator for next seek index
-        value_accumulator = fnv1a( value_accumulator, blob_off[0] );
-        value_accumulator = fnv1a( value_accumulator, blob_off[1] );
-        value_accumulator = fnv1a( value_accumulator, blob_off[2] );
-        value_accumulator = fnv1a( value_accumulator, blob_off[3] );
-        value_accumulator = fnv1a( value_accumulator, blob_off[4] );
-        value_accumulator = fnv1a( value_accumulator, blob_off[5] );
-        value_accumulator = fnv1a( value_accumulator, blob_off[6] );
-        value_accumulator = fnv1a( value_accumulator, blob_off[7] );
-        
-#if defined (__AVX2__)        
-        *(__m256i*)p1_32 = _mm256_mullo_epi32( _mm256_xor_si256(
-                                  *(__m256i*)p1_32, *(__m256i*)blob_off ), k );
-#elif defined(__SSE41__)
-        casti_m128i( p1_32, 0 ) = _mm_mullo_epi32( _mm_xor_si128( 
-                    casti_m128i( p1_32, 0 ), casti_m128i( blob_off, 0 ) ), k );
-        casti_m128i( p1_32, 1 ) = _mm_mullo_epi32( _mm_xor_si128( 
-                    casti_m128i( p1_32, 1 ), casti_m128i( blob_off, 1 ) ), k );
-#else
-         for ( size_t i2 = 0; i2 < VH_HASH_OUT_SIZE / sizeof(uint32_t); i2++ )
-            p1_32[i2] = fnv1a( p1_32[i2], blob_off[i2] );
-#endif
-
-    }
-
-    memcpy( output, p1, VH_HASH_OUT_SIZE );
+    memcpy( output, hash, VH_HASH_OUT_SIZE );
 }
 
 //-----------------------------------------------------------------------------

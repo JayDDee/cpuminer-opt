@@ -62,7 +62,7 @@ void verthash_sha3_512_final_8( void *hash, const uint64_t nonce )
     __m256i vhashB[ 10 ] __attribute__ ((aligned (64)));
 
    sha3_4way_ctx_t ctx;
-   __m256i vnonce = _mm256_set1_epi64x( nonce );
+   const __m256i vnonce = _mm256_set1_epi64x( nonce );
 
    memcpy( &ctx, &sha3_mid_ctxA, sizeof ctx );
    sha3_4way_update( &ctx, &vnonce, 8 );
@@ -88,14 +88,13 @@ void verthash_sha3_512_final_8( void *hash, const uint64_t nonce )
 #endif
 }
 
-
 int scanhash_verthash( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t edata[20] __attribute__((aligned(64)));
    uint32_t hash[8] __attribute__((aligned(64)));
    uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
+   const uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 1;
    uint32_t n = first_nonce;
@@ -109,8 +108,7 @@ int scanhash_verthash( struct work *work, uint32_t max_nonce,
    {
       edata[19] = n;
       verthash_hash( verthashInfo.data, verthashInfo.dataSize, 
-                     (const unsigned char (*)[80]) edata,
-                     (unsigned char (*)[32]) hash );
+                     edata,  hash );
       if ( valid_hash( hash, ptarget ) && !bench )
       {
          pdata[19] = bswap_32( n );
@@ -123,17 +121,16 @@ int scanhash_verthash( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
-const char *default_verthash_data_file = "verthash.dat";
+static const char *default_verthash_data_file = "verthash.dat";
 
 bool register_verthash_algo( algo_gate_t* gate )
 {
-
   opt_target_factor = 256.0;
   gate->scanhash  = (void*)&scanhash_verthash;
   gate->optimizations = AVX2_OPT;
    
-  char *verthash_data_file = opt_data_file ? opt_data_file
-                                           : default_verthash_data_file;
+  const char *verthash_data_file = opt_data_file ? opt_data_file
+                                                 : default_verthash_data_file;
   
    int vhLoadResult = verthash_info_init( &verthashInfo, verthash_data_file );
    if (vhLoadResult == 0) // No Error
@@ -160,7 +157,8 @@ bool register_verthash_algo( algo_gate_t* gate )
       // Handle Verthash error codes
       if ( vhLoadResult == 1 )
       {
-         applog( LOG_ERR, "Verthash data file not found: %s", verthash_data_file );
+         applog( LOG_ERR, "Verthash data file not found: %s",
+                 verthash_data_file );
          if ( !opt_data_file )
             applog( LOG_NOTICE, "Add '--verify' to create verthash.dat");
       }

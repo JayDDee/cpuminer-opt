@@ -116,7 +116,7 @@ extern "C" {
 		uint8_t  personal[BLAKE2S_PERSONALBYTES];  // 32
 	} blake2s_param;
 
-	ALIGN( 64 ) typedef struct __blake2s_state
+	typedef struct ALIGN( 64 ) __blake2s_state
 	{
 		uint32_t h[8];
 		uint32_t t[2];

@@ -127,10 +127,8 @@ void quark_8way_hash( void *state, const void *input )
 
      rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
 
-     if ( ( vh_mask & 0x0f ) != 0x0f )
-       groestl512_4way_full( &ctx.groestl, vhashA, vhashA, 64 );
-     if ( ( vh_mask & 0xf0 ) != 0xf0 )
-       groestl512_4way_full( &ctx.groestl, vhashB, vhashB, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashA, vhashA, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashB, vhashB, 64 );
 
      rintrlv_4x128_8x64( vhash, vhashA, vhashB, 512 );
 
@@ -139,22 +137,14 @@ void quark_8way_hash( void *state, const void *input )
     dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                   vhash, 512 );
 
-    if ( hash0[0] & 8 )
-       groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
-    if ( hash1[0] & 8 )
-       groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
-    if ( hash2[0] & 8)
-       groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
-    if ( hash3[0] & 8 )
-       groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
-    if ( hash4[0] & 8 )
-       groestl512_full( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
-    if ( hash5[0] & 8 )
-       groestl512_full( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
-    if ( hash6[0] & 8 )
-       groestl512_full( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
-    if ( hash7[0] & 8 )
-       groestl512_full( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
+    groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
+    groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
+    groestl512_full( &ctx.groestl, (char*)hash2, (char*)hash2, 512 );
+    groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
+    groestl512_full( &ctx.groestl, (char*)hash4, (char*)hash4, 512 );
+    groestl512_full( &ctx.groestl, (char*)hash5, (char*)hash5, 512 );
+    groestl512_full( &ctx.groestl, (char*)hash6, (char*)hash6, 512 );
+    groestl512_full( &ctx.groestl, (char*)hash7, (char*)hash7, 512 );
 
     intrlv_8x64( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                  512 );

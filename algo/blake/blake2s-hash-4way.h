@@ -60,7 +60,7 @@ typedef struct __blake2s_nway_param
 } blake2s_nway_param;
 #pragma pack(pop)
 
-ALIGN( 64 ) typedef struct __blake2s_4way_state
+typedef struct ALIGN( 64 ) __blake2s_4way_state
 {
    __m128i h[8];
    uint8_t  buf[ BLAKE2S_BLOCKBYTES * 4 ];
@@ -80,7 +80,7 @@ int blake2s_4way_full_blocks( blake2s_4way_state *S, void *out,
 
 #if defined(__AVX2__)
 
-ALIGN( 64 ) typedef struct __blake2s_8way_state
+typedef struct ALIGN( 64 ) __blake2s_8way_state
 {
    __m256i h[8];
    uint8_t  buf[ BLAKE2S_BLOCKBYTES * 8 ];
@@ -101,7 +101,7 @@ int blake2s_8way_full_blocks( blake2s_8way_state *S, void *out,
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-ALIGN( 128 ) typedef struct __blake2s_16way_state
+typedef struct ALIGN( 64 ) __blake2s_16way_state
 {
    __m512i h[8];
    uint8_t  buf[ BLAKE2S_BLOCKBYTES * 16 ];

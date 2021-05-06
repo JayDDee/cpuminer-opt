@@ -65,11 +65,16 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.16.3
+
+#313 Fix compile error with GCC 11.
+Incremental improvements to verthash.
+
 v3.16.2
 
 Verthash: midstate prehash optimization for all architectures.
 Verthash: AVX2 optimization.
-GBT: added support for Bech32 addresses, untested.
+GBT: added support for Bech32 addresses.
 Linux: added CPU frequency to benchmark log.
 Fixed integer overflow in time calculations.
 
@@ -111,7 +116,6 @@ RPC getmininginfo method.
 v3.15.5
 
 Fix stratum jobs lost if 2 jobs received in less than one second.
- 
 
 v3.15.4
 

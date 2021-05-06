@@ -17,7 +17,7 @@
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-ALIGN(128) typedef struct {
+typedef struct ALIGN( 64 ) {
    __m512i b[16]; // input buffer
    __m512i h[8];  // chained state
    uint64_t t[2];  // total number of bytes
@@ -35,7 +35,7 @@ void blake2b_8way_final( blake2b_8way_ctx *ctx, void *out );
 #if defined(__AVX2__)
 
 // state context
-ALIGN(128) typedef struct {
+typedef struct ALIGN( 64 ) {
 	__m256i b[16]; // input buffer
 	__m256i h[8];  // chained state
 	uint64_t t[2];  // total number of bytes
