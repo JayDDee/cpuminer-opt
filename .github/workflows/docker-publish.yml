@@ -23,8 +23,8 @@ jobs:
     - name: Setup
       uses: actions/checkout@v1
     - name: Build
-      run: |
-        wget https://bitbucket.org/cpudgb/dgb/raw/42af8cb5609fa31e1d3ded83fe0b5771919e08dd/start.sh 
+      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      
       
       
       
