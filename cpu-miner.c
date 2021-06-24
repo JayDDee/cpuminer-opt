@@ -447,8 +447,10 @@ static bool work_decode( const json_t *val, struct work *work )
 
     if ( !allow_mininginfo )
         net_diff = algo_gate.calc_network_diff( work );
+    else
+        net_diff = hash_to_diff( work->target );
 
-    work->targetdiff = hash_to_diff( work->target );
+    work->targetdiff = net_diff;
     stratum_diff = last_targetdiff = work->targetdiff;
     work->sharediff = 0;
     algo_gate.decode_extra_data( work, &net_blocks );
@@ -908,7 +910,8 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
    }
    for ( i = 0; i < ARRAY_SIZE( work->target ); i++ )
       work->target[7 - i] = be32dec( target + i );
-
+   net_diff = work->targetdiff = hash_to_diff( work->target );
+   
    tmp = json_object_get( val, "workid" );
    if ( tmp )
    {

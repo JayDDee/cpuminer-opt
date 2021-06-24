@@ -38,7 +38,8 @@
 #if SPH_64
 
 #define CH(X, Y, Z)    ((((Y) ^ (Z)) & (X)) ^ (Z))
-#define MAJ(X, Y, Z)   (((X) & (Y)) | (((X) | (Y)) & (Z)))
+//#define MAJ(X, Y, Z)   (((X) & (Y)) | (((X) | (Y)) & (Z)))
+#define MAJ( X, Y, Z )   ( Y  ^ ( ( X ^ Y ) & ( Y ^ Z ) ) )
 
 #define ROTR64    SPH_ROTR64
 

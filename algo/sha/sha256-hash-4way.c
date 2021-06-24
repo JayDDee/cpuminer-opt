@@ -74,9 +74,15 @@ static const uint32_t K256[64] =
 #define CHs(X, Y, Z) \
    _mm_xor_si128( _mm_and_si128( _mm_xor_si128( Y, Z ), X ), Z ) 
 
+/*
 #define MAJs(X, Y, Z) \
    _mm_or_si128( _mm_and_si128( X, Y ), \
                     _mm_and_si128( _mm_or_si128( X, Y ), Z ) )
+*/
+
+#define MAJs(X, Y, Z) \
+  _mm_xor_si128( Y, _mm_and_si128( _mm_xor_si128( X, Y ), \
+                                   _mm_xor_si128( Y, Z ) ) )
 
 #define BSG2_0(x) \
    _mm_xor_si128( _mm_xor_si128( \
@@ -345,9 +351,20 @@ void sha256_4way_full( void *dst, const void *data, size_t len )
 #define CHx(X, Y, Z) \
    _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( Y, Z ), X ), Z ) 
 
+/*
 #define MAJx(X, Y, Z) \
    _mm256_or_si256( _mm256_and_si256( X, Y ), \
                     _mm256_and_si256( _mm256_or_si256( X, Y ), Z ) )
+*/
+/*
+#define MAJx(X, Y, Z) \
+  _mm256_xor_si256( Y, _mm256_and_si256( _mm256_xor_si256( X, Y ), \
+                                         _mm256_xor_si256( Y, Z ) ) )
+*/
+
+#define MAJx(X, Y, Z) \
+  _mm256_xor_si256( Y, _mm256_and_si256( X_xor_Y = _mm256_xor_si256( X, Y ), \
+                                         Y_xor_Z ) )
 
 #define BSG2_0x(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
@@ -375,6 +392,7 @@ do { \
   T1 = _mm256_add_epi32( H, mm256_add4_32( BSG2_1x(E), CHx(E, F, G), \
                                            K, W[i] ) ); \
   T2 = _mm256_add_epi32( BSG2_0x(A), MAJx(A, B, C) ); \
+  Y_xor_Z = X_xor_Y; \
   D  = _mm256_add_epi32( D,  T1 ); \
   H  = _mm256_add_epi32( T1, T2 ); \
 } while (0)
@@ -382,7 +400,7 @@ do { \
 static void
 sha256_8way_round( sha256_8way_context *ctx,  __m256i *in, __m256i r[8] )
 {
-   register  __m256i A, B, C, D, E, F, G, H;
+   register  __m256i A, B, C, D, E, F, G, H, X_xor_Y, Y_xor_Z;
    __m256i W[16];
 
    mm256_block_bswap_32( W  , in   );
@@ -411,6 +429,8 @@ sha256_8way_round( sha256_8way_context *ctx,  __m256i *in, __m256i r[8] )
       H = m256_const1_64( 0x5BE0CD195BE0CD19 );
    }
 
+   Y_xor_Z = _mm256_xor_si256( B, C );
+   
    SHA2s_8WAY_STEP( A, B, C, D, E, F, G, H,  0, 0 );
    SHA2s_8WAY_STEP( H, A, B, C, D, E, F, G,  1, 0 );
    SHA2s_8WAY_STEP( G, H, A, B, C, D, E, F,  2, 0 );
@@ -591,9 +611,20 @@ void sha256_8way_full( void *dst, const void *data, size_t len )
 #define CHx16(X, Y, Z) \
    _mm512_xor_si512( _mm512_and_si512( _mm512_xor_si512( Y, Z ), X ), Z ) 
 
+/*
 #define MAJx16(X, Y, Z) \
    _mm512_or_si512( _mm512_and_si512( X, Y ), \
                     _mm512_and_si512( _mm512_or_si512( X, Y ), Z ) )
+*/
+/*
+#define MAJx16(X, Y, Z) \
+  _mm512_xor_si512( Y, _mm512_and_si512( _mm512_xor_si512( X, Y ), \
+                                         _mm512_xor_si512( Y, Z ) ) )
+*/
+
+#define MAJx16(X, Y, Z) \
+  _mm512_xor_si512( Y, _mm512_and_si512( X_xor_Y = _mm512_xor_si512( X, Y ), \
+                                         Y_xor_Z ) )
 
 #define BSG2_0x16(x) \
    _mm512_xor_si512( _mm512_xor_si512( \
@@ -621,6 +652,7 @@ do { \
   T1 = _mm512_add_epi32( H, mm512_add4_32( BSG2_1x16(E), CHx16(E, F, G), \
                                            K, W[i] ) ); \
   T2 = _mm512_add_epi32( BSG2_0x16(A), MAJx16(A, B, C) ); \
+  Y_xor_Z = X_xor_Y; \
   D  = _mm512_add_epi32( D,  T1 ); \
   H  = _mm512_add_epi32( T1, T2 ); \
 } while (0)
@@ -628,7 +660,7 @@ do { \
 static void
 sha256_16way_round( sha256_16way_context *ctx,  __m512i *in, __m512i r[8] )
 {
-   register  __m512i A, B, C, D, E, F, G, H;
+   register  __m512i A, B, C, D, E, F, G, H, X_xor_Y, Y_xor_Z;
    __m512i W[16];
 
    mm512_block_bswap_32( W  , in   );
@@ -656,6 +688,8 @@ sha256_16way_round( sha256_16way_context *ctx,  __m512i *in, __m512i r[8] )
       G = m512_const1_64( 0x1F83D9AB1F83D9AB );
       H = m512_const1_64( 0x5BE0CD195BE0CD19 );
    }
+
+   Y_xor_Z = _mm512_xor_si512( B, C );
 
    SHA2s_16WAY_STEP( A, B, C, D, E, F, G, H,  0, 0 );
    SHA2s_16WAY_STEP( H, A, B, C, D, E, F, G,  1, 0 );

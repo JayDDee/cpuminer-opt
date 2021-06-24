@@ -98,9 +98,21 @@ static const uint64_t K512[80] =
 #define CH8W(X, Y, Z) \
    _mm512_xor_si512( _mm512_and_si512( _mm512_xor_si512( Y, Z ), X ), Z ) 
 
+/*
 #define MAJ8W(X, Y, Z) \
    _mm512_or_si512( _mm512_and_si512( X, Y ), \
                     _mm512_and_si512( _mm512_or_si512( X, Y ), Z ) )
+*/
+/* Functionally identical to original but optimizable,
+ * subexpression X^Y from one step can be reused in the next step as Y^Z
+#define MAJ8W(X, Y, Z) \
+  _mm512_xor_si512( Y, _mm512_and_si512( _mm512_xor_si512( X, Y ), \
+                                         _mm512_xor_si512( Y, Z ) ) )
+*/
+
+#define MAJ8W(X, Y, Z) \
+  _mm512_xor_si512( Y, _mm512_and_si512( X_xor_Y = _mm512_xor_si512( X, Y ), \
+                                         Y_xor_Z ) )
 
 #define BSG8W_5_0(x) \
    _mm512_xor_si512( _mm512_xor_si512( \
@@ -172,6 +184,7 @@ do { \
   T1 = _mm512_add_epi64( H, mm512_add4_64( BSG8W_5_1(E), CH8W(E, F, G), \
                                            K, W[i] ) ); \
   T2 = _mm512_add_epi64( BSG8W_5_0(A), MAJ8W(A, B, C) ); \
+  Y_xor_Z = X_xor_Y; \
   D  = _mm512_add_epi64( D, T1 ); \
   H  = _mm512_add_epi64( T1, T2 ); \
 } while (0)
@@ -180,7 +193,7 @@ static void
 sha512_8way_round( sha512_8way_context *ctx,  __m512i *in, __m512i r[8] )
 {
    int i;
-   register __m512i A, B, C, D, E, F, G, H;
+   register __m512i A, B, C, D, E, F, G, H, X_xor_Y, Y_xor_Z;
    __m512i W[80];
 
    mm512_block_bswap_64( W  , in );
@@ -212,6 +225,8 @@ sha512_8way_round( sha512_8way_context *ctx,  __m512i *in, __m512i r[8] )
       G = m512_const1_64( 0x1F83D9ABFB41BD6B );
       H = m512_const1_64( 0x5BE0CD19137E2179 );
    }
+
+   Y_xor_Z = _mm512_xor_si512( B, C );
 
    for ( i = 0; i < 80; i += 8 )
    {
@@ -319,14 +334,20 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
 
 // SHA-512 4 way 64 bit
 
-/*
+
 #define CH(X, Y, Z) \
    _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( Y, Z ), X ), Z ) 
 
+/*
 #define MAJ(X, Y, Z) \
    _mm256_or_si256( _mm256_and_si256( X, Y ), \
                     _mm256_and_si256( _mm256_or_si256( X, Y ), Z ) )
+*/
 
+#define MAJ(X, Y, Z) \
+  _mm256_xor_si256( Y, _mm256_and_si256( X_xor_Y = _mm256_xor_si256( X, Y ), \
+                                         Y_xor_Z ) )
+                    
 #define BSG5_0(x) \
   mm256_ror_64( _mm256_xor_si256( mm256_ror_64( \
                    _mm256_xor_si256( mm256_ror_64( x,  5 ), x ), 6 ), x ), 28 )
@@ -334,7 +355,7 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
 #define BSG5_1(x) \
   mm256_ror_64( _mm256_xor_si256( mm256_ror_64( \
                    _mm256_xor_si256( mm256_ror_64( x, 23 ), x ), 4 ), x ), 14 )
-*/
+
 /*
 #define BSG5_0(x) \
    _mm256_xor_si256( _mm256_xor_si256( \
@@ -402,7 +423,7 @@ static inline __m256i ssg512_add( __m256i w0, __m256i w1 )
   w1  = _mm256_xor_si256( X1a, X1b ); \
 } while(0)
 */
-
+/*
 #define SHA3_4WAY_STEP(A, B, C, D, E, F, G, H, i) \
 do { \
   __m256i K = _mm256_set1_epi64x( K512[ i ] ); \
@@ -431,7 +452,7 @@ do { \
   H  = _mm256_add_epi64( T1, T2 ); \
   D  = _mm256_add_epi64( D, T1 ); \
 } while (0)
-
+*/
 /*
 #define SHA3_4WAY_STEP(A, B, C, D, E, F, G, H, i) \
 do { \
@@ -445,7 +466,7 @@ do { \
 } while (0)
 */
 
-/*
+
 #define SHA3_4WAY_STEP(A, B, C, D, E, F, G, H, i) \
 do { \
   __m256i T1, T2; \
@@ -453,16 +474,17 @@ do { \
   T1 = _mm256_add_epi64( H, mm256_add4_64( BSG5_1(E), CH(E, F, G), \
                                            K, W[i] ) ); \
   T2 = _mm256_add_epi64( BSG5_0(A), MAJ(A, B, C) ); \
+  Y_xor_Z = X_xor_Y; \
   D  = _mm256_add_epi64( D, T1 ); \
   H  = _mm256_add_epi64( T1, T2 ); \
 } while (0)
-*/
+
 
 static void
 sha512_4way_round( sha512_4way_context *ctx,  __m256i *in, __m256i r[8] )
 {
    int i;
-   register __m256i A, B, C, D, E, F, G, H;
+   register __m256i A, B, C, D, E, F, G, H, X_xor_Y, Y_xor_Z;
    __m256i W[80];
 
    mm256_block_bswap_64( W  , in );
@@ -494,6 +516,8 @@ sha512_4way_round( sha512_4way_context *ctx,  __m256i *in, __m256i r[8] )
       G = m256_const1_64( 0x1F83D9ABFB41BD6B );
       H = m256_const1_64( 0x5BE0CD19137E2179 );
    }
+
+   Y_xor_Z = _mm256_xor_si256( B, C );
 
    for ( i = 0; i < 80; i += 8 )
    {

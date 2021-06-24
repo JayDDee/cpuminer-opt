@@ -40,8 +40,8 @@
 #endif
 
 #define CH(X, Y, Z)    ((((Y) ^ (Z)) & (X)) ^ (Z))
-#define MAJ(X, Y, Z)   (((Y) & (Z)) | (((Y) | (Z)) & (X)))
-
+//#define MAJ(X, Y, Z)   (((Y) & (Z)) | (((Y) | (Z)) & (X)))
+#define MAJ( X, Y, Z )   ( Y  ^ ( ( X ^ Y ) & ( Y ^ Z ) ) )
 #define ROTR    SPH_ROTR32
 
 #define BSG2_0(x)      (ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22))
