@@ -484,13 +484,17 @@ static bool get_mininginfo( CURL *curl, struct work *work )
    // "networkhashps": 56475980
    if ( res )
    {
+      // net_diff is a global that is set from the work hash target by
+      // both getwork and GBT. Don't overwrite it, define a local to override
+      // the global.
+      double net_diff = 0.;
   		json_t *key = json_object_get( res, "difficulty" );
    	if ( key )
       {
 	   	if ( json_is_object( key ) )
 		   	key = json_object_get( key, "proof-of-work" );
 		   if ( json_is_real( key ) )
-			   net_diff = work->targetdiff = json_real_value( key );
+			   net_diff = json_real_value( key );
 	   }
 
       key = json_object_get( res, "networkhashps" );
@@ -1168,7 +1172,8 @@ static int share_result( int result, struct work *work,
    char bres[48];
    bool solved = false; 
    bool stale = false;
-   char *acol = NULL, *bcol = NULL, *scol = NULL, *rcol = NULL;
+   char *acol, *bcol, *scol, *rcol;
+   acol = bcol = scol = rcol = "\0";
 
    pthread_mutex_lock( &stats_lock );
 
@@ -1210,7 +1215,7 @@ static int share_result( int result, struct work *work,
       sprintf( sres, "S%d", stale_share_count );
       sprintf( rres, "R%d", rejected_share_count );
       if unlikely( ( my_stats.net_diff > 0. )
-                && ( my_stats.share_diff >= net_diff ) )
+                && ( my_stats.share_diff >= my_stats.net_diff ) )
       {
          solved = true;
          solved_block_count++;

@@ -65,6 +65,11 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.16.5
+
+#329: Fixed GBT incorrect target diff in stats, second attempt.
+Fixed formatting error in share result log when --no-color option is used.
+
 v3.16.4
 
 Faster sha512 and sha256 when not using SHA CPU extension.
