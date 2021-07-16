@@ -61,7 +61,7 @@
 //
 //    Additionally, permutations using smaller vectors can be more efficient
 //    if the permutation doesn't cross lane boundaries, typically 128 bits,
-//    and the smnaller vector can use an imm comtrol.
+//    and the smaller vector can use an imm comtrol.
 //
 //    If the permutation doesn't cross lane boundaries a shuffle instructions
 //    can be used with imm control instead of permute.
@@ -107,7 +107,7 @@ static inline __m512i m512_const_64( const uint64_t i7, const uint64_t i6,
   return v.m512i;
 }
 
-// Equivalent of set1, broadcast lo element all elements.
+// Equivalent of set1, broadcast lo element to all elements.
 static inline __m512i m512_const1_256( const __m256i v )
 { return _mm512_inserti64x4( _mm512_castsi256_si512( v ), v, 1 ); }  
 
@@ -166,7 +166,9 @@ static inline __m512i m512_const4_64( const uint64_t i3, const uint64_t i2,
 // Basic operations without SIMD equivalent
 
 // ~x
-#define mm512_not( x )       _mm512_xor_si512( x, m512_neg1 )
+// #define mm512_not( x )       _mm512_xor_si512( x, m512_neg1 )
+static inline __m512i mm512_not( const __m512i x )
+{  return _mm512_ternarylogic_epi64( x, x, x, 1 ); }
 
 // -x
 #define mm512_negate_64( x ) _mm512_sub_epi64( m512_zero, x )
@@ -221,11 +223,61 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_add4_8( a, b, c, d ) \
    _mm512_add_epi8( _mm512_add_epi8( a, b ), _mm512_add_epi8( c, d ) )
 
-#define mm512_xor4( a, b, c, d ) \
-   _mm512_xor_si512( _mm512_xor_si512( a, b ), _mm512_xor_si512( c, d ) )
-
-
 //
+// Ternary logic uses 8 bit truth table to define any 3 input logical
+// operation using any number or combinations of AND, OR XOR, NOT.
+
+// a ^ b ^ c
+#define mm512_xor3( a, b, c ) \
+   _mm512_ternarylogic_epi64( a, b, c, 0x96 )
+
+// legacy convenience only
+#define mm512_xor4( a, b, c, d ) \
+   _mm512_xor_si512( a, mm512_xor3( b, c, d ) )
+
+// a & b & c
+#define mm512_and3( a, b, c ) \
+   _mm512_ternarylogic_epi64( a, b, c, 0x80 )
+
+// a | b | c
+#define mm512_or3( a, b, c ) \
+   _mm512_ternarylogic_epi64( a, b, c, 0xfe )
+
+// a ^ ( b & c )
+#define mm512_xorand( a, b, c ) \
+   _mm512_ternarylogic_epi64( a, b, c, 0x78 )
+
+// a & ( b ^ c )
+#define mm512_andxor( a, b, c ) \
+   _mm512_ternarylogic_epi64( a, b, c, 0x60 )
+
+// a ^ ( b & c )
+#define mm512_xoror( a, b, c ) \
+   _mm512_ternarylogic_epi64( a, b, c, 0x1e )
+
+// a ^ ( ~b & c )     [ xor( a, andnot( b, c ) ]
+#define mm512_xorandnot( a, b, c ) \
+  _mm512_ternarylogic_epi64( a, b, c, 0xd2 ) 
+
+// a | ( b & c )
+#define mm512_orand( a, b, c ) \
+   _mm512_ternarylogic_epi64( a, b, c, 0xf8  )
+
+// Some 2 input operations that don't have their own instruction mnemonic.
+
+// ~( a | b )
+#define mm512_nor( a, b ) \
+   _mm512_ternarylogic_epi64( a, b, b, 0x01  )
+
+// ~( a ^ b ), same as (~a) ^ b
+#define mm512_xnor( a, b ) \
+   _mm512_ternarylogic_epi64( a, b, b, 0x81  )
+
+// ~( a & b )
+#define mm512_nand( a, b ) \
+   _mm512_ternarylogic_epi64( a, b, b, 0xef  )
+
+
 // Bit rotations.
 
 // AVX512F has built-in fixed and variable bit rotation for 64 & 32 bit

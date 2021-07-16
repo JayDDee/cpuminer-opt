@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.17.0
+
+AVX512 optimized using ternary logic instructions.
+Faster sha256t on all CPU architectures: AVX512 +30%, SHA +30%, AVX2 +9%.
+Use SHA on supported CPUs to produce merkle hash.
+Fixed byte order in Extranonce2 log & replaced Block height with Job ID.
+
 v3.16.5
 
 #329: Fixed GBT incorrect target diff in stats, second attempt.

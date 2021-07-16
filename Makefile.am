@@ -163,6 +163,8 @@ cpuminer_SOURCES = \
   algo/sha/sph_sha2big.c \
   algo/sha/sha256-hash-4way.c \
   algo/sha/sha512-hash-4way.c \
+  algo/sha/sha256-hash-opt.c \
+  algo/sha/sha256-hash-2way-ni.c \
   algo/sha/hmac-sha256-hash.c \
   algo/sha/hmac-sha256-hash-4way.c \
   algo/sha/sha2.c \

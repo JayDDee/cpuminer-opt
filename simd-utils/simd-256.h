@@ -136,8 +136,83 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 #define mm256_add4_8( a, b, c, d ) \
    _mm256_add_epi8( _mm256_add_epi8( a, b ), _mm256_add_epi8( c, d ) )
 
+#if defined(__AVX512VL__)
+
+// AVX512 has ternary logic that supports any 3 input boolean expression.
+
+// a ^ b ^ c
+#define mm256_xor3( a, b, c ) \
+   _mm256_ternarylogic_epi64( a, b, c, 0x96 )
+
+// legacy convenience only
+#define mm256_xor4( a, b, c, d ) \
+   _mm256_xor_si256( a, mm256_xor3( b, c, d ) )
+
+// a & b & c
+#define mm256_and3( a, b, c ) \
+   _mm256_ternarylogic_epi64( a, b, c, 0x80 )
+
+// a | b | c
+#define mm256_or3( a, b, c ) \
+   _mm256_ternarylogic_epi64( a, b, c, 0xfe )
+
+// a ^ ( b & c )
+#define mm256_xorand( a, b, c ) \
+   _mm256_ternarylogic_epi64( a, b, c, 0x78 )
+
+// a & ( b ^ c )
+#define mm256_andxor( a, b, c ) \
+   _mm256_ternarylogic_epi64( a, b, c, 0x60 )
+
+// a ^ ( b | c )
+#define mm256_xoror( a, b, c ) \
+   _mm256_ternarylogic_epi64( a, b, c, 0x1e )
+
+// a ^ ( ~b & c )   
+#define mm256_xorandnot( a, b, c ) \
+  _mm256_ternarylogic_epi64( a, b, c, 0xd2 )
+
+// a | ( b & c )
+#define mm256_orand( a, b, c ) \
+   _mm256_ternarylogic_epi64( a, b, c, 0xf8  )
+
+// ~( a ^ b ), same as (~a) ^ b
+#define mm256_xnor( a, b ) \
+   _mm256_ternarylogic_epi64( a, b, b, 0x81  )
+    
+#else
+
+#define mm256_xor3( a, b, c ) \
+   _mm256_xor_si256( a, _mm256_xor_si256( b, c ) )
+
 #define mm256_xor4( a, b, c, d ) \
    _mm256_xor_si256( _mm256_xor_si256( a, b ), _mm256_xor_si256( c, d ) )
+
+#define mm256_and3( a, b, c ) \
+   _mm256_and_si256( a, _mm256_and_si256( b, c ) )
+
+#define mm256_or3( a, b, c ) \
+   _mm256_or_si256( a, _mm256_or_si256( b, c ) )
+
+#define mm256_xorand( a, b, c ) \
+ _mm256_xor_si256( a, _mm256_and_si256( b, c ) )
+
+#define mm256_andxor( a, b, c ) \
+  _mm256_and_si256( a, _mm256_xor_si256( b, c ))
+
+#define mm256_xoror( a, b, c ) \
+ _mm256_xor_si256( a, _mm256_or_si256( b, c ) )
+
+#define mm256_xorandnot( a, b, c ) \
+ _mm256_xor_si256( a, _mm256_andnot_si256( b, c ) )
+
+#define mm256_orand( a, b, c ) \
+ _mm256_or_si256( a, _mm256_and_si256( b, c ) )
+
+#define mm256_xnor( a, b ) \
+  mm256_not( _mm256_xor_si256( a, b ) )
+
+#endif
 
 //
 //           Bit rotations.

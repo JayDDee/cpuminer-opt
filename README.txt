@@ -64,6 +64,11 @@ source code obtained from the author's official repository. The exact
 procedure is documented in the build instructions for Windows:
 https://github.com/JayDDee/cpuminer-opt/wiki/Compiling-from-source
 
+Some DLL filess may already be installed on the system by Windows or third
+party packages. They often will work and may be used instead of the included
+file. Without a compelling reason to do so it's recommended to use the included
+files as they are packaged.
+
 If you like this software feel free to donate:
 
 BTC: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT

@@ -310,12 +310,13 @@ do { \
 
 #define PERM_ELT8(xa0, xa1, xb0, xb1, xb2, xb3, xc, xm) \
 do { \
-   xa0 = _mm256_xor_si256( xm, _mm256_xor_si256( xb1, _mm256_xor_si256(  \
+   xa0 = mm256_xor3( xm, xb1, _mm256_xor_si256(  \
             _mm256_andnot_si256( xb3, xb2 ), \
-            _mm256_mullo_epi32( _mm256_xor_si256( xa0, _mm256_xor_si256( xc, \
-               _mm256_mullo_epi32(  mm256_rol_32( xa1, 15 ), _mm256_set1_epi32(5UL) ) \
-                   ) ), _mm256_set1_epi32(3UL) ) ) ) ); \
-   xb0 = mm256_not( _mm256_xor_si256( xa0, mm256_rol_32( xb0, 1 ) ) ); \
+            _mm256_mullo_epi32( mm256_xor3( xa0, xc, \
+               _mm256_mullo_epi32( mm256_rol_32( xa1, 15 ), \
+                                   _mm256_set1_epi32(5UL) ) ), \
+               _mm256_set1_epi32(3UL) ) ) ); \
+   xb0 = mm256_xnor( xa0, mm256_rol_32( xb0, 1 ) ); \
 } while (0)
 
 #define PERM_STEP_0_8   do { \

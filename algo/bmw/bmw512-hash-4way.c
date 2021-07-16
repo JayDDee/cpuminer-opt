@@ -1293,32 +1293,26 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
            mm512_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
 
 #define DH1L( m, sl, sr, a, b, c ) \
-   _mm512_add_epi64( \
-               _mm512_xor_si512( M[m], \
-                  _mm512_xor_si512( _mm512_slli_epi64( xh, sl ), \
-                                    _mm512_srli_epi64( qt[a], sr ) ) ), \
-               _mm512_xor_si512( _mm512_xor_si512( xl, qt[b] ), qt[c] ) )
+   _mm512_add_epi64( mm512_xor3( M[m], _mm512_slli_epi64( xh, sl ), \
+                                       _mm512_srli_epi64( qt[a], sr ) ), \
+                     mm512_xor3( xl, qt[b], qt[c] ) )
 
 #define DH1R( m, sl, sr, a, b, c ) \
-   _mm512_add_epi64( \
-               _mm512_xor_si512( M[m], \
-                  _mm512_xor_si512( _mm512_srli_epi64( xh, sl ), \
-                                    _mm512_slli_epi64( qt[a], sr ) ) ), \
-               _mm512_xor_si512( _mm512_xor_si512( xl, qt[b] ), qt[c] ) )
+   _mm512_add_epi64( mm512_xor3( M[m], _mm512_srli_epi64( xh, sl ), \
+                                       _mm512_slli_epi64( qt[a], sr ) ), \
+                     mm512_xor3( xl, qt[b], qt[c] ) )
 
 #define DH2L( m, rl, sl, h, a, b, c ) \
    _mm512_add_epi64( _mm512_add_epi64( \
-       mm512_rol_64( dH[h], rl ), \
-          _mm512_xor_si512( _mm512_xor_si512( xh, qt[a] ), M[m] )), \
-                 _mm512_xor_si512( _mm512_slli_epi64( xl, sl ), \
-                                   _mm512_xor_si512( qt[b], qt[c] ) ) );
-   
+                        mm512_rol_64( dH[h], rl ), \
+                        mm512_xor3( xh, qt[a], M[m] ) ), \
+                     mm512_xor3( _mm512_slli_epi64( xl, sl ), qt[b], qt[c] ) ) 
+
 #define DH2R( m, rl, sr, h, a, b, c ) \
    _mm512_add_epi64( _mm512_add_epi64( \
-       mm512_rol_64( dH[h], rl ), \
-          _mm512_xor_si512( _mm512_xor_si512( xh, qt[a] ), M[m] )), \
-                 _mm512_xor_si512( _mm512_srli_epi64( xl, sr ), \
-                                   _mm512_xor_si512( qt[b], qt[c] ) ) );
+                        mm512_rol_64( dH[h], rl ), \
+                        mm512_xor3( xh, qt[a], M[m] ) ), \
+                     mm512_xor3( _mm512_srli_epi64( xl, sr ), qt[b], qt[c] ) )
 
 
    dH[ 0] = DH1L(  0,  5,  5, 16, 24, 0 );

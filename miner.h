@@ -307,6 +307,7 @@ extern json_t *json_rpc_call( CURL *curl, const char *url, const char *userpass,
 extern void cbin2hex(char *out, const char *in, size_t len);
 void   bin2hex( char *s, const unsigned char *p, size_t len );
 char  *abin2hex( const unsigned char *p, size_t len );
+char  *bebin2hex( const unsigned char *p, size_t len );
 bool   hex2bin( unsigned char *p, const char *hexstr, size_t len );
 bool   jobj_binary( const json_t *obj, const char *key, void *buf,
                     size_t buflen );

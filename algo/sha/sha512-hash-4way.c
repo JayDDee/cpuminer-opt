@@ -96,86 +96,22 @@ static const uint64_t K512[80] =
 // SHA-512 8 way 64 bit
 
 #define CH8W(X, Y, Z) \
-   _mm512_xor_si512( _mm512_and_si512( _mm512_xor_si512( Y, Z ), X ), Z ) 
-
-/*
-#define MAJ8W(X, Y, Z) \
-   _mm512_or_si512( _mm512_and_si512( X, Y ), \
-                    _mm512_and_si512( _mm512_or_si512( X, Y ), Z ) )
-*/
-/* Functionally identical to original but optimizable,
- * subexpression X^Y from one step can be reused in the next step as Y^Z
-#define MAJ8W(X, Y, Z) \
-  _mm512_xor_si512( Y, _mm512_and_si512( _mm512_xor_si512( X, Y ), \
-                                         _mm512_xor_si512( Y, Z ) ) )
-*/
+   _mm512_ternarylogic_epi64( X, Y, Z, 0xca )
 
 #define MAJ8W(X, Y, Z) \
-  _mm512_xor_si512( Y, _mm512_and_si512( X_xor_Y = _mm512_xor_si512( X, Y ), \
-                                         Y_xor_Z ) )
+   _mm512_ternarylogic_epi64( X, Y, Z, 0xe8 )
 
 #define BSG8W_5_0(x) \
-   _mm512_xor_si512( _mm512_xor_si512( \
-        mm512_ror_64(x, 28), mm512_ror_64(x, 34) ), mm512_ror_64(x, 39) )
+   mm512_xor3( mm512_ror_64(x, 28), mm512_ror_64(x, 34), mm512_ror_64(x, 39) )
 
 #define BSG8W_5_1(x) \
-   _mm512_xor_si512( _mm512_xor_si512( \
-        mm512_ror_64(x, 14), mm512_ror_64(x, 18) ), mm512_ror_64(x, 41) )
+   mm512_xor3( mm512_ror_64(x, 14), mm512_ror_64(x, 18), mm512_ror_64(x, 41) )
 
 #define SSG8W_5_0(x) \
-   _mm512_xor_si512( _mm512_xor_si512( \
-        mm512_ror_64(x,  1), mm512_ror_64(x,  8) ), _mm512_srli_epi64(x, 7) ) 
+   mm512_xor3( mm512_ror_64(x,  1), mm512_ror_64(x,  8), _mm512_srli_epi64(x, 7) ) 
 
 #define SSG8W_5_1(x) \
-   _mm512_xor_si512( _mm512_xor_si512( \
-        mm512_ror_64(x, 19), mm512_ror_64(x, 61) ), _mm512_srli_epi64(x, 6) )
-
-static inline __m512i ssg8w_512_add( __m512i w0, __m512i w1 )
-{
-   __m512i w0a, w1a, w0b, w1b;
-   w0a = mm512_ror_64( w0, 1 );
-   w1a = mm512_ror_64( w1,19 );
-   w0b = mm512_ror_64( w0, 8 );
-   w1b = mm512_ror_64( w1,61 );
-   w0a = _mm512_xor_si512( w0a, w0b );
-   w1a = _mm512_xor_si512( w1a, w1b );
-   w0b = _mm512_srli_epi64( w0, 7 );
-   w1b = _mm512_srli_epi64( w1, 6 );
-   w0a = _mm512_xor_si512( w0a, w0b );
-   w1a = _mm512_xor_si512( w1a, w1b );
-   return _mm512_add_epi64( w0a, w1a );
-}
-
-
-#define SSG8W_512x2_0( w0, w1, i ) do \
-{ \
-   __m512i X0a, X1a, X0b, X1b; \
-  X0a = mm512_ror_64( W[i-15], 1 ); \
-  X1a = mm512_ror_64( W[i-14], 1 ); \
-  X0b = mm512_ror_64( W[i-15], 8 ); \
-  X1b = mm512_ror_64( W[i-14], 8 ); \
-  X0a = _mm512_xor_si512( X0a, X0b ); \
-  X1a = _mm512_xor_si512( X1a, X1b ); \
-  X0b = _mm512_srli_epi64( W[i-15], 7 ); \
-  X1b = _mm512_srli_epi64( W[i-14], 7 ); \
-  w0  = _mm512_xor_si512( X0a, X0b ); \
-  w1  = _mm512_xor_si512( X1a, X1b ); \
-} while(0)
-
-#define SSG8W_512x2_1( w0, w1, i ) do \
-{ \
-   __m512i X0a, X1a, X0b, X1b; \
-  X0a = mm512_ror_64( W[i-2],19 ); \
-  X1a = mm512_ror_64( W[i-1],19 ); \
-  X0b = mm512_ror_64( W[i-2],61 ); \
-  X1b = mm512_ror_64( W[i-1],61 ); \
-  X0a = _mm512_xor_si512( X0a, X0b ); \
-  X1a = _mm512_xor_si512( X1a, X1b ); \
-  X0b = _mm512_srli_epi64( W[i-2], 6 ); \
-  X1b = _mm512_srli_epi64( W[i-1], 6 ); \
-  w0  = _mm512_xor_si512( X0a, X0b ); \
-  w1  = _mm512_xor_si512( X1a, X1b ); \
-} while(0)
+   mm512_xor3( mm512_ror_64(x, 19), mm512_ror_64(x, 61), _mm512_srli_epi64(x, 6) )
 
 #define SHA3_8WAY_STEP(A, B, C, D, E, F, G, H, i) \
 do { \
@@ -184,7 +120,6 @@ do { \
   T1 = _mm512_add_epi64( H, mm512_add4_64( BSG8W_5_1(E), CH8W(E, F, G), \
                                            K, W[i] ) ); \
   T2 = _mm512_add_epi64( BSG8W_5_0(A), MAJ8W(A, B, C) ); \
-  Y_xor_Z = X_xor_Y; \
   D  = _mm512_add_epi64( D, T1 ); \
   H  = _mm512_add_epi64( T1, T2 ); \
 } while (0)
@@ -193,15 +128,15 @@ static void
 sha512_8way_round( sha512_8way_context *ctx,  __m512i *in, __m512i r[8] )
 {
    int i;
-   register __m512i A, B, C, D, E, F, G, H, X_xor_Y, Y_xor_Z;
+   register __m512i A, B, C, D, E, F, G, H;
    __m512i W[80];
 
    mm512_block_bswap_64( W  , in );
    mm512_block_bswap_64( W+8, in+8 );
 
    for ( i = 16; i < 80; i++ )
-      W[i] = _mm512_add_epi64( ssg8w_512_add( W[i-15], W[i-2] ),
-                               _mm512_add_epi64( W[ i- 7 ], W[ i-16 ] ) );
+      W[i] = mm512_add4_64( SSG8W_5_0( W[i-15] ), SSG8W_5_1( W[i-2] ),
+                             W[ i- 7 ], W[ i-16 ] );
 
    if ( ctx->initialized )
    {
@@ -225,8 +160,6 @@ sha512_8way_round( sha512_8way_context *ctx,  __m512i *in, __m512i r[8] )
       G = m512_const1_64( 0x1F83D9ABFB41BD6B );
       H = m512_const1_64( 0x5BE0CD19137E2179 );
    }
-
-   Y_xor_Z = _mm512_xor_si512( B, C );
 
    for ( i = 0; i < 80; i += 8 )
    {

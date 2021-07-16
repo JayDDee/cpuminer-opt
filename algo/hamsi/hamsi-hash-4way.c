@@ -560,22 +560,14 @@ do { \
      __m512i dm = _mm512_and_si512( db, m512_one_64 ) ; \
      dm = mm512_negate_32( _mm512_or_si512( dm, \
                                           _mm512_slli_epi64( dm, 32 ) ) ); \
-     m0 = _mm512_xor_si512( m0, _mm512_and_si512( dm, \
-                                          m512_const1_64( tp[0] ) ) ); \
-     m1 = _mm512_xor_si512( m1, _mm512_and_si512( dm, \
-                                          m512_const1_64( tp[1] ) ) ); \
-     m2 = _mm512_xor_si512( m2, _mm512_and_si512( dm, \
-                                          m512_const1_64( tp[2] ) ) ); \
-     m3 = _mm512_xor_si512( m3, _mm512_and_si512( dm, \
-                                          m512_const1_64( tp[3] ) ) ); \
-     m4 = _mm512_xor_si512( m4, _mm512_and_si512( dm, \
-                                          m512_const1_64( tp[4] ) ) ); \
-     m5 = _mm512_xor_si512( m5, _mm512_and_si512( dm, \
-                                          m512_const1_64( tp[5] ) ) ); \
-     m6 = _mm512_xor_si512( m6, _mm512_and_si512( dm, \
-                                          m512_const1_64( tp[6] ) ) ); \
-     m7 = _mm512_xor_si512( m7, _mm512_and_si512( dm, \
-                                          m512_const1_64( tp[7] ) ) ); \
+     m0 = mm512_xorand( m0, dm, m512_const1_64( tp[0] ) ); \
+     m1 = mm512_xorand( m1, dm, m512_const1_64( tp[1] ) ); \
+     m2 = mm512_xorand( m2, dm, m512_const1_64( tp[2] ) ); \
+     m3 = mm512_xorand( m3, dm, m512_const1_64( tp[3] ) ); \
+     m4 = mm512_xorand( m4, dm, m512_const1_64( tp[4] ) ); \
+     m5 = mm512_xorand( m5, dm, m512_const1_64( tp[5] ) ); \
+     m6 = mm512_xorand( m6, dm, m512_const1_64( tp[6] ) ); \
+     m7 = mm512_xorand( m7, dm, m512_const1_64( tp[7] ) ); \
      tp += 8; \
      db = _mm512_srli_epi64( db, 1 ); \
   } \
@@ -585,20 +577,13 @@ do { \
 do { \
   __m512i t; \
   t = a; \
-  a = _mm512_and_si512( a, c ); \
-  a = _mm512_xor_si512( a, d ); \
-  c = _mm512_xor_si512( c, b ); \
-  c = _mm512_xor_si512( c, a ); \
-  d = _mm512_or_si512( d, t ); \
-  d = _mm512_xor_si512( d, b ); \
+  a = mm512_xorand( d, a, c ); \
+  c = mm512_xor3( a, b, c ); \
+  b = mm512_xoror( b, d, t ); \
   t = _mm512_xor_si512( t, c ); \
-  b = d; \
-  d = _mm512_or_si512( d, t ); \
-  d = _mm512_xor_si512( d, a ); \
-  a = _mm512_and_si512( a, b ); \
-  t = _mm512_xor_si512( t, a ); \
-  b = _mm512_xor_si512( b, d ); \
-  b = _mm512_xor_si512( b, t ); \
+  d = mm512_xoror( a, b, t ); \
+  t = mm512_xorand( t, a, b ); \
+  b = mm512_xor3( b, d, t ); \
   a = c; \
   c = b; \
   b = d; \
@@ -609,14 +594,12 @@ do { \
 do { \
    a = mm512_rol_32( a, 13 ); \
    c = mm512_rol_32( c,  3 ); \
-   b = _mm512_xor_si512( b, _mm512_xor_si512( a, c ) ); \
-   d = _mm512_xor_si512( d, _mm512_xor_si512( c, \
-                                              _mm512_slli_epi32( a, 3 ) ) ); \
+   b = mm512_xor3( a, b, c ); \
+   d = mm512_xor3( d, c, _mm512_slli_epi32( a, 3 ) ); \
    b = mm512_rol_32( b, 1 ); \
    d = mm512_rol_32( d, 7 ); \
-   a = _mm512_xor_si512( a, _mm512_xor_si512( b, d ) ); \
-   c = _mm512_xor_si512( c, _mm512_xor_si512( d, \
-                                              _mm512_slli_epi32( b, 7 ) ) ); \
+   a = mm512_xor3( a, b, d ); \
+   c = mm512_xor3( c, d, _mm512_slli_epi32( b, 7 ) ); \
    a = mm512_rol_32( a,  5 ); \
    c = mm512_rol_32( c, 22 ); \
 } while (0)

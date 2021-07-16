@@ -51,15 +51,15 @@ extern "C"{
 do { \
    __m512i cc = _mm512_set1_epi64( c ); \
     x3 = mm512_not( x3 ); \
-    x0 = _mm512_xor_si512( x0, _mm512_andnot_si512( x2, cc ) ); \
-    tmp = _mm512_xor_si512( cc, _mm512_and_si512( x0, x1 ) ); \
-    x0 = _mm512_xor_si512( x0, _mm512_and_si512( x2, x3 ) ); \
-    x3 = _mm512_xor_si512( x3, _mm512_andnot_si512( x1, x2 ) ); \
-    x1 = _mm512_xor_si512( x1, _mm512_and_si512( x0, x2 ) ); \
-    x2 = _mm512_xor_si512( x2, _mm512_andnot_si512( x3, x0 ) ); \
-    x0 = _mm512_xor_si512( x0, _mm512_or_si512( x1, x3 ) ); \
-    x3 = _mm512_xor_si512( x3, _mm512_and_si512( x1, x2 ) ); \
-    x1 = _mm512_xor_si512( x1, _mm512_and_si512( tmp, x0 ) ); \
+    x0 = mm512_xorandnot( x0, x2, cc ); \
+    tmp = mm512_xorand( cc, x0, x1 ); \
+    x0 = mm512_xorand( x0, x2, x3 ); \
+    x3 = mm512_xorandnot( x3, x1, x2 ); \
+    x1 = mm512_xorand( x1, x0, x2 ); \
+    x2 = mm512_xorandnot( x2, x3, x0 ); \
+    x0 = mm512_xoror( x0, x1, x3 ); \
+    x3 = mm512_xorand( x3, x1, x2 ); \
+    x1 = mm512_xorand( x1, tmp, x0 ); \
     x2 = _mm512_xor_si512( x2, tmp ); \
 } while (0)
 
@@ -67,11 +67,11 @@ do { \
 do { \
     x4 = _mm512_xor_si512( x4, x1 ); \
     x5 = _mm512_xor_si512( x5, x2 ); \
-    x6 = _mm512_xor_si512( x6, _mm512_xor_si512( x3, x0 ) ); \
+    x6 = mm512_xor3( x6, x3, x0 ); \
     x7 = _mm512_xor_si512( x7, x0 ); \
     x0 = _mm512_xor_si512( x0, x5 ); \
     x1 = _mm512_xor_si512( x1, x6 ); \
-    x2 = _mm512_xor_si512( x2, _mm512_xor_si512( x7, x4 ) ); \
+    x2 = mm512_xor3( x2, x7, x4 ); \
     x3 = _mm512_xor_si512( x3, x4 ); \
 } while (0)
 
@@ -318,11 +318,11 @@ static const sph_u64 C[] = {
 #define Wz_8W(x, c, n) \
 do { \
    __m512i t = _mm512_slli_epi64( _mm512_and_si512(x ## h, (c)), (n) ); \
-   x ## h = _mm512_or_si512( _mm512_and_si512( \
-                                _mm512_srli_epi64(x ## h, (n)), (c)), t ); \
+   x ## h = mm512_orand( t, _mm512_srli_epi64( x ## h, (n) ), (c) ); \
    t = _mm512_slli_epi64( _mm512_and_si512(x ## l, (c)), (n) ); \
-   x ## l = _mm512_or_si512( _mm512_and_si512((x ## l >> (n)), (c)), t ); \
+   x ## l = mm512_orand( t, (x ## l >> (n)), (c) ); \
 } while (0)
+
 
 #define W80(x)   Wz_8W(x, m512_const1_64( 0x5555555555555555 ),  1 )
 #define W81(x)   Wz_8W(x, m512_const1_64( 0x3333333333333333 ),  2 )

@@ -98,6 +98,21 @@ do { \
     ADD_CONSTANT4W(*x, *(x+4), c0, c1);
 
 #define SUBCRUMB4W(a0,a1,a2,a3,t)\
+    t  = a0;\
+    a0 = mm512_xoror( a3, a0, a1 ); \
+    a2 = _mm512_xor_si512(a2,a3);\
+    a1 = _mm512_ternarylogic_epi64( a1, a3, t, 0x87 ); /* a1 xnor (a3 & t) */ \
+    a3 = mm512_xorand( a2, a3, t ); \
+    a2 = mm512_xorand( a1, a2, a0);\
+    a1 = _mm512_or_si512(a1,a3);\
+    a3 = _mm512_xor_si512(a3,a2);\
+    t  = _mm512_xor_si512(t,a1);\
+    a2 = _mm512_and_si512(a2,a1);\
+    a1 = mm512_xnor(a1,a0);\
+    a0 = t;
+
+/*
+#define SUBCRUMB4W(a0,a1,a2,a3,t)\
     t  = _mm512_load_si512(&a0);\
     a0 = _mm512_or_si512(a0,a1);\
     a2 = _mm512_xor_si512(a2,a3);\
@@ -115,7 +130,25 @@ do { \
     a2 = _mm512_and_si512(a2,a1);\
     a1 = _mm512_xor_si512(a1,a0);\
     a0 = _mm512_load_si512(&t);
+*/
 
+#define MIXWORD4W(a,b,t1,t2)\
+    b  = _mm512_xor_si512(a,b);\
+    t1 = _mm512_slli_epi32(a,2);\
+    t2 = _mm512_srli_epi32(a,30);\
+    a  = mm512_xoror( b, t1, t2 ); \
+    t1 = _mm512_slli_epi32(b,14);\
+    t2 = _mm512_srli_epi32(b,18);\
+    b  = _mm512_or_si512(t1,t2);\
+    b  = mm512_xoror( a, t1, t2 ); \
+    t1 = _mm512_slli_epi32(a,10);\
+    t2 = _mm512_srli_epi32(a,22);\
+    a  = mm512_xoror( b, t1, t2 ); \
+    t1 = _mm512_slli_epi32(b,1);\
+    t2 = _mm512_srli_epi32(b,31);\
+    b  = _mm512_or_si512(t1,t2);
+
+/*
 #define MIXWORD4W(a,b,t1,t2)\
     b  = _mm512_xor_si512(a,b);\
     t1 = _mm512_slli_epi32(a,2);\
@@ -133,6 +166,7 @@ do { \
     t1 = _mm512_slli_epi32(b,1);\
     t2 = _mm512_srli_epi32(b,31);\
     b  = _mm512_or_si512(t1,t2);
+*/
 
 #define STEP_PART24W(a0,a1,t0,t1,c0,c1,tmp0,tmp1)\
     a1 = _mm512_shuffle_epi32(a1,147);\
@@ -248,17 +282,10 @@ void rnd512_4way( luffa_4way_context *state, __m512i *msg )
     __m512i tmp[2];
     __m512i x[8];
 
-    t0 = chainv[0];
-    t1 = chainv[1];
-
-    t0 = _mm512_xor_si512( t0, chainv[2] );
-    t1 = _mm512_xor_si512( t1, chainv[3] );
-    t0 = _mm512_xor_si512( t0, chainv[4] );
-    t1 = _mm512_xor_si512( t1, chainv[5] );
-    t0 = _mm512_xor_si512( t0, chainv[6] );
-    t1 = _mm512_xor_si512( t1, chainv[7] );
-    t0 = _mm512_xor_si512( t0, chainv[8] );
-    t1 = _mm512_xor_si512( t1, chainv[9] );
+    t0 = mm512_xor3( chainv[0], chainv[2], chainv[4] );
+    t1 = mm512_xor3( chainv[1], chainv[3], chainv[5] );
+    t0 = mm512_xor3( t0, chainv[6], chainv[8] );
+    t1 = mm512_xor3( t1, chainv[7], chainv[9] );
 
     MULT24W( t0, t1 );
 
@@ -319,8 +346,8 @@ void rnd512_4way( luffa_4way_context *state, __m512i *msg )
     chainv[3] = _mm512_xor_si512( chainv[3], chainv[1] );
 
     MULT24W( chainv[0], chainv[1] );
-    chainv[0] = _mm512_xor_si512( _mm512_xor_si512( chainv[0], t0 ), msg0 );
-    chainv[1] = _mm512_xor_si512( _mm512_xor_si512( chainv[1], t1 ), msg1 );
+    chainv[0] = mm512_xor3( chainv[0], t0, msg0 );
+    chainv[1] = mm512_xor3( chainv[1], t1, msg1 );
 
     MULT24W( msg0, msg1 );
     chainv[2] = _mm512_xor_si512( chainv[2], msg0 );
@@ -398,19 +425,11 @@ void finalization512_4way( luffa_4way_context *state, uint32 *b )
 
     /*---- blank round with m=0 ----*/
     rnd512_4way( state, zero );
-
-    t[0] = chainv[0];
-    t[1] = chainv[1];
-
-    t[0] = _mm512_xor_si512( t[0], chainv[2] );
-    t[1] = _mm512_xor_si512( t[1], chainv[3] );
-    t[0] = _mm512_xor_si512( t[0], chainv[4] );
-    t[1] = _mm512_xor_si512( t[1], chainv[5] );
-    t[0] = _mm512_xor_si512( t[0], chainv[6] );
-    t[1] = _mm512_xor_si512( t[1], chainv[7] );
-    t[0] = _mm512_xor_si512( t[0], chainv[8] );
-    t[1] = _mm512_xor_si512( t[1], chainv[9] );
-
+    
+    t[0] = mm512_xor3( chainv[0], chainv[2], chainv[4] );
+    t[1] = mm512_xor3( chainv[1], chainv[3], chainv[5] );
+    t[0] = mm512_xor3( t[0], chainv[6], chainv[8] );
+    t[1] = mm512_xor3( t[1], chainv[7], chainv[9] );
     t[0] = _mm512_shuffle_epi32( t[0], 27 );
     t[1] = _mm512_shuffle_epi32( t[1], 27 );
 
@@ -676,8 +695,6 @@ do { \
   a1 = _mm256_or_si256( _mm256_srli_si256(a1,4), _mm256_slli_si256(b,12) );  \
 } while(0)
 
-// confirm pointer arithmetic
-// ok but use array indexes
 #define STEP_PART(x,c0,c1,t)\
     SUBCRUMB(*x,*(x+1),*(x+2),*(x+3),*t);\
     SUBCRUMB(*(x+5),*(x+6),*(x+7),*(x+4),*t);\
@@ -688,23 +705,23 @@ do { \
     ADD_CONSTANT(*x, *(x+4), c0, c1);
 
 #define SUBCRUMB(a0,a1,a2,a3,t)\
-    t  = _mm256_load_si256(&a0);\
+    t  = a0;\
     a0 = _mm256_or_si256(a0,a1);\
     a2 = _mm256_xor_si256(a2,a3);\
-    a1 = _mm256_andnot_si256(a1, m256_neg1 );\
+    a1 = mm256_not( a1 );\
     a0 = _mm256_xor_si256(a0,a3);\
     a3 = _mm256_and_si256(a3,t);\
     a1 = _mm256_xor_si256(a1,a3);\
     a3 = _mm256_xor_si256(a3,a2);\
     a2 = _mm256_and_si256(a2,a0);\
-    a0 = _mm256_andnot_si256(a0, m256_neg1 );\
+    a0 = mm256_not( a0 );\
     a2 = _mm256_xor_si256(a2,a1);\
     a1 = _mm256_or_si256(a1,a3);\
     t  = _mm256_xor_si256(t,a1);\
     a3 = _mm256_xor_si256(a3,a2);\
     a2 = _mm256_and_si256(a2,a1);\
     a1 = _mm256_xor_si256(a1,a0);\
-    a0 = _mm256_load_si256(&t);\
+    a0 = t;\
 
 #define MIXWORD(a,b,t1,t2)\
     b  = _mm256_xor_si256(a,b);\

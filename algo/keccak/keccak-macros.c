@@ -110,20 +110,34 @@
 #ifdef KHI_XO
 #undef KHI_XO
 #endif
+
+#define KHI_XO(d, a, b, c)   do { \
+      XOROR(d, a, b, c); \
+   } while (0)
+
+/*
 #define KHI_XO(d, a, b, c)   do { \
                 DECL64(kt); \
                 OR64(kt, b, c); \
                 XOR64(d, a, kt); \
         } while (0)
+*/
 
 #ifdef KHI_XA
 #undef KHI_XA
 #endif
+
+#define KHI_XA(d, a, b, c)   do { \
+      XORAND(d, a, b, c); \
+   } while (0)
+
+/*
 #define KHI_XA(d, a, b, c)   do { \
                 DECL64(kt); \
                 AND64(kt, b, c); \
                 XOR64(d, a, kt); \
         } while (0)
+*/
 
 #ifdef KHI
 #undef KHI

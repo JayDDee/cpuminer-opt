@@ -309,22 +309,16 @@ static const uint64_t IV512[] = {
       sc->bcount = bcount; \
    } while (0)
    
-// AVX2 all scalar vars are now vectors representing 4 nonces in parallel
-
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #define TFBIG_KINIT_8WAY( k0, k1, k2, k3, k4, k5, k6, k7, k8, t0, t1, t2 ) \
 do { \
-  k8 = _mm512_xor_si512( _mm512_xor_si512( \
-                            _mm512_xor_si512( _mm512_xor_si512( k0, k1 ), \
-                                              _mm512_xor_si512( k2, k3 ) ), \
-                            _mm512_xor_si512( _mm512_xor_si512( k4, k5 ), \
-                                              _mm512_xor_si512( k6, k7 ) ) ), \
-                         m512_const1_64( 0x1BD11BDAA9FC1A22) ); \
+  k8 = mm512_xor3( mm512_xor3( k0, k1, k2 ), mm512_xor3( k3, k4, k5 ), \
+                   mm512_xor3( k6, k7, m512_const1_64( 0x1BD11BDAA9FC1A22) ));\
   t2 = t0 ^ t1; \
 } while (0)
-   
+
 #define TFBIG_ADDKEY_8WAY(w0, w1, w2, w3, w4, w5, w6, w7, k, t, s) \
 do { \
   w0 = _mm512_add_epi64( w0, SKBI(k,s,0) ); \
@@ -339,7 +333,6 @@ do { \
   w7 = _mm512_add_epi64( w7, _mm512_add_epi64( SKBI(k,s,7), \
                                          m512_const1_64( s ) ) ); \
 } while (0)
-
 
 #define TFBIG_MIX_8WAY(x0, x1, rc) \
 do { \

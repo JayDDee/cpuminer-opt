@@ -76,6 +76,9 @@ static const uint64_t RC[] = {
 #define OR64(d, a, b)    (d = _mm512_or_si512(a,b))
 #define NOT64(d, s)      (d = _mm512_xor_si512(s,m512_neg1))
 #define ROL64(d, v, n)   (d = mm512_rol_64(v, n))
+#define XOROR(d, a, b, c) (d = mm512_xoror(a, b, c))
+#define XORAND(d, a, b, c) (d = mm512_xorand(a, b, c))
+
 
 #include "keccak-macros.c"
 
@@ -238,6 +241,8 @@ keccak512_8way_close(void *cc, void *dst)
 #undef NOT64
 #undef ROL64
 #undef KECCAK_F_1600
+#undef XOROR
+#undef XORAND
 
 #endif  // AVX512
 
@@ -255,6 +260,8 @@ keccak512_8way_close(void *cc, void *dst)
 #define OR64(d, a, b)    (d = _mm256_or_si256(a,b))
 #define NOT64(d, s)      (d = _mm256_xor_si256(s,m256_neg1))
 #define ROL64(d, v, n)   (d = mm256_rol_64(v, n))
+#define XOROR(d, a, b, c) (d = _mm256_xor_si256(a, _mm256_or_si256(b, c)))
+#define XORAND(d, a, b, c) (d = _mm256_xor_si256(a, _mm256_and_si256(b, c)))
 
 #include "keccak-macros.c"
 
@@ -419,5 +426,7 @@ keccak512_4way_close(void *cc, void *dst)
 #undef NOT64
 #undef ROL64
 #undef KECCAK_F_1600
+#undef XOROR
+#undef XORAND
 
 #endif  // AVX2

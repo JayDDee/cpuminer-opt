@@ -312,9 +312,25 @@ do { \
       BUPDATE1_8W( 7, 1 ); \
 } while (0)
 
+#if defined(__AVX512VL__)
+
+#define GAMMA_8W(n0, n1, n2, n4)   \
+   ( g ## n0 = _mm256_ternarylogic_epi32( a ## n0, a ## n2, a ## n1, 0x4b ) )  
+
+#define THETA_8W(n0, n1, n2, n4)   \
+   ( g ## n0 = mm256_xor3( a ## n0, a ## n1, a ## n4 ) )   
+
+#else
+
 #define GAMMA_8W(n0, n1, n2, n4)   \
    (g ## n0 = _mm256_xor_si256( a ## n0, \
                          _mm256_or_si256( a ## n1, mm256_not( a ## n2 ) ) ) )
+
+#define THETA_8W(n0, n1, n2, n4)   \
+   ( g ## n0 = _mm256_xor_si256( a ## n0, _mm256_xor_si256( a ## n1, \
+                                                            a ## n4 ) ) )
+
+#endif
 
 #define PI_ALL_8W   do { \
       a0  = g0; \
@@ -336,9 +352,6 @@ do { \
       a16 = mm256_rol_32( g10,  8 ); \
    } while (0)
 
-#define THETA_8W(n0, n1, n2, n4)   \
-   ( g ## n0 = _mm256_xor_si256( a ## n0, _mm256_xor_si256( a ## n1, \
-                                                            a ## n4 ) ) )
 
 #define SIGMA_ALL_8W   do { \
       a0  = _mm256_xor_si256( g0, m256_one_32 ); \

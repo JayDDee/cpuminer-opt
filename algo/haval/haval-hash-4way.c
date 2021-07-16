@@ -522,50 +522,53 @@ do { \
 
 // Haval-256 8 way 32 bit avx2
 
+#if defined (__AVX512VL__)
+
+// ( ~( a ^ b ) ) & c
+#define mm256_andnotxor( a, b, c ) \
+   _mm256_ternarylogic_epi32( a, b, c, 0x82  )
+
+#else
+
+#define mm256_andnotxor( a, b, c ) \
+   _mm256_andnot_si256( _mm256_xor_si256( a, b ), c )
+
+#endif
+
 #define F1_8W(x6, x5, x4, x3, x2, x1, x0) \
-   _mm256_xor_si256( x0, \
-       _mm256_xor_si256( _mm256_and_si256(_mm256_xor_si256( x0, x4 ), x1 ), \
-                      _mm256_xor_si256( _mm256_and_si256( x2, x5 ), \
-                                     _mm256_and_si256( x3, x6 ) ) ) ) \
+ mm256_xor3( x0, mm256_andxor( x1, x0, x4 ), \
+                 _mm256_xor_si256( _mm256_and_si256( x2, x5 ), \
+                                   _mm256_and_si256( x3, x6 ) ) ) \
 
 #define F2_8W(x6, x5, x4, x3, x2, x1, x0) \
-   _mm256_xor_si256( \
-      _mm256_and_si256( x2, \
-         _mm256_xor_si256( _mm256_andnot_si256( x3, x1 ), \
-                        _mm256_xor_si256( _mm256_and_si256( x4, x5 ), \
-                                       _mm256_xor_si256( x6, x0 ) ) ) ), \
-         _mm256_xor_si256( \
-             _mm256_and_si256( x4, _mm256_xor_si256( x1, x5 ) ), \
-             _mm256_xor_si256( _mm256_and_si256( x3, x5 ), x0 ) ) ) \
+   mm256_xor3( mm256_andxor( x2, _mm256_andnot_si256( x3, x1 ), \
+                       mm256_xor3( _mm256_and_si256( x4, x5 ), x6, x0 )  ), \
+               mm256_andxor( x4, x1, x5 ), \
+               mm256_xorand( x0, x3, x5 ) ) \
 
 #define F3_8W(x6, x5, x4, x3, x2, x1, x0) \
-  _mm256_xor_si256( \
-    _mm256_and_si256( x3, \
-      _mm256_xor_si256( _mm256_and_si256( x1, x2 ), \
-                     _mm256_xor_si256( x6, x0 ) ) ), \
-      _mm256_xor_si256( _mm256_xor_si256(_mm256_and_si256( x1, x4 ), \
-                                   _mm256_and_si256( x2, x5 ) ), x0 ) )
+  mm256_xor3( x0, \
+              _mm256_and_si256( x3, \
+                         mm256_xor3( _mm256_and_si256( x1, x2 ), x6, x0 ) ), \
+              _mm256_xor_si256( _mm256_and_si256( x1, x4 ), \
+                                _mm256_and_si256( x2, x5 ) ) )
 
 #define F4_8W(x6, x5, x4, x3, x2, x1, x0) \
-  _mm256_xor_si256( \
-     _mm256_xor_si256( \
-        _mm256_and_si256( x3, \
-           _mm256_xor_si256( _mm256_xor_si256( _mm256_and_si256( x1, x2 ), \
-                                         _mm256_or_si256( x4, x6 ) ), x5 ) ), \
-        _mm256_and_si256( x4, \
-           _mm256_xor_si256( _mm256_xor_si256( _mm256_and_si256( mm256_not(x2), x5 ), \
-                          _mm256_xor_si256( x1, x6 ) ), x0 ) ) ), \
-     _mm256_xor_si256( _mm256_and_si256( x2, x6 ), x0 ) )
-
+  mm256_xor3( \
+      mm256_andxor( x3, x5, \
+                    _mm256_xor_si256( _mm256_and_si256( x1, x2 ), \
+                                      _mm256_or_si256( x4, x6 ) ) ), \
+      _mm256_and_si256( x4, \
+                        mm256_xor3( x0, _mm256_andnot_si256( x2, x5 ), \
+                                    _mm256_xor_si256( x1, x6 ) ) ), \
+      mm256_xorand( x0, x2, x6 ) )
 
 #define F5_8W(x6, x5, x4, x3, x2, x1, x0) \
    _mm256_xor_si256( \
-       _mm256_and_si256( x0, \
-            mm256_not( _mm256_xor_si256( \
-                    _mm256_and_si256( _mm256_and_si256( x1, x2 ), x3 ), x5 ) ) ), \
-      _mm256_xor_si256( _mm256_xor_si256( _mm256_and_si256( x1, x4 ), \
-                                    _mm256_and_si256( x2, x5 ) ), \
-                                    _mm256_and_si256( x3, x6 ) ) )
+         mm256_andnotxor( mm256_and3( x1, x2, x3 ), x5, x0 ), \
+         mm256_xor3( _mm256_and_si256( x1, x4 ), \
+                     _mm256_and_si256( x2, x5 ), \
+                     _mm256_and_si256( x3, x6 ) ) )
 
 #define FP3_1_8W(x6, x5, x4, x3, x2, x1, x0) \
    F1_8W(x1, x0, x3, x5, x6, x2, x4)

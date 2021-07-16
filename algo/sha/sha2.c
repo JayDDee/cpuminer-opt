@@ -195,8 +195,28 @@ static void sha256d_80_swap(uint32_t *hash, const uint32_t *data)
 		hash[i] = swab32(hash[i]);
 }
 
-extern void sha256d(unsigned char *hash, const unsigned char *data, int len)
+#if defined (__SHA__)
+
+#include "algo/sha/sph_sha2.h"
+
+void sha256d(unsigned char *hash, const unsigned char *data, int len)
 {
+   sph_sha256_context ctx __attribute__ ((aligned (64)));
+
+   sph_sha256_init( &ctx );
+   sph_sha256( &ctx, data, len );
+   sph_sha256_close( &ctx, hash );
+
+   sph_sha256_init( &ctx );
+   sph_sha256( &ctx, hash, 32 );
+   sph_sha256_close( &ctx, hash );
+}
+
+#else
+
+void sha256d(unsigned char *hash, const unsigned char *data, int len)
+{
+
    uint32_t S[16], T[16];
 	int i, r;
 
@@ -219,6 +239,8 @@ extern void sha256d(unsigned char *hash, const unsigned char *data, int len)
 	for (i = 0; i < 8; i++)
 		be32enc((uint32_t *)hash + i, T[i]);
 }
+
+#endif
 
 static inline void sha256d_preextend(uint32_t *W)
 {

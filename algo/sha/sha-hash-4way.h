@@ -59,6 +59,8 @@ void sha256_4way_update( sha256_4way_context *sc, const void *data,
                          size_t len );
 void sha256_4way_close( sha256_4way_context *sc, void *dst );
 void sha256_4way_full( void *dst, const void *data, size_t len );
+void sha256_4way_transform( __m128i *state_out,  const __m128i *data,
+                            const __m128i *state_in );
 
 #endif  // SSE2
 
@@ -77,6 +79,8 @@ void sha256_8way_init( sha256_8way_context *sc );
 void sha256_8way_update( sha256_8way_context *sc, const void *data, size_t len );
 void sha256_8way_close( sha256_8way_context *sc, void *dst );
 void sha256_8way_full( void *dst, const void *data, size_t len );
+void sha256_8way_transform( __m256i *state_out, const __m256i *data,
+                            const __m256i *state_in );
 
 #endif  // AVX2
 
@@ -95,6 +99,12 @@ void sha256_16way_init( sha256_16way_context *sc );
 void sha256_16way_update( sha256_16way_context *sc, const void *data, size_t len );
 void sha256_16way_close( sha256_16way_context *sc, void *dst );
 void sha256_16way_full( void *dst, const void *data, size_t len );
+void sha256_16way_transform( __m512i *state_out, const __m512i *data,
+                             const __m512i *state_in );
+void sha256_16way_prehash_3rounds( __m512i *state_mid, const __m512i *W,
+                             const __m512i *state_in );
+void sha256_16way_final_rounds( __m512i *state_out, const __m512i *data,
+                          const __m512i *state_in, const __m512i *state_mid );
 
 #endif // AVX512
 

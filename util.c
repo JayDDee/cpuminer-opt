@@ -795,6 +795,15 @@ char *abin2hex(const unsigned char *p, size_t len)
 	return s;
 }
 
+char *bebin2hex(const unsigned char *p, size_t len)
+{
+   char *s = (char*) malloc((len * 2) + 1);
+   if (!s)  return NULL;
+   for ( size_t i = 0, j = len - 1; i < len; i++, j-- )
+      sprintf( s + ( i*2 ), "%02x", (unsigned int) p[ j ] );
+   return s;
+}
+
 bool hex2bin(unsigned char *p, const char *hexstr, size_t len)
 {
 	char hex_byte[3];

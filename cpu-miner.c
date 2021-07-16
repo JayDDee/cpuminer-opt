@@ -2093,10 +2093,10 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
                          sctx->block_height, net_diff, g_work->job_id );
    else if ( !opt_quiet )
    {
-      unsigned char *xnonce2str = abin2hex( g_work->xnonce2,
-                                            g_work->xnonce2_len );
-      applog( LOG_INFO, "Extranonce2 %s, Block %d, Net Diff %.5g",
-                  xnonce2str, sctx->block_height, net_diff );
+      unsigned char *xnonce2str = bebin2hex( g_work->xnonce2,
+                                             g_work->xnonce2_len );
+      applog( LOG_INFO, "Extranonce2 %s, Block %d, Job %s",
+                        xnonce2str, sctx->block_height, g_work->job_id );
       free( xnonce2str );
    }
 
