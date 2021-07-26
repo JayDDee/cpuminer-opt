@@ -747,11 +747,6 @@ void rounds512_4way( uint32_t *state, const uint8_t *msg, uint16_t *fft )
 
   static const m512_v16 code[] = { c1_16_512(185), c1_16_512(233) };
 
-
-//  static const m512_v16 code[] = { c1_16(185), c1_16(233),
-//                                   c1_16(185), c1_16(233) };
-
-
   S0l = _mm512_xor_si512( S[0], M[0] );
   S0h = _mm512_xor_si512( S[1], M[1] );
   S1l = _mm512_xor_si512( S[2], M[2] );
@@ -764,11 +759,16 @@ void rounds512_4way( uint32_t *state, const uint8_t *msg, uint16_t *fft )
 // targetted, local macros don't need a unique name
 #define S(i) S##i
 
+#define F_0( B, C, D ) _mm512_ternarylogic_epi32( B, C, D, 0xca )
+#define F_1( B, C, D ) _mm512_ternarylogic_epi32( B, C, D, 0xe8 )  
+
+/*  
 #define F_0(B, C, D) \
    _mm512_xor_si512( _mm512_and_si512( _mm512_xor_si512( C,D ), B ), D )
 #define F_1(B, C, D) \
    _mm512_or_si512( _mm512_and_si512( D, C ),\
                     _mm512_and_si512( _mm512_or_si512( D,C ), B ) )
+*/
 
 #define Fl(a,b,c,fun) F_##fun (a##l,b##l,c##l)
 #define Fh(a,b,c,fun) F_##fun (a##h,b##h,c##h)

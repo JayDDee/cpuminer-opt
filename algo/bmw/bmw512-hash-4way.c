@@ -1285,12 +1285,13 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
    qt[30] = expand2b8( qt, M, H, 30 );
    qt[31] = expand2b8( qt, M, H, 31 );
 
-   xl = _mm512_xor_si512(
-           mm512_xor4( qt[16], qt[17], qt[18], qt[19] ),
-           mm512_xor4( qt[20], qt[21], qt[22], qt[23] ) );
-   xh = _mm512_xor_si512( xl, _mm512_xor_si512(
-           mm512_xor4( qt[24], qt[25], qt[26], qt[27] ),
-           mm512_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
+   xl = mm512_xor3( mm512_xor3( qt[16], qt[17], qt[18] ),
+                    mm512_xor3( qt[19], qt[20], qt[21] ),
+                    _mm512_xor_si512( qt[22], qt[23] ) );
+
+   xh = mm512_xor3( mm512_xor3( xl,     qt[24], qt[25] ),
+                    mm512_xor3( qt[26], qt[27], qt[28] ),
+                    mm512_xor3( qt[29], qt[30], qt[31] ) );
 
 #define DH1L( m, sl, sr, a, b, c ) \
    _mm512_add_epi64( mm512_xor3( M[m], _mm512_slli_epi64( xh, sl ), \

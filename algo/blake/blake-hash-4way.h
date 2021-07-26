@@ -180,6 +180,7 @@ void blake512_8way_update( void *cc, const void *data, size_t len );
 void blake512_8way_close( void *cc, void *dst );
 void blake512_8way_full( blake_8way_big_context *sc, void * dst,
                         const void *data, size_t len );
+void blake512_8way_hash_le80( void *hash, const void *data );
 
 #endif  // AVX512
 #endif  // AVX2

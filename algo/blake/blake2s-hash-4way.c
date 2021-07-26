@@ -368,7 +368,7 @@ do { \
    ROUND8W( 9 );
 
    for( size_t i = 0; i < 8; ++i )
-      S->h[i] = _mm256_xor_si256( _mm256_xor_si256( S->h[i], v[i] ), v[i + 8] );
+      S->h[i] = mm256_xor3( S->h[i], v[i], v[i + 8] );
 
 #undef G8W
 #undef ROUND8W
@@ -566,7 +566,7 @@ do { \
    ROUND16W( 9 );
 
    for( size_t i = 0; i < 8; ++i )
-      S->h[i] = _mm512_xor_si512( _mm512_xor_si512( S->h[i], v[i] ), v[i + 8] );
+      S->h[i] = mm512_xor3( S->h[i], v[i], v[i + 8] );
 
 #undef G16W
 #undef ROUND16W

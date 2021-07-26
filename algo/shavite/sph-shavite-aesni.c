@@ -101,15 +101,6 @@ c512( sph_shavite_big_context *sc, const void *msg )
 
    // round
 
-//  working proof of concept   
-/*
-   __m512i K = m512_const1_128( m[0] );
-   __m512i X = _mm512_xor_si512( m512_const1_128( p1 ), K );
-   X = _mm512_aesenc_epi128( X, m512_zero );
-   k00 = _mm512_castsi512_si128( K );
-   x = _mm512_castsi512_si128( X );
-*/
-
    k00 = m[0];
    x = _mm_xor_si128( p1, k00 );
    x = _mm_aesenc_si128( x, zero );

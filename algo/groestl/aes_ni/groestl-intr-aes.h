@@ -67,11 +67,9 @@ static const __m128i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003 };
  * xmm[j] will be lost
  * xmm[k] has to be all 0x1b */
 #define MUL2(i, j, k){\
-  j = _mm_xor_si128(j, j);\
-  j = _mm_cmpgt_epi8(j, i);\
+  j = _mm_cmpgt_epi8( m128_zero, i);\
   i = _mm_add_epi8(i, i);\
-  j = _mm_and_si128(j, k);\
-  i = _mm_xor_si128(i, j);\
+  i = mm128_xorand(i, j, k );\
 } 
 
  /**/
@@ -93,6 +91,96 @@ static const __m128i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003 };
    We almost fit into 16 registers, need only 3 spills to memory.
    This implementation costs 7.7 c/b giving total speed on SNB: 10.7c/b.
    K. Matusiewicz, 2011/05/29 */
+
+#if defined(__AVX512VL__)
+
+#define MixBytes(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
+  /* t_i = a_i + a_{i+1} */\
+  b6 = a0;\
+  b7 = a1;\
+  a0 = _mm_xor_si128(a0, a1);\
+  b0 = a2;\
+  a1 = _mm_xor_si128(a1, a2);\
+  b1 = a3;\
+  TEMP2 = _mm_xor_si128(a2, a3);\
+  b2 = a4;\
+  a3 = _mm_xor_si128(a3, a4);\
+  b3 = a5;\
+  a4 = _mm_xor_si128(a4, a5);\
+  b4 = a6;\
+  a5 = _mm_xor_si128(a5, a6);\
+  b5 = a7;\
+  a6 = _mm_xor_si128(a6, a7);\
+  a7 = _mm_xor_si128(a7, b6);\
+   \
+  /* build y4 y5 y6 ... in regs xmm8, xmm9, xmm10 by adding t_i*/\
+  TEMP0 = mm128_xor3( b0, a4, a6 ); \
+  /* spill values y_4, y_5 to memory */\
+  TEMP1 = mm128_xor3( b1, a5, a7 );\
+  b2 = mm128_xor3( b2, a6, a0 ); \
+  /* save values t0, t1, t2 to xmm8, xmm9 and memory */\
+  b0 = a0;\
+  b3 = mm128_xor3( b3, a7, a1 ); \
+  b1 = a1;\
+  b6 = mm128_xor3( b6, a4, TEMP2 ); \
+  b4 = mm128_xor3( b4, a0, TEMP2 ); \
+  b7 = mm128_xor3( b7, a5, a3 ); \
+  b5 = mm128_xor3( b5, a1, a3 ); \
+  \
+  /* compute x_i = t_i + t_{i+3} */\
+  a0 = _mm_xor_si128(a0, a3);\
+  a1 = _mm_xor_si128(a1, a4);\
+  a2 = _mm_xor_si128(TEMP2, a5);\
+  a3 = _mm_xor_si128(a3, a6);\
+  a4 = _mm_xor_si128(a4, a7);\
+  a5 = _mm_xor_si128(a5, b0);\
+  a6 = _mm_xor_si128(a6, b1);\
+  a7 = _mm_xor_si128(a7, TEMP2);\
+  \
+  /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
+  /* compute w_i : add y_{i+4} */\
+  b1 = m128_const1_64( 0x1b1b1b1b1b1b1b1b );\
+  MUL2(a0, b0, b1);\
+  a0 = _mm_xor_si128(a0, TEMP0);\
+  MUL2(a1, b0, b1);\
+  a1 = _mm_xor_si128(a1, TEMP1);\
+  MUL2(a2, b0, b1);\
+  a2 = _mm_xor_si128(a2, b2);\
+  MUL2(a3, b0, b1);\
+  a3 = _mm_xor_si128(a3, b3);\
+  MUL2(a4, b0, b1);\
+  a4 = _mm_xor_si128(a4, b4);\
+  MUL2(a5, b0, b1);\
+  a5 = _mm_xor_si128(a5, b5);\
+  MUL2(a6, b0, b1);\
+  a6 = _mm_xor_si128(a6, b6);\
+  MUL2(a7, b0, b1);\
+  a7 = _mm_xor_si128(a7, b7);\
+  \
+  /* compute v_i : double w_i      */\
+  /* add to y_4 y_5 .. v3, v4, ... */\
+  MUL2(a0, b0, b1);\
+  b5 = _mm_xor_si128(b5, a0);\
+  MUL2(a1, b0, b1);\
+  b6 = _mm_xor_si128(b6, a1);\
+  MUL2(a2, b0, b1);\
+  b7 = _mm_xor_si128(b7, a2);\
+  MUL2(a5, b0, b1);\
+  b2 = _mm_xor_si128(b2, a5);\
+  MUL2(a6, b0, b1);\
+  b3 = _mm_xor_si128(b3, a6);\
+  MUL2(a7, b0, b1);\
+  b4 = _mm_xor_si128(b4, a7);\
+  MUL2(a3, b0, b1);\
+  MUL2(a4, b0, b1);\
+  b0 = TEMP0;\
+  b1 = TEMP1;\
+  b0 = _mm_xor_si128(b0, a3);\
+  b1 = _mm_xor_si128(b1, a4);\
+}/*MixBytes*/
+
+#else
+
 #define MixBytes(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* t_i = a_i + a_{i+1} */\
   b6 = a0;\
@@ -188,6 +276,8 @@ static const __m128i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003 };
   b0 = _mm_xor_si128(b0, a3);\
   b1 = _mm_xor_si128(b1, a4);\
 }/*MixBytes*/
+
+#endif
 
 
 /* one round

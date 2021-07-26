@@ -6,10 +6,6 @@
 
 #define PRINT_SOME 0
 
-/* JDD all ocurrances of macro X in this file renamed to XX
- * due to name conflict
- */
-
 int SupportedLength(int hashbitlen) {
   if (hashbitlen <= 0 || hashbitlen > 512)
     return 0;

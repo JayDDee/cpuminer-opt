@@ -124,7 +124,16 @@ MYALIGN const unsigned int _IV512[] = {
 	t1 = _mm_shuffle_epi32(s30, _MM_SHUFFLE(3, 3, 0, 3));\
 	s7 = _mm_xor_si128(s7, t1)
 
+#define PRESUPERMIX(t0, t1, t2, t3, t4)\
+   t2 = t0;\
+   t3 = _mm_add_epi8(t0, t0);\
+   t4 = _mm_add_epi8(t3, t3);\
+   t1 = _mm_srli_epi16(t0, 6);\
+   t1 = _mm_and_si128(t1, M128(_lsbmask2));\
+   t3 = _mm_xor_si128(t3, _mm_shuffle_epi8(M128(_mul2mask), t1));\
+   t0  = _mm_xor_si128(t4, _mm_shuffle_epi8(M128(_mul4mask), t1))
 
+/*
 #define PRESUPERMIX(x, t1, s1, s2, t2)\
 	s1 = x;\
 	s2 = _mm_add_epi8(x, x);\
@@ -133,37 +142,59 @@ MYALIGN const unsigned int _IV512[] = {
 	t1 = _mm_and_si128(t1, M128(_lsbmask2));\
 	s2 = _mm_xor_si128(s2, _mm_shuffle_epi8(M128(_mul2mask), t1));\
 	x  = _mm_xor_si128(t2, _mm_shuffle_epi8(M128(_mul4mask), t1))
+*/
 
-#define SUBSTITUTE(r0, _t1, _t2, _t3, _t0)\
+#define SUBSTITUTE(r0, _t2 )\
 	_t2 = _mm_shuffle_epi8(r0, M128(_inv_shift_rows));\
 	_t2 = _mm_aesenclast_si128( _t2, m128_zero )
-	
+
+#define SUPERMIX(t0, t1, t2, t3, t4)\
+   t2 = t0;\
+   t3 = _mm_add_epi8(t0, t0);\
+   t4 = _mm_add_epi8(t3, t3);\
+   t1 = _mm_srli_epi16(t0, 6);\
+   t1 = _mm_and_si128(t1, M128(_lsbmask2));\
+   t0 = _mm_xor_si128(t4, _mm_shuffle_epi8(M128(_mul4mask), t1)); \
+   t4 = _mm_shuffle_epi8(t2, M128(_supermix1b));\
+   t3 = _mm_xor_si128(t3, _mm_shuffle_epi8(M128(_mul2mask), t1));\
+   t1 = _mm_shuffle_epi8(t4, M128(_supermix1c));\
+   t4 = _mm_xor_si128(t4, t1);\
+   t1 = _mm_shuffle_epi8(t4, M128(_supermix1d));\
+   t4 = _mm_xor_si128(t4, t1);\
+   t1 = _mm_shuffle_epi8(t2, M128(_supermix1a));\
+   t2 = mm128_xor3(t2, t3, t0 );\
+   t2 = _mm_shuffle_epi8(t2, M128(_supermix7a));\
+   t4 = mm128_xor3( t4, t1, t2 ); \
+   t2 = _mm_shuffle_epi8(t2, M128(_supermix7b));\
+   t3 = _mm_shuffle_epi8(t3, M128(_supermix2a));\
+   t1 = _mm_shuffle_epi8(t0, M128(_supermix4a));\
+   t0 = _mm_shuffle_epi8(t0, M128(_supermix4b));\
+   t4 = mm128_xor3( t4, t2, t1 ); \
+   t0 = _mm_xor_si128(t0, t3);\
+   t4 = mm128_xor3(t4, t0, _mm_shuffle_epi8(t0, M128(_supermix4c)));
+
+/*
 #define SUPERMIX(t0, t1, t2, t3, t4)\
 	PRESUPERMIX(t0, t1, t2, t3, t4);\
 	POSTSUPERMIX(t0, t1, t2, t3, t4)
-
+*/
 
 #define POSTSUPERMIX(t0, t1, t2, t3, t4)\
-	t1 = t2;\
-	t1 = _mm_shuffle_epi8(t1, M128(_supermix1b));\
+	t1 = _mm_shuffle_epi8(t2, M128(_supermix1b));\
 	t4 = t1;\
 	t1 = _mm_shuffle_epi8(t1, M128(_supermix1c));\
 	t4 = _mm_xor_si128(t4, t1);\
-	t1 = t4;\
-	t1 = _mm_shuffle_epi8(t1, M128(_supermix1d));\
+	t1 = _mm_shuffle_epi8(t4, M128(_supermix1d));\
 	t4 = _mm_xor_si128(t4, t1);\
-	t1 = t2;\
-	t1 = _mm_shuffle_epi8(t1, M128(_supermix1a));\
+	t1 = _mm_shuffle_epi8(t2, M128(_supermix1a));\
 	t4 = _mm_xor_si128(t4, t1);\
-	t2 = _mm_xor_si128(t2, t3);\
-	t2 = _mm_xor_si128(t2, t0);\
+	t2 = mm128_xor3(t2, t3, t0 );\
 	t2 = _mm_shuffle_epi8(t2, M128(_supermix7a));\
 	t4 = _mm_xor_si128(t4, t2);\
 	t2 = _mm_shuffle_epi8(t2, M128(_supermix7b));\
 	t4 = _mm_xor_si128(t4, t2);\
 	t3 = _mm_shuffle_epi8(t3, M128(_supermix2a));\
-	t1 = t0;\
-	t1 = _mm_shuffle_epi8(t1, M128(_supermix4a));\
+	t1 = _mm_shuffle_epi8(t0, M128(_supermix4a));\
 	t4 = _mm_xor_si128(t4, t1);\
 	t0 = _mm_shuffle_epi8(t0, M128(_supermix4b));\
 	t0 = _mm_xor_si128(t0, t3);\
@@ -171,58 +202,54 @@ MYALIGN const unsigned int _IV512[] = {
 	t0 = _mm_shuffle_epi8(t0, M128(_supermix4c));\
 	t4 = _mm_xor_si128(t4, t0)
 
-
 #define SUBROUND512_3(r1a, r1b, r1c, r1d, r2a, r2b, r2c, r2d, r3a, r3b, r3c, r3d)\
 	CMIX(r1a, r1b, r1c, r1d, _t0, _t1);\
 	PACK_S0(r1c, r1a, _t0);\
-	SUBSTITUTE(r1c, _t1, _t2, _t3, _t0);\
+	SUBSTITUTE(r1c, _t2 );\
 	SUPERMIX(_t2, _t3, _t0, _t1, r1c);\
 	_t0 = _mm_shuffle_epi32(r1c, 0x39);\
 	r2c = _mm_xor_si128(r2c, _t0);\
    _t0 = mm128_mask_32( _t0, 8 ); \
 	r2d = _mm_xor_si128(r2d, _t0);\
 	UNPACK_S0(r1c, r1a, _t3);\
-	SUBSTITUTE(r2c, _t1, _t2, _t3, _t0);\
+	SUBSTITUTE(r2c, _t2 );\
 	SUPERMIX(_t2, _t3, _t0, _t1, r2c);\
 	_t0 = _mm_shuffle_epi32(r2c, 0x39);\
 	r3c = _mm_xor_si128(r3c, _t0);\
    _t0 = mm128_mask_32( _t0, 8 ); \
 	r3d = _mm_xor_si128(r3d, _t0);\
 	UNPACK_S0(r2c, r2a, _t3);\
-	SUBSTITUTE(r3c, _t1, _t2, _t3, _t0);\
+	SUBSTITUTE(r3c, _t2 );\
 	SUPERMIX(_t2, _t3, _t0, _t1, r3c);\
 	UNPACK_S0(r3c, r3a, _t3)
-
 
 #define SUBROUND512_4(r1a, r1b, r1c, r1d, r2a, r2b, r2c, r2d, r3a, r3b, r3c, r3d, r4a, r4b, r4c, r4d)\
 	CMIX(r1a, r1b, r1c, r1d, _t0, _t1);\
 	PACK_S0(r1c, r1a, _t0);\
-	SUBSTITUTE(r1c, _t1, _t2, _t3, _t0);\
+	SUBSTITUTE( r1c, _t2 );\
 	SUPERMIX(_t2, _t3, _t0, _t1, r1c);\
 	_t0 = _mm_shuffle_epi32(r1c, 0x39);\
 	r2c = _mm_xor_si128(r2c, _t0);\
    _t0 = mm128_mask_32( _t0, 8 ); \
 	r2d = _mm_xor_si128(r2d, _t0);\
 	UNPACK_S0(r1c, r1a, _t3);\
-	SUBSTITUTE(r2c, _t1, _t2, _t3, _t0);\
+	SUBSTITUTE(r2c, _t2 );\
 	SUPERMIX(_t2, _t3, _t0, _t1, r2c);\
 	_t0 = _mm_shuffle_epi32(r2c, 0x39);\
 	r3c = _mm_xor_si128(r3c, _t0);\
    _t0 = mm128_mask_32( _t0, 8 ); \
 	r3d = _mm_xor_si128(r3d, _t0);\
 	UNPACK_S0(r2c, r2a, _t3);\
-	SUBSTITUTE(r3c, _t1, _t2, _t3, _t0);\
+	SUBSTITUTE( r3c, _t2 );\
 	SUPERMIX(_t2, _t3, _t0, _t1, r3c);\
 	_t0 = _mm_shuffle_epi32(r3c, 0x39);\
 	r4c = _mm_xor_si128(r4c, _t0);\
    _t0 = mm128_mask_32( _t0, 8 ); \
 	r4d = _mm_xor_si128(r4d, _t0);\
 	UNPACK_S0(r3c, r3a, _t3);\
-	SUBSTITUTE(r4c, _t1, _t2, _t3, _t0);\
+	SUBSTITUTE( r4c, _t2 );\
 	SUPERMIX(_t2, _t3, _t0, _t1, r4c);\
 	UNPACK_S0(r4c, r4a, _t3)
-
-
 
 #define LOADCOLUMN(x, s, a)\
 	block[0] = col[(base + a + 0) % s];\
@@ -247,14 +274,14 @@ void Compress512(hashState_fugue *ctx, const unsigned char *pmsg, unsigned int u
       case 1:
          TIX512( pmsg, ctx->state[3], ctx->state[10], ctx->state[4],
                        ctx->state[5], ctx->state[ 6], ctx->state[8],
-		       ctx->state[9], ctx->state[10], _t0, _t1, _t2 );
+                       ctx->state[9], ctx->state[10], _t0, _t1, _t2 );
 
-	 SUBROUND512_4( ctx->state[8], ctx->state[9], ctx->state[7],
+	      SUBROUND512_4( ctx->state[8], ctx->state[9], ctx->state[7],
                         ctx->state[1], ctx->state[7], ctx->state[8],
-		       	ctx->state[6], ctx->state[0], ctx->state[6],
-		       	ctx->state[7], ctx->state[5], ctx->state[11],
-		       	ctx->state[5], ctx->state[6], ctx->state[4],
-		       	ctx->state[10] );
+		                  ctx->state[6], ctx->state[0], ctx->state[6],
+		                  ctx->state[7], ctx->state[5], ctx->state[11],
+		                  ctx->state[5], ctx->state[6], ctx->state[4],
+		       	         ctx->state[10] );
          ctx->base++;
          pmsg += 4;
          uBlockCount--;
@@ -263,14 +290,14 @@ void Compress512(hashState_fugue *ctx, const unsigned char *pmsg, unsigned int u
       case 2:
          TIX512( pmsg, ctx->state[11], ctx->state[6], ctx->state[0],
                        ctx->state[ 1], ctx->state[2], ctx->state[4],
-		       ctx->state[ 5], ctx->state[6], _t0, _t1, _t2);
+                       ctx->state[ 5], ctx->state[6], _t0, _t1, _t2);
 
          SUBROUND512_4( ctx->state[4], ctx->state[5], ctx->state[3],
                         ctx->state[9], ctx->state[3], ctx->state[4],
-		       	ctx->state[2], ctx->state[8], ctx->state[2],
-		       	ctx->state[3], ctx->state[1], ctx->state[7],
-		       	ctx->state[1], ctx->state[2], ctx->state[0],
-		       	ctx->state[6]);
+                        ctx->state[2], ctx->state[8], ctx->state[2],
+                        ctx->state[3], ctx->state[1], ctx->state[7],
+                        ctx->state[1], ctx->state[2], ctx->state[0],
+                        ctx->state[6]);
 
          ctx->base = 0;
          pmsg += 4;
@@ -278,44 +305,42 @@ void Compress512(hashState_fugue *ctx, const unsigned char *pmsg, unsigned int u
       break;
    }
 
-
    while( uBlockCount > 0 )
    {
-      TIX512( pmsg, ctx->state[ 7], ctx->state[2], ctx->state[8], ctx->state[9],
-                    ctx->state[10], ctx->state[0], ctx->state[1], ctx->state[2],
-              _t0, _t1, _t2 );
-      SUBROUND512_4( ctx->state[0], ctx->state[1], ctx->state[11],
-                     ctx->state[5], ctx->state[11], ctx->state[0],
-		     ctx->state[10], ctx->state[4], ctx->state[10],
-		     ctx->state[11], ctx->state[9], ctx->state[3],
-		     ctx->state[9], ctx->state[10], ctx->state[8],
-		     ctx->state[2] );
+      TIX512( pmsg, ctx->state[ 7],ctx->state[2],ctx->state[8],ctx->state[9],
+                    ctx->state[10],ctx->state[0],ctx->state[1],ctx->state[2],
+                    _t0, _t1, _t2 );
+      SUBROUND512_4( ctx->state[0], ctx->state[1],ctx->state[11],ctx->state[5],
+                     ctx->state[11],ctx->state[0],ctx->state[10],ctx->state[4],
+                     ctx->state[10],ctx->state[11],ctx->state[9],ctx->state[3],
+		               ctx->state[9],ctx->state[10],ctx->state[8],ctx->state[2] );
 
       ctx->base++;
       pmsg += 4;
       uBlockCount--;
       if( uBlockCount == 0 ) break;
 
-      TIX512( pmsg, ctx->state[3], ctx->state[10], ctx->state[4], ctx->state[5],
-                    ctx->state[6], ctx->state[8], ctx->state[9], ctx->state[10],
-              _t0, _t1, _t2 );
+      TIX512( pmsg, ctx->state[3],ctx->state[10],ctx->state[4],ctx->state[5],
+                    ctx->state[6],ctx->state[8], ctx->state[9],ctx->state[10],
+                    _t0, _t1, _t2 );
 
-      SUBROUND512_4( ctx->state[8], ctx->state[9], ctx->state[7], ctx->state[1],                     ctx->state[7], ctx->state[8], ctx->state[6], ctx->state[0],
-		     ctx->state[6], ctx->state[7], ctx->state[5], ctx->state[11],
-		     ctx->state[5], ctx->state[6, ctx->state[4], ctx->state[10]);
+      SUBROUND512_4( ctx->state[8],ctx->state[9],ctx->state[7],ctx->state[1],
+                     ctx->state[7],ctx->state[8],ctx->state[6],ctx->state[0],
+		               ctx->state[6],ctx->state[7],ctx->state[5],ctx->state[11],
+		               ctx->state[5],ctx->state[6],ctx->state[4],ctx->state[10] );
 
       ctx->base++;
       pmsg += 4;
       uBlockCount--;
       if( uBlockCount == 0 ) break;
 
-      TIX512( pmsg, ctx->state[11], ctx->state[6], ctx->state[0], ctx->state[1],
-		    ctx->state[2], ctx->state[4], ctx->state[5], ctx->state[6],
-               _t0, _t1, _t2);
-      SUBROUND512_4( ctx->state[4], ctx->state[5], ctx->state[3], ctx->state[9],
-		     ctx->state[3], ctx->state[4], ctx->state[2], ctx->state[8],
-		     ctx->state[2], ctx->state[3], ctx->state[1], ctx->state[7],
-		     ctx->state[1], ctx->state[2], ctx->state[0], ctx->state[6]);
+      TIX512( pmsg, ctx->state[11],ctx->state[6],ctx->state[0],ctx->state[1],
+                    ctx->state[2], ctx->state[4],ctx->state[5],ctx->state[6],
+                    _t0, _t1, _t2);
+      SUBROUND512_4( ctx->state[4],ctx->state[5],ctx->state[3],ctx->state[9],
+                     ctx->state[3],ctx->state[4],ctx->state[2],ctx->state[8],
+                     ctx->state[2],ctx->state[3],ctx->state[1],ctx->state[7],
+		               ctx->state[1],ctx->state[2],ctx->state[0],ctx->state[6]);
 
       ctx->base = 0;
       pmsg += 4;
@@ -326,8 +351,8 @@ void Compress512(hashState_fugue *ctx, const unsigned char *pmsg, unsigned int u
 
 void Final512(hashState_fugue *ctx, BitSequence *hashval)
 {
-        unsigned int block[4] __attribute__ ((aligned (32)));
-        unsigned int col[36] __attribute__ ((aligned (16)));
+   unsigned int block[4] __attribute__ ((aligned (32)));
+   unsigned int col[36] __attribute__ ((aligned (16)));
 	unsigned int i, base;
 	__m128i r0, _t0, _t1, _t2, _t3;
 
@@ -357,7 +382,7 @@ void Final512(hashState_fugue *ctx, BitSequence *hashval)
 
 		// SMIX
 		LOADCOLUMN(r0, 36, 0);
-		SUBSTITUTE(r0, _t1, _t2, _t3, _t0);
+		SUBSTITUTE(r0, _t2);
 		SUPERMIX(_t2, _t3, _t0, _t1, r0);
 		STORECOLUMN(r0, 36);
 	}
@@ -375,7 +400,7 @@ void Final512(hashState_fugue *ctx, BitSequence *hashval)
 
 		// SMIX
 		LOADCOLUMN(r0, 36, 0);
-		SUBSTITUTE(r0, _t1, _t2, _t3, _t0);
+		SUBSTITUTE(r0, _t2);
 		SUPERMIX(_t2, _t3, _t0, _t1, r0);
 		STORECOLUMN(r0, 36);
 
@@ -390,7 +415,7 @@ void Final512(hashState_fugue *ctx, BitSequence *hashval)
 
 		// SMIX
 		LOADCOLUMN(r0, 36, 0);
-		SUBSTITUTE(r0, _t1, _t2, _t3, _t0);
+		SUBSTITUTE(r0, _t2);
 		SUPERMIX(_t2, _t3, _t0, _t1, r0);
 		STORECOLUMN(r0, 36);
 
@@ -405,7 +430,7 @@ void Final512(hashState_fugue *ctx, BitSequence *hashval)
 
 		// SMIX
 		LOADCOLUMN(r0, 36, 0);
-		SUBSTITUTE(r0, _t1, _t2, _t3, _t0);
+		SUBSTITUTE(r0, _t2);
 		SUPERMIX(_t2, _t3, _t0, _t1, r0);
 		STORECOLUMN(r0, 36);
 
@@ -420,7 +445,7 @@ void Final512(hashState_fugue *ctx, BitSequence *hashval)
 
 		// SMIX
 		LOADCOLUMN(r0, 36, 0);
-		SUBSTITUTE(r0, _t1, _t2, _t3, _t0);
+		SUBSTITUTE(r0, _t2);
 		SUPERMIX(_t2, _t3, _t0, _t1, r0);
 		STORECOLUMN(r0, 36);
 	}

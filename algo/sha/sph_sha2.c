@@ -41,7 +41,7 @@
 
 #define CH(X, Y, Z)    ((((Y) ^ (Z)) & (X)) ^ (Z))
 //#define MAJ(X, Y, Z)   (((Y) & (Z)) | (((Y) | (Z)) & (X)))
-#define MAJ( X, Y, Z )   ( Y  ^ ( ( X ^ Y ) & ( Y ^ Z ) ) )
+#define MAJ( X, Y, Z )   ( Y  ^ ( ( X_xor_Y = X ^ Y ) & ( Y_xor_Z ) ) )
 #define ROTR    SPH_ROTR32
 
 #define BSG2_0(x)      (ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22))
@@ -319,6 +319,7 @@ static const sph_u32 K[64] = {
 		t1 = SPH_T32(h + BSG2_1(e) + CH(e, f, g) \
 			+ K[pcount + (pc)] + W[(pc) & 0x0F]); \
 		t2 = SPH_T32(BSG2_0(a) + MAJ(a, b, c)); \
+      Y_xor_Z = X_xor_Y; \
 		d = SPH_T32(d + t1); \
 		h = SPH_T32(t1 + t2); \
 	} while (0)
@@ -329,7 +330,7 @@ static const sph_u32 K[64] = {
 	SHA2_STEPn(2, a, b, c, d, e, f, g, h, in, pc)
 
 #define SHA2_ROUND_BODY(in, r)   do { \
-		sph_u32 A, B, C, D, E, F, G, H; \
+		sph_u32 A, B, C, D, E, F, G, H, X_xor_Y, Y_xor_Z; \
 		sph_u32 W[16]; \
 		unsigned pcount; \
  \
@@ -342,6 +343,7 @@ static const sph_u32 K[64] = {
 		G = (r)[6]; \
 		H = (r)[7]; \
 		pcount = 0; \
+      Y_xor_Z = B ^ C; \
 		SHA2_STEP1(A, B, C, D, E, F, G, H, in,  0); \
 		SHA2_STEP1(H, A, B, C, D, E, F, G, in,  1); \
 		SHA2_STEP1(G, H, A, B, C, D, E, F, in,  2); \
@@ -389,7 +391,7 @@ static const sph_u32 K[64] = {
 #else  // large footprint (default)
 
 #define SHA2_ROUND_BODY(in, r)   do { \
-		sph_u32 A, B, C, D, E, F, G, H, T1, T2; \
+		sph_u32 A, B, C, D, E, F, G, H, T1, T2, X_xor_Y, Y_xor_Z;; \
 		sph_u32 W00, W01, W02, W03, W04, W05, W06, W07; \
 		sph_u32 W08, W09, W10, W11, W12, W13, W14, W15; \
  \
@@ -401,388 +403,453 @@ static const sph_u32 K[64] = {
 		F = (r)[5]; \
 		G = (r)[6]; \
 		H = (r)[7]; \
+      Y_xor_Z = B ^ C; \
 		W00 = in(0); \
 		T1 = SPH_T32(H + BSG2_1(E) + CH(E, F, G) \
 			+ SPH_C32(0x428A2F98) + W00); \
 		T2 = SPH_T32(BSG2_0(A) + MAJ(A, B, C)); \
+      Y_xor_Z = X_xor_Y; \
 		D = SPH_T32(D + T1); \
 		H = SPH_T32(T1 + T2); \
 		W01 = in(1); \
 		T1 = SPH_T32(G + BSG2_1(D) + CH(D, E, F) \
 			+ SPH_C32(0x71374491) + W01); \
 		T2 = SPH_T32(BSG2_0(H) + MAJ(H, A, B)); \
+      Y_xor_Z = X_xor_Y; \
 		C = SPH_T32(C + T1); \
 		G = SPH_T32(T1 + T2); \
 		W02 = in(2); \
 		T1 = SPH_T32(F + BSG2_1(C) + CH(C, D, E) \
 			+ SPH_C32(0xB5C0FBCF) + W02); \
 		T2 = SPH_T32(BSG2_0(G) + MAJ(G, H, A)); \
+      Y_xor_Z = X_xor_Y; \
 		B = SPH_T32(B + T1); \
 		F = SPH_T32(T1 + T2); \
 		W03 = in(3); \
 		T1 = SPH_T32(E + BSG2_1(B) + CH(B, C, D) \
 			+ SPH_C32(0xE9B5DBA5) + W03); \
 		T2 = SPH_T32(BSG2_0(F) + MAJ(F, G, H)); \
+      Y_xor_Z = X_xor_Y; \
 		A = SPH_T32(A + T1); \
 		E = SPH_T32(T1 + T2); \
 		W04 = in(4); \
 		T1 = SPH_T32(D + BSG2_1(A) + CH(A, B, C) \
 			+ SPH_C32(0x3956C25B) + W04); \
 		T2 = SPH_T32(BSG2_0(E) + MAJ(E, F, G)); \
+      Y_xor_Z = X_xor_Y; \
 		H = SPH_T32(H + T1); \
 		D = SPH_T32(T1 + T2); \
 		W05 = in(5); \
 		T1 = SPH_T32(C + BSG2_1(H) + CH(H, A, B) \
 			+ SPH_C32(0x59F111F1) + W05); \
 		T2 = SPH_T32(BSG2_0(D) + MAJ(D, E, F)); \
+      Y_xor_Z = X_xor_Y; \
 		G = SPH_T32(G + T1); \
 		C = SPH_T32(T1 + T2); \
 		W06 = in(6); \
 		T1 = SPH_T32(B + BSG2_1(G) + CH(G, H, A) \
 			+ SPH_C32(0x923F82A4) + W06); \
 		T2 = SPH_T32(BSG2_0(C) + MAJ(C, D, E)); \
+      Y_xor_Z = X_xor_Y; \
 		F = SPH_T32(F + T1); \
 		B = SPH_T32(T1 + T2); \
 		W07 = in(7); \
 		T1 = SPH_T32(A + BSG2_1(F) + CH(F, G, H) \
 			+ SPH_C32(0xAB1C5ED5) + W07); \
 		T2 = SPH_T32(BSG2_0(B) + MAJ(B, C, D)); \
+      Y_xor_Z = X_xor_Y; \
 		E = SPH_T32(E + T1); \
 		A = SPH_T32(T1 + T2); \
 		W08 = in(8); \
 		T1 = SPH_T32(H + BSG2_1(E) + CH(E, F, G) \
 			+ SPH_C32(0xD807AA98) + W08); \
 		T2 = SPH_T32(BSG2_0(A) + MAJ(A, B, C)); \
+      Y_xor_Z = X_xor_Y; \
 		D = SPH_T32(D + T1); \
 		H = SPH_T32(T1 + T2); \
 		W09 = in(9); \
 		T1 = SPH_T32(G + BSG2_1(D) + CH(D, E, F) \
 			+ SPH_C32(0x12835B01) + W09); \
 		T2 = SPH_T32(BSG2_0(H) + MAJ(H, A, B)); \
+      Y_xor_Z = X_xor_Y; \
 		C = SPH_T32(C + T1); \
 		G = SPH_T32(T1 + T2); \
 		W10 = in(10); \
 		T1 = SPH_T32(F + BSG2_1(C) + CH(C, D, E) \
 			+ SPH_C32(0x243185BE) + W10); \
 		T2 = SPH_T32(BSG2_0(G) + MAJ(G, H, A)); \
+      Y_xor_Z = X_xor_Y; \
 		B = SPH_T32(B + T1); \
 		F = SPH_T32(T1 + T2); \
 		W11 = in(11); \
 		T1 = SPH_T32(E + BSG2_1(B) + CH(B, C, D) \
 			+ SPH_C32(0x550C7DC3) + W11); \
 		T2 = SPH_T32(BSG2_0(F) + MAJ(F, G, H)); \
+      Y_xor_Z = X_xor_Y; \
 		A = SPH_T32(A + T1); \
 		E = SPH_T32(T1 + T2); \
 		W12 = in(12); \
 		T1 = SPH_T32(D + BSG2_1(A) + CH(A, B, C) \
 			+ SPH_C32(0x72BE5D74) + W12); \
 		T2 = SPH_T32(BSG2_0(E) + MAJ(E, F, G)); \
+      Y_xor_Z = X_xor_Y; \
 		H = SPH_T32(H + T1); \
 		D = SPH_T32(T1 + T2); \
 		W13 = in(13); \
 		T1 = SPH_T32(C + BSG2_1(H) + CH(H, A, B) \
 			+ SPH_C32(0x80DEB1FE) + W13); \
 		T2 = SPH_T32(BSG2_0(D) + MAJ(D, E, F)); \
+      Y_xor_Z = X_xor_Y; \
 		G = SPH_T32(G + T1); \
 		C = SPH_T32(T1 + T2); \
 		W14 = in(14); \
 		T1 = SPH_T32(B + BSG2_1(G) + CH(G, H, A) \
 			+ SPH_C32(0x9BDC06A7) + W14); \
 		T2 = SPH_T32(BSG2_0(C) + MAJ(C, D, E)); \
+      Y_xor_Z = X_xor_Y; \
 		F = SPH_T32(F + T1); \
 		B = SPH_T32(T1 + T2); \
 		W15 = in(15); \
 		T1 = SPH_T32(A + BSG2_1(F) + CH(F, G, H) \
 			+ SPH_C32(0xC19BF174) + W15); \
 		T2 = SPH_T32(BSG2_0(B) + MAJ(B, C, D)); \
+      Y_xor_Z = X_xor_Y; \
 		E = SPH_T32(E + T1); \
 		A = SPH_T32(T1 + T2); \
 		W00 = SPH_T32(SSG2_1(W14) + W09 + SSG2_0(W01) + W00); \
 		T1 = SPH_T32(H + BSG2_1(E) + CH(E, F, G) \
 			+ SPH_C32(0xE49B69C1) + W00); \
 		T2 = SPH_T32(BSG2_0(A) + MAJ(A, B, C)); \
+      Y_xor_Z = X_xor_Y; \
 		D = SPH_T32(D + T1); \
 		H = SPH_T32(T1 + T2); \
 		W01 = SPH_T32(SSG2_1(W15) + W10 + SSG2_0(W02) + W01); \
 		T1 = SPH_T32(G + BSG2_1(D) + CH(D, E, F) \
 			+ SPH_C32(0xEFBE4786) + W01); \
 		T2 = SPH_T32(BSG2_0(H) + MAJ(H, A, B)); \
+      Y_xor_Z = X_xor_Y; \
 		C = SPH_T32(C + T1); \
 		G = SPH_T32(T1 + T2); \
 		W02 = SPH_T32(SSG2_1(W00) + W11 + SSG2_0(W03) + W02); \
 		T1 = SPH_T32(F + BSG2_1(C) + CH(C, D, E) \
 			+ SPH_C32(0x0FC19DC6) + W02); \
 		T2 = SPH_T32(BSG2_0(G) + MAJ(G, H, A)); \
+      Y_xor_Z = X_xor_Y; \
 		B = SPH_T32(B + T1); \
 		F = SPH_T32(T1 + T2); \
 		W03 = SPH_T32(SSG2_1(W01) + W12 + SSG2_0(W04) + W03); \
 		T1 = SPH_T32(E + BSG2_1(B) + CH(B, C, D) \
 			+ SPH_C32(0x240CA1CC) + W03); \
 		T2 = SPH_T32(BSG2_0(F) + MAJ(F, G, H)); \
+      Y_xor_Z = X_xor_Y; \
 		A = SPH_T32(A + T1); \
 		E = SPH_T32(T1 + T2); \
 		W04 = SPH_T32(SSG2_1(W02) + W13 + SSG2_0(W05) + W04); \
 		T1 = SPH_T32(D + BSG2_1(A) + CH(A, B, C) \
 			+ SPH_C32(0x2DE92C6F) + W04); \
 		T2 = SPH_T32(BSG2_0(E) + MAJ(E, F, G)); \
+      Y_xor_Z = X_xor_Y; \
 		H = SPH_T32(H + T1); \
 		D = SPH_T32(T1 + T2); \
 		W05 = SPH_T32(SSG2_1(W03) + W14 + SSG2_0(W06) + W05); \
 		T1 = SPH_T32(C + BSG2_1(H) + CH(H, A, B) \
 			+ SPH_C32(0x4A7484AA) + W05); \
 		T2 = SPH_T32(BSG2_0(D) + MAJ(D, E, F)); \
+      Y_xor_Z = X_xor_Y; \
 		G = SPH_T32(G + T1); \
 		C = SPH_T32(T1 + T2); \
 		W06 = SPH_T32(SSG2_1(W04) + W15 + SSG2_0(W07) + W06); \
 		T1 = SPH_T32(B + BSG2_1(G) + CH(G, H, A) \
 			+ SPH_C32(0x5CB0A9DC) + W06); \
 		T2 = SPH_T32(BSG2_0(C) + MAJ(C, D, E)); \
+      Y_xor_Z = X_xor_Y; \
 		F = SPH_T32(F + T1); \
 		B = SPH_T32(T1 + T2); \
 		W07 = SPH_T32(SSG2_1(W05) + W00 + SSG2_0(W08) + W07); \
 		T1 = SPH_T32(A + BSG2_1(F) + CH(F, G, H) \
 			+ SPH_C32(0x76F988DA) + W07); \
 		T2 = SPH_T32(BSG2_0(B) + MAJ(B, C, D)); \
+      Y_xor_Z = X_xor_Y; \
 		E = SPH_T32(E + T1); \
 		A = SPH_T32(T1 + T2); \
 		W08 = SPH_T32(SSG2_1(W06) + W01 + SSG2_0(W09) + W08); \
 		T1 = SPH_T32(H + BSG2_1(E) + CH(E, F, G) \
 			+ SPH_C32(0x983E5152) + W08); \
 		T2 = SPH_T32(BSG2_0(A) + MAJ(A, B, C)); \
+      Y_xor_Z = X_xor_Y; \
 		D = SPH_T32(D + T1); \
 		H = SPH_T32(T1 + T2); \
 		W09 = SPH_T32(SSG2_1(W07) + W02 + SSG2_0(W10) + W09); \
 		T1 = SPH_T32(G + BSG2_1(D) + CH(D, E, F) \
 			+ SPH_C32(0xA831C66D) + W09); \
 		T2 = SPH_T32(BSG2_0(H) + MAJ(H, A, B)); \
+      Y_xor_Z = X_xor_Y; \
 		C = SPH_T32(C + T1); \
 		G = SPH_T32(T1 + T2); \
 		W10 = SPH_T32(SSG2_1(W08) + W03 + SSG2_0(W11) + W10); \
 		T1 = SPH_T32(F + BSG2_1(C) + CH(C, D, E) \
 			+ SPH_C32(0xB00327C8) + W10); \
 		T2 = SPH_T32(BSG2_0(G) + MAJ(G, H, A)); \
+      Y_xor_Z = X_xor_Y; \
 		B = SPH_T32(B + T1); \
 		F = SPH_T32(T1 + T2); \
 		W11 = SPH_T32(SSG2_1(W09) + W04 + SSG2_0(W12) + W11); \
 		T1 = SPH_T32(E + BSG2_1(B) + CH(B, C, D) \
 			+ SPH_C32(0xBF597FC7) + W11); \
 		T2 = SPH_T32(BSG2_0(F) + MAJ(F, G, H)); \
+      Y_xor_Z = X_xor_Y; \
 		A = SPH_T32(A + T1); \
 		E = SPH_T32(T1 + T2); \
 		W12 = SPH_T32(SSG2_1(W10) + W05 + SSG2_0(W13) + W12); \
 		T1 = SPH_T32(D + BSG2_1(A) + CH(A, B, C) \
 			+ SPH_C32(0xC6E00BF3) + W12); \
 		T2 = SPH_T32(BSG2_0(E) + MAJ(E, F, G)); \
+      Y_xor_Z = X_xor_Y; \
 		H = SPH_T32(H + T1); \
 		D = SPH_T32(T1 + T2); \
 		W13 = SPH_T32(SSG2_1(W11) + W06 + SSG2_0(W14) + W13); \
 		T1 = SPH_T32(C + BSG2_1(H) + CH(H, A, B) \
 			+ SPH_C32(0xD5A79147) + W13); \
 		T2 = SPH_T32(BSG2_0(D) + MAJ(D, E, F)); \
+      Y_xor_Z = X_xor_Y; \
 		G = SPH_T32(G + T1); \
 		C = SPH_T32(T1 + T2); \
 		W14 = SPH_T32(SSG2_1(W12) + W07 + SSG2_0(W15) + W14); \
 		T1 = SPH_T32(B + BSG2_1(G) + CH(G, H, A) \
 			+ SPH_C32(0x06CA6351) + W14); \
 		T2 = SPH_T32(BSG2_0(C) + MAJ(C, D, E)); \
+      Y_xor_Z = X_xor_Y; \
 		F = SPH_T32(F + T1); \
 		B = SPH_T32(T1 + T2); \
 		W15 = SPH_T32(SSG2_1(W13) + W08 + SSG2_0(W00) + W15); \
 		T1 = SPH_T32(A + BSG2_1(F) + CH(F, G, H) \
 			+ SPH_C32(0x14292967) + W15); \
 		T2 = SPH_T32(BSG2_0(B) + MAJ(B, C, D)); \
+      Y_xor_Z = X_xor_Y; \
 		E = SPH_T32(E + T1); \
 		A = SPH_T32(T1 + T2); \
 		W00 = SPH_T32(SSG2_1(W14) + W09 + SSG2_0(W01) + W00); \
 		T1 = SPH_T32(H + BSG2_1(E) + CH(E, F, G) \
 			+ SPH_C32(0x27B70A85) + W00); \
 		T2 = SPH_T32(BSG2_0(A) + MAJ(A, B, C)); \
+      Y_xor_Z = X_xor_Y; \
 		D = SPH_T32(D + T1); \
 		H = SPH_T32(T1 + T2); \
 		W01 = SPH_T32(SSG2_1(W15) + W10 + SSG2_0(W02) + W01); \
 		T1 = SPH_T32(G + BSG2_1(D) + CH(D, E, F) \
 			+ SPH_C32(0x2E1B2138) + W01); \
 		T2 = SPH_T32(BSG2_0(H) + MAJ(H, A, B)); \
+      Y_xor_Z = X_xor_Y; \
 		C = SPH_T32(C + T1); \
 		G = SPH_T32(T1 + T2); \
 		W02 = SPH_T32(SSG2_1(W00) + W11 + SSG2_0(W03) + W02); \
 		T1 = SPH_T32(F + BSG2_1(C) + CH(C, D, E) \
 			+ SPH_C32(0x4D2C6DFC) + W02); \
 		T2 = SPH_T32(BSG2_0(G) + MAJ(G, H, A)); \
+      Y_xor_Z = X_xor_Y; \
 		B = SPH_T32(B + T1); \
 		F = SPH_T32(T1 + T2); \
 		W03 = SPH_T32(SSG2_1(W01) + W12 + SSG2_0(W04) + W03); \
 		T1 = SPH_T32(E + BSG2_1(B) + CH(B, C, D) \
 			+ SPH_C32(0x53380D13) + W03); \
 		T2 = SPH_T32(BSG2_0(F) + MAJ(F, G, H)); \
+      Y_xor_Z = X_xor_Y; \
 		A = SPH_T32(A + T1); \
 		E = SPH_T32(T1 + T2); \
 		W04 = SPH_T32(SSG2_1(W02) + W13 + SSG2_0(W05) + W04); \
 		T1 = SPH_T32(D + BSG2_1(A) + CH(A, B, C) \
 			+ SPH_C32(0x650A7354) + W04); \
 		T2 = SPH_T32(BSG2_0(E) + MAJ(E, F, G)); \
+      Y_xor_Z = X_xor_Y; \
 		H = SPH_T32(H + T1); \
 		D = SPH_T32(T1 + T2); \
 		W05 = SPH_T32(SSG2_1(W03) + W14 + SSG2_0(W06) + W05); \
 		T1 = SPH_T32(C + BSG2_1(H) + CH(H, A, B) \
 			+ SPH_C32(0x766A0ABB) + W05); \
 		T2 = SPH_T32(BSG2_0(D) + MAJ(D, E, F)); \
+      Y_xor_Z = X_xor_Y; \
 		G = SPH_T32(G + T1); \
 		C = SPH_T32(T1 + T2); \
 		W06 = SPH_T32(SSG2_1(W04) + W15 + SSG2_0(W07) + W06); \
 		T1 = SPH_T32(B + BSG2_1(G) + CH(G, H, A) \
 			+ SPH_C32(0x81C2C92E) + W06); \
 		T2 = SPH_T32(BSG2_0(C) + MAJ(C, D, E)); \
+      Y_xor_Z = X_xor_Y; \
 		F = SPH_T32(F + T1); \
 		B = SPH_T32(T1 + T2); \
 		W07 = SPH_T32(SSG2_1(W05) + W00 + SSG2_0(W08) + W07); \
 		T1 = SPH_T32(A + BSG2_1(F) + CH(F, G, H) \
 			+ SPH_C32(0x92722C85) + W07); \
 		T2 = SPH_T32(BSG2_0(B) + MAJ(B, C, D)); \
+      Y_xor_Z = X_xor_Y; \
 		E = SPH_T32(E + T1); \
 		A = SPH_T32(T1 + T2); \
 		W08 = SPH_T32(SSG2_1(W06) + W01 + SSG2_0(W09) + W08); \
 		T1 = SPH_T32(H + BSG2_1(E) + CH(E, F, G) \
 			+ SPH_C32(0xA2BFE8A1) + W08); \
 		T2 = SPH_T32(BSG2_0(A) + MAJ(A, B, C)); \
+      Y_xor_Z = X_xor_Y; \
 		D = SPH_T32(D + T1); \
 		H = SPH_T32(T1 + T2); \
 		W09 = SPH_T32(SSG2_1(W07) + W02 + SSG2_0(W10) + W09); \
 		T1 = SPH_T32(G + BSG2_1(D) + CH(D, E, F) \
 			+ SPH_C32(0xA81A664B) + W09); \
 		T2 = SPH_T32(BSG2_0(H) + MAJ(H, A, B)); \
+      Y_xor_Z = X_xor_Y; \
 		C = SPH_T32(C + T1); \
 		G = SPH_T32(T1 + T2); \
 		W10 = SPH_T32(SSG2_1(W08) + W03 + SSG2_0(W11) + W10); \
 		T1 = SPH_T32(F + BSG2_1(C) + CH(C, D, E) \
 			+ SPH_C32(0xC24B8B70) + W10); \
 		T2 = SPH_T32(BSG2_0(G) + MAJ(G, H, A)); \
+      Y_xor_Z = X_xor_Y; \
 		B = SPH_T32(B + T1); \
 		F = SPH_T32(T1 + T2); \
 		W11 = SPH_T32(SSG2_1(W09) + W04 + SSG2_0(W12) + W11); \
 		T1 = SPH_T32(E + BSG2_1(B) + CH(B, C, D) \
 			+ SPH_C32(0xC76C51A3) + W11); \
 		T2 = SPH_T32(BSG2_0(F) + MAJ(F, G, H)); \
+      Y_xor_Z = X_xor_Y; \
 		A = SPH_T32(A + T1); \
 		E = SPH_T32(T1 + T2); \
 		W12 = SPH_T32(SSG2_1(W10) + W05 + SSG2_0(W13) + W12); \
 		T1 = SPH_T32(D + BSG2_1(A) + CH(A, B, C) \
 			+ SPH_C32(0xD192E819) + W12); \
 		T2 = SPH_T32(BSG2_0(E) + MAJ(E, F, G)); \
+      Y_xor_Z = X_xor_Y; \
 		H = SPH_T32(H + T1); \
 		D = SPH_T32(T1 + T2); \
 		W13 = SPH_T32(SSG2_1(W11) + W06 + SSG2_0(W14) + W13); \
 		T1 = SPH_T32(C + BSG2_1(H) + CH(H, A, B) \
 			+ SPH_C32(0xD6990624) + W13); \
 		T2 = SPH_T32(BSG2_0(D) + MAJ(D, E, F)); \
+      Y_xor_Z = X_xor_Y; \
 		G = SPH_T32(G + T1); \
 		C = SPH_T32(T1 + T2); \
 		W14 = SPH_T32(SSG2_1(W12) + W07 + SSG2_0(W15) + W14); \
 		T1 = SPH_T32(B + BSG2_1(G) + CH(G, H, A) \
 			+ SPH_C32(0xF40E3585) + W14); \
 		T2 = SPH_T32(BSG2_0(C) + MAJ(C, D, E)); \
+      Y_xor_Z = X_xor_Y; \
 		F = SPH_T32(F + T1); \
 		B = SPH_T32(T1 + T2); \
 		W15 = SPH_T32(SSG2_1(W13) + W08 + SSG2_0(W00) + W15); \
 		T1 = SPH_T32(A + BSG2_1(F) + CH(F, G, H) \
 			+ SPH_C32(0x106AA070) + W15); \
 		T2 = SPH_T32(BSG2_0(B) + MAJ(B, C, D)); \
+      Y_xor_Z = X_xor_Y; \
 		E = SPH_T32(E + T1); \
 		A = SPH_T32(T1 + T2); \
 		W00 = SPH_T32(SSG2_1(W14) + W09 + SSG2_0(W01) + W00); \
 		T1 = SPH_T32(H + BSG2_1(E) + CH(E, F, G) \
 			+ SPH_C32(0x19A4C116) + W00); \
 		T2 = SPH_T32(BSG2_0(A) + MAJ(A, B, C)); \
+      Y_xor_Z = X_xor_Y; \
 		D = SPH_T32(D + T1); \
 		H = SPH_T32(T1 + T2); \
 		W01 = SPH_T32(SSG2_1(W15) + W10 + SSG2_0(W02) + W01); \
 		T1 = SPH_T32(G + BSG2_1(D) + CH(D, E, F) \
 			+ SPH_C32(0x1E376C08) + W01); \
 		T2 = SPH_T32(BSG2_0(H) + MAJ(H, A, B)); \
+      Y_xor_Z = X_xor_Y; \
 		C = SPH_T32(C + T1); \
 		G = SPH_T32(T1 + T2); \
 		W02 = SPH_T32(SSG2_1(W00) + W11 + SSG2_0(W03) + W02); \
 		T1 = SPH_T32(F + BSG2_1(C) + CH(C, D, E) \
 			+ SPH_C32(0x2748774C) + W02); \
 		T2 = SPH_T32(BSG2_0(G) + MAJ(G, H, A)); \
+      Y_xor_Z = X_xor_Y; \
 		B = SPH_T32(B + T1); \
 		F = SPH_T32(T1 + T2); \
 		W03 = SPH_T32(SSG2_1(W01) + W12 + SSG2_0(W04) + W03); \
 		T1 = SPH_T32(E + BSG2_1(B) + CH(B, C, D) \
 			+ SPH_C32(0x34B0BCB5) + W03); \
 		T2 = SPH_T32(BSG2_0(F) + MAJ(F, G, H)); \
+      Y_xor_Z = X_xor_Y; \
 		A = SPH_T32(A + T1); \
 		E = SPH_T32(T1 + T2); \
 		W04 = SPH_T32(SSG2_1(W02) + W13 + SSG2_0(W05) + W04); \
 		T1 = SPH_T32(D + BSG2_1(A) + CH(A, B, C) \
 			+ SPH_C32(0x391C0CB3) + W04); \
 		T2 = SPH_T32(BSG2_0(E) + MAJ(E, F, G)); \
+      Y_xor_Z = X_xor_Y; \
 		H = SPH_T32(H + T1); \
 		D = SPH_T32(T1 + T2); \
 		W05 = SPH_T32(SSG2_1(W03) + W14 + SSG2_0(W06) + W05); \
 		T1 = SPH_T32(C + BSG2_1(H) + CH(H, A, B) \
 			+ SPH_C32(0x4ED8AA4A) + W05); \
 		T2 = SPH_T32(BSG2_0(D) + MAJ(D, E, F)); \
+      Y_xor_Z = X_xor_Y; \
 		G = SPH_T32(G + T1); \
 		C = SPH_T32(T1 + T2); \
 		W06 = SPH_T32(SSG2_1(W04) + W15 + SSG2_0(W07) + W06); \
 		T1 = SPH_T32(B + BSG2_1(G) + CH(G, H, A) \
 			+ SPH_C32(0x5B9CCA4F) + W06); \
 		T2 = SPH_T32(BSG2_0(C) + MAJ(C, D, E)); \
+      Y_xor_Z = X_xor_Y; \
 		F = SPH_T32(F + T1); \
 		B = SPH_T32(T1 + T2); \
 		W07 = SPH_T32(SSG2_1(W05) + W00 + SSG2_0(W08) + W07); \
 		T1 = SPH_T32(A + BSG2_1(F) + CH(F, G, H) \
 			+ SPH_C32(0x682E6FF3) + W07); \
 		T2 = SPH_T32(BSG2_0(B) + MAJ(B, C, D)); \
+      Y_xor_Z = X_xor_Y; \
 		E = SPH_T32(E + T1); \
 		A = SPH_T32(T1 + T2); \
 		W08 = SPH_T32(SSG2_1(W06) + W01 + SSG2_0(W09) + W08); \
 		T1 = SPH_T32(H + BSG2_1(E) + CH(E, F, G) \
 			+ SPH_C32(0x748F82EE) + W08); \
 		T2 = SPH_T32(BSG2_0(A) + MAJ(A, B, C)); \
+      Y_xor_Z = X_xor_Y; \
 		D = SPH_T32(D + T1); \
 		H = SPH_T32(T1 + T2); \
 		W09 = SPH_T32(SSG2_1(W07) + W02 + SSG2_0(W10) + W09); \
 		T1 = SPH_T32(G + BSG2_1(D) + CH(D, E, F) \
 			+ SPH_C32(0x78A5636F) + W09); \
 		T2 = SPH_T32(BSG2_0(H) + MAJ(H, A, B)); \
+      Y_xor_Z = X_xor_Y; \
 		C = SPH_T32(C + T1); \
 		G = SPH_T32(T1 + T2); \
 		W10 = SPH_T32(SSG2_1(W08) + W03 + SSG2_0(W11) + W10); \
 		T1 = SPH_T32(F + BSG2_1(C) + CH(C, D, E) \
 			+ SPH_C32(0x84C87814) + W10); \
 		T2 = SPH_T32(BSG2_0(G) + MAJ(G, H, A)); \
+      Y_xor_Z = X_xor_Y; \
 		B = SPH_T32(B + T1); \
 		F = SPH_T32(T1 + T2); \
 		W11 = SPH_T32(SSG2_1(W09) + W04 + SSG2_0(W12) + W11); \
 		T1 = SPH_T32(E + BSG2_1(B) + CH(B, C, D) \
 			+ SPH_C32(0x8CC70208) + W11); \
 		T2 = SPH_T32(BSG2_0(F) + MAJ(F, G, H)); \
+      Y_xor_Z = X_xor_Y; \
 		A = SPH_T32(A + T1); \
 		E = SPH_T32(T1 + T2); \
 		W12 = SPH_T32(SSG2_1(W10) + W05 + SSG2_0(W13) + W12); \
 		T1 = SPH_T32(D + BSG2_1(A) + CH(A, B, C) \
 			+ SPH_C32(0x90BEFFFA) + W12); \
 		T2 = SPH_T32(BSG2_0(E) + MAJ(E, F, G)); \
+      Y_xor_Z = X_xor_Y; \
 		H = SPH_T32(H + T1); \
 		D = SPH_T32(T1 + T2); \
 		W13 = SPH_T32(SSG2_1(W11) + W06 + SSG2_0(W14) + W13); \
 		T1 = SPH_T32(C + BSG2_1(H) + CH(H, A, B) \
 			+ SPH_C32(0xA4506CEB) + W13); \
 		T2 = SPH_T32(BSG2_0(D) + MAJ(D, E, F)); \
+      Y_xor_Z = X_xor_Y; \
 		G = SPH_T32(G + T1); \
 		C = SPH_T32(T1 + T2); \
 		W14 = SPH_T32(SSG2_1(W12) + W07 + SSG2_0(W15) + W14); \
 		T1 = SPH_T32(B + BSG2_1(G) + CH(G, H, A) \
 			+ SPH_C32(0xBEF9A3F7) + W14); \
 		T2 = SPH_T32(BSG2_0(C) + MAJ(C, D, E)); \
+      Y_xor_Z = X_xor_Y; \
 		F = SPH_T32(F + T1); \
 		B = SPH_T32(T1 + T2); \
 		W15 = SPH_T32(SSG2_1(W13) + W08 + SSG2_0(W00) + W15); \
 		T1 = SPH_T32(A + BSG2_1(F) + CH(F, G, H) \
 			+ SPH_C32(0xC67178F2) + W15); \
 		T2 = SPH_T32(BSG2_0(B) + MAJ(B, C, D)); \
+      Y_xor_Z = X_xor_Y; \
 		E = SPH_T32(E + T1); \
 		A = SPH_T32(T1 + T2); \
 		(r)[0] = SPH_T32((r)[0] + A); \

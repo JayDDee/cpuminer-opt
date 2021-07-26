@@ -107,7 +107,7 @@ mv cpuminer.exe release/cpuminer-avx.exe
 # Westmere SSE4.2 AES
 make clean || echo clean
 rm -f config.status
-CFLAGS="-O3 -march=westmere -Wall" ./configure $CONFIGURE_ARGS
+CFLAGS="-O3 -march=westmere -maes -Wall" ./configure $CONFIGURE_ARGS
 #CFLAGS="-O3 -maes -msse4.2 -Wall" ./configure $CONFIGURE_ARGS
 make -j 8
 strip -s cpuminer.exe

@@ -53,6 +53,20 @@ MYALIGN const unsigned int	zero[]			= {0x00000000, 0x00000000, 0x00000000, 0x000
 MYALIGN const unsigned int	mul2ipt[]		= {0x728efc00, 0x6894e61a, 0x3fc3b14d, 0x25d9ab57, 0xfd5ba600, 0x2a8c71d7, 0x1eb845e3, 0xc96f9234};
 
 
+#define ECHO_SUBBYTES4(state, j) \
+   state[0][j] = _mm_aesenc_si128(state[0][j], k1);\
+   k1 = _mm_add_epi32(k1, M128(const1));\
+   state[1][j] = _mm_aesenc_si128(state[1][j], k1);\
+   k1 = _mm_add_epi32(k1, M128(const1));\
+   state[2][j] = _mm_aesenc_si128(state[2][j], k1);\
+   k1 = _mm_add_epi32(k1, M128(const1));\
+   state[3][j] = _mm_aesenc_si128(state[3][j], k1);\
+   k1 = _mm_add_epi32(k1, M128(const1));\
+   state[0][j] = _mm_aesenc_si128(state[0][j], m128_zero ); \
+   state[1][j] = _mm_aesenc_si128(state[1][j], m128_zero ); \
+   state[2][j] = _mm_aesenc_si128(state[2][j], m128_zero ); \
+   state[3][j] = _mm_aesenc_si128(state[3][j], m128_zero )
+
 #define ECHO_SUBBYTES(state, i, j) \
 	state[i][j] = _mm_aesenc_si128(state[i][j], k1);\
    k1 = _mm_add_epi32(k1, M128(const1));\
@@ -73,7 +87,7 @@ MYALIGN const unsigned int	mul2ipt[]		= {0x728efc00, 0x6894e61a, 0x3fc3b14d, 0x2
 	t1 = _mm_and_si128(t1, M128(lsbmask));\
 	t2 = _mm_shuffle_epi8(M128(mul2mask), t1);\
 	s2 = _mm_xor_si128(s2, t2);\
-	state2[0][j] = _mm_xor_si128(state2[0][j], _mm_xor_si128(s2, state1[1][(j + 1) & 3]));\
+	state2[0][j] = mm128_xor3(state2[0][j], s2, state1[1][(j + 1) & 3] );\
 	state2[1][j] = _mm_xor_si128(state2[1][j], s2);\
 	state2[2][j] = _mm_xor_si128(state2[2][j], state1[1][(j + 1) & 3]);\
 	state2[3][j] = _mm_xor_si128(state2[3][j], state1[1][(j + 1) & 3]);\
@@ -83,7 +97,7 @@ MYALIGN const unsigned int	mul2ipt[]		= {0x728efc00, 0x6894e61a, 0x3fc3b14d, 0x2
 	t2 = _mm_shuffle_epi8(M128(mul2mask), t1);\
 	s2 = _mm_xor_si128(s2, t2);\
 	state2[0][j] = _mm_xor_si128(state2[0][j], state1[2][(j + 2) & 3]);\
-	state2[1][j] = _mm_xor_si128(state2[1][j], _mm_xor_si128(s2, state1[2][(j + 2) & 3]));\
+	state2[1][j] = mm128_xor3(state2[1][j], s2, state1[2][(j + 2) & 3] );\
 	state2[2][j] = _mm_xor_si128(state2[2][j], s2);\
 	state2[3][j] = _mm_xor_si128(state2[3][j], state1[2][(j + 2) & 3]);\
 	s2 = _mm_add_epi8(state1[3][(j + 3) & 3], state1[3][(j + 3) & 3]);\
@@ -93,10 +107,29 @@ MYALIGN const unsigned int	mul2ipt[]		= {0x728efc00, 0x6894e61a, 0x3fc3b14d, 0x2
 	s2 = _mm_xor_si128(s2, t2);\
 	state2[0][j] = _mm_xor_si128(state2[0][j], state1[3][(j + 3) & 3]);\
 	state2[1][j] = _mm_xor_si128(state2[1][j], state1[3][(j + 3) & 3]);\
-	state2[2][j] = _mm_xor_si128(state2[2][j], _mm_xor_si128(s2, state1[3][(j + 3) & 3]));\
+	state2[2][j] = mm128_xor3(state2[2][j], s2, state1[3][(j + 3) & 3] );\
 	state2[3][j] = _mm_xor_si128(state2[3][j], s2)
 
 
+#define ECHO_ROUND_UNROLL2 \
+   ECHO_SUBBYTES4(_state, 0);\
+   ECHO_SUBBYTES4(_state, 1);\
+   ECHO_SUBBYTES4(_state, 2);\
+   ECHO_SUBBYTES4(_state, 3);\
+   ECHO_MIXBYTES(_state, _state2, 0, t1, t2, s2);\
+   ECHO_MIXBYTES(_state, _state2, 1, t1, t2, s2);\
+   ECHO_MIXBYTES(_state, _state2, 2, t1, t2, s2);\
+   ECHO_MIXBYTES(_state, _state2, 3, t1, t2, s2);\
+   ECHO_SUBBYTES4(_state2, 0);\
+   ECHO_SUBBYTES4(_state2, 1);\
+   ECHO_SUBBYTES4(_state2, 2);\
+   ECHO_SUBBYTES4(_state2, 3);\
+   ECHO_MIXBYTES(_state2, _state, 0, t1, t2, s2);\
+   ECHO_MIXBYTES(_state2, _state, 1, t1, t2, s2);\
+   ECHO_MIXBYTES(_state2, _state, 2, t1, t2, s2);\
+   ECHO_MIXBYTES(_state2, _state, 3, t1, t2, s2)
+
+/*
 #define ECHO_ROUND_UNROLL2 \
 	ECHO_SUBBYTES(_state, 0, 0);\
 	ECHO_SUBBYTES(_state, 1, 0);\
@@ -138,7 +171,7 @@ MYALIGN const unsigned int	mul2ipt[]		= {0x728efc00, 0x6894e61a, 0x3fc3b14d, 0x2
 	ECHO_MIXBYTES(_state2, _state, 1, t1, t2, s2);\
 	ECHO_MIXBYTES(_state2, _state, 2, t1, t2, s2);\
 	ECHO_MIXBYTES(_state2, _state, 3, t1, t2, s2)
-
+*/
 
 
 #define SAVESTATE(dst, src)\

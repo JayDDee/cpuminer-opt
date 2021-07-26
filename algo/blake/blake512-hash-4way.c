@@ -293,10 +293,6 @@ static const sph_u64 CB[16] = {
       H5 = (state)->H[5]; \
       H6 = (state)->H[6]; \
       H7 = (state)->H[7]; \
-      S0 = (state)->S[0]; \
-      S1 = (state)->S[1]; \
-      S2 = (state)->S[2]; \
-      S3 = (state)->S[3]; \
       T0 = (state)->T0; \
       T1 = (state)->T1; \
    } while (0)
@@ -310,10 +306,6 @@ static const sph_u64 CB[16] = {
       (state)->H[5] = H5; \
       (state)->H[6] = H6; \
       (state)->H[7] = H7; \
-      (state)->S[0] = S0; \
-      (state)->S[1] = S1; \
-      (state)->S[2] = S2; \
-      (state)->S[3] = S3; \
       (state)->T0 = T0; \
       (state)->T1 = T1; \
    } while (0)
@@ -348,7 +340,6 @@ static const sph_u64 CB[16] = {
 
 #define DECL_STATE64_8WAY \
    __m512i H0, H1, H2, H3, H4, H5, H6, H7; \
-        __m512i S0, S1, S2, S3; \
    uint64_t T0, T1;
 
 #define COMPRESS64_8WAY( buf )   do \
@@ -366,10 +357,10 @@ static const sph_u64 CB[16] = {
   V5 = H5; \
   V6 = H6; \
   V7 = H7; \
-  V8 = _mm512_xor_si512( S0, m512_const1_64( CB0 ) );  \
-  V9 = _mm512_xor_si512( S1, m512_const1_64( CB1 ) );  \
-  VA = _mm512_xor_si512( S2, m512_const1_64( CB2 ) );  \
-  VB = _mm512_xor_si512( S3, m512_const1_64( CB3 ) );  \
+  V8 = m512_const1_64( CB0 );  \
+  V9 = m512_const1_64( CB1 );  \
+  VA = m512_const1_64( CB2 );  \
+  VB = m512_const1_64( CB3 );  \
   VC = _mm512_xor_si512( _mm512_set1_epi64( T0 ), \
                          m512_const1_64( CB4 ) );  \
   VD = _mm512_xor_si512( _mm512_set1_epi64( T0 ), \
@@ -414,14 +405,14 @@ static const sph_u64 CB[16] = {
   ROUND_B_8WAY(3); \
   ROUND_B_8WAY(4); \
   ROUND_B_8WAY(5); \
-  H0 = mm512_xor4( V8, V0, S0, H0 ); \
-  H1 = mm512_xor4( V9, V1, S1, H1 ); \
-  H2 = mm512_xor4( VA, V2, S2, H2 ); \
-  H3 = mm512_xor4( VB, V3, S3, H3 ); \
-  H4 = mm512_xor4( VC, V4, S0, H4 ); \
-  H5 = mm512_xor4( VD, V5, S1, H5 ); \
-  H6 = mm512_xor4( VE, V6, S2, H6 ); \
-  H7 = mm512_xor4( VF, V7, S3, H7 ); \
+  H0 = mm512_xor3( V8, V0, H0 ); \
+  H1 = mm512_xor3( V9, V1, H1 ); \
+  H2 = mm512_xor3( VA, V2, H2 ); \
+  H3 = mm512_xor3( VB, V3, H3 ); \
+  H4 = mm512_xor3( VC, V4, H4 ); \
+  H5 = mm512_xor3( VD, V5, H5 ); \
+  H6 = mm512_xor3( VE, V6, H6 ); \
+  H7 = mm512_xor3( VF, V7, H7 ); \
 } while (0)
 
 void blake512_8way_compress( blake_8way_big_context *sc )
@@ -440,10 +431,10 @@ void blake512_8way_compress( blake_8way_big_context *sc )
   V5 = sc->H[5];
   V6 = sc->H[6];
   V7 = sc->H[7];
-  V8 = _mm512_xor_si512( sc->S[0], m512_const1_64( CB0 ) );
-  V9 = _mm512_xor_si512( sc->S[1], m512_const1_64( CB1 ) );
-  VA = _mm512_xor_si512( sc->S[2], m512_const1_64( CB2 ) );
-  VB = _mm512_xor_si512( sc->S[3], m512_const1_64( CB3 ) );
+  V8 = m512_const1_64( CB0 );
+  V9 = m512_const1_64( CB1 );
+  VA = m512_const1_64( CB2 );
+  VB = m512_const1_64( CB3 );
   VC = _mm512_xor_si512( _mm512_set1_epi64( sc->T0 ),
                             m512_const1_64( CB4 ) );
   VD = _mm512_xor_si512( _mm512_set1_epi64( sc->T0 ),
@@ -492,19 +483,18 @@ void blake512_8way_compress( blake_8way_big_context *sc )
   ROUND_B_8WAY(4);
   ROUND_B_8WAY(5);
 
-  sc->H[0] = mm512_xor4( V8, V0, sc->S[0], sc->H[0] );
-  sc->H[1] = mm512_xor4( V9, V1, sc->S[1], sc->H[1] );
-  sc->H[2] = mm512_xor4( VA, V2, sc->S[2], sc->H[2] );
-  sc->H[3] = mm512_xor4( VB, V3, sc->S[3], sc->H[3] );
-  sc->H[4] = mm512_xor4( VC, V4, sc->S[0], sc->H[4] );
-  sc->H[5] = mm512_xor4( VD, V5, sc->S[1], sc->H[5] );
-  sc->H[6] = mm512_xor4( VE, V6, sc->S[2], sc->H[6] );
-  sc->H[7] = mm512_xor4( VF, V7, sc->S[3], sc->H[7] );
+  sc->H[0] = mm512_xor3( V8, V0, sc->H[0] );
+  sc->H[1] = mm512_xor3( V9, V1, sc->H[1] );
+  sc->H[2] = mm512_xor3( VA, V2, sc->H[2] );
+  sc->H[3] = mm512_xor3( VB, V3, sc->H[3] );
+  sc->H[4] = mm512_xor3( VC, V4, sc->H[4] );
+  sc->H[5] = mm512_xor3( VD, V5, sc->H[5] );
+  sc->H[6] = mm512_xor3( VE, V6, sc->H[6] );
+  sc->H[7] = mm512_xor3( VF, V7, sc->H[7] );
 }
 
 void blake512_8way_init( blake_8way_big_context *sc )
 {
-   __m512i zero = m512_zero;
    casti_m512i( sc->H, 0 ) = m512_const1_64( 0x6A09E667F3BCC908 );
    casti_m512i( sc->H, 1 ) = m512_const1_64( 0xBB67AE8584CAA73B );
    casti_m512i( sc->H, 2 ) = m512_const1_64( 0x3C6EF372FE94F82B );
@@ -513,11 +503,6 @@ void blake512_8way_init( blake_8way_big_context *sc )
    casti_m512i( sc->H, 5 ) = m512_const1_64( 0x9B05688C2B3E6C1F );
    casti_m512i( sc->H, 6 ) = m512_const1_64( 0x1F83D9ABFB41BD6B );
    casti_m512i( sc->H, 7 ) = m512_const1_64( 0x5BE0CD19137E2179 );
-
-   casti_m512i( sc->S, 0 ) = zero;
-   casti_m512i( sc->S, 1 ) = zero;
-   casti_m512i( sc->S, 2 ) = zero;
-   casti_m512i( sc->S, 3 ) = zero;
 
    sc->T0 = sc->T1 = 0;
    sc->ptr = 0;
@@ -641,11 +626,6 @@ void blake512_8way_full( blake_8way_big_context *sc, void * dst,
    casti_m512i( sc->H, 6 ) = m512_const1_64( 0x1F83D9ABFB41BD6B );
    casti_m512i( sc->H, 7 ) = m512_const1_64( 0x5BE0CD19137E2179 );
 
-   casti_m512i( sc->S, 0 ) = m512_zero;
-   casti_m512i( sc->S, 1 ) = m512_zero;
-   casti_m512i( sc->S, 2 ) = m512_zero;
-   casti_m512i( sc->S, 3 ) = m512_zero;
-
    sc->T0 = sc->T1 = 0;
    sc->ptr = 0;
 
@@ -740,7 +720,6 @@ blake512_8way_close(void *cc, void *dst)
 
 #define DECL_STATE64_4WAY \
 	__m256i H0, H1, H2, H3, H4, H5, H6, H7; \
-        __m256i S0, S1, S2, S3; \
 	uint64_t T0, T1;
 
 #define COMPRESS64_4WAY   do \
@@ -758,10 +737,10 @@ blake512_8way_close(void *cc, void *dst)
   V5 = H5; \
   V6 = H6; \
   V7 = H7; \
-  V8 = _mm256_xor_si256( S0, m256_const1_64( CB0 ) );  \
-  V9 = _mm256_xor_si256( S1, m256_const1_64( CB1 ) );  \
-  VA = _mm256_xor_si256( S2, m256_const1_64( CB2 ) );  \
-  VB = _mm256_xor_si256( S3, m256_const1_64( CB3 ) );  \
+  V8 = m256_const1_64( CB0 );  \
+  V9 = m256_const1_64( CB1 );  \
+  VA = m256_const1_64( CB2 );  \
+  VB = m256_const1_64( CB3 );  \
   VC = _mm256_xor_si256( _mm256_set1_epi64x( T0 ), \
                          m256_const1_64( CB4 ) );  \
   VD = _mm256_xor_si256( _mm256_set1_epi64x( T0 ), \
@@ -804,14 +783,14 @@ blake512_8way_close(void *cc, void *dst)
   ROUND_B_4WAY(3); \
   ROUND_B_4WAY(4); \
   ROUND_B_4WAY(5); \
-  H0 = mm256_xor4( V8, V0, S0, H0 ); \
-  H1 = mm256_xor4( V9, V1, S1, H1 ); \
-  H2 = mm256_xor4( VA, V2, S2, H2 ); \
-  H3 = mm256_xor4( VB, V3, S3, H3 ); \
-  H4 = mm256_xor4( VC, V4, S0, H4 ); \
-  H5 = mm256_xor4( VD, V5, S1, H5 ); \
-  H6 = mm256_xor4( VE, V6, S2, H6 ); \
-  H7 = mm256_xor4( VF, V7, S3, H7 ); \
+  H0 = mm256_xor3( V8, V0, H0 ); \
+  H1 = mm256_xor3( V9, V1, H1 ); \
+  H2 = mm256_xor3( VA, V2, H2 ); \
+  H3 = mm256_xor3( VB, V3, H3 ); \
+  H4 = mm256_xor3( VC, V4, H4 ); \
+  H5 = mm256_xor3( VD, V5, H5 ); \
+  H6 = mm256_xor3( VE, V6, H6 ); \
+  H7 = mm256_xor3( VF, V7, H7 ); \
 } while (0)
 
 
@@ -831,10 +810,10 @@ void blake512_4way_compress( blake_4way_big_context *sc )
   V5 = sc->H[5];
   V6 = sc->H[6];
   V7 = sc->H[7];
-  V8 = _mm256_xor_si256( sc->S[0], m256_const1_64( CB0 ) );
-  V9 = _mm256_xor_si256( sc->S[1], m256_const1_64( CB1 ) );
-  VA = _mm256_xor_si256( sc->S[2], m256_const1_64( CB2 ) );
-  VB = _mm256_xor_si256( sc->S[3], m256_const1_64( CB3 ) );
+  V8 = m256_const1_64( CB0 );
+  V9 = m256_const1_64( CB1 );
+  VA = m256_const1_64( CB2 );
+  VB = m256_const1_64( CB3 );
   VC = _mm256_xor_si256( _mm256_set1_epi64x( sc->T0 ),
                              m256_const1_64( CB4 ) );
   VD = _mm256_xor_si256( _mm256_set1_epi64x( sc->T0 ),
@@ -880,19 +859,18 @@ void blake512_4way_compress( blake_4way_big_context *sc )
   ROUND_B_4WAY(4);
   ROUND_B_4WAY(5);
 
-  sc->H[0] = mm256_xor4( V8, V0, sc->S[0], sc->H[0] );
-  sc->H[1] = mm256_xor4( V9, V1, sc->S[1], sc->H[1] );
-  sc->H[2] = mm256_xor4( VA, V2, sc->S[2], sc->H[2] );
-  sc->H[3] = mm256_xor4( VB, V3, sc->S[3], sc->H[3] );
-  sc->H[4] = mm256_xor4( VC, V4, sc->S[0], sc->H[4] );
-  sc->H[5] = mm256_xor4( VD, V5, sc->S[1], sc->H[5] );
-  sc->H[6] = mm256_xor4( VE, V6, sc->S[2], sc->H[6] );
-  sc->H[7] = mm256_xor4( VF, V7, sc->S[3], sc->H[7] );
+  sc->H[0] = mm256_xor3( V8, V0, sc->H[0] );
+  sc->H[1] = mm256_xor3( V9, V1, sc->H[1] );
+  sc->H[2] = mm256_xor3( VA, V2, sc->H[2] );
+  sc->H[3] = mm256_xor3( VB, V3, sc->H[3] );
+  sc->H[4] = mm256_xor3( VC, V4, sc->H[4] );
+  sc->H[5] = mm256_xor3( VD, V5, sc->H[5] );
+  sc->H[6] = mm256_xor3( VE, V6, sc->H[6] );
+  sc->H[7] = mm256_xor3( VF, V7, sc->H[7] );
 }
 
 void blake512_4way_init( blake_4way_big_context *sc )
 {
-   __m256i zero = m256_zero;
    casti_m256i( sc->H, 0 ) = m256_const1_64( 0x6A09E667F3BCC908 );
    casti_m256i( sc->H, 1 ) = m256_const1_64( 0xBB67AE8584CAA73B );
    casti_m256i( sc->H, 2 ) = m256_const1_64( 0x3C6EF372FE94F82B );
@@ -901,11 +879,6 @@ void blake512_4way_init( blake_4way_big_context *sc )
    casti_m256i( sc->H, 5 ) = m256_const1_64( 0x9B05688C2B3E6C1F );
    casti_m256i( sc->H, 6 ) = m256_const1_64( 0x1F83D9ABFB41BD6B );
    casti_m256i( sc->H, 7 ) = m256_const1_64( 0x5BE0CD19137E2179 );
-
-   casti_m256i( sc->S, 0 ) = zero;
-   casti_m256i( sc->S, 1 ) = zero;
-   casti_m256i( sc->S, 2 ) = zero;
-   casti_m256i( sc->S, 3 ) = zero;
 
    sc->T0 = sc->T1 = 0;
    sc->ptr = 0;
@@ -1025,11 +998,6 @@ void blake512_4way_full( blake_4way_big_context *sc, void * dst,
    casti_m256i( sc->H, 5 ) = m256_const1_64( 0x9B05688C2B3E6C1F );
    casti_m256i( sc->H, 6 ) = m256_const1_64( 0x1F83D9ABFB41BD6B );
    casti_m256i( sc->H, 7 ) = m256_const1_64( 0x5BE0CD19137E2179 );
-
-   casti_m256i( sc->S, 0 ) = m256_zero;
-   casti_m256i( sc->S, 1 ) = m256_zero;
-   casti_m256i( sc->S, 2 ) = m256_zero;
-   casti_m256i( sc->S, 3 ) = m256_zero;
 
    sc->T0 = sc->T1 = 0;
    sc->ptr = 0;

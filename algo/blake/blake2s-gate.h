@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include "algo-gate-api.h"
 
-//#if defined(__SSE4_2__)
 #if defined(__SSE2__)
   #define BLAKE2S_4WAY
 #endif
@@ -26,8 +25,6 @@ int scanhash_blake2s_16way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
 
 #elif defined (BLAKE2S_8WAY)
-
-//#if defined(BLAKE2S_8WAY)
 
 void blake2s_8way_hash( void *state, const void *input );
 int scanhash_blake2s_8way( struct work *work, uint32_t max_nonce,

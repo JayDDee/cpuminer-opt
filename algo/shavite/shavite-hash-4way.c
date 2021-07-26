@@ -23,6 +23,8 @@ c512_4way( shavite512_4way_context *ctx, const void *msg )
    register __m512i K0, K1, K2, K3, K4, K5, K6, K7;
    __m512i *M = (__m512i*)msg;
    __m512i *H = (__m512i*)ctx->h;
+   const __m512i count = _mm512_set4_epi32( ctx->count3, ctx->count2,
+                                            ctx->count1, ctx->count0 );
    int r;
 
    P0 = H[0];
@@ -62,16 +64,16 @@ c512_4way( shavite512_4way_context *ctx, const void *msg )
                                   _mm512_aesenc_epi128( K0, m512_zero ) ) );
 
      if ( r == 0 )
-        K0 = _mm512_xor_si512( K0, _mm512_set4_epi32( 
-		              ~ctx->count3, ctx->count2, ctx->count1, ctx->count0 ) );
+        K0 = _mm512_xor_si512( K0,
+                    _mm512_mask_xor_epi32( count, 0x8888, count, m512_neg1 ) );
 
      X = _mm512_aesenc_epi128( _mm512_xor_si512( P0, K0 ), m512_zero );
      K1 = _mm512_xor_si512( K0,
 		           mm512_ror128_32( _mm512_aesenc_epi128( K1, m512_zero ) ) );
 
      if ( r == 1 )
-        K1 = _mm512_xor_si512( K1, _mm512_set4_epi32(
-	                 ~ctx->count0, ctx->count1, ctx->count2, ctx->count3 ) ); 
+        K1 = _mm512_xor_si512( K1, mm512_ror128_32(
+                 _mm512_mask_xor_epi32( count, 0x1111, count, m512_neg1 ) ) );
 
      X = _mm512_aesenc_epi128( _mm512_xor_si512( X, K1 ), m512_zero );
      K2 = _mm512_xor_si512( K1,
@@ -96,8 +98,8 @@ c512_4way( shavite512_4way_context *ctx, const void *msg )
 		           mm512_ror128_32( _mm512_aesenc_epi128( K7, m512_zero ) ) );
 
      if ( r == 2 )
-        K7 = _mm512_xor_si512( K7, _mm512_set4_epi32(
-                    ~ctx->count1, ctx->count0, ctx->count3, ctx->count2 ) );
+        K7 = _mm512_xor_si512( K7, mm512_swap128_64(
+                 _mm512_mask_xor_epi32( count, 0x2222, count, m512_neg1 ) ) );
  
      X = _mm512_aesenc_epi128( _mm512_xor_si512( X, K7 ), m512_zero );
      P1 = _mm512_xor_si512( P1, X );

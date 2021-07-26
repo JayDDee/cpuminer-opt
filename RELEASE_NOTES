@@ -65,6 +65,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.17.1
+
+Fixed Windows build for AES+SSE4.2 (Westmere), was missing AES.
+More ternary logic optimizations for AVX512, AVX512+VAES, and AVX512+AES.
+Fixed my-gr algo for VAES.
+
 v3.17.0
 
 AVX512 optimized using ternary logic instructions.

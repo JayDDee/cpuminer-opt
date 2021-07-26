@@ -867,40 +867,35 @@ void compress_small_8way( const __m256i *M, const __m256i H[16],
    qt[30] = expand2s8( qt, M, H, 30 );
    qt[31] = expand2s8( qt, M, H, 31 );
 
-   xl = _mm256_xor_si256(
-              mm256_xor4( qt[16], qt[17], qt[18], qt[19] ),
-              mm256_xor4( qt[20], qt[21], qt[22], qt[23] ) );
-   xh = _mm256_xor_si256( xl,  _mm256_xor_si256(
-                 mm256_xor4( qt[24], qt[25], qt[26], qt[27] ),
-                 mm256_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
+   xl = mm256_xor3( mm256_xor3( qt[16], qt[17], qt[18] ),
+                    mm256_xor3( qt[19], qt[20], qt[21] ),
+                    _mm256_xor_si256( qt[22], qt[23] ) );
+
+   xh = mm256_xor3( mm256_xor3( xl,     qt[24], qt[25] ),
+                    mm256_xor3( qt[26], qt[27], qt[28] ),
+                    mm256_xor3( qt[29], qt[30], qt[31] ) );
 
 #define DH1L( m, sl, sr, a, b, c ) \
-   _mm256_add_epi32( \
-               _mm256_xor_si256( M[m], \
-                  _mm256_xor_si256( _mm256_slli_epi32( xh, sl ), \
-                                    _mm256_srli_epi32( qt[a], sr ) ) ), \
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[b] ), qt[c] ) )
+   _mm256_add_epi32( mm256_xor3( M[m], _mm256_slli_epi32( xh, sl ), \
+                                       _mm256_srli_epi32( qt[a], sr ) ), \
+                     mm256_xor3( xl, qt[b], qt[c] ) )
 
 #define DH1R( m, sl, sr, a, b, c ) \
-   _mm256_add_epi32( \
-               _mm256_xor_si256( M[m], \
-                  _mm256_xor_si256( _mm256_srli_epi32( xh, sl ), \
-                                    _mm256_slli_epi32( qt[a], sr ) ) ), \
-               _mm256_xor_si256( _mm256_xor_si256( xl, qt[b] ), qt[c] ) )
+   _mm256_add_epi32( mm256_xor3( M[m], _mm256_srli_epi32( xh, sl ), \
+                                       _mm256_slli_epi32( qt[a], sr ) ), \
+                     mm256_xor3( xl, qt[b], qt[c] ) )
 
 #define DH2L( m, rl, sl, h, a, b, c ) \
    _mm256_add_epi32( _mm256_add_epi32( \
-       mm256_rol_32( dH[h], rl ), \
-          _mm256_xor_si256( _mm256_xor_si256( xh, qt[a] ), M[m] )), \
-                 _mm256_xor_si256( _mm256_slli_epi32( xl, sl ), \
-                                   _mm256_xor_si256( qt[b], qt[c] ) ) );
+                        mm256_rol_32( dH[h], rl ), \
+                        mm256_xor3( xh, qt[a], M[m] ) ), \
+                     mm256_xor3( _mm256_slli_epi32( xl, sl ), qt[b], qt[c] ) ) 
 
 #define DH2R( m, rl, sr, h, a, b, c ) \
    _mm256_add_epi32( _mm256_add_epi32( \
-       mm256_rol_32( dH[h], rl ), \
-          _mm256_xor_si256( _mm256_xor_si256( xh, qt[a] ), M[m] )), \
-                 _mm256_xor_si256( _mm256_srli_epi32( xl, sr ), \
-                                   _mm256_xor_si256( qt[b], qt[c] ) ) );
+                        mm256_rol_32( dH[h], rl ), \
+                        mm256_xor3( xh, qt[a], M[m] ) ), \
+                     mm256_xor3( _mm256_srli_epi32( xl, sr ), qt[b], qt[c] ) )
 
    dH[ 0] = DH1L(  0,  5,  5, 16, 24, 0 );
    dH[ 1] = DH1R(  1,  7,  8, 17, 25, 1 );
@@ -924,88 +919,6 @@ void compress_small_8way( const __m256i *M, const __m256i H[16],
 #undef DH2L
 #undef DH2R
 
-/*   
-   dH[ 0] = _mm256_add_epi32(
-                 _mm256_xor_si256( M[0],
-                      _mm256_xor_si256( _mm256_slli_epi32( xh, 5 ),
-                                        _mm256_srli_epi32( qt[16], 5 ) ) ),
-                 _mm256_xor_si256( _mm256_xor_si256( xl, qt[24] ), qt[ 0] ));
-   dH[ 1] = _mm256_add_epi32(
-                 _mm256_xor_si256( M[1],
-                      _mm256_xor_si256( _mm256_srli_epi32( xh, 7 ),
-                                        _mm256_slli_epi32( qt[17], 8 ) ) ),
-                 _mm256_xor_si256( _mm256_xor_si256( xl, qt[25] ), qt[ 1] ));
-   dH[ 2] = _mm256_add_epi32(
-                 _mm256_xor_si256( M[2],
-                      _mm256_xor_si256( _mm256_srli_epi32( xh, 5 ),
-                                        _mm256_slli_epi32( qt[18], 5 ) ) ),
-                 _mm256_xor_si256( _mm256_xor_si256( xl, qt[26] ), qt[ 2] ));
-   dH[ 3] = _mm256_add_epi32(
-                 _mm256_xor_si256( M[3],
-                      _mm256_xor_si256( _mm256_srli_epi32( xh, 1 ),
-                                        _mm256_slli_epi32( qt[19], 5 ) ) ),
-                 _mm256_xor_si256( _mm256_xor_si256( xl, qt[27] ), qt[ 3] ));
-   dH[ 4] = _mm256_add_epi32(
-                 _mm256_xor_si256( M[4],
-                      _mm256_xor_si256( _mm256_srli_epi32( xh, 3 ),
-                                        _mm256_slli_epi32( qt[20], 0 ) ) ),
-                 _mm256_xor_si256( _mm256_xor_si256( xl, qt[28] ), qt[ 4] ));
-   dH[ 5] = _mm256_add_epi32(
-                 _mm256_xor_si256( M[5],
-                      _mm256_xor_si256( _mm256_slli_epi32( xh, 6 ),
-                                        _mm256_srli_epi32( qt[21], 6 ) ) ),
-                 _mm256_xor_si256( _mm256_xor_si256( xl, qt[29] ), qt[ 5] ));
-   dH[ 6] = _mm256_add_epi32(
-                 _mm256_xor_si256( M[6],
-                      _mm256_xor_si256( _mm256_srli_epi32( xh, 4 ),
-                                        _mm256_slli_epi32( qt[22], 6 ) ) ),
-                 _mm256_xor_si256( _mm256_xor_si256( xl, qt[30] ), qt[ 6] ));
-   dH[ 7] = _mm256_add_epi32(
-                 _mm256_xor_si256( M[7],
-                      _mm256_xor_si256( _mm256_srli_epi32( xh, 11 ),
-                                        _mm256_slli_epi32( qt[23], 2 ) ) ),
-                 _mm256_xor_si256( _mm256_xor_si256( xl, qt[31] ), qt[ 7] ));
-   dH[ 8] = _mm256_add_epi32( _mm256_add_epi32(
-                 mm256_rol_32( dH[4], 9 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[24] ), M[ 8] )),
-                 _mm256_xor_si256( _mm256_slli_epi32( xl, 8 ),
-                                   _mm256_xor_si256( qt[23], qt[ 8] ) ) );
-   dH[ 9] = _mm256_add_epi32( _mm256_add_epi32(
-                 mm256_rol_32( dH[5], 10 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[25] ), M[ 9] )),
-                 _mm256_xor_si256( _mm256_srli_epi32( xl, 6 ),
-                                   _mm256_xor_si256( qt[16], qt[ 9] ) ) );
-   dH[10] = _mm256_add_epi32( _mm256_add_epi32(
-                 mm256_rol_32( dH[6], 11 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[26] ), M[10] )),
-                 _mm256_xor_si256( _mm256_slli_epi32( xl, 6 ),
-                                   _mm256_xor_si256( qt[17], qt[10] ) ) );
-   dH[11] = _mm256_add_epi32( _mm256_add_epi32(
-                 mm256_rol_32( dH[7], 12 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[27] ), M[11] )),
-                 _mm256_xor_si256( _mm256_slli_epi32( xl, 4 ),
-                                   _mm256_xor_si256( qt[18], qt[11] ) ) );
-   dH[12] = _mm256_add_epi32( _mm256_add_epi32(
-                 mm256_rol_32( dH[0], 13 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[28] ), M[12] )),
-                 _mm256_xor_si256( _mm256_srli_epi32( xl, 3 ),
-                                   _mm256_xor_si256( qt[19], qt[12] ) ) );
-   dH[13] = _mm256_add_epi32( _mm256_add_epi32(
-                 mm256_rol_32( dH[1], 14 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[29] ), M[13] )),
-                 _mm256_xor_si256( _mm256_srli_epi32( xl, 4 ),
-                                   _mm256_xor_si256( qt[20], qt[13] ) ) );
-   dH[14] = _mm256_add_epi32( _mm256_add_epi32(
-                 mm256_rol_32( dH[2], 15 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[30] ), M[14] )),
-                 _mm256_xor_si256( _mm256_srli_epi32( xl, 7 ),
-                                   _mm256_xor_si256( qt[21], qt[14] ) ) );
-   dH[15] = _mm256_add_epi32( _mm256_add_epi32(
-                 mm256_rol_32( dH[3], 16 ),
-                 _mm256_xor_si256( _mm256_xor_si256( xh, qt[31] ), M[15] )),
-                 _mm256_xor_si256( _mm256_srli_epi32( xl, 2 ),
-                                   _mm256_xor_si256( qt[22], qt[15] ) ) );
-*/
 }
 
 static const __m256i final_s8[16] =
@@ -1422,40 +1335,35 @@ void compress_small_16way( const __m512i *M, const __m512i H[16],
    qt[30] = expand2s16( qt, M, H, 30 );
    qt[31] = expand2s16( qt, M, H, 31 );
 
-   xl = _mm512_xor_si512(
-              mm512_xor4( qt[16], qt[17], qt[18], qt[19] ),
-              mm512_xor4( qt[20], qt[21], qt[22], qt[23] ) );
-   xh = _mm512_xor_si512( xl,  _mm512_xor_si512(
-                 mm512_xor4( qt[24], qt[25], qt[26], qt[27] ),
-                 mm512_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
+   xl = mm512_xor3( mm512_xor3( qt[16], qt[17], qt[18] ),
+                    mm512_xor3( qt[19], qt[20], qt[21] ),
+                    _mm512_xor_si512( qt[22], qt[23] ) );
+
+   xh = mm512_xor3( mm512_xor3( xl,     qt[24], qt[25] ),
+                    mm512_xor3( qt[26], qt[27], qt[28] ),
+                    mm512_xor3( qt[29], qt[30], qt[31] ) );
 
 #define DH1L( m, sl, sr, a, b, c ) \
-   _mm512_add_epi32( \
-               _mm512_xor_si512( M[m], \
-                  _mm512_xor_si512( _mm512_slli_epi32( xh, sl ), \
-                                    _mm512_srli_epi32( qt[a], sr ) ) ), \
-               _mm512_xor_si512( _mm512_xor_si512( xl, qt[b] ), qt[c] ) )
+   _mm512_add_epi32( mm512_xor3( M[m], _mm512_slli_epi32( xh, sl ), \
+                                       _mm512_srli_epi32( qt[a], sr ) ), \
+                     mm512_xor3( xl, qt[b], qt[c] ) )
 
 #define DH1R( m, sl, sr, a, b, c ) \
-   _mm512_add_epi32( \
-               _mm512_xor_si512( M[m], \
-                  _mm512_xor_si512( _mm512_srli_epi32( xh, sl ), \
-                                    _mm512_slli_epi32( qt[a], sr ) ) ), \
-               _mm512_xor_si512( _mm512_xor_si512( xl, qt[b] ), qt[c] ) )
+   _mm512_add_epi32( mm512_xor3( M[m], _mm512_srli_epi32( xh, sl ), \
+                                       _mm512_slli_epi32( qt[a], sr ) ), \
+                     mm512_xor3( xl, qt[b], qt[c] ) )
 
 #define DH2L( m, rl, sl, h, a, b, c ) \
    _mm512_add_epi32( _mm512_add_epi32( \
-       mm512_rol_32( dH[h], rl ), \
-          _mm512_xor_si512( _mm512_xor_si512( xh, qt[a] ), M[m] )), \
-                 _mm512_xor_si512( _mm512_slli_epi32( xl, sl ), \
-                                   _mm512_xor_si512( qt[b], qt[c] ) ) );
+                        mm512_rol_32( dH[h], rl ), \
+                        mm512_xor3( xh, qt[a], M[m] ) ), \
+                     mm512_xor3( _mm512_slli_epi32( xl, sl ), qt[b], qt[c] ) ) 
 
 #define DH2R( m, rl, sr, h, a, b, c ) \
    _mm512_add_epi32( _mm512_add_epi32( \
-       mm512_rol_32( dH[h], rl ), \
-          _mm512_xor_si512( _mm512_xor_si512( xh, qt[a] ), M[m] )), \
-                 _mm512_xor_si512( _mm512_srli_epi32( xl, sr ), \
-                                   _mm512_xor_si512( qt[b], qt[c] ) ) );
+                        mm512_rol_32( dH[h], rl ), \
+                        mm512_xor3( xh, qt[a], M[m] ) ), \
+                     mm512_xor3( _mm512_srli_epi32( xl, sr ), qt[b], qt[c] ) )
 
    dH[ 0] = DH1L(  0,  5,  5, 16, 24, 0 );
    dH[ 1] = DH1R(  1,  7,  8, 17, 25, 1 );

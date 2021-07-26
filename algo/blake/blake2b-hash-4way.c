@@ -122,14 +122,14 @@ static void blake2b_8way_compress( blake2b_8way_ctx *ctx, int last )
       B2B8W_G( 3, 4,  9, 14, m[ sigma[i][14] ], m[ sigma[i][15] ] );
    }
 
-   ctx->h[0] = _mm512_xor_si512( _mm512_xor_si512( ctx->h[0], v[0] ), v[ 8] );
-   ctx->h[1] = _mm512_xor_si512( _mm512_xor_si512( ctx->h[1], v[1] ), v[ 9] );
-   ctx->h[2] = _mm512_xor_si512( _mm512_xor_si512( ctx->h[2], v[2] ), v[10] );
-   ctx->h[3] = _mm512_xor_si512( _mm512_xor_si512( ctx->h[3], v[3] ), v[11] );
-   ctx->h[4] = _mm512_xor_si512( _mm512_xor_si512( ctx->h[4], v[4] ), v[12] );
-   ctx->h[5] = _mm512_xor_si512( _mm512_xor_si512( ctx->h[5], v[5] ), v[13] );
-   ctx->h[6] = _mm512_xor_si512( _mm512_xor_si512( ctx->h[6], v[6] ), v[14] );
-   ctx->h[7] = _mm512_xor_si512( _mm512_xor_si512( ctx->h[7], v[7] ), v[15] );
+   ctx->h[0] = mm512_xor3( ctx->h[0], v[0], v[ 8] );
+   ctx->h[1] = mm512_xor3( ctx->h[1], v[1], v[ 9] );
+   ctx->h[2] = mm512_xor3( ctx->h[2], v[2], v[10] );
+   ctx->h[3] = mm512_xor3( ctx->h[3], v[3], v[11] );
+   ctx->h[4] = mm512_xor3( ctx->h[4], v[4], v[12] );
+   ctx->h[5] = mm512_xor3( ctx->h[5], v[5], v[13] );
+   ctx->h[6] = mm512_xor3( ctx->h[6], v[6], v[14] );
+   ctx->h[7] = mm512_xor3( ctx->h[7], v[7], v[15] );
 }
 
 int blake2b_8way_init( blake2b_8way_ctx *ctx )

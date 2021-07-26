@@ -44,6 +44,7 @@ void myriad_8way_hash( void *output, const void *input )
 
      rintrlv_8x64_4x128( vhashA, vhashB, input, 640 );
      groestl512_4way_update_close( &ctx.groestl, vhashA, vhashA, 640 );
+     memcpy( &ctx.groestl, &myrgr_8way_ctx.groestl, sizeof(groestl512_4way_context) );
      groestl512_4way_update_close( &ctx.groestl, vhashB, vhashB, 640 );
 
      uint32_t hash0[20] __attribute__ ((aligned (64)));
@@ -58,8 +59,6 @@ void myriad_8way_hash( void *output, const void *input )
 //     rintrlv_4x128_8x32( vhash, vhashA, vhashB, 512 );
      dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhashA );
      dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhashB );
-     intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5,
-                       hash6, hash7 );
 
 #else
 
@@ -76,27 +75,27 @@ void myriad_8way_hash( void *output, const void *input )
                    hash4, hash5, hash6, hash7, input, 640 );
 
      update_and_final_groestl( &ctx.groestl, (char*)hash0, (char*)hash0, 640 );
-     memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
+     memcpy( &ctx.groestl, &myrgr_8way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash1, (char*)hash1, 640 );
-     memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
+     memcpy( &ctx.groestl, &myrgr_8way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash2, (char*)hash2, 640 );
-     memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
+     memcpy( &ctx.groestl, &myrgr_8way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash3, (char*)hash3, 640 );
-     memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
+     memcpy( &ctx.groestl, &myrgr_8way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash4, (char*)hash4, 640 );
-     memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
+     memcpy( &ctx.groestl, &myrgr_8way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash5, (char*)hash5, 640 );
-     memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
+     memcpy( &ctx.groestl, &myrgr_8way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash6, (char*)hash6, 640 );
-     memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
+     memcpy( &ctx.groestl, &myrgr_8way_ctx.groestl, sizeof(hashState_groestl) );
      update_and_final_groestl( &ctx.groestl, (char*)hash7, (char*)hash7, 640 );
-     memcpy( &ctx.groestl, &myrgr_4way_ctx.groestl, sizeof(hashState_groestl) );
-
-     intrlv_8x32( vhash, hash0, hash1, hash2, hash3,
-                         hash4, hash5, hash6, hash7, 512 );
+     memcpy( &ctx.groestl, &myrgr_8way_ctx.groestl, sizeof(hashState_groestl) );
 
 #endif
 
+     intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5,
+                       hash6, hash7 );
+     
      sha256_8way_update( &ctx.sha, vhash, 64 );
      sha256_8way_close( &ctx.sha, output );
 }

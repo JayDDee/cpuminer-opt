@@ -35,7 +35,6 @@
 #include "miner.h"
 #include "simd-utils.h"
 #include "algo/sha/sph_sha2.h"
-#include <openssl/sha.h>
 
 #ifdef __cplusplus
 extern "C" {

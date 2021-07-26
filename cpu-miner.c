@@ -1054,6 +1054,8 @@ void report_summary_log( bool force )
          applog( LOG_NOTICE,"CPU temp: curr %s max %d, Freq: %.3f/%.3f GHz",
                  tempstr, hi_temp, lo_freq / 1e6, hi_freq / 1e6 );
          if ( curr_temp > hi_temp ) hi_temp = curr_temp;
+         if ( ( opt_max_temp > 0.0 ) && ( curr_temp > opt_max_temp ) )
+            restart_threads();
          prev_temp = curr_temp;
       }
    }
@@ -2856,7 +2858,6 @@ static bool cpu_capability( bool display_only )
      bool algo_has_vaes256 = set_incl( VAES256_OPT, algo_features );
      bool use_aes;
      bool use_sse2;
-     bool use_sse42;
      bool use_avx2;
      bool use_avx512;
      bool use_sha;
@@ -2930,13 +2931,14 @@ static bool cpu_capability( bool display_only )
      if ( algo_features == EMPTY_SET ) printf( " None" );
      else
      {
-        if      ( algo_has_avx512 )    printf( " AVX512" );
-        else if ( algo_has_avx2   )    printf( " AVX2  " );
-        else if ( algo_has_sse42  )    printf( " SSE4.2" );
-        else if ( algo_has_sse2   )    printf( " SSE2  " );
-        if      ( algo_has_vaes   )    printf( " VAES"   );
-        else if ( algo_has_aes    )    printf( "  AES"   );
-        if      ( algo_has_sha    )    printf( " SHA"    );
+        if      ( algo_has_avx512  )  printf( " AVX512" );
+        else if ( algo_has_avx2    )  printf( " AVX2  " );
+        else if ( algo_has_sse42   )  printf( " SSE4.2" );
+        else if ( algo_has_sse2    )  printf( " SSE2  " );
+        if      ( algo_has_vaes ||
+                  algo_has_vaes256 )  printf( " VAES"   );
+        else if ( algo_has_aes     )  printf( "  AES"   );
+        if      ( algo_has_sha     )  printf( " SHA"    );
      }
      printf("\n");
 
@@ -2972,13 +2974,12 @@ static bool cpu_capability( bool display_only )
      // Determine mining options
      use_sse2   = cpu_has_sse2   && algo_has_sse2;
      use_aes    = cpu_has_aes    && sw_has_aes    && algo_has_aes;
-     use_sse42  = cpu_has_sse42  && sw_has_sse42  && algo_has_sse42;
      use_avx2   = cpu_has_avx2   && sw_has_avx2   && algo_has_avx2;
      use_avx512 = cpu_has_avx512 && sw_has_avx512 && algo_has_avx512;
      use_sha    = cpu_has_sha    && sw_has_sha    && algo_has_sha;
-     use_vaes   = cpu_has_vaes   && sw_has_vaes   && algo_has_vaes
-          && ( use_avx512 || algo_has_vaes256 );
-     use_none = !( use_sse2 || use_aes || use_sse42 || use_avx512 || use_avx2 ||
+     use_vaes   = cpu_has_vaes   && sw_has_vaes   && ( algo_has_vaes
+                                                    || algo_has_vaes256 );
+     use_none = !( use_sse2 || use_aes || use_avx512 || use_avx2 ||
                    use_sha || use_vaes );
 
      // Display best options
@@ -2988,7 +2989,6 @@ static bool cpu_capability( bool display_only )
      {
         if      ( use_avx512 ) printf( " AVX512" );
         else if ( use_avx2   ) printf( " AVX2"   );
-        else if ( use_sse42  ) printf( " SSE4.2" );
         else if ( use_sse2   ) printf( " SSE2"   );
         if      ( use_vaes   ) printf( " VAES"   );
         else if ( use_aes    ) printf( " AES"    );

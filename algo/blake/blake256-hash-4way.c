@@ -669,14 +669,14 @@ do { \
       ROUND_S_8WAY(2); \
       ROUND_S_8WAY(3); \
    } \
-   H0 = _mm256_xor_si256( _mm256_xor_si256( V8, V0 ), H0 ); \
-   H1 = _mm256_xor_si256( _mm256_xor_si256( V9, V1 ), H1 ); \
-   H2 = _mm256_xor_si256( _mm256_xor_si256( VA, V2 ), H2 ); \
-   H3 = _mm256_xor_si256( _mm256_xor_si256( VB, V3 ), H3 ); \
-   H4 = _mm256_xor_si256( _mm256_xor_si256( VC, V4 ), H4 ); \
-   H5 = _mm256_xor_si256( _mm256_xor_si256( VD, V5 ), H5 ); \
-   H6 = _mm256_xor_si256( _mm256_xor_si256( VE, V6 ), H6 ); \
-   H7 = _mm256_xor_si256( _mm256_xor_si256( VF, V7 ), H7 ); \
+   H0 = mm256_xor3( V8, V0, H0 ); \
+   H1 = mm256_xor3( V9, V1, H1 ); \
+   H2 = mm256_xor3( VA, V2, H2 ); \
+   H3 = mm256_xor3( VB, V3, H3 ); \
+   H4 = mm256_xor3( VC, V4, H4 ); \
+   H5 = mm256_xor3( VD, V5, H5 ); \
+   H6 = mm256_xor3( VE, V6, H6 ); \
+   H7 = mm256_xor3( VF, V7, H7 ); \
 } while (0)
 
 
@@ -808,14 +808,14 @@ do { \
       ROUND_S_16WAY(2); \
       ROUND_S_16WAY(3); \
    } \
-   H0 = _mm512_xor_si512( _mm512_xor_si512( V8, V0 ), H0 ); \
-   H1 = _mm512_xor_si512( _mm512_xor_si512( V9, V1 ), H1 ); \
-   H2 = _mm512_xor_si512( _mm512_xor_si512( VA, V2 ), H2 ); \
-   H3 = _mm512_xor_si512( _mm512_xor_si512( VB, V3 ), H3 ); \
-   H4 = _mm512_xor_si512( _mm512_xor_si512( VC, V4 ), H4 ); \
-   H5 = _mm512_xor_si512( _mm512_xor_si512( VD, V5 ), H5 ); \
-   H6 = _mm512_xor_si512( _mm512_xor_si512( VE, V6 ), H6 ); \
-   H7 = _mm512_xor_si512( _mm512_xor_si512( VF, V7 ), H7 ); \
+   H0 = mm512_xor3( V8, V0, H0 ); \
+   H1 = mm512_xor3( V9, V1, H1 ); \
+   H2 = mm512_xor3( VA, V2, H2 ); \
+   H3 = mm512_xor3( VB, V3, H3 ); \
+   H4 = mm512_xor3( VC, V4, H4 ); \
+   H5 = mm512_xor3( VD, V5, H5 ); \
+   H6 = mm512_xor3( VE, V6, H6 ); \
+   H7 = mm512_xor3( VF, V7, H7 ); \
 } while (0)
 
 #endif

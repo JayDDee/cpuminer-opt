@@ -237,6 +237,25 @@ static inline void memset_128( __m128i *dst, const __m128i a, const int n )
 static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 {   for ( int i = 0; i < n; i ++ ) dst[i] = src[i]; }
 
+#if defined(__AVX512VL__)
+
+// a ^ b ^ c
+#define mm128_xor3( a, b, c ) \
+   _mm_ternarylogic_epi64( a, b, c, 0x96 )
+
+// a ^ ( b & c )
+#define mm128_xorand( a, b, c ) \
+   _mm_ternarylogic_epi64( a, b, c, 0x78 )
+
+#else
+
+#define mm128_xor3( a, b, c ) \
+   _mm_xor_si128( a, _mm_xor_si128( b, c ) )
+
+#define mm128_xorand( a, b, c ) \
+  _mm_xor_si128( a, _mm_and_si128( b, c ) )
+
+#endif
 
 //
 // Bit rotations

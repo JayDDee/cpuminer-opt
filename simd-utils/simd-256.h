@@ -275,15 +275,17 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 
 //
 // Rotate elements accross all lanes.
-//
-// Swap 128 bit elements in 256 bit vector.
-#define mm256_swap_128( v )     _mm256_permute4x64_epi64( v, 0x4e )
 
-// Rotate 256 bit vector by one 64 bit element
-#define mm256_ror_1x64( v )     _mm256_permute4x64_epi64( v, 0x39 )
-#define mm256_rol_1x64( v )     _mm256_permute4x64_epi64( v, 0x93 )
+#if defined(__AVX512VL__)
 
-#if defined(__AVX512F__) && defined(__AVX512VL__)
+static inline __m256i mm256_swap_128( const __m256i v )
+{ return _mm256_alignr_epi64( v, v, 2 ); }
+
+static inline __m256i mm256_ror_1x64( const __m256i v )
+{ return _mm256_alignr_epi64( v, v, 1 ); }
+
+static inline __m256i mm256_rol_1x64( const __m256i v )
+{ return _mm256_alignr_epi64( v, v, 3 ); }
 
 static inline __m256i mm256_ror_1x32( const __m256i v )
 { return _mm256_alignr_epi32( v, v, 1 ); }
@@ -292,6 +294,13 @@ static inline __m256i mm256_rol_1x32( const __m256i v )
 { return _mm256_alignr_epi32( v, v, 7 ); }
 
 #else   // AVX2
+
+// Swap 128 bit elements in 256 bit vector.
+#define mm256_swap_128( v )     _mm256_permute4x64_epi64( v, 0x4e )
+
+// Rotate 256 bit vector by one 64 bit element
+#define mm256_ror_1x64( v )     _mm256_permute4x64_epi64( v, 0x39 )
+#define mm256_rol_1x64( v )     _mm256_permute4x64_epi64( v, 0x93 )
 
 // Rotate 256 bit vector by one 32 bit element.
 #define mm256_ror_1x32( v ) \
@@ -304,6 +313,7 @@ static inline __m256i mm256_rol_1x32( const __m256i v )
                      m256_const_64( 0x0000000600000005,  0x0000000400000003, \
                                     0x0000000200000001,  0x0000000000000007 )
 
+       
 #endif    // AVX512 else AVX2
 
 //
