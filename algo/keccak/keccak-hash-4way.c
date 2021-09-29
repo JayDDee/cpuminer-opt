@@ -70,13 +70,13 @@ static const uint64_t RC[] = {
 
 // Targetted macros, keccak-macros.h is included for each target.
 
-#define DECL64(x)        __m512i x
-#define XOR64(d, a, b)   (d = _mm512_xor_si512(a,b))
-#define AND64(d, a, b)   (d = _mm512_and_si512(a,b))
-#define OR64(d, a, b)    (d = _mm512_or_si512(a,b))
-#define NOT64(d, s)      (d = _mm512_xor_si512(s,m512_neg1))
-#define ROL64(d, v, n)   (d = mm512_rol_64(v, n))
-#define XOROR(d, a, b, c) (d = mm512_xoror(a, b, c))
+#define DECL64(x)          __m512i x
+#define XOR64(d, a, b)     (d = _mm512_xor_si512(a,b))
+#define AND64(d, a, b)     (d = _mm512_and_si512(a,b))
+#define OR64(d, a, b)      (d = _mm512_or_si512(a,b))
+#define NOT64(d, s)        (d = _mm512_xor_si512(s,m512_neg1))
+#define ROL64(d, v, n)     (d = mm512_rol_64(v, n))
+#define XOROR(d, a, b, c)  (d = mm512_xoror(a, b, c))
 #define XORAND(d, a, b, c) (d = mm512_xorand(a, b, c))
 
 

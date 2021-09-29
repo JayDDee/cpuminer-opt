@@ -16,7 +16,7 @@
 typedef struct {
    blake256_16way_context     blake;
    keccak256_8way_context    keccak;
-   cube_4way_context          cube;
+   cube_4way_2buf_context    cube;
    skein256_8way_context     skein;
 #if defined(__VAES__)
    groestl256_4way_context groestl;
@@ -30,13 +30,7 @@ static __thread allium_16way_ctx_holder allium_16way_ctx;
 bool init_allium_16way_ctx()
 {
    keccak256_8way_init( &allium_16way_ctx.keccak );
-   cube_4way_init( &allium_16way_ctx.cube, 256, 16, 32 );
    skein256_8way_init( &allium_16way_ctx.skein );
-#if defined(__VAES__)
-   groestl256_4way_init( &allium_16way_ctx.groestl, 32 );
-#else
-   init_groestl256( &allium_16way_ctx.groestl, 32 );
-#endif
    return true;
 }
 
@@ -111,12 +105,11 @@ void allium_16way_hash( void *state, const void *input )
    intrlv_2x256( vhash, hash14, hash15, 256 );
    LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
    dintrlv_2x256( hash14, hash15, vhash, 256 );
-  
+
    intrlv_4x128( vhashA, hash0, hash1, hash2, hash3, 256 );
    intrlv_4x128( vhashB, hash4, hash5, hash6, hash7, 256 );
 
-   cube_4way_full( &ctx.cube, vhashA, 256, vhashA, 32 );
-   cube_4way_full( &ctx.cube, vhashB, 256, vhashB, 32 );
+   cube_4way_2buf_full( &ctx.cube, vhashA, vhashB, 256, vhashA, vhashB, 32 );
 
    dintrlv_4x128( hash0, hash1, hash2, hash3, vhashA, 256 );
    dintrlv_4x128( hash4, hash5, hash6, hash7, vhashB, 256 );
@@ -124,8 +117,7 @@ void allium_16way_hash( void *state, const void *input )
    intrlv_4x128( vhashA, hash8, hash9, hash10, hash11, 256 );
    intrlv_4x128( vhashB, hash12, hash13, hash14, hash15, 256 );
 
-   cube_4way_full( &ctx.cube, vhashA, 256, vhashA, 32 );
-   cube_4way_full( &ctx.cube, vhashB, 256, vhashB, 32 );
+   cube_4way_2buf_full( &ctx.cube, vhashA, vhashB, 256, vhashA, vhashB, 32 );
 
    dintrlv_4x128( hash8, hash9, hash10, hash11, vhashA, 256 );
    dintrlv_4x128( hash12, hash13, hash14, hash15, vhashB, 256 );
@@ -255,7 +247,7 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
 typedef struct {
    blake256_8way_context     blake;
    keccak256_4way_context    keccak;
-   cubehashParam             cube;
+   cube_2way_context         cube;
    skein256_4way_context     skein;
 #if defined(__VAES__)
    groestl256_2way_context   groestl;
@@ -269,13 +261,7 @@ static __thread allium_8way_ctx_holder allium_8way_ctx;
 bool init_allium_8way_ctx()
 {
    keccak256_4way_init( &allium_8way_ctx.keccak );
-   cubehashInit( &allium_8way_ctx.cube, 256, 16, 32 );
    skein256_4way_init( &allium_8way_ctx.skein );
-#if defined(__VAES__)
-   groestl256_2way_init( &allium_8way_ctx.groestl, 32 );
-#else
-   init_groestl256( &allium_8way_ctx.groestl, 32 );
-#endif
    return true;
 }
 
@@ -320,21 +306,20 @@ void allium_8way_hash( void *hash, const void *input )
    LYRA2RE( hash6, 32, hash6, 32, hash6, 32, 1, 8, 8 );
    LYRA2RE( hash7, 32, hash7, 32, hash7, 32, 1, 8, 8 );
 
-   cubehashUpdateDigest( &ctx.cube, (byte*)hash0, (const byte*)hash0, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*)hash1, (const byte*)hash1, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*)hash2, (const byte*)hash2, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*)hash3, (const byte*)hash3, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*)hash4, (const byte*)hash4, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*)hash5, (const byte*)hash5, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*)hash6, (const byte*)hash6, 32 );
-   cubehashInit( &ctx.cube, 256, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, (byte*)hash7, (const byte*)hash7, 32 );
+
+   intrlv_2x128( vhashA, hash0, hash1, 256 );
+   intrlv_2x128( vhashB, hash2, hash3, 256 );
+   cube_2way_full( &ctx.cube, vhashA, 256, vhashA, 32 );
+   cube_2way_full( &ctx.cube, vhashB, 256, vhashB, 32 );
+   dintrlv_2x128( hash0, hash1, vhashA, 256 );
+   dintrlv_2x128( hash2, hash3, vhashB, 256 );
+
+   intrlv_2x128( vhashA, hash4, hash5, 256 );
+   intrlv_2x128( vhashB, hash6, hash7, 256 );
+   cube_2way_full( &ctx.cube, vhashA, 256, vhashA, 32 );
+   cube_2way_full( &ctx.cube, vhashB, 256, vhashB, 32 );
+   dintrlv_2x128( hash4, hash5, vhashA, 256 );
+   dintrlv_2x128( hash6, hash7, vhashB, 256 );
 
    LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
    LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );

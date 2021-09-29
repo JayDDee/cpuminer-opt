@@ -11,7 +11,7 @@
 #else
   #include "sph_groestl.h"
 #endif
-#include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha256-hash.h"
 
 typedef struct {
 #ifdef __AES__
@@ -19,7 +19,6 @@ typedef struct {
 #else
     sph_groestl512_context  groestl;
 #endif
-    sph_sha256_context      sha;
 } myrgr_ctx_holder;
 
 myrgr_ctx_holder myrgr_ctx;
@@ -31,7 +30,6 @@ void init_myrgr_ctx()
 #else
      sph_groestl512_init( &myrgr_ctx.groestl );
 #endif
-     sph_sha256_init( &myrgr_ctx.sha );
 }
 
 void myriad_hash(void *output, const void *input)
@@ -49,8 +47,7 @@ void myriad_hash(void *output, const void *input)
    sph_groestl512_close(&ctx.groestl, hash);
 #endif
 
-   sph_sha256( &ctx.sha, hash, 64 );
-   sph_sha256_close( &ctx.sha, hash );
+   sha256_full( hash, hash, 64 );
 
    memcpy(output, hash, 32);
 }

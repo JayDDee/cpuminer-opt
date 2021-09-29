@@ -78,6 +78,8 @@
 //   - specialized shift and rotate functions that move elements around
 //     use the notation "1x32" to indicate the distance moved as units of
 //     the element size.
+//     Vector shuffle rotations are being renamed to "vrol" and "vror"
+//     to avoid confusion with bit rotations.
 //   - there is a subset of some functions for scalar data. They may have
 //     no prefix nor vec-size, just one size, the size of the data.
 //   - Some integer functions are also defined which use a similar notation.

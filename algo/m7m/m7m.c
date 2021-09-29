@@ -13,6 +13,7 @@
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/ripemd/sph_ripemd.h"
 #include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha256-hash.h"
 
 #define EPSa DBL_EPSILON
 #define EPS1 DBL_EPSILON
@@ -104,8 +105,8 @@ uint32_t sw2_( int nnounce )
 }
 
 typedef struct {
-    sph_sha256_context      sha256;
-    sph_sha512_context      sha512;
+    sha256_context           sha256;
+    sph_sha512_context       sha512;
     sph_keccak512_context    keccak;
     sph_whirlpool_context    whirlpool;
     sph_haval256_5_context   haval;
@@ -117,7 +118,7 @@ m7m_ctx_holder m7m_ctx;
 
 void init_m7m_ctx()
 {
-    sph_sha256_init( &m7m_ctx );
+    sha256_ctx_init( &m7m_ctx.sha256 );
     sph_sha512_init( &m7m_ctx.sha512 );
     sph_keccak512_init( &m7m_ctx.keccak );
     sph_whirlpool_init( &m7m_ctx.whirlpool );
@@ -153,11 +154,10 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
 
     m7m_ctx_holder ctx1, ctx2 __attribute__ ((aligned (64)));
     memcpy( &ctx1, &m7m_ctx, sizeof(m7m_ctx) );
-    sph_sha256_context ctxf_sha256;
 
     memcpy(data, pdata, 80);
 
-    sph_sha256(     &ctx1.sha256,    data, M7_MIDSTATE_LEN );
+    sha256_update(  &ctx1.sha256,    data, M7_MIDSTATE_LEN );
     sph_sha512(     &ctx1.sha512,    data, M7_MIDSTATE_LEN );
     sph_keccak512(  &ctx1.keccak,    data, M7_MIDSTATE_LEN );
     sph_whirlpool(  &ctx1.whirlpool, data, M7_MIDSTATE_LEN );
@@ -189,8 +189,8 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
 
         memcpy( &ctx2, &ctx1, sizeof(m7m_ctx) );
 
-        sph_sha256( &ctx2.sha256, data_p64, 80 - M7_MIDSTATE_LEN );
-        sph_sha256_close( &ctx2.sha256, bhash[0] );
+        sha256_update( &ctx2.sha256, data_p64, 80 - M7_MIDSTATE_LEN );
+        sha256_final( &ctx2.sha256, bhash[0] );
 
         sph_sha512(  &ctx2.sha512, data_p64, 80 - M7_MIDSTATE_LEN );
         sph_sha512_close( &ctx2.sha512, bhash[1] );
@@ -225,9 +225,7 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
         bytes = mpz_sizeinbase(product, 256);
         mpz_export((void *)bdata, NULL, -1, 1, 0, 0, product);
 
-        sph_sha256_init( &ctxf_sha256 );
-        sph_sha256( &ctxf_sha256, bdata, bytes );
-        sph_sha256_close( &ctxf_sha256, hash );
+        sha256_full( hash, bdata, bytes );
 
         digits=(int)((sqrt((double)(n/2))*(1.+EPS))/9000+75);
         mp_bitcnt_t prec = (long int)(digits*BITS_PER_DIGIT+16);
@@ -260,10 +258,8 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
             mpzscale=bytes;
             mpz_export(bdata, NULL, -1, 1, 0, 0, product);
 
-            sph_sha256_init( &ctxf_sha256 );
-            sph_sha256( &ctxf_sha256, bdata, bytes );
-            sph_sha256_close( &ctxf_sha256, hash );
-	}
+            sha256_full( hash, bdata, bytes );
+	     }
 
         if ( unlikely( valid_hash( (uint64_t*)hash, (uint64_t*)ptarget ) 
              && !opt_benchmark ) )

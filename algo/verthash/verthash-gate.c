@@ -1,5 +1,5 @@
 #include "algo-gate-api.h"
-#include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha256-hash.h"
 #include "Verthash.h"
 #include "tiny_sha3/sha3-4way.h"
 
@@ -140,7 +140,7 @@ bool register_verthash_algo( algo_gate_t* gate )
          uint8_t vhDataFileHash[32] = { 0 };
 
          applog( LOG_NOTICE, "Verifying Verthash data" );
-         sph_sha256_full( vhDataFileHash, verthashInfo.data,
+         sha256_full( vhDataFileHash, verthashInfo.data,
                           verthashInfo.dataSize );
          if ( memcmp( vhDataFileHash, verthashDatFileHash_bytes,
                       sizeof(verthashDatFileHash_bytes) ) == 0 )

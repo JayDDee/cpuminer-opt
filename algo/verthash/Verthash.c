@@ -176,12 +176,6 @@ static void rotate_indexes( uint32_t *p )
 */
 }
 #endif
-
-static inline uint32_t rotl32( uint32_t a, size_t r )
-{
-   return ( a << r ) | ( a >> (32-r) );
-}
-
 // Vectorized and targetted version of fnv1a
 #if defined (__AVX2__)        
 
@@ -232,7 +226,7 @@ for ( size_t i = 0; i < VH_N_SUBSET / sizeof(uint32_t); i++ ) \
 for ( size_t i = 0; i < VH_N_SUBSET / sizeof(uint32_t); i++ ) \
 { \
    const uint32_t *blob_off = blob + \
-                 ( ( fnv1a( rotl32( subset[i], r ), accumulator ) % mdiv ) \
+                 ( ( fnv1a( rol32( subset[i], r ), accumulator ) % mdiv ) \
                  * ( VH_BYTE_ALIGNMENT / sizeof(uint32_t) ) ); \
    UPDATE_ACCUMULATOR; \
    MULXOR; \

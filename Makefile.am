@@ -158,7 +158,9 @@ cpuminer_SOURCES = \
   algo/ripemd/lbry.c \
   algo/ripemd/lbry-4way.c \
   algo/scrypt/scrypt.c \
+  algo/scrypt/scrypt-core-4way.c \
   algo/scrypt/neoscrypt.c \
+  algo/sha/sha256-hash.c \
   algo/sha/sph_sha2.c \
   algo/sha/sph_sha2big.c \
   algo/sha/sha256-hash-4way.c \
@@ -167,6 +169,7 @@ cpuminer_SOURCES = \
   algo/sha/sha256-hash-2way-ni.c \
   algo/sha/hmac-sha256-hash.c \
   algo/sha/hmac-sha256-hash-4way.c \
+  algo/sha/sha256d.c \
   algo/sha/sha2.c \
   algo/sha/sha256t-gate.c \
   algo/sha/sha256t-4way.c \

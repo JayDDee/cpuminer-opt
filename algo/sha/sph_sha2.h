@@ -207,6 +207,13 @@ void sph_sha256_comp(const sph_u32 msg[16], sph_u32 val[8]);
 
 void sph_sha256_full( void *dst, const void *data, size_t len );
 
+// These shouldn't be called directly, use sha256-hash.h generic functions
+// sha256_transform_le & sha256_transform_be instead.
+void sph_sha256_transform_le( uint32_t *state_out, const uint32_t *data,
+                              const uint32_t *state_in );
+
+void sph_sha256_transform_be( uint32_t *state_out, const uint32_t *data,
+                              const uint32_t *state_in );
 
 
 #if SPH_64

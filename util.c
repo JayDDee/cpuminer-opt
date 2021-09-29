@@ -47,6 +47,7 @@
 //#include "miner.h"
 #include "elist.h"
 #include "algo-gate-api.h"
+#include "algo/sha/sha256d.h"
 
 //extern pthread_mutex_t stats_lock;
 
@@ -129,17 +130,19 @@ void applog2( int prio, const char *fmt, ... )
 
 //    localtime_r(&now, &tm);
 
-      switch (prio) {
+      switch ( prio )
+      {
+         case LOG_CRIT:    color = CL_LRD; break;
          case LOG_ERR:     color = CL_RED; break;
-         case LOG_WARNING: color = CL_YLW; break;
+         case LOG_WARNING: color = CL_YL2; break;
+         case LOG_MAJR:    color = CL_YL2; break;
          case LOG_NOTICE:  color = CL_WHT; break;
          case LOG_INFO:    color = ""; break;
          case LOG_DEBUG:   color = CL_GRY; break;
-
-         case LOG_BLUE:
-            prio = LOG_NOTICE;
-            color = CL_CYN;
-            break;
+         case LOG_MINR:    color = CL_YLW; break;
+         case LOG_GREEN:   color = CL_GRN; prio = LOG_INFO; break;
+         case LOG_BLUE:    color = CL_CYN; prio = LOG_NOTICE; break;
+         case LOG_PINK:    color = CL_LMA; prio = LOG_NOTICE; break;
       }
       if (!use_colors)
          color = "";
@@ -206,17 +209,19 @@ void applog(int prio, const char *fmt, ...)
 
 		localtime_r(&now, &tm);
 
-		switch (prio) {
-			case LOG_ERR:     color = CL_RED; break;
-			case LOG_WARNING: color = CL_YLW; break;
+		switch ( prio )
+      {
+         case LOG_CRIT:    color = CL_LRD; break;
+         case LOG_ERR:     color = CL_RED; break;
+			case LOG_WARNING: color = CL_YL2; break;
+         case LOG_MAJR:    color = CL_YL2; break;
 			case LOG_NOTICE:  color = CL_WHT; break;
-			case LOG_INFO:    color = ""; break;
+			case LOG_INFO:    color = "";     break;
 			case LOG_DEBUG:   color = CL_GRY; break;
-
-			case LOG_BLUE:
-				prio = LOG_NOTICE;
-				color = CL_CYN;
-				break;
+         case LOG_MINR:    color = CL_YLW; break;
+         case LOG_GREEN:   color = CL_GRN; prio = LOG_INFO;  break;
+			case LOG_BLUE:    color = CL_CYN; prio = LOG_NOTICE; break;
+         case LOG_PINK:    color = CL_LMA; prio = LOG_NOTICE; break;
 		}
 		if (!use_colors)
 			color = "";
@@ -302,6 +307,29 @@ void format_hashrate(double hashrate, char *output)
 		hashrate, prefix
 	);
 }
+
+// For use with MiB etc
+void format_number_si( double* n, char* si_units )
+{
+  if ( *n < 1024*10 )  {  *si_units = 0;   return;  }
+  *n /= 1024;
+  if ( *n < 1024*10 )  {  *si_units = 'k'; return;  }
+  *n /= 1024;
+  if ( *n < 1024*10 )  {  *si_units = 'M'; return;  }
+  *n /= 1024;
+  if ( *n < 1024*10 )  {  *si_units = 'G'; return;  }
+  *n /= 1024;
+  if ( *n < 1024*10 )  {  *si_units = 'T'; return;  }
+  *n /= 1024;
+  if ( *n < 1024*10 )  {  *si_units = 'P'; return;  }
+  *n /= 1024;
+  if ( *n < 1024*10 )  {  *si_units = 'E'; return;  }
+  *n /= 1024;
+  if ( *n < 1024*10 )  {  *si_units = 'Z'; return;  }
+  *n /= 1024;
+  *si_units = 'Y';
+}
+
 
 /* Modify the representation of integer numbers which would cause an overflow
  * so that they are treated as floating-point numbers.

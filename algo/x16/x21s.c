@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha256-hash.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/tiger/sph_tiger.h"
 #include "algo/gost/sph_gost.h"
@@ -23,7 +23,7 @@ union _x21s_context_overlay
         sph_haval256_5_context  haval;
         sph_tiger_context       tiger;
         sph_gost512_context     gost;
-        sph_sha256_context      sha256;
+        sha256_context      sha256;
 };
 typedef union _x21s_context_overlay x21s_context_overlay;
 
@@ -50,9 +50,7 @@ int x21s_hash( void* output, const void* input, int thrid )
    sph_gost512 ( &ctx.gost, (const void*) hash, 64 );
    sph_gost512_close( &ctx.gost, (void*) hash );
 
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash, 64 );
-   sph_sha256_close( &ctx.sha256, hash );
+   sha256_full( hash, hash, 64 );
 
    memcpy( output, hash, 32 );
 

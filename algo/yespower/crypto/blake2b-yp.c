@@ -35,9 +35,11 @@
 #include "blake2b-yp.h"
 
 // Cyclic right rotation.
-#ifndef ROTR64
-#define ROTR64(x, y)  (((x) >> (y)) ^ ((x) << (64 - (y))))
-#endif
+//#ifndef ROTR64
+//#define ROTR64(x, y)  (((x) >> (y)) ^ ((x) << (64 - (y))))
+//#endif
+
+#define ROTR64(x, y) ror64( x, y )
 
 // Little-endian byte access.
 #define B2B_GET64(p)                            \

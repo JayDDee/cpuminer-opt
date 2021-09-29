@@ -7,6 +7,7 @@
 #include "hodl-gate.h"
 #include "hodl-wolf.h"
 #include "miner.h"
+#include "algo/sha/sha256d.h"
 
 #if defined(__AES__)               
 

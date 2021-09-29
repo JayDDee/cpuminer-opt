@@ -31,10 +31,14 @@ static void transform( cubehashParam *sp )
     for ( r = 0; r < rounds; ++r )
     { 
         x1 = _mm512_add_epi32( x0, x1 );
-        x0 = _mm512_xor_si512( mm512_rol_32( mm512_swap_256( x0 ), 7 ), x1 );
-        x1 = _mm512_add_epi32( x0, mm512_swap128_64( x1 ) );
-        x0 = _mm512_xor_si512( mm512_rol_32(
-                                         mm512_swap256_128( x0 ), 11 ), x1 );
+        x0 = mm512_swap_256( x0 );
+        x0 = mm512_rol_32(  x0, 7 );
+        x0 = _mm512_xor_si512( x0, x1 );
+        x1 = mm512_swap128_64( x1 );
+        x1 = _mm512_add_epi32( x0, x1 );
+        x0 = mm512_swap256_128( x0 );
+        x0 = mm512_rol_32( x0, 11 );
+        x0 = _mm512_xor_si512( x0, x1 );
         x1 = mm512_swap64_32( x1 );
     }
 

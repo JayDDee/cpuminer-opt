@@ -28,7 +28,7 @@
   #include "algo/echo/echo-hash-4way.h"
 #endif
 #if defined(__SHA__)
-  #include "algo/sha/sph_sha2.h"
+  #include "algo/sha/sha256-hash.h"
 #endif
 
 #if defined(X22I_8WAY)
@@ -51,9 +51,7 @@ union _x22i_8way_ctx_overlay
     haval256_5_8way_context haval;
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
-#if defined(X22I_8WAY_SHA)
-    sph_sha256_context      sha256;
-#else
+#if !defined(X22I_8WAY_SHA)
     sha256_8way_context     sha256;
 #endif
 #if defined(__VAES__)
@@ -391,30 +389,14 @@ int x22i_8way_hash( void *output, const void *input, int thrid )
 
 #if defined(X22I_8WAY_SHA)
 
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash0, 64 );
-   sph_sha256_close( &ctx.sha256, output );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash1, 64 );
-   sph_sha256_close( &ctx.sha256, output+32 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash2, 64 );
-   sph_sha256_close( &ctx.sha256, output+64 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash3, 64 );
-   sph_sha256_close( &ctx.sha256, output+96 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash4, 64 );
-   sph_sha256_close( &ctx.sha256, output+128 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash5, 64 );
-   sph_sha256_close( &ctx.sha256, output+160 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash6, 64 );
-   sph_sha256_close( &ctx.sha256, output+192 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash7, 64 );
-   sph_sha256_close( &ctx.sha256, output+224 );
+   sha256_full( hash0, hash0, 64 );
+   sha256_full( hash1, hash1, 64 );
+   sha256_full( hash2, hash2, 64 );
+   sha256_full( hash3, hash3, 64 );
+   sha256_full( hash4, hash4, 64 );
+   sha256_full( hash5, hash5, 64 );
+   sha256_full( hash6, hash6, 64 );
+   sha256_full( hash7, hash7, 64 );
    
 #else
 
@@ -551,9 +533,7 @@ union _x22i_4way_ctx_overlay
     haval256_5_4way_context haval;
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
-#if defined(X22I_4WAY_SHA)
-    sph_sha256_context      sha256;
-#else
+#if !defined(X22I_4WAY_SHA)
     sha256_4way_context     sha256;
 #endif
 };
@@ -757,18 +737,10 @@ int x22i_4way_hash( void *output, const void *input, int thrid )
 
 #if defined(X22I_4WAY_SHA)
 
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash0, 64 );
-   sph_sha256_close( &ctx.sha256, output );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash1, 64 );
-   sph_sha256_close( &ctx.sha256, output+32 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash2, 64 );
-   sph_sha256_close( &ctx.sha256, output+64 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash3, 64 );
-   sph_sha256_close( &ctx.sha256, output+96 );
+   sha256_full( hash0, hash0, 64 );
+   sha256_full( hash1, hash1, 64 );
+   sha256_full( hash2, hash2, 64 );
+   sha256_full( hash3, hash3, 64 );
 
 #else
 

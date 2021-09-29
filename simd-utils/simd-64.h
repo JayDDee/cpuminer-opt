@@ -68,13 +68,13 @@
 // rotation.
 
 // Swap hi & lo 32 bits.
-#define mm64_swap_32( a )     _mm_shuffle_pi16( a, 0x4e )
+#define mm64_swap_32( a )      _mm_shuffle_pi16( a, 0x4e )
 
-#define mm64_ror64_1x16( a )  _mm_shuffle_pi16( a, 0x39 ) 
-#define mm64_rol64_1x16( a )  _mm_shuffle_pi16( a, 0x93 ) 
+#define mm64_shulfr_16( a )  _mm_shuffle_pi16( a, 0x39 ) 
+#define mm64_shufll_16( a )  _mm_shuffle_pi16( a, 0x93 ) 
 
 // Swap hi & lo 16 bits of each 32 bit element
-#define mm64_swap32_16( a )  _mm_shuffle_pi16( a, 0xb1 )
+#define mm64_swap32_16( a )    _mm_shuffle_pi16( a, 0xb1 )
 
 #if defined(__SSSE3__)
 
@@ -86,7 +86,7 @@
     _mm_shuffle_pi8( v, (__m64)0x0607040502030001 );
 
 // Rotate right by c bytes
-static inline __m64 mm64_ror_x8( __m64 v, const int c )
+static inline __m64 mm64_vror_x8( __m64 v, const int c )
 { return _mm_alignr_pi8( v, v, c ); }
 
 #else

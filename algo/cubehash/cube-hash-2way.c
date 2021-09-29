@@ -98,6 +98,138 @@ static void transform_4way( cube_4way_context *sp )
     _mm512_store_si512( (__m512i*)sp->h + 7, x7 );
 }
 
+// 8 ways, 4 way parallel double buffered
+static void transform_4way_2buf( cube_4way_2buf_context *sp )
+{
+    int r;
+    const int rounds = sp->rounds;
+
+    __m512i x0, x1, x2, x3, x4, x5, x6, x7;
+    __m512i y0, y1, y2, y3, y4, y5, y6, y7;
+    __m512i tx0, tx1, ty0, ty1;
+
+    x0 = _mm512_load_si512( (__m512i*)sp->h0     );
+    x1 = _mm512_load_si512( (__m512i*)sp->h0 + 1 );
+    x2 = _mm512_load_si512( (__m512i*)sp->h0 + 2 );
+    x3 = _mm512_load_si512( (__m512i*)sp->h0 + 3 );
+    x4 = _mm512_load_si512( (__m512i*)sp->h0 + 4 );
+    x5 = _mm512_load_si512( (__m512i*)sp->h0 + 5 );
+    x6 = _mm512_load_si512( (__m512i*)sp->h0 + 6 );
+    x7 = _mm512_load_si512( (__m512i*)sp->h0 + 7 );
+
+    y0 = _mm512_load_si512( (__m512i*)sp->h1     );
+    y1 = _mm512_load_si512( (__m512i*)sp->h1 + 1 );
+    y2 = _mm512_load_si512( (__m512i*)sp->h1 + 2 );
+    y3 = _mm512_load_si512( (__m512i*)sp->h1 + 3 );
+    y4 = _mm512_load_si512( (__m512i*)sp->h1 + 4 );
+    y5 = _mm512_load_si512( (__m512i*)sp->h1 + 5 );
+    y6 = _mm512_load_si512( (__m512i*)sp->h1 + 6 );
+    y7 = _mm512_load_si512( (__m512i*)sp->h1 + 7 );
+
+
+    for ( r = 0; r < rounds; ++r )
+    {
+        x4 = _mm512_add_epi32( x0, x4 );
+        y4 = _mm512_add_epi32( y0, y4 );
+        tx0 = x0;
+        ty0 = y0;
+        x5 = _mm512_add_epi32( x1, x5 );
+        y5 = _mm512_add_epi32( y1, y5 );
+        tx1 = x1;
+        ty1 = y1;
+        x0 = mm512_rol_32( x2, 7 );
+        y0 = mm512_rol_32( y2, 7 );
+        x6 = _mm512_add_epi32( x2, x6 );
+        y6 = _mm512_add_epi32( y2, y6 );
+        x1 = mm512_rol_32( x3, 7 );
+        y1 = mm512_rol_32( y3, 7 );
+        x7 = _mm512_add_epi32( x3, x7 );
+        y7 = _mm512_add_epi32( y3, y7 );
+
+
+        x2 = mm512_rol_32( tx0, 7 );
+        y2 = mm512_rol_32( ty0, 7 );
+        x0 = _mm512_xor_si512( x0, x4 );
+        y0 = _mm512_xor_si512( y0, y4 );
+        x4 = mm512_swap128_64( x4 );
+        x3 = mm512_rol_32( tx1, 7 );
+        y3 = mm512_rol_32( ty1, 7 );
+        y4 = mm512_swap128_64( y4 );
+
+        x1 = _mm512_xor_si512( x1, x5 );
+        y1 = _mm512_xor_si512( y1, y5 );
+        x5 = mm512_swap128_64( x5 );
+        x2 = _mm512_xor_si512( x2, x6 );
+        y2 = _mm512_xor_si512( y2, y6 );
+        y5 = mm512_swap128_64( y5 );
+        x3 = _mm512_xor_si512( x3, x7 );
+        y3 = _mm512_xor_si512( y3, y7 );
+
+        x6 = mm512_swap128_64( x6 );
+        x4 = _mm512_add_epi32( x0, x4 );
+        y4 = _mm512_add_epi32( y0, y4 );
+        y6 = mm512_swap128_64( y6 );
+        x5 = _mm512_add_epi32( x1, x5 );
+        y5 = _mm512_add_epi32( y1, y5 );
+        x7 = mm512_swap128_64( x7 );
+        x6 = _mm512_add_epi32( x2, x6 );
+        y6 = _mm512_add_epi32( y2, y6 );
+        tx0 = x0;
+        ty0 = y0;
+        y7 = mm512_swap128_64( y7 );
+        tx1 = x2;
+        ty1 = y2;
+        x0 = mm512_rol_32( x1, 11 );
+        y0 = mm512_rol_32( y1, 11 );
+
+        x7 = _mm512_add_epi32( x3, x7 );
+        y7 = _mm512_add_epi32( y3, y7 );
+
+        x1 = mm512_rol_32( tx0, 11 );
+        y1 = mm512_rol_32( ty0, 11 );
+        x0 = _mm512_xor_si512( x0, x4 );
+        x4 = mm512_swap64_32( x4 );
+        y0 = _mm512_xor_si512( y0, y4 );
+        x2 = mm512_rol_32( x3, 11 );
+        y4 = mm512_swap64_32( y4 );
+        y2 = mm512_rol_32( y3, 11 );
+        x1 = _mm512_xor_si512( x1, x5 );
+        x5 = mm512_swap64_32( x5 );
+        y1 = _mm512_xor_si512( y1, y5 );
+        x3 = mm512_rol_32( tx1, 11 );
+        y5 = mm512_swap64_32( y5 );
+        y3 = mm512_rol_32( ty1, 11 );
+
+        x2 = _mm512_xor_si512( x2, x6 );
+        x6 = mm512_swap64_32( x6 );
+        y2 = _mm512_xor_si512( y2, y6 );
+        y6 = mm512_swap64_32( y6 );
+        x3 = _mm512_xor_si512( x3, x7 );
+        x7 = mm512_swap64_32( x7 );
+        y3 = _mm512_xor_si512( y3, y7 );
+
+        y7 = mm512_swap64_32( y7 );
+    }
+
+    _mm512_store_si512( (__m512i*)sp->h0,     x0 );
+    _mm512_store_si512( (__m512i*)sp->h0 + 1, x1 );
+    _mm512_store_si512( (__m512i*)sp->h0 + 2, x2 );
+    _mm512_store_si512( (__m512i*)sp->h0 + 3, x3 );
+    _mm512_store_si512( (__m512i*)sp->h0 + 4, x4 );
+    _mm512_store_si512( (__m512i*)sp->h0 + 5, x5 );
+    _mm512_store_si512( (__m512i*)sp->h0 + 6, x6 );
+    _mm512_store_si512( (__m512i*)sp->h0 + 7, x7 );
+
+    _mm512_store_si512( (__m512i*)sp->h1,     y0 );
+    _mm512_store_si512( (__m512i*)sp->h1 + 1, y1 );
+    _mm512_store_si512( (__m512i*)sp->h1 + 2, y2 );
+    _mm512_store_si512( (__m512i*)sp->h1 + 3, y3 );
+    _mm512_store_si512( (__m512i*)sp->h1 + 4, y4 );
+    _mm512_store_si512( (__m512i*)sp->h1 + 5, y5 );
+    _mm512_store_si512( (__m512i*)sp->h1 + 6, y6 );
+    _mm512_store_si512( (__m512i*)sp->h1 + 7, y7 );
+}
+
 int cube_4way_init( cube_4way_context *sp, int hashbitlen, int rounds,
                     int blockbytes )
 {
@@ -219,6 +351,67 @@ int cube_4way_full( cube_4way_context *sp, void *output,  int hashbitlen,
     return 0;
 }
 
+int cube_4way_2buf_full( cube_4way_2buf_context *sp,
+                         void *output0, void *output1, int hashbitlen,
+                         const void *data0, const void *data1, size_t size )
+{
+    __m512i *h0 = (__m512i*)sp->h0;
+    __m512i *h1 = (__m512i*)sp->h1;
+    __m128i *iv = (__m128i*)( hashbitlen == 512 ? (__m128i*)IV512
+                                                : (__m128i*)IV256 );
+    sp->hashlen   = hashbitlen/128;
+    sp->blocksize = 32/16;
+    sp->rounds    = 16;
+    sp->pos       = 0;
+
+    h1[0] = h0[0] = m512_const1_128( iv[0] );
+    h1[1] = h0[1] = m512_const1_128( iv[1] );
+    h1[2] = h0[2] = m512_const1_128( iv[2] );
+    h1[3] = h0[3] = m512_const1_128( iv[3] );
+    h1[4] = h0[4] = m512_const1_128( iv[4] );
+    h1[5] = h0[5] = m512_const1_128( iv[5] );
+    h1[6] = h0[6] = m512_const1_128( iv[6] );
+    h1[7] = h0[7] = m512_const1_128( iv[7] );
+
+    const int len = size >> 4;
+    const __m512i *in0 = (__m512i*)data0;
+    const __m512i *in1 = (__m512i*)data1;
+    __m512i *hash0 = (__m512i*)output0;
+    __m512i *hash1 = (__m512i*)output1;
+    int i;
+
+    for ( i = 0; i < len; i++ )
+    {
+        sp->h0[ sp->pos ] = _mm512_xor_si512( sp->h0[ sp->pos ], in0[i] );
+        sp->h1[ sp->pos ] = _mm512_xor_si512( sp->h1[ sp->pos ], in1[i] );
+        sp->pos++;
+        if ( sp->pos == sp->blocksize )
+        {
+           transform_4way_2buf( sp );
+           sp->pos = 0;
+        }
+    }
+
+    // pos is zero for 64 byte data, 1 for 80 byte data.
+    __m512i tmp = m512_const2_64( 0, 0x0000000000000080 );
+    sp->h0[ sp->pos ] = _mm512_xor_si512( sp->h0[ sp->pos ], tmp );
+    sp->h1[ sp->pos ] = _mm512_xor_si512( sp->h1[ sp->pos ], tmp );
+
+    transform_4way_2buf( sp );
+
+    tmp = m512_const2_64( 0x0000000100000000, 0 );
+    sp->h0[7] = _mm512_xor_si512( sp->h0[7], tmp );
+    sp->h1[7] = _mm512_xor_si512( sp->h1[7], tmp );
+
+    for ( i = 0; i < 10; ++i )
+       transform_4way_2buf( sp );
+
+    memcpy( hash0, sp->h0, sp->hashlen<<6);
+    memcpy( hash1, sp->h1, sp->hashlen<<6);
+
+    return 0;
+}
+
 
 int cube_4way_update_close( cube_4way_context *sp, void *output,
                                const void *data, size_t size )
@@ -259,6 +452,21 @@ int cube_4way_update_close( cube_4way_context *sp, void *output,
 
 // 2 way 128 
 
+// This isn't expected to be used with AVX512 so HW rotate intruction
+// is assumed not avaiable.
+// Use double buffering to optimize serial bit rotations. Full double
+// buffering isn't practical because it needs twice as many registers
+// with AVX2 having only half as many as AVX512.
+#define ROL2( out0, out1, in0, in1, c ) \
+{ \
+ __m256i t0 = _mm256_slli_epi32( in0, c ); \
+ __m256i t1 = _mm256_slli_epi32( in1, c ); \
+ out0 = _mm256_srli_epi32( in0, 32-(c) ); \
+ out1 = _mm256_srli_epi32( in1, 32-(c) ); \
+ out0 = _mm256_or_si256( out0, t0 ); \
+ out1 = _mm256_or_si256( out1, t1 ); \
+}
+
 static void transform_2way( cube_2way_context *sp )
 {
     int r;
@@ -283,35 +491,31 @@ static void transform_2way( cube_2way_context *sp )
         x7 = _mm256_add_epi32( x3, x7 );
         y0 = x0;
         y1 = x1;
-        x0 = mm256_rol_32( x2, 7 );
-        x1 = mm256_rol_32( x3, 7 );
-        x2 = mm256_rol_32( y0, 7 );
-        x3 = mm256_rol_32( y1, 7 );
+        ROL2( x0, x1, x2, x3, 7 );
+        ROL2( x2, x3, y0, y1, 7 );
         x0 = _mm256_xor_si256( x0, x4 );
-        x1 = _mm256_xor_si256( x1, x5 );
-        x2 = _mm256_xor_si256( x2, x6 );
-        x3 = _mm256_xor_si256( x3, x7 );
         x4 = mm256_swap128_64( x4 );
-        x5 = mm256_swap128_64( x5 );
-        x6 = mm256_swap128_64( x6 );
-        x7 = mm256_swap128_64( x7 );
-        x4 = _mm256_add_epi32( x0, x4 );
-        x5 = _mm256_add_epi32( x1, x5 );
-        x6 = _mm256_add_epi32( x2, x6 );
-        x7 = _mm256_add_epi32( x3, x7 );
-        y0 = x0;
-        y1 = x2;
-        x0 = mm256_rol_32( x1, 11 );
-        x1 = mm256_rol_32( y0, 11 );
-        x2 = mm256_rol_32( x3, 11 );
-        x3 = mm256_rol_32( y1, 11 );
-        x0 = _mm256_xor_si256( x0, x4 );
         x1 = _mm256_xor_si256( x1, x5 );
         x2 = _mm256_xor_si256( x2, x6 );
+        x5 = mm256_swap128_64( x5 );
         x3 = _mm256_xor_si256( x3, x7 );
+        x4 = _mm256_add_epi32( x0, x4 );
+        x6 = mm256_swap128_64( x6 );
+        y0 = x0;
+        x5 = _mm256_add_epi32( x1, x5 );
+        x7 = mm256_swap128_64( x7 );
+        x6 = _mm256_add_epi32( x2, x6 );
+        y1 = x2;
+        ROL2( x0, x1, x1, y0, 11 );
+        x7 = _mm256_add_epi32( x3, x7 );
+        ROL2( x2, x3, x3, y1, 11 );
+        x0 = _mm256_xor_si256( x0, x4 );
         x4 = mm256_swap64_32( x4 );
+        x1 = _mm256_xor_si256( x1, x5 );
         x5 = mm256_swap64_32( x5 );
+        x2 = _mm256_xor_si256( x2, x6 );
         x6 = mm256_swap64_32( x6 );
+        x3 = _mm256_xor_si256( x3, x7 );
         x7 = mm256_swap64_32( x7 );
     }
 

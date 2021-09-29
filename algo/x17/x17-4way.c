@@ -37,7 +37,8 @@ union _x17_8way_context_overlay
     jh512_8way_context      jh;
     keccak512_8way_context  keccak;
     luffa_4way_context      luffa;
-    cube_4way_context       cube;
+//    cube_4way_context       cube;
+    cube_4way_2buf_context   cube;
 #if defined(__VAES__)
     groestl512_4way_context groestl;
     shavite512_4way_context shavite;
@@ -119,8 +120,10 @@ int x17_8way_hash( void *state, const void *input, int thr_id )
      luffa512_4way_full( &ctx.luffa, vhashA, vhashA, 64 );
      luffa512_4way_full( &ctx.luffa, vhashB, vhashB, 64 );
 
-     cube_4way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
-     cube_4way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
+     cube_4way_2buf_full( &ctx.cube, vhashA, vhashB, 512, vhashA, vhashB, 64 );
+     
+//     cube_4way_full( &ctx.cube, vhashA, 512, vhashA, 64 );
+//     cube_4way_full( &ctx.cube, vhashB, 512, vhashB, 64 );
 
 #if defined(__VAES__)
 

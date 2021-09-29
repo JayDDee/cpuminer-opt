@@ -27,14 +27,11 @@
  * coin.
  */
 #include "yespower.h"
-
 #include "algo-gate-api.h"
 
 yespower_params_t yespower_params;
 
-//SHA256_CTX sha256_prehash_ctx;
-__thread sph_sha256_context sha256_prehash_ctx;
-//__thread SHA256_CTX sha256_prehash_ctx;
+__thread sha256_context sha256_prehash_ctx;
 
 // YESPOWER
 
@@ -61,8 +58,8 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
    endiandata[19] = n;
 
    // do sha256 prehash
-   sph_sha256_init( &sha256_prehash_ctx );
-   sph_sha256( &sha256_prehash_ctx, endiandata, 64 );
+   sha256_ctx_init( &sha256_prehash_ctx );
+   sha256_update( &sha256_prehash_ctx, endiandata, 64 );
 
    do {
       if ( yespower_hash( (char*)endiandata, (char*)vhash, 80, thr_id ) )
@@ -100,10 +97,6 @@ int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
    for ( int k = 0; k < 19; k++ )
       be32enc( &endiandata[k], pdata[k] );
    endiandata[19] = n;
-
-   // do sha256 prehash
-   sph_sha256_init( &sha256_prehash_ctx );
-   sph_sha256( &sha256_prehash_ctx, endiandata, 64 );
 
    do {
       if (yespower_b2b_hash( (char*) endiandata, (char*) vhash, 80, thr_id ) )

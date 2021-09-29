@@ -66,13 +66,13 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 
 #define LYRA_ROUND_2WAY_AVX512( s0, s1, s2, s3 ) \
    G2W_4X64( s0, s1, s2, s3 ); \
-   s1 = mm512_ror256_64( s1); \
+   s3 = mm512_shufll256_64( s3 ); \
+   s1 = mm512_shuflr256_64( s1); \
    s2 = mm512_swap256_128( s2 ); \
-   s3 = mm512_rol256_64( s3 ); \
    G2W_4X64( s0, s1, s2, s3 ); \
-   s1 = mm512_rol256_64( s1 ); \
-   s2 = mm512_swap256_128( s2 ); \
-   s3 = mm512_ror256_64( s3 );
+   s3 = mm512_shuflr256_64( s3 ); \
+   s1 = mm512_shufll256_64( s1 ); \
+   s2 = mm512_swap256_128( s2 ); 
 
 #define LYRA_12_ROUNDS_2WAY_AVX512( s0, s1, s2, s3 ) \
    LYRA_ROUND_2WAY_AVX512( s0, s1, s2, s3 ) \
@@ -107,13 +107,13 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 
 #define LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
    G_4X64( s0, s1, s2, s3 ); \
-   s1 = mm256_ror_1x64( s1); \
+   s3 = mm256_shufll_64( s3 ); \
+   s1 = mm256_shuflr_64( s1); \
    s2 = mm256_swap_128( s2 ); \
-   s3 = mm256_rol_1x64( s3 ); \
    G_4X64( s0, s1, s2, s3 ); \
-   s1 = mm256_rol_1x64( s1 ); \
-   s2 = mm256_swap_128( s2 ); \
-   s3 = mm256_ror_1x64( s3 );
+   s3 = mm256_shuflr_64( s3 ); \
+   s1 = mm256_shufll_64( s1 ); \
+   s2 = mm256_swap_128( s2 );
 
 #define LYRA_12_ROUNDS_AVX2( s0, s1, s2, s3 ) \
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
@@ -148,14 +148,14 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 #define LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
    G_2X64( s0, s2, s4, s6 ); \
    G_2X64( s1, s3, s5, s7 ); \
-   mm128_ror256_64( s2, s3 ); \
+   mm128_vrol256_64( s6, s7 ); \
+   mm128_vror256_64( s2, s3 ); \
    mm128_swap256_128( s4, s5 ); \
-   mm128_rol256_64( s6, s7 ); \
    G_2X64( s0, s2, s4, s6 ); \
    G_2X64( s1, s3, s5, s7 ); \
-   mm128_rol256_64( s2, s3 ); \
-   mm128_swap256_128( s4, s5 ); \
-   mm128_ror256_64( s6, s7 );
+   mm128_vror256_64( s6, s7 ); \
+   mm128_vrol256_64( s2, s3 ); \
+   mm128_swap256_128( s4, s5 );
 
 #define LYRA_12_ROUNDS_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
    LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \

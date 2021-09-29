@@ -5,10 +5,19 @@
 #define bswap_64( a ) __builtin_bswap64( a )
 #define bswap_32( a ) __builtin_bswap32( a )
 
-// safe division, integer or floating point
+// Safe division, integer or floating point. For floating point it's as  
+// safe as 0. is precisely zero.
+// Returns safe_result if division by zero.
 #define safe_div( dividend, divisor, safe_result ) \
    ( (divisor) == 0 ? safe_result : ( (dividend) / (divisor) )  )
 
+// Aliases with familiar names for built in bit rotate instructions
+#define rol64( a, n )   _lrotl( a, n )  
+#define ror64( a, n )   _lrotr( a, n )
+#define rol32( a, n )   _rotl( a, n )
+#define ror32( a, n )   _rotr( a, n )
+#define rol16( a, n )   _rotwl( a, n )
+#define ror16( a, n )   _rotwr( a, n )
 
 ///////////////////////////////////////
 // 
@@ -29,12 +38,14 @@
 // __m256i v256 = _mm256_set_m128i( (__m128i)my_int128, (__m128i)my_int128 );
 // my_int128 = (uint128_t)_mm256_extracti128_si256( v256, 1 );
 
+// obsolete test
 // Compiler check for __int128 support
 // Configure also has a test for int128.
 #if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
   #define GCC_INT128 1
 #endif
 
+// obsolte test
 #if !defined(GCC_INT128)
   #warning "__int128 not supported, requires GCC-4.8 or newer."
 #endif

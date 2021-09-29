@@ -218,7 +218,7 @@ static inline void cpu_getname(char *outbuf, size_t maxsz)
       for (int i = 2; i <= (ext & 0xF); i++)
       {
          cpuid(0x80000000+i, output);
-	 memcpy(&brand[(i-2) * 4*sizeof(int)], output, 4*sizeof(int));
+         memcpy(&brand[(i-2) * 4*sizeof(int)], output, 4*sizeof(int));
       }
       snprintf(outbuf, maxsz, "%s", brand);
    }

@@ -3,14 +3,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha256-hash.h"
 
-static __thread sph_sha256_context sha256q_ctx __attribute__ ((aligned (64)));
+static __thread sha256_context sha256q_ctx __attribute__ ((aligned (64)));
 
 void sha256q_midstate( const void* input )
 {
-   sph_sha256_init( &sha256q_ctx );
-   sph_sha256( &sha256q_ctx, input, 64 );
+   sha256_ctx_init( &sha256q_ctx );
+   sha256_update( &sha256q_ctx, input, 64 );
 }
 
 int sha256q_hash( void* output, const void* input )
@@ -19,24 +19,16 @@ int sha256q_hash( void* output, const void* input )
    const int midlen = 64;            // bytes
    const int tail   = 80 - midlen;   // 16
 
-   sph_sha256_context ctx __attribute__ ((aligned (64)));
+   sha256_context ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &sha256q_ctx, sizeof sha256q_ctx );
 
-   sph_sha256( &ctx, input + midlen, tail );
-   sph_sha256_close( &ctx, hash );
+   sha256_update( &ctx, input + midlen, tail );
+   sha256_final( &ctx, hash );
 
-   sph_sha256_init( &ctx );
-   sph_sha256( &ctx, hash, 32 );
-   sph_sha256_close( &ctx, hash );
-
-   sph_sha256_init( &ctx );
-   sph_sha256( &ctx, hash, 32 );
-   sph_sha256_close( &ctx, hash );
-
-   sph_sha256_init( &ctx );
-   sph_sha256( &ctx, hash, 32 );
-   sph_sha256_close( &ctx, output );
-
+   sha256_full( hash,   hash, 32 );
+   sha256_full( hash,   hash, 32 );
+   sha256_full( output, hash, 32 );
+   
    return 1;
 }
 

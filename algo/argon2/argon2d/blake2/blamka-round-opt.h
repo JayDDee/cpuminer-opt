@@ -328,7 +328,7 @@ static BLAKE2_INLINE __m128i fBlaMka(__m128i x, __m128i y) {
 
 #include <immintrin.h>
 
-#define ror64(x, n) _mm512_ror_epi64((x), (n))
+#define ROR64(x, n) _mm512_ror_epi64((x), (n))
 
 static __m512i muladd(__m512i x, __m512i y)
 {
@@ -344,8 +344,8 @@ static __m512i muladd(__m512i x, __m512i y)
         D0 = _mm512_xor_si512(D0, A0); \
         D1 = _mm512_xor_si512(D1, A1); \
 \
-        D0 = ror64(D0, 32); \
-        D1 = ror64(D1, 32); \
+        D0 = ROR64(D0, 32); \
+        D1 = ROR64(D1, 32); \
 \
         C0 = muladd(C0, D0); \
         C1 = muladd(C1, D1); \
@@ -353,8 +353,8 @@ static __m512i muladd(__m512i x, __m512i y)
         B0 = _mm512_xor_si512(B0, C0); \
         B1 = _mm512_xor_si512(B1, C1); \
 \
-        B0 = ror64(B0, 24); \
-        B1 = ror64(B1, 24); \
+        B0 = ROR64(B0, 24); \
+        B1 = ROR64(B1, 24); \
     } while ((void)0, 0)
 
 #define G2(A0, B0, C0, D0, A1, B1, C1, D1) \
@@ -365,8 +365,8 @@ static __m512i muladd(__m512i x, __m512i y)
         D0 = _mm512_xor_si512(D0, A0); \
         D1 = _mm512_xor_si512(D1, A1); \
 \
-        D0 = ror64(D0, 16); \
-        D1 = ror64(D1, 16); \
+        D0 = ROR64(D0, 16); \
+        D1 = ROR64(D1, 16); \
 \
         C0 = muladd(C0, D0); \
         C1 = muladd(C1, D1); \
@@ -374,8 +374,8 @@ static __m512i muladd(__m512i x, __m512i y)
         B0 = _mm512_xor_si512(B0, C0); \
         B1 = _mm512_xor_si512(B1, C1); \
 \
-        B0 = ror64(B0, 63); \
-        B1 = ror64(B1, 63); \
+        B0 = ROR64(B0, 63); \
+        B1 = ROR64(B1, 63); \
     } while ((void)0, 0)
 
 #define DIAGONALIZE(A0, B0, C0, D0, A1, B1, C1, D1) \

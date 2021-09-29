@@ -1,5 +1,6 @@
 #include "keccak-gate.h"
 #include "sph_keccak.h"
+#include "algo/sha/sha256d.h"
 
 int hard_coded_eb = 1;
 

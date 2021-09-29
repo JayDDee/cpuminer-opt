@@ -594,22 +594,15 @@ void bmw512_2way_close( bmw_2way_big_context *ctx, void *dst )
 #define rb6(x)    mm256_rol_64( x, 43 ) 
 #define rb7(x)    mm256_rol_64( x, 53 ) 
 
-#define rol_off_64( M, j, off ) \
-   mm256_rol_64( M[ ( (j) + (off) ) & 0xF ] , \
-                  ( ( (j) + (off) ) & 0xF ) + 1 )
+#define rol_off_64( M, j ) \
+   mm256_rol_64( M[ (j) & 0xF ], ( (j) & 0xF ) + 1 )
 
-#define add_elt_b( M, H, j ) \
-   _mm256_xor_si256( \
-      _mm256_add_epi64( \
-            _mm256_sub_epi64( _mm256_add_epi64( rol_off_64( M, j, 0 ), \
-                                                rol_off_64( M, j, 3 ) ), \
-                             rol_off_64( M, j, 10 ) ), \
-            _mm256_set1_epi64x( ( (j) + 16 ) * 0x0555555555555555ULL ) ), \
-       H[ ( (j)+7 ) & 0xF ] )
+#define add_elt_b( mj0, mj3, mj10, h, K ) \
+  _mm256_xor_si256( h, _mm256_add_epi64( K, \
+              _mm256_sub_epi64( _mm256_add_epi64( mj0, mj3 ), mj10 ) ) )
 
-
-#define expand1b( qt, M, H, i ) \
-   _mm256_add_epi64( mm256_add4_64( \
+#define expand1_b( qt, i ) \
+   mm256_add4_64( \
       mm256_add4_64( sb1( qt[ (i)-16 ] ), sb2( qt[ (i)-15 ] ), \
                      sb3( qt[ (i)-14 ] ), sb0( qt[ (i)-13 ] )), \
       mm256_add4_64( sb1( qt[ (i)-12 ] ), sb2( qt[ (i)-11 ] ), \
@@ -617,11 +610,10 @@ void bmw512_2way_close( bmw_2way_big_context *ctx, void *dst )
       mm256_add4_64( sb1( qt[ (i)- 8 ] ), sb2( qt[ (i)- 7 ] ), \
                      sb3( qt[ (i)- 6 ] ), sb0( qt[ (i)- 5 ] )), \
       mm256_add4_64( sb1( qt[ (i)- 4 ] ), sb2( qt[ (i)- 3 ] ), \
-                     sb3( qt[ (i)- 2 ] ), sb0( qt[ (i)- 1 ] ) ) ), \
-      add_elt_b( M, H, (i)-16 ) )
+                     sb3( qt[ (i)- 2 ] ), sb0( qt[ (i)- 1 ] ) ) )
 
-#define expand2b( qt, M, H, i) \
-   _mm256_add_epi64( mm256_add4_64( \
+#define expand2_b( qt, i) \
+   mm256_add4_64( \
       mm256_add4_64( qt[ (i)-16 ], rb1( qt[ (i)-15 ] ), \
                      qt[ (i)-14 ], rb2( qt[ (i)-13 ] ) ), \
       mm256_add4_64( qt[ (i)-12 ], rb3( qt[ (i)-11 ] ), \
@@ -629,159 +621,98 @@ void bmw512_2way_close( bmw_2way_big_context *ctx, void *dst )
       mm256_add4_64( qt[ (i)- 8 ], rb5( qt[ (i)- 7 ] ), \
                      qt[ (i)- 6 ], rb6( qt[ (i)- 5 ] ) ), \
       mm256_add4_64( qt[ (i)- 4 ], rb7( qt[ (i)- 3 ] ), \
-                     sb4( qt[ (i)- 2 ] ), sb5( qt[ (i)- 1 ] ) ) ), \
-      add_elt_b( M, H, (i)-16 ) )
-
-
+                     sb4( qt[ (i)- 2 ] ), sb5( qt[ (i)- 1 ] ) ) )
 
 #define Wb0 \
    _mm256_add_epi64( \
-      _mm256_add_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 5], H[ 5] ), \
-                           _mm256_xor_si256( M[ 7], H[ 7] ) ), \
-         _mm256_xor_si256( M[10], H[10] ) ), \
-      _mm256_add_epi64( _mm256_xor_si256( M[13], H[13] ), \
-                        _mm256_xor_si256( M[14], H[14] ) ) )
+      _mm256_add_epi64( _mm256_sub_epi64( mh[ 5], mh[ 7] ), mh[10] ), \
+      _mm256_add_epi64( mh[13], mh[14] ) )
 
 #define Wb1 \
    _mm256_add_epi64( \
-       _mm256_add_epi64( \
-          _mm256_sub_epi64( _mm256_xor_si256( M[ 6], H[ 6] ), \
-                            _mm256_xor_si256( M[ 8], H[ 8] ) ), \
-          _mm256_xor_si256( M[11], H[11] ) ), \
-       _mm256_sub_epi64( _mm256_xor_si256( M[14], H[14] ), \
-                         _mm256_xor_si256( M[15], H[15] ) ) )
+       _mm256_add_epi64( _mm256_sub_epi64( mh[ 6], mh[ 8] ), mh[11] ), \
+       _mm256_sub_epi64( mh[14], mh[15] ) )
 
 #define Wb2 \
    _mm256_sub_epi64( \
-      _mm256_add_epi64( \
-         _mm256_add_epi64( _mm256_xor_si256( M[ 0], H[ 0] ), \
-                           _mm256_xor_si256( M[ 7], H[ 7] ) ), \
-         _mm256_xor_si256( M[ 9], H[ 9] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[12], H[12] ), \
-                        _mm256_xor_si256( M[15], H[15] ) ) )
+      _mm256_add_epi64( _mm256_add_epi64( mh[ 0], mh[ 7] ), mh[ 9] ), \
+      _mm256_sub_epi64( mh[12], mh[15] ) )
 
 #define Wb3 \
    _mm256_sub_epi64( \
-      _mm256_add_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 0], H[ 0] ), \
-                           _mm256_xor_si256( M[ 1], H[ 1] ) ), \
-         _mm256_xor_si256( M[ 8], H[ 8] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[10], H[10] ), \
-                        _mm256_xor_si256( M[13], H[13] ) ) )
+      _mm256_add_epi64( _mm256_sub_epi64( mh[ 0], mh[ 1] ), mh[ 8] ), \
+      _mm256_sub_epi64( mh[10], \
+                        mh[13] ) )
 
 #define Wb4 \
    _mm256_sub_epi64( \
-      _mm256_add_epi64( \
-         _mm256_add_epi64( _mm256_xor_si256( M[ 1], H[ 1] ), \
-                           _mm256_xor_si256( M[ 2], H[ 2] ) ), \
-         _mm256_xor_si256( M[ 9], H[ 9] ) ), \
-      _mm256_add_epi64( _mm256_xor_si256( M[11], H[11] ), \
-                        _mm256_xor_si256( M[14], H[14] ) ) )
+      _mm256_add_epi64( _mm256_add_epi64( mh[ 1], mh[ 2] ), mh[ 9] ), \
+      _mm256_add_epi64( mh[11], mh[14] ) )
 
 #define Wb5 \
    _mm256_sub_epi64( \
-      _mm256_add_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 3], H[ 3] ), \
-                           _mm256_xor_si256( M[ 2], H[ 2] ) ), \
-         _mm256_xor_si256( M[10], H[10] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[12], H[12] ), \
-                        _mm256_xor_si256( M[15], H[15] ) ) )
+      _mm256_add_epi64( _mm256_sub_epi64( mh[ 3], mh[ 2] ), mh[10] ), \
+      _mm256_sub_epi64( mh[12], mh[15] ) )
 
 #define Wb6 \
    _mm256_sub_epi64( \
-      _mm256_sub_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 4], H[ 4] ), \
-                           _mm256_xor_si256( M[ 0], H[ 0] ) ), \
-         _mm256_xor_si256( M[ 3], H[ 3] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[11], H[11] ), \
-                        _mm256_xor_si256( M[13], H[13] ) ) )
+      _mm256_sub_epi64( _mm256_sub_epi64( mh[ 4], mh[ 0] ), mh[ 3] ), \
+      _mm256_sub_epi64( mh[11], mh[13] ) )
 
 #define Wb7 \
    _mm256_sub_epi64( \
-      _mm256_sub_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 1], H[ 1] ), \
-                           _mm256_xor_si256( M[ 4], H[ 4] ) ), \
-         _mm256_xor_si256( M[ 5], H[ 5] ) ), \
-      _mm256_add_epi64( _mm256_xor_si256( M[12], H[12] ), \
-                        _mm256_xor_si256( M[14], H[14] ) ) )
+      _mm256_sub_epi64( _mm256_sub_epi64( mh[ 1], mh[ 4] ), mh[ 5] ), \
+      _mm256_add_epi64( mh[12], mh[14] ) )
 
 #define Wb8 \
    _mm256_add_epi64( \
-      _mm256_sub_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 2], H[ 2] ), \
-                           _mm256_xor_si256( M[ 5], H[ 5] ) ), \
-         _mm256_xor_si256( M[ 6], H[ 6] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[13], H[13] ), \
-                        _mm256_xor_si256( M[15], H[15] ) ) )
+      _mm256_sub_epi64( _mm256_sub_epi64( mh[ 2], mh[ 5] ), mh[ 6] ), \
+      _mm256_sub_epi64( mh[13], mh[15] ) )
 
 #define Wb9 \
    _mm256_sub_epi64( \
-      _mm256_add_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 0], H[ 0] ), \
-                           _mm256_xor_si256( M[ 3], H[ 3] ) ), \
-         _mm256_xor_si256( M[ 6], H[ 6] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[ 7], H[ 7] ), \
-                        _mm256_xor_si256( M[14], H[14] ) ) )
+      _mm256_add_epi64( _mm256_sub_epi64( mh[ 0], mh[ 3] ), mh[ 6] ), \
+      _mm256_sub_epi64( mh[ 7], mh[14] ) )
 
 #define Wb10 \
    _mm256_sub_epi64( \
-      _mm256_sub_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 8], H[ 8] ), \
-                           _mm256_xor_si256( M[ 1], H[ 1] ) ), \
-         _mm256_xor_si256( M[ 4], H[ 4] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[ 7], H[ 7] ), \
-                        _mm256_xor_si256( M[15], H[15] ) ) )
+      _mm256_sub_epi64( _mm256_sub_epi64( mh[ 8], mh[ 1] ), mh[ 4] ), \
+      _mm256_sub_epi64( mh[ 7], mh[15] ) )
 
 #define Wb11 \
    _mm256_sub_epi64( \
-      _mm256_sub_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 8], H[ 8] ), \
-                           _mm256_xor_si256( M[ 0], H[ 0] ) ), \
-         _mm256_xor_si256( M[ 2], H[ 2] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[ 5], H[ 5] ), \
-                        _mm256_xor_si256( M[ 9], H[ 9] ) ) )
+      _mm256_sub_epi64( _mm256_sub_epi64( mh[ 8], mh[ 0] ), mh[ 2] ), \
+      _mm256_sub_epi64( mh[ 5], mh[ 9] ) )
 
 #define Wb12 \
    _mm256_sub_epi64( \
-      _mm256_sub_epi64( \
-         _mm256_add_epi64( _mm256_xor_si256( M[ 1], H[ 1] ), \
-                           _mm256_xor_si256( M[ 3], H[ 3] ) ), \
-         _mm256_xor_si256( M[ 6], H[ 6] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[ 9], H[ 9] ), \
-                        _mm256_xor_si256( M[10], H[10] ) ) )
+      _mm256_sub_epi64( _mm256_add_epi64( mh[ 1], mh[ 3] ), mh[ 6] ), \
+      _mm256_sub_epi64( mh[ 9], mh[10] ) )
 
 #define Wb13 \
    _mm256_add_epi64( \
-      _mm256_add_epi64( \
-         _mm256_add_epi64( _mm256_xor_si256( M[ 2], H[ 2] ), \
-                           _mm256_xor_si256( M[ 4], H[ 4] ) ), \
-         _mm256_xor_si256( M[ 7], H[ 7] ) ), \
-      _mm256_add_epi64( _mm256_xor_si256( M[10], H[10] ), \
-                        _mm256_xor_si256( M[11], H[11] ) ) )
+      _mm256_add_epi64( _mm256_add_epi64( mh[ 2], mh[ 4] ), mh[ 7] ), \
+      _mm256_add_epi64( mh[10], mh[11] ) )
 
 #define Wb14 \
    _mm256_sub_epi64( \
-      _mm256_add_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[ 3], H[ 3] ), \
-                           _mm256_xor_si256( M[ 5], H[ 5] ) ), \
-         _mm256_xor_si256( M[ 8], H[ 8] ) ), \
-      _mm256_add_epi64( _mm256_xor_si256( M[11], H[11] ), \
-                        _mm256_xor_si256( M[12], H[12] ) ) )
+      _mm256_add_epi64( _mm256_sub_epi64( mh[ 3], mh[ 5] ), mh[ 8] ), \
+      _mm256_add_epi64( mh[11], mh[12] ) )
 
 #define Wb15 \
    _mm256_sub_epi64( \
-      _mm256_sub_epi64( \
-         _mm256_sub_epi64( _mm256_xor_si256( M[12], H[12] ), \
-                           _mm256_xor_si256( M[ 4], H[4] ) ), \
-         _mm256_xor_si256( M[ 6], H[ 6] ) ), \
-      _mm256_sub_epi64( _mm256_xor_si256( M[ 9], H[ 9] ), \
-                        _mm256_xor_si256( M[13], H[13] ) ) )
+      _mm256_sub_epi64( _mm256_sub_epi64( mh[12], mh[ 4] ), mh[ 6] ), \
+      _mm256_sub_epi64( mh[ 9], mh[13] ) )
 
 
 void compress_big( const __m256i *M, const __m256i H[16], __m256i dH[16] )
 {
    __m256i qt[32], xl, xh;
+   __m256i mh[16];
+   int i;
+
+   for ( i = 0; i < 16; i++ )
+      mh[i] = _mm256_xor_si256( M[i], H[i] );
 
    qt[ 0] = _mm256_add_epi64( sb0( Wb0 ), H[ 1] ); 
    qt[ 1] = _mm256_add_epi64( sb1( Wb1 ), H[ 2] ); 
@@ -799,22 +730,60 @@ void compress_big( const __m256i *M, const __m256i H[16], __m256i dH[16] )
    qt[13] = _mm256_add_epi64( sb3( Wb13), H[14] );
    qt[14] = _mm256_add_epi64( sb4( Wb14), H[15] ); 
    qt[15] = _mm256_add_epi64( sb0( Wb15), H[ 0] ); 
-   qt[16] = expand1b( qt, M, H, 16 ); 
-   qt[17] = expand1b( qt, M, H, 17 ); 
-   qt[18] = expand2b( qt, M, H, 18 ); 
-   qt[19] = expand2b( qt, M, H, 19 ); 
-   qt[20] = expand2b( qt, M, H, 20 ); 
-   qt[21] = expand2b( qt, M, H, 21 ); 
-   qt[22] = expand2b( qt, M, H, 22 ); 
-   qt[23] = expand2b( qt, M, H, 23 ); 
-   qt[24] = expand2b( qt, M, H, 24 ); 
-   qt[25] = expand2b( qt, M, H, 25 ); 
-   qt[26] = expand2b( qt, M, H, 26 ); 
-   qt[27] = expand2b( qt, M, H, 27 ); 
-   qt[28] = expand2b( qt, M, H, 28 ); 
-   qt[29] = expand2b( qt, M, H, 29 ); 
-   qt[30] = expand2b( qt, M, H, 30 ); 
-   qt[31] = expand2b( qt, M, H, 31 ); 
+
+   __m256i mj[16];
+   for ( i = 0; i < 16; i++ )
+      mj[i] = rol_off_64( M, i );
+
+   qt[16] = add_elt_b( mj[ 0], mj[ 3], mj[10], H[ 7],
+              (const __m256i)_mm256_set1_epi64x( 16 * 0x0555555555555555ULL ) );
+   qt[17] = add_elt_b( mj[ 1], mj[ 4], mj[11], H[ 8],
+              (const __m256i)_mm256_set1_epi64x( 17 * 0x0555555555555555ULL ) );
+   qt[18] = add_elt_b( mj[ 2], mj[ 5], mj[12], H[ 9],
+              (const __m256i)_mm256_set1_epi64x( 18 * 0x0555555555555555ULL ) );
+   qt[19] = add_elt_b( mj[ 3], mj[ 6], mj[13], H[10],
+              (const __m256i)_mm256_set1_epi64x( 19 * 0x0555555555555555ULL ) );
+   qt[20] = add_elt_b( mj[ 4], mj[ 7], mj[14], H[11],
+              (const __m256i)_mm256_set1_epi64x( 20 * 0x0555555555555555ULL ) );
+   qt[21] = add_elt_b( mj[ 5], mj[ 8], mj[15], H[12],
+              (const __m256i)_mm256_set1_epi64x( 21 * 0x0555555555555555ULL ) );
+   qt[22] = add_elt_b( mj[ 6], mj[ 9], mj[ 0], H[13],
+              (const __m256i)_mm256_set1_epi64x( 22 * 0x0555555555555555ULL ) );
+   qt[23] = add_elt_b( mj[ 7], mj[10], mj[ 1], H[14],
+              (const __m256i)_mm256_set1_epi64x( 23 * 0x0555555555555555ULL ) );
+   qt[24] = add_elt_b( mj[ 8], mj[11], mj[ 2], H[15],
+              (const __m256i)_mm256_set1_epi64x( 24 * 0x0555555555555555ULL ) );
+   qt[25] = add_elt_b( mj[ 9], mj[12], mj[ 3], H[ 0],
+              (const __m256i)_mm256_set1_epi64x( 25 * 0x0555555555555555ULL ) );
+   qt[26] = add_elt_b( mj[10], mj[13], mj[ 4], H[ 1],
+              (const __m256i)_mm256_set1_epi64x( 26 * 0x0555555555555555ULL ) );
+   qt[27] = add_elt_b( mj[11], mj[14], mj[ 5], H[ 2],
+              (const __m256i)_mm256_set1_epi64x( 27 * 0x0555555555555555ULL ) );
+   qt[28] = add_elt_b( mj[12], mj[15], mj[ 6], H[ 3],
+              (const __m256i)_mm256_set1_epi64x( 28 * 0x0555555555555555ULL ) );
+   qt[29] = add_elt_b( mj[13], mj[ 0], mj[ 7], H[ 4],
+              (const __m256i)_mm256_set1_epi64x( 29 * 0x0555555555555555ULL ) );
+   qt[30] = add_elt_b( mj[14], mj[ 1], mj[ 8], H[ 5],
+              (const __m256i)_mm256_set1_epi64x( 30 * 0x0555555555555555ULL ) );
+   qt[31] = add_elt_b( mj[15], mj[ 2], mj[ 9], H[ 6],
+              (const __m256i)_mm256_set1_epi64x( 31 * 0x0555555555555555ULL ) );
+
+   qt[16] = _mm256_add_epi64( qt[16], expand1_b( qt, 16 ) );
+   qt[17] = _mm256_add_epi64( qt[17], expand1_b( qt, 17 ) );
+   qt[18] = _mm256_add_epi64( qt[18], expand2_b( qt, 18 ) );
+   qt[19] = _mm256_add_epi64( qt[19], expand2_b( qt, 19 ) );
+   qt[20] = _mm256_add_epi64( qt[20], expand2_b( qt, 20 ) );
+   qt[21] = _mm256_add_epi64( qt[21], expand2_b( qt, 21 ) );
+   qt[22] = _mm256_add_epi64( qt[22], expand2_b( qt, 22 ) );
+   qt[23] = _mm256_add_epi64( qt[23], expand2_b( qt, 23 ) );
+   qt[24] = _mm256_add_epi64( qt[24], expand2_b( qt, 24 ) );
+   qt[25] = _mm256_add_epi64( qt[25], expand2_b( qt, 25 ) );
+   qt[26] = _mm256_add_epi64( qt[26], expand2_b( qt, 26 ) );
+   qt[27] = _mm256_add_epi64( qt[27], expand2_b( qt, 27 ) );
+   qt[28] = _mm256_add_epi64( qt[28], expand2_b( qt, 28 ) );
+   qt[29] = _mm256_add_epi64( qt[29], expand2_b( qt, 29 ) );
+   qt[30] = _mm256_add_epi64( qt[30], expand2_b( qt, 30 ) );
+   qt[31] = _mm256_add_epi64( qt[31], expand2_b( qt, 31 ) );
 
    xl = _mm256_xor_si256(
            mm256_xor4( qt[16], qt[17], qt[18], qt[19] ), 
@@ -822,7 +791,6 @@ void compress_big( const __m256i *M, const __m256i H[16], __m256i dH[16] )
    xh = _mm256_xor_si256( xl, _mm256_xor_si256( 
            mm256_xor4( qt[24], qt[25], qt[26], qt[27] ),
            mm256_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
-
 
 #define DH1L( m, sl, sr, a, b, c ) \
    _mm256_add_epi64( \
@@ -1066,21 +1034,15 @@ bmw512_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 #define r8b6(x)    mm512_rol_64( x, 43 )
 #define r8b7(x)    mm512_rol_64( x, 53 )
 
-#define rol8w_off_64( M, j, off ) \
-   mm512_rol_64( M[ ( (j) + (off) ) & 0xF ] , \
-                  ( ( (j) + (off) ) & 0xF ) + 1 )
+#define rol8w_off_64( M, j ) \
+   mm512_rol_64( M[ (j) & 0xF ], ( (j) & 0xF ) + 1 )
 
-#define add_elt_b8( M, H, j ) \
-   _mm512_xor_si512( \
-      _mm512_add_epi64( \
-            _mm512_sub_epi64( _mm512_add_epi64( rol8w_off_64( M, j, 0 ), \
-                                                rol8w_off_64( M, j, 3 ) ), \
-                             rol8w_off_64( M, j, 10 ) ), \
-            _mm512_set1_epi64( ( (j) + 16 ) * 0x0555555555555555ULL ) ), \
-       H[ ( (j)+7 ) & 0xF ] )
+#define add_elt_b8( mj0, mj3, mj10, h, K ) \
+  _mm512_xor_si512( h, _mm512_add_epi64( K, \
+              _mm512_sub_epi64( _mm512_add_epi64( mj0, mj3 ), mj10 ) ) )
 
-#define expand1b8( qt, M, H, i ) \
-   _mm512_add_epi64( mm512_add4_64( \
+#define expand1_b8( qt, i ) \
+   mm512_add4_64( \
       mm512_add4_64( s8b1( qt[ (i)-16 ] ), s8b2( qt[ (i)-15 ] ), \
                      s8b3( qt[ (i)-14 ] ), s8b0( qt[ (i)-13 ] )), \
       mm512_add4_64( s8b1( qt[ (i)-12 ] ), s8b2( qt[ (i)-11 ] ), \
@@ -1088,11 +1050,10 @@ bmw512_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
       mm512_add4_64( s8b1( qt[ (i)- 8 ] ), s8b2( qt[ (i)- 7 ] ), \
                      s8b3( qt[ (i)- 6 ] ), s8b0( qt[ (i)- 5 ] )), \
       mm512_add4_64( s8b1( qt[ (i)- 4 ] ), s8b2( qt[ (i)- 3 ] ), \
-                     s8b3( qt[ (i)- 2 ] ), s8b0( qt[ (i)- 1 ] ) ) ), \
-      add_elt_b8( M, H, (i)-16 ) )
+                     s8b3( qt[ (i)- 2 ] ), s8b0( qt[ (i)- 1 ] ) ) )
 
-#define expand2b8( qt, M, H, i) \
-   _mm512_add_epi64( mm512_add4_64( \
+#define expand2_b8( qt, i) \
+   mm512_add4_64( \
       mm512_add4_64( qt[ (i)-16 ], r8b1( qt[ (i)-15 ] ), \
                      qt[ (i)-14 ], r8b2( qt[ (i)-13 ] ) ), \
       mm512_add4_64( qt[ (i)-12 ], r8b3( qt[ (i)-11 ] ), \
@@ -1100,157 +1061,97 @@ bmw512_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
       mm512_add4_64( qt[ (i)- 8 ], r8b5( qt[ (i)- 7 ] ), \
                      qt[ (i)- 6 ], r8b6( qt[ (i)- 5 ] ) ), \
       mm512_add4_64( qt[ (i)- 4 ], r8b7( qt[ (i)- 3 ] ), \
-                     s8b4( qt[ (i)- 2 ] ), s8b5( qt[ (i)- 1 ] ) ) ), \
-      add_elt_b8( M, H, (i)-16 ) )
+                     s8b4( qt[ (i)- 2 ] ), s8b5( qt[ (i)- 1 ] ) ) )
 
 #define W8b0 \
    _mm512_add_epi64( \
-      _mm512_add_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 5], H[ 5] ), \
-                           _mm512_xor_si512( M[ 7], H[ 7] ) ), \
-         _mm512_xor_si512( M[10], H[10] ) ), \
-      _mm512_add_epi64( _mm512_xor_si512( M[13], H[13] ), \
-                        _mm512_xor_si512( M[14], H[14] ) ) )
+      _mm512_add_epi64( _mm512_sub_epi64( mh[ 5], mh[ 7] ), mh[10] ), \
+      _mm512_add_epi64( mh[13], mh[14] ) )
 
 #define W8b1 \
    _mm512_add_epi64( \
-       _mm512_add_epi64( \
-          _mm512_sub_epi64( _mm512_xor_si512( M[ 6], H[ 6] ), \
-                            _mm512_xor_si512( M[ 8], H[ 8] ) ), \
-          _mm512_xor_si512( M[11], H[11] ) ), \
-       _mm512_sub_epi64( _mm512_xor_si512( M[14], H[14] ), \
-                         _mm512_xor_si512( M[15], H[15] ) ) )
+         _mm512_add_epi64( _mm512_sub_epi64( mh[ 6], mh[ 8] ), mh[11] ), \
+         _mm512_sub_epi64( mh[14], mh[15] ) )
 
 #define W8b2 \
    _mm512_sub_epi64( \
-      _mm512_add_epi64( \
-         _mm512_add_epi64( _mm512_xor_si512( M[ 0], H[ 0] ), \
-                           _mm512_xor_si512( M[ 7], H[ 7] ) ), \
-         _mm512_xor_si512( M[ 9], H[ 9] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[12], H[12] ), \
-                        _mm512_xor_si512( M[15], H[15] ) ) )
+      _mm512_add_epi64( _mm512_add_epi64( mh[ 0], mh[ 7] ), mh[ 9] ), \
+      _mm512_sub_epi64( mh[12], mh[15] ) )
 
 #define W8b3 \
    _mm512_sub_epi64( \
-      _mm512_add_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 0], H[ 0] ), \
-                           _mm512_xor_si512( M[ 1], H[ 1] ) ), \
-         _mm512_xor_si512( M[ 8], H[ 8] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[10], H[10] ), \
-                        _mm512_xor_si512( M[13], H[13] ) ) )
+      _mm512_add_epi64( _mm512_sub_epi64( mh[ 0], mh[ 1] ), mh[ 8] ), \
+      _mm512_sub_epi64( mh[10], mh[13] ) )
 
 #define W8b4 \
    _mm512_sub_epi64( \
-      _mm512_add_epi64( \
-         _mm512_add_epi64( _mm512_xor_si512( M[ 1], H[ 1] ), \
-                           _mm512_xor_si512( M[ 2], H[ 2] ) ), \
-         _mm512_xor_si512( M[ 9], H[ 9] ) ), \
-      _mm512_add_epi64( _mm512_xor_si512( M[11], H[11] ), \
-                        _mm512_xor_si512( M[14], H[14] ) ) )
+      _mm512_add_epi64( _mm512_add_epi64( mh[ 1], mh[ 2] ), mh[ 9] ), \
+      _mm512_add_epi64( mh[11], mh[14] ) )
 
 #define W8b5 \
    _mm512_sub_epi64( \
-      _mm512_add_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 3], H[ 3] ), \
-                           _mm512_xor_si512( M[ 2], H[ 2] ) ), \
-         _mm512_xor_si512( M[10], H[10] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[12], H[12] ), \
-                        _mm512_xor_si512( M[15], H[15] ) ) )
+      _mm512_add_epi64( _mm512_sub_epi64( mh[ 3], mh[ 2] ), mh[10] ), \
+      _mm512_sub_epi64( mh[12], mh[15] ) )
 
 #define W8b6 \
    _mm512_sub_epi64( \
-      _mm512_sub_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 4], H[ 4] ), \
-                           _mm512_xor_si512( M[ 0], H[ 0] ) ), \
-         _mm512_xor_si512( M[ 3], H[ 3] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[11], H[11] ), \
-                        _mm512_xor_si512( M[13], H[13] ) ) )
+         _mm512_sub_epi64( _mm512_sub_epi64( mh[ 4], mh[ 0] ), mh[ 3] ), \
+      _mm512_sub_epi64( mh[11], mh[13] ) )
 
 #define W8b7 \
    _mm512_sub_epi64( \
-      _mm512_sub_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 1], H[ 1] ), \
-                           _mm512_xor_si512( M[ 4], H[ 4] ) ), \
-         _mm512_xor_si512( M[ 5], H[ 5] ) ), \
-      _mm512_add_epi64( _mm512_xor_si512( M[12], H[12] ), \
-                        _mm512_xor_si512( M[14], H[14] ) ) )
+      _mm512_sub_epi64( _mm512_sub_epi64( mh[ 1], mh[ 4] ), mh[ 5] ), \
+      _mm512_add_epi64( mh[12], mh[14] ) )
 
 #define W8b8 \
    _mm512_add_epi64( \
-      _mm512_sub_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 2], H[ 2] ), \
-                           _mm512_xor_si512( M[ 5], H[ 5] ) ), \
-         _mm512_xor_si512( M[ 6], H[ 6] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[13], H[13] ), \
-                        _mm512_xor_si512( M[15], H[15] ) ) )
+      _mm512_sub_epi64( _mm512_sub_epi64( mh[ 2], mh[ 5] ), mh[ 6] ), \
+      _mm512_sub_epi64( mh[13], mh[15] ) )
 
 #define W8b9 \
    _mm512_sub_epi64( \
-      _mm512_add_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 0], H[ 0] ), \
-                           _mm512_xor_si512( M[ 3], H[ 3] ) ), \
-         _mm512_xor_si512( M[ 6], H[ 6] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[ 7], H[ 7] ), \
-                        _mm512_xor_si512( M[14], H[14] ) ) )
+      _mm512_add_epi64( _mm512_sub_epi64( mh[ 0], mh[ 3] ), mh[ 6] ), \
+      _mm512_sub_epi64( mh[ 7], mh[14] ) )
 
 #define W8b10 \
    _mm512_sub_epi64( \
-      _mm512_sub_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 8], H[ 8] ), \
-                           _mm512_xor_si512( M[ 1], H[ 1] ) ), \
-         _mm512_xor_si512( M[ 4], H[ 4] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[ 7], H[ 7] ), \
-                        _mm512_xor_si512( M[15], H[15] ) ) )
+      _mm512_sub_epi64( _mm512_sub_epi64( mh[ 8], mh[ 1] ), mh[ 4] ), \
+      _mm512_sub_epi64( mh[ 7], mh[15] ) )
 
 #define W8b11 \
    _mm512_sub_epi64( \
-      _mm512_sub_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 8], H[ 8] ), \
-                           _mm512_xor_si512( M[ 0], H[ 0] ) ), \
-         _mm512_xor_si512( M[ 2], H[ 2] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[ 5], H[ 5] ), \
-                        _mm512_xor_si512( M[ 9], H[ 9] ) ) )
+      _mm512_sub_epi64( _mm512_sub_epi64( mh[ 8], mh[ 0] ), mh[ 2] ), \
+      _mm512_sub_epi64( mh[ 5], mh[ 9] ) )
 
 #define W8b12 \
    _mm512_sub_epi64( \
-      _mm512_sub_epi64( \
-         _mm512_add_epi64( _mm512_xor_si512( M[ 1], H[ 1] ), \
-                           _mm512_xor_si512( M[ 3], H[ 3] ) ), \
-         _mm512_xor_si512( M[ 6], H[ 6] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[ 9], H[ 9] ), \
-                        _mm512_xor_si512( M[10], H[10] ) ) )
+      _mm512_sub_epi64( _mm512_add_epi64( mh[ 1], mh[ 3] ), mh[ 6] ), \
+      _mm512_sub_epi64( mh[ 9], mh[10] ) )
 
 #define W8b13 \
    _mm512_add_epi64( \
-      _mm512_add_epi64( \
-         _mm512_add_epi64( _mm512_xor_si512( M[ 2], H[ 2] ), \
-                           _mm512_xor_si512( M[ 4], H[ 4] ) ), \
-         _mm512_xor_si512( M[ 7], H[ 7] ) ), \
-      _mm512_add_epi64( _mm512_xor_si512( M[10], H[10] ), \
-                        _mm512_xor_si512( M[11], H[11] ) ) )
+      _mm512_add_epi64( _mm512_add_epi64( mh[ 2], mh[ 4] ), mh[ 7] ), \
+      _mm512_add_epi64( mh[10], mh[11] ) )
 
 #define W8b14 \
    _mm512_sub_epi64( \
-      _mm512_add_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[ 3], H[ 3] ), \
-                           _mm512_xor_si512( M[ 5], H[ 5] ) ), \
-         _mm512_xor_si512( M[ 8], H[ 8] ) ), \
-      _mm512_add_epi64( _mm512_xor_si512( M[11], H[11] ), \
-                        _mm512_xor_si512( M[12], H[12] ) ) )
+      _mm512_add_epi64( _mm512_sub_epi64( mh[ 3], mh[ 5] ), mh[ 8] ), \
+      _mm512_add_epi64( mh[11], mh[12] ) )
 
 #define W8b15 \
    _mm512_sub_epi64( \
-      _mm512_sub_epi64( \
-         _mm512_sub_epi64( _mm512_xor_si512( M[12], H[12] ), \
-                           _mm512_xor_si512( M[ 4], H[4] ) ), \
-         _mm512_xor_si512( M[ 6], H[ 6] ) ), \
-      _mm512_sub_epi64( _mm512_xor_si512( M[ 9], H[ 9] ), \
-                        _mm512_xor_si512( M[13], H[13] ) ) )
+      _mm512_sub_epi64( _mm512_sub_epi64( mh[12], mh[ 4] ), mh[ 6] ), \
+      _mm512_sub_epi64( mh[ 9], mh[13] ) )
 
 void compress_big_8way( const __m512i *M, const __m512i H[16],
                         __m512i dH[16] )
 {
    __m512i qt[32], xl, xh;
+   __m512i mh[16];
+   int i;
+
+   for ( i = 0; i < 16; i++ )
+      mh[i] = _mm512_xor_si512( M[i], H[i] );
 
    qt[ 0] = _mm512_add_epi64( s8b0( W8b0 ), H[ 1] );
    qt[ 1] = _mm512_add_epi64( s8b1( W8b1 ), H[ 2] );
@@ -1268,22 +1169,60 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
    qt[13] = _mm512_add_epi64( s8b3( W8b13), H[14] );
    qt[14] = _mm512_add_epi64( s8b4( W8b14), H[15] );
    qt[15] = _mm512_add_epi64( s8b0( W8b15), H[ 0] );
-   qt[16] = expand1b8( qt, M, H, 16 );
-   qt[17] = expand1b8( qt, M, H, 17 );
-   qt[18] = expand2b8( qt, M, H, 18 );
-   qt[19] = expand2b8( qt, M, H, 19 );
-   qt[20] = expand2b8( qt, M, H, 20 );
-   qt[21] = expand2b8( qt, M, H, 21 );
-   qt[22] = expand2b8( qt, M, H, 22 );
-   qt[23] = expand2b8( qt, M, H, 23 );
-   qt[24] = expand2b8( qt, M, H, 24 );
-   qt[25] = expand2b8( qt, M, H, 25 );
-   qt[26] = expand2b8( qt, M, H, 26 );
-   qt[27] = expand2b8( qt, M, H, 27 );
-   qt[28] = expand2b8( qt, M, H, 28 );
-   qt[29] = expand2b8( qt, M, H, 29 );
-   qt[30] = expand2b8( qt, M, H, 30 );
-   qt[31] = expand2b8( qt, M, H, 31 );
+
+   __m512i mj[16];
+   for ( i = 0; i < 16; i++ )
+      mj[i] = rol8w_off_64( M, i );
+
+   qt[16] = add_elt_b8( mj[ 0], mj[ 3], mj[10], H[ 7],
+              (const __m512i)_mm512_set1_epi64( 16 * 0x0555555555555555ULL ) );
+   qt[17] = add_elt_b8( mj[ 1], mj[ 4], mj[11], H[ 8],
+              (const __m512i)_mm512_set1_epi64( 17 * 0x0555555555555555ULL ) );
+   qt[18] = add_elt_b8( mj[ 2], mj[ 5], mj[12], H[ 9],
+              (const __m512i)_mm512_set1_epi64( 18 * 0x0555555555555555ULL ) );
+   qt[19] = add_elt_b8( mj[ 3], mj[ 6], mj[13], H[10],
+              (const __m512i)_mm512_set1_epi64( 19 * 0x0555555555555555ULL ) );
+   qt[20] = add_elt_b8( mj[ 4], mj[ 7], mj[14], H[11],
+              (const __m512i)_mm512_set1_epi64( 20 * 0x0555555555555555ULL ) );
+   qt[21] = add_elt_b8( mj[ 5], mj[ 8], mj[15], H[12],
+              (const __m512i)_mm512_set1_epi64( 21 * 0x0555555555555555ULL ) );
+   qt[22] = add_elt_b8( mj[ 6], mj[ 9], mj[ 0], H[13],
+              (const __m512i)_mm512_set1_epi64( 22 * 0x0555555555555555ULL ) );
+   qt[23] = add_elt_b8( mj[ 7], mj[10], mj[ 1], H[14],
+              (const __m512i)_mm512_set1_epi64( 23 * 0x0555555555555555ULL ) );
+   qt[24] = add_elt_b8( mj[ 8], mj[11], mj[ 2], H[15],
+              (const __m512i)_mm512_set1_epi64( 24 * 0x0555555555555555ULL ) );
+   qt[25] = add_elt_b8( mj[ 9], mj[12], mj[ 3], H[ 0],
+              (const __m512i)_mm512_set1_epi64( 25 * 0x0555555555555555ULL ) );
+   qt[26] = add_elt_b8( mj[10], mj[13], mj[ 4], H[ 1],
+              (const __m512i)_mm512_set1_epi64( 26 * 0x0555555555555555ULL ) );
+   qt[27] = add_elt_b8( mj[11], mj[14], mj[ 5], H[ 2],
+              (const __m512i)_mm512_set1_epi64( 27 * 0x0555555555555555ULL ) );
+   qt[28] = add_elt_b8( mj[12], mj[15], mj[ 6], H[ 3],
+              (const __m512i)_mm512_set1_epi64( 28 * 0x0555555555555555ULL ) );
+   qt[29] = add_elt_b8( mj[13], mj[ 0], mj[ 7], H[ 4],
+              (const __m512i)_mm512_set1_epi64( 29 * 0x0555555555555555ULL ) );
+   qt[30] = add_elt_b8( mj[14], mj[ 1], mj[ 8], H[ 5],
+              (const __m512i)_mm512_set1_epi64( 30 * 0x0555555555555555ULL ) );
+   qt[31] = add_elt_b8( mj[15], mj[ 2], mj[ 9], H[ 6],
+              (const __m512i)_mm512_set1_epi64( 31 * 0x0555555555555555ULL ) );
+
+   qt[16] = _mm512_add_epi64( qt[16], expand1_b8( qt, 16 ) );
+   qt[17] = _mm512_add_epi64( qt[17], expand1_b8( qt, 17 ) );
+   qt[18] = _mm512_add_epi64( qt[18], expand2_b8( qt, 18 ) );
+   qt[19] = _mm512_add_epi64( qt[19], expand2_b8( qt, 19 ) );
+   qt[20] = _mm512_add_epi64( qt[20], expand2_b8( qt, 20 ) );
+   qt[21] = _mm512_add_epi64( qt[21], expand2_b8( qt, 21 ) );
+   qt[22] = _mm512_add_epi64( qt[22], expand2_b8( qt, 22 ) );
+   qt[23] = _mm512_add_epi64( qt[23], expand2_b8( qt, 23 ) );
+   qt[24] = _mm512_add_epi64( qt[24], expand2_b8( qt, 24 ) );
+   qt[25] = _mm512_add_epi64( qt[25], expand2_b8( qt, 25 ) );
+   qt[26] = _mm512_add_epi64( qt[26], expand2_b8( qt, 26 ) );
+   qt[27] = _mm512_add_epi64( qt[27], expand2_b8( qt, 27 ) );
+   qt[28] = _mm512_add_epi64( qt[28], expand2_b8( qt, 28 ) );
+   qt[29] = _mm512_add_epi64( qt[29], expand2_b8( qt, 29 ) );
+   qt[30] = _mm512_add_epi64( qt[30], expand2_b8( qt, 30 ) );
+   qt[31] = _mm512_add_epi64( qt[31], expand2_b8( qt, 31 ) );
 
    xl = mm512_xor3( mm512_xor3( qt[16], qt[17], qt[18] ),
                     mm512_xor3( qt[19], qt[20], qt[21] ),

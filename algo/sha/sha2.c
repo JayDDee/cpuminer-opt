@@ -180,6 +180,7 @@ static const uint32_t sha256d_hash1[16] = {
 	0x00000000, 0x00000000, 0x00000000, 0x00000100
 };
 
+// this performs the entire hash all over again, why?
 static void sha256d_80_swap(uint32_t *hash, const uint32_t *data)
 {
 	uint32_t S[16];
@@ -195,6 +196,7 @@ static void sha256d_80_swap(uint32_t *hash, const uint32_t *data)
 		hash[i] = swab32(hash[i]);
 }
 
+/*
 #if defined (__SHA__)
 
 #include "algo/sha/sph_sha2.h"
@@ -241,6 +243,7 @@ void sha256d(unsigned char *hash, const unsigned char *data, int len)
 }
 
 #endif
+*/
 
 static inline void sha256d_preextend(uint32_t *W)
 {
@@ -653,6 +656,7 @@ int scanhash_sha256d( struct work *work,
 	return 0;
 }
 
+/*
 int scanhash_SHA256d( struct work *work, const uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
@@ -682,13 +686,13 @@ int scanhash_SHA256d( struct work *work, const uint32_t max_nonce,
    pdata[19] = n;
    return 0;
 }
-
+*/
 
 bool register_sha256d_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | AVX2_OPT;
    gate->scanhash = (void*)&scanhash_sha256d;
-   gate->hash     = (void*)&sha256d;
+//   gate->hash     = (void*)&sha256d;
    return true;
 };
 

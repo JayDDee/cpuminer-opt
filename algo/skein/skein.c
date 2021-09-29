@@ -5,21 +5,18 @@
 #include <string.h>
 #include <stdint.h>
 #include "sph_skein.h"
-#include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha256-hash.h"
 
 void skeinhash(void *state, const void *input)
 {
      uint32_t hash[16] __attribute__ ((aligned (64)));
      sph_skein512_context ctx_skein;
-     sph_sha256_context   ctx_sha256;
 
      sph_skein512_init( &ctx_skein );
      sph_skein512( &ctx_skein, input, 80 );
      sph_skein512_close( &ctx_skein, hash );
 
-     sph_sha256_init( &ctx_sha256 );
-     sph_sha256( &ctx_sha256, hash, 64 );
-     sph_sha256_close( &ctx_sha256, hash );
+     sha256_full( hash, hash, 64 );
 
      memcpy(state, hash, 32);
 }
@@ -27,8 +24,8 @@ void skeinhash(void *state, const void *input)
 int scanhash_skein( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
 	uint32_t hash64[8] __attribute__ ((aligned (64)));
 	uint32_t endiandata[20] __attribute__ ((aligned (64)));
 	const uint32_t Htarg = ptarget[7];
@@ -36,7 +33,7 @@ int scanhash_skein( struct work *work, uint32_t max_nonce,
 	uint32_t n = first_nonce;
    int thr_id = mythr->id;  // thr_id arg is deprecated
 
-        swab32_array( endiandata, pdata, 20 );
+   swab32_array( endiandata, pdata, 20 );
 
 	do {
 		be32enc(&endiandata[19], n); 

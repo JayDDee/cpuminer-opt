@@ -23,7 +23,7 @@
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha256-hash.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/tiger/sph_tiger.h"
 #include "algo/lyra2/lyra2.h"
@@ -60,7 +60,7 @@ union _x25x_context_overlay
         sph_haval256_5_context  haval;
         sph_tiger_context       tiger;
         sph_gost512_context     gost;
-        sph_sha256_context      sha256;
+        sha256_context          sha256;
         sph_panama_context      panama;
         blake2s_state           blake2s;
 };
@@ -174,9 +174,7 @@ int x25x_hash( void *output, const void *input, int thrid )
    sph_gost512 (&ctx.gost, (const void*) &hash[19], 64);
    sph_gost512_close(&ctx.gost, (void*) &hash[20]);
 
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, &hash[20], 64 );
-   sph_sha256_close( &ctx.sha256, &hash[21] );
+   sha256_full( &hash[21], &hash[20], 64 );
 
    sph_panama_init(&ctx.panama);
    sph_panama (&ctx.panama, (const void*) &hash[21], 64 );

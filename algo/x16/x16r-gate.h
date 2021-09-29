@@ -37,6 +37,7 @@
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/luffa/luffa-hash-2way.h"
+#include "algo/cubehash/cube-hash-2way.h"
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
@@ -115,7 +116,7 @@ union _x16r_8way_context_overlay
     jh512_8way_context      jh;
     keccak512_8way_context  keccak;
     luffa_4way_context      luffa;
-    cubehashParam           cube;
+    cube_4way_context       cube;
     simd_4way_context       simd;
     hamsi512_8way_context   hamsi;
     hashState_fugue         fugue;
@@ -164,8 +165,8 @@ union _x16r_4way_context_overlay
     jh512_4way_context      jh;
     keccak512_4way_context  keccak;
     luffa_2way_context      luffa;
+    cube_2way_context       cube;
     hashState_luffa         luffa1;
-    cubehashParam           cube;
     simd_2way_context       simd;
     hamsi512_4way_context   hamsi;
     hashState_fugue         fugue;

@@ -65,6 +65,37 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.18.0
+
+Complete rewrite of Scrypt code, optimized for large N factor (scryptn2):
+  - AVX512 & SHA support for SHA256, AVX512 has priority,
+  - up to 50% increase in hashrate,
+  - memory requirements reduced 30-60% depending on CPU architecture,
+  - memory usage displayed at startup,
+  - scrypt, default N=1024 (LTC), will likely perform slower.
+
+Improved stale share detection and handling for Scrypt with large N factor:
+  - abort and discard partially computed hash when new work is detected,
+  - quicker response to new job, less time wasted mining stale job.
+
+Improved stale share handling for all algorithms:
+  - report possible stale share when new work received with a previously
+    submitted share still pending,
+  - when new work is detected report the submission of an already completed,
+    otherwise valid, but likely stale, share,
+  - fixed incorrect block height in stale share log.
+
+Small performance improvements to sha, bmw, cube & hamsi for AVX512 & AVX2.
+
+When stratum disconnects miner threads go to idle until reconnected.
+
+Colour changes to some logs.
+
+Some low level function name changes for clarity and consistency.
+
+The reference hashrate in the summary log and the benchmark total hashrate
+are now the mean hashrate for the session. 
+
 v3.17.1
 
 Fixed Windows build for AES+SSE4.2 (Westmere), was missing AES.

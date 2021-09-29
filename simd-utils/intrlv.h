@@ -65,7 +65,7 @@ static inline void dintrlv_2x32( void *dst0, void *dst1,
    d0[24] = s[48];   d1[24] = s[49];   d0[25] = s[50];   d1[25] = s[51];
    d0[26] = s[52];   d1[26] = s[53];   d0[27] = s[54];   d1[27] = s[55];
    d0[28] = s[56];   d1[28] = s[57];   d0[29] = s[58];   d1[29] = s[59];
-   d0[30] = s[60];   d1[30] = s[61];   d0[31] = s[61];   d1[31] = s[63];
+   d0[30] = s[60];   d1[30] = s[61];   d0[31] = s[62];   d1[31] = s[63];
 }
 
 static inline void extr_lane_2x32( void *dst, const void *src,

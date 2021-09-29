@@ -632,26 +632,25 @@ do { \
 } while (0)
 
 
-#define ROUND_BIG8(rc, alpha) \
+#define ROUND_BIG8( alpha ) \
 do { \
    __m512i t0, t1, t2, t3; \
-   s0 = _mm512_xor_si512( s0, m512_const1_64( \
-                   ( (uint64_t)(rc) << 32 ) ^ ( (uint64_t*)(alpha) )[ 0] ) ); \
-   s1 = _mm512_xor_si512( s1, m512_const1_64( ( (uint64_t*)(alpha) )[ 1] ) ); \
-   s2 = _mm512_xor_si512( s2, m512_const1_64( ( (uint64_t*)(alpha) )[ 2] ) ); \
-   s3 = _mm512_xor_si512( s3, m512_const1_64( ( (uint64_t*)(alpha) )[ 3] ) ); \
-   s4 = _mm512_xor_si512( s4, m512_const1_64( ( (uint64_t*)(alpha) )[ 4] ) ); \
-   s5 = _mm512_xor_si512( s5, m512_const1_64( ( (uint64_t*)(alpha) )[ 5] ) ); \
-   s6 = _mm512_xor_si512( s6, m512_const1_64( ( (uint64_t*)(alpha) )[ 6] ) ); \
-   s7 = _mm512_xor_si512( s7, m512_const1_64( ( (uint64_t*)(alpha) )[ 7] ) ); \
-   s8 = _mm512_xor_si512( s8, m512_const1_64( ( (uint64_t*)(alpha) )[ 8] ) ); \
-   s9 = _mm512_xor_si512( s9, m512_const1_64( ( (uint64_t*)(alpha) )[ 9] ) ); \
-   sA = _mm512_xor_si512( sA, m512_const1_64( ( (uint64_t*)(alpha) )[10] ) ); \
-   sB = _mm512_xor_si512( sB, m512_const1_64( ( (uint64_t*)(alpha) )[11] ) ); \
-   sC = _mm512_xor_si512( sC, m512_const1_64( ( (uint64_t*)(alpha) )[12] ) ); \
-   sD = _mm512_xor_si512( sD, m512_const1_64( ( (uint64_t*)(alpha) )[13] ) ); \
-   sE = _mm512_xor_si512( sE, m512_const1_64( ( (uint64_t*)(alpha) )[14] ) ); \
-   sF = _mm512_xor_si512( sF, m512_const1_64( ( (uint64_t*)(alpha) )[15] ) ); \
+   s0 = _mm512_xor_si512( s0, alpha[ 0] ); \
+   s1 = _mm512_xor_si512( s1, alpha[ 1] ); \
+   s2 = _mm512_xor_si512( s2, alpha[ 2] ); \
+   s3 = _mm512_xor_si512( s3, alpha[ 3] ); \
+   s4 = _mm512_xor_si512( s4, alpha[ 4] ); \
+   s5 = _mm512_xor_si512( s5, alpha[ 5] ); \
+   s6 = _mm512_xor_si512( s6, alpha[ 6] ); \
+   s7 = _mm512_xor_si512( s7, alpha[ 7] ); \
+   s8 = _mm512_xor_si512( s8, alpha[ 8] ); \
+   s9 = _mm512_xor_si512( s9, alpha[ 9] ); \
+   sA = _mm512_xor_si512( sA, alpha[10] ); \
+   sB = _mm512_xor_si512( sB, alpha[11] ); \
+   sC = _mm512_xor_si512( sC, alpha[12] ); \
+   sD = _mm512_xor_si512( sD, alpha[13] ); \
+   sE = _mm512_xor_si512( sE, alpha[14] ); \
+   sF = _mm512_xor_si512( sF, alpha[15] ); \
 \
   SBOX8( s0, s4, s8, sC ); \
   SBOX8( s1, s5, s9, sD ); \
@@ -731,28 +730,66 @@ do { \
 
 #define P_BIG8 \
 do { \
-   ROUND_BIG8(0, alpha_n); \
-   ROUND_BIG8(1, alpha_n); \
-   ROUND_BIG8(2, alpha_n); \
-   ROUND_BIG8(3, alpha_n); \
-   ROUND_BIG8(4, alpha_n); \
-   ROUND_BIG8(5, alpha_n); \
+   __m512i alpha[16]; \
+   for( int i = 0; i < 16; i++ ) \
+      alpha[i] = m512_const1_64( ( (uint64_t*)alpha_n )[i] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)1 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)2 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)3 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)4 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)5 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG8( alpha ); \
 } while (0)
 
 #define PF_BIG8 \
 do { \
-   ROUND_BIG8( 0, alpha_f); \
-   ROUND_BIG8( 1, alpha_f); \
-   ROUND_BIG8( 2, alpha_f); \
-   ROUND_BIG8( 3, alpha_f); \
-   ROUND_BIG8( 4, alpha_f); \
-   ROUND_BIG8( 5, alpha_f); \
-   ROUND_BIG8( 6, alpha_f); \
-   ROUND_BIG8( 7, alpha_f); \
-   ROUND_BIG8( 8, alpha_f); \
-   ROUND_BIG8( 9, alpha_f); \
-   ROUND_BIG8(10, alpha_f); \
-   ROUND_BIG8(11, alpha_f); \
+   __m512i alpha[16]; \
+   for( int i = 0; i < 16; i++ ) \
+      alpha[i] = m512_const1_64( ( (uint64_t*)alpha_f )[i] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)1 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)2 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)3 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)4 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)5 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)6 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)7 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)8 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)9 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)10 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
+   alpha[0] = m512_const1_64( ( (uint64_t)11 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG8( alpha ); \
 } while (0)
 
 #define T_BIG8 \
@@ -965,26 +1002,25 @@ do { \
 #define sF   m7
 */
 
-#define ROUND_BIG(rc, alpha) \
+#define ROUND_BIG( alpha ) \
 do { \
    __m256i t0, t1, t2, t3; \
-   s0 = _mm256_xor_si256( s0, m256_const1_64( \
-                   ( (uint64_t)(rc) << 32 ) ^ ( (uint64_t*)(alpha) )[ 0] ) ); \
-   s1 = _mm256_xor_si256( s1, m256_const1_64( ( (uint64_t*)(alpha) )[ 1] ) ); \
-   s2 = _mm256_xor_si256( s2, m256_const1_64( ( (uint64_t*)(alpha) )[ 2] ) ); \
-   s3 = _mm256_xor_si256( s3, m256_const1_64( ( (uint64_t*)(alpha) )[ 3] ) ); \
-   s4 = _mm256_xor_si256( s4, m256_const1_64( ( (uint64_t*)(alpha) )[ 4] ) ); \
-   s5 = _mm256_xor_si256( s5, m256_const1_64( ( (uint64_t*)(alpha) )[ 5] ) ); \
-   s6 = _mm256_xor_si256( s6, m256_const1_64( ( (uint64_t*)(alpha) )[ 6] ) ); \
-   s7 = _mm256_xor_si256( s7, m256_const1_64( ( (uint64_t*)(alpha) )[ 7] ) ); \
-   s8 = _mm256_xor_si256( s8, m256_const1_64( ( (uint64_t*)(alpha) )[ 8] ) ); \
-   s9 = _mm256_xor_si256( s9, m256_const1_64( ( (uint64_t*)(alpha) )[ 9] ) ); \
-   sA = _mm256_xor_si256( sA, m256_const1_64( ( (uint64_t*)(alpha) )[10] ) ); \
-   sB = _mm256_xor_si256( sB, m256_const1_64( ( (uint64_t*)(alpha) )[11] ) ); \
-   sC = _mm256_xor_si256( sC, m256_const1_64( ( (uint64_t*)(alpha) )[12] ) ); \
-   sD = _mm256_xor_si256( sD, m256_const1_64( ( (uint64_t*)(alpha) )[13] ) ); \
-   sE = _mm256_xor_si256( sE, m256_const1_64( ( (uint64_t*)(alpha) )[14] ) ); \
-   sF = _mm256_xor_si256( sF, m256_const1_64( ( (uint64_t*)(alpha) )[15] ) ); \
+   s0 = _mm256_xor_si256( s0, alpha[ 0] ); \
+   s1 = _mm256_xor_si256( s1, alpha[ 1] ); \
+   s2 = _mm256_xor_si256( s2, alpha[ 2] ); \
+   s3 = _mm256_xor_si256( s3, alpha[ 3] ); \
+   s4 = _mm256_xor_si256( s4, alpha[ 4] ); \
+   s5 = _mm256_xor_si256( s5, alpha[ 5] ); \
+   s6 = _mm256_xor_si256( s6, alpha[ 6] ); \
+   s7 = _mm256_xor_si256( s7, alpha[ 7] ); \
+   s8 = _mm256_xor_si256( s8, alpha[ 8] ); \
+   s9 = _mm256_xor_si256( s9, alpha[ 9] ); \
+   sA = _mm256_xor_si256( sA, alpha[10] ); \
+   sB = _mm256_xor_si256( sB, alpha[11] ); \
+   sC = _mm256_xor_si256( sC, alpha[12] ); \
+   sD = _mm256_xor_si256( sD, alpha[13] ); \
+   sE = _mm256_xor_si256( sE, alpha[14] ); \
+   sF = _mm256_xor_si256( sF, alpha[15] ); \
 \
   SBOX( s0, s4, s8, sC ); \
   SBOX( s1, s5, s9, sD ); \
@@ -1064,28 +1100,66 @@ do { \
 
 #define P_BIG \
 do { \
-   ROUND_BIG(0, alpha_n); \
-   ROUND_BIG(1, alpha_n); \
-   ROUND_BIG(2, alpha_n); \
-   ROUND_BIG(3, alpha_n); \
-   ROUND_BIG(4, alpha_n); \
-   ROUND_BIG(5, alpha_n); \
+   __m256i alpha[16]; \
+   for( int i = 0; i < 16; i++ ) \
+      alpha[i] = m256_const1_64( ( (uint64_t*)alpha_n )[i] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)1 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)2 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)3 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)4 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)5 << 32 ) \
+                            ^ ( (uint64_t*)alpha_n )[0] ); \
+   ROUND_BIG( alpha ); \
 } while (0)
 
 #define PF_BIG \
 do { \
-   ROUND_BIG( 0, alpha_f); \
-   ROUND_BIG( 1, alpha_f); \
-   ROUND_BIG( 2, alpha_f); \
-   ROUND_BIG( 3, alpha_f); \
-   ROUND_BIG( 4, alpha_f); \
-   ROUND_BIG( 5, alpha_f); \
-   ROUND_BIG( 6, alpha_f); \
-   ROUND_BIG( 7, alpha_f); \
-   ROUND_BIG( 8, alpha_f); \
-   ROUND_BIG( 9, alpha_f); \
-   ROUND_BIG(10, alpha_f); \
-   ROUND_BIG(11, alpha_f); \
+   __m256i alpha[16]; \
+   for( int i = 0; i < 16; i++ ) \
+      alpha[i] = m256_const1_64( ( (uint64_t*)alpha_f )[i] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)1 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)2 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)3 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)4 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)5 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)6 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)7 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)8 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)9 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)10 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
+   alpha[0] = m256_const1_64( ( (uint64_t)11 << 32 ) \
+                            ^ ( (uint64_t*)alpha_f )[0] ); \
+   ROUND_BIG( alpha ); \
 } while (0)
 
 #define T_BIG \

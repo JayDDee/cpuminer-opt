@@ -69,8 +69,12 @@ typedef unsigned int  uint;
 #define SCRYPT_HASH_BLOCK_SIZE 64U
 #define SCRYPT_HASH_DIGEST_SIZE 32U
 
-#define ROTL32(a,b) (((a) << (b)) | ((a) >> (32 - b)))
-#define ROTR32(a,b) (((a) >> (b)) | ((a) << (32 - b)))
+//#define ROTL32(a,b) (((a) << (b)) | ((a) >> (32 - b)))
+//#define ROTR32(a,b) (((a) >> (b)) | ((a) << (32 - b)))
+
+#define ROTL32(a,b) rol32(a,b)
+#define ROTR32(a,b) ror32(a,b)
+
 
 #define U8TO32_BE(p) \
     (((uint32_t)((p)[0]) << 24) | ((uint32_t)((p)[1]) << 16) | \

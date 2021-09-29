@@ -1,3 +1,6 @@
+#ifndef __ALGO_GATE_API_H__
+#define __ALGO_GATE_API_H__ 1
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -319,3 +322,4 @@ void exec_hash_function( int algo, void *output, const void *pdata );
 // algo name if valid alias, NULL if invalid alias or algo.
 void get_algo_alias( char **algo_or_alias );
 
+#endif

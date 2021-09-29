@@ -52,10 +52,10 @@ void x16r_8way_prehash( void *vdata, void *pdata )
       break;
       case CUBEHASH:
          mm128_bswap32_80( edata, pdata );
-         cubehashInit( &x16r_ctx.cube, 512, 16, 32 );
-         cubehashUpdate( &x16r_ctx.cube, (const byte*)edata, 64 );
-         intrlv_8x64( vdata, edata, edata, edata, edata,
-                             edata, edata, edata, edata, 640 );
+         intrlv_4x128( vdata2, edata, edata, edata, edata, 640 );
+         cube_4way_init( &x16r_ctx.cube, 512, 16, 32 );
+         cube_4way_update( &x16r_ctx.cube, vdata2, 64 );
+         rintrlv_4x128_8x64( vdata, vdata2, vdata2, 640 );
       break;
       case HAMSI:
          mm512_bswap32_intrlv80_8x64( vdata, pdata );
@@ -207,15 +207,15 @@ int x16r_8way_hash_generic( void* output, const void* input, int thrid )
          case LUFFA:
             if ( i == 0 )
             {
-                intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
-                luffa_4way_update_close( &ctx.luffa, vhash,
-                                                     vhash + (16<<2), 16 );
-                dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
-                memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-                intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
-                luffa_4way_update_close( &ctx.luffa, vhash, 
-                                                     vhash + (16<<2), 16 );
-                dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
+               intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
+               luffa_4way_update_close( &ctx.luffa, vhash,
+                                                    vhash + (16<<2), 16 );
+               dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
+               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
+               intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
+               luffa_4way_update_close( &ctx.luffa, vhash, 
+                                                    vhash + (16<<2), 16 );
+               dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
             }
             else
             {
@@ -230,56 +230,24 @@ int x16r_8way_hash_generic( void* output, const void* input, int thrid )
          case CUBEHASH:
             if ( i == 0 )
             {
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash0,
-                                            (const byte*)in0 + 64, 16 );
+               intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
+               cube_4way_update_close( &ctx.cube, vhash,
+                                                  vhash + (16<<2), 16 );
+               dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
                memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash1,
-                                            (const byte*)in1 + 64, 16 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash2,
-                                            (const byte*)in2 + 64, 16 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash3,
-                                            (const byte*)in3 + 64, 16 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash4,
-                                            (const byte*)in4 + 64, 16 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash5,
-                                            (const byte*)in5 + 64, 16 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash6,
-                                            (const byte*)in6 + 64, 16 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash7,
-                                            (const byte*)in7 + 64, 16 );
+               intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
+               cube_4way_update_close( &ctx.cube, vhash,
+                                                  vhash + (16<<2), 16 );
+               dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
             }
             else
             {
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash0,
-                                             (const byte*)in0, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash1,
-                                             (const byte*)in1, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash2,
-                                             (const byte*)in2, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash3,
-                                             (const byte*)in3, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash4,
-                                             (const byte*)in4, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash5,
-                                             (const byte*)in5, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash6,
-                                             (const byte*)in6, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash7,
-                                             (const byte*)in7, size );
+               intrlv_4x128( vhash, in0, in1, in2, in3, size<<3 );
+               cube_4way_full( &ctx.cube, vhash, 512, vhash, size );
+               dintrlv_4x128_512( hash0, hash1, hash2, hash3, vhash );
+               intrlv_4x128( vhash, in4, in5, in6, in7, size<<3 );
+               cube_4way_full( &ctx.cube, vhash, 512, vhash, size );
+               dintrlv_4x128_512( hash4, hash5, hash6, hash7, vhash );
             }
          break;
          case SHAVITE:
@@ -556,9 +524,10 @@ void x16r_4way_prehash( void *vdata, void *pdata )
          break;
       case CUBEHASH:
          mm128_bswap32_80( edata, pdata );
-         cubehashInit( &x16r_ctx.cube, 512, 16, 32 );
-         cubehashUpdate( &x16r_ctx.cube, (const byte*)edata, 64 );
-         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+         intrlv_2x128( vdata2, edata, edata, 640 );
+         cube_2way_init( &x16r_ctx.cube, 512, 16, 32 );
+         cube_2way_update( &x16r_ctx.cube, vdata2, 64 );
+         rintrlv_2x128_4x64( vdata, vdata2, vdata2, 640 );
       break;
       case HAMSI:
          mm256_bswap32_intrlv80_4x64( vdata, pdata );
@@ -680,13 +649,13 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid )
          case LUFFA:
             if ( i == 0 )
             {
-               intrlv_2x128( vhash, hash0, hash1, 640 );
-               luffa_2way_update_close( &ctx.luffa, vhash, vhash + (16<<1), 16 );
-               dintrlv_2x128_512( hash0, hash1, vhash );
-               intrlv_2x128( vhash, hash2, hash3, 640 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               luffa_2way_update_close( &ctx.luffa, vhash, vhash + (16<<1), 16 );
-               dintrlv_2x128_512( hash2, hash3, vhash );
+              intrlv_2x128( vhash, hash0, hash1, 640 );
+              luffa_2way_update_close( &ctx.luffa, vhash, vhash + (16<<1), 16 );
+              dintrlv_2x128_512( hash0, hash1, vhash );
+              intrlv_2x128( vhash, hash2, hash3, 640 );
+              memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
+              luffa_2way_update_close( &ctx.luffa, vhash, vhash + (16<<1), 16 );
+              dintrlv_2x128_512( hash2, hash3, vhash );
             }
             else
             {
@@ -701,32 +670,24 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid )
          case CUBEHASH:
             if ( i == 0 )
             {
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash0,
-                                          (const byte*)in0 + 64, 16 );
+               intrlv_2x128( vhash, in0, in1, size<<3 );
+               cube_2way_update_close( &ctx.cube, vhash,
+                                                  vhash + (16<<1), 16 );
+               dintrlv_2x128_512( hash0, hash1, vhash );
                memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash1,
-                                          (const byte*)in1 + 64, 16 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash2,
-                                          (const byte*)in2 + 64, 16 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash3,
-                                          (const byte*)in3 + 64, 16 );
+               intrlv_2x128( vhash, in2, in3, size<<3 );
+               cube_2way_update_close( &ctx.cube, vhash,
+                                                  vhash + (16<<1), 16 );
+               dintrlv_2x128_512( hash2, hash3, vhash );
             }
             else
             {
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash0,
-                                     (const byte*)in0, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash1,
-                                     (const byte*)in1, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash2,
-                                     (const byte*)in2, size );
-               cubehashInit( &ctx.cube, 512, 16, 32 );
-               cubehashUpdateDigest( &ctx.cube, (byte*) hash3,
-                                     (const byte*)in3, size );
+               intrlv_2x128( vhash, in0, in1, size<<3 );
+               cube_2way_full( &ctx.cube, vhash, 512, vhash, size );
+               dintrlv_2x128_512( hash0, hash1, vhash );
+               intrlv_2x128( vhash, in2, in3, size<<3 );
+               cube_2way_full( &ctx.cube, vhash, 512, vhash, size );
+               dintrlv_2x128_512( hash2, hash3, vhash );
             }
          break;
          case SHAVITE:

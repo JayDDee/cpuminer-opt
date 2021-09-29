@@ -70,17 +70,25 @@ void *alloca (size_t);
 
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
-#define LOG_BLUE 0x10 /* unique value */
+#define LOG_BLUE  0x10 /* unique value */
+#define LOG_MAJR  0x11 /* unique value */
+#define LOG_MINR  0x12 /* unique value */
+#define LOG_GREEN 0x13 /* unique value */
+#define LOG_PINK  0x14 /* unique value */
 #else
 enum {
-	LOG_ERR,
+   LOG_CRIT,
+   LOG_ERR,
 	LOG_WARNING,
 	LOG_NOTICE,
 	LOG_INFO,
 	LOG_DEBUG,
-	/* custom notices */
-	LOG_BLUE = 0x10,
-};
+   /* custom notices */
+	LOG_BLUE  = 0x10,
+   LOG_MAJR  = 0x11,
+   LOG_MINR  = 0x12,
+   LOG_GREEN = 0x13,
+   LOG_PINK  = 0x14 };
 #endif
 
 extern bool is_power_of_2( int n );
@@ -216,7 +224,7 @@ json_t* json_load_url(char* cfg_url, json_error_t *err);
 
 void sha256_init(uint32_t *state);
 void sha256_transform(uint32_t *state, const uint32_t *block, int swap);
-void sha256d(unsigned char *hash, const unsigned char *data, int len);
+//void sha256d(unsigned char *hash, const unsigned char *data, int len);
 
 #ifdef USE_ASM
 #if defined(__ARM_NEON__) || defined(__i386__) || defined(__x86_64__)
@@ -225,7 +233,8 @@ int sha256_use_4way();
 void sha256_init_4way(uint32_t *state);
 void sha256_transform_4way(uint32_t *state, const uint32_t *block, int swap);
 #endif
-#if defined(__x86_64__) && defined(USE_AVX2)
+//#if defined(__x86_64__) && defined(USE_AVX2)
+#if defined(__x86_64__) && defined(__AVX2__)
 #define HAVE_SHA256_8WAY 1
 int sha256_use_8way();
 void sha256_init_8way(uint32_t *state);
@@ -271,9 +280,9 @@ struct thr_api {
 #define CL_N    "\x1B[0m"
 #define CL_RED  "\x1B[31m"
 #define CL_GRN  "\x1B[32m"
-#define CL_YLW  "\x1B[33m"
+#define CL_YLW  "\x1B[33m"  // dark yellow
 #define CL_BLU  "\x1B[34m"
-#define CL_MAG  "\x1B[35m"
+#define CL_MAG  "\x1B[35m"  // purple
 #define CL_CYN  "\x1B[36m"
 
 #define CL_BLK  "\x1B[22;30m" /* black */
@@ -281,7 +290,7 @@ struct thr_api {
 #define CL_GR2  "\x1B[22;32m" /* green */
 #define CL_BRW  "\x1B[22;33m" /* brown */
 #define CL_BL2  "\x1B[22;34m" /* blue */
-#define CL_MA2  "\x1B[22;35m" /* magenta */
+#define CL_MA2  "\x1B[22;35m" /* purple */
 #define CL_CY2  "\x1B[22;36m" /* cyan */
 #define CL_SIL  "\x1B[22;37m" /* gray */
 
@@ -290,9 +299,9 @@ struct thr_api {
 #else
 #define CL_GRY  "\x1B[90m"    /* dark gray selectable in putty */
 #endif
-#define CL_LRD  "\x1B[01;31m" /* light red */
-#define CL_LGR  "\x1B[01;32m" /* light green */
-#define CL_YL2  "\x1B[01;33m" /* yellow */
+#define CL_LRD  "\x1B[01;31m" /* bright red */
+#define CL_LGR  "\x1B[01;32m" /* bright green */
+#define CL_YL2  "\x1B[01;33m" /* bright yellow */
 #define CL_LBL  "\x1B[01;34m" /* light blue */
 #define CL_LMA  "\x1B[01;35m" /* light magenta */
 #define CL_LCY  "\x1B[01;36m" /* light cyan */
@@ -481,7 +490,7 @@ void format_hashrate(double hashrate, char *output);
 void print_hash_tests(void);
 
 void scale_hash_for_display ( double* hashrate, char* units );
-
+void format_number_si( double* hashrate, char* si_units );
 void report_summary_log( bool force );
 
 /*

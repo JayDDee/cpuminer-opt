@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "skein-hash-4way.h"
 #include "algo/sha/sha-hash-4way.h"
-#include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha256-hash.h"
 
 #if defined (SKEIN_8WAY)
 
@@ -87,7 +87,6 @@ void skeinhash_4way( void *state, const void *input )
      uint32_t hash1[16] __attribute__ ((aligned (64)));
      uint32_t hash2[16] __attribute__ ((aligned (64)));
      uint32_t hash3[16] __attribute__ ((aligned (64)));
-     sph_sha256_context ctx_sha256;
 #else
      uint32_t vhash32[16*4] __attribute__ ((aligned (64)));
      sha256_4way_context ctx_sha256;
@@ -98,18 +97,12 @@ void skeinhash_4way( void *state, const void *input )
 #if defined(__SHA__)      
 
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 512 );
-     sph_sha256_init( &ctx_sha256 );
-     sph_sha256( &ctx_sha256, hash0, 64 );
-     sph_sha256_close( &ctx_sha256, hash0 );
-     sph_sha256_init( &ctx_sha256 );
-     sph_sha256( &ctx_sha256, hash1, 64 );
-     sph_sha256_close( &ctx_sha256, hash1 );
-     sph_sha256_init( &ctx_sha256 );
-     sph_sha256( &ctx_sha256, hash2, 64 );
-     sph_sha256_close( &ctx_sha256, hash2 );
-     sph_sha256_init( &ctx_sha256 );
-     sph_sha256( &ctx_sha256, hash3, 64 );
-     sph_sha256_close( &ctx_sha256, hash3 );
+
+     sha256_full( hash0, hash0, 64 );
+     sha256_full( hash1, hash1, 64 );
+     sha256_full( hash2, hash2, 64 );
+     sha256_full( hash3, hash3, 64 );
+    
      intrlv_4x32( state, hash0, hash1, hash2, hash3, 256 );
 
 #else

@@ -13,7 +13,7 @@
 #include "algo/gost/sph_gost.h"
 #include "algo/lyra2/lyra2.h"
 #if defined(__SHA__)
-  #include "algo/sha/sph_sha2.h"
+  #include "algo/sha/sha256-hash.h"
 #endif
 
 #if defined (X21S_8WAY)
@@ -208,9 +208,7 @@ union _x21s_4way_context_overlay
     haval256_5_4way_context haval;
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
-#if defined(__SHA__)
-    sph_sha256_context      sha256;
-#else
+#if !defined(__SHA__)
     sha256_4way_context     sha256;
 #endif
 } __attribute__ ((aligned (64)));
@@ -275,18 +273,10 @@ int x21s_4way_hash( void* output, const void* input, int thrid )
 
 #if defined(__SHA__)
 
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash0, 64 );
-   sph_sha256_close( &ctx.sha256, output );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash1, 64 );
-   sph_sha256_close( &ctx.sha256, output+32 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash2, 64 );
-   sph_sha256_close( &ctx.sha256, output+64 );
-   sph_sha256_init( &ctx.sha256 );
-   sph_sha256( &ctx.sha256, hash3, 64 );
-   sph_sha256_close( &ctx.sha256, output+96 );
+   sha256_full( output,    hash0, 64 );
+   sha256_full( output+32, hash1, 64 );
+   sha256_full( output+64, hash2, 64 );
+   sha256_full( output+96, hash3, 64 );
 
 #else
 

@@ -34,7 +34,7 @@
 #include <stdlib.h> /* for size_t */
 #include "miner.h"
 #include "simd-utils.h"
-#include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha256-hash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,9 +78,7 @@ typedef struct {
 
 extern yespower_params_t yespower_params;
 
-//SHA256_CTX sha256_prehash_ctx;
-extern __thread sph_sha256_context sha256_prehash_ctx;
-//extern __thread SHA256_CTX sha256_prehash_ctx;
+extern __thread sha256_context sha256_prehash_ctx;
 
 /**
  * yespower_init_local(local):

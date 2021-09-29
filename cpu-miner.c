@@ -38,6 +38,7 @@
 #include <jansson.h>
 #include <openssl/sha.h>
 #include "sysinfos.c"
+#include "algo/sha/sha256d.h"
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -94,6 +95,7 @@ bool have_gbt = true;
 bool allow_getwork = true;
 bool want_stratum = true;    // pretty useless
 bool have_stratum = false;
+bool stratum_down = true;
 bool allow_mininginfo = true;
 bool use_syslog = false;
 bool use_colors = true;
@@ -166,6 +168,8 @@ uint32_t stale_share_count = 0;
 uint32_t solved_block_count = 0;
 double *thr_hashrates;
 double global_hashrate = 0.;
+double total_hashes = 0.;
+struct timeval total_hashes_time = {0,0};
 double stratum_diff = 0.;
 double net_diff = 0.;
 double net_hashrate = 0.;
@@ -1001,6 +1005,7 @@ struct share_stats_t
    double share_diff;
    double stratum_diff;
    double target_diff;
+   uint32_t height;
    char   job_id[32];
 };
 
@@ -1080,13 +1085,14 @@ void report_summary_log( bool force )
    pthread_mutex_unlock( &stats_lock );
 
    timeval_subtract( &et, &now, &start_time );
-   timeval_subtract( &uptime, &now, &session_start );
+   timeval_subtract( &uptime, &total_hashes_time, &session_start );
    
    double share_time = (double)et.tv_sec + (double)et.tv_usec / 1e6;
-   double ghrate = global_hashrate;
+   double ghrate = safe_div( total_hashes, (double)uptime.tv_sec, 0. );
    double target_diff = exp32 * last_targetdiff;
    double shrate = safe_div( target_diff * (double)(accepts),
                              share_time, 0. );
+//   global_hashrate = ghrate;
    double sess_hrate = safe_div( exp32 * norm_diff_sum,
                                  (double)uptime.tv_sec, 0. );
    double submit_rate = safe_div( (double)submits * 60., share_time, 0. );
@@ -1134,29 +1140,38 @@ void report_summary_log( bool force )
                       100. * safe_div( (double)accepted_share_count, 
                                        (double)submitted_share_count, 0. ) ); 
    if ( stale_share_count )
-      applog2( LOG_INFO, "Stale           %7d      %7d      %5.1f%%",
+   {
+      int prio = stales ? LOG_MINR : LOG_INFO;
+      applog2( prio, "Stale           %7d      %7d      %5.1f%%",
                       stales, stale_share_count,
                       100. * safe_div( (double)stale_share_count,
                                        (double)submitted_share_count, 0. ) );
+   }
    if ( rejected_share_count )
-      applog2( LOG_INFO, "Rejected        %7d      %7d      %5.1f%%",
+   {
+      int prio = rejects ? LOG_ERR : LOG_INFO;
+      applog2( prio, "Rejected        %7d      %7d      %5.1f%%",
                       rejects, rejected_share_count,
                       100. * safe_div( (double)rejected_share_count,
                                        (double)submitted_share_count, 0. ) );
+   }
    if ( solved_block_count )
-      applog2( LOG_INFO,"Blocks Solved   %7d      %7d",
+   {      
+      int prio = solved ? LOG_PINK : LOG_INFO;
+      applog2( prio, "Blocks Solved   %7d      %7d",
                solved, solved_block_count );
+   }
    applog2( LOG_INFO, "Hi/Lo Share Diff  %.5g /  %.5g",
-               highest_share, lowest_share );
+            highest_share, lowest_share );
 
    int mismatch = submitted_share_count
          - ( accepted_share_count + stale_share_count + rejected_share_count );
    if ( mismatch )
    {
       if ( mismatch != 1 )
-         applog(LOG_WARNING,"Share count mismatch: %d, stats may be inaccurate", mismatch );
+         applog2(LOG_MINR, "Count mismatch: %d, stats may be inaccurate", mismatch );
       else
-         applog(LOG_INFO,"Share count mismatch, submitted share may still be pending" );
+         applog2(LOG_INFO, CL_LBL "Count mismatch, submitted share may still be pending" CL_N );
    }
 }
 
@@ -1278,17 +1293,17 @@ static int share_result( int result, struct work *work,
 
    if ( use_colors )
    {
-     bcol = acol = scol = rcol = CL_WHT;
+     bcol = acol = scol = rcol = CL_N;
      if ( likely( result ) )
      {
-       acol = CL_WHT CL_GRN;  
-       if ( unlikely( solved ) ) bcol = CL_WHT CL_MAG;
+       acol = CL_LGR;       
+       if ( unlikely( solved ) ) bcol = CL_LMA;
      }        
-     else if ( stale ) scol = CL_WHT CL_YL2;
-     else              rcol = CL_WHT CL_RED;
+     else if ( stale ) scol = CL_YL2;
+     else              rcol = CL_LRD;
    }
 
-   applog( LOG_NOTICE, "%d %s%s %s%s %s%s %s%s" CL_WHT ", %.3f sec (%dms)",
+   applog( LOG_INFO, "%d %s%s %s%s %s%s %s%s" CL_WHT ", %.3f sec (%dms)",
            my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
            bres, share_time, latency );
 
@@ -1296,8 +1311,7 @@ static int share_result( int result, struct work *work,
    {
       if ( have_stratum )
          applog2( LOG_INFO, "Diff %.5g, Block %d, Job %s",
-               my_stats.share_diff, stratum.block_height,
-               my_stats.job_id );
+               my_stats.share_diff, my_stats.height, my_stats.job_id );
       else
          applog2( LOG_INFO, "Diff %.5g, Block %d",
                my_stats.share_diff, work ? work->height : last_block_height );
@@ -1308,7 +1322,7 @@ static int share_result( int result, struct work *work,
       uint32_t str[8];
       uint32_t *targ;
 
-      if ( reason ) applog( LOG_WARNING, "Reject reason: %s", reason );
+      if ( reason ) applog( LOG_MINR, "Reject reason: %s", reason );
          
       diff_to_hash( str, my_stats.share_diff );
       applog2( LOG_INFO, "Hash:   %08x%08x%08x%08x%08x%08x", str[7], str[6],
@@ -1861,6 +1875,7 @@ static void update_submit_stats( struct work *work, const void *hash )
    share_stats[ s_put_ptr ].net_diff = net_diff;
    share_stats[ s_put_ptr ].stratum_diff = stratum_diff;
    share_stats[ s_put_ptr ].target_diff = work->targetdiff;
+   share_stats[ s_put_ptr ].height = work->height; 
    if ( have_stratum )
       strncpy( share_stats[ s_put_ptr ].job_id, work->job_id, 30 );
    s_put_ptr = stats_ptr_incr( s_put_ptr );
@@ -1871,6 +1886,10 @@ static void update_submit_stats( struct work *work, const void *hash )
 bool submit_solution( struct work *work, const void *hash,
                       struct thr_info *thr )
 {
+   // Job went stale during hashing of a valid share.
+   if ( !opt_quiet && work_restart[ thr->id ].restart )
+      applog( LOG_INFO, CL_LBL "Share may be stale, submitting anyway..." CL_N );
+   
    work->sharediff = hash_to_diff( hash );
    if ( likely( submit_work( thr, work ) ) )
    {
@@ -1887,11 +1906,11 @@ bool submit_solution( struct work *work, const void *hash,
      if ( !opt_quiet )
      {
         if ( have_stratum )
-           applog( LOG_NOTICE, "%d Submitted Diff %.5g, Block %d, Job %s",
+           applog( LOG_INFO, "%d Submitted Diff %.5g, Block %d, Job %s",
                    submitted_share_count, work->sharediff, work->height,
                    work->job_id );
         else
-           applog( LOG_NOTICE, "%d Submitted Diff %.5g, Block %d, Ntime %08x",
+           applog( LOG_INFO, "%d Submitted Diff %.5g, Block %d, Ntime %08x",
                    submitted_share_count, work->sharediff, work->height,
                    work->data[ algo_gate.ntime_index ] );
      }
@@ -2048,7 +2067,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    pthread_rwlock_wrlock( &g_work_lock );
    pthread_mutex_lock( &sctx->work_lock );
 
-   new_job =  sctx->new_job;
+   new_job =  sctx->new_job;  // otherwise just increment extranonce2
    sctx->new_job = false;
    
    free( g_work->job_id );
@@ -2083,6 +2102,14 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    global_hashrate = hr;
 
    pthread_mutex_unlock( &stats_lock );
+
+   if ( !opt_quiet )
+   {
+      int mismatch = submitted_share_count
+         - ( accepted_share_count + stale_share_count + rejected_share_count );
+      if ( mismatch )
+         applog(LOG_INFO, CL_LBL "%d Submitted share pending, maybe stale" CL_N, submitted_share_count );
+   }
 
    if ( stratum_diff != sctx->job.diff )
       applog( LOG_BLUE, "New Stratum Diff %g, Block %d, Job %s",
@@ -2264,19 +2291,29 @@ static void *miner_thread( void *userdata )
    }
 
    // wait for stratum to send first job
-   if ( have_stratum ) while ( unlikely( !g_work.job_id ) ) sleep(1);
+   if ( have_stratum ) while ( unlikely( stratum_down ) )
+   {
+     if ( opt_debug )
+        applog( LOG_INFO, "Thread %d waiting for first job", thr_id );
+     sleep(1);
+   }
 
+   // nominal startng values
+   int64_t max64 = 20;
+   thr_hashrates[thr_id] = 20;
    while (1)
    {
        uint64_t hashes_done;
        struct timeval tv_start, tv_end, diff;
-       int64_t max64 = 1000;
+//       int64_t max64 = 1000;
        int nonce_found = 0;
 
        if ( likely( algo_gate.do_this_thread( thr_id ) ) )
        {
-          if ( have_stratum )
+          if ( have_stratum ) 
           {
+             while ( unlikely( stratum_down ) )
+                sleep( 1 );
              if ( *nonceptr >= end_nonce )
                 stratum_gen_work( &stratum, &g_work );
           }
@@ -2383,6 +2420,8 @@ static void *miner_thread( void *userdata )
        if ( diff.tv_usec || diff.tv_sec )
        {
           pthread_mutex_lock( &stats_lock );
+          total_hashes += hashes_done;
+          total_hashes_time = tv_end;
           thr_hashrates[thr_id] =
           hashes_done / ( diff.tv_sec + diff.tv_usec * 1e-6 );
           pthread_mutex_unlock( &stats_lock );
@@ -2439,7 +2478,6 @@ static void *miner_thread( void *userdata )
             && thr_id == opt_n_threads - 1 ) )
        {
           double hashrate  = 0.;
-
           pthread_mutex_lock( &stats_lock );
           for ( i = 0; i < opt_n_threads; i++ )
               hashrate  += thr_hashrates[i];
@@ -2448,8 +2486,12 @@ static void *miner_thread( void *userdata )
 
           if ( opt_benchmark )
           {
+             struct timeval uptime;
              char hr[16];
              char hr_units[2] = {0,0};
+             timeval_subtract( &uptime, &total_hashes_time, &session_start ); 
+             double hashrate = safe_div( total_hashes, uptime.tv_sec, 0. );
+
              scale_hash_for_display( &hashrate,  hr_units );
              sprintf( hr, "%.2f", hashrate );
 #if (defined(_WIN64) || defined(__WINDOWS__) || defined(_WIN32))
@@ -2745,6 +2787,7 @@ static void *stratum_thread(void *userdata )
       if ( unlikely( stratum_need_reset ) )
       {
           stratum_need_reset = false;
+          stratum_down = true;
           stratum_disconnect( &stratum );
           if ( strcmp( stratum.url, rpc_url ) )
           {
@@ -2755,11 +2798,13 @@ static void *stratum_thread(void *userdata )
           else 
 	          applog(LOG_WARNING, "Stratum connection reset");
           // reset stats queue as well
+          restart_threads();
           if ( s_get_ptr != s_put_ptr ) s_get_ptr = s_put_ptr = 0;
       }
 
       while ( !stratum.curl )
       {
+         stratum_down = true;
          pthread_rwlock_wrlock( &g_work_lock );
          g_work_time = 0;
          pthread_rwlock_unlock( &g_work_lock );
@@ -2780,6 +2825,7 @@ static void *stratum_thread(void *userdata )
          }
          else
          {
+            stratum_down = false;
             restart_threads();
             applog(LOG_BLUE,"Stratum connection established" );
          }
@@ -2801,7 +2847,7 @@ static void *stratum_thread(void *userdata )
          }
          else
          {
-            applog(LOG_WARNING, "Stratum connection interrupted");
+//            applog(LOG_WARNING, "Stratum connection interrupted");
 //            stratum_disconnect( &stratum );
             stratum_need_reset = true;
          }
@@ -3629,6 +3675,10 @@ int main(int argc, char *argv[])
       show_usage_and_exit(1);
    }
 
+   // need to register to get algo optimizations for cpu capabilities
+   // but that causes register logs before cpu capabilities is output.
+   // Would need to split register into 2 parts. First part sets algo
+   // optimizations but no logging, second part does any logging.   
    if ( !register_algo_gate( opt_algo, &algo_gate ) )  exit(1);
 
    if ( !check_cpu_capability() ) exit(1);
@@ -3684,12 +3734,6 @@ int main(int argc, char *argv[])
          exit(0);
       }
    }
-
-   // Initialize stats times and counters
-   memset( share_stats, 0, s_stats_size *  sizeof (struct share_stats_t) );
-   gettimeofday( &last_submit_time, NULL );
-   memcpy( &five_min_start, &last_submit_time, sizeof (struct timeval) );
-   memcpy( &session_start, &last_submit_time, sizeof (struct timeval) );
 
 //   if ( !check_cpu_capability() ) exit(1);
 
@@ -3854,7 +3898,8 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 	}
-	if ( have_stratum )
+
+   if ( have_stratum )
    {
       if ( opt_debug )
          applog(LOG_INFO,"Creating stratum thread");
@@ -3900,24 +3945,35 @@ int main(int argc, char *argv[])
                                                      opt_api_listen );
    }
 
+   // hold the stats lock while starting miner threads
+   pthread_mutex_lock( &stats_lock );
+   
 	/* start mining threads */
-	for (i = 0; i < opt_n_threads; i++)
+	for ( i = 0; i < opt_n_threads; i++ )
    {
-      usleep( 5000 );
+//      usleep( 5000 );
 		thr = &thr_info[i];
 		thr->id = i;
 		thr->q = tq_new();
-		if (!thr->q)
+		if ( !thr->q )
 			return 1;
-         err = thread_create(thr, miner_thread);
-		if (err) {
-			applog(LOG_ERR, "Miner thread %d create failed", i);
+      err = thread_create( thr, miner_thread );
+		if ( err )
+      {
+			applog( LOG_ERR, "Miner thread %d create failed", i );
 			return 1;
 		}
    }
 
-	applog( LOG_INFO, "%d of %d miner threads started using '%s' algorithm",
-	                  opt_n_threads, num_cpus, algo_names[opt_algo] );
+   // Initialize stats times and counters
+   memset( share_stats, 0, s_stats_size *  sizeof (struct share_stats_t) );
+   gettimeofday( &last_submit_time, NULL );
+   memcpy( &five_min_start, &last_submit_time, sizeof (struct timeval) );
+   memcpy( &session_start, &last_submit_time, sizeof (struct timeval) );
+   pthread_mutex_unlock( &stats_lock );
+
+   applog( LOG_INFO, "%d of %d miner threads started using '%s' algorithm",
+                     opt_n_threads, num_cpus, algo_names[opt_algo] );
 
 	/* main loop - simply wait for workio thread to exit */
 	pthread_join( thr_info[work_thr_id].pth, NULL );

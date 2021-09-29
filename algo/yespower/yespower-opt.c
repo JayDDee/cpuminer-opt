@@ -203,17 +203,17 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 	ARX(X0, X3, X2, 18) \
 	/* Rearrange data */ \
 	X1 = _mm_shuffle_epi32(X1, 0x93); \
+   X3 = _mm_shuffle_epi32(X3, 0x39); \
 	X2 = _mm_shuffle_epi32(X2, 0x4E); \
-	X3 = _mm_shuffle_epi32(X3, 0x39); \
 	/* Operate on "rows" */ \
 	ARX(X3, X0, X1, 7) \
 	ARX(X2, X3, X0, 9) \
 	ARX(X1, X2, X3, 13) \
 	ARX(X0, X1, X2, 18) \
 	/* Rearrange data */ \
+   X3 = _mm_shuffle_epi32(X3, 0x93); \
 	X1 = _mm_shuffle_epi32(X1, 0x39); \
-	X2 = _mm_shuffle_epi32(X2, 0x4E); \
-	X3 = _mm_shuffle_epi32(X3, 0x93);
+	X2 = _mm_shuffle_epi32(X2, 0x4E);
 
 /**
  * Apply the Salsa20 core to the block provided in (X0 ... X3).
@@ -1095,7 +1095,7 @@ int yespower(yespower_local_t *local,
    salsa20_blk_t *V, *XY;
    pwxform_ctx_t ctx;
    uint8_t sha256[32];
-   sph_sha256_context sha256_ctx;
+   sha256_context sha256_ctx;
 
    /* Sanity-check parameters */
    if ( (version != YESPOWER_0_5 && version != YESPOWER_1_0)
@@ -1138,10 +1138,9 @@ int yespower(yespower_local_t *local,
 
    // copy prehash, do tail   
    memcpy( &sha256_ctx, &sha256_prehash_ctx, sizeof sha256_ctx );
-
-   sph_sha256( &sha256_ctx, src+64, srclen-64 );
-   sph_sha256_close( &sha256_ctx, sha256 );
-
+   sha256_update( &sha256_ctx, src+64, srclen-64 );
+   sha256_final( &sha256_ctx, sha256 );
+   
    if ( version == YESPOWER_0_5 )
    {
       PBKDF2_SHA256( sha256, sizeof(sha256), src, srclen, 1, B, B_size );
@@ -1186,7 +1185,9 @@ int yespower(yespower_local_t *local,
       if ( work_restart[thrid].restart ) return 0;
 
       smix_1_0( B, r, N, V, XY, &ctx );
-      
+
+      if ( work_restart[thrid].restart ) return 0;
+
       HMAC_SHA256_Buf( B + B_size - 64, 64, sha256, sizeof(sha256),
                        (uint8_t *)dst );
    }

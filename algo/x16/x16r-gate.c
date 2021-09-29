@@ -1,4 +1,5 @@
 #include "x16r-gate.h"
+#include "algo/sha/sha256d.h"
 
 __thread char x16r_hash_order[ X16R_HASH_FUNC_COUNT + 1 ] = { 0 };
 
