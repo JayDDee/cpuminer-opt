@@ -535,7 +535,6 @@ static inline __m512i mm512_shufll_x32( const __m512i v, const int n )
 
 // Rotate 256 bit lanes by one 64 bit element
 #define mm512_shuflr256_64( v )     _mm512_permutex_epi64( v, 0x39 )
-
 #define mm512_shufll256_64( v )     _mm512_permutex_epi64( v, 0x93 )
 
 // Rotate 256 bit lanes by one 32 bit element
@@ -610,9 +609,6 @@ static inline __m512i mm512_shuflr128_8( const __m512i v, const int c )
 // shuflr is 1 input
 // shufl2r is 2 input ...
 // Drop macros? They can easilly be rebuilt using shufl2 functions
-
-// add shuflr shufll functions performing rotate, returning first arg
-// They're faster than doing both, when both not needed.
 
 // Shuffle concatenated { v1, v2 ) right or left by 256 bits and return
 // rotated v1 

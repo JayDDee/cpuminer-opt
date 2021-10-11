@@ -18,16 +18,20 @@
  #ifndef __INTTYPES_H_
  #define __INTTYPES_H_
 
+#include <stdint.h>
+
  /* Use [u]intN_t if you need exactly N bits.
   XXX - doesn't handle the -mint8 option.  */
 
  typedef signed char swift_int8_t;
  typedef unsigned char swift_uint8_t;
 
- typedef int swift_int16_t;
+ typedef int32_t swift_int16_t;
+// typedef int swift_int16_t;
  typedef unsigned int swift_uint16_t;
 
- typedef long swift_int32_t;
+ typedef int32_t swift_int32_t;
+// typedef long swift_int32_t;
  typedef unsigned long swift_uint32_t;
 
  typedef long long swift_int64_t;

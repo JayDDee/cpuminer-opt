@@ -1,7 +1,7 @@
 #if !defined(SIMD_256_H__)
 #define SIMD_256_H__ 1
 
-#if defined(__AVX2__)
+//#if defined(__AVX2__)
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -14,7 +14,9 @@
 // is limited because 256 bit vectors are less likely to be used when 512
 // is available.
 
-// Used instead if casting.
+#if defined(__AVX__)
+
+// Used instead of casting.
 typedef union
 {
    __m256i m256;
@@ -22,6 +24,28 @@ typedef union
    uint64_t u64[4];
    uint32_t u32[8];
 } __attribute__ ((aligned (32))) m256_ovly;
+
+//
+// Pointer casting
+
+// p = any aligned pointer
+// returns p as pointer to vector type, not very useful
+#define castp_m256i(p) ((__m256i*)(p))
+
+// p = any aligned pointer
+// returns *p, watch your pointer arithmetic
+#define cast_m256i(p) (*((__m256i*)(p)))
+
+// p = any aligned pointer, i = scaled array index
+// returns value p[i]
+#define casti_m256i(p,i) (((__m256i*)(p))[(i)])
+
+// p = any aligned pointer, o = scaled offset
+// returns pointer p+o
+#define casto_m256i(p,o) (((__m256i*)(p))+(o))
+
+#endif
+#if defined(__AVX2__)
 
 
 // Move integer to low element of vector, other elements are set to zero.
@@ -90,26 +114,6 @@ static inline __m256i mm256_neg1_fn()
 // Consistent naming for similar operations.
 #define mm128_extr_lo128_256( v ) _mm256_castsi256_si128( v )
 #define mm128_extr_hi128_256( v ) _mm256_extracti128_si256( v, 1 )
-
-//
-// Pointer casting
-
-// p = any aligned pointer
-// returns p as pointer to vector type, not very useful
-#define castp_m256i(p) ((__m256i*)(p))
-
-// p = any aligned pointer
-// returns *p, watch your pointer arithmetic
-#define cast_m256i(p) (*((__m256i*)(p)))
-
-// p = any aligned pointer, i = scaled array index
-// returns value p[i]
-#define casti_m256i(p,i) (((__m256i*)(p))[(i)])
-
-// p = any aligned pointer, o = scaled offset
-// returns pointer p+o
-#define casto_m256i(p,o) (((__m256i*)(p))+(o))
-
 
 //
 // Memory functions

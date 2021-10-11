@@ -70,6 +70,8 @@ extern "C"{
            C8, C9, CA, CB, CC, CD, CE, CF; \
    __m256i M0, M1, M2, M3, M4, M5, M6, M7, \
            M8, M9, MA, MB, MC, MD, ME, MF; \
+   const __m256i FIVE  = _mm256_set1_epi32( 5 ); \
+   const __m256i THREE = _mm256_set1_epi32( 3 ); \
    sph_u32 Wlow, Whigh;
 
 #define READ_STATE8(state) do \
@@ -314,8 +316,7 @@ do { \
             _mm256_andnot_si256( xb3, xb2 ), \
             _mm256_mullo_epi32( mm256_xor3( xa0, xc, \
                _mm256_mullo_epi32( mm256_rol_32( xa1, 15 ), \
-                                   _mm256_set1_epi32(5UL) ) ), \
-               _mm256_set1_epi32(3UL) ) ) ); \
+                                   FIVE ) ), THREE ) ) ); \
    xb0 = mm256_xnor( xa0, mm256_rol_32( xb0, 1 ) ); \
 } while (0)
 
@@ -667,7 +668,9 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 	        C8, C9, CA, CB, CC, CD, CE, CF; \
 	__m128i M0, M1, M2, M3, M4, M5, M6, M7, \
 	        M8, M9, MA, MB, MC, MD, ME, MF; \
-	sph_u32 Wlow, Whigh;
+   const __m128i FIVE  = _mm_set1_epi32( 5 ); \
+   const __m128i THREE = _mm_set1_epi32( 3 ); \
+   sph_u32 Wlow, Whigh;
 
 #define READ_STATE(state) do \
 { \
@@ -931,8 +934,8 @@ do { \
    xa0 = _mm_xor_si128( xm, _mm_xor_si128( xb1, _mm_xor_si128(  \
             _mm_andnot_si128( xb3, xb2 ), \
             _mm_mullo_epi32( _mm_xor_si128( xa0, _mm_xor_si128( xc, \
-               _mm_mullo_epi32(  mm128_rol_32( xa1, 15 ), _mm_set1_epi32(5UL) ) \
-                   ) ), _mm_set1_epi32(3UL) ) ) ) ); \
+               _mm_mullo_epi32(  mm128_rol_32( xa1, 15 ), FIVE ) \
+                   ) ), THREE ) ) ) ); \
    xb0 = mm128_not( _mm_xor_si128( xa0, mm128_rol_32( xb0, 1 ) ) ); \
 } while (0)
 

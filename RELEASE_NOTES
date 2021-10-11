@@ -65,10 +65,24 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.18.1
+
+More speed for scrypt:
+ - additional scryptn2 optimizations for all CPU architectures,
+ - AVX2 is now used by default on CPUS with SHA but not AVX512,
+ - scrypt:1024 performance lost in v3.18.0 is restored,
+ - AVX512 & AVX2 improvements to scrypt:1024.
+
+Big speedup for SwiFFTx AVX2 & SSE4.1: x22i +55%, x25x +22%.
+
+Issue #337: fixed a problem that could display negative stats values in the
+first summary report if the report was forced prematurely due to a stratum
+diff change. The stats will still be invalid but should display zeros.
+
 v3.18.0
 
 Complete rewrite of Scrypt code, optimized for large N factor (scryptn2):
-  - AVX512 & SHA support for SHA256, AVX512 has priority,
+  - AVX512 & SHA support for sha256, AVX512 has priority,
   - up to 50% increase in hashrate,
   - memory requirements reduced 30-60% depending on CPU architecture,
   - memory usage displayed at startup,

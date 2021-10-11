@@ -51,7 +51,6 @@ typedef struct {
    __m128i buf[64>>2];
    __m128i val[8];
    uint32_t count_high, count_low;
-   bool initialized;
 } sha256_4way_context __attribute__ ((aligned (64)));
 
 void sha256_4way_init( sha256_4way_context *sc );
@@ -74,7 +73,6 @@ typedef struct {
    __m256i buf[64>>2];
    __m256i val[8];
    uint32_t count_high, count_low;
-   bool initialized;
 } sha256_8way_context __attribute__ ((aligned (128)));
 
 void sha256_8way_init( sha256_8way_context *sc );
@@ -96,7 +94,6 @@ typedef struct {
    __m512i buf[64>>2];
    __m512i val[8];
    uint32_t count_high, count_low;
-   bool initialized;
 } sha256_16way_context __attribute__ ((aligned (128)));
 
 void sha256_16way_init( sha256_16way_context *sc );

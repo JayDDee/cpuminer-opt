@@ -2083,7 +2083,8 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
                            / ( opt_target_factor * opt_diff_factor );
    diff_to_hash( g_work->target, g_work->targetdiff );
 
-   // Increment extranonce2
+   // Pre increment extranonce2 in case of being called again before receiving
+   // a new job
    for ( int t = 0;
          t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] );
          t++ );
@@ -2103,20 +2104,12 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 
    pthread_mutex_unlock( &stats_lock );
 
-   if ( !opt_quiet )
-   {
-      int mismatch = submitted_share_count
-         - ( accepted_share_count + stale_share_count + rejected_share_count );
-      if ( mismatch )
-         applog(LOG_INFO, CL_LBL "%d Submitted share pending, maybe stale" CL_N, submitted_share_count );
-   }
-
    if ( stratum_diff != sctx->job.diff )
       applog( LOG_BLUE, "New Stratum Diff %g, Block %d, Job %s",
                         sctx->job.diff, sctx->block_height, g_work->job_id );
    else if ( last_block_height != sctx->block_height )
-      applog( LOG_BLUE, "New Block %d, Job %s",
-                        sctx->block_height, g_work->job_id );
+      applog( LOG_BLUE, "New Block %d, Net diff %.5g, Job %s",
+                        sctx->block_height, net_diff, g_work->job_id );
    else if ( g_work->job_id && new_job )
       applog( LOG_BLUE, "New Work: Block %d, Net diff %.5g, Job %s",
                          sctx->block_height, net_diff, g_work->job_id );
@@ -2173,7 +2166,6 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
                {
                   double net_hr = nd / net_ttf;
                   char net_hr_units[4] = {0};
-
                   scale_hash_for_display ( &net_hr, net_hr_units );
                   applog2( LOG_INFO, "Net hash rate (est) %.2f %sh/s",
                                      net_hr, net_hr_units );
@@ -2182,6 +2174,17 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
          }  // hr > 0
       } // !quiet
    }  // new diff/block
+
+   if ( new_job && !opt_quiet )
+   {
+      int mismatch = submitted_share_count - ( accepted_share_count
+                                             + stale_share_count
+                                             + rejected_share_count );
+      if ( mismatch )
+         applog( LOG_INFO,
+                 CL_LBL "%d Submitted share pending, maybe stale" CL_N,
+                 submitted_share_count );
+   }
 }
 
 static void *miner_thread( void *userdata )
@@ -3970,6 +3973,7 @@ int main(int argc, char *argv[])
    gettimeofday( &last_submit_time, NULL );
    memcpy( &five_min_start, &last_submit_time, sizeof (struct timeval) );
    memcpy( &session_start, &last_submit_time, sizeof (struct timeval) );
+   memcpy( &total_hashes_time, &last_submit_time, sizeof (struct timeval) );
    pthread_mutex_unlock( &stats_lock );
 
    applog( LOG_INFO, "%d of %d miner threads started using '%s' algorithm",

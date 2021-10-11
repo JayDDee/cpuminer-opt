@@ -18,6 +18,8 @@
 //#include "stdbool.h"
 #include <memory.h>
 
+#include "simd-utils.h"
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // Constants and static tables portion.
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,20 +51,20 @@
 // - A: the first operand. After the operation stores the sum of the two operands.
 // - B: the second operand. After the operation stores the difference between the first and the
 //   second operands.
-#define ADD_SUB(A, B) {register int temp = (B); B = ((A) - (B)); A = ((A) + (temp));}
+//#define ADD_SUB(A, B) {register int temp = (B); B = ((A) - (B)); A = ((A) + (temp));}
 
 // Quickly reduces an integer modulo 257.
 //
 // Parameters:
 // - A: the input.
-#define Q_REDUCE(A) (((A) & 0xff) - ((A) >> 8))
+//#define Q_REDUCE(A) (((A) & 0xff) - ((A) >> 8))
 
 // Since we need to do the setup only once, this is the indicator variable:
 static bool wasSetupDone = false;
 
 // This array stores the powers of omegas that correspond to the indices, which are the input
 // values. Known also as the "outer FFT twiddle factors".
-swift_int16_t multipliers[N];
+swift_int16_t multipliers[N] __attribute__ ((aligned (64)));
 
 // This array stores the powers of omegas, multiplied by the corresponding values.
 // We store this table to save computation time.
@@ -72,14 +74,14 @@ swift_int16_t multipliers[N];
 // compression function, i is between 0 and 31, x_i is a 64-bit value.
 // One can see the formula for this (intermediate) stage in the SWIFFT FSE 2008 paper --
 // formula (2), section 3, page 6.
-swift_int16_t fftTable[256 * EIGHTH_N];
+swift_int16_t fftTable[256 * EIGHTH_N] __attribute__ ((aligned (64)));
 
 // The A's we use in SWIFFTX shall be random elements of Z_257.
 // We generated these A's from the decimal expansion of PI as follows:  we converted each
 // triple of digits into a decimal number d. If d < (257 * 3) we used (d % 257) for the next A
 // element, otherwise move to the next triple of digits in the expansion. This guarntees that
 // the A's are random, provided that PI digits are.
-const swift_int16_t As[3 * M * N] =
+const swift_int16_t As[3 * M * N] __attribute__ ((aligned (64))) =
 {141,  78, 139,  75, 238, 205, 129, 126,  22, 245, 197, 169, 142, 118, 105,  78,
   50, 149,  29, 208, 114,  34,  85, 117,  67, 148,  86, 256,  25,  49, 133,  93,
   95,  36,  68, 231, 211, 102, 151, 128, 224, 117, 193,  27, 102, 187,   7, 105,
@@ -636,9 +638,202 @@ void InitializeSWIFFTX()
 	wasSetupDone = true;
 }
 
+// In the original code the F matrix is rotated so it was not aranged
+// the same as all the other data. Rearanging F to match all the other
+// data made vectorizing possible, the compiler probably could have been
+// able to auto-vectorize with proper data organisation.
+// Also in the original code the custom 16 bit data types are all now 32
+// bit int32_t regardless of the type name.
+//
 void FFT(const unsigned char input[EIGHTH_N], swift_int32_t *output)
 {
-	swift_int16_t *mult = multipliers;
+#if defined(__AVX2__)
+
+   __m256i F[8] __attribute__ ((aligned (64)));
+   __m256i *mul = (__m256i*)multipliers;
+   __m256i *out = (__m256i*)output;
+   __m256i *tbl = (__m256i*)&( fftTable[ input[0] << 3 ] );
+
+   F[0] = _mm256_mullo_epi32( mul[0], *tbl );
+   tbl = (__m256i*)&( fftTable[ input[1] << 3 ] );
+   F[1] = _mm256_mullo_epi32( mul[1], *tbl );
+   tbl = (__m256i*)&( fftTable[ input[2] << 3 ] );
+   F[2] = _mm256_mullo_epi32( mul[2], *tbl );
+   tbl = (__m256i*)&( fftTable[ input[3] << 3 ] );
+   F[3] = _mm256_mullo_epi32( mul[3], *tbl );
+   tbl = (__m256i*)&( fftTable[ input[4] << 3 ] );
+   F[4] = _mm256_mullo_epi32( mul[4], *tbl );
+   tbl = (__m256i*)&( fftTable[ input[5] << 3 ] );
+   F[5] = _mm256_mullo_epi32( mul[5], *tbl );
+   tbl = (__m256i*)&( fftTable[ input[6] << 3 ] );
+   F[6] = _mm256_mullo_epi32( mul[6], *tbl );
+   tbl = (__m256i*)&( fftTable[ input[7] << 3 ] );
+   F[7] = _mm256_mullo_epi32( mul[7], *tbl );
+
+   #define ADD_SUB( a, b ) \
+   { \
+      __m256i tmp = b; \
+      b = _mm256_sub_epi32( a, b ); \
+      a = _mm256_add_epi32( a, tmp ); \
+   }
+   
+   ADD_SUB( F[0], F[1] );
+   ADD_SUB( F[2], F[3] );
+   ADD_SUB( F[4], F[5] );
+   ADD_SUB( F[6], F[7] );
+
+   F[3] = _mm256_slli_epi32( F[3], 4 );
+   F[7] = _mm256_slli_epi32( F[7], 4 );
+
+   ADD_SUB( F[0], F[2] );
+   ADD_SUB( F[1], F[3] );
+   ADD_SUB( F[4], F[6] );
+   ADD_SUB( F[5], F[7] );  
+
+   F[5] = _mm256_slli_epi32( F[5], 2 );
+   F[6] = _mm256_slli_epi32( F[6], 4 );
+   F[7] = _mm256_slli_epi32( F[7], 6 );
+
+   ADD_SUB( F[0], F[4] );
+   ADD_SUB( F[1], F[5] );
+   ADD_SUB( F[2], F[6] );
+   ADD_SUB( F[3], F[7] );
+
+   #undef ADD_SUB
+
+#if defined (__AVX512VL__) && defined(__AVX512BW__)   
+
+   #define Q_REDUCE( a ) \
+       _mm256_sub_epi32( _mm256_and_si256( a, \
+                 _mm256_movm_epi8( 0x11111111 ) ), _mm256_srai_epi32( a, 8 ) ) 
+
+#else   
+
+   #define Q_REDUCE( a ) \
+       _mm256_sub_epi32( _mm256_and_si256( a, \
+                   m256_const1_32( 0x000000ff ) ), _mm256_srai_epi32( a, 8 ) ) 
+
+#endif
+                          
+   out[0] = Q_REDUCE( F[0] );  
+   out[1] = Q_REDUCE( F[1] );                        
+   out[2] = Q_REDUCE( F[2] );                        
+   out[3] = Q_REDUCE( F[3] );                        
+   out[4] = Q_REDUCE( F[4] );                        
+   out[5] = Q_REDUCE( F[5] );                        
+   out[6] = Q_REDUCE( F[6] );                        
+   out[7] = Q_REDUCE( F[7] );
+
+   #undef Q_REDUCE
+
+#elif defined(__SSE4_1__)
+
+   __m128i F[16] __attribute__ ((aligned (64)));
+   __m128i *mul = (__m128i*)multipliers;
+   __m128i *out = (__m128i*)output;
+   __m128i *tbl = (__m128i*)&( fftTable[ input[0] << 3 ] );
+
+   F[ 0] = _mm_mullo_epi32( mul[ 0], tbl[0] );
+   F[ 1] = _mm_mullo_epi32( mul[ 1], tbl[1] );
+   tbl = (__m128i*)&( fftTable[ input[1] << 3 ] );
+   F[ 2] = _mm_mullo_epi32( mul[ 2], tbl[0] );
+   F[ 3] = _mm_mullo_epi32( mul[ 3], tbl[1] );
+   tbl = (__m128i*)&( fftTable[ input[2] << 3 ] );
+   F[ 4] = _mm_mullo_epi32( mul[ 4], tbl[0] );
+   F[ 5] = _mm_mullo_epi32( mul[ 5], tbl[1] );
+   tbl = (__m128i*)&( fftTable[ input[3] << 3 ] );
+   F[ 6] = _mm_mullo_epi32( mul[ 6], tbl[0] );
+   F[ 7] = _mm_mullo_epi32( mul[ 7], tbl[1] );
+   tbl = (__m128i*)&( fftTable[ input[4] << 3 ] );
+   F[ 8] = _mm_mullo_epi32( mul[ 8], tbl[0] );
+   F[ 9] = _mm_mullo_epi32( mul[ 9], tbl[1] );
+   tbl = (__m128i*)&( fftTable[ input[5] << 3 ] );
+   F[10] = _mm_mullo_epi32( mul[10], tbl[0] );
+   F[11] = _mm_mullo_epi32( mul[11], tbl[1] );
+   tbl = (__m128i*)&( fftTable[ input[6] << 3 ] );
+   F[12] = _mm_mullo_epi32( mul[12], tbl[0] );
+   F[13] = _mm_mullo_epi32( mul[13], tbl[1] );
+   tbl = (__m128i*)&( fftTable[ input[7] << 3 ] );
+   F[14] = _mm_mullo_epi32( mul[14], tbl[0] );
+   F[15] = _mm_mullo_epi32( mul[15], tbl[1] );
+
+   #define ADD_SUB( a, b ) \
+   { \
+      __m128i tmp = b; \
+      b = _mm_sub_epi32( a, b ); \
+      a = _mm_add_epi32( a, tmp ); \
+   }
+
+   ADD_SUB( F[ 0], F[ 2] );
+   ADD_SUB( F[ 1], F[ 3] );
+   ADD_SUB( F[ 4], F[ 6] );
+   ADD_SUB( F[ 5], F[ 7] );
+   ADD_SUB( F[ 8], F[10] );
+   ADD_SUB( F[ 9], F[11] );
+   ADD_SUB( F[12], F[14] );
+   ADD_SUB( F[13], F[15] );
+
+   F[ 6] = _mm_slli_epi32( F[ 6], 4 );
+   F[ 7] = _mm_slli_epi32( F[ 7], 4 );
+   F[14] = _mm_slli_epi32( F[14], 4 );
+   F[15] = _mm_slli_epi32( F[15], 4 );
+
+   ADD_SUB( F[ 0], F[ 4] );
+   ADD_SUB( F[ 1], F[ 5] );
+   ADD_SUB( F[ 2], F[ 6] );
+   ADD_SUB( F[ 3], F[ 7] );
+   ADD_SUB( F[ 8], F[12] );
+   ADD_SUB( F[ 9], F[13] );
+   ADD_SUB( F[10], F[14] );
+   ADD_SUB( F[11], F[15] );
+
+   F[10] = _mm_slli_epi32( F[10], 2 );
+   F[11] = _mm_slli_epi32( F[11], 2 );
+   F[12] = _mm_slli_epi32( F[12], 4 );
+   F[13] = _mm_slli_epi32( F[13], 4 );
+   F[14] = _mm_slli_epi32( F[14], 6 );
+   F[15] = _mm_slli_epi32( F[15], 6 );
+   
+   ADD_SUB( F[ 0], F[ 8] );
+   ADD_SUB( F[ 1], F[ 9] );
+   ADD_SUB( F[ 2], F[10] );
+   ADD_SUB( F[ 3], F[11] );
+   ADD_SUB( F[ 4], F[12] );
+   ADD_SUB( F[ 5], F[13] );
+   ADD_SUB( F[ 6], F[14] );
+   ADD_SUB( F[ 7], F[15] );
+
+   #undef ADD_SUB
+
+   #define Q_REDUCE( a ) \
+      _mm_sub_epi32( _mm_and_si128( a, \
+                   m128_const1_32( 0x000000ff ) ), _mm_srai_epi32( a, 8 ) ) 
+
+   out[ 0] = Q_REDUCE( F[ 0] );
+   out[ 1] = Q_REDUCE( F[ 1] );
+   out[ 2] = Q_REDUCE( F[ 2] );
+   out[ 3] = Q_REDUCE( F[ 3] );
+   out[ 4] = Q_REDUCE( F[ 4] );
+   out[ 5] = Q_REDUCE( F[ 5] );
+   out[ 6] = Q_REDUCE( F[ 6] );
+   out[ 7] = Q_REDUCE( F[ 7] );
+   out[ 8] = Q_REDUCE( F[ 8] );
+   out[ 9] = Q_REDUCE( F[ 9] );
+   out[10] = Q_REDUCE( F[10] );
+   out[11] = Q_REDUCE( F[11] );
+   out[12] = Q_REDUCE( F[12] );
+   out[13] = Q_REDUCE( F[13] );
+   out[14] = Q_REDUCE( F[14] );
+   out[15] = Q_REDUCE( F[15] );
+
+   #undef Q_REDUCE
+
+#else   // < SSE4.1
+   
+   swift_int16_t *mult = multipliers;
+
+   // First loop unrolling:
+	register swift_int16_t *table = &(fftTable[input[0] << 3]);
 
 /*
    swift_int32_t F[64];
@@ -666,11 +861,8 @@ void FFT(const unsigned char input[EIGHTH_N], swift_int32_t *output)
                 F50, F51, F52, F53, F54, F55, F56, F57, F58, F59,
                 F60, F61, F62, F63;
    
-   // First loop unrolling:
-	register swift_int16_t *table = &(fftTable[input[0] << 3]);
-
-	F0 = mult[0] * table[0];
-	F8 = mult[1] * table[1];
+	F0  = mult[0] * table[0];
+	F8  = mult[1] * table[1];
 	F16 = mult[2] * table[2];
 	F24 = mult[3] * table[3];
 	F32 = mult[4] * table[4];
@@ -678,90 +870,93 @@ void FFT(const unsigned char input[EIGHTH_N], swift_int32_t *output)
 	F48 = mult[6] * table[6];
 	F56 = mult[7] * table[7];
 
-	mult += 8;
 	table = &(fftTable[input[1] << 3]);
 
-	F1 = mult[0] * table[0];
-	F9 = mult[1] * table[1];
-	F17 = mult[2] * table[2];
-	F25 = mult[3] * table[3];
-	F33 = mult[4] * table[4];
-	F41 = mult[5] * table[5];
-	F49 = mult[6] * table[6];
-	F57 = mult[7] * table[7];
+	F1  = mult[ 8] * table[0];
+	F9  = mult[ 9] * table[1];
+	F17 = mult[10] * table[2];
+	F25 = mult[11] * table[3];
+	F33 = mult[12] * table[4];
+	F41 = mult[13] * table[5];
+	F49 = mult[14] * table[6];
+	F57 = mult[15] * table[7];
 
-	mult += 8;
 	table = &(fftTable[input[2] << 3]);
 
-	F2 = mult[0] * table[0];
-	F10 = mult[1] * table[1];
-	F18 = mult[2] * table[2];
-	F26 = mult[3] * table[3];
-	F34 = mult[4] * table[4];
-	F42 = mult[5] * table[5];
-	F50 = mult[6] * table[6];
-	F58 = mult[7] * table[7];
+	F2  = mult[16] * table[0];
+	F10 = mult[17] * table[1];
+	F18 = mult[18] * table[2];
+	F26 = mult[19] * table[3];
+	F34 = mult[20] * table[4];
+	F42 = mult[21] * table[5];
+	F50 = mult[22] * table[6];
+	F58 = mult[23] * table[7];
 
-	mult += 8;
 	table = &(fftTable[input[3] << 3]);
 
-	F3 = mult[0] * table[0];
-	F11 = mult[1] * table[1];
-	F19 = mult[2] * table[2];
-	F27 = mult[3] * table[3];
-	F35 = mult[4] * table[4];
-	F43 = mult[5] * table[5];
-	F51 = mult[6] * table[6];
-	F59 = mult[7] * table[7];
+	F3  = mult[24] * table[0];
+	F11 = mult[25] * table[1];
+	F19 = mult[26] * table[2];
+	F27 = mult[27] * table[3];
+	F35 = mult[28] * table[4];
+	F43 = mult[29] * table[5];
+	F51 = mult[30] * table[6];
+	F59 = mult[31] * table[7];
 
-	mult += 8;
 	table = &(fftTable[input[4] << 3]);
 
-	F4 = mult[0] * table[0];
-	F12 = mult[1] * table[1];
-	F20 = mult[2] * table[2];
-	F28 = mult[3] * table[3];
-	F36 = mult[4] * table[4];
-	F44 = mult[5] * table[5];
-	F52 = mult[6] * table[6];
-	F60 = mult[7] * table[7];
+	F4  = mult[32] * table[0];
+	F12 = mult[33] * table[1];
+	F20 = mult[34] * table[2];
+	F28 = mult[35] * table[3];
+	F36 = mult[36] * table[4];
+	F44 = mult[37] * table[5];
+	F52 = mult[38] * table[6];
+	F60 = mult[39] * table[7];
 
-	mult += 8;
 	table = &(fftTable[input[5] << 3]);
 
-	F5 = mult[0] * table[0];
-	F13 = mult[1] * table[1];
-	F21 = mult[2] * table[2];
-	F29 = mult[3] * table[3];
-	F37 = mult[4] * table[4];
-	F45 = mult[5] * table[5];
-	F53 = mult[6] * table[6];
-	F61 = mult[7] * table[7];
+	F5  = mult[40] * table[0];
+	F13 = mult[41] * table[1];
+	F21 = mult[42] * table[2];
+	F29 = mult[43] * table[3];
+	F37 = mult[44] * table[4];
+	F45 = mult[45] * table[5];
+	F53 = mult[46] * table[6];
+	F61 = mult[47] * table[7];
 
-	mult += 8;
 	table = &(fftTable[input[6] << 3]);
 
-	F6 = mult[0] * table[0];
-	F14 = mult[1] * table[1];
-	F22 = mult[2] * table[2];
-	F30 = mult[3] * table[3];
-	F38 = mult[4] * table[4];
-	F46 = mult[5] * table[5];
-	F54 = mult[6] * table[6];
-	F62 = mult[7] * table[7];
+	F6  = mult[48] * table[0];
+	F14 = mult[49] * table[1];
+	F22 = mult[50] * table[2];
+	F30 = mult[51] * table[3];
+	F38 = mult[52] * table[4];
+	F46 = mult[53] * table[5];
+	F54 = mult[54] * table[6];
+	F62 = mult[55] * table[7];
 
-	mult += 8;
 	table = &(fftTable[input[7] << 3]);
 
-	F7 = mult[0] * table[0];
-	F15 = mult[1] * table[1];
-	F23 = mult[2] * table[2];
-	F31 = mult[3] * table[3];
-	F39 = mult[4] * table[4];
-	F47 = mult[5] * table[5];
-	F55 = mult[6] * table[6];
-	F63 = mult[7] * table[7];
+	F7  = mult[56] * table[0];
+	F15 = mult[57] * table[1];
+	F23 = mult[58] * table[2];
+	F31 = mult[59] * table[3];
+	F39 = mult[60] * table[4];
+	F47 = mult[61] * table[5];
+	F55 = mult[62] * table[6];
+	F63 = mult[63] * table[7];
 
+   #define ADD_SUB( a, b ) \
+   { \
+      int temp = b; \
+      b = a - b; \
+      a = a + temp; \
+   }
+   
+   #define Q_REDUCE( a ) \
+      ( ( (a) & 0xff ) - ( (a) >> 8 ) )
+   
 /*
 
    for ( int i = 0; i < 8; i++ )
@@ -799,7 +994,6 @@ void FFT(const unsigned char input[EIGHTH_N], swift_int32_t *output)
       output[i+56] = Q_REDUCE( F[j+7] );
    }
 */
-
 
 	// Second loop unrolling:
 	// Iteration 0:
@@ -1057,6 +1251,11 @@ void FFT(const unsigned char input[EIGHTH_N], swift_int32_t *output)
 	output[47] = Q_REDUCE(F61);
 	output[55] = Q_REDUCE(F62);
 	output[63] = Q_REDUCE(F63);
+
+   #undef ADD_SUB
+   #undef Q_REDUCE
+
+#endif  // AVX2 elif SSE4.1 else
 }
 
 // Calculates the FFT part of SWIFFT.
@@ -1086,23 +1285,65 @@ void SWIFFTFFT(const unsigned char *input, int m, swift_int32_t *output)
 // - m: the input size divided by 64.
 // - output: will store the result.
 // - a: the coefficients in the sum. Of size 64 * m.
-void SWIFFTSum(const swift_int32_t *input, int m, unsigned char *output, const swift_int16_t *a)
+void SWIFFTSum( const swift_int32_t *input, int m, unsigned char *output,
+                const swift_int16_t *a )
 {
 	int i, j;
-	swift_int32_t result[N];
+	swift_int32_t result[N] __attribute__ ((aligned (64)));
 	register swift_int16_t carry = 0;
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+   __m512i *res = (__m512i*)result;
+   for ( j = 0; j < N/16; ++j )
+   {
+      __m512i sum = _mm512_setzero_si512();
+      const __m512i *f = (__m512i*)input + j;
+      const __m512i *k = (__m512i*)a + j;
+      for ( i = 0; i < m; i++, f += N/16, k += N/16 )
+         sum = _mm512_add_epi32( sum, _mm512_mullo_epi32( *f, *k ) );
+      res[j] = sum;
+   }
+
+#elif defined(__AVX2__)
+
+   __m256i *res = (__m256i*)result;
+   for ( j = 0; j < N/8; ++j )
+   {
+      __m256i sum = _mm256_setzero_si256();
+      const __m256i *f = (__m256i*)input + j;
+      const __m256i *k = (__m256i*)a + j;
+      for ( i = 0; i < m; i++, f += N/8, k += N/8 )
+         sum = _mm256_add_epi32( sum, _mm256_mullo_epi32( *f, *k ) );
+      res[j] = sum;
+   }
+
+#elif defined(__SSE4_1__)
+
+   __m128i *res = (__m128i*)result;
+   for ( j = 0; j < N/4; ++j )
+   {
+      __m128i sum = _mm_setzero_si128();
+      const __m128i *f = (__m128i*)input + j;
+      const __m128i *k = (__m128i*)a + j;
+      for ( i = 0; i < m; i++, f += N/4, k += N/4 )
+         sum = _mm_add_epi32( sum, _mm_mullo_epi32( *f, *k ) );
+      res[j] = sum;
+   }
+
+#else
 
 	for (j = 0; j < N; ++j)
 	{
 		register swift_int32_t sum = 0;
 		const register swift_int32_t *f = input + j;
 		const register swift_int16_t *k = a + j;
-
 		for (i = 0; i < m; i++, f += N,k += N)
 			sum += (*f) * (*k);
-
 		result[j] = sum;
 	}
+
+#endif
 
 	for (j = 0; j < N; ++j)
 		result[j] = ((FIELD_SIZE << 22) + result[j]) % FIELD_SIZE;
@@ -1122,8 +1363,8 @@ void ComputeSingleSWIFFTX_smooth(unsigned char input[SWIFFTX_INPUT_BLOCK_SIZE],
 {
 	int i;
 	// Will store the result of the FFT parts:
-	swift_int32_t fftOut[N * M];
-	unsigned char intermediate[N * 3 + 8];
+	swift_int32_t fftOut[N * M] __attribute__ ((aligned (64)));
+	unsigned char intermediate[N * 3 + 8] __attribute__ ((aligned (64)));
 	unsigned char carry0,carry1,carry2;
 
 	// Do the three SWIFFTS while remembering the three carry bytes (each carry byte gets
@@ -1199,8 +1440,8 @@ void ComputeSingleSWIFFTX( unsigned char input[SWIFFTX_INPUT_BLOCK_SIZE],
 {
    int i;
    // Will store the result of the FFT parts:
-   swift_int32_t fftOut[N * M];
-   unsigned char intermediate[N * 3 + 8];
+   swift_int32_t fftOut[N * M] __attribute__ ((aligned (64)));
+   unsigned char intermediate[N * 3 + 8] __attribute__ ((aligned (64)));
    unsigned char carry0,carry1,carry2;
 
    // Do the three SWIFFTS while remembering the three carry bytes (each carry byte gets

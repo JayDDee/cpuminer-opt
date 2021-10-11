@@ -32,14 +32,26 @@ but different package names.
 $ sudo apt-get install build-essential automake libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev zlib1g-dev git
 
 SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and
-openssl 1.1.0e or higher. Add one of the following to CFLAGS for SHA
-support depending on your CPU and compiler version:
+openssl 1.1.0e or higher.
 
-"-march=native" is always the best choice
+znver1 and znver2 should be recognized on most recent version of GCC and
+znver3 is expected with GCC 11. GCC 11 also includes rocketlake support.
+In the meantime here are some suggestions to compile with new CPUs:
 
-"-march=znver1" for Ryzen 1000 & 2000 series, znver2 for 3000.
+"-march=native" is usually the best choice, used by build.sh.
 
-"-msha"  Add SHA to other tuning options
+"-march=znver2 -mvaes" can be used for Ryzen 5000 if znver3 is not recongized.
+
+"-mcascadelake -msha" or
+"-mcometlake -mavx512 -msha" can be used for Rocket Lake.
+
+Features can also be added individually:
+
+"-msha" adds support for HW accelerated sha256.
+
+"-mavx512" adds support for 512 bit vectors
+
+"-mvaes" add support for parallel AES
 
 Additional instructions for static compilalation can be found here:
 https://lxadm.com/Static_compilation_of_cpuminer
