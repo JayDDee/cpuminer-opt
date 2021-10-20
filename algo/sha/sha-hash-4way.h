@@ -84,6 +84,11 @@ void sha256_8way_transform_le( __m256i *state_out, const __m256i *data,
 void sha256_8way_transform_be( __m256i *state_out, const __m256i *data,
                                const __m256i *state_in );
 
+void sha256_8way_prehash_3rounds( __m256i *state_mid, const __m256i *W,
+                             const __m256i *state_in );
+void sha256_8way_final_rounds( __m256i *state_out, const __m256i *data,
+                          const __m256i *state_in, const __m256i *state_mid );
+
 #endif  // AVX2
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)

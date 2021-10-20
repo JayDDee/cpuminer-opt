@@ -702,6 +702,36 @@ memcpy( state_out, state_in, 32 );
 
 }
 
+void sph_sha256_prehash_3rounds( uint32_t *state_out, const uint32_t *data,
+                                 const uint32_t *state_in )
+{
+   uint32_t t1, t2, X_xor_Y, Y_xor_Z = state_in[1] ^ state_in[2];
+   memcpy( state_out, state_in, 32 );
+
+   t1 = state_out[7] + BSG2_1( state_out[4] )
+      + CH( state_out[4], state_out[5], state_out[6] ) + 0x428A2F98 + data[0];
+   t2 = BSG2_0( state_out[0] )
+      + MAJ( state_out[0], state_out[1], state_out[2] );
+   Y_xor_Z = X_xor_Y;
+   state_out[3] += t1;
+   state_out[7] = t1 + t2;
+
+   t1 = state_out[6] + BSG2_1( state_out[3] ) 
+      + CH( state_out[3], state_out[4], state_out[5] ) + 0x71374491 + data[1];
+   t2 = BSG2_0( state_out[7] )
+      + MAJ( state_out[7], state_out[0], state_out[1] );
+   Y_xor_Z = X_xor_Y;
+   state_out[2] += t1;
+   state_out[6] = t1 + t2;
+
+   t1 = state_out[5] + BSG2_1( state_out[2] )
+      + CH( state_out[2], state_out[3], state_out[4] ) + 0xB5C0FBCF + data[2];
+   t2 = BSG2_0( state_out[6] )
+      + MAJ( state_out[6], state_out[7], state_out[0] );
+   state_out[1] += t1;
+   state_out[5] = t1 + t2;
+}   
+
 /* see sph_sha2.h */
 void
 sph_sha224_init(void *cc)

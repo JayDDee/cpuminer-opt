@@ -1112,19 +1112,17 @@ void report_summary_log( bool force )
    applog( LOG_BLUE, "%s: %s", algo_names[ opt_algo ], short_url );
    applog2( LOG_NOTICE, "Periodic Report     %s        %s", et_str, upt_str );
    applog2( LOG_INFO, "Share rate        %.2f/min     %.2f/min",
-            submit_rate, (double)submitted_share_count*60. /
-            ( (double)uptime.tv_sec + (double)uptime.tv_usec / 1e6 ) );
+            submit_rate, safe_div( (double)submitted_share_count*60.,
+              ( (double)uptime.tv_sec + (double)uptime.tv_usec / 1e6 ), 0. ) );
    applog2( LOG_INFO, "Hash rate       %7.2f%sh/s   %7.2f%sh/s   (%.2f%sh/s)",
             shrate, shr_units, sess_hrate, sess_hr_units, ghrate, ghr_units );
 
    if ( accepted_share_count < submitted_share_count )
    {
-      double lost_ghrate = uptime.tv_sec == 0 ? 0.
-                : target_diff
-                       * (double)(submitted_share_count - accepted_share_count )
-                  / (double)uptime.tv_sec;
-      double lost_shrate = share_time == 0. ? 0.
-               : target_diff  * (double)(submits - accepts ) / share_time;
+      double lost_ghrate = safe_div( target_diff
+                    * (double)(submitted_share_count - accepted_share_count ),
+                    (double)uptime.tv_sec, 0. );
+      double lost_shrate = safe_div( target_diff * (double)(submits - accepts ),                                     share_time, 0. );
       char lshr_units[4] = {0};
       char lghr_units[4] = {0};
       scale_hash_for_display( &lost_shrate, lshr_units );
@@ -2495,18 +2493,21 @@ static void *miner_thread( void *userdata )
              timeval_subtract( &uptime, &total_hashes_time, &session_start ); 
              double hashrate = safe_div( total_hashes, uptime.tv_sec, 0. );
 
-             scale_hash_for_display( &hashrate,  hr_units );
-             sprintf( hr, "%.2f", hashrate );
+             if ( hashrate > 0. )
+             {
+                scale_hash_for_display( &hashrate,  hr_units );
+                sprintf( hr, "%.2f", hashrate );
 #if (defined(_WIN64) || defined(__WINDOWS__) || defined(_WIN32))
-             applog( LOG_NOTICE, "Total: %s %sH/s", hr, hr_units );
+                applog( LOG_NOTICE, "Total: %s %sH/s", hr, hr_units );
 #else
-             float lo_freq = 0., hi_freq = 0.;
-             linux_cpu_hilo_freq( &lo_freq, &hi_freq );
-             applog( LOG_NOTICE,
+                float lo_freq = 0., hi_freq = 0.;
+                linux_cpu_hilo_freq( &lo_freq, &hi_freq );
+                applog( LOG_NOTICE,
                      "Total: %s %sH/s, Temp: %dC, Freq: %.3f/%.3f GHz",
                      hr, hr_units, (uint32_t)cpu_temp(0), lo_freq / 1e6,
                      hi_freq / 1e6 );
 #endif
+             }
           }
        }  // benchmark
 
@@ -2900,6 +2901,7 @@ static bool cpu_capability( bool display_only )
      bool algo_has_sse2    = set_incl( SSE2_OPT,    algo_features );
      bool algo_has_aes     = set_incl( AES_OPT,     algo_features );
      bool algo_has_sse42   = set_incl( SSE42_OPT,   algo_features );
+     bool algo_has_avx     = set_incl( AVX_OPT,     algo_features );
      bool algo_has_avx2    = set_incl( AVX2_OPT,    algo_features );
      bool algo_has_avx512  = set_incl( AVX512_OPT,  algo_features );
      bool algo_has_sha     = set_incl( SHA_OPT,     algo_features );
@@ -2907,6 +2909,8 @@ static bool cpu_capability( bool display_only )
      bool algo_has_vaes256 = set_incl( VAES256_OPT, algo_features );
      bool use_aes;
      bool use_sse2;
+     bool use_sse42;
+     bool use_avx;
      bool use_avx2;
      bool use_avx512;
      bool use_sha;
@@ -2976,18 +2980,21 @@ static bool cpu_capability( bool display_only )
      else if ( sw_has_aes    )    printf( "  AES"   );
      if      ( sw_has_sha    )    printf( " SHA"    );
 
-     printf("\nAlgo features:");
-     if ( algo_features == EMPTY_SET ) printf( " None" );
-     else
+     if ( !display_only )
      {
-        if      ( algo_has_avx512  )  printf( " AVX512" );
-        else if ( algo_has_avx2    )  printf( " AVX2  " );
-        else if ( algo_has_sse42   )  printf( " SSE4.2" );
-        else if ( algo_has_sse2    )  printf( " SSE2  " );
-        if      ( algo_has_vaes ||
-                  algo_has_vaes256 )  printf( " VAES"   );
-        else if ( algo_has_aes     )  printf( "  AES"   );
-        if      ( algo_has_sha     )  printf( " SHA"    );
+        printf("\nAlgo features:");
+        if ( algo_features == EMPTY_SET ) printf( " None" );
+        else
+        {
+           if      ( algo_has_avx512  )  printf( " AVX512" );
+           else if ( algo_has_avx2    )  printf( " AVX2  " );
+           else if ( algo_has_sse42   )  printf( " SSE4.2" );
+           else if ( algo_has_sse2    )  printf( " SSE2  " );
+           if      ( algo_has_vaes ||
+                     algo_has_vaes256 )  printf( " VAES"   );
+           else if ( algo_has_aes     )  printf( "  AES"   );
+           if      ( algo_has_sha     )  printf( " SHA"    );
+        }
      }
      printf("\n");
 
@@ -3022,6 +3029,8 @@ static bool cpu_capability( bool display_only )
 
      // Determine mining options
      use_sse2   = cpu_has_sse2   && algo_has_sse2;
+     use_sse42  = cpu_has_sse42  && sw_has_sse42  && algo_has_sse42;
+     use_avx    = cpu_has_avx    && sw_has_avx    && algo_has_avx;
      use_aes    = cpu_has_aes    && sw_has_aes    && algo_has_aes;
      use_avx2   = cpu_has_avx2   && sw_has_avx2   && algo_has_avx2;
      use_avx512 = cpu_has_avx512 && sw_has_avx512 && algo_has_avx512;
@@ -3038,6 +3047,8 @@ static bool cpu_capability( bool display_only )
      {
         if      ( use_avx512 ) printf( " AVX512" );
         else if ( use_avx2   ) printf( " AVX2"   );
+        else if ( use_avx    ) printf( " AVX"    );
+        else if ( use_sse42  ) printf( " SSE42"  );
         else if ( use_sse2   ) printf( " SSE2"   );
         if      ( use_vaes   ) printf( " VAES"   );
         else if ( use_aes    ) printf( " AES"    );

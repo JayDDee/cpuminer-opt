@@ -337,42 +337,42 @@ do{ \
    XC2 = XOR( XC2, TC ); \
 \
    TA = ADD32( XA2, XA1 ); \
+   XA1 = ROL_1X32( XA1 ); \
    TB = ADD32( XB2, XB1 ); \
    TC = ADD32( XC2, XC1 ); \
-   TA = ROL32( TA, 13 ); \
-   XA1 = ROL_1X32( XA1 ); \
    XB1 = ROL_1X32( XB1 ); \
-   XC1 = ROL_1X32( XC1 ); \
+   TA = ROL32( TA, 13 ); \
    XA3 = XOR( XA3, TA ); \
+   XC1 = ROL_1X32( XC1 ); \
    TB = ROL32( TB, 13 ); \
    XB3 = XOR( XB3, TB ); \
    TC = ROL32( TC, 13 ); \
    XC3 = XOR( XC3, TC ); \
 \
    TA = ADD32( XA3, XA2 ); \
+   XA2 = SWAP_64( XA2 ); \
    TB = ADD32( XB3, XB2 ); \
    TC = ADD32( XC3, XC2 ); \
    TA = ROL32( TA, 18 ); \
-   XA2 = SWAP_64( XA2 ); \
    XB2 = SWAP_64( XB2 ); \
-   XC2 = SWAP_64( XC2 ); \
    XA0 = XOR( XA0, TA ); \
    TB = ROL32( TB, 18 ); \
    XB0 = XOR( XB0, TB ); \
+   XC2 = SWAP_64( XC2 ); \
    TC = ROL32( TC, 18 ); \
    XC0 = XOR( XC0, TC ); \
 \
    TA = ADD32( XA0, XA1 ); \
+   XA3 = ROR_1X32( XA3 ); \
    TB = ADD32( XB0, XB1 ); \
    TC = ADD32( XC0, XC1 ); \
    TA = ROL32( TA, 7 ); \
-   XA3 = ROR_1X32( XA3 ); \
+   XB3 = ROR_1X32( XB3 ); \
    XA3 = XOR( XA3, TA ); \
    TB = ROL32( TB, 7 ); \
-   XB3 = ROR_1X32( XB3 ); \
+   XC3 = ROR_1X32( XC3 ); \
    XB3 = XOR( XB3, TB ); \
    TC = ROL32( TC, 7 ); \
-   XC3 = ROR_1X32( XC3 ); \
    XC3 = XOR( XC3, TC ); \
 \
    TA = ADD32( XA3, XA0 ); \
@@ -399,24 +399,24 @@ do{ \
    XC1 = XOR( XC1, TC ); \
 \
    TA = ADD32( XA1, XA2 ); \
+   XA2 = SWAP_64( XA2 ); \
    TB = ADD32( XB1, XB2 ); \
+   XB2 = SWAP_64( XB2 ); \
    TA = ROL32( TA, 18); \
    TC = ADD32( XC1, XC2 ); \
-   XA2 = SWAP_64( XA2 ); \
+   XC2 = SWAP_64( XC2 ); \
    TB = ROL32( TB, 18); \
    XA0 = XOR( XA0, TA ); \
-   XB2 = SWAP_64( XB2 ); \
+   XA1 = ROR_1X32( XA1 ); \
    TC = ROL32( TC, 18); \
    XB0 = XOR( XB0, TB ); \
-   XC2 = SWAP_64( XC2 ); \
-   XA1 = ROR_1X32( XA1 ); \
    XB1 = ROR_1X32( XB1 ); \
    XC0 = XOR( XC0, TC ); \
    XC1 = ROR_1X32( XC1 ); \
 } while (0);
    
 
-// slow rol, an attempt to optimze non-avx512 bit rotations
+// slow rot, an attempt to optimze non-avx512 bit rotations
 // Contains target specific instructions, only for use with 128 bit vectors
 #define SALSA_2ROUNDS_SIMD128_3BUF_SLOROT \
 do{ \

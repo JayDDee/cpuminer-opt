@@ -868,9 +868,9 @@ Options:\n\
                           yespowerr16   Yenten (YTN)\n\
                           yespower-b2b  generic yespower + blake2b\n\
                           zr5           Ziftr\n\
-  -N, --param-n         N parameter for scrypt based algos\n\
-  -R, --param-r         R parameter for scrypt based algos\n\
-  -K, --param-key       Key (pers) parameter for algos that use it\n\
+  -N, --param-n=N       N parameter for scrypt based algos\n\
+  -R, --param-r=N       R parameter for scrypt based algos\n\
+  -K, --param-key=STRING  Key (pers) parameter for algos that use it\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
   -u, --user=USERNAME   username for mining server\n\
@@ -886,8 +886,8 @@ Options:\n\
   -s, --scantime=N      upper bound on time spent scanning current work when\n\
                           long polling is unavailable, in seconds (default: 5)\n\
       --randomize       Randomize scan range start to reduce duplicates\n\
-  -f, --diff-factor     Divide req. difficulty by this factor (std is 1.0)\n\
-  -m, --diff-multiplier Multiply difficulty by this factor (std is 1.0)\n\
+  -f, --diff-factor=N   Divide req. difficulty by this factor (std is 1.0)\n\
+  -m, --diff-multiplier=N Multiply difficulty by this factor (std is 1.0)\n\
       --hash-meter      Display thread hash rates\n\
       --coinbase-addr=ADDR  payout address for solo mining\n\
       --coinbase-sig=TEXT  data to insert in the coinbase when possible\n\
@@ -895,9 +895,9 @@ Options:\n\
       --no-getwork      disable getwork support\n\
       --no-gbt          disable getblocktemplate support\n\
       --no-stratum      disable X-Stratum support\n\
-      --no-extranonce   disable Stratum extranonce support\n\
+      --no-extranonce   disable Stratum extranonce subscribe\n\
       --no-redirect     ignore requests to change the URL of the mining server\n\
-  -q, --quiet           disable per-thread hashmeter output\n\
+  -q, --quiet           reduce log verbosity\n\
       --no-color        disable colored output\n\
   -D, --debug           enable debug output\n\
   -P, --protocol-dump   verbose dump of protocol-level activities\n"
@@ -916,9 +916,9 @@ Options:\n\
       --max-rate=N[KMG] Only mine if net hashrate is less than specified value\n\
       --max-diff=N      Only mine if net difficulty is less than specified value\n\
   -c, --config=FILE     load a JSON-format configuration file\n\
-      --data-file       path and name of data file\n\
+      --data-file=FILE  path and name of data file\n\
       --verify          enable additional time consuming start up tests\n\
-  -V, --version         display version information and exit\n\
+  -V, --version         display version and CPU information and exit\n\
   -h, --help            display this help text and exit\n\
 ";
 

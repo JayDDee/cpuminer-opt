@@ -65,6 +65,20 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.8.2
+
+Issue #342, fixed Groestl AES on Windows, broken in v3.18.0.
+
+AVX512 for sha256d.
+
+SSE42 and AVX may now be displayed as mining features at startup.
+This is hard coded for each algo, and is only implemented for scrypt
+at this time as it is the only algo with significant performance differences
+with those features.
+
+Fixed an issue where a high hashrate algo could cause excessive invalid hash
+rate log reports when starting up in benchmark mode.
+
 v3.18.1
 
 More speed for scrypt:

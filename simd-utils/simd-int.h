@@ -2,22 +2,21 @@
 #define SIMD_INT_H__ 1
 
 // Endian byte swap
-#define bswap_64( a ) __builtin_bswap64( a )
-#define bswap_32( a ) __builtin_bswap32( a )
+#define bswap_64    __builtin_bswap64
+#define bswap_32    __builtin_bswap32
+
+// Bit rotation
+#define rol64       __rolq
+#define ror64       __rorq
+#define rol32       __rold
+#define ror32       __rord
 
 // Safe division, integer or floating point. For floating point it's as  
-// safe as 0. is precisely zero.
-// Returns safe_result if division by zero.
+// safe as 0 is precisely zero.
+// Returns safe_result if division by zero, typically zero.
 #define safe_div( dividend, divisor, safe_result ) \
    ( (divisor) == 0 ? safe_result : ( (dividend) / (divisor) )  )
 
-// Aliases with familiar names for built in bit rotate instructions
-#define rol64( a, n )   _lrotl( a, n )  
-#define ror64( a, n )   _lrotr( a, n )
-#define rol32( a, n )   _rotl( a, n )
-#define ror32( a, n )   _rotr( a, n )
-#define rol16( a, n )   _rotwl( a, n )
-#define ror16( a, n )   _rotwr( a, n )
 
 ///////////////////////////////////////
 // 

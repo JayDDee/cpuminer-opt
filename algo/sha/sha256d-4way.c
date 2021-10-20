@@ -1,4 +1,4 @@
-#include "sha256t-gate.h"
+#include "sha256d-4way.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -13,7 +13,7 @@ int scanhash_sha256d_16way( struct work *work, const uint32_t max_nonce,
    __m512i  block[16]    __attribute__ ((aligned (64)));
    __m512i  hash32[8]    __attribute__ ((aligned (32)));
    __m512i  initstate[8] __attribute__ ((aligned (32)));
-   __m512i  midstate[8]  __attribute__ ((aligned (32)));
+   __m512i  midstate1[8] __attribute__ ((aligned (32)));
    __m512i  midstate2[8] __attribute__ ((aligned (32)));
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    __m512i  vdata[20]    __attribute__ ((aligned (32)));
@@ -46,11 +46,10 @@ int scanhash_sha256d_16way( struct work *work, const uint32_t max_nonce,
    initstate[6] = m512_const1_64( 0x1F83D9AB1F83D9AB );
    initstate[7] = m512_const1_64( 0x5BE0CD195BE0CD19 );
 
-   // hash first 64 byte block of data
-   sha256_16way_transform_le( midstate, vdata, initstate );
+   sha256_16way_transform_le( midstate1, vdata, initstate );
 
    // Do 3 rounds on the first 12 bytes of the next block
-   sha256_16way_prehash_3rounds( midstate2, vdata + 16, midstate );
+   sha256_16way_prehash_3rounds( midstate2, vdata + 16, midstate1 );
 
    do
    {
@@ -59,7 +58,7 @@ int scanhash_sha256d_16way( struct work *work, const uint32_t max_nonce,
       block[ 4] = last_byte;
       memset_zero_512( block + 5, 10 );
       block[15] = m512_const1_32( 80*8 ); // bit count
-      sha256_16way_final_rounds( hash32, block, midstate, midstate2 );
+      sha256_16way_final_rounds( hash32, block, midstate1, midstate2 );
 
       // 2. 32 byte hash from 1.
       memcpy_512( block, hash32, 8 );
@@ -99,7 +98,8 @@ int scanhash_sha256d_8way( struct work *work, const uint32_t max_nonce,
    __m256i  block[16]    __attribute__ ((aligned (64)));
    __m256i  hash32[8]    __attribute__ ((aligned (32)));
    __m256i  initstate[8] __attribute__ ((aligned (32)));
-   __m256i  midstate[8]  __attribute__ ((aligned (32)));
+   __m256i  midstate1[8] __attribute__ ((aligned (32)));
+   __m256i  midstate2[8] __attribute__ ((aligned (32)));
    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
    __m256i  vdata[20]    __attribute__ ((aligned (32)));
    uint32_t *hash32_d7 =  (uint32_t*)&( hash32[7] );
@@ -116,7 +116,7 @@ int scanhash_sha256d_8way( struct work *work, const uint32_t max_nonce,
    const __m256i eight = m256_const1_32( 8 );
 
    for ( int i = 0; i < 19; i++ )
-       vdata[i] = m256_const1_32( pdata[i] );
+      vdata[i] = m256_const1_32( pdata[i] );
 
    *noncev = _mm256_set_epi32( n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n+1, n );
 
@@ -130,8 +130,10 @@ int scanhash_sha256d_8way( struct work *work, const uint32_t max_nonce,
    initstate[6] = m256_const1_64( 0x1F83D9AB1F83D9AB );
    initstate[7] = m256_const1_64( 0x5BE0CD195BE0CD19 );
 
-   // hash first 64 bytes of data
-   sha256_8way_transform_le( midstate, vdata, initstate );
+   sha256_8way_transform_le( midstate1, vdata, initstate );
+   
+   // Do 3 rounds on the first 12 bytes of the next block
+   sha256_8way_prehash_3rounds( midstate2, vdata + 16, midstate1 );
 
    do
    {
@@ -140,7 +142,7 @@ int scanhash_sha256d_8way( struct work *work, const uint32_t max_nonce,
       block[ 4] = last_byte;
       memset_zero_256( block + 5, 10 );
       block[15] = m256_const1_32( 80*8 ); // bit count
-      sha256_8way_transform_le( hash32, block, midstate );
+      sha256_8way_final_rounds( hash32, block, midstate1, midstate2 );
 
       // 2. 32 byte hash from 1.
       memcpy_256( block, hash32, 8 );
@@ -252,4 +254,21 @@ int scanhash_sha256d_4way( struct work *work, const uint32_t max_nonce,
 }
 
 #endif
+
+/*
+bool register_sha256d_algo( algo_gate_t* gate )
+{
+   gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+#if defined(SHA256D_16WAY)
+   gate->scanhash = (void*)&scanhash_sha256d_16way;
+#elif defined(SHA256D_8WAY)
+   gate->scanhash = (void*)&scanhash_sha256d_8way;
+#elif defined(SHA256D_4WAY)
+   gate->scanhash = (void*)&scanhash_sha256d_4way;
+#endif
+   
+//   gate->hash     = (void*)&sha256d;
+   return true;
+};
+*/
 

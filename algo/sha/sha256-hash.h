@@ -53,4 +53,8 @@ void sha256_ni2way_transform_be( uint32_t *out_X, uint32_t*out_Y,
 #define sha256_transform_be sph_sha256_transform_be
 
 #endif
+
+// SHA can't do only 3 rounds
+#define sha256_prehash_3rounds sph_sha256_prehash_3rounds
+
 #endif

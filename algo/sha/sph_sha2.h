@@ -215,6 +215,9 @@ void sph_sha256_transform_le( uint32_t *state_out, const uint32_t *data,
 void sph_sha256_transform_be( uint32_t *state_out, const uint32_t *data,
                               const uint32_t *state_in );
 
+void sph_sha256_prehash_3rounds( uint32_t *state_out, const uint32_t *data,
+                                 const uint32_t *state_in );
+
 
 #if SPH_64
 

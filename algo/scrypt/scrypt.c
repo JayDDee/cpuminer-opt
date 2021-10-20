@@ -28,7 +28,6 @@
  */
 
 #include "algo-gate-api.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
@@ -55,11 +54,25 @@ static const uint32_t sha256_initial_state[8] =
   0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
 };
 
-static int scrypt_throughput = 0;
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+#define SCRYPT_THROUGHPUT 16
+
+#elif defined(__AVX2__)
+
+#define SCRYPT_THROUGHPUT 8
+
+#else
+
+#define SCRYPT_THROUGHPUT 4
+
+#endif
+
+// static int scrypt_throughput = 0;
 
 static int scratchbuf_size = 0;
 
-static __thread char *scratchbuf = NULL;
+static __thread uint32_t *scratchbuf = NULL;
 
 // change this to a constant to be used directly  as input state arg
 // vectors still need an init function.
@@ -709,15 +722,11 @@ static inline void PBKDF2_SHA256_128_32_16way( uint32_t *tstate,
 
 #endif // AVX512
 
-//#if defined(USE_ASM) && defined(__x86_64__)
-
 #define SCRYPT_MAX_WAYS 12
 #define HAVE_SCRYPT_3WAY 1
-//int scrypt_best_throughput();
 void scrypt_core(uint32_t *X, uint32_t *V, int N);
 void scrypt_core_3way(uint32_t *X, uint32_t *V, int N);
 
-//#if defined(USE_AVX2)
 #if defined(__AVX2__)
 #undef SCRYPT_MAX_WAYS
 #define SCRYPT_MAX_WAYS 24
@@ -727,40 +736,39 @@ void scrypt_core_6way(uint32_t *X, uint32_t *V, int N);
 
 #ifndef SCRYPT_MAX_WAYS
 #define SCRYPT_MAX_WAYS 1
-//#define scrypt_best_throughput() 1
 #endif
 
 #include "scrypt-core-4way.h"
 
-static bool scrypt_N_1_1_256(const uint32_t *input, uint32_t *output,
-	uint32_t *midstate, unsigned char *scratchpad, int N, int thr_id )
+/*
+static bool scrypt_N_1_1_256( const uint32_t *input, uint32_t *output,
+                              uint32_t *midstate, int N, int thr_id )
 {
 	uint32_t tstate[8], ostate[8];
 	uint32_t X[32];
-	uint32_t *V = (uint32_t*)scratchpad;
 	
 	memcpy(tstate, midstate, 32);
 	HMAC_SHA256_80_init(input, tstate, ostate);
 	PBKDF2_SHA256_80_128(tstate, ostate, input, X);
 
-   scrypt_core_simd128( X, V, N );  // woring
+   scrypt_core_simd128( X, scratchbuf, N );  // woring
 //   scrypt_core_1way( X, V, N );  // working
 //   scrypt_core(X, V, N);
 
 	PBKDF2_SHA256_128_32(tstate, ostate, X, output);
    return true;
 }
+*/
 
-#if defined(__AVX2__)
+#if ( SCRYPT_THROUGHPUT == 8 )
 
 static int scrypt_N_1_1_256_8way( const uint32_t *input, uint32_t *output,
-           uint32_t *midstate, unsigned char *scratchpad, int N, int thrid )
+                                  uint32_t *midstate, int N, int thrid )
 {
    uint32_t _ALIGN(128) tstate[ 8*8 ];
    uint32_t _ALIGN(128) ostate[ 8*8 ];
    uint32_t _ALIGN(128) W[ 8*32 ];
    uint32_t _ALIGN(128) X[ 8*32 ];
-   uint32_t *V = (uint32_t*)scratchpad;
 
    intrlv_8x32( W, input,    input+ 20, input+ 40, input+ 60,
                    input+80, input+100, input+120, input+140, 640 );
@@ -774,11 +782,11 @@ static int scrypt_N_1_1_256_8way( const uint32_t *input, uint32_t *output,
    
    if ( opt_param_n > 0x4000 )
    {
-      scrypt_core_simd128_3buf( X,     V, N );
+      scrypt_core_simd128_3buf( X,     scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_simd128_3buf( X+ 96, V, N );
+      scrypt_core_simd128_3buf( X+ 96, scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_simd128_2buf( X+192, V, N );
+      scrypt_core_simd128_2buf( X+192, scratchbuf, N );
    }
    else
    {
@@ -786,13 +794,13 @@ static int scrypt_N_1_1_256_8way( const uint32_t *input, uint32_t *output,
       intrlv_2x128( W+ 64, X+ 64, X+ 96, 1024 );
       intrlv_2x128( W+128, X+128, X+160, 1024 );
       intrlv_2x128( W+192, X+192, X+224, 1024 );
-      scrypt_core_2way_simd128( (__m256i*) W,      (__m256i*)V, N );
+      scrypt_core_2way_simd128( (__m256i*) W,      (__m256i*)scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_2way_simd128( (__m256i*)(W+ 64), (__m256i*)V, N );
+      scrypt_core_2way_simd128( (__m256i*)(W+ 64), (__m256i*)scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_2way_simd128( (__m256i*)(W+128), (__m256i*)V, N );
+      scrypt_core_2way_simd128( (__m256i*)(W+128), (__m256i*)scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_2way_simd128( (__m256i*)(W+192), (__m256i*)V, N );
+      scrypt_core_2way_simd128( (__m256i*)(W+192), (__m256i*)scratchbuf, N );
       dintrlv_2x128( X,     X+ 32, W,     1024 );
       dintrlv_2x128( X+ 64, X+ 96, W+ 64, 1024 );
       dintrlv_2x128( X+128, X+160, W+128, 1024 );
@@ -928,16 +936,15 @@ static int scrypt_N_1_1_256_8way( const uint32_t *input, uint32_t *output,
 
 #endif  // AVX2
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if ( SCRYPT_THROUGHPUT == 16 )
 
 static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
-           uint32_t *midstate, unsigned char *scratchpad, int N, int thrid )
+                                   uint32_t *midstate, int N, int thrid )
 {
    uint32_t _ALIGN(128) tstate[ 16*8 ];
    uint32_t _ALIGN(128) ostate[ 16*8 ];
    uint32_t _ALIGN(128) W[ 16*32 ]; 
    uint32_t _ALIGN(128) X[ 16*32 ];
-   uint32_t *V = (uint32_t*)scratchpad;
 
    intrlv_16x32( W, input,     input+ 20, input+ 40, input+ 60,
                     input+ 80, input+100, input+120, input+140,
@@ -956,17 +963,17 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
 
    if ( opt_param_n > 0x4000 )
    {
-      scrypt_core_simd128_3buf( X,     V, N );
+      scrypt_core_simd128_3buf( X,     scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_simd128_3buf( X+ 96, V, N );
+      scrypt_core_simd128_3buf( X+ 96, scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_simd128_2buf( X+192, V, N );
+      scrypt_core_simd128_2buf( X+192, scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_simd128_3buf( X+256, V, N );
+      scrypt_core_simd128_3buf( X+256, scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_simd128_3buf( X+352, V, N );
+      scrypt_core_simd128_3buf( X+352, scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_simd128_2buf( X+448, V, N );
+      scrypt_core_simd128_2buf( X+448, scratchbuf, N );
    }
    else
    {
@@ -974,13 +981,13 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
       intrlv_4x128( W+128, X+128, X+160, X+192, X+224, 1024 );
       intrlv_4x128( W+256, X+256, X+288, X+320, X+352, 1024 );
       intrlv_4x128( W+384, X+384, X+416, X+448, X+480, 1024 );
-      scrypt_core_4way_simd128( (__m512i*) W,      (__m512i*)V, N );
+      scrypt_core_4way_simd128( (__m512i*) W,      (__m512i*)scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_4way_simd128( (__m512i*)(W+128), (__m512i*)V, N );
+      scrypt_core_4way_simd128( (__m512i*)(W+128), (__m512i*)scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_4way_simd128( (__m512i*)(W+256), (__m512i*)V, N );
+      scrypt_core_4way_simd128( (__m512i*)(W+256), (__m512i*)scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_4way_simd128( (__m512i*)(W+384), (__m512i*)V, N );
+      scrypt_core_4way_simd128( (__m512i*)(W+384), (__m512i*)scratchbuf, N );
       dintrlv_4x128( X,     X+ 32, X+ 64, X+ 96, W,     1024 );
       dintrlv_4x128( X+128, X+160, X+192, X+224, W+128, 1024 );
       dintrlv_4x128( X+256, X+288, X+320, X+352, W+256, 1024 );
@@ -1236,15 +1243,13 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
 
 #endif // AVX512
 
-#if defined(__SHA__)
-
+#if 0
 static int scrypt_N_1_1_256_sha_2buf( const uint32_t *input, uint32_t *output,
-           uint32_t *midstate, unsigned char *scratchpad, int N, int thrid )
+                                      uint32_t *midstate, int N, int thrid )
 {
     uint32_t _ALIGN(128) tstate[ 2*8 ];
     uint32_t _ALIGN(128) ostate[ 2*8 ];
     uint32_t _ALIGN(128) W[ 2*32 ];
-    uint32_t *V = (uint32_t*)scratchpad;
 
     memcpy( tstate,    midstate, 32 );
     memcpy( tstate+ 8, midstate, 32 );
@@ -1254,7 +1259,7 @@ static int scrypt_N_1_1_256_sha_2buf( const uint32_t *input, uint32_t *output,
     PBKDF2_SHA256_80_128_SHA_2BUF( tstate, tstate+8, ostate, ostate+8,
                                    input, input+20,  W, W+32 );
 
-    scrypt_core_simd128_2buf( W, V, N );
+    scrypt_core_simd128_2buf( W, scratchbuf, N );
     if ( work_restart[thrid].restart ) return 0;
 
     PBKDF2_SHA256_128_32_SHA_2BUF( tstate, tstate+8, ostate, ostate+8, W, W+32,
@@ -1264,12 +1269,11 @@ static int scrypt_N_1_1_256_sha_2buf( const uint32_t *input, uint32_t *output,
 }
 
 static int scrypt_N_1_1_256_4way_sha( const uint32_t *input, uint32_t *output,
-           uint32_t *midstate, unsigned char *scratchpad, int N, int thrid )
+           uint32_t *midstate, int N, int thrid )
 {
     uint32_t _ALIGN(128) tstate[4 * 8];
     uint32_t _ALIGN(128) ostate[4 * 8];
     uint32_t _ALIGN(128) W[4 * 32];
-    uint32_t *V = (uint32_t*)scratchpad;
 
     memcpy( tstate,    midstate, 32 );
     memcpy( tstate+ 8, midstate, 32 );
@@ -1300,9 +1304,9 @@ static int scrypt_N_1_1_256_4way_sha( const uint32_t *input, uint32_t *output,
 */
 
    // working, double buffered linear simd
-   scrypt_core_simd128_2buf( W, V, N );
+   scrypt_core_simd128_2buf( W, scratchbuf, N );
    if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_simd128_2buf( W+64, V, N );
+   scrypt_core_simd128_2buf( W+64, scratchbuf, N );
 
 /*
    scrypt_core_simd128_3buf( W, V, N );
@@ -1323,17 +1327,15 @@ static int scrypt_N_1_1_256_4way_sha( const uint32_t *input, uint32_t *output,
 
    return 1;
 }
+#endif
 
-#else
-
-#ifdef HAVE_SHA256_4WAY
+#if ( SCRYPT_THROUGHPUT == 4 )
 static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
-           uint32_t *midstate, unsigned char *scratchpad, int N, int thrid )
+           uint32_t *midstate, int N, int thrid )
 {
    uint32_t _ALIGN(128) tstate[ 4*8 ];
    uint32_t _ALIGN(128) ostate[ 4*8 ];
    uint32_t _ALIGN(128) W[ 4*32 ];
-   uint32_t *V = (uint32_t*)scratchpad;
 
    intrlv_4x32( W, input, input+20, input+40, input+60, 640 );
    for ( int i = 0; i < 8; i++ )
@@ -1346,13 +1348,13 @@ static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
    {
       uint32_t _ALIGN(128) X[ 4*32 ];
       dintrlv_4x32( X, X+32, X+64, X+96, W, 1024 );
-      scrypt_core_simd128_2buf( X, V, N );
+      scrypt_core_simd128_2buf( X, scratchbuf, N );
       if ( work_restart[thrid].restart ) return 0;
-      scrypt_core_simd128_2buf( X+64, V, N );
+      scrypt_core_simd128_2buf( X+64, scratchbuf, N );
       intrlv_4x32( W, X, X+32, X+64, X+96, 1024 );
    }
    else
-      scrypt_core_4way( (__m128i*)W, (__m128i*)V, N );
+      scrypt_core_4way( (__m128i*)W, (__m128i*)scratchbuf, N );
 
 
 
@@ -1398,65 +1400,73 @@ static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
 
    return 1;
 }
-#endif /* HAVE_SHA256_4WAY */
+#endif   // SCRYPT_THROUGHPUT == 4
 
-#endif // SHA
+//#endif // SHA
 
 extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
                             uint64_t *hashes_done, struct thr_info *mythr )
 {
+   uint32_t _ALIGN(64) hash[  8*SCRYPT_THROUGHPUT ];
+   uint32_t _ALIGN(64) data[ 20*SCRYPT_THROUGHPUT ];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
-   uint32_t data[SCRYPT_MAX_WAYS * 20], hash[SCRYPT_MAX_WAYS * 8];
    uint32_t midstate[8];
    uint32_t n = pdata[19] - 1;
    int thr_id = mythr->id;  
-   int throughput = scrypt_throughput;
    int i;
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
 	
-   for ( i = 0; i < throughput; i++ )
+   for ( i = 0; i < SCRYPT_THROUGHPUT; i++ )
       memcpy( data + i * 20, pdata, 80 );
 
    sha256_transform_le( midstate, data, sha256_initial_state );
 
    do {
       bool rc = true;
-      for ( i = 0; i < throughput; i++ ) data[ i*20 + 19 ] = ++n;
+      for ( i = 0; i < SCRYPT_THROUGHPUT; i++ ) data[ i*20 + 19 ] = ++n;
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-      if ( throughput == 16 )
-         rc = scrypt_N_1_1_256_16way( data, hash, midstate, scratchbuf,
-                                      opt_param_n, thr_id );
-      else
-#endif
-#if defined(__AVX2__)      
-      if ( throughput == 8 )      
-         rc = scrypt_N_1_1_256_8way( data, hash, midstate, scratchbuf,
-                                     opt_param_n, thr_id );
-      else
-#endif
-      if ( throughput == 4 ) // slower on Ryzen than 8way
-#if defined(__SHA__)
-         rc = scrypt_N_1_1_256_4way_sha( data, hash, midstate, scratchbuf,
-                                         opt_param_n, thr_id );
+//#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if ( SCRYPT_THROUGHPUT == 16 )
+//      if ( SCRYPT_THROUGHPUT == 16 )
+         rc = scrypt_N_1_1_256_16way( data, hash, midstate, opt_param_n,
+                                      thr_id );
+//      else
+//#endif
+//#if defined(__AVX2__)      
+#elif ( SCRYPT_THROUGHPUT == 8 )
+//         if ( SCRYPT_THROUGHPUT == 8 )      
+         rc = scrypt_N_1_1_256_8way( data, hash, midstate, opt_param_n,
+                                     thr_id );
+//      else
+//#endif
+#elif ( SCRYPT_THROUGHPUT == 4 )
+//      if ( SCRYPT_THROUGHPUT == 4 ) // slower on Ryzen than 8way
+//#if defined(__SHA__)
+//         rc = scrypt_N_1_1_256_4way_sha( data, hash, midstate, opt_param_n,
+//                                         thr_id );
+//#else
+         rc = scrypt_N_1_1_256_4way( data, hash, midstate, opt_param_n,
+                                     thr_id );
 #else
-         rc = scrypt_N_1_1_256_4way( data, hash, midstate, scratchbuf,
-                                     opt_param_n, thr_id );
+
+#error "Invalid SCRYPT_THROUGHPUT"
+
 #endif
+/*
 #if defined(__SHA__)
       else
-      if (throughput == 2 )  // slower on Ryzen than 4way_sha & 8way
-         rc = scrypt_N_1_1_256_sha_2buf( data, hash, midstate, scratchbuf,
-                                         opt_param_n, thr_id );
+      if ( SCRYPT_THROUGHPUT == 2 )  // slower on Ryzen than 4way_sha & 8way
+         rc = scrypt_N_1_1_256_sha_2buf( data, hash, midstate, opt_param_n,
+                                         thr_id );
 #endif         
       else  // should never get here
-         rc = scrypt_N_1_1_256( data, hash, midstate, scratchbuf,
-                                opt_param_n, thr_id );
+         rc = scrypt_N_1_1_256( data, hash, midstate, opt_param_n, thr_id );
+*/
 
       // test the hash
       if ( rc )
-      for ( i = 0; i < throughput; i++ )
+      for ( i = 0; i < SCRYPT_THROUGHPUT; i++ )
       {
          if ( unlikely( valid_hash( hash + i*8, ptarget ) && !opt_benchmark ) )
          {
@@ -1468,7 +1478,7 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
       }
 
 
-   } while ( likely( ( n < ( max_nonce - throughput ) ) && !(*restart) ) );
+   } while ( likely( ( n < ( max_nonce - SCRYPT_THROUGHPUT ) ) && !(*restart) ) );
 	
 	*hashes_done = n - pdata[19];
 	pdata[19] = n;
@@ -1489,7 +1499,7 @@ bool register_scrypt_algo( algo_gate_t* gate )
 //#if defined(__SHA__)
 //   gate->optimizations = SSE2_OPT | SHA_OPT;
 //#else
-   gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+   gate->optimizations = SSE2_OPT | SSE42_OPT | AVX_OPT | AVX2_OPT | AVX512_OPT;
 //#endif
    gate->miner_thread_init =(void*)&scrypt_miner_thread_init;
    gate->scanhash         = (void*)&scanhash_scrypt;
@@ -1497,8 +1507,11 @@ bool register_scrypt_algo( algo_gate_t* gate )
    opt_param_n = opt_param_n ? opt_param_n : 1024;
    applog( LOG_INFO,"Scrypt paramaters: N= %d, R= 1", opt_param_n );
 
+// scrypt_throughput can be defined at compile time and used to replace
+// MAX_WAYS to reduce memory usage.
+   
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-   scrypt_throughput = 16;
+//   scrypt_throughput = 16;
    if ( opt_param_n > 0x4000 )
       scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
    else      
@@ -1511,13 +1524,13 @@ bool register_scrypt_algo( algo_gate_t* gate )
 */
 
 #elif defined(__AVX2__)
-   scrypt_throughput = 8;   
+//   scrypt_throughput = 8;   
    if ( opt_param_n > 0x4000 )
       scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
    else
       scratchbuf_size = opt_param_n * 2 * 128;  // 2 way
 #else
-   scrypt_throughput = 4;
+//   scrypt_throughput = 4;
    if ( opt_param_n > 0x4000 )
    scratchbuf_size = opt_param_n * 2 * 128;  // 2 buf
    else
@@ -1533,7 +1546,7 @@ bool register_scrypt_algo( algo_gate_t* gate )
    format_number_si( &d_size, d_units );
    
    applog( LOG_INFO,"Throughput %d/thr, Buffer %.0f %siB/thr, Total %.0f %siB\n",
-          scrypt_throughput, t_size, t_units, d_size, d_units );
+          SCRYPT_THROUGHPUT, t_size, t_units, d_size, d_units );
 
    return true;
 };
