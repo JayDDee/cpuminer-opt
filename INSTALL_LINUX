@@ -26,10 +26,13 @@ be installed manually. There may be others, read the compiler error messages,
 they will give a clue as to the missing package.
 
 The following command should install everything you need on Debian based
-distributions such as Ubuntu. Fedora and other distributions may have similar
-but different package names. 
-
+distributions such as Ubuntu:
 $ sudo apt-get install build-essential automake libssl-dev libcurl4-openssl-dev libjansson-dev libgmp-dev zlib1g-dev git
+
+Fedora and other distributions may have similar
+but different package names as shown below .
+Fedora required different packages name :
+$ sudo dnf install libcurl-devel gmp-devel
 
 SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and
 openssl 1.1.0e or higher.
