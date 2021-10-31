@@ -323,10 +323,14 @@ static void affine_to_cpu_mask( int id, uint64_t mask )
       }
 
 	   if (opt_debug)
-         applog(LOG_DEBUG, "Binding thread %d to cpu %d on cpu group %d (mask %x)",
+         applog(LOG_DEBUG, "Binding thread %d to cpu %d on cpu group %d (mask 0x%llx)",
                id, cpu, group, (1ULL << cpu));
 
 	   GROUP_AFFINITY affinity;
+           // Zeroout the whole structure.
+           // RESERVED field of the struct can be set by system and can cause
+           // SetThreadGroupAffinity to return code 0x57 - Invalid Parameter.
+           memset(&affinity, 0, sizeof(GROUP_AFFINITY));
 	   affinity.Group = group;
 	   affinity.Mask = 1ULL << cpu;
 	   success = SetThreadGroupAffinity( GetCurrentThread(), &affinity, NULL );
@@ -339,7 +343,7 @@ static void affine_to_cpu_mask( int id, uint64_t mask )
    if (!success)
    {
 	   last_error = GetLastError();
-	   applog(LOG_WARNING, "affine_to_cpu_mask for %u returned %x",
+	   applog(LOG_WARNING, "affine_to_cpu_mask for %u returned 0x%x",
                id, last_error);
    }
 }
@@ -2251,17 +2255,15 @@ static void *miner_thread( void *userdata )
          affine_to_cpu_mask( thr_id, (uint128_t)1 << (thr_id % num_cpus) );
          if ( opt_debug )
             applog( LOG_INFO, "Binding thread %d to cpu %d.",
-                    thr_id, thr_id % num_cpus,
-	                 u128_hi64( (uint128_t)1 << (thr_id % num_cpus) ),
-		              u128_lo64( (uint128_t)1 << (thr_id % num_cpus) ) );
+                    thr_id, thr_id % num_cpus);
       }
 #else
       if ( ( opt_affinity == -1 ) && ( opt_n_threads > 1 ) ) 
       {
-         affine_to_cpu_mask( thr_id, 1 << (thr_id % num_cpus) );
+         affine_to_cpu_mask( thr_id, (uint64_t)1 << (thr_id % num_cpus) );
          if (opt_debug)
             applog( LOG_DEBUG, "Binding thread %d to cpu %d.",
-                thr_id, thr_id % num_cpus, 1 << (thr_id % num_cpus)) ;
+                thr_id, thr_id % num_cpus);
       }
 #endif
       else   // Custom affinity
