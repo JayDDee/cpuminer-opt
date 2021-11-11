@@ -3,7 +3,7 @@
  * Copyright 2012-2014 pooler
  * Copyright 2014 Lucas Jones
  * Copyright 2014-2016 Tanguy Pruvot
- * Copyright 2016-2020 Jay D Dee
+ * Copyright 2016-2021 Jay D Dee
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -115,22 +115,12 @@ int opt_param_n = 0;
 int opt_param_r = 0;
 int opt_n_threads = 0;
 bool opt_sapling = false;
-
-// Windows doesn't support 128 bit affinity mask.
-// Need compile time and run time test.
-#if defined(__linux) && defined(GCC_INT128)  
-#define AFFINITY_USES_UINT128 1
-static uint128_t opt_affinity = -1;
-static bool affinity_uses_uint128 = true;
-#else
-static uint64_t opt_affinity = -1;
-static bool affinity_uses_uint128 = false;
-#endif
-
+static uint64_t opt_affinity = 0xFFFFFFFFFFFFFFFFULL;  // default, use all cores
 int opt_priority = 0;  // deprecated
 int num_cpus = 1;
-int num_cpugroups = 1;
-char *rpc_url = NULL;;
+int num_cpugroups = 1;  // For Windows
+#define max_cpus 256   // max for affinity
+char *rpc_url = NULL;
 char *rpc_userpass = NULL;
 char *rpc_user, *rpc_pass;
 char *short_url = NULL;
@@ -166,6 +156,7 @@ uint32_t accepted_share_count = 0;
 uint32_t rejected_share_count = 0;
 uint32_t stale_share_count = 0;
 uint32_t solved_block_count = 0;
+uint32_t stratum_errors = 0;
 double *thr_hashrates;
 double global_hashrate = 0.;
 double total_hashes = 0.;
@@ -227,18 +218,21 @@ char*  lp_id;
 
 static void   workio_cmd_free(struct workio_cmd *wc);
 
-static void format_affinity_map( char *map_str, uint64_t map )
+// array mapping thread to cpu
+static uint8_t thread_affinity_map[ max_cpus ];
+
+// display affinity mask graphically
+static void format_affinity_mask( char *mask_str, uint64_t mask )
 {
    int n = num_cpus < 64 ? num_cpus : 64;
    int i;
-
    for ( i = 0; i < n; i++ )
    {
-      if ( map & 1 )  map_str[i] = '!';
-      else            map_str[i] = '.';
-      map >>= 1;
+      if ( mask & 1 )  mask_str[i] = '!';
+      else             mask_str[i] = '.';
+      mask >>= 1;
    }
-   memset( &map_str[i], 0, 64 - i );
+   memset( &mask_str[i], 0, 64 - i );
 }
 
 #ifdef __linux /* Linux specific policy and affinity management */
@@ -260,93 +254,70 @@ static inline void drop_policy(void)
 #define pthread_setaffinity_np(tid,sz,s) {} /* only do process affinity */
 #endif
 
-// Linux affinity can use int128.
-#if AFFINITY_USES_UINT128
-static void affine_to_cpu_mask( int id, uint128_t mask )
-#else
-static void affine_to_cpu_mask( int id, uint64_t mask )
-#endif
+static void affine_to_cpu( struct thr_info *thr )
 {
+   int thread = thr->id;
    cpu_set_t set;
    CPU_ZERO( &set );
-   uint8_t ncpus = (num_cpus > 256) ? 256 : num_cpus;       
-
-   for ( uint8_t i = 0; i < ncpus; i++ ) 
-   {
-      // cpu mask
-#if AFFINITY_USES_UINT128
-      if( ( mask & ( (uint128_t)1 << i ) ) )  CPU_SET( i, &set );
-#else
-      if( (ncpus > 64) || ( mask & (1 << i) ) )  CPU_SET( i, &set );
-#endif
-   }
-   if ( id == -1 )
-   {
-      // process affinity
-      sched_setaffinity(0, sizeof(&set), &set);
-   }
-   else
-   {
-      // thread only
-      pthread_setaffinity_np(thr_info[id].pth, sizeof(&set), &set);
-   }
+   CPU_SET( thread_affinity_map[ thread ], &set );
+   if ( opt_debug )
+      applog( LOG_INFO, "Binding thread %d to cpu %d",
+                        thread, thread_affinity_map[ thread ] );
+   pthread_setaffinity_np( thr->pth, sizeof(set), &set );
 }
 
 #elif defined(WIN32) /* Windows */
+
 static inline void drop_policy(void) { }
 
 // Windows CPU groups to manage more than 64 CPUs.
-static void affine_to_cpu_mask( int id, uint64_t mask )
+// mask arg is ignored
+static void affine_to_cpu( struct thr_info *thr )
 {
-   bool success;
+   int thread = thr->id;
    unsigned long last_error;    
-//   BOOL success;
-//   DWORD last_error;
+   bool ok;
 
-   if ( id == -1 )
-      success = SetProcessAffinityMask( GetCurrentProcess(), mask );
+#if defined(WINDOWS_CPU_GROUPS_ENABLED)
+   unsigned long group_size = GetActiveProcessorCount( 0 );
+   unsigned long group      = thread / group_size;
+   unsigned long cpu        = thread_affinity_map[ thread % group_size ];
 
-// Are Windows CPU Groups supported?
-#if _WIN32_WINNT==0x0601
-   else if ( num_cpugroups == 1 )
-	   success = SetThreadAffinityMask( GetCurrentThread(), mask );
-   else
-   {
-	   // Find the correct cpu group
-	   int cpu = id % num_cpus;
-	   int group;
-	   for( group = 0; group < num_cpugroups; group++ )
-	   {
-	      int cpus = GetActiveProcessorCount( group );
- 	      if ( cpu < cpus )  break;
-  	      cpu -= cpus;
-      }
+   GROUP_AFFINITY affinity;
+   affinity.Group = group;
+   affinity.Mask = 1ULL << cpu;
 
-	   if (opt_debug)
-         applog(LOG_DEBUG, "Binding thread %d to cpu %d on cpu group %d (mask %x)",
-               id, cpu, group, (1ULL << cpu));
+   if ( opt_debug )
+      applog( LOG_INFO, "Binding thread %d to cpu %d in cpu group %d",
+                        thread, cpu, group );
 
-	   GROUP_AFFINITY affinity;
-	   affinity.Group = group;
-	   affinity.Mask = 1ULL << cpu;
-	   success = SetThreadGroupAffinity( GetCurrentThread(), &affinity, NULL );
-   }
+   ok = SetThreadGroupAffinity( GetCurrentThread(), &affinity, NULL );
+
 #else
-   else 
-      success = SetThreadAffinityMask( GetCurrentThread(), mask );
+
+   unsigned long cpu = thread_affinity_map[ thread ];
+   uint64_t mask = 1ULL << cpu;
+
+   if ( opt_debug )
+      applog( LOG_INFO, "Binding thread %d to cpu %d", thread, cpu );
+
+   ok = SetThreadAffinityMask( GetCurrentThread(), mask );
+
 #endif
 
-   if (!success)
+   if ( !ok )
    {
-	   last_error = GetLastError();
-	   applog(LOG_WARNING, "affine_to_cpu_mask for %u returned %x",
-               id, last_error);
+      last_error = GetLastError();
+      applog( LOG_WARNING, "affine_to_cpu_mask for %u returned 0x%x",
+                           thread, last_error );
    }
-}
+}   
 
 #else
+
 static inline void drop_policy(void) { }
-static void affine_to_cpu_mask(int id, unsigned long mask) { }
+static void affine_to_cpu( struct thr_info *thr ) { }
+
 #endif
 
 // not very useful, just index the arrray directly.
@@ -1159,17 +1130,23 @@ void report_summary_log( bool force )
       applog2( prio, "Blocks Solved   %7d      %7d",
                solved, solved_block_count );
    }
+   if ( stratum_errors )
+      applog2( LOG_INFO, "Stratum errors               %7d", stratum_errors );
+
    applog2( LOG_INFO, "Hi/Lo Share Diff  %.5g /  %.5g",
             highest_share, lowest_share );
 
    int mismatch = submitted_share_count
          - ( accepted_share_count + stale_share_count + rejected_share_count );
+
    if ( mismatch )
    {
-      if ( mismatch != 1 )
-         applog2(LOG_MINR, "Count mismatch: %d, stats may be inaccurate", mismatch );
-      else
-         applog2(LOG_INFO, CL_LBL "Count mismatch, submitted share may still be pending" CL_N );
+      if ( stratum_errors )
+         applog2( LOG_MINR, "Count mismatch: %d, stats may be inaccurate",
+                            mismatch );
+      else if ( !opt_quiet )
+         applog2( LOG_INFO, CL_LBL
+                  "Count mismatch, submitted share may still be pending" CL_N );
    }
 }
 
@@ -2241,49 +2218,9 @@ static void *miner_thread( void *userdata )
 	   if ( opt_priority == 0 )
 	      drop_policy();
    }
+
    // CPU thread affinity
-   if ( num_cpus > 1 )
-   {
-#if AFFINITY_USES_UINT128
-      // Default affinity
-      if ( (opt_affinity == (uint128_t)(-1) ) && opt_n_threads > 1 )
-      {  
-         affine_to_cpu_mask( thr_id, (uint128_t)1 << (thr_id % num_cpus) );
-         if ( opt_debug )
-            applog( LOG_INFO, "Binding thread %d to cpu %d.",
-                    thr_id, thr_id % num_cpus,
-	                 u128_hi64( (uint128_t)1 << (thr_id % num_cpus) ),
-		              u128_lo64( (uint128_t)1 << (thr_id % num_cpus) ) );
-      }
-#else
-      if ( ( opt_affinity == -1 ) && ( opt_n_threads > 1 ) ) 
-      {
-         affine_to_cpu_mask( thr_id, 1 << (thr_id % num_cpus) );
-         if (opt_debug)
-            applog( LOG_DEBUG, "Binding thread %d to cpu %d.",
-                thr_id, thr_id % num_cpus, 1 << (thr_id % num_cpus)) ;
-      }
-#endif
-      else   // Custom affinity
-      {
-         affine_to_cpu_mask( thr_id, opt_affinity );
-         if ( opt_debug )
-         {
-#if AFFINITY_USES_UINT128
-            if ( num_cpus > 64 )
-               applog( LOG_INFO, "Binding thread %d to mask %016llx %016llx",
-                                thr_id, u128_hi64( opt_affinity ), 
-                                        u128_lo64( opt_affinity ) );
-            else
-               applog( LOG_INFO, "Binding thread %d to mask %016llx",
-                                 thr_id, opt_affinity );
-#else
-            applog( LOG_INFO, "Binding thread %d to mask %016llx",
-                                 thr_id, opt_affinity );
-#endif
-         }
-      }
-   }  // num_cpus > 1
+   if ( opt_affinity && num_cpus > 1 )   affine_to_cpu( mythr );
 
    if ( !algo_gate.miner_thread_init( thr_id ) )
    {
@@ -2792,6 +2729,7 @@ static void *stratum_thread(void *userdata )
       {
           stratum_need_reset = false;
           stratum_down = true;
+          stratum_errors++;
           stratum_disconnect( &stratum );
           if ( strcmp( stratum.url, rpc_url ) )
           {
@@ -2809,6 +2747,7 @@ static void *stratum_thread(void *userdata )
       while ( !stratum.curl )
       {
          stratum_down = true;
+         restart_threads();
          pthread_rwlock_wrlock( &g_work_lock );
          g_work_time = 0;
          pthread_rwlock_unlock( &g_work_lock );
@@ -2830,7 +2769,6 @@ static void *stratum_thread(void *userdata )
          else
          {
             stratum_down = false;
-            restart_threads();
             applog(LOG_BLUE,"Stratum connection established" );
          }
       }
@@ -3137,7 +3075,7 @@ void parse_arg(int key, char *arg )
 {
 	char *p;
 	int v, i;
-	uint64_t ul;
+//	uint64_t ul;
 	double d;
 
 	switch( key )
@@ -3448,21 +3386,10 @@ void parse_arg(int key, char *arg )
 		break;
 #endif
 	case 1020:  // cpu-affinity
-		p = strstr(arg, "0x");
-		if ( p )
-			ul = strtoull( p, NULL, 16 );
-		else
-			ul = atoll( arg );
-#if AFFINITY_USES_UINT128
-// replicate the low 64 bits to make a full 128 bit mask if there are more
-// than 64 CPUs, otherwise zero extend the upper half.
-         opt_affinity = (uint128_t)ul;
-         if ( num_cpus > 64 )
-            opt_affinity |= opt_affinity << 64;
-#else
-         opt_affinity = ul;
-#endif
-		break;
+      p = strstr( arg, "0x" );
+      opt_affinity = p ? strtoull( p, NULL, 16 )
+                       : atoll( arg );
+      break;
 	case 1021:  // cpu-priority
 		v = atoi(arg);
 		if (v < 0 || v > 5)	/* sanity check */
@@ -3565,20 +3492,18 @@ static void parse_cmdline(int argc, char *argv[])
    while (1)
    {
 #if HAVE_GETOPT_LONG
-	key = getopt_long(argc, argv, short_options, options, NULL);
+      key = getopt_long(argc, argv, short_options, options, NULL);
 #else
-	key = getopt(argc, argv, short_options);
+      key = getopt(argc, argv, short_options);
 #endif
-	if (key < 0)
-		break;
-
-	parse_arg(key, optarg);
+      if ( key < 0 )   break;
+      parse_arg( key, optarg );
    }
-   if (optind < argc)
+   if ( optind < argc )
    {
-	fprintf(stderr, "%s: unsupported non-option argument -- '%s'\n",
-		argv[0], argv[optind]);
-        show_usage_and_exit(1);
+      fprintf( stderr, "%s: unsupported non-option argument -- '%s'\n",
+		                 argv[0], argv[optind]);
+      show_usage_and_exit(1);
    }
 }
 
@@ -3642,26 +3567,21 @@ int main(int argc, char *argv[])
 	rpc_user = strdup("");
 	rpc_pass = strdup("");
 
-   parse_cmdline(argc, argv);
-
 #if defined(WIN32)
-//	SYSTEM_INFO sysinfo;
-//	GetSystemInfo(&sysinfo);
-//	num_cpus = sysinfo.dwNumberOfProcessors;
-// What happens if GetActiveProcessorGroupCount called if groups not enabled?
 
 // Are Windows CPU Groups supported?
-#if _WIN32_WINNT==0x0601
+#if defined(WINDOWS_CPU_GROUPS_ENABLED)
  	num_cpus = 0;
 	num_cpugroups = GetActiveProcessorGroupCount();
-	for(  i = 0; i < num_cpugroups; i++ )
+	for( i = 0; i < num_cpugroups; i++ )
 	{
- 	   int cpus = GetActiveProcessorCount(i);
+ 	   int cpus = GetActiveProcessorCount( i );
 	   num_cpus += cpus;
 
 	   if (opt_debug)
-         applog(LOG_DEBUG, "Found %d cpus on cpu group %d", cpus, i);
+         applog( LOG_INFO, "Found %d CPUs in CPU group %d", cpus, i );
 	}
+
 #else
    SYSTEM_INFO sysinfo;
    GetSystemInfo(&sysinfo);
@@ -3677,21 +3597,20 @@ int main(int argc, char *argv[])
 #else
 	num_cpus = 1;
 #endif
-	if (num_cpus < 1)
-		num_cpus = 1;
 
-   if (!opt_n_threads)
-      opt_n_threads = num_cpus;
+   if ( num_cpus < 1 )    num_cpus = 1;
+
+   parse_cmdline( argc, argv );
 
    if ( opt_algo == ALGO_NULL )
    {
-      fprintf(stderr, "%s: no algo supplied\n", argv[0]);
+      fprintf( stderr, "%s: No algo parameter specified\n", argv[0] );
       show_usage_and_exit(1);
    }
 
    // need to register to get algo optimizations for cpu capabilities
-   // but that causes register logs before cpu capabilities is output.
-   // Would need to split register into 2 parts. First part sets algo
+   // but that causes registration logs before cpu capabilities is output.
+   // Would need to split register function into 2 parts. First part sets algo
    // optimizations but no logging, second part does any logging.   
    if ( !register_algo_gate( opt_algo, &algo_gate ) )  exit(1);
 
@@ -3735,9 +3654,6 @@ int main(int argc, char *argv[])
          return 1;
 	}
 
-   // All options must be set before starting the gate
-//   if ( !register_algo_gate( opt_algo, &algo_gate ) )  exit(1);
-
    if ( coinbase_address )
    {
       pk_script_size = address_to_script( pk_script, pk_buffer_size,
@@ -3748,8 +3664,6 @@ int main(int argc, char *argv[])
          exit(0);
       }
    }
-
-//   if ( !check_cpu_capability() ) exit(1);
 
 	pthread_mutex_init( &stats_lock, NULL );
    pthread_rwlock_init( &g_work_lock, NULL );
@@ -3820,44 +3734,31 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-// To be confirmed with more than 64 cpus
-   if ( opt_affinity != -1 )
-   {
-      if ( !affinity_uses_uint128 && num_cpus > 64 )
-      {
-          applog(LOG_WARNING,"Setting CPU affinity with more than 64 CPUs is only");
-          applog(LOG_WARNING,"available on Linux. Using default affinity.");
-          opt_affinity = -1;
-      }
-/*
-      else	
-      {
-         affine_to_cpu_mask( -1, opt_affinity );
-         if ( !opt_quiet )
-         {
-#if AFFINITY_USES_UINT128
-            if ( num_cpus > 64 )
-               applog(LOG_DEBUG, "Binding process to cpu mask %x",
-                      u128_hi64( opt_affinity ), u128_lo64( opt_affinity ) );
-            else 
-               applog(LOG_DEBUG, "Binding process to cpu mask %x",
-                      opt_affinity );
-#else
-               applog(LOG_DEBUG, "Binding process to cpu mask %x",
-                      opt_affinity );
-#endif
-         }
-      }
-*/
-   }
+   if ( ( opt_n_threads == 0 ) || ( opt_n_threads > num_cpus ) )
+      opt_n_threads = num_cpus;
 
-   if ( !opt_quiet && ( opt_n_threads < num_cpus ) )
+   if ( opt_affinity && num_cpus > max_cpus )
    {
-      char affinity_map[64];
-      format_affinity_map( affinity_map, opt_affinity );
-      applog( LOG_INFO, "CPU affinity [%s]", affinity_map );
+      applog( LOG_WARNING, "More than %d CPUs, CPU affinity is disabled",
+                            max_cpus );
+      opt_affinity = 0ULL;
    }
    
+   if ( opt_affinity )
+   {
+      for ( int thr = 0, cpu = 0; thr < opt_n_threads; thr++, cpu++ )
+      {
+         while ( !( ( opt_affinity >> ( cpu&63 ) ) & 1ULL ) ) cpu++;   
+         thread_affinity_map[ thr ] = cpu % num_cpus;
+      }
+      if ( !opt_quiet )
+      {
+         char affinity_mask[64];
+         format_affinity_mask( affinity_mask, opt_affinity );
+         applog( LOG_INFO, "CPU affinity [%s]", affinity_mask );
+      }
+   }
+    
 #ifdef HAVE_SYSLOG_H
 	if (use_syslog)
 		openlog("cpuminer", LOG_PID, LOG_USER);
@@ -3955,7 +3856,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
       if ( !opt_quiet )
-         applog( LOG_INFO,"API listnening to %s:%d", opt_api_allow,
+         applog( LOG_INFO,"API listening to %s:%d", opt_api_allow,
                                                      opt_api_listen );
    }
 

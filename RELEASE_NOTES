@@ -65,7 +65,22 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
-v3.8.2
+v3.19.0
+
+Windows binaries now built with support for CPU groups, requires Windows 7.
+
+Changes to cpu-affinity:
+  - PR#346: Fixed incorrect CPU affinity on Windows built for CPU groups,
+  - added support for CPU affinity for up to 256 threads or CPUs,
+  - streamlined code for more efficient initialization of miner threads,
+  - precise affining of each miner thread to a specific CPU,
+  - added an option to disable CPU affinity with "--cpu-affinity 0"
+
+Faster sha256t with AVX512 & AVX2.
+
+Added stratum error count to stats log, reported only when non-zero.
+
+v3.18.2
 
 Issue #342, fixed Groestl AES on Windows, broken in v3.18.0.
 

@@ -40,7 +40,7 @@ $ mkdir $HOME/usr/lib
    version available in the repositories.
 
 Download the following source code packages from their respective and
-respected download locations, copy them to ~/usr/lib/ and uncompress them. 
+respected download locations, copy them to $HOME/usr/lib/ and uncompress them. 
 
 openssl: https://github.com/openssl/openssl/releases
 
@@ -149,85 +149,10 @@ Copy cpuminer.exe to the release directory, compress and copy the release direct
 
 Run cpuminer
 
-In a command windows change directories to the unzipped release folder. to get a list of all options:
+In a command windows change directories to the unzipped release folder. To get a list of all options:
 
 cpuminer.exe --help
 
 Command options are specific to where you mine. Refer to the pool's instructions on how to set them.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Create a link to the locally compiled version of gmp.h
-
-$ ln -s $LOCAL_LIB/gmp-version/gmp.h ./gmp.h
-
-Edit configure.ac to fix lipthread package name.
-
-sed -i 's/"-lpthread"/"-lpthreadGC2"/g' configure.ac
-
-
-7. Compile
-
-you can use the default compile if you intend to use cpuminer-opt on the
-same CPU and the virtual machine supports that architecture.
-
-./build.sh
-
-Otherwise you can compile manually while setting options in CFLAGS.
-
-Some common options:
-
-To compile for a specific CPU architecture:
-
-CFLAGS="-O3 -march=znver1 -Wall" ./configure --with-curl
-
-This will compile for AMD Ryzen.
-
-You can compile more generically for a set of specific CPU features
-if you know what features you want:
-
-CFLAGS="-O3 -maes -msse4.2 -Wall" ./configure --with-curl
-
-This will compile for an older CPU that does not have AVX.
-
-You can find several examples in build-allarch.sh
-
-If you have a CPU with more than 64 threads and Windows 7 or higher you
-can enable the CPU Groups feature:
-
--D_WIN32_WINNT==0x0601
-
-Once you have run configure successfully run make with n CPU threads:
-
-make -j n
-
-Copy cpuminer.exe to the release directory, compress and copy the release
-directory to a Windows system and run cpuminer.exe from the command line.
-
-Run cpuminer
-
-In a command windows change directories to the unzipped release folder.
-to get a list of all options:
-
-cpuminer.exe --help
-
-Command options are specific to where you mine. Refer to the pool's
-instructions on how to set them.

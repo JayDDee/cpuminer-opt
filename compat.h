@@ -3,6 +3,10 @@
 
 #ifdef WIN32
 
+#if _WIN32_WINNT==0x0601    // Windows 7
+ #define WINDOWS_CPU_GROUPS_ENABLED 1
+#endif
+
 #include <windows.h>
 #include <time.h>
 
