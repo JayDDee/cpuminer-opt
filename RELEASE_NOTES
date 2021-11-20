@@ -65,6 +65,18 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.19.1
+
+Changes to Windows binaries package:
+ - builds for CPUs with AVX or lower have CPU groups disabled,
+ - zen3 build renamed to avx2-sha-vaes to support Alderlake as well as Zen3,
+ - zen build renamed to avx2-sha, supports Zen1 & Zen2,
+ - avx512-sha build removed, Rocketlake CPUs can use avx512-sha-vaes,
+ - see README.txt for compatibility details.
+
+Fixed a few compiler warnings that are new in GCC 11.
+Other minor fixes.
+
 v3.19.0
 
 Windows binaries now built with support for CPU groups, requires Windows 7.

@@ -61,11 +61,10 @@ void ComputeSingleSWIFFT(unsigned char *input, unsigned short m,
 //
 // Returns:
 // - Success value.
-void ComputeSingleSWIFFTX( unsigned char input[SWIFFTX_INPUT_BLOCK_SIZE],
-                           unsigned char output[SWIFFTX_OUTPUT_BLOCK_SIZE] );
+void ComputeSingleSWIFFTX( unsigned char *input, unsigned char *output );
 
-void ComputeSingleSWIFFTX_smooth( unsigned char input[SWIFFTX_INPUT_BLOCK_SIZE],
-	            unsigned char output[SWIFFTX_OUTPUT_BLOCK_SIZE], bool doSmooth);
+//void ComputeSingleSWIFFTX_smooth( unsigned char input[SWIFFTX_INPUT_BLOCK_SIZE],
+//	            unsigned char output[SWIFFTX_OUTPUT_BLOCK_SIZE], bool doSmooth);
 
 // Calculates the powers of OMEGA and generates the bit reversal permutation.
 // You must call this function before doing SWIFFT/X, otherwise you will get zeroes everywhere.

@@ -604,21 +604,14 @@ void InitializeSWIFFTX()
 	int omegaPowers[2 * N];
 	omegaPowers[0] = 1;
 
-	if (wasSetupDone)
-		return;
+	if (wasSetupDone) return;
 
 	for (i = 1; i < (2 * N); ++i)
-	{
 		omegaPowers[i] = Center(omegaPowers[i - 1] * OMEGA);
-	}
 
 	for (i = 0; i < (N / W); ++i)
-	{
 		for (j = 0; j < W; ++j)
-		{
 			multipliers[(i << 3) + j] = omegaPowers[ReverseBits(i, N / W) * (2 * j + 1)];
-		}
-	}
 
 	for (x = 0; x < 256; ++x)
 	{
@@ -626,10 +619,8 @@ void InitializeSWIFFTX()
 		{
 			register int temp = 0;
 			for (k = 0; k < 8; ++k)
-			{
 				temp += omegaPowers[(EIGHTH_N * (2 * j + 1) * ReverseBits(k, W)) % (2 * N)]
 					  * ((x >> k) & 1);
-			}
 
 			fftTable[(x << 3) + j] = Center(temp);
 		}
@@ -703,18 +694,18 @@ void FFT(const unsigned char input[EIGHTH_N], swift_int32_t *output)
 
 #if defined (__AVX512VL__) && defined(__AVX512BW__)   
 
-   #define Q_REDUCE( a ) \
-       _mm256_sub_epi32( _mm256_and_si256( a, \
-                 _mm256_movm_epi8( 0x11111111 ) ), _mm256_srai_epi32( a, 8 ) ) 
+   const __m256i mask = _mm256_movm_epi8( 0x11111111 );
 
-#else   
+#else
 
-   #define Q_REDUCE( a ) \
-       _mm256_sub_epi32( _mm256_and_si256( a, \
-                   m256_const1_32( 0x000000ff ) ), _mm256_srai_epi32( a, 8 ) ) 
+   const __m256i mask = m256_const1_32( 0x000000ff );
 
 #endif
-                          
+
+   #define Q_REDUCE( a ) \
+       _mm256_sub_epi32( _mm256_and_si256( a, mask ), \
+                         _mm256_srai_epi32( a, 8 ) )
+
    out[0] = Q_REDUCE( F[0] );  
    out[1] = Q_REDUCE( F[1] );                        
    out[2] = Q_REDUCE( F[2] );                        
@@ -805,9 +796,10 @@ void FFT(const unsigned char input[EIGHTH_N], swift_int32_t *output)
 
    #undef ADD_SUB
 
+   const __m128i mask = m128_const1_32( 0x000000ff );
+
    #define Q_REDUCE( a ) \
-      _mm_sub_epi32( _mm_and_si128( a, \
-                   m128_const1_32( 0x000000ff ) ), _mm_srai_epi32( a, 8 ) ) 
+      _mm_sub_epi32( _mm_and_si128( a, mask ), _mm_srai_epi32( a, 8 ) ) 
 
    out[ 0] = Q_REDUCE( F[ 0] );
    out[ 1] = Q_REDUCE( F[ 1] );
@@ -1357,6 +1349,7 @@ void SWIFFTSum( const swift_int32_t *input, int m, unsigned char *output,
 	output[N] = carry;
 }
 
+/*
 void ComputeSingleSWIFFTX_smooth(unsigned char input[SWIFFTX_INPUT_BLOCK_SIZE],
                           unsigned char output[SWIFFTX_OUTPUT_BLOCK_SIZE],
 						  bool doSmooth)
@@ -1434,51 +1427,50 @@ void ComputeSingleSWIFFTX_smooth(unsigned char input[SWIFFTX_INPUT_BLOCK_SIZE],
 		output[N] = 0;
 	}
 }
+*/
 
-void ComputeSingleSWIFFTX( unsigned char input[SWIFFTX_INPUT_BLOCK_SIZE],
-                           unsigned char output[SWIFFTX_OUTPUT_BLOCK_SIZE] )
+void ComputeSingleSWIFFTX( unsigned char *input, unsigned char *output )
 {
    int i;
    // Will store the result of the FFT parts:
    swift_int32_t fftOut[N * M] __attribute__ ((aligned (64)));
-   unsigned char intermediate[N * 3 + 8] __attribute__ ((aligned (64)));
+   unsigned char sum[ N*3 + 8 ] __attribute__ ((aligned (64)));
    unsigned char carry0,carry1,carry2;
 
    // Do the three SWIFFTS while remembering the three carry bytes (each carry byte gets
    // overriden by the following SWIFFT):
 
    // 1. Compute the FFT of the input - the common part for the first 3 SWIFFTs:
-   SWIFFTFFT(input, M, fftOut);
+   SWIFFTFFT( input, M, fftOut );
 
    // 2. Compute the sums of the 3 SWIFFTs, each using a different set of coefficients:
 
    // 2a. The first SWIFFT:
-   SWIFFTSum(fftOut, M, intermediate, As);
-   // Remember the carry byte:
-   carry0 = intermediate[N];
+   SWIFFTSum( fftOut, M, sum,       As         );
+   carry0 = sum[N];
 
    // 2b. The second one:
-   SWIFFTSum(fftOut, M, intermediate + N, As + (M * N));
-   carry1 = intermediate[2 * N];
+   SWIFFTSum( fftOut, M, sum + N,   As +   M*N );
+   carry1 = sum[ 2*N ];
 
    // 2c. The third one:
-   SWIFFTSum(fftOut, M, intermediate + (2 * N), As + 2 * (M * N));
-   carry2 = intermediate[3 * N];
+   SWIFFTSum( fftOut, M, sum + 2*N, As + 2*M*N );
+   carry2 = sum[ 3*N ];
 
    //2d. Put three carry bytes in their place
-   intermediate[3 * N] = carry0;
-   intermediate[(3 * N) + 1] = carry1;
-   intermediate[(3 * N) + 2] = carry2;
+   sum[ 3*N     ] = carry0;
+   sum[ 3*N + 1 ] = carry1;
+   sum[ 3*N + 2 ] = carry2;
 
    // Padding  intermediate output with 5 zeroes.
-   memset(intermediate + (3 * N) + 3, 0, 5);
+   memset( sum + 3*N + 3, 0, 5 );
 
    // Apply the S-Box:
    for ( i = 0; i < (3 * N) + 8; ++i )
-      intermediate[i] = SBox[intermediate[i]];
+      sum[i] = SBox[ sum[i] ];
 
    // 3. The final and last SWIFFT:
-   SWIFFTFFT(intermediate, 3 * (N/8) + 1, fftOut);
-   SWIFFTSum(fftOut,       3 * (N/8) + 1, output, As);
-
+   SWIFFTFFT( sum, 3 * (N/8) + 1, fftOut );
+   SWIFFTSum( fftOut,       3 * (N/8) + 1, sum, As );
+   memcpy( output, sum, SWIFFTX_OUTPUT_BLOCK_SIZE - 1 );
 }

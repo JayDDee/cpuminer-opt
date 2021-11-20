@@ -18,14 +18,14 @@ error to find the fastest one that works. Pay attention to
 the features listed at cpuminer startup to ensure you are mining at
 optimum speed using the best available features.
 
-Architecture names and compile options used are only provided for Intel
-Core series. Budget CPUs like Pentium and Celeron are often missing some
-features.
+Architecture names and compile options used are only provided for 
+mainstream desktop CPUs. Budget CPUs like Pentium and Celeron are often
+missing some features. Check your CPU.
 
-AMD CPUs older than Piledriver, including Athlon x2 and Phenom II x4, are not
-supported by cpuminer-opt due to an incompatible implementation of SSE2 on
-these CPUs. Some algos may crash the miner with an invalid instruction.
-Users are recommended to use an unoptimized miner such as cpuminer-multi.
+Support for AMD CPUs older than Ryzen is incomplete and without specific 
+recommendations. Find the best fit. CPUs older than Piledriver, including
+Athlon x2 and Phenom II x4, are not supported by cpuminer-opt due to an
+incompatible implementation of SSE2 on these CPUs. 
 
 More information for Intel and AMD CPU architectures and their features
 can be found on Wikipedia.
@@ -34,26 +34,21 @@ https://en.wikipedia.org/wiki/List_of_Intel_CPU_microarchitectures
 
 https://en.wikipedia.org/wiki/List_of_AMD_CPU_microarchitectures
 
+File name                      Architecture name
 
-Exe file name                Compile flags              Arch name
+cpuminer-sse2.exe              Core2, Nehalem, generic x86_64 with SSE2   
+cpuminer-aes-sse42.exe         Westmere
+cpuminer-avx.exe               Sandybridge, Ivybridge
+cpuminer-avx2.exe              Haswell, Skylake, Kabylake, Coffeelake, Cometlake
+cpuminer-avx2-sha.exe          AMD Zen1, Zen2
+cpuminer-avx2-sha-vaes.exe     Intel Alderlake*, AMD Zen3
+cpuminer-avx512.exe            Intel HEDT Skylake-X, Cascadelake
+cpuminer-avx512-sha-vaes.exe   Icelake, Tigerlake, Rocketlake
 
-cpuminer-sse2.exe            "-msse2"                   Core2, Nehalem   
-cpuminer-aes-sse42.exe       "-march=westmere"          Westmere
-cpuminer-avx.exe             "-march=corei7-avx"        Sandybridge, Ivybridge
-cpuminer-avx2.exe            "-march=core-avx2 -maes"   Haswell(1)
-cpuminer-avx512.exe          "-march=skylake-avx512"    Skylake-X, Cascadelake
-cpuminer-avx512-sha.exe      "-march=cascadelake -msha" Rocketlake(2)
-cpuminer-avx512-sha-vaes.exe "-march=icelake-client"    Icelake, Tigerlake(3)
-cpuminer-zen.exe             "-march=znver1"            AMD Zen1, Zen2
-cpuminer-zen3.exe            "-march=znver2 -mvaes"     Zen3(4)
-
-(1) Haswell includes Broadwell, Skylake, Kabylake, Coffeelake & Cometlake. 
-(2) Rocketlake build uses cascadelake+sha as a workaround until Rocketlake
-    compiler support is avalable.
-(3) Icelake & Tigerlake are only available on some laptops. Mining with a
-    laptop is not recommended.
-(4) Zen3 build uses zen2+vaes as a workaround until Zen3 compiler support is
-    available. Zen2 CPUs should use Zen1 build.
+* Alderlake is a hybrid architecture. With the E-cores disabled it may be
+  possible to enable AVX512 on the the P-cores and use the avx512-sha-vaes
+  build. This is not officially supported by Intel at time of writing.
+  Check for current information.
 
 Notes about included DLL files:
 
@@ -66,8 +61,7 @@ https://github.com/JayDDee/cpuminer-opt/wiki/Compiling-from-source
 
 Some DLL filess may already be installed on the system by Windows or third
 party packages. They often will work and may be used instead of the included
-file. Without a compelling reason to do so it's recommended to use the included
-files as they are packaged.
+file. 
 
 If you like this software feel free to donate:
 

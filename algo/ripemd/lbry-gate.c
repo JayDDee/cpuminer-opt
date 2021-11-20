@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-double lbry_calc_network_diff( struct work *work )
+long double lbry_calc_network_diff( struct work *work )
 {
         // sample for diff 43.281 : 1c05ea29
         // todo: endian reversed on longpoll could be zr5 specific...
@@ -12,7 +12,7 @@ double lbry_calc_network_diff( struct work *work )
    uint32_t nbits = swab32( work->data[ LBRY_NBITS_INDEX ] );
    uint32_t bits = (nbits & 0xffffff);
    int16_t shift = (swab32(nbits) & 0xff); // 0x1c = 28
-   double d = (double)0x0000ffff / (double)bits;
+   long double d = (long double)0x0000ffff / (long double)bits;
 
    for (int m=shift; m < 29; m++) d *= 256.0;
    for (int m=29; m < shift; m++) d /= 256.0;

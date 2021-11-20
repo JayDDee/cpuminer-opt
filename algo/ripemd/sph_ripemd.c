@@ -479,7 +479,7 @@ sph_ripemd_comp(const sph_u32 msg[16], sph_u32 val[4])
  * One round of RIPEMD-128. The data must be aligned for 32-bit access.
  */
 static void
-ripemd128_round(const unsigned char *data, sph_u32 r[5])
+ripemd128_round(const unsigned char *data, sph_u32 r[4])
 {
 #if SPH_LITTLE_FAST
 

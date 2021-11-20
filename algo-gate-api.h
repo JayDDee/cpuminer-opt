@@ -97,7 +97,6 @@ typedef  uint32_t set_t;
 #define SHA_OPT       0x20   // Zen1, Icelake (sha256)
 #define AVX512_OPT    0x40   // Skylake-X (AVX512[F,VL,DQ,BW])
 #define VAES_OPT      0x80   // Icelake (VAES & AVX512)
-#define VAES256_OPT   0x100  // Zen3 (VAES without AVX512)
 
 
 // return set containing all elements from sets a & b

@@ -1038,9 +1038,17 @@ void report_summary_log( bool force )
 
 #endif
 
-   if ( !( force && ( submit_sum || ( et.tv_sec > 5 ) ) )
-     && ( et.tv_sec < 300 ) )
-      return;
+   if ( !( force && ( submit_sum || ( et.tv_sec > 5 ) ) ) )
+   {
+      if ( et.tv_sec < 300 )
+         return;
+      if ( ( s_get_ptr != s_put_ptr ) && ( et.tv_sec < 360 ) )
+         return;
+   }
+   
+//   if ( !( force && ( submit_sum || ( et.tv_sec > 5 ) ) )
+//     && ( et.tv_sec < 300 ) )
+//      return;
    
    // collect and reset periodic counters
    pthread_mutex_lock( &stats_lock );
@@ -1983,6 +1991,10 @@ void set_work_data_big_endian( struct work *work )
 // calculate net diff from nbits.
 double std_calc_network_diff( struct work* work )
 {
+   uint32_t nbits = work->data[ algo_gate.nbits_index ];
+   uint32_t shift = nbits & 0xff;
+   uint32_t bits = bswap_32( nbits ) & 0x00ffffff;
+/*
    // sample for diff 43.281 : 1c05ea29
    // todo: endian reversed on longpoll could be zr5 specific...
    int nbits_index = algo_gate.nbits_index;
@@ -1990,15 +2002,17 @@ double std_calc_network_diff( struct work* work )
                                   : swab32( work->data[ nbits_index ] );
    uint32_t bits  = ( nbits & 0xffffff );
    int16_t  shift = ( swab32(nbits) & 0xff ); // 0x1c = 28
+*/
+
    int m;
-   double d = (double)0x0000ffff / (double)bits;
+   long double d = (long double)0x0000ffff / (long double)bits;
    for ( m = shift; m < 29; m++ )
        d *= 256.0;
    for ( m = 29; m < shift; m++ )
        d /= 256.0;
    if ( opt_debug_diff )
-      applog(LOG_DEBUG, "net diff: %f -> shift %u, bits %08x", d, shift, bits);
-   return d;
+      applog(LOG_DEBUG, "net diff: %8f -> shift %u, bits %08x", (double)d, shift, bits);
+   return (double)d;
 }
 
 void std_get_new_work( struct work* work, struct work* g_work, int thr_id,
@@ -2137,7 +2151,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
                uint64_t net_ttf =
                     ( last_block_height - session_first_block ) == 0 ? 0
                     : et.tv_sec / ( last_block_height - session_first_block );
-               if ( net_diff && net_ttf )
+               if ( net_diff > 0. && net_ttf )
                {
                   double net_hr = nd / net_ttf;
                   char net_hr_units[4] = {0};
@@ -2572,7 +2586,7 @@ start:
 	       if (!opt_quiet)
           {
 	         char netinfo[64] = { 0 };
-	         if (net_diff > 0.)
+	         if ( net_diff > 0. )
             {
 	 	         sprintf(netinfo, ", diff %.3f", net_diff);
 	         }
@@ -2844,7 +2858,6 @@ static bool cpu_capability( bool display_only )
      bool algo_has_avx512  = set_incl( AVX512_OPT,  algo_features );
      bool algo_has_sha     = set_incl( SHA_OPT,     algo_features );
      bool algo_has_vaes    = set_incl( VAES_OPT,    algo_features );
-     bool algo_has_vaes256 = set_incl( VAES256_OPT, algo_features );
      bool use_aes;
      bool use_sse2;
      bool use_sse42;
@@ -2924,14 +2937,13 @@ static bool cpu_capability( bool display_only )
         if ( algo_features == EMPTY_SET ) printf( " None" );
         else
         {
-           if      ( algo_has_avx512  )  printf( " AVX512" );
-           else if ( algo_has_avx2    )  printf( " AVX2  " );
-           else if ( algo_has_sse42   )  printf( " SSE4.2" );
-           else if ( algo_has_sse2    )  printf( " SSE2  " );
-           if      ( algo_has_vaes ||
-                     algo_has_vaes256 )  printf( " VAES"   );
-           else if ( algo_has_aes     )  printf( "  AES"   );
-           if      ( algo_has_sha     )  printf( " SHA"    );
+           if      ( algo_has_avx512 )  printf( " AVX512" );
+           else if ( algo_has_avx2   )  printf( " AVX2  " );
+           else if ( algo_has_sse42  )  printf( " SSE4.2" );
+           else if ( algo_has_sse2   )  printf( " SSE2  " );
+           if      ( algo_has_vaes   )  printf( " VAES"   );
+           else if ( algo_has_aes    )  printf( "  AES"   );
+           if      ( algo_has_sha    )  printf( " SHA"    );
         }
      }
      printf("\n");
@@ -2973,8 +2985,7 @@ static bool cpu_capability( bool display_only )
      use_avx2   = cpu_has_avx2   && sw_has_avx2   && algo_has_avx2;
      use_avx512 = cpu_has_avx512 && sw_has_avx512 && algo_has_avx512;
      use_sha    = cpu_has_sha    && sw_has_sha    && algo_has_sha;
-     use_vaes   = cpu_has_vaes   && sw_has_vaes   && ( algo_has_vaes
-                                                    || algo_has_vaes256 );
+     use_vaes   = cpu_has_vaes   && sw_has_vaes   && algo_has_vaes;
      use_none = !( use_sse2 || use_aes || use_avx512 || use_avx2 ||
                    use_sha || use_vaes );
 

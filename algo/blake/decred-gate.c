@@ -8,7 +8,7 @@ uint32_t *decred_get_nonceptr( uint32_t *work_data )
    return &work_data[ DECRED_NONCE_INDEX ];
 }
 
-double decred_calc_network_diff( struct work* work )
+long double decred_calc_network_diff( struct work* work )
 {
    // sample for diff 43.281 : 1c05ea29
    // todo: endian reversed on longpoll could be zr5 specific...
@@ -16,7 +16,7 @@ double decred_calc_network_diff( struct work* work )
    uint32_t bits = ( nbits & 0xffffff );
    int16_t shift = ( swab32(nbits) & 0xff ); // 0x1c = 28
    int m;
-   double d = (double)0x0000ffff / (double)bits;
+   long double d = (long double)0x0000ffff / (long double)bits;
 
    for ( m = shift; m < 29; m++ )
        d *= 256.0;
@@ -25,7 +25,7 @@ double decred_calc_network_diff( struct work* work )
    if ( shift == 28 )
        d *= 256.0; // testnet
    if ( opt_debug_diff )
-       applog( LOG_DEBUG, "net diff: %f -> shift %u, bits %08x", d,
+       applog( LOG_DEBUG, "net diff: %f -> shift %u, bits %08x", (double)d,
                            shift, bits );
    return net_diff;
 }
