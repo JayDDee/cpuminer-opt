@@ -65,6 +65,19 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.19.2
+
+Fixed log displaying incorrect memory usage for scrypt, broken in v3.19.1.
+
+Reduce log noise when replies to submitted shares are lost due to stratum errors.
+
+Fugue prehash optimization for X16r family AVX2 & AVX512.
+
+Small speed improvement for Hamsi AVX2 & AVX512.
+
+Win: With CPU groups enabled the number of CPUs displayed in the ASCII art
+affinity map is the number of CPUs in a CPU group, was number of CPUs up to 64.
+
 v3.19.1
 
 Changes to Windows binaries package:

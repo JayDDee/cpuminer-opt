@@ -60,7 +60,14 @@ void x16r_8way_prehash( void *vdata, void *pdata )
       case HAMSI:
          mm512_bswap32_intrlv80_8x64( vdata, pdata );
          hamsi512_8way_init( &x16r_ctx.hamsi );
-         hamsi512_8way_update( &x16r_ctx.hamsi, vdata, 64 );
+         hamsi512_8way_update( &x16r_ctx.hamsi, vdata, 72 );
+      break;
+      case FUGUE:
+         mm128_bswap32_80( edata, pdata );
+         fugue512_init( &x16r_ctx.fugue );
+         fugue512_update( &x16r_ctx.fugue, edata, 76 );
+         intrlv_8x64( vdata, edata, edata, edata, edata,
+                             edata, edata, edata, edata, 640 );
       break;
       case SHABAL:
          mm256_bswap32_intrlv80_8x32( vdata2, pdata );
@@ -306,7 +313,7 @@ int x16r_8way_hash_generic( void* output, const void* input, int thrid )
          break;
          case HAMSI:
             if ( i == 0 )
-               hamsi512_8way_update( &ctx.hamsi, input + (64<<3), 16 );
+               hamsi512_8way_update( &ctx.hamsi, input + (72<<3), 8 );
             else
             {
                intrlv_8x64( vhash, in0, in1, in2, in3, in4, in5, in6, in7,
@@ -319,14 +326,43 @@ int x16r_8way_hash_generic( void* output, const void* input, int thrid )
                           hash7, vhash );
          break;
          case FUGUE:
-             fugue512_full( &ctx.fugue, hash0, in0, size );
-             fugue512_full( &ctx.fugue, hash1, in1, size );
-             fugue512_full( &ctx.fugue, hash2, in2, size );
-             fugue512_full( &ctx.fugue, hash3, in3, size );
-             fugue512_full( &ctx.fugue, hash4, in4, size );
-             fugue512_full( &ctx.fugue, hash5, in5, size );
-             fugue512_full( &ctx.fugue, hash6, in6, size );
-             fugue512_full( &ctx.fugue, hash7, in7, size );
+            if ( i == 0 )
+            {
+               fugue512_update( &ctx.fugue, in0 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash0 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in1 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash1 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in2 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash2 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in3 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash3 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in4 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash4 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in5 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash5 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in6 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash6 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in7 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash7 );
+            }
+            else
+            {
+               fugue512_full( &ctx.fugue, hash0, in0, size );
+               fugue512_full( &ctx.fugue, hash1, in1, size );
+               fugue512_full( &ctx.fugue, hash2, in2, size );
+               fugue512_full( &ctx.fugue, hash3, in3, size );
+               fugue512_full( &ctx.fugue, hash4, in4, size );
+               fugue512_full( &ctx.fugue, hash5, in5, size );
+               fugue512_full( &ctx.fugue, hash6, in6, size );
+               fugue512_full( &ctx.fugue, hash7, in7, size );
+            }
          break;
          case SHABAL:
              intrlv_8x32( vhash, in0, in1, in2, in3, in4, in5, in6, in7,
@@ -347,25 +383,25 @@ int x16r_8way_hash_generic( void* output, const void* input, int thrid )
             {
                sph_whirlpool( &ctx.whirlpool, in0 + 64, 16 );
                sph_whirlpool_close( &ctx.whirlpool, hash0 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
+               memcpy( &ctx, &x16r_ctx, sizeof(sph_whirlpool_context) );
                sph_whirlpool( &ctx.whirlpool, in1 + 64, 16 );
                sph_whirlpool_close( &ctx.whirlpool, hash1 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
+               memcpy( &ctx, &x16r_ctx, sizeof(sph_whirlpool_context) );
                sph_whirlpool( &ctx.whirlpool, in2 + 64, 16 );
                sph_whirlpool_close( &ctx.whirlpool, hash2 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
+               memcpy( &ctx, &x16r_ctx, sizeof(sph_whirlpool_context) );
                sph_whirlpool( &ctx.whirlpool, in3 + 64, 16 );
                sph_whirlpool_close( &ctx.whirlpool, hash3 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
+               memcpy( &ctx, &x16r_ctx, sizeof(sph_whirlpool_context) );
                sph_whirlpool( &ctx.whirlpool, in4 + 64, 16 );
                sph_whirlpool_close( &ctx.whirlpool, hash4 ); 
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
+               memcpy( &ctx, &x16r_ctx, sizeof(sph_whirlpool_context) );
                sph_whirlpool( &ctx.whirlpool, in5 + 64, 16 );
                sph_whirlpool_close( &ctx.whirlpool, hash5 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
+               memcpy( &ctx, &x16r_ctx, sizeof(sph_whirlpool_context) );
                sph_whirlpool( &ctx.whirlpool, in6 + 64, 16 );
                sph_whirlpool_close( &ctx.whirlpool, hash6 );
-               memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
+               memcpy( &ctx, &x16r_ctx, sizeof(sph_whirlpool_context) );
                sph_whirlpool( &ctx.whirlpool, in7 + 64, 16 );
                sph_whirlpool_close( &ctx.whirlpool, hash7 );
             }
@@ -532,7 +568,13 @@ void x16r_4way_prehash( void *vdata, void *pdata )
       case HAMSI:
          mm256_bswap32_intrlv80_4x64( vdata, pdata );
          hamsi512_4way_init( &x16r_ctx.hamsi );
-         hamsi512_4way_update( &x16r_ctx.hamsi, vdata, 64 );
+         hamsi512_4way_update( &x16r_ctx.hamsi, vdata, 72 );
+      break;
+      case FUGUE:
+         mm128_bswap32_80( edata, pdata );
+         fugue512_init( &x16r_ctx.fugue );
+         fugue512_update( &x16r_ctx.fugue, edata, 76 );
+         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
       break;
       case SHABAL:
          mm128_bswap32_intrlv80_4x32( vdata2, pdata );
@@ -734,7 +776,7 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid )
    	    break;
          case HAMSI:
             if ( i == 0 )
-               hamsi512_4way_update( &ctx.hamsi, input + (64<<2), 16 );
+               hamsi512_4way_update( &ctx.hamsi, input + (72<<2), 8 );
             else
             {
                intrlv_4x64( vhash, in0, in1, in2, in3, size<<3 );
@@ -745,10 +787,27 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid )
             dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
          break;
          case FUGUE:
-             fugue512_full( &ctx.fugue, hash0, in0, size );
-             fugue512_full( &ctx.fugue, hash1, in1, size );
-             fugue512_full( &ctx.fugue, hash2, in2, size );
-             fugue512_full( &ctx.fugue, hash3, in3, size );
+            if ( i == 0 )
+            {
+               fugue512_update( &ctx.fugue, in0 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash0 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in1 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash1 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in2 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash2 );
+               memcpy( &ctx, &x16r_ctx, sizeof(hashState_fugue) );
+               fugue512_update( &ctx.fugue, in3 + 76, 4 );
+               fugue512_final( &ctx.fugue, hash3 );
+             }
+             else
+             {
+                fugue512_full( &ctx.fugue, hash0, in0, size );
+                fugue512_full( &ctx.fugue, hash1, in1, size );
+                fugue512_full( &ctx.fugue, hash2, in2, size );
+                fugue512_full( &ctx.fugue, hash3, in3, size );
+             }
          break;
          case SHABAL:
              intrlv_4x32( vhash, in0, in1, in2, in3, size<<3 );

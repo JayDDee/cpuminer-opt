@@ -224,7 +224,11 @@ static uint8_t thread_affinity_map[ max_cpus ];
 // display affinity mask graphically
 static void format_affinity_mask( char *mask_str, uint64_t mask )
 {
+#if defined(WINDOWS_CPU_GROUPS_ENABLED)
+   int n = num_cpus / num_cpugroups;
+#else
    int n = num_cpus < 64 ? num_cpus : 64;
+#endif
    int i;
    for ( i = 0; i < n; i++ )
    {
@@ -2164,7 +2168,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
       } // !quiet
    }  // new diff/block
 
-   if ( new_job && !opt_quiet )
+   if ( new_job && !( opt_quiet || stratum_errors ) )
    {
       int mismatch = submitted_share_count - ( accepted_share_count
                                              + stale_share_count
@@ -3609,7 +3613,9 @@ int main(int argc, char *argv[])
 	num_cpus = 1;
 #endif
 
-   if ( num_cpus < 1 )    num_cpus = 1;
+   if ( num_cpus < 1 )
+      num_cpus = 1;
+   opt_n_threads = num_cpus;
 
    parse_cmdline( argc, argv );
 
@@ -3744,9 +3750,6 @@ int main(int argc, char *argv[])
 		SetPriorityClass(GetCurrentProcess(), prio);
 	}
 #endif
-
-   if ( ( opt_n_threads == 0 ) || ( opt_n_threads > num_cpus ) )
-      opt_n_threads = num_cpus;
 
    if ( opt_affinity && num_cpus > max_cpus )
    {

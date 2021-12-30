@@ -550,16 +550,38 @@ static const sph_u32 T512[64][16] = {
 
 // Hamsi 8 way AVX512 
 
+// Tested on i9-9940x movepi64_mask is slow, cmple_epi64_mask with zero
+// produces the same result but is faster.
 #define INPUT_BIG8 \
 do { \
-  __m512i db = *buf; \
-  const uint64_t *tp = (uint64_t*)&T512[0][0];  \
+  __m512i db = _mm512_ror_epi64( *buf, 1 ); \
+  const uint64_t *tp = (const uint64_t*)T512; \
   m0 = m1 = m2 = m3 = m4 = m5 = m6 = m7 = m512_zero; \
   for ( int u = 0; u < 64; u++ ) \
   { \
-     __m512i dm = _mm512_and_si512( db, m512_one_64 ) ; \
-     dm = mm512_negate_32( _mm512_or_si512( dm, \
-                                          _mm512_slli_epi64( dm, 32 ) ) ); \
+     __mmask8 dm = _mm512_cmplt_epi64_mask( db, m512_zero ); \
+     m0 = _mm512_mask_xor_epi64( m0, dm, m0, m512_const1_64( tp[0] ) ); \
+     m1 = _mm512_mask_xor_epi64( m1, dm, m1, m512_const1_64( tp[1] ) ); \
+     m2 = _mm512_mask_xor_epi64( m2, dm, m2, m512_const1_64( tp[2] ) ); \
+     m3 = _mm512_mask_xor_epi64( m3, dm, m3, m512_const1_64( tp[3] ) ); \
+     m4 = _mm512_mask_xor_epi64( m4, dm, m4, m512_const1_64( tp[4] ) ); \
+     m5 = _mm512_mask_xor_epi64( m5, dm, m5, m512_const1_64( tp[5] ) ); \
+     m6 = _mm512_mask_xor_epi64( m6, dm, m6, m512_const1_64( tp[6] ) ); \
+     m7 = _mm512_mask_xor_epi64( m7, dm, m7, m512_const1_64( tp[7] ) ); \
+     db = _mm512_ror_epi64( db, 1 ); \
+     tp += 8; \
+  } \
+} while (0)
+
+/*
+#define INPUT_BIG8 \
+do { \
+  __m512i db = *buf; \
+  const uint64_t *tp = (const uint64_t*)T512;  \
+  m0 = m1 = m2 = m3 = m4 = m5 = m6 = m7 = m512_zero; \
+  for ( int u = 0; u < 64; u++ ) \
+  { \
+     __m512i dm = mm512_negate_64( _mm512_and_si512( db, m512_one_64 ) ); \
      m0 = mm512_xorand( m0, dm, m512_const1_64( tp[0] ) ); \
      m1 = mm512_xorand( m1, dm, m512_const1_64( tp[1] ) ); \
      m2 = mm512_xorand( m2, dm, m512_const1_64( tp[2] ) ); \
@@ -572,6 +594,7 @@ do { \
      db = _mm512_srli_epi64( db, 1 ); \
   } \
 } while (0)
+*/
 
 #define SBOX8( a, b, c, d ) \
 do { \
@@ -888,13 +911,11 @@ void hamsi512_8way_close( hamsi_8way_big_context *sc, void *dst )
 #define INPUT_BIG \
 do { \
   __m256i db = *buf; \
-  const uint64_t *tp = (uint64_t*)&T512[0][0];  \
+  const uint64_t *tp = (const uint64_t*)T512;  \
   m0 = m1 = m2 = m3 = m4 = m5 = m6 = m7 = m256_zero; \
   for ( int u = 0; u < 64; u++ ) \
   { \
-     __m256i dm = _mm256_and_si256( db, m256_one_64 ) ; \
-     dm = mm256_negate_32( _mm256_or_si256( dm, \
-                         _mm256_slli_epi64( dm, 32 ) ) ); \
+     __m256i dm = mm256_negate_64( _mm256_and_si256( db, m256_one_64 ) ); \
      m0 = _mm256_xor_si256( m0, _mm256_and_si256( dm, \
                                           m256_const1_64( tp[0] ) ) ); \
      m1 = _mm256_xor_si256( m1, _mm256_and_si256( dm, \

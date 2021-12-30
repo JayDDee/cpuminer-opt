@@ -1544,7 +1544,6 @@ bool register_scrypt_algo( algo_gate_t* gate )
 
    format_number_si( &t_size, t_units );
    format_number_si( &d_size, d_units );
-   
    applog( LOG_INFO,"Throughput %d/thr, Buffer %.0f %siB/thr, Total %.0f %siB\n",
           SCRYPT_THROUGHPUT, t_size, t_units, d_size, d_units );
 
