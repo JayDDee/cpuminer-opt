@@ -29,16 +29,11 @@ void sha3_4way_keccakf( __m256i st[25] )
    for ( r = 0; r < KECCAKF_ROUNDS; r++ )
    {
       // Theta
-      bc[0] = _mm256_xor_si256( st[0],
-                           mm256_xor4( st[5], st[10], st[15], st[20] ) );
-      bc[1] = _mm256_xor_si256( st[1],
-                           mm256_xor4( st[6], st[11], st[16], st[21] ) );
-      bc[2] = _mm256_xor_si256( st[2],
-                           mm256_xor4( st[7], st[12], st[17], st[22] ) );
-      bc[3] = _mm256_xor_si256( st[3],
-                           mm256_xor4( st[8], st[13], st[18], st[23] ) );
-      bc[4] = _mm256_xor_si256( st[4],
-                           mm256_xor4( st[9], st[14], st[19], st[24] ) );
+      bc[0] = mm256_xor3( st[0], st[5], mm256_xor3( st[10], st[15], st[20] ) );
+      bc[1] = mm256_xor3( st[1], st[6], mm256_xor3( st[11], st[16], st[21] ) );
+      bc[2] = mm256_xor3( st[2], st[7], mm256_xor3( st[12], st[17], st[22] ) );
+      bc[3] = mm256_xor3( st[3], st[8], mm256_xor3( st[13], st[18], st[23] ) );
+      bc[4] = mm256_xor3( st[4], st[9], mm256_xor3( st[14], st[19], st[24] ) );
 
       for ( i = 0; i < 5; i++ )
       {
@@ -89,17 +84,13 @@ void sha3_4way_keccakf( __m256i st[25] )
       //  Chi
       for ( j = 0; j < 25; j += 5 )
       {
-         memcpy( bc, &st[ j ], 5*32 );
-         st[ j   ] = _mm256_xor_si256( st[ j   ],
-                                       _mm256_andnot_si256( bc[1], bc[2] ) );
-         st[ j+1 ] = _mm256_xor_si256( st[ j+1 ],
-                                       _mm256_andnot_si256( bc[2], bc[3] ) );
-         st[ j+2 ] = _mm256_xor_si256( st[ j+2 ],
-                                       _mm256_andnot_si256( bc[3], bc[4] ) );
-         st[ j+3 ] = _mm256_xor_si256( st[ j+3 ],
-                                       _mm256_andnot_si256( bc[4], bc[0] ) );
-         st[ j+4 ] = _mm256_xor_si256( st[ j+4 ],
-                                       _mm256_andnot_si256( bc[0], bc[1] ) );
+         bc[0] = st[j];
+         bc[1] = st[j+1];
+         st[ j   ] = mm256_xorandnot( st[ j   ], st[j+1], st[j+2] );
+         st[ j+1 ] = mm256_xorandnot( st[ j+1 ], st[j+2], st[j+3] );
+         st[ j+2 ] = mm256_xorandnot( st[ j+2 ], st[j+3], st[j+4] );
+         st[ j+3 ] = mm256_xorandnot( st[ j+3 ], st[j+4], bc[0] );
+         st[ j+4 ] = mm256_xorandnot( st[ j+4 ], bc[0], bc[1] );
       }
 
       //  Iota

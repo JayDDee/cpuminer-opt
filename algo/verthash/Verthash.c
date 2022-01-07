@@ -10,6 +10,7 @@
 #include "algo-gate-api.h"
 #include "Verthash.h"
 #include "mm_malloc.h"
+#include "malloc-huge.h"
 
 //-----------------------------------------------------------------------------
 // Verthash info management
@@ -84,12 +85,18 @@ int verthash_info_init(verthash_info_t* info, const char* file_name)
     }
 
     // Allocate data
-    info->data = (uint8_t *)_mm_malloc( fileSize, 64 );
-    if (!info->data)
+    info->data = (uint8_t *)malloc_hugepages( fileSize );
+    if ( info->data )
+       if ( !opt_quiet ) applog( LOG_INFO, "Verthash data is using huge pages");
+    else
     {
-        fclose(fileMiningData);
-        // Memory allocation fatal error.
-        return 2;
+       info->data = (uint8_t *)_mm_malloc( fileSize, 64 );
+       if (!info->data)
+       {
+           fclose(fileMiningData);
+           // Memory allocation fatal error.
+           return 2;
+       }
     }
 
     // Load data

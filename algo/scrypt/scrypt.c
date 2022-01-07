@@ -34,6 +34,7 @@
 #include "algo/sha/sha-hash-4way.h"
 #include "algo/sha/sha256-hash.h"
 #include <mm_malloc.h>
+#include "malloc-huge.h"
 
 static const uint32_t keypad[12] = {
 	0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000280
@@ -1487,11 +1488,19 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
 
 bool scrypt_miner_thread_init( int thr_id )
 {
-   scratchbuf = _mm_malloc( scratchbuf_size, 128 );
+   scratchbuf = malloc_hugepages( scratchbuf_size );
    if ( scratchbuf )
-      return true;
+   {
+      if ( opt_debug )
+         applog( LOG_NOTICE, "Thread %u is using huge pages", thr_id );
+   }
+   else
+       scratchbuf = _mm_malloc( scratchbuf_size, 128 );
+   
+   if ( scratchbuf ) return true;
+   
    applog( LOG_ERR, "Thread %u: Scrypt buffer allocation failed", thr_id );
-   return false; 
+   return false;
 }
 
 bool register_scrypt_algo( algo_gate_t* gate )

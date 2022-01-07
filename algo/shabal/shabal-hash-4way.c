@@ -62,8 +62,8 @@ extern "C"{
 #if defined(__AVX2__)
 
 #define DECL_STATE8   \
-   __m256i A00, A01, A02, A03, A04, A05, A06, A07, \
-           A08, A09, A0A, A0B; \
+   __m256i A0, A1, A2, A3, A4, A5, A6, A7, \
+           A8, A9, AA, AB; \
    __m256i B0, B1, B2, B3, B4, B5, B6, B7, \
            B8, B9, BA, BB, BC, BD, BE, BF; \
    __m256i C0, C1, C2, C3, C4, C5, C6, C7, \
@@ -78,18 +78,18 @@ extern "C"{
 { \
    if ( (state)->state_loaded ) \
    { \
-      A00 = (state)->A[0]; \
-      A01 = (state)->A[1]; \
-      A02 = (state)->A[2]; \
-      A03 = (state)->A[3]; \
-      A04 = (state)->A[4]; \
-      A05 = (state)->A[5]; \
-      A06 = (state)->A[6]; \
-      A07 = (state)->A[7]; \
-      A08 = (state)->A[8]; \
-      A09 = (state)->A[9]; \
-      A0A = (state)->A[10]; \
-      A0B = (state)->A[11]; \
+      A0 = (state)->A[0]; \
+      A1 = (state)->A[1]; \
+      A2 = (state)->A[2]; \
+      A3 = (state)->A[3]; \
+      A4 = (state)->A[4]; \
+      A5 = (state)->A[5]; \
+      A6 = (state)->A[6]; \
+      A7 = (state)->A[7]; \
+      A8 = (state)->A[8]; \
+      A9 = (state)->A[9]; \
+      AA = (state)->A[10]; \
+      AB = (state)->A[11]; \
       B0 = (state)->B[0]; \
       B1 = (state)->B[1]; \
       B2 = (state)->B[2]; \
@@ -126,18 +126,18 @@ extern "C"{
    else \
    { \
        (state)->state_loaded = true; \
-       A00 = m256_const1_64( 0x20728DFD20728DFD ); \
-       A01 = m256_const1_64( 0x46C0BD5346C0BD53 ); \
-       A02 = m256_const1_64( 0xE782B699E782B699 ); \
-       A03 = m256_const1_64( 0x5530463255304632 ); \
-       A04 = m256_const1_64( 0x71B4EF9071B4EF90 ); \
-       A05 = m256_const1_64( 0x0EA9E82C0EA9E82C ); \
-       A06 = m256_const1_64( 0xDBB930F1DBB930F1 ); \
-       A07 = m256_const1_64( 0xFAD06B8BFAD06B8B ); \
-       A08 = m256_const1_64( 0xBE0CAE40BE0CAE40 ); \
-       A09 = m256_const1_64( 0x8BD144108BD14410 ); \
-       A0A = m256_const1_64( 0x76D2ADAC76D2ADAC ); \
-       A0B = m256_const1_64( 0x28ACAB7F28ACAB7F ); \
+       A0 = m256_const1_64( 0x20728DFD20728DFD ); \
+       A1 = m256_const1_64( 0x46C0BD5346C0BD53 ); \
+       A2 = m256_const1_64( 0xE782B699E782B699 ); \
+       A3 = m256_const1_64( 0x5530463255304632 ); \
+       A4 = m256_const1_64( 0x71B4EF9071B4EF90 ); \
+       A5 = m256_const1_64( 0x0EA9E82C0EA9E82C ); \
+       A6 = m256_const1_64( 0xDBB930F1DBB930F1 ); \
+       A7 = m256_const1_64( 0xFAD06B8BFAD06B8B ); \
+       A8 = m256_const1_64( 0xBE0CAE40BE0CAE40 ); \
+       A9 = m256_const1_64( 0x8BD144108BD14410 ); \
+       AA = m256_const1_64( 0x76D2ADAC76D2ADAC ); \
+       AB = m256_const1_64( 0x28ACAB7F28ACAB7F ); \
        B0 = m256_const1_64( 0xC1099CB7C1099CB7 ); \
        B1 = m256_const1_64( 0x07B385F307B385F3 ); \
        B2 = m256_const1_64( 0xE7442C26E7442C26 ); \
@@ -176,18 +176,18 @@ extern "C"{
 } while (0)
 
 #define WRITE_STATE8(state)   do { \
-      (state)->A[0] = A00; \
-      (state)->A[1] = A01; \
-      (state)->A[2] = A02; \
-      (state)->A[3] = A03; \
-      (state)->A[4] = A04; \
-      (state)->A[5] = A05; \
-      (state)->A[6] = A06; \
-      (state)->A[7] = A07; \
-      (state)->A[8] = A08; \
-      (state)->A[9] = A09; \
-      (state)->A[10] = A0A; \
-      (state)->A[11] = A0B; \
+      (state)->A[0] = A0; \
+      (state)->A[1] = A1; \
+      (state)->A[2] = A2; \
+      (state)->A[3] = A3; \
+      (state)->A[4] = A4; \
+      (state)->A[5] = A5; \
+      (state)->A[6] = A6; \
+      (state)->A[7] = A7; \
+      (state)->A[8] = A8; \
+      (state)->A[9] = A9; \
+      (state)->A[10] = AA; \
+      (state)->A[11] = AB; \
       (state)->B[0] = B0; \
       (state)->B[1] = B1; \
       (state)->B[2] = B2; \
@@ -286,8 +286,8 @@ do { \
 
 #define XOR_W8 \
 do { \
-   A00 = _mm256_xor_si256( A00, _mm256_set1_epi32( Wlow ) ); \
-   A01 = _mm256_xor_si256( A01, _mm256_set1_epi32( Whigh ) ); \
+   A0 = _mm256_xor_si256( A0, _mm256_set1_epi32( Wlow ) ); \
+   A1 = _mm256_xor_si256( A1, _mm256_set1_epi32( Whigh ) ); \
 } while (0)
 
 #define SWAP_BC8 \
@@ -321,60 +321,60 @@ do { \
 } while (0)
 
 #define PERM_STEP_0_8   do { \
-      PERM_ELT8(A00, A0B, B0, BD, B9, B6, C8, M0); \
-      PERM_ELT8(A01, A00, B1, BE, BA, B7, C7, M1); \
-      PERM_ELT8(A02, A01, B2, BF, BB, B8, C6, M2); \
-      PERM_ELT8(A03, A02, B3, B0, BC, B9, C5, M3); \
-      PERM_ELT8(A04, A03, B4, B1, BD, BA, C4, M4); \
-      PERM_ELT8(A05, A04, B5, B2, BE, BB, C3, M5); \
-      PERM_ELT8(A06, A05, B6, B3, BF, BC, C2, M6); \
-      PERM_ELT8(A07, A06, B7, B4, B0, BD, C1, M7); \
-      PERM_ELT8(A08, A07, B8, B5, B1, BE, C0, M8); \
-      PERM_ELT8(A09, A08, B9, B6, B2, BF, CF, M9); \
-      PERM_ELT8(A0A, A09, BA, B7, B3, B0, CE, MA); \
-      PERM_ELT8(A0B, A0A, BB, B8, B4, B1, CD, MB); \
-      PERM_ELT8(A00, A0B, BC, B9, B5, B2, CC, MC); \
-      PERM_ELT8(A01, A00, BD, BA, B6, B3, CB, MD); \
-      PERM_ELT8(A02, A01, BE, BB, B7, B4, CA, ME); \
-      PERM_ELT8(A03, A02, BF, BC, B8, B5, C9, MF); \
+      PERM_ELT8(A0, AB, B0, BD, B9, B6, C8, M0); \
+      PERM_ELT8(A1, A0, B1, BE, BA, B7, C7, M1); \
+      PERM_ELT8(A2, A1, B2, BF, BB, B8, C6, M2); \
+      PERM_ELT8(A3, A2, B3, B0, BC, B9, C5, M3); \
+      PERM_ELT8(A4, A3, B4, B1, BD, BA, C4, M4); \
+      PERM_ELT8(A5, A4, B5, B2, BE, BB, C3, M5); \
+      PERM_ELT8(A6, A5, B6, B3, BF, BC, C2, M6); \
+      PERM_ELT8(A7, A6, B7, B4, B0, BD, C1, M7); \
+      PERM_ELT8(A8, A7, B8, B5, B1, BE, C0, M8); \
+      PERM_ELT8(A9, A8, B9, B6, B2, BF, CF, M9); \
+      PERM_ELT8(AA, A9, BA, B7, B3, B0, CE, MA); \
+      PERM_ELT8(AB, AA, BB, B8, B4, B1, CD, MB); \
+      PERM_ELT8(A0, AB, BC, B9, B5, B2, CC, MC); \
+      PERM_ELT8(A1, A0, BD, BA, B6, B3, CB, MD); \
+      PERM_ELT8(A2, A1, BE, BB, B7, B4, CA, ME); \
+      PERM_ELT8(A3, A2, BF, BC, B8, B5, C9, MF); \
    } while (0)
 
 #define PERM_STEP_1_8   do { \
-      PERM_ELT8(A04, A03, B0, BD, B9, B6, C8, M0); \
-      PERM_ELT8(A05, A04, B1, BE, BA, B7, C7, M1); \
-      PERM_ELT8(A06, A05, B2, BF, BB, B8, C6, M2); \
-      PERM_ELT8(A07, A06, B3, B0, BC, B9, C5, M3); \
-      PERM_ELT8(A08, A07, B4, B1, BD, BA, C4, M4); \
-      PERM_ELT8(A09, A08, B5, B2, BE, BB, C3, M5); \
-      PERM_ELT8(A0A, A09, B6, B3, BF, BC, C2, M6); \
-      PERM_ELT8(A0B, A0A, B7, B4, B0, BD, C1, M7); \
-      PERM_ELT8(A00, A0B, B8, B5, B1, BE, C0, M8); \
-      PERM_ELT8(A01, A00, B9, B6, B2, BF, CF, M9); \
-      PERM_ELT8(A02, A01, BA, B7, B3, B0, CE, MA); \
-      PERM_ELT8(A03, A02, BB, B8, B4, B1, CD, MB); \
-      PERM_ELT8(A04, A03, BC, B9, B5, B2, CC, MC); \
-      PERM_ELT8(A05, A04, BD, BA, B6, B3, CB, MD); \
-      PERM_ELT8(A06, A05, BE, BB, B7, B4, CA, ME); \
-      PERM_ELT8(A07, A06, BF, BC, B8, B5, C9, MF); \
+      PERM_ELT8(A4, A3, B0, BD, B9, B6, C8, M0); \
+      PERM_ELT8(A5, A4, B1, BE, BA, B7, C7, M1); \
+      PERM_ELT8(A6, A5, B2, BF, BB, B8, C6, M2); \
+      PERM_ELT8(A7, A6, B3, B0, BC, B9, C5, M3); \
+      PERM_ELT8(A8, A7, B4, B1, BD, BA, C4, M4); \
+      PERM_ELT8(A9, A8, B5, B2, BE, BB, C3, M5); \
+      PERM_ELT8(AA, A9, B6, B3, BF, BC, C2, M6); \
+      PERM_ELT8(AB, AA, B7, B4, B0, BD, C1, M7); \
+      PERM_ELT8(A0, AB, B8, B5, B1, BE, C0, M8); \
+      PERM_ELT8(A1, A0, B9, B6, B2, BF, CF, M9); \
+      PERM_ELT8(A2, A1, BA, B7, B3, B0, CE, MA); \
+      PERM_ELT8(A3, A2, BB, B8, B4, B1, CD, MB); \
+      PERM_ELT8(A4, A3, BC, B9, B5, B2, CC, MC); \
+      PERM_ELT8(A5, A4, BD, BA, B6, B3, CB, MD); \
+      PERM_ELT8(A6, A5, BE, BB, B7, B4, CA, ME); \
+      PERM_ELT8(A7, A6, BF, BC, B8, B5, C9, MF); \
    } while (0)
 
 #define PERM_STEP_2_8   do { \
-      PERM_ELT8(A08, A07, B0, BD, B9, B6, C8, M0); \
-      PERM_ELT8(A09, A08, B1, BE, BA, B7, C7, M1); \
-      PERM_ELT8(A0A, A09, B2, BF, BB, B8, C6, M2); \
-      PERM_ELT8(A0B, A0A, B3, B0, BC, B9, C5, M3); \
-      PERM_ELT8(A00, A0B, B4, B1, BD, BA, C4, M4); \
-      PERM_ELT8(A01, A00, B5, B2, BE, BB, C3, M5); \
-      PERM_ELT8(A02, A01, B6, B3, BF, BC, C2, M6); \
-      PERM_ELT8(A03, A02, B7, B4, B0, BD, C1, M7); \
-      PERM_ELT8(A04, A03, B8, B5, B1, BE, C0, M8); \
-      PERM_ELT8(A05, A04, B9, B6, B2, BF, CF, M9); \
-      PERM_ELT8(A06, A05, BA, B7, B3, B0, CE, MA); \
-      PERM_ELT8(A07, A06, BB, B8, B4, B1, CD, MB); \
-      PERM_ELT8(A08, A07, BC, B9, B5, B2, CC, MC); \
-      PERM_ELT8(A09, A08, BD, BA, B6, B3, CB, MD); \
-      PERM_ELT8(A0A, A09, BE, BB, B7, B4, CA, ME); \
-      PERM_ELT8(A0B, A0A, BF, BC, B8, B5, C9, MF); \
+      PERM_ELT8(A8, A7, B0, BD, B9, B6, C8, M0); \
+      PERM_ELT8(A9, A8, B1, BE, BA, B7, C7, M1); \
+      PERM_ELT8(AA, A9, B2, BF, BB, B8, C6, M2); \
+      PERM_ELT8(AB, AA, B3, B0, BC, B9, C5, M3); \
+      PERM_ELT8(A0, AB, B4, B1, BD, BA, C4, M4); \
+      PERM_ELT8(A1, A0, B5, B2, BE, BB, C3, M5); \
+      PERM_ELT8(A2, A1, B6, B3, BF, BC, C2, M6); \
+      PERM_ELT8(A3, A2, B7, B4, B0, BD, C1, M7); \
+      PERM_ELT8(A4, A3, B8, B5, B1, BE, C0, M8); \
+      PERM_ELT8(A5, A4, B9, B6, B2, BF, CF, M9); \
+      PERM_ELT8(A6, A5, BA, B7, B3, B0, CE, MA); \
+      PERM_ELT8(A7, A6, BB, B8, B4, B1, CD, MB); \
+      PERM_ELT8(A8, A7, BC, B9, B5, B2, CC, MC); \
+      PERM_ELT8(A9, A8, BD, BA, B6, B3, CB, MD); \
+      PERM_ELT8(AA, A9, BE, BB, B7, B4, CA, ME); \
+      PERM_ELT8(AB, AA, BF, BC, B8, B5, C9, MF); \
    } while (0)
 
 #define APPLY_P8 \
@@ -398,42 +398,42 @@ do { \
     PERM_STEP_0_8; \
     PERM_STEP_1_8; \
     PERM_STEP_2_8; \
-    A0B = _mm256_add_epi32( A0B, C6 ); \
-    A0A = _mm256_add_epi32( A0A, C5 ); \
-    A09 = _mm256_add_epi32( A09, C4 ); \
-    A08 = _mm256_add_epi32( A08, C3 ); \
-    A07 = _mm256_add_epi32( A07, C2 ); \
-    A06 = _mm256_add_epi32( A06, C1 ); \
-    A05 = _mm256_add_epi32( A05, C0 ); \
-    A04 = _mm256_add_epi32( A04, CF ); \
-    A03 = _mm256_add_epi32( A03, CE ); \
-    A02 = _mm256_add_epi32( A02, CD ); \
-    A01 = _mm256_add_epi32( A01, CC ); \
-    A00 = _mm256_add_epi32( A00, CB ); \
-    A0B = _mm256_add_epi32( A0B, CA ); \
-    A0A = _mm256_add_epi32( A0A, C9 ); \
-    A09 = _mm256_add_epi32( A09, C8 ); \
-    A08 = _mm256_add_epi32( A08, C7 ); \
-    A07 = _mm256_add_epi32( A07, C6 ); \
-    A06 = _mm256_add_epi32( A06, C5 ); \
-    A05 = _mm256_add_epi32( A05, C4 ); \
-    A04 = _mm256_add_epi32( A04, C3 ); \
-    A03 = _mm256_add_epi32( A03, C2 ); \
-    A02 = _mm256_add_epi32( A02, C1 ); \
-    A01 = _mm256_add_epi32( A01, C0 ); \
-    A00 = _mm256_add_epi32( A00, CF ); \
-    A0B = _mm256_add_epi32( A0B, CE ); \
-    A0A = _mm256_add_epi32( A0A, CD ); \
-    A09 = _mm256_add_epi32( A09, CC ); \
-    A08 = _mm256_add_epi32( A08, CB ); \
-    A07 = _mm256_add_epi32( A07, CA ); \
-    A06 = _mm256_add_epi32( A06, C9 ); \
-    A05 = _mm256_add_epi32( A05, C8 ); \
-    A04 = _mm256_add_epi32( A04, C7 ); \
-    A03 = _mm256_add_epi32( A03, C6 ); \
-    A02 = _mm256_add_epi32( A02, C5 ); \
-    A01 = _mm256_add_epi32( A01, C4 ); \
-    A00 = _mm256_add_epi32( A00, C3 ); \
+    AB = _mm256_add_epi32( AB, C6 ); \
+    AA = _mm256_add_epi32( AA, C5 ); \
+    A9 = _mm256_add_epi32( A9, C4 ); \
+    A8 = _mm256_add_epi32( A8, C3 ); \
+    A7 = _mm256_add_epi32( A7, C2 ); \
+    A6 = _mm256_add_epi32( A6, C1 ); \
+    A5 = _mm256_add_epi32( A5, C0 ); \
+    A4 = _mm256_add_epi32( A4, CF ); \
+    A3 = _mm256_add_epi32( A3, CE ); \
+    A2 = _mm256_add_epi32( A2, CD ); \
+    A1 = _mm256_add_epi32( A1, CC ); \
+    A0 = _mm256_add_epi32( A0, CB ); \
+    AB = _mm256_add_epi32( AB, CA ); \
+    AA = _mm256_add_epi32( AA, C9 ); \
+    A9 = _mm256_add_epi32( A9, C8 ); \
+    A8 = _mm256_add_epi32( A8, C7 ); \
+    A7 = _mm256_add_epi32( A7, C6 ); \
+    A6 = _mm256_add_epi32( A6, C5 ); \
+    A5 = _mm256_add_epi32( A5, C4 ); \
+    A4 = _mm256_add_epi32( A4, C3 ); \
+    A3 = _mm256_add_epi32( A3, C2 ); \
+    A2 = _mm256_add_epi32( A2, C1 ); \
+    A1 = _mm256_add_epi32( A1, C0 ); \
+    A0 = _mm256_add_epi32( A0, CF ); \
+    AB = _mm256_add_epi32( AB, CE ); \
+    AA = _mm256_add_epi32( AA, CD ); \
+    A9 = _mm256_add_epi32( A9, CC ); \
+    A8 = _mm256_add_epi32( A8, CB ); \
+    A7 = _mm256_add_epi32( A7, CA ); \
+    A6 = _mm256_add_epi32( A6, C9 ); \
+    A5 = _mm256_add_epi32( A5, C8 ); \
+    A4 = _mm256_add_epi32( A4, C7 ); \
+    A3 = _mm256_add_epi32( A3, C6 ); \
+    A2 = _mm256_add_epi32( A2, C5 ); \
+    A1 = _mm256_add_epi32( A1, C4 ); \
+    A0 = _mm256_add_epi32( A0, C3 ); \
 } while (0)
 
 #define INCR_W8   do { \
@@ -660,8 +660,8 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 
 
 #define DECL_STATE   \
-	__m128i A00, A01, A02, A03, A04, A05, A06, A07, \
-	        A08, A09, A0A, A0B; \
+	__m128i A0, A1, A2, A3, A4, A5, A6, A7, \
+	        A8, A9, AA, AB; \
 	__m128i B0, B1, B2, B3, B4, B5, B6, B7, \
 	        B8, B9, BA, BB, BC, BD, BE, BF; \
 	__m128i C0, C1, C2, C3, C4, C5, C6, C7, \
@@ -676,18 +676,18 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 { \
    if ( (state)->state_loaded ) \
    { \
-      A00 = (state)->A[0]; \
-		A01 = (state)->A[1]; \
-		A02 = (state)->A[2]; \
-		A03 = (state)->A[3]; \
-		A04 = (state)->A[4]; \
-		A05 = (state)->A[5]; \
-		A06 = (state)->A[6]; \
-		A07 = (state)->A[7]; \
-		A08 = (state)->A[8]; \
-		A09 = (state)->A[9]; \
-		A0A = (state)->A[10]; \
-		A0B = (state)->A[11]; \
+      A0 = (state)->A[0]; \
+		A1 = (state)->A[1]; \
+		A2 = (state)->A[2]; \
+		A3 = (state)->A[3]; \
+		A4 = (state)->A[4]; \
+		A5 = (state)->A[5]; \
+		A6 = (state)->A[6]; \
+		A7 = (state)->A[7]; \
+		A8 = (state)->A[8]; \
+		A9 = (state)->A[9]; \
+		AA = (state)->A[10]; \
+		AB = (state)->A[11]; \
 		B0 = (state)->B[0]; \
 		B1 = (state)->B[1]; \
 		B2 = (state)->B[2]; \
@@ -724,18 +724,18 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
    else \
    { \
        (state)->state_loaded = true; \
-       A00 = m128_const1_64( 0x20728DFD20728DFD ); \
-       A01 = m128_const1_64( 0x46C0BD5346C0BD53 ); \
-       A02 = m128_const1_64( 0xE782B699E782B699 ); \
-       A03 = m128_const1_64( 0x5530463255304632 ); \
-       A04 = m128_const1_64( 0x71B4EF9071B4EF90 ); \
-       A05 = m128_const1_64( 0x0EA9E82C0EA9E82C ); \
-       A06 = m128_const1_64( 0xDBB930F1DBB930F1 ); \
-       A07 = m128_const1_64( 0xFAD06B8BFAD06B8B ); \
-       A08 = m128_const1_64( 0xBE0CAE40BE0CAE40 ); \
-       A09 = m128_const1_64( 0x8BD144108BD14410 ); \
-       A0A = m128_const1_64( 0x76D2ADAC76D2ADAC ); \
-       A0B = m128_const1_64( 0x28ACAB7F28ACAB7F ); \
+       A0 = m128_const1_64( 0x20728DFD20728DFD ); \
+       A1 = m128_const1_64( 0x46C0BD5346C0BD53 ); \
+       A2 = m128_const1_64( 0xE782B699E782B699 ); \
+       A3 = m128_const1_64( 0x5530463255304632 ); \
+       A4 = m128_const1_64( 0x71B4EF9071B4EF90 ); \
+       A5 = m128_const1_64( 0x0EA9E82C0EA9E82C ); \
+       A6 = m128_const1_64( 0xDBB930F1DBB930F1 ); \
+       A7 = m128_const1_64( 0xFAD06B8BFAD06B8B ); \
+       A8 = m128_const1_64( 0xBE0CAE40BE0CAE40 ); \
+       A9 = m128_const1_64( 0x8BD144108BD14410 ); \
+       AA = m128_const1_64( 0x76D2ADAC76D2ADAC ); \
+       AB = m128_const1_64( 0x28ACAB7F28ACAB7F ); \
        B0 = m128_const1_64( 0xC1099CB7C1099CB7 ); \
        B1 = m128_const1_64( 0x07B385F307B385F3 ); \
        B2 = m128_const1_64( 0xE7442C26E7442C26 ); \
@@ -774,18 +774,18 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 } while (0)
 
 #define WRITE_STATE(state)   do { \
-		(state)->A[0] = A00; \
-		(state)->A[1] = A01; \
-		(state)->A[2] = A02; \
-		(state)->A[3] = A03; \
-		(state)->A[4] = A04; \
-		(state)->A[5] = A05; \
-		(state)->A[6] = A06; \
-		(state)->A[7] = A07; \
-		(state)->A[8] = A08; \
-		(state)->A[9] = A09; \
-		(state)->A[10] = A0A; \
-		(state)->A[11] = A0B; \
+		(state)->A[0] = A0; \
+		(state)->A[1] = A1; \
+		(state)->A[2] = A2; \
+		(state)->A[3] = A3; \
+		(state)->A[4] = A4; \
+		(state)->A[5] = A5; \
+		(state)->A[6] = A6; \
+		(state)->A[7] = A7; \
+		(state)->A[8] = A8; \
+		(state)->A[9] = A9; \
+		(state)->A[10] = AA; \
+		(state)->A[11] = AB; \
 		(state)->B[0] = B0; \
 		(state)->B[1] = B1; \
 		(state)->B[2] = B2; \
@@ -884,8 +884,8 @@ do { \
 
 #define XOR_W \
 do { \
-   A00 = _mm_xor_si128( A00, _mm_set1_epi32( Wlow ) ); \
-   A01 = _mm_xor_si128( A01, _mm_set1_epi32( Whigh ) ); \
+   A0 = _mm_xor_si128( A0, _mm_set1_epi32( Wlow ) ); \
+   A1 = _mm_xor_si128( A1, _mm_set1_epi32( Whigh ) ); \
 } while (0)
 
 
@@ -940,60 +940,60 @@ do { \
 } while (0)
 
 #define PERM_STEP_0   do { \
-		PERM_ELT(A00, A0B, B0, BD, B9, B6, C8, M0); \
-		PERM_ELT(A01, A00, B1, BE, BA, B7, C7, M1); \
-		PERM_ELT(A02, A01, B2, BF, BB, B8, C6, M2); \
-		PERM_ELT(A03, A02, B3, B0, BC, B9, C5, M3); \
-		PERM_ELT(A04, A03, B4, B1, BD, BA, C4, M4); \
-		PERM_ELT(A05, A04, B5, B2, BE, BB, C3, M5); \
-		PERM_ELT(A06, A05, B6, B3, BF, BC, C2, M6); \
-		PERM_ELT(A07, A06, B7, B4, B0, BD, C1, M7); \
-		PERM_ELT(A08, A07, B8, B5, B1, BE, C0, M8); \
-		PERM_ELT(A09, A08, B9, B6, B2, BF, CF, M9); \
-		PERM_ELT(A0A, A09, BA, B7, B3, B0, CE, MA); \
-		PERM_ELT(A0B, A0A, BB, B8, B4, B1, CD, MB); \
-		PERM_ELT(A00, A0B, BC, B9, B5, B2, CC, MC); \
-		PERM_ELT(A01, A00, BD, BA, B6, B3, CB, MD); \
-		PERM_ELT(A02, A01, BE, BB, B7, B4, CA, ME); \
-		PERM_ELT(A03, A02, BF, BC, B8, B5, C9, MF); \
+		PERM_ELT(A0, AB, B0, BD, B9, B6, C8, M0); \
+		PERM_ELT(A1, A0, B1, BE, BA, B7, C7, M1); \
+		PERM_ELT(A2, A1, B2, BF, BB, B8, C6, M2); \
+		PERM_ELT(A3, A2, B3, B0, BC, B9, C5, M3); \
+		PERM_ELT(A4, A3, B4, B1, BD, BA, C4, M4); \
+		PERM_ELT(A5, A4, B5, B2, BE, BB, C3, M5); \
+		PERM_ELT(A6, A5, B6, B3, BF, BC, C2, M6); \
+		PERM_ELT(A7, A6, B7, B4, B0, BD, C1, M7); \
+		PERM_ELT(A8, A7, B8, B5, B1, BE, C0, M8); \
+		PERM_ELT(A9, A8, B9, B6, B2, BF, CF, M9); \
+		PERM_ELT(AA, A9, BA, B7, B3, B0, CE, MA); \
+		PERM_ELT(AB, AA, BB, B8, B4, B1, CD, MB); \
+		PERM_ELT(A0, AB, BC, B9, B5, B2, CC, MC); \
+		PERM_ELT(A1, A0, BD, BA, B6, B3, CB, MD); \
+		PERM_ELT(A2, A1, BE, BB, B7, B4, CA, ME); \
+		PERM_ELT(A3, A2, BF, BC, B8, B5, C9, MF); \
 	} while (0)
 
 #define PERM_STEP_1   do { \
-		PERM_ELT(A04, A03, B0, BD, B9, B6, C8, M0); \
-		PERM_ELT(A05, A04, B1, BE, BA, B7, C7, M1); \
-		PERM_ELT(A06, A05, B2, BF, BB, B8, C6, M2); \
-		PERM_ELT(A07, A06, B3, B0, BC, B9, C5, M3); \
-		PERM_ELT(A08, A07, B4, B1, BD, BA, C4, M4); \
-		PERM_ELT(A09, A08, B5, B2, BE, BB, C3, M5); \
-		PERM_ELT(A0A, A09, B6, B3, BF, BC, C2, M6); \
-		PERM_ELT(A0B, A0A, B7, B4, B0, BD, C1, M7); \
-		PERM_ELT(A00, A0B, B8, B5, B1, BE, C0, M8); \
-		PERM_ELT(A01, A00, B9, B6, B2, BF, CF, M9); \
-		PERM_ELT(A02, A01, BA, B7, B3, B0, CE, MA); \
-		PERM_ELT(A03, A02, BB, B8, B4, B1, CD, MB); \
-		PERM_ELT(A04, A03, BC, B9, B5, B2, CC, MC); \
-		PERM_ELT(A05, A04, BD, BA, B6, B3, CB, MD); \
-		PERM_ELT(A06, A05, BE, BB, B7, B4, CA, ME); \
-		PERM_ELT(A07, A06, BF, BC, B8, B5, C9, MF); \
+		PERM_ELT(A4, A3, B0, BD, B9, B6, C8, M0); \
+		PERM_ELT(A5, A4, B1, BE, BA, B7, C7, M1); \
+		PERM_ELT(A6, A5, B2, BF, BB, B8, C6, M2); \
+		PERM_ELT(A7, A6, B3, B0, BC, B9, C5, M3); \
+		PERM_ELT(A8, A7, B4, B1, BD, BA, C4, M4); \
+		PERM_ELT(A9, A8, B5, B2, BE, BB, C3, M5); \
+		PERM_ELT(AA, A9, B6, B3, BF, BC, C2, M6); \
+		PERM_ELT(AB, AA, B7, B4, B0, BD, C1, M7); \
+		PERM_ELT(A0, AB, B8, B5, B1, BE, C0, M8); \
+		PERM_ELT(A1, A0, B9, B6, B2, BF, CF, M9); \
+		PERM_ELT(A2, A1, BA, B7, B3, B0, CE, MA); \
+		PERM_ELT(A3, A2, BB, B8, B4, B1, CD, MB); \
+		PERM_ELT(A4, A3, BC, B9, B5, B2, CC, MC); \
+		PERM_ELT(A5, A4, BD, BA, B6, B3, CB, MD); \
+		PERM_ELT(A6, A5, BE, BB, B7, B4, CA, ME); \
+		PERM_ELT(A7, A6, BF, BC, B8, B5, C9, MF); \
 	} while (0)
 
 #define PERM_STEP_2   do { \
-		PERM_ELT(A08, A07, B0, BD, B9, B6, C8, M0); \
-		PERM_ELT(A09, A08, B1, BE, BA, B7, C7, M1); \
-		PERM_ELT(A0A, A09, B2, BF, BB, B8, C6, M2); \
-		PERM_ELT(A0B, A0A, B3, B0, BC, B9, C5, M3); \
-		PERM_ELT(A00, A0B, B4, B1, BD, BA, C4, M4); \
-		PERM_ELT(A01, A00, B5, B2, BE, BB, C3, M5); \
-		PERM_ELT(A02, A01, B6, B3, BF, BC, C2, M6); \
-		PERM_ELT(A03, A02, B7, B4, B0, BD, C1, M7); \
-		PERM_ELT(A04, A03, B8, B5, B1, BE, C0, M8); \
-		PERM_ELT(A05, A04, B9, B6, B2, BF, CF, M9); \
-		PERM_ELT(A06, A05, BA, B7, B3, B0, CE, MA); \
-		PERM_ELT(A07, A06, BB, B8, B4, B1, CD, MB); \
-		PERM_ELT(A08, A07, BC, B9, B5, B2, CC, MC); \
-		PERM_ELT(A09, A08, BD, BA, B6, B3, CB, MD); \
-		PERM_ELT(A0A, A09, BE, BB, B7, B4, CA, ME); \
-		PERM_ELT(A0B, A0A, BF, BC, B8, B5, C9, MF); \
+		PERM_ELT(A8, A7, B0, BD, B9, B6, C8, M0); \
+		PERM_ELT(A9, A8, B1, BE, BA, B7, C7, M1); \
+		PERM_ELT(AA, A9, B2, BF, BB, B8, C6, M2); \
+		PERM_ELT(AB, AA, B3, B0, BC, B9, C5, M3); \
+		PERM_ELT(A0, AB, B4, B1, BD, BA, C4, M4); \
+		PERM_ELT(A1, A0, B5, B2, BE, BB, C3, M5); \
+		PERM_ELT(A2, A1, B6, B3, BF, BC, C2, M6); \
+		PERM_ELT(A3, A2, B7, B4, B0, BD, C1, M7); \
+		PERM_ELT(A4, A3, B8, B5, B1, BE, C0, M8); \
+		PERM_ELT(A5, A4, B9, B6, B2, BF, CF, M9); \
+		PERM_ELT(A6, A5, BA, B7, B3, B0, CE, MA); \
+		PERM_ELT(A7, A6, BB, B8, B4, B1, CD, MB); \
+		PERM_ELT(A8, A7, BC, B9, B5, B2, CC, MC); \
+		PERM_ELT(A9, A8, BD, BA, B6, B3, CB, MD); \
+		PERM_ELT(AA, A9, BE, BB, B7, B4, CA, ME); \
+		PERM_ELT(AB, AA, BF, BC, B8, B5, C9, MF); \
 	} while (0)
 
 #define APPLY_P \
@@ -1017,42 +1017,42 @@ do { \
     PERM_STEP_0; \
     PERM_STEP_1; \
     PERM_STEP_2; \
-    A0B = _mm_add_epi32( A0B, C6 ); \
-    A0A = _mm_add_epi32( A0A, C5 ); \
-    A09 = _mm_add_epi32( A09, C4 ); \
-    A08 = _mm_add_epi32( A08, C3 ); \
-    A07 = _mm_add_epi32( A07, C2 ); \
-    A06 = _mm_add_epi32( A06, C1 ); \
-    A05 = _mm_add_epi32( A05, C0 ); \
-    A04 = _mm_add_epi32( A04, CF ); \
-    A03 = _mm_add_epi32( A03, CE ); \
-    A02 = _mm_add_epi32( A02, CD ); \
-    A01 = _mm_add_epi32( A01, CC ); \
-    A00 = _mm_add_epi32( A00, CB ); \
-    A0B = _mm_add_epi32( A0B, CA ); \
-    A0A = _mm_add_epi32( A0A, C9 ); \
-    A09 = _mm_add_epi32( A09, C8 ); \
-    A08 = _mm_add_epi32( A08, C7 ); \
-    A07 = _mm_add_epi32( A07, C6 ); \
-    A06 = _mm_add_epi32( A06, C5 ); \
-    A05 = _mm_add_epi32( A05, C4 ); \
-    A04 = _mm_add_epi32( A04, C3 ); \
-    A03 = _mm_add_epi32( A03, C2 ); \
-    A02 = _mm_add_epi32( A02, C1 ); \
-    A01 = _mm_add_epi32( A01, C0 ); \
-    A00 = _mm_add_epi32( A00, CF ); \
-    A0B = _mm_add_epi32( A0B, CE ); \
-    A0A = _mm_add_epi32( A0A, CD ); \
-    A09 = _mm_add_epi32( A09, CC ); \
-    A08 = _mm_add_epi32( A08, CB ); \
-    A07 = _mm_add_epi32( A07, CA ); \
-    A06 = _mm_add_epi32( A06, C9 ); \
-    A05 = _mm_add_epi32( A05, C8 ); \
-    A04 = _mm_add_epi32( A04, C7 ); \
-    A03 = _mm_add_epi32( A03, C6 ); \
-    A02 = _mm_add_epi32( A02, C5 ); \
-    A01 = _mm_add_epi32( A01, C4 ); \
-    A00 = _mm_add_epi32( A00, C3 ); \
+    AB = _mm_add_epi32( AB, C6 ); \
+    AA = _mm_add_epi32( AA, C5 ); \
+    A9 = _mm_add_epi32( A9, C4 ); \
+    A8 = _mm_add_epi32( A8, C3 ); \
+    A7 = _mm_add_epi32( A7, C2 ); \
+    A6 = _mm_add_epi32( A6, C1 ); \
+    A5 = _mm_add_epi32( A5, C0 ); \
+    A4 = _mm_add_epi32( A4, CF ); \
+    A3 = _mm_add_epi32( A3, CE ); \
+    A2 = _mm_add_epi32( A2, CD ); \
+    A1 = _mm_add_epi32( A1, CC ); \
+    A0 = _mm_add_epi32( A0, CB ); \
+    AB = _mm_add_epi32( AB, CA ); \
+    AA = _mm_add_epi32( AA, C9 ); \
+    A9 = _mm_add_epi32( A9, C8 ); \
+    A8 = _mm_add_epi32( A8, C7 ); \
+    A7 = _mm_add_epi32( A7, C6 ); \
+    A6 = _mm_add_epi32( A6, C5 ); \
+    A5 = _mm_add_epi32( A5, C4 ); \
+    A4 = _mm_add_epi32( A4, C3 ); \
+    A3 = _mm_add_epi32( A3, C2 ); \
+    A2 = _mm_add_epi32( A2, C1 ); \
+    A1 = _mm_add_epi32( A1, C0 ); \
+    A0 = _mm_add_epi32( A0, CF ); \
+    AB = _mm_add_epi32( AB, CE ); \
+    AA = _mm_add_epi32( AA, CD ); \
+    A9 = _mm_add_epi32( A9, CC ); \
+    A8 = _mm_add_epi32( A8, CB ); \
+    A7 = _mm_add_epi32( A7, CA ); \
+    A6 = _mm_add_epi32( A6, C9 ); \
+    A5 = _mm_add_epi32( A5, C8 ); \
+    A4 = _mm_add_epi32( A4, C7 ); \
+    A3 = _mm_add_epi32( A3, C6 ); \
+    A2 = _mm_add_epi32( A2, C5 ); \
+    A1 = _mm_add_epi32( A1, C4 ); \
+    A0 = _mm_add_epi32( A0, C3 ); \
 } while (0)
 
 #define INCR_W   do { \

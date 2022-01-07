@@ -37,6 +37,13 @@
 
 #if defined(__AVX512F__)
 
+static inline __m512i blamka( __m512i x, __m512i y )
+{
+    __m512i xy = _mm512_mul_epu32( x, y );
+    return _mm512_add_epi64( _mm512_add_epi64( x, y ),
+                             _mm512_add_epi64( xy, xy ) );
+}
+
 static void fill_block( __m512i *state, const block *ref_block,
                        block *next_block, int with_xor )
 {

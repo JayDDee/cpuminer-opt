@@ -21,6 +21,7 @@ cpuminer_SOURCES = \
   api.c \
   sysinfos.c \
   algo-gate-api.c\
+  malloc-huge.c \
   algo/argon2/argon2a/argon2a.c \
   algo/argon2/argon2a/ar2/argon2.c \
   algo/argon2/argon2a/ar2/opt.c \

@@ -127,7 +127,7 @@ bool register_verthash_algo( algo_gate_t* gate )
 {
   opt_target_factor = 256.0;
   gate->scanhash  = (void*)&scanhash_verthash;
-  gate->optimizations = AVX2_OPT;
+  gate->optimizations = SSE42_OPT | AVX2_OPT;
    
   const char *verthash_data_file = opt_data_file ? opt_data_file
                                                  : default_verthash_data_file;

@@ -65,6 +65,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.19.3
+
+Linux: Faster verthash (+25%), scryptn2 (+2%) when huge pages are available.
+
+Small speed up for Hamsi AVX2 & AVX512, Keccak AVX512.
+
 v3.19.2
 
 Fixed log displaying incorrect memory usage for scrypt, broken in v3.19.1.

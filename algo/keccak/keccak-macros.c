@@ -1,6 +1,19 @@
 #ifdef TH_ELT
 #undef TH_ELT
 #endif
+
+#define TH_ELT(t, c0, c1, c2, c3, c4, d0, d1, d2, d3, d4)   do { \
+    DECL64(tt0); \
+    DECL64(tt1); \
+    XOR3( tt0, d0, d1, d4 ); \
+    XOR( tt1, d2, d3 ); \
+    XOR( tt0, tt0, tt1 ); \
+    ROL64( tt0, tt0, 1 ); \
+    XOR3( tt1, c0, c1, c4 ); \
+    XOR3( tt0, tt0, c2, c3 ); \
+    XOR( t, tt0, tt1 ); \
+} while (0)
+/*
 #define TH_ELT(t, c0, c1, c2, c3, c4, d0, d1, d2, d3, d4)   do { \
                 DECL64(tt0); \
                 DECL64(tt1); \
@@ -17,7 +30,7 @@
                 XOR64(tt2, tt2, tt3); \
                 XOR64(t, tt0, tt2); \
         } while (0)
-
+*/
 #ifdef THETA
 #undef THETA
 #endif
