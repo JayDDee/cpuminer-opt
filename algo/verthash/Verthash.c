@@ -87,16 +87,17 @@ int verthash_info_init(verthash_info_t* info, const char* file_name)
     // Allocate data
     info->data = (uint8_t *)malloc_hugepages( fileSize );
     if ( info->data )
-       if ( !opt_quiet ) applog( LOG_INFO, "Verthash data is using huge pages");
-    else
     {
+       if ( !opt_quiet ) applog( LOG_INFO, "Verthash data is using huge pages");
+    }
+    else
        info->data = (uint8_t *)_mm_malloc( fileSize, 64 );
-       if (!info->data)
-       {
-           fclose(fileMiningData);
-           // Memory allocation fatal error.
-           return 2;
-       }
+
+    if ( !info->data )
+    {
+        fclose( fileMiningData );
+        // Memory allocation fatal error.
+        return 2;
     }
 
     // Load data

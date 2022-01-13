@@ -127,6 +127,10 @@ char *short_url = NULL;
 char *coinbase_address;
 char *opt_data_file = NULL;
 bool opt_verify = false;
+static bool opt_stratum_keepalive = false;
+static struct timeval stratum_keepalive_timer;
+// Stratum typically times out in 5 minutes or 300 seconds
+#define stratum_keepalive_timeout 180  // 3 minutes
 
 // pk_buffer_size is used as a version selector by b58 code, therefore
 // it must be set correctly to work.
@@ -2797,6 +2801,30 @@ static void *stratum_thread(void *userdata )
       if ( stratum.new_job )
          stratum_gen_work( &stratum, &g_work );
 
+      // is keepalive needed?
+      if ( opt_stratum_keepalive )
+      {
+         struct timeval now, et;
+         gettimeofday( &now, NULL );
+         // any shares submitted since last keepalive?
+         if ( last_submit_time.tv_sec > stratum_keepalive_timer.tv_sec )
+            memcpy( &stratum_keepalive_timer, &last_submit_time,
+                    sizeof (struct timeval) );
+
+         timeval_subtract( &et, &now, &stratum_keepalive_timer );
+
+         if ( et.tv_sec > stratum_keepalive_timeout )
+         {
+             double diff = stratum.job.diff * 0.5;
+             stratum_keepalive_timer = now;
+             if ( !opt_quiet )
+                applog( LOG_BLUE,
+                        "Stratum keepalive requesting lower difficulty" );
+             stratum_suggest_difficulty( &stratum, diff );
+         }
+      }
+
+      // Wait for new message from server
       if ( likely( stratum_socket_full( &stratum, opt_timeout ) ) )
       {
          if ( likely( s = stratum_recv_line( &stratum ) ) )
@@ -2818,7 +2846,6 @@ static void *stratum_thread(void *userdata )
          stratum_need_reset = true;
 //         stratum_disconnect( &stratum );
       }
-
    }  // loop
 out:
   return NULL;
@@ -2990,8 +3017,8 @@ static bool cpu_capability( bool display_only )
      use_avx512 = cpu_has_avx512 && sw_has_avx512 && algo_has_avx512;
      use_sha    = cpu_has_sha    && sw_has_sha    && algo_has_sha;
      use_vaes   = cpu_has_vaes   && sw_has_vaes   && algo_has_vaes;
-     use_none = !( use_sse2 || use_aes || use_avx512 || use_avx2 ||
-                   use_sha || use_vaes );
+     use_none = !( use_sse2 || use_sse42 || use_avx || use_aes || use_avx512
+                || use_avx2 || use_sha || use_vaes );
 
      // Display best options
      printf( "\nStarting miner with" );
@@ -3450,7 +3477,10 @@ void parse_arg(int key, char *arg )
    case 1028:  // verify
       opt_verify = true;
       break;
-	case 'V':
+   case 1029:  // stratum-keepalive
+      opt_stratum_keepalive = true;
+      break;
+   case 'V':
       display_cpu_capability();
       exit(0);
 	case 'h':
@@ -3899,6 +3929,7 @@ int main(int argc, char *argv[])
    gettimeofday( &last_submit_time, NULL );
    memcpy( &five_min_start, &last_submit_time, sizeof (struct timeval) );
    memcpy( &session_start, &last_submit_time, sizeof (struct timeval) );
+   memcpy( &stratum_keepalive_timer, &last_submit_time, sizeof (struct timeval) );
    memcpy( &total_hashes_time, &last_submit_time, sizeof (struct timeval) );
    pthread_mutex_unlock( &stats_lock );
 

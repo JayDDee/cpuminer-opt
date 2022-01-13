@@ -466,6 +466,7 @@ void stratum_disconnect(struct stratum_ctx *sctx);
 bool stratum_subscribe(struct stratum_ctx *sctx);
 bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *pass);
 bool stratum_handle_method(struct stratum_ctx *sctx, const char *s);
+bool stratum_suggest_difficulty( struct stratum_ctx *sctx, double diff );
 
 
 extern bool aes_ni_supported;
@@ -918,6 +919,7 @@ Options:\n\
   -c, --config=FILE     load a JSON-format configuration file\n\
       --data-file=FILE  path and name of data file\n\
       --verify          enable additional time consuming start up tests\n\
+      --stratum-keepalive  Prevent disconnects when difficulty is too high\n\
   -V, --version         display version and CPU information and exit\n\
   -h, --help            display this help text and exit\n\
 ";
@@ -987,6 +989,7 @@ static struct option const options[] = {
         { "userpass", 1, NULL, 'O' },
         { "data-file", 1, NULL, 1027 },
         { "verify", 0, NULL, 1028 },
+        { "stratum-keepalive", 0, NULL, 1029 },
         { "version", 0, NULL, 'V' },
         { 0, 0, 0, 0 }
 };

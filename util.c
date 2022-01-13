@@ -1846,6 +1846,25 @@ out:
 	return ret;
 }
 
+bool stratum_suggest_difficulty( struct stratum_ctx *sctx, double diff )
+{
+   char *s;
+   s = (char*) malloc( 80 );
+   bool rc = true;
+
+   // response is handled seperately, what ID?
+   sprintf( s, "{\"id\": 1, \"method\": \"mining.suggest_difficulty\", \"params\": [\"%f\"]}", diff );
+   if ( !stratum_send_line( sctx, s ) )
+   {
+      applog(LOG_WARNING,"stratum.suggest_difficulty send failed");
+      rc = false;
+   } 
+   free ( s );
+   return rc;
+}
+
+
+
 /**
  * Extract bloc height     L H... here len=3, height=0x1333e8
  * "...0000000000ffffffff2703e83313062f503253482f043d61105408"

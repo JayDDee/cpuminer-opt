@@ -65,6 +65,15 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.19.4
+
+#359: Fix verthash memory allocation for non-hugepages, broken in v3.19.3.
+
+New option stratum-keepalive prevents stratum timeouts when no shares are
+submitted for several minutes due to high difficulty.
+
+Fixed a bug displaying optimizations for some algos.
+
 v3.19.3
 
 Linux: Faster verthash (+25%), scryptn2 (+2%) when huge pages are available.
