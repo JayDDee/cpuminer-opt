@@ -16,8 +16,8 @@ export MINGW_LIB="/usr/x86_64-w64-mingw32/lib"
 export GCC_MINGW_LIB="/usr/lib/gcc/x86_64-w64-mingw32/9.3-win32"
 # used by GCC
 export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs -L$LOCAL_LIB/openssl"
-# support for Windows CPU groups, AES sometimes not included in -march
-export DEFAULT_CFLAGS="-O3 -maes -Wall -D_WIN32_WINNT=0x0601"
+# Support for Windows 7 CPU groups, AES sometimes not included in -march
+export DEFAULT_CFLAGS="-maes -O3 -Wall -D_WIN32_WINNT=0x0601"
 export DEFAULT_CFLAGS_OLD="-O3 -Wall"
 
 # make link to local gmp header file.
@@ -26,8 +26,8 @@ ln -s $LOCAL_LIB/gmp/gmp.h ./gmp.h
 # make release directory and copy selected DLLs.
 
 rm -rf release > /dev/null
-
 mkdir release
+
 cp README.txt release/
 cp README.md release/
 cp RELEASE_NOTES release/

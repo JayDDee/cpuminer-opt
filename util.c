@@ -1658,7 +1658,7 @@ static bool stratum_parse_extranonce(struct stratum_ctx *sctx, json_t *params, i
 	pthread_mutex_unlock(&sctx->work_lock);
 
    if ( !opt_quiet ) /* pool dynamic change */
-      applog( LOG_INFO, "Stratum extranonce1= %s, extranonce2 size= %d",
+      applog( LOG_INFO, "Stratum extranonce1 0x%s, extranonce2 size %d",
          xnonce1, xn2_size);
 
 	return true;

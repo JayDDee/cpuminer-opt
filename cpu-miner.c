@@ -131,6 +131,8 @@ static bool opt_stratum_keepalive = false;
 static struct timeval stratum_keepalive_timer;
 // Stratum typically times out in 5 minutes or 300 seconds
 #define stratum_keepalive_timeout 180  // 3 minutes
+static struct timeval stratum_reset_time;
+
 
 // pk_buffer_size is used as a version selector by b58 code, therefore
 // it must be set correctly to work.
@@ -191,7 +193,6 @@ int default_api_listen = 4048;
 static struct   timeval session_start;
 static struct   timeval five_min_start;
 static uint64_t session_first_block = 0;
-static double   latency_sum = 0.;
 static uint64_t submit_sum  = 0;
 static uint64_t accept_sum  = 0;
 static uint64_t stale_sum  = 0;
@@ -1147,7 +1148,7 @@ void report_summary_log( bool force )
                solved, solved_block_count );
    }
    if ( stratum_errors )
-      applog2( LOG_INFO, "Stratum errors               %7d", stratum_errors );
+      applog2( LOG_INFO, "Stratum resets               %7d", stratum_errors );
 
    applog2( LOG_INFO, "Hi/Lo Share Diff  %.5g /  %.5g",
             highest_share, lowest_share );
@@ -1278,7 +1279,6 @@ static int share_result( int result, struct work *work,
       else          reject_sum++;
    }
    submit_sum++;
-   latency_sum += latency;
 
    pthread_mutex_unlock( &stats_lock );
 
@@ -1294,9 +1294,9 @@ static int share_result( int result, struct work *work,
      else              rcol = CL_LRD;
    }
 
-   applog( LOG_INFO, "%d %s%s %s%s %s%s %s%s" CL_WHT ", %.3f sec (%dms)",
+   applog( LOG_INFO, "%d %s%s %s%s %s%s %s%s%s, %.3f sec (%dms)",
            my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
-           bres, share_time, latency );
+           bres, CL_N, share_time, latency );
 
    if ( unlikely( opt_debug || !result || solved ) )
    {
@@ -2114,7 +2114,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    {
       unsigned char *xnonce2str = bebin2hex( g_work->xnonce2,
                                              g_work->xnonce2_len );
-      applog( LOG_INFO, "Extranonce2 %s, Block %d, Job %s",
+      applog( LOG_INFO, "Extranonce2 0x%s, Block %d, Job %s",
                         xnonce2str, sctx->block_height, g_work->job_id );
       free( xnonce2str );
    }
@@ -2733,6 +2733,18 @@ void std_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
           sctx->job.final_sapling_hash );
 }
 
+// Loop is out of order:
+//
+//   connect/reconnect
+//   handle message
+//   get new message
+//
+// change to
+//   connect/reconnect
+//   get new message
+//   handle message
+
+
 static void *stratum_thread(void *userdata )
 {
    struct thr_info *mythr = (struct thr_info *) userdata;
@@ -2750,6 +2762,7 @@ static void *stratum_thread(void *userdata )
       if ( unlikely( stratum_need_reset ) )
       {
           stratum_need_reset = false;
+          gettimeofday( &stratum_reset_time, NULL );
           stratum_down = true;
           stratum_errors++;
           stratum_disconnect( &stratum );
@@ -2760,7 +2773,7 @@ static void *stratum_thread(void *userdata )
 	          applog(LOG_BLUE, "Connection changed to %s", short_url);
           }
           else 
-	          applog(LOG_WARNING, "Stratum connection reset");
+	          applog(LOG_BLUE, "Stratum connection reset");
           // reset stats queue as well
           restart_threads();
           if ( s_get_ptr != s_put_ptr ) s_get_ptr = s_put_ptr = 0;
@@ -2795,34 +2808,11 @@ static void *stratum_thread(void *userdata )
          }
       }
 
-      report_summary_log( ( stratum_diff != stratum.job.diff )
-                       && ( stratum_diff != 0. ) );
+//      report_summary_log( ( stratum_diff != stratum.job.diff )
+//                       && ( stratum_diff != 0. ) );
       
-      if ( stratum.new_job )
-         stratum_gen_work( &stratum, &g_work );
-
-      // is keepalive needed?
-      if ( opt_stratum_keepalive )
-      {
-         struct timeval now, et;
-         gettimeofday( &now, NULL );
-         // any shares submitted since last keepalive?
-         if ( last_submit_time.tv_sec > stratum_keepalive_timer.tv_sec )
-            memcpy( &stratum_keepalive_timer, &last_submit_time,
-                    sizeof (struct timeval) );
-
-         timeval_subtract( &et, &now, &stratum_keepalive_timer );
-
-         if ( et.tv_sec > stratum_keepalive_timeout )
-         {
-             double diff = stratum.job.diff * 0.5;
-             stratum_keepalive_timer = now;
-             if ( !opt_quiet )
-                applog( LOG_BLUE,
-                        "Stratum keepalive requesting lower difficulty" );
-             stratum_suggest_difficulty( &stratum, diff );
-         }
-      }
+//      if ( stratum.new_job )
+//         stratum_gen_work( &stratum, &g_work );
 
       // Wait for new message from server
       if ( likely( stratum_socket_full( &stratum, opt_timeout ) ) )
@@ -2846,6 +2836,54 @@ static void *stratum_thread(void *userdata )
          stratum_need_reset = true;
 //         stratum_disconnect( &stratum );
       }
+
+      report_summary_log( ( stratum_diff != stratum.job.diff )
+                       && ( stratum_diff != 0. ) );
+
+      if ( !stratum_need_reset )
+      {
+         // Is keepalive needed? Mutex would normally be required but that
+         // would block any attempt to submit a share. A share is more
+         // important even if it messes up the keepalive.
+
+         if ( opt_stratum_keepalive )
+         {
+            struct timeval now, et;
+            gettimeofday( &now, NULL );
+            // any shares submitted since last keepalive?
+            if ( last_submit_time.tv_sec > stratum_keepalive_timer.tv_sec )
+               memcpy( &stratum_keepalive_timer, &last_submit_time,
+                       sizeof (struct timeval) );
+
+            timeval_subtract( &et, &now, &stratum_keepalive_timer );
+
+            if ( et.tv_sec > stratum_keepalive_timeout )
+            {
+                double diff = stratum.job.diff * 0.5;
+                stratum_keepalive_timer = now;
+                if ( !opt_quiet )
+                   applog( LOG_BLUE,
+                           "Stratum keepalive requesting lower difficulty" );
+                stratum_suggest_difficulty( &stratum, diff );
+            }
+
+            if ( last_submit_time.tv_sec > stratum_reset_time.tv_sec )
+              timeval_subtract( &et, &now, &last_submit_time );
+            else
+              timeval_subtract( &et, &now, &stratum_reset_time );
+
+            if ( et.tv_sec > stratum_keepalive_timeout + 60 )
+            {
+               applog( LOG_NOTICE, "No shares submitted, resetting stratum connection" );
+               stratum_need_reset = true;
+               stratum_keepalive_timer = now;
+            }
+         } // stratum_keepalive
+
+         if ( stratum.new_job && !stratum_need_reset )
+            stratum_gen_work( &stratum, &g_work );
+
+      } // stratum_need_reset
    }  // loop
 out:
   return NULL;
@@ -3434,7 +3472,8 @@ void parse_arg(int key, char *arg )
       break;
 	case 1021:  // cpu-priority
 		v = atoi(arg);
-		if (v < 0 || v > 5)	/* sanity check */
+      applog(LOG_NOTICE,"--cpu-priority is deprecated and will be removed from a future release");
+      if (v < 0 || v > 5)	/* sanity check */
 			show_usage_and_exit(1);
 		opt_priority = v;
 		break;
@@ -3470,7 +3509,8 @@ void parse_arg(int key, char *arg )
 		break;
 	case 1024:
 		opt_randomize = true;
-		break;
+      applog(LOG_NOTICE,"--randomize is deprecated and will be removed from a future release");
+      break;
    case 1027:  // data-file
       opt_data_file = strdup( arg );
       break;
@@ -3930,6 +3970,7 @@ int main(int argc, char *argv[])
    memcpy( &five_min_start, &last_submit_time, sizeof (struct timeval) );
    memcpy( &session_start, &last_submit_time, sizeof (struct timeval) );
    memcpy( &stratum_keepalive_timer, &last_submit_time, sizeof (struct timeval) );
+   memcpy( &stratum_reset_time, &last_submit_time, sizeof (struct timeval) );
    memcpy( &total_hashes_time, &last_submit_time, sizeof (struct timeval) );
    pthread_mutex_unlock( &stats_lock );
 

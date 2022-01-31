@@ -824,6 +824,7 @@ Options:\n\
                           qubit         Qubit\n\
                           scrypt        scrypt(1024, 1, 1) (default)\n\
                           scrypt:N      scrypt(N, 1, 1)\n\
+                          scryptn2      scrypt(1048576, 1,1)\n\
                           sha256d       Double SHA-256\n\
                           sha256q       Quad SHA-256, Pyrite (PYE)\n\
                           sha256t       Triple SHA-256, Onecoin (OC)\n\
@@ -886,10 +887,10 @@ Options:\n\
   -T, --timeout=N       timeout for long poll and stratum (default: 300 seconds)\n\
   -s, --scantime=N      upper bound on time spent scanning current work when\n\
                           long polling is unavailable, in seconds (default: 5)\n\
-      --randomize       Randomize scan range start to reduce duplicates\n\
-  -f, --diff-factor=N   Divide req. difficulty by this factor (std is 1.0)\n\
+      --randomize       randomize scan range (deprecated)\n\
+  -f, --diff-factor=N   divide req. difficulty by this factor (std is 1.0)\n\
   -m, --diff-multiplier=N Multiply difficulty by this factor (std is 1.0)\n\
-      --hash-meter      Display thread hash rates\n\
+      --hash-meter      display thread hash rates\n\
       --coinbase-addr=ADDR  payout address for solo mining\n\
       --coinbase-sig=TEXT  data to insert in the coinbase when possible\n\
       --no-longpoll     disable long polling support\n\
@@ -910,16 +911,16 @@ Options:\n\
   -B, --background      run the miner in the background\n\
       --benchmark       run in offline benchmark mode\n\
       --cpu-affinity    set process affinity to cpu core(s), mask 0x3 for cores 0 and 1\n\
-      --cpu-priority    set process priority (default: 0 idle, 2 normal to 5 highest)\n\
+      --cpu-priority    set process priority (default: 0 idle, 2 normal to 5 highest) (deprecated)\n\
   -b, --api-bind=address[:port]   IP address for the miner API, default port is 4048)\n\
-      --api-remote      Allow remote control\n\
-      --max-temp=N      Only mine if cpu temp is less than specified value (linux)\n\
-      --max-rate=N[KMG] Only mine if net hashrate is less than specified value\n\
-      --max-diff=N      Only mine if net difficulty is less than specified value\n\
+      --api-remote      allow remote control\n\
+      --max-temp=N      only mine if cpu temp is less than specified value (linux)\n\
+      --max-rate=N[KMG] only mine if net hashrate is less than specified value\n\
+      --max-diff=N      only mine if net difficulty is less than specified value\n\
   -c, --config=FILE     load a JSON-format configuration file\n\
       --data-file=FILE  path and name of data file\n\
       --verify          enable additional time consuming start up tests\n\
-      --stratum-keepalive  Prevent disconnects when difficulty is too high\n\
+      --stratum-keepalive  prevent disconnects when difficulty is too high\n\
   -V, --version         display version and CPU information and exit\n\
   -h, --help            display this help text and exit\n\
 ";

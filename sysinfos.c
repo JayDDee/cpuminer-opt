@@ -209,7 +209,7 @@ static inline void cpu_getname(char *outbuf, size_t maxsz)
 {
    memset(outbuf, 0, maxsz);
 #ifdef WIN32
-   char brand[0xC0] = { 0 };
+   char brand[256] = { 0 };
    int output[4] = { 0 }, ext;
    cpuid(0x80000000, output);
    ext = output[0];

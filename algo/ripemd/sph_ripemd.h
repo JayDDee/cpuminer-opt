@@ -84,6 +84,7 @@
  * can be cloned by copying the context (e.g. with a simple
  * <code>memcpy()</code>).
  */
+#if 0
 typedef struct {
 #ifndef DOXYGEN_IGNORE
 	unsigned char buf[64];    /* first field, for alignment */
@@ -203,6 +204,8 @@ void sph_ripemd128_close(void *cc, void *dst);
  * @param val   the function 128-bit input and output
  */
 void sph_ripemd128_comp(const sph_u32 msg[16], sph_u32 val[4]);
+
+#endif
 
 /* ===================================================================== */
 

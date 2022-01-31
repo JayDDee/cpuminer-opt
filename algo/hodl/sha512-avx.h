@@ -45,6 +45,6 @@ void sha512Compute32b_parallel(
         uint64_t *data[SHA512_PARALLEL_N],
         uint64_t *digest[SHA512_PARALLEL_N]);
 
-void sha512ProcessBlock(Sha512Context *context);
+void sha512ProcessBlock(Sha512Context contexti[2] );
 
 #endif

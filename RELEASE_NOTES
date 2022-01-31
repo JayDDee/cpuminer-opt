@@ -65,6 +65,19 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.19.5
+
+Enhanced stratum-keepalive preemptively resets the stratum connection
+before the server to avoid lost shares.
+
+Added build-msys2.sh scrypt for easier compiling on Windows, see Wiki for details.
+
+X16RT: eliminate unnecessary recalculations of the hash order.
+
+Fix a few compiler warnings.
+
+Fixed log colour error when a block is solved.
+
 v3.19.4
 
 #359: Fix verthash memory allocation for non-hugepages, broken in v3.19.3.

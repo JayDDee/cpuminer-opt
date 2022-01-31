@@ -344,7 +344,7 @@ static size_t
 detect_cpu(void) {
 	//union { uint8_t s[12]; uint32_t i[3]; } vendor_string;
 	//cpu_vendors_x86 vendor = cpu_nobody;
-	x86_regs regs;
+	x86_regs regs; regs.eax = regs.ebx = regs.ecx = 0;
 	uint32_t max_level, max_ext_level;
 	size_t cpu_flags = 0;
 #if defined(X86ASM_AVX) || defined(X86_64ASM_AVX)

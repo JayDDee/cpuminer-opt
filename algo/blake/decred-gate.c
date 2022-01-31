@@ -70,7 +70,10 @@ void decred_be_build_stratum_request( char *req, struct work *work,
          rpc_user, work->job_id, xnonce2str, ntimestr, noncestr );
    free(xnonce2str);
 }
+
+#if !defined(min)
 #define min(a,b) (a>b ? (b) :(a))
+#endif
 
 void decred_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 {
