@@ -65,6 +65,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.19.6
+
+#363 Fixed a stratum bug where the first job may be ignored delaying start of hashing
+Fixed handling of nonce exhaust when hashing a fast algo with extranonce disabled
+Small optimization to Shavite.
+
 v3.19.5
 
 Enhanced stratum-keepalive preemptively resets the stratum connection

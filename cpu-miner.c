@@ -2246,7 +2246,7 @@ static void *miner_thread( void *userdata )
 
    if ( !algo_gate.miner_thread_init( thr_id ) )
    {
-      applog( LOG_ERR, "FAIL: thread %u failed to initialize", thr_id );
+      applog( LOG_ERR, "FAIL: thread %d failed to initialize", thr_id );
       exit (1);
    }
 
@@ -2274,10 +2274,24 @@ static void *miner_thread( void *userdata )
           {
              while ( unlikely( stratum_down ) )
                 sleep( 1 );
-             if ( *nonceptr >= end_nonce )
-                stratum_gen_work( &stratum, &g_work );
+             if ( unlikely( ( *nonceptr >= end_nonce )
+                         && !work_restart[thr_id].restart ) )
+             {
+                if ( opt_extranonce )
+                   stratum_gen_work( &stratum, &g_work );
+                else
+                {
+                   if ( !thr_id )
+                   {
+                      applog( LOG_WARNING, "nonce range exhausted, extranonce not subscribed" );
+                      applog( LOG_WARNING, "waiting for new work...");
+                   }
+                   while ( !work_restart[thr_id].restart )
+                      sleep ( 1 );
+                }
+             }
           }
-          else
+          else  // GBT or getwork
           {
              pthread_rwlock_wrlock( &g_work_lock );
 
@@ -2288,8 +2302,7 @@ static void *miner_thread( void *userdata )
                 if ( unlikely( !get_work( mythr, &g_work ) ) )
                 {
                    pthread_rwlock_unlock( &g_work_lock );
-		             applog( LOG_ERR, "work retrieval failed, exiting "
-		                              "mining thread %d", thr_id );
+		             applog( LOG_ERR, "work retrieval failed, exiting miner thread %d", thr_id );
 		             goto out;
 	             }
                 g_work_time = time(NULL);
@@ -2805,14 +2818,10 @@ static void *stratum_thread(void *userdata )
          {
             stratum_down = false;
             applog(LOG_BLUE,"Stratum connection established" );
+            if ( stratum.new_job )   // prime first job
+               stratum_gen_work( &stratum, &g_work );
          }
       }
-
-//      report_summary_log( ( stratum_diff != stratum.job.diff )
-//                       && ( stratum_diff != 0. ) );
-      
-//      if ( stratum.new_job )
-//         stratum_gen_work( &stratum, &g_work );
 
       // Wait for new message from server
       if ( likely( stratum_socket_full( &stratum, opt_timeout ) ) )
@@ -3902,6 +3911,8 @@ int main(int argc, char *argv[])
    {
       if ( opt_debug )
          applog(LOG_INFO,"Creating stratum thread");
+
+      stratum.new_job = false;  // just to make sure
 
       /* init stratum thread info */
 		stratum_thr_id = opt_n_threads + 2;

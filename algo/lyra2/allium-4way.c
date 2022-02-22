@@ -69,7 +69,6 @@ void allium_16way_hash( void *state, const void *input )
    intrlv_8x64( vhashB, hash8, hash9, hash10, hash11, hash12, hash13, hash14,
                 hash15, 256 );
    
-//   rintrlv_8x32_8x64( vhashA, vhash, 256 );
    keccak256_8way_update( &ctx.keccak, vhashA, 32 );
    keccak256_8way_close( &ctx.keccak, vhashA);
    keccak256_8way_init( &ctx.keccak );
@@ -284,7 +283,7 @@ void allium_8way_hash( void *hash, const void *input )
    blake256_8way_close( &ctx.blake, vhashA );
 
    dintrlv_8x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
-                     vhashA, 256 );
+                 vhashA, 256 );
    intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 256 );
    intrlv_4x64( vhashB, hash4, hash5, hash6, hash7, 256 );
 

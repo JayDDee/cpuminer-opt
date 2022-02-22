@@ -233,6 +233,18 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 
 #endif
 
+// Mask making
+
+// Equivalent of AVX512 _mm256_movepi64_mask & _mm256_movepi32_mask.
+// Returns 4 or 8 bit integer mask from MSB of 64 or 32 bit elements.
+
+#define mm256_movmask_64( v ) \
+   _mm256_castpd_si256( _mm256_movmask_pd( _mm256_castsi256_pd( v ) ) )
+
+#define mm256_movmask_32( v ) \
+   _mm256_castps_si256( _mm256_movmask_ps( _mm256_castsi256_ps( v ) ) )
+
+
 // Diagonal blending
 
 // Blend 4 64 bit elements from 4 vectors
@@ -405,6 +417,16 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 //
 // Rotate elements within each 128 bit lane of 256 bit vector.
 
+// Limited 2 input shuffle
+#define mm256_shuffle2_64( a, b, c ) \
+   _mm256_castpd_si256( _mm256_shuffle_pd( _mm256_castsi256_pd( a ), \
+                                           _mm256_castsi256_pd( b ), c ) ); 
+
+#define mm256_shuffle2_32( a, b, c ) \
+   _mm256_castps_si256( _mm256_shuffle_ps( _mm256_castsi256_ps( a ), \
+                                           _mm256_castsi256_ps( b ), c ) ); 
+
+
 #define mm256_swap128_64( v )  _mm256_shuffle_epi32( v, 0x4e )
 #define mm256_shuflr128_64 mm256_swap128_64
 #define mm256_shufll128_64 mm256_swap128_64
@@ -484,20 +506,6 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
    v1 = _mm256_xor_si256( v1, v2 ); \
    v2 = _mm256_xor_si256( v1, v2 ); \
    v1 = _mm256_xor_si256( v1, v2 );
-
-#define mm256_vror512_128( v1, v2 ) \
-do { \
-   __m256i t = _mm256_permute2x128( v1, v2, 0x03 ); \
-   v1 = _mm256_permute2x128( v2, v1, 0x21 ); \
-   v2 = t; \
-} while(0)
-
-#define mm256_vrol512_128( v1, v2 ) \
-do { \
-   __m256i t = _mm256_permute2x128( v1, v2, 0x03 ); \
-   v2 = _mm256_permute2x128( v2, v1, 0x21 ); \
-   v1 = t; \
-} while(0)
 
 #endif // __AVX2__
 #endif // SIMD_256_H__

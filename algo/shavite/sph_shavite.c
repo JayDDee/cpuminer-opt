@@ -35,7 +35,7 @@
 
 #include "sph_shavite.h"
 
-#if !defined(__AES__)
+#if !(defined(__AES__) && defined(__SSSE3__))
 
 #ifdef __cplusplus
 extern "C"{

@@ -272,9 +272,19 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 #endif
 
+// Mask making
+
+// Equivalent of AVX512 _mm_movepi64_mask & _mm_movepi32_mask.
+// Returns 2 or 4 bit integer mask from MSB of 64 or 32 bit elements.
+
+#define mm_movmask_64( v ) \
+   _mm_castpd_si128( _mm_movmask_pd( _mm_castsi128_pd( v ) ) )
+
+#define mm_movmask_32( v ) \
+   _mm_castps_si128( _mm_movmask_ps( _mm_castsi128_ps( v ) ) )
 
 
-// Diagonal blend: d = s3[3], s2[2], s1[1], s0[0] ||
+// Diagonal blend
 
 // Blend 4 32 bit elements from 4 vectors
 
@@ -284,7 +294,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
   mm_blend_epi32( _mm_blend_epi32( s3, s2, 0x4 ), \
                   _mm_blend_epi32( s1, s0, 0x1 ), 0x3 )
 
-#elif defined(__SSE4_1)
+#elif defined(__SSE4_1__)
 
 #define mm128_diagonal_32( v3, v2, v1, v0 ) \
   mm_blend_epi16( _mm_blend_epi16( s3, s2, 0x30 ), \
@@ -400,6 +410,16 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 #define mm128_rol_16( v, c ) \
    _mm_or_si128( _mm_slli_epi16( v, c ), _mm_srli_epi16( v, 16-(c) ) )
+
+// Limited 2 input shuffle
+#define mm128_shuffle2_64( a, b, c ) \
+   _mm_castpd_si128( _mm_shuffle_pd( _mm_castsi128_pd( a ), \
+                                     _mm_castsi128_pd( b ), c ) ); 
+
+#define mm128_shuffle2_32( a, b, c ) \
+   _mm_castps_si128( _mm_shuffle_ps( _mm_castsi128_ps( a ), \
+                                     _mm_castsi128_ps( b ), c ) ); 
+
 
 //
 // Rotate vector elements accross all lanes
@@ -532,9 +552,8 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
 #if defined(__SSSE3__)
 
 // Function macro with two inputs and one output, inputs are preserved.
-// Returns modified first arg.
 // Two input functions are not available without SSSE3. Use procedure
-// belowe instead.
+// macros below instead.
 
 #define mm128_shufl2r_64( v1, v2 )     _mm_alignr_epi8( v2, v1, 8 )
 #define mm128_shufl2l_64( v1, v2 )     _mm_alignr_epi8( v1, v2, 8 )
@@ -548,12 +567,11 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
 #define mm128_shufl2r_8( v1, v2 )      _mm_alignr_epi8( v2, v1, 8 )
 #define mm128_shufl2l_8( v1, v2 )      _mm_alignr_epi8( v1, v2, 8 )
 
-// Procedure macroswith 2 inputs and 2 outputs, inputs are destroyed.
-// Returns both modified args in place.
+// Procedure macros with 2 inputs and 2 outputs, inputs args are overwritten.
 
 // These macros retain the vrol/vror name for now to avoid
 // confusion with the shufl2r/shuffle2l function macros above.
-// These may be renamed to something like shufl2r2 for 2 1nputs and
+// These may be renamed to something like shufl2r2 for 2 nputs and
 // 2 outputs, ie SHUFfLe 2 inputs Right with 2 outputs.
 
 #define mm128_vror256_64( v1, v2 ) \

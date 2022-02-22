@@ -18,10 +18,13 @@ static const uint32_t IV512[] =
         0xE275EADE, 0x502D9FCD, 0xB9357178, 0x022A4B9A
 };
 
-
+/*
 #define mm256_ror2x256hi_1x32( a, b ) \
    _mm256_blend_epi32( mm256_shuflr128_32( a ), \
                        mm256_shuflr128_32( b ), 0x88 )
+*/
+
+//#define mm256_ror2x256hi_1x32( a, b ) _mm256_alignr_epi8( b, a, 4 )
 
 #if defined(__VAES__)
 
@@ -127,24 +130,24 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
      
      // round 2, 6, 10
 
-     k00 = _mm256_xor_si256( k00, mm256_ror2x256hi_1x32( k12, k13 ) );
+     k00 = _mm256_xor_si256( k00, _mm256_alignr_epi8( k13, k12, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( p3, k00 ), zero );
-     k01 = _mm256_xor_si256( k01, mm256_ror2x256hi_1x32( k13, k00 ) );
+     k01 = _mm256_xor_si256( k01, _mm256_alignr_epi8( k00, k13, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k01 ), zero );
-     k02 = _mm256_xor_si256( k02, mm256_ror2x256hi_1x32( k00, k01 ) );
+     k02 = _mm256_xor_si256( k02, _mm256_alignr_epi8( k01, k00, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k02 ), zero );
-     k03 = _mm256_xor_si256( k03, mm256_ror2x256hi_1x32( k01, k02 ) );
+     k03 = _mm256_xor_si256( k03, _mm256_alignr_epi8( k02, k01, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k03 ), zero );
 
      p2 = _mm256_xor_si256( p2, x );
 
-     k10 = _mm256_xor_si256( k10, mm256_ror2x256hi_1x32( k02, k03 ) );
+     k10 = _mm256_xor_si256( k10, _mm256_alignr_epi8( k03, k02, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( p1, k10 ), zero );
-     k11 = _mm256_xor_si256( k11, mm256_ror2x256hi_1x32( k03, k10 ) );
+     k11 = _mm256_xor_si256( k11, _mm256_alignr_epi8( k10, k03, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k11 ), zero );
-     k12 = _mm256_xor_si256( k12, mm256_ror2x256hi_1x32( k10, k11 ) );
+     k12 = _mm256_xor_si256( k12, _mm256_alignr_epi8( k11, k10, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k12 ), zero );
-     k13 = _mm256_xor_si256( k13, mm256_ror2x256hi_1x32( k11, k12 ) );
+     k13 = _mm256_xor_si256( k13, _mm256_alignr_epi8( k12, k11, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k13 ), zero );
 
      p0 = _mm256_xor_si256( p0, x );
@@ -183,24 +186,24 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
 
      // round 4, 8, 12
 
-     k00 = _mm256_xor_si256( k00, mm256_ror2x256hi_1x32( k12, k13 ) );
+     k00 = _mm256_xor_si256( k00, _mm256_alignr_epi8( k13, k12, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( p1, k00 ), zero );
-     k01 = _mm256_xor_si256( k01, mm256_ror2x256hi_1x32( k13, k00 ) );
+     k01 = _mm256_xor_si256( k01, _mm256_alignr_epi8( k00, k13, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k01 ), zero );
-     k02 = _mm256_xor_si256( k02, mm256_ror2x256hi_1x32( k00, k01 ) );
+     k02 = _mm256_xor_si256( k02, _mm256_alignr_epi8( k01, k00, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k02 ), zero );
-     k03 = _mm256_xor_si256( k03, mm256_ror2x256hi_1x32( k01, k02 ) );
+     k03 = _mm256_xor_si256( k03, _mm256_alignr_epi8( k02, k01, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k03 ), zero );
 
      p0 = _mm256_xor_si256( p0, x );
 
-     k10 = _mm256_xor_si256( k10, mm256_ror2x256hi_1x32( k02, k03 ) );
+     k10 = _mm256_xor_si256( k10, _mm256_alignr_epi8( k03, k02, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( p3, k10 ), zero );
-     k11 = _mm256_xor_si256( k11, mm256_ror2x256hi_1x32( k03, k10 ) );
+     k11 = _mm256_xor_si256( k11, _mm256_alignr_epi8( k10, k03, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k11 ), zero );
-     k12 = _mm256_xor_si256( k12, mm256_ror2x256hi_1x32( k10, k11 ) );
+     k12 = _mm256_xor_si256( k12, _mm256_alignr_epi8( k11, k10, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k12 ), zero );
-     k13 = _mm256_xor_si256( k13, mm256_ror2x256hi_1x32( k11, k12 ) );
+     k13 = _mm256_xor_si256( k13, _mm256_alignr_epi8( k12, k11, 4 ) );
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k13 ), zero );
 
      p2 = _mm256_xor_si256( p2, x );

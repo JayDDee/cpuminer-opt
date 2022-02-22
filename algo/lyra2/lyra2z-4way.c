@@ -49,7 +49,7 @@ void lyra2z_16way_hash( void *state, const void *input )
 
     dintrlv_16x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
               hash8, hash9, hash10, hash11 ,hash12, hash13, hash14, hash15,
-               vhash, 256 );
+              vhash, 256 );
 
     intrlv_2x256( vhash, hash0, hash1, 256 );
     LYRA2Z_2WAY( lyra2z_16way_matrix, vhash, 32, vhash, 32, 8, 8, 8 );

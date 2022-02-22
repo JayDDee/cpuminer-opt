@@ -263,7 +263,7 @@ void sph_shavite384_addbits_and_close(
 	void *cc, unsigned ub, unsigned n, void *dst);
 
 //Don't call these directly from application code, use the macros below.
-#ifdef __AES__
+#if defined(__AES__) && defined(__SSSE3__)
 
 void sph_shavite512_aesni_init(void *cc);
 void sph_shavite512_aesni(void *cc, const void *data, size_t len);

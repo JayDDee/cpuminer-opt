@@ -36,8 +36,8 @@ mv cpuminer cpuminer-avx2-sha-vaes
 # AVX2 SHA AES: AMD Zen1
 make clean || echo done
 rm -f config.status
-CFLAGS="-O3 -march=znver1 -maes -Wall -fno-common" ./configure --with-curl
-#CFLAGS="-O3 -maes -mavx2 -msha -Wall -fno-common" ./configure --with-curl
+#CFLAGS="-O3 -march=znver1 -maes -Wall -fno-common" ./configure --with-curl
+CFLAGS="-O3 -maes -mavx2 -msha -Wall -fno-common" ./configure --with-curl
 make -j 8
 strip -s cpuminer
 mv cpuminer cpuminer-avx2-sha
