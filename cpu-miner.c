@@ -105,8 +105,9 @@ bool opt_randomize = false;
 static int opt_retries = -1;
 static int opt_fail_pause = 10;
 static int opt_time_limit = 0;
+static unsigned int time_limit_stop = 0;
 int opt_timeout = 300;
-static int opt_scantime = 5;
+static int opt_scantime = 0;
 const int min_scantime = 1;
 //static const bool opt_time = true;
 enum algos opt_algo = ALGO_NULL;
@@ -341,6 +342,7 @@ void get_currentalgo(char* buf, int sz)
 
 void proper_exit(int reason)
 {
+   if (opt_debug) applog(LOG_INFO,"Program exit");
 #ifdef WIN32
 	if (opt_background) {
 		HWND hcon = GetConsoleWindow();
@@ -2201,8 +2203,6 @@ static void *miner_thread( void *userdata )
 //                      : 0;
    uint32_t end_nonce = 0xffffffffU / opt_n_threads  * (thr_id + 1) - 0x20;
 
-   time_t   firstwork_time = 0;
-   int  i;
    memset( &work, 0, sizeof(work) );
  
    /* Set worker threads to nice 19 and then preferentially to SCHED_IDLE
@@ -2291,12 +2291,11 @@ static void *miner_thread( void *userdata )
                 }
              }
           }
-          else  // GBT or getwork
+          else if ( !opt_benchmark ) // GBT or getwork
           {
              pthread_rwlock_wrlock( &g_work_lock );
 
-             if ( ( ( time(NULL) - g_work_time )
-                 >= ( have_longpoll ? LP_SCANTIME : opt_scantime ) )
+             if ( ( ( time(NULL) - g_work_time ) >= opt_scantime )
                || ( *nonceptr >= end_nonce ) )
              {
                 if ( unlikely( !get_work( mythr, &g_work ) ) )
@@ -2325,25 +2324,14 @@ static void *miner_thread( void *userdata )
        if ( unlikely( !algo_gate.ready_to_mine( &work, &stratum, thr_id ) ) )
           continue;
 
-// LP_SCANTIME overrides opt_scantime option, is this right?
-
-       // adjust max_nonce to meet target scan time. Stratum and longpoll
-       // can go longer because they can rely on restart_threads to signal
-       // an early abort. get_work on the other hand can't rely on
-       // restart_threads so need a much shorter scantime
-       if ( have_stratum )
-          max64 = 60 * thr_hashrates[thr_id];
-       else if ( have_longpoll )
-          max64 = LP_SCANTIME * thr_hashrates[thr_id];
-       else  // getwork inline
-          max64 = opt_scantime * thr_hashrates[thr_id];   
+       // opt_scantime expressed in hashes
+       max64 = opt_scantime * thr_hashrates[thr_id];
 
        // time limit
-       if ( unlikely( opt_time_limit && firstwork_time ) )
+       if ( unlikely( opt_time_limit ) )
        {
-          int passed = (int)( time(NULL) - firstwork_time );
-          int remain = (int)( opt_time_limit - passed );
-          if ( remain < 0 )
+          unsigned int now = (unsigned int)time(NULL);
+          if ( now >= time_limit_stop )
           {
              if ( thr_id != 0 )
              {
@@ -2355,14 +2343,16 @@ static void *miner_thread( void *userdata )
                 char rate[32];
                 format_hashrate( global_hashrate, rate );
                 applog( LOG_NOTICE, "Benchmark: %s", rate );
-                fprintf(stderr, "%llu\n", (unsigned long long)global_hashrate);
              }
              else
-                applog( LOG_NOTICE,
-	          "Mining timeout of %ds reached, exiting...", opt_time_limit);
-	       proper_exit(0);
+                applog( LOG_NOTICE, "Mining timeout of %ds reached, exiting...",
+                        opt_time_limit);
+
+             proper_exit(0);
           }
-          if ( remain < max64 ) max64 = remain;
+          // else
+          if ( time_limit_stop - now < opt_scantime )
+              max64 = ( time_limit_stop - now ) * thr_hashrates[thr_id] ;
        }
 
        // Select nonce range based on max64, the estimated number of hashes
@@ -2378,8 +2368,6 @@ static void *miner_thread( void *userdata )
           max_nonce = work_nonce + (uint32_t)max64;
 
        // init time
-       if ( firstwork_time == 0 )
-          firstwork_time = time(NULL);
        hashes_done = 0;
        gettimeofday( (struct timeval *) &tv_start, NULL );
 
@@ -2452,7 +2440,7 @@ static void *miner_thread( void *userdata )
        {
           double hashrate  = 0.;
           pthread_mutex_lock( &stats_lock );
-          for ( i = 0; i < opt_n_threads; i++ )
+          for ( int i = 0; i < opt_n_threads; i++ )
               hashrate  += thr_hashrates[i];
           global_hashrate  = hashrate;
           pthread_mutex_unlock( &stats_lock );
@@ -3703,6 +3691,17 @@ int main(int argc, char *argv[])
       fprintf( stderr, "%s: No algo parameter specified\n", argv[0] );
       show_usage_and_exit(1);
    }
+
+   if ( !opt_scantime )
+   {
+      if      ( have_stratum )  opt_scantime = 30;
+      else if ( have_longpoll ) opt_scantime = LP_SCANTIME;
+      else                      opt_scantime = 5;
+   }
+
+   if ( opt_time_limit )
+      time_limit_stop = (unsigned int)time(NULL) + opt_time_limit;
+
 
    // need to register to get algo optimizations for cpu capabilities
    // but that causes registration logs before cpu capabilities is output.

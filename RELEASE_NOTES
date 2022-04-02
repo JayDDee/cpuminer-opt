@@ -65,6 +65,11 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.19.7
+
+#369 Fixed time limited mining, --time-limit.
+Fixed a potential compile error when using optimization below -O3.
+
 v3.19.6
 
 #363 Fixed a stratum bug where the first job may be ignored delaying start of hashing
@@ -76,7 +81,7 @@ v3.19.5
 Enhanced stratum-keepalive preemptively resets the stratum connection
 before the server to avoid lost shares.
 
-Added build-msys2.sh scrypt for easier compiling on Windows, see Wiki for details.
+Added build-msys2.sh shell script for easier compiling on Windows, see Wiki for details.
 
 X16RT: eliminate unnecessary recalculations of the hash order.
 

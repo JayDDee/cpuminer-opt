@@ -261,7 +261,7 @@ inline void reducedDuplexRowSetup_2way( uint64_t *State, uint64_t *rowIn,
 // overlap it's unified.
 // As a result normal is Nrows-2 / Nrows.
 // for 4 rows: 1 unified, 2 overlap, 1 normal.
-// for 8 rows: 1 unified, 2 overlap, 56 normal.
+// for 8 rows: 1 unified, 2 overlap, 5 normal.
 
 static inline void reducedDuplexRow_2way_normal( uint64_t *State,
                    uint64_t *rowIn, uint64_t *rowInOut0, uint64_t *rowInOut1,
@@ -283,6 +283,15 @@ static inline void reducedDuplexRow_2way_normal( uint64_t *State,
    for ( i = 0; i < nCols; i++ )
    {
      //Absorbing "M[prev] [+] M[row*]"
+     io0 = _mm512_load_si512( inout0    );
+     io1 = _mm512_load_si512( inout0 +1 );
+     io2 = _mm512_load_si512( inout0 +2 );
+
+     io0 = _mm512_mask_load_epi64( io0, 0xf0, inout1    );
+     io1 = _mm512_mask_load_epi64( io1, 0xf0, inout1 +1 );
+     io2 = _mm512_mask_load_epi64( io2, 0xf0, inout1 +2 );
+
+/*
      io0 = _mm512_mask_blend_epi64( 0xf0,
                                     _mm512_load_si512( (__m512i*)inout0 ),
                                     _mm512_load_si512( (__m512i*)inout1 ) );
@@ -292,6 +301,7 @@ static inline void reducedDuplexRow_2way_normal( uint64_t *State,
      io2 = _mm512_mask_blend_epi64( 0xf0,
                                     _mm512_load_si512( (__m512i*)inout0 +2 ),
                                     _mm512_load_si512( (__m512i*)inout1 +2 ) );
+*/
 
      state0 = _mm512_xor_si512( state0, _mm512_add_epi64( in[0], io0 ) );
      state1 = _mm512_xor_si512( state1, _mm512_add_epi64( in[1], io1 ) );
@@ -359,6 +369,15 @@ static inline void reducedDuplexRow_2way_overlap( uint64_t *State,
    for ( i = 0; i < nCols; i++ )
    {
      //Absorbing "M[prev] [+] M[row*]"
+     io0.v512 = _mm512_load_si512( inout0    );
+     io1.v512 = _mm512_load_si512( inout0 +1 );
+     io2.v512 = _mm512_load_si512( inout0 +2 );
+
+     io0.v512 = _mm512_mask_load_epi64( io0.v512, 0xf0, inout1    );
+     io1.v512 = _mm512_mask_load_epi64( io1.v512, 0xf0, inout1 +1 );
+     io2.v512 = _mm512_mask_load_epi64( io2.v512, 0xf0, inout1 +2 );
+
+/*
      io0.v512 = _mm512_mask_blend_epi64( 0xf0,
                                   _mm512_load_si512( (__m512i*)inout0 ),
                                   _mm512_load_si512( (__m512i*)inout1 ) );
@@ -368,27 +387,12 @@ static inline void reducedDuplexRow_2way_overlap( uint64_t *State,
      io2.v512 = _mm512_mask_blend_epi64( 0xf0,
                                   _mm512_load_si512( (__m512i*)inout0 +2 ),
                                   _mm512_load_si512( (__m512i*)inout1 +2 ) );
+*/
 
      state0 = _mm512_xor_si512( state0, _mm512_add_epi64( in[0], io0.v512 ) );
      state1 = _mm512_xor_si512( state1, _mm512_add_epi64( in[1], io1.v512 ) );
      state2 = _mm512_xor_si512( state2, _mm512_add_epi64( in[2], io2.v512 ) );
      
-/* 
-     io.v512[0] = _mm512_mask_blend_epi64( 0xf0,
-                                  _mm512_load_si512( (__m512i*)inout0 ),
-                                  _mm512_load_si512( (__m512i*)inout1 ) );
-     io.v512[1] = _mm512_mask_blend_epi64( 0xf0,
-                                  _mm512_load_si512( (__m512i*)inout0 +1 ),
-                                  _mm512_load_si512( (__m512i*)inout1 +1 ) );
-     io.v512[2] = _mm512_mask_blend_epi64( 0xf0,
-                                  _mm512_load_si512( (__m512i*)inout0 +2 ),
-                                  _mm512_load_si512( (__m512i*)inout1 +2 ) );
-
-     state0 = _mm512_xor_si512( state0, _mm512_add_epi64( in[0], io.v512[0] ) );
-     state1 = _mm512_xor_si512( state1, _mm512_add_epi64( in[1], io.v512[1] ) );
-     state2 = _mm512_xor_si512( state2, _mm512_add_epi64( in[2], io.v512[2] ) );
-*/
-
      //Applies the reduced-round transformation f to the sponge's state
      LYRA_ROUND_2WAY_AVX512( state0, state1, state2, state3 );
 
@@ -415,22 +419,6 @@ static inline void reducedDuplexRow_2way_overlap( uint64_t *State,
           io2.v512 = _mm512_mask_blend_epi64( 0xf0, io2.v512, out[2] );
        }
 
-/*
-       if ( rowOut == rowInOut0 )
-       {
-          io.v512[0] = _mm512_mask_blend_epi64( 0x0f, io.v512[0], out[0] );
-          io.v512[1] = _mm512_mask_blend_epi64( 0x0f, io.v512[1], out[1] );
-          io.v512[2] = _mm512_mask_blend_epi64( 0x0f, io.v512[2], out[2] );
-
-       }
-       if ( rowOut == rowInOut1 )
-       {
-          io.v512[0] = _mm512_mask_blend_epi64( 0xf0, io.v512[0], out[0] );
-          io.v512[1] = _mm512_mask_blend_epi64( 0xf0, io.v512[1], out[1] );
-          io.v512[2] = _mm512_mask_blend_epi64( 0xf0, io.v512[2], out[2] );
-       }
-*/
-
        //M[rowInOut][col] = M[rowInOut][col] XOR rotW(rand)
        t0 = _mm512_permutex_epi64( state0, 0x93 );
        t1 = _mm512_permutex_epi64( state1, 0x93 );
@@ -444,12 +432,23 @@ static inline void reducedDuplexRow_2way_overlap( uint64_t *State,
                                  _mm512_mask_blend_epi64( 0x11, t2, t1 ) );
      }
 
+/*     
+      casti_m256i( inout0, 0 ) = _mm512_castsi512_si256( io0.v512 );
+      casti_m256i( inout0, 2 ) = _mm512_castsi512_si256( io1.v512 );
+      casti_m256i( inout0, 4 ) = _mm512_castsi512_si256( io2.v512 );
+     _mm512_mask_store_epi64( inout1,    0xf0, io0.v512 );
+     _mm512_mask_store_epi64( inout1 +1, 0xf0, io1.v512 );
+     _mm512_mask_store_epi64( inout1 +2, 0xf0, io2.v512 );
+*/
+
+      
       casti_m256i( inout0, 0 ) = io0.v256lo;
       casti_m256i( inout1, 1 ) = io0.v256hi;
       casti_m256i( inout0, 2 ) = io1.v256lo;
       casti_m256i( inout1, 3 ) = io1.v256hi;
       casti_m256i( inout0, 4 ) = io2.v256lo;
       casti_m256i( inout1, 5 ) = io2.v256hi;
+
 /*     
      _mm512_mask_store_epi64( inout0,    0x0f, io.v512[0] );
      _mm512_mask_store_epi64( inout1,    0xf0, io.v512[0] );
