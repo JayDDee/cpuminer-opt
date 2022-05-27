@@ -5,6 +5,7 @@
 #include "simd-utils.h"
 #include <stdint.h>
 #include <unistd.h>
+#include "algo/swifftx/swifftx.h"
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
   #define X22I_8WAY 1

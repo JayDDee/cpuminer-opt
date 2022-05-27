@@ -14,12 +14,25 @@ bool lyra2z_16way_thread_init()
  return ( lyra2z_16way_matrix = _mm_malloc( 2*LYRA2Z_MATRIX_SIZE, 64 ) );
 }
 
-static __thread blake256_16way_context l2z_16way_blake_mid;
+static __thread blake256_16way_context l2z_16way_blake_ctx;
+static __thread __m512i blake256_16way_midstate[16];
 
 void lyra2z_16way_midstate( const void* input )
 {
-       blake256_16way_init( &l2z_16way_blake_mid );
-       blake256_16way_update( &l2z_16way_blake_mid, input, 64 );
+   // First block
+   blake256_16way_init( &l2z_16way_blake_ctx );
+   blake256_16way_update_le( &l2z_16way_blake_ctx, input, 64 );
+
+   // Second block
+   memcpy_512( l2z_16way_blake_ctx.buf, (__m512i*)input + 16, 4 );
+   l2z_16way_blake_ctx.buf[ 4] = m512_const1_32( 0x80000000 );
+   memset_zero_512( l2z_16way_blake_ctx.buf + 5, 8 );
+   l2z_16way_blake_ctx.buf[13] = m512_one_32;
+   l2z_16way_blake_ctx.buf[14] = m512_zero;
+   l2z_16way_blake_ctx.buf[15] = m512_const1_32( 80*8 );
+
+   blake256_16way_round0_prehash_le( blake256_16way_midstate,
+                      l2z_16way_blake_ctx.H, l2z_16way_blake_ctx.buf );
 }
 
 void lyra2z_16way_hash( void *state, const void *input )
@@ -43,9 +56,11 @@ void lyra2z_16way_hash( void *state, const void *input )
     uint32_t hash15[8] __attribute__ ((aligned (64)));
     blake256_16way_context ctx_blake __attribute__ ((aligned (64)));
 
-    memcpy( &ctx_blake, &l2z_16way_blake_mid, sizeof l2z_16way_blake_mid );
-    blake256_16way_update( &ctx_blake, input + (64*16), 16 );
-    blake256_16way_close( &ctx_blake, vhash );
+    memcpy( &ctx_blake, &l2z_16way_blake_ctx, sizeof l2z_16way_blake_ctx );
+
+    ctx_blake.buf[3] = casti_m512i( input, 19 ); // grab nonce from input
+    blake256_16way_final_rounds_le( vhash, blake256_16way_midstate, ctx_blake.H,
+                                    ctx_blake.buf );
 
     dintrlv_16x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
               hash8, hash9, hash10, hash11 ,hash12, hash13, hash14, hash15,
@@ -107,10 +122,12 @@ int scanhash_lyra2z_16way( struct work *work, uint32_t max_nonce,
    __m512i  *noncev = (__m512i*)vdata + 19;   // aligned
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
+   const __m512i sixteen = m512_const1_32( 16 );
 
    if ( bench )   ptarget[7] = 0x0000ff;
 
-   mm512_bswap32_intrlv80_16x32( vdata, pdata );
+   for ( int i = 0; i < 19; i++ )
+      casti_m512i( vdata, i ) = _mm512_set1_epi32( pdata[i] );
    *noncev = _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+ 9, n+ 8,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
    lyra2z_16way_midstate( vdata );
@@ -123,11 +140,11 @@ int scanhash_lyra2z_16way( struct work *work, uint32_t max_nonce,
         const uint64_t *lane_hash = hash + (lane<<2);
         if ( unlikely( valid_hash( lane_hash, ptarget ) && !bench ) )
         {
-           pdata[19] = bswap_32( n + lane );
+           pdata[19] = n + lane;
            submit_solution( work, lane_hash, mythr );
         }
       }
-      *noncev = _mm512_add_epi32( *noncev, m512_const1_32( 16 ) );
+      *noncev = _mm512_add_epi32( *noncev, sixteen );
       n += 16;
    } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
 
@@ -145,12 +162,23 @@ bool lyra2z_8way_thread_init()
  return ( lyra2z_8way_matrix = _mm_malloc( LYRA2Z_MATRIX_SIZE, 64 ) );
 }
 
-static __thread blake256_8way_context l2z_8way_blake_mid;
+static __thread blake256_8way_context l2z_8way_blake_ctx;
+static __thread __m256i blake256_8way_midstate[16];
 
 void lyra2z_8way_midstate( const void* input )
 {
-       blake256_8way_init( &l2z_8way_blake_mid );
-       blake256_8way_update( &l2z_8way_blake_mid, input, 64 );
+   blake256_8way_init( &l2z_8way_blake_ctx );
+   blake256_8way_update_le( &l2z_8way_blake_ctx, input, 64 );
+
+   memcpy_256( l2z_8way_blake_ctx.buf, (__m256i*)input + 16, 4 );
+   l2z_8way_blake_ctx.buf[ 4] = m256_const1_32( 0x80000000 );
+   memset_zero_256( l2z_8way_blake_ctx.buf + 5, 8 );
+   l2z_8way_blake_ctx.buf[13] = m256_one_32;
+   l2z_8way_blake_ctx.buf[14] = m256_zero;
+   l2z_8way_blake_ctx.buf[15] = m256_const1_32( 80*8 );
+
+   blake256_8way_round0_prehash_le( blake256_8way_midstate,
+                      l2z_8way_blake_ctx.H, l2z_8way_blake_ctx.buf );
 }
 
 void lyra2z_8way_hash( void *state, const void *input )
@@ -166,9 +194,11 @@ void lyra2z_8way_hash( void *state, const void *input )
      uint32_t vhash[8*8] __attribute__ ((aligned (64)));
      blake256_8way_context ctx_blake __attribute__ ((aligned (64)));
 
-     memcpy( &ctx_blake, &l2z_8way_blake_mid, sizeof l2z_8way_blake_mid );
-     blake256_8way_update( &ctx_blake, input + (64*8), 16 );
-     blake256_8way_close( &ctx_blake, vhash );
+     memcpy( &ctx_blake, &l2z_8way_blake_ctx, sizeof l2z_8way_blake_ctx );
+
+     ctx_blake.buf[3] = casti_m256i( input, 19 ); // grab nonce from input
+     blake256_8way_final_rounds_le( vhash, blake256_8way_midstate, ctx_blake.H,
+                                    ctx_blake.buf );
 
      dintrlv_8x32( hash0, hash1, hash2, hash3,
                    hash4, hash5, hash6, hash7, vhash, 256 );
@@ -206,10 +236,12 @@ int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
    __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
+   const __m256i eight = m256_const1_32( 8 );
 
    if ( bench )  ptarget[7] = 0x0000ff;
 
-   mm256_bswap32_intrlv80_8x32( vdata, pdata );
+   for ( int i = 0; i < 19; i++ )
+      casti_m256i( vdata, i ) = _mm256_set1_epi32( pdata[i] );
    *noncev = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
    lyra2z_8way_midstate( vdata );
 
@@ -221,11 +253,11 @@ int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
         const uint64_t *lane_hash = hash + (lane<<2);
         if ( unlikely( valid_hash( lane_hash, ptarget ) && !bench ) )
         {
-           pdata[19] = bswap_32( n + lane );
+           pdata[19] = n + lane;
            submit_solution( work, lane_hash, mythr );
         }
       }
-      *noncev = _mm256_add_epi32( *noncev, m256_const1_32( 8 ) );
+      *noncev = _mm256_add_epi32( *noncev, eight );
       n += 8;
    } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart) );
    pdata[19] = n;

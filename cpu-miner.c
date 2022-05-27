@@ -1099,7 +1099,7 @@ void report_summary_log( bool force )
    sprintf_et( et_str, et.tv_sec );
    sprintf_et( upt_str, uptime.tv_sec );
 
-   applog( LOG_BLUE, "%s: %s", algo_names[ opt_algo ], short_url );
+   applog( LOG_BLUE, "%s: %s", algo_names[ opt_algo ], rpc_url );
    applog2( LOG_NOTICE, "Periodic Report     %s        %s", et_str, upt_str );
    applog2( LOG_INFO, "Share rate        %.2f/min     %.2f/min",
             submit_rate, safe_div( (double)submitted_share_count*60.,
@@ -2754,7 +2754,7 @@ static void *stratum_thread(void *userdata )
    stratum.url = (char*) tq_pop(mythr->q, NULL);
    if (!stratum.url)
       goto out;
-   applog( LOG_BLUE, "Stratum connect %s", short_url );
+   applog( LOG_BLUE, "Stratum connect %s", stratum.url );
 
    while (1)
    {
@@ -3335,6 +3335,7 @@ void parse_arg(int key, char *arg )
 			if ( strncasecmp( arg, "http://", 7 )
            && strncasecmp( arg, "https://", 8 )
            && strncasecmp( arg, "stratum+tcp://", 14 )
+           && strncasecmp( arg, "stratum+ssl://", 14 )
            && strncasecmp( arg, "stratum+tcps://", 15 ) )
          {
             fprintf(stderr, "unknown protocol -- '%s'\n", arg);
@@ -3768,6 +3769,7 @@ int main(int argc, char *argv[])
    flags = CURL_GLOBAL_ALL;
    if ( !opt_benchmark )
      if ( strncasecmp( rpc_url, "https:", 6 )
+       && strncasecmp( rpc_url, "stratum+ssl://", 14 )
        && strncasecmp( rpc_url, "stratum+tcps://", 15 ) )
          flags &= ~CURL_GLOBAL_SSL;
 

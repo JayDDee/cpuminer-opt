@@ -98,6 +98,12 @@ typedef blake_8way_small_context blake256_8way_context;
 void blake256_8way_init(void *cc);
 void blake256_8way_update(void *cc, const void *data, size_t len);
 void blake256_8way_close(void *cc, void *dst);
+void blake256_8way_update_le(void *cc, const void *data, size_t len);
+void blake256_8way_close_le(void *cc, void *dst);
+void blake256_8way_round0_prehash_le( void *midstate, const void *midhash,
+                                       const void *data );
+void blake256_8way_final_rounds_le( void *final_hash, const void *midstate,
+                                     const void *midhash, const void *data );
 
 // 14 rounds, blake, decred
 typedef blake_8way_small_context blake256r14_8way_context;
@@ -128,6 +134,12 @@ void blake512_4way_update( void *cc, const void *data, size_t len );
 void blake512_4way_close( void *cc, void *dst );
 void blake512_4way_full( blake_4way_big_context *sc, void * dst,
                          const void *data, size_t len );
+void blake512_4way_full_le( blake_4way_big_context *sc, void * dst,
+                            const void *data, size_t len );
+void blake512_4way_prehash_le( blake_4way_big_context *sc, __m256i *midstate,
+                               const void *data );
+void blake512_4way_final_le( blake_4way_big_context *sc, void *hash,
+                             const __m256i nonce, const __m256i *midstate );
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -148,6 +160,14 @@ typedef blake_16way_small_context blake256_16way_context;
 void blake256_16way_init(void *cc);
 void blake256_16way_update(void *cc, const void *data, size_t len);
 void blake256_16way_close(void *cc, void *dst);
+// Expects data in little endian order, no byte swap needed
+void blake256_16way_update_le(void *cc, const void *data, size_t len);
+void blake256_16way_close_le(void *cc, void *dst);
+void blake256_16way_round0_prehash_le( void *midstate, const void *midhash,
+                                       const void *data );
+void blake256_16way_final_rounds_le( void *final_hash, const void *midstate,
+                                     const void *midhash, const void *data );
+
 
 // 14 rounds, blake, decred
 typedef blake_16way_small_context blake256r14_16way_context;
@@ -180,7 +200,12 @@ void blake512_8way_update( void *cc, const void *data, size_t len );
 void blake512_8way_close( void *cc, void *dst );
 void blake512_8way_full( blake_8way_big_context *sc, void * dst,
                         const void *data, size_t len );
-void blake512_8way_hash_le80( void *hash, const void *data );
+void blake512_8way_full_le( blake_8way_big_context *sc, void * dst,
+                            const void *data, size_t len );
+void blake512_8way_prehash_le( blake_8way_big_context *sc, __m512i *midstate,
+                               const void *data );
+void blake512_8way_final_le( blake_8way_big_context *sc, void *hash,
+                             const __m512i nonce, const __m512i *midstate );
 
 #endif  // AVX512
 #endif  // AVX2

@@ -15,13 +15,14 @@
 
 //  AVX512 intrinsics have a few changes from previous conventions.
 //
-//    cmp instruction now returns a bitmask isnstead of a vector mask.
+//    cmp instruction now returns a bitmask instead of a vector mask.
 //    This eliminates the need for the blendv instruction.
 //
 //    The new rotate instructions require the count to be an 8 bit
 //    immediate value only. Compilation fails if a variable is used.
 //    The documentation is the same as for shift and it works with
-//    variables.
+//    variables. The inconsistency is likely due to compiler optimizations
+//    that can eliminate the variable in some instances.
 //
 //    _mm512_permutex_epi64 only shuffles within 256 bit lanes. Permute
 //    usually shuffles accross all lanes.

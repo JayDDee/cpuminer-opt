@@ -50,6 +50,7 @@ bool register_x25x_algo( algo_gate_t* gate )
 #endif
   gate->optimizations = SSE2_OPT | SSE42_OPT | AES_OPT | AVX2_OPT | SHA_OPT |
                         AVX512_OPT | VAES_OPT;
+  InitializeSWIFFTX();
   return true;
 };
 

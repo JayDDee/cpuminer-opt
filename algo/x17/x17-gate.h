@@ -14,10 +14,15 @@ bool register_x17_algo( algo_gate_t* gate );
 
 #if defined(X17_8WAY)
 
+int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr );
+
 int x17_8way_hash( void *state, const void *input, int thr_id );
 
 #elif defined(X17_4WAY)
 
+int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr );
 int x17_4way_hash( void *state, const void *input, int thr_id );
 
 #endif

@@ -21,7 +21,6 @@
 #include "algo/tiger/sph_tiger.h"
 #include "algo/lyra2/lyra2.h"
 #include "algo/gost/sph_gost.h"
-#include "algo/swifftx/swifftx.h"
 #if defined(__VAES__)
   #include "algo/groestl/groestl512-hash-4way.h"
   #include "algo/shavite/shavite-hash-4way.h"

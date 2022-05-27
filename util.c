@@ -1542,11 +1542,20 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 		free(sctx->url);
 		sctx->url = strdup(url);
 	}
-	free(sctx->curl_url);
+
+   free(sctx->curl_url);
 	sctx->curl_url = (char*) malloc(strlen(url));
-	sprintf( sctx->curl_url, "http%s", strstr( url, "s://" ) 
-                              ? strstr( url, "s://" )
-                              : strstr (url, "://"  ) );
+
+   // replace the stratum protocol prefix with http, https for ssl
+   sprintf( sctx->curl_url, "%s%s",
+            ( strstr( url, "s://" ) || strstr( url, "ssl://" ) )
+               ? "https" : "http", strstr( url, "://" ) );
+
+
+
+//   sprintf( sctx->curl_url, "http%s", strstr( url, "s://" ) 
+//                              ? strstr( url, "s://" )
+//                              : strstr (url, "://"  ) );
 
 	if (opt_protocol)
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);

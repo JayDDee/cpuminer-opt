@@ -65,6 +65,18 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.19.8
+
+#370 "stratum+ssl", in addition to "stratum+tcps", is now recognized as a valid
+url protocol specifier for requesting a secure stratum connection.
+
+The full url, including the protocol, is now displayed in the stratum connect
+log and the periodic summary log.
+
+Small optimizations to Cubehash, AVX2 & AVX512.
+
+Byte order and prehash optimizations for blake256 & blake512, AVX2 & AVX512.
+
 v3.19.7
 
 #369 Fixed time limited mining, --time-limit.
