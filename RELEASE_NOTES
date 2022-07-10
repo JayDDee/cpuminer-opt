@@ -22,7 +22,7 @@ required.
 Compile Instructions
 --------------------
 
-See INSTALL_LINUX or INSTALL_WINDOWS for compile instruuctions
+See INSTALL_LINUX or INSTALL_WINDOWS for compile instructions
 
 Requirements
 ------------
@@ -65,6 +65,11 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.19.9
+
+More Blake256, Blake512, Luffa & Cubehash prehash optimizations.
+Relaxed some excessively strict data alignment that was negatively affecting performance.
+
 v3.19.8
 
 #370 "stratum+ssl", in addition to "stratum+tcps", is now recognized as a valid
@@ -75,7 +80,7 @@ log and the periodic summary log.
 
 Small optimizations to Cubehash, AVX2 & AVX512.
 
-Byte order and prehash optimizations for blake256 & blake512, AVX2 & AVX512.
+Byte order and prehash optimizations for Blake256 & Blake512, AVX2 & AVX512.
 
 v3.19.7
 

@@ -132,11 +132,11 @@ bool register_lyra2z_algo( algo_gate_t* gate )
 #if defined(LYRA2Z_16WAY)
   gate->miner_thread_init = (void*)&lyra2z_16way_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z_16way;
-  gate->hash       = (void*)&lyra2z_16way_hash;
+//  gate->hash       = (void*)&lyra2z_16way_hash;
 #elif defined(LYRA2Z_8WAY)
   gate->miner_thread_init = (void*)&lyra2z_8way_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z_8way;
-  gate->hash       = (void*)&lyra2z_8way_hash;
+//  gate->hash       = (void*)&lyra2z_8way_hash;
 #elif defined(LYRA2Z_4WAY)
   gate->miner_thread_init = (void*)&lyra2z_4way_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z_4way;
@@ -175,13 +175,9 @@ bool register_lyra2h_algo( algo_gate_t* gate )
 bool register_allium_algo( algo_gate_t* gate )
 {
 #if defined (ALLIUM_16WAY)
-  gate->miner_thread_init = (void*)&init_allium_16way_ctx;
   gate->scanhash  = (void*)&scanhash_allium_16way;
-  gate->hash      = (void*)&allium_16way_hash;
 #elif defined (ALLIUM_8WAY)
-  gate->miner_thread_init = (void*)&init_allium_8way_ctx;
   gate->scanhash  = (void*)&scanhash_allium_8way;
-  gate->hash      = (void*)&allium_8way_hash;
 #else
   gate->miner_thread_init = (void*)&init_allium_ctx;
   gate->scanhash  = (void*)&scanhash_allium;

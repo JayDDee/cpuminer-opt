@@ -16,7 +16,8 @@
 
 #if defined (X16R_8WAY)
 
-// Perform midstate prehash of hash functions with block size <= 72 bytes.
+// Perform midstate prehash of hash functions with block size <= 72 bytes,
+// 76 bytes for hash functions that operate on 32 bit data.
 
 void x16r_8way_prehash( void *vdata, void *pdata )
 {
@@ -44,18 +45,36 @@ void x16r_8way_prehash( void *vdata, void *pdata )
          skein512_8way_update( &x16r_ctx.skein, vdata, 64 );
       break;
       case LUFFA:
+      {
+         hashState_luffa ctx_luffa;
          mm128_bswap32_80( edata, pdata );
-         intrlv_4x128( vdata2, edata, edata, edata, edata, 640 );
-         luffa_4way_init( &x16r_ctx.luffa, 512 );
-         luffa_4way_update( &x16r_ctx.luffa, vdata2, 64 );
-         rintrlv_4x128_8x64( vdata, vdata2, vdata2, 640 );
+         intrlv_8x64( vdata, edata, edata, edata, edata,
+                             edata, edata, edata, edata, 640 );            
+         init_luffa( &ctx_luffa, 512 );
+         update_luffa( &ctx_luffa, (const BitSequence*)edata, 64 );
+         intrlv_4x128( x16r_ctx.luffa.buffer, ctx_luffa.buffer,
+                  ctx_luffa.buffer, ctx_luffa.buffer, ctx_luffa.buffer, 512 );
+         intrlv_4x128( x16r_ctx.luffa.chainv, ctx_luffa.chainv,
+                  ctx_luffa.chainv, ctx_luffa.chainv, ctx_luffa.chainv, 1280 );
+         x16r_ctx.luffa.hashbitlen = ctx_luffa.hashbitlen;
+         x16r_ctx.luffa.rembytes = ctx_luffa.rembytes;
+      }
       break;
       case CUBEHASH:
+      {
+         cubehashParam ctx_cube;
          mm128_bswap32_80( edata, pdata );
-         intrlv_4x128( vdata2, edata, edata, edata, edata, 640 );
-         cube_4way_init( &x16r_ctx.cube, 512, 16, 32 );
-         cube_4way_update( &x16r_ctx.cube, vdata2, 64 );
-         rintrlv_4x128_8x64( vdata, vdata2, vdata2, 640 );
+         intrlv_8x64( vdata, edata, edata, edata, edata,
+                             edata, edata, edata, edata, 640 );            
+         cubehashInit( &ctx_cube, 512, 16, 32 );
+         cubehashUpdate( &ctx_cube, (const byte*)edata, 64 );
+         x16r_ctx.cube.hashlen = ctx_cube.hashlen;
+         x16r_ctx.cube.rounds = ctx_cube.rounds;
+         x16r_ctx.cube.blocksize = ctx_cube.blocksize;
+         x16r_ctx.cube.pos = ctx_cube.pos;
+         intrlv_4x128( x16r_ctx.cube.h, ctx_cube.x, ctx_cube.x, ctx_cube.x,
+                                        ctx_cube.x, 1024 );
+      }
       break;
       case HAMSI:
          mm512_bswap32_intrlv80_8x64( vdata, pdata );
@@ -94,14 +113,14 @@ void x16r_8way_prehash( void *vdata, void *pdata )
 int x16r_8way_hash_generic( void* output, const void* input, int thrid )
 {
    uint32_t vhash[20*8] __attribute__ ((aligned (128)));
-   uint32_t hash0[20] __attribute__ ((aligned (64)));
-   uint32_t hash1[20] __attribute__ ((aligned (64)));
-   uint32_t hash2[20] __attribute__ ((aligned (64)));
-   uint32_t hash3[20] __attribute__ ((aligned (64)));
-   uint32_t hash4[20] __attribute__ ((aligned (64)));
-   uint32_t hash5[20] __attribute__ ((aligned (64)));
-   uint32_t hash6[20] __attribute__ ((aligned (64)));
-   uint32_t hash7[20] __attribute__ ((aligned (64)));
+   uint32_t hash0[20] __attribute__ ((aligned (16)));
+   uint32_t hash1[20] __attribute__ ((aligned (16)));
+   uint32_t hash2[20] __attribute__ ((aligned (16)));
+   uint32_t hash3[20] __attribute__ ((aligned (16)));
+   uint32_t hash4[20] __attribute__ ((aligned (16)));
+   uint32_t hash5[20] __attribute__ ((aligned (16)));
+   uint32_t hash6[20] __attribute__ ((aligned (16)));
+   uint32_t hash7[20] __attribute__ ((aligned (16)));
    x16r_8way_context_overlay ctx;
    memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
    void *in0 = (void*) hash0;
@@ -476,7 +495,7 @@ int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[16*8] __attribute__ ((aligned (128)));
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-   uint32_t bedata1[2] __attribute__((aligned(64)));
+   uint32_t bedata1[2];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -500,7 +519,7 @@ int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
       s_ntime = ntime;
 
       if ( opt_debug && !thr_id )
-          applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
+          applog( LOG_INFO, "Hash order %s Ntime %08x", x16r_hash_order, ntime );
    }
 
    x16r_8way_prehash( vdata, pdata );
@@ -552,18 +571,33 @@ void x16r_4way_prehash( void *vdata, void *pdata )
          skein512_4way_prehash64( &x16r_ctx.skein, vdata );
       break;
       case LUFFA:
+      {
+         hashState_luffa ctx_luffa;
          mm128_bswap32_80( edata, pdata );
-         intrlv_2x128( vdata2, edata, edata, 640 );
-         luffa_2way_init( &x16r_ctx.luffa, 512 );
-         luffa_2way_update( &x16r_ctx.luffa, vdata2, 64 );
-         rintrlv_2x128_4x64( vdata, vdata2, vdata2, 640 );
-         break;
+         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+         init_luffa( &ctx_luffa, 512 );
+         update_luffa( &ctx_luffa, (const BitSequence*)edata, 64 );
+         intrlv_2x128( x16r_ctx.luffa.buffer, ctx_luffa.buffer,
+                                              ctx_luffa.buffer, 512 );
+         intrlv_2x128( x16r_ctx.luffa.chainv, ctx_luffa.chainv,
+                                              ctx_luffa.chainv, 1280 );
+         x16r_ctx.luffa.hashbitlen = ctx_luffa.hashbitlen;
+         x16r_ctx.luffa.rembytes = ctx_luffa.rembytes;
+      }
+      break;
       case CUBEHASH:
+      {
+         cubehashParam ctx_cube;
          mm128_bswap32_80( edata, pdata );
-         intrlv_2x128( vdata2, edata, edata, 640 );
-         cube_2way_init( &x16r_ctx.cube, 512, 16, 32 );
-         cube_2way_update( &x16r_ctx.cube, vdata2, 64 );
-         rintrlv_2x128_4x64( vdata, vdata2, vdata2, 640 );
+         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+         cubehashInit( &ctx_cube, 512, 16, 32 );
+         cubehashUpdate( &ctx_cube, (const byte*)edata, 64 );
+         x16r_ctx.cube.hashlen = ctx_cube.hashlen;
+         x16r_ctx.cube.rounds = ctx_cube.rounds;
+         x16r_ctx.cube.blocksize = ctx_cube.blocksize;
+         x16r_ctx.cube.pos = ctx_cube.pos;
+         intrlv_2x128( x16r_ctx.cube.h, ctx_cube.x, ctx_cube.x, 1024 );
+      }
       break;
       case HAMSI:
          mm256_bswap32_intrlv80_4x64( vdata, pdata );
@@ -596,10 +630,10 @@ void x16r_4way_prehash( void *vdata, void *pdata )
 int x16r_4way_hash_generic( void* output, const void* input, int thrid )
 {
    uint32_t vhash[20*4] __attribute__ ((aligned (128)));
-   uint32_t hash0[20] __attribute__ ((aligned (64)));
-   uint32_t hash1[20] __attribute__ ((aligned (64)));
-   uint32_t hash2[20] __attribute__ ((aligned (64)));
-   uint32_t hash3[20] __attribute__ ((aligned (64)));
+   uint32_t hash0[20] __attribute__ ((aligned (32)));
+   uint32_t hash1[20] __attribute__ ((aligned (32)));
+   uint32_t hash2[20] __attribute__ ((aligned (32)));
+   uint32_t hash3[20] __attribute__ ((aligned (32)));
    x16r_4way_context_overlay ctx;
    memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
    void *in0 = (void*) hash0;
@@ -890,7 +924,7 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[16*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t bedata1[2] __attribute__((aligned(64)));
+   uint32_t bedata1[2];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -913,7 +947,7 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
       x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )
-         applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
+         applog( LOG_INFO, "Hash order %s Ntime %08x", x16r_hash_order, ntime );
    }
 
    x16r_4way_prehash( vdata, pdata );

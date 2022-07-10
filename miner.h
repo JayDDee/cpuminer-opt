@@ -812,7 +812,7 @@ Options:\n\
                           lyra2z330     Lyra2 330 rows\n\
                           m7m           Magi (XMG)\n\
                           myr-gr        Myriad-Groestl\n\
-                          minotaur      Ringcoin (RNG)\n\
+                          minotaur\n\
                           neoscrypt     NeoScrypt(128, 2, 1)\n\
                           nist5         Nist5\n\
                           pentablake    5 x blake512\n\

@@ -15,11 +15,11 @@
 
 struct _cubehashParam
 {
+    __m128i _ALIGN(64) x[8];  // aligned for __m512i
     int hashlen;           // __m128i
     int rounds;
     int blocksize;         // __m128i
     int pos;	           // number of __m128i read into x from current block
-    __m128i _ALIGN(64) x[8];  // aligned for __m256i
 };
 
 typedef struct _cubehashParam cubehashParam;

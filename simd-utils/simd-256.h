@@ -442,8 +442,14 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 #define mm256_shuflr64_32 mm256_swap64_32
 #define mm256_shufll64_32 mm256_swap64_32
 
-//
-// Swap bytes in vector elements, endian bswap.
+// NOTE: _mm256_shuffle_epi8, like most shuffles, is restricted to 128 bit
+// lanes. AVX512, however, supports full vector 8 bit shuffle. The AVX512VL +
+// AVX512BW intrinsic _mm256_mask_shuffle_epi8 with a NULL mask, can be used if
+// needed for a shuffle that crosses 128 bit lanes. BSWAP doesn't therefore the
+// AVX2 version will work here. The bswap control vector is coded to work
+// with both versions, bit 4 is ignored in AVX2. 
+
+// Reverse byte order in elements, endian bswap.
 #define mm256_bswap_64( v ) \
    _mm256_shuffle_epi8( v, \
          m256_const_64( 0x18191a1b1c1d1e1f, 0x1011121314151617, \

@@ -599,13 +599,13 @@ void blake512_8way_prehash_le( blake_8way_big_context *sc, __m512i *midstate,
    VE = _mm512_set1_epi64( CB6 );
    VF = _mm512_set1_epi64( CB7 );
 
-   // skip the nonce
+   // round 0
    GB_8WAY( sc->buf[ 0], sc->buf[ 1], CB0, CB1, V0, V4, V8, VC );
    GB_8WAY( sc->buf[ 2], sc->buf[ 3], CB2, CB3, V1, V5, V9, VD );
    GB_8WAY( sc->buf[ 4], sc->buf[ 5], CB4, CB5, V2, V6, VA, VE );
    GB_8WAY( sc->buf[ 6], sc->buf[ 7], CB6, CB7, V3, V7, VB, VF );
 
-   // Do half of G4
+   // Do half of G4, skip the nonce
    // GB_8WAY( sc->buf[ 8], sc->buf[ 9], CBx(0, 8), CBx(0, 9), V0, V5, VA, VF );
 
    V0 = _mm512_add_epi64( _mm512_add_epi64( _mm512_xor_si512( 
@@ -619,6 +619,21 @@ void blake512_8way_prehash_le( blake_8way_big_context *sc, __m512i *midstate,
    GB_8WAY( sc->buf[12], sc->buf[13], CBC, CBD, V2, V7, V8, VD );
    GB_8WAY( sc->buf[14], sc->buf[15], CBE, CBF, V3, V4, V9, VE );
    
+   // round 1
+   // G1   
+//   GB_8WAY(Mx(r, 2), Mx(r, 3), CBx(r, 2), CBx(r, 3), V1, V5, V9, VD);
+   V1 = _mm512_add_epi64( V1, _mm512_xor_si512( _mm512_set1_epi64( CB8 ),
+           sc->buf[ 4] ) );
+
+   // G2
+//   GB_8WAY(Mx(1, 4), Mx(1, 5), CBx(1, 4), CBx(1, 5), V2, V6, VA, VE);
+   V2 = _mm512_add_epi64( V2, V6 ); 
+
+   // G3
+//   GB_8WAY(Mx(r, 6), Mx(r, 7), CBx(r, 6), CBx(r, 7), V3, V7, VB, VF);
+   V3 = _mm512_add_epi64( V3, _mm512_add_epi64( _mm512_xor_si512(
+                 _mm512_set1_epi64( CB6 ), sc->buf[13] ), V7 ) );
+
    // save midstate for second part
    midstate[ 0] = V0;
    midstate[ 1] = V1;
@@ -689,9 +704,61 @@ void blake512_8way_final_le( blake_8way_big_context *sc, void *hash,
    VF = mm512_ror_64( _mm512_xor_si512( VF, V0 ), 16 );
    VA = _mm512_add_epi64( VA, VF );
    V5 = mm512_ror_64( _mm512_xor_si512( V5, VA ), 11 );
-   
+  
+   // Round 1
+   // G0
+   GB_8WAY(Mx(1, 0), Mx(1, 1), CBx(1, 0), CBx(1, 1), V0, V4, V8, VC);
+
+   // G1
+//   GB_8WAY(Mx(1, 2), Mx(1, 3), CBx(1, 2), CBx(1, 3), V1, V5, V9, VD);
+//   V1 = _mm512_add_epi64( V1, _mm512_xor_si512( _mm512_set1_epi64( c1 ), m0 );
+
+   V1 = _mm512_add_epi64( V1, V5 );   
+   VD = mm512_ror_64( _mm512_xor_si512( VD, V1 ), 32 );
+   V9 = _mm512_add_epi64( V9, VD );
+   V5 = mm512_ror_64( _mm512_xor_si512( V5, V9 ), 25 );
+   V1 = _mm512_add_epi64( V1, _mm512_add_epi64( _mm512_xor_si512(
+                 _mm512_set1_epi64( CBx(1,2) ), Mx(1,3) ), V5 ) );   
+   VD = mm512_ror_64( _mm512_xor_si512( VD, V1 ), 16 );
+   V9 = _mm512_add_epi64( V9, VD );
+   V5 = mm512_ror_64( _mm512_xor_si512( V5, V9 ), 11 );
+
+   // G2
+//   GB_8WAY(Mx(1, 4), Mx(1, 5), CBx(1, 4), CBx(1, 5), V2, V6, VA, VE);
+//   V2 = _mm512_add_epi64( V2, V6 );
+   V2 = _mm512_add_epi64( V2, _mm512_xor_si512( 
+                 _mm512_set1_epi64( CBF ), M9 ) );
+   VE = mm512_ror_64( _mm512_xor_si512( VE, V2 ), 32 );
+   VA = _mm512_add_epi64( VA, VE );
+   V6 = mm512_ror_64( _mm512_xor_si512( V6, VA ), 25 );
+   V2 = _mm512_add_epi64( V2, _mm512_add_epi64( _mm512_xor_si512(
+                 _mm512_set1_epi64( CB9 ), MF ), V6 ) );
+   VE = mm512_ror_64( _mm512_xor_si512( VE, V2 ), 16 );
+   VA = _mm512_add_epi64( VA, VE );
+   V6 = mm512_ror_64( _mm512_xor_si512( V6, VA ), 11 );
+
+   // G3
+//   GB_8WAY(Mx(1, 6), Mx(1, 7), CBx(1, 6), CBx(1, 7), V3, V7, VB, VF);
+//   V3 = _mm512_add_epi64( V3, _mm512_add_epi64( _mm512_xor_si512( 
+//                 _mm512_set1_epi64( CBx(1, 7) ), Mx(1, 6) ), V7 ) ); 
+
+   VF = mm512_ror_64( _mm512_xor_si512( VF, V3 ), 32 ); 
+   VB = _mm512_add_epi64( VB, VF ); 
+   V7 = mm512_ror_64( _mm512_xor_si512( V7, VB ), 25 );
+   V3 = _mm512_add_epi64( V3, _mm512_add_epi64( _mm512_xor_si512(
+                 _mm512_set1_epi64( CBx(1, 6) ), Mx(1, 7) ), V7 ) ); 
+   VF = mm512_ror_64( _mm512_xor_si512( VF, V3 ), 16 ); 
+   VB = _mm512_add_epi64( VB, VF ); 
+   V7 = mm512_ror_64( _mm512_xor_si512( V7, VB ), 11 );
+
+   // G4, G5, G6, G7
+   GB_8WAY(Mx(1, 8), Mx(1, 9), CBx(1, 8), CBx(1, 9), V0, V5, VA, VF);
+   GB_8WAY(Mx(1, A), Mx(1, B), CBx(1, A), CBx(1, B), V1, V6, VB, VC);
+   GB_8WAY(Mx(1, C), Mx(1, D), CBx(1, C), CBx(1, D), V2, V7, V8, VD);
+   GB_8WAY(Mx(1, E), Mx(1, F), CBx(1, E), CBx(1, F), V3, V4, V9, VE);
+
+
    // remaining rounds  
-   ROUND_B_8WAY(1);
    ROUND_B_8WAY(2);
    ROUND_B_8WAY(3);
    ROUND_B_8WAY(4);
@@ -1202,12 +1269,13 @@ void blake512_4way_prehash_le( blake_4way_big_context *sc, __m256i *midstate,
    VE = _mm256_set1_epi64x( CB6 );
    VF = _mm256_set1_epi64x( CB7 );
 
+   // round 0
    GB_4WAY( sc->buf[ 0], sc->buf[ 1], CB0, CB1, V0, V4, V8, VC );
    GB_4WAY( sc->buf[ 2], sc->buf[ 3], CB2, CB3, V1, V5, V9, VD );
    GB_4WAY( sc->buf[ 4], sc->buf[ 5], CB4, CB5, V2, V6, VA, VE );
    GB_4WAY( sc->buf[ 6], sc->buf[ 7], CB6, CB7, V3, V7, VB, VF );
 
-   // skip nonce
+   // G4 skip nonce
    V0 = _mm256_add_epi64( _mm256_add_epi64( _mm256_xor_si256(
                        _mm256_set1_epi64x( CB9 ), sc->buf[ 8] ), V5 ), V0 );
    VF = mm256_ror_64( _mm256_xor_si256( VF, V0 ), 32 );
@@ -1218,7 +1286,19 @@ void blake512_4way_prehash_le( blake_4way_big_context *sc, __m256i *midstate,
    GB_4WAY( sc->buf[10], sc->buf[11], CBA, CBB, V1, V6, VB, VC );
    GB_4WAY( sc->buf[12], sc->buf[13], CBC, CBD, V2, V7, V8, VD );
    GB_4WAY( sc->buf[14], sc->buf[15], CBE, CBF, V3, V4, V9, VE );
-   
+
+   // round 1
+   // G1   
+   V1 = _mm256_add_epi64( V1, _mm256_xor_si256( _mm256_set1_epi64x( CB8 ),
+           sc->buf[ 4] ) );
+
+   // G2
+   V2 = _mm256_add_epi64( V2, V6 );
+
+   // G3
+   V3 = _mm256_add_epi64( V3, _mm256_add_epi64( _mm256_xor_si256(
+                 _mm256_set1_epi64x( CB6 ), sc->buf[13] ), V7 ) );
+
    // save midstate for second part
    midstate[ 0] = V0;
    midstate[ 1] = V1;
@@ -1289,7 +1369,49 @@ void blake512_4way_final_le( blake_4way_big_context *sc, void *hash,
    VA = _mm256_add_epi64( VA, VF );
    V5 = mm256_ror_64( _mm256_xor_si256( V5, VA ), 11 );
 
-   ROUND_B_4WAY(1);
+   // Round 1
+   // G0
+   GB_4WAY(Mx(1, 0), Mx(1, 1), CBx(1, 0), CBx(1, 1), V0, V4, V8, VC);
+
+   // G1
+   V1 = _mm256_add_epi64( V1, V5 );
+   VD = mm256_ror_64( _mm256_xor_si256( VD, V1 ), 32 );
+   V9 = _mm256_add_epi64( V9, VD );
+   V5 = mm256_ror_64( _mm256_xor_si256( V5, V9 ), 25 );
+   V1 = _mm256_add_epi64( V1, _mm256_add_epi64( _mm256_xor_si256(
+                 _mm256_set1_epi64x( CBx(1,2) ), Mx(1,3) ), V5 ) );
+   VD = mm256_ror_64( _mm256_xor_si256( VD, V1 ), 16 );
+   V9 = _mm256_add_epi64( V9, VD );
+   V5 = mm256_ror_64( _mm256_xor_si256( V5, V9 ), 11 );
+
+   // G2
+   V2 = _mm256_add_epi64( V2, _mm256_xor_si256(
+                 _mm256_set1_epi64x( CBF ), M9 ) );
+   VE = mm256_ror_64( _mm256_xor_si256( VE, V2 ), 32 );
+   VA = _mm256_add_epi64( VA, VE );
+   V6 = mm256_ror_64( _mm256_xor_si256( V6, VA ), 25 );
+   V2 = _mm256_add_epi64( V2, _mm256_add_epi64( _mm256_xor_si256(
+                 _mm256_set1_epi64x( CB9 ), MF ), V6 ) );
+   VE = mm256_ror_64( _mm256_xor_si256( VE, V2 ), 16 );
+   VA = _mm256_add_epi64( VA, VE );
+   V6 = mm256_ror_64( _mm256_xor_si256( V6, VA ), 11 );
+
+   // G3
+   VF = mm256_ror_64( _mm256_xor_si256( VF, V3 ), 32 );
+   VB = _mm256_add_epi64( VB, VF );
+   V7 = mm256_ror_64( _mm256_xor_si256( V7, VB ), 25 );
+   V3 = _mm256_add_epi64( V3, _mm256_add_epi64( _mm256_xor_si256(
+                 _mm256_set1_epi64x( CBx(1, 6) ), Mx(1, 7) ), V7 ) );
+   VF = mm256_ror_64( _mm256_xor_si256( VF, V3 ), 16 );
+   VB = _mm256_add_epi64( VB, VF );
+   V7 = mm256_ror_64( _mm256_xor_si256( V7, VB ), 11 );
+
+   // G4, G5, G6, G7
+   GB_4WAY(Mx(1, 8), Mx(1, 9), CBx(1, 8), CBx(1, 9), V0, V5, VA, VF);
+   GB_4WAY(Mx(1, A), Mx(1, B), CBx(1, A), CBx(1, B), V1, V6, VB, VC);
+   GB_4WAY(Mx(1, C), Mx(1, D), CBx(1, C), CBx(1, D), V2, V7, V8, VD);
+   GB_4WAY(Mx(1, E), Mx(1, F), CBx(1, E), CBx(1, F), V3, V4, V9, VE);
+
    ROUND_B_4WAY(2);
    ROUND_B_4WAY(3);
    ROUND_B_4WAY(4);

@@ -66,14 +66,14 @@ int x17_8way_hash( void *state, const void *input, int thr_id )
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
      uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
      uint64_t vhashB[8*8] __attribute__ ((aligned (64)));
-     uint64_t hash0[8] __attribute__ ((aligned (64)));
-     uint64_t hash1[8] __attribute__ ((aligned (64)));
-     uint64_t hash2[8] __attribute__ ((aligned (64)));
-     uint64_t hash3[8] __attribute__ ((aligned (64)));
-     uint64_t hash4[8] __attribute__ ((aligned (64)));
-     uint64_t hash5[8] __attribute__ ((aligned (64)));
-     uint64_t hash6[8] __attribute__ ((aligned (64)));
-     uint64_t hash7[8] __attribute__ ((aligned (64)));
+     uint64_t hash0[8] __attribute__ ((aligned (32)));
+     uint64_t hash1[8] __attribute__ ((aligned (32)));
+     uint64_t hash2[8] __attribute__ ((aligned (32)));
+     uint64_t hash3[8] __attribute__ ((aligned (32)));
+     uint64_t hash4[8] __attribute__ ((aligned (32)));
+     uint64_t hash5[8] __attribute__ ((aligned (32)));
+     uint64_t hash6[8] __attribute__ ((aligned (32)));
+     uint64_t hash7[8] __attribute__ ((aligned (32)));
      x17_8way_context_overlay ctx;
 
      blake512_8way_final_le( &blake512_8way_ctx, vhash, casti_m512i( input, 9 ),
@@ -327,10 +327,10 @@ int x17_4way_hash( void *state, const void *input, int thr_id )
      uint64_t vhash[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashB[8*4] __attribute__ ((aligned (64)));
-     uint64_t hash0[8] __attribute__ ((aligned (64)));
-     uint64_t hash1[8] __attribute__ ((aligned (64)));
-     uint64_t hash2[8] __attribute__ ((aligned (64)));
-     uint64_t hash3[8] __attribute__ ((aligned (64)));
+     uint64_t hash0[8] __attribute__ ((aligned (32)));
+     uint64_t hash1[8] __attribute__ ((aligned (32)));
+     uint64_t hash2[8] __attribute__ ((aligned (32)));
+     uint64_t hash3[8] __attribute__ ((aligned (32)));
      x17_4way_context_overlay ctx;
 
      blake512_4way_full( &ctx.blake, vhash, input, 80 );

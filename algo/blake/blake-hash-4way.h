@@ -49,6 +49,20 @@ extern "C"{
 
 #define SPH_SIZE_blake512   512
 
+/////////////////////////
+//
+//  Blake-256 1 way SSE2
+
+void  blake256_transform_le( uint32_t *H, const uint32_t *buf,
+                             const uint32_t T0, const uint32_t T1 );
+
+/////////////////////////
+//
+//  Blake-512 1 way SSE2
+
+void  blake512_transform_le( uint64_t *H, const uint64_t *buf,
+                             const uint64_t T0, const uint64_t T1 );
+
 //////////////////////////
 //
 //   Blake-256 4 way SSE2

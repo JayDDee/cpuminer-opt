@@ -411,7 +411,8 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_rol_16( v, c ) \
    _mm_or_si128( _mm_slli_epi16( v, c ), _mm_srli_epi16( v, 16-(c) ) )
 
-// Limited 2 input shuffle
+// Limited 2 input shuffle, combines shuffle with blend. The destination low
+// half is always taken from src a, and the high half from src b.
 #define mm128_shuffle2_64( a, b, c ) \
    _mm_castpd_si128( _mm_shuffle_pd( _mm_castsi128_pd( a ), \
                                      _mm_castsi128_pd( b ), c ) ); 

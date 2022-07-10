@@ -198,6 +198,7 @@ void sph_blake256_init(void *cc);
  * @param len    the input data length (in bytes)
  */
 void sph_blake256(void *cc, const void *data, size_t len);
+void sph_blake256_update_le(void *cc, const void *data, size_t len);
 
 /**
  * Terminate the current BLAKE-256 computation and output the result into

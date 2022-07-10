@@ -13,8 +13,7 @@
 
 #if defined (ALLIUM_16WAY)  
 
-typedef struct {
-   blake256_16way_context     blake;
+typedef union {
    keccak256_8way_context    keccak;
    cube_4way_2buf_context    cube;
    skein256_8way_context     skein;
@@ -25,43 +24,31 @@ typedef struct {
 #endif
 } allium_16way_ctx_holder;
 
-static __thread allium_16way_ctx_holder allium_16way_ctx;
-static __thread __m512i blake256_16way_midstate[16];
-
-bool init_allium_16way_ctx()
-{
-   keccak256_8way_init( &allium_16way_ctx.keccak );
-   skein256_8way_init( &allium_16way_ctx.skein );
-   return true;
-}
-
-void allium_16way_hash( void *state, const void *input )
+static void allium_16way_hash( void *state, const void *midstate_vars, 
+                               const void *midhash, const void *block )
 {
    uint32_t vhash[16*8] __attribute__ ((aligned (128)));
    uint32_t vhashA[16*8] __attribute__ ((aligned (64)));
    uint32_t vhashB[16*8] __attribute__ ((aligned (64)));
-   uint32_t hash0[8] __attribute__ ((aligned (64)));
-   uint32_t hash1[8] __attribute__ ((aligned (64)));
-   uint32_t hash2[8] __attribute__ ((aligned (64)));
-   uint32_t hash3[8] __attribute__ ((aligned (64)));
-   uint32_t hash4[8] __attribute__ ((aligned (64)));
-   uint32_t hash5[8] __attribute__ ((aligned (64)));
-   uint32_t hash6[8] __attribute__ ((aligned (64)));
-   uint32_t hash7[8] __attribute__ ((aligned (64)));
-   uint32_t hash8[8] __attribute__ ((aligned (64)));
-   uint32_t hash9[8] __attribute__ ((aligned (64)));
-   uint32_t hash10[8] __attribute__ ((aligned (64)));
-   uint32_t hash11[8] __attribute__ ((aligned (64)));
-   uint32_t hash12[8] __attribute__ ((aligned (64)));
-   uint32_t hash13[8] __attribute__ ((aligned (64)));
-   uint32_t hash14[8] __attribute__ ((aligned (64)));
-   uint32_t hash15[8] __attribute__ ((aligned (64)));
+   uint32_t hash0[8] __attribute__ ((aligned (32)));
+   uint32_t hash1[8] __attribute__ ((aligned (32)));
+   uint32_t hash2[8] __attribute__ ((aligned (32)));
+   uint32_t hash3[8] __attribute__ ((aligned (32)));
+   uint32_t hash4[8] __attribute__ ((aligned (32)));
+   uint32_t hash5[8] __attribute__ ((aligned (32)));
+   uint32_t hash6[8] __attribute__ ((aligned (32)));
+   uint32_t hash7[8] __attribute__ ((aligned (32)));
+   uint32_t hash8[8] __attribute__ ((aligned (32)));
+   uint32_t hash9[8] __attribute__ ((aligned (32)));
+   uint32_t hash10[8] __attribute__ ((aligned (32)));
+   uint32_t hash11[8] __attribute__ ((aligned (32)));
+   uint32_t hash12[8] __attribute__ ((aligned (32)));
+   uint32_t hash13[8] __attribute__ ((aligned (32)));
+   uint32_t hash14[8] __attribute__ ((aligned (32)));
+   uint32_t hash15[8] __attribute__ ((aligned (32)));
    allium_16way_ctx_holder ctx __attribute__ ((aligned (64)));
 
-   memcpy( &ctx, &allium_16way_ctx, sizeof(allium_16way_ctx) );
-   ctx.blake.buf[3] = casti_m512i( input, 19 ); // grab nonce from input
-   blake256_16way_final_rounds_le( vhash, blake256_16way_midstate, ctx.blake.H,
-                                   ctx.blake.buf );    
+   blake256_16way_final_rounds_le( vhash, midstate_vars, midhash, block );
 
    dintrlv_16x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                   hash8, hash9, hash10, hash11, hash12, hash13, hash14, hash15,
@@ -71,6 +58,7 @@ void allium_16way_hash( void *state, const void *input )
    intrlv_8x64( vhashB, hash8, hash9, hash10, hash11, hash12, hash13, hash14,
                 hash15, 256 );
    
+   keccak256_8way_init( &ctx.keccak );
    keccak256_8way_update( &ctx.keccak, vhashA, 32 );
    keccak256_8way_close( &ctx.keccak, vhashA);
    keccak256_8way_init( &ctx.keccak );
@@ -153,6 +141,7 @@ void allium_16way_hash( void *state, const void *input )
    intrlv_8x64( vhashB, hash8, hash9, hash10, hash11, hash12, hash13, hash14,
                 hash15, 256 );
 
+   skein256_8way_init( &ctx.skein );
    skein256_8way_update( &ctx.skein, vhashA, 32 );
    skein256_8way_close( &ctx.skein, vhashA );
    skein256_8way_init( &ctx.skein );
@@ -208,41 +197,64 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
                              uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash[8*16] __attribute__ ((aligned (128)));
-   uint32_t vdata[20*16] __attribute__ ((aligned (64)));
+   uint32_t midstate_vars[16*16] __attribute__ ((aligned (64)));
+   __m512i block0_hash[8] __attribute__ ((aligned (64)));
+   __m512i block_buf[16] __attribute__ ((aligned (64)));
+   uint32_t phash[8] __attribute__ ((aligned (32))) = 
+   {
+      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
+      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
+   };
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
    const uint32_t last_nonce = max_nonce - 16;
-   __m512i  *noncev = (__m512i*)vdata + 19;   // aligned
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
    const __m512i sixteen = m512_const1_32( 16 );
 
    if ( bench ) ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   for ( int i = 0; i < 19; i++ )
-      casti_m512i( vdata, i ) = _mm512_set1_epi32( pdata[i] );
-   *noncev = _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+ 9, n+ 8,
-                               n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
+   // Prehash first block.
+   blake256_transform_le( phash, pdata, 512, 0 );
 
-   // Prehash first block
-   blake256_16way_init( &allium_16way_ctx.blake );
-   blake256_16way_update_le( &allium_16way_ctx.blake, vdata, 64 );
-   
-   // Prehash second block, fill buf with last 16 bytes and add padding.
-   memcpy_512( allium_16way_ctx.blake.buf, (__m512i*)vdata + 16, 4 );
-   allium_16way_ctx.blake.buf[ 4] = m512_const1_32( 0x80000000 );
-   memset_zero_512( allium_16way_ctx.blake.buf + 5, 8 );
-   allium_16way_ctx.blake.buf[13] = m512_one_32;
-   allium_16way_ctx.blake.buf[14] = m512_zero;
-   allium_16way_ctx.blake.buf[15] = m512_const1_32( 80*8 );
+   // Interleave hash for second block prehash.
+   block0_hash[0] = _mm512_set1_epi32( phash[0] );
+   block0_hash[1] = _mm512_set1_epi32( phash[1] );
+   block0_hash[2] = _mm512_set1_epi32( phash[2] );
+   block0_hash[3] = _mm512_set1_epi32( phash[3] );
+   block0_hash[4] = _mm512_set1_epi32( phash[4] );
+   block0_hash[5] = _mm512_set1_epi32( phash[5] );
+   block0_hash[6] = _mm512_set1_epi32( phash[6] );
+   block0_hash[7] = _mm512_set1_epi32( phash[7] );
 
-   blake256_16way_round0_prehash_le( blake256_16way_midstate,
-                      allium_16way_ctx.blake.H, allium_16way_ctx.blake.buf );
+   // Build vectored second block, interleave last 16 bytes of data using
+   // unique nonces, add padding.
+   block_buf[ 0] = _mm512_set1_epi32( pdata[16] );
+   block_buf[ 1] = _mm512_set1_epi32( pdata[17] );
+   block_buf[ 2] = _mm512_set1_epi32( pdata[18] );
+   block_buf[ 3] =
+             _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+ 9, n+ 8,
+                               n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n+ 1, n );
+   block_buf[ 4] = m512_const1_32( 0x80000000 );
+   block_buf[ 5] =
+   block_buf[ 6] = 
+   block_buf[ 7] = 
+   block_buf[ 8] = 
+   block_buf[ 9] = 
+   block_buf[10] = 
+   block_buf[11] = 
+   block_buf[12] = m512_zero;
+   block_buf[13] = m512_one_32;
+   block_buf[14] = m512_zero;
+   block_buf[15] = m512_const1_32( 80*8 );
+
+   // Partialy prehash second block without touching nonces in block_buf[3].
+   blake256_16way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
-     allium_16way_hash( hash, vdata );
+     allium_16way_hash( hash, midstate_vars, block0_hash, block_buf );
 
      for ( int lane = 0; lane < 16; lane++ ) 
      if ( unlikely( valid_hash( hash+(lane<<3), ptarget ) && !bench ) )
@@ -250,7 +262,7 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
         pdata[19] = n + lane;
         submit_solution( work, hash+(lane<<3), mythr );
      }
-     *noncev = _mm512_add_epi32( *noncev, sixteen );
+     block_buf[ 3] = _mm512_add_epi32( block_buf[ 3], sixteen ); 
      n += 16;
    } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart) );
    pdata[19] = n;
@@ -260,8 +272,7 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
 
 #elif defined (ALLIUM_8WAY)  
 
-typedef struct {
-   blake256_8way_context     blake;
+typedef union {
    keccak256_4way_context    keccak;
    cube_2way_context         cube;
    skein256_4way_context     skein;
@@ -272,20 +283,11 @@ typedef struct {
 #endif
 } allium_8way_ctx_holder;
 
-static __thread allium_8way_ctx_holder allium_8way_ctx;
-static __thread __m256i blake256_8way_midstate[16];
-
-bool init_allium_8way_ctx()
-{
-   keccak256_4way_init( &allium_8way_ctx.keccak );
-   skein256_4way_init( &allium_8way_ctx.skein );
-   return true;
-}
-
-void allium_8way_hash( void *hash, const void *input )
+static void allium_8way_hash( void *hash, const void *midstate_vars,
+                               const void *midhash, const void *block )
 {
    uint64_t vhashA[4*8] __attribute__ ((aligned (64)));
-   uint64_t vhashB[4*8] __attribute__ ((aligned (64)));
+   uint64_t vhashB[4*8] __attribute__ ((aligned (32)));
    uint64_t *hash0 = (uint64_t*)hash;
    uint64_t *hash1 = (uint64_t*)hash+ 4;
    uint64_t *hash2 = (uint64_t*)hash+ 8;
@@ -296,16 +298,14 @@ void allium_8way_hash( void *hash, const void *input )
    uint64_t *hash7 = (uint64_t*)hash+28;
    allium_8way_ctx_holder ctx __attribute__ ((aligned (64))); 
 
-   memcpy( &ctx, &allium_8way_ctx, sizeof(allium_8way_ctx) );
-   ctx.blake.buf[3] = casti_m256i( input, 19 ); // grab nonce from input
-   blake256_8way_final_rounds_le( vhashA, blake256_8way_midstate, ctx.blake.H,
-                                   ctx.blake.buf );
+   blake256_8way_final_rounds_le( vhashA, midstate_vars, midhash, block );
 
    dintrlv_8x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                  vhashA, 256 );
    intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 256 );
    intrlv_4x64( vhashB, hash4, hash5, hash6, hash7, 256 );
 
+   keccak256_4way_init( &ctx.keccak );
    keccak256_4way_update( &ctx.keccak, vhashA, 32 );
    keccak256_4way_close( &ctx.keccak, vhashA );
    keccak256_4way_init( &ctx.keccak );
@@ -323,7 +323,6 @@ void allium_8way_hash( void *hash, const void *input )
    LYRA2RE( hash5, 32, hash5, 32, hash5, 32, 1, 8, 8 );
    LYRA2RE( hash6, 32, hash6, 32, hash6, 32, 1, 8, 8 );
    LYRA2RE( hash7, 32, hash7, 32, hash7, 32, 1, 8, 8 );
-
 
    intrlv_2x128( vhashA, hash0, hash1, 256 );
    intrlv_2x128( vhashB, hash2, hash3, 256 );
@@ -351,6 +350,7 @@ void allium_8way_hash( void *hash, const void *input )
    intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 256 );
    intrlv_4x64( vhashB, hash4, hash5, hash6, hash7, 256 );
 
+   skein256_4way_init( &ctx.skein );
    skein256_4way_update( &ctx.skein, vhashA, 32 );
    skein256_4way_close( &ctx.skein, vhashA );
    skein256_4way_init( &ctx.skein );
@@ -359,8 +359,8 @@ void allium_8way_hash( void *hash, const void *input )
 
 #if defined(__VAES__)
 
-   uint64_t vhashC[4*2] __attribute__ ((aligned (64)));
-   uint64_t vhashD[4*2] __attribute__ ((aligned (64)));
+   uint64_t vhashC[4*2] __attribute__ ((aligned (32)));
+   uint64_t vhashD[4*2] __attribute__ ((aligned (32)));
    
    rintrlv_4x64_2x128( vhashC, vhashD, vhashA, 256 );
    groestl256_2way_full( &ctx.groestl, vhashC, vhashC, 32 );
@@ -395,37 +395,60 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
                              uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint64_t hash[4*8] __attribute__ ((aligned (64)));
-   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
+   uint32_t midstate_vars[16*8] __attribute__ ((aligned (64)));
+   __m256i block0_hash[8] __attribute__ ((aligned (64)));
+   __m256i block_buf[16] __attribute__ ((aligned (64)));
+   uint32_t phash[8] __attribute__ ((aligned (32))) =
+   {
+      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
+      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
+   };
    uint32_t *pdata = work->data;
    uint64_t *ptarget = (uint64_t*)work->target;
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 8;
    uint32_t n = first_nonce;
-   __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
    const int thr_id = mythr->id;  
    const bool bench = opt_benchmark;
-
-   for ( int i = 0; i < 19; i++ )
-      casti_m256i( vdata, i ) = _mm256_set1_epi32( pdata[i] );
-   *noncev = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
+   const __m256i eight = m256_const1_32( 8 );
 
    // Prehash first block
-   blake256_8way_init( &allium_8way_ctx.blake );
-   blake256_8way_update_le( &allium_8way_ctx.blake, vdata, 64 );
+   blake256_transform_le( phash, pdata, 512, 0 );
 
-   // Prehash second block, fill buf with last 16 bytes and add padding.
-   memcpy_256( allium_8way_ctx.blake.buf, (__m256i*)vdata + 16, 4 );
-   allium_8way_ctx.blake.buf[ 4] = m256_const1_32( 0x80000000 );
-   memset_zero_256( allium_8way_ctx.blake.buf + 5, 8 );
-   allium_8way_ctx.blake.buf[13] = m256_one_32;
-   allium_8way_ctx.blake.buf[14] = m256_zero;
-   allium_8way_ctx.blake.buf[15] = m256_const1_32( 80*8 );
+   block0_hash[0] = _mm256_set1_epi32( phash[0] );
+   block0_hash[1] = _mm256_set1_epi32( phash[1] );
+   block0_hash[2] = _mm256_set1_epi32( phash[2] );
+   block0_hash[3] = _mm256_set1_epi32( phash[3] );
+   block0_hash[4] = _mm256_set1_epi32( phash[4] );
+   block0_hash[5] = _mm256_set1_epi32( phash[5] );
+   block0_hash[6] = _mm256_set1_epi32( phash[6] );
+   block0_hash[7] = _mm256_set1_epi32( phash[7] );
 
-   blake256_8way_round0_prehash_le( blake256_8way_midstate,
-                      allium_8way_ctx.blake.H, allium_8way_ctx.blake.buf );
+   // Build vectored second block, interleave last 16 bytes of data using
+   // unique nonces and add padding.
+   block_buf[ 0] = _mm256_set1_epi32( pdata[16] );
+   block_buf[ 1] = _mm256_set1_epi32( pdata[17] );
+   block_buf[ 2] = _mm256_set1_epi32( pdata[18] );
+   block_buf[ 3] =
+            _mm256_set_epi32( n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n+ 1, n );
+   block_buf[ 4] = m256_const1_32( 0x80000000 );
+   block_buf[ 5] =
+   block_buf[ 6] =
+   block_buf[ 7] =
+   block_buf[ 8] =
+   block_buf[ 9] =
+   block_buf[10] =
+   block_buf[11] =
+   block_buf[12] = m256_zero;
+   block_buf[13] = m256_one_32;
+   block_buf[14] = m256_zero;
+   block_buf[15] = m256_const1_32( 80*8 );
+
+   // Partialy prehash second block without touching nonces
+   blake256_8way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
-     allium_8way_hash( hash, vdata );
+     allium_8way_hash( hash, midstate_vars, block0_hash, block_buf );
 
      for ( int lane = 0; lane < 8; lane++ )
      {
@@ -437,7 +460,7 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
         }
      }
      n += 8;
-     *noncev = _mm256_add_epi32( *noncev, m256_const1_32( 8 ) );
+     block_buf[ 3] = _mm256_add_epi32( block_buf[ 3], eight );
    } while ( likely( (n <= last_nonce) && !work_restart[thr_id].restart ) );
    pdata[19] = n;
    *hashes_done = n - first_nonce;

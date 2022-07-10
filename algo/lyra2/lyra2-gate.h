@@ -99,14 +99,14 @@ bool init_lyra2rev2_ctx();
 
 #if defined(LYRA2Z_16WAY)
 
-void lyra2z_16way_hash( void *state, const void *input );
+//void lyra2z_16way_hash( void *state, const void *input );
 int scanhash_lyra2z_16way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr );
 bool lyra2z_16way_thread_init();
 
 #elif defined(LYRA2Z_8WAY)
 
-void lyra2z_8way_hash( void *state, const void *input );
+//void lyra2z_8way_hash( void *state, const void *input );
 int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr );
 bool lyra2z_8way_thread_init();
@@ -163,17 +163,13 @@ bool register_allium_algo( algo_gate_t* gate );
 
 #if defined(ALLIUM_16WAY)
 
-void allium_16way_hash( void *state, const void *input );
 int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr );
-bool init_allium_16way_ctx();
 
 #elif defined(ALLIUM_8WAY)
 
-void allium_8way_hash( void *state, const void *input );
 int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
                           uint64_t *hashes_done, struct thr_info *mythr );
-bool init_allium_8way_ctx();
 
 #else
 

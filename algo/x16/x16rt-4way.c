@@ -30,8 +30,8 @@ int scanhash_x16rt_8way( struct work *work, uint32_t max_nonce,
       x16rt_getTimeHash( masked_ntime, &timeHash );
       x16rt_getAlgoString( &timeHash[0], x16r_hash_order );
       s_ntime = masked_ntime;
-      if ( opt_debug && !thr_id )
-          applog( LOG_INFO, "hash order: %s time: (%08x) time hash: (%08x)",
+      if ( !thr_id )
+          applog( LOG_INFO, "Hash order %s, Nime %08x, time hash %08x",
                             x16r_hash_order, bswap_32( pdata[17] ), timeHash );
    }
 
@@ -84,8 +84,8 @@ int scanhash_x16rt_4way( struct work *work, uint32_t max_nonce,
       x16rt_getTimeHash( masked_ntime, &timeHash );
       x16rt_getAlgoString( &timeHash[0], x16r_hash_order );
       s_ntime = masked_ntime;
-      if ( opt_debug && !thr_id )
-          applog( LOG_INFO, "hash order: %s time: (%08x) time hash: (%08x)",
+      if ( !thr_id )
+          applog( LOG_INFO, "Hash order %s, Nime %08x, time hash %08x",
                             x16r_hash_order, bswap_32( pdata[17] ), timeHash );
    }
 

@@ -502,6 +502,28 @@ static inline bool has_vaes()
 #endif
 }
 
+static inline bool has_vbmi()
+{
+#ifdef __arm__
+    return false;
+#else
+    int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, cpu_info );
+    return cpu_info[ ECX_Reg ] & AVX512VBMI_Flag;
+#endif
+}
+
+static inline bool has_vbmi2()
+{
+#ifdef __arm__
+    return false;
+#else
+    int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, cpu_info );
+    return cpu_info[ ECX_Reg ] & AVX512VBMI2_Flag;
+#endif
+}
+
 // AMD only
 static inline bool has_xop()
 {

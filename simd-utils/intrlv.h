@@ -2654,6 +2654,10 @@ static inline void intrlv_2x128( void *dst, const void *src0,
    d[10] = s0[5];   d[11] = s1[5];
    d[12] = s0[6];   d[13] = s1[6];
    d[14] = s0[7];   d[15] = s1[7];
+   if ( bit_len <= 1024 ) return;
+   d[16] = s0[8];   d[17] = s1[8];
+   d[18] = s0[9];   d[19] = s1[9];
+   //   if ( bit_len <= 1280 ) return;
 }
 
 static inline void intrlv_2x128_512( void *dst, const void *src0,
@@ -2721,6 +2725,10 @@ static inline void intrlv_4x128( void *dst, const void *src0,
    d[20] = s0[5];    d[21] = s1[5];    d[22] = s2[5];    d[23] = s3[5];
    d[24] = s0[6];    d[25] = s1[6];    d[26] = s2[6];    d[27] = s3[6];
    d[28] = s0[7];    d[29] = s1[7];    d[30] = s2[7];    d[31] = s3[7];
+   if ( bit_len <= 1024 ) return;
+   d[32] = s0[8];    d[33] = s1[8];    d[34] = s2[8];    d[35] = s3[8];
+   d[36] = s0[9];    d[37] = s1[9];    d[38] = s2[9];    d[39] = s3[9];
+   // if ( bit_len <= 1280 ) return;
 }
 
 static inline void intrlv_4x128_512( void *dst, const void *src0,

@@ -45,14 +45,14 @@ static __thread x16rv2_8way_context_overlay x16rv2_ctx;
 int x16rv2_8way_hash( void* output, const void* input, int thrid )
 {
    uint32_t vhash[24*8] __attribute__ ((aligned (128)));
-   uint32_t hash0[24] __attribute__ ((aligned (64)));
-   uint32_t hash1[24] __attribute__ ((aligned (64)));
-   uint32_t hash2[24] __attribute__ ((aligned (64)));
-   uint32_t hash3[24] __attribute__ ((aligned (64)));
-   uint32_t hash4[24] __attribute__ ((aligned (64)));
-   uint32_t hash5[24] __attribute__ ((aligned (64)));
-   uint32_t hash6[24] __attribute__ ((aligned (64)));
-   uint32_t hash7[24] __attribute__ ((aligned (64)));
+   uint32_t hash0[24] __attribute__ ((aligned (32)));
+   uint32_t hash1[24] __attribute__ ((aligned (32)));
+   uint32_t hash2[24] __attribute__ ((aligned (32)));
+   uint32_t hash3[24] __attribute__ ((aligned (32)));
+   uint32_t hash4[24] __attribute__ ((aligned (32)));
+   uint32_t hash5[24] __attribute__ ((aligned (32)));
+   uint32_t hash6[24] __attribute__ ((aligned (32)));
+   uint32_t hash7[24] __attribute__ ((aligned (32)));
    x16rv2_8way_context_overlay ctx;
    memcpy( &ctx, &x16rv2_ctx, sizeof(ctx) );
    void *in0 = (void*) hash0;
@@ -706,11 +706,11 @@ inline void padtiger512( uint32_t* hash )
 
 int x16rv2_4way_hash( void* output, const void* input, int thrid )
 {
-   uint32_t hash0[20] __attribute__ ((aligned (64)));
-   uint32_t hash1[20] __attribute__ ((aligned (64)));
-   uint32_t hash2[20] __attribute__ ((aligned (64)));
-   uint32_t hash3[20] __attribute__ ((aligned (64)));
    uint32_t vhash[20*4] __attribute__ ((aligned (64)));
+   uint32_t hash0[20] __attribute__ ((aligned (32)));
+   uint32_t hash1[20] __attribute__ ((aligned (32)));
+   uint32_t hash2[20] __attribute__ ((aligned (32)));
+   uint32_t hash3[20] __attribute__ ((aligned (32)));
    x16rv2_4way_context_overlay ctx;
    memcpy( &ctx, &x16rv2_ctx, sizeof(ctx) );
    void *in0 = (void*) hash0;
@@ -1054,8 +1054,8 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
    uint32_t hash[4*16] __attribute__ ((aligned (64)));
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
    uint32_t vdata32[20*4] __attribute__ ((aligned (64)));
-   uint32_t edata[20] __attribute__ ((aligned (64)));
-   uint32_t bedata1[2] __attribute__((aligned(64)));
+   uint32_t edata[20];
+   uint32_t bedata1[2];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -1068,7 +1068,6 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
 
    if ( bench )  ptarget[7] = 0x0fff;
    
-
    bedata1[0] = bswap_32( pdata[1] );
    bedata1[1] = bswap_32( pdata[2] );
 

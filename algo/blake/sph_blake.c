@@ -630,6 +630,69 @@ static const sph_u64 CB[16] = {
 		H7 ^= S3 ^ V7 ^ VF; \
 	} while (0)
 
+#define COMPRESS32_LE   do { \
+      sph_u32 M0, M1, M2, M3, M4, M5, M6, M7; \
+      sph_u32 M8, M9, MA, MB, MC, MD, ME, MF; \
+      sph_u32 V0, V1, V2, V3, V4, V5, V6, V7; \
+      sph_u32 V8, V9, VA, VB, VC, VD, VE, VF; \
+      V0 = H0; \
+      V1 = H1; \
+      V2 = H2; \
+      V3 = H3; \
+      V4 = H4; \
+      V5 = H5; \
+      V6 = H6; \
+      V7 = H7; \
+      V8 = S0 ^ CS0; \
+      V9 = S1 ^ CS1; \
+      VA = S2 ^ CS2; \
+      VB = S3 ^ CS3; \
+      VC = T0 ^ CS4; \
+      VD = T0 ^ CS5; \
+      VE = T1 ^ CS6; \
+      VF = T1 ^ CS7; \
+      M0 = *((uint32_t*)(buf +  0)); \
+      M1 = *((uint32_t*)(buf +  4)); \
+      M2 = *((uint32_t*)(buf +  8)); \
+      M3 = *((uint32_t*)(buf + 12)); \
+      M4 = *((uint32_t*)(buf + 16)); \
+      M5 = *((uint32_t*)(buf + 20)); \
+      M6 = *((uint32_t*)(buf + 24)); \
+      M7 = *((uint32_t*)(buf + 28)); \
+      M8 = *((uint32_t*)(buf + 32)); \
+      M9 = *((uint32_t*)(buf + 36)); \
+      MA = *((uint32_t*)(buf + 40)); \
+      MB = *((uint32_t*)(buf + 44)); \
+      MC = *((uint32_t*)(buf + 48)); \
+      MD = *((uint32_t*)(buf + 52)); \
+      ME = *((uint32_t*)(buf + 56)); \
+      MF = *((uint32_t*)(buf + 60)); \
+      ROUND_S(0); \
+      ROUND_S(1); \
+      ROUND_S(2); \
+      ROUND_S(3); \
+      ROUND_S(4); \
+      ROUND_S(5); \
+      ROUND_S(6); \
+      ROUND_S(7); \
+      if (BLAKE32_ROUNDS == 14) { \
+      ROUND_S(8); \
+      ROUND_S(9); \
+      ROUND_S(0); \
+      ROUND_S(1); \
+      ROUND_S(2); \
+      ROUND_S(3); \
+      } \
+      H0 ^= S0 ^ V0 ^ V8; \
+      H1 ^= S1 ^ V1 ^ V9; \
+      H2 ^= S2 ^ V2 ^ VA; \
+      H3 ^= S3 ^ V3 ^ VB; \
+      H4 ^= S0 ^ V4 ^ VC; \
+      H5 ^= S1 ^ V5 ^ VD; \
+      H6 ^= S2 ^ V6 ^ VE; \
+      H7 ^= S3 ^ V7 ^ VF; \
+   } while (0)
+
 #endif
 
 #if SPH_64
@@ -844,6 +907,45 @@ blake32(sph_blake_small_context *sc, const void *data, size_t len)
 }
 
 static void
+blake32_le(sph_blake_small_context *sc, const void *data, size_t len)
+{
+   unsigned char *buf;
+   size_t ptr;
+   DECL_STATE32
+
+   buf = sc->buf;
+   ptr = sc->ptr;
+
+   if (len < (sizeof sc->buf) - ptr) {
+      memcpy(buf + ptr, data, len);
+      ptr += len;
+      sc->ptr = ptr;
+      return;
+   }
+
+   READ_STATE32(sc);
+   while (len > 0) {
+      size_t clen;
+
+      clen = (sizeof sc->buf) - ptr;
+      if (clen > len)
+         clen = len;
+      memcpy(buf + ptr, data, clen);
+      ptr += clen;
+      data = (const unsigned char *)data + clen;
+      len -= clen;
+      if (ptr == sizeof sc->buf) {
+         if ((T0 = SPH_T32(T0 + 512)) < 512)
+            T1 = SPH_T32(T1 + 1);
+         COMPRESS32_LE;
+         ptr = 0;
+      }
+   }
+   WRITE_STATE32(sc);
+   sc->ptr = ptr;
+}
+
+static void
 blake32_close(sph_blake_small_context *sc,
 	unsigned ub, unsigned n, void *dst, size_t out_size_w32)
 {
@@ -1048,6 +1150,12 @@ void
 sph_blake256(void *cc, const void *data, size_t len)
 {
 	blake32(cc, data, len);
+}
+
+void
+sph_blake256_update_le(void *cc, const void *data, size_t len)
+{
+   blake32_le(cc, data, len);
 }
 
 /* see sph_blake.h */

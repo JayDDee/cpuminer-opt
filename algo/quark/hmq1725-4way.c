@@ -64,14 +64,14 @@ extern void hmq1725_8way_hash(void *state, const void *input)
    uint32_t vhashA[16<<3] __attribute__ ((aligned (64)));
    uint32_t vhashB[16<<3] __attribute__ ((aligned (64)));
    uint32_t vhashC[16<<3] __attribute__ ((aligned (64)));
-   uint32_t hash0 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash1 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash2 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash3 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash4 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash5 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash6 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash7 [16]    __attribute__ ((aligned (64)));
+   uint32_t hash0 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash1 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash2 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash3 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash4 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash5 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash6 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash7 [16]    __attribute__ ((aligned (32)));
    hmq1725_8way_context_overlay ctx __attribute__ ((aligned (64)));
    __mmask8 vh_mask;
    const __m512i vmask = m512_const1_64( 24 );
@@ -639,13 +639,13 @@ typedef union _hmq1725_4way_context_overlay hmq1725_4way_context_overlay;
 
 extern void hmq1725_4way_hash(void *state, const void *input)
 {
-   uint32_t hash0 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash1 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash2 [16]    __attribute__ ((aligned (64)));
-   uint32_t hash3 [16]    __attribute__ ((aligned (64)));
    uint32_t vhash [16<<2] __attribute__ ((aligned (64)));
    uint32_t vhashA[16<<2] __attribute__ ((aligned (64)));
    uint32_t vhashB[16<<2] __attribute__ ((aligned (64)));
+   uint32_t hash0 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash1 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash2 [16]    __attribute__ ((aligned (32)));
+   uint32_t hash3 [16]    __attribute__ ((aligned (32)));
    hmq1725_4way_context_overlay ctx __attribute__ ((aligned (64)));
    __m256i vh_mask;     
    int h_mask;
