@@ -227,12 +227,10 @@ int groestl256_full( hashState_groestl256* ctx,
   ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
   INIT256( ctx->chaining );
   ctx->buf_ptr = 0;
-  ctx->rem_ptr = 0;
 
    const int len = (int)databitlen / 128;
    const int hashlen_m128i = ctx->hashlen / 16;   // bytes to __m128i
    const int hash_offset = SIZE256 - hashlen_m128i;
-   int rem = ctx->rem_ptr;
    int blocks = len / SIZE256;
    __m128i* in = (__m128i*)input;
 
@@ -245,7 +243,7 @@ int groestl256_full( hashState_groestl256* ctx,
 
    // cryptonight has 200 byte input, an odd number of __m128i
    // remainder is only 8 bytes, ie u64.
-   if ( databitlen % 128 !=0 )
+   if ( databitlen % 128 != 0 )
    {
       // must be cryptonight, copy 64 bits of data
       *(uint64_t*)(ctx->buffer) = *(uint64_t*)(&in[ ctx->buf_ptr ] );
@@ -255,8 +253,8 @@ int groestl256_full( hashState_groestl256* ctx,
    {
       // Copy any remaining data to buffer for final transform
       for ( i = 0; i < len % SIZE256; i++ )
-          ctx->buffer[ rem + i ] = in[ ctx->buf_ptr + i ];
-      i += rem;   // use i as rem_ptr in final
+          ctx->buffer[ i ] = in[ ctx->buf_ptr + i ];
+      // use i as rem_ptr in final
    }
 
    //--- final ---

@@ -50,7 +50,6 @@ int groestl256_4way_full( groestl256_4way_context* ctx, void* output,
    const int len = (int)datalen >> 4;
    const int hashlen_m128i = 32 >> 4;   // bytes to __m128i
    const int hash_offset = SIZE256 - hashlen_m128i;
-   int rem = ctx->rem_ptr;
    uint64_t blocks = len / SIZE256;
    __m512i* in = (__m512i*)input;
    int i;
@@ -67,7 +66,6 @@ int groestl256_4way_full( groestl256_4way_context* ctx, void* output,
   // The only non-zero in the IV is len. It can be hard coded.
   ctx->chaining[ 3 ] = m512_const2_64( 0, 0x0100000000000000 );
   ctx->buf_ptr = 0;
-  ctx->rem_ptr = 0;
    
    // --- update ---
 
@@ -76,11 +74,10 @@ int groestl256_4way_full( groestl256_4way_context* ctx, void* output,
       TF512_4way( ctx->chaining, &in[ i * SIZE256 ] );
    ctx->buf_ptr = blocks * SIZE256;
 
-   // copy any remaining data to buffer, it may already contain data
-   // from a previous update for a midstate precalc
+   // copy any remaining data to buffer 
    for ( i = 0; i < len % SIZE256; i++ )
-       ctx->buffer[ rem + i ] = in[ ctx->buf_ptr + i ];
-   i += rem;    // use i as rem_ptr in final
+       ctx->buffer[ i ] = in[ ctx->buf_ptr + i ];
+   // use i as rem_ptr in final
 
    //--- final ---
 
@@ -206,7 +203,6 @@ int groestl256_2way_full( groestl256_2way_context* ctx, void* output,
    const int len = (int)datalen >> 4;
    const int hashlen_m128i = 32 >> 4;   // bytes to __m128i
    const int hash_offset = SIZE256 - hashlen_m128i;
-   int rem = ctx->rem_ptr;
    uint64_t blocks = len / SIZE256;
    __m256i* in = (__m256i*)input;
    int i;
@@ -223,7 +219,6 @@ int groestl256_2way_full( groestl256_2way_context* ctx, void* output,
    // The only non-zero in the IV is len. It can be hard coded.
    ctx->chaining[ 3 ] = m256_const2_64( 0, 0x0100000000000000 );
    ctx->buf_ptr = 0;
-   ctx->rem_ptr = 0;
 
    // --- update ---
 
@@ -232,11 +227,10 @@ int groestl256_2way_full( groestl256_2way_context* ctx, void* output,
       TF512_2way( ctx->chaining, &in[ i * SIZE256 ] );
    ctx->buf_ptr = blocks * SIZE256;
 
-   // copy any remaining data to buffer, it may already contain data
-   // from a previous update for a midstate precalc
+   // copy any remaining data to buffer
    for ( i = 0; i < len % SIZE256; i++ )
-       ctx->buffer[ rem + i ] = in[ ctx->buf_ptr + i ];
-   i += rem;    // use i as rem_ptr in final
+       ctx->buffer[ i ] = in[ ctx->buf_ptr + i ];
+   // use i as rem_ptr in final
 
    //--- final ---
 

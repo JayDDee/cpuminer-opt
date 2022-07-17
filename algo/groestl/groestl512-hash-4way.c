@@ -99,7 +99,6 @@ int groestl512_4way_full( groestl512_4way_context* ctx, void* output,
    memset_zero_512( ctx->buffer, SIZE512 );
    ctx->chaining[ 6 ] = m512_const2_64( 0x0200000000000000, 0 );
    ctx->buf_ptr = 0;
-   ctx->rem_ptr = 0;
 
    // --- update ---
 
@@ -108,8 +107,7 @@ int groestl512_4way_full( groestl512_4way_context* ctx, void* output,
    ctx->buf_ptr = blocks * SIZE512;
 
    for ( i = 0; i < len % SIZE512; i++ )
-       ctx->buffer[ ctx->rem_ptr + i ] = in[ ctx->buf_ptr + i ];
-   i += ctx->rem_ptr;
+       ctx->buffer[ i ] = in[ ctx->buf_ptr + i ];
 
    // --- close ---
 
@@ -222,7 +220,6 @@ int groestl512_2way_full( groestl512_2way_context* ctx, void* output,
    memset_zero_256( ctx->buffer, SIZE512 );
    ctx->chaining[ 6 ] = m256_const2_64( 0x0200000000000000, 0 );
    ctx->buf_ptr = 0;
-   ctx->rem_ptr = 0;
 
    // --- update ---
 
@@ -231,8 +228,7 @@ int groestl512_2way_full( groestl512_2way_context* ctx, void* output,
    ctx->buf_ptr = blocks * SIZE512;
 
    for ( i = 0; i < len % SIZE512; i++ )
-       ctx->buffer[ ctx->rem_ptr + i ] = in[ ctx->buf_ptr + i ];
-   i += ctx->rem_ptr;
+       ctx->buffer[ i ] = in[ ctx->buf_ptr + i ];
 
    // --- close ---
 

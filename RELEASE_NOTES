@@ -65,6 +65,10 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.20.0
+
+#375 Fixed segfault in algos using Groestl VAES due to use of uninitialized data.
+
 v3.19.9
 
 More Blake256, Blake512, Luffa & Cubehash prehash optimizations.

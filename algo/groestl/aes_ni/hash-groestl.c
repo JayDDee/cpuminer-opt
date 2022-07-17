@@ -156,14 +156,12 @@ int groestl512_full( hashState_groestl* ctx, void* output,
    }
    ctx->chaining[ 6 ] = m128_const_64( 0x0200000000000000, 0 );
    ctx->buf_ptr = 0;
-   ctx->rem_ptr = 0;
 
    // --- update ---
    
    const int len = (int)databitlen / 128;
    const int hashlen_m128i = ctx->hashlen / 16;   // bytes to __m128i
    const int hash_offset = SIZE512 - hashlen_m128i;
-   int rem = ctx->rem_ptr;
    uint64_t blocks = len / SIZE512;
    __m128i* in = (__m128i*)input;
 
@@ -175,8 +173,8 @@ int groestl512_full( hashState_groestl* ctx, void* output,
    // copy any remaining data to buffer, it may already contain data
    // from a previous update for a midstate precalc
    for ( i = 0; i < len % SIZE512; i++ )
-       ctx->buffer[ rem + i ] = in[ ctx->buf_ptr + i ];
-   i += rem;    // use i as rem_ptr in final
+       ctx->buffer[ i ] = in[ ctx->buf_ptr + i ];
+   // use i as rem_ptr in final
 
    //--- final ---
 
