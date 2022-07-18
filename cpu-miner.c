@@ -1318,7 +1318,7 @@ static int share_result( int result, struct work *work,
       if ( reason ) applog( LOG_MINR, "Reject reason: %s", reason );
          
       diff_to_hash( str, my_stats.share_diff );
-      applog2( LOG_INFO, "Hash:   %08x%08x%08x%08x%08x%08x", str[7], str[6],
+      applog2( LOG_INFO, "Hash:   %08x%08x%08x%08x%08x%08x%08x%08x", str[7], str[6],
                str[5], str[4], str[3],str[2], str[1], str[0] );
 
       if ( work )
@@ -1328,7 +1328,7 @@ static int share_result( int result, struct work *work,
          diff_to_hash( str, my_stats.target_diff );
          targ = &str[0];
       }
-      applog2( LOG_INFO, "Target: %08x%08x%08x%08x%08x%08x", targ[7], targ[6],
+      applog2( LOG_INFO, "Target: %08x%08x%08x%08x%08x%08x%08x%08x", targ[7], targ[6],
                targ[5], targ[4], targ[3], targ[2], targ[1], targ[0] );
    }
    return 1;
