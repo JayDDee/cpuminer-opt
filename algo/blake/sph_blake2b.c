@@ -30,15 +30,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
+#include "simd-utils.h"
 #include "algo/sha/sph_types.h"
 #include "sph_blake2b.h"
-
-// Cyclic right rotation.
-
-#ifndef ROTR64
-#define ROTR64(x, y)  (((x) >> (y)) ^ ((x) << (64 - (y))))
-#endif
 
 // Little-endian byte access.
 
@@ -54,45 +48,131 @@
 
 // G Mixing function.
 
-#define B2B_G(a, b, c, d, x, y) {   \
-	v[a] = v[a] + v[b] + x;         \
-	v[d] = ROTR64(v[d] ^ v[a], 32); \
-	v[c] = v[c] + v[d];             \
-	v[b] = ROTR64(v[b] ^ v[c], 24); \
-	v[a] = v[a] + v[b] + y;         \
-	v[d] = ROTR64(v[d] ^ v[a], 16); \
-	v[c] = v[c] + v[d];             \
-	v[b] = ROTR64(v[b] ^ v[c], 63); }
+#if defined(__AVX2__)
+
+#define BLAKE2B_G( R, Sa, Sb, Sc, Sd, Na, Nb ) \
+{ \
+  V[0] = _mm256_add_epi64( V[0], _mm256_add_epi64( V[1], \
+              _mm256_set_epi64x( m[ sigma[R][Sd] ], m[ sigma[R][Sc] ], \
+                                 m[ sigma[R][Sb] ], m[ sigma[R][Sa] ] ) ) ); \
+  V[3] = mm256_ror_64( _mm256_xor_si256( V[3], V[0] ), Na ); \
+  V[2] = _mm256_add_epi64( V[2], V[3] ); \
+  V[1] = mm256_ror_64( _mm256_xor_si256( V[1], V[2] ), Nb ); \
+}
+
+#define BLAKE2B_ROUND( R ) \
+{ \
+  __m256i *V = (__m256i*)v; \
+  BLAKE2B_G( R,  0,  2,  4,  6, 32, 24 ); \
+  BLAKE2B_G( R,  1,  3,  5,  7, 16, 63 ); \
+  V[3] = mm256_shufll_64( V[3] ); \
+  V[2] = mm256_swap_128( V[2] ); \
+  V[1] = mm256_shuflr_64( V[1] ); \
+  BLAKE2B_G( R,  8, 10, 12, 14, 32, 24 ); \
+  BLAKE2B_G( R,  9, 11, 13, 15, 16, 63 ); \
+  V[3] = mm256_shuflr_64( V[3] ); \
+  V[2] = mm256_swap_128( V[2] ); \
+  V[1] = mm256_shufll_64( V[1] ); \
+}
+
+#elif defined(__SSSE3__)
+
+#define BLAKE2B_G( R, Va, Vb, Vc, Vd, Sa, Sb, Na, Nb ) \
+{ \
+   Va = _mm_add_epi64( Va, _mm_add_epi64( Vb, \
+                 _mm_set_epi64x( m[ sigma[R][Sb] ], m[ sigma[R][Sa] ] ) ) ); \
+   Vd = mm128_ror_64( _mm_xor_si128( Vd, Va ), Na ); \
+   Vc = _mm_add_epi64( Vc, Vd ); \
+   Vb = mm128_ror_64( _mm_xor_si128( Vb, Vc ), Nb ); \
+}
+
+#define BLAKE2B_ROUND( R ) \
+{ \
+   __m128i *V = (__m128i*)v; \
+   __m128i V2, V3, V6, V7; \
+   BLAKE2B_G( R, V[0], V[2], V[4], V[6], 0, 2, 32, 24 ); \
+   BLAKE2B_G( R, V[0], V[2], V[4], V[6], 1, 3, 16, 63 ); \
+   BLAKE2B_G( R, V[1], V[3], V[5], V[7], 4, 6, 32, 24 ); \
+   BLAKE2B_G( R, V[1], V[3], V[5], V[7], 5, 7, 16, 63 ); \
+   V2 = mm128_shufl2r_64( V[2], V[3] ); \
+   V3 = mm128_shufl2r_64( V[3], V[2] ); \
+   V6 = mm128_shufl2l_64( V[6], V[7] ); \
+   V7 = mm128_shufl2l_64( V[7], V[6] ); \
+   BLAKE2B_G( R, V[0], V2, V[5], V6,  8, 10, 32, 24 ); \
+   BLAKE2B_G( R, V[0], V2, V[5], V6,  9, 11, 16, 63 ); \
+   BLAKE2B_G( R, V[1], V3, V[4], V7, 12, 14, 32, 24 ); \
+   BLAKE2B_G( R, V[1], V3, V[4], V7, 13, 15, 16, 63 ); \
+   V[2] = mm128_shufl2l_64( V2, V3 ); \
+   V[3] = mm128_shufl2l_64( V3, V2 ); \
+   V[6] = mm128_shufl2r_64( V6, V7 ); \
+   V[7] = mm128_shufl2r_64( V7, V6 ); \
+}
+
+#else
+
+#ifndef ROTR64
+#define ROTR64(x, y)  (((x) >> (y)) ^ ((x) << (64 - (y))))
+#endif
+
+#define BLAKE2B_G( R, Va, Vb, Vc, Vd, Sa, Sb ) \
+{ \
+   Va = Va + Vb + m[ sigma[R][Sa] ]; \
+   Vd = ROTR64( Vd ^ Va, 32 ); \
+   Vc = Vc + Vd; \
+   Vb = ROTR64( Vb ^ Vc, 24 ); \
+   Va = Va + Vb + m[ sigma[R][Sb] ]; \
+   Vd = ROTR64( Vd ^ Va, 16 ); \
+   Vc = Vc + Vd; \
+   Vb = ROTR64( Vb ^ Vc, 63 ); \
+}
+
+#define BLAKE2B_ROUND( R ) \
+{ \
+   BLAKE2B_G( R, v[ 0], v[ 4], v[ 8], v[12],  0,  1 ); \
+   BLAKE2B_G( R, v[ 1], v[ 5], v[ 9], v[13],  2,  3 ); \
+   BLAKE2B_G( R, v[ 2], v[ 6], v[10], v[14],  4,  5 ); \
+   BLAKE2B_G( R, v[ 3], v[ 7], v[11], v[15],  6,  7 ); \
+   BLAKE2B_G( R, v[ 0], v[ 5], v[10], v[15],  8,  9 ); \
+   BLAKE2B_G( R, v[ 1], v[ 6], v[11], v[12], 10, 11 ); \
+   BLAKE2B_G( R, v[ 2], v[ 7], v[ 8], v[13], 12, 13 ); \
+   BLAKE2B_G( R, v[ 3], v[ 4], v[ 9], v[14], 14, 15 ); \
+}
+
+#endif
 
 // Initialization Vector.
 
-static const uint64_t blake2b_iv[8] = {
+static const uint64_t blake2b_iv[8] __attribute__ ((aligned (32))) =
+{
 	0x6A09E667F3BCC908, 0xBB67AE8584CAA73B,
 	0x3C6EF372FE94F82B, 0xA54FF53A5F1D36F1,
 	0x510E527FADE682D1, 0x9B05688C2B3E6C1F,
 	0x1F83D9ABFB41BD6B, 0x5BE0CD19137E2179
 };
 
+static const uint8_t sigma[12][16] __attribute__ ((aligned (32))) =
+{
+      { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
+      { 14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3 },
+      { 11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4 },
+      { 7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8 },
+      { 9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13 },
+      { 2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9 },
+      { 12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11 },
+      { 13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10 },
+      { 6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5 },
+      { 10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0 },
+      { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
+      { 14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3 }
+};
+
 // Compression function. "last" flag indicates last block.
 
 static void blake2b_compress( sph_blake2b_ctx *ctx, int last )
 {
-	const uint8_t sigma[12][16] = {
-		{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
-		{ 14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3 },
-		{ 11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4 },
-		{ 7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8 },
-		{ 9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13 },
-		{ 2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9 },
-		{ 12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11 },
-		{ 13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10 },
-		{ 6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5 },
-		{ 10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0 },
-		{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
-		{ 14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3 }
-	};
-	int i;
-	uint64_t v[16], m[16];
+	uint64_t v[16] __attribute__ ((aligned (32)));
+   uint64_t m[16] __attribute__ ((aligned (32)));
+   int i;
 
 	for (i = 0; i < 8; i++) {           // init work variables
 		v[i] = ctx->h[i];
@@ -106,16 +186,8 @@ static void blake2b_compress( sph_blake2b_ctx *ctx, int last )
 	for (i = 0; i < 16; i++)            // get little-endian words
 		m[i] = B2B_GET64(&ctx->b[8 * i]);
 
-	for (i = 0; i < 12; i++) {          // twelve rounds
-		B2B_G( 0, 4,  8, 12, m[sigma[i][ 0]], m[sigma[i][ 1]]);
-		B2B_G( 1, 5,  9, 13, m[sigma[i][ 2]], m[sigma[i][ 3]]);
-		B2B_G( 2, 6, 10, 14, m[sigma[i][ 4]], m[sigma[i][ 5]]);
-		B2B_G( 3, 7, 11, 15, m[sigma[i][ 6]], m[sigma[i][ 7]]);
-		B2B_G( 0, 5, 10, 15, m[sigma[i][ 8]], m[sigma[i][ 9]]);
-		B2B_G( 1, 6, 11, 12, m[sigma[i][10]], m[sigma[i][11]]);
-		B2B_G( 2, 7,  8, 13, m[sigma[i][12]], m[sigma[i][13]]);
-		B2B_G( 3, 4,  9, 14, m[sigma[i][14]], m[sigma[i][15]]);
-	}
+	for (i = 0; i < 12; i++)
+      BLAKE2B_ROUND( i );   
 
 	for( i = 0; i < 8; ++i )
 		ctx->h[i] ^= v[i] ^ v[i + 8];

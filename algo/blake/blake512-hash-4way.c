@@ -757,7 +757,6 @@ void blake512_8way_final_le( blake_8way_big_context *sc, void *hash,
    GB_8WAY(Mx(1, C), Mx(1, D), CBx(1, C), CBx(1, D), V2, V7, V8, VD);
    GB_8WAY(Mx(1, E), Mx(1, F), CBx(1, E), CBx(1, F), V3, V4, V9, VE);
 
-
    // remaining rounds  
    ROUND_B_8WAY(2);
    ROUND_B_8WAY(3);

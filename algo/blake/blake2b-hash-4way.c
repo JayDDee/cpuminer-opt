@@ -52,6 +52,180 @@ static const uint8_t sigma[12][16] =
 };
 
 
+#define Z00   0
+#define Z01   1
+#define Z02   2
+#define Z03   3
+#define Z04   4
+#define Z05   5
+#define Z06   6
+#define Z07   7
+#define Z08   8
+#define Z09   9
+#define Z0A   A
+#define Z0B   B
+#define Z0C   C
+#define Z0D   D
+#define Z0E   E
+#define Z0F   F
+
+#define Z10   E
+#define Z11   A
+#define Z12   4
+#define Z13   8
+#define Z14   9
+#define Z15   F
+#define Z16   D
+#define Z17   6
+#define Z18   1
+#define Z19   C
+#define Z1A   0
+#define Z1B   2
+#define Z1C   B
+#define Z1D   7
+#define Z1E   5
+#define Z1F   3
+
+#define Z20   B
+#define Z21   8
+#define Z22   C
+#define Z23   0
+#define Z24   5
+#define Z25   2
+#define Z26   F
+#define Z27   D
+#define Z28   A
+#define Z29   E
+#define Z2A   3
+#define Z2B   6
+#define Z2C   7
+#define Z2D   1
+#define Z2E   9
+#define Z2F   4
+
+#define Z30   7
+#define Z31   9
+#define Z32   3
+#define Z33   1
+#define Z34   D
+#define Z35   C
+#define Z36   B
+#define Z37   E
+#define Z38   2
+#define Z39   6
+#define Z3A   5
+#define Z3B   A
+#define Z3C   4
+#define Z3D   0
+#define Z3E   F
+#define Z3F   8
+
+#define Z40   9
+#define Z41   0
+#define Z42   5
+#define Z43   7
+#define Z44   2
+#define Z45   4
+#define Z46   A
+#define Z47   F
+#define Z48   E
+#define Z49   1
+#define Z4A   B
+#define Z4B   C
+#define Z4C   6
+#define Z4D   8
+#define Z4E   3
+#define Z4F   D
+
+#define Z50   2
+#define Z51   C
+#define Z52   6
+#define Z53   A
+#define Z54   0
+#define Z55   B
+#define Z56   8
+#define Z57   3
+#define Z58   4
+#define Z59   D
+#define Z5A   7
+#define Z5B   5
+#define Z5C   F
+#define Z5D   E
+#define Z5E   1
+#define Z5F   9
+
+#define Z60   C
+#define Z61   5
+#define Z62   1
+#define Z63   F
+#define Z64   E
+#define Z65   D
+#define Z66   4
+#define Z67   A
+#define Z68   0
+#define Z69   7
+#define Z6A   6
+#define Z6B   3
+#define Z6C   9
+#define Z6D   2
+#define Z6E   8
+#define Z6F   B
+
+#define Z70   D
+#define Z71   B
+#define Z72   7
+#define Z73   E
+#define Z74   C
+#define Z75   1
+#define Z76   3
+#define Z77   9
+#define Z78   5
+#define Z79   0
+#define Z7A   F
+#define Z7B   4
+#define Z7C   8
+#define Z7D   6
+#define Z7E   2
+#define Z7F   A
+
+#define Z80   6
+#define Z81   F
+#define Z82   E
+#define Z83   9
+#define Z84   B
+#define Z85   3
+#define Z86   0
+#define Z87   8
+#define Z88   C
+#define Z89   2
+#define Z8A   D
+#define Z8B   7
+#define Z8C   1
+#define Z8D   4
+#define Z8E   A
+#define Z8F   5
+
+#define Z90   A
+#define Z91   2
+#define Z92   8
+#define Z93   4
+#define Z94   7
+#define Z95   6
+#define Z96   1
+#define Z97   5
+#define Z98   F
+#define Z99   B
+#define Z9A   9
+#define Z9B   E
+#define Z9C   3
+#define Z9D   C
+#define Z9E   D
+#define Z9F   0
+
+#define Mx(r, i)    Mx_(Z ## r ## i)
+#define Mx_(n)      Mx__(n)
+#define Mx__(n)     M ## n
+
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #define B2B8W_G(a, b, c, d, x, y) \

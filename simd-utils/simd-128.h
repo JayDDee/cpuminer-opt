@@ -546,14 +546,13 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
 
 
 // Two input shuffle-rotate.
-// Concatenate v1 & v2 and rotate as one 256 bit vector.
-// Continue to use vror/vrol for now to avoid confusion with
-// shufl2r/shufl2l function macros available with AVX512.
+// Concatenate v1 & v2 and bit rotate as one 256 bit vector.
 
 #if defined(__SSSE3__)
 
-// Function macro with two inputs and one output, inputs are preserved.
-// Two input functions are not available without SSSE3. Use procedure
+// Function macros with two inputs and one output, inputs are preserved.
+// Returns the high 128 bits, ie updated v1.
+// These two-input functions are not available without SSSE3. Use procedure
 // macros below instead.
 
 #define mm128_shufl2r_64( v1, v2 )     _mm_alignr_epi8( v2, v1, 8 )
@@ -568,12 +567,9 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
 #define mm128_shufl2r_8( v1, v2 )      _mm_alignr_epi8( v2, v1, 8 )
 #define mm128_shufl2l_8( v1, v2 )      _mm_alignr_epi8( v1, v2, 8 )
 
-// Procedure macros with 2 inputs and 2 outputs, inputs args are overwritten.
-
-// These macros retain the vrol/vror name for now to avoid
-// confusion with the shufl2r/shuffle2l function macros above.
-// These may be renamed to something like shufl2r2 for 2 nputs and
-// 2 outputs, ie SHUFfLe 2 inputs Right with 2 outputs.
+// Procedure macros with 2 inputs and 2 outputs, input args are overwritten.
+// Deprecated for SSSE3 and above, they exist for SSSE3 only for compatibility
+// with existing code. The function macros above can be used more effciently.
 
 #define mm128_vror256_64( v1, v2 ) \
 do { \

@@ -1300,6 +1300,7 @@ static int share_result( int result, struct work *work,
            my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
            bres, CL_N, share_time, latency );
 
+/*   
    if ( unlikely( opt_debug || !result || solved ) )
    {
       if ( have_stratum )
@@ -1309,14 +1310,27 @@ static int share_result( int result, struct work *work,
          applog2( LOG_INFO, "Diff %.5g, Block %d",
                my_stats.share_diff, work ? work->height : last_block_height );
    }
+*/
 
    if ( unlikely( !( opt_quiet || result || stale ) ) )
    {
-      uint32_t str[8];
-      uint32_t *targ;
+//      uint32_t str[8];
+//      uint32_t *targ;
 
-      if ( reason ) applog( LOG_MINR, "Reject reason: %s", reason );
-         
+      if ( reason ) applog2( LOG_MINR, "Reject reason: %s", reason );
+      {
+         // The exact hash is not avaiable here, it's just an imprecise
+         // approximation calculated from the share difficulty. It's useless
+         // for anything other than low diff rejects. Until and unless a
+         // solution is implemented to make the hash and targets avaiable
+         // don't bother displaying them. In the meantime display the diff for
+         // low diff rejects.
+
+         if ( strstr( reason, "difficulty" ) )
+            applog2( LOG_MINR, "Share diff: %.5g, Target: %.5g",
+                               my_stats.share_diff, my_stats.target_diff );
+
+/*
       diff_to_hash( str, my_stats.share_diff );
       applog2( LOG_INFO, "Hash:   %08x%08x%08x%08x%08x%08x", str[7], str[6],
                str[5], str[4], str[3],str[2], str[1], str[0] );
@@ -1330,6 +1344,8 @@ static int share_result( int result, struct work *work,
       }
       applog2( LOG_INFO, "Target: %08x%08x%08x%08x%08x%08x", targ[7], targ[6],
                targ[5], targ[4], targ[3], targ[2], targ[1], targ[0] );
+*/
+      }
    }
    return 1;
 }

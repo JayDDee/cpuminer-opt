@@ -289,7 +289,7 @@ cpuminer_SOURCES = \
   algo/yescrypt/yescrypt-best.c \
   algo/yespower/yespower-gate.c \
   algo/yespower/yespower-blake2b.c \
-  algo/yespower/crypto/blake2b-yp.c \
+  algo/yespower/crypto/hmac-blake2b.c \
   algo/yespower/yescrypt-r8g.c \
   algo/yespower/yespower-opt.c
 

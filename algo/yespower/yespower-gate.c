@@ -249,7 +249,7 @@ bool register_power2b_algo( algo_gate_t* gate )
   applog( LOG_NOTICE,"Key= \"%s\"", yespower_params.pers );
   applog( LOG_NOTICE,"Key length= %d\n", yespower_params.perslen );
 
-  gate->optimizations = SSE2_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_b2b;
   gate->hash          = (void*)&yespower_b2b_hash;
   opt_target_factor = 65536.0;
