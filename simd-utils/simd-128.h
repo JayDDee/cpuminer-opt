@@ -273,9 +273,9 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #endif
 
 // Mask making
-
 // Equivalent of AVX512 _mm_movepi64_mask & _mm_movepi32_mask.
 // Returns 2 or 4 bit integer mask from MSB of 64 or 32 bit elements.
+// Effectively a sign test.
 
 #define mm_movmask_64( v ) \
    _mm_castpd_si128( _mm_movmask_pd( _mm_castsi128_pd( v ) ) )
@@ -306,34 +306,11 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 //
 // Bit rotations
 
-// AVX512VL has implemented bit rotation for 128 bit vectors with
-// 64 and 32 bit elements.
-
 // x2 rotates elements in 2 individual vectors in a double buffered
 // optimization for SSE2, does nothing for AVX512 but is there for
 // transparency.
 
-// compiler doesn't like when a variable is used for the last arg of
-// _mm_rol_epi32, must be "8 bit immediate". Oddly _mm_slli has the same
-// specification but works with a variable. Therefore use rol_var where
-// necessary.
-// sm3-hash-4way.c has one instance where mm128_rol_var_32 is required.
-
-#define mm128_ror_var_64( v, c ) \
-   _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) )
-
-#define mm128_rol_var_64( v, c ) \
-   _mm_or_si128( _mm_slli_epi64( v, c ), _mm_srli_epi64( v, 64-(c) ) )
-
-#define mm128_ror_var_32( v, c ) \
-   _mm_or_si128( _mm_srli_epi32( v, c ), _mm_slli_epi32( v, 32-(c) ) )
-
-#define mm128_rol_var_32( v, c ) \
-   _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
-
-
 #if defined(__AVX512VL__)
-//#if defined(__AVX512F__) && defined(__AVX512VL__)
 
 #define mm128_ror_64    _mm_ror_epi64
 #define mm128_rol_64    _mm_rol_epi64
@@ -358,10 +335,17 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 #else  // SSE2
 
-#define mm128_ror_64   mm128_ror_var_64
-#define mm128_rol_64   mm128_rol_var_64
-#define mm128_ror_32   mm128_ror_var_32
-#define mm128_rol_32   mm128_rol_var_32
+#define mm128_ror_64( v, c ) \
+   _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) )
+
+#define mm128_rol_64( v, c ) \
+   _mm_or_si128( _mm_slli_epi64( v, c ), _mm_srli_epi64( v, 64-(c) ) )
+
+#define mm128_ror_32( v, c ) \
+   _mm_or_si128( _mm_srli_epi32( v, c ), _mm_slli_epi32( v, 32-(c) ) )
+
+#define mm128_rol_32( v, c ) \
+   _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
 
 #define mm128_rorx2_64( v1, v0, c ) \
 { \
@@ -411,6 +395,11 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_rol_16( v, c ) \
    _mm_or_si128( _mm_slli_epi16( v, c ), _mm_srli_epi16( v, 16-(c) ) )
 
+// Deprecated.
+#define mm128_rol_var_32( v, c ) \
+   _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
+
+//
 // Limited 2 input shuffle, combines shuffle with blend. The destination low
 // half is always taken from src a, and the high half from src b.
 #define mm128_shuffle2_64( a, b, c ) \
@@ -420,7 +409,6 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_shuffle2_32( a, b, c ) \
    _mm_castps_si128( _mm_shuffle_ps( _mm_castsi128_ps( a ), \
                                      _mm_castsi128_ps( b ), c ) ); 
-
 
 //
 // Rotate vector elements accross all lanes
@@ -432,20 +420,60 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_shuflr_32( v )   _mm_shuffle_epi32( v, 0x39 )
 #define mm128_shufll_32( v )   _mm_shuffle_epi32( v, 0x93 )
 
-
-// Swap 32 bit elements in 64 bit lanes
-#define mm128_swap64_32( v )  _mm_shuffle_epi32( v, 0xb1 )
-#define mm128_shuflr64_32 mm128_swap64_32
-#define mm128_shufll64_32 mm128_swap64_32
-
 #if defined(__SSSE3__)
 
 // Rotate right by c bytes, no SSE2 equivalent.
 static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
 { return _mm_alignr_epi8( v, v, c ); }
 
+#endif
+
+// Rotate byte elements within 64 or 32 bit lanes, AKA optimized bit rotations
+// for multiples of 8 bits. Uses ror/rol macros when AVX512 is available
+// (unlikely but faster), or when SSSE3 is not available (slower).
+
+#define mm128_swap64_32( v )  _mm_shuffle_epi32( v, 0xb1 )
+#define mm128_shuflr64_32 mm128_swap64_32
+#define mm128_shufll64_32 mm128_swap64_32
+
+#if defined(__SSSE3__) && !defined(__AVX512VL__)
+  #define mm128_shuflr64_24( v ) \
+    _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                    0x0a09080f0e0d0c0b, 0x0201000706050403 ) )
+#else
+  #define mm128_shuflr64_24( v ) mm128_ror_64( v, 24 )
+#endif
+
+#if defined(__SSSE3__) && !defined(__AVX512VL__)
+  #define mm128_shuflr64_16( v ) \
+    _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                    0x09080f0e0d0c0b0a, 0x0100070605040302 ) )
+#else
+  #define mm128_shuflr64_16( v ) mm128_ror_64( v, 16 )
+#endif
+
+#if defined(__SSSE3__) && !defined(__AVX512VL__)
+  #define mm128_swap32_16( v ) \
+    _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                    0x0d0c0f0e09080b0a, 0x0504070601000302 ) )
+#else
+  #define mm128_swap32_16( v ) mm128_ror_32( v, 16 )
+#endif
+#define mm128_shuflr32_16 mm128_swap32_16
+#define mm128_shufll32_16 mm128_swap32_16
+
+#if defined(__SSSE3__) && !defined(__AVX512VL__)
+  #define mm128_shuflr32_8( v ) \
+    _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                    0x0c0f0e0d080b0a09, 0x0407060500030201 ) )
+#else
+  #define mm128_shuflr32_8( v ) mm128_ror_32( v, 8 )
+#endif
+
 //
 // Endian byte swap.
+
+#if defined(__SSSE3__)
 
 #define mm128_bswap_64( v ) \
    _mm_shuffle_epi8( v, m128_const_64( 0x08090a0b0c0d0e0f, \
@@ -537,8 +565,8 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
 //
 // Rotate in place concatenated 128 bit vectors as one 256 bit vector.
 
-// Swap 128 bit vectorse.
-
+// Swap 128 bit vectors.
+// This should be avoided, it's more efficient to switch references.
 #define mm128_swap256_128( v1, v2 ) \
    v1 = _mm_xor_si128( v1, v2 ); \
    v2 = _mm_xor_si128( v1, v2 ); \
@@ -552,8 +580,8 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
 
 // Function macros with two inputs and one output, inputs are preserved.
 // Returns the high 128 bits, ie updated v1.
-// These two-input functions are not available without SSSE3. Use procedure
-// macros below instead.
+// These functions are preferred but only available with SSSE3. Use procedure
+// macros below for SSE2 compatibility.
 
 #define mm128_shufl2r_64( v1, v2 )     _mm_alignr_epi8( v2, v1, 8 )
 #define mm128_shufl2l_64( v1, v2 )     _mm_alignr_epi8( v1, v2, 8 )
@@ -568,8 +596,8 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
 #define mm128_shufl2l_8( v1, v2 )      _mm_alignr_epi8( v1, v2, 8 )
 
 // Procedure macros with 2 inputs and 2 outputs, input args are overwritten.
-// Deprecated for SSSE3 and above, they exist for SSSE3 only for compatibility
-// with existing code. The function macros above can be used more effciently.
+// Deprecated for SSSE3 and above, SSSE3 versions exist for only for
+// compatibility with with existing code. 
 
 #define mm128_vror256_64( v1, v2 ) \
 do { \

@@ -161,7 +161,7 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
 
 // Legacy Yescrypt (yespower v0.5)
 
-bool register_yescrypt_05_algo( algo_gate_t* gate )
+bool register_yescrypt_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
@@ -194,7 +194,7 @@ bool register_yescrypt_05_algo( algo_gate_t* gate )
 }
 
 
-bool register_yescryptr8_05_algo( algo_gate_t* gate )
+bool register_yescryptr8_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
@@ -207,7 +207,7 @@ bool register_yescryptr8_05_algo( algo_gate_t* gate )
    return true;
 }
 
-bool register_yescryptr16_05_algo( algo_gate_t* gate )
+bool register_yescryptr16_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
@@ -220,7 +220,7 @@ bool register_yescryptr16_05_algo( algo_gate_t* gate )
    return true;
 }
 
-bool register_yescryptr32_05_algo( algo_gate_t* gate )
+bool register_yescryptr32_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;

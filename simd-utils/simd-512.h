@@ -316,57 +316,17 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 // Bit rotations.
 
 // AVX512F has built-in fixed and variable bit rotation for 64 & 32 bit
-// elements and can be called directly. But they only accept immediate 8
-// for control arg. 
-// The workaround is a fraud, just a fluke of the compiler's optimizer.
-// It fails without -O3. The compiler seems to unroll shift loops, eliminating
-// the variable control, better than rotate loops. 
+// elements and can be called directly. 
 //
 // _mm512_rol_epi64,  _mm512_ror_epi64,  _mm512_rol_epi32,  _mm512_ror_epi32
 // _mm512_rolv_epi64, _mm512_rorv_epi64, _mm512_rolv_epi32, _mm512_rorv_epi32
 //
 
-// For convenience and consistency with AVX2
+// For convenience and consistency with AVX2 macros.
 #define mm512_ror_64 _mm512_ror_epi64
 #define mm512_rol_64 _mm512_rol_epi64
 #define mm512_ror_32 _mm512_ror_epi32
 #define mm512_rol_32 _mm512_rol_epi32
-
-static inline __m512i mm512_ror_var_64( const __m512i v, const int c )
-{
-   return _mm512_or_si512( _mm512_srli_epi64( v, c ),
-                           _mm512_slli_epi64( v, 64-c ) );
-}
-
-static inline __m512i mm512_rol_var_64( const __m512i v, const int c )
-{
-   return _mm512_or_si512( _mm512_slli_epi64( v, c ),
-                           _mm512_srli_epi64( v, 64-c ) );
-}
-
-static inline __m512i mm512_ror_var_32( const __m512i v, const int c )
-{
-   return _mm512_or_si512( _mm512_srli_epi32( v, c ),
-                           _mm512_slli_epi32( v, 32-c ) );
-}
-
-static inline __m512i mm512_rol_var_32( const __m512i v, const int c )
-{
-   return _mm512_or_si512( _mm512_slli_epi32( v, c ),
-                           _mm512_srli_epi32( v, 32-c ) );
-}
-
-static inline __m512i mm512_ror_16( __m512i const v, const int c )
-{
-   return _mm512_or_si512( _mm512_srli_epi16( v, c ),
-                           _mm512_slli_epi16( v, 16-c ) );
-}
-
-static inline __m512i mm512_rol_16( const __m512i v, const int c )
-{
-   return _mm512_or_si512( _mm512_slli_epi16( v, c ),
-                           _mm512_srli_epi16( v, 16-c ) );
-}
 
 // Rotations using a vector control index are very slow due to overhead
 // to generate the index vector. Repeated rotations using the same index
@@ -599,22 +559,34 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 static inline __m512i mm512_shuflr128_8( const __m512i v, const int c )
 {  return _mm512_alignr_epi8( v, v, c ); }
 
-// Swap 32 bits in each 64 bit lane. Can be done with rotate instruction
-// but only with AVX512. Shuffle is just as fast and availble with AVX2
-// & SSE2.
+// Rotate byte elements in each 64 or 32 bit lane. Redundant for AVX512, all
+// can be done with ror & rol. Defined only for convenience and consistency
+// with AVX2 & SSE2 macros.
+
 #define mm512_swap64_32( v )    _mm512_shuffle_epi32( v, 0xb1 )
 #define mm512_shuflr64_32 mm512_swap64_32
 #define mm512_shufll64_32 mm512_swap64_32
 
-// Need good way to distinguish 1 input shuffles, 2 input shuffle functions,
-// and 2 input 2 output shuffle macros.
-//
-// shuflr is 1 input
-// shufl2r is 2 input ...
-// Drop macros? They can easilly be rebuilt using shufl2 functions
+#define mm512_shuflr64_24( v )  _mm512_ror_epi64( v, 24 )
+#define mm512_shufll64_24( v )  _mm512_rol_epi64( v, 24 )
+
+#define mm512_shuflr64_16( v )  _mm512_ror_epi64( v, 16 )
+#define mm512_shufll64_16( v )  _mm512_rol_epi64( v, 16 )
+
+#define mm512_shuflr64_8(  v )  _mm512_ror_epi64( v,  8 )
+#define mm512_shufll64_8(  v )  _mm512_rol_epi64( v,  8 )
+
+#define mm512_swap32_16(   v )  _mm512_ror_epi32( v, 16 )
+#define mm512_shuflr32_16 mm512_swap32_16
+#define mm512_shufll32_16 mm512_swap32_16
+
+#define mm512_shuflr32_8(  v )  _mm512_ror_epi32( v,  8 )
+#define mm512_shufll32_8(  v )  _mm512_rol_epi32( v,  8 )
+
 
 // 2 input, 1 output
-// Rotate concatenated { v1, v2 ) right or left and return v1. 
+// Concatenate { v1, v2 ) then rotate right or left and return the high
+// 512 bits, ie rotated v1. 
 #define mm512_shufl2r_256( v1, v2 )    _mm512_alignr_epi64( v2, v1, 4 )
 #define mm512_shufl2l_256( v1, v2 )    _mm512_alignr_epi64( v1, v2, 4 )
 

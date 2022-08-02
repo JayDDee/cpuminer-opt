@@ -285,8 +285,6 @@ cpuminer_SOURCES = \
   algo/x22/x22i-gate.c \
   algo/x22/x25x.c \
   algo/x22/x25x-4way.c \
-  algo/yescrypt/yescrypt.c \
-  algo/yescrypt/yescrypt-best.c \
   algo/yespower/yespower-gate.c \
   algo/yespower/yespower-blake2b.c \
   algo/yespower/crypto/hmac-blake2b.c \

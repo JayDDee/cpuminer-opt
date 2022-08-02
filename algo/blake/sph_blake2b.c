@@ -35,7 +35,6 @@
 #include "sph_blake2b.h"
 
 // Little-endian byte access.
-
 #define B2B_GET64(p)                            \
 	(((uint64_t) ((uint8_t *) (p))[0]) ^        \
 	(((uint64_t) ((uint8_t *) (p))[1]) << 8) ^  \
@@ -46,30 +45,34 @@
 	(((uint64_t) ((uint8_t *) (p))[6]) << 48) ^ \
 	(((uint64_t) ((uint8_t *) (p))[7]) << 56))
 
-// G Mixing function.
-
 #if defined(__AVX2__)
 
-#define BLAKE2B_G( R, Sa, Sb, Sc, Sd, Na, Nb ) \
+#define BLAKE2B_G( Sa, Sb, Sc, Sd, Se, Sf, Sg, Sh ) \
 { \
   V[0] = _mm256_add_epi64( V[0], _mm256_add_epi64( V[1], \
-              _mm256_set_epi64x( m[ sigma[R][Sd] ], m[ sigma[R][Sc] ], \
-                                 m[ sigma[R][Sb] ], m[ sigma[R][Sa] ] ) ) ); \
-  V[3] = mm256_ror_64( _mm256_xor_si256( V[3], V[0] ), Na ); \
+              _mm256_set_epi64x( m[ sigmaR[ Sg ] ], m[ sigmaR[ Se ] ], \
+                                 m[ sigmaR[ Sc ] ], m[ sigmaR[ Sa ] ] ) ) ); \
+  V[3] = mm256_swap64_32( _mm256_xor_si256( V[3], V[0] ) ); \
   V[2] = _mm256_add_epi64( V[2], V[3] ); \
-  V[1] = mm256_ror_64( _mm256_xor_si256( V[1], V[2] ), Nb ); \
+  V[1] = mm256_shuflr64_24( _mm256_xor_si256( V[1], V[2] ) ); \
+\
+  V[0] = _mm256_add_epi64( V[0], _mm256_add_epi64( V[1], \
+              _mm256_set_epi64x( m[ sigmaR[ Sh ] ], m[ sigmaR[ Sf ] ], \
+                                 m[ sigmaR[ Sd ] ], m[ sigmaR[ Sb ] ] ) ) ); \
+  V[3] = mm256_shuflr64_16( _mm256_xor_si256( V[3], V[0] ) ); \
+  V[2] = _mm256_add_epi64( V[2], V[3] ); \
+  V[1] = mm256_ror_64( _mm256_xor_si256( V[1], V[2] ), 63 ); \
 }
 
 #define BLAKE2B_ROUND( R ) \
 { \
   __m256i *V = (__m256i*)v; \
-  BLAKE2B_G( R,  0,  2,  4,  6, 32, 24 ); \
-  BLAKE2B_G( R,  1,  3,  5,  7, 16, 63 ); \
+  const uint8_t *sigmaR = sigma[R]; \
+  BLAKE2B_G(  0,  1,  2,  3,  4,  5,  6,  7 ); \
   V[3] = mm256_shufll_64( V[3] ); \
   V[2] = mm256_swap_128( V[2] ); \
   V[1] = mm256_shuflr_64( V[1] ); \
-  BLAKE2B_G( R,  8, 10, 12, 14, 32, 24 ); \
-  BLAKE2B_G( R,  9, 11, 13, 15, 16, 63 ); \
+  BLAKE2B_G(  8,  9, 10, 11, 12, 13, 14, 15 ); \
   V[3] = mm256_shuflr_64( V[3] ); \
   V[2] = mm256_swap_128( V[2] ); \
   V[1] = mm256_shufll_64( V[1] ); \
@@ -77,31 +80,34 @@
 
 #elif defined(__SSSE3__)
 
-#define BLAKE2B_G( R, Va, Vb, Vc, Vd, Sa, Sb, Na, Nb ) \
+#define BLAKE2B_G( Va, Vb, Vc, Vd, Sa, Sb, Sc, Sd ) \
 { \
    Va = _mm_add_epi64( Va, _mm_add_epi64( Vb, \
-                 _mm_set_epi64x( m[ sigma[R][Sb] ], m[ sigma[R][Sa] ] ) ) ); \
-   Vd = mm128_ror_64( _mm_xor_si128( Vd, Va ), Na ); \
+                 _mm_set_epi64x( m[ sigmaR[ Sc ] ], m[ sigmaR[ Sa ] ] ) ) ); \
+   Vd = mm128_swap64_32( _mm_xor_si128( Vd, Va ) ); \
    Vc = _mm_add_epi64( Vc, Vd ); \
-   Vb = mm128_ror_64( _mm_xor_si128( Vb, Vc ), Nb ); \
+   Vb = mm128_shuflr64_24( _mm_xor_si128( Vb, Vc ) ); \
+\
+   Va = _mm_add_epi64( Va, _mm_add_epi64( Vb, \
+                 _mm_set_epi64x( m[ sigmaR[ Sd ] ], m[ sigmaR[ Sb ] ] ) ) ); \
+   Vd = mm128_shuflr64_16( _mm_xor_si128( Vd, Va ) ); \
+   Vc = _mm_add_epi64( Vc, Vd ); \
+   Vb = mm128_ror_64( _mm_xor_si128( Vb, Vc ), 63 ); \
 }
 
 #define BLAKE2B_ROUND( R ) \
 { \
    __m128i *V = (__m128i*)v; \
    __m128i V2, V3, V6, V7; \
-   BLAKE2B_G( R, V[0], V[2], V[4], V[6], 0, 2, 32, 24 ); \
-   BLAKE2B_G( R, V[0], V[2], V[4], V[6], 1, 3, 16, 63 ); \
-   BLAKE2B_G( R, V[1], V[3], V[5], V[7], 4, 6, 32, 24 ); \
-   BLAKE2B_G( R, V[1], V[3], V[5], V[7], 5, 7, 16, 63 ); \
+   const uint8_t *sigmaR = sigma[R]; \
+   BLAKE2B_G( V[0], V[2], V[4], V[6], 0, 1, 2, 3 ); \
+   BLAKE2B_G( V[1], V[3], V[5], V[7], 4, 5, 6, 7 ); \
    V2 = mm128_shufl2r_64( V[2], V[3] ); \
    V3 = mm128_shufl2r_64( V[3], V[2] ); \
    V6 = mm128_shufl2l_64( V[6], V[7] ); \
    V7 = mm128_shufl2l_64( V[7], V[6] ); \
-   BLAKE2B_G( R, V[0], V2, V[5], V6,  8, 10, 32, 24 ); \
-   BLAKE2B_G( R, V[0], V2, V[5], V6,  9, 11, 16, 63 ); \
-   BLAKE2B_G( R, V[1], V3, V[4], V7, 12, 14, 32, 24 ); \
-   BLAKE2B_G( R, V[1], V3, V[4], V7, 13, 15, 16, 63 ); \
+   BLAKE2B_G( V[0], V2, V[5], V6,  8,  9, 10, 11 ); \
+   BLAKE2B_G( V[1], V3, V[4], V7, 12, 13, 14, 15 ); \
    V[2] = mm128_shufl2l_64( V2, V3 ); \
    V[3] = mm128_shufl2l_64( V3, V2 ); \
    V[6] = mm128_shufl2r_64( V6, V7 ); \
@@ -120,6 +126,7 @@
    Vd = ROTR64( Vd ^ Va, 32 ); \
    Vc = Vc + Vd; \
    Vb = ROTR64( Vb ^ Vc, 24 ); \
+\
    Va = Va + Vb + m[ sigma[R][Sb] ]; \
    Vd = ROTR64( Vd ^ Va, 16 ); \
    Vc = Vc + Vd; \

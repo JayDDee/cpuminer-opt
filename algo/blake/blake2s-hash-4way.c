@@ -108,11 +108,11 @@ do { \
    uint8_t s0 = sigma0; \
    uint8_t s1 = sigma1; \
    a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ s0 ] ); \
-   d = mm128_ror_32( _mm_xor_si128( d, a ), 16 ); \
+   d = mm128_swap32_16( _mm_xor_si128( d, a ) ); \
    c = _mm_add_epi32( c, d ); \
    b = mm128_ror_32( _mm_xor_si128( b, c ), 12 ); \
    a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ s1 ] ); \
-   d = mm128_ror_32( _mm_xor_si128( d, a ),  8 ); \
+   d = mm128_shuflr32_8( _mm_xor_si128( d, a ) ); \
    c = _mm_add_epi32( c, d ); \
    b = mm128_ror_32( _mm_xor_si128( b, c ),  7 ); \
 } while(0)
@@ -320,11 +320,11 @@ do { \
    uint8_t s0 = sigma0; \
    uint8_t s1 = sigma1; \
    a = _mm256_add_epi32( _mm256_add_epi32( a, b ), m[ s0 ] ); \
-   d = mm256_ror_32( _mm256_xor_si256( d, a ), 16 ); \
+   d = mm256_swap32_16( _mm256_xor_si256( d, a ) ); \
    c = _mm256_add_epi32( c, d ); \
    b = mm256_ror_32( _mm256_xor_si256( b, c ), 12 ); \
    a = _mm256_add_epi32( _mm256_add_epi32( a, b ), m[ s1 ] ); \
-   d = mm256_ror_32( _mm256_xor_si256( d, a ),  8 ); \
+   d = mm256_shuflr32_8( _mm256_xor_si256( d, a ) ); \
    c = _mm256_add_epi32( c, d ); \
    b = mm256_ror_32( _mm256_xor_si256( b, c ),  7 ); \
 } while(0)

@@ -97,11 +97,11 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 // returns void, updates all args
 #define G_4X64(a,b,c,d) \
    a = _mm256_add_epi64( a, b ); \
-   d = mm256_ror_64( _mm256_xor_si256( d, a ), 32 ); \
+   d = mm256_swap64_32( _mm256_xor_si256( d, a ) ); \
    c = _mm256_add_epi64( c, d ); \
-   b = mm256_ror_64( _mm256_xor_si256( b, c ), 24 ); \
+   b = mm256_shuflr64_24( _mm256_xor_si256( b, c ) ); \
    a = _mm256_add_epi64( a, b ); \
-   d = mm256_ror_64( _mm256_xor_si256( d, a ), 16 ); \
+   d = mm256_shuflr64_16( _mm256_xor_si256( d, a ) ); \
    c = _mm256_add_epi64( c, d ); \
    b = mm256_ror_64( _mm256_xor_si256( b, c ), 63 );
 
@@ -137,11 +137,11 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 // returns void, all args updated
 #define G_2X64(a,b,c,d) \
    a = _mm_add_epi64( a, b ); \
-   d = mm128_ror_64( _mm_xor_si128( d, a), 32 ); \
+   d = mm128_swap64_32( _mm_xor_si128( d, a) ); \
    c = _mm_add_epi64( c, d ); \
-   b = mm128_ror_64( _mm_xor_si128( b, c ), 24 ); \
+   b = mm128_shuflr64_24( _mm_xor_si128( b, c ) ); \
    a = _mm_add_epi64( a, b ); \
-   d = mm128_ror_64( _mm_xor_si128( d, a ), 16 ); \
+   d = mm128_shuflr64_16( _mm_xor_si128( d, a ) ); \
    c = _mm_add_epi64( c, d ); \
    b = mm128_ror_64( _mm_xor_si128( b, c ), 63 );
 
