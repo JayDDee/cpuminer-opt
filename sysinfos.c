@@ -333,7 +333,7 @@ static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 // CPU_INFO ECX
 #define SSE3_Flag      1    
 #define SSSE3_Flag    (1<< 9)
-#define XOP_Flag      (1<<11)
+#define XOP_Flag      (1<<11)   // obsolete, only available on pre-Ryzen AMD
 #define FMA3_Flag     (1<<12)
 #define AES_Flag      (1<<25)
 #define SSE41_Flag    (1<<19)

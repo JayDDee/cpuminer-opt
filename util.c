@@ -1371,7 +1371,7 @@ static bool send_line( struct stratum_ctx *sctx, char *s )
      {
         if ( rc != CURLE_AGAIN )
 #else                      
-     n = send(sock, s + sent, len, 0);
+     n = send( sctx->sock, s + sent, len, 0);
      if ( n < 0 )
      {
      if ( !socket_blocks() )
@@ -1379,8 +1379,8 @@ static bool send_line( struct stratum_ctx *sctx, char *s )
         return false;
 	     n = 0;
 	  }
-		sent += n;
-		len -= n;
+     sent += n;
+     len -= n;
    }
 
 	return true;

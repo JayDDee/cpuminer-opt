@@ -67,7 +67,6 @@ void do_nothing   () {}
 bool return_true  () { return true;  }
 bool return_false () { return false; }
 void *return_null () { return NULL;  }
-void call_error   () { printf("ERR: Uninitialized function pointer\n"); }
 
 void algo_not_tested()
 {
@@ -95,7 +94,8 @@ int null_scanhash()
    return 0;
 }
 
-// Default generic scanhash can be used in many cases.
+// Default generic scanhash can be used in many cases. Not to be used when
+// prehashing can be done or when byte swapping the data can be avoided.
 int scanhash_generic( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
@@ -152,6 +152,9 @@ int scanhash_4way_64in_32out( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
 
    mm256_bswap32_intrlv80_4x64( vdata, pdata );
+   // overwrite byte swapped nonce with original byte order for proper
+   // incrementing. The nonce only needs to byte swapped if it is to be
+   // sumbitted.
    *noncev = mm256_intrlv_blend_32(
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do

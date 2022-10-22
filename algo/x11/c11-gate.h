@@ -14,14 +14,14 @@
 bool register_c11_algo( algo_gate_t* gate );
 #if defined(C11_8WAY)
 
-void c11_8way_hash( void *state, const void *input );
+int c11_8way_hash( void *state, const void *input, int thr_id );
 int scanhash_c11_8way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
-void init_c11_8way_ctx();
+//void init_c11_8way_ctx();
 
 #elif defined(C11_4WAY)
 
-void c11_4way_hash( void *state, const void *input );
+int c11_4way_hash( void *state, const void *input, int thr_id );
 int scanhash_c11_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
 void init_c11_4way_ctx();

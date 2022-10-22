@@ -747,38 +747,40 @@ void compress_big( const __m256i *M, const __m256i H[16], __m256i dH[16] )
    mj[14] = mm256_rol_64( M[14], 15 );
    mj[15] = mm256_rol_64( M[15], 16 );
 
-   qt[16] = add_elt_b( mj[ 0], mj[ 3], mj[10], H[ 7],
-              (const __m256i)_mm256_set1_epi64x( 16 * 0x0555555555555555ULL ) );
-   qt[17] = add_elt_b( mj[ 1], mj[ 4], mj[11], H[ 8],
-              (const __m256i)_mm256_set1_epi64x( 17 * 0x0555555555555555ULL ) );
-   qt[18] = add_elt_b( mj[ 2], mj[ 5], mj[12], H[ 9],
-              (const __m256i)_mm256_set1_epi64x( 18 * 0x0555555555555555ULL ) );
-   qt[19] = add_elt_b( mj[ 3], mj[ 6], mj[13], H[10],
-              (const __m256i)_mm256_set1_epi64x( 19 * 0x0555555555555555ULL ) );
-   qt[20] = add_elt_b( mj[ 4], mj[ 7], mj[14], H[11],
-              (const __m256i)_mm256_set1_epi64x( 20 * 0x0555555555555555ULL ) );
-   qt[21] = add_elt_b( mj[ 5], mj[ 8], mj[15], H[12],
-              (const __m256i)_mm256_set1_epi64x( 21 * 0x0555555555555555ULL ) );
-   qt[22] = add_elt_b( mj[ 6], mj[ 9], mj[ 0], H[13],
-              (const __m256i)_mm256_set1_epi64x( 22 * 0x0555555555555555ULL ) );
-   qt[23] = add_elt_b( mj[ 7], mj[10], mj[ 1], H[14],
-              (const __m256i)_mm256_set1_epi64x( 23 * 0x0555555555555555ULL ) );
-   qt[24] = add_elt_b( mj[ 8], mj[11], mj[ 2], H[15],
-              (const __m256i)_mm256_set1_epi64x( 24 * 0x0555555555555555ULL ) );
-   qt[25] = add_elt_b( mj[ 9], mj[12], mj[ 3], H[ 0],
-              (const __m256i)_mm256_set1_epi64x( 25 * 0x0555555555555555ULL ) );
-   qt[26] = add_elt_b( mj[10], mj[13], mj[ 4], H[ 1],
-              (const __m256i)_mm256_set1_epi64x( 26 * 0x0555555555555555ULL ) );
-   qt[27] = add_elt_b( mj[11], mj[14], mj[ 5], H[ 2],
-              (const __m256i)_mm256_set1_epi64x( 27 * 0x0555555555555555ULL ) );
-   qt[28] = add_elt_b( mj[12], mj[15], mj[ 6], H[ 3],
-              (const __m256i)_mm256_set1_epi64x( 28 * 0x0555555555555555ULL ) );
-   qt[29] = add_elt_b( mj[13], mj[ 0], mj[ 7], H[ 4],
-              (const __m256i)_mm256_set1_epi64x( 29 * 0x0555555555555555ULL ) );
-   qt[30] = add_elt_b( mj[14], mj[ 1], mj[ 8], H[ 5],
-              (const __m256i)_mm256_set1_epi64x( 30 * 0x0555555555555555ULL ) );
-   qt[31] = add_elt_b( mj[15], mj[ 2], mj[ 9], H[ 6],
-              (const __m256i)_mm256_set1_epi64x( 31 * 0x0555555555555555ULL ) );
+   __m256i K = _mm256_set1_epi64x( 16 * 0x0555555555555555ULL );
+   const __m256i Kincr = _mm256_set1_epi64x( 0x0555555555555555ULL );
+
+   qt[16] = add_elt_b( mj[ 0], mj[ 3], mj[10], H[ 7], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[17] = add_elt_b( mj[ 1], mj[ 4], mj[11], H[ 8], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[18] = add_elt_b( mj[ 2], mj[ 5], mj[12], H[ 9], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[19] = add_elt_b( mj[ 3], mj[ 6], mj[13], H[10], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[20] = add_elt_b( mj[ 4], mj[ 7], mj[14], H[11], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[21] = add_elt_b( mj[ 5], mj[ 8], mj[15], H[12], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[22] = add_elt_b( mj[ 6], mj[ 9], mj[ 0], H[13], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[23] = add_elt_b( mj[ 7], mj[10], mj[ 1], H[14], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[24] = add_elt_b( mj[ 8], mj[11], mj[ 2], H[15], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[25] = add_elt_b( mj[ 9], mj[12], mj[ 3], H[ 0], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[26] = add_elt_b( mj[10], mj[13], mj[ 4], H[ 1], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[27] = add_elt_b( mj[11], mj[14], mj[ 5], H[ 2], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[28] = add_elt_b( mj[12], mj[15], mj[ 6], H[ 3], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[29] = add_elt_b( mj[13], mj[ 0], mj[ 7], H[ 4], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[30] = add_elt_b( mj[14], mj[ 1], mj[ 8], H[ 5], K );
+   K = _mm256_add_epi64( K, Kincr );
+   qt[31] = add_elt_b( mj[15], mj[ 2], mj[ 9], H[ 6], K );
 
    qt[16] = _mm256_add_epi64( qt[16], expand1_b( qt, 16 ) );
    qt[17] = _mm256_add_epi64( qt[17], expand1_b( qt, 17 ) );
@@ -1180,7 +1182,6 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
    qt[15] = _mm512_add_epi64( s8b0( W8b15), H[ 0] );
 
    __m512i mj[16];
-   uint64_t K = 16 * 0x0555555555555555ULL;
  
    mj[ 0] = mm512_rol_64( M[ 0],  1 );
    mj[ 1] = mm512_rol_64( M[ 1],  2 );
@@ -1199,54 +1200,40 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
    mj[14] = mm512_rol_64( M[14], 15 );
    mj[15] = mm512_rol_64( M[15], 16 );
 
-   qt[16] = add_elt_b8( mj[ 0], mj[ 3], mj[10], H[ 7],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[17] = add_elt_b8( mj[ 1], mj[ 4], mj[11], H[ 8],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[18] = add_elt_b8( mj[ 2], mj[ 5], mj[12], H[ 9],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[19] = add_elt_b8( mj[ 3], mj[ 6], mj[13], H[10],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[20] = add_elt_b8( mj[ 4], mj[ 7], mj[14], H[11],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[21] = add_elt_b8( mj[ 5], mj[ 8], mj[15], H[12],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[22] = add_elt_b8( mj[ 6], mj[ 9], mj[ 0], H[13],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[23] = add_elt_b8( mj[ 7], mj[10], mj[ 1], H[14],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[24] = add_elt_b8( mj[ 8], mj[11], mj[ 2], H[15],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[25] = add_elt_b8( mj[ 9], mj[12], mj[ 3], H[ 0],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[26] = add_elt_b8( mj[10], mj[13], mj[ 4], H[ 1],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[27] = add_elt_b8( mj[11], mj[14], mj[ 5], H[ 2],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[28] = add_elt_b8( mj[12], mj[15], mj[ 6], H[ 3],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[29] = add_elt_b8( mj[13], mj[ 0], mj[ 7], H[ 4],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[30] = add_elt_b8( mj[14], mj[ 1], mj[ 8], H[ 5],
-                        (const __m512i)_mm512_set1_epi64( K ) );
-   K += 0x0555555555555555ULL;
-   qt[31] = add_elt_b8( mj[15], mj[ 2], mj[ 9], H[ 6],
-                        (const __m512i)_mm512_set1_epi64( K ) );
+   __m512i K = _mm512_set1_epi64( 16 * 0x0555555555555555ULL );
+   const __m512i Kincr = _mm512_set1_epi64( 0x0555555555555555ULL );
 
+   qt[16] = add_elt_b8( mj[ 0], mj[ 3], mj[10], H[ 7], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[17] = add_elt_b8( mj[ 1], mj[ 4], mj[11], H[ 8], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[18] = add_elt_b8( mj[ 2], mj[ 5], mj[12], H[ 9], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[19] = add_elt_b8( mj[ 3], mj[ 6], mj[13], H[10], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[20] = add_elt_b8( mj[ 4], mj[ 7], mj[14], H[11], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[21] = add_elt_b8( mj[ 5], mj[ 8], mj[15], H[12], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[22] = add_elt_b8( mj[ 6], mj[ 9], mj[ 0], H[13], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[23] = add_elt_b8( mj[ 7], mj[10], mj[ 1], H[14], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[24] = add_elt_b8( mj[ 8], mj[11], mj[ 2], H[15], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[25] = add_elt_b8( mj[ 9], mj[12], mj[ 3], H[ 0], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[26] = add_elt_b8( mj[10], mj[13], mj[ 4], H[ 1], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[27] = add_elt_b8( mj[11], mj[14], mj[ 5], H[ 2], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[28] = add_elt_b8( mj[12], mj[15], mj[ 6], H[ 3], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[29] = add_elt_b8( mj[13], mj[ 0], mj[ 7], H[ 4], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[30] = add_elt_b8( mj[14], mj[ 1], mj[ 8], H[ 5], K );
+   K = _mm512_add_epi64( K, Kincr );
+   qt[31] = add_elt_b8( mj[15], mj[ 2], mj[ 9], H[ 6], K );
 
    qt[16] = _mm512_add_epi64( qt[16], expand1_b8( qt, 16 ) );
    qt[17] = _mm512_add_epi64( qt[17], expand1_b8( qt, 17 ) );

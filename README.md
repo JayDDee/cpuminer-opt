@@ -40,17 +40,25 @@ Requirements
 Intel Core2 and newer and AMD equivalents. Further optimizations are available
 on some algoritms for CPUs with AES, AVX, AVX2, SHA, AVX512 and VAES.
 
-Older CPUs are supported by cpuminer-multi by TPruvot but at reduced
-performance.
+32 bit CPUs are not supported.
+Other CPU architectures such as ARM, Raspberry Pi, RISC-V, Xeon Phi, etc,
+are not supported.
 
-ARM and Aarch64 CPUs are not supported.
+Mobile CPUs like laptop computers are not recommended because they aren't
+designed for extreme heat of operating at full load for extended periods of
+time.
+
+Older CPUs and ARM architecture may be supported by cpuminer-multi by TPruvot.
 
 2. 64 bit Linux or Windows OS. Ubuntu and Fedora based distributions,
 including Mint and Centos, are known to work and have all dependencies
 in their repositories. Others may work but may require more effort. Older
 versions such as Centos 6 don't work due to missing features. 
-64 bit Windows OS is supported with mingw_w64 and msys or pre-built binaries.
 
+Windows 7 or newer is supported with mingw_w64 and msys or using the pre-built
+binaries. WindowsXP 64 bit is YMMV.
+
+FreeBSD is not actively tested but should work, YMMV.
 MacOS, OSx and Android are not supported.
 
 3. Stratum pool supporting stratum+tcp:// or stratum+ssl:// protocols or

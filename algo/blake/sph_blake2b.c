@@ -78,7 +78,8 @@
   V[1] = mm256_shufll_64( V[1] ); \
 }
 
-#elif defined(__SSSE3__)
+#elif defined(__SSE2__)
+// always true
 
 #define BLAKE2B_G( Va, Vb, Vc, Vd, Sa, Sb, Sc, Sd ) \
 { \
@@ -115,6 +116,7 @@
 }
 
 #else
+// never used, SSE2 is always available
 
 #ifndef ROTR64
 #define ROTR64(x, y)  (((x) >> (y)) ^ ((x) << (64 - (y))))

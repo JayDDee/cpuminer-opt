@@ -30,19 +30,6 @@
   a1 = _mm_or_si128( _mm_srli_si128(a1,4), _mm_slli_si128(b,12) );  \
 } while(0)
 
-/*
-static inline __m256i mult2_avx2( a )
-{ 
-   __m128 a0, a0, b;
-   a0 = mm128_extractlo_256( a );
-   a1 = mm128_extracthi_256( a );
-   b =  _mm_xor_si128( a0, _mm_shuffle_epi32( _mm_and_si128(a1,MASK), 16 ) );
-   a0 = _mm_or_si128( _mm_srli_si128(b,4), _mm_slli_si128(a1,12) );
-   a1 = _mm_or_si128( _mm_srli_si128(a1,4), _mm_slli_si128(b,12) );
-   return mm256_concat_128( a1, a0 );
-}
-*/
-
 #define STEP_PART(x,c,t)\
     SUBCRUMB(*x,*(x+1),*(x+2),*(x+3),*t);\
     SUBCRUMB(*(x+5),*(x+6),*(x+7),*(x+4),*t);\

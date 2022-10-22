@@ -390,11 +390,11 @@ bool std_le_work_decode( struct work *work )
 {
     int i;
     const int adata_sz    = algo_gate.get_work_data_size() / 4;
-    const int atarget_sz  = ARRAY_SIZE(work->target);
+//    const int atarget_sz  = ARRAY_SIZE(work->target);
 
     for ( i = 0; i < adata_sz; i++ )
           work->data[i] = le32dec( work->data + i );
-    for ( i = 0; i < atarget_sz; i++ )
+    for ( i = 0; i < 8; i++ )
           work->target[i] = le32dec( work->target + i );
     return true;
 }
@@ -403,11 +403,11 @@ bool std_be_work_decode( struct work *work )
 {
     int i;
     const int adata_sz    = algo_gate.get_work_data_size() / 4;
-    const int atarget_sz  = ARRAY_SIZE(work->target);
+//    const int atarget_sz  = ARRAY_SIZE(work->target);
 
     for ( i = 0; i < adata_sz; i++ )
           work->data[i] = be32dec( work->data + i );
-    for ( i = 0; i < atarget_sz; i++ )
+    for ( i = 0; i < 8; i++ )
           work->target[i] = le32dec( work->target + i );
     return true;
 }
@@ -518,11 +518,10 @@ static bool get_mininginfo( CURL *curl, struct work *work )
 
 static bool gbt_work_decode( const json_t *val, struct work *work )
 {
-   int i, n;
+   uint32_t prevhash[8] __attribute__ ((aligned (32)));
+   uint32_t target[8] __attribute__ ((aligned (32)));
+   unsigned char final_sapling_hash[32] __attribute__ ((aligned (32)));
    uint32_t version, curtime, bits;
-   uint32_t prevhash[8];
-   uint32_t target[8];
-   unsigned char final_sapling_hash[32];
    int cbtx_size;
    uchar *cbtx = NULL;
    int tx_count, tx_size;
@@ -534,6 +533,7 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
    bool version_reduce = false;
    json_t *tmp, *txa;
    bool rc = false;
+   int i, n;
 
 // Segwit BEGIN
    bool segwit = false;
@@ -898,7 +898,8 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
       applog( LOG_ERR, "JSON invalid target" );
       goto out;
    }
-   for ( i = 0; i < ARRAY_SIZE( work->target ); i++ )
+
+   for ( i = 0; i < 8; i++ )
       work->target[7 - i] = be32dec( target + i );
    net_diff = work->targetdiff = hash_to_diff( work->target );
    
@@ -1459,6 +1460,7 @@ char* std_malloc_txs_request( struct work *work )
   json_t *val;
   char data_str[2 * sizeof(work->data) + 1];
   int i;
+  // datasize is an ugly hack, it should go through the gate
   int datasize = work->sapling ? 112 : 80;
 
   for ( i = 0; i < ARRAY_SIZE(work->data); i++ )
@@ -2163,7 +2165,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
             char block_ttf[32];
             char share_ttf[32];
 
-            sprintf_et( block_ttf, nd /  hr );
+            sprintf_et( block_ttf, nd / hr );
             sprintf_et( share_ttf, ( g_work->targetdiff * exp32 ) / hr );
             scale_hash_for_display ( &hr, hr_units );
             applog2( LOG_INFO, "TTF @ %.2f %sh/s: Block %s, Share %s",
@@ -3992,7 +3994,7 @@ int main(int argc, char *argv[])
 		}
    }
 
-   // Initialize stats times and counters
+   // Initialize stats timers and counters
    memset( share_stats, 0, s_stats_size *  sizeof (struct share_stats_t) );
    gettimeofday( &last_submit_time, NULL );
    memcpy( &five_min_start, &last_submit_time, sizeof (struct timeval) );

@@ -1,30 +1,28 @@
 #if !defined(SIMD_256_H__)
 #define SIMD_256_H__ 1
 
-//#if defined(__AVX2__)
-
 /////////////////////////////////////////////////////////////////////
 //
 //             AVX2 256 bit vectors
 //
 // Basic support for 256 bit vectors is available with AVX but integer
 // support requires AVX2.
-// Some 256 bit vector utilities require AVX512 or have more efficient
-// AVX512 implementations. They will be selected automatically but their use
-// is limited because 256 bit vectors are less likely to be used when 512
-// is available.
 //
-// AVX2 version of _mm256_shuffle_epi8 is limited to 128 bit lanes but AVX512
-// version is not. Some usage has the index vector encoded as if full vector
+// AVX512VL backports some AVX512 features to 256 bit vectors and can produce
+// more efficient implementations of some functions. They will be selected
+// automatically but their use is limited because 256 bit vectors are less
+// likely to be used when 512 is available.
+//
+// "_mm256_shuffle_epi8" and "_mm256_alignr_epi8" are restricted to 128 bit
+// lanes and data can't cross the 128 bit lane boundary.  
+// Some usage may have the index vector encoded as if full vector
 // shuffles are supported. This has no side effects and would have the same
 // results using either version.
-// If needed and AVX512 is available, 256 bit full vector shuffles can be
-// implemented using the AVX512 zero-mask feature with a NULL mask.
-// Using intrinsics it's simple:
-//   _mm256_maskz_shuffle_epi8( k0, v, c )
+// If the need arises and AVX512VL is available, 256 bit full vector shuffles
+// can be implemented using the AVX512 zero-mask feature with a NULL mask.
+// Using intrinsics it's simple:   _mm256_maskz_shuffle_epi8( 0, v, c )
 // With asm it's a bit more complicated with the addition of the mask register
-// and zero tag:
-//   vpshufb ymm0{k0}{z}, ymm1, ymm2 
+// and zero tag:   vpshufb ymm0{k0}{z}, ymm1, ymm2 
 
 #if defined(__AVX__)
 
@@ -57,8 +55,8 @@ typedef union
 #define casto_m256i(p,o) (((__m256i*)(p))+(o))
 
 #endif
-#if defined(__AVX2__)
 
+#if defined(__AVX2__)
 
 // Move integer to low element of vector, other elements are set to zero.
 #define mm256_mov64_256( i ) _mm256_castsi128_si256( mm128_mov64_128( i ) )
@@ -71,7 +69,6 @@ typedef union
 // deprecated
 //#define mm256_mov256_64 u64_mov256_64 
 //#define mm256_mov256_32 u32_mov256_32
-
 
 // concatenate two 128 bit vectors into one 256 bit vector: { hi, lo }
 #define mm256_concat_128( hi, lo ) \
@@ -145,7 +142,16 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 // Basic operations without SIMD equivalent
 
 // Bitwise not ( ~v )
+#if defined(__AVX512VL__)
+
+static inline __m256i mm256_not( const __m256i v )
+{  return _mm256_ternarylogic_epi64( v, v, v, 1 ); }
+
+#else
+
 #define mm256_not( v )       _mm256_xor_si256( v, m256_neg1 ) \
+
+#endif
 
 // Unary negation of each element ( -v )
 #define mm256_negate_64( v ) _mm256_sub_epi64( m256_zero, v )
@@ -281,6 +287,50 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
            _mm256_blend_epi32( v3, v2, 0x44) \
            _mm256_blend_epi32( v1, v0, 0x11 ) )  
 
+/*
+//
+// Extended bit shift for concatenated packed elements from 2 vectors.
+// Shift right returns low half, shift left return high half.
+
+#if defined(__AVX512VBMI2__) && defined(__AVX512VL__)
+
+#define mm256_shl2_64( v1, v2, c )    _mm256_shldi_epi64( v1, v2, c )
+#define mm256_shr2_64( v1, v2, c )    _mm256_shrdi_epi64( v1, v2, c )
+
+#define mm256_shl2_32( v1, v2, c )    _mm256_shldi_epi32( v1, v2, c )
+#define mm256_shr2_32( v1, v2, c )    _mm256_shrdi_epi32( v1, v2, c )
+
+#define mm256_shl2_16( v1, v2, c )    _mm256_shldi_epi16( v1, v2, c )
+#define mm256_shr2_16( v1, v2, c )    _mm256_shrdi_epi16( v1, v2, c )
+
+#else
+
+#define mm256_shl2i_64( v1, v2, c ) \
+                     _mm256_or_si256( _mm256_slli_epi64( v1, c ), \
+                                      _mm256_srli_epi64( v2, 64 - (c) ) )
+
+#define mm512_shr2_64( v1, v2, c ) \
+                    _mm256_or_si256( _mm256_srli_epi64( v2, c ), \
+                                     _mm256_slli_epi64( v1, 64 - (c) ) )
+
+#define mm256_shl2_32( v1, v2, c ) \
+                    _mm256_or_si256( _mm256_slli_epi32( v1, c ), \
+                                     _mm256_srli_epi32( v2, 32 - (c) ) )
+
+#define mm256_shr2_32( v1, v2, c ) \
+                    _mm256_or_si256( _mm256_srli_epi32( v2, c ), \
+                                     _mm256_slli_epi32( v1, 32 - (c) ) )
+
+#define mm256_shl2_16( v1, v2, c ) \
+                    _mm256_or_si256( _mm256_slli_epi16( v1, c ), \
+                                     _mm256_srli_epi16( v2, 16 - (c) ) )
+
+#define mm256_shr2_16( v1, v2, c ) \
+                    _mm256_or_si256( _mm256_srli_epi16( v2, c ), \
+                                     _mm256_slli_epi16( v1, 16 - (c) ) )
+
+#endif
+*/
 
 //
 //           Bit rotations.
@@ -414,13 +464,13 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 // Rotate elements within each 128 bit lane of 256 bit vector.
 
 // Limited 2 input shuffle
-#define mm256_shuffle2_64( a, b, c ) \
-   _mm256_castpd_si256( _mm256_shuffle_pd( _mm256_castsi256_pd( a ), \
-                                           _mm256_castsi256_pd( b ), c ) ); 
+#define mm256_shuffle2_64( v1, v2, c ) \
+   _mm256_castpd_si256( _mm256_shuffle_pd( _mm256_castsi256_pd( v1 ), \
+                                           _mm256_castsi256_pd( v2 ), c ) ); 
 
-#define mm256_shuffle2_32( a, b, c ) \
-   _mm256_castps_si256( _mm256_shuffle_ps( _mm256_castsi256_ps( a ), \
-                                           _mm256_castsi256_ps( b ), c ) ); 
+#define mm256_shuffle2_32( v1, v2, c ) \
+   _mm256_castps_si256( _mm256_shuffle_ps( _mm256_castsi256_ps( v1 ), \
+                                           _mm256_castsi256_ps( v2 ), c ) ); 
 
 #define mm256_swap128_64( v )  _mm256_shuffle_epi32( v, 0x4e )
 #define mm256_shuflr128_64 mm256_swap128_64

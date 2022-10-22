@@ -68,7 +68,6 @@ void quark_8way_hash( void *state, const void *input )
     quark_8way_ctx_holder ctx;
     const uint32_t mask = 8;
     const __m512i bit3_mask = m512_const1_64( mask );
-    const __m512i zero = _mm512_setzero_si512();
 
     memcpy( &ctx, &quark_8way_ctx, sizeof(quark_8way_ctx) );
 
@@ -76,9 +75,7 @@ void quark_8way_hash( void *state, const void *input )
 
     bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
     
-    vh_mask = _mm512_cmpeq_epi64_mask( _mm512_and_si512( vh[0], bit3_mask ),
-                                       zero );
-
+    vh_mask = _mm512_testn_epi64_mask( vh[0], bit3_mask );
     
 #if defined(__VAES__)
 
@@ -154,8 +151,7 @@ void quark_8way_hash( void *state, const void *input )
     jh512_8way_update( &ctx.jh, vhash, 64 );
     jh512_8way_close( &ctx.jh, vhash );
 
-    vh_mask = _mm512_cmpeq_epi64_mask( _mm512_and_si512( vh[0], bit3_mask ),
-                                       zero );
+    vh_mask = _mm512_testn_epi64_mask( vh[0], bit3_mask );
 
     if ( ( vh_mask & 0xff ) != 0xff )
        blake512_8way_full( &ctx.blake, vhashA, vhash, 64 );
@@ -169,8 +165,7 @@ void quark_8way_hash( void *state, const void *input )
 
     skein512_8way_full( &ctx.skein, vhash, vhash, 64 );
 
-    vh_mask = _mm512_cmpeq_epi64_mask( _mm512_and_si512( vh[0], bit3_mask ),
-                                       zero );
+    vh_mask = _mm512_testn_epi64_mask( vh[0], bit3_mask );
 
     if ( ( vh_mask & 0xff ) != 0xff )
     {

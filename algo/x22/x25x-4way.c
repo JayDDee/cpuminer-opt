@@ -581,10 +581,8 @@ int scanhash_x25x_8way( struct work *work, uint32_t max_nonce,
    edata[4] = mm128_swap64_32( casti_m128i( pdata, 4 ) );   
 
    mm512_intrlv80_8x64( vdata, edata );
-
-   *noncev = mm512_intrlv_blend_32( *noncev,
-                           _mm512_set_epi32( 0, n+7, 0, n+6, 0, n+5, 0, n+4,
-                                             0, n+3, 0, n+2, 0, n+1, 0, n ) );
+   *noncev = _mm512_add_epi32( *noncev, _mm512_set_epi32(
+                       0, 7, 0, 6, 0, 5, 0, 4, 0, 3, 0, 2, 0, 1, 0, 0 ) );
    blake512_8way_prehash_le( &blake512_8way_ctx, x25x_8way_midstate, vdata ); 
 
    do
@@ -941,9 +939,8 @@ int scanhash_x25x_4way( struct work* work, uint32_t max_nonce,
    edata[4] = mm128_swap64_32( casti_m128i( pdata, 4 ) );
 
    mm256_intrlv80_4x64( vdata, edata );
-
-   *noncev = mm256_intrlv_blend_32( *noncev,
-                           _mm256_set_epi32( 0, n+3, 0, n+2, 0, n+1, 0, n ) );
+   *noncev = _mm256_add_epi32( *noncev, _mm256_set_epi32(
+                                                 0, 3, 0, 2, 0, 1, 0, 0 ) );
    blake512_4way_prehash_le( &blake512_4way_ctx, x25x_4way_midstate, vdata );
    
    do

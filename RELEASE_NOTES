@@ -65,6 +65,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.20.3
+
+Faster c11 algo: AVX512 6%, AVX2 4%, AVX2+VAES 15%.
+Faster AVX2+VAES for anime 14%, hmq1725 6%.
+Small optimizations to Luffa AVX2 & AVX512.
+
 v3.20.2
 
 Bit rotation optimizations to Blake256, Blake512, Blake2b, Blake2s & Lyra2-blake2b for SSE2 & AVX2.
@@ -75,7 +81,7 @@ v3.20.1
 sph_blake2b optimized 1-way SSSE3 & AVX2.
 Removed duplicate Blake2b used by Power2b algo, will now use optimized sph_blake2b.
 Removed imprecise hash & target display from rejected share log.
-Share and target difficulty is now displayed only for low diificulty shares.
+Share and target difficulty is now displayed only for low difficulty shares.
 Updated configure.ac to check for AVX512 asm support.
 Small optimization to Lyra2 SSE2.
 

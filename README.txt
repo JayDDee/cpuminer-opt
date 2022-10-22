@@ -1,12 +1,22 @@
 This file is included in the Windows binary package. Compile instructions
 for Linux and Windows can be found in RELEASE_NOTES.
 
-This package is officially avalable only from:
+cpuminer-opt is open source and free of any fees. Many forks exist that are
+closed source and contain usage fees. support open source free software.
+
+This package is officially avalaible only from:
+
  https://github.com/JayDDee/cpuminer-opt
+
 No other sources should be trusted.
 
 cpuminer is a console program that is executed from a DOS or Powershell
-prompt. There is no GUI and no mouse support.
+command prompt. There is no GUI and no mouse support.
+
+New users are encouraged to consult the cpuminer-opt Wiki for detailed
+information on usage:
+
+https://github.com/JayDDee/cpuminer-opt/wiki
 
 Miner programs are often flagged as malware by antivirus programs. This is
 a false positive, they are flagged simply because they are cryptocurrency 
@@ -43,12 +53,11 @@ cpuminer-avx2.exe              Haswell, Skylake, Kabylake, Coffeelake, Cometlake
 cpuminer-avx2-sha.exe          AMD Zen1, Zen2
 cpuminer-avx2-sha-vaes.exe     Intel Alderlake*, AMD Zen3
 cpuminer-avx512.exe            Intel HEDT Skylake-X, Cascadelake
-cpuminer-avx512-sha-vaes.exe   Icelake, Tigerlake, Rocketlake
+cpuminer-avx512-sha-vaes.exe   AMD Zen4, Intel Rocketlake, Icelake
 
-* Alderlake is a hybrid architecture. With the E-cores disabled it may be
-  possible to enable AVX512 on the the P-cores and use the avx512-sha-vaes
-  build. This is not officially supported by Intel at time of writing.
-  Check for current information.
+* Alderlake is a hybrid architecture with a mix of E-cores & P-cores. Although
+  the P-cores can support AVX512 the E-cores can't so Intel decided to disable
+  AVX512 on the the P-cores.
 
 Notes about included DLL files:
 
@@ -59,9 +68,11 @@ source code obtained from the author's official repository. The exact
 procedure is documented in the build instructions for Windows:
 https://github.com/JayDDee/cpuminer-opt/wiki/Compiling-from-source
 
-Some DLL filess may already be installed on the system by Windows or third
-party packages. They often will work and may be used instead of the included
-file. 
+Some included DLL files may already be installed on the system by Windows or
+third party packages. They often will work and may be used instead of the
+included version of the files.
+
+
 
 If you like this software feel free to donate:
 

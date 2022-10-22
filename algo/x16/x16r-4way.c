@@ -163,7 +163,7 @@ int x16r_8way_hash_generic( void* output, const void* input, int thrid )
             {
                intrlv_8x64( vhash, in0, in1, in2, in3, in4, in5, in6, in7,
                             size<<3 );
-            bmw512_8way_update( &ctx.bmw, vhash, size );
+               bmw512_8way_update( &ctx.bmw, vhash, size );
             }
             bmw512_8way_close( &ctx.bmw, vhash );
             dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,

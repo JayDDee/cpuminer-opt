@@ -57,10 +57,15 @@
 //    32 bytes for 256 bit vectors and 64 bytes for 512 bit vectors. 64 byte
 //    alignment is recommended in all cases for best cache alignment.
 //
+//    All functions are defined with type agnostic pointers (void*) arguments
+//    and are cast or aliased as the appropriate type. This adds convenience
+//    for the applications but also adds responsibility to ensure adequate data
+//    alignment.
+//
 //    Windows has problems with function vector arguments larger than
 //    128 bits. Stack alignment is only guaranteed to 16 bytes. Always use
-//    pointers for larger vectors in function arguments. Macros can be
-//    used for larger value arguments.
+//    pointers for larger vectors in function arguments. Macros can be used
+//    for larger value arguments.
 //
 //    An attempt was made to make the names as similar as possible to
 //    Intel's intrinsic function format. Most variations are to avoid
@@ -74,7 +79,7 @@
 //     to avoid the ambiguity of "mm".
 //   - the element size does not include additional type specifiers
 //      like "epi".
-//   - some macros contain value args that are updated.
+//   - some macros may contain value args that are updated.
 //   - specialized shift and rotate functions that move elements around
 //     use the notation "1x32" to indicate the distance moved as units of
 //     the element size.
@@ -86,10 +91,10 @@
 //   
 //    Function names follow this pattern:
 //
-//         prefix_op[esize]_[vsize]
+//         prefix_op[vsize]_[esize]
 //
-//    Prefix: usually the size of the largest vectors used. Following
-//            are some examples:
+//    Prefix: usually the size of the returned vector.
+//    Following are some examples:
 //
 //    u64:  unsigned 64 bit integer function
 //    i128: signed 128 bit integer function (rarely used)
@@ -102,10 +107,12 @@
 //    esize: optional, element size of operation
 //
 //    vsize: optional, lane size used when a function operates on elements
-//           of vectors within lanes of a vector.
+//           within lanes of a larger vector.
 //
-//    Ex: mm256_ror1x64_128 rotates each 128 bit lane of a 256 bit vector
-//        right by 64 bits.
+//    m256_const_64 defines a vector contructed from the supplied 64 bit
+//        integer arguments.
+//    mm256_shuflr128_32 rotates each 128 bit lane of a 256 bit vector
+//        right by 32 bits.
 //
 // Vector constants
 //

@@ -15,7 +15,8 @@
 
 #if defined (ANIME_8WAY)
 
-typedef struct {
+union _anime_8way_context_overlay
+{
     blake512_8way_context   blake;
     bmw512_8way_context     bmw;
 #if defined(__VAES__)
@@ -26,23 +27,9 @@ typedef struct {
     jh512_8way_context      jh;
     skein512_8way_context   skein;
     keccak512_8way_context  keccak;
-} anime_8way_ctx_holder;
+} __attribute__ ((aligned (64)));
 
-anime_8way_ctx_holder anime_8way_ctx __attribute__ ((aligned (64)));
-
-void init_anime_8way_ctx()
-{
-     blake512_8way_init( &anime_8way_ctx.blake );
-     bmw512_8way_init( &anime_8way_ctx.bmw );
-#if defined(__VAES__)
-     groestl512_4way_init( &anime_8way_ctx.groestl, 64 );
-#else
-     init_groestl( &anime_8way_ctx.groestl, 64 );
-#endif
-     skein512_8way_init( &anime_8way_ctx.skein );
-     jh512_8way_init( &anime_8way_ctx.jh );
-     keccak512_8way_init( &anime_8way_ctx.keccak );
-}
+typedef union _anime_8way_context_overlay anime_8way_context_overlay;
 
 void anime_8way_hash( void *state, const void *input )
 {
@@ -65,17 +52,14 @@ void anime_8way_hash( void *state, const void *input )
     __m512i* vhB = (__m512i*)vhashB;
     __m512i* vhC = (__m512i*)vhashC;
     const __m512i bit3_mask = m512_const1_64( 8 );
-    const __m512i zero = _mm512_setzero_si512();
     __mmask8 vh_mask;
-    anime_8way_ctx_holder ctx;
-    memcpy( &ctx, &anime_8way_ctx, sizeof(anime_8way_ctx) );
+    anime_8way_context_overlay ctx __attribute__ ((aligned (64)));
 
     bmw512_8way_full( &ctx.bmw, vhash, input, 80 );
 
     blake512_8way_full( &ctx.blake, vhash, vhash, 64 );
 
-    vh_mask = _mm512_cmpeq_epi64_mask( _mm512_and_si512( vh[0], bit3_mask ),
-                                       zero );
+    vh_mask = _mm512_testn_epi64_mask( vh[0], bit3_mask );
 
 #if defined(__VAES__)
 
@@ -152,8 +136,7 @@ void anime_8way_hash( void *state, const void *input )
     jh512_8way_update( &ctx.jh, vhash, 64 );
     jh512_8way_close( &ctx.jh, vhash );
 
-    vh_mask = _mm512_cmpeq_epi64_mask( _mm512_and_si512( vh[0], bit3_mask ),
-                                       zero );
+    vh_mask = _mm512_testn_epi64_mask( vh[0], bit3_mask );
 
     if ( ( vh_mask & 0xff ) != 0xff )
        blake512_8way_full( &ctx.blake, vhashA, vhash, 64 );
@@ -168,8 +151,7 @@ void anime_8way_hash( void *state, const void *input )
 
     skein512_8way_full( &ctx.skein, vhash, vhash, 64 );
 
-    vh_mask = _mm512_cmpeq_epi64_mask( _mm512_and_si512( vh[0], bit3_mask ), 
-                                       zero );
+    vh_mask = _mm512_testn_epi64_mask( vh[0], bit3_mask );
 
     if ( ( vh_mask & 0xff ) != 0xff )
     {
@@ -237,14 +219,20 @@ int scanhash_anime_8way( struct work *work, uint32_t max_nonce,
 
 #elif defined (ANIME_4WAY)
 
-typedef struct {
+union _anime_4way_context_overlay
+{
     blake512_4way_context  blake;
     bmw512_4way_context    bmw;
     hashState_groestl      groestl;
     jh512_4way_context     jh;
     skein512_4way_context  skein;
     keccak512_4way_context keccak;
-} anime_4way_ctx_holder;
+#if defined(__VAES__)
+    groestl512_2way_context groestl2;
+#endif
+} __attribute__ ((aligned (64)));
+
+typedef union _anime_4way_context_overlay anime_4way_context_overlay;
 
 void anime_4way_hash( void *state, const void *input )
 {
@@ -262,7 +250,7 @@ void anime_4way_hash( void *state, const void *input )
     int h_mask;
     const __m256i bit3_mask = m256_const1_64( 8 );
     const __m256i zero = _mm256_setzero_si256();
-    anime_4way_ctx_holder ctx;
+    anime_4way_context_overlay ctx __attribute__ ((aligned (64)));
 
     bmw512_4way_init( &ctx.bmw );
     bmw512_4way_update( &ctx.bmw, input, 80 );
@@ -293,7 +281,18 @@ void anime_4way_hash( void *state, const void *input )
 
     mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
+#if defined(__VAES__)
+
+   rintrlv_4x64_2x128( vhashA, vhashB, vhash, 512 );
+
+   groestl512_2way_full( &ctx.groestl2, vhashA, vhashA, 64 );
+   groestl512_2way_full( &ctx.groestl2, vhashB, vhashB, 64 );
+
+   rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );
+
+#else
+
+   dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
     groestl512_full( &ctx.groestl, (char*)hash0, (char*)hash0, 512 );
     groestl512_full( &ctx.groestl, (char*)hash1, (char*)hash1, 512 );
@@ -301,6 +300,8 @@ void anime_4way_hash( void *state, const void *input )
     groestl512_full( &ctx.groestl, (char*)hash3, (char*)hash3, 512 );
 
     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
+
+#endif
 
     jh512_4way_init( &ctx.jh );
     jh512_4way_update( &ctx.jh, vhash, 64 );

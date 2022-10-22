@@ -62,186 +62,66 @@ static const uint32 CNS_INIT[128] __attribute((aligned(64))) = {
 
 #define cns4w(i)  m512_const1_128( ( (__m128i*)CNS_INIT)[i] )
 
-#define ADD_CONSTANT4W(a,b,c0,c1)\
-    a = _mm512_xor_si512(a,c0);\
-    b = _mm512_xor_si512(b,c1);
+#define ADD_CONSTANT4W( a, b, c0, c1 ) \
+    a = _mm512_xor_si512( a, c0 ); \
+    b = _mm512_xor_si512( b, c1 );
 
 #define MULT24W( a0, a1 ) \
-do { \
+{ \
   __m512i b = _mm512_xor_si512( a0, \
                      _mm512_maskz_shuffle_epi32( 0xbbbb, a1, 16 ) ); \
-  a0 = _mm512_or_si512( _mm512_bsrli_epi128(  b, 4 ), \
-                        _mm512_bslli_epi128( a1,12 ) ); \
-  a1 = _mm512_or_si512( _mm512_bsrli_epi128( a1, 4 ), \
-                        _mm512_bslli_epi128(  b,12 ) ); \
-} while(0)
+  a0 = _mm512_alignr_epi8( a1,  b, 4 ); \
+  a1 = _mm512_alignr_epi8(  b, a1, 4 ); \
+}
 
-/*
-#define MULT24W( a0, a1, mask ) \
-do { \
-  __m512i b = _mm512_xor_si512( a0, \
-                   _mm512_shuffle_epi32( _mm512_and_si512(a1,mask), 16 ) ); \
-  a0 = _mm512_or_si512( _mm512_bsrli_epi128(b,4), _mm512_bslli_epi128(a1,12) );\
-  a1 = _mm512_or_si512( _mm512_bsrli_epi128(a1,4), _mm512_bslli_epi128(b,12) );\
-} while(0)
-*/
-
-// confirm pointer arithmetic
-// ok but use array indexes
-#define STEP_PART4W(x,c0,c1,t)\
-    SUBCRUMB4W(*x,*(x+1),*(x+2),*(x+3),*t);\
-    SUBCRUMB4W(*(x+5),*(x+6),*(x+7),*(x+4),*t);\
-    MIXWORD4W(*x,*(x+4),*t,*(t+1));\
-    MIXWORD4W(*(x+1),*(x+5),*t,*(t+1));\
-    MIXWORD4W(*(x+2),*(x+6),*t,*(t+1));\
-    MIXWORD4W(*(x+3),*(x+7),*t,*(t+1));\
-    ADD_CONSTANT4W(*x, *(x+4), c0, c1);
-
-#define SUBCRUMB4W(a0,a1,a2,a3,t)\
-    t  = a0;\
+#define SUBCRUMB4W( a0, a1, a2, a3 ) \
+{ \
+    __m512i t = a0; \
     a0 = mm512_xoror( a3, a0, a1 ); \
-    a2 = _mm512_xor_si512(a2,a3);\
+    a2 = _mm512_xor_si512( a2, a3 ); \
     a1 = _mm512_ternarylogic_epi64( a1, a3, t, 0x87 ); /* a1 xnor (a3 & t) */ \
     a3 = mm512_xorand( a2, a3, t ); \
-    a2 = mm512_xorand( a1, a2, a0);\
-    a1 = _mm512_or_si512(a1,a3);\
-    a3 = _mm512_xor_si512(a3,a2);\
-    t  = _mm512_xor_si512(t,a1);\
-    a2 = _mm512_and_si512(a2,a1);\
-    a1 = mm512_xnor(a1,a0);\
-    a0 = t;
+    a2 = mm512_xorand( a1, a2, a0); \
+    a1 = _mm512_or_si512( a1, a3 ); \
+    a3 = _mm512_xor_si512( a3, a2 ); \
+    t  = _mm512_xor_si512( t, a1 ); \
+    a2 = _mm512_and_si512( a2, a1 ); \
+    a1 = mm512_xnor( a1, a0 ); \
+    a0 = t; \
+}
 
-/*
-#define SUBCRUMB4W(a0,a1,a2,a3,t)\
-    t  = _mm512_load_si512(&a0);\
-    a0 = _mm512_or_si512(a0,a1);\
-    a2 = _mm512_xor_si512(a2,a3);\
-    a1 = _mm512_andnot_si512(a1, m512_neg1 );\
-    a0 = _mm512_xor_si512(a0,a3);\
-    a3 = _mm512_and_si512(a3,t);\
-    a1 = _mm512_xor_si512(a1,a3);\
-    a3 = _mm512_xor_si512(a3,a2);\
-    a2 = _mm512_and_si512(a2,a0);\
-    a0 = _mm512_andnot_si512(a0, m512_neg1 );\
-    a2 = _mm512_xor_si512(a2,a1);\
-    a1 = _mm512_or_si512(a1,a3);\
-    t  = _mm512_xor_si512(t,a1);\
-    a3 = _mm512_xor_si512(a3,a2);\
-    a2 = _mm512_and_si512(a2,a1);\
-    a1 = _mm512_xor_si512(a1,a0);\
-    a0 = _mm512_load_si512(&t);
-*/
+#define MIXWORD4W( a, b ) \
+    b = _mm512_xor_si512( a, b ); \
+    a = _mm512_xor_si512( b, _mm512_rol_epi32( a, 2 ) ); \
+    b = _mm512_xor_si512( a, _mm512_rol_epi32( b, 14 ) ); \
+    a = _mm512_xor_si512( b, _mm512_rol_epi32( a, 10 ) ); \
+    b = _mm512_rol_epi32( b, 1 );
 
-#define MIXWORD4W(a,b,t1,t2)\
-    b  = _mm512_xor_si512(a,b);\
-    t1 = _mm512_slli_epi32(a,2);\
-    t2 = _mm512_srli_epi32(a,30);\
-    a  = mm512_xoror( b, t1, t2 ); \
-    t1 = _mm512_slli_epi32(b,14);\
-    t2 = _mm512_srli_epi32(b,18);\
-    b  = _mm512_or_si512(t1,t2);\
-    b  = mm512_xoror( a, t1, t2 ); \
-    t1 = _mm512_slli_epi32(a,10);\
-    t2 = _mm512_srli_epi32(a,22);\
-    a  = mm512_xoror( b, t1, t2 ); \
-    t1 = _mm512_slli_epi32(b,1);\
-    t2 = _mm512_srli_epi32(b,31);\
-    b  = _mm512_or_si512(t1,t2);
+#define STEP_PART4W( x0, x1, x2, x3, x4, x5, x6, x7, c0, c1 ) \
+    SUBCRUMB4W( x0, x1, x2, x3 ); \
+    SUBCRUMB4W( x5, x6, x7, x4 ); \
+    MIXWORD4W( x0, x4 ); \
+    MIXWORD4W( x1, x5 ); \
+    MIXWORD4W( x2, x6 ); \
+    MIXWORD4W( x3, x7 ); \
+    ADD_CONSTANT4W( x0, x4, c0, c1 );
 
-/*
-#define MIXWORD4W(a,b,t1,t2)\
-    b  = _mm512_xor_si512(a,b);\
-    t1 = _mm512_slli_epi32(a,2);\
-    t2 = _mm512_srli_epi32(a,30);\
-     a = _mm512_or_si512(t1,t2);\
-    a  = _mm512_xor_si512(a,b);\
-    t1 = _mm512_slli_epi32(b,14);\
-    t2 = _mm512_srli_epi32(b,18);\
-    b  = _mm512_or_si512(t1,t2);\
-    b  = _mm512_xor_si512(a,b);\
-    t1 = _mm512_slli_epi32(a,10);\
-    t2 = _mm512_srli_epi32(a,22);\
-    a  = _mm512_or_si512(t1,t2);\
-    a  = _mm512_xor_si512(a,b);\
-    t1 = _mm512_slli_epi32(b,1);\
-    t2 = _mm512_srli_epi32(b,31);\
-    b  = _mm512_or_si512(t1,t2);
-*/
-
-#define STEP_PART24W(a0,a1,t0,t1,c0,c1,tmp0,tmp1)\
-    a1 = _mm512_shuffle_epi32(a1,147);\
-    t0 = _mm512_load_si512(&a1);\
-    a1 = _mm512_unpacklo_epi32(a1,a0);\
-    t0 = _mm512_unpackhi_epi32(t0,a0);\
-    t1 = _mm512_shuffle_epi32(t0,78);\
-    a0 = _mm512_shuffle_epi32(a1,78);\
-    SUBCRUMB4W(t1,t0,a0,a1,tmp0);\
-    t0 = _mm512_unpacklo_epi32(t0,t1);\
-    a1 = _mm512_unpacklo_epi32(a1,a0);\
-    a0 = _mm512_load_si512(&a1);\
-    a0 = _mm512_unpackhi_epi64(a0,t0);\
-    a1 = _mm512_unpacklo_epi64(a1,t0);\
-    a1 = _mm512_shuffle_epi32(a1,57);\
-    MIXWORD4W(a0,a1,tmp0,tmp1);\
-    ADD_CONSTANT4W(a0,a1,c0,c1);
-
-#define NMLTOM7684W(r0,r1,r2,s0,s1,s2,s3,p0,p1,p2,q0,q1,q2,q3)\
-    s2 = _mm512_load_si512(&r1);\
-    q2 = _mm512_load_si512(&p1);\
-    r2 = _mm512_shuffle_epi32(r2,216);\
-    p2 = _mm512_shuffle_epi32(p2,216);\
-    r1 = _mm512_unpacklo_epi32(r1,r0);\
-    p1 = _mm512_unpacklo_epi32(p1,p0);\
-    s2 = _mm512_unpackhi_epi32(s2,r0);\
-    q2 = _mm512_unpackhi_epi32(q2,p0);\
-    s0 = _mm512_load_si512(&r2);\
-    q0 = _mm512_load_si512(&p2);\
-    r2 = _mm512_unpacklo_epi64(r2,r1);\
-    p2 = _mm512_unpacklo_epi64(p2,p1);\
-    s1 = _mm512_load_si512(&s0);\
-    q1 = _mm512_load_si512(&q0);\
-    s0 = _mm512_unpackhi_epi64(s0,r1);\
-    q0 = _mm512_unpackhi_epi64(q0,p1);\
-    r2 = _mm512_shuffle_epi32(r2,225);\
-    p2 = _mm512_shuffle_epi32(p2,225);\
-    r0 = _mm512_load_si512(&s1);\
-    p0 = _mm512_load_si512(&q1);\
-    s0 = _mm512_shuffle_epi32(s0,225);\
-    q0 = _mm512_shuffle_epi32(q0,225);\
-    s1 = _mm512_unpacklo_epi64(s1,s2);\
-    q1 = _mm512_unpacklo_epi64(q1,q2);\
-    r0 = _mm512_unpackhi_epi64(r0,s2);\
-    p0 = _mm512_unpackhi_epi64(p0,q2);\
-    s2 = _mm512_load_si512(&r0);\
-    q2 = _mm512_load_si512(&p0);\
-    s3 = _mm512_load_si512(&r2);\
-    q3 = _mm512_load_si512(&p2);
-
-#define MIXTON7684W(r0,r1,r2,r3,s0,s1,s2,p0,p1,p2,p3,q0,q1,q2)\
-    s0 = _mm512_load_si512(&r0);\
-    q0 = _mm512_load_si512(&p0);\
-    s1 = _mm512_load_si512(&r2);\
-    q1 = _mm512_load_si512(&p2);\
-    r0 = _mm512_unpackhi_epi32(r0,r1);\
-    p0 = _mm512_unpackhi_epi32(p0,p1);\
-    r2 = _mm512_unpackhi_epi32(r2,r3);\
-    p2 = _mm512_unpackhi_epi32(p2,p3);\
-    s0 = _mm512_unpacklo_epi32(s0,r1);\
-    q0 = _mm512_unpacklo_epi32(q0,p1);\
-    s1 = _mm512_unpacklo_epi32(s1,r3);\
-    q1 = _mm512_unpacklo_epi32(q1,p3);\
-    r1 = _mm512_load_si512(&r0);\
-    p1 = _mm512_load_si512(&p0);\
-    r0 = _mm512_unpackhi_epi64(r0,r2);\
-    p0 = _mm512_unpackhi_epi64(p0,p2);\
-    s0 = _mm512_unpackhi_epi64(s0,s1);\
-    q0 = _mm512_unpackhi_epi64(q0,q1);\
-    r1 = _mm512_unpacklo_epi64(r1,r2);\
-    p1 = _mm512_unpacklo_epi64(p1,p2);\
-    s2 = _mm512_load_si512(&r0);\
-    q2 = _mm512_load_si512(&p0);\
-    s1 = _mm512_load_si512(&r1);\
-    q1 = _mm512_load_si512(&p1);
+#define STEP_PART24W( a0, a1, t0, t1, c0, c1 ) \
+    a1 = _mm512_shuffle_epi32( a1, 147 ); \
+    t0 = _mm512_load_si512( &a1 ); \
+    a1 = _mm512_unpacklo_epi32( a1, a0 ); \
+    t0 = _mm512_unpackhi_epi32( t0, a0 ); \
+    t1 = _mm512_shuffle_epi32( t0, 78 ); \
+    a0 = _mm512_shuffle_epi32( a1, 78 ); \
+    SUBCRUMB4W( t1, t0, a0, a1 ); \
+    t0 = _mm512_unpacklo_epi32( t0, t1 ); \
+    a1 = _mm512_unpacklo_epi32( a1, a0 ); \
+    a0 = _mm512_load_si512( &a1 ); \
+    a0 = _mm512_unpackhi_epi64( a0, t0 ); \
+    a1 = _mm512_unpacklo_epi64( a1, t0 ); \
+    a1 = _mm512_shuffle_epi32( a1, 57 ); \
+    MIXWORD4W( a0, a1 ); \
+    ADD_CONSTANT4W( a0, a1, c0, c1 );
 
 #define NMLTOM10244W(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3)\
     s1 = _mm512_load_si512(&r3);\
@@ -279,8 +159,7 @@ void rnd512_4way( luffa_4way_context *state, __m512i *msg )
     __m512i t0, t1;
     __m512i *chainv = state->chainv;
     __m512i msg0, msg1;
-    __m512i tmp[2];
-    __m512i x[8];
+    __m512i x0, x1, x2, x3, x4, x5, x6, x7;
 
     t0 = mm512_xor3( chainv[0], chainv[2], chainv[4] );
     t1 = mm512_xor3( chainv[1], chainv[3], chainv[5] );
@@ -372,42 +251,30 @@ void rnd512_4way( luffa_4way_context *state, __m512i *msg )
     chainv[7] = _mm512_rol_epi32( chainv[7], 3 );
     chainv[9] = _mm512_rol_epi32( chainv[9], 4 );
 
-    NMLTOM10244W( chainv[0], chainv[2], chainv[4], chainv[6],
-                x[0], x[1], x[2], x[3],
-                chainv[1],chainv[3],chainv[5],chainv[7],
-                x[4], x[5], x[6], x[7] );
+    NMLTOM10244W( chainv[0], chainv[2], chainv[4], chainv[6], x0, x1, x2, x3,
+                  chainv[1], chainv[3], chainv[5], chainv[7], x4, x5, x6, x7 );
 
-    STEP_PART4W( &x[0], cns4w( 0), cns4w( 1), &tmp[0] );
-    STEP_PART4W( &x[0], cns4w( 2), cns4w( 3), &tmp[0] );
-    STEP_PART4W( &x[0], cns4w( 4), cns4w( 5), &tmp[0] );
-    STEP_PART4W( &x[0], cns4w( 6), cns4w( 7), &tmp[0] );
-    STEP_PART4W( &x[0], cns4w( 8), cns4w( 9), &tmp[0] );
-    STEP_PART4W( &x[0], cns4w(10), cns4w(11), &tmp[0] );
-    STEP_PART4W( &x[0], cns4w(12), cns4w(13), &tmp[0] );
-    STEP_PART4W( &x[0], cns4w(14), cns4w(15), &tmp[0] );
+    STEP_PART4W( x0, x1, x2, x3, x4, x5, x6, x7, cns4w( 0), cns4w( 1) );
+    STEP_PART4W( x0, x1, x2, x3, x4, x5, x6, x7, cns4w( 2), cns4w( 3) );
+    STEP_PART4W( x0, x1, x2, x3, x4, x5, x6, x7, cns4w( 4), cns4w( 5) );
+    STEP_PART4W( x0, x1, x2, x3, x4, x5, x6, x7, cns4w( 6), cns4w( 7) );
+    STEP_PART4W( x0, x1, x2, x3, x4, x5, x6, x7, cns4w( 8), cns4w( 9) );
+    STEP_PART4W( x0, x1, x2, x3, x4, x5, x6, x7, cns4w(10), cns4w(11) );
+    STEP_PART4W( x0, x1, x2, x3, x4, x5, x6, x7, cns4w(12), cns4w(13) );
+    STEP_PART4W( x0, x1, x2, x3, x4, x5, x6, x7, cns4w(14), cns4w(15) );
 
-    MIXTON10244W( x[0], x[1], x[2], x[3],
-                chainv[0], chainv[2], chainv[4],chainv[6],
-                x[4], x[5], x[6], x[7],
-                chainv[1],chainv[3],chainv[5],chainv[7]);
+    MIXTON10244W( x0, x1, x2, x3, chainv[0], chainv[2], chainv[4], chainv[6],
+                  x4, x5, x6, x7, chainv[1], chainv[3], chainv[5], chainv[7] );
 
     /* Process last 256-bit block */
-    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(16), cns4w(17),
-                tmp[0], tmp[1] );
-    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(18), cns4w(19),
-                tmp[0], tmp[1] );
-    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(20), cns4w(21),
-                tmp[0], tmp[1] );
-    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(22), cns4w(23),
-                tmp[0], tmp[1] );
-    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(24), cns4w(25),
-                tmp[0], tmp[1] );
-    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(26), cns4w(27),
-                tmp[0], tmp[1] );
-    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(28), cns4w(29),
-                tmp[0], tmp[1] );
-    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(30), cns4w(31),
-                tmp[0], tmp[1] );
+    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(16), cns4w(17) );
+    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(18), cns4w(19) );
+    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(20), cns4w(21) );
+    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(22), cns4w(23) );
+    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(24), cns4w(25) );
+    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(26), cns4w(27) );
+    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(28), cns4w(29) );
+    STEP_PART24W( chainv[8], chainv[9], t0, t1, cns4w(30), cns4w(31) );
 }
 
 void finalization512_4way( luffa_4way_context *state, uint32 *b )
@@ -683,10 +550,11 @@ int luffa_4way_update_close( luffa_4way_context *state,
 
 #define cns(i)  m256_const1_128( ( (__m128i*)CNS_INIT)[i] )
 
-#define ADD_CONSTANT(a,b,c0,c1)\
-    a = _mm256_xor_si256(a,c0);\
-    b = _mm256_xor_si256(b,c1);
+#define ADD_CONSTANT( a, b, c0, c1 ) \
+    a = _mm256_xor_si256( a, c0 ); \
+    b = _mm256_xor_si256( b, c1 );
 
+/*
 #define MULT2( a0, a1, mask ) \
 do { \
   __m256i b = _mm256_xor_si256( a0, \
@@ -694,127 +562,83 @@ do { \
   a0 = _mm256_or_si256( _mm256_srli_si256(b,4), _mm256_slli_si256(a1,12) ); \
   a1 = _mm256_or_si256( _mm256_srli_si256(a1,4), _mm256_slli_si256(b,12) );  \
 } while(0)
+*/
 
-#define STEP_PART(x,c0,c1,t)\
-    SUBCRUMB(*x,*(x+1),*(x+2),*(x+3),*t);\
-    SUBCRUMB(*(x+5),*(x+6),*(x+7),*(x+4),*t);\
-    MIXWORD(*x,*(x+4),*t,*(t+1));\
-    MIXWORD(*(x+1),*(x+5),*t,*(t+1));\
-    MIXWORD(*(x+2),*(x+6),*t,*(t+1));\
-    MIXWORD(*(x+3),*(x+7),*t,*(t+1));\
-    ADD_CONSTANT(*x, *(x+4), c0, c1);
+#define MULT2( a0, a1, mask ) \
+{ \
+  __m256i b = _mm256_xor_si256( a0, \
+                 _mm256_shuffle_epi32( _mm256_and_si256( a1, mask ), 16 ) ); \
+  a0 = _mm256_alignr_epi8( a1,  b, 4 ); \
+  a1 = _mm256_alignr_epi8(  b, a1, 4 ); \
+}
 
-#define SUBCRUMB(a0,a1,a2,a3,t)\
-    t  = a0;\
-    a0 = _mm256_or_si256(a0,a1);\
-    a2 = _mm256_xor_si256(a2,a3);\
-    a1 = mm256_not( a1 );\
-    a0 = _mm256_xor_si256(a0,a3);\
-    a3 = _mm256_and_si256(a3,t);\
-    a1 = _mm256_xor_si256(a1,a3);\
-    a3 = _mm256_xor_si256(a3,a2);\
-    a2 = _mm256_and_si256(a2,a0);\
-    a0 = mm256_not( a0 );\
-    a2 = _mm256_xor_si256(a2,a1);\
-    a1 = _mm256_or_si256(a1,a3);\
-    t  = _mm256_xor_si256(t,a1);\
-    a3 = _mm256_xor_si256(a3,a2);\
-    a2 = _mm256_and_si256(a2,a1);\
-    a1 = _mm256_xor_si256(a1,a0);\
-    a0 = t;\
+#define SUBCRUMB( a0, a1, a2, a3 ) \
+{ \
+    __m256i t = a0; \
+    a0 = _mm256_or_si256( a0, a1 ); \
+    a2 = _mm256_xor_si256( a2, a3 ); \
+    a1 = mm256_not( a1 ); \
+    a0 = _mm256_xor_si256( a0, a3 ); \
+    a3 = _mm256_and_si256( a3, t ); \
+    a1 = _mm256_xor_si256( a1, a3 ); \
+    a3 = _mm256_xor_si256( a3, a2 ); \
+    a2 = _mm256_and_si256( a2, a0 ); \
+    a0 = mm256_not( a0 ); \
+    a2 = _mm256_xor_si256( a2, a1 ); \
+    a1 = _mm256_or_si256(  a1, a3 ); \
+    t  = _mm256_xor_si256(  t, a1 ); \
+    a3 = _mm256_xor_si256( a3, a2 ); \
+    a2 = _mm256_and_si256( a2, a1 ); \
+    a1 = _mm256_xor_si256( a1, a0 ); \
+    a0 = t; \
+}
 
-#define MIXWORD(a,b,t1,t2)\
-    b  = _mm256_xor_si256(a,b);\
-    t1 = _mm256_slli_epi32(a,2);\
-    t2 = _mm256_srli_epi32(a,30);\
-     a = _mm256_or_si256(t1,t2);\
-    a  = _mm256_xor_si256(a,b);\
-    t1 = _mm256_slli_epi32(b,14);\
-    t2 = _mm256_srli_epi32(b,18);\
-    b  = _mm256_or_si256(t1,t2);\
-    b  = _mm256_xor_si256(a,b);\
-    t1 = _mm256_slli_epi32(a,10);\
-    t2 = _mm256_srli_epi32(a,22);\
-    a  = _mm256_or_si256(t1,t2);\
-    a  = _mm256_xor_si256(a,b);\
-    t1 = _mm256_slli_epi32(b,1);\
-    t2 = _mm256_srli_epi32(b,31);\
-    b  = _mm256_or_si256(t1,t2);
+#define MIXWORD( a, b ) \
+{ \
+    __m256i t1, t2; \
+    b  = _mm256_xor_si256( a,b ); \
+    t1 = _mm256_slli_epi32( a,  2 ); \
+    t2 = _mm256_srli_epi32( a, 30 ); \
+    a  = _mm256_or_si256( t1, t2 ); \
+    a  = _mm256_xor_si256( a, b ); \
+    t1 = _mm256_slli_epi32( b, 14 ); \
+    t2 = _mm256_srli_epi32( b, 18 ); \
+    b  = _mm256_or_si256( t1, t2 ); \
+    b  = _mm256_xor_si256( a, b ); \
+    t1 = _mm256_slli_epi32( a, 10 ); \
+    t2 = _mm256_srli_epi32( a, 22 ); \
+    a  = _mm256_or_si256( t1,t2 ); \
+    a  = _mm256_xor_si256( a,b ); \
+    t1 = _mm256_slli_epi32( b,1 ); \
+    t2 = _mm256_srli_epi32( b,31 ); \
+    b  = _mm256_or_si256( t1, t2 ); \
+}
 
-#define STEP_PART2(a0,a1,t0,t1,c0,c1,tmp0,tmp1)\
-    a1 = _mm256_shuffle_epi32(a1,147);\
-    t0 = _mm256_load_si256(&a1);\
-    a1 = _mm256_unpacklo_epi32(a1,a0);\
-    t0 = _mm256_unpackhi_epi32(t0,a0);\
-    t1 = _mm256_shuffle_epi32(t0,78);\
-    a0 = _mm256_shuffle_epi32(a1,78);\
-    SUBCRUMB(t1,t0,a0,a1,tmp0);\
-    t0 = _mm256_unpacklo_epi32(t0,t1);\
-    a1 = _mm256_unpacklo_epi32(a1,a0);\
-    a0 = _mm256_load_si256(&a1);\
-    a0 = _mm256_unpackhi_epi64(a0,t0);\
-    a1 = _mm256_unpacklo_epi64(a1,t0);\
-    a1 = _mm256_shuffle_epi32(a1,57);\
-    MIXWORD(a0,a1,tmp0,tmp1);\
-    ADD_CONSTANT(a0,a1,c0,c1);
+#define STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, c0, c1 ) \
+    SUBCRUMB( x0, x1, x2, x3 ); \
+    SUBCRUMB( x5, x6, x7, x4 ); \
+    MIXWORD( x0, x4 ); \
+    MIXWORD( x1, x5 ); \
+    MIXWORD( x2, x6 ); \
+    MIXWORD( x3, x7 ); \
+    ADD_CONSTANT( x0, x4, c0, c1 );
 
-#define NMLTOM768(r0,r1,r2,s0,s1,s2,s3,p0,p1,p2,q0,q1,q2,q3)\
-    s2 = _mm256_load_si256(&r1);\
-    q2 = _mm256_load_si256(&p1);\
-    r2 = _mm256_shuffle_epi32(r2,216);\
-    p2 = _mm256_shuffle_epi32(p2,216);\
-    r1 = _mm256_unpacklo_epi32(r1,r0);\
-    p1 = _mm256_unpacklo_epi32(p1,p0);\
-    s2 = _mm256_unpackhi_epi32(s2,r0);\
-    q2 = _mm256_unpackhi_epi32(q2,p0);\
-    s0 = _mm256_load_si256(&r2);\
-    q0 = _mm256_load_si256(&p2);\
-    r2 = _mm256_unpacklo_epi64(r2,r1);\
-    p2 = _mm256_unpacklo_epi64(p2,p1);\
-    s1 = _mm256_load_si256(&s0);\
-    q1 = _mm256_load_si256(&q0);\
-    s0 = _mm256_unpackhi_epi64(s0,r1);\
-    q0 = _mm256_unpackhi_epi64(q0,p1);\
-    r2 = _mm256_shuffle_epi32(r2,225);\
-    p2 = _mm256_shuffle_epi32(p2,225);\
-    r0 = _mm256_load_si256(&s1);\
-    p0 = _mm256_load_si256(&q1);\
-    s0 = _mm256_shuffle_epi32(s0,225);\
-    q0 = _mm256_shuffle_epi32(q0,225);\
-    s1 = _mm256_unpacklo_epi64(s1,s2);\
-    q1 = _mm256_unpacklo_epi64(q1,q2);\
-    r0 = _mm256_unpackhi_epi64(r0,s2);\
-    p0 = _mm256_unpackhi_epi64(p0,q2);\
-    s2 = _mm256_load_si256(&r0);\
-    q2 = _mm256_load_si256(&p0);\
-    s3 = _mm256_load_si256(&r2);\
-    q3 = _mm256_load_si256(&p2);
-
-#define MIXTON768(r0,r1,r2,r3,s0,s1,s2,p0,p1,p2,p3,q0,q1,q2)\
-    s0 = _mm256_load_si256(&r0);\
-    q0 = _mm256_load_si256(&p0);\
-    s1 = _mm256_load_si256(&r2);\
-    q1 = _mm256_load_si256(&p2);\
-    r0 = _mm256_unpackhi_epi32(r0,r1);\
-    p0 = _mm256_unpackhi_epi32(p0,p1);\
-    r2 = _mm256_unpackhi_epi32(r2,r3);\
-    p2 = _mm256_unpackhi_epi32(p2,p3);\
-    s0 = _mm256_unpacklo_epi32(s0,r1);\
-    q0 = _mm256_unpacklo_epi32(q0,p1);\
-    s1 = _mm256_unpacklo_epi32(s1,r3);\
-    q1 = _mm256_unpacklo_epi32(q1,p3);\
-    r1 = _mm256_load_si256(&r0);\
-    p1 = _mm256_load_si256(&p0);\
-    r0 = _mm256_unpackhi_epi64(r0,r2);\
-    p0 = _mm256_unpackhi_epi64(p0,p2);\
-    s0 = _mm256_unpackhi_epi64(s0,s1);\
-    q0 = _mm256_unpackhi_epi64(q0,q1);\
-    r1 = _mm256_unpacklo_epi64(r1,r2);\
-    p1 = _mm256_unpacklo_epi64(p1,p2);\
-    s2 = _mm256_load_si256(&r0);\
-    q2 = _mm256_load_si256(&p0);\
-    s1 = _mm256_load_si256(&r1);\
-    q1 = _mm256_load_si256(&p1);\
+#define STEP_PART2( a0, a1, t0, t1, c0, c1 ) \
+    a1 = _mm256_shuffle_epi32( a1, 147); \
+    t0 = _mm256_load_si256( &a1 ); \
+    a1 = _mm256_unpacklo_epi32( a1, a0 ); \
+    t0 = _mm256_unpackhi_epi32( t0, a0 ); \
+    t1 = _mm256_shuffle_epi32( t0, 78 ); \
+    a0 = _mm256_shuffle_epi32( a1, 78 ); \
+    SUBCRUMB( t1, t0, a0, a1 );\
+    t0 = _mm256_unpacklo_epi32( t0, t1 ); \
+    a1 = _mm256_unpacklo_epi32( a1, a0 ); \
+    a0 = _mm256_load_si256( &a1 ); \
+    a0 = _mm256_unpackhi_epi64( a0, t0 ); \
+    a1 = _mm256_unpacklo_epi64( a1, t0 ); \
+    a1 = _mm256_shuffle_epi32( a1, 57 ); \
+    MIXWORD( a0, a1 ); \
+    ADD_CONSTANT( a0, a1, c0, c1 );
 
 #define NMLTOM1024(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3)\
     s1 = _mm256_load_si256(&r3);\
@@ -857,9 +681,8 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     __m256i t0, t1;
     __m256i *chainv = state->chainv;
     __m256i msg0, msg1;
-    __m256i tmp[2];
-    __m256i x[8];
-    const __m256i MASK = m256_const1_i128( 0x00000000ffffffff );
+    __m256i x0, x1, x2, x3, x4, x5, x6, x7;
+    const __m256i MASK = m256_const1_i128( 0xffffffff );
 
     t0 = chainv[0];
     t1 = chainv[1];
@@ -958,42 +781,30 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     chainv[7] = mm256_rol_32( chainv[7], 3 );
     chainv[9] = mm256_rol_32( chainv[9], 4 );
 
-    NMLTOM1024( chainv[0], chainv[2], chainv[4], chainv[6],
-                x[0], x[1], x[2], x[3],
-                chainv[1],chainv[3],chainv[5],chainv[7],
-                x[4], x[5], x[6], x[7] );
+    NMLTOM1024( chainv[0], chainv[2], chainv[4], chainv[6], x0, x1, x2, x3,
+                chainv[1], chainv[3], chainv[5], chainv[7], x4, x5, x6, x7 );
 
-    STEP_PART( &x[0], cns( 0), cns( 1), &tmp[0] );
-    STEP_PART( &x[0], cns( 2), cns( 3), &tmp[0] );
-    STEP_PART( &x[0], cns( 4), cns( 5), &tmp[0] );
-    STEP_PART( &x[0], cns( 6), cns( 7), &tmp[0] );
-    STEP_PART( &x[0], cns( 8), cns( 9), &tmp[0] );
-    STEP_PART( &x[0], cns(10), cns(11), &tmp[0] );
-    STEP_PART( &x[0], cns(12), cns(13), &tmp[0] );
-    STEP_PART( &x[0], cns(14), cns(15), &tmp[0] );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 0), cns( 1) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 2), cns( 3) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 4), cns( 5) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 6), cns( 7) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 8), cns( 9) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns(10), cns(11) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns(12), cns(13) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns(14), cns(15) );
 
-    MIXTON1024( x[0], x[1], x[2], x[3],
-                chainv[0], chainv[2], chainv[4],chainv[6],
-                x[4], x[5], x[6], x[7],
-                chainv[1],chainv[3],chainv[5],chainv[7]);
+    MIXTON1024( x0, x1, x2, x3, chainv[0], chainv[2], chainv[4], chainv[6],
+                x4, x5, x6, x7, chainv[1], chainv[3], chainv[5], chainv[7]);
 
     /* Process last 256-bit block */
-    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(16), cns(17),
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(18), cns(19),
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(20), cns(21),
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(22), cns(23),
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(24), cns(25),
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(26), cns(27),
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(28), cns(29),
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(30), cns(31),
-                tmp[0], tmp[1] );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(16), cns(17) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(18), cns(19) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(20), cns(21) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(22), cns(23) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(24), cns(25) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(26), cns(27) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(28), cns(29) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(30), cns(31) );
 }
 
 /***************************************************/

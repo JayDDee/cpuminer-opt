@@ -316,7 +316,7 @@ static const sph_u32 CS[16] = {
                                           CSx( r, 5 ) ^ Mx( r, 4 ), \
                                           CSx( r, 3 ) ^ Mx( r, 2 ), \
                                           CSx( r, 1 ) ^ Mx( r, 0 ) ) ) ); \
-   V3 = mm128_ror_32( _mm_xor_si128( V3, V0 ), 16 ); \
+   V3 = mm128_swap32_16( _mm_xor_si128( V3, V0 ) ); \
    V2 = _mm_add_epi32( V2, V3 ); \
    V1 = mm128_ror_32( _mm_xor_si128( V1, V2 ), 12 ); \
    V0 = _mm_add_epi32( V0, _mm_add_epi32( V1, \
@@ -324,7 +324,7 @@ static const sph_u32 CS[16] = {
                                           CSx( r, 4 ) ^ Mx( r, 5 ), \
                                           CSx( r, 2 ) ^ Mx( r, 3 ), \
                                           CSx( r, 0 ) ^ Mx( r, 1 ) ) ) ); \
-   V3 = mm128_ror_32( _mm_xor_si128( V3, V0 ), 8 ); \
+   V3 = mm128_shuflr32_8( _mm_xor_si128( V3, V0 ) ); \
    V2 = _mm_add_epi32( V2, V3 ); \
    V1 = mm128_ror_32( _mm_xor_si128( V1, V2 ), 7 ); \
    V3 = mm128_shufll_32( V3 ); \
@@ -335,7 +335,7 @@ static const sph_u32 CS[16] = {
                                           CSx( r, D ) ^ Mx( r, C ), \
                                           CSx( r, B ) ^ Mx( r, A ), \
                                           CSx( r, 9 ) ^ Mx( r, 8 ) ) ) ); \
-   V3 = mm128_ror_32( _mm_xor_si128( V3, V0 ), 16 ); \
+   V3 = mm128_swap32_16( _mm_xor_si128( V3, V0 ) ); \
    V2 = _mm_add_epi32( V2, V3 ); \
    V1 = mm128_ror_32( _mm_xor_si128( V1, V2 ), 12 ); \
    V0 = _mm_add_epi32( V0, _mm_add_epi32( V1, \
@@ -343,7 +343,7 @@ static const sph_u32 CS[16] = {
                                           CSx( r, C ) ^ Mx( r, D ), \
                                           CSx( r, A ) ^ Mx( r, B ), \
                                           CSx( r, 8 ) ^ Mx( r, 9 ) ) ) ); \
-   V3 = mm128_ror_32( _mm_xor_si128( V3, V0 ), 8 ); \
+   V3 = mm128_shuflr32_8( _mm_xor_si128( V3, V0 ) ); \
    V2 = _mm_add_epi32( V2, V3 ); \
    V1 = mm128_ror_32( _mm_xor_si128( V1, V2 ), 7 ); \
    V3 = mm128_shuflr_32( V3 ); \
