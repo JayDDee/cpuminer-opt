@@ -384,10 +384,16 @@ static const m512_v16 FFT256_Twiddle4w[] =
 #define shufxor4w(x,s) _mm512_shuffle_epi32( x, XCAT( SHUFXOR_, s ))
 
 #define REDUCE4w(x) \
+  _mm512_sub_epi16( _mm512_maskz_mov_epi8( 0x5555555555555555, x ), \
+                    _mm512_srai_epi16( x, 8 ) )
+
+/*
+#define REDUCE4w(x) \
   _mm512_sub_epi16( _mm512_and_si512( x, m512_const1_64( \
                          0x00ff00ff00ff00ff ) ), _mm512_srai_epi16( x, 8 ) )
+*/
 
-#define EXTRA_REDUCE_S4w(x)\
+#define EXTRA_REDUCE_S4w(x) \
   _mm512_sub_epi16( x, _mm512_and_si512( \
              m512_const1_64( 0x0101010101010101 ), \
              _mm512_movm_epi16( _mm512_cmpgt_epi16_mask( \
@@ -400,8 +406,8 @@ static const m512_v16 FFT256_Twiddle4w[] =
 
 #define DO_REDUCE_FULL_S4w(i) \
 do { \
-    X(i) = REDUCE4w( X(i) );                        \
-    X(i) = EXTRA_REDUCE_S4w( X(i) );                \
+    X(i) = REDUCE4w( X(i) ); \
+    X(i) = EXTRA_REDUCE_S4w( X(i) ); \
 } while(0)
 
 
@@ -431,10 +437,6 @@ void fft64_4way( void *a )
    //  Unrolled decimation in frequency (DIF) radix-2 NTT.
    //  Output data is in revbin_permuted order.
 
-  static const int w[] = {0, 2, 4, 6};
-//   __m256i *Twiddle = (__m256i*)FFT64_Twiddle;
-
-
 // targetted  
 #define BUTTERFLY_0( i,j ) \
 do { \
@@ -443,25 +445,25 @@ do { \
     X(i) = _mm512_sub_epi16( X(i), v ); \
 } while(0)
 
-#define BUTTERFLY_N( i,j,n ) \
+#define BUTTERFLY_N( i, j, w ) \
 do { \
     __m512i v = X(j); \
     X(j) = _mm512_add_epi16( X(i), X(j) ); \
-    X(i) = _mm512_slli_epi16( _mm512_sub_epi16( X(i), v ), w[n] ); \
+    X(i) = _mm512_slli_epi16( _mm512_sub_epi16( X(i), v ), w ); \
 } while(0)
 
   BUTTERFLY_0( 0, 4 );
-  BUTTERFLY_N( 1, 5, 1 );
-  BUTTERFLY_N( 2, 6, 2 );
-  BUTTERFLY_N( 3, 7, 3 );
+  BUTTERFLY_N( 1, 5, 2 );
+  BUTTERFLY_N( 2, 6, 4 );
+  BUTTERFLY_N( 3, 7, 6 );
 
   DO_REDUCE( 2 );
   DO_REDUCE( 3 );
 
   BUTTERFLY_0( 0, 2 );
   BUTTERFLY_0( 4, 6 );
-  BUTTERFLY_N( 1, 3, 2 );
-  BUTTERFLY_N( 5, 7, 2 );
+  BUTTERFLY_N( 1, 3, 4 );
+  BUTTERFLY_N( 5, 7, 4 );
 
   DO_REDUCE( 1 );
 
@@ -501,12 +503,11 @@ do { \
   // Transpose the FFT state with a revbin order permutation
   // on the rows and the column.
   // This will make the full FFT_64 in order.
-#define INTERLEAVE(i,j) \
+#define INTERLEAVE( i, j ) \
   do { \
-    __m512i t1= X(i); \
-    __m512i t2= X(j); \
-    X(i) = _mm512_unpacklo_epi16( t1, t2 ); \
-    X(j) = _mm512_unpackhi_epi16( t1, t2 ); \
+    __m512i u = X(j); \
+    X(j) = _mm512_unpackhi_epi16( X(i), X(j) ); \
+    X(i) = _mm512_unpacklo_epi16( X(i), u ); \
   } while(0)
 
   INTERLEAVE( 1, 0 );
@@ -534,10 +535,10 @@ do { \
 } while(0)
 
 
-#define BUTTERFLY_N( i,j,n ) \
+#define BUTTERFLY_N( i, j, w ) \
 do { \
    __m512i u = X(j); \
-   X(i) = _mm512_slli_epi16( X(i), w[n] ); \
+   X(i) = _mm512_slli_epi16( X(i), w ); \
    X(j) = _mm512_sub_epi16( X(j), X(i) ); \
    X(i) = _mm512_add_epi16( u, X(i) ); \
 } while(0)
@@ -558,15 +559,15 @@ do { \
 
   BUTTERFLY_0( 0, 2 );
   BUTTERFLY_0( 4, 6 );
-  BUTTERFLY_N( 1, 3, 2 );
-  BUTTERFLY_N( 5, 7, 2 );
+  BUTTERFLY_N( 1, 3, 4 );
+  BUTTERFLY_N( 5, 7, 4 );
 
   DO_REDUCE( 3 );
 
   BUTTERFLY_0( 0, 4 );
-  BUTTERFLY_N( 1, 5, 1 );
-  BUTTERFLY_N( 2, 6, 2 );
-  BUTTERFLY_N( 3, 7, 3 );
+  BUTTERFLY_N( 1, 5, 2 );
+  BUTTERFLY_N( 2, 6, 4 );
+  BUTTERFLY_N( 3, 7, 6 );
 
   DO_REDUCE_FULL_S4w( 0 );
   DO_REDUCE_FULL_S4w( 1 );
@@ -599,7 +600,6 @@ void fft128_4way( void *a )
   // Temp space to help for interleaving in the end
   __m512i B[8];
   __m512i *A = (__m512i*) a;
-//  __m256i *Twiddle = (__m256i*)FFT128_Twiddle;
 
   /* Size-2 butterflies */
   for ( i = 0; i<8; i++ )
@@ -633,7 +633,6 @@ void fft128_4way_msg( uint16_t *a, const uint8_t *x, int final )
 
   __m512i *X = (__m512i*)x;
   __m512i *A = (__m512i*)a;
-//  __m256i *Twiddle = (__m256i*)FFT128_Twiddle;
 
 #define UNPACK( i ) \
 do { \
@@ -686,7 +685,6 @@ void fft256_4way_msg( uint16_t *a, const uint8_t *x, int final )
 
   __m512i *X = (__m512i*)x;
   __m512i *A = (__m512i*)a;
-//  __m256i *Twiddle = (__m256i*)FFT256_Twiddle;
 
 #define UNPACK( i ) \
 do { \
@@ -775,109 +773,6 @@ void rounds512_4way( uint32_t *state, const uint8_t *msg, uint16_t *fft )
 
   // We split the round function in two halfes
   // so as to insert some independent computations in between
-
-// generic
-#if 0
-#define SUM7_00 0
-#define SUM7_01 1
-#define SUM7_02 2
-#define SUM7_03 3
-#define SUM7_04 4
-#define SUM7_05 5
-#define SUM7_06 6
-
-#define SUM7_10 1
-#define SUM7_11 2
-#define SUM7_12 3
-#define SUM7_13 4
-#define SUM7_14 5
-#define SUM7_15 6
-#define SUM7_16 0
-
-#define SUM7_20 2
-#define SUM7_21 3
-#define SUM7_22 4
-#define SUM7_23 5
-#define SUM7_24 6
-#define SUM7_25 0
-#define SUM7_26 1
-
-#define SUM7_30 3
-#define SUM7_31 4
-#define SUM7_32 5
-#define SUM7_33 6
-#define SUM7_34 0
-#define SUM7_35 1
-#define SUM7_36 2
-
-#define SUM7_40 4
-#define SUM7_41 5
-#define SUM7_42 6
-#define SUM7_43 0
-#define SUM7_44 1
-#define SUM7_45 2
-#define SUM7_46 3
-
-#define SUM7_50 5
-#define SUM7_51 6
-#define SUM7_52 0
-#define SUM7_53 1
-#define SUM7_54 2
-#define SUM7_55 3
-#define SUM7_56 4
-
-#define SUM7_60 6
-#define SUM7_61 0
-#define SUM7_62 1
-#define SUM7_63 2
-#define SUM7_64 3
-#define SUM7_65 4
-#define SUM7_66 5
-
-#define PERM(z,d,a) XCAT(PERM_,XCAT(SUM7_##z,PERM_START))(d,a)
-
-#define PERM_0(d,a) /* XOR 1 */ \
-do { \
-    d##l = shufxor( a##l, 1 ); \
-    d##h = shufxor( a##h, 1 ); \
- } while(0)
-
-#define PERM_1(d,a) /* XOR 6 */ \
-do { \
-    d##l = shufxor( a##h, 2 ); \
-    d##h = shufxor( a##l, 2 ); \
-} while(0)
-
-#define PERM_2(d,a) /* XOR 2 */ \
-do { \
-    d##l = shufxor( a##l, 2 ); \
-    d##h = shufxor( a##h, 2 ); \
-} while(0)
-
-#define PERM_3(d,a) /* XOR 3 */ \
-do { \
-    d##l = shufxor( a##l, 3 ); \
-    d##h = shufxor( a##h, 3 ); \
-} while(0)
-
-#define PERM_4(d,a) /* XOR 5 */ \
-do { \
-    d##l = shufxor( a##h, 1 ); \
-    d##h = shufxor( a##l, 1 ); \
-} while(0)
-
-#define PERM_5(d,a) /* XOR 7 */ \
-do { \
-    d##l = shufxor( a##h, 3 ); \
-    d##h = shufxor( a##l, 3 ); \
-} while(0)
-
-#define PERM_6(d,a) /* XOR 4 */ \
-do { \
-    d##l = a##h; \
-    d##h = a##l; \
-} while(0)
-#endif
 
 // targetted
   

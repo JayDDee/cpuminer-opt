@@ -65,6 +65,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.21.0
+
+Added minotaurx algo for stratum only.
+Blake256 & sha256 prehash optimised to ignore zero-padded data for AVX2 & AVX512.
+Other small improvements.
+
 v3.20.3
 
 Faster c11 algo: AVX512 6%, AVX2 4%, AVX2+VAES 15%.
@@ -98,12 +104,9 @@ v3.19.8
 
 #370 "stratum+ssl", in addition to "stratum+tcps", is now recognized as a valid
 url protocol specifier for requesting a secure stratum connection.
-
 The full url, including the protocol, is now displayed in the stratum connect
 log and the periodic summary log.
-
 Small optimizations to Cubehash, AVX2 & AVX512.
-
 Byte order and prehash optimizations for Blake256 & Blake512, AVX2 & AVX512.
 
 v3.19.7

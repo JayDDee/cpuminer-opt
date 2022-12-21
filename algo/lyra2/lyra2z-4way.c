@@ -120,25 +120,13 @@ int scanhash_lyra2z_16way( struct work *work, uint32_t max_nonce,
    block0_hash[7] = _mm512_set1_epi32( phash[7] );
 
    // Build vectored second block, interleave last 16 bytes of data using
-   // unique nonces and add padding.
+   // unique nonces.
    block_buf[ 0] = _mm512_set1_epi32( pdata[16] );
    block_buf[ 1] = _mm512_set1_epi32( pdata[17] );
    block_buf[ 2] = _mm512_set1_epi32( pdata[18] );
    block_buf[ 3] =
              _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+ 9, n+ 8,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
-   block_buf[ 4] = m512_const1_32( 0x80000000 );
-   block_buf[ 5] =
-   block_buf[ 6] =
-   block_buf[ 7] =
-   block_buf[ 8] =
-   block_buf[ 9] =
-   block_buf[10] =
-   block_buf[11] =
-   block_buf[12] = m512_zero;
-   block_buf[13] = m512_one_32;
-   block_buf[14] = m512_zero;
-   block_buf[15] = m512_const1_32( 80*8 );
 
    // Partialy prehash second block without touching nonces in block_buf[3].
    blake256_16way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
@@ -240,24 +228,12 @@ int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
    block0_hash[7] = _mm256_set1_epi32( phash[7] );
 
    // Build vectored second block, interleave last 16 bytes of data using
-   // unique nonces and add padding.
+   // unique nonces.
    block_buf[ 0] = _mm256_set1_epi32( pdata[16] );
    block_buf[ 1] = _mm256_set1_epi32( pdata[17] );
    block_buf[ 2] = _mm256_set1_epi32( pdata[18] );
    block_buf[ 3] =
             _mm256_set_epi32( n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
-   block_buf[ 4] = m256_const1_32( 0x80000000 );
-   block_buf[ 5] =
-   block_buf[ 6] =
-   block_buf[ 7] =
-   block_buf[ 8] =
-   block_buf[ 9] =
-   block_buf[10] =
-   block_buf[11] =
-   block_buf[12] = m256_zero;
-   block_buf[13] = m256_one_32;
-   block_buf[14] = m256_zero;
-   block_buf[15] = m256_const1_32( 80*8 );
 
    // Partialy prehash second block without touching nonces
    blake256_8way_round0_prehash_le( midstate_vars, block0_hash, block_buf );

@@ -327,6 +327,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_LYRA2Z330:    rc = register_lyra2z330_algo     ( gate ); break;
     case ALGO_M7M:          rc = register_m7m_algo           ( gate ); break;
     case ALGO_MINOTAUR:     rc = register_minotaur_algo      ( gate ); break;
+    case ALGO_MINOTAURX:    rc = register_minotaur_algo      ( gate ); break;
     case ALGO_MYR_GR:       rc = register_myriad_algo        ( gate ); break;
     case ALGO_NEOSCRYPT:    rc = register_neoscrypt_algo     ( gate ); break;
     case ALGO_NIST5:        rc = register_nist5_algo         ( gate ); break;

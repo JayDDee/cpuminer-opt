@@ -15,14 +15,13 @@
 //
 // "_mm256_shuffle_epi8" and "_mm256_alignr_epi8" are restricted to 128 bit
 // lanes and data can't cross the 128 bit lane boundary.  
-// Some usage may have the index vector encoded as if full vector
-// shuffles are supported. This has no side effects and would have the same
-// results using either version.
-// If the need arises and AVX512VL is available, 256 bit full vector shuffles
-// can be implemented using the AVX512 zero-mask feature with a NULL mask.
-// Using intrinsics it's simple:   _mm256_maskz_shuffle_epi8( 0, v, c )
-// With asm it's a bit more complicated with the addition of the mask register
-// and zero tag:   vpshufb ymm0{k0}{z}, ymm1, ymm2 
+// Instructions that can move data across 128 bit lane boundary incur a
+// performance penalty over those that can't.
+// Some usage of index vectors may be encoded as if full vector shuffles are
+// supported. This has no side effects and would have the same results using
+// either version.
+// If the need arises and AVX512VL is available, 256 bit full vector byte 
+// shuffles can be implemented using the AVX512 mask feature with a NULL mask.
 
 #if defined(__AVX__)
 
@@ -141,7 +140,6 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 //
 // Basic operations without SIMD equivalent
 
-// Bitwise not ( ~v )
 #if defined(__AVX512VL__)
 
 static inline __m256i mm256_not( const __m256i v )

@@ -131,9 +131,8 @@ bool opt_verify = false;
 static bool opt_stratum_keepalive = false;
 static struct timeval stratum_keepalive_timer;
 // Stratum typically times out in 5 minutes or 300 seconds
-#define stratum_keepalive_timeout 180  // 3 minutes
+#define stratum_keepalive_timeout 150  // 2.5 minutes
 static struct timeval stratum_reset_time;
-
 
 // pk_buffer_size is used as a version selector by b58 code, therefore
 // it must be set correctly to work.
@@ -2192,6 +2191,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
       } // !quiet
    }  // new diff/block
 
+/*   
    if ( new_job && !( opt_quiet || stratum_errors ) )
    {
       int mismatch = submitted_share_count - ( accepted_share_count
@@ -2202,6 +2202,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
                  CL_LBL "%d Submitted share pending, maybe stale" CL_N,
                  submitted_share_count );
    }
+*/
 }
 
 static void *miner_thread( void *userdata )
@@ -2446,8 +2447,8 @@ static void *miner_thread( void *userdata )
           {
              scale_hash_for_display( &hashrate,  hr_units );
              sprintf( hr, "%.2f", hashrate );
-             applog( LOG_INFO, "CPU #%d: %s %sh/s",
-                               thr_id, hr, hr_units );
+             applog( LOG_INFO, "Thread %d, CPU %d: %s %sh/s",
+                        thr_id, thread_affinity_map[ thr_id ], hr, hr_units );
           }
        }
 
@@ -2887,7 +2888,7 @@ static void *stratum_thread(void *userdata )
             else
               timeval_subtract( &et, &now, &stratum_reset_time );
 
-            if ( et.tv_sec > stratum_keepalive_timeout + 60 )
+            if ( et.tv_sec > stratum_keepalive_timeout + 90 )
             {
                applog( LOG_NOTICE, "No shares submitted, resetting stratum connection" );
                stratum_need_reset = true;

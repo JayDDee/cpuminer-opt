@@ -37,12 +37,20 @@
 //    version of this specific instruction does not.
 //
 //    New alignr instructions for epi64 and epi32 operate across the entire
-//    vector. "_mm512_alignr_epi8" continues to be restricted to 128 bit lanes.
+//    vector but slower than epi8 which continues to be restricted to 128 bit
+//    lanes.
 //
 //    "_mm512_permutexvar_epi8" and "_mm512_permutex2var_epi8" require
 //    AVX512-VBMI. The same instructions with larger elements don't have this
 //    requirement. "_mm512_permutexvar_epi8" also performs the same operation
 //    as "_mm512_shuffle_epi8" which only requires AVX512-BW.
+//
+//    Two coding conventions are used to prevent macro argument side effects:
+//      - if a macro arg is used in an expression it must be protected by
+//        parentheses to ensure an expression argument is evaluated first.
+//      - if an argument is to referenced multiple times a C inline function
+//        should be used instead of a macro to prevent an expression argument
+//        from being evaluated multiple times.
 //
 //    There are 2 areas where overhead is a major concern: constants and
 //    permutations.
@@ -184,7 +192,6 @@ static inline __m512i m512_const4_64( const uint64_t i3, const uint64_t i2,
 // Basic operations without SIMD equivalent
 
 // Bitwise NOT: ~x
-// #define mm512_not( x )       _mm512_xor_si512( x, m512_neg1 )
 static inline __m512i mm512_not( const __m512i x )
 {  return _mm512_ternarylogic_epi64( x, x, x, 1 ); }
 
@@ -295,7 +302,7 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_nand( a, b ) \
    _mm512_ternarylogic_epi64( a, b, b, 0xef  )
 
-
+/*
 // Diagonal blending
 // Blend 8 64 bit elements from 8 vectors
 #define mm512_diagonal_64( v7, v6, v5, v4, v3, v2, v1, v0 ) \
@@ -313,6 +320,7 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
     _mm512_mask_blend_epi32( 0x3333, \
            _mm512_mask_blend_epi32( 0x4444, v3, v2 ), \
            _mm512_mask_blend_epi32( 0x1111, v1, v0 ) )  
+*/
 
 /*
 //
@@ -373,6 +381,19 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_rol_64 _mm512_rol_epi64
 #define mm512_ror_32 _mm512_ror_epi32
 #define mm512_rol_32 _mm512_rol_epi32
+
+/*
+#if defined(__AVX512VBMI2__)
+
+// Use C inline function in case arg is coded as an expression.
+static inline __m512i mm512_ror_16( __m512i v, int c )
+{ return _mm512_shrdi_epi16( v, v, c ); }
+
+static inline __m512i mm512_rol_16( __m512i v, int c )
+{ return _mm512_shldi_epi16( v, v, c ); }
+
+#endif
+*/
 
 //
 // Reverse byte order of packed elements, vectorized endian conversion.
@@ -518,7 +539,6 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 
 //
 // Rotate elements within 256 bit lanes of 512 bit vector.
-// 128 bit lane shift is handled by bslli bsrli.
 
 // Swap hi & lo 128 bits in each 256 bit lane
 #define mm512_swap256_128( v )      _mm512_permutex_epi64( v, 0x4e )
@@ -622,23 +642,6 @@ static inline __m512i mm512_shuflr128_8( const __m512i v, const int c )
 
 #define mm512_shuflr32_8(  v )  _mm512_ror_epi32( v,  8 )
 #define mm512_shufll32_8(  v )  _mm512_rol_epi32( v,  8 )
-
-/*
-// 2 input, 1 output
-// Concatenate { v1, v2 } then rotate right or left and return the high
-// 512 bits, ie rotated v1. 
-#define mm512_shufl2r_256( v1, v2 )    _mm512_alignr_epi64( v2, v1, 4 )
-#define mm512_shufl2l_256( v1, v2 )    _mm512_alignr_epi64( v1, v2, 4 )
-
-#define mm512_shufl2r_128( v1, v2 )    _mm512_alignr_epi64( v2, v1, 2 )
-#define mm512_shufl2l_128( v1, v2 )    _mm512_alignr_epi64( v1, v2, 2 )
-
-#define mm512_shufl2r_64( v1, v2 )     _mm512_alignr_epi64( v2, v1, 1 )
-#define mm512_shufl2l_64( v1, v2 )     _mm512_alignr_epi64( v1, v2, 1 )
-
-#define mm512_shufl2r_32( v1, v2 )     _mm512_alignr_epi32( v2, v1, 1 )
-#define mm512_shufl2l_32( v1, v2 )     _mm512_alignr_epi32( v1, v2, 1 )
-*/
 
 #endif // AVX512
 #endif // SIMD_512_H__

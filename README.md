@@ -74,53 +74,50 @@ Supported Algorithms
                           argon2d250    argon2d-crds, Credits (CRDS)
                           argon2d500    argon2d-dyn,  Dynamic (DYN)
                           argon2d4096   argon2d-uis, Unitus, (UIS)
-                          axiom         Shabal-256 MemoHash
-                          blake         Blake-256 (SFR)
-                          blake2b       Blake2b 256
-                          blake2s       Blake-2 S
+                          blake         Blake-256
+                          blake2b       Blake2-512
+                          blake2s       Blake2-256
                           blakecoin     blake256r8
                           bmw           BMW 256
                           bmw512        BMW 512
-                          c11           Chaincoin
+                          c11           
                           decred
                           deep          Deepcoin (DCN)
                           dmd-gr        Diamond-Groestl
                           groestl       Groestl coin
                           hex           x16r-hex
-                          hmq1725       Espers
+                          hmq1725       
                           hodl          Hodlcoin
                           jha           Jackpotcoin
                           keccak        Maxcoin
                           keccakc       Creative coin
                           lbry          LBC, LBRY Credits
-                          luffa         Luffa
-                          lyra2h        Hppcoin
+                          lyra2h        
                           lyra2re       lyra2
                           lyra2rev2     lyra2v2
                           lyra2rev3     lyrav2v3
                           lyra2z        
-                          lyra2z330     Lyra2 330 rows, Zoin (ZOI)
-                          m7m           Magi (XMG)
-                          minotaur      Ringcoin (RNG)
+                          lyra2z330     
+                          m7m           
+                          minotaur 
+                          minotaurx
                           myr-gr        Myriad-Groestl
                           neoscrypt     NeoScrypt(128, 2, 1)
                           nist5         Nist5
                           pentablake    Pentablake
                           phi1612       phi
-                          phi2          Luxcoin (LUX)
-                          phi2-lux      identical to phi2
-                          pluck         Pluck:128 (Supcoin)
+                          phi2          
                           polytimos     Ninja
                           power2b       MicroBitcoin (MBC)
                           quark         Quark
                           qubit         Qubit
                           scrypt        scrypt(1024, 1, 1) (default)
                           scrypt:N      scrypt(N, 1, 1)
+                          scryptn2      scrypt(1048576, 1, 1)
                           sha256d       Double SHA-256
-                          sha256q       Quad SHA-256, Pyrite (PYE)
-                          sha256t       Triple SHA-256, Onecoin (OC)
+                          sha256q       Quad SHA-256
+                          sha256t       Triple SHA-256
                           sha3d         Double keccak256 (BSHA3)
-                          shavite3      Shavite3
                           skein         Skein+Sha (Skeincoin)
                           skein2        Double Skein (Woodcoin)
                           skunk         Signatum (SIGT)
@@ -136,17 +133,17 @@ Supported Algorithms
                           x11           Dash
                           x11evo        Revolvercoin
                           x11gost       sib (SibCoin)
-                          x12           Galaxie Cash (GCH)
-                          x13           X13
+                          x12           
+                          x13           
                           x13bcd        bcd
                           x13sm3        hsr (Hshare)
-                          x14           X14
-                          x15           X15
+                          x14           
+                          x15           
                           x16r          
                           x16rv2        
-                          x16rt         Gincoin (GIN)
-                          x16rt-veil    Veil (VEIL)
-                          x16s          Pigeoncoin (PGN)
+                          x16rt         
+                          x16rt-veil    veil
+                          x16s          
                           x17
                           x21s
                           x22i

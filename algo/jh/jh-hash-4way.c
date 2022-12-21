@@ -49,12 +49,11 @@ extern "C"{
 
 #define Sb_8W(x0, x1, x2, x3, c) \
 do { \
-   __m512i cc = _mm512_set1_epi64( c ); \
-    x3 = mm512_not( x3 ); \
+    const __m512i cc = _mm512_set1_epi64( c ); \
     x0 = mm512_xorandnot( x0, x2, cc ); \
     tmp = mm512_xorand( cc, x0, x1 ); \
-    x0 = mm512_xorand( x0, x2, x3 ); \
-    x3 = mm512_xorandnot( x3, x1, x2 ); \
+    x0 = mm512_xorandnot( x0, x3, x2 ); \
+    x3 = _mm512_ternarylogic_epi64( x3, x1, x2, 0x2d ); /* ~x3 ^ (~x1 & x2) */\
     x1 = mm512_xorand( x1, x0, x2 ); \
     x2 = mm512_xorandnot( x2, x3, x0 ); \
     x0 = mm512_xoror( x0, x1, x3 ); \
@@ -79,7 +78,7 @@ do { \
 
 #define Sb(x0, x1, x2, x3, c) \
 do { \
-   __m256i cc = _mm256_set1_epi64x( c ); \
+   const __m256i cc = _mm256_set1_epi64x( c ); \
     x3 = mm256_not( x3 ); \
     x0 = _mm256_xor_si256( x0, _mm256_andnot_si256( x2, cc ) ); \
     tmp = _mm256_xor_si256( cc, _mm256_and_si256( x0, x1 ) ); \

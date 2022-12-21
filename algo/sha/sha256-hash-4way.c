@@ -711,8 +711,11 @@ void sha256_8way_prehash_3rounds( __m256i *state_mid, __m256i *X,
 {
    __m256i A, B, C, D, E, F, G, H;
 
-   X[ 0] = SHA2x_MEXP( W[14], W[ 9], W[ 1], W[ 0] );
-   X[ 1] = SHA2x_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   // W[9:14] are zero, therefore X[9:13] are also zero and not needed.
+   // Except X[ 9] which is part of W[ 0] from the third group.
+   X[ 0] = _mm256_add_epi32( SSG2_0x( W[ 1] ), W[ 0] );
+   X[ 1] = _mm256_add_epi32( _mm256_add_epi32( SSG2_1x( W[15] ),
+                             SSG2_0x( W[ 2] ) ), W[ 1] );
    X[ 2] = _mm256_add_epi32( _mm256_add_epi32( SSG2_1x( X[ 0] ), W[11] ),
                              W[ 2] );
    X[ 3] = _mm256_add_epi32( _mm256_add_epi32( SSG2_1x( X[ 1] ), W[12] ),
@@ -725,16 +728,12 @@ void sha256_8way_prehash_3rounds( __m256i *state_mid, __m256i *X,
                              W[ 6] );
    X[ 7] = _mm256_add_epi32( _mm256_add_epi32( X[ 0], SSG2_0x( W[ 8] ) ),
                              W[ 7] );
-   X[ 8] = _mm256_add_epi32( _mm256_add_epi32( X[ 1], SSG2_0x( W[ 9] ) ),
-                             W[ 8] );
-   X[ 9] = _mm256_add_epi32( SSG2_0x( W[10] ), W[ 9] );
-   X[10] = _mm256_add_epi32( SSG2_0x( W[11] ), W[10] );
-   X[11] = _mm256_add_epi32( SSG2_0x( W[12] ), W[11] );
-   X[12] = _mm256_add_epi32( SSG2_0x( W[13] ), W[12] );
-   X[13] = _mm256_add_epi32( SSG2_0x( W[14] ), W[13] );
-   X[14] = _mm256_add_epi32( SSG2_0x( W[15] ), W[14] );
+   X[ 8] = _mm256_add_epi32( X[ 1], W[ 8] );
+   X[14] = SSG2_0x( W[15] );
    X[15] = _mm256_add_epi32( SSG2_0x( X[ 0] ), W[15] );
 
+   X[ 9] = _mm256_add_epi32( SSG2_0x( X[ 1] ), X[ 0] );
+   
    A = _mm256_load_si256( state_in     );
    B = _mm256_load_si256( state_in + 1 );
    C = _mm256_load_si256( state_in + 2 );
@@ -779,10 +778,6 @@ void sha256_8way_final_rounds( __m256i *state_out, const __m256i *data,
    G = _mm256_load_si256( state_mid + 6 );
    H = _mm256_load_si256( state_mid + 7 );
 
-//   SHA2s_8WAY_STEP( A, B, C, D, E, F, G, H,  0, 0 );
-//   SHA2s_8WAY_STEP( H, A, B, C, D, E, F, G,  1, 0 );
-//   SHA2s_8WAY_STEP( G, H, A, B, C, D, E, F,  2, 0 );
-
 #if !defined(__AVX512VL__)
    __m256i X_xor_Y, Y_xor_Z = _mm256_xor_si256( G, H );
 #endif
@@ -810,23 +805,36 @@ void sha256_8way_final_rounds( __m256i *state_out, const __m256i *data,
    W[ 6] = _mm256_add_epi32( X[ 6], SSG2_1x( W[ 4] ) );
    W[ 7] = _mm256_add_epi32( X[ 7], SSG2_1x( W[ 5] ) );
    W[ 8] = _mm256_add_epi32( X[ 8], SSG2_1x( W[ 6] ) );
-   W[ 9] = _mm256_add_epi32( X[ 9], _mm256_add_epi32( SSG2_1x( W[ 7] ),
-                                                      W[ 2] ) );
-   W[10] = _mm256_add_epi32( X[10], _mm256_add_epi32( SSG2_1x( W[ 8] ),
-                                                      W[ 3] ) );
-   W[11] = _mm256_add_epi32( X[11], _mm256_add_epi32( SSG2_1x( W[ 9] ),
-                                                      W[ 4] ) );
-   W[12] = _mm256_add_epi32( X[12], _mm256_add_epi32( SSG2_1x( W[10] ),
-                                                      W[ 5] ) );
-   W[13] = _mm256_add_epi32( X[13], _mm256_add_epi32( SSG2_1x( W[11] ),
-                                                      W[ 6] ) );
+   W[ 9] = _mm256_add_epi32( SSG2_1x( W[ 7] ), W[ 2] );
+   W[10] = _mm256_add_epi32( SSG2_1x( W[ 8] ), W[ 3] );
+   W[11] = _mm256_add_epi32( SSG2_1x( W[ 9] ), W[ 4] );
+   W[12] = _mm256_add_epi32( SSG2_1x( W[10] ), W[ 5] );
+   W[13] = _mm256_add_epi32( SSG2_1x( W[11] ), W[ 6] );
    W[14] = _mm256_add_epi32( X[14], _mm256_add_epi32( SSG2_1x( W[12] ),
                                                       W[ 7] ) );
    W[15] = _mm256_add_epi32( X[15], _mm256_add_epi32( SSG2_1x( W[13] ),
                                                       W[ 8] ) );
 
    SHA256x8_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
-   SHA256x8_MSG_EXPANSION( W );
+
+   W[ 0] = _mm256_add_epi32( X[ 9], _mm256_add_epi32( SSG2_1x( W[14] ),
+                                                      W[ 9] ) );
+   W[ 1] = SHA2x_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   W[ 2] = SHA2x_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
+   W[ 3] = SHA2x_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
+   W[ 4] = SHA2x_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
+   W[ 5] = SHA2x_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
+   W[ 6] = SHA2x_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
+   W[ 7] = SHA2x_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
+   W[ 8] = SHA2x_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
+   W[ 9] = SHA2x_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
+   W[10] = SHA2x_MEXP( W[ 8], W[ 3], W[11], W[10] );
+   W[11] = SHA2x_MEXP( W[ 9], W[ 4], W[12], W[11] );
+   W[12] = SHA2x_MEXP( W[10], W[ 5], W[13], W[12] );
+   W[13] = SHA2x_MEXP( W[11], W[ 6], W[14], W[13] );
+   W[14] = SHA2x_MEXP( W[12], W[ 7], W[15], W[14] );
+   W[15] = SHA2x_MEXP( W[13], W[ 8], W[ 0], W[15] ); 
+
    SHA256x8_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
    SHA256x8_MSG_EXPANSION( W );
    SHA256x8_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
@@ -1201,9 +1209,13 @@ void sha256_16way_prehash_3rounds( __m512i *state_mid, __m512i *X,
 {
    __m512i A, B, C, D, E, F, G, H;
    
-   // precalculate constant part msg expansion for second iteration.
-   X[ 0] = SHA2x16_MEXP( W[14], W[ 9], W[ 1], W[ 0] );
-   X[ 1] = SHA2x16_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   // X is pre-expanded constant part of msg for second group, rounds 16 to 31.
+   // W[9:14] are zero, therefore X[9:13] are also zero and not needed.
+   // Except X[ 9] which is used to pre-expand part of W[ 0] from the third
+   // group, rounds 32 to 48.
+   X[ 0] = _mm512_add_epi32( SSG2_0x16( W[ 1] ), W[ 0] );
+   X[ 1] = _mm512_add_epi32( _mm512_add_epi32( SSG2_1x16( W[15] ),
+                             SSG2_0x16( W[ 2] ) ), W[ 1] );
    X[ 2] = _mm512_add_epi32( _mm512_add_epi32( SSG2_1x16( X[ 0] ), W[11] ),
                              W[ 2] );
    X[ 3] = _mm512_add_epi32( _mm512_add_epi32( SSG2_1x16( X[ 1] ), W[12] ),
@@ -1216,15 +1228,11 @@ void sha256_16way_prehash_3rounds( __m512i *state_mid, __m512i *X,
                              W[ 6] ); 
    X[ 7] = _mm512_add_epi32( _mm512_add_epi32( X[ 0], SSG2_0x16( W[ 8] ) ),
                              W[ 7] );
-   X[ 8] = _mm512_add_epi32( _mm512_add_epi32( X[ 1], SSG2_0x16( W[ 9] ) ),
-                             W[ 8] );
-   X[ 9] = _mm512_add_epi32( SSG2_0x16( W[10] ), W[ 9] );
-   X[10] = _mm512_add_epi32( SSG2_0x16( W[11] ), W[10] );
-   X[11] = _mm512_add_epi32( SSG2_0x16( W[12] ), W[11] );
-   X[12] = _mm512_add_epi32( SSG2_0x16( W[13] ), W[12] );
-   X[13] = _mm512_add_epi32( SSG2_0x16( W[14] ), W[13] );
-   X[14] = _mm512_add_epi32( SSG2_0x16( W[15] ), W[14] );
+   X[ 8] = _mm512_add_epi32( X[ 1], W[ 8] );
+   X[14] = SSG2_0x16( W[15] );
    X[15] = _mm512_add_epi32( SSG2_0x16( X[ 0] ), W[15] );
+
+   X[ 9] = _mm512_add_epi32( SSG2_0x16( X[ 1] ), X[ 0] );
 
    A = _mm512_load_si512( state_in     );
    B = _mm512_load_si512( state_in + 1 );
@@ -1280,7 +1288,7 @@ void sha256_16way_final_rounds( __m512i *state_out, const __m512i *data,
    SHA2s_16WAY_STEP( C, D, E, F, G, H, A, B, 14, 0 );
    SHA2s_16WAY_STEP( B, C, D, E, F, G, H, A, 15, 0 );
 
-   // update precalculated msg expansion with new nonce: W[3].
+   // inject nonce, W[3], to complete msg expansion.
    W[ 0] = X[ 0];
    W[ 1] = X[ 1];
    W[ 2] = _mm512_add_epi32( X[ 2], SSG2_0x16( W[ 3] ) );
@@ -1290,23 +1298,36 @@ void sha256_16way_final_rounds( __m512i *state_out, const __m512i *data,
    W[ 6] = _mm512_add_epi32( X[ 6], SSG2_1x16( W[ 4] ) );
    W[ 7] = _mm512_add_epi32( X[ 7], SSG2_1x16( W[ 5] ) );
    W[ 8] = _mm512_add_epi32( X[ 8], SSG2_1x16( W[ 6] ) );
-   W[ 9] = _mm512_add_epi32( X[ 9], _mm512_add_epi32( SSG2_1x16( W[ 7] ),
-                                                      W[ 2] ) );
-   W[10] = _mm512_add_epi32( X[10], _mm512_add_epi32( SSG2_1x16( W[ 8] ),
-                                                      W[ 3] ) );
-   W[11] = _mm512_add_epi32( X[11], _mm512_add_epi32( SSG2_1x16( W[ 9] ),
-                                                      W[ 4] ) );
-   W[12] = _mm512_add_epi32( X[12], _mm512_add_epi32( SSG2_1x16( W[10] ),
-                                                      W[ 5] ) );
-   W[13] = _mm512_add_epi32( X[13], _mm512_add_epi32( SSG2_1x16( W[11] ),
-                                                      W[ 6] ) );
+   W[ 9] = _mm512_add_epi32( SSG2_1x16( W[ 7] ), W[ 2] );
+   W[10] = _mm512_add_epi32( SSG2_1x16( W[ 8] ), W[ 3] );
+   W[11] = _mm512_add_epi32( SSG2_1x16( W[ 9] ), W[ 4] );
+   W[12] = _mm512_add_epi32( SSG2_1x16( W[10] ), W[ 5] );
+   W[13] = _mm512_add_epi32( SSG2_1x16( W[11] ), W[ 6] );
    W[14] = _mm512_add_epi32( X[14], _mm512_add_epi32( SSG2_1x16( W[12] ),
                                                       W[ 7] ) );
    W[15] = _mm512_add_epi32( X[15], _mm512_add_epi32( SSG2_1x16( W[13] ),
                                                       W[ 8] ) );
 
    SHA256x16_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
-   SHA256x16_MSG_EXPANSION( W );
+
+   W[ 0] = _mm512_add_epi32( X[ 9], _mm512_add_epi32( SSG2_1x16( W[14] ),
+                                                      W[ 9] ) ); 
+   W[ 1] = SHA2x16_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   W[ 2] = SHA2x16_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
+   W[ 3] = SHA2x16_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
+   W[ 4] = SHA2x16_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
+   W[ 5] = SHA2x16_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
+   W[ 6] = SHA2x16_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
+   W[ 7] = SHA2x16_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
+   W[ 8] = SHA2x16_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
+   W[ 9] = SHA2x16_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
+   W[10] = SHA2x16_MEXP( W[ 8], W[ 3], W[11], W[10] );
+   W[11] = SHA2x16_MEXP( W[ 9], W[ 4], W[12], W[11] );
+   W[12] = SHA2x16_MEXP( W[10], W[ 5], W[13], W[12] );
+   W[13] = SHA2x16_MEXP( W[11], W[ 6], W[14], W[13] );
+   W[14] = SHA2x16_MEXP( W[12], W[ 7], W[15], W[14] );
+   W[15] = SHA2x16_MEXP( W[13], W[ 8], W[ 0], W[15] );
+
    SHA256x16_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
    SHA256x16_MSG_EXPANSION( W );
    SHA256x16_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
@@ -1336,8 +1357,8 @@ int sha256_16way_transform_le_short( __m512i *state_out, const __m512i *data,
 {
    __m512i A, B, C, D, E, F, G, H;
    __m512i W[16];      memcpy_512( W, data, 16 );
-   // Value for H at round 60, before adding K, to produce valid final hash
-   //where H == 0.
+   // Value for H at round 60, before adding K, needed to produce valid final
+   // hash where H == 0.
    // H_ =  -( H256[7] + K256[60] );
    const __m512i H_ = m512_const1_32( 0x136032ED );
 

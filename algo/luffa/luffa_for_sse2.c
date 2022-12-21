@@ -23,12 +23,25 @@
 #include "simd-utils.h"
 #include "luffa_for_sse2.h"
 
+#if defined(__SSE4_1__)
+
 #define MULT2( a0, a1 ) do \
 { \
-  __m128i b =  _mm_xor_si128( a0, _mm_shuffle_epi32( _mm_and_si128(a1,MASK), 16 ) ); \
-  a0 = _mm_or_si128( _mm_srli_si128(b,4), _mm_slli_si128(a1,12) ); \
-  a1 = _mm_or_si128( _mm_srli_si128(a1,4), _mm_slli_si128(b,12) );  \
+  __m128i b =  _mm_xor_si128( a0, _mm_shuffle_epi32( mm128_mask_32( a1, 0xe ), 0x10 ) ); \
+  a0 = _mm_or_si128( _mm_srli_si128( b, 4 ), _mm_slli_si128( a1, 12 ) ); \
+  a1 = _mm_or_si128( _mm_srli_si128( a1, 4 ), _mm_slli_si128( b, 12 ) );  \
 } while(0)
+
+#else
+
+#define MULT2( a0, a1 ) do \
+{ \
+  __m128i b =  _mm_xor_si128( a0, _mm_shuffle_epi32( _mm_and_si128( a1, MASK ), 16 ) ); \
+  a0 = _mm_or_si128( _mm_srli_si128( b, 4 ), _mm_slli_si128( a1, 12 ) ); \
+  a1 = _mm_or_si128( _mm_srli_si128( a1, 4 ), _mm_slli_si128( b, 12 ) );  \
+} while(0)
+
+#endif
 
 #define STEP_PART(x,c,t)\
     SUBCRUMB(*x,*(x+1),*(x+2),*(x+3),*t);\
@@ -60,13 +73,13 @@
     t  = _mm_load_si128(&a0);\
     a0 = _mm_or_si128(a0,a1);\
     a2 = _mm_xor_si128(a2,a3);\
-    a1 = _mm_andnot_si128(a1,ALLONE);\
+    a1 = mm128_not( a1 );\
     a0 = _mm_xor_si128(a0,a3);\
     a3 = _mm_and_si128(a3,t);\
     a1 = _mm_xor_si128(a1,a3);\
     a3 = _mm_xor_si128(a3,a2);\
     a2 = _mm_and_si128(a2,a0);\
-    a0 = _mm_andnot_si128(a0,ALLONE);\
+    a0 = mm128_not( a0 );\
     a2 = _mm_xor_si128(a2,a1);\
     a1 = _mm_or_si128(a1,a3);\
     t  = _mm_xor_si128(t,a1);\
@@ -242,17 +255,18 @@ static const uint32 CNS_INIT[128] __attribute((aligned(16))) = {
 
 
 __m128i CNS128[32];
-__m128i ALLONE;
+#if !defined(__SSE4_1__)
 __m128i MASK;
+#endif
 
 HashReturn init_luffa(hashState_luffa *state, int hashbitlen)
 {
     int i;
     state->hashbitlen = hashbitlen;
+#if !defined(__SSE4_1__)
     /* set the lower 32 bits to '1' */
     MASK= _mm_set_epi32(0x00000000, 0x00000000, 0x00000000, 0xffffffff);
-    /* set all bits to '1' */
-    ALLONE = _mm_set_epi32(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+#endif
     /* set the 32-bit round constant values to the 128-bit data field */
     for ( i=0; i<32; i++ )
         CNS128[i] = _mm_load_si128( (__m128i*)&CNS_INIT[i*4] );
@@ -352,10 +366,10 @@ int luffa_full( hashState_luffa *state, BitSequence* output, int hashbitlen,
 // Optimized for integrals of 16 bytes, good for 64 and 80 byte len
     int i;
     state->hashbitlen = hashbitlen;
+#if !defined(__SSE4_1__)
     /* set the lower 32 bits to '1' */
     MASK= _mm_set_epi32(0x00000000, 0x00000000, 0x00000000, 0xffffffff);
-    /* set all bits to '1' */
-    ALLONE = _mm_set_epi32(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+#endif
     /* set the 32-bit round constant values to the 128-bit data field */
     for ( i=0; i<32; i++ )
         CNS128[i] = _mm_load_si128( (__m128i*)&CNS_INIT[i*4] );

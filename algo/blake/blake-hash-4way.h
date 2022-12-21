@@ -115,7 +115,7 @@ void blake256_8way_close(void *cc, void *dst);
 void blake256_8way_update_le(void *cc, const void *data, size_t len);
 void blake256_8way_close_le(void *cc, void *dst);
 void blake256_8way_round0_prehash_le( void *midstate, const void *midhash,
-                                       const void *data );
+                                      void *data );
 void blake256_8way_final_rounds_le( void *final_hash, const void *midstate,
                                      const void *midhash, const void *data );
 
@@ -178,7 +178,7 @@ void blake256_16way_close(void *cc, void *dst);
 void blake256_16way_update_le(void *cc, const void *data, size_t len);
 void blake256_16way_close_le(void *cc, void *dst);
 void blake256_16way_round0_prehash_le( void *midstate, const void *midhash,
-                                       const void *data );
+                                       void *data );
 void blake256_16way_final_rounds_le( void *final_hash, const void *midstate,
                                      const void *midhash, const void *data );
 

@@ -18,6 +18,7 @@
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha/sph_sha2.h"
+#include "algo/yespower/yespower.h"
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
@@ -30,6 +31,9 @@
 
 // Config
 #define MINOTAUR_ALGO_COUNT	16
+
+static const yespower_params_t minotaurx_yespower_params =
+                         { YESPOWER_1_0, 2048, 8, "et in arcadia ego", 17 };
 
 typedef struct TortureNode TortureNode;
 typedef struct TortureGarden TortureGarden;
@@ -59,20 +63,22 @@ struct TortureGarden
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
         sph_sha512_context      sha512;
-
-    struct TortureNode {
+    struct TortureNode
+    {
         unsigned int algo;
         TortureNode *child[2];
     } nodes[22];
 } __attribute__ ((aligned (64)));
 
 // Get a 64-byte hash for given 64-byte input, using given TortureGarden contexts and given algo index
-static void get_hash( void *output, const void *input, TortureGarden *garden,
-	              unsigned int algo )
+static int get_hash( void *output, const void *input, TortureGarden *garden,
+	                  unsigned int algo, int thr_id )
 {    
 	unsigned char hash[64] __attribute__ ((aligned (64)));
+   int rc = 1;
 
-    switch (algo) {
+    switch ( algo )
+    {
         case 0:
             sph_blake512_init(&garden->blake);
             sph_blake512(&garden->blake, input, 64);
@@ -97,14 +103,14 @@ static void get_hash( void *output, const void *input, TortureGarden *garden,
             sph_echo512(&garden->echo, input, 64);
             sph_echo512_close(&garden->echo, hash);          
 #endif
-	    break;
+	         break;
         case 4:
 #if defined(__AES__)
             fugue512_full( &garden->fugue, hash, input, 64 );
 #else
             sph_fugue512_full( &garden->fugue, hash, input, 64 );
 #endif
-	    break;
+	         break;
         case 5:
 #if defined(__AES__)
             groestl512_full( &garden->groestl, (char*)hash, (char*)input, 512 );
@@ -113,7 +119,7 @@ static void get_hash( void *output, const void *input, TortureGarden *garden,
             sph_groestl512(&garden->groestl, input, 64);
             sph_groestl512_close(&garden->groestl, hash);          
 #endif
-	    break;
+	         break;
         case 6:
             sph_hamsi512_init(&garden->hamsi);
             sph_hamsi512(&garden->hamsi, input, 64);
@@ -164,16 +170,20 @@ static void get_hash( void *output, const void *input, TortureGarden *garden,
             sph_whirlpool(&garden->whirlpool, input, 64);
             sph_whirlpool_close(&garden->whirlpool, hash);          
             break;
+        case 16: // minotaurx only, yespower hardcoded for last node
+            rc = yespower_tls( input, 64, &minotaurx_yespower_params,
+                               (yespower_binary_t*)hash, thr_id );
     }
 
     memcpy(output, hash, 64);
+    return rc;
 }
 
 static __thread TortureGarden garden;
 
 bool initialize_torture_garden()
 {
-    // Create torture garden nodes. Note that both sides of 19 and 20 lead to 21, and 21 has no children (to make traversal complete).
+   // Create torture garden nodes. Note that both sides of 19 and 20 lead to 21, and 21 has no children (to make traversal complete).
 
    garden.nodes[ 0].child[0] = &garden.nodes[ 1];
    garden.nodes[ 0].child[1] = &garden.nodes[ 2];
@@ -219,7 +229,6 @@ bool initialize_torture_garden()
    garden.nodes[20].child[1] = &garden.nodes[21];
    garden.nodes[21].child[0] = NULL;
    garden.nodes[21].child[1] = NULL;
-
    return true;
 }
 
@@ -227,38 +236,45 @@ bool initialize_torture_garden()
 int minotaur_hash( void *output, const void *input, int thr_id )
 {    
     unsigned char hash[64] __attribute__ ((aligned (64)));
+    int rc = 1;
 
     // Find initial sha512 hash
     sph_sha512_init( &garden.sha512 );
     sph_sha512( &garden.sha512, input, 80 );
     sph_sha512_close( &garden.sha512, hash );
-
-    // algo 6 (Hamsi) is very slow. It's faster to skip hashing this nonce
-    // if Hamsi is needed but only the first and last functions are
-    // currently known. Abort if either is Hamsi.
-    if ( ( ( hash[ 0] % MINOTAUR_ALGO_COUNT ) == 6 )
-      || ( ( hash[21] % MINOTAUR_ALGO_COUNT ) == 6 ) )
-         return 0;
+    
+    if ( opt_algo != ALGO_MINOTAURX )
+    {
+       // algo 6 (Hamsi) is very slow. It's faster to skip hashing this nonce
+       // if Hamsi is needed but only the first and last functions are
+       // currently known. Abort if either is Hamsi.
+       if ( ( ( hash[ 0] % MINOTAUR_ALGO_COUNT ) == 6 )
+         || ( ( hash[21] % MINOTAUR_ALGO_COUNT ) == 6 ) )
+           return 0;
+    }
 
     // Assign algos to torture garden nodes based on initial hash
     for ( int i = 0; i < 22; i++ )
         garden.nodes[i].algo = hash[i] % MINOTAUR_ALGO_COUNT;
 
+    // MinotaurX override algo for last node with yespower
+    if ( opt_algo == ALGO_MINOTAURX )
+        garden.nodes[21].algo = MINOTAUR_ALGO_COUNT;
+    
     // Send the initial hash through the torture garden
     TortureNode *node = &garden.nodes[0];
-
-    while ( node )
+    while ( rc && node )
     {
-      get_hash( hash, hash, &garden, node->algo );
+      rc = get_hash( hash, hash, &garden, node->algo, thr_id );
       node = node->child[ hash[63] & 1 ];
     }
 
     memcpy( output, hash, 32 );
-    return 1;
+    return rc;
 }
 
 int scanhash_minotaur( struct work *work, uint32_t max_nonce,
-                      uint64_t *hashes_done, struct thr_info *mythr )
+                       uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t edata[20] __attribute__((aligned(64)));
    uint32_t hash[8] __attribute__((aligned(64)));
@@ -277,7 +293,7 @@ int scanhash_minotaur( struct work *work, uint32_t max_nonce,
       edata[19] = n;
       if ( likely( algo_gate.hash( hash, edata, thr_id ) ) )
       {
-	 if ( unlikely( valid_hash( hash, ptarget ) && !bench ) )
+         if ( unlikely( valid_hash( hash, ptarget ) && !bench ) )
          {
             pdata[19] = bswap_32( n );
             submit_solution( work, hash, mythr );
@@ -291,12 +307,14 @@ int scanhash_minotaur( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
+// hash function has hooks for minotaurx
 bool register_minotaur_algo( algo_gate_t* gate )
 {
-  gate->scanhash = (void*)&scanhash_minotaur;
-  gate->hash      = (void*)&minotaur_hash;
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+  gate->scanhash          = (void*)&scanhash_minotaur;
+  gate->hash              = (void*)&minotaur_hash;
   gate->miner_thread_init = (void*)&initialize_torture_garden;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+  if ( opt_algo == ALGO_MINOTAURX ) gate->optimizations |= SHA_OPT;
   return true;
 };
 

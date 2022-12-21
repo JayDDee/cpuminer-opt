@@ -193,7 +193,16 @@ static inline __m128i mm128_mask_32( const __m128i v, const int m )
 // Basic operations without equivalent SIMD intrinsic
 
 // Bitwise not (~v)  
+#if defined(__AVX512VL__)
+
+static inline __m128i mm128_not( const __m128i v )
+{  return _mm_ternarylogic_epi64( v, v, v, 1 ); }
+
+#else
+
 #define mm128_not( v )          _mm_xor_si128( v, m128_neg1 ) 
+
+#endif
 
 // Unary negation of elements (-v)
 #define mm128_negate_64( v )    _mm_sub_epi64( m128_zero, v )
@@ -439,7 +448,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 //
 // Limited 2 input shuffle, combines shuffle with blend. The destination low
-// half is always taken from src a, and the high half from src b.
+// half is always taken from v1, and the high half from v2.
 #define mm128_shuffle2_64( v1, v2, c ) \
    _mm_castpd_si128( _mm_shuffle_pd( _mm_castsi128_pd( v1 ), \
                                      _mm_castsi128_pd( v2 ), c ) ); 
@@ -600,9 +609,6 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
 
 #endif // SSSE3 else SSE2
 
-//
-// Rotate in place concatenated 128 bit vectors as one 256 bit vector.
-
 // Swap 128 bit vectors.
 // This should be avoided, it's more efficient to switch references.
 #define mm128_swap256_128( v1, v2 ) \
@@ -611,61 +617,23 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
    v1 = _mm_xor_si128( v1, v2 );
 
 
-// Two input shuffle-rotate.
-// Concatenate v1 & v2 and byte rotate as a 256 bit vector.
-// Function macros with two inputs and one output, inputs are preserved.
-// Returns the high 128 bits, ie updated v1.
+// alignr for 32 & 64 bit elements is only available with AVX512 but
+// emulated here. Shift argument is not needed, it's always 1.
+// Behaviour is otherwise consistent with Intel alignr intrinsics.
 
 #if defined(__SSSE3__)
 
-#define mm128_shufl2r_64( v1, v2 )     _mm_alignr_epi8( v2, v1, 8 )
-#define mm128_shufl2l_64( v1, v2 )     _mm_alignr_epi8( v1, v2, 8 )
-
-/*
-#define mm128_shufl2r_32( v1, v2 )     _mm_alignr_epi8( v2, v1, 4 )
-#define mm128_shufl2l_32( v1, v2 )     _mm_alignr_epi8( v1, v2, 4 )
-
-#define mm128_shufl2r_16( v1, v2 )     _mm_alignr_epi8( v2, v1, 2 )
-#define mm128_shufl2l_16( v1, v2 )     _mm_alignr_epi8( v1, v2, 2 )
-
-#define mm128_shufl2r_8( v1, v2 )      _mm_alignr_epi8( v2, v1, 1 )
-#define mm128_shufl2l_8( v1, v2 )      _mm_alignr_epi8( v1, v2, 1 )
-*/
+#define mm128_alignr_64( v1, v2 )    _mm_alignr_epi8( v1, v2, 8 )
+#define mm128_alignr_32( v1, v2 )    _mm_alignr_epi8( v1, v2, 4 )
 
 #else
 
-#define mm128_shufl2r_64( v1, v2 ) \
-   _mm_or_si128( _mm_srli_si128( v1, 8 ), \
-                 _mm_slli_si128( v2, 8 ) )
+#define mm128_alignr_64( v1, v2 )    _mm_or_si128( _mm_slli_si128( v1, 8 ), \
+                                                   _mm_srli_si128( v2, 8 ) )
 
-#define mm128_shufl2l_64( v1, v2 ) \
-   _mm_or_si128( _mm_slli_si128( v1, 8 ), \
-                 _mm_srli_si128( v2, 8 ) )
-/*
-#define mm128_shufl2r_32( v1, v2 ) \
-   _mm_or_si128( _mm_srli_si128( v1,  4 ), \
-                 _mm_slli_si128( v2, 12 ) )
+#define mm128_alignr_32( v1, v2 )    _mm_or_si128( _mm_slli_si128( v1, 4 ), \
+                                                   _mm_srli_si128( v2, 4 ) )
 
-#define mm128_shufl2l_32( v1, v2 ) \
-   _mm_or_si128( _mm_slli_si128( v1, 4 ), \
-                 _mm_srli_si128( v2, 12 ) )
-
-#define mm128_shufl2r_16( v1, v2 ) \
-   _mm_or_si128( _mm_srli_si128( v1,  2 ), \
-                 _mm_slli_si128( v2, 14 ) )
-
-#define mm128_shufl2l_16( v1, v2 ) \
-   _mm_or_si128( _mm_slli_si128( v1,  2 ), \
-                 _mm_srli_si128( v2, 14 ) )
-
-#define mm128_shufl2r_8( v1, v2 ) \
-   _mm_or_si128( _mm_srli_si128( v1,  1 ), \
-                 _mm_slli_si128( v2, 15 ) )
-
-#define mm128_shufl2l_8( v1, v2 ) \
-   _mm_or_si128( _mm_slli_si128( v1,  1 ), \
-                 _mm_srli_si128( v2, 15 ) )
-*/
 #endif
 
 // Procedure macros with 2 inputs and 2 outputs, input args are overwritten.
@@ -689,50 +657,6 @@ do { \
            v1 = t; \
 } while(0)
 
-/*
-#define mm128_vror256_32( v1, v2 ) \
-do { \
-   __m128i t  = _mm_alignr_epi8( v1, v2, 4 ); \
-           v1 = _mm_alignr_epi8( v2, v1, 4 ); \
-           v2 = t; \
-} while(0)
-
-#define mm128_vrol256_32( v1, v2 ) \
-do { \
-   __m128i t  = _mm_alignr_epi8( v1, v2, 12 ); \
-           v2 = _mm_alignr_epi8( v2, v1, 12 ); \
-           v1 = t; \
-} while(0)
-
-#define mm128_vror256_16( v1, v2 ) \
-do { \
-   __m128i t  = _mm_alignr_epi8( v1, v2, 2 ); \
-           v1 = _mm_alignr_epi8( v2, v1, 2 ); \
-           v2 = t; \
-} while(0)
-
-#define mm128_vrol256_16( v1, v2 ) \
-do { \
-   __m128i t  = _mm_alignr_epi8( v1, v2, 14 ); \
-           v2 = _mm_alignr_epi8( v2, v1, 14 ); \
-           v1 = t; \
-} while(0)
-
-#define mm128_vror256_8( v1, v2 ) \
-do { \
-   __m128i t  = _mm_alignr_epi8( v1, v2, 1 ); \
-           v1 = _mm_alignr_epi8( v2, v1, 1 ); \
-           v2 = t; \
-} while(0)
-
-#define mm128_vrol256_8( v1, v2 ) \
-do { \
-   __m128i t  = _mm_alignr_epi8( v1, v2, 15 ); \
-           v2 = _mm_alignr_epi8( v2, v1, 15 ); \
-           v1 = t; \
-} while(0)
-*/
-
 #else  // SSE2
 
 #define mm128_vror256_64( v1, v2 ) \
@@ -752,61 +676,7 @@ do { \
                               _mm_srli_si128( v1, 8 ) ); \
            v1 = t; \
 } while(0)
-/*
-#define mm128_vror256_32( v1, v2 ) \
-do { \
-   __m128i t  = _mm_or_si128( _mm_srli_si128( v1, 4 ), \
-                              _mm_slli_si128( v2, 12 ) ); \
-           v2 = _mm_or_si128( _mm_srli_si128( v2, 4 ), \
-                              _mm_slli_si128( v1, 12 ) ); \
-           v1 = t; \
-} while(0)
 
-#define mm128_vrol256_32( v1, v2 ) \
-do { \
-   __m128i t  = _mm_or_si128( _mm_slli_si128( v1, 4 ), \
-                              _mm_srli_si128( v2, 12 ) ); \
-           v2 = _mm_or_si128( _mm_slli_si128( v2, 4 ), \
-                              _mm_srli_si128( v1, 12 ) ); \
-           v1 = t; \
-} while(0)
-
-#define mm128_vror256_16( v1, v2 ) \
-do { \
-   __m128i t  = _mm_or_si128( _mm_srli_si128( v1, 2 ), \
-                              _mm_slli_si128( v2, 14 ) ); \
-           v2 = _mm_or_si128( _mm_srli_si128( v2, 2 ), \
-                              _mm_slli_si128( v1, 14 ) ); \
-           v1 = t; \
-} while(0)
-
-#define mm128_vrol256_16( v1, v2 ) \
-do { \
-   __m128i t  = _mm_or_si128( _mm_slli_si128( v1, 2 ), \
-                              _mm_srli_si128( v2, 14 ) ); \
-           v2 = _mm_or_si128( _mm_slli_si128( v2, 2 ), \
-                              _mm_srli_si128( v1, 14 ) ); \
-           v1 = t; \
-} while(0)
-
-#define mm128_vror256_8( v1, v2 ) \
-do { \
-   __m128i t  = _mm_or_si128( _mm_srli_si128( v1, 1 ), \
-                              _mm_slli_si128( v2, 15 ) ); \
-           v2 = _mm_or_si128( _mm_srli_si128( v2, 1 ), \
-                              _mm_slli_si128( v1, 15 ) ); \
-           v1 = t; \
-} while(0)
-
-#define mm128_vrol256_8( v1, v2 ) \
-do { \
-   __m128i t  = _mm_or_si128( _mm_slli_si128( v1, 1 ), \
-                              _mm_srli_si128( v2, 15 ) ); \
-           v2 = _mm_or_si128( _mm_slli_si128( v2, 1 ), \
-                              _mm_srli_si128( v1, 15 ) ); \
-           v1 = t; \
-} while(0)
-*/
 #endif  // SSE4.1 else SSE2
 
 #endif // __SSE2__

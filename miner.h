@@ -118,7 +118,7 @@ static inline bool is_windows(void)
 static inline uint32_t swab32(uint32_t v)
 {
 #ifdef WANT_BUILTIN_BSWAP
-	return __builtin_bswap32(v);
+   return __builtin_bswap32(v);
 #else
 	return bswap_32(v);
 #endif
@@ -559,6 +559,7 @@ enum algos {
         ALGO_LYRA2Z330,
         ALGO_M7M,
         ALGO_MINOTAUR,
+        ALGO_MINOTAURX,
         ALGO_MYR_GR,      
         ALGO_NEOSCRYPT,
         ALGO_NIST5,       
@@ -652,6 +653,7 @@ static const char* const algo_names[] = {
         "lyra2z330",
         "m7m",
         "minotaur",
+        "minotaurx",
         "myr-gr",
         "neoscrypt",
         "nist5",
@@ -813,6 +815,7 @@ Options:\n\
                           m7m           Magi (XMG)\n\
                           myr-gr        Myriad-Groestl\n\
                           minotaur\n\
+                          minotaurx\n\
                           neoscrypt     NeoScrypt(128, 2, 1)\n\
                           nist5         Nist5\n\
                           pentablake    5 x blake512\n\

@@ -73,7 +73,6 @@ third party packages. They often will work and may be used instead of the
 included version of the files.
 
 
-
 If you like this software feel free to donate:
 
 BTC: 12tdvfF7KmAsihBXQXynT6E6th2c2pByTT
