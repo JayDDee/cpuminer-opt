@@ -54,7 +54,7 @@ static inline __m128i mm128_mov64_128( const uint64_t n )
 #else
   asm( "movq %1, %0\n\t" : "=x"(a) : "r"(n) );
 #endif
-  return  a;
+  return a;
 }
 
 static inline __m128i mm128_mov32_128( const uint32_t n )
@@ -65,7 +65,7 @@ static inline __m128i mm128_mov32_128( const uint32_t n )
 #else  
   asm( "movd %1, %0\n\t" : "=x"(a) : "r"(n) );
 #endif
-  return  a;
+  return a;
 }
 
 // Inconstant naming, prefix should reflect return value:
@@ -79,7 +79,7 @@ static inline uint64_t u64_mov128_64( const __m128i a )
 #else  
   asm( "movq %1, %0\n\t" : "=r"(n) : "x"(a) );
 #endif
-  return  n;
+  return n;
 }
 
 static inline uint32_t u32_mov128_32( const __m128i a )
@@ -90,7 +90,7 @@ static inline uint32_t u32_mov128_32( const __m128i a )
 #else  
   asm( "movd %1, %0\n\t" : "=r"(n) : "x"(a) );
 #endif
-  return  n;
+  return n;
 }
 
 // Equivalent of set1, broadcast integer to all elements.
@@ -204,11 +204,12 @@ static inline __m128i mm128_not( const __m128i v )
 
 #endif
 
+/*
 // Unary negation of elements (-v)
 #define mm128_negate_64( v )    _mm_sub_epi64( m128_zero, v )
 #define mm128_negate_32( v )    _mm_sub_epi32( m128_zero, v )  
 #define mm128_negate_16( v )    _mm_sub_epi16( m128_zero, v )  
-
+*/
 
 // Add 4 values, fewer dependencies than sequential addition.
 #define mm128_add4_64( a, b, c, d ) \
@@ -264,20 +265,16 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #if defined(__AVX512VL__)
 
 // a ^ b ^ c
-#define mm128_xor3( a, b, c ) \
-   _mm_ternarylogic_epi64( a, b, c, 0x96 )
+#define mm128_xor3( a, b, c )    _mm_ternarylogic_epi64( a, b, c, 0x96 )
 
 // a ^ ( b & c )
-#define mm128_xorand( a, b, c ) \
-   _mm_ternarylogic_epi64( a, b, c, 0x78 )
+#define mm128_xorand( a, b, c )  _mm_ternarylogic_epi64( a, b, c, 0x78 )
 
 #else
 
-#define mm128_xor3( a, b, c ) \
-   _mm_xor_si128( a, _mm_xor_si128( b, c ) )
+#define mm128_xor3( a, b, c )    _mm_xor_si128( a, _mm_xor_si128( b, c ) )
 
-#define mm128_xorand( a, b, c ) \
-  _mm_xor_si128( a, _mm_and_si128( b, c ) )
+#define mm128_xorand( a, b, c )  _mm_xor_si128( a, _mm_and_si128( b, c ) )
 
 #endif
 
@@ -291,64 +288,6 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 #define mm_movmask_32( v ) \
    _mm_castps_si128( _mm_movmask_ps( _mm_castsi128_ps( v ) ) )
-
-
-// Diagonal blend
-
-// Blend 4 32 bit elements from 4 vectors
-
-#if defined (__AVX2__)
-
-#define mm128_diagonal_32( v3, v2, v1, v0 ) \
-  mm_blend_epi32( _mm_blend_epi32( s3, s2, 0x4 ), \
-                  _mm_blend_epi32( s1, s0, 0x1 ), 0x3 )
-
-#elif defined(__SSE4_1__)
-
-#define mm128_diagonal_32( v3, v2, v1, v0 ) \
-  mm_blend_epi16( _mm_blend_epi16( s3, s2, 0x30 ), \
-                  _mm_blend_epi16( s1, s0, 0x03 ), 0x0f )
-
-#endif
-
-/*
-//
-// Extended bit shift for concatenated packed elements from 2 vectors.
-// Shift right returns low half, shift left return high half.
-
-#if defined(__AVX512VBMI2__) && defined(__AVX512VL__)
-
-#define mm128_shl2_64( v1, v2, c )    _mm_shldi_epi64( v1, v2, c ) 
-#define mm128_shr2_64( v1, v2, c )    _mm_shrdi_epi64( v1, v2, c ) 
-
-#define mm128_shl2_32( v1, v2, c )    _mm_shldi_epi32( v1, v2, c ) 
-#define mm128_shr2_32( v1, v2, c )    _mm_shrdi_epi32( v1, v2, c ) 
-
-#define mm128_shl2_16( v1, v2, c )    _mm_shldi_epi16( v1, v2, c )
-#define mm128_shr2_16( v1, v2, c )    _mm_shrdi_epi16( v1, v2, c )
-
-#else
-
-#define mm128_shl2_64( v1, v2, c ) \
-   _mm_or_si128( _mm_slli_epi64( v1, c ), _mm_srli_epi64( v2, 64 - (c) ) )
-
-#define mm128_shr2_64( v1, v2, c ) \
-   _mm_or_si128( _mm_srli_epi64( v2, c ), _mm_slli_epi64( v1, 64 - (c) ) )
-
-#define mm128_shl2_32( v1, v2, c ) \
-   _mm_or_si128( _mm_slli_epi32( v1, c ), _mm_srli_epi32( v2, 32 - (c) ) )
-
-#define mm128_shr2_32( v1, v2, c ) \
-   _mm_or_si128( _mm_srli_epi32( v2, c ), _mm_slli_epi32( v1, 32 - (c) ) )
-
-#define mm128_shl2_16( v1, v2, c ) \
-   _mm_or_si128( _mm_slli_epi16( v1, c ), _mm_srli_epi16( v2, 16 - (c) ) )
-
-#define mm128_shr2_16( v1, v2, c ) \
-   _mm_or_si128( _mm_srli_epi16( v2, c ), _mm_slli_epi16( v1, 16 - (c) ) )
-
-#endif
-*/
 
 //
 // Bit rotations

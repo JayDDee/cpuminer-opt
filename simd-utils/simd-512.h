@@ -185,8 +185,16 @@ static inline __m512i m512_const4_64( const uint64_t i3, const uint64_t i2,
 #define m512_one_16     m512_const1_16( 1 )
 #define m512_one_8      m512_const1_8( 1 )
 
-//#define m512_neg1 m512_const1_64( 0xffffffffffffffff )
-#define m512_neg1 _mm512_movm_epi64( 0xff )
+// use asm to avoid compiler warning for unitialized local
+static inline __m512i mm512_neg1_fn()
+{
+   __m512i a;
+   asm( "vpternlogq $0xff, %0, %0, %0\n\t" : "=x"(a) );
+   return a;
+}
+#define m512_neg1 mm512_neg1_fn()                          // 1 clock
+//#define m512_neg1 m512_const1_64( 0xffffffffffffffff )   // 5 clocks
+//#define m512_neg1 _mm512_movm_epi64( 0xff )              // 2 clocks
 
 //
 // Basic operations without SIMD equivalent
@@ -195,11 +203,12 @@ static inline __m512i m512_const4_64( const uint64_t i3, const uint64_t i2,
 static inline __m512i mm512_not( const __m512i x )
 {  return _mm512_ternarylogic_epi64( x, x, x, 1 ); }
 
+/*
 // Unary negation: -x
 #define mm512_negate_64( x ) _mm512_sub_epi64( m512_zero, x )
 #define mm512_negate_32( x ) _mm512_sub_epi32( m512_zero, x )  
 #define mm512_negate_16( x ) _mm512_sub_epi16( m512_zero, x )  
-
+*/
 
 //
 // Pointer casting
@@ -253,119 +262,43 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 // expression using any number or combinations of AND, OR, XOR, NOT.
 
 // a ^ b ^ c
-#define mm512_xor3( a, b, c ) \
-   _mm512_ternarylogic_epi64( a, b, c, 0x96 )
+#define mm512_xor3( a, b, c )      _mm512_ternarylogic_epi64( a, b, c, 0x96 )
 
 // legacy convenience only
-#define mm512_xor4( a, b, c, d ) \
-   _mm512_xor_si512( a, mm512_xor3( b, c, d ) )
+#define mm512_xor4( a, b, c, d )   _mm512_xor_si512( a, mm512_xor3( b, c, d ) )
 
 // a & b & c
-#define mm512_and3( a, b, c ) \
-   _mm512_ternarylogic_epi64( a, b, c, 0x80 )
+#define mm512_and3( a, b, c )      _mm512_ternarylogic_epi64( a, b, c, 0x80 )
 
 // a | b | c
-#define mm512_or3( a, b, c ) \
-   _mm512_ternarylogic_epi64( a, b, c, 0xfe )
+#define mm512_or3( a, b, c )       _mm512_ternarylogic_epi64( a, b, c, 0xfe )
 
 // a ^ ( b & c )
-#define mm512_xorand( a, b, c ) \
-   _mm512_ternarylogic_epi64( a, b, c, 0x78 )
+#define mm512_xorand( a, b, c )    _mm512_ternarylogic_epi64( a, b, c, 0x78 )
 
 // a & ( b ^ c )
-#define mm512_andxor( a, b, c ) \
-   _mm512_ternarylogic_epi64( a, b, c, 0x60 )
+#define mm512_andxor( a, b, c )    _mm512_ternarylogic_epi64( a, b, c, 0x60 )
 
 // a ^ ( b | c )
-#define mm512_xoror( a, b, c ) \
-   _mm512_ternarylogic_epi64( a, b, c, 0x1e )
+#define mm512_xoror( a, b, c )     _mm512_ternarylogic_epi64( a, b, c, 0x1e )
 
 // a ^ ( ~b & c ),     xor( a, andnot( b, c ) )
-#define mm512_xorandnot( a, b, c ) \
-  _mm512_ternarylogic_epi64( a, b, c, 0xd2 ) 
+#define mm512_xorandnot( a, b, c ) _mm512_ternarylogic_epi64( a, b, c, 0xd2 ) 
 
 // a | ( b & c )
-#define mm512_orand( a, b, c ) \
-   _mm512_ternarylogic_epi64( a, b, c, 0xf8  )
+#define mm512_orand( a, b, c )     _mm512_ternarylogic_epi64( a, b, c, 0xf8 )
 
 // Some 2 input operations that don't have their own instruction mnemonic.
+// Use with caution, args are not expression safe.
 
 // ~( a | b ),  (~a) & (~b)
-#define mm512_nor( a, b ) \
-   _mm512_ternarylogic_epi64( a, b, b, 0x01  )
+#define mm512_nor( a, b )          _mm512_ternarylogic_epi64( a, b, b, 0x01 )
 
 // ~( a ^ b ),  (~a) ^ b
-#define mm512_xnor( a, b ) \
-   _mm512_ternarylogic_epi64( a, b, b, 0x81  )
+#define mm512_xnor( a, b )         _mm512_ternarylogic_epi64( a, b, b, 0x81 )
 
 // ~( a & b )
-#define mm512_nand( a, b ) \
-   _mm512_ternarylogic_epi64( a, b, b, 0xef  )
-
-/*
-// Diagonal blending
-// Blend 8 64 bit elements from 8 vectors
-#define mm512_diagonal_64( v7, v6, v5, v4, v3, v2, v1, v0 ) \
-  _mm512_mask_blend_epi64( 0x0f, \
-        _mm512_mask_blend_epi64( 0x30, \
-               _mm512_mask_blend_epi64( 0x40, v7, v6 ), \
-               _mm512_mask_blend_epi64( 0x40, v5, v4 ) ), \
-        _mm512_mask_blend_epi64( 0x03, \
-               _mm512_mask_blend_epi64( 0x04, v3, v2 ) \
-               _mm512_mask_blend_epi64( 0x01, v1, v0 ) ) )  
-
-
-// Blend 4 32 bit elements from each 128 bit lane.
-#define mm512_diagonal128_32( v3, v2, v1, v0 ) \
-    _mm512_mask_blend_epi32( 0x3333, \
-           _mm512_mask_blend_epi32( 0x4444, v3, v2 ), \
-           _mm512_mask_blend_epi32( 0x1111, v1, v0 ) )  
-*/
-
-/*
-//
-// Extended bit shift of concatenated packed elements from 2 vectors.
-// Shift right returns low half, shift left returns high half.
-
-#if defined(__AVX512VBMI2__)
-
-#define mm512_shl2_64( v1, v2, c )    _mm512_shldi_epi64( v1, v2, c )
-#define mm512_shr2_64( v1, v2, c )    _mm512_shrdi_epi64( v1, v2, c )
-
-#define mm512_shl2_32( v1, v2, c )    _mm512_shldi_epi32( v1, v2, c )
-#define mm512_shr2_32( v1, v2, c )    _mm512_shrdi_epi32( v1, v2, c )
-
-#define mm512_shl2_16( v1, v2, c )    _mm512_shldi_epi16( v1, v2, c )
-#define mm512_shr2_16( v1, v2, c )    _mm512_shrdi_epi16( v1, v2, c )
-
-#else
-
-#define mm512_shl2_64( v1, v2, c ) \
-                     _mm512_or_si512( _mm512_slli_epi64( v1, c ), \
-                                      _mm512_srli_epi64( v2, 64 - (c) ) )
-
-#define mm512_shr2_64( v1, v2, c ) \
-                     _mm512_or_si512( _mm512_srli_epi64( v2, c ), \
-                                      _mm512_slli_epi64( v1, 64 - (c) ) )
-
-#define mm512_shl2_32( v1, v2, c ) \
-                     _mm512_or_si512( _mm512_slli_epi32( v1, c ), \
-                                      _mm512_srli_epi32( v2, 32 - (c) ) )
-
-#define mm512_shr2_32( v1, v2, c ) \
-                     _mm512_or_si512( _mm512_srli_epi32( v2, c ), \
-                                      _mm512_slli_epi32( v1, 32 - (c) ) )
-
-#define mm512_shl2_16( v1, v2, c ) \
-                     _mm512_or_si512( _mm512_slli_epi16( v1, c ), \
-                                      _mm512_srli_epi16( v2, 16 - (c) ) )
-
-#define mm512_shr2_16( v1, v2, c ) \
-                     _mm512_or_si512( _mm512_srli_epi16( v2, c ), \
-                                      _mm512_slli_epi16( v1, 16 - (c) ) )
-
-#endif
-*/
+#define mm512_nand( a, b )         _mm512_ternarylogic_epi64( a, b, b, 0xef )
 
 // Bit rotations.
 
@@ -381,19 +314,6 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_rol_64 _mm512_rol_epi64
 #define mm512_ror_32 _mm512_ror_epi32
 #define mm512_rol_32 _mm512_rol_epi32
-
-/*
-#if defined(__AVX512VBMI2__)
-
-// Use C inline function in case arg is coded as an expression.
-static inline __m512i mm512_ror_16( __m512i v, int c )
-{ return _mm512_shrdi_epi16( v, v, c ); }
-
-static inline __m512i mm512_rol_16( __m512i v, int c )
-{ return _mm512_shldi_epi16( v, v, c ); }
-
-#endif
-*/
 
 //
 // Reverse byte order of packed elements, vectorized endian conversion.
@@ -455,30 +375,10 @@ static inline __m512i mm512_rol_16( __m512i v, int c )
 } while(0)
 
 
-// Cross-lane shuffles implementing rotate & shift of packed elements.
-//
+// Cross-lane shuffles implementing rotation of packed elements.
+// 
 
-#define mm512_shiftr_256( v ) \
-  _mm512_alignr_epi64( _mm512_setzero, v, 4 )
-#define mm512_shiftl_256( v ) mm512_shifr_256
-
-#define mm512_shiftr_128( v ) \
-  _mm512_alignr_epi64( _mm512_setzero, v, 2 )
-#define mm512_shiftl_128( v ) \
-  _mm512_alignr_epi64( v,  _mm512_setzero, 6 )
-
-#define mm512_shiftr_64( v ) \
-  _mm512_alignr_epi64( _mm512_setzero, v, 1 )
-#define mm512_shiftl_64( v ) \
-  _mm512_alignr_epi64( v, _mm512_setzero, 7 )
-
-#define mm512_shiftr_32( v ) \
-  _mm512_alignr_epi32( _mm512_setzero, v, 1 )
-#define mm512_shiftl_32( v ) \
-  _mm512_alignr_epi32( v, _mm512_setzero, 15 )
-
-// Shuffle-rotate elements left or right in 512 bit vector.
-
+// Rotate elements across entire vector.
 static inline __m512i mm512_swap_256( const __m512i v )
 { return _mm512_alignr_epi64( v, v, 4 ); }
 #define mm512_shuflr_256( v ) mm512_swap_256
@@ -537,7 +437,7 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
                        0x1E1D1C1B1A191817, 0x161514131211100F, \
                        0x0E0D0C0B0A090807, 0x060504030201003F ) )
 
-//
+// 256 bit lanes used only by lyra2, move these there
 // Rotate elements within 256 bit lanes of 512 bit vector.
 
 // Swap hi & lo 128 bits in each 256 bit lane
@@ -549,6 +449,7 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 #define mm512_shuflr256_64( v )     _mm512_permutex_epi64( v, 0x39 )
 #define mm512_shufll256_64( v )     _mm512_permutex_epi64( v, 0x93 )
 
+/*
 // Rotate 256 bit lanes by one 32 bit element
 #define mm512_shuflr256_32( v ) \
    _mm512_permutexvar_epi32( m512_const_64( \
@@ -591,7 +492,7 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
                      0x2e2d2c2b2a292827, 0x262524232221203f, \
                      0x1e1d1c1b1a191817, 0x161514131211100f, \
                      0x0e0d0c0b0a090807, 0x060504030201001f ) )
-
+*/
 //
 // Shuffle/rotate elements within 128 bit lanes of 512 bit vector.
  

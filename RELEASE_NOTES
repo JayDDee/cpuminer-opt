@@ -65,10 +65,15 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.21.1
+
+Fixed a segfault in some obsolete algos.
+Small optimizations to Hamsi & Shabal AVX2 & AVX512.
+
 v3.21.0
 
 Added minotaurx algo for stratum only.
-Blake256 & sha256 prehash optimised to ignore zero-padded data for AVX2 & AVX512.
+Blake256 & sha256 prehash optimized to ignore zero-padded data for AVX2 & AVX512.
 Other small improvements.
 
 v3.20.3

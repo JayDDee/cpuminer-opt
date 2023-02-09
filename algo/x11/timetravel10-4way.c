@@ -118,8 +118,9 @@ void timetravel10_4way_hash(void *output, const void *input)
               intrlv_4x64( vhashB, hash0, hash1, hash2, hash3, dataLen<<3 );
         break;
         case 3:
-           skein512_4way_update( &ctx.skein, vhashA, dataLen );
-           skein512_4way_close( &ctx.skein, vhashB );
+           skein512_4way_full( &ctx.skein, vhashB, vhashA, dataLen );
+//           skein512_4way_update( &ctx.skein, vhashA, dataLen );
+//           skein512_4way_close( &ctx.skein, vhashB );
            if ( i == 9 )
               dintrlv_4x64( hash0, hash1, hash2, hash3, vhashB, dataLen<<3 );
         break;

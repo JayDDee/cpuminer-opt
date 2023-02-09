@@ -75,7 +75,6 @@ void shabal512_8way_close( void *cc, void *dst );
 void shabal512_8way_addbits_and_close( void *cc, unsigned ub, unsigned n,
                                        void *dst );
 
-
 #endif
 
 typedef struct {
@@ -97,7 +96,6 @@ void shabal256_4way_addbits_and_close(	void *cc, unsigned ub, unsigned n,
 
 void shabal512_4way_init( void *cc );
 void shabal512_4way_update( void *cc, const void *data, size_t len );
-//#define shabal512_4way shabal512_4way_update
 void shabal512_4way_close( void *cc, void *dst );
 void shabal512_4way_addbits_and_close( void *cc, unsigned ub, unsigned n,
                                        void *dst );

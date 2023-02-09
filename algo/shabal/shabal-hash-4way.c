@@ -33,6 +33,7 @@
 #include <stddef.h>
 #include <string.h>
 
+// 4way is only used with AVX2, 8way only with AVX512, 16way is not needed.
 #ifdef __SSE4_1__
 
 #include "shabal-hash-4way.h"
@@ -43,21 +44,6 @@ extern "C"{
 #ifdef _MSC_VER
 #pragma warning (disable: 4146)
 #endif
-
-/*
- * Part of this code was automatically generated (the part between
- * the "BEGIN" and "END" markers).
- */
-
-#define sM    16
-
-#define C32   SPH_C32
-#define T32   SPH_T32
-
-#define O1   13
-#define O2    9
-#define O3    6
-
 
 #if defined(__AVX2__)
 
@@ -310,72 +296,71 @@ do { \
     mm256_swap512_256( BF, CF ); \
 } while (0)
 
-#define PERM_ELT8(xa0, xa1, xb0, xb1, xb2, xb3, xc, xm) \
+#define PERM_ELT8( xa0, xa1, xb0, xb1, xb2, xb3, xc, xm ) \
 do { \
-   xa0 = mm256_xor3( xm, xb1, _mm256_xor_si256(  \
-            _mm256_andnot_si256( xb3, xb2 ), \
-            _mm256_mullo_epi32( mm256_xor3( xa0, xc, \
-               _mm256_mullo_epi32( mm256_rol_32( xa1, 15 ), \
-                                   FIVE ) ), THREE ) ) ); \
+   xa0 = mm256_xor3( xm, xb1, mm256_xorandnot(  \
+           _mm256_mullo_epi32( mm256_xor3( xa0, xc, \
+              _mm256_mullo_epi32( mm256_rol_32( xa1, 15 ), FIVE ) ), THREE ), \
+           xb3, xb2 ) ); \
    xb0 = mm256_xnor( xa0, mm256_rol_32( xb0, 1 ) ); \
 } while (0)
 
 #define PERM_STEP_0_8   do { \
-      PERM_ELT8(A0, AB, B0, BD, B9, B6, C8, M0); \
-      PERM_ELT8(A1, A0, B1, BE, BA, B7, C7, M1); \
-      PERM_ELT8(A2, A1, B2, BF, BB, B8, C6, M2); \
-      PERM_ELT8(A3, A2, B3, B0, BC, B9, C5, M3); \
-      PERM_ELT8(A4, A3, B4, B1, BD, BA, C4, M4); \
-      PERM_ELT8(A5, A4, B5, B2, BE, BB, C3, M5); \
-      PERM_ELT8(A6, A5, B6, B3, BF, BC, C2, M6); \
-      PERM_ELT8(A7, A6, B7, B4, B0, BD, C1, M7); \
-      PERM_ELT8(A8, A7, B8, B5, B1, BE, C0, M8); \
-      PERM_ELT8(A9, A8, B9, B6, B2, BF, CF, M9); \
-      PERM_ELT8(AA, A9, BA, B7, B3, B0, CE, MA); \
-      PERM_ELT8(AB, AA, BB, B8, B4, B1, CD, MB); \
-      PERM_ELT8(A0, AB, BC, B9, B5, B2, CC, MC); \
-      PERM_ELT8(A1, A0, BD, BA, B6, B3, CB, MD); \
-      PERM_ELT8(A2, A1, BE, BB, B7, B4, CA, ME); \
-      PERM_ELT8(A3, A2, BF, BC, B8, B5, C9, MF); \
-   } while (0)
+      PERM_ELT8( A0, AB, B0, BD, B9, B6, C8, M0 ); \
+      PERM_ELT8( A1, A0, B1, BE, BA, B7, C7, M1 ); \
+      PERM_ELT8( A2, A1, B2, BF, BB, B8, C6, M2 ); \
+      PERM_ELT8( A3, A2, B3, B0, BC, B9, C5, M3 ); \
+      PERM_ELT8( A4, A3, B4, B1, BD, BA, C4, M4 ); \
+      PERM_ELT8( A5, A4, B5, B2, BE, BB, C3, M5 ); \
+      PERM_ELT8( A6, A5, B6, B3, BF, BC, C2, M6 ); \
+      PERM_ELT8( A7, A6, B7, B4, B0, BD, C1, M7 ); \
+      PERM_ELT8( A8, A7, B8, B5, B1, BE, C0, M8 ); \
+      PERM_ELT8( A9, A8, B9, B6, B2, BF, CF, M9 ); \
+      PERM_ELT8( AA, A9, BA, B7, B3, B0, CE, MA ); \
+      PERM_ELT8( AB, AA, BB, B8, B4, B1, CD, MB ); \
+      PERM_ELT8( A0, AB, BC, B9, B5, B2, CC, MC ); \
+      PERM_ELT8( A1, A0, BD, BA, B6, B3, CB, MD ); \
+      PERM_ELT8( A2, A1, BE, BB, B7, B4, CA, ME ); \
+      PERM_ELT8( A3, A2, BF, BC, B8, B5, C9, MF ); \
+} while (0)
 
 #define PERM_STEP_1_8   do { \
-      PERM_ELT8(A4, A3, B0, BD, B9, B6, C8, M0); \
-      PERM_ELT8(A5, A4, B1, BE, BA, B7, C7, M1); \
-      PERM_ELT8(A6, A5, B2, BF, BB, B8, C6, M2); \
-      PERM_ELT8(A7, A6, B3, B0, BC, B9, C5, M3); \
-      PERM_ELT8(A8, A7, B4, B1, BD, BA, C4, M4); \
-      PERM_ELT8(A9, A8, B5, B2, BE, BB, C3, M5); \
-      PERM_ELT8(AA, A9, B6, B3, BF, BC, C2, M6); \
-      PERM_ELT8(AB, AA, B7, B4, B0, BD, C1, M7); \
-      PERM_ELT8(A0, AB, B8, B5, B1, BE, C0, M8); \
-      PERM_ELT8(A1, A0, B9, B6, B2, BF, CF, M9); \
-      PERM_ELT8(A2, A1, BA, B7, B3, B0, CE, MA); \
-      PERM_ELT8(A3, A2, BB, B8, B4, B1, CD, MB); \
-      PERM_ELT8(A4, A3, BC, B9, B5, B2, CC, MC); \
-      PERM_ELT8(A5, A4, BD, BA, B6, B3, CB, MD); \
-      PERM_ELT8(A6, A5, BE, BB, B7, B4, CA, ME); \
-      PERM_ELT8(A7, A6, BF, BC, B8, B5, C9, MF); \
-   } while (0)
+      PERM_ELT8( A4, A3, B0, BD, B9, B6, C8, M0 ); \
+      PERM_ELT8( A5, A4, B1, BE, BA, B7, C7, M1 ); \
+      PERM_ELT8( A6, A5, B2, BF, BB, B8, C6, M2 ); \
+      PERM_ELT8( A7, A6, B3, B0, BC, B9, C5, M3 ); \
+      PERM_ELT8( A8, A7, B4, B1, BD, BA, C4, M4 ); \
+      PERM_ELT8( A9, A8, B5, B2, BE, BB, C3, M5 ); \
+      PERM_ELT8( AA, A9, B6, B3, BF, BC, C2, M6 ); \
+      PERM_ELT8( AB, AA, B7, B4, B0, BD, C1, M7 ); \
+      PERM_ELT8( A0, AB, B8, B5, B1, BE, C0, M8 ); \
+      PERM_ELT8( A1, A0, B9, B6, B2, BF, CF, M9 ); \
+      PERM_ELT8( A2, A1, BA, B7, B3, B0, CE, MA ); \
+      PERM_ELT8( A3, A2, BB, B8, B4, B1, CD, MB ); \
+      PERM_ELT8( A4, A3, BC, B9, B5, B2, CC, MC ); \
+      PERM_ELT8( A5, A4, BD, BA, B6, B3, CB, MD ); \
+      PERM_ELT8( A6, A5, BE, BB, B7, B4, CA, ME ); \
+      PERM_ELT8( A7, A6, BF, BC, B8, B5, C9, MF ); \
+} while (0)
 
 #define PERM_STEP_2_8   do { \
-      PERM_ELT8(A8, A7, B0, BD, B9, B6, C8, M0); \
-      PERM_ELT8(A9, A8, B1, BE, BA, B7, C7, M1); \
-      PERM_ELT8(AA, A9, B2, BF, BB, B8, C6, M2); \
-      PERM_ELT8(AB, AA, B3, B0, BC, B9, C5, M3); \
-      PERM_ELT8(A0, AB, B4, B1, BD, BA, C4, M4); \
-      PERM_ELT8(A1, A0, B5, B2, BE, BB, C3, M5); \
-      PERM_ELT8(A2, A1, B6, B3, BF, BC, C2, M6); \
-      PERM_ELT8(A3, A2, B7, B4, B0, BD, C1, M7); \
-      PERM_ELT8(A4, A3, B8, B5, B1, BE, C0, M8); \
-      PERM_ELT8(A5, A4, B9, B6, B2, BF, CF, M9); \
-      PERM_ELT8(A6, A5, BA, B7, B3, B0, CE, MA); \
-      PERM_ELT8(A7, A6, BB, B8, B4, B1, CD, MB); \
-      PERM_ELT8(A8, A7, BC, B9, B5, B2, CC, MC); \
-      PERM_ELT8(A9, A8, BD, BA, B6, B3, CB, MD); \
-      PERM_ELT8(AA, A9, BE, BB, B7, B4, CA, ME); \
-      PERM_ELT8(AB, AA, BF, BC, B8, B5, C9, MF); \
-   } while (0)
+      PERM_ELT8( A8, A7, B0, BD, B9, B6, C8, M0 ); \
+      PERM_ELT8( A9, A8, B1, BE, BA, B7, C7, M1 ); \
+      PERM_ELT8( AA, A9, B2, BF, BB, B8, C6, M2 ); \
+      PERM_ELT8( AB, AA, B3, B0, BC, B9, C5, M3 ); \
+      PERM_ELT8( A0, AB, B4, B1, BD, BA, C4, M4 ); \
+      PERM_ELT8( A1, A0, B5, B2, BE, BB, C3, M5 ); \
+      PERM_ELT8( A2, A1, B6, B3, BF, BC, C2, M6 ); \
+      PERM_ELT8( A3, A2, B7, B4, B0, BD, C1, M7 ); \
+      PERM_ELT8( A4, A3, B8, B5, B1, BE, C0, M8 ); \
+      PERM_ELT8( A5, A4, B9, B6, B2, BF, CF, M9 ); \
+      PERM_ELT8( A6, A5, BA, B7, B3, B0, CE, MA ); \
+      PERM_ELT8( A7, A6, BB, B8, B4, B1, CD, MB ); \
+      PERM_ELT8( A8, A7, BC, B9, B5, B2, CC, MC ); \
+      PERM_ELT8( A9, A8, BD, BA, B6, B3, CB, MD ); \
+      PERM_ELT8( AA, A9, BE, BB, B7, B4, CA, ME ); \
+      PERM_ELT8( AB, AA, BF, BC, B8, B5, C9, MF ); \
+} while (0)
 
 #define APPLY_P8 \
 do { \
@@ -437,8 +422,8 @@ do { \
 } while (0)
 
 #define INCR_W8   do { \
-      if ((Wlow = T32(Wlow + 1)) == 0) \
-         Whigh = T32(Whigh + 1); \
+      if ( ( Wlow = Wlow + 1 ) == 0 ) \
+         Whigh = Whigh + 1; \
    } while (0)
 
 static void
@@ -650,14 +635,7 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
    shabal_8way_close(cc, ub, n, dst, 16);
 }
 
-
 #endif  // AVX2
-
-/*
- * We copy the state into local variables, so that the compiler knows
- * that it can optimize them at will.
- */
-
 
 #define DECL_STATE   \
 	__m128i A0, A1, A2, A3, A4, A5, A6, A7, \
@@ -888,15 +866,6 @@ do { \
    A1 = _mm_xor_si128( A1, _mm_set1_epi32( Whigh ) ); \
 } while (0)
 
-
-/*
-#define SWAP(v1, v2)   do { \
-		sph_u32 tmp = (v1); \
-		(v1) = (v2); \
-		(v2) = tmp; \
-	} while (0)
-*/
-
 #define SWAP_BC \
 do { \
     mm128_swap256_128( B0, C0 ); \
@@ -916,18 +885,6 @@ do { \
     mm128_swap256_128( BE, CE ); \
     mm128_swap256_128( BF, CF ); \
 } while (0)
-
-/*
-#define PERM_ELT(xa0, xa1, xb0, xb1, xb2, xb3, xc, xm) \
-do { \
-  __m128i t1 = _mm_mullo_epi32(  mm_rol_32( xa1, 15 ),\
-                                   _mm_set1_epi32(5UL) ) \
-  __m128i t2 = _mm_xor_si128( xa0, xc ); \
-  xb0 = mm_not( _mm_xor_si256( xa0, mm_rol_32( xb0, 1 ) ) ); \
-  xa0 = mm_xor4( xm, xb1, _mm_andnot_si128( xb3, xb2 ), \
-              _mm_xor_si128( t2, \
-                      _mm_mullo_epi32( t1, _mm_set1_epi32(5UL) ) ) ) \
-*/
 
 #define PERM_ELT(xa0, xa1, xb0, xb1, xb2, xb3, xc, xm) \
 do { \
@@ -1056,8 +1013,8 @@ do { \
 } while (0)
 
 #define INCR_W   do { \
-		if ((Wlow = T32(Wlow + 1)) == 0) \
-			Whigh = T32(Whigh + 1); \
+		if ( ( Wlow = Wlow + 1 ) == 0 ) \
+			Whigh = Whigh + 1; \
 	} while (0)
 
 /*

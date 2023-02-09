@@ -141,6 +141,13 @@ do { \
                        _mm_add_epi32( w, _mm_set1_epi32( c ) ) ); \
 } while (0)
 
+#define STEP1(n, p, x7, x6, x5, x4, x3, x2, x1, x0, w) \
+do { \
+   __m128i t = FP ## n ## _ ## p(x6, x5, x4, x3, x2, x1, x0); \
+   x7 = _mm_add_epi32( _mm_add_epi32( mm128_ror_32( t, 7 ), \
+                                      mm128_ror_32( x7, 11 ) ), w ); \
+} while (0)
+
 /*
  * PASSy(n, in) computes pass number "y", for a total of "n", using the
  * one-argument macro "in" to access input words. Current state is assumed
@@ -152,22 +159,22 @@ do { \
 #define PASS1(n, in)   do { \
 		unsigned pass_count; \
 		for (pass_count = 0; pass_count < 32; pass_count += 8) { \
-			STEP(n, 1, s7, s6, s5, s4, s3, s2, s1, s0, \
-				in(pass_count + 0), SPH_C32(0x00000000)); \
-			STEP(n, 1, s6, s5, s4, s3, s2, s1, s0, s7, \
-				in(pass_count + 1), SPH_C32(0x00000000)); \
-			STEP(n, 1, s5, s4, s3, s2, s1, s0, s7, s6, \
-				in(pass_count + 2), SPH_C32(0x00000000)); \
-			STEP(n, 1, s4, s3, s2, s1, s0, s7, s6, s5, \
-				in(pass_count + 3), SPH_C32(0x00000000)); \
-			STEP(n, 1, s3, s2, s1, s0, s7, s6, s5, s4, \
-				in(pass_count + 4), SPH_C32(0x00000000)); \
-			STEP(n, 1, s2, s1, s0, s7, s6, s5, s4, s3, \
-				in(pass_count + 5), SPH_C32(0x00000000)); \
-			STEP(n, 1, s1, s0, s7, s6, s5, s4, s3, s2, \
-				in(pass_count + 6), SPH_C32(0x00000000)); \
-			STEP(n, 1, s0, s7, s6, s5, s4, s3, s2, s1, \
-				in(pass_count + 7), SPH_C32(0x00000000)); \
+			STEP1(n, 1, s7, s6, s5, s4, s3, s2, s1, s0, \
+				in(pass_count + 0) ); \
+			STEP1(n, 1, s6, s5, s4, s3, s2, s1, s0, s7, \
+				in(pass_count + 1) ); \
+			STEP1(n, 1, s5, s4, s3, s2, s1, s0, s7, s6, \
+				in(pass_count + 2) ); \
+			STEP1(n, 1, s4, s3, s2, s1, s0, s7, s6, s5, \
+				in(pass_count + 3) ); \
+			STEP1(n, 1, s3, s2, s1, s0, s7, s6, s5, s4, \
+				in(pass_count + 4) ); \
+			STEP1(n, 1, s2, s1, s0, s7, s6, s5, s4, s3, \
+				in(pass_count + 5) ); \
+			STEP1(n, 1, s1, s0, s7, s6, s5, s4, s3, s2, \
+				in(pass_count + 6) ); \
+			STEP1(n, 1, s0, s7, s6, s5, s4, s3, s2, s1, \
+				in(pass_count + 7) ); \
    		} \
 	} while (0)
 
@@ -605,25 +612,32 @@ do { \
                        _mm256_add_epi32( w, _mm256_set1_epi32( c ) ) ); \
 } while (0)
 
+#define STEP1_8W(n, p, x7, x6, x5, x4, x3, x2, x1, x0, w) \
+do { \
+   __m256i t = FP ## n ## _ ## p ## _8W(x6, x5, x4, x3, x2, x1, x0); \
+   x7 = _mm256_add_epi32( _mm256_add_epi32( mm256_ror_32( t, 7 ), \
+                                      mm256_ror_32( x7, 11 ) ), w ); \
+} while (0)
+   
 #define PASS1_8W(n, in)   do { \
       unsigned pass_count; \
       for (pass_count = 0; pass_count < 32; pass_count += 8) { \
-         STEP_8W(n, 1, s7, s6, s5, s4, s3, s2, s1, s0, \
-            in(pass_count + 0), SPH_C32(0x00000000)); \
-         STEP_8W(n, 1, s6, s5, s4, s3, s2, s1, s0, s7, \
-            in(pass_count + 1), SPH_C32(0x00000000)); \
-         STEP_8W(n, 1, s5, s4, s3, s2, s1, s0, s7, s6, \
-            in(pass_count + 2), SPH_C32(0x00000000)); \
-         STEP_8W(n, 1, s4, s3, s2, s1, s0, s7, s6, s5, \
-            in(pass_count + 3), SPH_C32(0x00000000)); \
-         STEP_8W(n, 1, s3, s2, s1, s0, s7, s6, s5, s4, \
-            in(pass_count + 4), SPH_C32(0x00000000)); \
-         STEP_8W(n, 1, s2, s1, s0, s7, s6, s5, s4, s3, \
-            in(pass_count + 5), SPH_C32(0x00000000)); \
-         STEP_8W(n, 1, s1, s0, s7, s6, s5, s4, s3, s2, \
-            in(pass_count + 6), SPH_C32(0x00000000)); \
-         STEP_8W(n, 1, s0, s7, s6, s5, s4, s3, s2, s1, \
-            in(pass_count + 7), SPH_C32(0x00000000)); \
+         STEP1_8W(n, 1, s7, s6, s5, s4, s3, s2, s1, s0, \
+            in(pass_count + 0) ); \
+         STEP1_8W(n, 1, s6, s5, s4, s3, s2, s1, s0, s7, \
+            in(pass_count + 1) ); \
+         STEP1_8W(n, 1, s5, s4, s3, s2, s1, s0, s7, s6, \
+            in(pass_count + 2) ); \
+         STEP1_8W(n, 1, s4, s3, s2, s1, s0, s7, s6, s5, \
+            in(pass_count + 3) ); \
+         STEP1_8W(n, 1, s3, s2, s1, s0, s7, s6, s5, s4, \
+            in(pass_count + 4) ); \
+         STEP1_8W(n, 1, s2, s1, s0, s7, s6, s5, s4, s3, \
+            in(pass_count + 5) ); \
+         STEP1_8W(n, 1, s1, s0, s7, s6, s5, s4, s3, s2, \
+            in(pass_count + 6) ); \
+         STEP1_8W(n, 1, s0, s7, s6, s5, s4, s3, s2, s1, \
+            in(pass_count + 7) ); \
          } \
    } while (0)
 

@@ -3,7 +3,7 @@
 #include "lyra2.h"
 #include "simd-utils.h"
 
-__thread uint64_t* lyra2z330_wholeMatrix;
+static __thread uint64_t* lyra2z330_wholeMatrix;
 
 void lyra2z330_hash(void *state, const void *input, uint32_t height)
 {

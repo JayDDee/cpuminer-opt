@@ -33,9 +33,10 @@ void polytimos_4way_hash( void *output, const void *input )
      uint64_t vhash[8*4] __attribute__ ((aligned (64)));
      poly_4way_context_overlay ctx;
 
-     skein512_4way_init( &ctx.skein );
-     skein512_4way_update( &ctx.skein, input, 80 );
-     skein512_4way_close( &ctx.skein, vhash );
+     skein512_4way_full( &ctx.skein, vhash, input, 80 );
+//     skein512_4way_init( &ctx.skein );
+//     skein512_4way_update( &ctx.skein, input, 80 );
+//     skein512_4way_close( &ctx.skein, vhash );
 
      // Need to convert from 64 bit interleaved to 32 bit interleaved.
      uint32_t vhash32[16*4];

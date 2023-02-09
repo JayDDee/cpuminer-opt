@@ -1106,8 +1106,7 @@ skein256_4way_close(void *cc, void *dst)
 }
 
 
-
-// Do not use with 128 bit data
+// Broken for 80 & 128 bytes, use prehash or full
 void
 skein512_4way_update(void *cc, const void *data, size_t len)
 {

@@ -72,11 +72,11 @@ static const uint64_t RC[] = {
 // Targetted macros, keccak-macros.h is included for each target.
 
 #define DECL64(x)          __m512i x
-#define XOR(d, a, b)     (d = _mm512_xor_si512(a,b))
-#define XOR64 XOR
+#define XOR(d, a, b)       (d = _mm512_xor_si512(a,b))
+#define XOR64              XOR
 #define AND64(d, a, b)     (d = _mm512_and_si512(a,b))
 #define OR64(d, a, b)      (d = _mm512_or_si512(a,b))
-#define NOT64(d, s)        (d = _mm512_xor_si512(s,m512_neg1))
+#define NOT64(d, s)        (d = mm512_not( s ) )
 #define ROL64(d, v, n)     (d = mm512_rol_64(v, n))
 #define XOROR(d, a, b, c)  (d = mm512_xoror(a, b, c))
 #define XORAND(d, a, b, c) (d = mm512_xorand(a, b, c))
@@ -257,14 +257,14 @@ keccak512_8way_close(void *cc, void *dst)
         kc->w[j ] = _mm256_xor_si256( kc->w[j], buf[j] ); \
 } while (0)
 
-#define DECL64(x)        __m256i x
-#define XOR(d, a, b)    (d = _mm256_xor_si256(a,b))
-#define XOR64 XOR
-#define AND64(d, a, b)   (d = _mm256_and_si256(a,b))
-#define OR64(d, a, b)    (d = _mm256_or_si256(a,b))
-#define NOT64(d, s)      (d = _mm256_xor_si256(s,m256_neg1))
-#define ROL64(d, v, n)   (d = mm256_rol_64(v, n))
-#define XOROR(d, a, b, c) (d = _mm256_xor_si256(a, _mm256_or_si256(b, c)))
+#define DECL64(x)          __m256i x
+#define XOR(d, a, b)       (d = _mm256_xor_si256(a,b))
+#define XOR64              XOR
+#define AND64(d, a, b)     (d = _mm256_and_si256(a,b))
+#define OR64(d, a, b)      (d = _mm256_or_si256(a,b))
+#define NOT64(d, s)        (d = mm256_not( s ) )
+#define ROL64(d, v, n)     (d = mm256_rol_64(v, n))
+#define XOROR(d, a, b, c)  (d = _mm256_xor_si256(a, _mm256_or_si256(b, c)))
 #define XORAND(d, a, b, c) (d = _mm256_xor_si256(a, _mm256_and_si256(b, c)))
 #define XOR3( d, a, b, c ) (d = mm256_xor3( a, b, c ))
 

@@ -34,10 +34,12 @@
 //#define mm64_not( a ) _mm_xor_si64( (__m64)a, m64_neg1 )
 #define mm64_not( a ) ( (__m64)( ~( (uint64_t)(a) ) )
 
+/*      
 // Unary negate elements
 #define mm64_negate_32( v ) _mm_sub_pi32( m64_zero, v )
 #define mm64_negate_16( v ) _mm_sub_pi16( m64_zero, v )
 #define mm64_negate_8(  v ) _mm_sub_pi8(  m64_zero, v )
+*/
 
 // Rotate bits in packed elements of 64 bit vector
 #define mm64_rol_64( a, n ) \

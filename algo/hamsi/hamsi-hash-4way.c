@@ -585,9 +585,8 @@ do { \
   t = _mm512_xor_si512( t, c ); \
   d = mm512_xoror( a, b, t ); \
   t = mm512_xorand( t, a, b ); \
-  b = mm512_xor3( b, d, t ); \
   a = c; \
-  c = b; \
+  c = mm512_xor3( b, d, t ); \
   b = d; \
   d = mm512_not( t ); \
 } while (0)
@@ -635,7 +634,7 @@ do { \
 
 #define ROUND_BIG8( alpha ) \
 do { \
-   __m512i t0, t1, t2, t3; \
+   __m512i t0, t1, t2, t3, t4, t5; \
    s0 = _mm512_xor_si512( s0, alpha[ 0] ); /* m0 */ \
    s1 = _mm512_xor_si512( s1, alpha[ 1] ); /* c0 */ \
    s2 = _mm512_xor_si512( s2, alpha[ 2] ); /* m1 */ \
@@ -662,43 +661,35 @@ do { \
   s5 = mm512_swap64_32( s5 ); \
   sD = mm512_swap64_32( sD ); \
   sE = mm512_swap64_32( sE ); \
-  t1 = _mm512_mask_blend_epi32( 0xaaaa, s4, s5 ); \
-  t3 = _mm512_mask_blend_epi32( 0xaaaa, sD, sE ); \
-  L8( s0, t1, s9, t3 ); \
-  s4 = _mm512_mask_blend_epi32( 0x5555, s4, t1 ); \
-  s5 = _mm512_mask_blend_epi32( 0xaaaa, s5, t1 ); \
-  sD = _mm512_mask_blend_epi32( 0x5555, sD, t3 ); \
-  sE = _mm512_mask_blend_epi32( 0xaaaa, sE, t3 ); \
+  t0 = _mm512_mask_blend_epi32( 0xaaaa, s4, s5 ); \
+  t1 = _mm512_mask_blend_epi32( 0xaaaa, sD, sE ); \
+  L8( s0, t0, s9, t1 ); \
 \
   s6 = mm512_swap64_32( s6 ); \
   sF = mm512_swap64_32( sF ); \
-  t1 = _mm512_mask_blend_epi32( 0xaaaa, s5, s6 ); \
+  t2 = _mm512_mask_blend_epi32( 0xaaaa, s5, s6 ); \
   t3 = _mm512_mask_blend_epi32( 0xaaaa, sE, sF ); \
-  L8( s1, t1, sA, t3 ); \
-  s5 = _mm512_mask_blend_epi32( 0x5555, s5, t1 ); \
-  s6 = _mm512_mask_blend_epi32( 0xaaaa, s6, t1 ); \
-  sE = _mm512_mask_blend_epi32( 0x5555, sE, t3 ); \
-  sF = _mm512_mask_blend_epi32( 0xaaaa, sF, t3 ); \
+  L8( s1, t2, sA, t3 ); \
+  s5 = _mm512_mask_blend_epi32( 0x5555, t0, t2 ); \
+  sE = _mm512_mask_blend_epi32( 0x5555, t1, t3 ); \
 \
   s7 = mm512_swap64_32( s7 ); \
   sC = mm512_swap64_32( sC ); \
-  t1 = _mm512_mask_blend_epi32( 0xaaaa, s6, s7 ); \
-  t3 = _mm512_mask_blend_epi32( 0xaaaa, sF, sC ); \
-  L8( s2, t1, sB, t3 ); \
-  s6 = _mm512_mask_blend_epi32( 0x5555, s6, t1 ); \
-  s7 = _mm512_mask_blend_epi32( 0xaaaa, s7, t1 ); \
-  sF = _mm512_mask_blend_epi32( 0x5555, sF, t3 ); \
-  sC = _mm512_mask_blend_epi32( 0xaaaa, sC, t3 ); \
+  t4 = _mm512_mask_blend_epi32( 0xaaaa, s6, s7 ); \
+  t5 = _mm512_mask_blend_epi32( 0xaaaa, sF, sC ); \
+  L8( s2, t4, sB, t5 ); \
+  s6 = _mm512_mask_blend_epi32( 0x5555, t2, t4 ); \
+  sF = _mm512_mask_blend_epi32( 0x5555, t3, t5 ); \
   s6 = mm512_swap64_32( s6 ); \
   sF = mm512_swap64_32( sF ); \
 \
-  t1 = _mm512_mask_blend_epi32( 0xaaaa, s7, s4 ); \
+  t2 = _mm512_mask_blend_epi32( 0xaaaa, s7, s4 ); \
   t3 = _mm512_mask_blend_epi32( 0xaaaa, sC, sD ); \
-  L8( s3, t1, s8, t3 ); \
-  s7 = _mm512_mask_blend_epi32( 0x5555, s7, t1 ); \
-  s4 = _mm512_mask_blend_epi32( 0xaaaa, s4, t1 ); \
-  sC = _mm512_mask_blend_epi32( 0x5555, sC, t3 ); \
-  sD = _mm512_mask_blend_epi32( 0xaaaa, sD, t3 ); \
+  L8( s3, t2, s8, t3 ); \
+  s7 = _mm512_mask_blend_epi32( 0x5555, t4, t2 ); \
+  s4 = _mm512_mask_blend_epi32( 0xaaaa, t0, t2 ); \
+  sC = _mm512_mask_blend_epi32( 0x5555, t5, t3 ); \
+  sD = _mm512_mask_blend_epi32( 0xaaaa, t1, t3 ); \
   s7 = mm512_swap64_32( s7 ); \
   sC = mm512_swap64_32( sC ); \
 \
@@ -924,10 +915,9 @@ do { \
   d = _mm256_xor_si256( d, a ); \
   a = _mm256_and_si256( a, b ); \
   t = _mm256_xor_si256( t, a ); \
-  b = _mm256_xor_si256( b, d ); \
-  b = _mm256_xor_si256( b, t ); \
   a = c; \
-  c = b; \
+  c = _mm256_xor_si256( b, d ); \
+  c = _mm256_xor_si256( c, t ); \
   b = d; \
   d = mm256_not( t ); \
 } while (0)
@@ -977,7 +967,7 @@ do { \
 
 #define ROUND_BIG( alpha ) \
 do { \
-   __m256i t0, t1, t2, t3; \
+   __m256i t0, t1, t2, t3, t4, t5; \
    s0 = _mm256_xor_si256( s0, alpha[ 0] ); \
    s1 = _mm256_xor_si256( s1, alpha[ 1] ); \
    s2 = _mm256_xor_si256( s2, alpha[ 2] ); \
@@ -1004,43 +994,35 @@ do { \
   s5 = mm256_swap64_32( s5 ); \
   sD = mm256_swap64_32( sD ); \
   sE = mm256_swap64_32( sE ); \
-  t1 = _mm256_blend_epi32( s4, s5, 0xaa ); \
-  t3 = _mm256_blend_epi32( sD, sE, 0xaa ); \
-  L( s0, t1, s9, t3 ); \
-  s4 = _mm256_blend_epi32( s4, t1, 0x55 ); \
-  s5 = _mm256_blend_epi32( s5, t1, 0xaa ); \
-  sD = _mm256_blend_epi32( sD, t3, 0x55 ); \
-  sE = _mm256_blend_epi32( sE, t3, 0xaa ); \
+  t0 = _mm256_blend_epi32( s4, s5, 0xaa ); \
+  t1 = _mm256_blend_epi32( sD, sE, 0xaa ); \
+  L( s0, t0, s9, t1 ); \
 \
   s6 = mm256_swap64_32( s6 ); \
   sF = mm256_swap64_32( sF ); \
-  t1 = _mm256_blend_epi32( s5, s6, 0xaa ); \
+  t2 = _mm256_blend_epi32( s5, s6, 0xaa ); \
   t3 = _mm256_blend_epi32( sE, sF, 0xaa ); \
-  L( s1, t1, sA, t3 ); \
-  s5 = _mm256_blend_epi32( s5, t1, 0x55 ); \
-  s6 = _mm256_blend_epi32( s6, t1, 0xaa ); \
-  sE = _mm256_blend_epi32( sE, t3, 0x55 ); \
-  sF = _mm256_blend_epi32( sF, t3, 0xaa ); \
+  L( s1, t2, sA, t3 ); \
+  s5 = _mm256_blend_epi32( t0, t2, 0x55 ); \
+  sE = _mm256_blend_epi32( t1, t3, 0x55 ); \
 \
   s7 = mm256_swap64_32( s7 ); \
   sC = mm256_swap64_32( sC ); \
-  t1 = _mm256_blend_epi32( s6, s7, 0xaa ); \
-  t3 = _mm256_blend_epi32( sF, sC, 0xaa ); \
-  L( s2, t1, sB, t3 ); \
-  s6 = _mm256_blend_epi32( s6, t1, 0x55 ); \
-  s7 = _mm256_blend_epi32( s7, t1, 0xaa ); \
-  sF = _mm256_blend_epi32( sF, t3, 0x55 ); \
-  sC = _mm256_blend_epi32( sC, t3, 0xaa ); \
+  t4 = _mm256_blend_epi32( s6, s7, 0xaa ); \
+  t5 = _mm256_blend_epi32( sF, sC, 0xaa ); \
+  L( s2, t4, sB, t5 ); \
+  s6 = _mm256_blend_epi32( t2, t4, 0x55 ); \
+  sF = _mm256_blend_epi32( t3, t5, 0x55 ); \
   s6 = mm256_swap64_32( s6 ); \
   sF = mm256_swap64_32( sF ); \
 \
-  t1 = _mm256_blend_epi32( s7, s4, 0xaa ); \
+  t2 = _mm256_blend_epi32( s7, s4, 0xaa ); \
   t3 = _mm256_blend_epi32( sC, sD, 0xaa ); \
-  L( s3, t1, s8, t3 ); \
-  s7 = _mm256_blend_epi32( s7, t1, 0x55 ); \
-  s4 = _mm256_blend_epi32( s4, t1, 0xaa ); \
-  sC = _mm256_blend_epi32( sC, t3, 0x55 ); \
-  sD = _mm256_blend_epi32( sD, t3, 0xaa ); \
+  L( s3, t2, s8, t3 ); \
+  s7 = _mm256_blend_epi32( t4, t2, 0x55 ); \
+  s4 = _mm256_blend_epi32( t0, t2, 0xaa ); \
+  sC = _mm256_blend_epi32( t5, t3, 0x55 ); \
+  sD = _mm256_blend_epi32( t1, t3, 0xaa ); \
   s7 = mm256_swap64_32( s7 ); \
   sC = mm256_swap64_32( sC ); \
 \
