@@ -830,7 +830,7 @@ void scrypt_core_16way( __m512i *X, __m512i *V, const uint32_t N )
    }
 }
 
-// Working, not up to date, needs stream optimization.
+// Working, not up to date, needs stream, shuffle optimizations.
 // 4x32 interleaving
 static void salsa8_simd128_4way( __m128i *b, const __m128i *c )
 {
@@ -937,46 +937,28 @@ void scrypt_core_simd128_4way( __m128i *X, __m128i *V, const uint32_t N )
 // 4x memory usage
 // Working
 // 4x128 interleaving
-static void salsa_shuffle_4way_simd128( __m512i *X )
+static inline void salsa_shuffle_4way_simd128( __m512i *X )
 {
-   __m512i Y0, Y1, Y2, Y3, Z0, Z1, Z2, Z3;
-
-   Y0 = _mm512_mask_blend_epi32( 0x1111, X[1], X[0] );
-   Z0 = _mm512_mask_blend_epi32( 0x4444, X[3], X[2] );
-
-   Y1 = _mm512_mask_blend_epi32( 0x1111, X[2], X[1] );
-   Z1 = _mm512_mask_blend_epi32( 0x4444, X[0], X[3] );
-
-   Y2 = _mm512_mask_blend_epi32( 0x1111, X[3], X[2] );
-   Z2 = _mm512_mask_blend_epi32( 0x4444, X[1], X[0] );
-
-   Y3 = _mm512_mask_blend_epi32( 0x1111, X[0], X[3] );
-   Z3 = _mm512_mask_blend_epi32( 0x4444, X[2], X[1] );
-
-   X[0] = _mm512_mask_blend_epi32( 0x3333, Z0, Y0 );
-   X[1] = _mm512_mask_blend_epi32( 0x3333, Z1, Y1 );
-   X[2] = _mm512_mask_blend_epi32( 0x3333, Z2, Y2 );
-   X[3] = _mm512_mask_blend_epi32( 0x3333, Z3, Y3 );
+  __m512i t0 = _mm512_mask_blend_epi32( 0xaaaa, X[0], X[1] );
+  __m512i t1 = _mm512_mask_blend_epi32( 0x5555, X[0], X[1] );
+  __m512i t2 = _mm512_mask_blend_epi32( 0xaaaa, X[2], X[3] );
+  __m512i t3 = _mm512_mask_blend_epi32( 0x5555, X[2], X[3] );
+  X[0] = _mm512_mask_blend_epi32( 0xcccc, t0, t2 );
+  X[1] = _mm512_mask_blend_epi32( 0x6666, t1, t3 );
+  X[2] = _mm512_mask_blend_epi32( 0x3333, t0, t2 );
+  X[3] = _mm512_mask_blend_epi32( 0x9999, t1, t3 );
 }
 
-static void salsa_unshuffle_4way_simd128( __m512i *X )
+static inline void salsa_unshuffle_4way_simd128( __m512i *X )
 {
-   __m512i Y0, Y1, Y2, Y3;
-
-   Y0 = _mm512_mask_blend_epi32( 0x8888, X[0], X[1] );
-   Y1 = _mm512_mask_blend_epi32( 0x1111, X[0], X[1] );
-   Y2 = _mm512_mask_blend_epi32( 0x2222, X[0], X[1] );
-   Y3 = _mm512_mask_blend_epi32( 0x4444, X[0], X[1] );
-
-   Y0 = _mm512_mask_blend_epi32( 0x4444, Y0, X[2] );
-   Y1 = _mm512_mask_blend_epi32( 0x8888, Y1, X[2] );
-   Y2 = _mm512_mask_blend_epi32( 0x1111, Y2, X[2] );
-   Y3 = _mm512_mask_blend_epi32( 0x2222, Y3, X[2] );
-
-   X[0] = _mm512_mask_blend_epi32( 0x2222, Y0, X[3] );
-   X[1] = _mm512_mask_blend_epi32( 0x4444, Y1, X[3] );
-   X[2] = _mm512_mask_blend_epi32( 0x8888, Y2, X[3] );
-   X[3] = _mm512_mask_blend_epi32( 0x1111, Y3, X[3] );
+  __m512i t0 = _mm512_mask_blend_epi32( 0xcccc, X[0], X[2] );
+  __m512i t1 = _mm512_mask_blend_epi32( 0x3333, X[0], X[2] );
+  __m512i t2 = _mm512_mask_blend_epi32( 0x6666, X[1], X[3] );
+  __m512i t3 = _mm512_mask_blend_epi32( 0x9999, X[1], X[3] );
+  X[0] = _mm512_mask_blend_epi32( 0xaaaa, t0, t2 );
+  X[1] = _mm512_mask_blend_epi32( 0x5555, t0, t2 );
+  X[2] = _mm512_mask_blend_epi32( 0xaaaa, t1, t3 );
+  X[3] = _mm512_mask_blend_epi32( 0x5555, t1, t3 );
 }
 
 static void salsa8_4way_simd128( __m512i * const B, const __m512i * const C)
@@ -1147,46 +1129,28 @@ void scrypt_core_8way( __m256i *X, __m256i *V, const uint32_t N )
 // { l1xb, l1xa, l1c9, l1x8,   l0xb, l0xa, l0x9, l0x8 }   b[1]  B[23:16]
 // { l1xf, l1xe, l1xd, l1xc,   l0xf, l0xe, l0xd, l0xc }   b[0]  B[31:24]
 
-static void salsa_shuffle_2way_simd128( __m256i *X )
+static inline void salsa_shuffle_2way_simd128( __m256i *X )
 {
-   __m256i Y0, Y1, Y2, Y3, Z0, Z1, Z2, Z3;
-
-   Y0 = _mm256_blend_epi32( X[1], X[0], 0x11 );
-   Z0 = _mm256_blend_epi32( X[3], X[2], 0x44 );
-
-   Y1 = _mm256_blend_epi32( X[2], X[1], 0x11 );
-   Z1 = _mm256_blend_epi32( X[0], X[3], 0x44 );
-
-   Y2 = _mm256_blend_epi32( X[3], X[2], 0x11 );
-   Z2 = _mm256_blend_epi32( X[1], X[0], 0x44 );
-
-   Y3 = _mm256_blend_epi32( X[0], X[3], 0x11 );
-   Z3 = _mm256_blend_epi32( X[2], X[1], 0x44 );
-
-   X[0] = _mm256_blend_epi32( Z0, Y0, 0x33 );
-   X[1] = _mm256_blend_epi32( Z1, Y1, 0x33 );
-   X[2] = _mm256_blend_epi32( Z2, Y2, 0x33 );
-   X[3] = _mm256_blend_epi32( Z3, Y3, 0x33 );
+  __m256i t0 = _mm256_blend_epi32( X[0], X[1], 0xaa );
+  __m256i t1 = _mm256_blend_epi32( X[0], X[1], 0x55 );
+  __m256i t2 = _mm256_blend_epi32( X[2], X[3], 0xaa );
+  __m256i t3 = _mm256_blend_epi32( X[2], X[3], 0x55 );
+  X[0] = _mm256_blend_epi32( t0, t2, 0xcc );
+  X[1] = _mm256_blend_epi32( t1, t3, 0x66 );
+  X[2] = _mm256_blend_epi32( t0, t2, 0x33 );
+  X[3] = _mm256_blend_epi32( t1, t3, 0x99 );
 }
 
-static void salsa_unshuffle_2way_simd128( __m256i *X )
+static inline void salsa_unshuffle_2way_simd128( __m256i *X )
 {
-   __m256i Y0, Y1, Y2, Y3;
-
-   Y0 = _mm256_blend_epi32( X[0], X[1], 0x88 );
-   Y1 = _mm256_blend_epi32( X[0], X[1], 0x11 );
-   Y2 = _mm256_blend_epi32( X[0], X[1], 0x22 );
-   Y3 = _mm256_blend_epi32( X[0], X[1], 0x44 );
-
-   Y0 = _mm256_blend_epi32( Y0, X[2], 0x44 );
-   Y1 = _mm256_blend_epi32( Y1, X[2], 0x88 );
-   Y2 = _mm256_blend_epi32( Y2, X[2], 0x11 );
-   Y3 = _mm256_blend_epi32( Y3, X[2], 0x22 );
-
-   X[0] = _mm256_blend_epi32( Y0, X[3], 0x22 );
-   X[1] = _mm256_blend_epi32( Y1, X[3], 0x44 );
-   X[2] = _mm256_blend_epi32( Y2, X[3], 0x88 );
-   X[3] = _mm256_blend_epi32( Y3, X[3], 0x11 );
+  __m256i t0 = _mm256_blend_epi32( X[0], X[2], 0xcc );
+  __m256i t1 = _mm256_blend_epi32( X[0], X[2], 0x33 );
+  __m256i t2 = _mm256_blend_epi32( X[1], X[3], 0x66 );
+  __m256i t3 = _mm256_blend_epi32( X[1], X[3], 0x99 );
+  X[0] = _mm256_blend_epi32( t0, t2, 0xaa );
+  X[1] = _mm256_blend_epi32( t0, t2, 0x55 );
+  X[2] = _mm256_blend_epi32( t1, t3, 0xaa );
+  X[3] = _mm256_blend_epi32( t1, t3, 0x55 );
 }
 
 static void salsa8_2way_simd128( __m256i * const B, const __m256i * const C)
@@ -2163,7 +2127,7 @@ static void salsa8_simd128( uint32_t *b, const uint32_t * const c)
    X2 = _mm_blend_epi32( B[1], B[0], 0x4 );
    Y3 = _mm_blend_epi32( B[0], B[3], 0x1 );
    X3 = _mm_blend_epi32( B[2], B[1], 0x4 );
-   X0 = _mm_blend_epi32( X0, Y0, 0x3);
+   X0 = _mm_blend_epi32( X0, Y0, 0x3 );
    X1 = _mm_blend_epi32( X1, Y1, 0x3 );
    X2 = _mm_blend_epi32( X2, Y2, 0x3 );
    X3 = _mm_blend_epi32( X3, Y3, 0x3 );
@@ -2311,91 +2275,34 @@ void scrypt_core_simd128( uint32_t *X, uint32_t *V, const uint32_t N )
 // Double buffered, 2x memory usage
 // No interleaving
 
-static void salsa_simd128_shuffle_2buf( uint32_t *xa, uint32_t *xb )
+static inline void salsa_simd128_shuffle_2buf( uint32_t *xa, uint32_t *xb )
 {
    __m128i *XA = (__m128i*)xa;
    __m128i *XB = (__m128i*)xb;
-   __m128i YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3;
 
 #if defined(__SSE4_1__)
 
-//   __m128i YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3;
-   __m128i ZA0, ZA1, ZA2, ZA3, ZB0, ZB1, ZB2, ZB3;
-
-#if defined(__AVX2__)
-
-   YA0 = _mm_blend_epi32( XA[1], XA[0], 0x1 );
-   YB0 = _mm_blend_epi32( XB[1], XB[0], 0x1 );
-   ZA0 = _mm_blend_epi32( XA[3], XA[2], 0x4 );
-   ZB0 = _mm_blend_epi32( XB[3], XB[2], 0x4 );
-
-   YA1 = _mm_blend_epi32( XA[2], XA[1], 0x1 );
-   YB1 = _mm_blend_epi32( XB[2], XB[1], 0x1 );
-   ZA1 = _mm_blend_epi32( XA[0], XA[3], 0x4 );
-   ZB1 = _mm_blend_epi32( XB[0], XB[3], 0x4 );
-
-   YA2 = _mm_blend_epi32( XA[3], XA[2], 0x1 );
-   YB2 = _mm_blend_epi32( XB[3], XB[2], 0x1 );
-   ZA2 = _mm_blend_epi32( XA[1], XA[0], 0x4 );
-   ZB2 = _mm_blend_epi32( XB[1], XB[0], 0x4 );
-
-   YA3 = _mm_blend_epi32( XA[0], XA[3], 0x1 );
-   YB3 = _mm_blend_epi32( XB[0], XB[3], 0x1 );
-   ZA3 = _mm_blend_epi32( XA[2], XA[1], 0x4 );
-   ZB3 = _mm_blend_epi32( XB[2], XB[1], 0x4 );
-
-   XA[0] = _mm_blend_epi32( ZA0, YA0, 0x3 );
-   XB[0] = _mm_blend_epi32( ZB0, YB0, 0x3 );
-
-   XA[1] = _mm_blend_epi32( ZA1, YA1, 0x3 );
-   XB[1] = _mm_blend_epi32( ZB1, YB1, 0x3 );
-
-   XA[2] = _mm_blend_epi32( ZA2, YA2, 0x3 );
-   XB[2] = _mm_blend_epi32( ZB2, YB2, 0x3 );
-
-   XA[3] = _mm_blend_epi32( ZA3, YA3, 0x3 );
-   XB[3] = _mm_blend_epi32( ZB3, YB3, 0x3 );
-
-#else
-
-//  SSE4.1
-
-   YA0 = _mm_blend_epi16( XA[1], XA[0], 0x03 );
-   YB0 = _mm_blend_epi16( XB[1], XB[0], 0x03 );
-   ZA0 = _mm_blend_epi16( XA[3], XA[2], 0x30 );
-   ZB0 = _mm_blend_epi16( XB[3], XB[2], 0x30 );
-
-   YA1 = _mm_blend_epi16( XA[2], XA[1], 0x03 );
-   YB1 = _mm_blend_epi16( XB[2], XB[1], 0x03 );
-   ZA1 = _mm_blend_epi16( XA[0], XA[3], 0x30 );
-   ZB1 = _mm_blend_epi16( XB[0], XB[3], 0x30 );
-
-   YA2 = _mm_blend_epi16( XA[3], XA[2], 0x03 );
-   YB2 = _mm_blend_epi16( XB[3], XB[2], 0x03 );
-   ZA2 = _mm_blend_epi16( XA[1], XA[0], 0x30 );
-   ZB2 = _mm_blend_epi16( XB[1], XB[0], 0x30 );
-
-   YA3 = _mm_blend_epi16( XA[0], XA[3], 0x03 );
-   YB3 = _mm_blend_epi16( XB[0], XB[3], 0x03 );
-   ZA3 = _mm_blend_epi16( XA[2], XA[1], 0x30 );
-   ZB3 = _mm_blend_epi16( XB[2], XB[1], 0x30 );
-
-   XA[0] = _mm_blend_epi16( ZA0, YA0, 0x0f );
-   XB[0] = _mm_blend_epi16( ZB0, YB0, 0x0f );
-
-   XA[1] = _mm_blend_epi16( ZA1, YA1, 0x0f );
-   XB[1] = _mm_blend_epi16( ZB1, YB1, 0x0f );
-
-   XA[2] = _mm_blend_epi16( ZA2, YA2, 0x0f );
-   XB[2] = _mm_blend_epi16( ZB2, YB2, 0x0f );
-
-   XA[3] = _mm_blend_epi16( ZA3, YA3, 0x0f );
-   XB[3] = _mm_blend_epi16( ZB3, YB3, 0x0f );
-
-#endif  // AVX2 else SSE4_1
+  __m128i t0 = _mm_blend_epi16( XA[0], XA[1], 0xcc );
+  __m128i t1 = _mm_blend_epi16( XA[0], XA[1], 0x33 );
+  __m128i t2 = _mm_blend_epi16( XA[2], XA[3], 0xcc );
+  __m128i t3 = _mm_blend_epi16( XA[2], XA[3], 0x33 );
+  XA[0] = _mm_blend_epi16( t0, t2, 0xf0 );
+  XA[1] = _mm_blend_epi16( t1, t3, 0x3c );
+  XA[2] = _mm_blend_epi16( t0, t2, 0x0f );
+  XA[3] = _mm_blend_epi16( t1, t3, 0xc3 );
+  t0 = _mm_blend_epi16( XB[0], XB[1], 0xcc );
+  t1 = _mm_blend_epi16( XB[0], XB[1], 0x33 );
+  t2 = _mm_blend_epi16( XB[2], XB[3], 0xcc );
+  t3 = _mm_blend_epi16( XB[2], XB[3], 0x33 );
+  XB[0] = _mm_blend_epi16( t0, t2, 0xf0 );
+  XB[1] = _mm_blend_epi16( t1, t3, 0x3c );
+  XB[2] = _mm_blend_epi16( t0, t2, 0x0f );
+  XB[3] = _mm_blend_epi16( t1, t3, 0xc3 );
 
 #else   // SSE2
-  
+
+   __m128i YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3;
+   
    YA0 = _mm_set_epi32( xa[15], xa[10], xa[ 5], xa[ 0] );
    YB0 = _mm_set_epi32( xb[15], xb[10], xb[ 5], xb[ 0] );
    YA1 = _mm_set_epi32( xa[ 3], xa[14], xa[ 9], xa[ 4] );
@@ -2417,7 +2324,7 @@ static void salsa_simd128_shuffle_2buf( uint32_t *xa, uint32_t *xb )
 #endif
 }
 
-static void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
+static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
 {
 
    __m128i *XA = (__m128i*)xa;
@@ -2425,67 +2332,22 @@ static void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
 
 #if defined(__SSE4_1__)
 
-   __m128i YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3;
-
-#if defined(__AVX2__)
-
-   YA0 = _mm_blend_epi32( XA[0], XA[1], 0x8 );
-   YB0 = _mm_blend_epi32( XB[0], XB[1], 0x8 );
-   YA1 = _mm_blend_epi32( XA[0], XA[1], 0x1 );
-   YB1 = _mm_blend_epi32( XB[0], XB[1], 0x1 );
-   YA2 = _mm_blend_epi32( XA[0], XA[1], 0x2 );
-   YB2 = _mm_blend_epi32( XB[0], XB[1], 0x2 );
-   YA3 = _mm_blend_epi32( XA[0], XA[1], 0x4 );
-   YB3 = _mm_blend_epi32( XB[0], XB[1], 0x4 );
-
-   YA0 = _mm_blend_epi32( YA0, XA[2], 0x4 );
-   YB0 = _mm_blend_epi32( YB0, XB[2], 0x4 );
-   YA1 = _mm_blend_epi32( YA1, XA[2], 0x8 );
-   YB1 = _mm_blend_epi32( YB1, XB[2], 0x8 );
-   YA2 = _mm_blend_epi32( YA2, XA[2], 0x1 );
-   YB2 = _mm_blend_epi32( YB2, XB[2], 0x1 );
-   YA3 = _mm_blend_epi32( YA3, XA[2], 0x2 );
-   YB3 = _mm_blend_epi32( YB3, XB[2], 0x2 );
-
-   XA[0] = _mm_blend_epi32( YA0, XA[3], 0x2 );
-   XB[0] = _mm_blend_epi32( YB0, XB[3], 0x2 );
-   XA[1] = _mm_blend_epi32( YA1, XA[3], 0x4 );
-   XB[1] = _mm_blend_epi32( YB1, XB[3], 0x4 );
-   XA[2] = _mm_blend_epi32( YA2, XA[3], 0x8 );
-   XB[2] = _mm_blend_epi32( YB2, XB[3], 0x8 );
-   XA[3] = _mm_blend_epi32( YA3, XA[3], 0x1 );
-   XB[3] = _mm_blend_epi32( YB3, XB[3], 0x1 );
-
-#else   // SSE4_1
-
-   YA0 = _mm_blend_epi16( XA[0], XA[1], 0xc0 );
-   YB0 = _mm_blend_epi16( XB[0], XB[1], 0xc0 );
-   YA1 = _mm_blend_epi16( XA[0], XA[1], 0x03 );
-   YB1 = _mm_blend_epi16( XB[0], XB[1], 0x03 );
-   YA2 = _mm_blend_epi16( XA[0], XA[1], 0x0c );
-   YB2 = _mm_blend_epi16( XB[0], XB[1], 0x0c );
-   YA3 = _mm_blend_epi16( XA[0], XA[1], 0x30 );
-   YB3 = _mm_blend_epi16( XB[0], XB[1], 0x30 );
-
-   YA0 = _mm_blend_epi16( YA0, XA[2], 0x30 );
-   YB0 = _mm_blend_epi16( YB0, XB[2], 0x30 );
-   YA1 = _mm_blend_epi16( YA1, XA[2], 0xc0 );
-   YB1 = _mm_blend_epi16( YB1, XB[2], 0xc0 );
-   YA2 = _mm_blend_epi16( YA2, XA[2], 0x03 );
-   YB2 = _mm_blend_epi16( YB2, XB[2], 0x03 );
-   YA3 = _mm_blend_epi16( YA3, XA[2], 0x0c );
-   YB3 = _mm_blend_epi16( YB3, XB[2], 0x0c );
-
-   XA[0] = _mm_blend_epi16( YA0, XA[3], 0x0c );
-   XB[0] = _mm_blend_epi16( YB0, XB[3], 0x0c );
-   XA[1] = _mm_blend_epi16( YA1, XA[3], 0x30 );
-   XB[1] = _mm_blend_epi16( YB1, XB[3], 0x30 );
-   XA[2] = _mm_blend_epi16( YA2, XA[3], 0xc0 );
-   XB[2] = _mm_blend_epi16( YB2, XB[3], 0xc0 );
-   XA[3] = _mm_blend_epi16( YA3, XA[3], 0x03 );
-   XB[3] = _mm_blend_epi16( YB3, XB[3], 0x03 );
-
-#endif  // AVX2 else SSE4_1
+  __m128i t0 = _mm_blend_epi16( XA[0], XA[2], 0xf0 );
+  __m128i t1 = _mm_blend_epi16( XA[0], XA[2], 0x0f );
+  __m128i t2 = _mm_blend_epi16( XA[1], XA[3], 0x3c );
+  __m128i t3 = _mm_blend_epi16( XA[1], XA[3], 0xc3 );
+  XA[0] = _mm_blend_epi16( t0, t2, 0xcc );
+  XA[1] = _mm_blend_epi16( t0, t2, 0x33 );
+  XA[2] = _mm_blend_epi16( t1, t3, 0xcc );
+  XA[3] = _mm_blend_epi16( t1, t3, 0x33 );
+  t0 = _mm_blend_epi16( XB[0], XB[2], 0xf0 );
+  t1 = _mm_blend_epi16( XB[0], XB[2], 0x0f );
+  t2 = _mm_blend_epi16( XB[1], XB[3], 0x3c );
+  t3 = _mm_blend_epi16( XB[1], XB[3], 0xc3 );
+  XB[0] = _mm_blend_epi16( t0, t2, 0xcc );
+  XB[1] = _mm_blend_epi16( t0, t2, 0x33 );
+  XB[2] = _mm_blend_epi16( t1, t3, 0xcc );
+  XB[3] = _mm_blend_epi16( t1, t3, 0x33 );
 
 #else  // SSE2
 
@@ -2690,115 +2552,43 @@ void scrypt_core_simd128_2buf( uint32_t *X, uint32_t *V, const uint32_t N )
 }
 
 
-static void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
+static inline void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
                                         uint32_t *xc )
 {
    __m128i *XA = (__m128i*)xa;
    __m128i *XB = (__m128i*)xb;
    __m128i *XC = (__m128i*)xc;
-   __m128i YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3, YC0, YC1, YC2, YC3;
 
 #if defined(__SSE4_1__)
 
-   __m128i ZA0, ZA1, ZA2, ZA3, ZB0, ZB1, ZB2, ZB3, ZC0, ZC1, ZC2, ZC3;
-
-#if defined(__AVX2__)
-
-   YA0 = _mm_blend_epi32( XA[1], XA[0], 0x1 );
-   YB0 = _mm_blend_epi32( XB[1], XB[0], 0x1 );
-   YC0 = _mm_blend_epi32( XC[1], XC[0], 0x1 );
-   ZA0 = _mm_blend_epi32( XA[3], XA[2], 0x4 );
-   ZB0 = _mm_blend_epi32( XB[3], XB[2], 0x4 );
-   ZC0 = _mm_blend_epi32( XC[3], XC[2], 0x4 );
-
-   YA1 = _mm_blend_epi32( XA[2], XA[1], 0x1 );
-   YB1 = _mm_blend_epi32( XB[2], XB[1], 0x1 );
-   YC1 = _mm_blend_epi32( XC[2], XC[1], 0x1 );
-   ZA1 = _mm_blend_epi32( XA[0], XA[3], 0x4 );
-   ZB1 = _mm_blend_epi32( XB[0], XB[3], 0x4 );
-   ZC1 = _mm_blend_epi32( XC[0], XC[3], 0x4 );
-
-   YA2 = _mm_blend_epi32( XA[3], XA[2], 0x1 );
-   YB2 = _mm_blend_epi32( XB[3], XB[2], 0x1 );
-   YC2 = _mm_blend_epi32( XC[3], XC[2], 0x1 );
-   ZA2 = _mm_blend_epi32( XA[1], XA[0], 0x4 );
-   ZB2 = _mm_blend_epi32( XB[1], XB[0], 0x4 );
-   ZC2 = _mm_blend_epi32( XC[1], XC[0], 0x4 );
-
-   YA3 = _mm_blend_epi32( XA[0], XA[3], 0x1 );
-   YB3 = _mm_blend_epi32( XB[0], XB[3], 0x1 );
-   YC3 = _mm_blend_epi32( XC[0], XC[3], 0x1 );
-   ZA3 = _mm_blend_epi32( XA[2], XA[1], 0x4 );
-   ZB3 = _mm_blend_epi32( XB[2], XB[1], 0x4 );
-   ZC3 = _mm_blend_epi32( XC[2], XC[1], 0x4 );
-
-   XA[0] = _mm_blend_epi32( ZA0, YA0, 0x3 );
-   XB[0] = _mm_blend_epi32( ZB0, YB0, 0x3 );
-   XC[0] = _mm_blend_epi32( ZC0, YC0, 0x3 );
-
-   XA[1] = _mm_blend_epi32( ZA1, YA1, 0x3 );
-   XB[1] = _mm_blend_epi32( ZB1, YB1, 0x3 );
-   XC[1] = _mm_blend_epi32( ZC1, YC1, 0x3 );
-
-   XA[2] = _mm_blend_epi32( ZA2, YA2, 0x3 );
-   XB[2] = _mm_blend_epi32( ZB2, YB2, 0x3 );
-   XC[2] = _mm_blend_epi32( ZC2, YC2, 0x3 );
-
-   XA[3] = _mm_blend_epi32( ZA3, YA3, 0x3 );
-   XB[3] = _mm_blend_epi32( ZB3, YB3, 0x3 );
-   XC[3] = _mm_blend_epi32( ZC3, YC3, 0x3 );
-
-#else   
-
-//  SSE4.1
-
-   YA0 = _mm_blend_epi16( XA[1], XA[0], 0x03 );
-   YB0 = _mm_blend_epi16( XB[1], XB[0], 0x03 );
-   YC0 = _mm_blend_epi16( XC[1], XC[0], 0x03 );
-   ZA0 = _mm_blend_epi16( XA[3], XA[2], 0x30 );
-   ZB0 = _mm_blend_epi16( XB[3], XB[2], 0x30 );
-   ZC0 = _mm_blend_epi16( XC[3], XC[2], 0x30 );
-
-   YA1 = _mm_blend_epi16( XA[2], XA[1], 0x03 );
-   YB1 = _mm_blend_epi16( XB[2], XB[1], 0x03 );
-   YC1 = _mm_blend_epi16( XC[2], XC[1], 0x03 );
-   ZA1 = _mm_blend_epi16( XA[0], XA[3], 0x30 );
-   ZB1 = _mm_blend_epi16( XB[0], XB[3], 0x30 );
-   ZC1 = _mm_blend_epi16( XC[0], XC[3], 0x30 );
-
-   YA2 = _mm_blend_epi16( XA[3], XA[2], 0x03 );
-   YB2 = _mm_blend_epi16( XB[3], XB[2], 0x03 );
-   YC2 = _mm_blend_epi16( XC[3], XC[2], 0x03 );
-   ZA2 = _mm_blend_epi16( XA[1], XA[0], 0x30 );
-   ZB2 = _mm_blend_epi16( XB[1], XB[0], 0x30 );
-   ZC2 = _mm_blend_epi16( XC[1], XC[0], 0x30 );
-
-   YA3 = _mm_blend_epi16( XA[0], XA[3], 0x03 );
-   YB3 = _mm_blend_epi16( XB[0], XB[3], 0x03 );
-   YC3 = _mm_blend_epi16( XC[0], XC[3], 0x03 );
-   ZA3 = _mm_blend_epi16( XA[2], XA[1], 0x30 );
-   ZB3 = _mm_blend_epi16( XB[2], XB[1], 0x30 );
-   ZC3 = _mm_blend_epi16( XC[2], XC[1], 0x30 );
-
-   XA[0] = _mm_blend_epi16( ZA0, YA0, 0x0f );
-   XB[0] = _mm_blend_epi16( ZB0, YB0, 0x0f );
-   XC[0] = _mm_blend_epi16( ZC0, YC0, 0x0f );
-
-   XA[1] = _mm_blend_epi16( ZA1, YA1, 0x0f );
-   XB[1] = _mm_blend_epi16( ZB1, YB1, 0x0f );
-   XC[1] = _mm_blend_epi16( ZC1, YC1, 0x0f );
-
-   XA[2] = _mm_blend_epi16( ZA2, YA2, 0x0f );
-   XB[2] = _mm_blend_epi16( ZB2, YB2, 0x0f );
-   XC[2] = _mm_blend_epi16( ZC2, YC2, 0x0f );
-
-   XA[3] = _mm_blend_epi16( ZA3, YA3, 0x0f );
-   XB[3] = _mm_blend_epi16( ZB3, YB3, 0x0f );
-   XC[3] = _mm_blend_epi16( ZC3, YC3, 0x0f );
-
-#endif  // AVX2 else SSE4_1
+  __m128i t0 = _mm_blend_epi16( XA[0], XA[1], 0xcc );
+  __m128i t1 = _mm_blend_epi16( XA[0], XA[1], 0x33 );
+  __m128i t2 = _mm_blend_epi16( XA[2], XA[3], 0xcc );
+  __m128i t3 = _mm_blend_epi16( XA[2], XA[3], 0x33 );
+  XA[0] = _mm_blend_epi16( t0, t2, 0xf0 );
+  XA[1] = _mm_blend_epi16( t1, t3, 0x3c );
+  XA[2] = _mm_blend_epi16( t0, t2, 0x0f );
+  XA[3] = _mm_blend_epi16( t1, t3, 0xc3 );
+  t0 = _mm_blend_epi16( XB[0], XB[1], 0xcc );
+  t1 = _mm_blend_epi16( XB[0], XB[1], 0x33 );
+  t2 = _mm_blend_epi16( XB[2], XB[3], 0xcc );
+  t3 = _mm_blend_epi16( XB[2], XB[3], 0x33 );
+  XB[0] = _mm_blend_epi16( t0, t2, 0xf0 );
+  XB[1] = _mm_blend_epi16( t1, t3, 0x3c );
+  XB[2] = _mm_blend_epi16( t0, t2, 0x0f );
+  XB[3] = _mm_blend_epi16( t1, t3, 0xc3 );
+  t0 = _mm_blend_epi16( XC[0], XC[1], 0xcc );
+  t1 = _mm_blend_epi16( XC[0], XC[1], 0x33 );
+  t2 = _mm_blend_epi16( XC[2], XC[3], 0xcc );
+  t3 = _mm_blend_epi16( XC[2], XC[3], 0x33 );
+  XC[0] = _mm_blend_epi16( t0, t2, 0xf0 );
+  XC[1] = _mm_blend_epi16( t1, t3, 0x3c );
+  XC[2] = _mm_blend_epi16( t0, t2, 0x0f );
+  XC[3] = _mm_blend_epi16( t1, t3, 0xc3 );
 
 #else   // SSE2
+
+   __m128i YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3, YC0, YC1, YC2, YC3;
 
    YA0 = _mm_set_epi32( xa[15], xa[10], xa[ 5], xa[ 0] );
    YB0 = _mm_set_epi32( xb[15], xb[10], xb[ 5], xb[ 0] );
@@ -2829,7 +2619,7 @@ static void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
 #endif
 }
 
-static void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
+static inline void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
                                           uint32_t* xc )
 {
    __m128i *XA = (__m128i*)xa;
@@ -2838,91 +2628,30 @@ static void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
 
 #if defined(__SSE4_1__)
 
-   __m128i YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3, YC0, YC1, YC2, YC3;
-
-#if defined(__AVX2__)
-
-   YA0 = _mm_blend_epi32( XA[0], XA[1], 0x8 );
-   YB0 = _mm_blend_epi32( XB[0], XB[1], 0x8 );
-   YC0 = _mm_blend_epi32( XC[0], XC[1], 0x8 );
-   YA1 = _mm_blend_epi32( XA[0], XA[1], 0x1 );
-   YB1 = _mm_blend_epi32( XB[0], XB[1], 0x1 );
-   YC1 = _mm_blend_epi32( XC[0], XC[1], 0x1 );
-   YA2 = _mm_blend_epi32( XA[0], XA[1], 0x2 );
-   YB2 = _mm_blend_epi32( XB[0], XB[1], 0x2 );
-   YC2 = _mm_blend_epi32( XC[0], XC[1], 0x2 );
-   YA3 = _mm_blend_epi32( XA[0], XA[1], 0x4 );
-   YB3 = _mm_blend_epi32( XB[0], XB[1], 0x4 );
-   YC3 = _mm_blend_epi32( XC[0], XC[1], 0x4 );
-
-   YA0 = _mm_blend_epi32( YA0, XA[2], 0x4 );
-   YB0 = _mm_blend_epi32( YB0, XB[2], 0x4 );
-   YC0 = _mm_blend_epi32( YC0, XC[2], 0x4 );
-   YA1 = _mm_blend_epi32( YA1, XA[2], 0x8 );
-   YB1 = _mm_blend_epi32( YB1, XB[2], 0x8 );
-   YC1 = _mm_blend_epi32( YC1, XC[2], 0x8 );
-   YA2 = _mm_blend_epi32( YA2, XA[2], 0x1 );
-   YB2 = _mm_blend_epi32( YB2, XB[2], 0x1 );
-   YC2 = _mm_blend_epi32( YC2, XC[2], 0x1 );
-   YA3 = _mm_blend_epi32( YA3, XA[2], 0x2 );
-   YB3 = _mm_blend_epi32( YB3, XB[2], 0x2 );
-   YC3 = _mm_blend_epi32( YC3, XC[2], 0x2 );
-
-   XA[0] = _mm_blend_epi32( YA0, XA[3], 0x2 );
-   XB[0] = _mm_blend_epi32( YB0, XB[3], 0x2 );
-   XC[0] = _mm_blend_epi32( YC0, XC[3], 0x2 );
-   XA[1] = _mm_blend_epi32( YA1, XA[3], 0x4 );
-   XB[1] = _mm_blend_epi32( YB1, XB[3], 0x4 );
-   XC[1] = _mm_blend_epi32( YC1, XC[3], 0x4 );
-   XA[2] = _mm_blend_epi32( YA2, XA[3], 0x8 );
-   XB[2] = _mm_blend_epi32( YB2, XB[3], 0x8 );
-   XC[2] = _mm_blend_epi32( YC2, XC[3], 0x8 );
-   XA[3] = _mm_blend_epi32( YA3, XA[3], 0x1 );
-   XB[3] = _mm_blend_epi32( YB3, XB[3], 0x1 );
-   XC[3] = _mm_blend_epi32( YC3, XC[3], 0x1 );
-
-#else   // SSE4_1
-
-   YA0 = _mm_blend_epi16( XA[0], XA[1], 0xc0 );
-   YB0 = _mm_blend_epi16( XB[0], XB[1], 0xc0 );
-   YC0 = _mm_blend_epi16( XC[0], XC[1], 0xc0 );
-   YA1 = _mm_blend_epi16( XA[0], XA[1], 0x03 );
-   YB1 = _mm_blend_epi16( XB[0], XB[1], 0x03 );
-   YC1 = _mm_blend_epi16( XC[0], XC[1], 0x03 );
-   YA2 = _mm_blend_epi16( XA[0], XA[1], 0x0c );
-   YB2 = _mm_blend_epi16( XB[0], XB[1], 0x0c );
-   YC2 = _mm_blend_epi16( XC[0], XC[1], 0x0c );
-   YA3 = _mm_blend_epi16( XA[0], XA[1], 0x30 );
-   YB3 = _mm_blend_epi16( XB[0], XB[1], 0x30 );
-   YC3 = _mm_blend_epi16( XC[0], XC[1], 0x30 );
-
-   YA0 = _mm_blend_epi16( YA0, XA[2], 0x30 );
-   YB0 = _mm_blend_epi16( YB0, XB[2], 0x30 );
-   YC0 = _mm_blend_epi16( YC0, XC[2], 0x30 );
-   YA1 = _mm_blend_epi16( YA1, XA[2], 0xc0 );
-   YB1 = _mm_blend_epi16( YB1, XB[2], 0xc0 );
-   YC1 = _mm_blend_epi16( YC1, XC[2], 0xc0 );
-   YA2 = _mm_blend_epi16( YA2, XA[2], 0x03 );
-   YB2 = _mm_blend_epi16( YB2, XB[2], 0x03 );
-   YC2 = _mm_blend_epi16( YC2, XC[2], 0x03 );
-   YA3 = _mm_blend_epi16( YA3, XA[2], 0x0c );
-   YB3 = _mm_blend_epi16( YB3, XB[2], 0x0c );
-   YC3 = _mm_blend_epi16( YC3, XC[2], 0x0c );
-
-   XA[0] = _mm_blend_epi16( YA0, XA[3], 0x0c );
-   XB[0] = _mm_blend_epi16( YB0, XB[3], 0x0c );
-   XC[0] = _mm_blend_epi16( YC0, XC[3], 0x0c );
-   XA[1] = _mm_blend_epi16( YA1, XA[3], 0x30 );
-   XB[1] = _mm_blend_epi16( YB1, XB[3], 0x30 );
-   XC[1] = _mm_blend_epi16( YC1, XC[3], 0x30 );
-   XA[2] = _mm_blend_epi16( YA2, XA[3], 0xc0 );
-   XB[2] = _mm_blend_epi16( YB2, XB[3], 0xc0 );
-   XC[2] = _mm_blend_epi16( YC2, XC[3], 0xc0 );
-   XA[3] = _mm_blend_epi16( YA3, XA[3], 0x03 );
-   XB[3] = _mm_blend_epi16( YB3, XB[3], 0x03 );
-   XC[3] = _mm_blend_epi16( YC3, XC[3], 0x03 );
-
-#endif  // AVX2 else SSE4_1
+  __m128i t0 = _mm_blend_epi16( XA[0], XA[2], 0xf0 );
+  __m128i t1 = _mm_blend_epi16( XA[0], XA[2], 0x0f );
+  __m128i t2 = _mm_blend_epi16( XA[1], XA[3], 0x3c );
+  __m128i t3 = _mm_blend_epi16( XA[1], XA[3], 0xc3 );
+  XA[0] = _mm_blend_epi16( t0, t2, 0xcc );
+  XA[1] = _mm_blend_epi16( t0, t2, 0x33 );
+  XA[2] = _mm_blend_epi16( t1, t3, 0xcc );
+  XA[3] = _mm_blend_epi16( t1, t3, 0x33 );
+  t0 = _mm_blend_epi16( XB[0], XB[2], 0xf0 );
+  t1 = _mm_blend_epi16( XB[0], XB[2], 0x0f );
+  t2 = _mm_blend_epi16( XB[1], XB[3], 0x3c );
+  t3 = _mm_blend_epi16( XB[1], XB[3], 0xc3 );
+  XB[0] = _mm_blend_epi16( t0, t2, 0xcc );
+  XB[1] = _mm_blend_epi16( t0, t2, 0x33 );
+  XB[2] = _mm_blend_epi16( t1, t3, 0xcc );
+  XB[3] = _mm_blend_epi16( t1, t3, 0x33 );
+  t0 = _mm_blend_epi16( XC[0], XC[2], 0xf0 );
+  t1 = _mm_blend_epi16( XC[0], XC[2], 0x0f );
+  t2 = _mm_blend_epi16( XC[1], XC[3], 0x3c );
+  t3 = _mm_blend_epi16( XC[1], XC[3], 0xc3 );
+  XC[0] = _mm_blend_epi16( t0, t2, 0xcc );
+  XC[1] = _mm_blend_epi16( t0, t2, 0x33 );
+  XC[2] = _mm_blend_epi16( t1, t3, 0xcc );
+  XC[3] = _mm_blend_epi16( t1, t3, 0x33 );
 
 #else  // SSE2
 

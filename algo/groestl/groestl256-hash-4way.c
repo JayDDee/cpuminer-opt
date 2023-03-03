@@ -26,9 +26,6 @@ int groestl256_4way_init( groestl256_4way_context* ctx, uint64_t hashlen )
 
   ctx->hashlen = hashlen;
 
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return 1;
-
   for ( i = 0; i < SIZE256; i++ )
   {
      ctx->chaining[i] = m512_zero;
@@ -54,8 +51,8 @@ int groestl256_4way_full( groestl256_4way_context* ctx, void* output,
    __m512i* in = (__m512i*)input;
    int i;
 
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return 1;
+//  if (ctx->chaining == NULL || ctx->buffer == NULL)
+//    return 1;
 
   for ( i = 0; i < SIZE256; i++ )
   {
@@ -179,8 +176,8 @@ int groestl256_2way_init( groestl256_2way_context* ctx, uint64_t hashlen )
 
   ctx->hashlen = hashlen;
 
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return 1;
+//  if (ctx->chaining == NULL || ctx->buffer == NULL)
+//    return 1;
 
   for ( i = 0; i < SIZE256; i++ )
   {
@@ -206,9 +203,6 @@ int groestl256_2way_full( groestl256_2way_context* ctx, void* output,
    uint64_t blocks = len / SIZE256;
    __m256i* in = (__m256i*)input;
    int i;
-
-   if (ctx->chaining == NULL || ctx->buffer == NULL)
-     return 1;
 
    for ( i = 0; i < SIZE256; i++ )
    {

@@ -21,9 +21,6 @@
 
 int groestl512_4way_init( groestl512_4way_context* ctx, uint64_t hashlen )
 {
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return 1;
-
   memset_zero_512( ctx->chaining, SIZE512 );
   memset_zero_512( ctx->buffer, SIZE512 );
 
@@ -142,9 +139,6 @@ int groestl512_4way_full( groestl512_4way_context* ctx, void* output,
 
 int groestl512_2way_init( groestl512_2way_context* ctx, uint64_t hashlen )
 {
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return 1;
-
   memset_zero_256( ctx->chaining, SIZE512 );
   memset_zero_256( ctx->buffer, SIZE512 );
 

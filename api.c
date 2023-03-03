@@ -336,7 +336,7 @@ static int websocket_handshake(SOCKETTYPE c, char *result, char *clientkey)
 	char inpkey[128] = { 0 };
 	char seckey[64];
 	uchar sha1[20];
-	SHA_CTX ctx;
+//	SHA_CTX ctx;
 
 	if (opt_protocol)
 		applog(LOG_DEBUG, "clientkey: %s", clientkey);
@@ -346,9 +346,11 @@ static int websocket_handshake(SOCKETTYPE c, char *result, char *clientkey)
 	// SHA-1 test from rfc, returns in base64 "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
 	//sprintf(inpkey, "dGhlIHNhbXBsZSBub25jZQ==258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, inpkey, strlen(inpkey));
-	SHA1_Final(sha1, &ctx);
+   SHA1( inpkey, strlen(inpkey), sha1 );
+// Deprecated in openssl-3
+// SHA1_Init(&ctx);
+//	SHA1_Update(&ctx, inpkey, strlen(inpkey));
+//	SHA1_Final(sha1, &ctx);
 
 	base64_encode(sha1, 20, seckey, sizeof(seckey));
 

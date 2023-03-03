@@ -37,7 +37,7 @@ SHA support on AMD Ryzen CPUs requires gcc version 5 or higher and
 openssl 1.1.0e or higher.
 
 znver1 and znver2 should be recognized on most recent version of GCC and
-znver3 is expected with GCC 11. GCC 11 also includes rocketlake support.
+znver3 is available with GCC 11. GCC 11 also includes rocketlake support.
 In the meantime here are some suggestions to compile with new CPUs:
 
 "-march=native" is usually the best choice, used by build.sh.

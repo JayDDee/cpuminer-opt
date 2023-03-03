@@ -198,7 +198,7 @@ void veil_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
    {
        char* data;
        data = (char*)malloc( 2 + strlen( denom10_str ) * 4 + 16 * 4
-                             + strlen( merkleroot_str ) * 3 );
+                             + strlen( merkleroot_str ) * 3 + 1 );
        // Build the block header veildatahash in hex
        sprintf( data, "%s%s%s%s%s%s%s%s%s%s%s%s",
                        merkleroot_str, witmerkleroot_str, "04",

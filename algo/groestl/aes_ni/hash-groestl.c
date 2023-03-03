@@ -24,9 +24,6 @@ HashReturn_gr init_groestl( hashState_groestl* ctx, int hashlen )
 
   ctx->hashlen = hashlen;
 
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return FAIL_GR;
-
   for ( i = 0; i < SIZE512; i++ )
   {
      ctx->chaining[i] = _mm_setzero_si128();
@@ -45,9 +42,6 @@ HashReturn_gr init_groestl( hashState_groestl* ctx, int hashlen )
 HashReturn_gr reinit_groestl( hashState_groestl* ctx )
 {
   int i;
-
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return FAIL_GR;
 
   for ( i = 0; i < SIZE512; i++ )
   {

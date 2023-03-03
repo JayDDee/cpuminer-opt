@@ -4,7 +4,7 @@
 # during develpment. However the information contained may provide compilation
 # tips to users.
 
-rm cpuminer-avx512-sha-vaes cpuminer-avx512 cpuminer-avx2 cpuminer-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen cpuminer-zen3 cpuminer-zen4 > /dev/null
+rm cpuminer-avx512-sha-vaes cpuminer-avx512 cpuminer-avx2 cpuminer-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen cpuminer-zen3 cpuminer-zen4 cpuminer-alderlake > /dev/null
 
 # AVX512 SHA VAES: Intel Core Icelake, Rocketlake
 make distclean || echo clean
@@ -17,13 +17,22 @@ make -j 8
 strip -s cpuminer
 mv cpuminer cpuminer-avx512-sha-vaes
 
+# AVX256 SHA VAES: Intel Core Alderlake, needs gcc-12
+#make clean || echo clean
+#rm -f config.status
+#./autogen.sh || echo done
+#CFLAGS="-O3 -march=alderlake -Wall -fno-common" ./configure --with-curl
+#make -j 8
+#strip -s cpuminer
+#mv cpuminer cpuminer-alderlake
+
 # Zen4 AVX512 SHA VAES
 make clean || echo clean
 rm -f config.status
 # znver3 needs gcc-11, znver4 ?
 #CFLAGS="-O3 -march=znver4 -Wall -fno-common " ./configure --with-curl
-#CFLAGS="-O3 -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -Wall -fno-common " ./configure --with-curl
-CFLAGS="-O3 -march=znver2 -mvaes -mavx512f -mavx512dq -mavx512bw -mavx512vl -Wall -fno-common " ./configure --with-curl
+CFLAGS="-O3 -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -Wall -fno-common " ./configure --with-curl
+#CFLAGS="-O3 -march=znver2 -mvaes -mavx512f -mavx512dq -mavx512bw -mavx512vl -Wall -fno-common " ./configure --with-curl
 make -j 8
 strip -s cpuminer
 mv cpuminer cpuminer-zen4
@@ -31,8 +40,8 @@ mv cpuminer cpuminer-zen4
 # Zen3 AVX2 SHA VAES
 make clean || echo clean
 rm -f config.status
-CFLAGS="-O3 -march=znver2 -mvaes -fno-common " ./configure --with-curl
-#CFLAGS="-O3 -march=znver3 -fno-common " ./configure --with-curl
+#CFLAGS="-O3 -march=znver2 -mvaes -fno-common " ./configure --with-curl
+CFLAGS="-O3 -march=znver3 -fno-common " ./configure --with-curl
 make -j 8
 strip -s cpuminer
 mv cpuminer cpuminer-zen3
@@ -80,7 +89,7 @@ make -j 8
 strip -s cpuminer
 mv cpuminer cpuminer-avx
 
-# SSE4.2 AES: Intel Westmere
+# SSE4.2 AES: Intel Westmere, most Pentium & Celeron
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=westmere -maes -Wall -fno-common" ./configure --with-curl

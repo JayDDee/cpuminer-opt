@@ -22,9 +22,6 @@ HashReturn_gr init_groestl256( hashState_groestl256* ctx, int hashlen )
 
   ctx->hashlen = hashlen;
 
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return FAIL_GR;
-
   for ( i = 0; i < SIZE256; i++ )
   {
      ctx->chaining[i] = _mm_setzero_si128();
@@ -43,9 +40,6 @@ HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
  {
   int i;
 
-  if (ctx->chaining == NULL || ctx->buffer == NULL)
-    return FAIL_GR;
-
   for ( i = 0; i < SIZE256; i++ )
   {
      ctx->chaining[i] = _mm_setzero_si128();
@@ -54,8 +48,6 @@ HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
 
   ctx->chaining[ 3 ] = m128_const_64( 0, 0x0100000000000000 );
 
-//  ((u64*)ctx->chaining)[COLS-1] = U64BIG((u64)LENGTH);
-//  INIT256(ctx->chaining);
   ctx->buf_ptr = 0;
   ctx->rem_ptr = 0;
 

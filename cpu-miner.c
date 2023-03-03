@@ -898,6 +898,17 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
       goto out;
    }
 
+// See git issue https://github.com/JayDDee/cpuminer-opt/issues/379    
+#if defined(__AVX2__)
+   if ( opt_debug )
+   {
+      if ( (uint64_t)target % 32 )
+         applog( LOG_ERR, "Misaligned target %p", target );
+      if ( (uint64_t)(work->target) % 32 )
+         applog( LOG_ERR, "Misaligned work->target %p", work->target );
+   }   
+#endif
+
    for ( i = 0; i < 8; i++ )
       work->target[7 - i] = be32dec( target + i );
    net_diff = work->targetdiff = hash_to_diff( work->target );
