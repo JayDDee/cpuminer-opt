@@ -80,6 +80,8 @@ extern yespower_params_t yespower_params;
 
 extern __thread sha256_context sha256_prehash_ctx;
 
+int yespower_sha256_prehash( struct work *work );
+
 /**
  * yespower_init_local(local):
  * Initialize the thread-local (RAM) data structure.  Actual memory allocation

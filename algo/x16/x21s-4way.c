@@ -30,7 +30,7 @@ union _x21s_8way_context_overlay
 
 typedef union _x21s_8way_context_overlay x21s_8way_context_overlay;
 
-int x21s_8way_hash( void* output, const void* input, int thrid )
+int x21s_8way_hash( void* output, const void* input, const int thrid )
 {
    uint32_t vhash[16*8] __attribute__ ((aligned (128)));
    uint8_t shash[64*8] __attribute__ ((aligned (64)));
@@ -129,66 +129,6 @@ int x21s_8way_hash( void* output, const void* input, int thrid )
    return 1;
 }
 
-int scanhash_x21s_8way( struct work *work, uint32_t max_nonce,
-                        uint64_t *hashes_done, struct thr_info *mythr)
-{
-   uint32_t hash[16*8] __attribute__ ((aligned (128)));
-   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-   uint32_t *hash7 = &hash[7<<3];
-   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t bedata1[2] __attribute__((aligned(64)));
-   uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
-   const uint32_t Htarg = ptarget[7];
-   const uint32_t first_nonce = pdata[19];
-   uint32_t n = first_nonce;
-   const uint32_t last_nonce = max_nonce - 16;
-   const int thr_id = mythr->id;
-    __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
-   volatile uint8_t *restart = &(work_restart[thr_id].restart);
-   const bool bench = opt_benchmark;
-
-   if ( bench )   ptarget[7] = 0x0cff;
-
-   bedata1[0] = bswap_32( pdata[1] );
-   bedata1[1] = bswap_32( pdata[2] );
-
-   static __thread uint32_t s_ntime = UINT32_MAX;
-   uint32_t ntime = bswap_32( pdata[17] );
-   if ( s_ntime != ntime )
-   {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
-      s_ntime = ntime;
-      if ( opt_debug && !thr_id )
-              applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
-   }
-
-   x16r_8way_prehash( vdata, pdata );
-   *noncev = mm512_intrlv_blend_32( _mm512_set_epi32(
-                             n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                             n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
-   do
-   {
-      if ( x21s_8way_hash( hash, vdata, thr_id ) )
-      for ( int lane = 0; lane < 8; lane++ )
-      if ( unlikely( hash7[lane] <= Htarg ) )
-      {
-         extr_lane_8x32( lane_hash, hash, lane, 256 );
-         if ( likely( valid_hash( lane_hash, ptarget ) && !bench ) )
-         {
-             pdata[19] = bswap_32( n + lane );
-             submit_solution( work, lane_hash, mythr );
-         }
-      }
-      *noncev = _mm512_add_epi32( *noncev,
-                                  m512_const1_64( 0x0000000800000000 ) );
-      n += 8;
-   } while ( likely( ( n < last_nonce ) && !(*restart) ) );
-   pdata[19] = n;
-   *hashes_done = n - first_nonce;
-   return 0;
-}
-
 bool x21s_8way_thread_init()
 {
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols
@@ -215,7 +155,7 @@ union _x21s_4way_context_overlay
 
 typedef union _x21s_4way_context_overlay x21s_4way_context_overlay;
 
-int x21s_4way_hash( void* output, const void* input, int thrid )
+int x21s_4way_hash( void* output, const void* input, const int thrid )
 {
    uint32_t vhash[16*4] __attribute__ ((aligned (64)));
    uint8_t  shash[64*4] __attribute__ ((aligned (64)));
@@ -289,58 +229,6 @@ int x21s_4way_hash( void* output, const void* input, int thrid )
 #endif
 
    return 1;
-}
-
-int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
-                        uint64_t *hashes_done, struct thr_info *mythr)
-{
-   uint32_t hash[16*4] __attribute__ ((aligned (64)));
-   uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t bedata1[2] __attribute__((aligned(64)));
-   uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
-   const uint32_t first_nonce = pdata[19];
-   const uint32_t last_nonce = max_nonce - 4;
-   uint32_t n = first_nonce;
-   const int thr_id = mythr->id; 
-   const bool bench = opt_benchmark;
-    __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
-   volatile uint8_t *restart = &(work_restart[thr_id].restart);
-
-   if ( bench )  ptarget[7] = 0x0cff;
- 
-   bedata1[0] = bswap_32( pdata[1] );
-   bedata1[1] = bswap_32( pdata[2] );
-
-   static __thread uint32_t s_ntime = UINT32_MAX;
-   uint32_t ntime = bswap_32( pdata[17] );
-   if ( s_ntime != ntime )
-   {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
-      s_ntime = ntime;
-      if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)", x16r_hash_order, ntime );
-   }
-
-   x16r_4way_prehash( vdata, pdata );
-   *noncev = mm256_intrlv_blend_32(
-                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
-   do
-   {
-      if ( x21s_4way_hash( hash, vdata, thr_id ) )
-      for ( int i = 0; i < 4; i++ )
-      if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
-      {
-         pdata[19] = bswap_32( n+i );
-         submit_solution( work, hash+(i<<3), mythr );
-      }
-      *noncev = _mm256_add_epi32( *noncev,
-                                  m256_const1_64( 0x0000000400000000 ) );
-      n += 4;
-   } while ( likely( (  n < last_nonce ) && !(*restart) ) );
-   pdata[19] = n;
-   *hashes_done = n - first_nonce;
-   return 0;
 }
 
 bool x21s_4way_thread_init()

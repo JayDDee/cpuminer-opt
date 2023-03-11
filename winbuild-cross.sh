@@ -17,6 +17,7 @@ export GCC_MINGW_LIB="/usr/lib/gcc/x86_64-w64-mingw32/9.3-win32"
 # used by GCC
 export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs -L$LOCAL_LIB/openssl"
 # Support for Windows 7 CPU groups, AES sometimes not included in -march
+# Disabled due to CPU group incompatibilities between Intel and AMD CPU. 
 export DEFAULT_CFLAGS="-maes -O3 -Wall -D_WIN32_WINNT=0x0601"
 export DEFAULT_CFLAGS_OLD="-O3 -Wall"
 
@@ -45,7 +46,7 @@ cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
 ./clean-all.sh || echo clean
 rm -f config.status
 ./autogen.sh || echo done
-CFLAGS="-march=icelake-client $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
+CFLAGS="-march=icelake-client $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
 make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx512-sha-vaes.exe
@@ -53,7 +54,7 @@ mv cpuminer.exe release/cpuminer-avx512-sha-vaes.exe
 # AVX512 AES: Intel Core HEDT Slylake-X, Cascadelake 
 make clean || echo clean
 rm -f config.status
-CFLAGS="-march=skylake-avx512 $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
+CFLAGS="-march=skylake-avx512 $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
 make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx512.exe
@@ -61,7 +62,7 @@ mv cpuminer.exe release/cpuminer-avx512.exe
 # AVX2 SHA VAES: Intel Alderlake, AMD Zen3
 make clean || echo done
 rm -f config.status
-CFLAGS="-mavx2 -msha -mvaes $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
+CFLAGS="-mavx2 -msha -mvaes $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
 make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx2-sha-vaes.exe
@@ -69,7 +70,7 @@ mv cpuminer.exe release/cpuminer-avx2-sha-vaes.exe
 # AVX2 AES SHA: AMD Zen1
 make clean || echo clean
 rm -f config.status
-CFLAGS="-march=znver1 $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
+CFLAGS="-march=znver1 $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
 make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx2-sha.exe
@@ -77,7 +78,7 @@ mv cpuminer.exe release/cpuminer-avx2-sha.exe
 # AVX2 AES: Intel Core Haswell, Skylake, Kabylake, Coffeelake, Cometlake
 make clean || echo clean
 rm -f config.status
-CFLAGS="-march=core-avx2 $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
+CFLAGS="-march=core-avx2 $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
 make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-avx2.exe

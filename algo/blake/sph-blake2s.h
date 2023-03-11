@@ -91,6 +91,7 @@ static inline void secure_zero_memory(void *v, size_t n)
 extern "C" {
 #endif
 
+/*   
 	enum blake2s_constant
 	{
 		BLAKE2S_BLOCKBYTES = 64,
@@ -99,6 +100,13 @@ extern "C" {
 		BLAKE2S_SALTBYTES  = 8,
 		BLAKE2S_PERSONALBYTES = 8
 	};
+*/
+
+#define BLAKE2S_BLOCKBYTES  64
+#define BLAKE2S_OUTBYTES    32
+#define BLAKE2S_KEYBYTES    32
+#define BLAKE2S_SALTBYTES   8
+#define BLAKE2S_PERSONALBYTES  8
 
 #pragma pack(push, 1)
 	typedef struct __blake2s_param

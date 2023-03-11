@@ -470,7 +470,7 @@ static inline void mm128_intrlv_4x32x( void *dst, void *src0, void  *src1,
 
 #if defined(__SSSE3__)
 
-static inline void mm128_bswap32_80( void *d, void *s )
+static inline void mm128_bswap32_80( void *d, const void *s )
 {
   __m128i bswap_shuf = m128_const_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 );
   casti_m128i( d, 0 ) = _mm_shuffle_epi8( casti_m128i( s, 0 ), bswap_shuf );
@@ -482,7 +482,7 @@ static inline void mm128_bswap32_80( void *d, void *s )
 
 #else
 
-static inline void mm128_bswap32_80( void *d, void *s )
+static inline void mm128_bswap32_80( void *d, const void *s )
 {
   ( (uint32_t*)d )[ 0] = bswap_32( ( (uint32_t*)s )[ 0] );
   ( (uint32_t*)d )[ 1] = bswap_32( ( (uint32_t*)s )[ 1] );

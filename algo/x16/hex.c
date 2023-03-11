@@ -25,7 +25,7 @@ static void hex_getAlgoString(const uint32_t* prevblock, char *output)
 
 static __thread x16r_context_overlay hex_ctx;
 
-int hex_hash( void* output, const void* input, int thrid )
+int hex_hash( void* output, const void* input, const int thrid )
 {
    uint32_t _ALIGN(128) hash[16];
    x16r_context_overlay ctx;

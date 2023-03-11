@@ -239,8 +239,8 @@ static inline __m256i mm256_not( const __m256i v )
 
 // Mask making
 // Equivalent of AVX512 _mm256_movepi64_mask & _mm256_movepi32_mask.
-// Returns 4 or 8 bit integer mask from MSB of 64 or 32 bit elements.
-// Effectively a sign test.
+// Create a 64 or 32 bit integer mask from MSB of 64 or 32 bit elements.
+// Effectively a sign test: if (mask[n]) then -1 else  0.
 
 #define mm256_movmask_64( v ) \
    _mm256_castpd_si256( _mm256_movmask_pd( _mm256_castsi256_pd( v ) ) )
@@ -348,7 +348,7 @@ static inline __m256i mm256_not( const __m256i v )
    _mm256_or_si256( _mm256_slli_epi16( v, c ), \
                     _mm256_srli_epi16( v, 16-(c) ) )
 
-// Deprecated.
+// Deprecated. Obsolete sm3, the only user, is grandfathered.
 #define mm256_rol_var_32( v, c ) \
    _mm256_or_si256( _mm256_slli_epi32( v, c ), \
                     _mm256_srli_epi32( v, 32-(c) ) )
@@ -391,6 +391,7 @@ static inline __m256i mm256_shufll_32( const __m256i v )
 //
 // Rotate elements within each 128 bit lane of 256 bit vector.
 
+/* Not used
 // Limited 2 input shuffle
 #define mm256_shuffle2_64( v1, v2, c ) \
    _mm256_castpd_si256( _mm256_shuffle_pd( _mm256_castsi256_pd( v1 ), \
@@ -399,6 +400,7 @@ static inline __m256i mm256_shufll_32( const __m256i v )
 #define mm256_shuffle2_32( v1, v2, c ) \
    _mm256_castps_si256( _mm256_shuffle_ps( _mm256_castsi256_ps( v1 ), \
                                            _mm256_castsi256_ps( v2 ), c ) ); 
+*/
 
 #define mm256_swap128_64( v )  _mm256_shuffle_epi32( v, 0x4e )
 #define mm256_shuflr128_64 mm256_swap128_64
@@ -511,7 +513,8 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 } while(0)
 
 // swap 256 bit vectors in place.
-// This should be avoided, it's more efficient to switch references.
+// Deprecated, Shabal is the only user and it should be modified to reorder
+// instructions.
 #define mm256_swap512_256( v1, v2 ) \
    v1 = _mm256_xor_si256( v1, v2 ); \
    v2 = _mm256_xor_si256( v1, v2 ); \

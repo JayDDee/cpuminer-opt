@@ -385,7 +385,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_rol_var_32( v, c ) \
    _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
 
-//
+/* Not used
 // Limited 2 input shuffle, combines shuffle with blend. The destination low
 // half is always taken from v1, and the high half from v2.
 #define mm128_shuffle2_64( v1, v2, c ) \
@@ -395,6 +395,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_shuffle2_32( v1, v2, c ) \
    _mm_castps_si128( _mm_shuffle_ps( _mm_castsi128_ps( v1 ), \
                                      _mm_castsi128_ps( v2 ), c ) ); 
+*/
 
 //
 // Rotate vector elements accross all lanes
@@ -406,6 +407,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_shuflr_32( v )   _mm_shuffle_epi32( v, 0x39 )
 #define mm128_shufll_32( v )   _mm_shuffle_epi32( v, 0x93 )
 
+/* Not used
 #if defined(__SSSE3__)
 
 // Rotate right by c bytes, no SSE2 equivalent.
@@ -413,6 +415,7 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
 { return _mm_alignr_epi8( v, v, c ); }
 
 #endif
+*/
 
 // Rotate byte elements within 64 or 32 bit lanes, AKA optimized bit rotations
 // for multiples of 8 bits. Uses ror/rol macros when AVX512 is available
@@ -555,68 +558,25 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
    v2 = _mm_xor_si128( v1, v2 ); \
    v1 = _mm_xor_si128( v1, v2 );
 
-
-// alignr for 32 & 64 bit elements is only available with AVX512 but
-// emulated here. Shift argument is not needed, it's always 1.
-// Behaviour is otherwise consistent with Intel alignr intrinsics.
-
+// Concatenate { hi, lo }, rotate right by c elements and return low 128 bits.
 #if defined(__SSSE3__)
 
-#define mm128_alignr_64( v1, v2 )    _mm_alignr_epi8( v1, v2, 8 )
-#define mm128_alignr_32( v1, v2 )    _mm_alignr_epi8( v1, v2, 4 )
+// _mm_alignr_epi32 & _mm_alignr_epi64 are only available with AVX512VL but
+// are emulated here using _mm_alignr_epi8. There are no fast equivalents for
+// 256 bit vectors, though there is no for this functionality.
+
+#define mm128_alignr_64( hi, lo, c )    _mm_alignr_epi8( hi, lo, (c)*8 )
+#define mm128_alignr_32( hi, lo, c )    _mm_alignr_epi8( hi, lo, (c)*4 )
 
 #else
 
-#define mm128_alignr_64( v1, v2 )    _mm_or_si128( _mm_slli_si128( v1, 8 ), \
-                                                   _mm_srli_si128( v2, 8 ) )
+#define mm128_alignr_64( hi, lo, c ) \
+   _mm_or_si128( _mm_slli_si128( hi, (c)*8 ), _mm_srli_si128( lo, (c)*8 ) )
 
-#define mm128_alignr_32( v1, v2 )    _mm_or_si128( _mm_slli_si128( v1, 4 ), \
-                                                   _mm_srli_si128( v2, 4 ) )
+#define mm128_alignr_32( hi, lo, c ) \
+   _mm_or_si128( _mm_slli_si128( lo, (c)*4 ), _mm_srli_si128( hi, (c)*4 ) )
 
 #endif
-
-// Procedure macros with 2 inputs and 2 outputs, input args are overwritten.
-// vrol & vror are deprecated and do not exist for larger vectors.
-// Their only use is by lyra2 blake2b when AVX2 is not available and is
-// grandfathered.
-
-#if defined(__SSSE3__)
-
-#define mm128_vror256_64( v1, v2 ) \
-do { \
-   __m128i t  = _mm_alignr_epi8( v1, v2, 8 ); \
-           v1 = _mm_alignr_epi8( v2, v1, 8 ); \
-           v2 = t; \
-} while(0)
-
-#define mm128_vrol256_64( v1, v2 ) \
-do { \
-   __m128i t  = _mm_alignr_epi8( v1, v2, 8 ); \
-           v2 = _mm_alignr_epi8( v2, v1, 8 ); \
-           v1 = t; \
-} while(0)
-
-#else  // SSE2
-
-#define mm128_vror256_64( v1, v2 ) \
-do { \
-   __m128i t  = _mm_or_si128( _mm_srli_si128( v1, 8 ), \
-                              _mm_slli_si128( v2, 8 ) ); \
-           v2 = _mm_or_si128( _mm_srli_si128( v2, 8 ), \
-                              _mm_slli_si128( v1, 8 ) ); \
-           v1 = t; \
-} while(0)
-
-#define mm128_vrol256_64( v1, v2 ) \
-do { \
-   __m128i t  = _mm_or_si128( _mm_slli_si128( v1, 8 ), \
-                              _mm_srli_si128( v2, 8 ) ); \
-           v2 = _mm_or_si128( _mm_slli_si128( v2, 8 ), \
-                              _mm_srli_si128( v1, 8 ) ); \
-           v1 = t; \
-} while(0)
-
-#endif  // SSE4.1 else SSE2
 
 #endif // __SSE2__
 #endif // SIMD_128_H__

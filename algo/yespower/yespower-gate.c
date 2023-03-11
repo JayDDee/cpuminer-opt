@@ -31,8 +31,26 @@
 
 yespower_params_t yespower_params;
 
+// master g_work 
+sha256_context yespower_sha256_prehash_ctx;
+uint32_t _ALIGN(64) yespower_endiandata[20];
+
+// local work
 __thread sha256_context sha256_prehash_ctx;
 
+
+int yespower_sha256_prehash( struct work *work )
+{
+   uint32_t *pdata = work->data;
+
+   for ( int k = 0; k < 19; k++ )
+      be32enc( &yespower_endiandata[k], pdata[k] );
+
+   sha256_ctx_init( &yespower_sha256_prehash_ctx );
+   sha256_update( &yespower_sha256_prehash_ctx, yespower_endiandata, 64 );
+
+   return 1;
+}
 // YESPOWER
 
 int yespower_hash( const char *input, char *output, uint32_t len, int thrid )
@@ -53,13 +71,14 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
 
-   for ( int k = 0; k < 19; k++ )
-      be32enc( &endiandata[k], pdata[k] );
-   endiandata[19] = n;
+//   pthread_rwlock_rdlock( &g_work_lock );
 
-   // do sha256 prehash
-   sha256_ctx_init( &sha256_prehash_ctx );
-   sha256_update( &sha256_prehash_ctx, endiandata, 64 );
+   memcpy( endiandata, yespower_endiandata, sizeof endiandata );
+   memcpy( &sha256_prehash_ctx, &yespower_sha256_prehash_ctx, sizeof sha256_prehash_ctx );
+
+//   pthread_rwlock_unlock( &g_work_lock );
+
+   endiandata[19] = n;
 
    do {
       if ( yespower_hash( (char*)endiandata, (char*)vhash, 80, thr_id ) )
@@ -140,6 +159,7 @@ bool register_yespower_algo( algo_gate_t* gate )
 
   gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower;
+  gate->prehash       = (void*)&yespower_sha256_prehash;
   gate->hash          = (void*)&yespower_hash;
   opt_target_factor = 65536.0;
   return true;
@@ -154,6 +174,7 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
   yespower_params.perslen = 0;
   gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower;
+  gate->prehash       = (void*)&yespower_sha256_prehash;
   gate->hash          = (void*)&yespower_hash;
   opt_target_factor = 65536.0;
   return true;
@@ -165,6 +186,7 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
+   gate->prehash       = (void*)&yespower_sha256_prehash;
    yespower_params.version = YESPOWER_0_5;
    opt_target_factor = 65536.0;
 
@@ -198,6 +220,7 @@ bool register_yescryptr8_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
+   gate->prehash       = (void*)&yespower_sha256_prehash;
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 2048;
    yespower_params.r       = 8;
@@ -211,6 +234,7 @@ bool register_yescryptr16_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
+   gate->prehash       = (void*)&yespower_sha256_prehash;
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 4096;
    yespower_params.r       = 16;
@@ -224,6 +248,7 @@ bool register_yescryptr32_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
+   gate->prehash       = (void*)&yespower_sha256_prehash;
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 4096;
    yespower_params.r       = 32;

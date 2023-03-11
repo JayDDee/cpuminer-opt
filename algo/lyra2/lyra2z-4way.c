@@ -14,6 +14,44 @@ bool lyra2z_16way_thread_init()
  return ( lyra2z_16way_matrix = _mm_malloc( 2*LYRA2Z_MATRIX_SIZE, 64 ) );
 }
 
+static uint32_t lyra2z_16way_midstate_vars[16*16] __attribute__ ((aligned (64)));
+static __m512i lyra2z_16way_block0_hash[8] __attribute__ ((aligned (64)));
+static __m512i lyra2z_16way_block_buf[16] __attribute__ ((aligned (64)));
+
+int lyra2z_16way_prehash ( struct work *work )
+{
+   uint32_t phash[8] __attribute__ ((aligned (32))) =
+   {
+      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
+      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
+   };
+   uint32_t *pdata = work->data;
+
+   // Prehash first block
+   blake256_transform_le( phash, pdata, 512, 0 );
+
+   lyra2z_16way_block0_hash[0] = _mm512_set1_epi32( phash[0] );
+   lyra2z_16way_block0_hash[1] = _mm512_set1_epi32( phash[1] );
+   lyra2z_16way_block0_hash[2] = _mm512_set1_epi32( phash[2] );
+   lyra2z_16way_block0_hash[3] = _mm512_set1_epi32( phash[3] );
+   lyra2z_16way_block0_hash[4] = _mm512_set1_epi32( phash[4] );
+   lyra2z_16way_block0_hash[5] = _mm512_set1_epi32( phash[5] );
+   lyra2z_16way_block0_hash[6] = _mm512_set1_epi32( phash[6] );
+   lyra2z_16way_block0_hash[7] = _mm512_set1_epi32( phash[7] );
+
+   // Build vectored second block, interleave 12 of last 16 bytes of data
+   // excepting the nonce.
+   lyra2z_16way_block_buf[ 0] = _mm512_set1_epi32( pdata[16] );
+   lyra2z_16way_block_buf[ 1] = _mm512_set1_epi32( pdata[17] );
+   lyra2z_16way_block_buf[ 2] = _mm512_set1_epi32( pdata[18] );
+
+   // Partialy prehash second block without touching nonces in block_buf[3].
+   blake256_16way_round0_prehash_le( lyra2z_16way_midstate_vars, 
+                       lyra2z_16way_block0_hash, lyra2z_16way_block_buf );
+
+   return 1;
+}
+
 static void lyra2z_16way_hash( void *state, const void *midstate_vars,
                         const void *midhash, const void *block )
 {
@@ -91,11 +129,6 @@ int scanhash_lyra2z_16way( struct work *work, uint32_t max_nonce,
    uint32_t midstate_vars[16*16] __attribute__ ((aligned (64)));
    __m512i block0_hash[8] __attribute__ ((aligned (64)));
    __m512i block_buf[16] __attribute__ ((aligned (64)));
-   uint32_t phash[8] __attribute__ ((aligned (64))) =
-   {
-      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
-      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
-   };
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -107,29 +140,17 @@ int scanhash_lyra2z_16way( struct work *work, uint32_t max_nonce,
 
    if ( bench ) ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   // Prehash first block
-   blake256_transform_le( phash, pdata, 512, 0 );
+   pthread_rwlock_rdlock( &g_work_lock );
 
-   block0_hash[0] = _mm512_set1_epi32( phash[0] );
-   block0_hash[1] = _mm512_set1_epi32( phash[1] );
-   block0_hash[2] = _mm512_set1_epi32( phash[2] );
-   block0_hash[3] = _mm512_set1_epi32( phash[3] );
-   block0_hash[4] = _mm512_set1_epi32( phash[4] );
-   block0_hash[5] = _mm512_set1_epi32( phash[5] );
-   block0_hash[6] = _mm512_set1_epi32( phash[6] );
-   block0_hash[7] = _mm512_set1_epi32( phash[7] );
+   memcpy( midstate_vars, lyra2z_16way_midstate_vars, sizeof midstate_vars );
+   memcpy( block0_hash,   lyra2z_16way_block0_hash,   sizeof block0_hash );
+   memcpy( block_buf,     lyra2z_16way_block_buf,     sizeof block_buf );
 
-   // Build vectored second block, interleave last 16 bytes of data using
-   // unique nonces.
-   block_buf[ 0] = _mm512_set1_epi32( pdata[16] );
-   block_buf[ 1] = _mm512_set1_epi32( pdata[17] );
-   block_buf[ 2] = _mm512_set1_epi32( pdata[18] );
+   pthread_rwlock_unlock( &g_work_lock );
+   
    block_buf[ 3] =
              _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+ 9, n+ 8,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
-
-   // Partialy prehash second block without touching nonces in block_buf[3].
-   blake256_16way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
      lyra2z_16way_hash( hash, midstate_vars, block0_hash, block_buf );
@@ -155,6 +176,44 @@ __thread uint64_t* lyra2z_8way_matrix;
 bool lyra2z_8way_thread_init()
 {
  return ( lyra2z_8way_matrix = _mm_malloc( LYRA2Z_MATRIX_SIZE, 64 ) );
+}
+
+static uint32_t lyra2z_8way_midstate_vars[16*8] __attribute__ ((aligned (64)));
+static __m256i lyra2z_8way_block0_hash[8] __attribute__ ((aligned (64)));
+static __m256i lyra2z_8way_block_buf[16] __attribute__ ((aligned (64)));
+
+int lyra2z_8way_prehash ( struct work *work )
+{
+   uint32_t phash[8] __attribute__ ((aligned (32))) =
+   {
+      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
+      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
+   };
+   uint32_t *pdata = work->data;
+
+   // Prehash first block
+   blake256_transform_le( phash, pdata, 512, 0 );
+
+   lyra2z_8way_block0_hash[0] = _mm256_set1_epi32( phash[0] );
+   lyra2z_8way_block0_hash[1] = _mm256_set1_epi32( phash[1] );
+   lyra2z_8way_block0_hash[2] = _mm256_set1_epi32( phash[2] );
+   lyra2z_8way_block0_hash[3] = _mm256_set1_epi32( phash[3] );
+   lyra2z_8way_block0_hash[4] = _mm256_set1_epi32( phash[4] );
+   lyra2z_8way_block0_hash[5] = _mm256_set1_epi32( phash[5] );
+   lyra2z_8way_block0_hash[6] = _mm256_set1_epi32( phash[6] );
+   lyra2z_8way_block0_hash[7] = _mm256_set1_epi32( phash[7] );
+
+   // Build vectored second block, interleave last 16 bytes of data using
+   // unique nonces.
+   lyra2z_8way_block_buf[ 0] = _mm256_set1_epi32( pdata[16] );
+   lyra2z_8way_block_buf[ 1] = _mm256_set1_epi32( pdata[17] );
+   lyra2z_8way_block_buf[ 2] = _mm256_set1_epi32( pdata[18] );
+
+   // Partialy prehash second block without touching nonces
+   blake256_8way_round0_prehash_le( lyra2z_8way_midstate_vars,
+                           lyra2z_8way_block0_hash, lyra2z_8way_block_buf );
+
+   return 1;
 }
 
 static void lyra2z_8way_hash( void *state, const void *midstate_vars,
@@ -201,11 +260,6 @@ int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
    uint32_t midstate_vars[16*8] __attribute__ ((aligned (64)));
    __m256i block0_hash[8] __attribute__ ((aligned (64)));
    __m256i block_buf[16] __attribute__ ((aligned (64)));
-   uint32_t phash[8] __attribute__ ((aligned (32))) =
-   {
-      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
-      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
-   };
    uint32_t *pdata = work->data;
    uint64_t *ptarget = (uint64_t*)work->target;
    const uint32_t first_nonce = pdata[19];
@@ -215,23 +269,14 @@ int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
    const __m256i eight = m256_const1_32( 8 );
 
-   // Prehash first block
-   blake256_transform_le( phash, pdata, 512, 0 );
+   pthread_rwlock_rdlock( &g_work_lock );
 
-   block0_hash[0] = _mm256_set1_epi32( phash[0] );
-   block0_hash[1] = _mm256_set1_epi32( phash[1] );
-   block0_hash[2] = _mm256_set1_epi32( phash[2] );
-   block0_hash[3] = _mm256_set1_epi32( phash[3] );
-   block0_hash[4] = _mm256_set1_epi32( phash[4] );
-   block0_hash[5] = _mm256_set1_epi32( phash[5] );
-   block0_hash[6] = _mm256_set1_epi32( phash[6] );
-   block0_hash[7] = _mm256_set1_epi32( phash[7] );
+   memcpy( midstate_vars, lyra2z_8way_midstate_vars, sizeof midstate_vars );
+   memcpy( block0_hash,   lyra2z_8way_block0_hash,   sizeof block0_hash );
+   memcpy( block_buf,     lyra2z_8way_block_buf,     sizeof block_buf );
 
-   // Build vectored second block, interleave last 16 bytes of data using
-   // unique nonces.
-   block_buf[ 0] = _mm256_set1_epi32( pdata[16] );
-   block_buf[ 1] = _mm256_set1_epi32( pdata[17] );
-   block_buf[ 2] = _mm256_set1_epi32( pdata[18] );
+   pthread_rwlock_unlock( &g_work_lock );
+   
    block_buf[ 3] =
             _mm256_set_epi32( n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
 

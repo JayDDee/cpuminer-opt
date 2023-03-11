@@ -7,8 +7,16 @@
 
 #if defined (SKEIN_8WAY)
 
-static __thread skein512_8way_context skein512_8way_ctx
+static skein512_8way_context skein512_8way_ctx
                                             __attribute__ ((aligned (64)));
+static uint32_t skein_8way_vdata[20*8] __attribute__ ((aligned (64)));
+
+int skein_8way_prehash( struct work *work )
+{
+    mm512_bswap32_intrlv80_8x64( skein_8way_vdata, work->data );
+    skein512_8way_prehash64( &skein512_8way_ctx, skein_8way_vdata );
+    return 1;
+}
 
 void skeinhash_8way( void *state, const void *input )
 {
@@ -29,25 +37,27 @@ void skeinhash_8way( void *state, const void *input )
 int scanhash_skein_8way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
-    uint32_t vdata[20*8] __attribute__ ((aligned (128)));
-    uint32_t hash[8*8] __attribute__ ((aligned (64)));
-    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-    uint32_t *hash_d7 = &(hash[7*8]);
-    uint32_t *pdata = work->data;
-    uint32_t *ptarget = work->target;
-    const uint32_t targ_d7 = ptarget[7];
-    const uint32_t first_nonce = pdata[19];
-    const uint32_t last_nonce = max_nonce - 8;
-    uint32_t n = first_nonce;
-    __m512i  *noncev = (__m512i*)vdata + 9; 
-    const int thr_id = mythr->id; 
-    const bool bench = opt_benchmark;
+   uint32_t vdata[20*8] __attribute__ ((aligned (128)));
+   uint32_t hash[8*8] __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
+   uint32_t *hash_d7 = &(hash[7*8]);
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t targ_d7 = ptarget[7];
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 8;
+   uint32_t n = first_nonce;
+   __m512i  *noncev = (__m512i*)vdata + 9; 
+   const int thr_id = mythr->id; 
+   const bool bench = opt_benchmark;
+    
+    pthread_rwlock_rdlock( &g_work_lock );
+       memcpy( vdata, skein_8way_vdata, sizeof vdata );
+    pthread_rwlock_unlock( &g_work_lock );
 
-   mm512_bswap32_intrlv80_8x64( vdata, pdata );
    *noncev = mm512_intrlv_blend_32(
                 _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
                                   n+3, 0, n+2, 0, n+1, 0, n  , 0 ), *noncev );
-   skein512_8way_prehash64( &skein512_8way_ctx, vdata );
    do
    {
        skeinhash_8way( hash, vdata );
@@ -74,8 +84,16 @@ int scanhash_skein_8way( struct work *work, uint32_t max_nonce,
 
 #elif defined (SKEIN_4WAY)
 
-static __thread skein512_4way_context skein512_4way_ctx
+static skein512_4way_context skein512_4way_ctx
                                             __attribute__ ((aligned (64)));
+static uint32_t skein_4way_vdata[20*4] __attribute__ ((aligned (64)));
+
+int skein_4way_prehash( struct work *work )
+{
+    mm256_bswap32_intrlv80_4x64( skein_4way_vdata, work->data );
+    skein512_4way_prehash64( &skein512_4way_ctx, skein_4way_vdata );
+    return 1;
+}
 
 void skeinhash_4way( void *state, const void *input )
 {
@@ -118,23 +136,24 @@ void skeinhash_4way( void *state, const void *input )
 int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr )
 {
-    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-    uint32_t hash[8*4] __attribute__ ((aligned (64)));
-    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
-    uint32_t *hash_d7 = &(hash[7<<2]);
-    uint32_t *pdata = work->data;
-    uint32_t *ptarget = work->target;
-    const uint32_t targ_d7 = ptarget[7];
-    const uint32_t first_nonce = pdata[19];
-    const uint32_t last_nonce = max_nonce - 4;
-    uint32_t n = first_nonce;
-    __m256i  *noncev = (__m256i*)vdata + 9; 
-    const int thr_id = mythr->id; 
-    const bool bench = opt_benchmark;
+   uint32_t vdata[20*4] __attribute__ ((aligned (64)));
+   uint32_t hash[8*4] __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+   uint32_t *hash_d7 = &(hash[7<<2]);
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t targ_d7 = ptarget[7];
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 4;
+   uint32_t n = first_nonce;
+   __m256i  *noncev = (__m256i*)vdata + 9; 
+   const int thr_id = mythr->id; 
+   const bool bench = opt_benchmark;
 
-   mm256_bswap32_intrlv80_4x64( vdata, pdata );
-   skein512_4way_prehash64( &skein512_4way_ctx, vdata );
-
+   pthread_rwlock_rdlock( &g_work_lock );
+      memcpy( vdata, skein_4way_vdata, sizeof vdata );
+   pthread_rwlock_unlock( &g_work_lock );
+    
    *noncev = mm256_intrlv_blend_32(
                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do

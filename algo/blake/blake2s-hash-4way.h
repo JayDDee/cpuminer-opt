@@ -20,6 +20,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+//#include "sph-blake2s.h"
 
 #if defined(_MSC_VER)
 #include <inttypes.h>
@@ -33,7 +34,7 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
+/*
 enum blake2s_constant
 {
    BLAKE2S_BLOCKBYTES = 64,
@@ -42,6 +43,13 @@ enum blake2s_constant
    BLAKE2S_SALTBYTES  = 8,
    BLAKE2S_PERSONALBYTES = 8
 };
+*/
+
+#define BLAKE2S_BLOCKBYTES  64
+#define BLAKE2S_OUTBYTES    32
+#define BLAKE2S_KEYBYTES    32
+#define BLAKE2S_SALTBYTES   8
+#define BLAKE2S_PERSONALBYTES  8
 
 #pragma pack(push, 1)
 typedef struct __blake2s_nway_param

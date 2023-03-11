@@ -72,7 +72,7 @@ struct TortureGarden
 
 // Get a 64-byte hash for given 64-byte input, using given TortureGarden contexts and given algo index
 static int get_hash( void *output, const void *input, TortureGarden *garden,
-	                  unsigned int algo, int thr_id )
+	                  unsigned int algo, const int thr_id )
 {    
 	unsigned char hash[64] __attribute__ ((aligned (64)));
    int rc = 1;
@@ -233,7 +233,7 @@ bool initialize_torture_garden()
 }
 
 // Produce a 32-byte hash from 80-byte input data
-int minotaur_hash( void *output, const void *input, int thr_id )
+int minotaur_hash( void *output, const void *input, const int thr_id )
 {    
     unsigned char hash[64] __attribute__ ((aligned (64)));
     int rc = 1;

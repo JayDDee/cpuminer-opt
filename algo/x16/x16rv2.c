@@ -43,9 +43,16 @@ inline void padtiger512(uint32_t* hash) {
    for (int i = (24/4); i < (64/4); i++) hash[i] = 0;
 }
 
-int x16rv2_hash( void* output, const void* input, int thrid )
+// no prehash
+int x16rv2_prehash( const struct work *work )
 {
-   uint32_t _ALIGN(128) hash[16];
+   x16r_gate_get_hash_order( work, x16r_hash_order );
+   return 1;
+}
+
+int x16rv2_hash( void* output, const void* input, const int thrid )
+{
+   uint32_t _ALIGN(32) hash[16];
    x16rv2_context_overlay ctx;
    void *in = (void*) input;
    int size = 80;
@@ -168,54 +175,6 @@ int x16rv2_hash( void* output, const void* input, int thrid )
    }
    memcpy(output, hash, 32);
    return 1;
-}
-
-int scanhash_x16rv2( struct work *work, uint32_t max_nonce,
-                   uint64_t *hashes_done, struct thr_info *mythr )
-{
-   uint32_t _ALIGN(128) hash32[8];
-   uint32_t _ALIGN(128) edata[20];
-   uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
-   const uint32_t first_nonce = pdata[19];
-   const int thr_id = mythr->id;  
-   uint32_t nonce = first_nonce;
-   volatile uint8_t *restart = &(work_restart[thr_id].restart);
-   const bool bench = opt_benchmark;
-
-   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
-
-   static __thread uint32_t s_ntime = UINT32_MAX;
-   if ( s_ntime != pdata[17] )
-   {
-      uint32_t ntime = swab32(pdata[17]);
-      x16_r_s_getAlgoString( (const uint8_t*) (&edata[1]), x16r_hash_order );
-      s_ntime = ntime;
-      if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)",
-                                 x16r_hash_order, ntime );
-   }
-
-   if ( bench )   ptarget[7] = 0x0cff;
-
-   do
-   {
-      edata[19] = nonce;
-      if ( x16rv2_hash( hash32, edata, thr_id ) )
-      if ( unlikely( valid_hash( hash32, ptarget ) && !bench ) )
-      {
-         pdata[19] = bswap_32( nonce );
-         submit_solution( work, hash32, mythr );
-      }
-      nonce++;
-   } while ( nonce < max_nonce && !(*restart) );
-   pdata[19] = nonce;
-   *hashes_done = pdata[19] - first_nonce;
-   return 0;
 }
 
 #endif
