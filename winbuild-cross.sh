@@ -17,7 +17,9 @@ export GCC_MINGW_LIB="/usr/lib/gcc/x86_64-w64-mingw32/9.3-win32"
 # used by GCC
 export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs -L$LOCAL_LIB/openssl"
 # Support for Windows 7 CPU groups, AES sometimes not included in -march
-export DEFAULT_CFLAGS="-maes -O3 -Wall -D_WIN32_WINNT=0x0601"
+# CPU groups disabled due to incompatibilities between Intel and AMD CPUs.
+#export DEFAULT_CFLAGS="-maes -O3 -Wall -D_WIN32_WINNT=0x0601"
+export DEFAULT_CFLAGS="-maes -O3 -Wall"
 export DEFAULT_CFLAGS_OLD="-O3 -Wall"
 
 # make link to local gmp header file.

@@ -65,6 +65,16 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.21.4
+
+Reapply selected changes from v3.21.3.
+#392 #379 #389 Fixed misaligned address segfault solo mining.
+#392 Fixed conditional mining.
+#392 Fixed cpu affinity on Ryzen CPUs using Windows binaries,
+     Windows binaries no longer support CPU groups,
+     Windows binaries support CPUs with up to 64 threads.
+
+
 v3.21.3.1 UNRELEASED
 
 Revert to 3.21.2
