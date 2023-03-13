@@ -5,15 +5,13 @@ bool register_blake2s_algo( algo_gate_t* gate )
 #if defined(BLAKE2S_16WAY)
   gate->scanhash  = (void*)&scanhash_blake2s_16way;
   gate->hash      = (void*)&blake2s_16way_hash;
-//  gate->prehash   = (void*)&blake2s_16way_prehash;
 #elif defined(BLAKE2S_8WAY)
+//#if defined(BLAKE2S_8WAY)
   gate->scanhash  = (void*)&scanhash_blake2s_8way;
   gate->hash      = (void*)&blake2s_8way_hash;
-//  gate->prehash   = (void*)&blake2s_8way_prehash;
 #elif defined(BLAKE2S_4WAY)
   gate->scanhash  = (void*)&scanhash_blake2s_4way;
   gate->hash      = (void*)&blake2s_4way_hash;
-//  gate->prehash   = (void*)&blake2s_4way_prehash;
 #else
   gate->scanhash  = (void*)&scanhash_blake2s;
   gate->hash      = (void*)&blake2s_hash;

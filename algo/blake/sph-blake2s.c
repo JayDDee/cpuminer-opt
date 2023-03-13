@@ -17,7 +17,6 @@
 
 #include "algo/sha/sph_types.h"
 #include "sph-blake2s.h"
-#include "simd-utils.h"
 
 static const uint32_t blake2s_IV[8] =
 {
@@ -226,71 +225,6 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[BLAKE2S_BLOCKBYTES] 
 	v[13] = S->t[1] ^ blake2s_IV[5];
 	v[14] = S->f[0] ^ blake2s_IV[6];
 	v[15] = S->f[1] ^ blake2s_IV[7];
-
-#if 0    
-//#if defined(__SSE2__) // always true
-
-The only application for this is to do a prehash for the blake2s algorithm.
-SSE2 also supports 4 way parallel hashing so that is preferred in most cases.
-Testing has found that using this serial SIMD code for prehash is slower than
-doing a parallel hash. A parallel hash has more instructions and uses more
-data. The serial hash uses fewer instructions and data and only needs to
-interleave the final hash into parallel streams. This has shown negligible
-improvement on other algos, notably blake256 which is almost identical.
-Considering the low frequency of prehash no statistically valid change
-was expected. It was simply better on paper.
-
-Furthermore, simply defining this macro has an additional negative effect on
-blake2s as a whole. There are no references to this macro, blake2s-4way does
-not include it in any header files, it's just another unused macro which should
-have no effect beyond the preprocessor. But just being visible to the compiler
-changes things in a dramatic way.
-
-These 2 things combined reduced the hash rate for blake2s by more than 5% when
-using serial SIMD for the blake2s prehash over 16way parallel prehash.
-16way parallel hashing was used in the high frequency nonce loop in both cases.
-Comsidering the prehash represents 50% of the algorithm and is done once vs
-the high frequency second half that is done mega, maybe giga, times more it's
-hard to imagine that big of an effect in either direction.
-
-#define ROUND( r ) \
-{ \
-   __m128i *V = (__m128i*)v; \
-   const uint8_t *sigma = blake2s_sigma[r]; \
-   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], \
-                       _mm_set_epi32( m[ sigma[ 6 ] ], m[ sigma[ 4 ] ], \
-                                      m[ sigma[ 2 ] ], m[ sigma[ 0 ] ] ) ) ); \
-   V[3] = mm128_swap32_16( _mm_xor_si128( V[3], V[0] ) ); \
-   V[2] = _mm_add_epi32( V[2], V[3] ); \
-   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 12 ); \
-   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], \
-                        _mm_set_epi32( m[ sigma[ 7 ] ], m[ sigma[ 5 ] ], \
-                                       m[ sigma[ 3 ] ], m[ sigma[ 1 ] ] ) ) ); \
-   V[3] = mm128_shuflr32_8( _mm_xor_si128( V[3], V[0] ) ); \
-   V[2] = _mm_add_epi32( V[2], V[3] ); \
-   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 7 ); \
-   V[3] = mm128_shufll_32( V[3] ); \
-   V[2] = mm128_swap_64( V[2] ); \
-   V[1] = mm128_shuflr_32( V[1] ); \
-   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], \
-                        _mm_set_epi32( m[ sigma[14] ], m[ sigma[12] ], \
-                                       m[ sigma[10] ], m[ sigma[ 8] ] ) ) ); \
-   V[3] = mm128_swap32_16( _mm_xor_si128( V[3], V[0] ) ); \
-   V[2] = _mm_add_epi32( V[2], V[3] ); \
-   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 12 ); \
-   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], \
-                        _mm_set_epi32( m[ sigma[15] ], m[ sigma[13] ], \
-                                       m[ sigma[11] ], m[ sigma[ 9] ] ) ) ); \
-   V[3] = mm128_shuflr32_8( _mm_xor_si128( V[3], V[0] ) ); \
-   V[2] = _mm_add_epi32( V[2], V[3] ); \
-   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 7 ); \
-   V[3] = mm128_shuflr_32( V[3] ); \
-   V[2] = mm128_swap_64( V[2] ); \
-   V[1] = mm128_shufll_32( V[1] ); \
-}
-
-#else
-
 #define G(r,i,a,b,c,d) \
 	do { \
 		a = a + b + m[blake2s_sigma[r][2*i+0]]; \
@@ -313,10 +247,7 @@ hard to imagine that big of an effect in either direction.
 		G(r,6,v[ 2],v[ 7],v[ 8],v[13]); \
 		G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 	} while(0)
-
-#endif
-
-   ROUND( 0 );
+	ROUND( 0 );
 	ROUND( 1 );
 	ROUND( 2 );
 	ROUND( 3 );

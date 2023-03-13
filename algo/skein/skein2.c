@@ -34,31 +34,31 @@ void skein2hash(void *output, const void *input)
 	sph_skein512_close(&ctx_skein, hash);
 
 	memcpy(output, hash, 32);
+
 }
 
 int scanhash_skein2( struct work *work,	uint32_t max_nonce,
                      uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
+        uint32_t *pdata = work->data;
+        uint32_t *ptarget = work->target;
 	uint32_t hash64[8] __attribute__ ((aligned (64)));
 	uint32_t endiandata[20] __attribute__ ((aligned (64)));
 	const uint32_t Htarg = ptarget[7];
 	const uint32_t first_nonce = pdata[19];
 	uint32_t n = first_nonce;
-   int thr_id = mythr->id; 
+   int thr_id = mythr->id;  // thr_id arg is deprecated
 
-   swab32_array( endiandata, pdata, 20 );
+        swab32_array( endiandata, pdata, 20 );
 
 	do {
 		be32enc(&endiandata[19], n);
 		skein2hash(hash64, endiandata);
-      if (hash64[7] <= Htarg )
-      if ( fulltest(hash64, ptarget) && !opt_benchmark )
-      {
-         pdata[19] = n;
-         submit_solution( work, hash64, mythr );
-      }
+		if (hash64[7] < Htarg && fulltest(hash64, ptarget)) {
+			*hashes_done = n - first_nonce + 1;
+			pdata[19] = n;
+			return true;
+		}
 		n++;
 
 	} while (n < max_nonce && !work_restart[thr_id].restart);

@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void x16r_do_prehash( const void *edata )
+void x16r_prehash( void *edata, void *pdata )
 {
    const char elem = x16r_hash_order[0];
    const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
@@ -48,7 +48,7 @@ void x16r_do_prehash( const void *edata )
    }
 }
 
-int x16r_hash_generic( void* output, const void* input, const int thrid )
+int x16r_hash_generic( void* output, const void* input, int thrid )
 {
    uint32_t _ALIGN(128) hash[16];
    x16r_context_overlay ctx;
@@ -192,15 +192,7 @@ int x16r_hash_generic( void* output, const void* input, const int thrid )
    return true;
 }
 
-int x16r_prehash( const struct work *work )
-{
-   mm128_bswap32_80( x16r_edata, work->data );
-   x16r_gate_get_hash_order( work, x16r_hash_order );
-   x16r_do_prehash( x16r_edata );  
-   return 1;
-}
-
-int x16r_hash( void* output, const void* input, const int thrid )
+int x16r_hash( void* output, const void* input, int thrid )
 {  
    uint8_t hash[64] __attribute__ ((aligned (64)));
    if ( !x16r_hash_generic( hash, input, thrid ) )
@@ -213,8 +205,8 @@ int x16r_hash( void* output, const void* input, const int thrid )
 int scanhash_x16r( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t _ALIGN(32) hash32[8];
-   uint32_t _ALIGN(32) edata[20];
+   uint32_t _ALIGN(128) hash32[8];
+   uint32_t _ALIGN(128) edata[20];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -224,14 +216,24 @@ int scanhash_x16r( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
    if ( bench )  ptarget[7] = 0x0cff;
 
-   pthread_rwlock_rdlock( &g_work_lock );
-      memcpy( edata, x16r_edata, sizeof edata );
-   pthread_rwlock_unlock( &g_work_lock );
+   mm128_bswap32_80( edata, pdata );
+
+   static __thread uint32_t s_ntime = UINT32_MAX;
+   if ( s_ntime != pdata[17] )
+   {
+      uint32_t ntime = swab32(pdata[17]);
+      x16_r_s_getAlgoString( (const uint8_t*)(&edata[1]), x16r_hash_order );
+      s_ntime = ntime;
+      if ( opt_debug && !thr_id )
+           applog( LOG_DEBUG, "hash order %s (%08x)", x16r_hash_order, ntime );
+   }
+
+   x16r_prehash( edata, pdata );
 
    do
    {
       edata[19] = nonce;
-      if ( algo_gate.hash( hash32, edata, thr_id ) )
+      if ( x16r_hash( hash32, edata, thr_id ) )
       if ( unlikely( valid_hash( hash32, ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( nonce );

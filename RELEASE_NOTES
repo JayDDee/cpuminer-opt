@@ -65,7 +65,11 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
-v3.22.3
+v3.21.3.1 UNRELEASED
+
+Revert to 3.21.2
+
+v3.21.3 CANCELLED
 
 #392 #379 #389 Fixed misaligned address segfault solo mining.
 #392 Fixed stats for myr-gr algo, and a few others, for CPUs without AVX2.
@@ -74,10 +78,10 @@ v3.22.3
      Windows binaries no longer support CPU groups,
      Windows binaries support CPUs with up to 64 threads.
 Midstate prehash is now centralized, done only once instead of by every thread
-for selected algos. 
+for selected algos.
 Small optimizations to serialized vectoring.
 
-v3.22.2
+v3.21.2 
 
 Faster SALSA SIMD shuffle for yespower, yescrypt & scryptn2.
 Fixed a couple of compiler warnings with gcc-12.

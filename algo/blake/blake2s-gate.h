@@ -23,22 +23,18 @@ bool register_blake2s_algo( algo_gate_t* gate );
 void blake2s_16way_hash( void *state, const void *input );
 int scanhash_blake2s_16way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
-int blake2s_16way_prehash( struct work * );
 
 #elif defined (BLAKE2S_8WAY)
 
 void blake2s_8way_hash( void *state, const void *input );
 int scanhash_blake2s_8way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
-int blake2s_8way_prehash( struct work * );
 
 #elif defined (BLAKE2S_4WAY)
 
 void blake2s_4way_hash( void *state, const void *input );
 int scanhash_blake2s_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
-int blake2s_4way_prehash( struct work * );
-
 #else
 
 void blake2s_hash( void *state, const void *input );

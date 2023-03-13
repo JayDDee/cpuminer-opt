@@ -19,7 +19,7 @@
 // Perform midstate prehash of hash functions with block size <= 72 bytes,
 // 76 bytes for hash functions that operate on 32 bit data.
 
-void x16r_8way_do_prehash( void *vdata, const void *pdata )
+void x16r_8way_prehash( void *vdata, void *pdata )
 {
    uint32_t vdata2[20*8] __attribute__ ((aligned (64)));
    uint32_t edata[20] __attribute__ ((aligned (64)));
@@ -106,18 +106,11 @@ void x16r_8way_do_prehash( void *vdata, const void *pdata )
    }
 }
 
-int x16r_8way_prehash( struct work *work )
-{
-   x16r_gate_get_hash_order( work, x16r_hash_order );
-   x16r_8way_do_prehash( x16r_8way_vdata, work->data );
-   return 1;
-}
-
 // Perform the full x16r hash and returns 512 bit intermediate hash.
 // Called by wrapper hash function to optionally continue hashing and
 // convert to final hash.
 
-int x16r_8way_hash_generic( void* output, const void* input, const int thrid )
+int x16r_8way_hash_generic( void* output, const void* input, int thrid )
 {
    uint32_t vhash[20*8] __attribute__ ((aligned (128)));
    uint32_t hash0[20] __attribute__ ((aligned (16)));
@@ -478,7 +471,7 @@ int x16r_8way_hash_generic( void* output, const void* input, const int thrid )
 
 // x16-r,-s,-rt wrapper called directly by scanhash to repackage 512 bit
 // hash to 256 bit final hash.
-int x16r_8way_hash( void* output, const void* input, const int thrid )
+int x16r_8way_hash( void* output, const void* input, int thrid )
 {
    uint8_t hash[64*8] __attribute__ ((aligned (128)));
    if ( !x16r_8way_hash_generic( hash, input, thrid ) )
@@ -502,6 +495,7 @@ int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[16*8] __attribute__ ((aligned (128)));
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
+   uint32_t bedata1[2];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -514,16 +508,27 @@ int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
 
    if ( bench )   ptarget[7] = 0x0cff;
 
-   pthread_rwlock_rdlock( &g_work_lock );
-      memcpy( vdata, x16r_8way_vdata, sizeof vdata );
-   pthread_rwlock_unlock( &g_work_lock );
+   bedata1[0] = bswap_32( pdata[1] );
+   bedata1[1] = bswap_32( pdata[2] );
 
+   static __thread uint32_t s_ntime = UINT32_MAX;
+   const uint32_t ntime = bswap_32( pdata[17] );
+   if ( s_ntime != ntime )
+   {
+      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
+      s_ntime = ntime;
+
+      if ( opt_debug && !thr_id )
+          applog( LOG_INFO, "Hash order %s Ntime %08x", x16r_hash_order, ntime );
+   }
+
+   x16r_8way_prehash( vdata, pdata );
    *noncev = mm512_intrlv_blend_32( _mm512_set_epi32(
                              n+7, 0, n+6, 0, n+5, 0, n+4, 0,
                              n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      if( algo_gate.hash( hash, vdata, thr_id ) );
+      if( x16r_8way_hash( hash, vdata, thr_id ) );
       for ( int i = 0; i < 8; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {
@@ -541,7 +546,7 @@ int scanhash_x16r_8way( struct work *work, uint32_t max_nonce,
 
 #elif defined (X16R_4WAY)
 
-void x16r_4way_do_prehash( void *vdata, const void *pdata )
+void x16r_4way_prehash( void *vdata, void *pdata )
 {
    uint32_t vdata2[20*4] __attribute__ ((aligned (64)));
    uint32_t edata[20] __attribute__ ((aligned (64)));
@@ -622,14 +627,7 @@ void x16r_4way_do_prehash( void *vdata, const void *pdata )
    }
 }
 
-int x16r_4way_prehash( struct work *work )
-{
-   x16r_gate_get_hash_order( work, x16r_hash_order );
-   x16r_4way_do_prehash( x16r_4way_vdata, work->data );
-   return 1;
-}
-
-int x16r_4way_hash_generic( void* output, const void* input, const int thrid )
+int x16r_4way_hash_generic( void* output, const void* input, int thrid )
 {
    uint32_t vhash[20*4] __attribute__ ((aligned (128)));
    uint32_t hash0[20] __attribute__ ((aligned (32)));
@@ -637,13 +635,12 @@ int x16r_4way_hash_generic( void* output, const void* input, const int thrid )
    uint32_t hash2[20] __attribute__ ((aligned (32)));
    uint32_t hash3[20] __attribute__ ((aligned (32)));
    x16r_4way_context_overlay ctx;
+   memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
    void *in0 = (void*) hash0;
    void *in1 = (void*) hash1;
    void *in2 = (void*) hash2;
    void *in3 = (void*) hash3;
    int size = 80;
-
-   memcpy( &ctx, &x16r_ctx, sizeof(ctx) );
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, input, 640 );
 
@@ -908,7 +905,7 @@ int x16r_4way_hash_generic( void* output, const void* input, const int thrid )
    return 1;
 }
 
-int x16r_4way_hash( void* output, const void* input, const int thrid )
+int x16r_4way_hash( void* output, const void* input, int thrid )
 {
    uint8_t hash[64*4] __attribute__ ((aligned (64)));
    if ( !x16r_4way_hash_generic( hash, input, thrid ) )
@@ -927,6 +924,7 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[16*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
+   uint32_t bedata1[2];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -939,15 +937,25 @@ int scanhash_x16r_4way( struct work *work, uint32_t max_nonce,
 
    if ( bench )  ptarget[7] = 0x0cff;
 
-   pthread_rwlock_rdlock( &g_work_lock );
-      memcpy( vdata, x16r_4way_vdata, sizeof vdata );
-   pthread_rwlock_unlock( &g_work_lock );
+   bedata1[0] = bswap_32( pdata[1] );
+   bedata1[1] = bswap_32( pdata[2] );
 
+   static __thread uint32_t s_ntime = UINT32_MAX;
+   const uint32_t ntime = bswap_32( pdata[17] );
+   if ( s_ntime != ntime )
+   {
+      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
+      s_ntime = ntime;
+      if ( opt_debug && !thr_id )
+         applog( LOG_INFO, "Hash order %s Ntime %08x", x16r_hash_order, ntime );
+   }
+
+   x16r_4way_prehash( vdata, pdata );
    *noncev = mm256_intrlv_blend_32(
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
    {
-      if ( algo_gate.hash( hash, vdata, thr_id ) );
+      if ( x16r_4way_hash( hash, vdata, thr_id ) );
       for ( int i = 0; i < 4; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {

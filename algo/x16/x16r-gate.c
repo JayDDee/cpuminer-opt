@@ -1,44 +1,26 @@
 #include "x16r-gate.h"
 #include "algo/sha/sha256d.h"
 
-char x16r_hash_order[ X16R_HASH_FUNC_COUNT + 1 ] = {0};
+__thread char x16r_hash_order[ X16R_HASH_FUNC_COUNT + 1 ] = { 0 };
 
-void (*x16r_gate_get_hash_order) ( const struct work *, char * ) = NULL;
+void (*x16_r_s_getAlgoString) ( const uint8_t*, char* ) = NULL;
 
 #if defined (X16R_8WAY)
 
-x16r_8way_context_overlay x16r_ctx;
-uint32_t x16r_8way_vdata[24*8] __attribute__ ((aligned (64)));
+__thread x16r_8way_context_overlay x16r_ctx;
 
 #elif defined (X16R_4WAY)
 
-x16r_4way_context_overlay x16r_ctx;
-uint32_t x16r_4way_vdata[24*4] __attribute__ ((aligned (64)));
-
+__thread x16r_4way_context_overlay x16r_ctx;
 
 #endif
 
-#if defined (X16RV2_8WAY)
+__thread x16r_context_overlay x16_ctx;
 
-x16rv2_8way_context_overlay x16rv2_ctx;
 
-#elif defined (X16RV2_4WAY)
-
-x16rv2_4way_context_overlay x16rv2_ctx;
-
-#endif
-
-x16r_context_overlay x16_ctx;
-uint32_t x16r_edata[24] __attribute__ ((aligned (32)));
-
-void x16r_get_hash_order( const struct work *work, char *hash_order )
+void x16r_getAlgoString( const uint8_t* prevblock, char *output )
 {
-   char *sptr = hash_order;
-   const uint32_t *pdata = work->data;
-   uint8_t prevblock[16];
-   ((uint32_t*)prevblock)[0] = bswap_32( pdata[1] );
-   ((uint32_t*)prevblock)[1] = bswap_32( pdata[2] );
-
+   char *sptr = output;
    for ( int j = 0; j < X16R_HASH_FUNC_COUNT; j++ )
    {
       uint8_t b = (15 - j) >> 1; // 16 first ascii hex chars (lsb in uint256)
@@ -50,51 +32,38 @@ void x16r_get_hash_order( const struct work *work, char *hash_order )
       sptr++;
    }
    *sptr = '\0';
-
-   if ( !opt_quiet )
-      applog( LOG_INFO, "Hash order %s", x16r_hash_order );
 }
-   
-void x16s_get_hash_order( const struct work *work, char *hash_order )
+
+void x16s_getAlgoString( const uint8_t* prevblock, char *output )
 {
-   const uint32_t *pdata = work->data;
-   uint8_t prevblock[16];
-   ((uint32_t*)prevblock)[0] = bswap_32( pdata[1] );
-   ((uint32_t*)prevblock)[1] = bswap_32( pdata[2] );
-   strcpy( hash_order, "0123456789ABCDEF" );
+   strcpy( output, "0123456789ABCDEF" );
    for ( int i = 0; i < 16; i++ )
    {
       uint8_t b = (15 - i) >> 1; // 16 ascii hex chars, reversed
       uint8_t algoDigit = (i & 1) ? prevblock[b] & 0xF : prevblock[b] >> 4;
       int offset = algoDigit;
       // insert the nth character at the front
-      char oldVal = hash_order[ offset ];
+      char oldVal = output[offset];
       for( int j = offset; j-- > 0; )
-         hash_order[ j+1 ] = hash_order[ j ];
-      hash_order[ 0 ] = oldVal;
+         output[j+1] = output[j];
+      output[0] = oldVal;
    }
-
-   if ( !opt_quiet )
-      applog( LOG_INFO, "Hash order %s", x16r_hash_order );
 }
 
 bool register_x16r_algo( algo_gate_t* gate )
 {
 #if defined (X16R_8WAY)
   gate->scanhash  = (void*)&scanhash_x16r_8way;
-  gate->prehash   = (void*)&x16r_8way_prehash;
   gate->hash      = (void*)&x16r_8way_hash;
 #elif defined (X16R_4WAY)
   gate->scanhash  = (void*)&scanhash_x16r_4way;
-  gate->prehash   = (void*)&x16r_4way_prehash;
   gate->hash      = (void*)&x16r_4way_hash;
 #else
   gate->scanhash  = (void*)&scanhash_x16r;
-  gate->prehash   = (void*)&x16r_prehash;
   gate->hash      = (void*)&x16r_hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
-  x16r_gate_get_hash_order = (void*)&x16r_get_hash_order;
+  x16_r_s_getAlgoString = (void*)&x16r_getAlgoString;
   opt_target_factor = 256.0;
   return true;
 };
@@ -102,20 +71,17 @@ bool register_x16r_algo( algo_gate_t* gate )
 bool register_x16rv2_algo( algo_gate_t* gate )
 {
 #if defined (X16RV2_8WAY)
-  gate->scanhash  = (void*)&scanhash_x16r_8way;
-  gate->prehash   = (void*)&x16rv2_8way_prehash;
+  gate->scanhash  = (void*)&scanhash_x16rv2_8way;
   gate->hash      = (void*)&x16rv2_8way_hash;
 #elif defined (X16RV2_4WAY)
-  gate->scanhash  = (void*)&scanhash_x16r_4way;
-  gate->prehash   = (void*)&x16rv2_4way_prehash;
+  gate->scanhash  = (void*)&scanhash_x16rv2_4way;
   gate->hash      = (void*)&x16rv2_4way_hash;
 #else
-  gate->scanhash  = (void*)&scanhash_x16r;
-  gate->prehash   = (void*)&x16rv2_prehash;
+  gate->scanhash  = (void*)&scanhash_x16rv2;
   gate->hash      = (void*)&x16rv2_hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
-  x16r_gate_get_hash_order = (void*)&x16r_get_hash_order;
+  x16_r_s_getAlgoString = (void*)&x16r_getAlgoString;
   opt_target_factor = 256.0;
   return true;
 };
@@ -124,19 +90,16 @@ bool register_x16s_algo( algo_gate_t* gate )
 {
 #if defined (X16R_8WAY)
   gate->scanhash  = (void*)&scanhash_x16r_8way;
-  gate->prehash   = (void*)&x16r_8way_prehash;
   gate->hash      = (void*)&x16r_8way_hash;
 #elif defined (X16R_4WAY)
   gate->scanhash  = (void*)&scanhash_x16r_4way;
-  gate->prehash   = (void*)&x16r_4way_prehash;
   gate->hash      = (void*)&x16r_4way_hash;
 #else
   gate->scanhash  = (void*)&scanhash_x16r;
-  gate->prehash   = (void*)&x16r_prehash;
   gate->hash      = (void*)&x16r_hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
-  x16r_gate_get_hash_order = (void*)&x16s_get_hash_order;
+  x16_r_s_getAlgoString = (void*)&x16s_getAlgoString;
   opt_target_factor = 256.0;
   return true;
 };
@@ -145,33 +108,30 @@ bool register_x16s_algo( algo_gate_t* gate )
 //
 //   X16RT
 
-void x16rt_get_hash_order( const struct work * work, char * hash_order )
-{   
-   uint32_t _ALIGN(64) timehash[8*8];
-   const uint32_t ntime = bswap_32( work->data[17] );
-   const int32_t masked_ntime = ntime & 0xffffff80;
-   uint8_t* data = (uint8_t*)timehash;
-   char *sptr = hash_order;
 
-   sha256d( (unsigned char*)timehash, (const unsigned char*)( &masked_ntime ),
-             sizeof( masked_ntime ) );
+void x16rt_getTimeHash( const uint32_t timeStamp, void* timeHash )
+{
+    int32_t maskedTime = timeStamp & 0xffffff80;
+    sha256d( (unsigned char*)timeHash, (const unsigned char*)( &maskedTime ),
+             sizeof( maskedTime ) );
+}
 
-   for ( uint8_t j = 0; j < X16R_HASH_FUNC_COUNT; j++ )
-   {
+void x16rt_getAlgoString( const uint32_t *timeHash, char *output)
+{
+   char *sptr = output;
+   uint8_t* data = (uint8_t*)timeHash;
+
+   for (uint8_t j = 0; j < X16R_HASH_FUNC_COUNT; j++) {
       uint8_t b = (15 - j) >> 1; // 16 ascii hex chars, reversed
       uint8_t algoDigit = (j & 1) ? data[b] & 0xF : data[b] >> 4;
 
-      if ( algoDigit >= 10 )
-         sprintf( sptr, "%c", 'A' + (algoDigit - 10) );
+      if (algoDigit >= 10)
+         sprintf(sptr, "%c", 'A' + (algoDigit - 10));
       else
-         sprintf( sptr, "%u", (uint32_t) algoDigit );
+         sprintf(sptr, "%u", (uint32_t) algoDigit);
       sptr++;
    }
    *sptr = '\0';
-
-   if ( !opt_quiet )
-      applog( LOG_INFO, "Hash order %s, ntime %08x, time hash %08x",
-                         hash_order, ntime, timehash );
 }
 
 void veil_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
@@ -262,19 +222,15 @@ void veil_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 bool register_x16rt_algo( algo_gate_t* gate )
 {
 #if defined (X16R_8WAY)
-  gate->scanhash  = (void*)&scanhash_x16r_8way;
-  gate->prehash   = (void*)&x16r_8way_prehash;
+  gate->scanhash  = (void*)&scanhash_x16rt_8way;
   gate->hash      = (void*)&x16r_8way_hash;
 #elif defined (X16R_4WAY)
-  gate->scanhash  = (void*)&scanhash_x16r_4way;
-  gate->prehash   = (void*)&x16r_4way_prehash;
+  gate->scanhash  = (void*)&scanhash_x16rt_4way;
   gate->hash      = (void*)&x16r_4way_hash;
 #else
-  gate->scanhash  = (void*)&scanhash_x16r;
-  gate->prehash   = (void*)&x16r_prehash;
+  gate->scanhash  = (void*)&scanhash_x16rt;
   gate->hash      = (void*)&x16r_hash;
 #endif
-  x16r_gate_get_hash_order = (void*)&x16rt_get_hash_order;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
   opt_target_factor = 256.0;
   return true;
@@ -283,20 +239,16 @@ bool register_x16rt_algo( algo_gate_t* gate )
 bool register_x16rt_veil_algo( algo_gate_t* gate )
 {
 #if defined (X16R_8WAY)
-  gate->scanhash  = (void*)&scanhash_x16r_8way;
-  gate->prehash   = (void*)&x16r_8way_prehash;
+  gate->scanhash  = (void*)&scanhash_x16rt_8way;
   gate->hash      = (void*)&x16r_8way_hash;
 #elif defined (X16R_4WAY)
-  gate->scanhash  = (void*)&scanhash_x16r_4way;
-  gate->prehash   = (void*)&x16r_4way_prehash;
+  gate->scanhash  = (void*)&scanhash_x16rt_4way;
   gate->hash      = (void*)&x16r_4way_hash;
 #else
-  gate->scanhash  = (void*)&scanhash_x16r;
-  gate->prehash   = (void*)&x16r_prehash;
+  gate->scanhash  = (void*)&scanhash_x16rt;
   gate->hash      = (void*)&x16r_hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
-  x16r_gate_get_hash_order = (void*)&x16rt_get_hash_order;
   gate->build_extraheader = (void*)&veil_build_extraheader;
   opt_target_factor = 256.0;
   return true;
@@ -323,23 +275,20 @@ bool register_hex_algo( algo_gate_t* gate )
 bool register_x21s_algo( algo_gate_t* gate )
 {
 #if defined (X16R_8WAY)
-  gate->scanhash          = (void*)&scanhash_x16r_8way;
-  gate->prehash           = (void*)&x16r_8way_prehash;
+  gate->scanhash          = (void*)&scanhash_x21s_8way;
   gate->hash              = (void*)&x21s_8way_hash;
   gate->miner_thread_init = (void*)&x21s_8way_thread_init;
 #elif defined (X16R_4WAY)
-  gate->scanhash          = (void*)&scanhash_x16r_4way;
-  gate->prehash           = (void*)&x16r_4way_prehash;
+  gate->scanhash          = (void*)&scanhash_x21s_4way;
   gate->hash              = (void*)&x21s_4way_hash;
   gate->miner_thread_init = (void*)&x21s_4way_thread_init;
 #else
-  gate->scanhash          = (void*)&scanhash_x16r;
-  gate->prehash           = (void*)&x16r_prehash;
+  gate->scanhash          = (void*)&scanhash_x21s;
   gate->hash              = (void*)&x21s_hash;
   gate->miner_thread_init = (void*)&x21s_thread_init;
 #endif
   gate->optimizations  = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
-  x16r_gate_get_hash_order = (void*)&x16s_get_hash_order;
+  x16_r_s_getAlgoString   = (void*)&x16s_getAlgoString;
   opt_target_factor = 256.0;
   return true;
 };

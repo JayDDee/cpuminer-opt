@@ -37,7 +37,6 @@
 #include <curl/curl.h>
 #include <jansson.h>
 #include <openssl/sha.h>
-#include <mm_malloc.h>
 #include "sysinfos.c"
 #include "algo/sha/sha256d.h"
 
@@ -318,9 +317,8 @@ static void affine_to_cpu( struct thr_info *thr )
    if ( !ok )
    {
       last_error = GetLastError();
-      if ( !thread )
-      applog( LOG_WARNING, "Set affinity returned error 0x%x for thread %d",
-                           last_error, thread );
+      applog( LOG_WARNING, "affine_to_cpu_mask for %u returned 0x%x",
+                           thread, last_error );
    }
 }   
 
@@ -1727,9 +1725,9 @@ static bool workio_get_work( struct workio_cmd *wc, CURL *curl )
    struct work *ret_work;
    int failures = 0;
 
-   ret_work = (struct work*) _mm_malloc( sizeof(*ret_work), 32 );
-   if ( !ret_work )  return false;
-   memset( ret_work, 0, sizeof(*ret_work) );
+   ret_work = (struct work*) calloc( 1, sizeof(*ret_work) );
+   if ( !ret_work )
+	return false;
 
    /* obtain new work from bitcoin via JSON-RPC */
    while ( !get_upstream_work( curl, ret_work ) )
@@ -1738,22 +1736,21 @@ static bool workio_get_work( struct workio_cmd *wc, CURL *curl )
       {
          applog( LOG_ERR, "json_rpc_call failed, terminating workio thread" );
          free( ret_work );
-         return false;
+	      return false;
       }
 
       /* pause, then restart work-request loop */
-      applog( LOG_ERR, "json_rpc_call failed, retry after %d seconds",
-              opt_fail_pause );
+	   applog( LOG_ERR, "json_rpc_call failed, retry after %d seconds",
+		        opt_fail_pause );
       sleep( opt_fail_pause );
    }
 
    /* send work to requesting thread */
    if ( !tq_push(wc->thr->q, ret_work ) )
-      free( ret_work );
+   	free( ret_work );
 
    return true;
 }
-
 
 static bool workio_submit_work(struct workio_cmd *wc, CURL *curl)
 {
@@ -1973,15 +1970,15 @@ static bool wanna_mine(int thr_id)
 		float temp = cpu_temp(0);
 		if (temp > opt_max_temp)
       {
-         if ( !thr_id && !conditional_state[thr_id] && !opt_quiet )
-           applog(LOG_NOTICE, "CPU temp too high: %.0fC max %.0f, waiting...", temp, opt_max_temp );
-         state = false;
+			if (!thr_id && !conditional_state[thr_id] && !opt_quiet)
+				applog(LOG_INFO, "temperature too high (%.0fC), waiting...", temp);
+			state = false;
 		}
 	}
 	if (opt_max_diff > 0.0 && net_diff > opt_max_diff)
    {
 		if (!thr_id && !conditional_state[thr_id] && !opt_quiet)
-			applog(LOG_NOTICE, "network diff too high, waiting...");
+			applog(LOG_INFO, "network diff too high, waiting...");
 		state = false;
 	}
 	if (opt_max_rate > 0.0 && net_hashrate > opt_max_rate)
@@ -1990,14 +1987,12 @@ static bool wanna_mine(int thr_id)
       {
 			char rate[32];
 			format_hashrate(opt_max_rate, rate);
-			applog(LOG_NOTICE, "network hashrate too high (%s), waiting...", rate);
+			applog(LOG_INFO, "network hashrate too high, waiting %s...", rate);
 		}
 		state = false;
 	}
-  
-   if ( conditional_state[thr_id] && state && !thr_id && !opt_quiet )
-      applog(LOG_NOTICE, "...resuming" );
-	conditional_state[thr_id] = (uint8_t) !state;
+	if (thr_id < MAX_CPUS)
+		conditional_state[thr_id] = (uint8_t) !state;
 	return state;
 }
 
@@ -2122,10 +2117,6 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
          t++ );
 
    g_work_time = time(NULL);
-
-   // Do midstate prehash
-   algo_gate.prehash( g_work );
-
    restart_threads();
 
    pthread_mutex_unlock( &sctx->work_lock );
@@ -2149,7 +2140,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    else if ( g_work->job_id && new_job )
       applog( LOG_BLUE, "New Work: Block %d, Net diff %.5g, Job %s",
                          sctx->block_height, net_diff, g_work->job_id );
-   else if ( opt_debug )
+   else if ( !opt_quiet )
    {
       unsigned char *xnonce2str = bebin2hex( g_work->xnonce2,
                                              g_work->xnonce2_len );
@@ -2344,9 +2335,6 @@ static void *miner_thread( void *userdata )
 		             goto out;
 	             }
                 g_work_time = time(NULL);
-
-                // do midstate prehash
-                algo_gate.prehash( &g_work );
                 restart_threads();
              }
 
@@ -2366,14 +2354,6 @@ static void *miner_thread( void *userdata )
        if ( unlikely( !algo_gate.ready_to_mine( &work, &stratum, thr_id ) ) )
           continue;
 
-       // conditional mining
-       if ( unlikely( !wanna_mine( thr_id ) ) )
-       {
-          restart_threads();
-          sleep(5);
-          continue;
-       }
-       
        // opt_scantime expressed in hashes
        max64 = opt_scantime * thr_hashrates[thr_id];
 
@@ -2520,6 +2500,14 @@ static void *miner_thread( void *userdata )
              }
           }
        }  // benchmark
+
+       // conditional mining
+       if ( unlikely( !wanna_mine( thr_id ) ) )
+       {
+          sleep(5);
+          continue;
+       }
+
    }  // miner_thread loop
 
 out:
@@ -3694,7 +3682,7 @@ int main(int argc, char *argv[])
 
 #if defined(WIN32)
 
-// Get the number of cpus, display after parsing command line
+// Are Windows CPU Groups supported?
 #if defined(WINDOWS_CPU_GROUPS_ENABLED)
  	num_cpus = 0;
 	num_cpugroups = GetActiveProcessorGroupCount();
@@ -3703,8 +3691,8 @@ int main(int argc, char *argv[])
  	   int cpus = GetActiveProcessorCount( i );
 	   num_cpus += cpus;
 
-//	   if (opt_debug)
-//         applog( LOG_INFO, "Found %d CPUs in CPU group %d", cpus, i );
+	   if (opt_debug)
+         applog( LOG_INFO, "Found %d CPUs in CPU group %d", cpus, i );
 	}
 
 #else
@@ -3721,7 +3709,7 @@ int main(int argc, char *argv[])
 	sysctl(req, 2, &num_cpus, &len, NULL, 0);
 #else
 	num_cpus = 1;
-#endif 
+#endif
 
    if ( num_cpus < 1 )
       num_cpus = 1;
@@ -3873,11 +3861,6 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-#if defined(WIN32) && defined(WINDOWS_CPU_GROUPS_ENABLED)
-      if ( !opt_quiet )
-         applog( LOG_INFO, "Found %d CPUs in %d groups", num_cpus, num_cpugroups );
-#endif
-   
    if ( opt_affinity && num_cpus > max_cpus )
    {
       applog( LOG_WARNING, "More than %d CPUs, CPU affinity is disabled",
@@ -3889,7 +3872,7 @@ int main(int argc, char *argv[])
    {
       for ( int thr = 0, cpu = 0; thr < opt_n_threads; thr++, cpu++ )
       {
-         while ( !( ( opt_affinity >> ( cpu & 63 ) ) & 1ULL ) ) cpu++;   
+         while ( !( ( opt_affinity >> ( cpu&63 ) ) & 1ULL ) ) cpu++;   
          thread_affinity_map[ thr ] = cpu % num_cpus;
       }
       if ( !opt_quiet )

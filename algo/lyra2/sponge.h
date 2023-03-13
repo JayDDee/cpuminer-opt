@@ -146,25 +146,14 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    b = mm128_ror_64( _mm_xor_si128( b, c ), 63 );
 
 #define LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
-{ \
-   __m128i t; \
    G_2X64( s0, s2, s4, s6 ); \
    G_2X64( s1, s3, s5, s7 ); \
-   t = mm128_alignr_64( s7, s6, 1 ); \
-   s6 = mm128_alignr_64( s6, s7, 1 ); \
-   s7 = t; \
-   t = mm128_alignr_64( s2, s3, 1 ); \
-   s2 =  mm128_alignr_64( s3, s2, 1 ); \
-   s3 = t; \
+   mm128_vrol256_64( s6, s7 ); \
+   mm128_vror256_64( s2, s3 ); \
    G_2X64( s0, s2, s5, s6 ); \
    G_2X64( s1, s3, s4, s7 ); \
-   t = mm128_alignr_64( s6, s7, 1 ); \
-   s6 = mm128_alignr_64( s7, s6, 1 ); \
-   s7 = t; \
-   t = mm128_alignr_64( s3, s2, 1 ); \
-   s2 =  mm128_alignr_64( s2, s3, 1 ); \
-   s3 = t; \
-} 
+   mm128_vror256_64( s6, s7 ); \
+   mm128_vrol256_64( s2, s3 );
 
 #define LYRA_12_ROUNDS_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
    LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \

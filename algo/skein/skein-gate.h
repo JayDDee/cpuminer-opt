@@ -14,24 +14,20 @@
 void skeinhash_8way( void *output, const void *input );
 int scanhash_skein_8way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
-int skein_8way_prehash( struct work * );
 
 void skein2hash_8way( void *output, const void *input );
 int scanhash_skein2_8way( struct work *work, uint32_t max_nonce,
                           uint64_t* hashes_done, struct thr_info *mythr );
-int skein2_8way_prehash( struct work * );
 
 #elif defined(SKEIN_4WAY)
 
 void skeinhash_4way( void *output, const void *input );
 int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
-int skein_4way_prehash( struct work * );
 
 void skein2hash_4way( void *output, const void *input );
 int scanhash_skein2_4way( struct work *work, uint32_t max_nonce,
                           uint64_t* hashes_done, struct thr_info *mythr );
-int skein2_4way_prehash( struct work * );
 
 #else
 

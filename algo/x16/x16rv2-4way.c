@@ -12,73 +12,37 @@
 
 #if defined (X16RV2_8WAY)
 
-void x16rv2_8way_do_prehash( void *vdata, void *pdata )
+union _x16rv2_8way_context_overlay
 {
-   uint32_t vdata32[20*8] __attribute__ ((aligned (64)));
-   uint32_t edata[20] __attribute__ ((aligned (64)));
+    blake512_8way_context   blake;
+    bmw512_8way_context     bmw;
+    skein512_8way_context   skein;
+    jh512_8way_context      jh;
+    keccak512_8way_context  keccak;
+    luffa_4way_context      luffa;
+    cubehashParam           cube;
+    simd_4way_context       simd;
+    hamsi512_8way_context   hamsi;
+    hashState_fugue         fugue;
+    shabal512_8way_context  shabal;
+    sph_whirlpool_context   whirlpool;
+    sha512_8way_context     sha512;
+    sph_tiger_context       tiger;
+#if defined(__VAES__)
+    groestl512_4way_context groestl;
+    shavite512_4way_context shavite;
+    echo_4way_context       echo;
+#else
+    hashState_groestl       groestl;
+    shavite512_context      shavite;
+    hashState_echo          echo;
+#endif
+} __attribute__ ((aligned (64)));
 
-   const char elem = x16r_hash_order[0];
-   const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
+typedef union _x16rv2_8way_context_overlay x16rv2_8way_context_overlay;
+static __thread x16rv2_8way_context_overlay x16rv2_ctx;
 
-   switch ( algo )
-   {
-      case JH:
-         mm512_bswap32_intrlv80_8x64( vdata, pdata );
-         jh512_8way_init( &x16rv2_ctx.jh );
-         jh512_8way_update( &x16rv2_ctx.jh, vdata, 64 );
-      break;
-      case KECCAK:
-      case LUFFA:
-      case SHA_512:
-         mm128_bswap32_80( edata, pdata );
-         sph_tiger_init( &x16rv2_ctx.tiger );
-         sph_tiger( &x16rv2_ctx.tiger, edata, 64 );
-         intrlv_8x64( vdata, edata, edata, edata, edata,
-                             edata, edata, edata, edata, 640 );
-      break;
-      case SKEIN:
-         mm512_bswap32_intrlv80_8x64( vdata, pdata );
-         skein512_8way_init( &x16rv2_ctx.skein );
-         skein512_8way_update( &x16rv2_ctx.skein, vdata, 64 );
-      break;
-      case CUBEHASH:
-         mm128_bswap32_80( edata, pdata );
-         cubehashInit( &x16rv2_ctx.cube, 512, 16, 32 );
-         cubehashUpdate( &x16rv2_ctx.cube, (const byte*)edata, 64 );
-         intrlv_8x64( vdata, edata, edata, edata, edata,
-                             edata, edata, edata, edata, 640 );
-      break;
-      case HAMSI:
-         mm512_bswap32_intrlv80_8x64( vdata, pdata );
-         hamsi512_8way_init( &x16rv2_ctx.hamsi );
-         hamsi512_8way_update( &x16rv2_ctx.hamsi, vdata, 64 );
-      break;
-      case SHABAL:
-         mm256_bswap32_intrlv80_8x32( vdata32, pdata );
-         shabal512_8way_init( &x16rv2_ctx.shabal );
-         shabal512_8way_update( &x16rv2_ctx.shabal, vdata32, 64 );
-         rintrlv_8x32_8x64( vdata, vdata32, 640 );
-      break;
-      case WHIRLPOOL:
-         mm128_bswap32_80( edata, pdata );
-         sph_whirlpool_init( &x16rv2_ctx.whirlpool );
-         sph_whirlpool( &x16rv2_ctx.whirlpool, edata, 64 );
-         intrlv_8x64( vdata, edata, edata, edata, edata,
-                             edata, edata, edata, edata, 640 );
-      break;
-      default:
-         mm512_bswap32_intrlv80_8x64( vdata, pdata );
-   }
-}
-
-int x16rv2_8way_prehash( struct work *work )
-{
-   x16r_gate_get_hash_order( work, x16r_hash_order );
-   x16rv2_8way_do_prehash( x16r_8way_vdata, work->data );
-   return 1;
-}
-
-int x16rv2_8way_hash( void* output, const void* input, const int thrid )
+int x16rv2_8way_hash( void* output, const void* input, int thrid )
 {
    uint32_t vhash[24*8] __attribute__ ((aligned (128)));
    uint32_t hash0[24] __attribute__ ((aligned (32)));
@@ -593,28 +557,50 @@ int x16rv2_8way_hash( void* output, const void* input, const int thrid )
    return 1;
 }
 
-#elif defined (X16RV2_4WAY)
-
-// Pad the 24 bytes tiger hash to 64 bytes
-inline void padtiger512( uint32_t* hash )
+int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr)
 {
-  for ( int i = 6; i < 16; i++ ) hash[i] = 0;
-}
-
-void x16rv2_4way_do_prehash( void *vdata, void *pdata )
-{
-   uint32_t vdata32[20*4] __attribute__ ((aligned (64)));
+   uint32_t hash[16*8] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
+   uint32_t vdata2[20*8] __attribute__ ((aligned (64)));
    uint32_t edata[20] __attribute__ ((aligned (64)));
+   uint32_t bedata1[2] __attribute__((aligned(64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 8;
+   uint32_t n = first_nonce;
+    __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
+   const int thr_id = mythr->id;
+   volatile uint8_t *restart = &(work_restart[thr_id].restart);
+   const bool bench = opt_benchmark;
 
+   if ( bench ) ptarget[7] = 0x0cff;
+
+   mm512_bswap32_intrlv80_8x64( vdata, pdata );
+
+   bedata1[0] = bswap_32( pdata[1] );
+   bedata1[1] = bswap_32( pdata[2] );
+
+   static __thread uint32_t s_ntime = UINT32_MAX;
+   const uint32_t ntime = bswap_32( pdata[17] );
+   if ( s_ntime != ntime )
+   {
+      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
+      s_ntime = ntime;
+      if ( opt_debug && !thr_id )
+         applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
+   }
+
+   // Do midstate prehash on hash functions with block size <= 64 bytes.
    const char elem = x16r_hash_order[0];
    const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
-
    switch ( algo )
    {
       case JH:
-         mm256_bswap32_intrlv80_4x64( vdata, pdata );
-         jh512_4way_init( &x16rv2_ctx.jh );
-         jh512_4way_update( &x16rv2_ctx.jh, vdata, 64 );
+         mm512_bswap32_intrlv80_8x64( vdata, pdata );
+         jh512_8way_init( &x16rv2_ctx.jh );
+         jh512_8way_update( &x16rv2_ctx.jh, vdata, 64 );
       break;
       case KECCAK:
       case LUFFA:
@@ -622,45 +608,100 @@ void x16rv2_4way_do_prehash( void *vdata, void *pdata )
          mm128_bswap32_80( edata, pdata );
          sph_tiger_init( &x16rv2_ctx.tiger );
          sph_tiger( &x16rv2_ctx.tiger, edata, 64 );
-         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+         intrlv_8x64( vdata, edata, edata, edata, edata,
+                             edata, edata, edata, edata, 640 );
       break;
       case SKEIN:
-         mm256_bswap32_intrlv80_4x64( vdata, pdata );
-         skein512_4way_prehash64( &x16r_ctx.skein, vdata );
+         mm512_bswap32_intrlv80_8x64( vdata, pdata );
+         skein512_8way_init( &x16rv2_ctx.skein );
+         skein512_8way_update( &x16rv2_ctx.skein, vdata, 64 );
       break;
       case CUBEHASH:
          mm128_bswap32_80( edata, pdata );
          cubehashInit( &x16rv2_ctx.cube, 512, 16, 32 );
          cubehashUpdate( &x16rv2_ctx.cube, (const byte*)edata, 64 );
-         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+         intrlv_8x64( vdata, edata, edata, edata, edata,
+                             edata, edata, edata, edata, 640 );
       break;
       case HAMSI:
-         mm256_bswap32_intrlv80_4x64( vdata, pdata );
-         hamsi512_4way_init( &x16rv2_ctx.hamsi );
-         hamsi512_4way_update( &x16rv2_ctx.hamsi, vdata, 64 );
+         mm512_bswap32_intrlv80_8x64( vdata, pdata );
+         hamsi512_8way_init( &x16rv2_ctx.hamsi );
+         hamsi512_8way_update( &x16rv2_ctx.hamsi, vdata, 64 );
       break;
       case SHABAL:
-         mm128_bswap32_intrlv80_4x32( vdata32, pdata );
-         shabal512_4way_init( &x16rv2_ctx.shabal );
-         shabal512_4way_update( &x16rv2_ctx.shabal, vdata32, 64 );
-         rintrlv_4x32_4x64( vdata, vdata32, 640 );
+         mm256_bswap32_intrlv80_8x32( vdata2, pdata );
+         shabal512_8way_init( &x16rv2_ctx.shabal );
+         shabal512_8way_update( &x16rv2_ctx.shabal, vdata2, 64 );
+         rintrlv_8x32_8x64( vdata, vdata2, 640 );
       break;
       case WHIRLPOOL:
          mm128_bswap32_80( edata, pdata );
          sph_whirlpool_init( &x16rv2_ctx.whirlpool );
          sph_whirlpool( &x16rv2_ctx.whirlpool, edata, 64 );
-         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+         intrlv_8x64( vdata, edata, edata, edata, edata,
+                             edata, edata, edata, edata, 640 );
       break;
       default:
-         mm256_bswap32_intrlv80_4x64( vdata, pdata );
+         mm512_bswap32_intrlv80_8x64( vdata, pdata );
    }
-}   
+   
+   *noncev = mm512_intrlv_blend_32( _mm512_set_epi32(
+                             n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                             n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
+   do
+   {
+      if ( x16rv2_8way_hash( hash, vdata, thr_id ) )
+      for ( int i = 0; i < 8; i++ )
+      if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
+      {
+         pdata[19] = bswap_32( n+i );
+         submit_solution( work, hash+(i<<3), mythr );
+      }
+      *noncev = _mm512_add_epi32( *noncev,
+                                  m512_const1_64( 0x0000000800000000 ) );
+      n += 8;
+   } while ( likely( ( n < last_nonce ) && !(*restart) ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
 
-int x16rv2_4way_prehash( struct work *work )
+#elif defined (X16RV2_4WAY)
+
+union _x16rv2_4way_context_overlay
 {
-   x16r_gate_get_hash_order( work, x16r_hash_order );
-   x16rv2_4way_do_prehash( x16r_4way_vdata, work->data );
-   return 1;
+    blake512_4way_context   blake;
+    bmw512_4way_context     bmw;
+#if defined(__VAES__)
+    groestl512_2way_context groestl;
+    shavite512_2way_context shavite;
+    echo_2way_context       echo;
+#else
+    hashState_groestl       groestl;
+    shavite512_context      shavite;
+    hashState_echo          echo;
+#endif
+    skein512_4way_context   skein;
+    jh512_4way_context      jh;
+    keccak512_4way_context  keccak;
+    luffa_2way_context      luffa;
+    cubehashParam           cube;
+    simd_2way_context       simd;
+    hamsi512_4way_context   hamsi;
+    hashState_fugue         fugue;
+    shabal512_4way_context  shabal;
+    sph_whirlpool_context   whirlpool;
+    sha512_4way_context     sha512;
+    sph_tiger_context       tiger;
+};
+typedef union _x16rv2_4way_context_overlay x16rv2_4way_context_overlay;
+
+static __thread x16rv2_4way_context_overlay x16rv2_ctx;
+
+// Pad the 24 bytes tiger hash to 64 bytes
+inline void padtiger512( uint32_t* hash )
+{
+  for ( int i = 6; i < 16; i++ ) hash[i] = 0;
 }
 
 int x16rv2_4way_hash( void* output, const void* input, int thrid )
@@ -1005,6 +1046,109 @@ int x16rv2_4way_hash( void* output, const void* input, int thrid )
    memcpy( output+64, hash2, 32 );
    memcpy( output+96, hash3, 32 );
    return 1;
+}
+
+int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr)
+{
+   uint32_t hash[4*16] __attribute__ ((aligned (64)));
+   uint32_t vdata[24*4] __attribute__ ((aligned (64)));
+   uint32_t vdata32[20*4] __attribute__ ((aligned (64)));
+   uint32_t edata[20];
+   uint32_t bedata1[2];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 4;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id; 
+    __m256i  *noncev = (__m256i*)vdata + 9; 
+   volatile uint8_t *restart = &(work_restart[thr_id].restart);
+   const bool bench = opt_benchmark;
+
+   if ( bench )  ptarget[7] = 0x0fff;
+   
+   bedata1[0] = bswap_32( pdata[1] );
+   bedata1[1] = bswap_32( pdata[2] );
+
+   static __thread uint32_t s_ntime = UINT32_MAX;
+   const uint32_t ntime = bswap_32(pdata[17]);
+   if ( s_ntime != ntime )
+   {
+      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
+      s_ntime = ntime;
+      if ( opt_debug && !thr_id )
+         applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
+   }
+
+   // Do midstate prehash on hash functions with block size <= 64 bytes.
+   const char elem = x16r_hash_order[0];
+   const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
+   switch ( algo )
+   {
+      case JH:
+         mm256_bswap32_intrlv80_4x64( vdata, pdata );
+         jh512_4way_init( &x16rv2_ctx.jh );
+         jh512_4way_update( &x16rv2_ctx.jh, vdata, 64 );
+      break;
+      case KECCAK:
+      case LUFFA:
+      case SHA_512:
+         mm128_bswap32_80( edata, pdata );
+         sph_tiger_init( &x16rv2_ctx.tiger );
+         sph_tiger( &x16rv2_ctx.tiger, edata, 64 );
+         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+      break;
+      case SKEIN:
+         mm256_bswap32_intrlv80_4x64( vdata, pdata );
+         skein512_4way_prehash64( &x16r_ctx.skein, vdata );
+      break;
+      case CUBEHASH:
+         mm128_bswap32_80( edata, pdata );
+         cubehashInit( &x16rv2_ctx.cube, 512, 16, 32 );
+         cubehashUpdate( &x16rv2_ctx.cube, (const byte*)edata, 64 );
+         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+      break;
+      case HAMSI:
+         mm256_bswap32_intrlv80_4x64( vdata, pdata );
+         hamsi512_4way_init( &x16rv2_ctx.hamsi );
+         hamsi512_4way_update( &x16rv2_ctx.hamsi, vdata, 64 );
+      break;
+      case SHABAL:
+         mm128_bswap32_intrlv80_4x32( vdata32, pdata );
+         shabal512_4way_init( &x16rv2_ctx.shabal );
+         shabal512_4way_update( &x16rv2_ctx.shabal, vdata32, 64 );
+         rintrlv_4x32_4x64( vdata, vdata32, 640 );
+      break;
+      case WHIRLPOOL:
+         mm128_bswap32_80( edata, pdata );
+         sph_whirlpool_init( &x16rv2_ctx.whirlpool );
+         sph_whirlpool( &x16rv2_ctx.whirlpool, edata, 64 );
+         intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
+      break;
+      default:
+         mm256_bswap32_intrlv80_4x64( vdata, pdata );
+   }
+
+   *noncev = mm256_intrlv_blend_32(
+                   _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
+
+   do
+   {
+      if ( x16rv2_4way_hash( hash, vdata, thr_id ) )
+      for ( int i = 0; i < 4; i++ )
+      if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
+      {
+         pdata[19] = bswap_32( n+i );
+         submit_solution( work, hash+(i<<3), mythr );
+      }
+      *noncev = _mm256_add_epi32( *noncev,
+                                  m256_const1_64( 0x0000000400000000 ) );
+      n += 4;
+   } while ( likely( ( n < last_nonce ) && !(*restart) ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
 }
 
 #endif

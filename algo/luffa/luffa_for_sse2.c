@@ -19,34 +19,26 @@
  */
 
 #include <string.h>
+#include <emmintrin.h>
 #include "simd-utils.h"
 #include "luffa_for_sse2.h"
 
-#if defined(__AVX512VL__)
-
-#define MULT2( a0, a1 ) \
-{ \
-  __m128i b = _mm_xor_si128( a0, _mm_maskz_shuffle_epi32( 0xb, a1, 0x10 ) ); \
-  a0 = _mm_alignr_epi32( a1, b, 1 ); \
-  a1 = _mm_alignr_epi32( b, a1, 1 ); \
-}
-
-#elif defined(__SSE4_1__)
+#if defined(__SSE4_1__)
 
 #define MULT2( a0, a1 ) do \
 { \
-  __m128i b = _mm_xor_si128( a0, _mm_shuffle_epi32( mm128_mask_32( a1, 0xe ), 0x10 ) ); \
-  a0 = _mm_alignr_epi8( a1, b, 4 ); \
-  a1 = _mm_alignr_epi8( b, a1, 4 ); \
+  __m128i b =  _mm_xor_si128( a0, _mm_shuffle_epi32( mm128_mask_32( a1, 0xe ), 0x10 ) ); \
+  a0 = _mm_or_si128( _mm_srli_si128( b, 4 ), _mm_slli_si128( a1, 12 ) ); \
+  a1 = _mm_or_si128( _mm_srli_si128( a1, 4 ), _mm_slli_si128( b, 12 ) );  \
 } while(0)
 
 #else
 
 #define MULT2( a0, a1 ) do \
 { \
-  __m128i b = _mm_xor_si128( a0, _mm_shuffle_epi32( _mm_and_si128( a1, MASK ), 0x10 ) ); \
+  __m128i b =  _mm_xor_si128( a0, _mm_shuffle_epi32( _mm_and_si128( a1, MASK ), 16 ) ); \
   a0 = _mm_or_si128( _mm_srli_si128( b, 4 ), _mm_slli_si128( a1, 12 ) ); \
-  a1 = _mm_or_si128( _mm_srli_si128( a1, 4 ), _mm_slli_si128( b, 12 ) ); \
+  a1 = _mm_or_si128( _mm_srli_si128( a1, 4 ), _mm_slli_si128( b, 12 ) );  \
 } while(0)
 
 #endif

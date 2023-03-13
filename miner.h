@@ -392,8 +392,8 @@ float cpu_temp( int core );
 
 struct work
 {
-   uint32_t data[48] __attribute__ ((aligned (64)));
-   uint32_t target[8] __attribute__ ((aligned (32)));
+   uint32_t target[8] __attribute__ ((aligned (64)));
+	uint32_t data[48] __attribute__ ((aligned (64)));
 	double targetdiff;
 	double sharediff;
    double stratum_diff;

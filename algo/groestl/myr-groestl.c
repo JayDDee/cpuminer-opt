@@ -73,11 +73,11 @@ int scanhash_myriad( struct work *work, uint32_t max_nonce,
       be32enc(&endiandata[19], nonce);
       myriad_hash(hash, endiandata);
 
-      if (hash[7] <= Htarg )
-      if ( fulltest(hash, ptarget) && !opt_benchmark )
+      if (hash[7] <= Htarg && fulltest(hash, ptarget))
       {
          pdata[19] = nonce;
-         submit_solution( work, hash, mythr );
+         *hashes_done = pdata[19] - first_nonce;
+         return 1;
       }
       nonce++;
 

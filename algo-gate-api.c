@@ -253,7 +253,6 @@ void init_algo_gate( algo_gate_t* gate )
    gate->miner_thread_init       = (void*)&return_true;
    gate->scanhash                = (void*)&scanhash_generic;
    gate->hash                    = (void*)&null_hash;
-   gate->prehash                 = (void*)&return_true;
    gate->get_new_work            = (void*)&std_get_new_work;
    gate->work_decode             = (void*)&std_le_work_decode;
    gate->decode_extra_data       = (void*)&do_nothing;

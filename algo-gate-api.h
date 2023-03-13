@@ -119,16 +119,13 @@ typedef struct
 // to be registered with the gate. 
 int ( *scanhash ) ( struct work*, uint32_t, uint64_t*, struct thr_info* );
 
-int ( *hash )     ( void*, const void*, const int );
+int ( *hash )     ( void*, const void*, int );
 
 //optional, safe to use default in most cases
 
 // Called once by each miner thread to allocate thread local buffers and
 // other initialization specific to miner threads.
 bool ( *miner_thread_init )     ( int );
-
-// Perform prehash after receiving new work
-int ( *prehash )                ( struct work* );
 
 // Get thread local copy of blockheader with unique nonce.
 void ( *get_new_work )          ( struct work*, struct work*, int, uint32_t* );

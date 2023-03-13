@@ -105,8 +105,8 @@ int blake2s_4way_compress( blake2s_4way_state *S, const __m128i* block )
 
 #define G4W( sigma0, sigma1, a, b, c, d ) \
 do { \
-   const uint8_t s0 = sigma0; \
-   const uint8_t s1 = sigma1; \
+   uint8_t s0 = sigma0; \
+   uint8_t s1 = sigma1; \
    a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ s0 ] ); \
    d = mm128_swap32_16( _mm_xor_si128( d, a ) ); \
    c = _mm_add_epi32( c, d ); \
@@ -120,7 +120,7 @@ do { \
 
 #define ROUND4W(r)  \
 do { \
-   const uint8_t *sigma = (const uint8_t*)&blake2s_sigma[r]; \
+   uint8_t *sigma = (uint8_t*)&blake2s_sigma[r]; \
    G4W( sigma[ 0], sigma[ 1], v[ 0], v[ 4], v[ 8], v[12] ); \
    G4W( sigma[ 2], sigma[ 3], v[ 1], v[ 5], v[ 9], v[13] ); \
    G4W( sigma[ 4], sigma[ 5], v[ 2], v[ 6], v[10], v[14] ); \
@@ -317,8 +317,8 @@ do { \
 
 #define G8W( sigma0, sigma1, a, b, c, d) \
 do { \
-   const uint8_t s0 = sigma0; \
-   const uint8_t s1 = sigma1; \
+   uint8_t s0 = sigma0; \
+   uint8_t s1 = sigma1; \
    a = _mm256_add_epi32( _mm256_add_epi32( a, b ), m[ s0 ] ); \
    d = mm256_swap32_16( _mm256_xor_si256( d, a ) ); \
    c = _mm256_add_epi32( c, d ); \
@@ -331,7 +331,7 @@ do { \
 
 #define ROUND8W(r)  \
 do { \
-   const uint8_t *sigma = (const uint8_t*)&blake2s_sigma[r]; \
+   uint8_t *sigma = (uint8_t*)&blake2s_sigma[r]; \
    G8W( sigma[ 0], sigma[ 1], v[ 0], v[ 4], v[ 8], v[12] ); \
    G8W( sigma[ 2], sigma[ 3], v[ 1], v[ 5], v[ 9], v[13] ); \
    G8W( sigma[ 4], sigma[ 5], v[ 2], v[ 6], v[10], v[14] ); \
@@ -529,8 +529,8 @@ int blake2s_16way_compress( blake2s_16way_state *S, const __m512i *block )
 
 #define G16W( sigma0, sigma1, a, b, c, d) \
 do { \
-   const uint8_t s0 = sigma0; \
-   const uint8_t s1 = sigma1; \
+   uint8_t s0 = sigma0; \
+   uint8_t s1 = sigma1; \
    a = _mm512_add_epi32( _mm512_add_epi32( a, b ), m[ s0 ] ); \
    d = mm512_ror_32( _mm512_xor_si512( d, a ), 16 ); \
    c = _mm512_add_epi32( c, d ); \
@@ -543,7 +543,7 @@ do { \
 
 #define ROUND16W(r)  \
 do { \
-   const uint8_t *sigma = (const uint8_t*)&blake2s_sigma[r]; \
+   uint8_t *sigma = (uint8_t*)&blake2s_sigma[r]; \
    G16W( sigma[ 0], sigma[ 1], v[ 0], v[ 4], v[ 8], v[12] ); \
    G16W( sigma[ 2], sigma[ 3], v[ 1], v[ 5], v[ 9], v[13] ); \
    G16W( sigma[ 4], sigma[ 5], v[ 2], v[ 6], v[10], v[14] ); \

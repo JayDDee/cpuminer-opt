@@ -409,20 +409,19 @@ static inline __m512i mm512_shuflr_x64( const __m512i v, const int n )
 static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 { return _mm512_alignr_epi32( v, v, n ); }
 
-/* Not used
 #define mm512_shuflr_16( v ) \
    _mm512_permutexvar_epi16( m512_const_64( \
                        0x0000001F001E001D, 0x001C001B001A0019, \
-                       0x0018001700160015, 0x0014001300120011, \
-                       0x0010000F000E000D, 0x000C000B000A0009, \
-                       0x0008000700060005, 0x0004000300020001 ), v )
+                       0X0018001700160015, 0X0014001300120011, \
+                       0X0010000F000E000D, 0X000C000B000A0009, \
+                       0X0008000700060005, 0X0004000300020001 ), v )
 
 #define mm512_shufll_16( v ) \
    _mm512_permutexvar_epi16( m512_const_64( \
                        0x001E001D001C001B, 0x001A001900180017, \
-                       0x0016001500140013, 0x001200110010000F, \
-                       0x000E000D000C000B, 0x000A000900080007, \
-                       0x0006000500040003, 0x000200010000001F ), v )
+                       0X0016001500140013, 0X001200110010000F, \
+                       0X000E000D000C000B, 0X000A000900080007, \
+                       0X0006000500040003, 0X000200010000001F ), v )
 
 #define mm512_shuflr_8( v ) \
    _mm512_shuffle_epi8( v, m512_const_64( \
@@ -437,7 +436,6 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
                        0x2E2D2C2B2A292827, 0x262524232221201F, \
                        0x1E1D1C1B1A191817, 0x161514131211100F, \
                        0x0E0D0C0B0A090807, 0x060504030201003F ) )
-*/
 
 // 256 bit lanes used only by lyra2, move these there
 // Rotate elements within 256 bit lanes of 512 bit vector.
@@ -451,7 +449,7 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 #define mm512_shuflr256_64( v )     _mm512_permutex_epi64( v, 0x39 )
 #define mm512_shufll256_64( v )     _mm512_permutex_epi64( v, 0x93 )
 
-/* Not used
+/*
 // Rotate 256 bit lanes by one 32 bit element
 #define mm512_shuflr256_32( v ) \
    _mm512_permutexvar_epi32( m512_const_64( \
@@ -498,7 +496,6 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 //
 // Shuffle/rotate elements within 128 bit lanes of 512 bit vector.
  
-/* Not used
 // Limited 2 input, 1 output shuffle, combines shuffle with blend.
 // Like most shuffles it's limited to 128 bit lanes and like some shuffles
 // destination elements must come from a specific source arg. 
@@ -509,10 +506,7 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 #define mm512_shuffle2_32( v1, v2, c ) \
    _mm512_castps_si512( _mm512_shuffle_ps( _mm512_castsi512_ps( v1 ), \
                                            _mm512_castsi512_ps( v2 ), c ) ); 
-*/
 
-// These hard coded shuffles exist for consistency with AVX2 & SSE2 where
-// efficient generic versions don't exist.
 // Swap 64 bits in each 128 bit lane
 #define mm512_swap128_64( v )   _mm512_shuffle_epi32( v, 0x4e )
 #define mm512_shuflr128_64  mm512_swap128_64
@@ -522,11 +516,9 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 #define mm512_shuflr128_32( v )    _mm512_shuffle_epi32( v, 0x39 )
 #define mm512_shufll128_32( v )    _mm512_shuffle_epi32( v, 0x93 )
 
-/* Not used
-// Rotate right 128 bit lanes by c bytes, efficient generic version of above.
+// Rotate right 128 bit lanes by c bytes, versatile and just as fast
 static inline __m512i mm512_shuflr128_8( const __m512i v, const int c )
 {  return _mm512_alignr_epi8( v, v, c ); }
-*/
 
 // Rotate byte elements in each 64 or 32 bit lane. Redundant for AVX512, all
 // can be done with ror & rol. Defined only for convenience and consistency
