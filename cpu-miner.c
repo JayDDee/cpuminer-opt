@@ -37,7 +37,7 @@
 #include <curl/curl.h>
 #include <jansson.h>
 #include <openssl/sha.h>
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
 #include "sysinfos.c"
 #include "algo/sha/sha256d.h"
 
@@ -900,21 +900,11 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
       goto out;
    }
 
-// See git issue https://github.com/JayDDee/cpuminer-opt/issues/379    
-#if defined(__AVX2__)
-   if ( opt_debug )
-   {
-      if ( (uint64_t)target % 32 )
-         applog( LOG_ERR, "Misaligned target %p", target );
-      if ( (uint64_t)(work->target) % 32 )
-         applog( LOG_ERR, "Misaligned work->target %p", work->target );
-   }   
-#endif
-
-   for ( i = 0; i < 8; i++ )
-      work->target[7 - i] = be32dec( target + i );
+   // reverse the bytes in target
+   casti_m128i( work->target, 0 ) = mm128_bswap_128( casti_m128i( target, 1 ) );
+   casti_m128i( work->target, 1 ) = mm128_bswap_128( casti_m128i( target, 0 ) );
    net_diff = work->targetdiff = hash_to_diff( work->target );
-   
+
    tmp = json_object_get( val, "workid" );
    if ( tmp )
    {
@@ -1724,20 +1714,19 @@ static void workio_cmd_free(struct workio_cmd *wc)
 
 static bool workio_get_work( struct workio_cmd *wc, CURL *curl )
 {
-   struct work *ret_work;
+   struct work *work_heap;
    int failures = 0;
 
-   ret_work = (struct work*) _mm_malloc( sizeof(*ret_work), 32 );
-   if ( !ret_work )  return false;
-   memset( ret_work, 0, sizeof(*ret_work) );
+   work_heap = calloc( 1, sizeof(struct work) );
+   if ( !work_heap )  return false;
 
    /* obtain new work from bitcoin via JSON-RPC */
-   while ( !get_upstream_work( curl, ret_work ) )
+   while ( !get_upstream_work( curl, work_heap ) )
    {
       if ( unlikely( ( opt_retries >= 0 ) && ( ++failures > opt_retries ) ) )
       {
          applog( LOG_ERR, "json_rpc_call failed, terminating workio thread" );
-         free( ret_work );
+         free( work_heap );
          return false;
       }
 
@@ -1748,8 +1737,8 @@ static bool workio_get_work( struct workio_cmd *wc, CURL *curl )
    }
 
    /* send work to requesting thread */
-   if ( !tq_push(wc->thr->q, ret_work ) )
-      free( ret_work );
+   if ( !tq_push(wc->thr->q, work_heap ) )
+      free( work_heap );
 
    return true;
 }
@@ -1825,7 +1814,7 @@ static void *workio_thread(void *userdata)
 static bool get_work(struct thr_info *thr, struct work *work)
 {
 	struct workio_cmd *wc;
-	struct work *work_heap;
+   struct work *work_heap;
 
 	if unlikely( opt_benchmark )
    {
@@ -1850,17 +1839,16 @@ static bool get_work(struct thr_info *thr, struct work *work)
 	wc->thr = thr;
 	/* send work request to workio thread */
 	if (!tq_push(thr_info[work_thr_id].q, wc))
-        {
+   {
 		workio_cmd_free(wc);
 		return false;
 	}
 	/* wait for response, a unit of work */
 	work_heap = (struct work*) tq_pop(thr->q, NULL);
-	if (!work_heap)
-		return false;
-	/* copy returned work into storage provided by caller */
-	memcpy(work, work_heap, sizeof(*work));
-	free(work_heap);
+	if ( !work_heap ) return false;
+   /* copy returned work into storage provided by caller */
+	memcpy( work, work_heap, sizeof(*work) );
+	free( work_heap );
 	return true;
 }
 
@@ -3737,7 +3725,6 @@ int main(int argc, char *argv[])
 
    if ( opt_time_limit )
       time_limit_stop = (unsigned int)time(NULL) + opt_time_limit;
-
 
    // need to register to get algo optimizations for cpu capabilities
    // but that causes registration logs before cpu capabilities is output.

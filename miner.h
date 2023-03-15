@@ -91,6 +91,19 @@ enum {
    LOG_PINK  = 0x14 };
 #endif
 
+#define WORK_ALIGNMENT 64
+
+// When working with dynamically allocated memory to guarantee data alignment
+// for large vectors. Physical block size must be extended by alignment number
+// of bytes when allocated. free() should use the physical pointer returned by
+// malloc(), not the aligned pointer. All others shoujld use the logical,
+// aligned, pointer returned by this function. 
+static inline void *align_ptr( const void *ptr, const uint64_t alignment )
+{
+  const uint64_t mask = alignment - 1;
+  return (void*)( ( ((const uint64_t)ptr) + mask ) & (~mask) );
+}
+
 extern bool is_power_of_2( int n );
 
 static inline bool is_windows(void)
@@ -405,7 +418,7 @@ struct work
 	unsigned char *xnonce2;
    bool sapling;
    bool stale;
-} __attribute__ ((aligned (64)));
+} __attribute__ ((aligned (WORK_ALIGNMENT)));
 
 struct stratum_job
 {

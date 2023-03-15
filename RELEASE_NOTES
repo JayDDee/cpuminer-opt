@@ -65,6 +65,18 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.21.5
+
+All issues with v3.21.3 & v3.21.4 should be resolved.
+Changes since v3.21.2:
+#392 #379 #389 Fixed misaligned address segfault solo mining.
+#392 Fixed stats for myr-gr algo, and a few others, for CPUs without AVX2.
+#392 Fixed conditional mining.
+#392 Fixed cpu affinity on Ryzen CPUs using Windows binaries,
+     Windows binaries no longer support CPU groups,
+     Windows binaries support CPUs with up to 64 threads.
+Small optimizations to serialized vectoring.
+
 v3.21.4
 
 Reapply selected changes from v3.21.3.

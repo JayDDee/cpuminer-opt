@@ -786,18 +786,27 @@ err_out:
 	return cfg;
 }
 
-// Segwit BEGIN
 void memrev(unsigned char *p, size_t len)
 {
-   unsigned char c, *q;
-   for (q = p + len - 1; p < q; p++, q--) {
-      c = *p;
-      *p = *q;
-      *q = c;
+   if ( len == 32 )
+   {
+      __m128i *pv = (__m128i*)p;
+   
+      __m128i t = mm128_bswap_128( pv[0] );
+      pv[0] =     mm128_bswap_128( pv[1] );   
+      pv[1] = t;
+   }
+   else
+   {
+      unsigned char c, *q;
+      for (q = p + len - 1; p < q; p++, q--) 
+      {
+         c = *p;
+         *p = *q;
+         *q = c;
+      }
    }
 }
-// Segwit END
-
 
 void cbin2hex(char *out, const char *in, size_t len)
 {

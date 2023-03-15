@@ -31,18 +31,19 @@ int scanhash_skein( struct work *work, uint32_t max_nonce,
 	const uint32_t Htarg = ptarget[7];
 	const uint32_t first_nonce = pdata[19];
 	uint32_t n = first_nonce;
-   int thr_id = mythr->id;  // thr_id arg is deprecated
+   int thr_id = mythr->id;
 
    swab32_array( endiandata, pdata, 20 );
 
 	do {
 		be32enc(&endiandata[19], n); 
 		skeinhash(hash64, endiandata);
-		if (hash64[7] < Htarg && fulltest(hash64, ptarget)) {
-			*hashes_done = n - first_nonce + 1;
-			pdata[19] = n;
-			return true;
-		}
+      if (hash64[7] <= Htarg )
+      if ( fulltest(hash64, ptarget) && !opt_benchmark )
+      {
+         pdata[19] = n;
+         submit_solution( work, hash64, mythr );
+      }
 		n++;
 
 	} while (n < max_nonce && !work_restart[thr_id].restart);
