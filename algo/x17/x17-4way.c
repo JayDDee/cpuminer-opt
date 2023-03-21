@@ -257,6 +257,7 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
    const __m512i eight = m512_const1_64( 8 );
    const bool bench = opt_benchmark;
 
+   // convert LE32 to LE64
    edata[0] = mm128_swap64_32( casti_m128i( pdata, 0 ) );
    edata[1] = mm128_swap64_32( casti_m128i( pdata, 1 ) );
    edata[2] = mm128_swap64_32( casti_m128i( pdata, 2 ) );
@@ -470,6 +471,7 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
    const __m256i four = m256_const1_64( 4 );
    const bool bench = opt_benchmark;
 
+   // convert LE32 to LE64
    edata[0] = mm128_swap64_32( casti_m128i( pdata, 0 ) );
    edata[1] = mm128_swap64_32( casti_m128i( pdata, 1 ) );
    edata[2] = mm128_swap64_32( casti_m128i( pdata, 2 ) );

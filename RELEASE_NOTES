@@ -65,6 +65,17 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.22.0
+
+Stratum: faster netdiff calculation.
+Merged a few updates from Pooler/cpuminer:
+   Use CURLOPT_POSTFIELDS in json_rpc_call,
+   Use CURLINFO_ACTIVESOCKET when supported,
+   JSONRPC speedup,
+   Speed up hex2bin function.  
+Small log improvements, notably more frequent hash rate reports.
+Removed decred algo.
+
 v3.21.5
 
 All issues with v3.21.3 & v3.21.4 should be resolved.
@@ -77,7 +88,7 @@ Changes since v3.21.2:
      Windows binaries support CPUs with up to 64 threads.
 Small optimizations to serialized vectoring.
 
-v3.21.4
+v3.21.4 CANCELLED
 
 Reapply selected changes from v3.21.3.
 #392 #379 #389 Fixed misaligned address segfault solo mining.
@@ -85,7 +96,6 @@ Reapply selected changes from v3.21.3.
 #392 Fixed cpu affinity on Ryzen CPUs using Windows binaries,
      Windows binaries no longer support CPU groups,
      Windows binaries support CPUs with up to 64 threads.
-
 
 v3.21.3.1 UNRELEASED
 

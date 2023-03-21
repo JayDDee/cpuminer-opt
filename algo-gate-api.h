@@ -144,7 +144,7 @@ void ( *gen_merkle_root )       ( char*, struct stratum_ctx* );
 void ( *build_extraheader )     ( struct work*, struct stratum_ctx* );
 
 void ( *build_block_header )    ( struct work*, uint32_t, uint32_t*,
-	                                uint32_t*, uint32_t, uint32_t,
+	                                uint32_t*,   uint32_t, uint32_t,
                                    unsigned char* );
 
 // Build mining.submit message
@@ -155,19 +155,13 @@ char* ( *malloc_txs_request )   ( struct work* );
 // Big endian or little endian
 void ( *set_work_data_endian )  ( struct work* );
 
-double ( *calc_network_diff )   ( struct work* );
-
-// Wait for first work
-bool ( *ready_to_mine )         ( struct work*, struct stratum_ctx*, int );
-
 // Diverge mining threads
 bool ( *do_this_thread )        ( int );
 
 // After do_this_thread
 void ( *resync_threads )        ( int, struct work* );
 
-// No longer needed
-json_t* (*longpoll_rpc_call)      ( CURL*, int*, char* );
+json_t* ( *longpoll_rpc_call )  ( CURL*, int*, char* );
 
 set_t optimizations;
 int  ( *get_work_data_size )     ();
@@ -286,8 +280,6 @@ char* std_malloc_txs_request( struct work *work );
 // Default is do_nothing, little endian is assumed
 void set_work_data_big_endian( struct work *work );
 
-double std_calc_network_diff( struct work *work );
-
 void std_build_block_header( struct work* g_work, uint32_t version,
 	                          uint32_t *prevhash,  uint32_t *merkle_root,
    	                       uint32_t ntime,      uint32_t nbits,
@@ -296,9 +288,6 @@ void std_build_block_header( struct work* g_work, uint32_t version,
 void std_build_extraheader( struct work *work, struct stratum_ctx *sctx );
 
 json_t* std_longpoll_rpc_call( CURL *curl, int *err, char *lp_url );
-
-bool std_ready_to_mine( struct work* work, struct stratum_ctx* stratum,
-                        int thr_id );
 
 int std_get_work_data_size();
 

@@ -330,7 +330,7 @@ extern void cbin2hex(char *out, const char *in, size_t len);
 void   bin2hex( char *s, const unsigned char *p, size_t len );
 char  *abin2hex( const unsigned char *p, size_t len );
 char  *bebin2hex( const unsigned char *p, size_t len );
-bool   hex2bin( unsigned char *p, const char *hexstr, size_t len );
+bool   hex2bin( unsigned char *p, const char *hexstr, const size_t len );
 bool   jobj_binary( const json_t *obj, const char *key, void *buf,
                     size_t buflen );
 int    varint_encode( unsigned char *p, uint64_t n );
@@ -346,10 +346,7 @@ extern void memrev(unsigned char *p, size_t len);
 // number of hashes.
 //
 //     https://en.bitcoin.it/wiki/Difficulty
-//
 //     hash = diff * 2**32
-//
-// diff_to_hash = 2**32 = 0x100000000 = 4294967296 = exp32;
 
 #define EXP16 65536.
 #define EXP32 4294967296.
@@ -363,8 +360,9 @@ extern const long double exp160; // 2**160
 bool   fulltest( const uint32_t *hash, const uint32_t *target );
 bool   valid_hash( const void*, const void* );
 
-double hash_to_diff( const void* );
+extern double hash_to_diff( const void* );
 extern void diff_to_hash( uint32_t*, const double );
+extern double nbits_to_diff( uint32_t );
 
 double hash_target_ratio( uint32_t* hash, uint32_t* target );
 void   work_set_target_ratio( struct work* work, const void *hash );
@@ -553,7 +551,6 @@ enum algos {
         ALGO_BMW,        
         ALGO_BMW512,
         ALGO_C11,         
-        ALGO_DECRED,
         ALGO_DEEP,
         ALGO_DMD_GR,
         ALGO_GROESTL,     
@@ -647,7 +644,6 @@ static const char* const algo_names[] = {
         "bmw",
         "bmw512",
         "c11",
-        "decred",
         "deep",
         "dmd-gr",
         "groestl",
@@ -808,7 +804,6 @@ Options:\n\
                           bmw           BMW 256\n\
                           bmw512        BMW 512\n\
                           c11           Chaincoin\n\
-                          decred        Blake256r14dcr\n\
                           deep          Deepcoin (DCN)\n\
                           dmd-gr        Diamond\n\
                           groestl       Groestl coin\n\

@@ -263,8 +263,6 @@ void init_algo_gate( algo_gate_t* gate )
    gate->build_block_header      = (void*)&std_build_block_header;
    gate->build_extraheader       = (void*)&std_build_extraheader;
    gate->set_work_data_endian    = (void*)&do_nothing;
-   gate->calc_network_diff       = (void*)&std_calc_network_diff;
-   gate->ready_to_mine           = (void*)&std_ready_to_mine;
    gate->resync_threads          = (void*)&do_nothing;
    gate->do_this_thread          = (void*)&return_true;
    gate->longpoll_rpc_call       = (void*)&std_longpoll_rpc_call;
@@ -308,7 +306,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_BLAKECOIN:    rc = register_blakecoin_algo     ( gate ); break;
     case ALGO_BMW512:       rc = register_bmw512_algo        ( gate ); break;
     case ALGO_C11:          rc = register_c11_algo           ( gate ); break;
-    case ALGO_DECRED:       rc = register_decred_algo        ( gate ); break;
     case ALGO_DEEP:         rc = register_deep_algo          ( gate ); break;
     case ALGO_DMD_GR:       rc = register_dmd_gr_algo        ( gate ); break;
     case ALGO_GROESTL:      rc = register_groestl_algo       ( gate ); break;
@@ -427,7 +424,6 @@ const char* const algo_alias_map[][2] =
   { "blake256r8",        "blakecoin"      },
   { "blake256r8vnl",     "vanilla"        },
   { "blake256r14",       "blake"          },
-  { "blake256r14dcr",    "decred"         },
   { "diamond",           "dmd-gr"         },
   { "espers",            "hmq1725"        },
   { "flax",              "c11"            },

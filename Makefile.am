@@ -55,9 +55,6 @@ cpuminer_SOURCES = \
   algo/blake/mod_blakecoin.c \
   algo/blake/blakecoin.c \
   algo/blake/blakecoin-4way.c \
-  algo/blake/decred-gate.c \
-  algo/blake/decred.c \
-  algo/blake/decred-4way.c \
   algo/blake/pentablake-gate.c \
   algo/blake/pentablake-4way.c \
   algo/blake/pentablake.c \

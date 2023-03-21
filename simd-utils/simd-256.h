@@ -15,6 +15,8 @@
 //
 // "_mm256_shuffle_epi8" and "_mm256_alignr_epi8" are restricted to 128 bit
 // lanes and data can't cross the 128 bit lane boundary.  
+// Full width byte shuffle is available with AVX512VL using the mask version
+// with a full mask (-1). 
 // Instructions that can move data across 128 bit lane boundary incur a
 // performance penalty over those that can't.
 // Some usage of index vectors may be encoded as if full vector shuffles are
@@ -422,8 +424,7 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
   #define mm256_shuflr64_24( v )  _mm256_ror_epi64( v, 24 )
 #else
   #define mm256_shuflr64_24( v ) \
-    _mm256_shuffle_epi8( v, _mm256_set_epi64x( \
-                                    0x0a09080f0e0d0c0b, 0x0201000706050403, \
+    _mm256_shuffle_epi8( v, m256_const2_64( \
                                     0x0a09080f0e0d0c0b, 0x0201000706050403 ) )
 #endif
 
@@ -431,8 +432,7 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
   #define mm256_shuflr64_16( v )  _mm256_ror_epi64( v, 16 )
 #else
   #define mm256_shuflr64_16( v ) \
-    _mm256_shuffle_epi8( v, _mm256_set_epi64x( \
-                                    0x09080f0e0d0c0b0a, 0x0100070605040302, \
+    _mm256_shuffle_epi8( v, m256_const2_64( \
                                     0x09080f0e0d0c0b0a, 0x0100070605040302 ) )
 #endif
 
@@ -440,8 +440,7 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
   #define mm256_swap32_16( v )  _mm256_ror_epi32( v, 16 )
 #else
   #define mm256_swap32_16( v ) \
-    _mm256_shuffle_epi8( v, _mm256_set_epi64x( \
-                                    0x0d0c0f0e09080b0a, 0x0504070601000302, \
+    _mm256_shuffle_epi8( v, m256_const2_64( \
                                     0x0d0c0f0e09080b0a, 0x0504070601000302 ) )
 #endif
 #define mm256_shuflr32_16 mm256_swap32_16
@@ -456,35 +455,24 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
                                     0x0c0f0e0d080b0a09, 0x0407060500030201 ) )
 #endif
 
-// NOTE: _mm256_shuffle_epi8, like most shuffles, is restricted to 128 bit
-// lanes. AVX512, however, supports full vector 8 bit shuffle. The AVX512VL +
-// AVX512BW intrinsic _mm256_mask_shuffle_epi8 with a NULL mask, can be used if
-// needed for a shuffle that crosses 128 bit lanes. BSWAP doesn't therefore the
-// AVX2 version will work here. The bswap control vector is coded to work
-// with both versions, bit 4 is ignored in AVX2. 
-
 // Reverse byte order in elements, endian bswap.
 #define mm256_bswap_64( v ) \
    _mm256_shuffle_epi8( v, \
-         m256_const_64( 0x18191a1b1c1d1e1f, 0x1011121314151617, \
-                        0x08090a0b0c0d0e0f, 0x0001020304050607 ) )
+         m256_const2_64( 0x08090a0b0c0d0e0f, 0x0001020304050607 ) )
 
 #define mm256_bswap_32( v ) \
    _mm256_shuffle_epi8( v, \
-         m256_const_64( 0x1c1d1e1f18191a1b, 0x1415161710111213, \
-                        0x0c0d0e0f08090a0b, 0x0405060700010203 ) )
+         m256_const2_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 ) )
 
 #define mm256_bswap_16( v ) \
    _mm256_shuffle_epi8( v, \
-         m256_const_64( 0x1e1f1c1d1a1b1819, 0x1617141512131011, \
-                        0x0e0f0c0d0a0b0809, 0x0607040502030001, ) )
+         m256_const2_64( 0x0e0f0c0d0a0b0809, 0x0607040502030001, ) )
 
 // Source and destination are pointers, may point to same memory.
 // 8 byte qword * 8 qwords * 4 lanes = 256 bytes
 #define mm256_block_bswap_64( d, s ) do \
 { \
-  __m256i ctl = m256_const_64( 0x18191a1b1c1d1e1f, 0x1011121314151617, \
-                               0x08090a0b0c0d0e0f, 0x0001020304050607 ) ; \
+  __m256i ctl = m256_const2_64( 0x08090a0b0c0d0e0f, 0x0001020304050607 ) ; \
   casti_m256i( d, 0 ) = _mm256_shuffle_epi8( casti_m256i( s, 0 ), ctl ); \
   casti_m256i( d, 1 ) = _mm256_shuffle_epi8( casti_m256i( s, 1 ), ctl ); \
   casti_m256i( d, 2 ) = _mm256_shuffle_epi8( casti_m256i( s, 2 ), ctl ); \
@@ -498,8 +486,7 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 // 4 byte dword * 8 dwords * 8 lanes = 256 bytes
 #define mm256_block_bswap_32( d, s ) do \
 { \
-  __m256i ctl = m256_const_64( 0x1c1d1e1f18191a1b, 0x1415161710111213, \
-                               0x0c0d0e0f08090a0b, 0x0405060700010203 ); \
+  __m256i ctl = m256_const2_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 ); \
   casti_m256i( d, 0 ) = _mm256_shuffle_epi8( casti_m256i( s, 0 ), ctl ); \
   casti_m256i( d, 1 ) = _mm256_shuffle_epi8( casti_m256i( s, 1 ), ctl ); \
   casti_m256i( d, 2 ) = _mm256_shuffle_epi8( casti_m256i( s, 2 ), ctl ); \
