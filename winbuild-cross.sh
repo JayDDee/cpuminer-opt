@@ -129,7 +129,7 @@ make clean || echo clean
 # Native with CPU groups ennabled
 make clean || echo clean
 rm -f config.status
-CFLAGS="-march=native $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
+CFLAGS="-march=native $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
 make -j 8
 strip -s cpuminer.exe
 

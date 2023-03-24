@@ -553,6 +553,7 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 	long timeout = (flags & JSON_RPC_LONGPOLL) ? opt_timeout : 30;
 	struct header_info hi = {0};
 
+   all_data.headers = &hi;
 	/* it is assumed that 'curl' is freshly [re]initialized at this pt */
 
 	if (opt_protocol)  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);

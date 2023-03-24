@@ -65,6 +65,11 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.22.1
+
+#393 fixed segfault in GBT, regression from v3.22.0.
+More efficient 32 bit data interleaving.
+
 v3.22.0
 
 Stratum: faster netdiff calculation.
