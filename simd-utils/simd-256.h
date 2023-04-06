@@ -68,31 +68,33 @@ typedef union
 #define u32_mov256_32( v ) u32_mov128_32( _mm256_castsi256_si128( v ) )
 
 // concatenate two 128 bit vectors into one 256 bit vector: { hi, lo }
+
 #define mm256_concat_128( hi, lo ) \
    _mm256_inserti128_si256( _mm256_castsi128_si256( lo ), hi, 1 )
 
+#define mm256_bcast_m128( v ) \
+                 _mm256_permute4x64_epi64( _mm256_castsi128_si256( v ), 0x44 )
+#define mm256_bcast_i128( i ) mm256_bcast_m128( mm128_mov64_128( i ) )
+#define mm256_bcast_i64( i )  _mm256_broadcastq_epi64( mm128_mov64_128( i ) )
+#define mm256_bcast_i32( i )  _mm256_broadcastd_epi32( mm128_mov32_128( i ) )
+#define mm256_bcast_i16( i )  _mm256_broadcastw_epi16( mm128_mov32_128( i ) )
+#define mm256_bcast_i8( i )   _mm256_broadcastb_epi8 ( mm128_mov32_128( i ) )
 
 // Equivalent of set, move 64 bit integer constants to respective 64 bit
 // elements.
 static inline __m256i m256_const_64( const uint64_t i3, const uint64_t i2,
                                      const uint64_t i1, const uint64_t i0 )
 {
-  union { __m256i m256i;
-          uint64_t u64[4]; } v;
+  union { __m256i m256i;  uint64_t u64[4]; } v;
   v.u64[0] = i0; v.u64[1] = i1; v.u64[2] = i2; v.u64[3] = i3;
   return v.m256i;
 }
 
-// Equivalent of set1.
-// 128 bit vector argument
-#define m256_const1_128( v ) \
-   _mm256_permute4x64_epi64( _mm256_castsi128_si256( v ), 0x44 )
-// 64 bit integer argument zero extended to 128 bits.
-#define m256_const1_i128( i ) m256_const1_128( mm128_mov64_128( i ) )
-#define m256_const1_64( i )  _mm256_broadcastq_epi64( mm128_mov64_128( i ) )
-#define m256_const1_32( i )  _mm256_broadcastd_epi32( mm128_mov32_128( i ) )
-#define m256_const1_16( i )  _mm256_broadcastw_epi16( mm128_mov32_128( i ) )
-#define m256_const1_8 ( i )  _mm256_broadcastb_epi8 ( mm128_mov32_128( i ) )
+// Deprecated
+#define m256_const1_128      mm256_bcast_m128
+#define m256_const1_i128     mm256_bcast_i128
+#define m256_const1_64       mm256_bcast_i64
+#define m256_const1_32       mm256_bcast_i32
 
 #define m256_const2_64( i1, i0 ) \
   m256_const1_128( m128_const_64( i1, i0 ) )
@@ -101,13 +103,13 @@ static inline __m256i m256_const_64( const uint64_t i3, const uint64_t i2,
 // All SIMD constant macros are actually functions containing executable
 // code and therefore can't be used as compile time initializers.
 
-#define m256_zero      _mm256_setzero_si256()
-#define m256_one_256   mm256_mov64_256( 1 )
-#define m256_one_128   m256_const1_i128( 1 )
-#define m256_one_64    _mm256_broadcastq_epi64( mm128_mov64_128( 1 ) )
-#define m256_one_32    _mm256_broadcastd_epi32( mm128_mov64_128( 1 ) )
-#define m256_one_16    _mm256_broadcastw_epi16( mm128_mov64_128( 1 ) )
-#define m256_one_8     _mm256_broadcastb_epi8 ( mm128_mov64_128( 1 ) )
+#define m256_zero         _mm256_setzero_si256()
+#define m256_one_256      mm256_mov64_256( 1 )
+#define m256_one_128      mm256_bcast_i128( 1 )
+#define m256_one_64       mm256_bcast_i64( 1 )
+#define m256_one_32       mm256_bcast_i32( 1 )
+#define m256_one_16       mm256_bcast_i16( 1 )
+#define m256_one_8        mm256_bcast_i8 ( 1 )
 
 static inline __m256i mm256_neg1_fn()
 {
@@ -118,8 +120,8 @@ static inline __m256i mm256_neg1_fn()
 #define m256_neg1  mm256_neg1_fn()
 
 // Consistent naming for similar operations.
-#define mm128_extr_lo128_256( v ) _mm256_castsi256_si128( v )
-#define mm128_extr_hi128_256( v ) _mm256_extracti128_si256( v, 1 )
+#define mm128_extr_lo128_256( v )    _mm256_castsi256_si128( v )
+#define mm128_extr_hi128_256( v )    _mm256_extracti128_si256( v, 1 )
 
 //
 // Memory functions
@@ -241,7 +243,7 @@ static inline __m256i mm256_not( const __m256i v )
 
 // Mask making
 // Equivalent of AVX512 _mm256_movepi64_mask & _mm256_movepi32_mask.
-// Returns 4 or 8 bit integer mask from MSB of 64 or 32 bit elements.
+// Returns 4 or 8 bit integer mask from MSBit of 64 or 32 bit elements.
 // Effectively a sign test.
 
 #define mm256_movmask_64( v ) \
@@ -356,17 +358,21 @@ static inline __m256i mm256_not( const __m256i v )
                     _mm256_srli_epi32( v, 32-(c) ) )
 
 //
+// Cross lane shuffles
+//
 // Rotate elements accross all lanes.
 
 // Swap 128 bit elements in 256 bit vector.
 #define mm256_swap_128( v )     _mm256_permute4x64_epi64( v, 0x4e )
-#define mm256_shuflr_128 mm256_swap_128
-#define mm256_shufll_128 mm256_swap_128
+#define mm256_shuflr_128        mm256_swap_128
+#define mm256_shufll_128        mm256_swap_128
 
 // Rotate 256 bit vector by one 64 bit element
 #define mm256_shuflr_64( v )    _mm256_permute4x64_epi64( v, 0x39 )
 #define mm256_shufll_64( v )    _mm256_permute4x64_epi64( v, 0x93 )
 
+
+/* Not used
 // Rotate 256 bit vector by one 32 bit element.
 #if defined(__AVX512VL__)
 
@@ -389,6 +395,7 @@ static inline __m256i mm256_shufll_32( const __m256i v )
                                     0x0000000200000001,  0x0000000000000007 ) )
 
 #endif
+*/
 
 //
 // Rotate elements within each 128 bit lane of 256 bit vector.
@@ -412,13 +419,11 @@ static inline __m256i mm256_shufll_32( const __m256i v )
 static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 { return _mm256_alignr_epi8( v, v, c ); }
 
-// Rotate byte elements within 64 or 32 bit lanes, AKA optimized bit
-// rotations for multiples of 8 bits. Uses faster ror/rol instructions when
-// AVX512 is available.
+// 64 bit lanes
 
-#define mm256_swap64_32( v )   _mm256_shuffle_epi32( v, 0xb1 )
-#define mm256_shuflr64_32 mm256_swap64_32
-#define mm256_shufll64_32 mm256_swap64_32
+#define mm256_swap64_32( v )      _mm256_shuffle_epi32( v, 0xb1 )
+#define mm256_shuflr64_32         mm256_swap64_32
+#define mm256_shufll64_32         mm256_swap64_32
 
 #if defined(__AVX512VL__)
   #define mm256_shuflr64_24( v )  _mm256_ror_epi64( v, 24 )
@@ -436,6 +441,8 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
                                     0x09080f0e0d0c0b0a, 0x0100070605040302 ) )
 #endif
 
+// 32 bit lanes
+
 #if defined(__AVX512VL__)
   #define mm256_swap32_16( v )  _mm256_ror_epi32( v, 16 )
 #else
@@ -443,8 +450,8 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
     _mm256_shuffle_epi8( v, m256_const2_64( \
                                     0x0d0c0f0e09080b0a, 0x0504070601000302 ) )
 #endif
-#define mm256_shuflr32_16 mm256_swap32_16
-#define mm256_shufll32_16 mm256_swap32_16
+#define mm256_shuflr32_16       mm256_swap32_16
+#define mm256_shufll32_16       mm256_swap32_16
 
 #if defined(__AVX512VL__)
   #define mm256_shuflr32_8( v )  _mm256_ror_epi32( v, 8 )

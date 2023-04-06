@@ -1,0 +1,221 @@
+#include "algo-gate-api.h"
+#include "sha-hash-4way.h"
+#include <string.h>
+#include <stdint.h>
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#define SHA512256D_8WAY 1
+#elif defined(__AVX2__)
+#define SHA512256D_4WAY 1
+#endif
+
+#if defined(SHA512256D_8WAY)
+
+static void sha512256d_8way_init( sha512_8way_context *ctx )
+{
+  ctx->count = 0;
+  ctx->initialized = true;
+  ctx->val[0] = mm512_bcast_i64( 0x22312194FC2BF72C );
+  ctx->val[1] = mm512_bcast_i64( 0x9F555FA3C84C64C2 );
+  ctx->val[2] = mm512_bcast_i64( 0x2393B86B6F53B151 );
+  ctx->val[3] = mm512_bcast_i64( 0x963877195940EABD );
+  ctx->val[4] = mm512_bcast_i64( 0x96283EE2A88EFFE3 );
+  ctx->val[5] = mm512_bcast_i64( 0xBE5E1E2553863992 );
+  ctx->val[6] = mm512_bcast_i64( 0x2B0199FC2C85B8AA );
+  ctx->val[7] = mm512_bcast_i64( 0x0EB72DDC81C52CA2 );
+}
+
+int scanhash_sha512256d_8way( struct work *work, uint32_t max_nonce,
+                          uint64_t *hashes_done, struct thr_info *mythr )
+{
+    uint64_t hash[8*8] __attribute__ ((aligned (128)));
+    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
+    sha512_8way_context ctx; 
+    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+    uint64_t *hash_q3 = &(hash[3*8]);
+    uint32_t *pdata = work->data;
+    uint32_t *ptarget = work->target;
+    const uint64_t targ_q3 = ((uint64_t*)ptarget)[3];
+    const uint32_t first_nonce = pdata[19];
+    const uint32_t last_nonce = max_nonce - 8;
+    uint32_t n = first_nonce;
+    __m512i  *noncev = (__m512i*)vdata + 9;
+    const int thr_id = mythr->id;
+    const bool bench = opt_benchmark;
+    const __m512i eight = mm512_bcast_i64( 0x0000000800000000 );
+
+    mm512_bswap32_intrlv80_8x64( vdata, pdata );
+    *noncev = mm512_intrlv_blend_32(
+                _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                                  n+3, 0, n+2, 0, n+1, 0, n  , 0 ), *noncev );
+    do
+    {
+       sha512256d_8way_init( &ctx );
+       sha512_8way_update( &ctx, vdata, 80 );
+       sha512_8way_close( &ctx, hash );        
+
+       sha512256d_8way_init( &ctx );
+       sha512_8way_update( &ctx, hash, 32 );
+       sha512_8way_close( &ctx, hash );
+
+       for ( int lane = 0; lane < 8; lane++ )
+       if ( unlikely( hash_q3[ lane ] <= targ_q3 && !bench ) )
+       {
+          extr_lane_8x64( lane_hash, hash, lane, 256 );
+          if ( valid_hash( lane_hash, ptarget ) && !bench )
+          {
+             pdata[19] = bswap_32( n + lane );
+             submit_solution( work, lane_hash, mythr );
+          }
+       }
+       *noncev = _mm512_add_epi32( *noncev, eight );
+       n += 8;
+    } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
+
+    pdata[19] = n;
+    *hashes_done = n - first_nonce;
+    return 0;
+}
+
+#elif defined(SHA512256D_4WAY)
+
+static void sha512256d_4way_init( sha512_4way_context *ctx )
+{
+  ctx->count = 0;
+  ctx->initialized = true;
+  ctx->val[0] = mm256_bcast_i64( 0x22312194FC2BF72C );
+  ctx->val[1] = mm256_bcast_i64( 0x9F555FA3C84C64C2 );
+  ctx->val[2] = mm256_bcast_i64( 0x2393B86B6F53B151 );
+  ctx->val[3] = mm256_bcast_i64( 0x963877195940EABD );
+  ctx->val[4] = mm256_bcast_i64( 0x96283EE2A88EFFE3 );
+  ctx->val[5] = mm256_bcast_i64( 0xBE5E1E2553863992 );
+  ctx->val[6] = mm256_bcast_i64( 0x2B0199FC2C85B8AA );
+  ctx->val[7] = mm256_bcast_i64( 0x0EB72DDC81C52CA2 );
+}
+
+int scanhash_sha512256d_4way( struct work *work, uint32_t max_nonce,
+                          uint64_t *hashes_done, struct thr_info *mythr )
+{
+    uint64_t hash[8*4] __attribute__ ((aligned (64)));
+    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
+    sha512_4way_context ctx;
+    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+    uint64_t *hash_q3 = &(hash[3*4]);
+    uint32_t *pdata = work->data;
+    uint32_t *ptarget = work->target;
+    const uint64_t targ_q3 = ((uint64_t*)ptarget)[3];
+    const uint32_t first_nonce = pdata[19];
+    const uint32_t last_nonce = max_nonce - 4;
+    uint32_t n = first_nonce;
+    __m256i  *noncev = (__m256i*)vdata + 9;
+    const int thr_id = mythr->id;
+    const bool bench = opt_benchmark;
+    const __m256i four = mm256_bcast_i64( 0x0000000400000000 );
+
+    mm256_bswap32_intrlv80_4x64( vdata, pdata );
+    *noncev = mm256_intrlv_blend_32(
+                _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
+    do
+    {
+       sha512256d_4way_init( &ctx );
+       sha512_4way_update( &ctx, vdata, 80 );
+       sha512_4way_close( &ctx, hash );
+
+       sha512256d_4way_init( &ctx );
+       sha512_4way_update( &ctx, hash, 32 );
+       sha512_4way_close( &ctx, hash );
+
+       for ( int lane = 0; lane < 4; lane++ )
+       if ( hash_q3[ lane ] <= targ_q3 )
+       {
+          extr_lane_4x64( lane_hash, hash, lane, 256 );
+          if ( valid_hash( lane_hash, ptarget ) && !bench )
+          {
+             pdata[19] = bswap_32( n + lane );
+             submit_solution( work, lane_hash, mythr );
+          }
+       }
+       *noncev = _mm256_add_epi32( *noncev, four );
+       n += 4;
+    } while ( (n < last_nonce) && !work_restart[thr_id].restart );
+
+    pdata[19] = n;
+    *hashes_done = n - first_nonce;
+    return 0;
+}
+
+#else
+
+#include "sph_sha2.h"
+
+static const uint64_t H512_256[8] =
+{
+   0x22312194FC2BF72C, 0x9F555FA3C84C64C2,
+   0x2393B86B6F53B151, 0x963877195940EABD,
+   0x96283EE2A88EFFE3, 0xBE5E1E2553863992,
+   0x2B0199FC2C85B8AA, 0x0EB72DDC81C52CA2,
+};
+
+static void sha512256d_init( sph_sha512_context *ctx )
+{
+   memcpy( ctx->val, H512_256, sizeof H512_256 );
+   ctx->count = 0;
+}
+
+int scanhash_sha512256d( struct work *work,   uint32_t max_nonce,
+                     uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   uint32_t hash64[8] __attribute__ ((aligned (64)));
+   uint32_t endiandata[20] __attribute__ ((aligned (64)));
+   sph_sha512_context ctx;
+   const uint32_t Htarg = ptarget[7];
+   const uint32_t first_nonce = pdata[19];
+   uint32_t n = first_nonce;
+   int thr_id = mythr->id;
+
+   swab32_array( endiandata, pdata, 20 );
+
+   do {
+      be32enc( &endiandata[19], n );
+
+      sha512256d_init( &ctx );
+      sph_sha512( &ctx, endiandata, 80 );
+      sph_sha512_close( &ctx, hash64 );
+
+      sha512256d_init( &ctx );
+      sph_sha512( &ctx, hash64, 32 );
+      sph_sha512_close( &ctx, hash64 );
+      
+      if ( hash64[7] <= Htarg )
+      if ( fulltest( hash64, ptarget ) && !opt_benchmark )
+      {
+         pdata[19] = n;
+         submit_solution( work, hash64, mythr );
+      }
+      n++;
+
+   } while (n < max_nonce && !work_restart[thr_id].restart);
+
+   *hashes_done = n - first_nonce + 1;
+   pdata[19] = n;
+
+   return 0;
+}
+
+#endif
+
+bool register_sha512256d_algo( algo_gate_t* gate )
+{
+   gate->optimizations = AVX2_OPT | AVX512_OPT;
+#if defined(SHA512256D_8WAY)
+   gate->scanhash = (void*)&scanhash_sha512256d_8way;
+#elif defined(SHA512256D_4WAY)
+   gate->scanhash = (void*)&scanhash_sha512256d_4way;
+#else
+   gate->scanhash = (void*)&scanhash_sha512256d;
+#endif
+   return true;
+};
+

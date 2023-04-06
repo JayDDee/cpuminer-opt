@@ -554,20 +554,10 @@ int luffa_4way_update_close( luffa_4way_context *state,
     a = _mm256_xor_si256( a, c0 ); \
     b = _mm256_xor_si256( b, c1 );
 
-/*
-#define MULT2( a0, a1, mask ) \
-do { \
-  __m256i b = _mm256_xor_si256( a0, \
-                   _mm256_shuffle_epi32( _mm256_and_si256(a1,mask), 16 ) ); \
-  a0 = _mm256_or_si256( _mm256_srli_si256(b,4), _mm256_slli_si256(a1,12) ); \
-  a1 = _mm256_or_si256( _mm256_srli_si256(a1,4), _mm256_slli_si256(b,12) );  \
-} while(0)
-*/
-
-#define MULT2( a0, a1, mask ) \
+#define MULT2( a0, a1 ) \
 { \
-  __m256i b = _mm256_xor_si256( a0, \
-                 _mm256_shuffle_epi32( _mm256_and_si256( a1, mask ), 16 ) ); \
+  __m256i b = _mm256_xor_si256( a0, _mm256_shuffle_epi32( \
+                         _mm256_blend_epi32( a1, m256_zero, 0xee ), 16 ) ); \
   a0 = _mm256_alignr_epi8( a1,  b, 4 ); \
   a1 = _mm256_alignr_epi8(  b, a1, 4 ); \
 }
@@ -682,7 +672,6 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     __m256i *chainv = state->chainv;
     __m256i msg0, msg1;
     __m256i x0, x1, x2, x3, x4, x5, x6, x7;
-    const __m256i MASK = m256_const1_i128( 0xffffffff );
 
     t0 = chainv[0];
     t1 = chainv[1];
@@ -696,7 +685,7 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     t0 = _mm256_xor_si256( t0, chainv[8] );
     t1 = _mm256_xor_si256( t1, chainv[9] );
 
-    MULT2( t0, t1, MASK );
+    MULT2( t0, t1 );
 
     msg0 = _mm256_shuffle_epi32( msg[0], 27 );
     msg1 = _mm256_shuffle_epi32( msg[1], 27 );
@@ -715,66 +704,66 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     t0 = chainv[0];
     t1 = chainv[1];
 
-    MULT2( chainv[0], chainv[1], MASK );
+    MULT2( chainv[0], chainv[1] );
     chainv[0] = _mm256_xor_si256( chainv[0], chainv[2] );
     chainv[1] = _mm256_xor_si256( chainv[1], chainv[3] );
 
-    MULT2( chainv[2], chainv[3], MASK );
+    MULT2( chainv[2], chainv[3] );
     chainv[2] = _mm256_xor_si256(chainv[2], chainv[4]);
     chainv[3] = _mm256_xor_si256(chainv[3], chainv[5]);
 
-    MULT2( chainv[4], chainv[5], MASK );
+    MULT2( chainv[4], chainv[5] );
     chainv[4] = _mm256_xor_si256(chainv[4], chainv[6]);
     chainv[5] = _mm256_xor_si256(chainv[5], chainv[7]);
 
-    MULT2( chainv[6], chainv[7], MASK );
+    MULT2( chainv[6], chainv[7] );
     chainv[6] = _mm256_xor_si256(chainv[6], chainv[8]);
     chainv[7] = _mm256_xor_si256(chainv[7], chainv[9]);
 
-    MULT2( chainv[8], chainv[9], MASK );
+    MULT2( chainv[8], chainv[9] );
     chainv[8] = _mm256_xor_si256( chainv[8], t0 );
     chainv[9] = _mm256_xor_si256( chainv[9], t1 );
 
     t0 = chainv[8];
     t1 = chainv[9];
 
-    MULT2( chainv[8], chainv[9], MASK );
+    MULT2( chainv[8], chainv[9] );
     chainv[8] = _mm256_xor_si256( chainv[8], chainv[6] );
     chainv[9] = _mm256_xor_si256( chainv[9], chainv[7] );
 
-    MULT2( chainv[6], chainv[7], MASK );
+    MULT2( chainv[6], chainv[7] );
     chainv[6] = _mm256_xor_si256( chainv[6], chainv[4] );
     chainv[7] = _mm256_xor_si256( chainv[7], chainv[5] );
 
-    MULT2( chainv[4], chainv[5], MASK );
+    MULT2( chainv[4], chainv[5] );
     chainv[4] = _mm256_xor_si256( chainv[4], chainv[2] );
     chainv[5] = _mm256_xor_si256( chainv[5], chainv[3] );
 
-    MULT2( chainv[2], chainv[3], MASK );
+    MULT2( chainv[2], chainv[3] );
     chainv[2] = _mm256_xor_si256( chainv[2], chainv[0] );
     chainv[3] = _mm256_xor_si256( chainv[3], chainv[1] );
 
-    MULT2( chainv[0], chainv[1], MASK );
+    MULT2( chainv[0], chainv[1] );
     chainv[0] = _mm256_xor_si256( _mm256_xor_si256( chainv[0], t0 ), msg0 );
     chainv[1] = _mm256_xor_si256( _mm256_xor_si256( chainv[1], t1 ), msg1 );
 
-    MULT2( msg0, msg1, MASK );
+    MULT2( msg0, msg1 );
     chainv[2] = _mm256_xor_si256( chainv[2], msg0 );
     chainv[3] = _mm256_xor_si256( chainv[3], msg1 );
 
-    MULT2( msg0, msg1, MASK );
+    MULT2( msg0, msg1 );
     chainv[4] = _mm256_xor_si256( chainv[4], msg0 );
     chainv[5] = _mm256_xor_si256( chainv[5], msg1 );
 
-    MULT2( msg0, msg1, MASK );
+    MULT2( msg0, msg1 );
     chainv[6] = _mm256_xor_si256( chainv[6], msg0 );
     chainv[7] = _mm256_xor_si256( chainv[7], msg1 );
 
-    MULT2( msg0, msg1, MASK );
+    MULT2( msg0, msg1 );
     chainv[8] = _mm256_xor_si256( chainv[8], msg0 );
     chainv[9] = _mm256_xor_si256( chainv[9], msg1 );
 
-    MULT2( msg0, msg1, MASK );
+    MULT2( msg0, msg1 );
 
     chainv[3] = mm256_rol_32( chainv[3], 1 );
     chainv[5] = mm256_rol_32( chainv[5], 2 );

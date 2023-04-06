@@ -93,10 +93,15 @@ static inline uint32_t u32_mov128_32( const __m128i a )
   return n;
 }
 
-// Equivalent of set1, broadcast integer to all elements.
-#define m128_const_i128( i ) mm128_mov64_128( i )
-#define m128_const1_64( i ) _mm_shuffle_epi32( mm128_mov64_128( i ), 0x44 )
-#define m128_const1_32( i ) _mm_shuffle_epi32( mm128_mov32_128( i ), 0x00 )
+// Emulate broadcast & insert instructions not available in SSE2
+#define mm128_bcast_i64( i )   _mm_shuffle_epi32( mm128_mov64_128( i ), 0x44 )
+#define mm128_bcast_i32( i )   _mm_shuffle_epi32( mm128_mov32_128( i ), 0x00 )
+
+#define m128_const_i128( i )    mm128_mov64_128( i )
+
+// deprecated
+#define m128_const1_64          mm128_bcast_i64
+#define m128_const1_32          mm128_bcast_i32
 
 #if defined(__SSE4_1__)
 
@@ -104,7 +109,7 @@ static inline uint32_t u32_mov128_32( const __m128i a )
 #define m128_const_64( hi, lo ) \
    _mm_insert_epi64( mm128_mov64_128( lo ), hi, 1 )
 
-#else  // No insert in SSE2
+#else 
 
 #define m128_const_64  _mm_set_epi64x
 
@@ -114,12 +119,10 @@ static inline uint32_t u32_mov128_32( const __m128i a )
 
 #define m128_zero      _mm_setzero_si128()
 #define m128_one_128   mm128_mov64_128( 1 )
-#define m128_one_64    _mm_shuffle_epi32( mm128_mov64_128( 1 ), 0x44 )
-#define m128_one_32    _mm_shuffle_epi32( mm128_mov32_128( 1 ), 0x00 )
-#define m128_one_16    _mm_shuffle_epi32( \
-                                 mm128_mov32_128( 0x00010001 ), 0x00 )
-#define m128_one_8     _mm_shuffle_epi32( \
-                                 mm128_mov32_128( 0x01010101 ), 0x00 )
+#define m128_one_64    mm128_bcast_i64( 1 )
+#define m128_one_32    mm128_bcast_i32( 1 )
+#define m128_one_16    mm128_bcast_i32( 0x00010001 )
+#define m128_one_8     mm128_bcast_i32( 0x01010101 )
 
 // ASM avoids the need to initialize return variable to avoid compiler warning.
 // Macro abstracts function parentheses to look like an identifier.
@@ -149,7 +152,7 @@ static inline __m128i mm128_neg1_fn()
 // sizing. It's unique.
 //
 // It can:
-//   - zero 32 bit elements of a 128 bit vector.
+//   - zero any number of 32 bit elements of a 128 bit vector.
 //   - extract any 32 bit element from one 128 bit vector and insert the
 //     data to any 32 bit element of another 128 bit vector, or the same vector.
 //   - do both simultaneoulsly.
@@ -162,14 +165,21 @@ static inline __m128i mm128_neg1_fn()
 //    c[5:4] destination element selector
 //    c[7:6] source element selector
 
-// Convert type and abbreviate name: e"x"tract "i"nsert "m"ask
+// Convert type and abbreviate name: eXtract Insert Mask = XIM
 #define mm128_xim_32( v1, v2, c ) \
    _mm_castps_si128( _mm_insert_ps( _mm_castsi128_ps( v1 ), \
                                     _mm_castsi128_ps( v2 ), c ) )
 
-// Some examples of simple operations:
+/* Another way to do it with individual arguments.
+#define mm128_xim_32( v1, i1, v2, i2, mask ) \
+   _mm_castps_si128( _mm_insert_ps( _mm_castsi128_ps( v1 ), \
+                                    _mm_castsi128_ps( v2 ), \
+                                    (mask) | ((i1)<<4) | ((i2)<<6) ) )
+*/
 
-// Insert 32 bit integer into v at element c and return modified v.
+// Examples of simple operations using xim:
+
+// Insert 32 bit integer into v at element c and return updated v.
 static inline __m128i mm128_insert_32( const __m128i v, const uint32_t i,
                                        const int c )
 {   return mm128_xim_32( v, mm128_mov32_128( i ), c<<4 ); }
@@ -178,13 +188,12 @@ static inline __m128i mm128_insert_32( const __m128i v, const uint32_t i,
 static inline uint32_t mm128_extract_32( const __m128i v, const int c )
 {   return u32_mov128_32( mm128_xim_32( v, v, c<<6 ) ); }
 
-// Clear (zero) 32 bit elements based on bits set in 4 bit mask.
+// Zero 32 bit elements when bit in mask is set.
 static inline __m128i mm128_mask_32( const __m128i v, const int m ) 
 {   return mm128_xim_32( v, v, m ); }
 
-// Move element i2 of v2 to element i1 of v1. For reference and convenience,
-// it's faster to precalculate the index.
-#define mm128_shuflmov_32( v1, i1, v2, i2 ) \
+// Move element i2 of v2 to element i1 of v1 and return updated v1.
+#define mm128_mov32_32( v1, i1, v2, i2 ) \
   mm128_xim_32( v1, v2, ( (i1)<<4 ) | ( (i2)<<6 ) )
 
 #endif  // SSE4_1
@@ -280,7 +289,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 // Mask making
 // Equivalent of AVX512 _mm_movepi64_mask & _mm_movepi32_mask.
-// Returns 2 or 4 bit integer mask from MSB of 64 or 32 bit elements.
+// Returns 2 or 4 bit integer mask from MSBit of 64 or 32 bit elements.
 // Effectively a sign test.
 
 #define mm_movmask_64( v ) \
@@ -385,6 +394,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define mm128_rol_var_32( v, c ) \
    _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
 
+// Cross lane shuffles
 //
 // Limited 2 input shuffle, combines shuffle with blend. The destination low
 // half is always taken from v1, and the high half from v2.
@@ -396,12 +406,11 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
    _mm_castps_si128( _mm_shuffle_ps( _mm_castsi128_ps( v1 ), \
                                      _mm_castsi128_ps( v2 ), c ) ); 
 
-//
 // Rotate vector elements accross all lanes
 
-#define mm128_swap_64( v )    _mm_shuffle_epi32( v, 0x4e )
-#define mm128_shuflr_64       mm128_swap_64
-#define mm128_shufll_64       mm128_swap_64
+#define mm128_swap_64( v )     _mm_shuffle_epi32( v, 0x4e )
+#define mm128_shuflr_64        mm128_swap_64
+#define mm128_shufll_64        mm128_swap_64
 
 #define mm128_shuflr_32( v )   _mm_shuffle_epi32( v, 0x39 )
 #define mm128_shufll_32( v )   _mm_shuffle_epi32( v, 0x93 )
@@ -414,13 +423,11 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
 
 #endif
 
-// Rotate byte elements within 64 or 32 bit lanes, AKA optimized bit rotations
-// for multiples of 8 bits. Uses ror/rol macros when AVX512 is available
-// (unlikely but faster), or when SSSE3 is not available (slower).
+//  Rotate 64 bit lanes
 
 #define mm128_swap64_32( v )  _mm_shuffle_epi32( v, 0xb1 )
-#define mm128_shuflr64_32 mm128_swap64_32
-#define mm128_shufll64_32 mm128_swap64_32
+#define mm128_shuflr64_32     mm128_swap64_32
+#define mm128_shufll64_32     mm128_swap64_32
 
 #if defined(__SSSE3__) && !defined(__AVX512VL__)
   #define mm128_shuflr64_24( v ) \
@@ -438,6 +445,8 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
   #define mm128_shuflr64_16( v ) mm128_ror_64( v, 16 )
 #endif
 
+// Rotate 32 bit lanes
+
 #if defined(__SSSE3__) && !defined(__AVX512VL__)
   #define mm128_swap32_16( v ) \
     _mm_shuffle_epi8( v, _mm_set_epi64x( \
@@ -445,8 +454,8 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
 #else
   #define mm128_swap32_16( v ) mm128_ror_32( v, 16 )
 #endif
-#define mm128_shuflr32_16 mm128_swap32_16
-#define mm128_shufll32_16 mm128_swap32_16
+#define mm128_shuflr32_16      mm128_swap32_16
+#define mm128_shufll32_16      mm128_swap32_16
 
 #if defined(__SSSE3__) && !defined(__AVX512VL__)
   #define mm128_shuflr32_8( v ) \
@@ -563,9 +572,8 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
    v1 = _mm_xor_si128( v1, v2 );
 
 
-// alignr for 32 & 64 bit elements is only available with AVX512 but
-// emulated here. Shift argument is not needed, it's always 1.
-// Behaviour is otherwise consistent with Intel alignr intrinsics.
+// alignr instruction for 32 & 64 bit elements is only available with AVX512
+// but emulated here. Behaviour is consistent with Intel alignr intrinsics.
 
 #if defined(__SSSE3__)
 

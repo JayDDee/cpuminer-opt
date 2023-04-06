@@ -2018,23 +2018,41 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
       }
    }
 
-   if ( merkle_count )
-      merkle = (uchar**) malloc( merkle_count * sizeof(char *) );
-	for ( i = 0; i < merkle_count; i++ )
-   {
-		const char *s = json_string_value( json_array_get( merkle_arr, i ) );
-		if ( !s || strlen(s) != 64 )
-      {
-			while ( i-- ) free( merkle[i] );
-			free( merkle );
-			applog( LOG_ERR, "Stratum notify: invalid Merkle branch" );
-			goto out;
-		}
-		merkle[i] = (uchar*) malloc( 32 );
-		hex2bin( merkle[i], s, 32 );
-	}
+   pthread_mutex_lock( &sctx->work_lock );
 
-	pthread_mutex_lock( &sctx->work_lock );
+   if ( merkle_count )
+   {
+      if ( merkle_count > sctx->job.merkle_buf_size )
+      {
+         for ( i = 0; i < sctx->job.merkle_count; i++ )
+            free( sctx->job.merkle[i] );
+         free( sctx->job.merkle );
+
+         merkle = (uchar**) malloc( merkle_count * sizeof(char *) );
+         for ( i = 0; i < merkle_count; i++ )
+            merkle[i] = (uchar*) malloc( 32 );
+         sctx->job.merkle_buf_size = merkle_count;
+         sctx->job.merkle = merkle;
+      }
+
+      for ( i = 0; i < merkle_count; i++ )
+      {
+         const char *s = json_string_value( json_array_get( merkle_arr, i ) );
+         if ( !s || strlen(s) != 64 )
+         {
+            for ( int j = sctx->job.merkle_buf_size; j > 0; j-- )
+               free( sctx->job.merkle[i] );
+            free( sctx->job.merkle );
+            sctx->job.merkle_count =
+            sctx->job.merkle_buf_size = 0;
+            pthread_mutex_unlock( &sctx->work_lock );
+            applog( LOG_ERR, "Stratum notify: invalid Merkle branch" );
+            goto out;
+         }
+         hex2bin( sctx->job.merkle[i], s, 32 );
+      }   
+   }
+   sctx->job.merkle_count = merkle_count;         
 
 	coinb1_size = strlen( coinb1 ) / 2;
 	coinb2_size = strlen( coinb2 ) / 2;
@@ -2067,18 +2085,9 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
    }
 
 	sctx->block_height = getblocheight( sctx );
-
-	for ( i = 0; i < sctx->job.merkle_count; i++ )
-		free( sctx->job.merkle[i] );
-
-	free( sctx->job.merkle );
-	sctx->job.merkle = merkle;
-	sctx->job.merkle_count = merkle_count;
-
 	hex2bin( sctx->job.nbits, nbits, 4 );
 	hex2bin( sctx->job.ntime, stime, 4 );
 	sctx->job.clean = clean;
-
 	sctx->job.diff = sctx->next_diff;
 
 	pthread_mutex_unlock( &sctx->work_lock );

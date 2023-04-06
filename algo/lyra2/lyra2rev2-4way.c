@@ -75,7 +75,7 @@ void lyra2rev2_16way_hash( void *state, const void *input )
    keccak256_8way_close( &ctx.keccak, vhash );
 
    dintrlv_8x64( hash8,  hash9,  hash10,  hash11,
-                 hash12, hash13, hash14, hash5, vhash, 256 );
+                 hash12, hash13, hash14, hash15, vhash, 256 );
 
    cubehash_full( &ctx.cube, (byte*) hash0,  256, (const byte*) hash0,  32 );
    cubehash_full( &ctx.cube, (byte*) hash1,  256, (const byte*) hash1,  32 );

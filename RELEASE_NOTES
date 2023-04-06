@@ -65,6 +65,16 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.22.2
+
+Added sha512256d & sha256dt algos.
+Fixed intermittant invalid shares lyra2v2 AVX512.
+Removed application limits on the number of CPUs and threads, HW and OS limits still apply.
+Added a log warning if more threads are defined than active CPUs in affinity mask.
+Improved merkle tree memory management for stratum.
+Added transaction count to New Work log.
+Other small improvements.
+
 v3.22.1
 
 #393 fixed segfault in GBT, regression from v3.22.0.

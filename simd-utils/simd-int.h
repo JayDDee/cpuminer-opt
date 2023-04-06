@@ -55,6 +55,13 @@
 typedef          __int128  int128_t;
 typedef unsigned __int128 uint128_t;
 
+typedef union
+{
+   uint128_t u128;
+   uint64_t  u64[2];
+   uint32_t  u32[4];
+} __attribute__ ((aligned (16))) u128_ovly;
+
 // Extracting the low bits is a trivial cast.
 // These specialized functions are optimized while providing a
 // consistent interface.

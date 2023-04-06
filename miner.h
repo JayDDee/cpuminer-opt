@@ -24,6 +24,11 @@
 
 #endif /* _MSC_VER */
 
+// prevent questions from ARM users that don't read the requirements.
+#if !defined(__x86_64__)
+#error "CPU architecture not supported. Consult the requirements for supported CPUs."
+#endif
+
 #include <stdbool.h>
 #include <inttypes.h>
 #include <sys/time.h>
@@ -410,7 +415,8 @@ struct work
    double stratum_diff;
 	int height;
 	char *txs;
-	char *workid;
+   int tx_count;
+   char *workid;
 	char *job_id;
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
@@ -427,7 +433,8 @@ struct stratum_job
 	unsigned char *coinbase;
 	unsigned char *xnonce2;
 	int merkle_count;
-	unsigned char **merkle;
+   int merkle_buf_size;
+   unsigned char **merkle;
 	unsigned char version[4];
 	unsigned char nbits[4];
 	unsigned char ntime[4];
@@ -582,9 +589,11 @@ enum algos {
         ALGO_QUBIT,       
         ALGO_SCRYPT,
         ALGO_SHA256D,
+        ALGO_SHA256DT,
         ALGO_SHA256Q,
         ALGO_SHA256T,
         ALGO_SHA3D,
+        ALGO_SHA512256D,
         ALGO_SHAVITE3,    
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
@@ -675,9 +684,11 @@ static const char* const algo_names[] = {
         "qubit",
         "scrypt",
         "sha256d",
+        "sha256dt",
         "sha256q",
         "sha256t",
         "sha3d",
+        "sha512256d",
         "shavite3",
         "skein",
         "skein2",
@@ -837,9 +848,11 @@ Options:\n\
                           scrypt:N      scrypt(N, 1, 1)\n\
                           scryptn2      scrypt(1048576, 1,1)\n\
                           sha256d       Double SHA-256\n\
+                          sha256dt      Modified sha256d (Novo)\n\
                           sha256q       Quad SHA-256, Pyrite (PYE)\n\
                           sha256t       Triple SHA-256, Onecoin (OC)\n\
                           sha3d         Double Keccak256 (BSHA3)\n\
+                          sha512256d    Double SHA-512 (Radiant)\n\
                           shavite3      Shavite3\n\
                           skein         Skein+Sha (Skeincoin)\n\
                           skein2        Double Skein (Woodcoin)\n\

@@ -3,7 +3,7 @@
  * Copyright 2012-2014 pooler
  * Copyright 2014 Lucas Jones
  * Copyright 2014-2016 Tanguy Pruvot
- * Copyright 2016-2021 Jay D Dee
+ * Copyright 2016-2023 Jay D Dee
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -121,7 +121,6 @@ static uint64_t opt_affinity = 0xFFFFFFFFFFFFFFFFULL;  // default, use all cores
 int opt_priority = 0;  // deprecated
 int num_cpus = 1;
 int num_cpugroups = 1;  // For Windows
-#define max_cpus 256   // max for affinity
 char *rpc_url = NULL;
 char *rpc_userpass = NULL;
 char *rpc_user, *rpc_pass;
@@ -224,8 +223,7 @@ char*  lp_id;
 
 static void   workio_cmd_free(struct workio_cmd *wc);
 
-// array mapping thread to cpu
-static uint8_t thread_affinity_map[ max_cpus ];
+static int *thread_affinity_map;
 
 // display affinity mask graphically
 static void format_affinity_mask( char *mask_str, uint64_t mask )
@@ -866,6 +864,8 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
       for ( i = 0; i < n; i++ )
          sha256d( merkle_tree[i], merkle_tree[2*i], 64 );
    }
+
+   work->tx_count = tx_count;
 
    /* assemble block header */
    algo_gate.build_block_header( work, swab32( version ),
@@ -1613,14 +1613,14 @@ start:
          last_block_height = work->height;
          last_targetdiff = net_diff;
 
-         applog( LOG_BLUE, "New Block %d, Net Diff %.5g, Ntime %08x",
-                                work->height, net_diff,
+         applog( LOG_BLUE, "New Block %d, Tx %d, Net Diff %.5g, Ntime %08x",
+                                work->height, work->tx_count, net_diff,
                                 work->data[ algo_gate.ntime_index ] );
       }
       else if ( memcmp( &work->data[1], &g_work.data[1], 32 ) )
-         applog( LOG_BLUE, "New Work: Block %d, Net Diff %.5g, Ntime %08x",
-                                     work->height, net_diff,
-                                      work->data[ algo_gate.ntime_index ] );
+         applog( LOG_BLUE, "New Work: Block %d, Tx %d, Net Diff %.5g, Ntime %08x",
+                                work->height, work->tx_count, net_diff,
+                                work->data[ algo_gate.ntime_index ] );
        
       if ( !opt_quiet )
       {
@@ -2056,14 +2056,17 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    pthread_mutex_unlock( &stats_lock );
 
    if ( stratum_diff != sctx->job.diff )
-      applog( LOG_BLUE, "New Stratum Diff %g, Block %d, Job %s",
-                        sctx->job.diff, sctx->block_height, g_work->job_id );
+      applog( LOG_BLUE, "New Stratum Diff %g, Block %d, Tx %d, Job %s",
+                        sctx->job.diff, sctx->block_height,
+                        sctx->job.merkle_count, g_work->job_id );
    else if ( last_block_height != sctx->block_height )
-      applog( LOG_BLUE, "New Block %d, Net diff %.5g, Job %s",
-                        sctx->block_height, net_diff, g_work->job_id );
+      applog( LOG_BLUE, "New Block %d, Tx %d, Netdiff %.5g, Job %s",
+                        sctx->block_height, sctx->job.merkle_count,
+                        net_diff, g_work->job_id );
    else if ( g_work->job_id && new_job )
-      applog( LOG_BLUE, "New Work: Block %d, Net diff %.5g, Job %s",
-                         sctx->block_height, net_diff, g_work->job_id );
+      applog( LOG_BLUE, "New Work: Block %d, Tx %d, Netdiff %.5g, Job %s",
+                         sctx->block_height, sctx->job.merkle_count,
+                         net_diff, g_work->job_id );
    else if ( !opt_quiet )
    {
       unsigned char *xnonce2str = bebin2hex( g_work->xnonce2,
@@ -3769,24 +3772,29 @@ int main(int argc, char *argv[])
 #endif
 
 #if defined(WIN32) && defined(WINDOWS_CPU_GROUPS_ENABLED)
-      if ( !opt_quiet )
-         applog( LOG_INFO, "Found %d CPUs in %d groups", num_cpus, num_cpugroups );
+      if ( opt_debug || ( !opt_quiet && num_cpugroups > 1 ) )
+         applog( LOG_INFO, "Found %d CPUs in %d groups",
+                           num_cpus, num_cpugroups );
 #endif
    
-   if ( opt_affinity && num_cpus > max_cpus )
+   const int map_size = opt_n_threads < num_cpus ? num_cpus : opt_n_threads;   
+   thread_affinity_map = malloc( map_size * (sizeof (int)) );
+   if ( !thread_affinity_map )
    {
-      applog( LOG_WARNING, "More than %d CPUs, CPU affinity is disabled",
-                            max_cpus );
+      applog( LOG_ERR, "CPU Affinity disabled, memory allocation failed" );
       opt_affinity = 0ULL;
-   }
-   
+   }   
    if ( opt_affinity )
    {
-      for ( int thr = 0, cpu = 0; thr < opt_n_threads; thr++, cpu++ )
+      int active_cpus = 0; // total CPUs available using rolling affinity mask
+      for ( int thr = 0, cpu = 0; thr < map_size; thr++, cpu++ )
       {
          while ( !( ( opt_affinity >> ( cpu & 63 ) ) & 1ULL ) ) cpu++;   
          thread_affinity_map[ thr ] = cpu % num_cpus;
+         if ( cpu < num_cpus ) active_cpus++;
       }
+      if ( opt_n_threads > active_cpus )
+         applog( LOG_WARNING, "Affinity: more threads (%d) than active CPUs (%d)", opt_n_threads, active_cpus );
       if ( !opt_quiet )
       {
          char affinity_mask[64];

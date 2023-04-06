@@ -89,18 +89,18 @@ static inline void extr_lane_2x32( void *dst, const void *src,
 #if defined(__SSE4_1__)
 
 #define ILEAVE_4x32( D0, D1, D2, D3, S0, S1, S2, S3 ) \
-   D0 = mm128_shuflmov_32( S0, 1, S1, 0 ); \
-   D1 = mm128_shuflmov_32( S1, 0, S0, 1 ); \
-   D2 = mm128_shuflmov_32( S2, 0, S0, 2 ); \
-   D3 = mm128_shuflmov_32( S3, 0, S0, 3 ); \
-   D0 = mm128_shuflmov_32( D0, 2, S2, 0 ); \
-   D1 = mm128_shuflmov_32( D1, 2, S2, 1 ); \
-   D2 = mm128_shuflmov_32( D2, 1, S1, 2 ); \
-   D3 = mm128_shuflmov_32( D3, 1, S1, 3 ); \
-   D0 = mm128_shuflmov_32( D0, 3, S3, 0 ); \
-   D1 = mm128_shuflmov_32( D1, 3, S3, 1 ); \
-   D2 = mm128_shuflmov_32( D2, 3, S3, 2 ); \
-   D3 = mm128_shuflmov_32( D3, 2, S2, 3 ); 
+   D0 = mm128_mov32_32( S0, 1, S1, 0 ); \
+   D1 = mm128_mov32_32( S1, 0, S0, 1 ); \
+   D2 = mm128_mov32_32( S2, 0, S0, 2 ); \
+   D3 = mm128_mov32_32( S3, 0, S0, 3 ); \
+   D0 = mm128_mov32_32( D0, 2, S2, 0 ); \
+   D1 = mm128_mov32_32( D1, 2, S2, 1 ); \
+   D2 = mm128_mov32_32( D2, 1, S1, 2 ); \
+   D3 = mm128_mov32_32( D3, 1, S1, 3 ); \
+   D0 = mm128_mov32_32( D0, 3, S3, 0 ); \
+   D1 = mm128_mov32_32( D1, 3, S3, 1 ); \
+   D2 = mm128_mov32_32( D2, 3, S3, 2 ); \
+   D3 = mm128_mov32_32( D3, 2, S2, 3 ); 
 
 #define LOAD_SRCE( S0, S1, S2, S3, src0, i0, src1, i1, src2, i2, src3, i3 ) \
    S0 = _mm_load_si128( (const __m128i*)(src0) + (i0) ); \
@@ -406,28 +406,6 @@ static inline void extr_lane_4x32( void *d, const void *s,
    ((uint32_t*)d)[15] = ((const uint32_t*)s)[ lane+60 ];
 }
 
-
-
-// Still used by decred due to odd data size: 180 bytes
-// bit_len must be multiple of 32
-static inline void mm128_intrlv_4x32x( void *dst, void *src0, void  *src1,
-                                 void *src2, void *src3, const int bit_len )
-{
-   uint32_t *d  = (uint32_t*)dst;
-   uint32_t *s0 = (uint32_t*)src0;
-   uint32_t *s1 = (uint32_t*)src1;
-   uint32_t *s2 = (uint32_t*)src2;
-   uint32_t *s3 = (uint32_t*)src3;
-
-   for ( int i = 0; i < bit_len >> 5; i++, d += 4 )
-   {
-      *d     = *(s0+i);
-      *(d+1) = *(s1+i);
-      *(d+2) = *(s2+i);
-      *(d+3) = *(s3+i);
-   }
-}
-
 #if defined(__SSSE3__)
 
 static inline void mm128_bswap32_80( void *d, void *s )
@@ -468,32 +446,6 @@ static inline void mm128_bswap32_80( void *d, void *s )
 
 #endif
 
-static inline void mm128_bswap32_intrlv80_4x32( void *d, const void *src )
-{
- uint32_t *s = (uint32_t*)src;
- casti_m128i( d, 0 ) = _mm_set1_epi32( bswap_32( s[ 0] ) );
- casti_m128i( d, 1 ) = _mm_set1_epi32( bswap_32( s[ 1] ) );
- casti_m128i( d, 2 ) = _mm_set1_epi32( bswap_32( s[ 2] ) );
- casti_m128i( d, 3 ) = _mm_set1_epi32( bswap_32( s[ 3] ) );
- casti_m128i( d, 4 ) = _mm_set1_epi32( bswap_32( s[ 4] ) );
- casti_m128i( d, 5 ) = _mm_set1_epi32( bswap_32( s[ 5] ) );
- casti_m128i( d, 6 ) = _mm_set1_epi32( bswap_32( s[ 6] ) );
- casti_m128i( d, 7 ) = _mm_set1_epi32( bswap_32( s[ 7] ) );
- casti_m128i( d, 8 ) = _mm_set1_epi32( bswap_32( s[ 8] ) );
- casti_m128i( d, 9 ) = _mm_set1_epi32( bswap_32( s[ 9] ) );
- casti_m128i( d,10 ) = _mm_set1_epi32( bswap_32( s[10] ) );
- casti_m128i( d,11 ) = _mm_set1_epi32( bswap_32( s[11] ) );
- casti_m128i( d,12 ) = _mm_set1_epi32( bswap_32( s[12] ) );
- casti_m128i( d,13 ) = _mm_set1_epi32( bswap_32( s[13] ) );
- casti_m128i( d,14 ) = _mm_set1_epi32( bswap_32( s[14] ) );
- casti_m128i( d,15 ) = _mm_set1_epi32( bswap_32( s[15] ) );
- casti_m128i( d,16 ) = _mm_set1_epi32( bswap_32( s[16] ) );
- casti_m128i( d,17 ) = _mm_set1_epi32( bswap_32( s[17] ) );
- casti_m128i( d,18 ) = _mm_set1_epi32( bswap_32( s[18] ) );
- casti_m128i( d,19 ) = _mm_set1_epi32( bswap_32( s[19] ) );
-}
-
-/*
 static inline void mm128_bswap32_intrlv80_4x32( void *d, const void *src )
 {
   __m128i s0 = casti_m128i( src,0 );
@@ -547,76 +499,9 @@ static inline void mm128_bswap32_intrlv80_4x32( void *d, const void *src )
   casti_m128i( d,18 ) = _mm_shuffle_epi32( s4, 0xaa );
   casti_m128i( d,19 ) = _mm_shuffle_epi32( s4, 0xff );
 }
-*/
+
 
 // 8x32
-
-#define ILEAVE_8x32( i ) do \
-{ \
-  uint32_t *d = (uint32_t*)(dst) + ( (i) << 3 ); \
-  d[0] = *( (const uint32_t*)(s0) +(i) ); \
-  d[1] = *( (const uint32_t*)(s1) +(i) ); \
-  d[2] = *( (const uint32_t*)(s2) +(i) ); \
-  d[3] = *( (const uint32_t*)(s3) +(i) ); \
-  d[4] = *( (const uint32_t*)(s4) +(i) ); \
-  d[5] = *( (const uint32_t*)(s5) +(i) ); \
-  d[6] = *( (const uint32_t*)(s6) +(i) ); \
-  d[7] = *( (const uint32_t*)(s7) +(i) ); \
-} while(0)
-  
-static inline void intrlv_8x32b( void *dst, const void *s0, const void *s1,
-           const void *s2, const void *s3, const void *s4, const void *s5,
-           const void *s6, const void *s7, const int bit_len )
-{
-   for ( int i = 0; i < bit_len/32; i++ )
-      ILEAVE_8x32( i );
-}
-
-/*
-// default
-static inline void intrlv_8x32( void *dst, const void *s0, const void *s1,
-           const void *s2, const void *s3, const void *s4, const void *s5,
-           const void *s6, const void *s7, const int bit_len )
-{
-   ILEAVE_8x32(  0 );   ILEAVE_8x32(  1 );
-   ILEAVE_8x32(  2 );   ILEAVE_8x32(  3 );
-   ILEAVE_8x32(  4 );   ILEAVE_8x32(  5 );
-   ILEAVE_8x32(  6 );   ILEAVE_8x32(  7 );
-   if ( bit_len <= 256 ) return;
-   ILEAVE_8x32(  8 );   ILEAVE_8x32(  9 );
-   ILEAVE_8x32( 10 );   ILEAVE_8x32( 11 );
-   ILEAVE_8x32( 12 );   ILEAVE_8x32( 13 );
-   ILEAVE_8x32( 14 );   ILEAVE_8x32( 15 );
-   if ( bit_len <= 512 ) return;
-   ILEAVE_8x32( 16 );   ILEAVE_8x32( 17 );
-   ILEAVE_8x32( 18 );   ILEAVE_8x32( 19 );
-   if ( bit_len <= 640 ) return;
-   ILEAVE_8x32( 20 );   ILEAVE_8x32( 21 );
-   ILEAVE_8x32( 22 );   ILEAVE_8x32( 23 );
-   ILEAVE_8x32( 24 );   ILEAVE_8x32( 25 );
-   ILEAVE_8x32( 26 );   ILEAVE_8x32( 27 );
-   ILEAVE_8x32( 28 );   ILEAVE_8x32( 29 );
-   ILEAVE_8x32( 30 );   ILEAVE_8x32( 31 );
-}
-*/
-
-/* default
-static inline void intrlv_8x32_512( void *dst, const void *s0, const void *s1,
-               const void *s2, const void *s3, const void *s4, const void *s5,
-               const void *s6, const void *s7 )
-{
-   ILEAVE_8x32(  0 );   ILEAVE_8x32(  1 );
-   ILEAVE_8x32(  2 );   ILEAVE_8x32(  3 );
-   ILEAVE_8x32(  4 );   ILEAVE_8x32(  5 );
-   ILEAVE_8x32(  6 );   ILEAVE_8x32(  7 );
-   ILEAVE_8x32(  8 );   ILEAVE_8x32(  9 );
-   ILEAVE_8x32( 10 );   ILEAVE_8x32( 11 );
-   ILEAVE_8x32( 12 );   ILEAVE_8x32( 13 );
-   ILEAVE_8x32( 14 );   ILEAVE_8x32( 15 );
-}
-*/
-
-#undef ILEAVE_8x32
 
 #if defined(__SSE4_1__)
 
@@ -820,71 +705,6 @@ static inline void dintrlv_8x32_512( void *dst0, void *dst1, void *dst2,
 
 #endif  // SSE4_1
 
-
-#define DLEAVE_8x32( i ) do \
-{ \
-   const uint32_t *s = (const uint32_t*)(src) + ( (i) << 3 ); \
-   *( (uint32_t*)(d0) +(i) ) = s[0]; \
-   *( (uint32_t*)(d1) +(i) ) = s[1]; \
-   *( (uint32_t*)(d2) +(i) ) = s[2]; \
-   *( (uint32_t*)(d3) +(i) ) = s[3]; \
-   *( (uint32_t*)(d4) +(i) ) = s[4]; \
-   *( (uint32_t*)(d5) +(i) ) = s[5]; \
-   *( (uint32_t*)(d6) +(i) ) = s[6]; \
-   *( (uint32_t*)(d7) +(i) ) = s[7]; \
-} while(0)
-
-static inline void dintrlv_8x32b( void *d0, void *d1, void *d2, void *d3,
-             void *d4, void *d5, void *d6, void *d7, const void *src,
-             const int bit_len )
-{
-   for ( int i = 0; i < bit_len/32; i++ )
-      DLEAVE_8x32( i );
-}
-
-/* default
-static inline void dintrlv_8x32( void *d0, void *d1, void *d2, void *d3,
-             void *d4, void *d5, void *d6, void *d7, const void *src,
-             const int bit_len )
-{
-   DLEAVE_8x32(  0 );   DLEAVE_8x32(  1 );
-   DLEAVE_8x32(  2 );   DLEAVE_8x32(  3 );
-   DLEAVE_8x32(  4 );   DLEAVE_8x32(  5 );
-   DLEAVE_8x32(  6 );   DLEAVE_8x32(  7 );
-   if ( bit_len <= 256 ) return;
-   DLEAVE_8x32(  8 );   DLEAVE_8x32(  9 );
-   DLEAVE_8x32( 10 );   DLEAVE_8x32( 11 );
-   DLEAVE_8x32( 12 );   DLEAVE_8x32( 13 );
-   DLEAVE_8x32( 14 );   DLEAVE_8x32( 15 );
-   if ( bit_len <= 512 ) return;
-   DLEAVE_8x32( 16 );   DLEAVE_8x32( 17 );
-   DLEAVE_8x32( 18 );   DLEAVE_8x32( 19 );
-   if ( bit_len <= 640 ) return;
-   DLEAVE_8x32( 20 );   DLEAVE_8x32( 21 );
-   DLEAVE_8x32( 22 );   DLEAVE_8x32( 23 );
-   DLEAVE_8x32( 24 );   DLEAVE_8x32( 25 );
-   DLEAVE_8x32( 26 );   DLEAVE_8x32( 27 );
-   DLEAVE_8x32( 28 );   DLEAVE_8x32( 29 );
-   DLEAVE_8x32( 30 );   DLEAVE_8x32( 31 );
-}
-*/
-
-/* default
-static inline void dintrlv_8x32_512( void *d0, void *d1, void *d2, void *d3,
-                     void *d4, void *d5, void *d6, void *d7, const void *src )
-{
-   DLEAVE_8x32(  0 );   DLEAVE_8x32(  1 );
-   DLEAVE_8x32(  2 );   DLEAVE_8x32(  3 );
-   DLEAVE_8x32(  4 );   DLEAVE_8x32(  5 );
-   DLEAVE_8x32(  6 );   DLEAVE_8x32(  7 );
-   DLEAVE_8x32(  8 );   DLEAVE_8x32(  9 );
-   DLEAVE_8x32( 10 );   DLEAVE_8x32( 11 );
-   DLEAVE_8x32( 12 );   DLEAVE_8x32( 13 );
-   DLEAVE_8x32( 14 );   DLEAVE_8x32( 15 );
-}
-*/
-#undef DLEAVE_8x32
-
 static inline void extr_lane_8x32( void *d, const void *s,
                                    const int lane, const int bit_len )
 {
@@ -909,31 +729,6 @@ static inline void extr_lane_8x32( void *d, const void *s,
 
 #if defined(__AVX2__)
 
-static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
-{
- uint32_t *s = (uint32_t*)src;
- casti_m256i( d, 0 ) = _mm256_set1_epi32( bswap_32( s[ 0] ) );
- casti_m256i( d, 1 ) = _mm256_set1_epi32( bswap_32( s[ 1] ) );
- casti_m256i( d, 2 ) = _mm256_set1_epi32( bswap_32( s[ 2] ) );
- casti_m256i( d, 3 ) = _mm256_set1_epi32( bswap_32( s[ 3] ) );
- casti_m256i( d, 4 ) = _mm256_set1_epi32( bswap_32( s[ 4] ) );
- casti_m256i( d, 5 ) = _mm256_set1_epi32( bswap_32( s[ 5] ) );
- casti_m256i( d, 6 ) = _mm256_set1_epi32( bswap_32( s[ 6] ) );
- casti_m256i( d, 7 ) = _mm256_set1_epi32( bswap_32( s[ 7] ) );
- casti_m256i( d, 8 ) = _mm256_set1_epi32( bswap_32( s[ 8] ) );
- casti_m256i( d, 9 ) = _mm256_set1_epi32( bswap_32( s[ 9] ) );
- casti_m256i( d,10 ) = _mm256_set1_epi32( bswap_32( s[10] ) );
- casti_m256i( d,11 ) = _mm256_set1_epi32( bswap_32( s[11] ) );
- casti_m256i( d,12 ) = _mm256_set1_epi32( bswap_32( s[12] ) );
- casti_m256i( d,13 ) = _mm256_set1_epi32( bswap_32( s[13] ) );
- casti_m256i( d,14 ) = _mm256_set1_epi32( bswap_32( s[14] ) );
- casti_m256i( d,15 ) = _mm256_set1_epi32( bswap_32( s[15] ) );
- casti_m256i( d,16 ) = _mm256_set1_epi32( bswap_32( s[16] ) );
- casti_m256i( d,17 ) = _mm256_set1_epi32( bswap_32( s[17] ) );
- casti_m256i( d,18 ) = _mm256_set1_epi32( bswap_32( s[18] ) );
- casti_m256i( d,19 ) = _mm256_set1_epi32( bswap_32( s[19] ) );
-}
-/*
 static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
 {
   __m128i bswap_shuf = m128_const_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 );
@@ -994,7 +789,7 @@ static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
    casti_m128i( d,38 ) = 
    casti_m128i( d,39 ) = _mm_shuffle_epi32( s4 , 0xff );
 } 
-*/
+
 
 #endif   // AVX2
 
@@ -1355,28 +1150,6 @@ static inline void dintrlv_16x32_512( void *dst00, void *dst01, void *dst02,
 
 #endif  // SSE4_1
 
-
-#define DLEAVE_16x32( i ) do \
-{ \
-   const uint32_t *s = (const uint32_t*)(src) + ( (i) << 4 ); \
-   *( (uint32_t*)(d00) +(i) ) = s[ 0]; \
-   *( (uint32_t*)(d01) +(i) ) = s[ 1]; \
-   *( (uint32_t*)(d02) +(i) ) = s[ 2]; \
-   *( (uint32_t*)(d03) +(i) ) = s[ 3]; \
-   *( (uint32_t*)(d04) +(i) ) = s[ 4]; \
-   *( (uint32_t*)(d05) +(i) ) = s[ 5]; \
-   *( (uint32_t*)(d06) +(i) ) = s[ 6]; \
-   *( (uint32_t*)(d07) +(i) ) = s[ 7]; \
-   *( (uint32_t*)(d08) +(i) ) = s[ 8]; \
-   *( (uint32_t*)(d09) +(i) ) = s[ 9]; \
-   *( (uint32_t*)(d10) +(i) ) = s[10]; \
-   *( (uint32_t*)(d11) +(i) ) = s[11]; \
-   *( (uint32_t*)(d12) +(i) ) = s[12]; \
-   *( (uint32_t*)(d13) +(i) ) = s[13]; \
-   *( (uint32_t*)(d14) +(i) ) = s[14]; \
-   *( (uint32_t*)(d15) +(i) ) = s[15]; \
-} while(0)
-
 static inline void extr_lane_16x32( void *d, const void *s,
                                     const int lane, const int bit_len )
 {
@@ -1403,31 +1176,6 @@ static inline void extr_lane_16x32( void *d, const void *s,
 
 static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
 {
- uint32_t *s = (uint32_t*)src;
- casti_m512i( d, 0 ) = _mm512_set1_epi32( bswap_32( s[ 0] ) );
- casti_m512i( d, 1 ) = _mm512_set1_epi32( bswap_32( s[ 1] ) );
- casti_m512i( d, 2 ) = _mm512_set1_epi32( bswap_32( s[ 2] ) );
- casti_m512i( d, 3 ) = _mm512_set1_epi32( bswap_32( s[ 3] ) );
- casti_m512i( d, 4 ) = _mm512_set1_epi32( bswap_32( s[ 4] ) );
- casti_m512i( d, 5 ) = _mm512_set1_epi32( bswap_32( s[ 5] ) );
- casti_m512i( d, 6 ) = _mm512_set1_epi32( bswap_32( s[ 6] ) );
- casti_m512i( d, 7 ) = _mm512_set1_epi32( bswap_32( s[ 7] ) );
- casti_m512i( d, 8 ) = _mm512_set1_epi32( bswap_32( s[ 8] ) );
- casti_m512i( d, 9 ) = _mm512_set1_epi32( bswap_32( s[ 9] ) );
- casti_m512i( d,10 ) = _mm512_set1_epi32( bswap_32( s[10] ) );
- casti_m512i( d,11 ) = _mm512_set1_epi32( bswap_32( s[11] ) );
- casti_m512i( d,12 ) = _mm512_set1_epi32( bswap_32( s[12] ) );
- casti_m512i( d,13 ) = _mm512_set1_epi32( bswap_32( s[13] ) );
- casti_m512i( d,14 ) = _mm512_set1_epi32( bswap_32( s[14] ) );
- casti_m512i( d,15 ) = _mm512_set1_epi32( bswap_32( s[15] ) );
- casti_m512i( d,16 ) = _mm512_set1_epi32( bswap_32( s[16] ) );
- casti_m512i( d,17 ) = _mm512_set1_epi32( bswap_32( s[17] ) );
- casti_m512i( d,18 ) = _mm512_set1_epi32( bswap_32( s[18] ) );
- casti_m512i( d,19 ) = _mm512_set1_epi32( bswap_32( s[19] ) );
-}
-/*
-static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
-{
   __m128i bswap_shuf = m128_const_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 );
   __m128i s0 = casti_m128i( src,0 );
   __m128i s1 = casti_m128i( src,1 );
@@ -1441,139 +1189,38 @@ static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
   s3 = _mm_shuffle_epi8( s3, bswap_shuf );
   s4 = _mm_shuffle_epi8( s4, bswap_shuf );
 
-   casti_m128i( d, 0 ) = 
-   casti_m128i( d, 1 ) = 
-   casti_m128i( d, 2 ) = 
-   casti_m128i( d, 3 ) = _mm_shuffle_epi32( s0 , 0x00 );
-   casti_m128i( d, 4 ) = 
-   casti_m128i( d, 5 ) = 
-   casti_m128i( d, 6 ) = 
-   casti_m128i( d, 7 ) = _mm_shuffle_epi32( s0 , 0x55 );
-   casti_m128i( d, 8 ) = 
-   casti_m128i( d, 9 ) = 
-   casti_m128i( d,10 ) = 
-   casti_m128i( d,11 ) = _mm_shuffle_epi32( s0 , 0xaa );
-   casti_m128i( d,12 ) = 
-   casti_m128i( d,13 ) = 
-   casti_m128i( d,14 ) = 
-   casti_m128i( d,15 ) = _mm_shuffle_epi32( s0 , 0xff );
+  casti_m512i( d, 0 ) = mm512_bcast_m128( _mm_shuffle_epi32( s0 , 0x00 ) );   
+  casti_m512i( d, 1 ) = mm512_bcast_m128( _mm_shuffle_epi32( s0 , 0x55 ) );
+  casti_m512i( d, 2 ) = mm512_bcast_m128( _mm_shuffle_epi32( s0 , 0xaa ) );
+  casti_m512i( d, 3 ) = mm512_bcast_m128( _mm_shuffle_epi32( s0 , 0xff ) );
 
-   casti_m128i( d,16 ) = 
-   casti_m128i( d,17 ) = 
-   casti_m128i( d,18 ) = 
-   casti_m128i( d,19 ) = _mm_shuffle_epi32( s1 , 0x00 );
-   casti_m128i( d,20 ) = 
-   casti_m128i( d,21 ) = 
-   casti_m128i( d,22 ) = 
-   casti_m128i( d,23 ) = _mm_shuffle_epi32( s1 , 0x55 );
-   casti_m128i( d,24 ) = 
-   casti_m128i( d,25 ) = 
-   casti_m128i( d,26 ) = 
-   casti_m128i( d,27 ) = _mm_shuffle_epi32( s1 , 0xaa );
-   casti_m128i( d,28 ) = 
-   casti_m128i( d,29 ) = 
-   casti_m128i( d,30 ) = 
-   casti_m128i( d,31 ) = _mm_shuffle_epi32( s1 , 0xff );
+  casti_m512i( d, 4 ) = mm512_bcast_m128( _mm_shuffle_epi32( s1 , 0x00 ) );
+  casti_m512i( d, 5 ) = mm512_bcast_m128( _mm_shuffle_epi32( s1 , 0x55 ) );
+  casti_m512i( d, 6 ) = mm512_bcast_m128( _mm_shuffle_epi32( s1 , 0xaa ) );
+  casti_m512i( d, 7 ) = mm512_bcast_m128( _mm_shuffle_epi32( s1 , 0xff ) );
 
-   casti_m128i( d,32 ) = 
-   casti_m128i( d,33 ) = 
-   casti_m128i( d,34 ) = 
-   casti_m128i( d,35 ) = _mm_shuffle_epi32( s2 , 0x00 );
-   casti_m128i( d,36 ) = 
-   casti_m128i( d,37 ) = 
-   casti_m128i( d,38 ) = 
-   casti_m128i( d,39 ) = _mm_shuffle_epi32( s2 , 0x55 );
-   casti_m128i( d,40 ) = 
-   casti_m128i( d,41 ) = 
-   casti_m128i( d,42 ) = 
-   casti_m128i( d,43 ) = _mm_shuffle_epi32( s2 , 0xaa );
-   casti_m128i( d,44 ) = 
-   casti_m128i( d,45 ) = 
-   casti_m128i( d,46 ) = 
-   casti_m128i( d,47 ) = _mm_shuffle_epi32( s2 , 0xff );
+  casti_m512i( d, 8 ) = mm512_bcast_m128( _mm_shuffle_epi32( s2 , 0x00 ) );
+  casti_m512i( d, 9 ) = mm512_bcast_m128( _mm_shuffle_epi32( s2 , 0x55 ) );
+  casti_m512i( d,10 ) = mm512_bcast_m128( _mm_shuffle_epi32( s2 , 0xaa ) );
+  casti_m512i( d,11 ) = mm512_bcast_m128( _mm_shuffle_epi32( s2 , 0xff ) );
 
-   casti_m128i( d,48 ) = 
-   casti_m128i( d,49 ) = 
-   casti_m128i( d,50 ) = 
-   casti_m128i( d,51 ) = _mm_shuffle_epi32( s3 , 0x00 );
-   casti_m128i( d,52 ) = 
-   casti_m128i( d,53 ) = 
-   casti_m128i( d,54 ) = 
-   casti_m128i( d,55 ) = _mm_shuffle_epi32( s3 , 0x55 );
-   casti_m128i( d,56 ) = 
-   casti_m128i( d,57 ) = 
-   casti_m128i( d,58 ) = 
-   casti_m128i( d,59 ) = _mm_shuffle_epi32( s3 , 0xaa );
-   casti_m128i( d,60 ) = 
-   casti_m128i( d,61 ) = 
-   casti_m128i( d,62 ) = 
-   casti_m128i( d,63 ) = _mm_shuffle_epi32( s3 , 0xff );
+  casti_m512i( d,12 ) = mm512_bcast_m128( _mm_shuffle_epi32( s3 , 0x00 ) );
+  casti_m512i( d,13 ) = mm512_bcast_m128( _mm_shuffle_epi32( s3 , 0x55 ) );
+  casti_m512i( d,14 ) = mm512_bcast_m128( _mm_shuffle_epi32( s3 , 0xaa ) );
+  casti_m512i( d,15 ) = mm512_bcast_m128( _mm_shuffle_epi32( s3 , 0xff ) );
 
-   casti_m128i( d,64 ) = 
-   casti_m128i( d,65 ) = 
-   casti_m128i( d,66 ) = 
-   casti_m128i( d,67 ) = _mm_shuffle_epi32( s4 , 0x00 );
-   casti_m128i( d,68 ) = 
-   casti_m128i( d,69 ) = 
-   casti_m128i( d,70 ) = 
-   casti_m128i( d,71 ) = _mm_shuffle_epi32( s4 , 0x55 );
-   casti_m128i( d,72 ) = 
-   casti_m128i( d,73 ) = 
-   casti_m128i( d,74 ) = 
-   casti_m128i( d,75 ) = _mm_shuffle_epi32( s4 , 0xaa );
-   casti_m128i( d,76 ) = 
-   casti_m128i( d,77 ) = 
-   casti_m128i( d,78 ) = 
-   casti_m128i( d,79 ) = _mm_shuffle_epi32( s4 , 0xff );
+  casti_m512i( d,16 ) = mm512_bcast_m128( _mm_shuffle_epi32( s4 , 0x00 ) );
+  casti_m512i( d,17 ) = mm512_bcast_m128( _mm_shuffle_epi32( s4 , 0x55 ) );
+  casti_m512i( d,18 ) = mm512_bcast_m128( _mm_shuffle_epi32( s4 , 0xaa ) );
+  casti_m512i( d,19 ) = mm512_bcast_m128( _mm_shuffle_epi32( s4 , 0xff ) );
 }
-*/
+
 
 #endif    // AVX512
 
 ///////////////////////////
 //
 //     64 bit data
-
-// 2x64    (SSE2)
-
-static inline void intrlv_2x64( void *dst, const void *src0,
-                                const void *src1, const int bit_len )
-{
-   uint64_t *d = (uint64_t*)dst;;
-   const uint64_t *s0 = (const uint64_t*)src0;
-   const uint64_t *s1 = (const uint64_t*)src1;
-   d[ 0] = s0[ 0];    d[ 1] = s1[ 0];   d[ 2] = s0[ 1];    d[ 3] = s1[ 1];
-   d[ 4] = s0[ 2];    d[ 5] = s1[ 2];   d[ 6] = s0[ 3];    d[ 7] = s1[ 3];
-   if ( bit_len <= 256 ) return;
-   d[ 8] = s0[ 4];    d[ 9] = s1[ 4];   d[10] = s0[ 5];    d[11] = s1[ 5];
-   d[12] = s0[ 6];    d[13] = s1[ 6];   d[14] = s0[ 7];    d[15] = s1[ 7];
-   if ( bit_len <= 512 ) return;
-   d[16] = s0[ 8];    d[17] = s1[ 8];   d[18] = s0[ 9];    d[19] = s1[ 9];
-   if ( bit_len <= 640 ) return;
-   d[20] = s0[10];    d[21] = s1[10];   d[22] = s0[11];    d[23] = s1[11];
-   d[24] = s0[12];    d[25] = s1[12];   d[26] = s0[13];    d[27] = s1[13];
-   d[28] = s0[14];    d[29] = s1[14];   d[30] = s0[15];    d[31] = s1[15];
-}
-
-static inline void dintrlv_2x64( void *dst0, void *dst1,
-                                 const void *src, const int bit_len )
-{
-   uint64_t *d0 = (uint64_t*)dst0;
-   uint64_t *d1 = (uint64_t*)dst1;
-   const uint64_t *s = (const uint64_t*)src;
-
-   d0[ 0] = s[ 0];   d1[ 0] = s[ 1];   d0[ 1] = s[ 2];   d1[ 1] = s[ 3];
-   d0[ 2] = s[ 4];   d1[ 2] = s[ 5];   d0[ 3] = s[ 6];   d1[ 3] = s[ 7];
-   if ( bit_len <= 256 ) return;
-   d0[ 4] = s[ 8];   d1[ 4] = s[ 9];   d0[ 5] = s[10];   d1[ 5] = s[11];
-   d0[ 6] = s[12];   d1[ 6] = s[13];   d0[ 7] = s[14];   d1[ 7] = s[15];
-   if ( bit_len <= 512 ) return;
-   d0[ 8] = s[16];   d1[ 8] = s[17];   d0[ 9] = s[18];   d1[ 9] = s[19];
-   if ( bit_len <= 640 ) return;
-   d0[10] = s[20];   d1[10] = s[21];   d0[11] = s[22];   d1[11] = s[23];
-   d0[12] = s[24];   d1[12] = s[25];   d0[13] = s[26];   d1[13] = s[27];
-   d0[14] = s[28];   d1[14] = s[29];   d0[15] = s[30];   d1[15] = s[31];
-}
 
 // 4x64   (AVX2)
 
@@ -2149,19 +1796,19 @@ static inline void extr_lane_8x64( void *dst, const void *src, const int lane,
 // broadcast to all lanes
 static inline void mm512_intrlv80_8x64( void *dst, const void *src )
 {
-  __m128i *d = (__m128i*)dst;
+  __m512i *d = (__m512i*)dst;
   const __m128i *s = (const __m128i*)src;
 
-  d[ 0] =  d[ 1] =  d[ 2] =  d[ 3] = _mm_shuffle_epi32( s[0], 0x44 );
-  d[ 4] =  d[ 5] =  d[ 6] =  d[ 7] = _mm_shuffle_epi32( s[0], 0xee );
-  d[ 8] =  d[ 9] =  d[10] =  d[11] = _mm_shuffle_epi32( s[1], 0x44 );
-  d[12] =  d[13] =  d[14] =  d[15] = _mm_shuffle_epi32( s[1], 0xee );
-  d[16] =  d[17] =  d[18] =  d[19] = _mm_shuffle_epi32( s[2], 0x44 );
-  d[20] =  d[21] =  d[22] =  d[23] = _mm_shuffle_epi32( s[2], 0xee );
-  d[24] =  d[25] =  d[26] =  d[27] = _mm_shuffle_epi32( s[3], 0x44 );
-  d[28] =  d[29] =  d[30] =  d[31] = _mm_shuffle_epi32( s[3], 0xee );
-  d[32] =  d[33] =  d[34] =  d[35] = _mm_shuffle_epi32( s[4], 0x44 );
-  d[36] =  d[37] =  d[38] =  d[39] = _mm_shuffle_epi32( s[4], 0xee );
+  d[ 0] = mm512_bcast_m128( _mm_shuffle_epi32( s[0], 0x44 ) );
+  d[ 1] = mm512_bcast_m128( _mm_shuffle_epi32( s[0], 0xee ) );
+  d[ 2] = mm512_bcast_m128( _mm_shuffle_epi32( s[1], 0x44 ) );
+  d[ 3] = mm512_bcast_m128( _mm_shuffle_epi32( s[1], 0xee ) );
+  d[ 4] = mm512_bcast_m128( _mm_shuffle_epi32( s[2], 0x44 ) );
+  d[ 5] = mm512_bcast_m128( _mm_shuffle_epi32( s[2], 0xee ) );
+  d[ 6] = mm512_bcast_m128( _mm_shuffle_epi32( s[3], 0x44 ) );
+  d[ 7] = mm512_bcast_m128( _mm_shuffle_epi32( s[3], 0xee ) );
+  d[ 8] = mm512_bcast_m128( _mm_shuffle_epi32( s[4], 0x44 ) );
+  d[ 9] = mm512_bcast_m128( _mm_shuffle_epi32( s[4], 0xee ) );
 }
 
 // byte swap and broadcast to al lanes
@@ -2180,50 +1827,16 @@ static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
   s3 = _mm_shuffle_epi8( s3, bswap_shuf );
   s4 = _mm_shuffle_epi8( s4, bswap_shuf );
 
-  casti_m128i( d,  0 ) =
-  casti_m128i( d,  1 ) =
-  casti_m128i( d,  2 ) =
-  casti_m128i( d,  3 ) = _mm_shuffle_epi32( s0, 0x44 );
-  casti_m128i( d,  4 ) =
-  casti_m128i( d,  5 ) =
-  casti_m128i( d,  6 ) =
-  casti_m128i( d,  7 ) = _mm_shuffle_epi32( s0, 0xee );
-
-  casti_m128i( d,  8 ) =
-  casti_m128i( d,  9 ) =
-  casti_m128i( d, 10 ) =
-  casti_m128i( d, 11 ) = _mm_shuffle_epi32( s1, 0x44 );
-  casti_m128i( d, 12 ) =
-  casti_m128i( d, 13 ) =
-  casti_m128i( d, 14 ) =
-  casti_m128i( d, 15 ) = _mm_shuffle_epi32( s1, 0xee );
-
-  casti_m128i( d, 16 ) =
-  casti_m128i( d, 17 ) =
-  casti_m128i( d, 18 ) =
-  casti_m128i( d, 19 ) = _mm_shuffle_epi32( s2, 0x44 );
-  casti_m128i( d, 20 ) =
-  casti_m128i( d, 21 ) =
-  casti_m128i( d, 22 ) =
-  casti_m128i( d, 23 ) = _mm_shuffle_epi32( s2, 0xee );
-
-  casti_m128i( d, 24 ) =
-  casti_m128i( d, 25 ) =
-  casti_m128i( d, 26 ) =
-  casti_m128i( d, 27 ) = _mm_shuffle_epi32( s3, 0x44 );
-  casti_m128i( d, 28 ) =
-  casti_m128i( d, 29 ) =
-  casti_m128i( d, 30 ) =
-  casti_m128i( d, 31 ) = _mm_shuffle_epi32( s3, 0xee );
-
-  casti_m128i( d, 32 ) =
-  casti_m128i( d, 33 ) =
-  casti_m128i( d, 34 ) =
-  casti_m128i( d, 35 ) = _mm_shuffle_epi32( s4, 0x44 );
-  casti_m128i( d, 36 ) =
-  casti_m128i( d, 37 ) =
-  casti_m128i( d, 38 ) =
-  casti_m128i( d, 39 ) = _mm_shuffle_epi32( s4, 0xee );
+  casti_m512i( d, 0 ) = mm512_bcast_m128( _mm_shuffle_epi32( s0, 0x44 ) );
+  casti_m512i( d, 1 ) = mm512_bcast_m128( _mm_shuffle_epi32( s0, 0xee ) );
+  casti_m512i( d, 2 ) = mm512_bcast_m128( _mm_shuffle_epi32( s1, 0x44 ) );
+  casti_m512i( d, 3 ) = mm512_bcast_m128( _mm_shuffle_epi32( s1, 0xee ) );
+  casti_m512i( d, 4 ) = mm512_bcast_m128( _mm_shuffle_epi32( s2, 0x44 ) );
+  casti_m512i( d, 5 ) = mm512_bcast_m128( _mm_shuffle_epi32( s2, 0xee ) );
+  casti_m512i( d, 6 ) = mm512_bcast_m128( _mm_shuffle_epi32( s3, 0x44 ) );
+  casti_m512i( d, 7 ) = mm512_bcast_m128( _mm_shuffle_epi32( s3, 0xee ) );
+  casti_m512i( d, 8 ) = mm512_bcast_m128( _mm_shuffle_epi32( s4, 0x44 ) );
+  casti_m512i( d, 9 ) = mm512_bcast_m128( _mm_shuffle_epi32( s4, 0xee ) );
 }
 
 #endif  // AVX512
@@ -2395,11 +2008,11 @@ static inline void mm512_bswap32_intrlv80_4x128( void *d, void *src )
   s3 = _mm_shuffle_epi8( s3, bswap_shuf );
   s4 = _mm_shuffle_epi8( s4, bswap_shuf );
 
-  casti_m512i( d, 0 ) = _mm512_broadcast_i64x2( s0 );
-  casti_m512i( d, 1 ) = _mm512_broadcast_i64x2( s1 );
-  casti_m512i( d, 2 ) = _mm512_broadcast_i64x2( s2 );
-  casti_m512i( d, 3 ) = _mm512_broadcast_i64x2( s3 );
-  casti_m512i( d, 4 ) = _mm512_broadcast_i64x2( s4 );
+  casti_m512i( d, 0 ) = mm512_bcast_m128( s0 );
+  casti_m512i( d, 1 ) = mm512_bcast_m128( s1 );
+  casti_m512i( d, 2 ) = mm512_bcast_m128( s2 );
+  casti_m512i( d, 3 ) = mm512_bcast_m128( s3 );
+  casti_m512i( d, 4 ) = mm512_bcast_m128( s4 );
 }  
 
 #endif
