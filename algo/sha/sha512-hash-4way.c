@@ -155,14 +155,14 @@ sha512_8way_round( sha512_8way_context *ctx,  __m512i *in, __m512i r[8] )
    }
    else
    {
-      A = m512_const1_64( 0x6A09E667F3BCC908 );
-      B = m512_const1_64( 0xBB67AE8584CAA73B );
-      C = m512_const1_64( 0x3C6EF372FE94F82B );
-      D = m512_const1_64( 0xA54FF53A5F1D36F1 );
-      E = m512_const1_64( 0x510E527FADE682D1 );
-      F = m512_const1_64( 0x9B05688C2B3E6C1F );
-      G = m512_const1_64( 0x1F83D9ABFB41BD6B );
-      H = m512_const1_64( 0x5BE0CD19137E2179 );
+      A = _mm512_set1_epi64( 0x6A09E667F3BCC908 );
+      B = _mm512_set1_epi64( 0xBB67AE8584CAA73B );
+      C = _mm512_set1_epi64( 0x3C6EF372FE94F82B );
+      D = _mm512_set1_epi64( 0xA54FF53A5F1D36F1 );
+      E = _mm512_set1_epi64( 0x510E527FADE682D1 );
+      F = _mm512_set1_epi64( 0x9B05688C2B3E6C1F );
+      G = _mm512_set1_epi64( 0x1F83D9ABFB41BD6B );
+      H = _mm512_set1_epi64( 0x5BE0CD19137E2179 );
    }
 
    for ( i = 0; i < 80; i += 8 )
@@ -191,14 +191,14 @@ sha512_8way_round( sha512_8way_context *ctx,  __m512i *in, __m512i r[8] )
    else
    {
       ctx->initialized = true;
-      r[0] = _mm512_add_epi64( A, m512_const1_64( 0x6A09E667F3BCC908 ) );
-      r[1] = _mm512_add_epi64( B, m512_const1_64( 0xBB67AE8584CAA73B ) );
-      r[2] = _mm512_add_epi64( C, m512_const1_64( 0x3C6EF372FE94F82B ) );
-      r[3] = _mm512_add_epi64( D, m512_const1_64( 0xA54FF53A5F1D36F1 ) );
-      r[4] = _mm512_add_epi64( E, m512_const1_64( 0x510E527FADE682D1 ) );
-      r[5] = _mm512_add_epi64( F, m512_const1_64( 0x9B05688C2B3E6C1F ) );
-      r[6] = _mm512_add_epi64( G, m512_const1_64( 0x1F83D9ABFB41BD6B ) );
-      r[7] = _mm512_add_epi64( H, m512_const1_64( 0x5BE0CD19137E2179 ) );
+      r[0] = _mm512_add_epi64( A, _mm512_set1_epi64( 0x6A09E667F3BCC908 ) );
+      r[1] = _mm512_add_epi64( B, _mm512_set1_epi64( 0xBB67AE8584CAA73B ) );
+      r[2] = _mm512_add_epi64( C, _mm512_set1_epi64( 0x3C6EF372FE94F82B ) );
+      r[3] = _mm512_add_epi64( D, _mm512_set1_epi64( 0xA54FF53A5F1D36F1 ) );
+      r[4] = _mm512_add_epi64( E, _mm512_set1_epi64( 0x510E527FADE682D1 ) );
+      r[5] = _mm512_add_epi64( F, _mm512_set1_epi64( 0x9B05688C2B3E6C1F ) );
+      r[6] = _mm512_add_epi64( G, _mm512_set1_epi64( 0x1F83D9ABFB41BD6B ) );
+      r[7] = _mm512_add_epi64( H, _mm512_set1_epi64( 0x5BE0CD19137E2179 ) );
    }
 }
 
@@ -239,11 +239,8 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
     unsigned ptr;
     const int buf_size = 128;
     const int pad = buf_size - 16;
-    const __m512i shuff_bswap64 = m512_const_64(
-                                    0x38393a3b3c3d3e3f, 0x3031323334353637,
-                                    0x28292a2b2c2d2e2f, 0x2021222324252627,
-                                    0x18191a1b1c1d1e1f, 0x1011121314151617,
-                                    0x08090a0b0c0d0e0f, 0x0001020304050607 );
+    const __m512i shuff_bswap64 = mm512_bcast_m128( _mm_set_epi64x(
+                                    0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
     sc->buf[ ptr>>3 ] = m512_const1_64( 0x80 );
@@ -440,10 +437,8 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
     unsigned ptr;
     const int buf_size = 128;
     const int pad = buf_size - 16;
-    const __m256i shuff_bswap64 = m256_const_64( 0x18191a1b1c1d1e1f,
-                                                 0x1011121314151617,
-                                                 0x08090a0b0c0d0e0f,
-                                                 0x0001020304050607 );
+    const __m256i shuff_bswap64 = mm256_bcast_m128( _mm_set_epi64x(
+                                    0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
     sc->buf[ ptr>>3 ] = m256_const1_64( 0x80 );

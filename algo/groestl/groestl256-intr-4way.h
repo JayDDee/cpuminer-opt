@@ -165,7 +165,7 @@ static const __m512i SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e,
   \
   /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
   /* compute w_i : add y_{i+4} */\
-  b1 = m512_const1_64( 0x1b1b1b1b1b1b1b1b ); \
+  b1 = _mm512_set1_epi64( 0x1b1b1b1b1b1b1b1b ); \
   MUL2( a0, b0, b1 ); \
   a0 = _mm512_xor_si512( a0, TEMP0 ); \
   MUL2( a1, b0, b1 ); \
@@ -205,116 +205,18 @@ static const __m512i SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e,
   b1 = _mm512_xor_si512( b1, a4 ); \
 }/*MixBytes*/
 
-
-#if 0
-#define MixBytes(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
-  /* t_i = a_i + a_{i+1} */\
-  b6 = a0;\
-  b7 = a1;\
-  a0 = _mm512_xor_si512(a0, a1);\
-  b0 = a2;\
-  a1 = _mm512_xor_si512(a1, a2);\
-  b1 = a3;\
-  a2 = _mm512_xor_si512(a2, a3);\
-  b2 = a4;\
-  a3 = _mm512_xor_si512(a3, a4);\
-  b3 = a5;\
-  a4 = _mm512_xor_si512(a4, a5);\
-  b4 = a6;\
-  a5 = _mm512_xor_si512(a5, a6);\
-  b5 = a7;\
-  a6 = _mm512_xor_si512(a6, a7);\
-  a7 = _mm512_xor_si512(a7, b6);\
-  \
-  /* build y4 y5 y6 ... in regs xmm8, xmm9, xmm10 by adding t_i*/\
-  b0 = _mm512_xor_si512(b0, a4);\
-  b6 = _mm512_xor_si512(b6, a4);\
-  b1 = _mm512_xor_si512(b1, a5);\
-  b7 = _mm512_xor_si512(b7, a5);\
-  b2 = _mm512_xor_si512(b2, a6);\
-  b0 = _mm512_xor_si512(b0, a6);\
-  /* spill values y_4, y_5 to memory */\
-  TEMP0 = b0;\
-  b3 = _mm512_xor_si512(b3, a7);\
-  b1 = _mm512_xor_si512(b1, a7);\
-  TEMP1 = b1;\
-  b4 = _mm512_xor_si512(b4, a0);\
-  b2 = _mm512_xor_si512(b2, a0);\
-  /* save values t0, t1, t2 to xmm8, xmm9 and memory */\
-  b0 = a0;\
-  b5 = _mm512_xor_si512(b5, a1);\
-  b3 = _mm512_xor_si512(b3, a1);\
-  b1 = a1;\
-  b6 = _mm512_xor_si512(b6, a2);\
-  b4 = _mm512_xor_si512(b4, a2);\
-  TEMP2 = a2;\
-  b7 = _mm512_xor_si512(b7, a3);\
-  b5 = _mm512_xor_si512(b5, a3);\
-  \
-  /* compute x_i = t_i + t_{i+3} */\
-  a0 = _mm512_xor_si512(a0, a3);\
-  a1 = _mm512_xor_si512(a1, a4);\
-  a2 = _mm512_xor_si512(a2, a5);\
-  a3 = _mm512_xor_si512(a3, a6);\
-  a4 = _mm512_xor_si512(a4, a7);\
-  a5 = _mm512_xor_si512(a5, b0);\
-  a6 = _mm512_xor_si512(a6, b1);\
-  a7 = _mm512_xor_si512(a7, TEMP2);\
-  \
-  /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
-  /* compute w_i : add y_{i+4} */\
-  b1 = m512_const1_64( 0x1b1b1b1b1b1b1b1b );\
-  MUL2(a0, b0, b1);\
-  a0 = _mm512_xor_si512(a0, TEMP0);\
-  MUL2(a1, b0, b1);\
-  a1 = _mm512_xor_si512(a1, TEMP1);\
-  MUL2(a2, b0, b1);\
-  a2 = _mm512_xor_si512(a2, b2);\
-  MUL2(a3, b0, b1);\
-  a3 = _mm512_xor_si512(a3, b3);\
-  MUL2(a4, b0, b1);\
-  a4 = _mm512_xor_si512(a4, b4);\
-  MUL2(a5, b0, b1);\
-  a5 = _mm512_xor_si512(a5, b5);\
-  MUL2(a6, b0, b1);\
-  a6 = _mm512_xor_si512(a6, b6);\
-  MUL2(a7, b0, b1);\
-  a7 = _mm512_xor_si512(a7, b7);\
-  \
-  /* compute v_i : double w_i      */\
-  /* add to y_4 y_5 .. v3, v4, ... */\
-  MUL2(a0, b0, b1);\
-  b5 = _mm512_xor_si512(b5, a0);\
-  MUL2(a1, b0, b1);\
-  b6 = _mm512_xor_si512(b6, a1);\
-  MUL2(a2, b0, b1);\
-  b7 = _mm512_xor_si512(b7, a2);\
-  MUL2(a5, b0, b1);\
-  b2 = _mm512_xor_si512(b2, a5);\
-  MUL2(a6, b0, b1);\
-  b3 = _mm512_xor_si512(b3, a6);\
-  MUL2(a7, b0, b1);\
-  b4 = _mm512_xor_si512(b4, a7);\
-  MUL2(a3, b0, b1);\
-  MUL2(a4, b0, b1);\
-  b0 = TEMP0;\
-  b1 = TEMP1;\
-  b0 = _mm512_xor_si512(b0, a3);\
-  b1 = _mm512_xor_si512(b1, a4);\
-}/*MixBytes*/
-#endif
+#define MASK_NOT( a )  _mm512_mask_ternarylogic_epi64( a, 0xaa, a, a, 1 )
 
 #define ROUND(i, a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* AddRoundConstant */\
-  b1 = m512_const2_64( 0xffffffffffffffff, 0 ); \
-  a0 = _mm512_xor_si512( a0, m512_const1_128( round_const_l0[i] ) );\
-  a1 = _mm512_xor_si512( a1, b1 );\
-  a2 = _mm512_xor_si512( a2, b1 );\
-  a3 = _mm512_xor_si512( a3, b1 );\
-  a4 = _mm512_xor_si512( a4, b1 );\
-  a5 = _mm512_xor_si512( a5, b1 );\
-  a6 = _mm512_xor_si512( a6, b1 );\
-  a7 = _mm512_xor_si512( a7, m512_const1_128( round_const_l7[i] ) );\
+  a0 = _mm512_xor_si512( a0, mm512_bcast_m128( round_const_l0[i] ) );\
+  a1 = MASK_NOT( a1 ); \
+  a2 = MASK_NOT( a2 ); \
+  a3 = MASK_NOT( a3 ); \
+  a4 = MASK_NOT( a4 ); \
+  a5 = MASK_NOT( a5 ); \
+  a6 = MASK_NOT( a6 ); \
+  a7 = _mm512_xor_si512( a7, mm512_bcast_m128( round_const_l7[i] ) );\
   \
   /* ShiftBytes + SubBytes (interleaved) */\
   b0 = _mm512_xor_si512( b0, b0 );\
@@ -450,7 +352,7 @@ static const __m512i SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e,
  * outputs: (i0-7) = (0|S)
  */
 #define Matrix_Transpose_O_B(i0, i1, i2, i3, i4, i5, i6, i7, t0){\
-  t0 = _mm512_xor_si512( t0, t0 );\
+  t0 = m512_zero;\
   i1 = i0;\
   i3 = i2;\
   i5 = i4;\
@@ -481,11 +383,11 @@ static const __m512i SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e,
 
 void TF512_4way( __m512i* chaining, __m512i* message )
 {
-  static __m512i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
-  static __m512i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
-  static __m512i TEMP0;
-  static __m512i TEMP1;
-  static __m512i TEMP2;
+  __m512i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
+  __m512i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
+  __m512i TEMP0;
+  __m512i TEMP1;
+  __m512i TEMP2;
 
   /* load message into registers xmm12 - xmm15 */
   xmm12 = message[0];
@@ -547,11 +449,11 @@ void TF512_4way( __m512i* chaining, __m512i* message )
 
 void OF512_4way( __m512i* chaining )
 {
-  static __m512i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
-  static __m512i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
-  static __m512i TEMP0;
-  static __m512i TEMP1;
-  static __m512i TEMP2;
+  __m512i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
+  __m512i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
+  __m512i TEMP0;
+  __m512i TEMP1;
+  __m512i TEMP2;
 
   /* load CV into registers xmm8, xmm10, xmm12, xmm14 */
   xmm8 = chaining[0];
@@ -696,7 +598,7 @@ static const __m256i SUBSH_MASK7_2WAY =
   \
   /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
   /* compute w_i : add y_{i+4} */\
-  b1 = m256_const1_64( 0x1b1b1b1b1b1b1b1b );\
+  b1 = _mm256_set1_epi64x( 0x1b1b1b1b1b1b1b1b );\
   MUL2_2WAY(a0, b0, b1);\
   a0 = _mm256_xor_si256(a0, TEMP0);\
   MUL2_2WAY(a1, b0, b1);\
@@ -738,15 +640,15 @@ static const __m256i SUBSH_MASK7_2WAY =
 
 #define ROUND_2WAY(i, a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* AddRoundConstant */\
-  b1 = m256_const2_64( 0xffffffffffffffff, 0 ); \
-  a0 = _mm256_xor_si256( a0, m256_const1_128( round_const_l0[i] ) );\
+  b1 = mm256_bcast_m128( mm128_mask_32( m128_neg1, 0x3 ) ); \
+  a0 = _mm256_xor_si256( a0, mm256_bcast_m128( round_const_l0[i] ) );\
   a1 = _mm256_xor_si256( a1, b1 );\
   a2 = _mm256_xor_si256( a2, b1 );\
   a3 = _mm256_xor_si256( a3, b1 );\
   a4 = _mm256_xor_si256( a4, b1 );\
   a5 = _mm256_xor_si256( a5, b1 );\
   a6 = _mm256_xor_si256( a6, b1 );\
-  a7 = _mm256_xor_si256( a7, m256_const1_128( round_const_l7[i] ) );\
+  a7 = _mm256_xor_si256( a7, mm256_bcast_m128( round_const_l7[i] ) );\
   \
   /* ShiftBytes + SubBytes (interleaved) */\
   b0 = _mm256_xor_si256( b0, b0 );\
@@ -850,7 +752,7 @@ static const __m256i SUBSH_MASK7_2WAY =
 }/**/
 
 #define Matrix_Transpose_O_B_2way(i0, i1, i2, i3, i4, i5, i6, i7, t0){\
-  t0 = _mm256_xor_si256( t0, t0 );\
+  t0 = m256_zero;\
   i1 = i0;\
   i3 = i2;\
   i5 = i4;\
@@ -874,11 +776,11 @@ static const __m256i SUBSH_MASK7_2WAY =
 
 void TF512_2way( __m256i* chaining, __m256i* message )
 {
-  static __m256i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
-  static __m256i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
-  static __m256i TEMP0;
-  static __m256i TEMP1;
-  static __m256i TEMP2;
+  __m256i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
+  __m256i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
+  __m256i TEMP0;
+  __m256i TEMP1;
+  __m256i TEMP2;
 
   /* load message into registers xmm12 - xmm15 */
   xmm12 = message[0];
@@ -940,11 +842,11 @@ void TF512_2way( __m256i* chaining, __m256i* message )
   
 void OF512_2way( __m256i* chaining )
 {
-  static __m256i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
-  static __m256i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
-  static __m256i TEMP0;
-  static __m256i TEMP1;
-  static __m256i TEMP2;
+  __m256i xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
+  __m256i xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
+  __m256i TEMP0;
+  __m256i TEMP1;
+  __m256i TEMP2;
 
   /* load CV into registers xmm8, xmm10, xmm12, xmm14 */
   xmm8 = chaining[0];

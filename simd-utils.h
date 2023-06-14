@@ -44,15 +44,6 @@
 //    such as SSSE3 or SSE4.1 that will be used automatically on capable
 //    CPUs.
 //
-//    The vector size boundaries are respected to maintain compatibility.
-//    For example, an instruction introduced with AVX2 may improve 128 bit
-//    vector performance but will not be implemented. A CPU with AVX2 will
-//    tend to use 256 bit vectors. On a practical level AVX512 does introduce
-//    bit rotation instructions for 128 and 256 bit vectors in addition to
-//    its own 5a12 bit vectors. These will not be back ported to replace the
-//    SW implementations for the smaller vectors. This policy may be reviewed
-//    in the future once AVX512 is established. 
-//
 //    Strict alignment of data is required: 16 bytes for 128 bit vectors,
 //    32 bytes for 256 bit vectors and 64 bytes for 512 bit vectors. 64 byte
 //    alignment is recommended in all cases for best cache alignment.
@@ -79,12 +70,6 @@
 //     to avoid the ambiguity of "mm".
 //   - the element size does not include additional type specifiers
 //      like "epi".
-//   - some macros may contain value args that are updated.
-//   - specialized shift and rotate functions that move elements around
-//     use the notation "1x32" to indicate the distance moved as units of
-//     the element size.
-//     Vector shuffle rotations are being renamed to "vrol" and "vror"
-//     to avoid confusion with bit rotations.
 //   - there is a subset of some functions for scalar data. They may have
 //     no prefix nor vec-size, just one size, the size of the data.
 //   - Some integer functions are also defined which use a similar notation.
@@ -109,8 +94,6 @@
 //    vsize: optional, lane size used when a function operates on elements
 //           within lanes of a larger vector.
 //
-//    m256_const_64 defines a vector contructed from the supplied 64 bit
-//        integer arguments.
 //    mm256_shuflr128_32 rotates each 128 bit lane of a 256 bit vector
 //        right by 32 bits.
 //
@@ -137,12 +120,6 @@
 // If a vector constant is to be used repeatedly it is better to define a local
 // variable to generate the constant only once.
 //
-// If a sequence of constants is to be used it can be more efficient to
-// use arithmetic with already existing constants to generate new ones.
-//
-// ex: const __m512i one = m512_one_64;
-//     const __m512i two = _mm512_add_epi64( one, one );
-//     
 //////////////////////////////////////////////////////////////////////////
 
 #include <inttypes.h>

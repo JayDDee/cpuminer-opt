@@ -59,57 +59,41 @@ typedef union
 
 #if defined(__AVX2__)
 
-// Move integer to low element of vector, other elements are set to zero.
-#define mm256_mov64_256( i ) _mm256_castsi128_si256( mm128_mov64_128( i ) )
-#define mm256_mov32_256( i ) _mm256_castsi128_si256( mm128_mov32_128( i ) )
-
-// Move low element of vector to integer.
-#define u64_mov256_64( v ) u64_mov128_64( _mm256_castsi256_si128( v ) )
-#define u32_mov256_32( v ) u32_mov128_32( _mm256_castsi256_si128( v ) )
-
-// concatenate two 128 bit vectors into one 256 bit vector: { hi, lo }
-
-#define mm256_concat_128( hi, lo ) \
-   _mm256_inserti128_si256( _mm256_castsi128_si256( lo ), hi, 1 )
-
+// Broadcast, ie set1, from 128 bit vector input.
 #define mm256_bcast_m128( v ) \
-                 _mm256_permute4x64_epi64( _mm256_castsi128_si256( v ), 0x44 )
-#define mm256_bcast_i128( i ) mm256_bcast_m128( mm128_mov64_128( i ) )
-#define mm256_bcast_i64( i )  _mm256_broadcastq_epi64( mm128_mov64_128( i ) )
-#define mm256_bcast_i32( i )  _mm256_broadcastd_epi32( mm128_mov32_128( i ) )
-#define mm256_bcast_i16( i )  _mm256_broadcastw_epi16( mm128_mov32_128( i ) )
-#define mm256_bcast_i8( i )   _mm256_broadcastb_epi8 ( mm128_mov32_128( i ) )
+   _mm256_permute4x64_epi64( _mm256_castsi128_si256( v ), 0x44 )
 
-// Equivalent of set, move 64 bit integer constants to respective 64 bit
-// elements.
-static inline __m256i m256_const_64( const uint64_t i3, const uint64_t i2,
-                                     const uint64_t i1, const uint64_t i0 )
-{
-  union { __m256i m256i;  uint64_t u64[4]; } v;
-  v.u64[0] = i0; v.u64[1] = i1; v.u64[2] = i2; v.u64[3] = i3;
-  return v.m256i;
-}
+// Set either the low or high 64 bit elements in 128 bit lanes, other elements
+// are set to zero.
+#if defined(__AVX512VL__)
+
+#define mm256_bcast128lo_64( i64 )     _mm256_maskz_set1_epi64( 0x55, i64 )
+#define mm256_bcast128hi_64( i64 )     _mm256_maskz_set1_epi64( 0xaa, i64 )
+
+#else
+
+#define mm256_bcast128lo_64( i64 )   mm256_bcast_m128( mm128_mov64_128( i64 ) )
+
+#define mm256_bcast128hi_64( i64 )   _mm256_permute4x64_epi64( \
+                   _mm256_castsi128_si256( mm128_mov64_128( i64 ) ), 0x11 )
+
+#endif
+
+#define mm256_set2_64( i1, i0 )   mm256_bcast_m128( _mm_set_epi64x( i1, i0 ) )
 
 // Deprecated
-#define m256_const1_128      mm256_bcast_m128
-#define m256_const1_i128     mm256_bcast_i128
-#define m256_const1_64       mm256_bcast_i64
-#define m256_const1_32       mm256_bcast_i32
-
-#define m256_const2_64( i1, i0 ) \
-  m256_const1_128( m128_const_64( i1, i0 ) )
+#define m256_const1_64       _mm256_set1_epi64x
+#define m256_const1_32       _mm256_set1_epi32
 
 //
 // All SIMD constant macros are actually functions containing executable
 // code and therefore can't be used as compile time initializers.
 
-#define m256_zero         _mm256_setzero_si256()
-#define m256_one_256      mm256_mov64_256( 1 )
-#define m256_one_128      mm256_bcast_i128( 1 )
-#define m256_one_64       mm256_bcast_i64( 1 )
-#define m256_one_32       mm256_bcast_i32( 1 )
-#define m256_one_16       mm256_bcast_i16( 1 )
-#define m256_one_8        mm256_bcast_i8 ( 1 )
+#define m256_zero            _mm256_setzero_si256()
+//#define m256_one_256         mm256_mov64_256( 1 )
+#define m256_one_128         mm256_bcast_m128( m128_one_128 )
+#define m256_one_64          _mm256_set1_epi64x( 1 )
+#define m256_one_32          _mm256_set1_epi32( 1 )
 
 static inline __m256i mm256_neg1_fn()
 {
@@ -118,10 +102,6 @@ static inline __m256i mm256_neg1_fn()
    return v;
 }
 #define m256_neg1  mm256_neg1_fn()
-
-// Consistent naming for similar operations.
-#define mm128_extr_lo128_256( v )    _mm256_castsi256_si128( v )
-#define mm128_extr_hi128_256( v )    _mm256_extracti128_si256( v, 1 )
 
 //
 // Memory functions
@@ -151,14 +131,6 @@ static inline __m256i mm256_not( const __m256i v )
 
 #endif
 
-/*
-// Unary negation of each element ( -v )
-#define mm256_negate_64( v ) _mm256_sub_epi64( m256_zero, v )
-#define mm256_negate_32( v ) _mm256_sub_epi32( m256_zero, v )
-#define mm256_negate_16( v ) _mm256_sub_epi16( m256_zero, v )
-*/
-
-
 // Add 4 values, fewer dependencies than sequential addition.
 
 #define mm256_add4_64( a, b, c, d ) \
@@ -166,12 +138,6 @@ static inline __m256i mm256_not( const __m256i v )
 
 #define mm256_add4_32( a, b, c, d ) \
    _mm256_add_epi32( _mm256_add_epi32( a, b ), _mm256_add_epi32( c, d ) )
-
-#define mm256_add4_16( a, b, c, d ) \
-   _mm256_add_epi16( _mm256_add_epi16( a, b ), _mm256_add_epi16( c, d ) )
-
-#define mm256_add4_8( a, b, c, d ) \
-   _mm256_add_epi8( _mm256_add_epi8( a, b ), _mm256_add_epi8( c, d ) )
 
 #if defined(__AVX512VL__)
 
@@ -344,19 +310,6 @@ static inline __m256i mm256_not( const __m256i v )
 
 #endif     // AVX512 else AVX2
 
-#define  mm256_ror_16( v, c ) \
-   _mm256_or_si256( _mm256_srli_epi16( v, c ), \
-                    _mm256_slli_epi16( v, 16-(c) ) )
-
-#define mm256_rol_16( v, c ) \
-   _mm256_or_si256( _mm256_slli_epi16( v, c ), \
-                    _mm256_srli_epi16( v, 16-(c) ) )
-
-// Deprecated.
-#define mm256_rol_var_32( v, c ) \
-   _mm256_or_si256( _mm256_slli_epi32( v, c ), \
-                    _mm256_srli_epi32( v, 32-(c) ) )
-
 //
 // Cross lane shuffles
 //
@@ -386,12 +339,12 @@ static inline __m256i mm256_shufll_32( const __m256i v )
 
 #define mm256_shuflr_32( v ) \
     _mm256_permutevar8x32_epi32( v, \
-                     m256_const_64( 0x0000000000000007, 0x0000000600000005, \
+                 _mm256_set_spi64x( 0x0000000000000007, 0x0000000600000005, \
                                     0x0000000400000003, 0x0000000200000001 ) )
 
 #define mm256_shufll_32( v ) \
     _mm256_permutevar8x32_epi32( v, \
-                     m256_const_64( 0x0000000600000005,  0x0000000400000003, \
+                 _mm256_set_epi64x( 0x0000000600000005,  0x0000000400000003, \
                                     0x0000000200000001,  0x0000000000000007 ) )
 
 #endif
@@ -409,15 +362,17 @@ static inline __m256i mm256_shufll_32( const __m256i v )
    _mm256_castps_si256( _mm256_shuffle_ps( _mm256_castsi256_ps( v1 ), \
                                            _mm256_castsi256_ps( v2 ), c ) ); 
 
-#define mm256_swap128_64( v )  _mm256_shuffle_epi32( v, 0x4e )
-#define mm256_shuflr128_64 mm256_swap128_64
-#define mm256_shufll128_64 mm256_swap128_64
+#define mm256_swap128_64( v )     _mm256_shuffle_epi32( v, 0x4e )
+#define mm256_shuflr128_64        mm256_swap128_64
+#define mm256_shufll128_64        mm256_swap128_64
 
 #define mm256_shuflr128_32( v )   _mm256_shuffle_epi32( v, 0x39 )
 #define mm256_shufll128_32( v )   _mm256_shuffle_epi32( v, 0x93 )
 
+/* Not used
 static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 { return _mm256_alignr_epi8( v, v, c ); }
+*/
 
 // 64 bit lanes
 
@@ -429,16 +384,16 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
   #define mm256_shuflr64_24( v )  _mm256_ror_epi64( v, 24 )
 #else
   #define mm256_shuflr64_24( v ) \
-    _mm256_shuffle_epi8( v, m256_const2_64( \
-                                    0x0a09080f0e0d0c0b, 0x0201000706050403 ) )
+    _mm256_shuffle_epi8( v, mm256_bcast_m128( _mm_set_epi64x( \
+                                 0x0a09080f0e0d0c0b, 0x0201000706050403 ) ) )
 #endif
 
 #if defined(__AVX512VL__)
   #define mm256_shuflr64_16( v )  _mm256_ror_epi64( v, 16 )
 #else
   #define mm256_shuflr64_16( v ) \
-    _mm256_shuffle_epi8( v, m256_const2_64( \
-                                    0x09080f0e0d0c0b0a, 0x0100070605040302 ) )
+    _mm256_shuffle_epi8( v, mm256_bcast_m128( _mm_set_epi64x( \
+                                 0x09080f0e0d0c0b0a, 0x0100070605040302 ) ) )
 #endif
 
 // 32 bit lanes
@@ -447,8 +402,8 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
   #define mm256_swap32_16( v )  _mm256_ror_epi32( v, 16 )
 #else
   #define mm256_swap32_16( v ) \
-    _mm256_shuffle_epi8( v, m256_const2_64( \
-                                    0x0d0c0f0e09080b0a, 0x0504070601000302 ) )
+    _mm256_shuffle_epi8( v, mm256_bcast_m128( _mm_set_epi64x( \
+                                 0x0d0c0f0e09080b0a, 0x0504070601000302 ) ) )
 #endif
 #define mm256_shuflr32_16       mm256_swap32_16
 #define mm256_shufll32_16       mm256_swap32_16
@@ -464,22 +419,23 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 
 // Reverse byte order in elements, endian bswap.
 #define mm256_bswap_64( v ) \
-   _mm256_shuffle_epi8( v, \
-         m256_const2_64( 0x08090a0b0c0d0e0f, 0x0001020304050607 ) )
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( _mm_set_epi64x( \
+                               0x08090a0b0c0d0e0f, 0x0001020304050607 ) ) )
 
 #define mm256_bswap_32( v ) \
-   _mm256_shuffle_epi8( v, \
-         m256_const2_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 ) )
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( _mm_set_epi64x( \
+                                0x0c0d0e0f08090a0b, 0x0405060700010203 ) ) )
 
 #define mm256_bswap_16( v ) \
-   _mm256_shuffle_epi8( v, \
-         m256_const2_64( 0x0e0f0c0d0a0b0809, 0x0607040502030001, ) )
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( _mm_set_epi64x( \
+                                0x0e0f0c0d0a0b0809, 0x0607040502030001 ) ) )
 
 // Source and destination are pointers, may point to same memory.
 // 8 byte qword * 8 qwords * 4 lanes = 256 bytes
 #define mm256_block_bswap_64( d, s ) do \
 { \
-  __m256i ctl = m256_const2_64( 0x08090a0b0c0d0e0f, 0x0001020304050607 ) ; \
+  __m256i ctl = mm256_bcast_m128( _mm_set_epi64x( 0x08090a0b0c0d0e0f, \
+                                                  0x0001020304050607 ) ); \
   casti_m256i( d, 0 ) = _mm256_shuffle_epi8( casti_m256i( s, 0 ), ctl ); \
   casti_m256i( d, 1 ) = _mm256_shuffle_epi8( casti_m256i( s, 1 ), ctl ); \
   casti_m256i( d, 2 ) = _mm256_shuffle_epi8( casti_m256i( s, 2 ), ctl ); \
@@ -493,7 +449,8 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 // 4 byte dword * 8 dwords * 8 lanes = 256 bytes
 #define mm256_block_bswap_32( d, s ) do \
 { \
-  __m256i ctl = m256_const2_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 ); \
+  __m256i ctl = mm256_bcast_m128( _mm_set_epi64x( 0x0c0d0e0f08090a0b, \
+                                                  0x0405060700010203 ) ); \
   casti_m256i( d, 0 ) = _mm256_shuffle_epi8( casti_m256i( s, 0 ), ctl ); \
   casti_m256i( d, 1 ) = _mm256_shuffle_epi8( casti_m256i( s, 1 ), ctl ); \
   casti_m256i( d, 2 ) = _mm256_shuffle_epi8( casti_m256i( s, 2 ), ctl ); \
@@ -503,13 +460,6 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
   casti_m256i( d, 6 ) = _mm256_shuffle_epi8( casti_m256i( s, 6 ), ctl ); \
   casti_m256i( d, 7 ) = _mm256_shuffle_epi8( casti_m256i( s, 7 ), ctl ); \
 } while(0)
-
-// swap 256 bit vectors in place.
-// This should be avoided, it's more efficient to switch references.
-#define mm256_swap512_256( v1, v2 ) \
-   v1 = _mm256_xor_si256( v1, v2 ); \
-   v2 = _mm256_xor_si256( v1, v2 ); \
-   v1 = _mm256_xor_si256( v1, v2 );
 
 #endif // __AVX2__
 #endif // SIMD_256_H__

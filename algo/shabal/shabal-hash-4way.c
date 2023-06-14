@@ -276,6 +276,11 @@ do { \
    A1 = _mm256_xor_si256( A1, _mm256_set1_epi32( Whigh ) ); \
 } while (0)
 
+#define mm256_swap512_256( v1, v2 ) \
+   v1 = _mm256_xor_si256( v1, v2 ); \
+   v2 = _mm256_xor_si256( v1, v2 ); \
+   v1 = _mm256_xor_si256( v1, v2 );
+
 #define SWAP_BC8 \
 do { \
     mm256_swap512_256( B0, C0 ); \
@@ -865,6 +870,11 @@ do { \
    A0 = _mm_xor_si128( A0, _mm_set1_epi32( Wlow ) ); \
    A1 = _mm_xor_si128( A1, _mm_set1_epi32( Whigh ) ); \
 } while (0)
+
+#define mm128_swap256_128( v1, v2 ) \
+   v1 = _mm_xor_si128( v1, v2 ); \
+   v2 = _mm_xor_si128( v1, v2 ); \
+   v1 = _mm_xor_si128( v1, v2 );
 
 #define SWAP_BC \
 do { \

@@ -15,14 +15,14 @@ static void sha512256d_8way_init( sha512_8way_context *ctx )
 {
   ctx->count = 0;
   ctx->initialized = true;
-  ctx->val[0] = mm512_bcast_i64( 0x22312194FC2BF72C );
-  ctx->val[1] = mm512_bcast_i64( 0x9F555FA3C84C64C2 );
-  ctx->val[2] = mm512_bcast_i64( 0x2393B86B6F53B151 );
-  ctx->val[3] = mm512_bcast_i64( 0x963877195940EABD );
-  ctx->val[4] = mm512_bcast_i64( 0x96283EE2A88EFFE3 );
-  ctx->val[5] = mm512_bcast_i64( 0xBE5E1E2553863992 );
-  ctx->val[6] = mm512_bcast_i64( 0x2B0199FC2C85B8AA );
-  ctx->val[7] = mm512_bcast_i64( 0x0EB72DDC81C52CA2 );
+  ctx->val[0] = _mm512_set1_epi64( 0x22312194FC2BF72C );
+  ctx->val[1] = _mm512_set1_epi64( 0x9F555FA3C84C64C2 );
+  ctx->val[2] = _mm512_set1_epi64( 0x2393B86B6F53B151 );
+  ctx->val[3] = _mm512_set1_epi64( 0x963877195940EABD );
+  ctx->val[4] = _mm512_set1_epi64( 0x96283EE2A88EFFE3 );
+  ctx->val[5] = _mm512_set1_epi64( 0xBE5E1E2553863992 );
+  ctx->val[6] = _mm512_set1_epi64( 0x2B0199FC2C85B8AA );
+  ctx->val[7] = _mm512_set1_epi64( 0x0EB72DDC81C52CA2 );
 }
 
 int scanhash_sha512256d_8way( struct work *work, uint32_t max_nonce,
@@ -42,7 +42,7 @@ int scanhash_sha512256d_8way( struct work *work, uint32_t max_nonce,
     __m512i  *noncev = (__m512i*)vdata + 9;
     const int thr_id = mythr->id;
     const bool bench = opt_benchmark;
-    const __m512i eight = mm512_bcast_i64( 0x0000000800000000 );
+    const __m512i eight = _mm512_set1_epi64( 0x0000000800000000 );
 
     mm512_bswap32_intrlv80_8x64( vdata, pdata );
     *noncev = mm512_intrlv_blend_32(
@@ -83,14 +83,14 @@ static void sha512256d_4way_init( sha512_4way_context *ctx )
 {
   ctx->count = 0;
   ctx->initialized = true;
-  ctx->val[0] = mm256_bcast_i64( 0x22312194FC2BF72C );
-  ctx->val[1] = mm256_bcast_i64( 0x9F555FA3C84C64C2 );
-  ctx->val[2] = mm256_bcast_i64( 0x2393B86B6F53B151 );
-  ctx->val[3] = mm256_bcast_i64( 0x963877195940EABD );
-  ctx->val[4] = mm256_bcast_i64( 0x96283EE2A88EFFE3 );
-  ctx->val[5] = mm256_bcast_i64( 0xBE5E1E2553863992 );
-  ctx->val[6] = mm256_bcast_i64( 0x2B0199FC2C85B8AA );
-  ctx->val[7] = mm256_bcast_i64( 0x0EB72DDC81C52CA2 );
+  ctx->val[0] = _mm256_set1_epi64x( 0x22312194FC2BF72C );
+  ctx->val[1] = _mm256_set1_epi64x( 0x9F555FA3C84C64C2 );
+  ctx->val[2] = _mm256_set1_epi64x( 0x2393B86B6F53B151 );
+  ctx->val[3] = _mm256_set1_epi64x( 0x963877195940EABD );
+  ctx->val[4] = _mm256_set1_epi64x( 0x96283EE2A88EFFE3 );
+  ctx->val[5] = _mm256_set1_epi64x( 0xBE5E1E2553863992 );
+  ctx->val[6] = _mm256_set1_epi64x( 0x2B0199FC2C85B8AA );
+  ctx->val[7] = _mm256_set1_epi64x( 0x0EB72DDC81C52CA2 );
 }
 
 int scanhash_sha512256d_4way( struct work *work, uint32_t max_nonce,
@@ -110,7 +110,7 @@ int scanhash_sha512256d_4way( struct work *work, uint32_t max_nonce,
     __m256i  *noncev = (__m256i*)vdata + 9;
     const int thr_id = mythr->id;
     const bool bench = opt_benchmark;
-    const __m256i four = mm256_bcast_i64( 0x0000000400000000 );
+    const __m256i four = _mm256_set1_epi64x( 0x0000000400000000 );
 
     mm256_bswap32_intrlv80_4x64( vdata, pdata );
     *noncev = mm256_intrlv_blend_32(

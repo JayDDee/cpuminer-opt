@@ -74,6 +74,10 @@
    _mm256_or_si256( _mm256_and_si256( x, y ), \
                     _mm256_andnot_si256( x, z ) )
 
+#define mm256_rol_var_32( v, c ) \
+   _mm256_or_si256( _mm256_slli_epi32( v, c ), \
+                    _mm256_srli_epi32( v, 32-(c) ) )
+
 void sm3_8way_compress( __m256i *digest, __m256i *block )
 {
    __m256i W[68], W1[64];
@@ -250,6 +254,9 @@ void sm3_8way_close( void *cc, void *dst )
 #define GG1(x,y,z) _mm_or_si128( _mm_and_si128( x, y ), \
                                  _mm_andnot_si128( x, z ) )
 
+
+#define mm128_rol_var_32( v, c ) \
+   _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
 
 void sm3_4way_compress( __m128i *digest, __m128i *block )
 {

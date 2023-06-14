@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.22.3
+
+Data interleaving and byte swap optimizations iwith AVX2, AVX512 & AVX512VBMI.
+Faster Luffa with AVX2 & AVX512.
+Other small optimizations.
+Some code cleanup.
+
 v3.22.2
 
 Added sha512256d & sha256dt algos.

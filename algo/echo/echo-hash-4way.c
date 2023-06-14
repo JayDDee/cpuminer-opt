@@ -162,9 +162,9 @@ void echo_4way_compress( echo_4way_context *ctx, const __m512i *pmsg,
   unsigned int r, b, i, j;
   __m512i t1, t2, s2, k1;
   __m512i _state[4][4], _state2[4][4], _statebackup[4][4]; 
-  __m512i one = m512_one_128;
-  __m512i mul2mask = m512_const2_64( 0, 0x00001b00 );
-  __m512i lsbmask  = m512_const1_32( 0x01010101 ); 
+  const __m512i one = mm512_bcast128lo_64( 1 ); 
+  const __m512i mul2mask = mm512_bcast128lo_64( 0x00001b00 );
+  const __m512i lsbmask  = _mm512_set1_epi32( 0x01010101 ); 
 
   _state[ 0 ][ 0 ] = ctx->state[ 0 ][ 0 ];
   _state[ 0 ][ 1 ] = ctx->state[ 0 ][ 1 ];
@@ -264,16 +264,16 @@ int echo_4way_init( echo_4way_context *ctx, int nHashSize )
 		ctx->uHashSize = 256;
 		ctx->uBlockLength = 192;
 		ctx->uRounds = 8;
-		ctx->hashsize = m512_const2_64( 0, 0x100 );
-		ctx->const1536 = m512_const2_64( 0, 0x600 );
+      ctx->hashsize = mm512_bcast128lo_64( 0x100 );
+      ctx->const1536 = mm512_bcast128lo_64( 0x600 );
 		break;
 
 	case 512:
 		ctx->uHashSize = 512;
 		ctx->uBlockLength = 128;
 		ctx->uRounds = 10;
-		ctx->hashsize = m512_const2_64( 0, 0x200 );
-		ctx->const1536 = m512_const2_64( 0, 0x400);
+      ctx->hashsize = mm512_bcast128lo_64( 0x200 );
+      ctx->const1536 = mm512_bcast128lo_64( 0x400);
 		break;
 
 	default:
@@ -305,7 +305,7 @@ int echo_4way_update_close( echo_4way_context *state, void *hashval,
    {
       echo_4way_compress( state, data, 1 );
       state->processed_bits = 1024;
-      remainingbits = m512_const2_64( 0, -1024 );
+      remainingbits = mm512_bcast128lo_64( -1024 );
       vlen = 0;
    }
    else
@@ -313,13 +313,15 @@ int echo_4way_update_close( echo_4way_context *state, void *hashval,
       vlen = databitlen / 128;  // * 4 lanes / 128 bits per lane
       memcpy_512( state->buffer, data, vlen );
       state->processed_bits += (unsigned int)( databitlen );
-      remainingbits = m512_const2_64( 0, (uint64_t)databitlen );
+      remainingbits = mm512_bcast128lo_64( (uint64_t)databitlen );
    }
 
-   state->buffer[ vlen ] = m512_const2_64( 0, 0x80 );
+   state->buffer[ vlen ] = mm512_bcast128lo_64( 0x80 );
    memset_zero_512( state->buffer + vlen + 1, vblen - vlen - 2 );
-   state->buffer[ vblen-2 ] = m512_const2_64( (uint64_t)state->uHashSize << 48, 0 );
-   state->buffer[ vblen-1 ] = m512_const2_64( 0, state->processed_bits);
+   state->buffer[ vblen-2 ] =
+           mm512_bcast128hi_64( (uint64_t)state->uHashSize << 48 );
+   state->buffer[ vblen-1 ] =
+           mm512_bcast128lo_64( state->processed_bits );
 
    state->k = _mm512_add_epi64( state->k, remainingbits );
    state->k = _mm512_sub_epi64( state->k, state->const1536 );
@@ -352,16 +354,16 @@ int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
          ctx->uHashSize = 256;
          ctx->uBlockLength = 192;
          ctx->uRounds = 8;
-         ctx->hashsize = m512_const2_64( 0, 0x100 );
-         ctx->const1536 = m512_const2_64( 0, 0x600 );
+         ctx->hashsize = mm512_bcast128lo_64( 0x100 );
+         ctx->const1536 = mm512_bcast128lo_64( 0x600 );
          break;
 
       case 512:
          ctx->uHashSize = 512;
          ctx->uBlockLength = 128;
          ctx->uRounds = 10;
-         ctx->hashsize = m512_const2_64( 0, 0x200 );
-         ctx->const1536 = m512_const2_64( 0, 0x400 );
+         ctx->hashsize = mm512_bcast128lo_64( 0x200 );
+         ctx->const1536 = mm512_bcast128lo_64( 0x400 );
          break;
 
       default:
@@ -388,7 +390,7 @@ int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
    {
       echo_4way_compress( ctx, data, 1 );
       ctx->processed_bits = 1024;
-      remainingbits = m512_const2_64( 0, -1024 );
+      remainingbits = mm512_bcast128lo_64( -1024 );
       vlen = 0;
    }
    else
@@ -396,14 +398,14 @@ int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
       vlen = databitlen / 128;  // * 4 lanes / 128 bits per lane
       memcpy_512( ctx->buffer, data, vlen );
       ctx->processed_bits += (unsigned int)( databitlen );
-      remainingbits = m512_const2_64( 0, databitlen );
+      remainingbits = mm512_bcast128lo_64( databitlen );
    }
 
-   ctx->buffer[ vlen ] = m512_const2_64( 0, 0x80 );
+   ctx->buffer[ vlen ] = mm512_bcast128lo_64( 0x80 );
    memset_zero_512( ctx->buffer + vlen + 1, vblen - vlen - 2 );
    ctx->buffer[ vblen-2 ] =
-                     m512_const2_64( (uint64_t)ctx->uHashSize << 48, 0 );
-   ctx->buffer[ vblen-1 ] = m512_const2_64( 0, ctx->processed_bits);
+               mm512_bcast128hi_64( (uint64_t)ctx->uHashSize << 48 );
+   ctx->buffer[ vblen-1 ] = mm512_bcast128lo_64( ctx->processed_bits);
 
    ctx->k = _mm512_add_epi64( ctx->k, remainingbits );
    ctx->k = _mm512_sub_epi64( ctx->k, ctx->const1536 );
@@ -425,9 +427,9 @@ int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
 
 // AVX2 + VAES
 
-#define mul2mask_2way   m256_const2_64( 0, 0x0000000000001b00 ) 
+#define mul2mask_2way   mm256_bcast128lo_64( 0x0000000000001b00 ) 
 
-#define lsbmask_2way    m256_const1_32( 0x01010101 ) 
+#define lsbmask_2way    _mm256_set1_epi32( 0x01010101 ) 
 
 #define ECHO_SUBBYTES4_2WAY( state, j ) \
    state[0][j] = _mm256_aesenc_epi128( state[0][j], k1 ); \
@@ -679,16 +681,16 @@ int echo_2way_init( echo_2way_context *ctx, int nHashSize )
                         ctx->uHashSize = 256;
                         ctx->uBlockLength = 192;
                         ctx->uRounds = 8;
-                        ctx->hashsize = m256_const2_64( 0, 0x100 );
-                        ctx->const1536 = m256_const2_64( 0, 0x600 );
+                        ctx->hashsize = mm256_bcast128lo_64( 0x100 );
+                        ctx->const1536 = mm256_bcast128lo_64( 0x600 );
                         break;
 
                 case 512:
                         ctx->uHashSize = 512;
                         ctx->uBlockLength = 128;
                         ctx->uRounds = 10;
-                        ctx->hashsize = m256_const2_64( 0, 0x200 );
-                        ctx->const1536 = m256_const2_64( 0, 0x400 );
+                        ctx->hashsize = mm256_bcast128lo_64( 0x200 );
+                        ctx->const1536 = mm256_bcast128lo_64( 0x400 );
                         break;
 
                 default:
@@ -720,20 +722,20 @@ int echo_2way_update_close( echo_2way_context *state, void *hashval,
    {
       echo_2way_compress( state, data, 1 );
       state->processed_bits = 1024;
-      remainingbits = m256_const2_64( 0, -1024 );
+      remainingbits = mm256_bcast128lo_64( -1024 );
       vlen = 0;
    }
    else
    {
       memcpy_256( state->buffer, data, vlen );
       state->processed_bits += (unsigned int)( databitlen );
-      remainingbits = m256_const2_64( 0, databitlen );
+      remainingbits = mm256_bcast128lo_64( databitlen );
    }
 
-   state->buffer[ vlen ] = m256_const2_64( 0, 0x80 );
+   state->buffer[ vlen ] = mm256_bcast128lo_64( 0x80 );
    memset_zero_256( state->buffer + vlen + 1, vblen - vlen - 2 );
-   state->buffer[ vblen-2 ] = m256_const2_64( (uint64_t)state->uHashSize << 48, 0 );
-   state->buffer[ vblen-1 ] = m256_const2_64( 0, state->processed_bits );
+   state->buffer[ vblen-2 ] = mm256_bcast128hi_64( (uint64_t)state->uHashSize << 48 );
+   state->buffer[ vblen-1 ] = mm256_bcast128lo_64( state->processed_bits );
 
    state->k = _mm256_add_epi64( state->k, remainingbits );
    state->k = _mm256_sub_epi64( state->k, state->const1536 );
@@ -766,16 +768,16 @@ int echo_2way_full( echo_2way_context *ctx, void *hashval, int nHashSize,
          ctx->uHashSize = 256;
          ctx->uBlockLength = 192;
          ctx->uRounds = 8;
-         ctx->hashsize = m256_const2_64( 0, 0x100 );
-         ctx->const1536 = m256_const2_64( 0, 0x600 );
+         ctx->hashsize = mm256_bcast128lo_64( 0x100 );
+         ctx->const1536 = mm256_bcast128lo_64( 0x600 );
          break;
 
       case 512:
          ctx->uHashSize = 512;
          ctx->uBlockLength = 128;
          ctx->uRounds = 10;
-         ctx->hashsize = m256_const2_64( 0, 0x200 );
-         ctx->const1536 = m256_const2_64( 0, 0x400 );
+         ctx->hashsize = mm256_bcast128lo_64( 0x200 );
+         ctx->const1536 = mm256_bcast128lo_64( 0x400 );
          break;
 
       default:
@@ -798,7 +800,7 @@ int echo_2way_full( echo_2way_context *ctx, void *hashval, int nHashSize,
    {
       echo_2way_compress( ctx, data, 1 );
       ctx->processed_bits = 1024;
-      remainingbits = m256_const2_64( 0, -1024 );
+      remainingbits = mm256_bcast128lo_64( -1024 );
       vlen = 0;
    }
    else
@@ -806,13 +808,13 @@ int echo_2way_full( echo_2way_context *ctx, void *hashval, int nHashSize,
       vlen = databitlen / 128;  // * 4 lanes / 128 bits per lane
       memcpy_256( ctx->buffer, data, vlen );
       ctx->processed_bits += (unsigned int)( databitlen );
-      remainingbits = m256_const2_64( 0, databitlen );
+      remainingbits = mm256_bcast128lo_64( databitlen );
    }
 
-   ctx->buffer[ vlen ] = m256_const2_64( 0, 0x80 );
+   ctx->buffer[ vlen ] = mm256_bcast128lo_64( 0x80 );
    memset_zero_256( ctx->buffer + vlen + 1, vblen - vlen - 2 );
-   ctx->buffer[ vblen-2 ] = m256_const2_64( (uint64_t)ctx->uHashSize << 48, 0 );
-   ctx->buffer[ vblen-1 ] = m256_const2_64( 0, ctx->processed_bits );
+   ctx->buffer[ vblen-2 ] = mm256_bcast128hi_64( (uint64_t)ctx->uHashSize << 48 );
+   ctx->buffer[ vblen-1 ] = mm256_bcast128lo_64( ctx->processed_bits );
 
    ctx->k = _mm256_add_epi64( ctx->k, remainingbits );
    ctx->k = _mm256_sub_epi64( ctx->k, ctx->const1536 );

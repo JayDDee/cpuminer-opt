@@ -36,31 +36,31 @@ int scanhash_sha256dt_16way( struct work *work, const uint32_t max_nonce,
    __m512i *noncev = vdata + 19; 
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const __m512i last_byte = m512_const1_32( 0x80000000 );
-   const __m512i sixteen = m512_const1_32( 16 );
+   const __m512i last_byte = _mm512_set1_epi32( 0x80000000 );
+   const __m512i sixteen = _mm512_set1_epi32( 16 );
 
    for ( int i = 0; i < 19; i++ )
-      vdata[i] = mm512_bcast_i32( pdata[i] );
+      vdata[i] = _mm512_set1_epi32( pdata[i] );
 
    *noncev = _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+9, n+8,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n+1, n );
 
    vdata[16+4] = last_byte;
    memset_zero_512( vdata+16 + 5, 10 );
-   vdata[16+15] = mm512_bcast_i32( 0x480 ); 
+   vdata[16+15] = _mm512_set1_epi32( 0x480 ); 
    
    block[ 8] = last_byte;
    memset_zero_512( block + 9, 6 );
-   block[15] = mm512_bcast_i32( 0x300 ); 
+   block[15] = _mm512_set1_epi32( 0x300 ); 
    
-   initstate[0] = mm512_bcast_i64( 0xdfa9bf2cdfa9bf2c );
-   initstate[1] = mm512_bcast_i64( 0xb72074d4b72074d4 );
-   initstate[2] = mm512_bcast_i64( 0x6bb011226bb01122 );
-   initstate[3] = mm512_bcast_i64( 0xd338e869d338e869 );
-   initstate[4] = mm512_bcast_i64( 0xaa3ff126aa3ff126 );
-   initstate[5] = mm512_bcast_i64( 0x475bbf30475bbf30 );
-   initstate[6] = mm512_bcast_i64( 0x8fd52e5b8fd52e5b );
-   initstate[7] = mm512_bcast_i64( 0x9f75c9ad9f75c9ad );
+   initstate[0] = _mm512_set1_epi64( 0xdfa9bf2cdfa9bf2c );
+   initstate[1] = _mm512_set1_epi64( 0xb72074d4b72074d4 );
+   initstate[2] = _mm512_set1_epi64( 0x6bb011226bb01122 );
+   initstate[3] = _mm512_set1_epi64( 0xd338e869d338e869 );
+   initstate[4] = _mm512_set1_epi64( 0xaa3ff126aa3ff126 );
+   initstate[5] = _mm512_set1_epi64( 0x475bbf30475bbf30 );
+   initstate[6] = _mm512_set1_epi64( 0x8fd52e5b8fd52e5b );
+   initstate[7] = _mm512_set1_epi64( 0x9f75c9ad9f75c9ad );
 
    sha256_16way_transform_le( midstate1, vdata, initstate );
    
@@ -118,31 +118,31 @@ int scanhash_sha256dt_8way( struct work *work, const uint32_t max_nonce,
    __m256i *noncev = vdata + 19;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const __m256i last_byte = m256_const1_32( 0x80000000 );
-   const __m256i eight = m256_const1_32( 8 );
+   const __m256i last_byte = _mm256_set1_epi32( 0x80000000 );
+   const __m256i eight = _mm256_set1_epi32( 8 );
 
    for ( int i = 0; i < 19; i++ )
-      vdata[i] = mm256_bcast_i32( pdata[i] );
+      vdata[i] = _mm256_set1_epi32( pdata[i] );
 
    *noncev = _mm256_set_epi32( n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n+1, n );
 
    vdata[16+4] = last_byte;
    memset_zero_256( vdata+16 + 5, 10 );
-   vdata[16+15] = mm256_bcast_i32( 0x480 );
+   vdata[16+15] = _mm256_set1_epi32( 0x480 );
 
    block[ 8] = last_byte;
    memset_zero_256( block + 9, 6 );
-   block[15] = mm256_bcast_i32( 0x300 ); 
+   block[15] = _mm256_set1_epi32( 0x300 ); 
    
    // initialize state
-   initstate[0] = mm256_bcast_i64( 0xdfa9bf2cdfa9bf2c );
-   initstate[1] = mm256_bcast_i64( 0xb72074d4b72074d4 );
-   initstate[2] = mm256_bcast_i64( 0x6bb011226bb01122 );
-   initstate[3] = mm256_bcast_i64( 0xd338e869d338e869 );
-   initstate[4] = mm256_bcast_i64( 0xaa3ff126aa3ff126 );
-   initstate[5] = mm256_bcast_i64( 0x475bbf30475bbf30 );
-   initstate[6] = mm256_bcast_i64( 0x8fd52e5b8fd52e5b );
-   initstate[7] = mm256_bcast_i64( 0x9f75c9ad9f75c9ad );
+   initstate[0] = _mm256_set1_epi64x( 0xdfa9bf2cdfa9bf2c );
+   initstate[1] = _mm256_set1_epi64x( 0xb72074d4b72074d4 );
+   initstate[2] = _mm256_set1_epi64x( 0x6bb011226bb01122 );
+   initstate[3] = _mm256_set1_epi64x( 0xd338e869d338e869 );
+   initstate[4] = _mm256_set1_epi64x( 0xaa3ff126aa3ff126 );
+   initstate[5] = _mm256_set1_epi64x( 0x475bbf30475bbf30 );
+   initstate[6] = _mm256_set1_epi64x( 0x8fd52e5b8fd52e5b );
+   initstate[7] = _mm256_set1_epi64x( 0x9f75c9ad9f75c9ad );
 
    sha256_8way_transform_le( midstate1, vdata, initstate );
 
@@ -198,31 +198,31 @@ int scanhash_sha256dt_4way( struct work *work, const uint32_t max_nonce,
    __m128i *noncev = vdata + 19;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const __m128i last_byte = m128_const1_32( 0x80000000 );
-   const __m128i four = m128_const1_32( 4 );
+   const __m128i last_byte = _mm_set1_epi32( 0x80000000 );
+   const __m128i four = _mm_set1_epi32( 4 );
 
    for ( int i = 0; i < 19; i++ )
-       vdata[i] = mm128_bcast_i32( pdata[i] );
+       vdata[i] = _mm_set1_epi32( pdata[i] );
 
    *noncev = _mm_set_epi32( n+ 3, n+ 2, n+1, n );
 
    vdata[16+4] = last_byte;
    memset_zero_128( vdata+16 + 5, 10 );
-   vdata[16+15] = mm128_bcast_i32( 0x480 );
+   vdata[16+15] = _mm_set1_epi32( 0x480 );
 
    block[ 8] = last_byte;
    memset_zero_128( block + 9, 6 );
-   block[15] = mm128_bcast_i32( 0x300 );
+   block[15] = _mm_set1_epi32( 0x300 );
    
    // initialize state
-   initstate[0] = mm128_bcast_i64( 0xdfa9bf2cdfa9bf2c );
-   initstate[1] = mm128_bcast_i64( 0xb72074d4b72074d4 );
-   initstate[2] = mm128_bcast_i64( 0x6bb011226bb01122 );
-   initstate[3] = mm128_bcast_i64( 0xd338e869d338e869 );
-   initstate[4] = mm128_bcast_i64( 0xaa3ff126aa3ff126 );
-   initstate[5] = mm128_bcast_i64( 0x475bbf30475bbf30 );
-   initstate[6] = mm128_bcast_i64( 0x8fd52e5b8fd52e5b );
-   initstate[7] = mm128_bcast_i64( 0x9f75c9ad9f75c9ad );
+   initstate[0] = _mm_set1_epi64x( 0xdfa9bf2cdfa9bf2c );
+   initstate[1] = _mm_set1_epi64x( 0xb72074d4b72074d4 );
+   initstate[2] = _mm_set1_epi64x( 0x6bb011226bb01122 );
+   initstate[3] = _mm_set1_epi64x( 0xd338e869d338e869 );
+   initstate[4] = _mm_set1_epi64x( 0xaa3ff126aa3ff126 );
+   initstate[5] = _mm_set1_epi64x( 0x475bbf30475bbf30 );
+   initstate[6] = _mm_set1_epi64x( 0x8fd52e5b8fd52e5b );
+   initstate[7] = _mm_set1_epi64x( 0x9f75c9ad9f75c9ad );
 
    // hash first 64 bytes of data
    sha256_4way_transform_le( midstate, vdata, initstate );

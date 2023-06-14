@@ -484,14 +484,7 @@ do { \
 #undef BUTTERFLY_0
 #undef BUTTERFLY_N
 
-// twiddle is hard coded  T[0] = m512_const2_64( {128,64,32,16}, {8,4,2,1} )  
   // Multiply by twiddle factors
-//  X(6) = _mm512_mullo_epi16( X(6), m512_const2_64( 0x0080004000200010,
-//                                                   0x0008000400020001 );
-//  X(5) = _mm512_mullo_epi16( X(5), m512_const2_64( 0xffdc0008ffef0004,
-//                                                   0x00780002003c0001 );
-
-
   X(6) = _mm512_mullo_epi16( X(6), FFT64_Twiddle4w[0].v512 );
   X(5) = _mm512_mullo_epi16( X(5), FFT64_Twiddle4w[1].v512 );
   X(4) = _mm512_mullo_epi16( X(4), FFT64_Twiddle4w[2].v512 );

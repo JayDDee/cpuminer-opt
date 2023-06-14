@@ -60,7 +60,7 @@ static const uint32 CNS_INIT[128] __attribute((aligned(64))) = {
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-#define cns4w(i)  m512_const1_128( ( (__m128i*)CNS_INIT)[i] )
+#define cns4w(i)  mm512_bcast_m128( ( (__m128i*)CNS_INIT)[i] )
 
 #define ADD_CONSTANT4W( a, b, c0, c1 ) \
     a = _mm512_xor_si512( a, c0 ); \
@@ -154,11 +154,10 @@ static const uint32 CNS_INIT[128] __attribute((aligned(64))) = {
 #define MIXTON10244W(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3)\
     NMLTOM10244W(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3);
 
-void rnd512_4way( luffa_4way_context *state, __m512i *msg )
+void rnd512_4way( luffa_4way_context *state, const __m512i *msg )
 {
     __m512i t0, t1;
     __m512i *chainv = state->chainv;
-    __m512i msg0, msg1;
     __m512i x0, x1, x2, x3, x4, x5, x6, x7;
 
     t0 = mm512_xor3( chainv[0], chainv[2], chainv[4] );
@@ -167,9 +166,6 @@ void rnd512_4way( luffa_4way_context *state, __m512i *msg )
     t1 = mm512_xor3( t1, chainv[7], chainv[9] );
 
     MULT24W( t0, t1 );
-
-    msg0 = _mm512_shuffle_epi32( msg[0], 27 );
-    msg1 = _mm512_shuffle_epi32( msg[1], 27 );
 
     chainv[0] = _mm512_xor_si512( chainv[0], t0 );
     chainv[1] = _mm512_xor_si512( chainv[1], t1 );
@@ -225,27 +221,36 @@ void rnd512_4way( luffa_4way_context *state, __m512i *msg )
     chainv[3] = _mm512_xor_si512( chainv[3], chainv[1] );
 
     MULT24W( chainv[0], chainv[1] );
-    chainv[0] = mm512_xor3( chainv[0], t0, msg0 );
-    chainv[1] = mm512_xor3( chainv[1], t1, msg1 );
+    chainv[0] = _mm512_xor_si512( chainv[0], t0 );
+    chainv[1] = _mm512_xor_si512( chainv[1], t1 );
 
-    MULT24W( msg0, msg1 );
-    chainv[2] = _mm512_xor_si512( chainv[2], msg0 );
-    chainv[3] = _mm512_xor_si512( chainv[3], msg1 );
+    if ( msg )
+    {
+       __m512i msg0, msg1;
 
-    MULT24W( msg0, msg1 );
-    chainv[4] = _mm512_xor_si512( chainv[4], msg0 );
-    chainv[5] = _mm512_xor_si512( chainv[5], msg1 );
+       msg0 = _mm512_shuffle_epi32( msg[0], 27 );
+       msg1 = _mm512_shuffle_epi32( msg[1], 27 );
 
-    MULT24W( msg0, msg1 );
-    chainv[6] = _mm512_xor_si512( chainv[6], msg0 );
-    chainv[7] = _mm512_xor_si512( chainv[7], msg1 );
+       chainv[0] = _mm512_xor_si512( chainv[0], msg0 );
+       chainv[1] = _mm512_xor_si512( chainv[1], msg1 );
 
-    MULT24W( msg0, msg1);
-    chainv[8] = _mm512_xor_si512( chainv[8], msg0 );
-    chainv[9] = _mm512_xor_si512( chainv[9], msg1 );
+       MULT24W( msg0, msg1 );
+       chainv[2] = _mm512_xor_si512( chainv[2], msg0 );
+       chainv[3] = _mm512_xor_si512( chainv[3], msg1 );
 
-    MULT24W( msg0, msg1 );
+       MULT24W( msg0, msg1 );
+       chainv[4] = _mm512_xor_si512( chainv[4], msg0 );
+       chainv[5] = _mm512_xor_si512( chainv[5], msg1 );
 
+       MULT24W( msg0, msg1 );
+       chainv[6] = _mm512_xor_si512( chainv[6], msg0 );
+       chainv[7] = _mm512_xor_si512( chainv[7], msg1 );
+
+       MULT24W( msg0, msg1);
+       chainv[8] = _mm512_xor_si512( chainv[8], msg0 );
+       chainv[9] = _mm512_xor_si512( chainv[9], msg1 );
+    }
+    
     chainv[3] = _mm512_rol_epi32( chainv[3], 1 );
     chainv[5] = _mm512_rol_epi32( chainv[5], 2 );
     chainv[7] = _mm512_rol_epi32( chainv[7], 3 );
@@ -282,16 +287,11 @@ void finalization512_4way( luffa_4way_context *state, uint32 *b )
     uint32_t hash[8*4] __attribute((aligned(128)));
     __m512i* chainv = state->chainv;
     __m512i t[2];
-    __m512i zero[2];
-    zero[0] = zero[1] = m512_zero;
-    const __m512i shuff_bswap32 = m512_const_64(
-                                  0x3c3d3e3f38393a3b, 0x3435363730313233,
-                                  0x2c2d2e2f28292a2b, 0x2425262720212223,
-                                  0x1c1d1e1f18191a1b, 0x1415161710111213,
-                                  0x0c0d0e0f08090a0b, 0x0405060700010203 );
+    const __m512i shuff_bswap32 = mm512_bcast_m128( _mm_set_epi64x( 
+                                  0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
     /*---- blank round with m=0 ----*/
-    rnd512_4way( state, zero );
+    rnd512_4way( state, NULL );
     
     t[0] = mm512_xor3( chainv[0], chainv[2], chainv[4] );
     t[1] = mm512_xor3( chainv[1], chainv[3], chainv[5] );
@@ -300,37 +300,30 @@ void finalization512_4way( luffa_4way_context *state, uint32 *b )
     t[0] = _mm512_shuffle_epi32( t[0], 27 );
     t[1] = _mm512_shuffle_epi32( t[1], 27 );
 
-    _mm512_store_si512( (__m512i*)&hash[0], t[0] );
+    _mm512_store_si512( (__m512i*)&hash[ 0], t[0] );
     _mm512_store_si512( (__m512i*)&hash[16], t[1] );
 
-    casti_m512i( b, 0 ) = _mm512_shuffle_epi8(
-                                  casti_m512i( hash, 0 ), shuff_bswap32 );
-    casti_m512i( b, 1 ) = _mm512_shuffle_epi8(
-                                  casti_m512i( hash, 1 ), shuff_bswap32 );
+    casti_m512i( b,0 ) = _mm512_shuffle_epi8(
+                                  casti_m512i( hash,0 ), shuff_bswap32 );
+    casti_m512i( b,1 ) = _mm512_shuffle_epi8(
+                                  casti_m512i( hash,1 ), shuff_bswap32 );
 
-    rnd512_4way( state, zero );
+    rnd512_4way( state, NULL );
 
-    t[0] = chainv[0];
-    t[1] = chainv[1];
-    t[0] = _mm512_xor_si512( t[0], chainv[2] );
-    t[1] = _mm512_xor_si512( t[1], chainv[3] );
-    t[0] = _mm512_xor_si512( t[0], chainv[4] );
-    t[1] = _mm512_xor_si512( t[1], chainv[5] );
-    t[0] = _mm512_xor_si512( t[0], chainv[6] );
-    t[1] = _mm512_xor_si512( t[1], chainv[7] );
-    t[0] = _mm512_xor_si512( t[0], chainv[8] );
-    t[1] = _mm512_xor_si512( t[1], chainv[9] );
-
+    t[0] = mm512_xor3( chainv[0], chainv[2], chainv[4] );
+    t[1] = mm512_xor3( chainv[1], chainv[3], chainv[5] );
+    t[0] = mm512_xor3( t[0], chainv[6], chainv[8] );
+    t[1] = mm512_xor3( t[1], chainv[7], chainv[9] );
     t[0] = _mm512_shuffle_epi32( t[0], 27 );
     t[1] = _mm512_shuffle_epi32( t[1], 27 );
 
-    _mm512_store_si512( (__m512i*)&hash[0], t[0] );
+    _mm512_store_si512( (__m512i*)&hash[ 0], t[0] );
     _mm512_store_si512( (__m512i*)&hash[16], t[1] );
 
-    casti_m512i( b, 2 ) = _mm512_shuffle_epi8(
-                                  casti_m512i( hash, 0 ), shuff_bswap32 );
-    casti_m512i( b, 3 ) = _mm512_shuffle_epi8(
-                                  casti_m512i( hash, 1 ), shuff_bswap32 );
+    casti_m512i( b,2 ) = _mm512_shuffle_epi8(
+                                  casti_m512i( hash,0 ), shuff_bswap32 );
+    casti_m512i( b,3 ) = _mm512_shuffle_epi8(
+                                  casti_m512i( hash,1 ), shuff_bswap32 );
 }
 
 int luffa_4way_init( luffa_4way_context *state, int hashbitlen )
@@ -338,16 +331,16 @@ int luffa_4way_init( luffa_4way_context *state, int hashbitlen )
     state->hashbitlen = hashbitlen;
     __m128i *iv = (__m128i*)IV;
 
-    state->chainv[0] = m512_const1_128( iv[0] );
-    state->chainv[1] = m512_const1_128( iv[1] );
-    state->chainv[2] = m512_const1_128( iv[2] );
-    state->chainv[3] = m512_const1_128( iv[3] );
-    state->chainv[4] = m512_const1_128( iv[4] );
-    state->chainv[5] = m512_const1_128( iv[5] );
-    state->chainv[6] = m512_const1_128( iv[6] );
-    state->chainv[7] = m512_const1_128( iv[7] );
-    state->chainv[8] = m512_const1_128( iv[8] );
-    state->chainv[9] = m512_const1_128( iv[9] );
+    state->chainv[0] = mm512_bcast_m128( iv[0] );
+    state->chainv[1] = mm512_bcast_m128( iv[1] );
+    state->chainv[2] = mm512_bcast_m128( iv[2] );
+    state->chainv[3] = mm512_bcast_m128( iv[3] );
+    state->chainv[4] = mm512_bcast_m128( iv[4] );
+    state->chainv[5] = mm512_bcast_m128( iv[5] );
+    state->chainv[6] = mm512_bcast_m128( iv[6] );
+    state->chainv[7] = mm512_bcast_m128( iv[7] );
+    state->chainv[8] = mm512_bcast_m128( iv[8] );
+    state->chainv[9] = mm512_bcast_m128( iv[9] );
 
     ((__m512i*)state->buffer)[0] = m512_zero;
     ((__m512i*)state->buffer)[1] = m512_zero;
@@ -370,11 +363,8 @@ int luffa_4way_update( luffa_4way_context *state, const void *data,
     __m512i msg[2];
     int i;
     int blocks = (int)len >> 5;
-    const __m512i shuff_bswap32 = m512_const_64( 
-                                   0x3c3d3e3f38393a3b, 0x3435363730313233,
-                                   0x2c2d2e2f28292a2b, 0x2425262720212223,
-                                   0x1c1d1e1f18191a1b, 0x1415161710111213,
-                                   0x0c0d0e0f08090a0b, 0x0405060700010203 );
+    const __m512i shuff_bswap32 = mm512_bcast_m128( _mm_set_epi64x(  
+                                   0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
     state->rembytes = (int)len & 0x1F;
 
@@ -392,7 +382,7 @@ int luffa_4way_update( luffa_4way_context *state, const void *data,
     {
       // remaining data bytes
       buffer[0] = _mm512_shuffle_epi8( vdata[0], shuff_bswap32 );
-      buffer[1] = m512_const1_i128(  0x0000000080000000 );
+      buffer[1] = mm512_bcast128lo_64( 0x0000000080000000 );
     }
     return 0;
 }
@@ -416,7 +406,7 @@ int luffa_4way_close( luffa_4way_context *state, void *hashval )
       rnd512_4way( state, buffer );
     else
     {     // empty pad block, constant data
-      msg[0] = m512_const1_i128(  0x0000000080000000 );
+      msg[0] = mm512_bcast128lo_64( 0x0000000080000000 );
       msg[1] = m512_zero;
       rnd512_4way( state, msg );
     }
@@ -440,16 +430,16 @@ int luffa512_4way_full( luffa_4way_context *state, void *output,
     state->hashbitlen = 512;
     __m128i *iv = (__m128i*)IV;
 
-    state->chainv[0] = m512_const1_128( iv[0] );
-    state->chainv[1] = m512_const1_128( iv[1] );
-    state->chainv[2] = m512_const1_128( iv[2] );
-    state->chainv[3] = m512_const1_128( iv[3] );
-    state->chainv[4] = m512_const1_128( iv[4] );
-    state->chainv[5] = m512_const1_128( iv[5] );
-    state->chainv[6] = m512_const1_128( iv[6] );
-    state->chainv[7] = m512_const1_128( iv[7] );
-    state->chainv[8] = m512_const1_128( iv[8] );
-    state->chainv[9] = m512_const1_128( iv[9] );
+    state->chainv[0] = mm512_bcast_m128( iv[0] );
+    state->chainv[1] = mm512_bcast_m128( iv[1] );
+    state->chainv[2] = mm512_bcast_m128( iv[2] );
+    state->chainv[3] = mm512_bcast_m128( iv[3] );
+    state->chainv[4] = mm512_bcast_m128( iv[4] );
+    state->chainv[5] = mm512_bcast_m128( iv[5] );
+    state->chainv[6] = mm512_bcast_m128( iv[6] );
+    state->chainv[7] = mm512_bcast_m128( iv[7] );
+    state->chainv[8] = mm512_bcast_m128( iv[8] );
+    state->chainv[9] = mm512_bcast_m128( iv[9] );
 
     ((__m512i*)state->buffer)[0] = m512_zero;
     ((__m512i*)state->buffer)[1] = m512_zero;
@@ -458,11 +448,8 @@ int luffa512_4way_full( luffa_4way_context *state, void *output,
     __m512i msg[2];
     int i;
     const int blocks = (int)( inlen >> 5 );
-    const __m512i shuff_bswap32 = m512_const_64(
-                                   0x3c3d3e3f38393a3b, 0x3435363730313233,
-                                   0x2c2d2e2f28292a2b, 0x2425262720212223,
-                                   0x1c1d1e1f18191a1b, 0x1415161710111213,
-                                   0x0c0d0e0f08090a0b, 0x0405060700010203 );
+    const __m512i shuff_bswap32 = mm512_bcast_m128( _mm_set_epi64x( 
+                                   0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
     state->rembytes = inlen & 0x1F;
 
@@ -479,13 +466,13 @@ int luffa512_4way_full( luffa_4way_context *state, void *output,
     {
        // padding of partial block
        msg[0] = _mm512_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
-       msg[1] = m512_const1_i128(  0x0000000080000000 );
+       msg[1] = mm512_bcast128lo_64( 0x0000000080000000 );
        rnd512_4way( state, msg );
     }
     else
     {
        // empty pad block
-       msg[0] = m512_const1_i128( 0x0000000080000000 );
+       msg[0] = mm512_bcast128lo_64( 0x0000000080000000 );
        msg[1] = m512_zero;
        rnd512_4way( state, msg );
     }
@@ -506,11 +493,8 @@ int luffa_4way_update_close( luffa_4way_context *state,
     __m512i msg[2];
     int i;
     const int blocks = (int)( inlen >> 5 );
-    const __m512i shuff_bswap32 = m512_const_64(
-                                   0x3c3d3e3f38393a3b, 0x3435363730313233,
-                                   0x2c2d2e2f28292a2b, 0x2425262720212223,
-                                   0x1c1d1e1f18191a1b, 0x1415161710111213,
-                                   0x0c0d0e0f08090a0b, 0x0405060700010203 );
+    const __m512i shuff_bswap32 = mm512_bcast_m128( _mm_set_epi64x( 
+                                   0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
     state->rembytes = inlen & 0x1F;
 
@@ -527,13 +511,13 @@ int luffa_4way_update_close( luffa_4way_context *state,
     {
        // padding of partial block
        msg[0] = _mm512_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
-       msg[1] = m512_const1_i128( 0x0000000080000000 );
+       msg[1] = mm512_bcast128lo_64( 0x0000000080000000 );
        rnd512_4way( state, msg );
     }
     else
     {
        // empty pad block
-       msg[0] = m512_const1_i128( 0x0000000080000000 );
+       msg[0] = mm512_bcast128lo_64( 0x0000000080000000 );
        msg[1] = m512_zero;
        rnd512_4way( state, msg );
     }
@@ -548,7 +532,7 @@ int luffa_4way_update_close( luffa_4way_context *state,
 
 #endif // AVX512
 
-#define cns(i)  m256_const1_128( ( (__m128i*)CNS_INIT)[i] )
+#define cns(i)  mm256_bcast_m128( ( (__m128i*)CNS_INIT)[i] )
 
 #define ADD_CONSTANT( a, b, c0, c1 ) \
     a = _mm256_xor_si256( a, c0 ); \
@@ -666,11 +650,10 @@ int luffa_4way_update_close( luffa_4way_context *state,
 /* Round function         */
 /* state: hash context    */
 
-void rnd512_2way( luffa_2way_context *state, __m256i *msg )
+void rnd512_2way( luffa_2way_context *state, const __m256i *msg )
 {
     __m256i t0, t1;
     __m256i *chainv = state->chainv;
-    __m256i msg0, msg1;
     __m256i x0, x1, x2, x3, x4, x5, x6, x7;
 
     t0 = chainv[0];
@@ -686,9 +669,6 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     t1 = _mm256_xor_si256( t1, chainv[9] );
 
     MULT2( t0, t1 );
-
-    msg0 = _mm256_shuffle_epi32( msg[0], 27 );
-    msg1 = _mm256_shuffle_epi32( msg[1], 27 );
 
     chainv[0] = _mm256_xor_si256( chainv[0], t0 );
     chainv[1] = _mm256_xor_si256( chainv[1], t1 );
@@ -744,26 +724,35 @@ void rnd512_2way( luffa_2way_context *state, __m256i *msg )
     chainv[3] = _mm256_xor_si256( chainv[3], chainv[1] );
 
     MULT2( chainv[0], chainv[1] );
-    chainv[0] = _mm256_xor_si256( _mm256_xor_si256( chainv[0], t0 ), msg0 );
-    chainv[1] = _mm256_xor_si256( _mm256_xor_si256( chainv[1], t1 ), msg1 );
+    chainv[0] = _mm256_xor_si256( chainv[0], t0 );
+    chainv[1] = _mm256_xor_si256( chainv[1], t1 );
 
-    MULT2( msg0, msg1 );
-    chainv[2] = _mm256_xor_si256( chainv[2], msg0 );
-    chainv[3] = _mm256_xor_si256( chainv[3], msg1 );
+    if ( msg )
+    {
+       __m256i msg0, msg1;
+    
+       msg0 = _mm256_shuffle_epi32( msg[0], 27 );
+       msg1 = _mm256_shuffle_epi32( msg[1], 27 );
 
-    MULT2( msg0, msg1 );
-    chainv[4] = _mm256_xor_si256( chainv[4], msg0 );
-    chainv[5] = _mm256_xor_si256( chainv[5], msg1 );
+       chainv[0] = _mm256_xor_si256( chainv[0], msg0 );
+       chainv[1] = _mm256_xor_si256( chainv[1], msg1 );
+    
+       MULT2( msg0, msg1 );
+       chainv[2] = _mm256_xor_si256( chainv[2], msg0 );
+       chainv[3] = _mm256_xor_si256( chainv[3], msg1 );
 
-    MULT2( msg0, msg1 );
-    chainv[6] = _mm256_xor_si256( chainv[6], msg0 );
-    chainv[7] = _mm256_xor_si256( chainv[7], msg1 );
+       MULT2( msg0, msg1 );
+       chainv[4] = _mm256_xor_si256( chainv[4], msg0 );
+       chainv[5] = _mm256_xor_si256( chainv[5], msg1 );
 
-    MULT2( msg0, msg1 );
-    chainv[8] = _mm256_xor_si256( chainv[8], msg0 );
-    chainv[9] = _mm256_xor_si256( chainv[9], msg1 );
+       MULT2( msg0, msg1 );
+       chainv[6] = _mm256_xor_si256( chainv[6], msg0 );
+       chainv[7] = _mm256_xor_si256( chainv[7], msg1 );
 
-    MULT2( msg0, msg1 );
+       MULT2( msg0, msg1 );
+       chainv[8] = _mm256_xor_si256( chainv[8], msg0 );
+       chainv[9] = _mm256_xor_si256( chainv[9], msg1 );
+    }
 
     chainv[3] = mm256_rol_32( chainv[3], 1 );
     chainv[5] = mm256_rol_32( chainv[5], 2 );
@@ -806,14 +795,10 @@ void finalization512_2way( luffa_2way_context *state, uint32 *b )
     uint32 hash[8*2] __attribute((aligned(64)));
     __m256i* chainv = state->chainv;
     __m256i t[2];
-    __m256i zero[2];
-    zero[0] = zero[1] = m256_zero;
-    const __m256i shuff_bswap32 = m256_const_64( 0x1c1d1e1f18191a1b,
-                                                 0x1415161710111213,
-                                                 0x0c0d0e0f08090a0b,
+    const __m256i shuff_bswap32 = mm256_set2_64( 0x0c0d0e0f08090a0b,
                                                  0x0405060700010203 );
     /*---- blank round with m=0 ----*/
-    rnd512_2way( state, zero );
+    rnd512_2way( state, NULL );
 
     t[0] = chainv[0];
     t[1] = chainv[1];
@@ -838,7 +823,7 @@ void finalization512_2way( luffa_2way_context *state, uint32 *b )
     casti_m256i( b, 1 ) = _mm256_shuffle_epi8( 
                                   casti_m256i( hash, 1 ), shuff_bswap32 );
 
-    rnd512_2way( state, zero );
+    rnd512_2way( state, NULL );
 
     t[0] = chainv[0];
     t[1] = chainv[1];
@@ -868,16 +853,16 @@ int luffa_2way_init( luffa_2way_context *state, int hashbitlen )
     state->hashbitlen = hashbitlen;
     __m128i *iv = (__m128i*)IV;
     
-    state->chainv[0] = m256_const1_128( iv[0] );
-    state->chainv[1] = m256_const1_128( iv[1] );
-    state->chainv[2] = m256_const1_128( iv[2] );
-    state->chainv[3] = m256_const1_128( iv[3] );
-    state->chainv[4] = m256_const1_128( iv[4] );
-    state->chainv[5] = m256_const1_128( iv[5] );
-    state->chainv[6] = m256_const1_128( iv[6] );
-    state->chainv[7] = m256_const1_128( iv[7] );
-    state->chainv[8] = m256_const1_128( iv[8] );
-    state->chainv[9] = m256_const1_128( iv[9] );
+    state->chainv[0] = mm256_bcast_m128( iv[0] );
+    state->chainv[1] = mm256_bcast_m128( iv[1] );
+    state->chainv[2] = mm256_bcast_m128( iv[2] );
+    state->chainv[3] = mm256_bcast_m128( iv[3] );
+    state->chainv[4] = mm256_bcast_m128( iv[4] );
+    state->chainv[5] = mm256_bcast_m128( iv[5] );
+    state->chainv[6] = mm256_bcast_m128( iv[6] );
+    state->chainv[7] = mm256_bcast_m128( iv[7] );
+    state->chainv[8] = mm256_bcast_m128( iv[8] );
+    state->chainv[9] = mm256_bcast_m128( iv[9] );
 
     ((__m256i*)state->buffer)[0] = m256_zero;
     ((__m256i*)state->buffer)[1] = m256_zero;
@@ -895,9 +880,7 @@ int luffa_2way_update( luffa_2way_context *state, const void *data,
     __m256i msg[2];
     int i;
     int blocks = (int)len >> 5;
-    const __m256i shuff_bswap32 = m256_const_64( 0x1c1d1e1f18191a1b,
-                                                 0x1415161710111213,
-                                                 0x0c0d0e0f08090a0b,
+    const __m256i shuff_bswap32 = mm256_set2_64( 0x0c0d0e0f08090a0b,
                                                  0x0405060700010203 );
     state-> rembytes = (int)len & 0x1F;
 
@@ -915,7 +898,7 @@ int luffa_2way_update( luffa_2way_context *state, const void *data,
     {
       // remaining data bytes
       buffer[0] = _mm256_shuffle_epi8( vdata[0], shuff_bswap32 );
-      buffer[1] = m256_const1_i128( 0x0000000080000000 );
+      buffer[1] = mm256_bcast128lo_64( 0x0000000080000000 );
     }
     return 0;
 }
@@ -931,7 +914,7 @@ int luffa_2way_close( luffa_2way_context *state, void *hashval )
       rnd512_2way( state, buffer );
     else
     {     // empty pad block, constant data
-      msg[0] = m256_const1_i128( 0x0000000080000000 );
+      msg[0] = mm256_bcast128lo_64( 0x0000000080000000 );
       msg[1] = m256_zero;
       rnd512_2way( state, msg );
     }
@@ -948,16 +931,16 @@ int luffa512_2way_full( luffa_2way_context *state, void *output,
     state->hashbitlen = 512;
     __m128i *iv = (__m128i*)IV;
 
-    state->chainv[0] = m256_const1_128( iv[0] );
-    state->chainv[1] = m256_const1_128( iv[1] );
-    state->chainv[2] = m256_const1_128( iv[2] );
-    state->chainv[3] = m256_const1_128( iv[3] );
-    state->chainv[4] = m256_const1_128( iv[4] );
-    state->chainv[5] = m256_const1_128( iv[5] );
-    state->chainv[6] = m256_const1_128( iv[6] );
-    state->chainv[7] = m256_const1_128( iv[7] );
-    state->chainv[8] = m256_const1_128( iv[8] );
-    state->chainv[9] = m256_const1_128( iv[9] );
+    state->chainv[0] = mm256_bcast_m128( iv[0] );
+    state->chainv[1] = mm256_bcast_m128( iv[1] );
+    state->chainv[2] = mm256_bcast_m128( iv[2] );
+    state->chainv[3] = mm256_bcast_m128( iv[3] );
+    state->chainv[4] = mm256_bcast_m128( iv[4] );
+    state->chainv[5] = mm256_bcast_m128( iv[5] );
+    state->chainv[6] = mm256_bcast_m128( iv[6] );
+    state->chainv[7] = mm256_bcast_m128( iv[7] );
+    state->chainv[8] = mm256_bcast_m128( iv[8] );
+    state->chainv[9] = mm256_bcast_m128( iv[9] );
 
     ((__m256i*)state->buffer)[0] = m256_zero;
     ((__m256i*)state->buffer)[1] = m256_zero;
@@ -966,9 +949,7 @@ int luffa512_2way_full( luffa_2way_context *state, void *output,
     __m256i msg[2];
     int i;
     const int blocks = (int)( inlen >> 5 );
-    const __m256i shuff_bswap32 = m256_const_64( 0x1c1d1e1f18191a1b,
-                                                 0x1415161710111213,
-                                                 0x0c0d0e0f08090a0b,
+    const __m256i shuff_bswap32 = mm256_set2_64( 0x0c0d0e0f08090a0b,
                                                  0x0405060700010203 );
 
     state->rembytes = inlen & 0x1F;
@@ -986,13 +967,13 @@ int luffa512_2way_full( luffa_2way_context *state, void *output,
     {
        // padding of partial block
        msg[0] = _mm256_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
-       msg[1] = m256_const1_i128( 0x0000000080000000 );
+       msg[1] = mm256_bcast128lo_64( 0x0000000080000000 );
        rnd512_2way( state, msg );
     }
     else
     {
        // empty pad block
-       msg[0] = m256_const1_i128( 0x0000000080000000 );
+       msg[0] = mm256_bcast128lo_64( 0x0000000080000000 );
        msg[1] = m256_zero;
        rnd512_2way( state, msg );
     }
@@ -1013,9 +994,7 @@ int luffa_2way_update_close( luffa_2way_context *state,
     __m256i msg[2];
     int i;
     const int blocks = (int)( inlen >> 5 );
-    const __m256i shuff_bswap32 = m256_const_64( 0x1c1d1e1f18191a1b,
-                                                 0x1415161710111213,
-                                                 0x0c0d0e0f08090a0b,
+    const __m256i shuff_bswap32 = mm256_set2_64( 0x0c0d0e0f08090a0b,
                                                  0x0405060700010203 );
 
     state->rembytes = inlen & 0x1F;
@@ -1033,13 +1012,13 @@ int luffa_2way_update_close( luffa_2way_context *state,
     {
        // padding of partial block
        msg[0] = _mm256_shuffle_epi8( vdata[ 0 ], shuff_bswap32 );
-       msg[1] = m256_const1_i128( 0x0000000080000000 );
+       msg[1] = mm256_bcast128lo_64( 0x0000000080000000 );
        rnd512_2way( state, msg );
     }
     else
     {
        // empty pad block
-       msg[0] = m256_const1_i128( 0x0000000080000000 );
+       msg[0] = mm256_bcast128lo_64( 0x0000000080000000 );
        msg[1] = m256_zero;
        rnd512_2way( state, msg );
     }

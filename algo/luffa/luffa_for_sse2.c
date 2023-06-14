@@ -354,11 +354,11 @@ HashReturn update_and_final_luffa( hashState_luffa *state, BitSequence* output,
     // 16 byte partial block exists for 80 byte len
     if ( state->rembytes  )
        // padding of partial block
-       rnd512( state, m128_const_i128(  0x80000000 ),
+       rnd512( state, mm128_mov64_128(  0x80000000 ),
                       mm128_bswap_32( cast_m128i( data ) ) );
     else
        // empty pad block
-       rnd512( state, m128_zero, m128_const_i128( 0x80000000 ) );
+       rnd512( state, m128_zero, mm128_mov64_128( 0x80000000 ) );
 
     finalization512( state, (uint32*) output );
     if ( state->hashbitlen > 512 )
@@ -403,11 +403,11 @@ int luffa_full( hashState_luffa *state, BitSequence* output, int hashbitlen,
     // 16 byte partial block exists for 80 byte len
     if ( state->rembytes  )
        // padding of partial block
-       rnd512( state, m128_const_i128( 0x80000000 ),
+       rnd512( state, mm128_mov64_128( 0x80000000 ),
                       mm128_bswap_32( cast_m128i( data ) ) );
     else
        // empty pad block
-       rnd512( state, m128_zero, m128_const_i128( 0x80000000 ) );
+       rnd512( state, m128_zero, mm128_mov64_128( 0x80000000 ) );
 
     finalization512( state, (uint32*) output );
     if ( state->hashbitlen > 512 )
@@ -596,10 +596,10 @@ static void finalization512( hashState_luffa *state, uint32 *b )
     __m256i* chainv = (__m256i*)state->chainv;
     __m256i  t;
     const __m128i zero = m128_zero;
-    const __m256i shuff_bswap32 = m256_const_64( 0x1c1d1e1f18191a1b,
-                                                 0x1415161710111213,
-                                                 0x0c0d0e0f08090a0b,
-                                                 0x0405060700010203 );
+    const __m256i shuff_bswap32 = _mm256_set_epi64x( 0x1c1d1e1f18191a1b,
+                                                     0x1415161710111213,
+                                                     0x0c0d0e0f08090a0b,
+                                                     0x0405060700010203 );
 
     rnd512( state, zero, zero );
 

@@ -33,8 +33,7 @@ int groestl256_4way_init( groestl256_4way_context* ctx, uint64_t hashlen )
   }
 
   // The only non-zero in the IV is len. It can be hard coded.
-  ctx->chaining[ 3 ] = m512_const2_64( 0, 0x0100000000000000 );
-
+  ctx->chaining[ 3 ] = mm512_bcast128lo_64( 0x0100000000000000 );
   ctx->buf_ptr = 0;
   ctx->rem_ptr = 0;
 
@@ -51,9 +50,6 @@ int groestl256_4way_full( groestl256_4way_context* ctx, void* output,
    __m512i* in = (__m512i*)input;
    int i;
 
-//  if (ctx->chaining == NULL || ctx->buffer == NULL)
-//    return 1;
-
   for ( i = 0; i < SIZE256; i++ )
   {
      ctx->chaining[i] = m512_zero;
@@ -61,7 +57,7 @@ int groestl256_4way_full( groestl256_4way_context* ctx, void* output,
   }
 
   // The only non-zero in the IV is len. It can be hard coded.
-  ctx->chaining[ 3 ] = m512_const2_64( 0, 0x0100000000000000 );
+  ctx->chaining[ 3 ] = mm512_bcast128lo_64( 0x0100000000000000 );
   ctx->buf_ptr = 0;
    
    // --- update ---
@@ -83,18 +79,18 @@ int groestl256_4way_full( groestl256_4way_context* ctx, void* output,
    if ( i == SIZE256 - 1 )
    {        
        // only 1 vector left in buffer, all padding at once
-       ctx->buffer[i] = m512_const2_64( blocks << 56, 0x80 ); 
+       ctx->buffer[i] = mm512_set2_64( blocks << 56, 0x80 ); 
    }   
    else
    {
        // add first padding
-       ctx->buffer[i] = m512_const2_64( 0, 0x80 );
+       ctx->buffer[i] = mm512_bcast128lo_64( 0x80 );
        // add zero padding
        for ( i += 1; i < SIZE256 - 1; i++ )
            ctx->buffer[i] = m512_zero;
 
        // add length padding, second last byte is zero unless blocks > 255
-       ctx->buffer[i] = m512_const2_64( blocks << 56, 0 );
+       ctx->buffer[i] = mm512_bcast128hi_64( blocks << 56 );
    }
 
    // digest final padding block and do output transform
@@ -140,18 +136,18 @@ int groestl256_4way_update_close( groestl256_4way_context* ctx, void* output,
    if ( i == SIZE256 - 1 )
    {
        // only 1 vector left in buffer, all padding at once
-       ctx->buffer[i] = m512_const2_64( blocks << 56, 0x80 );
+       ctx->buffer[i] = mm512_set2_64( blocks << 56, 0x80 );
    }
    else
    {
        // add first padding
-       ctx->buffer[i] = m512_const2_64( 0, 0x80 );
+       ctx->buffer[i] = mm512_bcast128lo_64( 0x80 );
        // add zero padding
        for ( i += 1; i < SIZE256 - 1; i++ )
            ctx->buffer[i] = m512_zero;
 
        // add length padding, second last byte is zero unless blocks > 255
-       ctx->buffer[i] = m512_const2_64( blocks << 56, 0 );
+       ctx->buffer[i] = mm512_bcast128hi_64( blocks << 56 );
    }
 
 // digest final padding block and do output transform
@@ -186,7 +182,7 @@ int groestl256_2way_init( groestl256_2way_context* ctx, uint64_t hashlen )
   }
 
   // The only non-zero in the IV is len. It can be hard coded.
-  ctx->chaining[ 3 ] = m256_const2_64( 0, 0x0100000000000000 );
+  ctx->chaining[ 3 ] = mm256_bcast128lo_64( 0x0100000000000000 );
 
   ctx->buf_ptr = 0;
   ctx->rem_ptr = 0;
@@ -211,7 +207,7 @@ int groestl256_2way_full( groestl256_2way_context* ctx, void* output,
    }
 
    // The only non-zero in the IV is len. It can be hard coded.
-   ctx->chaining[ 3 ] = m256_const2_64( 0, 0x0100000000000000 );
+   ctx->chaining[ 3 ] = mm256_bcast128lo_64( 0x0100000000000000 );
    ctx->buf_ptr = 0;
 
    // --- update ---
@@ -233,18 +229,18 @@ int groestl256_2way_full( groestl256_2way_context* ctx, void* output,
    if ( i == SIZE256 - 1 )
    {
        // only 1 vector left in buffer, all padding at once
-      ctx->buffer[i] = m256_const2_64( blocks << 56, 0x80 );
+      ctx->buffer[i] = mm256_set2_64( blocks << 56, 0x80 );
    }
    else
    {
        // add first padding
-       ctx->buffer[i] = m256_const2_64( 0, 0x80 );
+       ctx->buffer[i] = mm256_bcast128lo_64( 0x80 );
        // add zero padding
        for ( i += 1; i < SIZE256 - 1; i++ )
            ctx->buffer[i] = m256_zero;
 
        // add length padding, second last byte is zero unless blocks > 255
-       ctx->buffer[i] = m256_const2_64( blocks << 56, 0 );
+       ctx->buffer[i] = mm256_bcast128hi_64( blocks << 56 );
    }
 
    // digest final padding block and do output transform
@@ -289,23 +285,22 @@ int groestl256_2way_update_close( groestl256_2way_context* ctx, void* output,
    if ( i == SIZE256 - 1 )
    {
        // only 1 vector left in buffer, all padding at once
-       ctx->buffer[i] = m256_const2_64( blocks << 56, 0x80 );
+       ctx->buffer[i] = mm256_set2_64( blocks << 56, 0x80 );
    }
    else
    {
        // add first padding
-       ctx->buffer[i] = m256_const2_64( 0, 0x80 );
+       ctx->buffer[i] = mm256_bcast128lo_64( 0x80 );
        // add zero padding
        for ( i += 1; i < SIZE256 - 1; i++ )
            ctx->buffer[i] = m256_zero;
 
        // add length padding, second last byte is zero unless blocks > 255
-       ctx->buffer[i] = m256_const2_64( blocks << 56, 0 );
+       ctx->buffer[i] = mm256_bcast128hi_64( blocks << 56 );
    }
 
 // digest final padding block and do output transform
    TF512_2way( ctx->chaining, ctx->buffer );
-
    OF512_2way( ctx->chaining );
 
    // store hash result in output 

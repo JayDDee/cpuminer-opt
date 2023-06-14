@@ -29,10 +29,11 @@ mv cpuminer cpuminer-avx512-sha-vaes
 # Zen4 AVX512 SHA VAES
 make clean || echo clean
 rm -f config.status
-# znver3 needs gcc-11, znver4 ?
+# znver3 needs gcc-11, znver4 needs gcc-12.3.
 #CFLAGS="-O3 -march=znver4 -Wall -fno-common " ./configure --with-curl
-CFLAGS="-O3 -march=znver3 -mavx512f -mavx512dq -mavx512bw -mavx512vl -Wall -fno-common " ./configure --with-curl
-#CFLAGS="-O3 -march=znver2 -mvaes -mavx512f -mavx512dq -mavx512bw -mavx512vl -Wall -fno-common " ./configure --with-curl
+# Inclomplete list of Zen4 AVX512 extensions but includes all extensions used by cpuminer.
+CFLAGS="-O3 -march=znver3 -mavx512f -mavx512cd -mavx512dq -mavx512bw -mavx512vl -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vpopcntdq -Wall -fno-common " ./configure --with-curl
+#CFLAGS="-O3 -march=znver2 -mvaes -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vbmi -Wall -fno-common " ./configure --with-curl
 make -j 8
 strip -s cpuminer
 mv cpuminer cpuminer-zen4

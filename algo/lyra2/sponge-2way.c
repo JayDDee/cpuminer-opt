@@ -85,10 +85,10 @@ inline void absorbBlockBlake2Safe_2way( uint64_t *State, const uint64_t *In,
 
   state0 = 
   state1 = m512_zero;
-  state2 = m512_const4_64( 0xa54ff53a5f1d36f1ULL, 0x3c6ef372fe94f82bULL,
-                           0xbb67ae8584caa73bULL, 0x6a09e667f3bcc908ULL );
-  state3 = m512_const4_64( 0x5be0cd19137e2179ULL, 0x1f83d9abfb41bd6bULL,
-                           0x9b05688c2b3e6c1fULL, 0x510e527fade682d1ULL );
+  state2 = _mm512_set4_epi64( 0xa54ff53a5f1d36f1ULL, 0x3c6ef372fe94f82bULL,
+                              0xbb67ae8584caa73bULL, 0x6a09e667f3bcc908ULL );
+  state3 = _mm512_set4_epi64( 0x5be0cd19137e2179ULL, 0x1f83d9abfb41bd6bULL,
+                              0x9b05688c2b3e6c1fULL, 0x510e527fade682d1ULL );
 
   for ( int i = 0; i < nBlocks; i++ )
   { 
