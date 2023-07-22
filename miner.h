@@ -635,6 +635,7 @@ enum algos {
         ALGO_YESPOWERR16,
         ALGO_YESPOWER_B2B,
         ALGO_ZR5,
+        ALGO_ODO,
         ALGO_COUNT
 };
 static const char* const algo_names[] = {
@@ -730,6 +731,7 @@ static const char* const algo_names[] = {
         "yespowerr16",
         "yespower-b2b",
         "zr5",
+        "odo",
         "\0"
 };
 
@@ -894,6 +896,7 @@ Options:\n\
                           yespowerr16   Yenten (YTN)\n\
                           yespower-b2b  generic yespower + blake2b\n\
                           zr5           Ziftr\n\
+                          odo           odocrypt\n\
   -N, --param-n=N       N parameter for scrypt based algos\n\
   -R, --param-r=N       R parameter for scrypt based algos\n\
   -K, --param-key=STRING  Key (pers) parameter for algos that use it\n\

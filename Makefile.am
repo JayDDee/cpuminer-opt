@@ -287,7 +287,10 @@ cpuminer_SOURCES = \
   algo/yespower/yespower-blake2b.c \
   algo/yespower/crypto/hmac-blake2b.c \
   algo/yespower/yescrypt-r8g.c \
-  algo/yespower/yespower-opt.c
+  algo/yespower/yespower-opt.c \
+  algo/odo/odo.cpp \
+  algo/odo/odocrypt.cpp \
+  algo/odo/KeccakP-800-reference.cpp
 
 disable_flags =
 
