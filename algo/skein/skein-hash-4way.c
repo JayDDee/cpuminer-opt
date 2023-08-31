@@ -285,7 +285,7 @@ static const uint64_t IV512[] = {
 #define SKBI(k, s, i)   XCAT(k, XCAT(XCAT(XCAT(M9_, s), _), i))
 #define SKBT(t, s, v)   XCAT(t, XCAT(XCAT(XCAT(M3_, s), _), v))
 
-#define READ_STATE_BIG(sc)   do { \
+#define READ_STATE_BIG(sc) \
       h0 = (sc)->h0; \
       h1 = (sc)->h1; \
       h2 = (sc)->h2; \
@@ -294,10 +294,9 @@ static const uint64_t IV512[] = {
       h5 = (sc)->h5; \
       h6 = (sc)->h6; \
       h7 = (sc)->h7; \
-      bcount = sc->bcount; \
-   } while (0)
+      bcount = sc->bcount;
 
-#define WRITE_STATE_BIG(sc)   do { \
+#define WRITE_STATE_BIG(sc) \
       (sc)->h0 = h0; \
       (sc)->h1 = h1; \
       (sc)->h2 = h2; \
@@ -306,62 +305,54 @@ static const uint64_t IV512[] = {
       (sc)->h5 = h5; \
       (sc)->h6 = h6; \
       (sc)->h7 = h7; \
-      sc->bcount = bcount; \
-   } while (0)
+      sc->bcount = bcount;
    
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #define TFBIG_KINIT_8WAY( k0, k1, k2, k3, k4, k5, k6, k7, k8, t0, t1, t2 ) \
-do { \
-  k8 = mm512_xor3( mm512_xor3( k0, k1, k2 ), mm512_xor3( k3, k4, k5 ), \
-                   mm512_xor3( k6, k7, m512_const1_64( 0x1BD11BDAA9FC1A22) ));\
-  t2 = t0 ^ t1; \
-} while (0)
+  k8 = mm512_xor3( mm512_xor3( k0, k1, k2 ), \
+                   mm512_xor3( k3, k4, k5 ), \
+                   mm512_xor3( k6, k7, \
+                              _mm512_set1_epi64( 0x1BD11BDAA9FC1A22) ) ); \
+  t2 = t0 ^ t1;
 
 #define TFBIG_ADDKEY_8WAY(w0, w1, w2, w3, w4, w5, w6, w7, k, t, s) \
-do { \
   w0 = _mm512_add_epi64( w0, SKBI(k,s,0) ); \
   w1 = _mm512_add_epi64( w1, SKBI(k,s,1) ); \
   w2 = _mm512_add_epi64( w2, SKBI(k,s,2) ); \
   w3 = _mm512_add_epi64( w3, SKBI(k,s,3) ); \
   w4 = _mm512_add_epi64( w4, SKBI(k,s,4) ); \
   w5 = _mm512_add_epi64( w5, _mm512_add_epi64( SKBI(k,s,5), \
-                                         m512_const1_64( SKBT(t,s,0) ) ) ); \
+                                       _mm512_set1_epi64( SKBT(t,s,0) ) ) ); \
   w6 = _mm512_add_epi64( w6, _mm512_add_epi64( SKBI(k,s,6), \
-                                         m512_const1_64( SKBT(t,s,1) ) ) ); \
+                                       _mm512_set1_epi64( SKBT(t,s,1) ) ) ); \
   w7 = _mm512_add_epi64( w7, _mm512_add_epi64( SKBI(k,s,7), \
-                                         m512_const1_64( s ) ) ); \
-} while (0)
+                                        _mm512_set1_epi64( s ) ) );
 
 #define TFBIG_MIX_8WAY(x0, x1, rc) \
-do { \
      x0 = _mm512_add_epi64( x0, x1 ); \
-     x1 = _mm512_xor_si512( mm512_rol_64( x1, rc ), x0 ); \
-} while (0)
+     x1 = _mm512_xor_si512( mm512_rol_64( x1, rc ), x0 );
 
-#define TFBIG_MIX8_8WAY(w0, w1, w2, w3, w4, w5, w6, w7, rc0, rc1, rc2, rc3)  do { \
+#define TFBIG_MIX8_8WAY(w0, w1, w2, w3, w4, w5, w6, w7, rc0, rc1, rc2, rc3) \
       TFBIG_MIX_8WAY(w0, w1, rc0); \
       TFBIG_MIX_8WAY(w2, w3, rc1); \
       TFBIG_MIX_8WAY(w4, w5, rc2); \
-      TFBIG_MIX_8WAY(w6, w7, rc3); \
-   } while (0)
+      TFBIG_MIX_8WAY(w6, w7, rc3);
 
-#define TFBIG_8WAY_4e(s)   do { \
+#define TFBIG_8WAY_4e(s) \
       TFBIG_ADDKEY_8WAY(p0, p1, p2, p3, p4, p5, p6, p7, h, t, s); \
       TFBIG_MIX8_8WAY(p0, p1, p2, p3, p4, p5, p6, p7, 46, 36, 19, 37); \
       TFBIG_MIX8_8WAY(p2, p1, p4, p7, p6, p5, p0, p3, 33, 27, 14, 42); \
       TFBIG_MIX8_8WAY(p4, p1, p6, p3, p0, p5, p2, p7, 17, 49, 36, 39); \
-      TFBIG_MIX8_8WAY(p6, p1, p0, p7, p2, p5, p4, p3, 44,  9, 54, 56); \
-   } while (0)
+      TFBIG_MIX8_8WAY(p6, p1, p0, p7, p2, p5, p4, p3, 44,  9, 54, 56);
 
-#define TFBIG_8WAY_4o(s)   do { \
+#define TFBIG_8WAY_4o(s) \
       TFBIG_ADDKEY_8WAY(p0, p1, p2, p3, p4, p5, p6, p7, h, t, s); \
       TFBIG_MIX8_8WAY(p0, p1, p2, p3, p4, p5, p6, p7, 39, 30, 34, 24); \
       TFBIG_MIX8_8WAY(p2, p1, p4, p7, p6, p5, p0, p3, 13, 50, 10, 17); \
       TFBIG_MIX8_8WAY(p4, p1, p6, p3, p0, p5, p2, p7, 25, 29, 39, 43); \
-      TFBIG_MIX8_8WAY(p6, p1, p0, p7, p2, p5, p4, p3,  8, 35, 56, 22); \
-   } while (0)
+      TFBIG_MIX8_8WAY(p6, p1, p0, p7, p2, p5, p4, p3,  8, 35, 56, 22);
 
 #define UBI_BIG_8WAY(etype, extra) \
 do { \
@@ -424,59 +415,48 @@ do { \
 #endif // AVX512
 
 #define TFBIG_KINIT_4WAY( k0, k1, k2, k3, k4, k5, k6, k7, k8, t0, t1, t2 ) \
-do { \
-  k8 = _mm256_xor_si256( _mm256_xor_si256( \
-                            _mm256_xor_si256( _mm256_xor_si256( k0, k1 ), \
-                                              _mm256_xor_si256( k2, k3 ) ), \
-                            _mm256_xor_si256( _mm256_xor_si256( k4, k5 ), \
-                                              _mm256_xor_si256( k6, k7 ) ) ), \
-                         m256_const1_64( 0x1BD11BDAA9FC1A22) ); \
-  t2 = t0 ^ t1; \
-} while (0)
+  k8 = mm256_xor3( mm256_xor3( k0, k1, k2 ), \
+                   mm256_xor3( k3, k4, k5 ), \
+                   mm256_xor3( k6, k7, \
+                               _mm256_set1_epi64x( 0x1BD11BDAA9FC1A22) ) ); \
+  t2 = t0 ^ t1;
 
 #define TFBIG_ADDKEY_4WAY(w0, w1, w2, w3, w4, w5, w6, w7, k, t, s) \
-do { \
   w0 = _mm256_add_epi64( w0, SKBI(k,s,0) ); \
   w1 = _mm256_add_epi64( w1, SKBI(k,s,1) ); \
   w2 = _mm256_add_epi64( w2, SKBI(k,s,2) ); \
   w3 = _mm256_add_epi64( w3, SKBI(k,s,3) ); \
   w4 = _mm256_add_epi64( w4, SKBI(k,s,4) ); \
   w5 = _mm256_add_epi64( w5, _mm256_add_epi64( SKBI(k,s,5), \
-                                         m256_const1_64( SKBT(t,s,0) ) ) ); \
+                                       _mm256_set1_epi64x( SKBT(t,s,0) ) ) ); \
   w6 = _mm256_add_epi64( w6, _mm256_add_epi64( SKBI(k,s,6), \
-                                         m256_const1_64( SKBT(t,s,1) ) ) ); \
+                                       _mm256_set1_epi64x( SKBT(t,s,1) ) ) ); \
   w7 = _mm256_add_epi64( w7, _mm256_add_epi64( SKBI(k,s,7), \
-                                         m256_const1_64( s ) ) ); \
-} while (0)
+                                       _mm256_set1_epi64x( s ) ) );
 
 #define TFBIG_MIX_4WAY(x0, x1, rc) \
-do { \
      x0 = _mm256_add_epi64( x0, x1 ); \
-     x1 = _mm256_xor_si256( mm256_rol_64( x1, rc ), x0 ); \
-} while (0)
+     x1 = _mm256_xor_si256( mm256_rol_64( x1, rc ), x0 );
 
-#define TFBIG_MIX8_4WAY(w0, w1, w2, w3, w4, w5, w6, w7, rc0, rc1, rc2, rc3)  do { \
+#define TFBIG_MIX8_4WAY(w0, w1, w2, w3, w4, w5, w6, w7, rc0, rc1, rc2, rc3) \
       TFBIG_MIX_4WAY(w0, w1, rc0); \
       TFBIG_MIX_4WAY(w2, w3, rc1); \
       TFBIG_MIX_4WAY(w4, w5, rc2); \
-      TFBIG_MIX_4WAY(w6, w7, rc3); \
-   } while (0)
+      TFBIG_MIX_4WAY(w6, w7, rc3);
 
-#define TFBIG_4WAY_4e(s)   do { \
+#define TFBIG_4WAY_4e(s) \
       TFBIG_ADDKEY_4WAY(p0, p1, p2, p3, p4, p5, p6, p7, h, t, s); \
       TFBIG_MIX8_4WAY(p0, p1, p2, p3, p4, p5, p6, p7, 46, 36, 19, 37); \
       TFBIG_MIX8_4WAY(p2, p1, p4, p7, p6, p5, p0, p3, 33, 27, 14, 42); \
       TFBIG_MIX8_4WAY(p4, p1, p6, p3, p0, p5, p2, p7, 17, 49, 36, 39); \
-      TFBIG_MIX8_4WAY(p6, p1, p0, p7, p2, p5, p4, p3, 44,  9, 54, 56); \
-   } while (0)
+      TFBIG_MIX8_4WAY(p6, p1, p0, p7, p2, p5, p4, p3, 44,  9, 54, 56);
 
-#define TFBIG_4WAY_4o(s)   do { \
+#define TFBIG_4WAY_4o(s) \
       TFBIG_ADDKEY_4WAY(p0, p1, p2, p3, p4, p5, p6, p7, h, t, s); \
       TFBIG_MIX8_4WAY(p0, p1, p2, p3, p4, p5, p6, p7, 39, 30, 34, 24); \
       TFBIG_MIX8_4WAY(p2, p1, p4, p7, p6, p5, p0, p3, 13, 50, 10, 17); \
       TFBIG_MIX8_4WAY(p4, p1, p6, p3, p0, p5, p2, p7, 25, 29, 39, 43); \
-      TFBIG_MIX8_4WAY(p6, p1, p0, p7, p2, p5, p4, p3,  8, 35, 56, 22); \
-   } while (0)
+      TFBIG_MIX8_4WAY(p6, p1, p0, p7, p2, p5, p4, p3,  8, 35, 56, 22);
 
 // scale buf offset by 4
 #define UBI_BIG_4WAY(etype, extra) \
@@ -541,28 +521,28 @@ do { \
 
 void skein256_8way_init( skein256_8way_context *sc )
 {
-        sc->h0 = m512_const1_64( 0xCCD044A12FDB3E13 );
-        sc->h1 = m512_const1_64( 0xE83590301A79A9EB );
-        sc->h2 = m512_const1_64( 0x55AEA0614F816E6F );
-        sc->h3 = m512_const1_64( 0x2A2767A4AE9B94DB );
-        sc->h4 = m512_const1_64( 0xEC06025E74DD7683 );
-        sc->h5 = m512_const1_64( 0xE7A436CDC4746251 );
-        sc->h6 = m512_const1_64( 0xC36FBAF9393AD185 );
-        sc->h7 = m512_const1_64( 0x3EEDBA1833EDFC13 );
+        sc->h0 = _mm512_set1_epi64( 0xCCD044A12FDB3E13 );
+        sc->h1 = _mm512_set1_epi64( 0xE83590301A79A9EB );
+        sc->h2 = _mm512_set1_epi64( 0x55AEA0614F816E6F );
+        sc->h3 = _mm512_set1_epi64( 0x2A2767A4AE9B94DB );
+        sc->h4 = _mm512_set1_epi64( 0xEC06025E74DD7683 );
+        sc->h5 = _mm512_set1_epi64( 0xE7A436CDC4746251 );
+        sc->h6 = _mm512_set1_epi64( 0xC36FBAF9393AD185 );
+        sc->h7 = _mm512_set1_epi64( 0x3EEDBA1833EDFC13 );
         sc->bcount = 0;
         sc->ptr = 0;
 }
 
 void skein512_8way_init( skein512_8way_context *sc )
 {
-        sc->h0 = m512_const1_64( 0x4903ADFF749C51CE );
-        sc->h1 = m512_const1_64( 0x0D95DE399746DF03 );
-        sc->h2 = m512_const1_64( 0x8FD1934127C79BCE );
-        sc->h3 = m512_const1_64( 0x9A255629FF352CB1 );
-        sc->h4 = m512_const1_64( 0x5DB62599DF6CA7B0 );
-        sc->h5 = m512_const1_64( 0xEABE394CA9D5C3F4 );
-        sc->h6 = m512_const1_64( 0x991112C71A75B523 );
-        sc->h7 = m512_const1_64( 0xAE18A40B660FCC33 );
+        sc->h0 = _mm512_set1_epi64( 0x4903ADFF749C51CE );
+        sc->h1 = _mm512_set1_epi64( 0x0D95DE399746DF03 );
+        sc->h2 = _mm512_set1_epi64( 0x8FD1934127C79BCE );
+        sc->h3 = _mm512_set1_epi64( 0x9A255629FF352CB1 );
+        sc->h4 = _mm512_set1_epi64( 0x5DB62599DF6CA7B0 );
+        sc->h5 = _mm512_set1_epi64( 0xEABE394CA9D5C3F4 );
+        sc->h6 = _mm512_set1_epi64( 0x991112C71A75B523 );
+        sc->h7 = _mm512_set1_epi64( 0xAE18A40B660FCC33 );
         sc->bcount = 0;
         sc->ptr = 0;
 }
@@ -660,14 +640,14 @@ void skein512_8way_full( skein512_8way_context *sc, void *out, const void *data,
 
 // Init
 
-        h0 = m512_const1_64( 0x4903ADFF749C51CE );
-        h1 = m512_const1_64( 0x0D95DE399746DF03 );
-        h2 = m512_const1_64( 0x8FD1934127C79BCE );
-        h3 = m512_const1_64( 0x9A255629FF352CB1 );
-        h4 = m512_const1_64( 0x5DB62599DF6CA7B0 );
-        h5 = m512_const1_64( 0xEABE394CA9D5C3F4 );
-        h6 = m512_const1_64( 0x991112C71A75B523 );
-        h7 = m512_const1_64( 0xAE18A40B660FCC33 );
+        h0 = _mm512_set1_epi64( 0x4903ADFF749C51CE );
+        h1 = _mm512_set1_epi64( 0x0D95DE399746DF03 );
+        h2 = _mm512_set1_epi64( 0x8FD1934127C79BCE );
+        h3 = _mm512_set1_epi64( 0x9A255629FF352CB1 );
+        h4 = _mm512_set1_epi64( 0x5DB62599DF6CA7B0 );
+        h5 = _mm512_set1_epi64( 0xEABE394CA9D5C3F4 );
+        h6 = _mm512_set1_epi64( 0x991112C71A75B523 );
+        h7 = _mm512_set1_epi64( 0xAE18A40B660FCC33 );
 
 // Update
 
@@ -734,14 +714,14 @@ skein512_8way_prehash64( skein512_8way_context *sc, const void *data )
    buf[5] = vdata[5];
    buf[6] = vdata[6];
    buf[7] = vdata[7];
-   register __m512i h0 = m512_const1_64( 0x4903ADFF749C51CE );
-   register __m512i h1 = m512_const1_64( 0x0D95DE399746DF03 );
-   register __m512i h2 = m512_const1_64( 0x8FD1934127C79BCE );
-   register __m512i h3 = m512_const1_64( 0x9A255629FF352CB1 );
-   register __m512i h4 = m512_const1_64( 0x5DB62599DF6CA7B0 );
-   register __m512i h5 = m512_const1_64( 0xEABE394CA9D5C3F4 );
-   register __m512i h6 = m512_const1_64( 0x991112C71A75B523 );
-   register __m512i h7 = m512_const1_64( 0xAE18A40B660FCC33 );
+   register __m512i h0 = _mm512_set1_epi64( 0x4903ADFF749C51CE );
+   register __m512i h1 = _mm512_set1_epi64( 0x0D95DE399746DF03 );
+   register __m512i h2 = _mm512_set1_epi64( 0x8FD1934127C79BCE );
+   register __m512i h3 = _mm512_set1_epi64( 0x9A255629FF352CB1 );
+   register __m512i h4 = _mm512_set1_epi64( 0x5DB62599DF6CA7B0 );
+   register __m512i h5 = _mm512_set1_epi64( 0xEABE394CA9D5C3F4 );
+   register __m512i h6 = _mm512_set1_epi64( 0x991112C71A75B523 );
+   register __m512i h7 = _mm512_set1_epi64( 0xAE18A40B660FCC33 );
    uint64_t bcount = 1;
 
    UBI_BIG_8WAY( 224, 0 );
@@ -830,28 +810,28 @@ skein512_8way_close(void *cc, void *dst)
 
 void skein256_4way_init( skein256_4way_context *sc )
 {
-        sc->h0 = m256_const1_64( 0xCCD044A12FDB3E13 );
-        sc->h1 = m256_const1_64( 0xE83590301A79A9EB );
-        sc->h2 = m256_const1_64( 0x55AEA0614F816E6F );
-        sc->h3 = m256_const1_64( 0x2A2767A4AE9B94DB );
-        sc->h4 = m256_const1_64( 0xEC06025E74DD7683 );
-        sc->h5 = m256_const1_64( 0xE7A436CDC4746251 );
-        sc->h6 = m256_const1_64( 0xC36FBAF9393AD185 );
-        sc->h7 = m256_const1_64( 0x3EEDBA1833EDFC13 );
+        sc->h0 = _mm256_set1_epi64x( 0xCCD044A12FDB3E13 );
+        sc->h1 = _mm256_set1_epi64x( 0xE83590301A79A9EB );
+        sc->h2 = _mm256_set1_epi64x( 0x55AEA0614F816E6F );
+        sc->h3 = _mm256_set1_epi64x( 0x2A2767A4AE9B94DB );
+        sc->h4 = _mm256_set1_epi64x( 0xEC06025E74DD7683 );
+        sc->h5 = _mm256_set1_epi64x( 0xE7A436CDC4746251 );
+        sc->h6 = _mm256_set1_epi64x( 0xC36FBAF9393AD185 );
+        sc->h7 = _mm256_set1_epi64x( 0x3EEDBA1833EDFC13 );
         sc->bcount = 0;
         sc->ptr = 0;
 }
 
 void skein512_4way_init( skein512_4way_context *sc )
 {
-        sc->h0 = m256_const1_64( 0x4903ADFF749C51CE );
-        sc->h1 = m256_const1_64( 0x0D95DE399746DF03 );
-        sc->h2 = m256_const1_64( 0x8FD1934127C79BCE );
-        sc->h3 = m256_const1_64( 0x9A255629FF352CB1 );
-        sc->h4 = m256_const1_64( 0x5DB62599DF6CA7B0 );
-        sc->h5 = m256_const1_64( 0xEABE394CA9D5C3F4 );
-        sc->h6 = m256_const1_64( 0x991112C71A75B523 );
-        sc->h7 = m256_const1_64( 0xAE18A40B660FCC33 );
+        sc->h0 = _mm256_set1_epi64x( 0x4903ADFF749C51CE );
+        sc->h1 = _mm256_set1_epi64x( 0x0D95DE399746DF03 );
+        sc->h2 = _mm256_set1_epi64x( 0x8FD1934127C79BCE );
+        sc->h3 = _mm256_set1_epi64x( 0x9A255629FF352CB1 );
+        sc->h4 = _mm256_set1_epi64x( 0x5DB62599DF6CA7B0 );
+        sc->h5 = _mm256_set1_epi64x( 0xEABE394CA9D5C3F4 );
+        sc->h6 = _mm256_set1_epi64x( 0x991112C71A75B523 );
+        sc->h7 = _mm256_set1_epi64x( 0xAE18A40B660FCC33 );
         sc->bcount = 0;
         sc->ptr = 0;
 }
@@ -954,14 +934,14 @@ skein512_4way_full( skein512_4way_context *sc, void *out, const void *data,
    const int buf_size = 64;   // 64 * __m256i
    uint64_t bcount = 0;
 
-   h0 = m256_const1_64( 0x4903ADFF749C51CE );
-   h1 = m256_const1_64( 0x0D95DE399746DF03 );
-   h2 = m256_const1_64( 0x8FD1934127C79BCE );
-   h3 = m256_const1_64( 0x9A255629FF352CB1 );
-   h4 = m256_const1_64( 0x5DB62599DF6CA7B0 );
-   h5 = m256_const1_64( 0xEABE394CA9D5C3F4 );
-   h6 = m256_const1_64( 0x991112C71A75B523 );
-   h7 = m256_const1_64( 0xAE18A40B660FCC33 );
+   h0 = _mm256_set1_epi64x( 0x4903ADFF749C51CE );
+   h1 = _mm256_set1_epi64x( 0x0D95DE399746DF03 );
+   h2 = _mm256_set1_epi64x( 0x8FD1934127C79BCE );
+   h3 = _mm256_set1_epi64x( 0x9A255629FF352CB1 );
+   h4 = _mm256_set1_epi64x( 0x5DB62599DF6CA7B0 );
+   h5 = _mm256_set1_epi64x( 0xEABE394CA9D5C3F4 );
+   h6 = _mm256_set1_epi64x( 0x991112C71A75B523 );
+   h7 = _mm256_set1_epi64x( 0xAE18A40B660FCC33 );
 
 // Update     
 
@@ -1028,14 +1008,14 @@ skein512_4way_prehash64( skein512_4way_context *sc, const void *data )
    buf[5] = vdata[5];
    buf[6] = vdata[6];
    buf[7] = vdata[7];
-   register __m256i h0 = m256_const1_64( 0x4903ADFF749C51CE );
-   register __m256i h1 = m256_const1_64( 0x0D95DE399746DF03 );
-   register __m256i h2 = m256_const1_64( 0x8FD1934127C79BCE );
-   register __m256i h3 = m256_const1_64( 0x9A255629FF352CB1 );
-   register __m256i h4 = m256_const1_64( 0x5DB62599DF6CA7B0 );
-   register __m256i h5 = m256_const1_64( 0xEABE394CA9D5C3F4 );
-   register __m256i h6 = m256_const1_64( 0x991112C71A75B523 );
-   register __m256i h7 = m256_const1_64( 0xAE18A40B660FCC33 );
+   register __m256i h0 = _mm256_set1_epi64x( 0x4903ADFF749C51CE );
+   register __m256i h1 = _mm256_set1_epi64x( 0x0D95DE399746DF03 );
+   register __m256i h2 = _mm256_set1_epi64x( 0x8FD1934127C79BCE );
+   register __m256i h3 = _mm256_set1_epi64x( 0x9A255629FF352CB1 );
+   register __m256i h4 = _mm256_set1_epi64x( 0x5DB62599DF6CA7B0 );
+   register __m256i h5 = _mm256_set1_epi64x( 0xEABE394CA9D5C3F4 );
+   register __m256i h6 = _mm256_set1_epi64x( 0x991112C71A75B523 );
+   register __m256i h7 = _mm256_set1_epi64x( 0xAE18A40B660FCC33 );
    uint64_t bcount = 1;
 
    UBI_BIG_4WAY( 224, 0 );

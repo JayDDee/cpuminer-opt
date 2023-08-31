@@ -731,6 +731,67 @@ static inline void extr_lane_8x32( void *d, const void *s,
 
 #if defined(__AVX2__)
 
+#if defined(__AVX512VL__) && defined(__AVX512VBMI__)
+
+//TODO Enable for AVX10_256 AVX10_512
+
+// Combine byte swap & broadcast in one permute
+static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
+{
+   const __m256i c0 = _mm256_set1_epi32( 0x00010203 );
+   const __m256i c1 = _mm256_set1_epi32( 0x04050607 );
+   const __m256i c2 = _mm256_set1_epi32( 0x08090a0b );
+   const __m256i c3 = _mm256_set1_epi32( 0x0c0d0e0f );
+   const __m128i s0 = casti_m128i( src,0 );
+   const __m128i s1 = casti_m128i( src,1 );
+   const __m128i s2 = casti_m128i( src,2 );
+   const __m128i s3 = casti_m128i( src,3 );
+   const __m128i s4 = casti_m128i( src,4 );
+
+   casti_m256i( d, 0 ) = _mm256_permutexvar_epi8( c0,
+                          _mm256_castsi128_si256( s0 ) );
+   casti_m256i( d, 1 ) = _mm256_permutexvar_epi8( c1,
+                          _mm256_castsi128_si256( s0 ) );
+   casti_m256i( d, 2 ) = _mm256_permutexvar_epi8( c2,
+                          _mm256_castsi128_si256( s0 ) );
+   casti_m256i( d, 3 ) = _mm256_permutexvar_epi8( c3,
+                          _mm256_castsi128_si256( s0 ) );
+   casti_m256i( d, 4 ) = _mm256_permutexvar_epi8( c0,
+                          _mm256_castsi128_si256( s1 ) );
+   casti_m256i( d, 5 ) = _mm256_permutexvar_epi8( c1,
+                          _mm256_castsi128_si256( s1 ) );
+   casti_m256i( d, 6 ) = _mm256_permutexvar_epi8( c2,
+                          _mm256_castsi128_si256( s1 ) );
+   casti_m256i( d, 7 ) = _mm256_permutexvar_epi8( c3,
+                          _mm256_castsi128_si256( s1 ) );
+   casti_m256i( d, 8 ) = _mm256_permutexvar_epi8( c0,
+                          _mm256_castsi128_si256( s2 ) );
+   casti_m256i( d, 9 ) = _mm256_permutexvar_epi8( c1,
+                          _mm256_castsi128_si256( s2 ) );
+   casti_m256i( d,10 ) = _mm256_permutexvar_epi8( c2,
+                          _mm256_castsi128_si256( s2 ) );
+   casti_m256i( d,11 ) = _mm256_permutexvar_epi8( c3,
+                          _mm256_castsi128_si256( s2 ) );
+   casti_m256i( d,12 ) = _mm256_permutexvar_epi8( c0,
+                          _mm256_castsi128_si256( s3 ) );
+   casti_m256i( d,13 ) = _mm256_permutexvar_epi8( c1,
+                          _mm256_castsi128_si256( s3 ) );
+   casti_m256i( d,14 ) = _mm256_permutexvar_epi8( c2,
+                          _mm256_castsi128_si256( s3 ) );
+   casti_m256i( d,15 ) = _mm256_permutexvar_epi8( c3,
+                          _mm256_castsi128_si256( s3 ) );
+   casti_m256i( d,16 ) = _mm256_permutexvar_epi8( c0,
+                          _mm256_castsi128_si256( s4 ) );
+   casti_m256i( d,17 ) = _mm256_permutexvar_epi8( c1,
+                          _mm256_castsi128_si256( s4 ) );
+   casti_m256i( d,18 ) = _mm256_permutexvar_epi8( c2,
+                          _mm256_castsi128_si256( s4 ) );
+   casti_m256i( d,19 ) = _mm256_permutexvar_epi8( c3,
+                          _mm256_castsi128_si256( s4 ) );
+}
+
+#else
+
 static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
 {
   const __m128i bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
@@ -792,6 +853,7 @@ static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
                          _mm256_castsi128_si256( s4 ), c3 );
 }
 
+#endif   // AVX512VBMI else
 #endif   // AVX2
 
 // 16x32
@@ -1173,9 +1235,11 @@ static inline void extr_lane_16x32( void *d, const void *s,
    ((uint32_t*)d)[15] = ((const uint32_t*)s)[ lane+240 ];
 }
 
-#if defined(__AVX512F__) && defined(__AVX512VL__)
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #if defined(__AVX512VBMI__)
+
+// TODO Enable for AVX10_512
 
 // Combine byte swap & broadcast in one permute
 static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
@@ -1496,10 +1560,48 @@ static inline void mm256_intrlv80_4x64( void *d, const void *src )
                           _mm256_castsi128_si256( s4 ), 0x55 );
 }
 
+#if defined(__AVX512VL__) && defined(__AVX512VBMI__)
+
+//TODO Enable for AVX10_256 AVX10_512
+
+static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
+{
+   const __m256i c0 = _mm256_set1_epi64x( 0x0405060700010203 );
+   const __m256i c1 = _mm256_set1_epi64x( 0x0c0d0e0f08090a0b );
+   const __m128i s0 = casti_m128i( src,0 );
+   const __m128i s1 = casti_m128i( src,1 );
+   const __m128i s2 = casti_m128i( src,2 );
+   const __m128i s3 = casti_m128i( src,3 );
+   const __m128i s4 = casti_m128i( src,4 );
+
+   casti_m256i( d,0 ) = _mm256_permutexvar_epi8( c0,
+                         _mm256_castsi128_si256( s0 ) );
+   casti_m256i( d,1 ) = _mm256_permutexvar_epi8( c1,
+                         _mm256_castsi128_si256( s0 ) );
+   casti_m256i( d,2 ) = _mm256_permutexvar_epi8( c0,
+                         _mm256_castsi128_si256( s1 ) );
+   casti_m256i( d,3 ) = _mm256_permutexvar_epi8( c1,
+                         _mm256_castsi128_si256( s1 ) );
+   casti_m256i( d,4 ) = _mm256_permutexvar_epi8( c0,
+                         _mm256_castsi128_si256( s2 ) );
+   casti_m256i( d,5 ) = _mm256_permutexvar_epi8( c1,
+                         _mm256_castsi128_si256( s2 ) );
+   casti_m256i( d,6 ) = _mm256_permutexvar_epi8( c0,
+                         _mm256_castsi128_si256( s3 ) );
+   casti_m256i( d,7 ) = _mm256_permutexvar_epi8( c1,
+                         _mm256_castsi128_si256( s3 ) );
+   casti_m256i( d,8 ) = _mm256_permutexvar_epi8( c0,
+                         _mm256_castsi128_si256( s4 ) );
+   casti_m256i( d,9 ) = _mm256_permutexvar_epi8( c1,
+                         _mm256_castsi128_si256( s4 ) );
+}
+
+#else
+
 static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
 {
   const __m256i bswap_shuf = mm256_bcast_m128(
-                     _mm_set_epi64x( 0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
+                    _mm_set_epi64x( 0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
   __m256i s0 = casti_m256i( src,0 );
   __m256i s1 = casti_m256i( src,1 );
   __m128i s4 = casti_m128i( src,4 );
@@ -1523,6 +1625,8 @@ static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
   casti_m256i( d, 9 ) = _mm256_permute4x64_epi64(
                           _mm256_castsi128_si256( s4 ), 0x55 );
 }
+
+#endif
 
 #endif  // AVX2
 
@@ -1846,6 +1950,8 @@ static inline void extr_lane_8x64( void *dst, const void *src, const int lane,
 
 #if defined(__AVX512F__) && defined(__AVX512VL__)
 
+//TODO Enable for AVX10_512
+
 // broadcast to all lanes
 static inline void mm512_intrlv80_8x64( void *dst, const void *src )
 {
@@ -2089,10 +2195,36 @@ static inline void dintrlv_4x128_512( void *dst0, void *dst1, void *dst2,
    d0[3] = s[12];   d1[3] = s[13];    d2[3] = s[14];   d3[3] = s[15];
 }
 
-
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-static inline void mm512_bswap32_intrlv80_4x128( void *d, void *src )
+#if defined(__AVX512VBMI__)
+//TODO Enable for AVX10_512
+
+static inline void mm512_bswap32_intrlv80_4x128( void *d, const void *src )
+{
+  const __m512i bswap_shuf = mm512_bcast_m128(
+                    _mm_set_epi64x( 0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
+  const __m128i s0 = casti_m128i( src,0 );
+  const __m128i s1 = casti_m128i( src,1 );
+  const __m128i s2 = casti_m128i( src,2 );
+  const __m128i s3 = casti_m128i( src,3 );
+  const __m128i s4 = casti_m128i( src,4 );
+
+  casti_m512i( d,0 ) = _mm512_permutexvar_epi8( _mm512_castsi128_si512( s0 ),
+                                                 bswap_shuf );
+  casti_m512i( d,1 ) = _mm512_permutexvar_epi8( _mm512_castsi128_si512( s1 ),
+                                                 bswap_shuf );
+  casti_m512i( d,2 ) = _mm512_permutexvar_epi8( _mm512_castsi128_si512( s2 ),
+                                                 bswap_shuf );
+  casti_m512i( d,3 ) = _mm512_permutexvar_epi8( _mm512_castsi128_si512( s3 ),
+                                                 bswap_shuf );
+  casti_m512i( d,4 ) = _mm512_permutexvar_epi8( _mm512_castsi128_si512( s4 ),
+                                                 bswap_shuf );
+}
+
+#else
+
+static inline void mm512_bswap32_intrlv80_4x128( void *d, const void *src )
 {
   const __m128i bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
                                              0x0405060700010203 );
@@ -2108,14 +2240,15 @@ static inline void mm512_bswap32_intrlv80_4x128( void *d, void *src )
   s3 = _mm_shuffle_epi8( s3, bswap_shuf );
   s4 = _mm_shuffle_epi8( s4, bswap_shuf );
 
-  casti_m512i( d, 0 ) = mm512_bcast_m128( s0 );
-  casti_m512i( d, 1 ) = mm512_bcast_m128( s1 );
-  casti_m512i( d, 2 ) = mm512_bcast_m128( s2 );
-  casti_m512i( d, 3 ) = mm512_bcast_m128( s3 );
-  casti_m512i( d, 4 ) = mm512_bcast_m128( s4 );
-}  
+  casti_m512i( d,0 ) = mm512_bcast_m128( s0 );
+  casti_m512i( d,1 ) = mm512_bcast_m128( s1 );
+  casti_m512i( d,2 ) = mm512_bcast_m128( s2 );
+  casti_m512i( d,3 ) = mm512_bcast_m128( s3 );
+  casti_m512i( d,4 ) = mm512_bcast_m128( s4 );
+}
 
-#endif
+#endif   // AVX512VBMI ELSE
+#endif   // AVX512
 
 // 2x256 (AVX512)
 
@@ -2954,6 +3087,8 @@ do { \
 #endif  // AVX2
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+//TODO Enable for AVX10_512
 
 /*
 #define mm512_intrlv_blend_128( hi, lo ) \

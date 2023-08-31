@@ -171,7 +171,7 @@ int scanhash_4way_64in_32out( struct work *work, uint32_t max_nonce,
          }
       }
       *noncev = _mm256_add_epi32( *noncev,
-                                  m256_const1_64( 0x0000000400000000 ) );
+                                  _mm256_set1_epi64x( 0x0000000400000000 ) );
       n += 4;
    } while ( likely( ( n <= last_nonce ) && !work_restart[thr_id].restart ) );
    pdata[19] = n;
@@ -227,7 +227,7 @@ int scanhash_8way_64in_32out( struct work *work, uint32_t max_nonce,
          }
       }
       *noncev = _mm512_add_epi32( *noncev,
-                                  m512_const1_64( 0x0000000800000000 ) );
+                                  _mm512_set1_epi64( 0x0000000800000000 ) );
       n += 8;
    } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
    pdata[19] = n;

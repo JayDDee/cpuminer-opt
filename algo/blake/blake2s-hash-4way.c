@@ -62,14 +62,14 @@ int blake2s_4way_init( blake2s_4way_state *S, const uint8_t outlen )
 
    memset( S, 0, sizeof( blake2s_4way_state ) );
 
-   S->h[0] = m128_const1_64( 0x6A09E6676A09E667ULL );
-   S->h[1] = m128_const1_64( 0xBB67AE85BB67AE85ULL );
-   S->h[2] = m128_const1_64( 0x3C6EF3723C6EF372ULL );
-   S->h[3] = m128_const1_64( 0xA54FF53AA54FF53AULL );
-   S->h[4] = m128_const1_64( 0x510E527F510E527FULL );
-   S->h[5] = m128_const1_64( 0x9B05688C9B05688CULL );
-   S->h[6] = m128_const1_64( 0x1F83D9AB1F83D9ABULL );
-   S->h[7] = m128_const1_64( 0x5BE0CD195BE0CD19ULL );
+   S->h[0] = _mm_set1_epi64x( 0x6A09E6676A09E667ULL );
+   S->h[1] = _mm_set1_epi64x( 0xBB67AE85BB67AE85ULL );
+   S->h[2] = _mm_set1_epi64x( 0x3C6EF3723C6EF372ULL );
+   S->h[3] = _mm_set1_epi64x( 0xA54FF53AA54FF53AULL );
+   S->h[4] = _mm_set1_epi64x( 0x510E527F510E527FULL );
+   S->h[5] = _mm_set1_epi64x( 0x9B05688C9B05688CULL );
+   S->h[6] = _mm_set1_epi64x( 0x1F83D9AB1F83D9ABULL );
+   S->h[7] = _mm_set1_epi64x( 0x5BE0CD195BE0CD19ULL );
    
 //   for( int i = 0; i < 8; ++i )
 //      S->h[i] = _mm_set1_epi32( blake2s_IV[i] );
@@ -90,18 +90,18 @@ int blake2s_4way_compress( blake2s_4way_state *S, const __m128i* block )
    memcpy_128( m, block, 16 );
    memcpy_128( v, S->h, 8 );
 
-   v[ 8] = m128_const1_64( 0x6A09E6676A09E667ULL );
-   v[ 9] = m128_const1_64( 0xBB67AE85BB67AE85ULL );
-   v[10] = m128_const1_64( 0x3C6EF3723C6EF372ULL );
-   v[11] = m128_const1_64( 0xA54FF53AA54FF53AULL );
+   v[ 8] = _mm_set1_epi64x( 0x6A09E6676A09E667ULL );
+   v[ 9] = _mm_set1_epi64x( 0xBB67AE85BB67AE85ULL );
+   v[10] = _mm_set1_epi64x( 0x3C6EF3723C6EF372ULL );
+   v[11] = _mm_set1_epi64x( 0xA54FF53AA54FF53AULL );
    v[12] = _mm_xor_si128( _mm_set1_epi32( S->t[0] ),
-                          m128_const1_64( 0x510E527F510E527FULL ) );
+                          _mm_set1_epi64x( 0x510E527F510E527FULL ) );
    v[13] = _mm_xor_si128( _mm_set1_epi32( S->t[1] ),
-                          m128_const1_64( 0x9B05688C9B05688CULL ) );
+                          _mm_set1_epi64x( 0x9B05688C9B05688CULL ) );
    v[14] = _mm_xor_si128( _mm_set1_epi32( S->f[0] ),
-                          m128_const1_64( 0x1F83D9AB1F83D9ABULL ) );
+                          _mm_set1_epi64x( 0x1F83D9AB1F83D9ABULL ) );
    v[15] = _mm_xor_si128( _mm_set1_epi32( S->f[1] ),
-                          m128_const1_64( 0x5BE0CD195BE0CD19ULL ) );
+                          _mm_set1_epi64x( 0x5BE0CD195BE0CD19ULL ) );
 
 #define G4W( sigma0, sigma1, a, b, c, d ) \
 do { \
@@ -269,21 +269,21 @@ int blake2s_8way_compress( blake2s_8way_state *S, const __m256i *block )
    memcpy_256( m, block, 16 );
    memcpy_256( v, S->h, 8 );
 
-   v[ 8] = m256_const1_64( 0x6A09E6676A09E667ULL );
-   v[ 9] = m256_const1_64( 0xBB67AE85BB67AE85ULL );
-   v[10] = m256_const1_64( 0x3C6EF3723C6EF372ULL );
-   v[11] = m256_const1_64( 0xA54FF53AA54FF53AULL );
+   v[ 8] = _mm256_set1_epi64x( 0x6A09E6676A09E667ULL );
+   v[ 9] = _mm256_set1_epi64x( 0xBB67AE85BB67AE85ULL );
+   v[10] = _mm256_set1_epi64x( 0x3C6EF3723C6EF372ULL );
+   v[11] = _mm256_set1_epi64x( 0xA54FF53AA54FF53AULL );
    v[12] = _mm256_xor_si256( _mm256_set1_epi32( S->t[0] ),
-                          m256_const1_64( 0x510E527F510E527FULL ) );
+                          _mm256_set1_epi64x( 0x510E527F510E527FULL ) );
 
    v[13] = _mm256_xor_si256( _mm256_set1_epi32( S->t[1] ),
-                          m256_const1_64( 0x9B05688C9B05688CULL ) );
+                          _mm256_set1_epi64x( 0x9B05688C9B05688CULL ) );
 
    v[14] = _mm256_xor_si256( _mm256_set1_epi32( S->f[0] ),
-                          m256_const1_64( 0x1F83D9AB1F83D9ABULL ) );
+                          _mm256_set1_epi64x( 0x1F83D9AB1F83D9ABULL ) );
 
    v[15] = _mm256_xor_si256( _mm256_set1_epi32( S->f[1] ),
-                          m256_const1_64( 0x5BE0CD195BE0CD19ULL ) );
+                          _mm256_set1_epi64x( 0x5BE0CD195BE0CD19ULL ) );
 
 /*
    v[ 8] = _mm256_set1_epi32( blake2s_IV[0] );
@@ -391,14 +391,14 @@ int blake2s_8way_init( blake2s_8way_state *S, const uint8_t outlen )
    memset( P->personal, 0, sizeof( P->personal ) );
 
    memset( S, 0, sizeof( blake2s_8way_state ) );
-   S->h[0] = m256_const1_64( 0x6A09E6676A09E667ULL );
-   S->h[1] = m256_const1_64( 0xBB67AE85BB67AE85ULL );
-   S->h[2] = m256_const1_64( 0x3C6EF3723C6EF372ULL );
-   S->h[3] = m256_const1_64( 0xA54FF53AA54FF53AULL );
-   S->h[4] = m256_const1_64( 0x510E527F510E527FULL );
-   S->h[5] = m256_const1_64( 0x9B05688C9B05688CULL );
-   S->h[6] = m256_const1_64( 0x1F83D9AB1F83D9ABULL );
-   S->h[7] = m256_const1_64( 0x5BE0CD195BE0CD19ULL );
+   S->h[0] = _mm256_set1_epi64x( 0x6A09E6676A09E667ULL );
+   S->h[1] = _mm256_set1_epi64x( 0xBB67AE85BB67AE85ULL );
+   S->h[2] = _mm256_set1_epi64x( 0x3C6EF3723C6EF372ULL );
+   S->h[3] = _mm256_set1_epi64x( 0xA54FF53AA54FF53AULL );
+   S->h[4] = _mm256_set1_epi64x( 0x510E527F510E527FULL );
+   S->h[5] = _mm256_set1_epi64x( 0x9B05688C9B05688CULL );
+   S->h[6] = _mm256_set1_epi64x( 0x1F83D9AB1F83D9ABULL );
+   S->h[7] = _mm256_set1_epi64x( 0x5BE0CD195BE0CD19ULL );
 
 
 //   for( int i = 0; i < 8; ++i )
@@ -510,21 +510,21 @@ int blake2s_16way_compress( blake2s_16way_state *S, const __m512i *block )
    memcpy_512( m, block, 16 );
    memcpy_512( v, S->h, 8 );
 
-   v[ 8] = m512_const1_64( 0x6A09E6676A09E667ULL );
-   v[ 9] = m512_const1_64( 0xBB67AE85BB67AE85ULL );
-   v[10] = m512_const1_64( 0x3C6EF3723C6EF372ULL );
-   v[11] = m512_const1_64( 0xA54FF53AA54FF53AULL );
+   v[ 8] = _mm512_set1_epi64( 0x6A09E6676A09E667ULL );
+   v[ 9] = _mm512_set1_epi64( 0xBB67AE85BB67AE85ULL );
+   v[10] = _mm512_set1_epi64( 0x3C6EF3723C6EF372ULL );
+   v[11] = _mm512_set1_epi64( 0xA54FF53AA54FF53AULL );
    v[12] = _mm512_xor_si512( _mm512_set1_epi32( S->t[0] ),
-                          m512_const1_64( 0x510E527F510E527FULL ) );
+                          _mm512_set1_epi64( 0x510E527F510E527FULL ) );
 
    v[13] = _mm512_xor_si512( _mm512_set1_epi32( S->t[1] ),
-                          m512_const1_64( 0x9B05688C9B05688CULL ) );
+                          _mm512_set1_epi64( 0x9B05688C9B05688CULL ) );
 
    v[14] = _mm512_xor_si512( _mm512_set1_epi32( S->f[0] ),
-                          m512_const1_64( 0x1F83D9AB1F83D9ABULL ) );
+                          _mm512_set1_epi64( 0x1F83D9AB1F83D9ABULL ) );
 
    v[15] = _mm512_xor_si512( _mm512_set1_epi32( S->f[1] ),
-                          m512_const1_64( 0x5BE0CD195BE0CD19ULL ) );
+                          _mm512_set1_epi64( 0x5BE0CD195BE0CD19ULL ) );
 
 
 #define G16W( sigma0, sigma1, a, b, c, d) \
@@ -589,14 +589,14 @@ int blake2s_16way_init( blake2s_16way_state *S, const uint8_t outlen )
    memset( P->personal, 0, sizeof( P->personal ) );
 
    memset( S, 0, sizeof( blake2s_16way_state ) );
-   S->h[0] = m512_const1_64( 0x6A09E6676A09E667ULL );
-   S->h[1] = m512_const1_64( 0xBB67AE85BB67AE85ULL );
-   S->h[2] = m512_const1_64( 0x3C6EF3723C6EF372ULL );
-   S->h[3] = m512_const1_64( 0xA54FF53AA54FF53AULL );
-   S->h[4] = m512_const1_64( 0x510E527F510E527FULL );
-   S->h[5] = m512_const1_64( 0x9B05688C9B05688CULL );
-   S->h[6] = m512_const1_64( 0x1F83D9AB1F83D9ABULL );
-   S->h[7] = m512_const1_64( 0x5BE0CD195BE0CD19ULL );
+   S->h[0] = _mm512_set1_epi64( 0x6A09E6676A09E667ULL );
+   S->h[1] = _mm512_set1_epi64( 0xBB67AE85BB67AE85ULL );
+   S->h[2] = _mm512_set1_epi64( 0x3C6EF3723C6EF372ULL );
+   S->h[3] = _mm512_set1_epi64( 0xA54FF53AA54FF53AULL );
+   S->h[4] = _mm512_set1_epi64( 0x510E527F510E527FULL );
+   S->h[5] = _mm512_set1_epi64( 0x9B05688C9B05688CULL );
+   S->h[6] = _mm512_set1_epi64( 0x1F83D9AB1F83D9ABULL );
+   S->h[7] = _mm512_set1_epi64( 0x5BE0CD195BE0CD19ULL );
 
    uint32_t *p = ( uint32_t * )( P );
 

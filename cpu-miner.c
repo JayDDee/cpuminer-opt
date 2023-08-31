@@ -1532,6 +1532,7 @@ const char *getwork_req =
 #define GBT_CAPABILITIES "[\"coinbasetxn\", \"coinbasevalue\", \"longpoll\", \"workid\"]"
 
 #define GBT_RULES "[\"segwit\"]"
+
 static const char *gbt_req =
    "{\"method\": \"getblocktemplate\", \"params\": [{\"capabilities\": "
    GBT_CAPABILITIES ", \"rules\": " GBT_RULES "}], \"id\":0}\r\n";
@@ -1589,18 +1590,21 @@ start:
          json_decref( val );
          goto start;
       }
+      allow_getwork = false;  // GBT is working, disable fallback
    } 
    else
       rc = work_decode( json_object_get( val, "result" ), work );
 
    if ( rc ) 
    {
+      bool new_work = true;
+
       json_decref( val );
 
       get_mininginfo( curl, work );
       report_summary_log( false );
       
-      if ( opt_protocol | opt_debug )
+      if ( opt_protocol || opt_debug )
       {
          timeval_subtract( &diff, &tv_end, &tv_start );
          applog( LOG_INFO, "%s new work received in %.2f ms",
@@ -1621,8 +1625,10 @@ start:
          applog( LOG_BLUE, "New Work: Block %d, Tx %d, Net Diff %.5g, Ntime %08x",
                                 work->height, work->tx_count, net_diff,
                                 work->data[ algo_gate.ntime_index ] );
-       
-      if ( !opt_quiet )
+      else
+        new_work = false;
+
+      if ( new_work && !opt_quiet )
       {
          double miner_hr = 0.;
          double net_hr = net_hashrate;
@@ -2745,10 +2751,14 @@ static void *stratum_thread(void *userdata )
          }
          else
          {
-            stratum_down = false;
+// sometimes stratum connects but doesn't immediately send a job, wait for one.
+//            stratum_down = false;
             applog(LOG_BLUE,"Stratum connection established" );
             if ( stratum.new_job )   // prime first job
+            {
+               stratum_down = false;
                stratum_gen_work( &stratum, &g_work );
+            }
          }
       }
 
@@ -2757,6 +2767,7 @@ static void *stratum_thread(void *userdata )
       {
          if ( likely( s = stratum_recv_line( &stratum ) ) )
          {
+            stratum_down = false;
             if ( likely( !stratum_handle_method( &stratum, s ) ) )
                stratum_handle_response( s );
             free( s );
@@ -2848,6 +2859,7 @@ static bool cpu_capability( bool display_only )
      bool cpu_has_sha    = has_sha();
      bool cpu_has_avx512 = has_avx512();
      bool cpu_has_vaes   = has_vaes();
+     bool cpu_has_avx10  = has_avx10();
      bool sw_has_aes    = false;
      bool sw_has_sse2   = false;
      bool sw_has_sse42  = false;
@@ -2912,8 +2924,8 @@ static bool cpu_capability( bool display_only )
      #ifdef _MSC_VER
          " with VC++ 2013\n");
      #elif defined(__GNUC__)
-         " with GCC");
-        printf(" %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+         " with GCC-");
+        printf("%d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
      #else
         printf("\n");
      #endif
@@ -2927,6 +2939,8 @@ static bool cpu_capability( bool display_only )
      if      ( cpu_has_vaes   )    printf( " VAES"   );
      else if ( cpu_has_aes    )    printf( "  AES"   );
      if      ( cpu_has_sha    )    printf( " SHA"    );
+     if      ( cpu_has_avx10  )    printf( " AVX10.%d-%d",
+                                    avx10_version(), avx10_vector_length() );
 
      printf("\nSW features:  ");
      if      ( sw_has_avx512 )    printf( " AVX512" );

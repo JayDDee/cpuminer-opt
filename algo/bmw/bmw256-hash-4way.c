@@ -451,22 +451,22 @@ static const __m128i final_s[16] =
 */
 void bmw256_4way_init( bmw256_4way_context *ctx )
 {
-   ctx->H[ 0] = m128_const1_64( 0x4041424340414243 );
-   ctx->H[ 1] = m128_const1_64( 0x4445464744454647 );
-   ctx->H[ 2] = m128_const1_64( 0x48494A4B48494A4B );
-   ctx->H[ 3] = m128_const1_64( 0x4C4D4E4F4C4D4E4F );
-   ctx->H[ 4] = m128_const1_64( 0x5051525350515253 );
-   ctx->H[ 5] = m128_const1_64( 0x5455565754555657 );
-   ctx->H[ 6] = m128_const1_64( 0x58595A5B58595A5B );
-   ctx->H[ 7] = m128_const1_64( 0x5C5D5E5F5C5D5E5F );
-   ctx->H[ 8] = m128_const1_64( 0x6061626360616263 );
-   ctx->H[ 9] = m128_const1_64( 0x6465666764656667 );
-   ctx->H[10] = m128_const1_64( 0x68696A6B68696A6B );
-   ctx->H[11] = m128_const1_64( 0x6C6D6E6F6C6D6E6F );
-   ctx->H[12] = m128_const1_64( 0x7071727370717273 );
-   ctx->H[13] = m128_const1_64( 0x7475767774757677 );
-   ctx->H[14] = m128_const1_64( 0x78797A7B78797A7B );
-   ctx->H[15] = m128_const1_64( 0x7C7D7E7F7C7D7E7F );
+   ctx->H[ 0] = _mm_set1_epi64x( 0x4041424340414243 );
+   ctx->H[ 1] = _mm_set1_epi64x( 0x4445464744454647 );
+   ctx->H[ 2] = _mm_set1_epi64x( 0x48494A4B48494A4B );
+   ctx->H[ 3] = _mm_set1_epi64x( 0x4C4D4E4F4C4D4E4F );
+   ctx->H[ 4] = _mm_set1_epi64x( 0x5051525350515253 );
+   ctx->H[ 5] = _mm_set1_epi64x( 0x5455565754555657 );
+   ctx->H[ 6] = _mm_set1_epi64x( 0x58595A5B58595A5B );
+   ctx->H[ 7] = _mm_set1_epi64x( 0x5C5D5E5F5C5D5E5F );
+   ctx->H[ 8] = _mm_set1_epi64x( 0x6061626360616263 );
+   ctx->H[ 9] = _mm_set1_epi64x( 0x6465666764656667 );
+   ctx->H[10] = _mm_set1_epi64x( 0x68696A6B68696A6B );
+   ctx->H[11] = _mm_set1_epi64x( 0x6C6D6E6F6C6D6E6F );
+   ctx->H[12] = _mm_set1_epi64x( 0x7071727370717273 );
+   ctx->H[13] = _mm_set1_epi64x( 0x7475767774757677 );
+   ctx->H[14] = _mm_set1_epi64x( 0x78797A7B78797A7B );
+   ctx->H[15] = _mm_set1_epi64x( 0x7C7D7E7F7C7D7E7F );
 
 
 //   for ( int i = 0; i < 16; i++ )
@@ -529,7 +529,7 @@ bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
 
    buf = sc->buf;
    ptr = sc->ptr;
-   buf[ ptr>>2 ] = m128_const1_64( 0x0000008000000080 );
+   buf[ ptr>>2 ] = _mm_set1_epi64x( 0x0000008000000080 );
    ptr += 4;
    h = sc->H;
 
@@ -959,22 +959,22 @@ static const __m256i final_s8[16] =
 
 void bmw256_8way_init( bmw256_8way_context *ctx )
 {
-   ctx->H[ 0] = m256_const1_64( 0x4041424340414243 );
-   ctx->H[ 1] = m256_const1_64( 0x4445464744454647 );
-   ctx->H[ 2] = m256_const1_64( 0x48494A4B48494A4B );
-   ctx->H[ 3] = m256_const1_64( 0x4C4D4E4F4C4D4E4F );
-   ctx->H[ 4] = m256_const1_64( 0x5051525350515253 );
-   ctx->H[ 5] = m256_const1_64( 0x5455565754555657 );
-   ctx->H[ 6] = m256_const1_64( 0x58595A5B58595A5B );
-   ctx->H[ 7] = m256_const1_64( 0x5C5D5E5F5C5D5E5F );
-   ctx->H[ 8] = m256_const1_64( 0x6061626360616263 );
-   ctx->H[ 9] = m256_const1_64( 0x6465666764656667 );
-   ctx->H[10] = m256_const1_64( 0x68696A6B68696A6B );
-   ctx->H[11] = m256_const1_64( 0x6C6D6E6F6C6D6E6F );
-   ctx->H[12] = m256_const1_64( 0x7071727370717273 );
-   ctx->H[13] = m256_const1_64( 0x7475767774757677 );
-   ctx->H[14] = m256_const1_64( 0x78797A7B78797A7B );
-   ctx->H[15] = m256_const1_64( 0x7C7D7E7F7C7D7E7F );
+   ctx->H[ 0] = _mm256_set1_epi64x( 0x4041424340414243 );
+   ctx->H[ 1] = _mm256_set1_epi64x( 0x4445464744454647 );
+   ctx->H[ 2] = _mm256_set1_epi64x( 0x48494A4B48494A4B );
+   ctx->H[ 3] = _mm256_set1_epi64x( 0x4C4D4E4F4C4D4E4F );
+   ctx->H[ 4] = _mm256_set1_epi64x( 0x5051525350515253 );
+   ctx->H[ 5] = _mm256_set1_epi64x( 0x5455565754555657 );
+   ctx->H[ 6] = _mm256_set1_epi64x( 0x58595A5B58595A5B );
+   ctx->H[ 7] = _mm256_set1_epi64x( 0x5C5D5E5F5C5D5E5F );
+   ctx->H[ 8] = _mm256_set1_epi64x( 0x6061626360616263 );
+   ctx->H[ 9] = _mm256_set1_epi64x( 0x6465666764656667 );
+   ctx->H[10] = _mm256_set1_epi64x( 0x68696A6B68696A6B );
+   ctx->H[11] = _mm256_set1_epi64x( 0x6C6D6E6F6C6D6E6F );
+   ctx->H[12] = _mm256_set1_epi64x( 0x7071727370717273 );
+   ctx->H[13] = _mm256_set1_epi64x( 0x7475767774757677 );
+   ctx->H[14] = _mm256_set1_epi64x( 0x78797A7B78797A7B );
+   ctx->H[15] = _mm256_set1_epi64x( 0x7C7D7E7F7C7D7E7F );
    ctx->ptr       = 0;
    ctx->bit_count = 0;
 }
@@ -1030,7 +1030,7 @@ void bmw256_8way_close( bmw256_8way_context *ctx, void *dst )
 
    buf = ctx->buf;
    ptr = ctx->ptr;
-   buf[ ptr>>2 ] = m256_const1_64( 0x0000008000000080 );
+   buf[ ptr>>2 ] = _mm256_set1_epi64x( 0x0000008000000080 );
    ptr += 4;
    h = ctx->H;
 
@@ -1460,22 +1460,22 @@ static const __m512i final_s16[16] =
 
 void bmw256_16way_init( bmw256_16way_context *ctx )
 {
-   ctx->H[ 0] = m512_const1_64( 0x4041424340414243 );
-   ctx->H[ 1] = m512_const1_64( 0x4445464744454647 );
-   ctx->H[ 2] = m512_const1_64( 0x48494A4B48494A4B );
-   ctx->H[ 3] = m512_const1_64( 0x4C4D4E4F4C4D4E4F );
-   ctx->H[ 4] = m512_const1_64( 0x5051525350515253 );
-   ctx->H[ 5] = m512_const1_64( 0x5455565754555657 );
-   ctx->H[ 6] = m512_const1_64( 0x58595A5B58595A5B );
-   ctx->H[ 7] = m512_const1_64( 0x5C5D5E5F5C5D5E5F );
-   ctx->H[ 8] = m512_const1_64( 0x6061626360616263 );
-   ctx->H[ 9] = m512_const1_64( 0x6465666764656667 );
-   ctx->H[10] = m512_const1_64( 0x68696A6B68696A6B );
-   ctx->H[11] = m512_const1_64( 0x6C6D6E6F6C6D6E6F );
-   ctx->H[12] = m512_const1_64( 0x7071727370717273 );
-   ctx->H[13] = m512_const1_64( 0x7475767774757677 );
-   ctx->H[14] = m512_const1_64( 0x78797A7B78797A7B );
-   ctx->H[15] = m512_const1_64( 0x7C7D7E7F7C7D7E7F );
+   ctx->H[ 0] = _mm512_set1_epi64( 0x4041424340414243 );
+   ctx->H[ 1] = _mm512_set1_epi64( 0x4445464744454647 );
+   ctx->H[ 2] = _mm512_set1_epi64( 0x48494A4B48494A4B );
+   ctx->H[ 3] = _mm512_set1_epi64( 0x4C4D4E4F4C4D4E4F );
+   ctx->H[ 4] = _mm512_set1_epi64( 0x5051525350515253 );
+   ctx->H[ 5] = _mm512_set1_epi64( 0x5455565754555657 );
+   ctx->H[ 6] = _mm512_set1_epi64( 0x58595A5B58595A5B );
+   ctx->H[ 7] = _mm512_set1_epi64( 0x5C5D5E5F5C5D5E5F );
+   ctx->H[ 8] = _mm512_set1_epi64( 0x6061626360616263 );
+   ctx->H[ 9] = _mm512_set1_epi64( 0x6465666764656667 );
+   ctx->H[10] = _mm512_set1_epi64( 0x68696A6B68696A6B );
+   ctx->H[11] = _mm512_set1_epi64( 0x6C6D6E6F6C6D6E6F );
+   ctx->H[12] = _mm512_set1_epi64( 0x7071727370717273 );
+   ctx->H[13] = _mm512_set1_epi64( 0x7475767774757677 );
+   ctx->H[14] = _mm512_set1_epi64( 0x78797A7B78797A7B );
+   ctx->H[15] = _mm512_set1_epi64( 0x7C7D7E7F7C7D7E7F );
    ctx->ptr       = 0;
    ctx->bit_count = 0;
 }
@@ -1531,7 +1531,7 @@ void bmw256_16way_close( bmw256_16way_context *ctx, void *dst )
 
    buf = ctx->buf;
    ptr = ctx->ptr;
-   buf[ ptr>>2 ] = m512_const1_64( 0x0000008000000080 );
+   buf[ ptr>>2 ] = _mm512_set1_epi64( 0x0000008000000080 );
    ptr += 4;
    h = ctx->H;
 

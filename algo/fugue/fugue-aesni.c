@@ -33,11 +33,11 @@ MYALIGN const unsigned long long _supermix4b[]	= {0x07020d08080e0d0d, 0x07070908
 MYALIGN const unsigned long long _supermix4c[]	= {0x0706050403020000, 0x0302000007060504};
 MYALIGN const unsigned long long _supermix7a[]	= {0x010c0b060d080702, 0x0904030e03000104};
 MYALIGN const unsigned long long _supermix7b[]	= {0x8080808080808080, 0x0504070605040f06};
-MYALIGN const unsigned long long _k_n[] = {0x4E4E4E4E4E4E4E4E, 0x1B1B1B1B0E0E0E0E};
-MYALIGN const unsigned char _shift_one_mask[]   = {7, 4, 5, 6, 11, 8, 9, 10, 15, 12, 13, 14, 3, 0, 1, 2};
-MYALIGN const unsigned char _shift_four_mask[]  = {13, 14, 15, 12, 1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8};
-MYALIGN const unsigned char _shift_seven_mask[] = {10, 11, 8, 9, 14, 15, 12, 13, 2, 3, 0, 1, 6, 7, 4, 5};
-MYALIGN const unsigned char _aes_shift_rows[]   = {0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11};
+//MYALIGN const unsigned long long _k_n[] = {0x4E4E4E4E4E4E4E4E, 0x1B1B1B1B0E0E0E0E};
+//MYALIGN const unsigned char _shift_one_mask[]   = {7, 4, 5, 6, 11, 8, 9, 10, 15, 12, 13, 14, 3, 0, 1, 2};
+//MYALIGN const unsigned char _shift_four_mask[]  = {13, 14, 15, 12, 1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8};
+//MYALIGN const unsigned char _shift_seven_mask[] = {10, 11, 8, 9, 14, 15, 12, 13, 2, 3, 0, 1, 6, 7, 4, 5};
+//MYALIGN const unsigned char _aes_shift_rows[]   = {0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11};
 MYALIGN const unsigned int _inv_shift_rows[] = {0x070a0d00, 0x0b0e0104, 0x0f020508, 0x0306090c};
 MYALIGN const unsigned int _mul2mask[] = {0x1b1b0000, 0x00000000, 0x00000000, 0x00000000};
 MYALIGN const unsigned int _mul4mask[] = {0x2d361b00, 0x00000000, 0x00000000, 0x00000000};
@@ -131,7 +131,7 @@ MYALIGN const unsigned int _IV512[] = {
    t1 = _mm_srli_epi16(t0, 6);\
    t1 = _mm_and_si128(t1, M128(_lsbmask2));\
    t3 = _mm_xor_si128(t3, _mm_shuffle_epi8(M128(_mul2mask), t1));\
-   t0  = _mm_xor_si128(t4, _mm_shuffle_epi8(M128(_mul4mask), t1))
+   t0 = _mm_xor_si128(t4, _mm_shuffle_epi8(M128(_mul4mask), t1))
 
 /*
 #define PRESUPERMIX(x, t1, s1, s2, t2)\

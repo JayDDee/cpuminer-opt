@@ -22,20 +22,29 @@
 #include "simd-utils.h"
 #include "luffa_for_sse2.h"
 
+#define cns(i)  ( ( (__m128i*)CNS_INIT)[i] )
+
+#define ADD_CONSTANT( a, b, c0 ,c1 ) \
+    a = _mm_xor_si128( a, c0 ); \
+    b = _mm_xor_si128( b, c1 ); \
+
 #if defined(__AVX512VL__)
+//TODO enable for AVX10_512 AVX10_256
 
 #define MULT2( a0, a1 ) \
 { \
-  __m128i b = _mm_xor_si128( a0, _mm_maskz_shuffle_epi32( 0xb, a1, 0x10 ) ); \
-  a0 = _mm_alignr_epi32( a1, b, 1 ); \
-  a1 = _mm_alignr_epi32( b, a1, 1 ); \
+  __m128i b = _mm_xor_si128( a0, \
+                      _mm_maskz_shuffle_epi32( 0xb, a1, 0x10 ) ); \
+  a0 = _mm_alignr_epi8( a1, b, 4 ); \
+  a1 = _mm_alignr_epi8( b, a1, 4 ); \
 }
 
 #elif defined(__SSE4_1__)
 
 #define MULT2( a0, a1 ) do \
 { \
-  __m128i b = _mm_xor_si128( a0, _mm_shuffle_epi32( mm128_mask_32( a1, 0xe ), 0x10 ) ); \
+  __m128i b = _mm_xor_si128( a0, \
+                      _mm_shuffle_epi32( mm128_mask_32( a1, 0xe ), 0x10 ) ); \
   a0 = _mm_alignr_epi8( a1, b, 4 ); \
   a1 = _mm_alignr_epi8( b, a1, 4 ); \
 } while(0)
@@ -44,79 +53,88 @@
 
 #define MULT2( a0, a1 ) do \
 { \
-  __m128i b = _mm_xor_si128( a0, _mm_shuffle_epi32( _mm_and_si128( a1, MASK ), 0x10 ) ); \
-  a0 = _mm_or_si128( _mm_srli_si128( b, 4 ), _mm_slli_si128( a1, 12 ) ); \
-  a1 = _mm_or_si128( _mm_srli_si128( a1, 4 ), _mm_slli_si128( b, 12 ) ); \
+  __m128i b = _mm_xor_si128( a0, \
+                      _mm_shuffle_epi32( _mm_and_si128( a1, MASK ), 0x10 ) ); \
+  a0 = _mm_or_si128( _mm_srli_si128(  b, 4 ), _mm_slli_si128( a1, 12 ) ); \
+  a1 = _mm_or_si128( _mm_srli_si128( a1, 4 ), _mm_slli_si128(  b, 12 ) ); \
 } while(0)
 
 #endif
 
-#define STEP_PART(x,c,t)\
-    SUBCRUMB(*x,*(x+1),*(x+2),*(x+3),*t);\
-    SUBCRUMB(*(x+5),*(x+6),*(x+7),*(x+4),*t);\
-    MIXWORD(*x,*(x+4),*t,*(t+1));\
-    MIXWORD(*(x+1),*(x+5),*t,*(t+1));\
-    MIXWORD(*(x+2),*(x+6),*t,*(t+1));\
-    MIXWORD(*(x+3),*(x+7),*t,*(t+1));\
-    ADD_CONSTANT(*x, *(x+4), *c, *(c+1));
+#if defined(__AVX512VL__)
+//TODO enable for AVX10_512 AVX10_256
 
-#define STEP_PART2(a0,a1,t0,t1,c0,c1,tmp0,tmp1)\
-    a1 = _mm_shuffle_epi32(a1,147);\
-    t0 = _mm_load_si128(&a1);\
-    a1 = _mm_unpacklo_epi32(a1,a0);\
-    t0 = _mm_unpackhi_epi32(t0,a0);\
-    t1 = _mm_shuffle_epi32(t0,78);\
-    a0 = _mm_shuffle_epi32(a1,78);\
-    SUBCRUMB(t1,t0,a0,a1,tmp0);\
-    t0 = _mm_unpacklo_epi32(t0,t1);\
-    a1 = _mm_unpacklo_epi32(a1,a0);\
-    a0 = _mm_load_si128(&a1);\
-    a0 = _mm_unpackhi_epi64(a0,t0);\
-    a1 = _mm_unpacklo_epi64(a1,t0);\
-    a1 = _mm_shuffle_epi32(a1,57);\
-    MIXWORD(a0,a1,tmp0,tmp1);\
-    ADD_CONSTANT(a0,a1,c0,c1);
+#define SUBCRUMB( a0, a1, a2, a3 ) \
+{ \
+    __m128i t = a0; \
+    a0 = mm128_xoror( a3, a0, a1 ); \
+    a2 = _mm_xor_si128( a2, a3 ); \
+    a1 = _mm_ternarylogic_epi64( a1, a3, t, 0x87 ); /* a1 xnor (a3 & t) */ \
+    a3 = mm128_xorand( a2, a3, t ); \
+    a2 = mm128_xorand( a1, a2, a0 ); \
+    a1 = _mm_or_si128( a1, a3 ); \
+    a3 = _mm_xor_si128( a3, a2 ); \
+    t  = _mm_xor_si128( t, a1 ); \
+    a2 = _mm_and_si128( a2, a1 ); \
+    a1 = mm128_xnor( a1, a0 ); \
+    a0 = t; \
+}
 
-#define SUBCRUMB(a0,a1,a2,a3,t)\
-    t  = _mm_load_si128(&a0);\
-    a0 = _mm_or_si128(a0,a1);\
-    a2 = _mm_xor_si128(a2,a3);\
-    a1 = mm128_not( a1 );\
-    a0 = _mm_xor_si128(a0,a3);\
-    a3 = _mm_and_si128(a3,t);\
-    a1 = _mm_xor_si128(a1,a3);\
-    a3 = _mm_xor_si128(a3,a2);\
-    a2 = _mm_and_si128(a2,a0);\
-    a0 = mm128_not( a0 );\
-    a2 = _mm_xor_si128(a2,a1);\
-    a1 = _mm_or_si128(a1,a3);\
-    t  = _mm_xor_si128(t,a1);\
-    a3 = _mm_xor_si128(a3,a2);\
-    a2 = _mm_and_si128(a2,a1);\
-    a1 = _mm_xor_si128(a1,a0);\
-    a0 = _mm_load_si128(&t);\
+#else
 
-#define MIXWORD(a,b,t1,t2)\
-    b = _mm_xor_si128(a,b);\
-    t1 = _mm_slli_epi32(a,2);\
-    t2 = _mm_srli_epi32(a,30);\
-    a = _mm_or_si128(t1,t2);\
-    a = _mm_xor_si128(a,b);\
-    t1 = _mm_slli_epi32(b,14);\
-    t2 = _mm_srli_epi32(b,18);\
-    b = _mm_or_si128(t1,t2);\
-    b = _mm_xor_si128(a,b);\
-    t1 = _mm_slli_epi32(a,10);\
-    t2 = _mm_srli_epi32(a,22);\
-    a = _mm_or_si128(t1,t2);\
-    a = _mm_xor_si128(a,b);\
-    t1 = _mm_slli_epi32(b,1);\
-    t2 = _mm_srli_epi32(b,31);\
-    b = _mm_or_si128(t1,t2);
+#define SUBCRUMB( a0, a1, a2, a3 ) \
+{ \
+    __m128i t = a0; \
+    a0 = _mm_or_si128( a0, a1 ); \
+    a2 = _mm_xor_si128( a2, a3 ); \
+    a1 = mm128_not( a1 ); \
+    a0 = _mm_xor_si128( a0, a3 ); \
+    a3 = _mm_and_si128( a3, t ); \
+    a1 = _mm_xor_si128( a1, a3 ); \
+    a3 = _mm_xor_si128( a3, a2 ); \
+    a2 = _mm_and_si128( a2, a0 ); \
+    a0 = mm128_not( a0 ); \
+    a2 = _mm_xor_si128( a2, a1 ); \
+    a1 = _mm_or_si128(  a1, a3 ); \
+    t  = _mm_xor_si128( t , a1 ); \
+    a3 = _mm_xor_si128( a3, a2 ); \
+    a2 = _mm_and_si128( a2, a1 ); \
+    a1 = _mm_xor_si128( a1, a0 ); \
+    a0 = t; \
+}
 
-#define ADD_CONSTANT(a,b,c0,c1)\
-    a = _mm_xor_si128(a,c0);\
-    b = _mm_xor_si128(b,c1);\
+#endif
+
+#define MIXWORD( a, b ) \
+    b = _mm_xor_si128( a, b ); \
+    a = _mm_xor_si128( b, mm128_rol_32( a, 2 ) ); \
+    b = _mm_xor_si128( a, mm128_rol_32( b, 14 ) ); \
+    a = _mm_xor_si128( b, mm128_rol_32( a, 10 ) ); \
+    b = mm128_rol_32( b, 1 );
+
+#define STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, c0, c1 ) \
+    SUBCRUMB( x0, x1, x2, x3 ); \
+    SUBCRUMB( x5, x6, x7, x4 ); \
+    MIXWORD( x0, x4 ); \
+    MIXWORD( x1, x5 ); \
+    MIXWORD( x2, x6 ); \
+    MIXWORD( x3, x7 ); \
+    ADD_CONSTANT( x0, x4, c0, c1 );
+
+#define STEP_PART2( a0, a1, t0, t1, c0, c1 ) \
+    t0 = _mm_shuffle_epi32( a1, 147 ); \
+    a1 = _mm_unpacklo_epi32( t0, a0 ); \
+    t0 = _mm_unpackhi_epi32( t0, a0 ); \
+    t1 = _mm_shuffle_epi32( t0, 78 ); \
+    a0 = _mm_shuffle_epi32( a1, 78 ); \
+    SUBCRUMB( t1, t0, a0, a1 ); \
+    t0 = _mm_unpacklo_epi32( t0, t1 ); \
+    a1 = _mm_unpacklo_epi32( a1, a0 ); \
+    a0 = _mm_unpackhi_epi64( a1, t0 ); \
+    a1 = _mm_unpacklo_epi64( a1, t0 ); \
+    a1 = _mm_shuffle_epi32( a1, 57 ); \
+    MIXWORD( a0, a1 ); \
+    ADD_CONSTANT( a0, a1, c0, c1 );
 
 #define NMLTOM768(r0,r1,r2,s0,s1,s2,s3,p0,p1,p2,q0,q1,q2,q3)\
     s2 = _mm_load_si128(&r1);\
@@ -177,32 +195,22 @@
     q1 = _mm_load_si128(&p1);\
 
 #define NMLTOM1024(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3)\
-    s1 = _mm_load_si128(&r3);\
-    q1 = _mm_load_si128(&p3);\
-    s3 = _mm_load_si128(&r3);\
-    q3 = _mm_load_si128(&p3);\
-    s1 = _mm_unpackhi_epi32(s1,r2);\
-    q1 = _mm_unpackhi_epi32(q1,p2);\
-    s3 = _mm_unpacklo_epi32(s3,r2);\
-    q3 = _mm_unpacklo_epi32(q3,p2);\
-    s0 = _mm_load_si128(&s1);\
-    q0 = _mm_load_si128(&q1);\
-    s2 = _mm_load_si128(&s3);\
-    q2 = _mm_load_si128(&q3);\
-    r3 = _mm_load_si128(&r1);\
-    p3 = _mm_load_si128(&p1);\
-    r1 = _mm_unpacklo_epi32(r1,r0);\
-    p1 = _mm_unpacklo_epi32(p1,p0);\
-    r3 = _mm_unpackhi_epi32(r3,r0);\
-    p3 = _mm_unpackhi_epi32(p3,p0);\
-    s0 = _mm_unpackhi_epi64(s0,r3);\
-    q0 = _mm_unpackhi_epi64(q0,p3);\
-    s1 = _mm_unpacklo_epi64(s1,r3);\
-    q1 = _mm_unpacklo_epi64(q1,p3);\
-    s2 = _mm_unpackhi_epi64(s2,r1);\
-    q2 = _mm_unpackhi_epi64(q2,p1);\
-    s3 = _mm_unpacklo_epi64(s3,r1);\
-    q3 = _mm_unpacklo_epi64(q3,p1);
+    s1 = _mm_unpackhi_epi32( r3, r2 ); \
+    q1 = _mm_unpackhi_epi32( p3, p2 ); \
+    s3 = _mm_unpacklo_epi32( r3, r2 ); \
+    q3 = _mm_unpacklo_epi32( p3, p2 ); \
+    r3 = _mm_unpackhi_epi32( r1, r0 ); \
+    r1 = _mm_unpacklo_epi32( r1, r0 ); \
+    p3 = _mm_unpackhi_epi32( p1, p0 ); \
+    p1 = _mm_unpacklo_epi32( p1, p0 ); \
+    s0 = _mm_unpackhi_epi64( s1, r3 ); \
+    q0 = _mm_unpackhi_epi64( q1 ,p3 ); \
+    s1 = _mm_unpacklo_epi64( s1, r3 ); \
+    q1 = _mm_unpacklo_epi64( q1, p3 ); \
+    s2 = _mm_unpackhi_epi64( s3, r1 ); \
+    q2 = _mm_unpackhi_epi64( q3, p1 ); \
+    s3 = _mm_unpacklo_epi64( s3, r1 ); \
+    q3 = _mm_unpacklo_epi64( q3, p1 );
 
 #define MIXTON1024(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3)\
     NMLTOM1024(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3);
@@ -306,8 +314,7 @@ HashReturn update_luffa( hashState_luffa *state, const BitSequence *data,
       // remaining data bytes
       casti_m128i( state->buffer, 0 ) = mm128_bswap_32( cast_m128i( data ) );
       // padding of partial block
-      casti_m128i( state->buffer, 1 ) =
-            _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 );
+      casti_m128i( state->buffer, 1 ) =  _mm_set_epi32( 0, 0, 0, 0x80000000 );
     }
 
     return SUCCESS;
@@ -325,8 +332,7 @@ HashReturn final_luffa(hashState_luffa *state, BitSequence *hashval)
     else
     {
       // empty pad block, constant data
-     rnd512( state, _mm_setzero_si128(),
-                       _mm_set_epi8( 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x80,0,0,0 ) );
+     rnd512( state, _mm_setzero_si128(), _mm_set_epi32( 0, 0, 0, 0x80000000 ) );
     }
 
     finalization512(state, (uint32*) hashval);
@@ -423,163 +429,119 @@ int luffa_full( hashState_luffa *state, BitSequence* output, int hashbitlen,
 
 static void rnd512( hashState_luffa *state, __m128i msg1, __m128i msg0 )
 {
-    __m128i t[2];
+    __m128i t0, t1;
     __m128i *chainv = state->chainv;
-    __m128i tmp[2];
-    __m128i x[8];
+    __m128i x0, x1, x2, x3, x4, x5, x6, x7; 
 
-    t[0] = chainv[0];
-    t[1] = chainv[1];
+    t0 = mm128_xor3( chainv[0], chainv[2], chainv[4] );
+    t1 = mm128_xor3( chainv[1], chainv[3], chainv[5] );
+    t0 = mm128_xor3( t0, chainv[6], chainv[8] );
+    t1 = mm128_xor3( t1, chainv[7], chainv[9] );
 
-    t[0] = _mm_xor_si128( t[0], chainv[2] );
-    t[1] = _mm_xor_si128( t[1], chainv[3] );
-    t[0] = _mm_xor_si128( t[0], chainv[4] );
-    t[1] = _mm_xor_si128( t[1], chainv[5] );
-    t[0] = _mm_xor_si128( t[0], chainv[6] );
-    t[1] = _mm_xor_si128( t[1], chainv[7] );
-    t[0] = _mm_xor_si128( t[0], chainv[8] );
-    t[1] = _mm_xor_si128( t[1], chainv[9] );
-
-    MULT2( t[0], t[1] );
+    MULT2( t0, t1 );
 
     msg0 = _mm_shuffle_epi32( msg0, 27 );
     msg1 = _mm_shuffle_epi32( msg1, 27 );
 
-    chainv[0] = _mm_xor_si128( chainv[0], t[0] );
-    chainv[1] = _mm_xor_si128( chainv[1], t[1] );
-    chainv[2] = _mm_xor_si128( chainv[2], t[0] );
-    chainv[3] = _mm_xor_si128( chainv[3], t[1] );
-    chainv[4] = _mm_xor_si128( chainv[4], t[0] );
-    chainv[5] = _mm_xor_si128( chainv[5], t[1] );
-    chainv[6] = _mm_xor_si128( chainv[6], t[0] );
-    chainv[7] = _mm_xor_si128( chainv[7], t[1] );
-    chainv[8] = _mm_xor_si128( chainv[8], t[0] );
-    chainv[9] = _mm_xor_si128( chainv[9], t[1] );
+    chainv[0] = _mm_xor_si128( chainv[0], t0 );
+    chainv[1] = _mm_xor_si128( chainv[1], t1 );
+    chainv[2] = _mm_xor_si128( chainv[2], t0 );
+    chainv[3] = _mm_xor_si128( chainv[3], t1 );
+    chainv[4] = _mm_xor_si128( chainv[4], t0 );
+    chainv[5] = _mm_xor_si128( chainv[5], t1 );
+    chainv[6] = _mm_xor_si128( chainv[6], t0 );
+    chainv[7] = _mm_xor_si128( chainv[7], t1 );
+    chainv[8] = _mm_xor_si128( chainv[8], t0 );
+    chainv[9] = _mm_xor_si128( chainv[9], t1 );
 
-    t[0] = chainv[0];
-    t[1] = chainv[1];
+    t0 = chainv[0];
+    t1 = chainv[1];
 
     MULT2( chainv[0], chainv[1]);
-
     chainv[0] = _mm_xor_si128( chainv[0], chainv[2] );
     chainv[1] = _mm_xor_si128( chainv[1], chainv[3] );
 
     MULT2( chainv[2], chainv[3]);
-
     chainv[2] = _mm_xor_si128(chainv[2], chainv[4]);
     chainv[3] = _mm_xor_si128(chainv[3], chainv[5]);
 
     MULT2( chainv[4], chainv[5]);
-
     chainv[4] = _mm_xor_si128(chainv[4], chainv[6]);
     chainv[5] = _mm_xor_si128(chainv[5], chainv[7]);
 
     MULT2( chainv[6], chainv[7]);
-
     chainv[6] = _mm_xor_si128(chainv[6], chainv[8]);
     chainv[7] = _mm_xor_si128(chainv[7], chainv[9]);
 
     MULT2( chainv[8], chainv[9]);
-
-    chainv[8] = _mm_xor_si128( chainv[8], t[0] );
-    chainv[9] = _mm_xor_si128( chainv[9], t[1] );
-
-    t[0] = chainv[8];
-    t[1] = chainv[9];
+    t0 = chainv[8] = _mm_xor_si128( chainv[8], t0 );
+    t1 = chainv[9] = _mm_xor_si128( chainv[9], t1 );
 
     MULT2( chainv[8], chainv[9]);
-
     chainv[8] = _mm_xor_si128( chainv[8], chainv[6] );
     chainv[9] = _mm_xor_si128( chainv[9], chainv[7] );
 
     MULT2( chainv[6], chainv[7]);
-
     chainv[6] = _mm_xor_si128( chainv[6], chainv[4] );
     chainv[7] = _mm_xor_si128( chainv[7], chainv[5] );
 
     MULT2( chainv[4], chainv[5]);
-
     chainv[4] = _mm_xor_si128( chainv[4], chainv[2] );
     chainv[5] = _mm_xor_si128( chainv[5], chainv[3] );
 
     MULT2( chainv[2], chainv[3] );
-
     chainv[2] = _mm_xor_si128( chainv[2], chainv[0] );
     chainv[3] = _mm_xor_si128( chainv[3], chainv[1] );
 
     MULT2( chainv[0], chainv[1] );
-
-    chainv[0] = _mm_xor_si128( _mm_xor_si128( chainv[0], t[0] ), msg0 );
-    chainv[1] = _mm_xor_si128( _mm_xor_si128( chainv[1], t[1] ), msg1 );
+    chainv[0] = _mm_xor_si128( _mm_xor_si128( chainv[0], t0 ), msg0 );
+    chainv[1] = _mm_xor_si128( _mm_xor_si128( chainv[1], t1 ), msg1 );
 
     MULT2( msg0, msg1);
-
     chainv[2] = _mm_xor_si128( chainv[2], msg0 );
     chainv[3] = _mm_xor_si128( chainv[3], msg1 );
 
     MULT2( msg0, msg1);
-
     chainv[4] = _mm_xor_si128( chainv[4], msg0 );
     chainv[5] = _mm_xor_si128( chainv[5], msg1 );
 
     MULT2( msg0, msg1);
-
     chainv[6] = _mm_xor_si128( chainv[6], msg0 );
     chainv[7] = _mm_xor_si128( chainv[7], msg1 );
 
     MULT2( msg0, msg1);
-
     chainv[8] = _mm_xor_si128( chainv[8], msg0 );
     chainv[9] = _mm_xor_si128( chainv[9], msg1 );
 
     MULT2( msg0, msg1);
+    chainv[3] = mm128_rol_32( chainv[3], 1 );    
+    chainv[5] = mm128_rol_32( chainv[5], 2 );
+    chainv[7] = mm128_rol_32( chainv[7], 3 );
+    chainv[9] = mm128_rol_32( chainv[9], 4 );
+    
+    NMLTOM1024( chainv[0], chainv[2], chainv[4], chainv[6], x0, x1, x2, x3,
+                chainv[1], chainv[3], chainv[5], chainv[7], x4, x5, x6, x7 );
 
-    chainv[3] = _mm_or_si128( _mm_slli_epi32(chainv[3], 1),
-                              _mm_srli_epi32(chainv[3], 31) );
-    chainv[5] = _mm_or_si128( _mm_slli_epi32(chainv[5], 2),
-                              _mm_srli_epi32(chainv[5], 30) );
-    chainv[7] = _mm_or_si128( _mm_slli_epi32(chainv[7], 3),
-                              _mm_srli_epi32(chainv[7], 29) );
-    chainv[9] = _mm_or_si128( _mm_slli_epi32(chainv[9], 4),
-                              _mm_srli_epi32(chainv[9], 28) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 0), cns( 1) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 2), cns( 3) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 4), cns( 5) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 6), cns( 7) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns( 8), cns( 9) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns(10), cns(11) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns(12), cns(13) );
+    STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, cns(14), cns(15) );
+    
+    MIXTON1024( x0, x1, x2, x3, chainv[0], chainv[2], chainv[4], chainv[6],
+                x4, x5, x6, x7, chainv[1], chainv[3], chainv[5], chainv[7]);
 
-
-    NMLTOM1024( chainv[0], chainv[2], chainv[4], chainv[6],
-                x[0], x[1], x[2], x[3],
-                chainv[1],chainv[3],chainv[5],chainv[7],
-                x[4], x[5], x[6], x[7] );
-
-    STEP_PART( &x[0], &CNS128[ 0], &tmp[0] );
-    STEP_PART( &x[0], &CNS128[ 2], &tmp[0] );
-    STEP_PART( &x[0], &CNS128[ 4], &tmp[0] );
-    STEP_PART( &x[0], &CNS128[ 6], &tmp[0] );
-    STEP_PART( &x[0], &CNS128[ 8], &tmp[0] );
-    STEP_PART( &x[0], &CNS128[10], &tmp[0] );
-    STEP_PART( &x[0], &CNS128[12], &tmp[0] );
-    STEP_PART( &x[0], &CNS128[14], &tmp[0] );
-
-    MIXTON1024( x[0], x[1], x[2], x[3],
-                chainv[0], chainv[2], chainv[4],chainv[6],
-                x[4], x[5], x[6], x[7],
-                chainv[1],chainv[3],chainv[5],chainv[7]);
-
-    /* Process last 256-bit block */
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[16], CNS128[17],
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[18], CNS128[19],
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[20], CNS128[21],
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[22], CNS128[23],
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[24], CNS128[25],
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[26], CNS128[27],
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[28], CNS128[29],
-                tmp[0], tmp[1] );
-    STEP_PART2( chainv[8], chainv[9], t[0], t[1], CNS128[30], CNS128[31],
-                tmp[0], tmp[1] );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(16), cns(17) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(18), cns(19) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(20), cns(21) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(22), cns(23) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(24), cns(25) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(26), cns(27) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(28), cns(29) );
+    STEP_PART2( chainv[8], chainv[9], t0, t1, cns(30), cns(31) );
 }
 
 
@@ -587,51 +549,6 @@ static void rnd512( hashState_luffa *state, __m128i msg1, __m128i msg0 )
 /* Finalization function  */
 /* state: hash context    */
 /* b[8]: hash values      */
-
-#if defined (__AVX2__)
-
-static void finalization512( hashState_luffa *state, uint32 *b )
-{
-    uint32   hash[8] __attribute((aligned(64)));
-    __m256i* chainv = (__m256i*)state->chainv;
-    __m256i  t;
-    const __m128i zero = m128_zero;
-    const __m256i shuff_bswap32 = _mm256_set_epi64x( 0x1c1d1e1f18191a1b,
-                                                     0x1415161710111213,
-                                                     0x0c0d0e0f08090a0b,
-                                                     0x0405060700010203 );
-
-    rnd512( state, zero, zero );
-
-    t = chainv[0];
-    t = _mm256_xor_si256( t, chainv[1] );
-    t = _mm256_xor_si256( t, chainv[2] );
-    t = _mm256_xor_si256( t, chainv[3] );
-    t = _mm256_xor_si256( t, chainv[4] );
-
-    t = _mm256_shuffle_epi32( t, 27 );
-
-    _mm256_store_si256( (__m256i*)hash, t );
-
-    casti_m256i( b, 0 ) = _mm256_shuffle_epi8(
-                                 casti_m256i( hash, 0 ), shuff_bswap32 );
-
-    rnd512( state, zero, zero );
-
-    t = chainv[0];
-    t = _mm256_xor_si256( t, chainv[1] );
-    t = _mm256_xor_si256( t, chainv[2] );
-    t = _mm256_xor_si256( t, chainv[3] );
-    t = _mm256_xor_si256( t, chainv[4] );
-    t = _mm256_shuffle_epi32( t, 27 );
-
-    _mm256_store_si256( (__m256i*)hash, t );
-
-    casti_m256i( b, 1 ) = _mm256_shuffle_epi8( 
-                                 casti_m256i( hash, 0 ), shuff_bswap32 );
-}
-
-#else
 
 static void finalization512( hashState_luffa *state, uint32 *b )
 {
@@ -685,6 +602,5 @@ static void finalization512( hashState_luffa *state, uint32 *b )
     casti_m128i( b, 2 ) = mm128_bswap_32( casti_m128i( hash, 0 ) );
     casti_m128i( b, 3 ) = mm128_bswap_32( casti_m128i( hash, 1 ) );
 }
-#endif
 
 /***************************************************/

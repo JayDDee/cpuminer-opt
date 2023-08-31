@@ -13,17 +13,14 @@
 // automatically but their use is limited because 256 bit vectors are less
 // likely to be used when 512 is available.
 //
+// AVX10_256 will support AVX512VL instructions on CPUs limited to 256 bit
+// vectors. This will require enabling when the compiler's AVX10 feature
+// macros are known.
+//
 // "_mm256_shuffle_epi8" and "_mm256_alignr_epi8" are restricted to 128 bit
 // lanes and data can't cross the 128 bit lane boundary.  
-// Full width byte shuffle is available with AVX512VL using the mask version
-// with a full mask (-1). 
 // Instructions that can move data across 128 bit lane boundary incur a
 // performance penalty over those that can't.
-// Some usage of index vectors may be encoded as if full vector shuffles are
-// supported. This has no side effects and would have the same results using
-// either version.
-// If the need arises and AVX512VL is available, 256 bit full vector byte 
-// shuffles can be implemented using the AVX512 mask feature with a NULL mask.
 
 #if defined(__AVX__)
 
@@ -66,6 +63,7 @@ typedef union
 // Set either the low or high 64 bit elements in 128 bit lanes, other elements
 // are set to zero.
 #if defined(__AVX512VL__)
+//TODO Enable for AVX10_256
 
 #define mm256_bcast128lo_64( i64 )     _mm256_maskz_set1_epi64( 0x55, i64 )
 #define mm256_bcast128hi_64( i64 )     _mm256_maskz_set1_epi64( 0xaa, i64 )
@@ -81,11 +79,9 @@ typedef union
 
 #define mm256_set2_64( i1, i0 )   mm256_bcast_m128( _mm_set_epi64x( i1, i0 ) )
 
-// Deprecated
-#define m256_const1_64       _mm256_set1_epi64x
-#define m256_const1_32       _mm256_set1_epi32
+#define mm256_set4_32( i3, i2, i1, i0 ) \
+   mm256_bcast_m128( _mm_set_epi32( i3, i2, i1, i0 ) )
 
-//
 // All SIMD constant macros are actually functions containing executable
 // code and therefore can't be used as compile time initializers.
 
@@ -121,6 +117,7 @@ static inline void memcpy_256( __m256i *dst, const __m256i *src, const int n )
 // Basic operations without SIMD equivalent
 
 #if defined(__AVX512VL__)
+//TODO Enable for AVX10_256
 
 static inline __m256i mm256_not( const __m256i v )
 {  return _mm256_ternarylogic_epi64( v, v, v, 1 ); }
@@ -140,8 +137,7 @@ static inline __m256i mm256_not( const __m256i v )
    _mm256_add_epi32( _mm256_add_epi32( a, b ), _mm256_add_epi32( c, d ) )
 
 #if defined(__AVX512VL__)
-
-// AVX512 has ternary logic that supports any 3 input boolean expression.
+//TODO Enable for AVX10_256
 
 // a ^ b ^ c
 #define mm256_xor3( a, b, c )      _mm256_ternarylogic_epi64( a, b, c, 0x96 )
@@ -176,31 +172,31 @@ static inline __m256i mm256_not( const __m256i v )
 #else
 
 #define mm256_xor3( a, b, c ) \
-   _mm256_xor_si256( a, _mm256_xor_si256( b, c ) )
+  _mm256_xor_si256( a, _mm256_xor_si256( b, c ) )
 
 #define mm256_xor4( a, b, c, d ) \
-   _mm256_xor_si256( _mm256_xor_si256( a, b ), _mm256_xor_si256( c, d ) )
+  _mm256_xor_si256( _mm256_xor_si256( a, b ), _mm256_xor_si256( c, d ) )
 
 #define mm256_and3( a, b, c ) \
-   _mm256_and_si256( a, _mm256_and_si256( b, c ) )
+  _mm256_and_si256( a, _mm256_and_si256( b, c ) )
 
 #define mm256_or3( a, b, c ) \
    _mm256_or_si256( a, _mm256_or_si256( b, c ) )
 
 #define mm256_xorand( a, b, c ) \
- _mm256_xor_si256( a, _mm256_and_si256( b, c ) )
+  _mm256_xor_si256( a, _mm256_and_si256( b, c ) )
 
 #define mm256_andxor( a, b, c ) \
   _mm256_and_si256( a, _mm256_xor_si256( b, c ))
 
 #define mm256_xoror( a, b, c ) \
- _mm256_xor_si256( a, _mm256_or_si256( b, c ) )
+  _mm256_xor_si256( a, _mm256_or_si256( b, c ) )
 
 #define mm256_xorandnot( a, b, c ) \
- _mm256_xor_si256( a, _mm256_andnot_si256( b, c ) )
+  _mm256_xor_si256( a, _mm256_andnot_si256( b, c ) )
 
 #define mm256_orand( a, b, c ) \
- _mm256_or_si256( a, _mm256_and_si256( b, c ) )
+  _mm256_or_si256( a, _mm256_and_si256( b, c ) )
 
 #define mm256_xnor( a, b ) \
   mm256_not( _mm256_xor_si256( a, b ) )
@@ -226,6 +222,7 @@ static inline __m256i mm256_not( const __m256i v )
 // transparency.
 
 #if defined(__AVX512VL__)
+//TODO Enable for AVX10_256
 
 #define mm256_ror_64    _mm256_ror_epi64
 #define mm256_rol_64    _mm256_rol_epi64
@@ -380,6 +377,7 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 #define mm256_shuflr64_32         mm256_swap64_32
 #define mm256_shufll64_32         mm256_swap64_32
 
+//TODO Enable for AVX10_256
 #if defined(__AVX512VL__)
   #define mm256_shuflr64_24( v )  _mm256_ror_epi64( v, 24 )
 #else

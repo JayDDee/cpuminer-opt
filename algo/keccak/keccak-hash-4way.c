@@ -180,15 +180,15 @@ static void keccak64_8way_close( keccak64_ctx_m512i *kc, void *dst,
     if ( kc->ptr == (lim - 8) )
     {
         const uint64_t t = eb | 0x8000000000000000;
-        u.tmp[0] = m512_const1_64( t );
+        u.tmp[0] = _mm512_set1_epi64( t );
         j = 8;
     }
     else
     {
         j = lim - kc->ptr;
-        u.tmp[0] = m512_const1_64( eb );
+        u.tmp[0] = _mm512_set1_epi64( eb );
         memset_zero_512( u.tmp + 1, (j>>3) - 2 );
-        u.tmp[ (j>>3) - 1] = m512_const1_64( 0x8000000000000000 );
+        u.tmp[ (j>>3) - 1] = _mm512_set1_epi64( 0x8000000000000000 );
     }
     keccak64_8way_core( kc, u.tmp, j, lim );
     /* Finalize the "lane complement" */
@@ -264,8 +264,8 @@ keccak512_8way_close(void *cc, void *dst)
 #define OR64(d, a, b)      (d = _mm256_or_si256(a,b))
 #define NOT64(d, s)        (d = mm256_not( s ) )
 #define ROL64(d, v, n)     (d = mm256_rol_64(v, n))
-#define XOROR(d, a, b, c)  (d = _mm256_xor_si256(a, _mm256_or_si256(b, c)))
-#define XORAND(d, a, b, c) (d = _mm256_xor_si256(a, _mm256_and_si256(b, c)))
+#define XOROR(d, a, b, c)  (d = mm256_xoror( a, b, c ) )
+#define XORAND(d, a, b, c) (d = mm256_xorand( a, b, c ) )
 #define XOR3( d, a, b, c ) (d = mm256_xor3( a, b, c ))
 
 #include "keccak-macros.c"
@@ -368,15 +368,15 @@ static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
     if ( kc->ptr == (lim - 8) )
     {
         const uint64_t t = eb | 0x8000000000000000;
-        u.tmp[0] = m256_const1_64( t );
+        u.tmp[0] = _mm256_set1_epi64x( t );
         j = 8;
     }
     else
     {
         j = lim - kc->ptr;
-        u.tmp[0] = m256_const1_64( eb );
+        u.tmp[0] = _mm256_set1_epi64x( eb );
         memset_zero_256( u.tmp + 1, (j>>3) - 2 );
-        u.tmp[ (j>>3) - 1] = m256_const1_64( 0x8000000000000000 );
+        u.tmp[ (j>>3) - 1] = _mm256_set1_epi64x( 0x8000000000000000 );
     }
     keccak64_core( kc, u.tmp, j, lim );
     /* Finalize the "lane complement" */

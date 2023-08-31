@@ -243,7 +243,7 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
                                     0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
-    sc->buf[ ptr>>3 ] = m512_const1_64( 0x80 );
+    sc->buf[ ptr>>3 ] = _mm512_set1_epi64( 0x80 );
     ptr += 8;
     if ( ptr > pad )
     {
@@ -268,51 +268,56 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
 
 // SHA-512 4 way 64 bit
 
+#define BSG5_0( x )     mm256_xor3( mm256_ror_64( x, 28 ), \
+                                    mm256_ror_64( x, 34 ), \
+                                    mm256_ror_64( x, 39 ) )
+
+#define BSG5_1( x )     mm256_xor3( mm256_ror_64( x, 14 ), \
+                                    mm256_ror_64( x, 18 ), \
+                                    mm256_ror_64( x, 41 ) )
+
+#define SSG5_0( x )     mm256_xor3( mm256_ror_64( x,  1 ), \
+                                    mm256_ror_64( x,  8 ), \
+                                    _mm256_srli_epi64( x, 7 ) ) 
+
+#define SSG5_1( x )     mm256_xor3( mm256_ror_64( x, 19 ), \
+                                    mm256_ror_64( x, 61 ), \
+                                    _mm256_srli_epi64( x, 6 ) )
+
+#if defined(__AVX512VL__)
+//TODO Enable for AVX10_256
+// 4 way is not used whith AVX512 but will be whith AVX10_256 when it
+// becomes available.
+
+#define CH( X, Y, Z )    _mm256_ternarylogic_epi64( X, Y, Z, 0xca )
+
+#define MAJ( X, Y, Z )   _mm256_ternarylogic_epi64( X, Y, Z, 0xe8 )
+   
+#define SHA3_4WAY_STEP( A, B, C, D, E, F, G, H, i ) \
+do { \
+  __m256i T0 = _mm256_add_epi64( _mm256_set1_epi64x( K512[i] ), W[i] ); \
+  __m256i T1 = BSG5_1( E ); \
+  __m256i T2 = BSG5_0( A ); \
+  T0 = _mm256_add_epi64( T0, CH( E, F, G ) ); \
+  T1 = _mm256_add_epi64( T1, H ); \
+  T2 = _mm256_add_epi64( T2, MAJ( A, B, C ) ); \
+  T1 = _mm256_add_epi64( T1, T0 ); \
+  D  = _mm256_add_epi64( D,  T1 ); \
+  H  = _mm256_add_epi64( T1, T2 ); \
+} while (0)
+
+#else   // AVX2 only
+
 #define CH(X, Y, Z) \
    _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( Y, Z ), X ), Z ) 
 
 #define MAJ(X, Y, Z) \
   _mm256_xor_si256( Y, _mm256_and_si256( X_xor_Y = _mm256_xor_si256( X, Y ), \
                                          Y_xor_Z ) )
-                    
-#define BSG5_0(x) \
-  mm256_ror_64( _mm256_xor_si256( mm256_ror_64( \
-                   _mm256_xor_si256( mm256_ror_64( x,  5 ), x ), 6 ), x ), 28 )
-
-#define BSG5_1(x) \
-  mm256_ror_64( _mm256_xor_si256( mm256_ror_64( \
-                   _mm256_xor_si256( mm256_ror_64( x, 23 ), x ), 4 ), x ), 14 )
-
-/*
-#define SSG5_0(x) \
-   _mm256_xor_si256( _mm256_xor_si256( \
-        mm256_ror_64(x,  1), mm256_ror_64(x,  8) ), _mm256_srli_epi64(x, 7) ) 
-
-#define SSG5_1(x) \
-   _mm256_xor_si256( _mm256_xor_si256( \
-        mm256_ror_64(x, 19), mm256_ror_64(x, 61) ), _mm256_srli_epi64(x, 6) )
-*/
-// Interleave SSG0 & SSG1 for better throughput.
-// return ssg0(w0) + ssg1(w1)
-static inline __m256i ssg512_add( __m256i w0, __m256i w1 )
-{
-   __m256i w0a, w1a, w0b, w1b;
-   w0a = mm256_ror_64( w0, 1 );
-   w1a = mm256_ror_64( w1,19 );
-   w0b = mm256_ror_64( w0, 8 );
-   w1b = mm256_ror_64( w1,61 );
-   w0a = _mm256_xor_si256( w0a, w0b );
-   w1a = _mm256_xor_si256( w1a, w1b );
-   w0b = _mm256_srli_epi64( w0, 7 );
-   w1b = _mm256_srli_epi64( w1, 6 );
-   w0a = _mm256_xor_si256( w0a, w0b );
-   w1a = _mm256_xor_si256( w1a, w1b );
-   return _mm256_add_epi64( w0a, w1a );
-}
 
 #define SHA3_4WAY_STEP( A, B, C, D, E, F, G, H, i ) \
 do { \
-  __m256i T0 = _mm256_add_epi64( _mm256_set1_epi64x( K512[i] ), W[ i ] ); \
+  __m256i T0 = _mm256_add_epi64( _mm256_set1_epi64x( K512[i] ), W[i] ); \
   __m256i T1 = BSG5_1( E ); \
   __m256i T2 = BSG5_0( A ); \
   T0 = _mm256_add_epi64( T0, CH( E, F, G ) ); \
@@ -324,19 +329,27 @@ do { \
   H  = _mm256_add_epi64( T1, T2 ); \
 } while (0)
 
+#endif  // AVX512VL AVX10_256
+
 static void
 sha512_4way_round( sha512_4way_context *ctx,  __m256i *in, __m256i r[8] )
 {
    int i;
-   register __m256i A, B, C, D, E, F, G, H, X_xor_Y, Y_xor_Z;
+   register __m256i A, B, C, D, E, F, G, H;
+
+#if !defined(__AVX512VL__)
+// Disable for AVX10_256
+   __m256i X_xor_Y, Y_xor_Z;
+#endif
+
    __m256i W[80];
 
    mm256_block_bswap_64( W  , in );
    mm256_block_bswap_64( W+8, in+8 );
 
    for ( i = 16; i < 80; i++ )
-      W[i] = _mm256_add_epi64( ssg512_add( W[i-15], W[i-2] ),
-                               _mm256_add_epi64( W[ i- 7 ], W[ i-16 ] ) );
+       W[i] = mm256_add4_64( SSG5_0( W[i-15] ), SSG5_1( W[i-2] ),
+                             W[ i- 7 ], W[ i-16 ] );
 
    if ( ctx->initialized )
    {
@@ -351,17 +364,20 @@ sha512_4way_round( sha512_4way_context *ctx,  __m256i *in, __m256i r[8] )
    }
    else
    {
-      A = m256_const1_64( 0x6A09E667F3BCC908 );
-      B = m256_const1_64( 0xBB67AE8584CAA73B );
-      C = m256_const1_64( 0x3C6EF372FE94F82B );
-      D = m256_const1_64( 0xA54FF53A5F1D36F1 );
-      E = m256_const1_64( 0x510E527FADE682D1 );
-      F = m256_const1_64( 0x9B05688C2B3E6C1F );
-      G = m256_const1_64( 0x1F83D9ABFB41BD6B );
-      H = m256_const1_64( 0x5BE0CD19137E2179 );
+      A = _mm256_set1_epi64x( 0x6A09E667F3BCC908 );
+      B = _mm256_set1_epi64x( 0xBB67AE8584CAA73B );
+      C = _mm256_set1_epi64x( 0x3C6EF372FE94F82B );
+      D = _mm256_set1_epi64x( 0xA54FF53A5F1D36F1 );
+      E = _mm256_set1_epi64x( 0x510E527FADE682D1 );
+      F = _mm256_set1_epi64x( 0x9B05688C2B3E6C1F );
+      G = _mm256_set1_epi64x( 0x1F83D9ABFB41BD6B );
+      H = _mm256_set1_epi64x( 0x5BE0CD19137E2179 );
    }
 
+#if !defined(__AVX512VL__)
+// Disable for AVX10_256
    Y_xor_Z = _mm256_xor_si256( B, C );
+#endif
 
    for ( i = 0; i < 80; i += 8 )
    {
@@ -389,14 +405,14 @@ sha512_4way_round( sha512_4way_context *ctx,  __m256i *in, __m256i r[8] )
    else
    {
       ctx->initialized = true;
-      r[0] = _mm256_add_epi64( A, m256_const1_64( 0x6A09E667F3BCC908 ) );
-      r[1] = _mm256_add_epi64( B, m256_const1_64( 0xBB67AE8584CAA73B ) );
-      r[2] = _mm256_add_epi64( C, m256_const1_64( 0x3C6EF372FE94F82B ) );
-      r[3] = _mm256_add_epi64( D, m256_const1_64( 0xA54FF53A5F1D36F1 ) );
-      r[4] = _mm256_add_epi64( E, m256_const1_64( 0x510E527FADE682D1 ) );
-      r[5] = _mm256_add_epi64( F, m256_const1_64( 0x9B05688C2B3E6C1F ) );
-      r[6] = _mm256_add_epi64( G, m256_const1_64( 0x1F83D9ABFB41BD6B ) );
-      r[7] = _mm256_add_epi64( H, m256_const1_64( 0x5BE0CD19137E2179 ) );
+      r[0] = _mm256_add_epi64( A, _mm256_set1_epi64x( 0x6A09E667F3BCC908 ) );
+      r[1] = _mm256_add_epi64( B, _mm256_set1_epi64x( 0xBB67AE8584CAA73B ) );
+      r[2] = _mm256_add_epi64( C, _mm256_set1_epi64x( 0x3C6EF372FE94F82B ) );
+      r[3] = _mm256_add_epi64( D, _mm256_set1_epi64x( 0xA54FF53A5F1D36F1 ) );
+      r[4] = _mm256_add_epi64( E, _mm256_set1_epi64x( 0x510E527FADE682D1 ) );
+      r[5] = _mm256_add_epi64( F, _mm256_set1_epi64x( 0x9B05688C2B3E6C1F ) );
+      r[6] = _mm256_add_epi64( G, _mm256_set1_epi64x( 0x1F83D9ABFB41BD6B ) );
+      r[7] = _mm256_add_epi64( H, _mm256_set1_epi64x( 0x5BE0CD19137E2179 ) );
    }
 }
 
@@ -441,7 +457,7 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
                                     0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
-    sc->buf[ ptr>>3 ] = m256_const1_64( 0x80 );
+    sc->buf[ ptr>>3 ] = _mm256_set1_epi64x( 0x80 );
     ptr += 8;
     if ( ptr > pad )
     {

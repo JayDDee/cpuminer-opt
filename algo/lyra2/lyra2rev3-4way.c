@@ -287,7 +287,7 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
              submit_solution( work, lane_hash, mythr );
          }
       }
-      *noncev = _mm256_add_epi32( *noncev, m256_const1_32( 8 ) );
+      *noncev = _mm256_add_epi32( *noncev, _mm256_set1_epi32( 8 ) );
       n += 8;
    } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
    pdata[19] = n;
@@ -389,7 +389,7 @@ int scanhash_lyra2rev3_4way( struct work *work, const uint32_t max_nonce,
               submit_solution( work, lane_hash, mythr );
 	      }
       }
-      *noncev = _mm_add_epi32( *noncev, m128_const1_32( 4 ) );
+      *noncev = _mm_add_epi32( *noncev, _mm_set1_epi32( 4 ) );
       n += 4;
    } while ( (n < max_nonce-4) && !work_restart[thr_id].restart);
    pdata[19] = n;

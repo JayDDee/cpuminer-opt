@@ -32,6 +32,44 @@ static const uint32_t IV512[] =
 
 #endif
 
+#if defined (__AVX512VL__)
+//TODO Enable for AVX10_256
+
+#define DECL_m256i_count \
+   const __m256i count = \
+          mm256_set4_32( ctx->count3, ctx->count2, ctx->count1, ctx->count0 );
+
+#define COUNT_R0 \
+  _mm256_mask_xor_epi32( count, 0x88, count, m256_neg1 )
+
+#define COUNT_R1 \
+  mm256_shuflr128_32( _mm256_mask_xor_epi32( count, 0x11, count, m256_neg1 ) )
+
+#define COUNT_R2 \
+  mm256_swap128_64( _mm256_mask_xor_epi32( count, 0x22, count, m256_neg1 ) )
+
+#define COUNT_R13 \
+  mm256_swap64_32( _mm256_mask_xor_epi32( count, 0x44, count, m256_neg1 ) )
+
+#else
+
+#define DECL_m256i_count
+
+// R matches the loop index not the round number, should changet that
+#define COUNT_R0 \
+  mm256_set4_32( ~ctx->count3, ctx->count2, ctx->count1, ctx->count0 )
+
+#define COUNT_R1 \
+  mm256_set4_32( ~ctx->count0, ctx->count1, ctx->count2, ctx->count3 ) 
+
+#define COUNT_R2 \
+  mm256_set4_32( ~ctx->count1, ctx->count0, ctx->count3, ctx->count2 )
+
+#define COUNT_R13 \
+  mm256_set4_32( ~ctx->count2, ctx->count3, ctx->count0, ctx->count1 )
+
+#endif
+
 static void
 c512_2way( shavite512_2way_context *ctx, const void *msg )
 {
@@ -40,6 +78,7 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
    __m256i k00, k01, k02, k03, k10, k11, k12, k13;
    __m256i *m = (__m256i*)msg;
    __m256i *h = (__m256i*)ctx->h;
+   DECL_m256i_count;
    int r;
 
    p0 = h[0];
@@ -47,7 +86,8 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
    p2 = h[2];
    p3 = h[3];
 
-   // round
+   // round 0
+
    k00 = m[0];
    x = mm256_aesenc_2x128( _mm256_xor_si256( p1, k00 ), zero );
    k01 = m[1];
@@ -78,18 +118,14 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
                                   mm256_aesenc_2x128( k00, zero ) ) );
 
      if ( r == 0 )
-        k00 = _mm256_xor_si256( k00, _mm256_set_epi32( 
-		      ~ctx->count3, ctx->count2, ctx->count1, ctx->count0,
-                      ~ctx->count3, ctx->count2, ctx->count1, ctx->count0 ) );
+        k00 = _mm256_xor_si256( k00, COUNT_R0 );
 
      x = mm256_aesenc_2x128( _mm256_xor_si256( p0, k00 ), zero );
      k01 = _mm256_xor_si256( k00,
 		     mm256_shuflr128_32( mm256_aesenc_2x128( k01, zero ) ) );
 
      if ( r == 1 )
-        k01 = _mm256_xor_si256( k01, _mm256_set_epi32(
-	               ~ctx->count0, ctx->count1, ctx->count2, ctx->count3,
-                       ~ctx->count0, ctx->count1, ctx->count2, ctx->count3 ) );
+        k01 = _mm256_xor_si256( k01, COUNT_R1 );
 
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k01 ), zero );
      k02 = _mm256_xor_si256( k01,
@@ -114,9 +150,7 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
 		     mm256_shuflr128_32( mm256_aesenc_2x128( k13, zero ) ) );
 
      if ( r == 2 )
-        k13 = _mm256_xor_si256( k13, _mm256_set_epi32(
-                  ~ctx->count1, ctx->count0, ctx->count3, ctx->count2,
-                  ~ctx->count1, ctx->count0, ctx->count3, ctx->count2 ) );
+        k13 = _mm256_xor_si256( k13, COUNT_R2 );
  
      x = mm256_aesenc_2x128( _mm256_xor_si256( x, k13 ), zero );
      p1 = _mm256_xor_si256( p1, x );
@@ -228,9 +262,7 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
    x = mm256_aesenc_2x128( _mm256_xor_si256( x, k11 ), zero );
 
    k12 = mm256_shuflr128_32( mm256_aesenc_2x128( k12, zero ) );
-   k12 = _mm256_xor_si256( k12, _mm256_xor_si256( k11, _mm256_set_epi32(
-	       ~ctx->count2, ctx->count3, ctx->count0, ctx->count1,
-	       ~ctx->count2, ctx->count3, ctx->count0, ctx->count1 ) ) );
+   k12 = _mm256_xor_si256( k12, _mm256_xor_si256( k11, COUNT_R13 ) );
 
    x = mm256_aesenc_2x128( _mm256_xor_si256( x, k12 ), zero );
    k13 = _mm256_xor_si256( mm256_shuflr128_32(

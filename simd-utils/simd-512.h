@@ -113,10 +113,6 @@ static inline __m512i mm512_perm_128( const __m512i v, const int c )
 #define mm512_set2_64( i1, i0 ) \
    mm512_bcast_m128( _mm_set_epi64x( i1, i0 ) )
 
-// Deprecated, use set
-#define m512_const1_64    _mm512_set1_epi64
-#define m512_const1_32    _mm512_set1_epi32
-
 // Pseudo constants.
 #define m512_zero       _mm512_setzero_si512()
 // Deprecated

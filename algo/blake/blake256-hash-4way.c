@@ -308,7 +308,52 @@ static const sph_u32 CS[16] = {
 /////////////////////////////////////////
 //
 // Blake-256 1 way SIMD
+// Only used for prehash, otherwise 4way is used with SSE2.
 
+// optimize shuffles to reduce latency caused by dependencies on V1.
+#define BLAKE256_ROUND( r ) \
+{ \
+   V0 = _mm_add_epi32( V0, _mm_add_epi32( V1, \
+                           _mm_set_epi32( CSx( r, 7 ) ^ Mx( r, 6 ), \
+                                          CSx( r, 5 ) ^ Mx( r, 4 ), \
+                                          CSx( r, 3 ) ^ Mx( r, 2 ), \
+                                          CSx( r, 1 ) ^ Mx( r, 0 ) ) ) ); \
+   V3 = mm128_swap32_16( _mm_xor_si128( V3, V0 ) ); \
+   V2 = _mm_add_epi32( V2, V3 ); \
+   V1 = mm128_ror_32( _mm_xor_si128( V1, V2 ), 12 ); \
+   V0 = _mm_add_epi32( V0, _mm_add_epi32( V1, \
+                           _mm_set_epi32( CSx( r, 6 ) ^ Mx( r, 7 ), \
+                                          CSx( r, 4 ) ^ Mx( r, 5 ), \
+                                          CSx( r, 2 ) ^ Mx( r, 3 ), \
+                                          CSx( r, 0 ) ^ Mx( r, 1 ) ) ) ); \
+   V3 = mm128_shuflr32_8( _mm_xor_si128( V3, V0 ) ); \
+   V2 = _mm_add_epi32( V2, V3 ); \
+   V1 = mm128_ror_32( _mm_xor_si128( V1, V2 ), 7 ); \
+   V0 = mm128_shufll_32( V0 ); \
+   V3 = mm128_swap_64( V3 ); \
+   V2 = mm128_shuflr_32( V2 ); \
+   V0 = _mm_add_epi32( V0, _mm_add_epi32( V1, \
+                           _mm_set_epi32( CSx( r, D ) ^ Mx( r, C ), \
+                                          CSx( r, B ) ^ Mx( r, A ), \
+                                          CSx( r, 9 ) ^ Mx( r, 8 ), \
+                                          CSx( r, F ) ^ Mx( r, E ) ) ) ); \
+   V3 = mm128_swap32_16( _mm_xor_si128( V3, V0 ) ); \
+   V2 = _mm_add_epi32( V2, V3 ); \
+   V1 = mm128_ror_32( _mm_xor_si128( V1, V2 ), 12 ); \
+   V0 = _mm_add_epi32( V0, _mm_add_epi32( V1, \
+                           _mm_set_epi32( CSx( r, C ) ^ Mx( r, D ), \
+                                          CSx( r, A ) ^ Mx( r, B ), \
+                                          CSx( r, 8 ) ^ Mx( r, 9 ), \
+                                          CSx( r, E ) ^ Mx( r, F ) ) ) ); \
+   V3 = mm128_shuflr32_8( _mm_xor_si128( V3, V0 ) ); \
+   V2 = _mm_add_epi32( V2, V3 ); \
+   V1 = mm128_ror_32( _mm_xor_si128( V1, V2 ), 7 ); \
+   V0 = mm128_shuflr_32( V0 ); \
+   V3 = mm128_swap_64( V3 ); \
+   V2 = mm128_shufll_32( V2 ); \
+}
+
+/*
 #define BLAKE256_ROUND( r ) \
 { \
    V0 = _mm_add_epi32( V0, _mm_add_epi32( V1, \
@@ -350,6 +395,7 @@ static const sph_u32 CS[16] = {
    V2 = mm128_swap_64( V2 ); \
    V1 = mm128_shufll_32( V1 ); \
 }
+*/
 
 void blake256_transform_le( uint32_t *H, const uint32_t *buf,
                             const uint32_t T0, const uint32_t T1 )

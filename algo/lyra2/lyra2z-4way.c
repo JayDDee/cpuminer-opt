@@ -103,7 +103,7 @@ int scanhash_lyra2z_16way( struct work *work, uint32_t max_nonce,
    const uint32_t last_nonce = max_nonce - 16;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const __m512i sixteen = m512_const1_32( 16 );
+   const __m512i sixteen = _mm512_set1_epi32( 16 );
 
    if ( bench ) ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
@@ -213,7 +213,7 @@ int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const __m256i eight = m256_const1_32( 8 );
+   const __m256i eight = _mm256_set1_epi32( 8 );
 
    // Prehash first block
    blake256_transform_le( phash, pdata, 512, 0 );
@@ -328,7 +328,7 @@ int scanhash_lyra2z_4way( struct work *work, uint32_t max_nonce,
            submit_solution( work, lane_hash, mythr );
         }
       }
-      *noncev = _mm_add_epi32( *noncev, m128_const1_32( 4 ) );
+      *noncev = _mm_add_epi32( *noncev, _mm_set1_epi32( 4 ) );
       n += 4;
    } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
 

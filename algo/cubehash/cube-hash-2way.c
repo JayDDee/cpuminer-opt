@@ -423,21 +423,6 @@ int cube_4way_update_close( cube_4way_context *sp, void *output,
 
 // 2 way 128 
 
-// This isn't expected to be used with AVX512 so HW rotate intruction
-// is assumed not avaiable.
-// Use double buffering to optimize serial bit rotations. Full double
-// buffering isn't practical because it needs twice as many registers
-// with AVX2 having only half as many as AVX512.
-#define ROL2( out0, out1, in0, in1, c ) \
-{ \
- __m256i t0 = _mm256_slli_epi32( in0, c ); \
- __m256i t1 = _mm256_slli_epi32( in1, c ); \
- out0 = _mm256_srli_epi32( in0, 32-(c) ); \
- out1 = _mm256_srli_epi32( in1, 32-(c) ); \
- out0 = _mm256_or_si256( out0, t0 ); \
- out1 = _mm256_or_si256( out1, t1 ); \
-}
-
 static void transform_2way( cube_2way_context *sp )
 {
     int r;
@@ -460,8 +445,10 @@ static void transform_2way( cube_2way_context *sp )
         x5 = _mm256_add_epi32( x1, x5 );
         x6 = _mm256_add_epi32( x2, x6 );
         x7 = _mm256_add_epi32( x3, x7 );
-        ROL2( y0, y1, x2, x3, 7 );
-        ROL2( x2, x3, x0, x1, 7 );
+        y0 = mm256_rol_32( x2, 7 );
+        y1 = mm256_rol_32( x3, 7 );
+        x2 = mm256_rol_32( x0, 7 );
+        x3 = mm256_rol_32( x1, 7 );
         x0 = _mm256_xor_si256( y0, x4 );
         x1 = _mm256_xor_si256( y1, x5 );
         x2 = _mm256_xor_si256( x2, x6 );
@@ -474,8 +461,10 @@ static void transform_2way( cube_2way_context *sp )
         x5 = _mm256_add_epi32( x1, x5 );
         x6 = _mm256_add_epi32( x2, x6 );
         x7 = _mm256_add_epi32( x3, x7 );
-        ROL2( y0, x1, x1, x0, 11 );
-        ROL2( y1, x3, x3, x2, 11 );
+        y0 = mm256_rol_32( x1, 11 );
+        x1 = mm256_rol_32( x0, 11 );
+        y1 = mm256_rol_32( x3, 11 );
+        x3 = mm256_rol_32( x2, 11 );
         x0 = _mm256_xor_si256( y0, x4 );
         x1 = _mm256_xor_si256( x1, x5 );
         x2 = _mm256_xor_si256( y1, x6 );

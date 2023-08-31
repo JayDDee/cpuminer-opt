@@ -65,9 +65,19 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.23.0
+
+#398: Prevent GBT fallback to Getwork on network error.
+#398: Prevent excessive logs when conditional mining is paused when mining solo.
+Fix a false start if stratum doesn't immediately send a new job after connecting.
+Tweak diagonal shuffle in Blake2b & Blake256 1-way SIMD to reduce latency.
+CPUID support for AVX10.
+Initial changes to AVX2 targeted code in preparation for AVX10.
+Code cleanup and miscellaneous small improvements.
+
 v3.22.3
 
-Data interleaving and byte swap optimizations iwith AVX2, AVX512 & AVX512VBMI.
+Data interleaving and byte swap optimizations with AVX2, AVX512 & AVX512VBMI.
 Faster Luffa with AVX2 & AVX512.
 Other small optimizations.
 Some code cleanup.

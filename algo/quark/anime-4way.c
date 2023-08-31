@@ -51,7 +51,7 @@ void anime_8way_hash( void *state, const void *input )
     __m512i* vhA = (__m512i*)vhashA;
     __m512i* vhB = (__m512i*)vhashB;
     __m512i* vhC = (__m512i*)vhashC;
-    const __m512i bit3_mask = m512_const1_64( 8 );
+    const __m512i bit3_mask = _mm512_set1_epi64( 8 );
     __mmask8 vh_mask;
     anime_8way_context_overlay ctx __attribute__ ((aligned (64)));
 
@@ -209,7 +209,7 @@ int scanhash_anime_8way( struct work *work, uint32_t max_nonce,
           }
        }
        *noncev = _mm512_add_epi32( *noncev,
-                                   m512_const1_64( 0x0000000800000000 ) );
+                                   _mm512_set1_epi64( 0x0000000800000000 ) );
        n += 8;
     } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
     pdata[19] = n;
@@ -248,7 +248,7 @@ void anime_4way_hash( void *state, const void *input )
     __m256i* vhB = (__m256i*)vhashB;
     __m256i vh_mask;
     int h_mask;
-    const __m256i bit3_mask = m256_const1_64( 8 );
+    const __m256i bit3_mask = _mm256_set1_epi64x( 8 );
     const __m256i zero = _mm256_setzero_si256();
     anime_4way_context_overlay ctx __attribute__ ((aligned (64)));
 
@@ -388,7 +388,7 @@ int scanhash_anime_4way( struct work *work, uint32_t max_nonce,
           }
        }
        *noncev = _mm256_add_epi32( *noncev,
-                                   m256_const1_64( 0x0000000400000000 ) );
+                                   _mm256_set1_epi64x( 0x0000000400000000 ) );
        n += 4;
     } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
     pdata[19] = n;

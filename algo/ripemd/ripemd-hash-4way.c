@@ -47,7 +47,7 @@ static const uint32_t IV[5] =
 do{ \
    a = _mm_add_epi32( mm128_rol_32( _mm_add_epi32( _mm_add_epi32( \
                 _mm_add_epi32( a, f( b ,c, d ) ), r ), \
-                                 m128_const1_64( k ) ), s ), e ); \
+                                 _mm_set1_epi64x( k ) ), s ), e ); \
    c = mm128_rol_32( c, 10 );\
 } while (0)
 
@@ -251,11 +251,11 @@ static void ripemd160_4way_round( ripemd160_4way_context *sc )
 
 void ripemd160_4way_init( ripemd160_4way_context *sc )
 {
-   sc->val[0] = m128_const1_64( 0x6745230167452301 );
-   sc->val[1] = m128_const1_64( 0xEFCDAB89EFCDAB89 );
-   sc->val[2] = m128_const1_64( 0x98BADCFE98BADCFE );
-   sc->val[3] = m128_const1_64( 0x1032547610325476 );
-   sc->val[4] = m128_const1_64( 0xC3D2E1F0C3D2E1F0 );
+   sc->val[0] = _mm_set1_epi64x( 0x6745230167452301 );
+   sc->val[1] = _mm_set1_epi64x( 0xEFCDAB89EFCDAB89 );
+   sc->val[2] = _mm_set1_epi64x( 0x98BADCFE98BADCFE );
+   sc->val[3] = _mm_set1_epi64x( 0x1032547610325476 );
+   sc->val[4] = _mm_set1_epi64x( 0xC3D2E1F0C3D2E1F0 );
    sc->count_high = sc->count_low = 0;
 }
 
@@ -347,7 +347,7 @@ void ripemd160_4way_close( ripemd160_4way_context  *sc, void *dst )
 do{ \
    a = _mm256_add_epi32( mm256_rol_32( _mm256_add_epi32( _mm256_add_epi32( \
                 _mm256_add_epi32( a, f( b ,c, d ) ), r ), \
-                                 m256_const1_64( k ) ), s ), e ); \
+                                 _mm256_set1_epi64x( k ) ), s ), e ); \
    c = mm256_rol_32( c, 10 );\
 } while (0)
     
@@ -552,11 +552,11 @@ static void ripemd160_8way_round( ripemd160_8way_context *sc )
 
 void ripemd160_8way_init( ripemd160_8way_context *sc )
 {
-   sc->val[0] = m256_const1_64( 0x6745230167452301 );
-   sc->val[1] = m256_const1_64( 0xEFCDAB89EFCDAB89 );
-   sc->val[2] = m256_const1_64( 0x98BADCFE98BADCFE );
-   sc->val[3] = m256_const1_64( 0x1032547610325476 );
-   sc->val[4] = m256_const1_64( 0xC3D2E1F0C3D2E1F0 );
+   sc->val[0] = _mm256_set1_epi64x( 0x6745230167452301 );
+   sc->val[1] = _mm256_set1_epi64x( 0xEFCDAB89EFCDAB89 );
+   sc->val[2] = _mm256_set1_epi64x( 0x98BADCFE98BADCFE );
+   sc->val[3] = _mm256_set1_epi64x( 0x1032547610325476 );
+   sc->val[4] = _mm256_set1_epi64x( 0xC3D2E1F0C3D2E1F0 );
    sc->count_high = sc->count_low = 0;
 }
 
@@ -649,7 +649,7 @@ void ripemd160_8way_close( ripemd160_8way_context  *sc, void *dst )
 do{ \
    a = _mm512_add_epi32( mm512_rol_32( _mm512_add_epi32( _mm512_add_epi32( \
                 _mm512_add_epi32( a, f( b ,c, d ) ), r ), \
-                                 m512_const1_64( k ) ), s ), e ); \
+                                 _mm512_set1_epi64( k ) ), s ), e ); \
    c = mm512_rol_32( c, 10 );\
 } while (0)
 
@@ -853,11 +853,11 @@ static void ripemd160_16way_round( ripemd160_16way_context *sc )
 
 void ripemd160_16way_init( ripemd160_16way_context *sc )
 {
-   sc->val[0] = m512_const1_64( 0x6745230167452301 );
-   sc->val[1] = m512_const1_64( 0xEFCDAB89EFCDAB89 );
-   sc->val[2] = m512_const1_64( 0x98BADCFE98BADCFE );
-   sc->val[3] = m512_const1_64( 0x1032547610325476 );
-   sc->val[4] = m512_const1_64( 0xC3D2E1F0C3D2E1F0 );
+   sc->val[0] = _mm512_set1_epi64( 0x6745230167452301 );
+   sc->val[1] = _mm512_set1_epi64( 0xEFCDAB89EFCDAB89 );
+   sc->val[2] = _mm512_set1_epi64( 0x98BADCFE98BADCFE );
+   sc->val[3] = _mm512_set1_epi64( 0x1032547610325476 );
+   sc->val[4] = _mm512_set1_epi64( 0xC3D2E1F0C3D2E1F0 );
    sc->count_high = sc->count_low = 0;
 }
 
@@ -902,7 +902,7 @@ void ripemd160_16way_close( ripemd160_16way_context  *sc, void *dst )
    const int pad = block_size - 8;
 
    ptr = (unsigned)sc->count_low & ( block_size - 1U);
-   sc->buf[ ptr>>2 ] = m512_const1_32( 0x80 );
+   sc->buf[ ptr>>2 ] = _mm512_set1_epi32( 0x80 );
    ptr += 4;
 
    if ( ptr > pad )

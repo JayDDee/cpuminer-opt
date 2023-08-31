@@ -75,7 +75,7 @@ extern void hmq1725_8way_hash(void *state, const void *input)
    uint32_t hash7 [16]    __attribute__ ((aligned (32)));
    hmq1725_8way_context_overlay ctx __attribute__ ((aligned (64)));
    __mmask8 vh_mask;
-   const __m512i vmask = m512_const1_64( 24 );
+   const __m512i vmask = _mm512_set1_epi64( 24 );
    const uint32_t mask = 24;
    __m512i* vh  = (__m512i*)vhash;
    __m512i* vhA = (__m512i*)vhashA;
@@ -593,7 +593,7 @@ int scanhash_hmq1725_8way( struct work *work, uint32_t max_nonce,
           }
        }
        *noncev = _mm512_add_epi32( *noncev,
-                                   m512_const1_64( 0x0000000800000000 ) );
+                                   _mm512_set1_epi64( 0x0000000800000000 ) );
        n += 8;
     } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
 
@@ -647,7 +647,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
    hmq1725_4way_context_overlay ctx __attribute__ ((aligned (64)));
    __m256i vh_mask;     
    int h_mask;
-   const __m256i vmask = m256_const1_64( 24 );
+   const __m256i vmask = _mm256_set1_epi64x( 24 );
    const uint32_t mask = 24;
    __m256i* vh  = (__m256i*)vhash;
    __m256i* vhA = (__m256i*)vhashA;
@@ -1041,7 +1041,7 @@ int scanhash_hmq1725_4way( struct work *work, uint32_t max_nonce,
           }
        }
        *noncev = _mm256_add_epi32( *noncev,
-                                   m256_const1_64( 0x0000000400000000 ) );
+                                   _mm256_set1_epi64x( 0x0000000400000000 ) );
        n += 4;
     } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
     pdata[19] = n;

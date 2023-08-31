@@ -15,10 +15,6 @@
 //    data but not for vectors. The main categories are bit rotation
 //    and endian byte swapping
 //
-//    An attempt was made to make the names as similar as possible to
-//    Intel's intrinsic function format. Most variations are to avoid
-//    confusion with actual Intel intrinsics, brevity, and clarity.
-//
 //    This suite supports some operations on regular 64 bit integers
 //    as well as 128 bit integers available on recent versions of Linux
 //    and GCC.
@@ -37,6 +33,9 @@
 //    SSE2:   128 bit vectors  (64 bit CPUs only, such as Intel Core2.
 //    AVX2:   256 bit vectors  (Starting with Intel Haswell and AMD Ryzen)
 //    AVX512: 512 bit vectors  (Starting with SkylakeX)
+//    AVX10:  when available will supersede AVX512 and will bring AVX512
+//        features, except 512 bit vectors, to Intel's Ecores. It needs to be
+//        enabled manually when the relevant GCC macros are known.
 //
 //    Most functions are avalaible at the stated levels but in rare cases
 //    a higher level feature may be required with no compatible alternative.
@@ -53,21 +52,17 @@
 //    for the applications but also adds responsibility to ensure adequate data
 //    alignment.
 //
-//    Windows has problems with function vector arguments larger than
-//    128 bits. Stack alignment is only guaranteed to 16 bytes. Always use
-//    pointers for larger vectors in function arguments. Macros can be used
-//    for larger value arguments.
-//
 //    An attempt was made to make the names as similar as possible to
 //    Intel's intrinsic function format. Most variations are to avoid
-//    confusion with actual Intel intrinsics, brevity, and clarity
+//    confusion with actual Intel intrinsics, brevity, and clarity.
 //
 //    The main differences are:
 //
-//   - the leading underscore(s) "_" and the "i" are dropped from the
-//     prefix of vector instructions.
-//   - "mm64" and "mm128" used for 64 and 128 bit prefix respectively
-//     to avoid the ambiguity of "mm".
+//   - the leading underscore "_" is dropped from the prefix of vector function
+//     macros.
+//   - "mm128" is used 128 bit prefix to be consistent with mm256 & mm512 and
+//     to avoid the ambiguity of "mm" which is also used for 64 bit MMX
+//     intrinsics.
 //   - the element size does not include additional type specifiers
 //      like "epi".
 //   - there is a subset of some functions for scalar data. They may have
@@ -76,14 +71,14 @@
 //   
 //    Function names follow this pattern:
 //
-//         prefix_op[vsize]_[esize]
+//         [prefix]_[op][vsize]_[esize]
 //
 //    Prefix: usually the size of the returned vector.
 //    Following are some examples:
 //
 //    u64:  unsigned 64 bit integer function
 //    i128: signed 128 bit integer function (rarely used)
-//    m128: 128 bit vector identifier
+//    m128: 128 bit vector identifier (deprecated)
 //    mm128: 128 bit vector function
 //
 //    op: describes the operation of the function or names the data
@@ -94,7 +89,7 @@
 //    vsize: optional, lane size used when a function operates on elements
 //           within lanes of a larger vector.
 //
-//    mm256_shuflr128_32 rotates each 128 bit lane of a 256 bit vector
+//    Ex: mm256_shuflr128_32 rotates each 128 bit lane of a 256 bit vector
 //        right by 32 bits.
 //
 // Vector constants

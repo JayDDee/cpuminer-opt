@@ -134,10 +134,10 @@ int sha3_4way_update( sha3_4way_ctx_t *c, const void *data, size_t len )
 int sha3_4way_final( void *md, sha3_4way_ctx_t *c )
 {
     c->st[ c->pt ] = _mm256_xor_si256( c->st[ c->pt ],
-                                       m256_const1_64( 6 ) );
+                                       _mm256_set1_epi64x( 6 ) );
     c->st[ c->rsiz / 8 - 1 ] =
                        _mm256_xor_si256( c->st[ c->rsiz / 8 - 1 ],
-                                         m256_const1_64( 0x8000000000000000 ) );
+                                    _mm256_set1_epi64x( 0x8000000000000000 ) );
     sha3_4way_keccakf( c->st );
     memcpy( md, c->st, c->mdlen * 4 );
     return 1;
@@ -268,10 +268,10 @@ int sha3_8way_final( void *md, sha3_8way_ctx_t *c )
 {
     c->st[ c->pt ] =
                        _mm512_xor_si512( c->st[ c->pt ],
-                                         m512_const1_64( 6 ) );
+                                         _mm512_set1_epi64( 6 ) );
     c->st[ c->rsiz / 8 - 1 ] =
                        _mm512_xor_si512( c->st[ c->rsiz / 8 - 1 ],
-                                         m512_const1_64( 0x8000000000000000 ) );
+                                     _mm512_set1_epi64( 0x8000000000000000 ) );
     sha3_8way_keccakf( c->st );
     memcpy( md, c->st, c->mdlen * 8 );
     return 1;

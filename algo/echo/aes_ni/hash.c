@@ -566,16 +566,16 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
          state->uHashSize = 256;
          state->uBlockLength = 192;
          state->uRounds = 8;
-         state->hashsize = m128_const_64( 0, 0x100 );
-         state->const1536 = m128_const_64( 0, 0x600 );
+         state->hashsize = _mm_set_epi64x( 0, 0x100 );
+         state->const1536 = _mm_set_epi64x( 0, 0x600 );
          break;
 
       case 512:
          state->uHashSize = 512;
          state->uBlockLength = 128;
          state->uRounds = 10;
-         state->hashsize = m128_const_64( 0, 0x200 );
-         state->const1536 = m128_const_64( 0, 0x400 );
+         state->hashsize = _mm_set_epi64x( 0, 0x200 );
+         state->const1536 = _mm_set_epi64x( 0, 0x400 );
          break;
 
       default:

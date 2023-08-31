@@ -201,7 +201,7 @@ int scanhash_c11_8way( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
    const uint32_t targ32_d7 = ptarget[7];
-   const __m512i eight = m512_const1_64( 8 );
+   const __m512i eight = _mm512_set1_epi64( 8 );
    const bool bench = opt_benchmark;
 
    edata[0] = mm128_swap64_32( casti_m128i( pdata, 0 ) );
@@ -369,7 +369,7 @@ int scanhash_c11_4way( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
    const uint32_t targ32_d7 = ptarget[7];
-   const __m256i four = m256_const1_64( 4 );
+   const __m256i four = _mm256_set1_epi64x( 4 );
    const bool bench = opt_benchmark;
 
    edata[0] = mm128_swap64_32( casti_m128i( pdata, 0 ) );

@@ -94,10 +94,13 @@ typedef  uint32_t set_t;
 #define SSE42_OPT        4
 #define AVX_OPT          8   // Sandybridge
 #define AVX2_OPT      0x10   // Haswell, Zen1
-#define SHA_OPT       0x20   // Zen1, Icelake (sha256)
-#define AVX512_OPT    0x40   // Skylake-X (AVX512[F,VL,DQ,BW])
-#define VAES_OPT      0x80   // Icelake (VAES & AVX512)
+#define SHA_OPT       0x20   // Zen1, Icelake (deprecated)
+#define AVX512_OPT    0x40   // Skylake-X, Zen4 (AVX512[F,VL,DQ,BW])
+#define VAES_OPT      0x80   // Icelake, Zen3
 
+// AVX10 does not have explicit algo features:
+//  AVX10_512 is compatible with AVX512 + VAES
+//  AVX10_256 is compatible with AVX2 + VAES
 
 // return set containing all elements from sets a & b
 inline set_t set_union ( set_t a, set_t b ) { return a | b; }

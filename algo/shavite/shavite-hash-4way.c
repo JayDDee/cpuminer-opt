@@ -204,11 +204,9 @@ c512_4way( shavite512_4way_context *ctx, const void *msg )
    K5 = _mm512_xor_si512( mm512_shuflr128_32(
 			             _mm512_aesenc_epi128( K5, m512_zero ) ), K4 );
    X = _mm512_aesenc_epi128( _mm512_xor_si512( X, K5 ), m512_zero );
-
    K6 = mm512_shuflr128_32( _mm512_aesenc_epi128( K6, m512_zero ) );
-   K6 = _mm512_xor_si512( K6, _mm512_xor_si512( K5, _mm512_set4_epi32(
-	       ~ctx->count2, ctx->count3, ctx->count0, ctx->count1 ) ) );
-
+   K6 = _mm512_xor_si512( K6, _mm512_xor_si512( K5,  mm512_swap64_32( 
+              _mm512_mask_xor_epi32( count, 0x4444, count, m512_neg1 ) ) ) );
    X = _mm512_aesenc_epi128( _mm512_xor_si512( X, K6 ), m512_zero );
    K7= _mm512_xor_si512( mm512_shuflr128_32(
 			             _mm512_aesenc_epi128( K7, m512_zero ) ), K6 );

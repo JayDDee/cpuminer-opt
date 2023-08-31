@@ -32,7 +32,7 @@ static void transform( cubehashParam *sp )
     { 
         x1 = _mm512_add_epi32( x0, x1 );
         x0 = mm512_swap_256( x0 );
-        x0 = mm512_rol_32(  x0, 7 );
+        x0 = mm512_rol_32( x0, 7 );
         x0 = _mm512_xor_si512( x0, x1 );
         x1 = mm512_swap128_64( x1 );
         x1 = _mm512_add_epi32( x0, x1 );
@@ -58,19 +58,18 @@ static void transform( cubehashParam *sp )
     { 
         x2 = _mm256_add_epi32( x0, x2 );
         x3 = _mm256_add_epi32( x1, x3 );
-        y0 = x0;
-        x0 = mm256_rol_32( x1, 7 );
-        x1 = mm256_rol_32( y0, 7 );
-        x0 = _mm256_xor_si256( x0, x2 );
-        x1 = _mm256_xor_si256( x1, x3 );
+        y0 = mm256_rol_32( x1, 7 );
+        y1 = mm256_rol_32( x0, 7 );
+        x0 = _mm256_xor_si256( y0, x2 );
+        x1 = _mm256_xor_si256( y1, x3 );
         x2 = mm256_swap128_64( x2 );
         x3 = mm256_swap128_64( x3 );
         x2 = _mm256_add_epi32( x0, x2 );
         x3 = _mm256_add_epi32( x1, x3 );
-        y0 = mm256_swap_128( x0 );
-        y1 = mm256_swap_128( x1 );
-        x0 = mm256_rol_32( y0, 11 );
-        x1 = mm256_rol_32( y1, 11 );
+        x0 = mm256_swap_128( x0 );
+        x1 = mm256_swap_128( x1 );
+        x0 = mm256_rol_32( x0, 11 );
+        x1 = mm256_rol_32( x1, 11 );
         x0 = _mm256_xor_si256( x0, x2 );
         x1 = _mm256_xor_si256( x1, x3 );
         x2 = mm256_swap64_32( x2 );
@@ -94,47 +93,48 @@ static void transform( cubehashParam *sp )
     x6 = _mm_load_si128( (__m128i*)sp->x + 6 );
     x7 = _mm_load_si128( (__m128i*)sp->x + 7 );
 
-    for (r = 0; r < rounds; ++r) {
-	x4 = _mm_add_epi32(x0, x4);
-	x5 = _mm_add_epi32(x1, x5);
-	x6 = _mm_add_epi32(x2, x6);
-	x7 = _mm_add_epi32(x3, x7);
-	y0 = x2;
-	y1 = x3;
-	y2 = x0;
-	y3 = x1;
-	x0 = _mm_xor_si128(_mm_slli_epi32(y0, 7), _mm_srli_epi32(y0, 25));
-	x1 = _mm_xor_si128(_mm_slli_epi32(y1, 7), _mm_srli_epi32(y1, 25));
-	x2 = _mm_xor_si128(_mm_slli_epi32(y2, 7), _mm_srli_epi32(y2, 25));
-	x3 = _mm_xor_si128(_mm_slli_epi32(y3, 7), _mm_srli_epi32(y3, 25));
-	x0 = _mm_xor_si128(x0, x4);
-	x1 = _mm_xor_si128(x1, x5);
-	x2 = _mm_xor_si128(x2, x6);
-	x3 = _mm_xor_si128(x3, x7);
-	x4 = _mm_shuffle_epi32(x4, 0x4e);
-	x5 = _mm_shuffle_epi32(x5, 0x4e);
-	x6 = _mm_shuffle_epi32(x6, 0x4e);
-	x7 = _mm_shuffle_epi32(x7, 0x4e);
-	x4 = _mm_add_epi32(x0, x4);
-	x5 = _mm_add_epi32(x1, x5);
-	x6 = _mm_add_epi32(x2, x6);
-	x7 = _mm_add_epi32(x3, x7);
-	y0 = x1;
-	y1 = x0;
-	y2 = x3;
-	y3 = x2;
-	x0 = _mm_xor_si128(_mm_slli_epi32(y0, 11), _mm_srli_epi32(y0, 21));
-	x1 = _mm_xor_si128(_mm_slli_epi32(y1, 11), _mm_srli_epi32(y1, 21));
-	x2 = _mm_xor_si128(_mm_slli_epi32(y2, 11), _mm_srli_epi32(y2, 21));
-	x3 = _mm_xor_si128(_mm_slli_epi32(y3, 11), _mm_srli_epi32(y3, 21));
-	x0 = _mm_xor_si128(x0, x4);
-	x1 = _mm_xor_si128(x1, x5);
-	x2 = _mm_xor_si128(x2, x6);
-	x3 = _mm_xor_si128(x3, x7);
-	x4 = _mm_shuffle_epi32(x4, 0xb1);
-	x5 = _mm_shuffle_epi32(x5, 0xb1);
-	x6 = _mm_shuffle_epi32(x6, 0xb1);
-	x7 = _mm_shuffle_epi32(x7, 0xb1);
+    for ( r = 0; r < rounds; ++r )
+    {
+       x4 = _mm_add_epi32( x0, x4 );
+       x5 = _mm_add_epi32( x1, x5 );
+       x6 = _mm_add_epi32( x2, x6 );
+       x7 = _mm_add_epi32( x3, x7 );
+       y0 = x2;
+       y1 = x3;
+       y2 = x0;
+       y3 = x1;
+       x0 = mm128_rol_32( y0, 7 );
+       x1 = mm128_rol_32( y1, 7 );
+       x2 = mm128_rol_32( y2, 7 );
+       x3 = mm128_rol_32( y3, 7 );
+       x0 = _mm_xor_si128( x0, x4 );
+       x1 = _mm_xor_si128( x1, x5 );
+       x2 = _mm_xor_si128( x2, x6 );
+       x3 = _mm_xor_si128( x3, x7 );
+       x4 = _mm_shuffle_epi32( x4, 0x4e );
+       x5 = _mm_shuffle_epi32( x5, 0x4e );
+       x6 = _mm_shuffle_epi32( x6, 0x4e );
+       x7 = _mm_shuffle_epi32( x7, 0x4e );
+       x4 = _mm_add_epi32( x0, x4 );
+       x5 = _mm_add_epi32( x1, x5 );
+       x6 = _mm_add_epi32( x2, x6 );
+       x7 = _mm_add_epi32( x3, x7 );
+       y0 = x1;
+       y1 = x0;
+       y2 = x3;
+       y3 = x2;
+       x0 = mm128_rol_32( y0, 11 );
+       x1 = mm128_rol_32( y1, 11 );
+       x2 = mm128_rol_32( y2, 11 );
+       x3 = mm128_rol_32( y3, 11 );
+	    x0 = _mm_xor_si128( x0, x4 );
+	    x1 = _mm_xor_si128( x1, x5 );
+	    x2 = _mm_xor_si128( x2, x6 );
+	    x3 = _mm_xor_si128( x3, x7 );
+	    x4 = _mm_shuffle_epi32( x4, 0xb1 );
+	    x5 = _mm_shuffle_epi32( x5, 0xb1 );
+	    x6 = _mm_shuffle_epi32( x6, 0xb1 );
+	    x7 = _mm_shuffle_epi32( x7, 0xb1 );
     }
 
     _mm_store_si128( (__m128i*)sp->x,     x0 );
@@ -180,25 +180,25 @@ int cubehashInit(cubehashParam *sp, int hashbitlen, int rounds, int blockbytes)
     if ( hashbitlen == 512 )
     {
 
-       x[0] = m128_const_64( 0x4167D83E2D538B8B, 0x50F494D42AEA2A61 );
-       x[1] = m128_const_64( 0x50AC5695CC39968E, 0xC701CF8C3FEE2313 );
-       x[2] = m128_const_64( 0x825B453797CF0BEF, 0xA647A8B34D42C787 );
-       x[3] = m128_const_64( 0xA23911AED0E5CD33, 0xF22090C4EEF864D2 );
-       x[4] = m128_const_64( 0xB64445321B017BEF, 0x148FE485FCD398D9 );
-       x[5] = m128_const_64( 0x0DBADEA991FA7934, 0x2FF5781C6A536159 );
-       x[6] = m128_const_64( 0xBC796576B1C62456, 0xA5A70E75D65C8A2B );
-       x[7] = m128_const_64( 0xD43E3B447795D246, 0xE7989AF11921C8F7 );
+       x[0] = _mm_set_epi64x( 0x4167D83E2D538B8B, 0x50F494D42AEA2A61 );
+       x[1] = _mm_set_epi64x( 0x50AC5695CC39968E, 0xC701CF8C3FEE2313 );
+       x[2] = _mm_set_epi64x( 0x825B453797CF0BEF, 0xA647A8B34D42C787 );
+       x[3] = _mm_set_epi64x( 0xA23911AED0E5CD33, 0xF22090C4EEF864D2 );
+       x[4] = _mm_set_epi64x( 0xB64445321B017BEF, 0x148FE485FCD398D9 );
+       x[5] = _mm_set_epi64x( 0x0DBADEA991FA7934, 0x2FF5781C6A536159 );
+       x[6] = _mm_set_epi64x( 0xBC796576B1C62456, 0xA5A70E75D65C8A2B );
+       x[7] = _mm_set_epi64x( 0xD43E3B447795D246, 0xE7989AF11921C8F7 );
     }
     else
     {
-       x[0] = m128_const_64( 0x35481EAE63117E71, 0xCCD6F29FEA2BD4B4 );
-       x[1] = m128_const_64( 0xF4CC12BE7E624131, 0xE5D94E6322512D5B );
-       x[2] = m128_const_64( 0x3361DA8CD0720C35, 0x42AF2070C2D0B696 );
-       x[3] = m128_const_64( 0x40E5FBAB4680AC00, 0x8EF8AD8328CCECA4 );
-       x[4] = m128_const_64( 0xF0B266796C859D41, 0x6107FBD5D89041C3 );
-       x[5] = m128_const_64( 0x93CB628565C892FD, 0x5FA2560309392549 );
-       x[6] = m128_const_64( 0x85254725774ABFDD, 0x9E4B4E602AF2B5AE );
-       x[7] = m128_const_64( 0xD6032C0A9CDAF8AF, 0x4AB6AAD615815AEB );
+       x[0] = _mm_set_epi64x( 0x35481EAE63117E71, 0xCCD6F29FEA2BD4B4 );
+       x[1] = _mm_set_epi64x( 0xF4CC12BE7E624131, 0xE5D94E6322512D5B );
+       x[2] = _mm_set_epi64x( 0x3361DA8CD0720C35, 0x42AF2070C2D0B696 );
+       x[3] = _mm_set_epi64x( 0x40E5FBAB4680AC00, 0x8EF8AD8328CCECA4 );
+       x[4] = _mm_set_epi64x( 0xF0B266796C859D41, 0x6107FBD5D89041C3 );
+       x[5] = _mm_set_epi64x( 0x93CB628565C892FD, 0x5FA2560309392549 );
+       x[6] = _mm_set_epi64x( 0x85254725774ABFDD, 0x9E4B4E602AF2B5AE );
+       x[7] = _mm_set_epi64x( 0xD6032C0A9CDAF8AF, 0x4AB6AAD615815AEB );
     }   
 
     return SUCCESS;
@@ -234,10 +234,10 @@ int cubehashDigest( cubehashParam *sp, byte *digest )
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->x[ sp->pos ] = _mm_xor_si128( sp->x[ sp->pos ],
-                                      m128_const_64( 0, 0x80 ) );
+                                      _mm_set_epi64x( 0, 0x80 ) );
     transform( sp );
 
-    sp->x[7] = _mm_xor_si128( sp->x[7], m128_const_64( 0x100000000, 0 ) );
+    sp->x[7] = _mm_xor_si128( sp->x[7], _mm_set_epi64x( 0x100000000, 0 ) );
     transform( sp );
     transform( sp );
     transform( sp );
@@ -279,10 +279,10 @@ int cubehashUpdateDigest( cubehashParam *sp, byte *digest,
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->x[ sp->pos ] = _mm_xor_si128( sp->x[ sp->pos ],
-                                      m128_const_64( 0, 0x80 ) );
+                                      _mm_set_epi64x( 0, 0x80 ) );
     transform( sp );
 
-    sp->x[7] = _mm_xor_si128( sp->x[7], m128_const_64( 0x100000000, 0 ) );
+    sp->x[7] = _mm_xor_si128( sp->x[7], _mm_set_epi64x( 0x100000000, 0 ) );
 
     transform( sp );
     transform( sp );
@@ -313,25 +313,25 @@ int cubehash_full( cubehashParam *sp, byte *digest, int hashbitlen,
     if ( hashbitlen == 512 )
     {
 
-       x[0] = m128_const_64( 0x4167D83E2D538B8B, 0x50F494D42AEA2A61 );
-       x[1] = m128_const_64( 0x50AC5695CC39968E, 0xC701CF8C3FEE2313 );
-       x[2] = m128_const_64( 0x825B453797CF0BEF, 0xA647A8B34D42C787 );
-       x[3] = m128_const_64( 0xA23911AED0E5CD33, 0xF22090C4EEF864D2 );
-       x[4] = m128_const_64( 0xB64445321B017BEF, 0x148FE485FCD398D9 );
-       x[5] = m128_const_64( 0x0DBADEA991FA7934, 0x2FF5781C6A536159 );
-       x[6] = m128_const_64( 0xBC796576B1C62456, 0xA5A70E75D65C8A2B );
-       x[7] = m128_const_64( 0xD43E3B447795D246, 0xE7989AF11921C8F7 );
+       x[0] = _mm_set_epi64x( 0x4167D83E2D538B8B, 0x50F494D42AEA2A61 );
+       x[1] = _mm_set_epi64x( 0x50AC5695CC39968E, 0xC701CF8C3FEE2313 );
+       x[2] = _mm_set_epi64x( 0x825B453797CF0BEF, 0xA647A8B34D42C787 );
+       x[3] = _mm_set_epi64x( 0xA23911AED0E5CD33, 0xF22090C4EEF864D2 );
+       x[4] = _mm_set_epi64x( 0xB64445321B017BEF, 0x148FE485FCD398D9 );
+       x[5] = _mm_set_epi64x( 0x0DBADEA991FA7934, 0x2FF5781C6A536159 );
+       x[6] = _mm_set_epi64x( 0xBC796576B1C62456, 0xA5A70E75D65C8A2B );
+       x[7] = _mm_set_epi64x( 0xD43E3B447795D246, 0xE7989AF11921C8F7 );
     }
     else
     {
-       x[0] = m128_const_64( 0x35481EAE63117E71, 0xCCD6F29FEA2BD4B4 );
-       x[1] = m128_const_64( 0xF4CC12BE7E624131, 0xE5D94E6322512D5B );
-       x[2] = m128_const_64( 0x3361DA8CD0720C35, 0x42AF2070C2D0B696 );
-       x[3] = m128_const_64( 0x40E5FBAB4680AC00, 0x8EF8AD8328CCECA4 );
-       x[4] = m128_const_64( 0xF0B266796C859D41, 0x6107FBD5D89041C3 );
-       x[5] = m128_const_64( 0x93CB628565C892FD, 0x5FA2560309392549 );
-       x[6] = m128_const_64( 0x85254725774ABFDD, 0x9E4B4E602AF2B5AE );
-       x[7] = m128_const_64( 0xD6032C0A9CDAF8AF, 0x4AB6AAD615815AEB );
+       x[0] = _mm_set_epi64x( 0x35481EAE63117E71, 0xCCD6F29FEA2BD4B4 );
+       x[1] = _mm_set_epi64x( 0xF4CC12BE7E624131, 0xE5D94E6322512D5B );
+       x[2] = _mm_set_epi64x( 0x3361DA8CD0720C35, 0x42AF2070C2D0B696 );
+       x[3] = _mm_set_epi64x( 0x40E5FBAB4680AC00, 0x8EF8AD8328CCECA4 );
+       x[4] = _mm_set_epi64x( 0xF0B266796C859D41, 0x6107FBD5D89041C3 );
+       x[5] = _mm_set_epi64x( 0x93CB628565C892FD, 0x5FA2560309392549 );
+       x[6] = _mm_set_epi64x( 0x85254725774ABFDD, 0x9E4B4E602AF2B5AE );
+       x[7] = _mm_set_epi64x( 0xD6032C0A9CDAF8AF, 0x4AB6AAD615815AEB );
     }
 
 
@@ -358,10 +358,10 @@ int cubehash_full( cubehashParam *sp, byte *digest, int hashbitlen,
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->x[ sp->pos ] = _mm_xor_si128( sp->x[ sp->pos ],
-                                      m128_const_64( 0, 0x80 ) );
+                                      _mm_set_epi64x( 0, 0x80 ) );
     transform( sp );
 
-    sp->x[7] = _mm_xor_si128( sp->x[7], m128_const_64( 0x100000000, 0 ) );
+    sp->x[7] = _mm_xor_si128( sp->x[7], _mm_set_epi64x( 0x100000000, 0 ) );
 
     transform( sp );
     transform( sp );

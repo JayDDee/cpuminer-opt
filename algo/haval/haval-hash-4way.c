@@ -52,6 +52,56 @@ extern "C"{
 #define SPH_SMALL_FOOTPRINT_HAVAL   1
 //#endif
 
+#if defined(__AVX512VL__)
+
+// ( ~( a ^ b ) ) & c
+#define mm128_andnotxor( a, b, c ) \
+   _mm_ternarylogic_epi32( a, b, c, 0x82  )
+
+#else
+
+#define mm128_andnotxor( a, b, c ) \
+   _mm_andnot_si128( _mm_xor_si128( a, b ), c )
+
+#endif
+
+#define F1(x6, x5, x4, x3, x2, x1, x0) \
+ mm128_xor3( x0, mm128_andxor( x1, x0, x4 ), \
+                 _mm_xor_si128( _mm_and_si128( x2, x5 ), \
+                                _mm_and_si128( x3, x6 ) ) ) \
+
+#define F2(x6, x5, x4, x3, x2, x1, x0) \
+   mm128_xor3( mm128_andxor( x2, _mm_andnot_si128( x3, x1 ), \
+                       mm128_xor3( _mm_and_si128( x4, x5 ), x6, x0 )  ), \
+               mm128_andxor( x4, x1, x5 ), \
+               mm128_xorand( x0, x3, x5 ) ) \
+
+#define F3(x6, x5, x4, x3, x2, x1, x0) \
+  mm128_xor3( x0, \
+              _mm_and_si128( x3, \
+                         mm128_xor3( _mm_and_si128( x1, x2 ), x6, x0 ) ), \
+              _mm_xor_si128( _mm_and_si128( x1, x4 ), \
+                             _mm_and_si128( x2, x5 ) ) )
+
+#define F4(x6, x5, x4, x3, x2, x1, x0) \
+  mm128_xor3( \
+      mm128_andxor( x3, x5, \
+                    _mm_xor_si128( _mm_and_si128( x1, x2 ), \
+                                      _mm_or_si128( x4, x6 ) ) ), \
+      _mm_and_si128( x4, \
+                        mm128_xor3( x0, _mm_andnot_si128( x2, x5 ), \
+                                    _mm_xor_si128( x1, x6 ) ) ), \
+      mm128_xorand( x0, x2, x6 ) )
+
+#define F5(x6, x5, x4, x3, x2, x1, x0) \
+   _mm_xor_si128( \
+         mm128_andnotxor( mm128_and3( x1, x2, x3 ), x5, x0 ), \
+         mm128_xor3( _mm_and_si128( x1, x4 ), \
+                     _mm_and_si128( x2, x5 ), \
+                     _mm_and_si128( x3, x6 ) ) )
+  
+
+/*
 #define F1(x6, x5, x4, x3, x2, x1, x0) \
    _mm_xor_si128( x0, \
        _mm_xor_si128( _mm_and_si128(_mm_xor_si128( x0, x4 ), x1 ), \
@@ -96,6 +146,7 @@ extern "C"{
       _mm_xor_si128( _mm_xor_si128( _mm_and_si128( x1, x4 ), \
                                     _mm_and_si128( x2, x5 ) ), \
                                     _mm_and_si128( x3, x6 ) ) )
+*/
 
 /*
  * The macros below integrate the phi() permutations, depending on the
@@ -740,14 +791,14 @@ do { \
 static void
 haval_8way_init( haval_8way_context *sc, unsigned olen, unsigned passes )
 {
-   sc->s0 = m256_const1_32( 0x243F6A88UL );
-   sc->s1 = m256_const1_32( 0x85A308D3UL );
-   sc->s2 = m256_const1_32( 0x13198A2EUL );
-   sc->s3 = m256_const1_32( 0x03707344UL );
-   sc->s4 = m256_const1_32( 0xA4093822UL );
-   sc->s5 = m256_const1_32( 0x299F31D0UL );
-   sc->s6 = m256_const1_32( 0x082EFA98UL );
-   sc->s7 = m256_const1_32( 0xEC4E6C89UL );
+   sc->s0 = _mm256_set1_epi32( 0x243F6A88UL );
+   sc->s1 = _mm256_set1_epi32( 0x85A308D3UL );
+   sc->s2 = _mm256_set1_epi32( 0x13198A2EUL );
+   sc->s3 = _mm256_set1_epi32( 0x03707344UL );
+   sc->s4 = _mm256_set1_epi32( 0xA4093822UL );
+   sc->s5 = _mm256_set1_epi32( 0x299F31D0UL );
+   sc->s6 = _mm256_set1_epi32( 0x082EFA98UL );
+   sc->s7 = _mm256_set1_epi32( 0xEC4E6C89UL );
    sc->olen = olen;
    sc->passes = passes;
    sc->count_high = 0;

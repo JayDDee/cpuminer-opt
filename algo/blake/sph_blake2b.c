@@ -64,6 +64,22 @@
   V[1] = mm256_ror_64( _mm256_xor_si256( V[1], V[2] ), 63 ); \
 }
 
+// Pivot about V[1] instead of V[0] reduces latency.
+#define BLAKE2B_ROUND( R ) \
+{ \
+  __m256i *V = (__m256i*)v; \
+  const uint8_t *sigmaR = sigma[R]; \
+  BLAKE2B_G(  0,  1,  2,  3,  4,  5,  6,  7 ); \
+  V[0] = mm256_shufll_64( V[0] ); \
+  V[3] = mm256_swap_128( V[3] ); \
+  V[2] = mm256_shuflr_64( V[2] ); \
+  BLAKE2B_G( 14, 15,  8,  9, 10, 11, 12, 13 ); \
+  V[0] = mm256_shuflr_64( V[0] ); \
+  V[3] = mm256_swap_128( V[3] ); \
+  V[2] = mm256_shufll_64( V[2] ); \
+}
+
+/*
 #define BLAKE2B_ROUND( R ) \
 { \
   __m256i *V = (__m256i*)v; \
@@ -77,6 +93,7 @@
   V[2] = mm256_swap_128( V[2] ); \
   V[1] = mm256_shufll_64( V[1] ); \
 }
+*/
 
 #elif defined(__SSE2__)
 // always true

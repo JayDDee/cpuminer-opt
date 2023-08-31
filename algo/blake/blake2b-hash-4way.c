@@ -252,14 +252,14 @@ static void blake2b_8way_compress( blake2b_8way_ctx *ctx, int last )
    v[ 5] = ctx->h[5];
    v[ 6] = ctx->h[6];
    v[ 7] = ctx->h[7];
-   v[ 8] = m512_const1_64( 0x6A09E667F3BCC908 );
-   v[ 9] = m512_const1_64( 0xBB67AE8584CAA73B );
-   v[10] = m512_const1_64( 0x3C6EF372FE94F82B );
-   v[11] = m512_const1_64( 0xA54FF53A5F1D36F1 );
-   v[12] = m512_const1_64( 0x510E527FADE682D1 );
-   v[13] = m512_const1_64( 0x9B05688C2B3E6C1F );
-   v[14] = m512_const1_64( 0x1F83D9ABFB41BD6B );
-   v[15] = m512_const1_64( 0x5BE0CD19137E2179 );
+   v[ 8] = _mm512_set1_epi64( 0x6A09E667F3BCC908 );
+   v[ 9] = _mm512_set1_epi64( 0xBB67AE8584CAA73B );
+   v[10] = _mm512_set1_epi64( 0x3C6EF372FE94F82B );
+   v[11] = _mm512_set1_epi64( 0xA54FF53A5F1D36F1 );
+   v[12] = _mm512_set1_epi64( 0x510E527FADE682D1 );
+   v[13] = _mm512_set1_epi64( 0x9B05688C2B3E6C1F );
+   v[14] = _mm512_set1_epi64( 0x1F83D9ABFB41BD6B );
+   v[15] = _mm512_set1_epi64( 0x5BE0CD19137E2179 );
 
    v[12] = _mm512_xor_si512( v[12], _mm512_set1_epi64( ctx->t[0] ) );
    v[13] = _mm512_xor_si512( v[13], _mm512_set1_epi64( ctx->t[1] ) );
@@ -310,16 +310,16 @@ int blake2b_8way_init( blake2b_8way_ctx *ctx )
 {
    size_t i;
 
-   ctx->h[0] = m512_const1_64( 0x6A09E667F3BCC908 );
-   ctx->h[1] = m512_const1_64( 0xBB67AE8584CAA73B );
-   ctx->h[2] = m512_const1_64( 0x3C6EF372FE94F82B );
-   ctx->h[3] = m512_const1_64( 0xA54FF53A5F1D36F1 );
-   ctx->h[4] = m512_const1_64( 0x510E527FADE682D1 );
-   ctx->h[5] = m512_const1_64( 0x9B05688C2B3E6C1F );
-   ctx->h[6] = m512_const1_64( 0x1F83D9ABFB41BD6B );
-   ctx->h[7] = m512_const1_64( 0x5BE0CD19137E2179 );
+   ctx->h[0] = _mm512_set1_epi64( 0x6A09E667F3BCC908 );
+   ctx->h[1] = _mm512_set1_epi64( 0xBB67AE8584CAA73B );
+   ctx->h[2] = _mm512_set1_epi64( 0x3C6EF372FE94F82B );
+   ctx->h[3] = _mm512_set1_epi64( 0xA54FF53A5F1D36F1 );
+   ctx->h[4] = _mm512_set1_epi64( 0x510E527FADE682D1 );
+   ctx->h[5] = _mm512_set1_epi64( 0x9B05688C2B3E6C1F );
+   ctx->h[6] = _mm512_set1_epi64( 0x1F83D9ABFB41BD6B );
+   ctx->h[7] = _mm512_set1_epi64( 0x5BE0CD19137E2179 );
 
-   ctx->h[0] = _mm512_xor_si512( ctx->h[0], m512_const1_64( 0x01010020 ) );
+   ctx->h[0] = _mm512_xor_si512( ctx->h[0], _mm512_set1_epi64( 0x01010020 ) );
 
    ctx->t[0] = 0;
    ctx->t[1] = 0;
@@ -419,14 +419,14 @@ static void blake2b_4way_compress( blake2b_4way_ctx *ctx, int last )
    v[ 5] = ctx->h[5];
    v[ 6] = ctx->h[6];
    v[ 7] = ctx->h[7];
-   v[ 8] = m256_const1_64( 0x6A09E667F3BCC908 );
-   v[ 9] = m256_const1_64( 0xBB67AE8584CAA73B );
-   v[10] = m256_const1_64( 0x3C6EF372FE94F82B );
-   v[11] = m256_const1_64( 0xA54FF53A5F1D36F1 );
-   v[12] = m256_const1_64( 0x510E527FADE682D1 );
-   v[13] = m256_const1_64( 0x9B05688C2B3E6C1F );
-   v[14] = m256_const1_64( 0x1F83D9ABFB41BD6B );
-   v[15] = m256_const1_64( 0x5BE0CD19137E2179 );
+   v[ 8] = _mm256_set1_epi64x( 0x6A09E667F3BCC908 );
+   v[ 9] = _mm256_set1_epi64x( 0xBB67AE8584CAA73B );
+   v[10] = _mm256_set1_epi64x( 0x3C6EF372FE94F82B );
+   v[11] = _mm256_set1_epi64x( 0xA54FF53A5F1D36F1 );
+   v[12] = _mm256_set1_epi64x( 0x510E527FADE682D1 );
+   v[13] = _mm256_set1_epi64x( 0x9B05688C2B3E6C1F );
+   v[14] = _mm256_set1_epi64x( 0x1F83D9ABFB41BD6B );
+   v[15] = _mm256_set1_epi64x( 0x5BE0CD19137E2179 );
 
    v[12] = _mm256_xor_si256( v[12], _mm256_set1_epi64x( ctx->t[0] ) );
    v[13] = _mm256_xor_si256( v[13], _mm256_set1_epi64x( ctx->t[1] ) );
@@ -477,16 +477,16 @@ int blake2b_4way_init( blake2b_4way_ctx *ctx )
 {
 	size_t i;
 
-   ctx->h[0] = m256_const1_64( 0x6A09E667F3BCC908 );
-   ctx->h[1] = m256_const1_64( 0xBB67AE8584CAA73B );
-   ctx->h[2] = m256_const1_64( 0x3C6EF372FE94F82B );
-   ctx->h[3] = m256_const1_64( 0xA54FF53A5F1D36F1 );
-   ctx->h[4] = m256_const1_64( 0x510E527FADE682D1 );
-   ctx->h[5] = m256_const1_64( 0x9B05688C2B3E6C1F );
-   ctx->h[6] = m256_const1_64( 0x1F83D9ABFB41BD6B );
-   ctx->h[7] = m256_const1_64( 0x5BE0CD19137E2179 );
+   ctx->h[0] = _mm256_set1_epi64x( 0x6A09E667F3BCC908 );
+   ctx->h[1] = _mm256_set1_epi64x( 0xBB67AE8584CAA73B );
+   ctx->h[2] = _mm256_set1_epi64x( 0x3C6EF372FE94F82B );
+   ctx->h[3] = _mm256_set1_epi64x( 0xA54FF53A5F1D36F1 );
+   ctx->h[4] = _mm256_set1_epi64x( 0x510E527FADE682D1 );
+   ctx->h[5] = _mm256_set1_epi64x( 0x9B05688C2B3E6C1F );
+   ctx->h[6] = _mm256_set1_epi64x( 0x1F83D9ABFB41BD6B );
+   ctx->h[7] = _mm256_set1_epi64x( 0x5BE0CD19137E2179 );
 
-   ctx->h[0] = _mm256_xor_si256( ctx->h[0], m256_const1_64( 0x01010020 ) );
+   ctx->h[0] = _mm256_xor_si256( ctx->h[0], _mm256_set1_epi64x( 0x01010020 ) );
 
 	ctx->t[0] = 0;
 	ctx->t[1] = 0;

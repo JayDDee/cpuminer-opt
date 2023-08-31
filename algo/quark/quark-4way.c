@@ -67,7 +67,7 @@ void quark_8way_hash( void *state, const void *input )
     __mmask8 vh_mask;
     quark_8way_ctx_holder ctx;
     const uint32_t mask = 8;
-    const __m512i bit3_mask = m512_const1_64( mask );
+    const __m512i bit3_mask = _mm512_set1_epi64( mask );
 
     memcpy( &ctx, &quark_8way_ctx, sizeof(quark_8way_ctx) );
 
@@ -224,7 +224,7 @@ int scanhash_quark_8way( struct work *work, uint32_t max_nonce,
           }
        }
        *noncev = _mm512_add_epi32( *noncev,
-                                  m512_const1_64( 0x0000000800000000 ) );
+                                  _mm512_set1_epi64( 0x0000000800000000 ) );
        n += 8;
     } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
 
@@ -271,7 +271,7 @@ void quark_4way_hash( void *state, const void *input )
     __m256i vh_mask;
     int h_mask;
     quark_4way_ctx_holder ctx;
-    const __m256i bit3_mask = m256_const1_64( 8 );
+    const __m256i bit3_mask = _mm256_set1_epi64x( 8 );
     const __m256i zero = _mm256_setzero_si256();
 
     memcpy( &ctx, &quark_4way_ctx, sizeof(quark_4way_ctx) );
@@ -397,7 +397,7 @@ int scanhash_quark_4way( struct work *work, uint32_t max_nonce,
           }
        }
        *noncev = _mm256_add_epi32( *noncev,
-                                  m256_const1_64( 0x0000000400000000 ) );
+                                  _mm256_set1_epi64x( 0x0000000400000000 ) );
        n += 4;
     } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
 

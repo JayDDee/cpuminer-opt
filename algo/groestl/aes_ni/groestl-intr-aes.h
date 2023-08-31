@@ -139,7 +139,7 @@ static const __m128i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003 };
   \
   /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
   /* compute w_i : add y_{i+4} */\
-  b1 = m128_const1_64( 0x1b1b1b1b1b1b1b1b );\
+  b1 = _mm_set1_epi64x( 0x1b1b1b1b1b1b1b1b );\
   MUL2(a0, b0, b1);\
   a0 = _mm_xor_si128(a0, TEMP0);\
   MUL2(a1, b0, b1);\
@@ -237,7 +237,7 @@ static const __m128i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003 };
   \
   /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
   /* compute w_i : add y_{i+4} */\
-  b1 = m128_const1_64( 0x1b1b1b1b1b1b1b1b );\
+  b1 = _mm_set1_epi64x( 0x1b1b1b1b1b1b1b1b );\
   MUL2(a0, b0, b1);\
   a0 = _mm_xor_si128(a0, TEMP0);\
   MUL2(a1, b0, b1);\

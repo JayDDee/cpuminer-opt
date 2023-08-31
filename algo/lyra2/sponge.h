@@ -43,27 +43,29 @@ static const uint64_t blake2b_IV[8] =
   0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL
 };
 
-/*Blake2b's rotation*/
-static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
-    return ( w >> c ) | ( w << ( 64 - c ) );
-}
-
-// serial data is only 32 bytes so AVX2 is the limit for that dimension.
-// However, 2 way parallel looks trivial to code for AVX512 except for
-// a data dependency with rowa.
-
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #define G2W_4X64(a,b,c,d) \
    a = _mm512_add_epi64( a, b ); \
-   d = mm512_ror_64( _mm512_xor_si512( d, a ), 32 ); \
+   d = _mm512_ror_epi64( _mm512_xor_si512( d, a ), 32 ); \
    c = _mm512_add_epi64( c, d ); \
-   b = mm512_ror_64( _mm512_xor_si512( b, c ), 24 ); \
+   b = _mm512_ror_epi64( _mm512_xor_si512( b, c ), 24 ); \
    a = _mm512_add_epi64( a, b ); \
-   d = mm512_ror_64( _mm512_xor_si512( d, a ), 16 ); \
+   d = _mm512_ror_epi64( _mm512_xor_si512( d, a ), 16 ); \
    c = _mm512_add_epi64( c, d ); \
-   b = mm512_ror_64( _mm512_xor_si512( b, c ), 63 );
+   b = _mm512_ror_epi64( _mm512_xor_si512( b, c ), 63 );
 
+#define LYRA_ROUND_2WAY_AVX512( s0, s1, s2, s3 ) \
+   G2W_4X64( s0, s1, s2, s3 ); \
+   s0 = mm512_shufll256_64( s0 ); \
+   s3 = mm512_swap256_128( s3); \
+   s2 = mm512_shuflr256_64( s2 ); \
+   G2W_4X64( s0, s1, s2, s3 ); \
+   s0 = mm512_shuflr256_64( s0 ); \
+   s3 = mm512_swap256_128( s3 ); \
+   s2 = mm512_shufll256_64( s2 ); 
+
+/*
 #define LYRA_ROUND_2WAY_AVX512( s0, s1, s2, s3 ) \
    G2W_4X64( s0, s1, s2, s3 ); \
    s3 = mm512_shufll256_64( s3 ); \
@@ -73,6 +75,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    s3 = mm512_shuflr256_64( s3 ); \
    s1 = mm512_shufll256_64( s1 ); \
    s2 = mm512_swap256_128( s2 ); 
+*/
 
 #define LYRA_12_ROUNDS_2WAY_AVX512( s0, s1, s2, s3 ) \
    LYRA_ROUND_2WAY_AVX512( s0, s1, s2, s3 ) \
@@ -88,13 +91,10 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    LYRA_ROUND_2WAY_AVX512( s0, s1, s2, s3 ) \
    LYRA_ROUND_2WAY_AVX512( s0, s1, s2, s3 )
 
-
 #endif  // AVX512
 
-#if defined __AVX2__
+#if defined(__AVX2__)
 
-// process 4 columns in parallel
-// returns void, updates all args
 #define G_4X64(a,b,c,d) \
    a = _mm256_add_epi64( a, b ); \
    d = mm256_swap64_32( _mm256_xor_si256( d, a ) ); \
@@ -105,6 +105,18 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    c = _mm256_add_epi64( c, d ); \
    b = mm256_ror_64( _mm256_xor_si256( b, c ), 63 );
 
+// Pivot about s1 instead of s0 reduces latency.
+#define LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
+   G_4X64( s0, s1, s2, s3 ); \
+   s0 = mm256_shufll_64( s0 ); \
+   s3 = mm256_swap_128( s3); \
+   s2 = mm256_shuflr_64( s2 ); \
+   G_4X64( s0, s1, s2, s3 ); \
+   s0 = mm256_shuflr_64( s0 ); \
+   s3 = mm256_swap_128( s3 ); \
+   s2 = mm256_shufll_64( s2 );
+
+/*
 #define LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
    G_4X64( s0, s1, s2, s3 ); \
    s3 = mm256_shufll_64( s3 ); \
@@ -114,6 +126,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
    s3 = mm256_shuflr_64( s3 ); \
    s1 = mm256_shufll_64( s1 ); \
    s2 = mm256_swap_128( s2 );
+*/
 
 #define LYRA_12_ROUNDS_AVX2( s0, s1, s2, s3 ) \
    LYRA_ROUND_AVX2( s0, s1, s2, s3 ) \
@@ -182,8 +195,13 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
 
 #endif // AVX2 else SSE2
 
-// Scalar
-//Blake2b's G function
+/*
+// Scalar, not used.
+
+static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
+    return ( w >> c ) | ( w << ( 64 - c ) );
+}
+
 #define G(r,i,a,b,c,d) \
   do { \
     a = a + b; \
@@ -196,8 +214,6 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
     b = rotr64(b ^ c, 63); \
   } while(0)
 
-
-/*One Round of the Blake2b's compression function*/
 #define ROUND_LYRA(r)  \
     G(r,0,v[ 0],v[ 4],v[ 8],v[12]); \
     G(r,1,v[ 1],v[ 5],v[ 9],v[13]); \
@@ -207,6 +223,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
     G(r,5,v[ 1],v[ 6],v[11],v[12]); \
     G(r,6,v[ 2],v[ 7],v[ 8],v[13]); \
     G(r,7,v[ 3],v[ 4],v[ 9],v[14]);
+*/
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 

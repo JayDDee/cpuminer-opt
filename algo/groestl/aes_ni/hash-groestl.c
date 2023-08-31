@@ -31,7 +31,7 @@ HashReturn_gr init_groestl( hashState_groestl* ctx, int hashlen )
   }
 
   // The only non-zero in the IV is len. It can be hard coded.
-  ctx->chaining[ 6 ] = m128_const_64( 0x0200000000000000, 0 );
+  ctx->chaining[ 6 ] = _mm_set_epi64x( 0x0200000000000000, 0 );
 
   ctx->buf_ptr = 0;
   ctx->rem_ptr = 0;
@@ -48,7 +48,7 @@ HashReturn_gr reinit_groestl( hashState_groestl* ctx )
      ctx->chaining[i] = _mm_setzero_si128();
      ctx->buffer[i]   = _mm_setzero_si128();
   }
-  ctx->chaining[ 6 ] = m128_const_64( 0x0200000000000000, 0 );
+  ctx->chaining[ 6 ] = _mm_set_epi64x( 0x0200000000000000, 0 );
   ctx->buf_ptr = 0;
   ctx->rem_ptr = 0;
 
@@ -116,7 +116,7 @@ HashReturn_gr final_groestl( hashState_groestl* ctx, void* output )
    else
    {
        // add first padding
-       ctx->buffer[rem_ptr] = m128_const_64( 0, 0x80 );
+       ctx->buffer[rem_ptr] = _mm_set_epi64x( 0, 0x80 );
        // add zero padding
        for ( i = rem_ptr + 1; i < SIZE512 - 1; i++ )
            ctx->buffer[i] = _mm_setzero_si128();
@@ -148,7 +148,7 @@ int groestl512_full( hashState_groestl* ctx, void* output,
       ctx->chaining[i] = _mm_setzero_si128();
       ctx->buffer[i]   = _mm_setzero_si128();
    }
-   ctx->chaining[ 6 ] = m128_const_64( 0x0200000000000000, 0 );
+   ctx->chaining[ 6 ] = _mm_set_epi64x( 0x0200000000000000, 0 );
    ctx->buf_ptr = 0;
 
    // --- update ---
@@ -182,7 +182,7 @@ int groestl512_full( hashState_groestl* ctx, void* output,
    else
    {
        // add first padding
-       ctx->buffer[i] = m128_const_64( 0, 0x80 );
+       ctx->buffer[i] = _mm_set_epi64x( 0, 0x80 );
        // add zero padding
        for ( i += 1; i < SIZE512 - 1; i++ )
            ctx->buffer[i] = _mm_setzero_si128();
@@ -239,7 +239,7 @@ HashReturn_gr update_and_final_groestl( hashState_groestl* ctx, void* output,
    else
    {
        // add first padding
-       ctx->buffer[i] = m128_const_64( 0, 0x80 );
+       ctx->buffer[i] = _mm_set_epi64x( 0, 0x80 );
        // add zero padding
        for ( i += 1; i < SIZE512 - 1; i++ )
            ctx->buffer[i] = _mm_setzero_si128();

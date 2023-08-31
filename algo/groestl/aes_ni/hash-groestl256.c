@@ -46,7 +46,7 @@ HashReturn_gr reinit_groestl256(hashState_groestl256* ctx)
      ctx->buffer[i]   = _mm_setzero_si128();
   }
 
-  ctx->chaining[ 3 ] = m128_const_64( 0, 0x0100000000000000 );
+  ctx->chaining[ 3 ] = _mm_set_epi64x( 0, 0x0100000000000000 );
 
   ctx->buf_ptr = 0;
   ctx->rem_ptr = 0;

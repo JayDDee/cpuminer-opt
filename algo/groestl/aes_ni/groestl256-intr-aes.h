@@ -128,7 +128,7 @@ static const __m128i SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e };
   \
   /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
   /* compute w_i : add y_{i+4} */\
-  b1 = m128_const1_64( 0x1b1b1b1b1b1b1b1b );\
+  b1 = _mm_set1_epi64x( 0x1b1b1b1b1b1b1b1b );\
   MUL2(a0, b0, b1);\
   a0 = _mm_xor_si128(a0, TEMP0);\
   MUL2(a1, b0, b1);\
@@ -226,7 +226,7 @@ static const __m128i SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e };
   \
   /* compute z_i : double x_i using temp xmm8 and 1B xmm9 */\
   /* compute w_i : add y_{i+4} */\
-  b1 = m128_const1_64( 0x1b1b1b1b1b1b1b1b );\
+  b1 = _mm_set1_epi64x( 0x1b1b1b1b1b1b1b1b );\
   MUL2(a0, b0, b1);\
   a0 = _mm_xor_si128(a0, TEMP0);\
   MUL2(a1, b0, b1);\
@@ -275,7 +275,7 @@ static const __m128i SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e };
  */
 #define ROUND(i, a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* AddRoundConstant */\
-  b1 = m128_const_64( 0xffffffffffffffff, 0 ); \
+  b1 = _mm_set_epi64x( 0xffffffffffffffff, 0 ); \
   a0 = _mm_xor_si128( a0, casti_m128i( round_const_l0, i ) ); \
   a1 = _mm_xor_si128( a1, b1 ); \
   a2 = _mm_xor_si128( a2, b1 ); \

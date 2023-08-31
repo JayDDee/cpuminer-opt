@@ -69,7 +69,7 @@ static const uint32 CNS_INIT[128] __attribute((aligned(64))) = {
 #define MULT24W( a0, a1 ) \
 { \
   __m512i b = _mm512_xor_si512( a0, \
-                     _mm512_maskz_shuffle_epi32( 0xbbbb, a1, 16 ) ); \
+                     _mm512_maskz_shuffle_epi32( 0xbbbb, a1, 0x10 ) ); \
   a0 = _mm512_alignr_epi8( a1,  b, 4 ); \
   a1 = _mm512_alignr_epi8(  b, a1, 4 ); \
 }
@@ -107,49 +107,37 @@ static const uint32 CNS_INIT[128] __attribute((aligned(64))) = {
     ADD_CONSTANT4W( x0, x4, c0, c1 );
 
 #define STEP_PART24W( a0, a1, t0, t1, c0, c1 ) \
-    a1 = _mm512_shuffle_epi32( a1, 147 ); \
-    t0 = _mm512_load_si512( &a1 ); \
-    a1 = _mm512_unpacklo_epi32( a1, a0 ); \
+    t0 = _mm512_shuffle_epi32( a1, 147 ); \
+    a1 = _mm512_unpacklo_epi32( t0, a0 ); \
     t0 = _mm512_unpackhi_epi32( t0, a0 ); \
     t1 = _mm512_shuffle_epi32( t0, 78 ); \
     a0 = _mm512_shuffle_epi32( a1, 78 ); \
     SUBCRUMB4W( t1, t0, a0, a1 ); \
     t0 = _mm512_unpacklo_epi32( t0, t1 ); \
     a1 = _mm512_unpacklo_epi32( a1, a0 ); \
-    a0 = _mm512_load_si512( &a1 ); \
-    a0 = _mm512_unpackhi_epi64( a0, t0 ); \
+    a0 = _mm512_unpackhi_epi64( a1, t0 ); \
     a1 = _mm512_unpacklo_epi64( a1, t0 ); \
     a1 = _mm512_shuffle_epi32( a1, 57 ); \
     MIXWORD4W( a0, a1 ); \
     ADD_CONSTANT4W( a0, a1, c0, c1 );
 
 #define NMLTOM10244W(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3)\
-    s1 = _mm512_load_si512(&r3);\
-    q1 = _mm512_load_si512(&p3);\
-    s3 = _mm512_load_si512(&r3);\
-    q3 = _mm512_load_si512(&p3);\
-    s1 = _mm512_unpackhi_epi32(s1,r2);\
-    q1 = _mm512_unpackhi_epi32(q1,p2);\
-    s3 = _mm512_unpacklo_epi32(s3,r2);\
-    q3 = _mm512_unpacklo_epi32(q3,p2);\
-    s0 = _mm512_load_si512(&s1);\
-    q0 = _mm512_load_si512(&q1);\
-    s2 = _mm512_load_si512(&s3);\
-    q2 = _mm512_load_si512(&q3);\
-    r3 = _mm512_load_si512(&r1);\
-    p3 = _mm512_load_si512(&p1);\
-    r1 = _mm512_unpacklo_epi32(r1,r0);\
-    p1 = _mm512_unpacklo_epi32(p1,p0);\
-    r3 = _mm512_unpackhi_epi32(r3,r0);\
-    p3 = _mm512_unpackhi_epi32(p3,p0);\
-    s0 = _mm512_unpackhi_epi64(s0,r3);\
-    q0 = _mm512_unpackhi_epi64(q0,p3);\
-    s1 = _mm512_unpacklo_epi64(s1,r3);\
-    q1 = _mm512_unpacklo_epi64(q1,p3);\
-    s2 = _mm512_unpackhi_epi64(s2,r1);\
-    q2 = _mm512_unpackhi_epi64(q2,p1);\
-    s3 = _mm512_unpacklo_epi64(s3,r1);\
-    q3 = _mm512_unpacklo_epi64(q3,p1);
+    s1 = _mm512_unpackhi_epi32( r3, r2 ); \
+    q1 = _mm512_unpackhi_epi32( p3, p2 ); \
+    s3 = _mm512_unpacklo_epi32( r3, r2 ); \
+    q3 = _mm512_unpacklo_epi32( p3, p2 ); \
+    r3 = _mm512_unpackhi_epi32( r1, r0 ); \
+    r1 = _mm512_unpacklo_epi32( r1, r0 ); \
+    p3 = _mm512_unpackhi_epi32( p1, p0 ); \
+    p1 = _mm512_unpacklo_epi32( p1, p0 ); \
+    s0 = _mm512_unpackhi_epi64( s1, r3 ); \
+    q0 = _mm512_unpackhi_epi64( q1 ,p3 ); \
+    s1 = _mm512_unpacklo_epi64( s1, r3 ); \
+    q1 = _mm512_unpacklo_epi64( q1, p3 ); \
+    s2 = _mm512_unpackhi_epi64( s3, r1 ); \
+    q2 = _mm512_unpackhi_epi64( q3, p1 ); \
+    s3 = _mm512_unpacklo_epi64( s3, r1 ); \
+    q3 = _mm512_unpacklo_epi64( q3, p1 );
 
 #define MIXTON10244W(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3)\
     NMLTOM10244W(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3);
@@ -198,11 +186,8 @@ void rnd512_4way( luffa_4way_context *state, const __m512i *msg )
     chainv[7] = _mm512_xor_si512(chainv[7], chainv[9]);
 
     MULT24W( chainv[8], chainv[9] );
-    chainv[8] = _mm512_xor_si512( chainv[8], t0 );
-    chainv[9] = _mm512_xor_si512( chainv[9], t1 );
-
-    t0 = chainv[8];
-    t1 = chainv[9];
+    t0 = chainv[8] = _mm512_xor_si512( chainv[8], t0 );
+    t1 = chainv[9] = _mm512_xor_si512( chainv[9], t1 );
 
     MULT24W( chainv[8], chainv[9] );
     chainv[8] = _mm512_xor_si512( chainv[8], chainv[6] );
@@ -538,10 +523,39 @@ int luffa_4way_update_close( luffa_4way_context *state,
     a = _mm256_xor_si256( a, c0 ); \
     b = _mm256_xor_si256( b, c1 );
 
+//TODO Enable for AVX10_256, not used with AVX512 or AVX10_512
+#if defined(__AVX512VL__) 
+
+#define MULT2( a0, a1 ) \
+{ \
+  __m256i b = _mm256_xor_si256( a0, \
+                     _mm256_maskz_shuffle_epi32( 0xbb, a1, 0x10 ) ); \
+  a0 = _mm256_alignr_epi8( a1,  b, 4 ); \
+  a1 = _mm256_alignr_epi8(  b, a1, 4 ); \
+}
+
+#define SUBCRUMB( a0, a1, a2, a3 ) \
+{ \
+    __m256i t = a0; \
+    a0 = mm256_xoror( a3, a0, a1 ); \
+    a2 = _mm256_xor_si256( a2, a3 ); \
+    a1 = _mm256_ternarylogic_epi64( a1, a3, t, 0x87 ); /* a1 xnor (a3 & t) */ \
+    a3 = mm256_xorand( a2, a3, t ); \
+    a2 = mm256_xorand( a1, a2, a0); \
+    a1 = _mm256_or_si256( a1, a3 ); \
+    a3 = _mm256_xor_si256( a3, a2 ); \
+    t  = _mm256_xor_si256( t, a1 ); \
+    a2 = _mm256_and_si256( a2, a1 ); \
+    a1 = mm256_xnor( a1, a0 ); \
+    a0 = t; \
+}
+
+#else
+
 #define MULT2( a0, a1 ) \
 { \
   __m256i b = _mm256_xor_si256( a0, _mm256_shuffle_epi32( \
-                         _mm256_blend_epi32( a1, m256_zero, 0xee ), 16 ) ); \
+                         _mm256_blend_epi32( a1, m256_zero, 0xee ), 0x10 ) ); \
   a0 = _mm256_alignr_epi8( a1,  b, 4 ); \
   a1 = _mm256_alignr_epi8(  b, a1, 4 ); \
 }
@@ -567,26 +581,14 @@ int luffa_4way_update_close( luffa_4way_context *state,
     a0 = t; \
 }
 
+#endif
+
 #define MIXWORD( a, b ) \
-{ \
-    __m256i t1, t2; \
-    b  = _mm256_xor_si256( a,b ); \
-    t1 = _mm256_slli_epi32( a,  2 ); \
-    t2 = _mm256_srli_epi32( a, 30 ); \
-    a  = _mm256_or_si256( t1, t2 ); \
-    a  = _mm256_xor_si256( a, b ); \
-    t1 = _mm256_slli_epi32( b, 14 ); \
-    t2 = _mm256_srli_epi32( b, 18 ); \
-    b  = _mm256_or_si256( t1, t2 ); \
-    b  = _mm256_xor_si256( a, b ); \
-    t1 = _mm256_slli_epi32( a, 10 ); \
-    t2 = _mm256_srli_epi32( a, 22 ); \
-    a  = _mm256_or_si256( t1,t2 ); \
-    a  = _mm256_xor_si256( a,b ); \
-    t1 = _mm256_slli_epi32( b,1 ); \
-    t2 = _mm256_srli_epi32( b,31 ); \
-    b  = _mm256_or_si256( t1, t2 ); \
-}
+    b = _mm256_xor_si256( a, b ); \
+    a = _mm256_xor_si256( b, mm256_rol_32( a,  2 ) ); \
+    b = _mm256_xor_si256( a, mm256_rol_32( b, 14 ) ); \
+    a = _mm256_xor_si256( b, mm256_rol_32( a, 10 ) ); \
+    b = mm256_rol_32( b, 1 );
 
 #define STEP_PART( x0, x1, x2, x3, x4, x5, x6, x7, c0, c1 ) \
     SUBCRUMB( x0, x1, x2, x3 ); \
@@ -598,49 +600,37 @@ int luffa_4way_update_close( luffa_4way_context *state,
     ADD_CONSTANT( x0, x4, c0, c1 );
 
 #define STEP_PART2( a0, a1, t0, t1, c0, c1 ) \
-    a1 = _mm256_shuffle_epi32( a1, 147); \
-    t0 = _mm256_load_si256( &a1 ); \
-    a1 = _mm256_unpacklo_epi32( a1, a0 ); \
+    t0 = _mm256_shuffle_epi32( a1, 147 ); \
+    a1 = _mm256_unpacklo_epi32( t0, a0 ); \
     t0 = _mm256_unpackhi_epi32( t0, a0 ); \
     t1 = _mm256_shuffle_epi32( t0, 78 ); \
     a0 = _mm256_shuffle_epi32( a1, 78 ); \
-    SUBCRUMB( t1, t0, a0, a1 );\
+    SUBCRUMB( t1, t0, a0, a1 ); \
     t0 = _mm256_unpacklo_epi32( t0, t1 ); \
     a1 = _mm256_unpacklo_epi32( a1, a0 ); \
-    a0 = _mm256_load_si256( &a1 ); \
-    a0 = _mm256_unpackhi_epi64( a0, t0 ); \
+    a0 = _mm256_unpackhi_epi64( a1, t0 ); \
     a1 = _mm256_unpacklo_epi64( a1, t0 ); \
     a1 = _mm256_shuffle_epi32( a1, 57 ); \
     MIXWORD( a0, a1 ); \
     ADD_CONSTANT( a0, a1, c0, c1 );
 
 #define NMLTOM1024(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3)\
-    s1 = _mm256_load_si256(&r3);\
-    q1 = _mm256_load_si256(&p3);\
-    s3 = _mm256_load_si256(&r3);\
-    q3 = _mm256_load_si256(&p3);\
-    s1 = _mm256_unpackhi_epi32(s1,r2);\
-    q1 = _mm256_unpackhi_epi32(q1,p2);\
-    s3 = _mm256_unpacklo_epi32(s3,r2);\
-    q3 = _mm256_unpacklo_epi32(q3,p2);\
-    s0 = _mm256_load_si256(&s1);\
-    q0 = _mm256_load_si256(&q1);\
-    s2 = _mm256_load_si256(&s3);\
-    q2 = _mm256_load_si256(&q3);\
-    r3 = _mm256_load_si256(&r1);\
-    p3 = _mm256_load_si256(&p1);\
-    r1 = _mm256_unpacklo_epi32(r1,r0);\
-    p1 = _mm256_unpacklo_epi32(p1,p0);\
-    r3 = _mm256_unpackhi_epi32(r3,r0);\
-    p3 = _mm256_unpackhi_epi32(p3,p0);\
-    s0 = _mm256_unpackhi_epi64(s0,r3);\
-    q0 = _mm256_unpackhi_epi64(q0,p3);\
-    s1 = _mm256_unpacklo_epi64(s1,r3);\
-    q1 = _mm256_unpacklo_epi64(q1,p3);\
-    s2 = _mm256_unpackhi_epi64(s2,r1);\
-    q2 = _mm256_unpackhi_epi64(q2,p1);\
-    s3 = _mm256_unpacklo_epi64(s3,r1);\
-    q3 = _mm256_unpacklo_epi64(q3,p1);
+    s1 = _mm256_unpackhi_epi32( r3, r2 ); \
+    q1 = _mm256_unpackhi_epi32( p3, p2 ); \
+    s3 = _mm256_unpacklo_epi32( r3, r2 ); \
+    q3 = _mm256_unpacklo_epi32( p3, p2 ); \
+    r3 = _mm256_unpackhi_epi32( r1, r0 ); \
+    r1 = _mm256_unpacklo_epi32( r1, r0 ); \
+    p3 = _mm256_unpackhi_epi32( p1, p0 ); \
+    p1 = _mm256_unpacklo_epi32( p1, p0 ); \
+    s0 = _mm256_unpackhi_epi64( s1, r3 ); \
+    q0 = _mm256_unpackhi_epi64( q1 ,p3 ); \
+    s1 = _mm256_unpacklo_epi64( s1, r3 ); \
+    q1 = _mm256_unpacklo_epi64( q1, p3 ); \
+    s2 = _mm256_unpackhi_epi64( s3, r1 ); \
+    q2 = _mm256_unpackhi_epi64( q3, p1 ); \
+    s3 = _mm256_unpacklo_epi64( s3, r1 ); \
+    q3 = _mm256_unpacklo_epi64( q3, p1 );
 
 #define MIXTON1024(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3)\
     NMLTOM1024(r0,r1,r2,r3,s0,s1,s2,s3,p0,p1,p2,p3,q0,q1,q2,q3);
@@ -656,17 +646,10 @@ void rnd512_2way( luffa_2way_context *state, const __m256i *msg )
     __m256i *chainv = state->chainv;
     __m256i x0, x1, x2, x3, x4, x5, x6, x7;
 
-    t0 = chainv[0];
-    t1 = chainv[1];
-
-    t0 = _mm256_xor_si256( t0, chainv[2] );
-    t1 = _mm256_xor_si256( t1, chainv[3] );
-    t0 = _mm256_xor_si256( t0, chainv[4] );
-    t1 = _mm256_xor_si256( t1, chainv[5] );
-    t0 = _mm256_xor_si256( t0, chainv[6] );
-    t1 = _mm256_xor_si256( t1, chainv[7] );
-    t0 = _mm256_xor_si256( t0, chainv[8] );
-    t1 = _mm256_xor_si256( t1, chainv[9] );
+    t0 = mm256_xor3( chainv[0], chainv[2], chainv[4] );
+    t1 = mm256_xor3( chainv[1], chainv[3], chainv[5] );
+    t0 = mm256_xor3( t0, chainv[6], chainv[8] );
+    t1 = mm256_xor3( t1, chainv[7], chainv[9] );
 
     MULT2( t0, t1 );
 
@@ -701,11 +684,8 @@ void rnd512_2way( luffa_2way_context *state, const __m256i *msg )
     chainv[7] = _mm256_xor_si256(chainv[7], chainv[9]);
 
     MULT2( chainv[8], chainv[9] );
-    chainv[8] = _mm256_xor_si256( chainv[8], t0 );
-    chainv[9] = _mm256_xor_si256( chainv[9], t1 );
-
-    t0 = chainv[8];
-    t1 = chainv[9];
+    t0 = chainv[8] = _mm256_xor_si256( chainv[8], t0 );
+    t1 = chainv[9] = _mm256_xor_si256( chainv[9], t1 );
 
     MULT2( chainv[8], chainv[9] );
     chainv[8] = _mm256_xor_si256( chainv[8], chainv[6] );
@@ -794,29 +774,22 @@ void finalization512_2way( luffa_2way_context *state, uint32 *b )
 {
     uint32 hash[8*2] __attribute((aligned(64)));
     __m256i* chainv = state->chainv;
-    __m256i t[2];
+    __m256i t0, t1;
     const __m256i shuff_bswap32 = mm256_set2_64( 0x0c0d0e0f08090a0b,
                                                  0x0405060700010203 );
     /*---- blank round with m=0 ----*/
     rnd512_2way( state, NULL );
 
-    t[0] = chainv[0];
-    t[1] = chainv[1];
+    t0 = mm256_xor3( chainv[0], chainv[2], chainv[4] );
+    t1 = mm256_xor3( chainv[1], chainv[3], chainv[5] );
+    t0 = mm256_xor3( t0, chainv[6], chainv[8] );
+    t1 = mm256_xor3( t1, chainv[7], chainv[9] );
 
-    t[0] = _mm256_xor_si256( t[0], chainv[2] );
-    t[1] = _mm256_xor_si256( t[1], chainv[3] );
-    t[0] = _mm256_xor_si256( t[0], chainv[4] );
-    t[1] = _mm256_xor_si256( t[1], chainv[5] );
-    t[0] = _mm256_xor_si256( t[0], chainv[6] );
-    t[1] = _mm256_xor_si256( t[1], chainv[7] );
-    t[0] = _mm256_xor_si256( t[0], chainv[8] );
-    t[1] = _mm256_xor_si256( t[1], chainv[9] );
+    t0 = _mm256_shuffle_epi32( t0, 27 );
+    t1 = _mm256_shuffle_epi32( t1, 27 );
 
-    t[0] = _mm256_shuffle_epi32( t[0], 27 );
-    t[1] = _mm256_shuffle_epi32( t[1], 27 );
-
-    _mm256_store_si256( (__m256i*)&hash[0], t[0] );
-    _mm256_store_si256( (__m256i*)&hash[8], t[1] );
+    _mm256_store_si256( (__m256i*)&hash[0], t0 );
+    _mm256_store_si256( (__m256i*)&hash[8], t1 );
 
     casti_m256i( b, 0 ) = _mm256_shuffle_epi8(
                                   casti_m256i( hash, 0 ), shuff_bswap32 );
@@ -825,22 +798,16 @@ void finalization512_2way( luffa_2way_context *state, uint32 *b )
 
     rnd512_2way( state, NULL );
 
-    t[0] = chainv[0];
-    t[1] = chainv[1];
-    t[0] = _mm256_xor_si256( t[0], chainv[2] );
-    t[1] = _mm256_xor_si256( t[1], chainv[3] );
-    t[0] = _mm256_xor_si256( t[0], chainv[4] );
-    t[1] = _mm256_xor_si256( t[1], chainv[5] );
-    t[0] = _mm256_xor_si256( t[0], chainv[6] );
-    t[1] = _mm256_xor_si256( t[1], chainv[7] );
-    t[0] = _mm256_xor_si256( t[0], chainv[8] );
-    t[1] = _mm256_xor_si256( t[1], chainv[9] );
+    t0 = mm256_xor3( chainv[0], chainv[2], chainv[4] );
+    t1 = mm256_xor3( chainv[1], chainv[3], chainv[5] );
+    t0 = mm256_xor3( t0, chainv[6], chainv[8] );
+    t1 = mm256_xor3( t1, chainv[7], chainv[9] );
+    
+    t0 = _mm256_shuffle_epi32( t0, 27 );
+    t1 = _mm256_shuffle_epi32( t1, 27 );
 
-    t[0] = _mm256_shuffle_epi32( t[0], 27 );
-    t[1] = _mm256_shuffle_epi32( t[1], 27 );
-
-    _mm256_store_si256( (__m256i*)&hash[0], t[0] );
-    _mm256_store_si256( (__m256i*)&hash[8], t[1] );
+    _mm256_store_si256( (__m256i*)&hash[0], t0 );
+    _mm256_store_si256( (__m256i*)&hash[8], t1 );
 
     casti_m256i( b, 2 ) = _mm256_shuffle_epi8( 
                                   casti_m256i( hash, 0 ), shuff_bswap32 );

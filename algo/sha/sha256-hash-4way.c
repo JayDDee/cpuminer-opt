@@ -311,7 +311,7 @@ int sha256_4way_transform_le_short( __m128i *state_out, const __m128i *data,
    __m128i A, B, C, D, E, F, G, H;
    __m128i W[16];      memcpy_128( W, data, 16 );
    // Value required by H after round 60 to produce valid final hash
-   const __m128i H_ = m128_const1_32( 0x136032ED );
+   const __m128i H_ = _mm_set1_epi32( 0x136032ED );
 
    A = _mm_load_si128( state_in   );
    B = _mm_load_si128( state_in+1 );
@@ -408,14 +408,14 @@ int sha256_4way_transform_le_short( __m128i *state_out, const __m128i *data,
 void sha256_4way_init( sha256_4way_context *sc )
 {
    sc->count_high = sc->count_low = 0;
-   sc->val[0] = m128_const1_64( 0x6A09E6676A09E667 );
-   sc->val[1] = m128_const1_64( 0xBB67AE85BB67AE85 );
-   sc->val[2] = m128_const1_64( 0x3C6EF3723C6EF372 );
-   sc->val[3] = m128_const1_64( 0xA54FF53AA54FF53A );
-   sc->val[4] = m128_const1_64( 0x510E527F510E527F );
-   sc->val[5] = m128_const1_64( 0x9B05688C9B05688C );
-   sc->val[6] = m128_const1_64( 0x1F83D9AB1F83D9AB );
-   sc->val[7] = m128_const1_64( 0x5BE0CD195BE0CD19 );
+   sc->val[0] = _mm_set1_epi64x( 0x6A09E6676A09E667 );
+   sc->val[1] = _mm_set1_epi64x( 0xBB67AE85BB67AE85 );
+   sc->val[2] = _mm_set1_epi64x( 0x3C6EF3723C6EF372 );
+   sc->val[3] = _mm_set1_epi64x( 0xA54FF53AA54FF53A );
+   sc->val[4] = _mm_set1_epi64x( 0x510E527F510E527F );
+   sc->val[5] = _mm_set1_epi64x( 0x9B05688C9B05688C );
+   sc->val[6] = _mm_set1_epi64x( 0x1F83D9AB1F83D9AB );
+   sc->val[7] = _mm_set1_epi64x( 0x5BE0CD195BE0CD19 );
 }
 
 void sha256_4way_update( sha256_4way_context *sc, const void *data, size_t len )
@@ -458,7 +458,7 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
     const int pad = buf_size - 8;
 
     ptr = (unsigned)sc->count_low & (buf_size - 1U);
-    sc->buf[ ptr>>2 ] = m128_const1_64( 0x0000008000000080 );
+    sc->buf[ ptr>>2 ] = _mm_set1_epi64x( 0x0000008000000080 );
     ptr += 4;
 
     if ( ptr > pad )
@@ -474,8 +474,8 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
     high = (sc->count_high << 3) | (low >> 29);
     low = low << 3;
 
-    sc->buf[  pad     >> 2 ] = m128_const1_32( bswap_32( high ) );
-    sc->buf[( pad+4 ) >> 2 ] = m128_const1_32( bswap_32( low ) );
+    sc->buf[  pad     >> 2 ] = _mm_set1_epi32( bswap_32( high ) );
+    sc->buf[( pad+4 ) >> 2 ] = _mm_set1_epi32( bswap_32( low ) );
     sha256_4way_transform_be( sc->val, sc->buf, sc->val );
 
     mm128_block_bswap_32( dst, sc->val );
@@ -588,7 +588,6 @@ do { \
 #define MAJx(X, Y, Z) \
   _mm256_xor_si256( Y, _mm256_and_si256( X_xor_Y = _mm256_xor_si256( X, Y ), \
                                          Y_xor_Z ) )
-
 
 #define SHA2s_8WAY_STEP( A, B, C, D, E, F, G, H, i, j ) \
 do { \
@@ -863,7 +862,7 @@ int sha256_8way_transform_le_short( __m256i *state_out, const __m256i *data,
 {
    __m256i A, B, C, D, E, F, G, H;
    __m256i W[16];  memcpy_256( W, data, 16 );
-   const __m256i H_ = m256_const1_32( 0x136032ED );
+   const __m256i H_ = _mm256_set1_epi32( 0x136032ED );
 
    A = _mm256_load_si256( state_in   );
    B = _mm256_load_si256( state_in+1 );
@@ -979,14 +978,14 @@ int sha256_8way_transform_le_short( __m256i *state_out, const __m256i *data,
 void sha256_8way_init( sha256_8way_context *sc )
 {
    sc->count_high = sc->count_low = 0;
-   sc->val[0] = m256_const1_64( 0x6A09E6676A09E667 );
-   sc->val[1] = m256_const1_64( 0xBB67AE85BB67AE85 );
-   sc->val[2] = m256_const1_64( 0x3C6EF3723C6EF372 );
-   sc->val[3] = m256_const1_64( 0xA54FF53AA54FF53A );
-   sc->val[4] = m256_const1_64( 0x510E527F510E527F );
-   sc->val[5] = m256_const1_64( 0x9B05688C9B05688C );
-   sc->val[6] = m256_const1_64( 0x1F83D9AB1F83D9AB );
-   sc->val[7] = m256_const1_64( 0x5BE0CD195BE0CD19 );
+   sc->val[0] = _mm256_set1_epi64x( 0x6A09E6676A09E667 );
+   sc->val[1] = _mm256_set1_epi64x( 0xBB67AE85BB67AE85 );
+   sc->val[2] = _mm256_set1_epi64x( 0x3C6EF3723C6EF372 );
+   sc->val[3] = _mm256_set1_epi64x( 0xA54FF53AA54FF53A );
+   sc->val[4] = _mm256_set1_epi64x( 0x510E527F510E527F );
+   sc->val[5] = _mm256_set1_epi64x( 0x9B05688C9B05688C );
+   sc->val[6] = _mm256_set1_epi64x( 0x1F83D9AB1F83D9AB );
+   sc->val[7] = _mm256_set1_epi64x( 0x5BE0CD195BE0CD19 );
 }
 
 // need to handle odd byte length for yespower.
@@ -1032,7 +1031,7 @@ void sha256_8way_close( sha256_8way_context *sc, void *dst )
     const int pad = buf_size - 8;
 
     ptr = (unsigned)sc->count_low & (buf_size - 1U);
-    sc->buf[ ptr>>2 ] = m256_const1_64( 0x0000008000000080 );
+    sc->buf[ ptr>>2 ] = _mm256_set1_epi64x( 0x0000008000000080 );
     ptr += 4;
 
     if ( ptr > pad )
@@ -1048,8 +1047,8 @@ void sha256_8way_close( sha256_8way_context *sc, void *dst )
     high = (sc->count_high << 3) | (low >> 29);
     low = low << 3;
 
-    sc->buf[   pad     >> 2 ] = m256_const1_32( bswap_32( high ) );
-    sc->buf[ ( pad+4 ) >> 2 ] = m256_const1_32( bswap_32( low ) );
+    sc->buf[   pad     >> 2 ] = _mm256_set1_epi32( bswap_32( high ) );
+    sc->buf[ ( pad+4 ) >> 2 ] = _mm256_set1_epi32( bswap_32( low ) );
 
     sha256_8way_transform_be( sc->val, sc->buf, sc->val );
 
@@ -1360,7 +1359,7 @@ int sha256_16way_transform_le_short( __m512i *state_out, const __m512i *data,
    // Value for H at round 60, before adding K, needed to produce valid final
    // hash where H == 0.
    // H_ =  -( H256[7] + K256[60] );
-   const __m512i H_ = m512_const1_32( 0x136032ED );
+   const __m512i H_ = _mm512_set1_epi32( 0x136032ED );
 
    A = _mm512_load_si512( state_in   );
    B = _mm512_load_si512( state_in+1 );
@@ -1453,14 +1452,14 @@ int sha256_16way_transform_le_short( __m512i *state_out, const __m512i *data,
 void sha256_16way_init( sha256_16way_context *sc )
 {
    sc->count_high = sc->count_low = 0;
-   sc->val[0] = m512_const1_64( 0x6A09E6676A09E667 );
-   sc->val[1] = m512_const1_64( 0xBB67AE85BB67AE85 );
-   sc->val[2] = m512_const1_64( 0x3C6EF3723C6EF372 );
-   sc->val[3] = m512_const1_64( 0xA54FF53AA54FF53A );
-   sc->val[4] = m512_const1_64( 0x510E527F510E527F );
-   sc->val[5] = m512_const1_64( 0x9B05688C9B05688C );
-   sc->val[6] = m512_const1_64( 0x1F83D9AB1F83D9AB );
-   sc->val[7] = m512_const1_64( 0x5BE0CD195BE0CD19 );
+   sc->val[0] = _mm512_set1_epi64( 0x6A09E6676A09E667 );
+   sc->val[1] = _mm512_set1_epi64( 0xBB67AE85BB67AE85 );
+   sc->val[2] = _mm512_set1_epi64( 0x3C6EF3723C6EF372 );
+   sc->val[3] = _mm512_set1_epi64( 0xA54FF53AA54FF53A );
+   sc->val[4] = _mm512_set1_epi64( 0x510E527F510E527F );
+   sc->val[5] = _mm512_set1_epi64( 0x9B05688C9B05688C );
+   sc->val[6] = _mm512_set1_epi64( 0x1F83D9AB1F83D9AB );
+   sc->val[7] = _mm512_set1_epi64( 0x5BE0CD195BE0CD19 );
 }
 
 void sha256_16way_update( sha256_16way_context *sc, const void *data,
@@ -1504,7 +1503,7 @@ void sha256_16way_close( sha256_16way_context *sc, void *dst )
     const int pad = buf_size - 8;
 
     ptr = (unsigned)sc->count_low & (buf_size - 1U);
-    sc->buf[ ptr>>2 ] = m512_const1_64( 0x0000008000000080 );
+    sc->buf[ ptr>>2 ] = _mm512_set1_epi64( 0x0000008000000080 );
     ptr += 4;
 
     if ( ptr > pad )
@@ -1520,8 +1519,8 @@ void sha256_16way_close( sha256_16way_context *sc, void *dst )
     high = (sc->count_high << 3) | (low >> 29);
     low = low << 3;
 
-    sc->buf[   pad     >> 2 ] = m512_const1_32( bswap_32( high ) );
-    sc->buf[ ( pad+4 ) >> 2 ] = m512_const1_32( bswap_32( low ) );
+    sc->buf[   pad     >> 2 ] = _mm512_set1_epi32( bswap_32( high ) );
+    sc->buf[ ( pad+4 ) >> 2 ] = _mm512_set1_epi32( bswap_32( low ) );
 
     sha256_16way_transform_be( sc->val, sc->buf, sc->val );
 

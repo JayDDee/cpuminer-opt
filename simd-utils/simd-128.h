@@ -43,9 +43,11 @@ typedef union
 } __attribute__ ((aligned (16))) m128_ovly;
 
 
-// Deprecated. EVEX adds support for integer argument in broadcast instruction
-// eliminating the need for an explicit move in most cases. Use the set1
-// intrinsic with integers and let the compiler figure it out.
+// Deprecated. AVX512 adds EVEX encoding (3rd operand) and other improvements
+// that make these functions either unnecessary or inefficient.
+// In cases where an explicit move betweeen GP & SIMD registers is still
+// necessary the cvt, set, or set1 intrinsics can be used allowing the
+// compiler to exploilt new features to produce optimum code.
 static inline __m128i mm128_mov64_128( const uint64_t n )
 {
   __m128i a;
@@ -73,15 +75,7 @@ static inline __m128i mm128_mov32_128( const uint32_t n )
 //#define mm128_bcast_m64( v )   _mm_shuffle_epi32( v, 0x44 )
 //#define mm128_bcast_m32( v )   _mm_shuffle_epi32( v, 0x00 )
 
-// Deprecated, use set1 directly
-#define m128_const1_64          _mm_set1_epi64x
-#define m128_const1_32          _mm_set1_epi32
-
-// Deprecated, use set directly
-#define m128_const_64  _mm_set_epi64x
-
 // Pseudo constants
-
 #define m128_zero      _mm_setzero_si128()
 #define m128_one_128   mm128_mov64_128( 1 )
 //#define m128_one_64    _mm_set1_epi64x( 1 )
@@ -141,7 +135,7 @@ static inline __m128i mm128_neg1_fn()
 
 // Examples of simple operations using xim:
 
-// Insert 32 bit integer into v at element c and return updated v.
+// Copy i to element c of dest and copy remaining elemnts from v.
 static inline __m128i mm128_insert_32( const __m128i v, const uint32_t i,
                                        const int c )
 {   return mm128_xim_32( v, mm128_mov32_128( i ), c<<4 ); }
@@ -161,6 +155,7 @@ static inline __m128i mm128_mask_32( const __m128i v, const int m )
 
 // Bitwise not (~v)  
 #if defined(__AVX512VL__)
+//TODO Enable for AVX10_256
 
 static inline __m128i mm128_not( const __m128i v )
 {  return _mm_ternarylogic_epi64( v, v, v, 1 ); }
@@ -223,18 +218,54 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 {   for ( int i = 0; i < n; i ++ ) dst[i] = src[i]; }
 
 #if defined(__AVX512VL__)
+//TODO Enable for AVX10_256
 
 // a ^ b ^ c
-#define mm128_xor3( a, b, c )    _mm_ternarylogic_epi64( a, b, c, 0x96 )
+#define mm128_xor3( a, b, c )      _mm_ternarylogic_epi64( a, b, c, 0x96 )
+
+// a & b & c
+#define mm128_and3( a, b, c )      _mm_ternarylogic_epi64( a, b, c, 0x80 )
+
+// a | b | c
+#define mm128_or3( a, b, c )       _mm_ternarylogic_epi64( a, b, c, 0xfe )
 
 // a ^ ( b & c )
-#define mm128_xorand( a, b, c )  _mm_ternarylogic_epi64( a, b, c, 0x78 )
+#define mm128_xorand( a, b, c )    _mm_ternarylogic_epi64( a, b, c, 0x78 )
+
+// a & ( b ^ c )
+#define mm128_andxor( a, b, c )    _mm_ternarylogic_epi64( a, b, c, 0x60 )
+
+// a ^ ( b | c )
+#define mm128_xoror( a, b, c )     _mm_ternarylogic_epi64( a, b, c, 0x1e )
+
+// a ^ ( ~b & c )
+#define mm128_xorandnot( a, b, c ) _mm_ternarylogic_epi64( a, b, c, 0xd2 )
+
+// a | ( b & c )
+#define mm128_orand( a, b, c )     _mm_ternarylogic_epi64( a, b, c, 0xf8 )
+
+// ~( a ^ b ), same as (~a) ^ b
+#define mm128_xnor( a, b )         _mm_ternarylogic_epi64( a, b, b, 0x81 )
 
 #else
 
-#define mm128_xor3( a, b, c )    _mm_xor_si128( a, _mm_xor_si128( b, c ) )
+#define mm128_xor3( a, b, c )      _mm_xor_si128( a, _mm_xor_si128( b, c ) )
 
-#define mm128_xorand( a, b, c )  _mm_xor_si128( a, _mm_and_si128( b, c ) )
+#define mm128_and3( a, b, c )      _mm_and_si128( a, _mm_and_si128( b, c ) )
+
+#define mm128_or3( a, b, c )       _mm_or_si128( a, _mm_or_si128( b, c ) )
+
+#define mm128_xorand( a, b, c )    _mm_xor_si128( a, _mm_and_si128( b, c ) )
+
+#define mm128_andxor( a, b, c )    _mm_and_si128( a, _mm_xor_si128( b, c ))
+
+#define mm128_xoror( a, b, c )     _mm_xor_si128( a, _mm_or_si128( b, c ) )
+
+#define mm128_xorandnot( a, b, c ) _mm_xor_si128( a, _mm_andnot_si128( b, c ) )
+
+#define mm128_orand( a, b, c )     _mm_or_si128( a, _mm_and_si128( b, c ) )
+
+#define mm128_xnor( a, b )         mm128_not( _mm_xor_si128( a, b ) )
 
 #endif
 
@@ -257,6 +288,7 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 // transparency.
 
 #if defined(__AVX512VL__)
+//TODO Enable for AVX10_256
 
 #define mm128_ror_64    _mm_ror_epi64
 #define mm128_rol_64    _mm_rol_epi64
@@ -372,7 +404,10 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
 #define mm128_shuflr64_32     mm128_swap64_32
 #define mm128_shufll64_32     mm128_swap64_32
 
-#if defined(__SSSE3__) && !defined(__AVX512VL__)
+//TODO Enable for AVX10_256
+#if defined(__AVX512VL__)
+  #define m1286_shuflr64_24( v )  _mm_ror_epi64( v, 24 )
+#elif defined(__SSSE3__) 
   #define mm128_shuflr64_24( v ) \
     _mm_shuffle_epi8( v, _mm_set_epi64x( \
                                     0x0a09080f0e0d0c0b, 0x0201000706050403 ) )
@@ -380,7 +415,9 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
   #define mm128_shuflr64_24( v ) mm128_ror_64( v, 24 )
 #endif
 
-#if defined(__SSSE3__) && !defined(__AVX512VL__)
+#if defined(__AVX512VL__)
+  #define mm128_shuflr64_16( v )  _mm_ror_epi64( v, 16 )
+#elif defined(__SSSE3__) 
   #define mm128_shuflr64_16( v ) \
     _mm_shuffle_epi8( v, _mm_set_epi64x( \
                                     0x09080f0e0d0c0b0a, 0x0100070605040302 ) )
@@ -390,7 +427,9 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
 
 // Rotate 32 bit lanes
 
-#if defined(__SSSE3__) && !defined(__AVX512VL__)
+#if defined(__AVX512VL__)
+  #define mm128_swap32_16( v )  _mm_ror_epi32( v, 16 )
+#elif defined(__SSSE3__)
   #define mm128_swap32_16( v ) \
     _mm_shuffle_epi8( v, _mm_set_epi64x( \
                                     0x0d0c0f0e09080b0a, 0x0504070601000302 ) )
@@ -400,7 +439,9 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
 #define mm128_shuflr32_16      mm128_swap32_16
 #define mm128_shufll32_16      mm128_swap32_16
 
-#if defined(__SSSE3__) && !defined(__AVX512VL__)
+#if defined(__AVX512VL__)
+  #define mm128_shuflr32_8( v )  _mm_ror_epi32( v, 8 )
+#elif defined(__SSSE3__)
   #define mm128_shuflr32_8( v ) \
     _mm_shuffle_epi8( v, _mm_set_epi64x( \
                                     0x0c0f0e0d080b0a09, 0x0407060500030201 ) )

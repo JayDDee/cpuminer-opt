@@ -76,19 +76,31 @@ do { \
 
 #endif
 
+#if defined(__AVX512VL__)
+//TODO enable for AVX10_256, not used with AVX512VL
+
+#define notxorandnot( a, b, c ) \
+   _mm256_ternarylogic_epi64( a, b, c, 0x2d )
+
+#else
+
+#define notxorandnot( a, b, c ) \
+   _mm256_xor_si256( mm256_not( a ), _mm256_andnot_si256( b, c ) )
+
+#endif
+
 #define Sb(x0, x1, x2, x3, c) \
 do { \
-   const __m256i cc = _mm256_set1_epi64x( c ); \
-    x3 = mm256_not( x3 ); \
-    x0 = _mm256_xor_si256( x0, _mm256_andnot_si256( x2, cc ) ); \
-    tmp = _mm256_xor_si256( cc, _mm256_and_si256( x0, x1 ) ); \
-    x0 = _mm256_xor_si256( x0, _mm256_and_si256( x2, x3 ) ); \
-    x3 = _mm256_xor_si256( x3, _mm256_andnot_si256( x1, x2 ) ); \
-    x1 = _mm256_xor_si256( x1, _mm256_and_si256( x0, x2 ) ); \
-    x2 = _mm256_xor_si256( x2, _mm256_andnot_si256( x3, x0 ) ); \
-    x0 = _mm256_xor_si256( x0, _mm256_or_si256( x1, x3 ) ); \
-    x3 = _mm256_xor_si256( x3, _mm256_and_si256( x1, x2 ) ); \
-    x1 = _mm256_xor_si256( x1, _mm256_and_si256( tmp, x0 ) ); \
+    const __m256i cc = _mm256_set1_epi64x( c ); \
+    x0 = mm256_xorandnot( x0, x2, cc ); \
+    tmp = mm256_xorand( cc, x0, x1 ); \
+    x0 = mm256_xorandnot( x0, x3, x2 ); \
+    x3 = notxorandnot( x3, x1, x2 ); \
+    x1 = mm256_xorand( x1, x0, x2 ); \
+    x2 = mm256_xorandnot( x2, x3, x0 ); \
+    x0 = mm256_xoror( x0, x1, x3 ); \
+    x3 = mm256_xorand( x3, x1, x2 ); \
+    x1 = mm256_xorand( x1, tmp, x0 ); \
     x2 = _mm256_xor_si256( x2, tmp ); \
 } while (0)
 
@@ -96,11 +108,11 @@ do { \
 do { \
     x4 = _mm256_xor_si256( x4, x1 ); \
     x5 = _mm256_xor_si256( x5, x2 ); \
-    x6 = _mm256_xor_si256( x6, _mm256_xor_si256( x3, x0 ) ); \
+    x6 = mm256_xor3( x6, x3, x0 ); \
     x7 = _mm256_xor_si256( x7, x0 ); \
     x0 = _mm256_xor_si256( x0, x5 ); \
     x1 = _mm256_xor_si256( x1, x6 ); \
-    x2 = _mm256_xor_si256( x2, _mm256_xor_si256( x7, x4 ) ); \
+    x2 = mm256_xor3( x2, x7, x4 ); \
     x3 = _mm256_xor_si256( x3, x4 ); \
 } while (0)
 
@@ -323,12 +335,12 @@ do { \
 } while (0)
 
 
-#define W80(x)   Wz_8W(x, m512_const1_64( 0x5555555555555555 ),  1 )
-#define W81(x)   Wz_8W(x, m512_const1_64( 0x3333333333333333 ),  2 )
-#define W82(x)   Wz_8W(x, m512_const1_64( 0x0F0F0F0F0F0F0F0F ),  4 )
-#define W83(x)   Wz_8W(x, m512_const1_64( 0x00FF00FF00FF00FF ),  8 ) 
-#define W84(x)   Wz_8W(x, m512_const1_64( 0x0000FFFF0000FFFF ), 16 )
-#define W85(x)   Wz_8W(x, m512_const1_64( 0x00000000FFFFFFFF ), 32 )
+#define W80(x)   Wz_8W(x, _mm512_set1_epi64( 0x5555555555555555 ),  1 )
+#define W81(x)   Wz_8W(x, _mm512_set1_epi64( 0x3333333333333333 ),  2 )
+#define W82(x)   Wz_8W(x, _mm512_set1_epi64( 0x0F0F0F0F0F0F0F0F ),  4 )
+#define W83(x)   Wz_8W(x, _mm512_set1_epi64( 0x00FF00FF00FF00FF ),  8 ) 
+#define W84(x)   Wz_8W(x, _mm512_set1_epi64( 0x0000FFFF0000FFFF ), 16 )
+#define W85(x)   Wz_8W(x, _mm512_set1_epi64( 0x00000000FFFFFFFF ), 32 )
 #define W86(x) \
 do { \
    __m512i t = x ## h; \
@@ -352,12 +364,12 @@ do { \
    x ## l = _mm256_or_si256( _mm256_and_si256((x ## l >> (n)), (c)), t ); \
 } while (0)
 
-#define W0(x)   Wz(x, m256_const1_64( 0x5555555555555555 ),  1 )
-#define W1(x)   Wz(x, m256_const1_64( 0x3333333333333333 ),  2 )
-#define W2(x)   Wz(x, m256_const1_64( 0x0F0F0F0F0F0F0F0F ),  4 )
-#define W3(x)   Wz(x, m256_const1_64( 0x00FF00FF00FF00FF ),  8 ) 
-#define W4(x)   Wz(x, m256_const1_64( 0x0000FFFF0000FFFF ), 16 )
-#define W5(x)   Wz(x, m256_const1_64( 0x00000000FFFFFFFF ), 32 )
+#define W0(x)   Wz(x, _mm256_set1_epi64x( 0x5555555555555555 ),  1 )
+#define W1(x)   Wz(x, _mm256_set1_epi64x( 0x3333333333333333 ),  2 )
+#define W2(x)   Wz(x, _mm256_set1_epi64x( 0x0F0F0F0F0F0F0F0F ),  4 )
+#define W3(x)   Wz(x, _mm256_set1_epi64x( 0x00FF00FF00FF00FF ),  8 ) 
+#define W4(x)   Wz(x, _mm256_set1_epi64x( 0x0000FFFF0000FFFF ), 16 )
+#define W5(x)   Wz(x, _mm256_set1_epi64x( 0x00000000FFFFFFFF ), 32 )
 #define W6(x) \
 do { \
    __m256i t = x ## h; \
@@ -624,22 +636,22 @@ static const sph_u64 IV512[] = {
 void jh256_8way_init( jh_8way_context *sc )
 {
     // bswapped IV256
-    sc->H[ 0] = m512_const1_64( 0xebd3202c41a398eb );
-    sc->H[ 1] = m512_const1_64( 0xc145b29c7bbecd92 );
-    sc->H[ 2] = m512_const1_64( 0xfac7d4609151931c );
-    sc->H[ 3] = m512_const1_64( 0x038a507ed6820026 );
-    sc->H[ 4] = m512_const1_64( 0x45b92677269e23a4 );
-    sc->H[ 5] = m512_const1_64( 0x77941ad4481afbe0 );
-    sc->H[ 6] = m512_const1_64( 0x7a176b0226abb5cd );
-    sc->H[ 7] = m512_const1_64( 0xa82fff0f4224f056 );
-    sc->H[ 8] = m512_const1_64( 0x754d2e7f8996a371 );
-    sc->H[ 9] = m512_const1_64( 0x62e27df70849141d );
-    sc->H[10] = m512_const1_64( 0x948f2476f7957627 );
-    sc->H[11] = m512_const1_64( 0x6c29804757b6d587 );
-    sc->H[12] = m512_const1_64( 0x6c0d8eac2d275e5c );
-    sc->H[13] = m512_const1_64( 0x0f7a0557c6508451 );
-    sc->H[14] = m512_const1_64( 0xea12247067d3e47b );
-    sc->H[15] = m512_const1_64( 0x69d71cd313abe389 );
+    sc->H[ 0] = _mm512_set1_epi64( 0xebd3202c41a398eb );
+    sc->H[ 1] = _mm512_set1_epi64( 0xc145b29c7bbecd92 );
+    sc->H[ 2] = _mm512_set1_epi64( 0xfac7d4609151931c );
+    sc->H[ 3] = _mm512_set1_epi64( 0x038a507ed6820026 );
+    sc->H[ 4] = _mm512_set1_epi64( 0x45b92677269e23a4 );
+    sc->H[ 5] = _mm512_set1_epi64( 0x77941ad4481afbe0 );
+    sc->H[ 6] = _mm512_set1_epi64( 0x7a176b0226abb5cd );
+    sc->H[ 7] = _mm512_set1_epi64( 0xa82fff0f4224f056 );
+    sc->H[ 8] = _mm512_set1_epi64( 0x754d2e7f8996a371 );
+    sc->H[ 9] = _mm512_set1_epi64( 0x62e27df70849141d );
+    sc->H[10] = _mm512_set1_epi64( 0x948f2476f7957627 );
+    sc->H[11] = _mm512_set1_epi64( 0x6c29804757b6d587 );
+    sc->H[12] = _mm512_set1_epi64( 0x6c0d8eac2d275e5c );
+    sc->H[13] = _mm512_set1_epi64( 0x0f7a0557c6508451 );
+    sc->H[14] = _mm512_set1_epi64( 0xea12247067d3e47b );
+    sc->H[15] = _mm512_set1_epi64( 0x69d71cd313abe389 );
     sc->ptr = 0;
     sc->block_count = 0;
 }
@@ -647,22 +659,22 @@ void jh256_8way_init( jh_8way_context *sc )
 void jh512_8way_init( jh_8way_context *sc )
 {
     // bswapped IV512
-    sc->H[ 0] = m512_const1_64( 0x17aa003e964bd16f );
-    sc->H[ 1] = m512_const1_64( 0x43d5157a052e6a63 );
-    sc->H[ 2] = m512_const1_64( 0x0bef970c8d5e228a );
-    sc->H[ 3] = m512_const1_64( 0x61c3b3f2591234e9 );
-    sc->H[ 4] = m512_const1_64( 0x1e806f53c1a01d89 );
-    sc->H[ 5] = m512_const1_64( 0x806d2bea6b05a92a );
-    sc->H[ 6] = m512_const1_64( 0xa6ba7520dbcc8e58 );
-    sc->H[ 7] = m512_const1_64( 0xf73bf8ba763a0fa9 );
-    sc->H[ 8] = m512_const1_64( 0x694ae34105e66901 );
-    sc->H[ 9] = m512_const1_64( 0x5ae66f2e8e8ab546 );
-    sc->H[10] = m512_const1_64( 0x243c84c1d0a74710 );
-    sc->H[11] = m512_const1_64( 0x99c15a2db1716e3b );
-    sc->H[12] = m512_const1_64( 0x56f8b19decf657cf );
-    sc->H[13] = m512_const1_64( 0x56b116577c8806a7 );
-    sc->H[14] = m512_const1_64( 0xfb1785e6dffcc2e3 );
-    sc->H[15] = m512_const1_64( 0x4bdd8ccc78465a54 );
+    sc->H[ 0] = _mm512_set1_epi64( 0x17aa003e964bd16f );
+    sc->H[ 1] = _mm512_set1_epi64( 0x43d5157a052e6a63 );
+    sc->H[ 2] = _mm512_set1_epi64( 0x0bef970c8d5e228a );
+    sc->H[ 3] = _mm512_set1_epi64( 0x61c3b3f2591234e9 );
+    sc->H[ 4] = _mm512_set1_epi64( 0x1e806f53c1a01d89 );
+    sc->H[ 5] = _mm512_set1_epi64( 0x806d2bea6b05a92a );
+    sc->H[ 6] = _mm512_set1_epi64( 0xa6ba7520dbcc8e58 );
+    sc->H[ 7] = _mm512_set1_epi64( 0xf73bf8ba763a0fa9 );
+    sc->H[ 8] = _mm512_set1_epi64( 0x694ae34105e66901 );
+    sc->H[ 9] = _mm512_set1_epi64( 0x5ae66f2e8e8ab546 );
+    sc->H[10] = _mm512_set1_epi64( 0x243c84c1d0a74710 );
+    sc->H[11] = _mm512_set1_epi64( 0x99c15a2db1716e3b );
+    sc->H[12] = _mm512_set1_epi64( 0x56f8b19decf657cf );
+    sc->H[13] = _mm512_set1_epi64( 0x56b116577c8806a7 );
+    sc->H[14] = _mm512_set1_epi64( 0xfb1785e6dffcc2e3 );
+    sc->H[15] = _mm512_set1_epi64( 0x4bdd8ccc78465a54 );
     sc->ptr = 0;
     sc->block_count = 0;
 }
@@ -721,7 +733,7 @@ jh_8way_close( jh_8way_context *sc, unsigned ub, unsigned n, void *dst,
    size_t numz, u;
    uint64_t l0, l1;
 
-   buf[0] = m512_const1_64( 0x80ULL );
+   buf[0] = _mm512_set1_epi64( 0x80ULL );
 
    if ( sc->ptr == 0 )
        numz = 48;
@@ -772,22 +784,22 @@ jh512_8way_close(void *cc, void *dst)
 void jh256_4way_init( jh_4way_context *sc )
 {
     // bswapped IV256
-    sc->H[ 0] = m256_const1_64( 0xebd3202c41a398eb );
-    sc->H[ 1] = m256_const1_64( 0xc145b29c7bbecd92 );
-    sc->H[ 2] = m256_const1_64( 0xfac7d4609151931c );
-    sc->H[ 3] = m256_const1_64( 0x038a507ed6820026 );
-    sc->H[ 4] = m256_const1_64( 0x45b92677269e23a4 );
-    sc->H[ 5] = m256_const1_64( 0x77941ad4481afbe0 );
-    sc->H[ 6] = m256_const1_64( 0x7a176b0226abb5cd );
-    sc->H[ 7] = m256_const1_64( 0xa82fff0f4224f056 );
-    sc->H[ 8] = m256_const1_64( 0x754d2e7f8996a371 );
-    sc->H[ 9] = m256_const1_64( 0x62e27df70849141d );
-    sc->H[10] = m256_const1_64( 0x948f2476f7957627 );
-    sc->H[11] = m256_const1_64( 0x6c29804757b6d587 );
-    sc->H[12] = m256_const1_64( 0x6c0d8eac2d275e5c );
-    sc->H[13] = m256_const1_64( 0x0f7a0557c6508451 );
-    sc->H[14] = m256_const1_64( 0xea12247067d3e47b );
-    sc->H[15] = m256_const1_64( 0x69d71cd313abe389 );
+    sc->H[ 0] = _mm256_set1_epi64x( 0xebd3202c41a398eb );
+    sc->H[ 1] = _mm256_set1_epi64x( 0xc145b29c7bbecd92 );
+    sc->H[ 2] = _mm256_set1_epi64x( 0xfac7d4609151931c );
+    sc->H[ 3] = _mm256_set1_epi64x( 0x038a507ed6820026 );
+    sc->H[ 4] = _mm256_set1_epi64x( 0x45b92677269e23a4 );
+    sc->H[ 5] = _mm256_set1_epi64x( 0x77941ad4481afbe0 );
+    sc->H[ 6] = _mm256_set1_epi64x( 0x7a176b0226abb5cd );
+    sc->H[ 7] = _mm256_set1_epi64x( 0xa82fff0f4224f056 );
+    sc->H[ 8] = _mm256_set1_epi64x( 0x754d2e7f8996a371 );
+    sc->H[ 9] = _mm256_set1_epi64x( 0x62e27df70849141d );
+    sc->H[10] = _mm256_set1_epi64x( 0x948f2476f7957627 );
+    sc->H[11] = _mm256_set1_epi64x( 0x6c29804757b6d587 );
+    sc->H[12] = _mm256_set1_epi64x( 0x6c0d8eac2d275e5c );
+    sc->H[13] = _mm256_set1_epi64x( 0x0f7a0557c6508451 );
+    sc->H[14] = _mm256_set1_epi64x( 0xea12247067d3e47b );
+    sc->H[15] = _mm256_set1_epi64x( 0x69d71cd313abe389 );
     sc->ptr = 0;
     sc->block_count = 0;
 }
@@ -795,22 +807,22 @@ void jh256_4way_init( jh_4way_context *sc )
 void jh512_4way_init( jh_4way_context *sc )
 {
     // bswapped IV512
-    sc->H[ 0] = m256_const1_64( 0x17aa003e964bd16f );
-    sc->H[ 1] = m256_const1_64( 0x43d5157a052e6a63 );
-    sc->H[ 2] = m256_const1_64( 0x0bef970c8d5e228a );
-    sc->H[ 3] = m256_const1_64( 0x61c3b3f2591234e9 );
-    sc->H[ 4] = m256_const1_64( 0x1e806f53c1a01d89 );
-    sc->H[ 5] = m256_const1_64( 0x806d2bea6b05a92a );
-    sc->H[ 6] = m256_const1_64( 0xa6ba7520dbcc8e58 );
-    sc->H[ 7] = m256_const1_64( 0xf73bf8ba763a0fa9 );
-    sc->H[ 8] = m256_const1_64( 0x694ae34105e66901 );
-    sc->H[ 9] = m256_const1_64( 0x5ae66f2e8e8ab546 );
-    sc->H[10] = m256_const1_64( 0x243c84c1d0a74710 );
-    sc->H[11] = m256_const1_64( 0x99c15a2db1716e3b );
-    sc->H[12] = m256_const1_64( 0x56f8b19decf657cf );
-    sc->H[13] = m256_const1_64( 0x56b116577c8806a7 );
-    sc->H[14] = m256_const1_64( 0xfb1785e6dffcc2e3 );
-    sc->H[15] = m256_const1_64( 0x4bdd8ccc78465a54 );
+    sc->H[ 0] = _mm256_set1_epi64x( 0x17aa003e964bd16f );
+    sc->H[ 1] = _mm256_set1_epi64x( 0x43d5157a052e6a63 );
+    sc->H[ 2] = _mm256_set1_epi64x( 0x0bef970c8d5e228a );
+    sc->H[ 3] = _mm256_set1_epi64x( 0x61c3b3f2591234e9 );
+    sc->H[ 4] = _mm256_set1_epi64x( 0x1e806f53c1a01d89 );
+    sc->H[ 5] = _mm256_set1_epi64x( 0x806d2bea6b05a92a );
+    sc->H[ 6] = _mm256_set1_epi64x( 0xa6ba7520dbcc8e58 );
+    sc->H[ 7] = _mm256_set1_epi64x( 0xf73bf8ba763a0fa9 );
+    sc->H[ 8] = _mm256_set1_epi64x( 0x694ae34105e66901 );
+    sc->H[ 9] = _mm256_set1_epi64x( 0x5ae66f2e8e8ab546 );
+    sc->H[10] = _mm256_set1_epi64x( 0x243c84c1d0a74710 );
+    sc->H[11] = _mm256_set1_epi64x( 0x99c15a2db1716e3b );
+    sc->H[12] = _mm256_set1_epi64x( 0x56f8b19decf657cf );
+    sc->H[13] = _mm256_set1_epi64x( 0x56b116577c8806a7 );
+    sc->H[14] = _mm256_set1_epi64x( 0xfb1785e6dffcc2e3 );
+    sc->H[15] = _mm256_set1_epi64x( 0x4bdd8ccc78465a54 );
     sc->ptr = 0;
     sc->block_count = 0;
 }
@@ -869,7 +881,7 @@ jh_4way_close( jh_4way_context *sc, unsigned ub, unsigned n, void *dst,
    size_t numz, u;
    uint64_t l0, l1;
 
-   buf[0] = m256_const1_64( 0x80ULL );
+   buf[0] = _mm256_set1_epi64x( 0x80ULL );
 
    if ( sc->ptr == 0 )
        numz = 48;

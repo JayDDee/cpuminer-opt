@@ -68,7 +68,7 @@ int scanhash_sha256q_16way( struct work *work, const uint32_t max_nonce,
            submit_solution( work, lane_hash, mythr );
         }
       }
-      *noncev = _mm512_add_epi32( *noncev, m512_const1_32( 16 ) );
+      *noncev = _mm512_add_epi32( *noncev, _mm512_set1_epi32( 16 ) );
       n += 16;
    } while ( (n < last_nonce) && !work_restart[thr_id].restart );
    pdata[19] = n;
@@ -140,7 +140,7 @@ int scanhash_sha256q_8way( struct work *work, const uint32_t max_nonce,
            submit_solution( work, lane_hash, mythr );
         }
       }
-      *noncev = _mm256_add_epi32( *noncev, m256_const1_32( 8 ) );
+      *noncev = _mm256_add_epi32( *noncev, _mm256_set1_epi32( 8 ) );
       n += 8;
    } while ( (n < last_nonce) && !work_restart[thr_id].restart );
    pdata[19] = n;

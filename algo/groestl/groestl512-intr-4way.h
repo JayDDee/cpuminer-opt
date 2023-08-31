@@ -710,7 +710,7 @@ static const __m256i SUBSH_MASK7_2WAY =
   b0 = a2;\
   a1 = _mm256_xor_si256(a1, a2);\
   b1 = a3;\
-  a2 = _mm256_xor_si256(a2, a3);\
+  TEMP2 = _mm256_xor_si256(a2, a3);\
   b2 = a4;\
   a3 = _mm256_xor_si256(a3, a4);\
   b3 = a5;\
@@ -722,34 +722,23 @@ static const __m256i SUBSH_MASK7_2WAY =
   a7 = _mm256_xor_si256(a7, b6);\
   \
   /* build y4 y5 y6 ... in regs xmm8, xmm9, xmm10 by adding t_i*/\
-  b0 = _mm256_xor_si256(b0, a4);\
-  b6 = _mm256_xor_si256(b6, a4);\
-  b1 = _mm256_xor_si256(b1, a5);\
-  b7 = _mm256_xor_si256(b7, a5);\
-  b2 = _mm256_xor_si256(b2, a6);\
-  b0 = _mm256_xor_si256(b0, a6);\
+  TEMP0 = mm256_xor3( b0, a4, a6 ); \
   /* spill values y_4, y_5 to memory */\
-  TEMP0 = b0;\
-  b3 = _mm256_xor_si256(b3, a7);\
-  b1 = _mm256_xor_si256(b1, a7);\
-  TEMP1 = b1;\
-  b4 = _mm256_xor_si256(b4, a0);\
-  b2 = _mm256_xor_si256(b2, a0);\
+  TEMP1 = mm256_xor3( b1, a5, a7 ); \
+  b2 = mm256_xor3( b2, a6, a0 ); \
   /* save values t0, t1, t2 to xmm8, xmm9 and memory */\
-  b0 = a0;\
-  b5 = _mm256_xor_si256(b5, a1);\
-  b3 = _mm256_xor_si256(b3, a1);\
-  b1 = a1;\
-  b6 = _mm256_xor_si256(b6, a2);\
-  b4 = _mm256_xor_si256(b4, a2);\
-  TEMP2 = a2;\
-  b7 = _mm256_xor_si256(b7, a3);\
-  b5 = _mm256_xor_si256(b5, a3);\
+  b0 = a0; \
+  b3 = mm256_xor3( b3, a7, a1 ); \
+  b1 = a1; \
+  b6 = mm256_xor3( b6, a4, TEMP2 ); \
+  b4 = mm256_xor3( b4, a0, TEMP2 ); \
+  b7 = mm256_xor3( b7, a5, a3 ); \
+  b5 = mm256_xor3( b5, a1, a3 ); \
   \
   /* compute x_i = t_i + t_{i+3} */\
   a0 = _mm256_xor_si256(a0, a3);\
   a1 = _mm256_xor_si256(a1, a4);\
-  a2 = _mm256_xor_si256(a2, a5);\
+  a2 = _mm256_xor_si256( TEMP2, a5);\
   a3 = _mm256_xor_si256(a3, a6);\
   a4 = _mm256_xor_si256(a4, a7);\
   a5 = _mm256_xor_si256(a5, b0);\

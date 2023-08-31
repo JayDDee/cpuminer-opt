@@ -469,8 +469,7 @@ int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
    t1 = _mm256_and_si256( t1, lsbmask_2way ); \
    t2 = _mm256_shuffle_epi8( mul2mask_2way, t1 ); \
    s2 = _mm256_xor_si256( s2, t2 );\
-   state2[ 0 ][ j ] = _mm256_xor_si256( state2[ 0 ][ j ], \
-                              _mm256_xor_si256( s2, state1[ 1 ][ j1 ] ) ); \
+   state2[ 0 ][ j ] = mm256_xor3( state2[ 0 ][ j ], s2, state1[ 1 ][ j1 ] ); \
    state2[ 1 ][ j ] = _mm256_xor_si256( state2[ 1 ][ j ], s2 ); \
    state2[ 2 ][ j ] = _mm256_xor_si256( state2[ 2 ][ j ], state1[ 1 ][ j1 ] ); \
    state2[ 3 ][ j ] = _mm256_xor_si256( state2[ 3 ][ j ], state1[ 1 ][ j1 ] ); \
@@ -480,8 +479,7 @@ int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
    t2 = _mm256_shuffle_epi8( mul2mask_2way, t1 ); \
    s2 = _mm256_xor_si256( s2, t2 ); \
    state2[ 0 ][ j ] = _mm256_xor_si256( state2[ 0 ][ j ], state1[ 2 ][ j2 ] ); \
-   state2[ 1 ][ j ] = _mm256_xor_si256( state2[ 1 ][ j ], \
-                            _mm256_xor_si256( s2, state1[ 2 ][ j2 ] ) ); \
+   state2[ 1 ][ j ] = mm256_xor3( state2[ 1 ][ j ], s2, state1[ 2 ][ j2 ] ); \
    state2[ 2 ][ j ] = _mm256_xor_si256( state2[ 2 ][ j ], s2 ); \
    state2[ 3 ][ j ] = _mm256_xor_si256( state2[ 3][ j ], state1[ 2 ][ j2 ] ); \
    s2 = _mm256_add_epi8( state1[ 3 ][ j3 ], state1[ 3 ][ j3 ] ); \
@@ -491,8 +489,7 @@ int echo_4way_full( echo_4way_context *ctx, void *hashval, int nHashSize,
    s2 = _mm256_xor_si256( s2, t2 ); \
    state2[ 0 ][ j ] = _mm256_xor_si256( state2[ 0 ][ j ], state1[ 3 ][ j3 ] ); \
    state2[ 1 ][ j ] = _mm256_xor_si256( state2[ 1 ][ j ], state1[ 3 ][ j3 ] ); \
-   state2[ 2 ][ j ] = _mm256_xor_si256( state2[ 2 ][ j ], \
-                            _mm256_xor_si256( s2, state1[ 3 ][ j3] ) ); \
+   state2[ 2 ][ j ] = mm256_xor3( state2[ 2 ][ j ], s2, state1[ 3 ][ j3] ); \
    state2[ 3 ][ j ] = _mm256_xor_si256( state2[ 3 ][ j ], s2 ); \
 } while(0)
 
