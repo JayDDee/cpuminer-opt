@@ -274,11 +274,11 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 // Returns 2 or 4 bit integer mask from MSBit of 64 or 32 bit elements.
 // Effectively a sign test.
 
-#define mm_movmask_64( v ) \
-   _mm_castpd_si128( _mm_movmask_pd( _mm_castsi128_pd( v ) ) )
+#define mm128_movmask_64( v ) \
+   _mm_movemask_pd( (__m128d)(v) )
 
-#define mm_movmask_32( v ) \
-   _mm_castps_si128( _mm_movmask_ps( _mm_castsi128_ps( v ) ) )
+#define mm128_movmask_32( v ) \
+   _mm_movemask_ps( (__m128)(v) )
 
 //
 // Bit rotations

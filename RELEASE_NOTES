@@ -65,6 +65,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.23.1
+
+#349: Fix sha256t low difficulty shares and low effective hash rate.
+Faster sha256dt:  AVX512 +7%, SHA +200%, AVX2 +5%.
+Faster blakecoin & vanilla: AVX2 +30%, AVX512 +110%.
+Other small improvements and code cleanup.
+
 v3.23.0
 
 #398: Prevent GBT fallback to Getwork on network error.
@@ -214,40 +221,29 @@ v3.19.5
 
 Enhanced stratum-keepalive preemptively resets the stratum connection
 before the server to avoid lost shares.
-
 Added build-msys2.sh shell script for easier compiling on Windows, see Wiki for details.
-
 X16RT: eliminate unnecessary recalculations of the hash order.
-
 Fix a few compiler warnings.
-
 Fixed log colour error when a block is solved.
 
 v3.19.4
 
 #359: Fix verthash memory allocation for non-hugepages, broken in v3.19.3.
-
 New option stratum-keepalive prevents stratum timeouts when no shares are
 submitted for several minutes due to high difficulty.
-
 Fixed a bug displaying optimizations for some algos.
 
 v3.19.3
 
 Linux: Faster verthash (+25%), scryptn2 (+2%) when huge pages are available.
-
 Small speed up for Hamsi AVX2 & AVX512, Keccak AVX512.
 
 v3.19.2
 
 Fixed log displaying incorrect memory usage for scrypt, broken in v3.19.1.
-
 Reduce log noise when replies to submitted shares are lost due to stratum errors.
-
 Fugue prehash optimization for X16r family AVX2 & AVX512.
-
 Small speed improvement for Hamsi AVX2 & AVX512.
-
 Win: With CPU groups enabled the number of CPUs displayed in the ASCII art
 affinity map is the number of CPUs in a CPU group, was number of CPUs up to 64.
 
@@ -259,7 +255,6 @@ Changes to Windows binaries package:
  - zen build renamed to avx2-sha, supports Zen1 & Zen2,
  - avx512-sha build removed, Rocketlake CPUs can use avx512-sha-vaes,
  - see README.txt for compatibility details.
-
 Fixed a few compiler warnings that are new in GCC 11.
 Other minor fixes.
 
@@ -273,22 +268,17 @@ Changes to cpu-affinity:
   - streamlined code for more efficient initialization of miner threads,
   - precise affining of each miner thread to a specific CPU,
   - added an option to disable CPU affinity with "--cpu-affinity 0"
-
 Faster sha256t with AVX512 & AVX2.
-
 Added stratum error count to stats log, reported only when non-zero.
 
 v3.18.2
 
 Issue #342, fixed Groestl AES on Windows, broken in v3.18.0.
-
 AVX512 for sha256d.
-
 SSE42 and AVX may now be displayed as mining features at startup.
 This is hard coded for each algo, and is only implemented for scrypt
 at this time as it is the only algo with significant performance differences
 with those features.
-
 Fixed an issue where a high hashrate algo could cause excessive invalid hash
 rate log reports when starting up in benchmark mode.
 
@@ -299,9 +289,7 @@ More speed for scrypt:
  - AVX2 is now used by default on CPUS with SHA but not AVX512,
  - scrypt:1024 performance lost in v3.18.0 is restored,
  - AVX512 & AVX2 improvements to scrypt:1024.
-
 Big speedup for SwiFFTx AVX2 & SSE4.1: x22i +55%, x25x +22%.
-
 Issue #337: fixed a problem that could display negative stats values in the
 first summary report if the report was forced prematurely due to a stratum
 diff change. The stats will still be invalid but should display zeros.
@@ -314,26 +302,19 @@ Complete rewrite of Scrypt code, optimized for large N factor (scryptn2):
   - memory requirements reduced 30-60% depending on CPU architecture,
   - memory usage displayed at startup,
   - scrypt, default N=1024 (LTC), will likely perform slower.
-
 Improved stale share detection and handling for Scrypt with large N factor:
   - abort and discard partially computed hash when new work is detected,
   - quicker response to new job, less time wasted mining stale job.
-
 Improved stale share handling for all algorithms:
   - report possible stale share when new work received with a previously
     submitted share still pending,
   - when new work is detected report the submission of an already completed,
     otherwise valid, but likely stale, share,
   - fixed incorrect block height in stale share log.
-
 Small performance improvements to sha, bmw, cube & hamsi for AVX512 & AVX2.
-
 When stratum disconnects miner threads go to idle until reconnected.
-
 Colour changes to some logs.
-
 Some low level function name changes for clarity and consistency.
-
 The reference hashrate in the summary log and the benchmark total hashrate
 are now the mean hashrate for the session. 
 
@@ -446,7 +427,6 @@ Fixed neoscrypt BUG log.
 v3.14.3
 
 #265: more mutex changes to reduce blocking with high thread count.
-
 #267: fixed hodl algo potential memory alignment issue,
       add warning when thread count is not valid for mining hodl algo.
 

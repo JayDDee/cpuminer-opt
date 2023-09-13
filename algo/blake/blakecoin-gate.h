@@ -1,30 +1,36 @@
-#ifndef __BLAKECOIN_GATE_H__
-#define __BLAKECOIN_GATE_H__ 1
+#ifndef BLAKECOIN_GATE_H__
+#define BLAKECOIN_GATE_H__ 1
 
 #include "algo-gate-api.h"
 #include <stdint.h>
 
-#if defined(__SSE4_2__)
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+  #define BLAKECOIN_16WAY
+#elif defined(__AVX2__)
+  #define BLAKECOIN_8WAY
+#elif defined(__SSE2__)  // always true
   #define BLAKECOIN_4WAY
 #endif
-#if defined(__AVX2__)
-  #define BLAKECOIN_8WAY
-#endif
 
-#if defined (BLAKECOIN_8WAY)
-void blakecoin_8way_hash(void *state, const void *input);
+#if defined (BLAKECOIN_16WAY)
+int scanhash_blakecoin_16way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
+
+#elif defined (BLAKECOIN_8WAY)
+//void blakecoin_8way_hash(void *state, const void *input);
 int scanhash_blakecoin_8way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
-#endif
 
-#if defined (BLAKECOIN_4WAY)
+#elif defined (BLAKECOIN_4WAY)
 void blakecoin_4way_hash(void *state, const void *input);
 int scanhash_blakecoin_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
-#endif
+#else  // never used
 
 void blakecoinhash( void *state, const void *input );
 int scanhash_blakecoin( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr );
+
+#endif
 
 #endif

@@ -267,6 +267,8 @@ void std_get_new_work( struct work *work, struct work *g_work, int thr_id,
                        uint32_t* end_nonce_ptr );
 
 void sha256d_gen_merkle_root( char *merkle_root, struct stratum_ctx *sctx );
+void sha256_gen_merkle_root ( char *merkle_root, struct stratum_ctx *sctx );
+// OpenSSL sha256 deprecated
 void SHA256_gen_merkle_root ( char *merkle_root, struct stratum_ctx *sctx );
 
 bool std_le_work_decode( struct work *work );

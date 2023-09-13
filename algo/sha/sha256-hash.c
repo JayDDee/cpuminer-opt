@@ -50,65 +50,6 @@ void sha256_update( sha256_context *ctx, const void *data, size_t len )
    memcpy( ctx->buf, src, len );
 }
 
-#if 0
-void sha256_final( sha256_context *ctx, uint32_t *hash )
-{
-   size_t r;
-
-
-   /* Figure out how many bytes we have buffered. */
-   r = ctx->count & 0x3f;
-//   r = ( ctx->count >> 3 ) & 0x3f;
-
-//printf("final: count= %d, r= %d\n", ctx->count, r );
-   
-   /* Pad to 56 mod 64, transforming if we finish a block en route. */
-   if ( r < 56 )
-   {
-      /* Pad to 56 mod 64. */
-      memcpy( &ctx->buf[r], SHA256_PAD, 56 - r );
-   }
-   else
-   {
-      /* Finish the current block and mix. */
-      memcpy( &ctx->buf[r], SHA256_PAD, 64 - r );
-      sha256_transform_be( ctx->state, (uint32_t*)ctx->buf, ctx->state );
-
-//      SHA256_Transform(ctx->state, ctx->buf, &tmp32[0], &tmp32[64]);
-
-      /* The start of the final block is all zeroes. */
-      memset( &ctx->buf[0], 0, 56 );
-   }
-
-   /* Add the terminating bit-count. */
-   ctx->buf[56] = bswap_64( ctx->count << 3 );
-//   ctx->buf[56] = bswap_64( ctx->count );
-//   be64enc( &ctx->buf[56], ctx->count );
-
-   /* Mix in the final block. */
-   sha256_transform_be( ctx->state, (uint32_t*)ctx->buf, ctx->state );
-
-//   SHA256_Transform(ctx->state, ctx->buf, &tmp32[0], &tmp32[64]);
-
-   for ( int i = 0; i < 8; i++ )  hash[i] = bswap_32( ctx->state[i] );
-   
-//   for ( int i = 0; i < 8; i++ )  be32enc( hash + 4*i, ctx->state + i );
-
-/*
-//   be32enc_vect(digest, ctx->state, 4);
-//   be32enc_vect(uint8_t * dst, const uint32_t * src, size_t len)
-   // Encode vector, two words at a time. 
-   do {
-      be32enc(&dst[0], src[0]);
-      be32enc(&dst[4], src[1]);
-      src += 2;
-      dst += 8;
-   } while (--len);
-*/
-
-}
-#endif
-
 void sha256_final( sha256_context *ctx, void *hash )
 {
    int ptr = ctx->count & 0x3f;

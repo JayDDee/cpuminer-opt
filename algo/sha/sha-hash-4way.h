@@ -67,7 +67,7 @@ void sha256_4way_prehash_3rounds( __m128i *state_mid, __m128i *X,
 void sha256_4way_final_rounds( __m128i *state_out, const __m128i *data,
         const __m128i *state_in, const __m128i *state_mid, const __m128i *X );
 int sha256_4way_transform_le_short( __m128i *state_out, const __m128i *data,
-                                     const __m128i *state_in );
+                                   const __m128i *state_in, const uint32_t *target );
 
 #endif  // SSE2
 
@@ -95,7 +95,7 @@ void sha256_8way_prehash_3rounds( __m256i *state_mid, __m256i *X,
 void sha256_8way_final_rounds( __m256i *state_out, const __m256i *data,
         const __m256i *state_in, const __m256i *state_mid, const __m256i *X );
 int sha256_8way_transform_le_short( __m256i *state_out, const __m256i *data,
-                                     const __m256i *state_in );
+                             const __m256i *state_in, const uint32_t *target );
 
 #endif  // AVX2
 
@@ -123,7 +123,7 @@ void sha256_16way_final_rounds( __m512i *state_out, const __m512i *data,
         const __m512i *state_in, const __m512i *state_mid, const __m512i *X );
 
 int sha256_16way_transform_le_short( __m512i *state_out, const __m512i *data,
-                                     const __m512i *state_in );
+                            const __m512i *state_in, const uint32_t *target );
 
 #endif // AVX512
 

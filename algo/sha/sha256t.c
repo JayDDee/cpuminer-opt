@@ -23,7 +23,7 @@ int scanhash_sha256t( struct work *work, uint32_t max_nonce,
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
-   const uint32_t last_nonce = max_nonce - 1;
+   const uint32_t last_nonce = max_nonce - 2;
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;

@@ -1966,7 +1966,7 @@ static bool wanna_mine(int thr_id)
 
 // Common target functions, default usually listed first.
 
-// default
+// default, double sha256 for root hash
 void sha256d_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 {
   sha256d( merkle_root, sctx->job.coinbase, (int) sctx->job.coinbase_size );
@@ -1976,6 +1976,17 @@ void sha256d_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
      sha256d( merkle_root, merkle_root, 64 );
   }
 }
+// single sha256 root hash
+void sha256_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
+{
+  sha256_full( merkle_root, sctx->job.coinbase, (int)sctx->job.coinbase_size );
+  for ( int i = 0; i < sctx->job.merkle_count; i++ )
+  {
+     memcpy( merkle_root + 32, sctx->job.merkle[i], 32 );
+     sha256d( merkle_root, merkle_root, 64 );
+  }
+}
+// OpenSSL single sha256, deprecated
 void SHA256_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 {
   SHA256( sctx->job.coinbase, (int)sctx->job.coinbase_size, merkle_root );
@@ -2073,7 +2084,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
       applog( LOG_BLUE, "New Work: Block %d, Tx %d, Netdiff %.5g, Job %s",
                          sctx->block_height, sctx->job.merkle_count,
                          net_diff, g_work->job_id );
-   else if ( !opt_quiet )
+   else if ( opt_debug )
    {
       unsigned char *xnonce2str = bebin2hex( g_work->xnonce2,
                                              g_work->xnonce2_len );
@@ -2095,7 +2106,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
          lowest_share = 9e99;
     }
 
-    if ( !opt_quiet )
+    if ( new_job && !opt_quiet )
     {
        applog2( LOG_INFO, "Diff: Net %.5g, Stratum %.5g, Target %.5g",
                           net_diff, stratum_diff, g_work->targetdiff );

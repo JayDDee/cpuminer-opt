@@ -1,62 +1,22 @@
-/* $Id: blake.c 252 2011-06-07 17:55:14Z tp $ */
-/*
- * BLAKE implementation.
- *
- * ==========================(LICENSE BEGIN)============================
- *
- * Copyright (c) 2007-2010  Projet RNRT SAPHIR
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * ===========================(LICENSE END)=============================
- *
- * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
- */
-
 #if defined (__AVX2__)
 
 #include <stddef.h>
 #include <string.h>
 #include <limits.h>
-
 #include "blake-hash-4way.h"
-
-#ifdef __cplusplus
-extern "C"{
-#endif
-
-#ifdef _MSC_VER
-#pragma warning (disable: 4146)
-#endif
 
 // Blake-512 common
    
 /*
-static const sph_u64 IV512[8] = {
-	SPH_C64(0x6A09E667F3BCC908), SPH_C64(0xBB67AE8584CAA73B),
-	SPH_C64(0x3C6EF372FE94F82B), SPH_C64(0xA54FF53A5F1D36F1),
-	SPH_C64(0x510E527FADE682D1), SPH_C64(0x9B05688C2B3E6C1F),
-	SPH_C64(0x1F83D9ABFB41BD6B), SPH_C64(0x5BE0CD19137E2179)
+static const uint64_t IV512[8] =
+{
+  0x6A09E667F3BCC908, 0xBB67AE8584CAA73B,
+  0x3C6EF372FE94F82B, 0xA54FF53A5F1D36F1,
+  0x510E527FADE682D1, 0x9B05688C2B3E6C1F,
+  0x1F83D9ABFB41BD6B, 0x5BE0CD19137E2179
 };
 
-static const sph_u64 salt_zero_big[4] = { 0, 0, 0, 0 };
+static const uint64_t salt_zero_big[4] = { 0, 0, 0, 0 };
 
 static const unsigned sigma[16][16] = {
 	{  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
@@ -77,15 +37,15 @@ static const unsigned sigma[16][16] = {
 	{  2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9 }
 };
 
-static const sph_u64 CB[16] = {
-   SPH_C64(0x243F6A8885A308D3), SPH_C64(0x13198A2E03707344),
-   SPH_C64(0xA4093822299F31D0), SPH_C64(0x082EFA98EC4E6C89),
-   SPH_C64(0x452821E638D01377), SPH_C64(0xBE5466CF34E90C6C),
-   SPH_C64(0xC0AC29B7C97C50DD), SPH_C64(0x3F84D5B5B5470917),
-   SPH_C64(0x9216D5D98979FB1B), SPH_C64(0xD1310BA698DFB5AC),
-   SPH_C64(0x2FFD72DBD01ADFB7), SPH_C64(0xB8E1AFED6A267E96),
-   SPH_C64(0xBA7C9045F12C7F99), SPH_C64(0x24A19947B3916CF7),
-   SPH_C64(0x0801F2E2858EFC16), SPH_C64(0x636920D871574E69)
+static const uint64_t CB[16] = {
+   0x243F6A8885A308D3, 0x13198A2E03707344,
+   0xA4093822299F31D0, 0x082EFA98EC4E6C89,
+   0x452821E638D01377, 0xBE5466CF34E90C6C,
+   0xC0AC29B7C97C50DD, 0x3F84D5B5B5470917,
+   0x9216D5D98979FB1B, 0xD1310BA698DFB5AC,
+   0x2FFD72DBD01ADFB7, 0xB8E1AFED6A267E96,
+   0xBA7C9045F12C7F99, 0x24A19947B3916CF7,
+   0x0801F2E2858EFC16, 0x636920D871574E69
 
 */
 
@@ -1486,7 +1446,7 @@ blake64_4way( blake_4way_big_context *sc, const void *data, size_t len)
 	   if ( ptr == buf_size )
       {
 		   if ( (T0 = T0 + 1024 ) < 1024 )
-			   T1 = SPH_T64(T1 + 1);
+			   T1 = T1 + 1;
 	   	COMPRESS64_4WAY;
 		   ptr = 0;
 	   }
@@ -1538,8 +1498,8 @@ blake64_4way_close( blake_4way_big_context *sc, void *dst )
        memset_zero_256( buf + (ptr>>3) + 1, (120 - ptr) >> 3 );
 
        blake64_4way( sc, buf + (ptr>>3), 128 - ptr );
-       sc->T0 = SPH_C64(0xFFFFFFFFFFFFFC00ULL);
-       sc->T1 = SPH_C64(0xFFFFFFFFFFFFFFFFULL);
+       sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
+       sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
        memset_zero_256( buf, 112>>3 ); 
        buf[104>>3] = _mm256_set1_epi64x( 0x0100000000000000ULL );
        buf[112>>3] = _mm256_set1_epi64x( bswap_64( th ) );
@@ -1628,9 +1588,5 @@ blake512_4way_close(void *cc, void *dst)
 {
    blake64_4way_close( cc, dst );
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

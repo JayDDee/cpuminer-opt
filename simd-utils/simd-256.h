@@ -209,10 +209,10 @@ static inline __m256i mm256_not( const __m256i v )
 // Effectively a sign test.
 
 #define mm256_movmask_64( v ) \
-   _mm256_castpd_si256( _mm256_movmask_pd( _mm256_castsi256_pd( v ) ) )
+   _mm256_movemask_pd( _mm256_castsi256_pd( v ) )
 
 #define mm256_movmask_32( v ) \
-   _mm256_castps_si256( _mm256_movmask_ps( _mm256_castsi256_ps( v ) ) )
+   _mm256_movemask_ps( _mm256_castsi256_ps( v ) )
 
 //
 //           Bit rotations.

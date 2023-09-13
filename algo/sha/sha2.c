@@ -658,43 +658,14 @@ int scanhash_sha256d_pooler( struct work *work,	uint32_t max_nonce,
 	return 0;
 }
 
-/*
-int scanhash_SHA256d( struct work *work, const uint32_t max_nonce,
-                      uint64_t *hashes_done, struct thr_info *mythr )
-{
-   uint32_t _ALIGN(128) hash[8];
-   uint32_t _ALIGN(64) data[20];
-   uint32_t *pdata = work->data;
-   const uint32_t *ptarget = work->target;
-   uint32_t n = pdata[19] - 1;
-   const uint32_t first_nonce = pdata[19];
-   const uint32_t Htarg = ptarget[7];
-   int thr_id = mythr->id;
-
-   memcpy( data, pdata, 80 );
-
-   do {
-      data[19] = ++n;
-      sha256d( (unsigned char*)hash, (const unsigned char*)data, 80 );
-      if ( unlikely( swab32( hash[7] ) <= Htarg ) )
-      {
-         pdata[19] = n;
-         sha256d_80_swap(hash, pdata);
-         if ( fulltest( hash, ptarget ) && !opt_benchmark )
-            submit_solution( work, hash, mythr );
-      }
-   } while ( likely( n < max_nonce && !work_restart[thr_id].restart ) );
-   *hashes_done = n - first_nonce + 1;
-   pdata[19] = n;
-   return 0;
-}
-*/
-
 bool register_sha256d_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
 #if defined(SHA256D_16WAY)
    gate->scanhash = (void*)&scanhash_sha256d_16way;
+#elif defined(SHA256D_SHA)
+   gate->optimizations = SHA_OPT;
+   gate->scanhash = (void*)&scanhash_sha256d_sha;
 //#elif defined(SHA256D_8WAY)
 //   gate->scanhash = (void*)&scanhash_sha256d_8way;
 #else

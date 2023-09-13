@@ -1216,13 +1216,13 @@ static inline void dintrlv_16x32_512( void *dst00, void *dst01, void *dst02,
 static inline void extr_lane_16x32( void *d, const void *s,
                                     const int lane, const int bit_len )
 {
-   ((uint32_t*)d)[ 0] = ((const uint32_t*)s)[ lane    ];
-   ((uint32_t*)d)[ 1] = ((const uint32_t*)s)[ lane+16 ];
-   ((uint32_t*)d)[ 2] = ((const uint32_t*)s)[ lane+32 ];
-   ((uint32_t*)d)[ 3] = ((const uint32_t*)s)[ lane+48 ];
-   ((uint32_t*)d)[ 4] = ((const uint32_t*)s)[ lane+64 ];
-   ((uint32_t*)d)[ 5] = ((const uint32_t*)s)[ lane+80 ];
-   ((uint32_t*)d)[ 6] = ((const uint32_t*)s)[ lane+96 ];
+   ((uint32_t*)d)[ 0] = ((const uint32_t*)s)[ lane     ];
+   ((uint32_t*)d)[ 1] = ((const uint32_t*)s)[ lane+ 16 ];
+   ((uint32_t*)d)[ 2] = ((const uint32_t*)s)[ lane+ 32 ];
+   ((uint32_t*)d)[ 3] = ((const uint32_t*)s)[ lane+ 48 ];
+   ((uint32_t*)d)[ 4] = ((const uint32_t*)s)[ lane+ 64 ];
+   ((uint32_t*)d)[ 5] = ((const uint32_t*)s)[ lane+ 80 ];
+   ((uint32_t*)d)[ 6] = ((const uint32_t*)s)[ lane+ 96 ];
    ((uint32_t*)d)[ 7] = ((const uint32_t*)s)[ lane+112 ];
    if ( bit_len <= 256 ) return;
    ((uint32_t*)d)[ 8] = ((const uint32_t*)s)[ lane+128 ];

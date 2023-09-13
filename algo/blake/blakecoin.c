@@ -1,6 +1,6 @@
 #include "blakecoin-gate.h"
 
-#if !defined(BLAKECOIN_8WAY) && !defined(BLAKECOIN_4WAY)
+#if !defined(BLAKECOIN_16WAY) && !defined(BLAKECOIN_8WAY) && !defined(BLAKECOIN_4WAY)
 
 #define BLAKE32_ROUNDS 8
 #include "sph_blake.h"
@@ -12,7 +12,6 @@ void blakecoin_close(void *cc, void *dst);
 #include <string.h>
 #include <stdint.h>
 #include <memory.h>
-#include <openssl/sha.h>
 
 // context management is staged for efficiency.
 // 1. global initial ctx cached on startup
@@ -35,8 +34,8 @@ void blakecoinhash( void *state, const void *input )
 	uint8_t hash[64] __attribute__ ((aligned (32)));
 	uint8_t *ending = (uint8_t*) input + 64;
 
-        // copy cached midstate
-        memcpy( &ctx, &blake_mid_ctx, sizeof ctx );
+   // copy cached midstate
+   memcpy( &ctx, &blake_mid_ctx, sizeof ctx );
 	blakecoin( &ctx, ending, 16 );
 	blakecoin_close( &ctx, hash );
 	memcpy( state, hash, 32 );
@@ -45,8 +44,8 @@ void blakecoinhash( void *state, const void *input )
 int scanhash_blakecoin( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr )
 {
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
 	const uint32_t first_nonce = pdata[19];
 	uint32_t HTarget = ptarget[7];
    int thr_id = mythr->id;  // thr_id arg is deprecated
@@ -60,10 +59,10 @@ int scanhash_blakecoin( struct work *work, uint32_t max_nonce,
 		HTarget = 0x7f;
 
 	// we need big endian data...
-        for (int kk=0; kk < 19; kk++) 
-                be32enc(&endiandata[kk], ((uint32_t*)pdata)[kk]);
+   for (int kk=0; kk < 19; kk++) 
+      be32enc(&endiandata[kk], ((uint32_t*)pdata)[kk]);
 
-        blake_midstate_init( endiandata );
+   blake_midstate_init( endiandata );
 
 #ifdef DEBUG_ALGO
 	applog(LOG_DEBUG,"[%d] Target=%08x %08x", thr_id, ptarget[6], ptarget[7]);
