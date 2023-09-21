@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "simd-utils.h"
-#include "algo/sha/sph_types.h"
+#include "compat/sph_types.h"
 #include "sph_blake2b.h"
 
 // Little-endian byte access.

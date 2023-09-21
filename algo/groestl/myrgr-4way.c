@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "aes_ni/hash-groestl.h"
-#include "algo/sha/sha-hash-4way.h"
+#include "algo/sha/sha256-hash.h"
 #if defined(__VAES__)
   #include "groestl512-hash-4way.h"
 #endif

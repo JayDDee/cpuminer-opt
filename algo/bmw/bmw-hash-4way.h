@@ -41,8 +41,6 @@ extern "C"{
 #endif
 
 #include <stddef.h>
-
-#include "algo/sha/sph_types.h"
 #include "simd-utils.h"
 
 #define SPH_SIZE_bmw256   256
@@ -57,7 +55,7 @@ typedef struct {
    __m128i buf[64];
    __m128i H[16];
    size_t ptr;
-   sph_u32 bit_count;  // assume bit_count fits in 32 bits
+   uint32_t bit_count;  // assume bit_count fits in 32 bits
 } bmw_4way_small_context;
 
 typedef bmw_4way_small_context bmw256_4way_context;
@@ -144,7 +142,7 @@ typedef struct {
    __m256i buf[16];
    __m256i H[16];
    size_t ptr;
-   sph_u64 bit_count;
+   uint64_t bit_count;
 } bmw_4way_big_context __attribute__((aligned(128)));
 
 typedef bmw_4way_big_context bmw512_4way_context;

@@ -77,7 +77,7 @@ bool register_argon2_algo( algo_gate_t* gate )
   gate->optimizations = SSE2_OPT | AVX_OPT | AVX2_OPT;
   gate->scanhash        = (void*)&scanhash_argon2;
   gate->hash            = (void*)&argon2hash;
-  gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
+  gate->gen_merkle_root = (void*)&sha256_gen_merkle_root;
   opt_target_factor = 65536.0;
 
   return true;

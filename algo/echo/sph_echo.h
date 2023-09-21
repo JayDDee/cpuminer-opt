@@ -43,7 +43,7 @@ extern "C"{
 #endif
 
 #include <stddef.h>
-#include "algo/sha/sph_types.h"
+#include "compat/sph_types.h"
 
 /**
  * Output size (in bits) for ECHO-224.

@@ -1,5 +1,4 @@
 #include "skein-gate.h"
-#include "sph_skein.h"
 #include "skein-hash-4way.h"
 
 bool register_skein_algo( algo_gate_t* gate )

@@ -97,6 +97,9 @@ typedef union
    uint64_t u64[8];
 } __attribute__ ((aligned (64))) m512_ovly;
 
+#define v512_64(i)    _mm512_set1_epi64(i)
+#define v512_32(i)    _mm512_set1_epi32(i)
+
 // A simple 128 bit permute, using function instead of macro avoids
 // problems if the v arg passed as an expression.
 static inline __m512i mm512_perm_128( const __m512i v, const int c )

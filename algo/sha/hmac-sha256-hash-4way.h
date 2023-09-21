@@ -36,7 +36,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include "simd-utils.h"
-#include "sha-hash-4way.h"
+#include "sha256-hash.h"
 
 typedef struct _hmac_sha256_4way_context
 {

@@ -1,6 +1,4 @@
 #include "shavite-hash-2way.h"
-#include "algo/sha/sph_types.h"
-
 #include <stdio.h>
 
 // This is a fake, it actually does not do parallel AES, that requires VAES.

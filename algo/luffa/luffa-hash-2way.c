@@ -7,8 +7,10 @@
 
 #include "simd-utils.h"
 
+#define uint32 uint32_t
+
 /* initial values of chaining variables */
-static const uint32 IV[40] __attribute((aligned(64))) = {
+static const uint32_t IV[40] __attribute((aligned(64))) = {
     0xdbf78465,0x4eaa6fb4,0x44b051e0,0x6d251e69,
     0xdef610bb,0xee058139,0x90152df4,0x6e292011,
     0xde099fa3,0x70eee9a0,0xd9d2f256,0xc3b44b95,
@@ -22,7 +24,7 @@ static const uint32 IV[40] __attribute((aligned(64))) = {
 };
 
 /* Round Constants */
-static const uint32 CNS_INIT[128] __attribute((aligned(64))) = {
+static const uint32_t CNS_INIT[128] __attribute((aligned(64))) = {
     0xb213afa5,0xfc20d9d2,0xb6de10ed,0x303994a6,
     0xe028c9bf,0xe25e72c1,0x01685f3d,0xe0337818,
     0xc84ebe95,0x34552e25,0x70f47aae,0xc0e65299,

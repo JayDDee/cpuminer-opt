@@ -20,7 +20,7 @@
 #error "Unsupported configuration, AES needs SSE4.1. Compile without AES."
 #endif
 
-#include "algo/sha/sha3_common.h"
+#include "compat/sha3_common.h"
 #include "simd-utils.h"
 
 

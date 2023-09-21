@@ -6,7 +6,8 @@
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
 #include "algo/shabal/shabal-hash-4way.h"
-#include "algo/sha/sha-hash-4way.h"
+#include "algo/sha/sha512-hash.h"
+#include "algo/sha/sha256-hash.h"
 #include "algo/haval/haval-hash-4way.h"
 #include "algo/blake/blake2s-hash-4way.h"
 #include "algo/echo/aes_ni/hash_api.h"
@@ -30,9 +31,6 @@
   #include "algo/groestl/groestl512-hash-4way.h"
   #include "algo/shavite/shavite-hash-4way.h"
   #include "algo/echo/echo-hash-4way.h"
-#endif
-#if defined(__SHA__)
-  #include "algo/sha/sha256-hash.h"
 #endif
 
 void x25x_shuffle( void *hash )

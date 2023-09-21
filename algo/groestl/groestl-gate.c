@@ -17,7 +17,7 @@ bool register_dmd_gr_algo( algo_gate_t *gate )
 bool register_groestl_algo( algo_gate_t* gate )
 {
     register_dmd_gr_algo( gate );
-    gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
+    gate->gen_merkle_root = (void*)&sha256_gen_merkle_root;
     return true;
 };
 

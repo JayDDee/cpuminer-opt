@@ -25,7 +25,7 @@
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/haval-hash-4way.h"
-#include "algo/sha/sha-hash-4way.h"
+#include "algo/sha/sha512-hash.h"
 
 #if defined(X17_8WAY)
 
@@ -37,7 +37,6 @@ union _x17_8way_context_overlay
     jh512_8way_context      jh;
     keccak512_8way_context  keccak;
     luffa_4way_context      luffa;
-//    cube_4way_context       cube;
     cube_4way_2buf_context   cube;
 #if defined(__VAES__)
     groestl512_4way_context groestl;
@@ -190,7 +189,6 @@ int x17_8way_hash( void *state, const void *input, int thr_id )
      hamsi512_8way_init( &ctx.hamsi );
      hamsi512_8way_update( &ctx.hamsi, vhash, 64 );
      hamsi512_8way_close( &ctx.hamsi, vhash );
-
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 

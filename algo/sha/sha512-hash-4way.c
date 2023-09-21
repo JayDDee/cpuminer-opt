@@ -34,7 +34,7 @@
 
 #include <stddef.h>
 #include <string.h>
-#include "sha-hash-4way.h"
+#include "sha512-hash.h"
 
 /*
 static const uit64_t H512[8] =

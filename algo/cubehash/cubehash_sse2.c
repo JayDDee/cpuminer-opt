@@ -9,7 +9,6 @@
 #include <immintrin.h>
 #endif
 #include "cubehash_sse2.h"
-#include "algo/sha/sha3-defs.h"
 #include <stdbool.h>
 #include <unistd.h>
 #include <memory.h>

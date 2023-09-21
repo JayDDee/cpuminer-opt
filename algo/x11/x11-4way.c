@@ -65,6 +65,9 @@ void init_x11_8way_ctx()
 #endif
 }
 
+static __thread __m512i x11_8way_midstate[16] __attribute__((aligned(64)));
+
+
 void x11_8way_hash( void *state, const void *input )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
@@ -80,8 +83,9 @@ void x11_8way_hash( void *state, const void *input )
      uint64_t hash7[8] __attribute__ ((aligned (64)));
      x11_8way_ctx_holder ctx;
      memcpy( &ctx, &x11_8way_ctx, sizeof(x11_8way_ctx) );
-     blake512_8way_update( &ctx.blake, input, 80 );
-     blake512_8way_close( &ctx.blake, vhash );
+
+     blake512_8way_final_le( &ctx.blake, vhash, casti_m512i( input, 9 ),
+                             x11_8way_midstate );
 
      bmw512_8way_update( &ctx.bmw, vhash, 64 );
      bmw512_8way_close( &ctx.bmw, vhash );
@@ -252,39 +256,45 @@ void x11_8way_hash( void *state, const void *input )
 int scanhash_x11_8way( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr )
 {
-     uint32_t hash[8*8] __attribute__ ((aligned (128)));
-     uint32_t vdata[24*8] __attribute__ ((aligned (64)));
-     uint32_t *pdata = work->data;
-     uint32_t *ptarget = work->target;
-     uint32_t n = pdata[19];
-     const uint32_t first_nonce = pdata[19];
-     int thr_id = mythr->id;
-     __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
-     const uint32_t Htarg = ptarget[7];
+   uint32_t hash[8*8] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
+   __m128i edata[5] __attribute__ ((aligned (64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   uint32_t n = pdata[19];
+   const uint32_t first_nonce = pdata[19];
+   int thr_id = mythr->id;
+   __m512i  *noncev = (__m512i*)vdata + 9; 
+   const uint32_t last_nonce = max_nonce -8;
+   const __m512i eight = _mm512_set1_epi64( 8 );
 
-     const uint32_t last_nonce = max_nonce -8;
-     mm512_bswap32_intrlv80_8x64( vdata, pdata );
+   // convert LE32 to LE64
+   edata[0] = mm128_swap64_32( casti_m128i( pdata, 0 ) );
+   edata[1] = mm128_swap64_32( casti_m128i( pdata, 1 ) );
+   edata[2] = mm128_swap64_32( casti_m128i( pdata, 2 ) );
+   edata[3] = mm128_swap64_32( casti_m128i( pdata, 3 ) );
+   edata[4] = mm128_swap64_32( casti_m128i( pdata, 4 ) );
 
-     do
-     {
-        *noncev = mm512_intrlv_blend_32( mm512_bswap_32(
-         _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
-                           n+3, 0, n+2, 0, n+1, 0, n,   0 ) ), *noncev );
+   mm512_intrlv80_8x64( vdata, edata );
+   *noncev = _mm512_add_epi32( *noncev, _mm512_set_epi32(
+                                    0,7, 0,6, 0,5, 0,4, 0,3, 0,2, 0,1, 0,0 ) );
+   blake512_8way_prehash_le( &x11_8way_ctx.blake, x11_8way_midstate, vdata );
 
-         x11_8way_hash( hash, vdata );
-         pdata[19] = n;
+   do
+   {
+      x11_8way_hash( hash, vdata );
 
-         for ( int i = 0; i < 8; i++ )
-         if ( ( hash+(i<<3) )[7] <= Htarg
-              && fulltest( hash+(i<<3), ptarget ) && !opt_benchmark )
-         {
-             pdata[19] = n+i;
-             submit_solution( work, hash+(i<<3), mythr );
-         }
-         n += 8;
-     } while ( ( n < last_nonce ) && !work_restart[thr_id].restart );
-     *hashes_done = n - first_nonce;
-     return 0;
+      for ( int i = 0; i < 8; i++ )
+      if ( unlikely( valid_hash( hash+(i<<3), ptarget ) && !opt_benchmark ))
+      {
+          pdata[19] = n+i;
+          submit_solution( work, hash+(i<<3), mythr );
+      }
+      *noncev = _mm512_add_epi32( *noncev, eight );
+      n += 8;
+   } while ( ( n < last_nonce ) && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce;
+   return 0;
 }
 
 

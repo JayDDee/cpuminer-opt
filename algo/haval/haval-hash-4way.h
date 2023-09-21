@@ -68,7 +68,6 @@ extern "C"{
 #endif
 
 #include <stddef.h>
-#include "algo/sha/sph_types.h"
 #include "simd-utils.h"
 
 #define SPH_SIZE_haval256_5   256
@@ -77,7 +76,7 @@ typedef struct {
    __m128i buf[32];
    __m128i s0, s1, s2, s3, s4, s5, s6, s7;
    unsigned olen, passes;
-   sph_u32 count_high, count_low;
+   uint32_t count_high, count_low;
 } haval_4way_context;
 
 typedef haval_4way_context haval256_5_4way_context;

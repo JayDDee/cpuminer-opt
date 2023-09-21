@@ -4,7 +4,6 @@
 
 #include <memory.h>
 #include "algo/blake/sph_blake.h"
-#include "algo/cubehash/sph_cubehash.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/bmw/sph_bmw.h"

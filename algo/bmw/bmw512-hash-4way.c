@@ -45,15 +45,15 @@ extern "C"{
 
 #define LPAR   (
 
-static const sph_u64 IV512[] = {
-        SPH_C64(0x8081828384858687), SPH_C64(0x88898A8B8C8D8E8F),
-        SPH_C64(0x9091929394959697), SPH_C64(0x98999A9B9C9D9E9F),
-        SPH_C64(0xA0A1A2A3A4A5A6A7), SPH_C64(0xA8A9AAABACADAEAF),
-        SPH_C64(0xB0B1B2B3B4B5B6B7), SPH_C64(0xB8B9BABBBCBDBEBF),
-        SPH_C64(0xC0C1C2C3C4C5C6C7), SPH_C64(0xC8C9CACBCCCDCECF),
-        SPH_C64(0xD0D1D2D3D4D5D6D7), SPH_C64(0xD8D9DADBDCDDDEDF),
-        SPH_C64(0xE0E1E2E3E4E5E6E7), SPH_C64(0xE8E9EAEBECEDEEEF),
-        SPH_C64(0xF0F1F2F3F4F5F6F7), SPH_C64(0xF8F9FAFBFCFDFEFF)
+static const uint64_t IV512[] = {
+        0x8081828384858687, 0x88898A8B8C8D8E8F,
+        0x9091929394959697, 0x98999A9B9C9D9E9F,
+        0xA0A1A2A3A4A5A6A7, 0xA8A9AAABACADAEAF,
+        0xB0B1B2B3B4B5B6B7, 0xB8B9BABBBCBDBEBF,
+        0xC0C1C2C3C4C5C6C7, 0xC8C9CACBCCCDCECF,
+        0xD0D1D2D3D4D5D6D7, 0xD8D9DADBDCDDDEDF,
+        0xE0E1E2E3E4E5E6E7, 0xE8E9EAEBECEDEEEF,
+        0xF0F1F2F3F4F5F6F7, 0xF8F9FAFBFCFDFEFF
 };
 
 #if defined(__SSE2__)
@@ -894,7 +894,7 @@ static const __m256i final_b[16] =
 };
 
 static void
-bmw64_4way_init( bmw_4way_big_context *sc, const sph_u64 *iv )
+bmw64_4way_init( bmw_4way_big_context *sc, const uint64_t *iv )
 {
    sc->H[ 0] = _mm256_set1_epi64x( 0x8081828384858687 );
    sc->H[ 1] = _mm256_set1_epi64x( 0x88898A8B8C8D8E8F );
@@ -926,7 +926,7 @@ bmw64_4way( bmw_4way_big_context *sc, const void *data, size_t len )
    size_t ptr;
    const int buf_size = 128;  // bytes of one lane, compatible with len
 
-   sc->bit_count += (sph_u64)len << 3;
+   sc->bit_count += (uint64_t)len << 3;
    buf = sc->buf;
    ptr = sc->ptr;
    h1 = sc->H;
@@ -1377,7 +1377,7 @@ static const __m512i final_b8[16] =
 
 
 void bmw512_8way_init( bmw512_8way_context *ctx )
-//bmw64_4way_init( bmw_4way_big_context *sc, const sph_u64 *iv )
+//bmw64_4way_init( bmw_4way_big_context *sc, const uint64_t *iv )
 {
    ctx->H[ 0] = _mm512_set1_epi64( 0x8081828384858687 );
    ctx->H[ 1] = _mm512_set1_epi64( 0x88898A8B8C8D8E8F );

@@ -21,7 +21,7 @@
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/haval-hash-4way.h"
-#include "algo/sha/sha-hash-4way.h"
+#include "algo/sha/sha512-hash.h"
 #if defined(__VAES__)
   #include "algo/groestl/groestl512-hash-4way.h"
   #include "algo/shavite/shavite-hash-4way.h"

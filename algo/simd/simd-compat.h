@@ -24,7 +24,7 @@
  */
 
 #include <stdint.h>
-#include "algo/sha/brg_types.h"
+#include "compat/brg_types.h"
 
 #define C32(x)    ((u32)(x))
 

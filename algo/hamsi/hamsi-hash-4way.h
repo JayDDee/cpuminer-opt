@@ -36,44 +36,64 @@
 #define HAMSI_4WAY_H__
 
 #include <stddef.h>
-#include "algo/sha/sph_types.h"
 
 #if defined (__AVX2__)
 
 #include "simd-utils.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
-#define SPH_SIZE_hamsi512   512
+// Hamsi-512 4x64
 
 // Partial is only scalar but needs pointer ref for hamsi-helper
 // deprecate partial_len
-typedef struct {
+typedef struct
+{
    __m256i h[8];
    __m256i buf[1];
    size_t partial_len;
-   sph_u32 count_high, count_low;
+   uint32_t count_high, count_low;
 } hamsi_4way_big_context;
-
 typedef hamsi_4way_big_context hamsi512_4way_context;
 
 void hamsi512_4way_init( hamsi512_4way_context *sc );
 void hamsi512_4way_update( hamsi512_4way_context *sc, const void *data,
       size_t len );
-//#define hamsi512_4way hamsi512_4way_update
 void hamsi512_4way_close( hamsi512_4way_context *sc, void *dst );
 
+#define hamsi512_4x64_context   hamsi512_4way_context
+#define hamsi512_4x64_init      hamsi512_4way_init
+#define hamsi512_4x64_update    hamsi512_4way_update
+#define hamsi512_4x64_close     hamsi512_4way_close
+
+// Hamsi-512 8x32
+
+typedef struct
+{
+   __m256i h[16];
+   __m256i buf[2];
+   size_t partial_len;
+   uint32_t count_high, count_low;
+} hamsi_8x32_big_context;
+typedef hamsi_8x32_big_context hamsi512_8x32_context;
+
+void hamsi512_8x32_init( hamsi512_8x32_context *sc );
+void hamsi512_8x32_update( hamsi512_8x32_context *sc, const void *data,
+      size_t len );
+void hamsi512_8x32_close( hamsi512_8x32_context *sc, void *dst );
+void hamsi512_8x32_full( hamsi512_8x32_context *sc, void *dst, const void *data,
+      size_t len );
+
+#endif
+
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+// Hamsi-512 8x64
 
 typedef struct {
    __m512i h[8];
    __m512i buf[1];
    size_t partial_len;
-   sph_u32 count_high, count_low;
+   uint32_t count_high, count_low;
 } hamsi_8way_big_context;
-
 typedef hamsi_8way_big_context hamsi512_8way_context;
 
 void hamsi512_8way_init( hamsi512_8way_context *sc );
@@ -81,15 +101,29 @@ void hamsi512_8way_update( hamsi512_8way_context *sc, const void *data,
                            size_t len );
 void hamsi512_8way_close( hamsi512_8way_context *sc, void *dst );
 
+#define hamsi512_8x64_context   hamsi512_8way_context
+#define hamsi512_8x64_init      hamsi512_8way_init
+#define hamsi512_8x64_update    hamsi512_8way_update
+#define hamsi512_8x64_close     hamsi512_8way_close
 
+// Hamsi-512 16x32
 
-#endif
+typedef struct
+{
+   __m512i h[16];
+   __m512i buf[2];
+   size_t partial_len;
+   uint32_t count_high, count_low;
+} hamsi_16x32_big_context;
+typedef hamsi_16x32_big_context hamsi512_16x32_context;
 
+void hamsi512_16x32_init( hamsi512_16x32_context *sc );
+void hamsi512_16x32_update( hamsi512_16x32_context *sc, const void *data,
+                           size_t len );
+void hamsi512_16way_close( hamsi512_16x32_context *sc, void *dst );
+void hamsi512_16x32_full( hamsi512_16x32_context *sc, void *dst,
+                          const void *data, size_t len );
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif   // AVX512
 
 #endif

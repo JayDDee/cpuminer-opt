@@ -23,7 +23,7 @@
 #if defined(__AVX2__)
 
 #include <immintrin.h>
-#include "algo/sha/sha3-defs.h"
+//#include "algo/sha/sha3-defs.h"
 #include "simd-utils.h"
 
 /* The length of digests*/
@@ -54,7 +54,7 @@
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 typedef struct {
-    uint32 buffer[8*4];
+    uint32_t buffer[8*4];
     __m512i chainv[10];   /* Chaining values */
     int hashbitlen;
     int rembytes;
@@ -82,7 +82,7 @@ int luffa512_4way_update_close( luffa_4way_context *state, void *output,
 #endif
 
 typedef struct {
-    uint32 buffer[8*2];
+    uint32_t buffer[8*2];
     __m256i chainv[10];   /* Chaining values */
     int hashbitlen;
     int rembytes;

@@ -1,0 +1,22 @@
+{
+	"_comment" : "Any long-format command line argument ",
+	"_comment" : "may be used in this JSON configuration file",
+   "_comment" : "Additional arguments may be added to the command line.",
+   "_comment" : "Usage: cpuminer -c myconfig.json [additional arguments]",
+
+   "_comment" : "Required arguments, replace dummy values",
+   
+	"url" : "stratum+tcp://example.com:3333",
+	"user" : "read.pool.instructions",
+	"pass" : "x.often.works",
+	"algo" : "algo",
+
+   "_comment" : "Often used optional arguments with default values selected.",
+   "_comment" : "Change values, add or delete arguments as desired.",
+
+   "threads" : 0,
+	"cpu-affinity" : -1,
+   "api-bind" : "127.0.0.1:4048",
+	"benchmark" : false,
+	"quiet" : false
+}

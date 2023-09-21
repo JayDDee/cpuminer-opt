@@ -16,7 +16,8 @@
 #include "algo/fugue/fugue-aesni.h"
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/sha/sha-hash-4way.h"
+#include "algo/sha/sha512-hash.h"
+#include "algo/sha/sha256-hash.h"
 #include "algo/haval/haval-hash-4way.h"
 #include "algo/tiger/sph_tiger.h"
 #include "algo/lyra2/lyra2.h"
@@ -25,9 +26,6 @@
   #include "algo/groestl/groestl512-hash-4way.h"
   #include "algo/shavite/shavite-hash-4way.h"
   #include "algo/echo/echo-hash-4way.h"
-#endif
-#if defined(__SHA__)
-  #include "algo/sha/sha256-hash.h"
 #endif
 
 #if defined(X22I_8WAY)

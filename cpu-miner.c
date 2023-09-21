@@ -954,10 +954,10 @@ static inline void sprintf_et( char *str, long unsigned int seconds )
       sprintf( str, "%lum%02lus", min, sec );
 }
 
-const long double exp32 = EXP32;                                  // 2**32
-const long double exp48 = EXP32 * EXP16;                          // 2**48
-const long double exp64 = EXP32 * EXP32;                          // 2**64
-const long double exp96 = EXP32 * EXP32 * EXP32;                  // 2**96
+const long double exp32  = EXP32;                                 // 2**32
+const long double exp48  = EXP32 * EXP16;                         // 2**48
+const long double exp64  = EXP32 * EXP32;                         // 2**64
+const long double exp96  = EXP32 * EXP32 * EXP32;                 // 2**96
 const long double exp128 = EXP32 * EXP32 * EXP32 * EXP32;         // 2**128
 const long double exp160 = EXP32 * EXP32 * EXP32 * EXP32 * EXP16; // 2**160
 
@@ -1280,53 +1280,11 @@ static int share_result( int result, struct work *work,
    applog( LOG_INFO, "%d %s%s %s%s %s%s %s%s%s, %.3f sec (%dms)",
            my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
            bres, CL_N, share_time, latency );
-
-/*   
-   if ( unlikely( opt_debug || !result || solved ) )
-   {
-      if ( have_stratum )
-         applog2( LOG_INFO, "Diff %.5g, Block %d, Job %s",
-               my_stats.share_diff, my_stats.height, my_stats.job_id );
-      else
-         applog2( LOG_INFO, "Diff %.5g, Block %d",
-               my_stats.share_diff, work ? work->height : last_block_height );
-   }
-*/
-
    if ( unlikely( !( opt_quiet || result || stale ) ) )
    {
-//      uint32_t str[8];
-//      uint32_t *targ;
-
-      if ( reason ) applog2( LOG_MINR, "Reject reason: %s", reason );
-      {
-         // The exact hash is not avaiable here, it's just an imprecise
-         // approximation calculated from the share difficulty. It's useless
-         // for anything other than low diff rejects. Until and unless a
-         // solution is implemented to make the hash and targets avaiable
-         // don't bother displaying them. In the meantime display the diff for
-         // low diff rejects.
-
-         if ( strstr( reason, "difficulty" ) )
-            applog2( LOG_MINR, "Share diff: %.5g, Target: %.5g",
-                               my_stats.share_diff, my_stats.target_diff );
-
-/*
-      diff_to_hash( str, my_stats.share_diff );
-      applog2( LOG_INFO, "Hash:   %08x%08x%08x%08x%08x%08x", str[7], str[6],
-               str[5], str[4], str[3],str[2], str[1], str[0] );
-
-      if ( work )
-         targ = work->target;
-      else
-      {
-         diff_to_hash( str, my_stats.target_diff );
-         targ = &str[0];
-      }
-      applog2( LOG_INFO, "Target: %08x%08x%08x%08x%08x%08x", targ[7], targ[6],
-               targ[5], targ[4], targ[3], targ[2], targ[1], targ[0] );
-*/
-      }
+      applog2( LOG_INFO, "Reject reason: %s", reason ? reason : "NULL" );
+      applog2( LOG_INFO, "Share diff: %.5g, Target: %.5g",
+                        my_stats.share_diff, my_stats.target_diff );
    }
    return 1;
 }
@@ -1986,6 +1944,7 @@ void sha256_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
      sha256d( merkle_root, merkle_root, 64 );
   }
 }
+/*
 // OpenSSL single sha256, deprecated
 void SHA256_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 {
@@ -1996,6 +1955,7 @@ void SHA256_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
      sha256d( merkle_root, merkle_root, 64 );
   }
 }
+*/
 
 // Default is do_nothing (assumed LE)
 void set_work_data_big_endian( struct work *work )

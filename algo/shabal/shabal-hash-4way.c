@@ -58,7 +58,7 @@ extern "C"{
            M8, M9, MA, MB, MC, MD, ME, MF; \
    const __m256i FIVE  = _mm256_set1_epi32( 5 ); \
    const __m256i THREE = _mm256_set1_epi32( 3 ); \
-   sph_u32 Wlow, Whigh;
+   uint32_t Wlow, Whigh;
 
 #define READ_STATE8(state) do \
 { \
@@ -653,7 +653,7 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 	        M8, M9, MA, MB, MC, MD, ME, MF; \
    const __m128i FIVE  = _mm_set1_epi32( 5 ); \
    const __m128i THREE = _mm_set1_epi32( 3 ); \
-   sph_u32 Wlow, Whigh;
+   uint32_t Wlow, Whigh;
 
 #define READ_STATE(state) do \
 { \

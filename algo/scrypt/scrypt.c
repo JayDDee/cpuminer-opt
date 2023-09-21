@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-#include "algo/sha/sha-hash-4way.h"
 #include "algo/sha/sha256-hash.h"
 #include <mm_malloc.h>
 #include "malloc-huge.h"

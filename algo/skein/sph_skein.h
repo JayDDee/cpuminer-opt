@@ -46,7 +46,7 @@ extern "C"{
 #endif
 
 #include <stddef.h>
-#include "algo/sha/sph_types.h"
+#include "compat/sph_types.h"
 
 #if SPH_64
 

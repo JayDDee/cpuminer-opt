@@ -1,5 +1,6 @@
 #include "algo-gate-api.h"
-#include "sha-hash-4way.h"
+#include "sha256-hash.h"
+#include "sha512-hash.h"
 #include <string.h>
 #include <stdint.h>
 

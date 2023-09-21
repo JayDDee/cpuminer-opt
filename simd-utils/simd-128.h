@@ -43,6 +43,9 @@ typedef union
 } __attribute__ ((aligned (16))) m128_ovly;
 
 
+#define v128_64(i)    _mm_set1_epi64x(i)
+#define v128_32(i)    _mm_set1_epi32(i)
+
 // Deprecated. AVX512 adds EVEX encoding (3rd operand) and other improvements
 // that make these functions either unnecessary or inefficient.
 // In cases where an explicit move betweeen GP & SIMD registers is still

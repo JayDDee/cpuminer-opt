@@ -2,7 +2,6 @@
 #define RIPEMD_HASH_4WAY_H__
 
 #include <stddef.h>
-#include "algo/sha/sph_types.h"
 
 #if defined(__SSE4_2__)
 

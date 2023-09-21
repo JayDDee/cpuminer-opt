@@ -22,7 +22,7 @@
 #endif
 
 
-#include "algo/sha/sha3_common.h"
+#include "compat/sha3_common.h"
 
 #include <emmintrin.h>
 

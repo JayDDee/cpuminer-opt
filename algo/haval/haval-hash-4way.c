@@ -292,7 +292,9 @@ static const unsigned MP5[32] = {
 	 2, 23, 16, 22,  4,  1, 25, 15
 };
 
-static const sph_u32 RK2[32] = {
+#define SPH_C32(x) (x)
+
+static const uint32_t RK2[32] = {
 	SPH_C32(0x452821E6), SPH_C32(0x38D01377),
 	SPH_C32(0xBE5466CF), SPH_C32(0x34E90C6C),
 	SPH_C32(0xC0AC29B7), SPH_C32(0xC97C50DD),
@@ -311,7 +313,7 @@ static const sph_u32 RK2[32] = {
 	SPH_C32(0x7B54A41D), SPH_C32(0xC25A59B5)
 };
 
-static const sph_u32 RK3[32] = {
+static const uint32_t RK3[32] = {
 	SPH_C32(0x9C30D539), SPH_C32(0x2AF26013),
 	SPH_C32(0xC5D1B023), SPH_C32(0x286085F0),
 	SPH_C32(0xCA417918), SPH_C32(0xB8DB38EF),
@@ -330,7 +332,7 @@ static const sph_u32 RK3[32] = {
 	SPH_C32(0xAFD6BA33), SPH_C32(0x6C24CF5C)
 };
 
-static const sph_u32 RK4[32] = {
+static const uint32_t RK4[32] = {
 	SPH_C32(0x7A325381), SPH_C32(0x28958677),
 	SPH_C32(0x3B8F4898), SPH_C32(0x6B4BB9AF),
 	SPH_C32(0xC4BFE81B), SPH_C32(0x66282193),
@@ -349,7 +351,7 @@ static const sph_u32 RK4[32] = {
 	SPH_C32(0x6EEF0B6C), SPH_C32(0x137A3BE4)
 };
 
-static const sph_u32 RK5[32] = {
+static const uint32_t RK5[32] = {
 	SPH_C32(0xBA3BF050), SPH_C32(0x7EFB2A98),
 	SPH_C32(0xA1F1651D), SPH_C32(0x39AF0176),
 	SPH_C32(0x66CA593E), SPH_C32(0x82430E88),

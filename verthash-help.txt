@@ -64,8 +64,8 @@ then exit.
 --algo verthash --verify
 
 A data file will never be created if --data-file is specified. The miner
-will exit with an error if the file is not found. This is to avoid accidentally
-creating an unwanted data file due to a typo.
+will exit with an error if the file is not found in the specified location.
+This is to avoid accidentally creating an unwanted data file due to a typo.
 
 After creation the data file can moved to a more convenient location and
 referenced by --data-file, or left where it is and used by default without the

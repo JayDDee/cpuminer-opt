@@ -20,7 +20,7 @@
 #include "algo/fugue/sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
-#include "algo/sha/sph_sha2.h"
+#include "algo/sha/sha512-hash.h"
 
 #if defined(__AES__)
 #include "algo/echo/aes_ni/hash_api.h"
@@ -42,7 +42,6 @@
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
 #include "algo/shabal/shabal-hash-4way.h"
-#include "algo/sha/sha-hash-4way.h"
 
 #if defined(__VAES__)
 #include "algo/groestl/groestl512-hash-4way.h"

@@ -248,7 +248,7 @@ int null_hash()
    return 0;
 };
 
-void init_algo_gate( algo_gate_t* gate )
+static void init_algo_gate( algo_gate_t* gate )
 {
    gate->miner_thread_init       = (void*)&return_true;
    gate->scanhash                = (void*)&scanhash_generic;

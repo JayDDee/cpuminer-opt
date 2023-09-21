@@ -12,9 +12,7 @@
 #include "algo/tiger/sph_tiger.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/lyra2/lyra2.h"
-#if defined(__SHA__)
-  #include "algo/sha/sha256-hash.h"
-#endif
+#include "algo/sha/sha256-hash.h"
 
 #if defined (X21S_8WAY)
 

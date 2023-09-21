@@ -48,7 +48,7 @@ SPH_XCAT(SPH_XCAT(haval, PASSES), _4way_update)
    while ( len > 0 )
    {
       unsigned clen;
-      sph_u32 clow, clow2;
+      uint32_t clow, clow2;
 
       clen = 128U - current;
       if ( clen > len )
@@ -67,7 +67,7 @@ SPH_XCAT(SPH_XCAT(haval, PASSES), _4way_update)
          current = 0;
       }
       clow = sc->count_low;
-      clow2 = SPH_T32(clow + clen);
+      clow2 = clow + clen;
       sc->count_low = clow2;
       if ( clow2 < clow )
          sc->count_high ++;

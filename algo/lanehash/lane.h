@@ -23,7 +23,6 @@
 #define LANE_H
 
 #include <string.h>
-//#include "algo/sha/sha3-defs.h"
 #include <stdint.h>
 
 typedef unsigned char BitSequence;

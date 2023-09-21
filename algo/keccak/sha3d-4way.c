@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "sph_keccak.h"
 #include "keccak-hash-4way.h"
 
 #if defined(KECCAK_8WAY)

@@ -263,7 +263,7 @@ bool register_hex_algo( algo_gate_t* gate )
   gate->scanhash        = (void*)&scanhash_hex;
   gate->hash            = (void*)&x16r_hash;
   gate->optimizations   = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
-  gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
+  gate->gen_merkle_root = (void*)&sha256_gen_merkle_root;
   opt_target_factor = 128.0;
   return true;
 };

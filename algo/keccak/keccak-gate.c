@@ -9,7 +9,7 @@ int hard_coded_eb = 1;
 bool register_keccak_algo( algo_gate_t* gate )
 {
   gate->optimizations = AVX2_OPT | AVX512_OPT;
-  gate->gen_merkle_root = (void*)&SHA256_gen_merkle_root;
+  gate->gen_merkle_root = (void*)&sha256_gen_merkle_root;
   opt_target_factor = 128.0;
 #if defined (KECCAK_8WAY)
   gate->scanhash  = (void*)&scanhash_keccak_8way;

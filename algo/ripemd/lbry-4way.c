@@ -3,7 +3,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "algo/sha/sha-hash-4way.h"
+#include "algo/sha/sha256-hash.h"
+#include "algo/sha/sha512-hash.h"
 #include "ripemd-hash-4way.h"
 
 #define LBRY_INPUT_SIZE 112

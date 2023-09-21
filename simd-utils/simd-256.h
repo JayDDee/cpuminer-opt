@@ -33,6 +33,10 @@ typedef union
    uint32_t u32[8];
 } __attribute__ ((aligned (32))) m256_ovly;
 
+
+#define v256_64(i)    _mm256_set1_epi64x(i)
+#define v256_32(i)    _mm256_set1_epi32(i)
+
 //
 // Pointer casting
 

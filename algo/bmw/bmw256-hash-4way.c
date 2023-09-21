@@ -109,7 +109,7 @@ static const uint32_t IV256[] = {
              _mm_sub_epi32( _mm_add_epi32( rol_off_32( M, j, 0 ), \
                                            rol_off_32( M, j, 3 ) ), \
                             rol_off_32( M, j, 10 ) ), \
-       _mm_set1_epi32( ( (j)+16 ) * SPH_C32(0x05555555UL) ) ), \
+       _mm_set1_epi32( ( (j)+16 ) * 0x05555555UL ) ), \
    H[ ( (j)+7 ) & 0xF ] )
 
 
@@ -485,7 +485,7 @@ bmw32_4way(bmw_4way_small_context *sc, const void *data, size_t len)
    size_t ptr;
    const int buf_size = 64;  // bytes of one lane, compatible with len
 
-   sc->bit_count += (sph_u32)len << 3;
+   sc->bit_count += (uint32_t)len << 3;
    buf = sc->buf;
    ptr = sc->ptr;
    h1 = sc->H;

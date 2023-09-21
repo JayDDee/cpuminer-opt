@@ -4,7 +4,12 @@
 #include <string.h>
 #include <stdio.h>
 #include "sha256-hash.h"
-#include "sha-hash-4way.h"
+
+   static const uint32_t sha256_iv[8]  __attribute__ ((aligned (32))) =
+   {
+      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
+      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
+   };
 
 #if defined(SHA256T_16WAY)
 
@@ -19,11 +24,6 @@ int scanhash_sha256t_16way( struct work *work, const uint32_t max_nonce,
    __m512i  istate[8]    __attribute__ ((aligned (64)));
    __m512i  mexp_pre[8]  __attribute__ ((aligned (64)));
    uint32_t phash[8]     __attribute__ ((aligned (32)));
-   static const uint32_t IV[8]  __attribute__ ((aligned (32))) =
-   {
-      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
-      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
-   };
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    uint32_t *hash32_d7 = (uint32_t*)&(hash32[7]);
@@ -39,7 +39,7 @@ int scanhash_sha256t_16way( struct work *work, const uint32_t max_nonce,
                                 0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
    // prehash first block directly from pdata
-   sha256_transform_le( phash, pdata, IV );
+   sha256_transform_le( phash, pdata, sha256_iv );
 
    // vectorize block 0 hash for second block
    mstate1[0] = _mm512_set1_epi32( phash[0] );
@@ -65,14 +65,14 @@ int scanhash_sha256t_16way( struct work *work, const uint32_t max_nonce,
    sha256_16way_prehash_3rounds( mstate2, mexp_pre, buf, mstate1 );
 
    // vectorize IV for 2nd & 3rd sha256
-   istate[0] = _mm512_set1_epi32( IV[0] );
-   istate[1] = _mm512_set1_epi32( IV[1] );
-   istate[2] = _mm512_set1_epi32( IV[2] );
-   istate[3] = _mm512_set1_epi32( IV[3] );
-   istate[4] = _mm512_set1_epi32( IV[4] );
-   istate[5] = _mm512_set1_epi32( IV[5] );
-   istate[6] = _mm512_set1_epi32( IV[6] );
-   istate[7] = _mm512_set1_epi32( IV[7] );
+   istate[0] = _mm512_set1_epi32( sha256_iv[0] );
+   istate[1] = _mm512_set1_epi32( sha256_iv[1] );
+   istate[2] = _mm512_set1_epi32( sha256_iv[2] );
+   istate[3] = _mm512_set1_epi32( sha256_iv[3] );
+   istate[4] = _mm512_set1_epi32( sha256_iv[4] );
+   istate[5] = _mm512_set1_epi32( sha256_iv[5] );
+   istate[6] = _mm512_set1_epi32( sha256_iv[6] );
+   istate[7] = _mm512_set1_epi32( sha256_iv[7] );
 
    // initialize padding for 2nd & 3rd sha256
    block[ 8] = last_byte;
@@ -103,6 +103,97 @@ int scanhash_sha256t_16way( struct work *work, const uint32_t max_nonce,
       buf[3] = _mm512_add_epi32( buf[3], sixteen );
       n += 16;
    } while ( (n < last_nonce) && !work_restart[thr_id].restart );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+#endif
+
+#if defined(__SHA__)
+
+int scanhash_sha256t_sha( struct work *work, uint32_t max_nonce,
+                          uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t block1a[16] __attribute__ ((aligned (64)));
+   uint32_t block1b[16] __attribute__ ((aligned (64)));
+   uint32_t block2a[16] __attribute__ ((aligned (64)));
+   uint32_t block2b[16] __attribute__ ((aligned (64)));
+   uint32_t hasha[8]   __attribute__ ((aligned (32)));
+   uint32_t hashb[8]   __attribute__ ((aligned (32)));
+   uint32_t mstatea[8] __attribute__ ((aligned (32)));
+   uint32_t mstateb[8] __attribute__ ((aligned (32)));
+   uint32_t sstate[8]  __attribute__ ((aligned (32)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 2;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+   const __m128i shuf_bswap32 =
+           _mm_set_epi64x( 0x0c0d0e0f08090a0bULL, 0x0405060700010203ULL );
+
+   // hash first 64 byte block of data
+   sha256_opt_transform_le( mstatea, pdata, sha256_iv );
+
+   // fill & pad second bock without nonce
+   memcpy( block1a, pdata + 16, 12 );
+   memcpy( block1b, pdata + 16, 12 );
+   block1a[ 3] = 0;
+   block1b[ 3] = 0;
+   block1a[ 4] = block1b[ 4] = 0x80000000;
+   memset( block1a + 5, 0, 40 );
+   memset( block1b + 5, 0, 40 );
+   block1a[15] = block1b[15] = 0x480; // funky bit count
+
+   sha256_ni_prehash_3rounds( mstateb, block1a, sstate, mstatea);
+
+   // Pad third block
+   block2a[ 8] = block2b[ 8] = 0x80000000;
+   memset( block2a + 9, 0, 24 );
+   memset( block2b + 9, 0, 24 );
+   block2a[15] = block2b[15] = 80*8; // bit count
+
+   do
+   {
+      // Insert nonce for second block
+      block1a[3] = n;
+      block1b[3] = n+1;
+      sha256_ni2way_final_rounds( block2a, block2b, block1a, block1b,
+                                  mstateb, mstateb, sstate, sstate );
+      sha256_ni2way_transform_le( block2a, block2b, block2a, block2b,
+                                  sha256_iv, sha256_iv );
+      sha256_ni2way_transform_le( hasha, hashb, block2a, block2b,
+                                  sha256_iv, sha256_iv );
+
+      if ( unlikely( bswap_32( hasha[7] ) <= ptarget[7] ) )
+      {
+          casti_m128i( hasha, 0 ) =
+               _mm_shuffle_epi8( casti_m128i( hasha, 0 ), shuf_bswap32 );
+          casti_m128i( hasha, 1 ) =
+               _mm_shuffle_epi8( casti_m128i( hasha, 1 ), shuf_bswap32 );
+          if ( likely( valid_hash( hasha, ptarget ) && !bench ) )
+          {
+             pdata[19] = n;
+             submit_solution( work, hasha, mythr );
+          }
+      }
+      if ( unlikely( bswap_32( hashb[7] ) <= ptarget[7] ) )
+      {
+         casti_m128i( hashb, 0 ) =
+               _mm_shuffle_epi8( casti_m128i( hashb, 0 ), shuf_bswap32 );
+         casti_m128i( hashb, 1 ) =
+               _mm_shuffle_epi8( casti_m128i( hashb, 1 ), shuf_bswap32 );
+         if ( likely( valid_hash( hashb, ptarget ) && !bench ) )
+         {
+            pdata[19] = n+1;
+            submit_solution( work, hashb, mythr );
+         }
+      }
+      n += 2;
+   } while ( (n < last_nonce) && !work_restart[thr_id].restart );
+
    pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;

@@ -65,6 +65,11 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.23.2
+
+sha256dt, sha256t & sha256d +10% with SHA, small improvement with AVX2.
+Other small improvements and code cleanup.
+
 v3.23.1
 
 #349: Fix sha256t low difficulty shares and low effective hash rate.
