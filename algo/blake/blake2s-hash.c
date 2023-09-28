@@ -11,7 +11,7 @@
  * this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#include "blake2s-hash-4way.h"
+#include "blake2s-hash.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -62,23 +62,23 @@ int blake2s_4way_init( blake2s_4way_state *S, const uint8_t outlen )
 
    memset( S, 0, sizeof( blake2s_4way_state ) );
 
-   S->h[0] = _mm_set1_epi64x( 0x6A09E6676A09E667ULL );
-   S->h[1] = _mm_set1_epi64x( 0xBB67AE85BB67AE85ULL );
-   S->h[2] = _mm_set1_epi64x( 0x3C6EF3723C6EF372ULL );
-   S->h[3] = _mm_set1_epi64x( 0xA54FF53AA54FF53AULL );
-   S->h[4] = _mm_set1_epi64x( 0x510E527F510E527FULL );
-   S->h[5] = _mm_set1_epi64x( 0x9B05688C9B05688CULL );
-   S->h[6] = _mm_set1_epi64x( 0x1F83D9AB1F83D9ABULL );
-   S->h[7] = _mm_set1_epi64x( 0x5BE0CD195BE0CD19ULL );
+   S->h[0] = v128_64( 0x6A09E6676A09E667ULL );
+   S->h[1] = v128_64( 0xBB67AE85BB67AE85ULL );
+   S->h[2] = v128_64( 0x3C6EF3723C6EF372ULL );
+   S->h[3] = v128_64( 0xA54FF53AA54FF53AULL );
+   S->h[4] = v128_64( 0x510E527F510E527FULL );
+   S->h[5] = v128_64( 0x9B05688C9B05688CULL );
+   S->h[6] = v128_64( 0x1F83D9AB1F83D9ABULL );
+   S->h[7] = v128_64( 0x5BE0CD195BE0CD19ULL );
    
 //   for( int i = 0; i < 8; ++i )
-//      S->h[i] = _mm_set1_epi32( blake2s_IV[i] );
+//      S->h[i] = v128_32( blake2s_IV[i] );
 
    uint32_t *p = ( uint32_t * )( P );
 
    /* IV XOR ParamBlock */
    for ( size_t i = 0; i < 8; ++i )
-      S->h[i] = _mm_xor_si128( S->h[i], _mm_set1_epi32( p[i] ) );
+      S->h[i] = _mm_xor_si128( S->h[i], v128_32( p[i] ) );
    return 0;
 }
 
@@ -90,18 +90,18 @@ int blake2s_4way_compress( blake2s_4way_state *S, const __m128i* block )
    memcpy_128( m, block, 16 );
    memcpy_128( v, S->h, 8 );
 
-   v[ 8] = _mm_set1_epi64x( 0x6A09E6676A09E667ULL );
-   v[ 9] = _mm_set1_epi64x( 0xBB67AE85BB67AE85ULL );
-   v[10] = _mm_set1_epi64x( 0x3C6EF3723C6EF372ULL );
-   v[11] = _mm_set1_epi64x( 0xA54FF53AA54FF53AULL );
-   v[12] = _mm_xor_si128( _mm_set1_epi32( S->t[0] ),
-                          _mm_set1_epi64x( 0x510E527F510E527FULL ) );
-   v[13] = _mm_xor_si128( _mm_set1_epi32( S->t[1] ),
-                          _mm_set1_epi64x( 0x9B05688C9B05688CULL ) );
-   v[14] = _mm_xor_si128( _mm_set1_epi32( S->f[0] ),
-                          _mm_set1_epi64x( 0x1F83D9AB1F83D9ABULL ) );
-   v[15] = _mm_xor_si128( _mm_set1_epi32( S->f[1] ),
-                          _mm_set1_epi64x( 0x5BE0CD195BE0CD19ULL ) );
+   v[ 8] = v128_64( 0x6A09E6676A09E667ULL );
+   v[ 9] = v128_64( 0xBB67AE85BB67AE85ULL );
+   v[10] = v128_64( 0x3C6EF3723C6EF372ULL );
+   v[11] = v128_64( 0xA54FF53AA54FF53AULL );
+   v[12] = _mm_xor_si128( v128_32( S->t[0] ),
+                          v128_64( 0x510E527F510E527FULL ) );
+   v[13] = _mm_xor_si128( v128_32( S->t[1] ),
+                          v128_64( 0x9B05688C9B05688CULL ) );
+   v[14] = _mm_xor_si128( v128_32( S->f[0] ),
+                          v128_64( 0x1F83D9AB1F83D9ABULL ) );
+   v[15] = _mm_xor_si128( v128_32( S->f[1] ),
+                          v128_64( 0x5BE0CD195BE0CD19ULL ) );
 
 #define G4W( sigma0, sigma1, a, b, c, d ) \
 do { \
@@ -269,35 +269,35 @@ int blake2s_8way_compress( blake2s_8way_state *S, const __m256i *block )
    memcpy_256( m, block, 16 );
    memcpy_256( v, S->h, 8 );
 
-   v[ 8] = _mm256_set1_epi64x( 0x6A09E6676A09E667ULL );
-   v[ 9] = _mm256_set1_epi64x( 0xBB67AE85BB67AE85ULL );
-   v[10] = _mm256_set1_epi64x( 0x3C6EF3723C6EF372ULL );
-   v[11] = _mm256_set1_epi64x( 0xA54FF53AA54FF53AULL );
-   v[12] = _mm256_xor_si256( _mm256_set1_epi32( S->t[0] ),
-                          _mm256_set1_epi64x( 0x510E527F510E527FULL ) );
+   v[ 8] = v256_64( 0x6A09E6676A09E667ULL );
+   v[ 9] = v256_64( 0xBB67AE85BB67AE85ULL );
+   v[10] = v256_64( 0x3C6EF3723C6EF372ULL );
+   v[11] = v256_64( 0xA54FF53AA54FF53AULL );
+   v[12] = _mm256_xor_si256( v256_32( S->t[0] ),
+                          v256_64( 0x510E527F510E527FULL ) );
 
-   v[13] = _mm256_xor_si256( _mm256_set1_epi32( S->t[1] ),
-                          _mm256_set1_epi64x( 0x9B05688C9B05688CULL ) );
+   v[13] = _mm256_xor_si256( v256_32( S->t[1] ),
+                          v256_64( 0x9B05688C9B05688CULL ) );
 
-   v[14] = _mm256_xor_si256( _mm256_set1_epi32( S->f[0] ),
-                          _mm256_set1_epi64x( 0x1F83D9AB1F83D9ABULL ) );
+   v[14] = _mm256_xor_si256( v256_32( S->f[0] ),
+                          v256_64( 0x1F83D9AB1F83D9ABULL ) );
 
-   v[15] = _mm256_xor_si256( _mm256_set1_epi32( S->f[1] ),
-                          _mm256_set1_epi64x( 0x5BE0CD195BE0CD19ULL ) );
+   v[15] = _mm256_xor_si256( v256_32( S->f[1] ),
+                          v256_64( 0x5BE0CD195BE0CD19ULL ) );
 
 /*
-   v[ 8] = _mm256_set1_epi32( blake2s_IV[0] );
-   v[ 9] = _mm256_set1_epi32( blake2s_IV[1] );
-   v[10] = _mm256_set1_epi32( blake2s_IV[2] );
-   v[11] = _mm256_set1_epi32( blake2s_IV[3] );
-   v[12] = _mm256_xor_si256( _mm256_set1_epi32( S->t[0] ),
-                             _mm256_set1_epi32( blake2s_IV[4] ) );
-   v[13] = _mm256_xor_si256( _mm256_set1_epi32( S->t[1] ),
-                             _mm256_set1_epi32( blake2s_IV[5] ) );
-   v[14] = _mm256_xor_si256( _mm256_set1_epi32( S->f[0] ),
-                             _mm256_set1_epi32( blake2s_IV[6] ) );
-   v[15] = _mm256_xor_si256( _mm256_set1_epi32( S->f[1] ),
-                             _mm256_set1_epi32( blake2s_IV[7] ) );
+   v[ 8] = v256_32( blake2s_IV[0] );
+   v[ 9] = v256_32( blake2s_IV[1] );
+   v[10] = v256_32( blake2s_IV[2] );
+   v[11] = v256_32( blake2s_IV[3] );
+   v[12] = _mm256_xor_si256( v256_32( S->t[0] ),
+                             v256_32( blake2s_IV[4] ) );
+   v[13] = _mm256_xor_si256( v256_32( S->t[1] ),
+                             v256_32( blake2s_IV[5] ) );
+   v[14] = _mm256_xor_si256( v256_32( S->f[0] ),
+                             v256_32( blake2s_IV[6] ) );
+   v[15] = _mm256_xor_si256( v256_32( S->f[1] ),
+                             v256_32( blake2s_IV[7] ) );
 
 
 #define G8W(r,i,a,b,c,d) \
@@ -391,24 +391,24 @@ int blake2s_8way_init( blake2s_8way_state *S, const uint8_t outlen )
    memset( P->personal, 0, sizeof( P->personal ) );
 
    memset( S, 0, sizeof( blake2s_8way_state ) );
-   S->h[0] = _mm256_set1_epi64x( 0x6A09E6676A09E667ULL );
-   S->h[1] = _mm256_set1_epi64x( 0xBB67AE85BB67AE85ULL );
-   S->h[2] = _mm256_set1_epi64x( 0x3C6EF3723C6EF372ULL );
-   S->h[3] = _mm256_set1_epi64x( 0xA54FF53AA54FF53AULL );
-   S->h[4] = _mm256_set1_epi64x( 0x510E527F510E527FULL );
-   S->h[5] = _mm256_set1_epi64x( 0x9B05688C9B05688CULL );
-   S->h[6] = _mm256_set1_epi64x( 0x1F83D9AB1F83D9ABULL );
-   S->h[7] = _mm256_set1_epi64x( 0x5BE0CD195BE0CD19ULL );
+   S->h[0] = v256_64( 0x6A09E6676A09E667ULL );
+   S->h[1] = v256_64( 0xBB67AE85BB67AE85ULL );
+   S->h[2] = v256_64( 0x3C6EF3723C6EF372ULL );
+   S->h[3] = v256_64( 0xA54FF53AA54FF53AULL );
+   S->h[4] = v256_64( 0x510E527F510E527FULL );
+   S->h[5] = v256_64( 0x9B05688C9B05688CULL );
+   S->h[6] = v256_64( 0x1F83D9AB1F83D9ABULL );
+   S->h[7] = v256_64( 0x5BE0CD195BE0CD19ULL );
 
 
 //   for( int i = 0; i < 8; ++i )
-//      S->h[i] = _mm256_set1_epi32( blake2s_IV[i] );
+//      S->h[i] = v256_32( blake2s_IV[i] );
 
    uint32_t *p = ( uint32_t * )( P );
 
    /* IV XOR ParamBlock */
    for ( size_t i = 0; i < 8; ++i )
-      S->h[i] = _mm256_xor_si256( S->h[i], _mm256_set1_epi32( p[i] ) );
+      S->h[i] = _mm256_xor_si256( S->h[i], v256_32( p[i] ) );
    return 0;
 }
 
@@ -510,21 +510,21 @@ int blake2s_16way_compress( blake2s_16way_state *S, const __m512i *block )
    memcpy_512( m, block, 16 );
    memcpy_512( v, S->h, 8 );
 
-   v[ 8] = _mm512_set1_epi64( 0x6A09E6676A09E667ULL );
-   v[ 9] = _mm512_set1_epi64( 0xBB67AE85BB67AE85ULL );
-   v[10] = _mm512_set1_epi64( 0x3C6EF3723C6EF372ULL );
-   v[11] = _mm512_set1_epi64( 0xA54FF53AA54FF53AULL );
-   v[12] = _mm512_xor_si512( _mm512_set1_epi32( S->t[0] ),
-                          _mm512_set1_epi64( 0x510E527F510E527FULL ) );
+   v[ 8] = v512_64( 0x6A09E6676A09E667ULL );
+   v[ 9] = v512_64( 0xBB67AE85BB67AE85ULL );
+   v[10] = v512_64( 0x3C6EF3723C6EF372ULL );
+   v[11] = v512_64( 0xA54FF53AA54FF53AULL );
+   v[12] = _mm512_xor_si512( v512_32( S->t[0] ),
+                          v512_64( 0x510E527F510E527FULL ) );
 
-   v[13] = _mm512_xor_si512( _mm512_set1_epi32( S->t[1] ),
-                          _mm512_set1_epi64( 0x9B05688C9B05688CULL ) );
+   v[13] = _mm512_xor_si512( v512_32( S->t[1] ),
+                          v512_64( 0x9B05688C9B05688CULL ) );
 
-   v[14] = _mm512_xor_si512( _mm512_set1_epi32( S->f[0] ),
-                          _mm512_set1_epi64( 0x1F83D9AB1F83D9ABULL ) );
+   v[14] = _mm512_xor_si512( v512_32( S->f[0] ),
+                          v512_64( 0x1F83D9AB1F83D9ABULL ) );
 
-   v[15] = _mm512_xor_si512( _mm512_set1_epi32( S->f[1] ),
-                          _mm512_set1_epi64( 0x5BE0CD195BE0CD19ULL ) );
+   v[15] = _mm512_xor_si512( v512_32( S->f[1] ),
+                          v512_64( 0x5BE0CD195BE0CD19ULL ) );
 
 
 #define G16W( sigma0, sigma1, a, b, c, d) \
@@ -589,20 +589,20 @@ int blake2s_16way_init( blake2s_16way_state *S, const uint8_t outlen )
    memset( P->personal, 0, sizeof( P->personal ) );
 
    memset( S, 0, sizeof( blake2s_16way_state ) );
-   S->h[0] = _mm512_set1_epi64( 0x6A09E6676A09E667ULL );
-   S->h[1] = _mm512_set1_epi64( 0xBB67AE85BB67AE85ULL );
-   S->h[2] = _mm512_set1_epi64( 0x3C6EF3723C6EF372ULL );
-   S->h[3] = _mm512_set1_epi64( 0xA54FF53AA54FF53AULL );
-   S->h[4] = _mm512_set1_epi64( 0x510E527F510E527FULL );
-   S->h[5] = _mm512_set1_epi64( 0x9B05688C9B05688CULL );
-   S->h[6] = _mm512_set1_epi64( 0x1F83D9AB1F83D9ABULL );
-   S->h[7] = _mm512_set1_epi64( 0x5BE0CD195BE0CD19ULL );
+   S->h[0] = v512_64( 0x6A09E6676A09E667ULL );
+   S->h[1] = v512_64( 0xBB67AE85BB67AE85ULL );
+   S->h[2] = v512_64( 0x3C6EF3723C6EF372ULL );
+   S->h[3] = v512_64( 0xA54FF53AA54FF53AULL );
+   S->h[4] = v512_64( 0x510E527F510E527FULL );
+   S->h[5] = v512_64( 0x9B05688C9B05688CULL );
+   S->h[6] = v512_64( 0x1F83D9AB1F83D9ABULL );
+   S->h[7] = v512_64( 0x5BE0CD195BE0CD19ULL );
 
    uint32_t *p = ( uint32_t * )( P );
 
    /* IV XOR ParamBlock */
    for ( size_t i = 0; i < 8; ++i )
-      S->h[i] = _mm512_xor_si512( S->h[i], _mm512_set1_epi32( p[i] ) );
+      S->h[i] = _mm512_xor_si512( S->h[i], v512_32( p[i] ) );
    return 0;
 }
 

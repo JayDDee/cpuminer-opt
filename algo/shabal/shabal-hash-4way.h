@@ -10,6 +10,33 @@
 
 #define SPH_SIZE_shabal512   512
 
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+typedef struct {
+   __m512i buf[16];
+   __m512i A[12], B[16], C[16];
+   uint32_t Whigh, Wlow;
+   size_t ptr;
+   bool state_loaded;
+} shabal_16way_context __attribute__ ((aligned (64)));
+
+typedef shabal_16way_context shabal256_16way_context;
+typedef shabal_16way_context shabal512_16way_context;
+
+void shabal256_16way_init( void *cc );
+void shabal256_16way_update( void *cc, const void *data, size_t len );
+void shabal256_16way_close( void *cc, void *dst );
+void shabal256_16way_addbits_and_close( void *cc, unsigned ub, unsigned n,
+                                       void *dst );
+
+void shabal512_16way_init( void *cc );
+void shabal512_16way_update( void *cc, const void *data, size_t len );
+void shabal512_16way_close( void *cc, void *dst );
+void shabal512_16way_addbits_and_close( void *cc, unsigned ub, unsigned n,
+                                       void *dst );
+
+#endif
+
 #if defined(__AVX2__)
 
 typedef struct {

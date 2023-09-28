@@ -516,6 +516,17 @@ static inline bool has_sha()
 #endif
 }
 
+static inline bool has_sha512()
+{
+#ifdef __arm__
+    return false;
+#else
+    unsigned int cpu_info[4] = { 0 };
+    cpuid( EXTENDED_FEATURES, 1, cpu_info );
+    return cpu_info[ EAX_Reg ] & SHA512_Flag;
+#endif
+}
+
 static inline bool has_sse2()
 {
 #ifdef __arm__

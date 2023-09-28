@@ -2,7 +2,10 @@
 
 bool register_x17_algo( algo_gate_t* gate )
 {
-#if defined (X17_8WAY)
+#if defined (X17_16X32)
+  gate->scanhash  = (void*)&scanhash_x17_16way;
+//  gate->hash      = (void*)&x17_16way_hash;
+#elif defined (X17_8WAY)
   gate->scanhash  = (void*)&scanhash_x17_8way;
   gate->hash      = (void*)&x17_8way_hash;
 #elif defined (X17_4WAY)

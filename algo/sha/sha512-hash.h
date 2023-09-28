@@ -5,11 +5,32 @@
 #include "simd-utils.h"
 #include "sph_sha2.h"
 
+#if defined(__SHA512__) && defined(__AVX2__)
+
+// Experimental, untested
+// Need to substitute for sph_sha512
+
+typedef struct
+{
+   uint64_t buf[128>>3];
+   uint64_t val[8];
+   uint64_t count;
+} sha512_context __attribute__ ((aligned (64)));
+
+void sha512_opt_transform_be( uint64_t *state_out, const void *input,
+                              const uint64_t *state_in );
+
+void sha512_opt_transform_le( uint64_t *state_out, const void *input,
+                              const uint64_t *state_in );
+
+#endif
+
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 // SHA-512 8 way
 
-typedef struct {
+typedef struct
+{
    __m512i buf[128>>3];
    __m512i val[8];
    uint64_t count;
@@ -28,7 +49,8 @@ void sha512_8way_full( void *dst, const void *data, size_t len );
 
 // SHA-512 4 way
 
-typedef struct {
+typedef struct
+{
    __m256i buf[128>>3];
    __m256i val[8];
    uint64_t count;

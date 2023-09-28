@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <compat/portable_endian.h>
-#include "algo/blake/blake-hash-4way.h"
+#include "algo/blake/blake512-hash.h"
 #include "algo/bmw/bmw-hash-4way.h"
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/jh/jh-hash-4way.h"

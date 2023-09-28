@@ -65,6 +65,14 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.23.3
+
+#400: Removed excessive thread restarts when mining solo.
+Fixed build_msys2.sh for gcc-13 by removing unsupported option "--param=evrp-mode=legacy" from CFLAGS.
+Added CPUID detection and reporting of CPUs and SW builds supporting SHA512 extension.
+Added prototype of sha-512 using SHA512 intrinsics, untested.
+Other improvements and code cleanup.
+
 v3.23.2
 
 sha256dt, sha256t & sha256d +10% with SHA, small improvement with AVX2.

@@ -2,8 +2,7 @@
 #include <memory.h>
 #include <mm_malloc.h>
 #include "lyra2.h"
-#include "algo/blake/sph_blake.h"
-#include "algo/blake/blake-hash-4way.h"
+#include "algo/blake/blake256-hash.h"
 
 #if defined(LYRA2Z_16WAY)
 

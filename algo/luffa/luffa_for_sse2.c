@@ -33,8 +33,7 @@
 
 #define MULT2( a0, a1 ) \
 { \
-  __m128i b = _mm_xor_si128( a0, \
-                      _mm_maskz_shuffle_epi32( 0xb, a1, 0x10 ) ); \
+  __m128i b = _mm_xor_si128( a0, _mm_maskz_shuffle_epi32( 0xb, a1, 0x10 ) ); \
   a0 = _mm_alignr_epi8( a1, b, 4 ); \
   a1 = _mm_alignr_epi8( b, a1, 4 ); \
 }

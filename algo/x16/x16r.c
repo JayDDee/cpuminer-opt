@@ -64,9 +64,9 @@ int x16r_hash_generic( void* output, const void* input, int thrid )
       switch ( algo )
       {
          case BLAKE:
-            sph_blake512_init( &ctx.blake );
-            sph_blake512( &ctx.blake, in, size );
-            sph_blake512_close( &ctx.blake, hash );
+            blake512_init( &ctx.blake );
+            blake512_update( &ctx.blake, in, size );
+            blake512_close( &ctx.blake, hash );
          break;
          case BMW:
             sph_bmw512_init( &ctx.bmw );
@@ -219,13 +219,13 @@ int scanhash_x16r( struct work *work, uint32_t max_nonce,
    mm128_bswap32_80( edata, pdata );
 
    static __thread uint32_t s_ntime = UINT32_MAX;
-   if ( s_ntime != pdata[17] )
+   uint32_t ntime = bswap_32( pdata[17] );
+   if ( s_ntime != ntime )
    {
-      uint32_t ntime = swab32(pdata[17]);
       x16_r_s_getAlgoString( (const uint8_t*)(&edata[1]), x16r_hash_order );
       s_ntime = ntime;
-      if ( opt_debug && !thr_id )
-           applog( LOG_DEBUG, "hash order %s (%08x)", x16r_hash_order, ntime );
+      if ( !opt_quiet && !thr_id )
+           applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
    }
 
    x16r_prehash( edata, pdata );

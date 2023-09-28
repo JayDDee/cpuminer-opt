@@ -1,5 +1,5 @@
 #include "blakecoin-gate.h"
-#include "blake-hash-4way.h"
+#include "blake256-hash.h"
 #include <string.h>
 #include <stdint.h>
 #include <memory.h>
@@ -30,25 +30,25 @@ int scanhash_blakecoin_16way( struct work *work, uint32_t max_nonce,
    const uint32_t last_nonce = max_nonce - 16;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const __m512i sixteen = _mm512_set1_epi32( 16 );
+   const __m512i sixteen = v512_32( 16 );
 
    // Prehash first block
    blake256_transform_le( phash, pdata, 512, 0, rounds );
 
-   block0_hash[0] = _mm512_set1_epi32( phash[0] );
-   block0_hash[1] = _mm512_set1_epi32( phash[1] );
-   block0_hash[2] = _mm512_set1_epi32( phash[2] );
-   block0_hash[3] = _mm512_set1_epi32( phash[3] );
-   block0_hash[4] = _mm512_set1_epi32( phash[4] );
-   block0_hash[5] = _mm512_set1_epi32( phash[5] );
-   block0_hash[6] = _mm512_set1_epi32( phash[6] );
-   block0_hash[7] = _mm512_set1_epi32( phash[7] );
+   block0_hash[0] = v512_32( phash[0] );
+   block0_hash[1] = v512_32( phash[1] );
+   block0_hash[2] = v512_32( phash[2] );
+   block0_hash[3] = v512_32( phash[3] );
+   block0_hash[4] = v512_32( phash[4] );
+   block0_hash[5] = v512_32( phash[5] );
+   block0_hash[6] = v512_32( phash[6] );
+   block0_hash[7] = v512_32( phash[7] );
 
    // Build vectored second block, interleave last 16 bytes of data using
    // unique nonces.
-   block_buf[0] = _mm512_set1_epi32( pdata[16] );
-   block_buf[1] = _mm512_set1_epi32( pdata[17] );
-   block_buf[2] = _mm512_set1_epi32( pdata[18] );
+   block_buf[0] = v512_32( pdata[16] );
+   block_buf[1] = v512_32( pdata[17] );
+   block_buf[2] = v512_32( pdata[18] );
    block_buf[3] =
              _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+ 9, n+ 8,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
@@ -101,25 +101,25 @@ int scanhash_blakecoin_8way( struct work *work, uint32_t max_nonce,
    const uint32_t last_nonce = max_nonce - 8;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const __m256i eight = _mm256_set1_epi32( 8 );
+   const __m256i eight = v256_32( 8 );
 
    // Prehash first block
    blake256_transform_le( phash, pdata, 512, 0, rounds );
 
-   block0_hash[0] = _mm256_set1_epi32( phash[0] );
-   block0_hash[1] = _mm256_set1_epi32( phash[1] );
-   block0_hash[2] = _mm256_set1_epi32( phash[2] );
-   block0_hash[3] = _mm256_set1_epi32( phash[3] );
-   block0_hash[4] = _mm256_set1_epi32( phash[4] );
-   block0_hash[5] = _mm256_set1_epi32( phash[5] );
-   block0_hash[6] = _mm256_set1_epi32( phash[6] );
-   block0_hash[7] = _mm256_set1_epi32( phash[7] );
+   block0_hash[0] = v256_32( phash[0] );
+   block0_hash[1] = v256_32( phash[1] );
+   block0_hash[2] = v256_32( phash[2] );
+   block0_hash[3] = v256_32( phash[3] );
+   block0_hash[4] = v256_32( phash[4] );
+   block0_hash[5] = v256_32( phash[5] );
+   block0_hash[6] = v256_32( phash[6] );
+   block0_hash[7] = v256_32( phash[7] );
 
    // Build vectored second block, interleave last 16 bytes of data using
    // unique nonces.
-   block_buf[0] = _mm256_set1_epi32( pdata[16] );
-   block_buf[1] = _mm256_set1_epi32( pdata[17] );
-   block_buf[2] = _mm256_set1_epi32( pdata[18] );
+   block_buf[0] = v256_32( pdata[16] );
+   block_buf[1] = v256_32( pdata[17] );
+   block_buf[2] = v256_32( pdata[18] );
    block_buf[3] = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
 
    // Partialy prehash second block without touching nonces in block_buf[3].
@@ -195,145 +195,6 @@ int scanhash_blakecoin_4way( struct work *work, uint32_t max_nonce,
       }
       n += 4;
 
-   } while ( (n < max_nonce) && !work_restart[thr_id].restart );
-
-   *hashes_done = n - first_nonce + 1;
-   return 0;
-}
-
-#endif
-
-#if 0
-//#if defined(BLAKECOIN_8WAY)
-
-blake256r8_8way_context blakecoin_8w_ctx;
-
-void blakecoin_8way_hash( void *state, const void *input )
-{
-     uint32_t vhash[8*8] __attribute__ ((aligned (64)));
-     blake256r8_8way_context ctx;
-
-     memcpy( &ctx, &blakecoin_8w_ctx, sizeof ctx );
-     blake256r8_8way_update( &ctx, input + (64<<3), 16 );
-     blake256r8_8way_close( &ctx, vhash );
-
-     dintrlv_8x32( state,     state+ 32, state+ 64, state+ 96, state+128,
-                   state+160, state+192, state+224, vhash, 256 );
-}
-
-/*
-int scanhash_blakecoin_8way( struct work *work, uint32_t max_nonce,
-                             uint64_t *hashes_done, struct thr_info *mythr )
-{
-   uint32_t hash32[8*8] __attribute__ ((aligned (64)));
-   uint32_t midstate_vars[16*8] __attribute__ ((aligned (64)));
-   __m256i block0_hash[8] __attribute__ ((aligned (64)));
-   __m256i block_buf[16] __attribute__ ((aligned (64)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
-   uint32_t *hash32_d7 =  (uint32_t*)&( hash32[7] );
-   uint32_t phash[8] __attribute__ ((aligned (32))) =
-   {
-      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
-      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
-   };
-   uint32_t *pdata = work->data;
-   uint32_t *ptarget = (uint32_t*)work->target;
-   const uint32_t targ32_d7 = ptarget[7];
-   const uint32_t first_nonce = pdata[19];
-   const uint32_t last_nonce = max_nonce - 8;
-   uint32_t n = first_nonce;
-   const int thr_id = mythr->id;
-   const bool bench = opt_benchmark;
-   const __m256i eight = _mm256_set1_epi32( 8 );
-
-   // Prehash first block
-   blake256_transform_le( phash, pdata, 512, 0, 8 );
-
-   block0_hash[0] = _mm256_set1_epi32( phash[0] );
-   block0_hash[1] = _mm256_set1_epi32( phash[1] );
-   block0_hash[2] = _mm256_set1_epi32( phash[2] );
-   block0_hash[3] = _mm256_set1_epi32( phash[3] );
-   block0_hash[4] = _mm256_set1_epi32( phash[4] );
-   block0_hash[5] = _mm256_set1_epi32( phash[5] );
-   block0_hash[6] = _mm256_set1_epi32( phash[6] );
-   block0_hash[7] = _mm256_set1_epi32( phash[7] );
-
-   // Build vectored second block, interleave last 16 bytes of data using
-   // unique nonces.
-   block_buf[0] = _mm256_set1_epi32( pdata[16] );
-   block_buf[1] = _mm256_set1_epi32( pdata[17] );
-   block_buf[2] = _mm256_set1_epi32( pdata[18] );
-   block_buf[3] = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
-
-   // Partialy prehash second block without touching nonces
-   blake256_8way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
-
-   do {
-      blake256_8way_final_rounds_le( hash32, midstate_vars, block0_hash, 
-                                     block_buf );
-
-      for ( int lane = 0; lane < 8; lane++ )
-      if ( hash32_d7[ lane ] <= targ32_d7 )
-      {
-         extr_lane_8x32( lane_hash, hash32, lane, 256 );
-         if ( likely( valid_hash( lane_hash, ptarget ) && !bench ) )
-         {
-            pdata[19] = n + lane;
-            submit_solution( work, lane_hash, mythr );
-         }
-      }
-      block_buf[3] = _mm256_add_epi32( block_buf[3], eight );
-      n += 8;
-   } while ( (n < last_nonce) && !work_restart[thr_id].restart );
-   pdata[19] = n;
-   *hashes_done = n - first_nonce;
-   return 0;
-}
-*/
-
-int scanhash_blakecoin_8way( struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done, struct thr_info *mythr )
-{
-   uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-   uint32_t hash32[8*8] __attribute__ ((aligned (32)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
-   blake256r8_8way_context ctx __attribute__ ((aligned (32)));
-   uint32_t *hash32_d7 =  (uint32_t*)&( ((__m256i*)hash32)[7] );
-   uint32_t *pdata = work->data;
-   uint32_t *ptarget = work->target;
-   const uint32_t first_nonce = pdata[19];
-   uint32_t HTarget = ptarget[7];
-   uint32_t n = first_nonce;
-   __m256i  *noncev = (__m256i*)vdata + 19;   // aligned
-   int thr_id = mythr->id;  // thr_id arg is deprecated
-   if ( opt_benchmark )
-      HTarget = 0x7f;
-
-   mm256_bswap32_intrlv80_8x32( vdata, pdata );
-   blake256r8_8way_init( &blakecoin_8w_ctx );
-   blake256r8_8way_update( &blakecoin_8w_ctx, vdata, 64 );
-
-   do {
-      *noncev = mm256_bswap_32( _mm256_set_epi32( n+7, n+6, n+5, n+4,
-                                                  n+3, n+2, n+1, n ) );
-      pdata[19] = n;
-
-      memcpy( &ctx, &blakecoin_8w_ctx, sizeof ctx );
-      blake256r8_8way_update( &ctx, (const void*)vdata + (64<<3), 16 );
-      blake256r8_8way_close( &ctx, hash32 );
-
-      for ( int lane = 0; lane < 8; lane++ )
-      if ( hash32_d7[ lane ] <= HTarget )
-      {
-         extr_lane_8x32( lane_hash, hash32, lane, 256 );
-         if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ) )
-         {
-            pdata[19] = n + lane;
-            submit_solution( work, lane_hash, mythr );
-         }
-      }
-     
-      n += 8;
    } while ( (n < max_nonce) && !work_restart[thr_id].restart );
 
    *hashes_done = n - first_nonce + 1;

@@ -738,10 +738,10 @@ static inline void extr_lane_8x32( void *d, const void *s,
 // Combine byte swap & broadcast in one permute
 static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
 {
-   const __m256i c0 = _mm256_set1_epi32( 0x00010203 );
-   const __m256i c1 = _mm256_set1_epi32( 0x04050607 );
-   const __m256i c2 = _mm256_set1_epi32( 0x08090a0b );
-   const __m256i c3 = _mm256_set1_epi32( 0x0c0d0e0f );
+   const __m256i c0 = v256_32( 0x00010203 );
+   const __m256i c1 = v256_32( 0x04050607 );
+   const __m256i c2 = v256_32( 0x08090a0b );
+   const __m256i c3 = v256_32( 0x0c0d0e0f );
    const __m128i s0 = casti_m128i( src,0 );
    const __m128i s1 = casti_m128i( src,1 );
    const __m128i s2 = casti_m128i( src,2 );
@@ -796,7 +796,7 @@ static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
 {
   const __m128i bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
                                              0x0405060700010203 );
-  const __m256i c1 = _mm256_set1_epi32( 1 );
+  const __m256i c1 = v256_32( 1 );
   const __m256i c2 = _mm256_add_epi32( c1, c1 );
   const __m256i c3 = _mm256_add_epi32( c2, c1 );
 
@@ -1244,10 +1244,10 @@ static inline void extr_lane_16x32( void *d, const void *s,
 // Combine byte swap & broadcast in one permute
 static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
 {
-   const __m512i c0 = _mm512_set1_epi32( 0x00010203 );
-   const __m512i c1 = _mm512_set1_epi32( 0x04050607 );
-   const __m512i c2 = _mm512_set1_epi32( 0x08090a0b );
-   const __m512i c3 = _mm512_set1_epi32( 0x0c0d0e0f );
+   const __m512i c0 = v512_32( 0x00010203 );
+   const __m512i c1 = v512_32( 0x04050607 );
+   const __m512i c2 = v512_32( 0x08090a0b );
+   const __m512i c3 = v512_32( 0x0c0d0e0f );
    const __m128i s0 = casti_m128i( src,0 );
    const __m128i s1 = casti_m128i( src,1 );
    const __m128i s2 = casti_m128i( src,2 );
@@ -1302,7 +1302,7 @@ static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
 {
   const __m128i bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
                                              0x0405060700010203 );
-  const __m512i c1 = _mm512_set1_epi32( 1 );
+  const __m512i c1 = v512_32( 1 );
   const __m512i c2 = _mm512_add_epi32( c1, c1 );
   const __m512i c3 = _mm512_add_epi32( c2, c1 );
   __m128i s0 = casti_m128i( src,0 );
@@ -1566,8 +1566,8 @@ static inline void mm256_intrlv80_4x64( void *d, const void *src )
 
 static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
 {
-   const __m256i c0 = _mm256_set1_epi64x( 0x0405060700010203 );
-   const __m256i c1 = _mm256_set1_epi64x( 0x0c0d0e0f08090a0b );
+   const __m256i c0 = v256_64( 0x0405060700010203 );
+   const __m256i c1 = v256_64( 0x0c0d0e0f08090a0b );
    const __m128i s0 = casti_m128i( src,0 );
    const __m128i s1 = casti_m128i( src,1 );
    const __m128i s2 = casti_m128i( src,2 );
@@ -1958,16 +1958,16 @@ static inline void mm512_intrlv80_8x64( void *dst, const void *src )
    __m512i *d = (__m512i*)dst;
   const uint64_t *s = (const uint64_t*)src;
 
-  d[0] = _mm512_set1_epi64( s[0] );
-  d[1] = _mm512_set1_epi64( s[1] );
-  d[2] = _mm512_set1_epi64( s[2] );
-  d[3] = _mm512_set1_epi64( s[3] );
-  d[4] = _mm512_set1_epi64( s[4] );
-  d[5] = _mm512_set1_epi64( s[5] );
-  d[6] = _mm512_set1_epi64( s[6] );
-  d[7] = _mm512_set1_epi64( s[7] );
-  d[8] = _mm512_set1_epi64( s[8] );
-  d[9] = _mm512_set1_epi64( s[9] );
+  d[0] = v512_64( s[0] );
+  d[1] = v512_64( s[1] );
+  d[2] = v512_64( s[2] );
+  d[3] = v512_64( s[3] );
+  d[4] = v512_64( s[4] );
+  d[5] = v512_64( s[5] );
+  d[6] = v512_64( s[6] );
+  d[7] = v512_64( s[7] );
+  d[8] = v512_64( s[8] );
+  d[9] = v512_64( s[9] );
 }
 
 // byte swap and broadcast to all lanes
@@ -1977,8 +1977,8 @@ static inline void mm512_intrlv80_8x64( void *dst, const void *src )
 // Combine byte swap & broadcast in one permute
 static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
 {
-   const __m512i c0 = _mm512_set1_epi64( 0x0405060700010203 );
-   const __m512i c1 = _mm512_set1_epi64( 0x0c0d0e0f08090a0b );
+   const __m512i c0 = v512_64( 0x0405060700010203 );
+   const __m512i c1 = v512_64( 0x0c0d0e0f08090a0b );
    const __m128i s0 = casti_m128i( src,0 );
    const __m128i s1 = casti_m128i( src,1 );
    const __m128i s2 = casti_m128i( src,2 );
@@ -2013,7 +2013,7 @@ static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
 {
   const __m128i bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
                                              0x0405060700010203 );
-  const __m512i c1 = _mm512_set1_epi64( 1 );
+  const __m512i c1 = v512_64( 1 );
   __m128i s0 = casti_m128i( src,0 );
   __m128i s1 = casti_m128i( src,1 );
   __m128i s2 = casti_m128i( src,2 );

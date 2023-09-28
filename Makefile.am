@@ -36,21 +36,17 @@ cpuminer_SOURCES = \
   algo/argon2/argon2d/argon2d/argon2d_thread.c \
   algo/argon2/argon2d/argon2d/encoding.c \
   algo/blake/sph_blake.c \
-  algo/blake/blake256-hash-4way.c \
-  algo/blake/blake512-hash-4way.c \
+  algo/blake/blake256-hash.c \
+  algo/blake/blake512-hash.c \
   algo/blake/blake-gate.c \
   algo/blake/blake.c \
   algo/blake/blake-4way.c \
   algo/blake/sph_blake2b.c \
   algo/blake/sph-blake2s.c \
-  algo/blake/blake2s-hash-4way.c \
+  algo/blake/blake2s-hash.c \
   algo/blake/blake2s.c \
-  algo/blake/blake2s-gate.c \
-  algo/blake/blake2s-4way.c \
-  algo/blake/blake2b-hash-4way.c \
+  algo/blake/blake2b-hash.c \
   algo/blake/blake2b.c \
-  algo/blake/blake2b-gate.c \
-  algo/blake/blake2b-4way.c \
   algo/blake/blakecoin-gate.c \
   algo/blake/mod_blakecoin.c \
   algo/blake/blakecoin.c \

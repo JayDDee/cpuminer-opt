@@ -2,7 +2,7 @@
 
 #if !( defined(X22I_8WAY) || defined(X22I_4WAY) )
 
-#include "algo/blake/sph_blake.h"
+#include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
@@ -33,8 +33,8 @@
 
 union _x22i_context_overlay
 {
-        sph_blake512_context blake;
-        sph_bmw512_context bmw;
+        blake512_context       blake;
+        sph_bmw512_context     bmw;
 #if defined(__AES__)
         hashState_groestl       groestl;
         hashState_echo          echo;
@@ -67,9 +67,9 @@ int x22i_hash( void *output, const void *input, int thrid )
    unsigned char hash2[65]    __attribute__((aligned(64))) = {0};
    x22i_context_overlay ctx;
 
-   sph_blake512_init(&ctx.blake);
-   sph_blake512(&ctx.blake, input, 80);
-   sph_blake512_close(&ctx.blake, hash);
+   blake512_init(&ctx.blake);
+   blake512_update(&ctx.blake, input, 80);
+   blake512_close(&ctx.blake, hash);
 
    sph_bmw512_init(&ctx.bmw);
    sph_bmw512(&ctx.bmw, (const void*) hash, 64);

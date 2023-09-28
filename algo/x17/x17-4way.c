@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "algo/blake/blake-hash-4way.h"
+#include "algo/blake/blake512-hash.h"
 #include "algo/bmw/bmw-hash-4way.h"
 #include "algo/groestl/aes_ni/hash-groestl.h"
 #include "algo/skein/skein-hash-4way.h"
@@ -26,6 +26,431 @@
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/haval-hash-4way.h"
 #include "algo/sha/sha512-hash.h"
+
+#if defined(X17_16X32)
+
+union _x17_16way_context_overlay
+{
+    blake512_8way_context    blake;
+    bmw512_8way_context      bmw;
+    skein512_8way_context    skein;
+    jh512_8way_context       jh;
+    keccak512_8way_context   keccak;
+    luffa_4way_context       luffa;
+    cube_4way_2buf_context   cube;
+#if defined(__VAES__)
+    groestl512_4way_context  groestl;
+    shavite512_4way_context  shavite;
+    echo_4way_context        echo;
+#else
+    hashState_groestl        groestl;
+    sph_shavite512_context   shavite;
+    hashState_echo           echo;
+#endif
+    simd_4way_context        simd;
+    hamsi512_8way_context    hamsi;
+//    hamsi512_16x32_context  hamsi;
+    hashState_fugue          fugue;
+    shabal512_16way_context  shabal;
+    sph_whirlpool_context    whirlpool;
+    sha512_8way_context      sha512;
+    haval256_5_16way_context haval;
+} __attribute__ ((aligned (64)));
+typedef union _x17_16way_context_overlay x17_16way_context_overlay;
+
+static __thread __m512i x17_16way_midstate[16] __attribute__((aligned(64)));
+static __thread blake512_8way_context blake512_8way_ctx __attribute__((aligned(64)));
+
+int x17_16way_hash( void *state, const __m512i nonceA, const __m512i nonceB,
+                    int thr_id )
+{
+     uint64_t vhashA[8*16] __attribute__ ((aligned (128)));
+     uint64_t vhashB[8*8]  __attribute__ ((aligned (64)));
+     uint64_t vhashC[8*4]  __attribute__ ((aligned (64)));
+     uint64_t vhashD[8*4]  __attribute__ ((aligned (64)));
+     uint64_t hash00[8] __attribute__ ((aligned (32)));
+     uint64_t hash01[8] __attribute__ ((aligned (32)));
+     uint64_t hash02[8] __attribute__ ((aligned (32)));
+     uint64_t hash03[8] __attribute__ ((aligned (32)));
+     uint64_t hash04[8] __attribute__ ((aligned (32)));
+     uint64_t hash05[8] __attribute__ ((aligned (32)));
+     uint64_t hash06[8] __attribute__ ((aligned (32)));
+     uint64_t hash07[8] __attribute__ ((aligned (32)));
+     uint64_t hash08[8] __attribute__ ((aligned (32)));
+     uint64_t hash09[8] __attribute__ ((aligned (32)));
+     uint64_t hash10[8] __attribute__ ((aligned (32)));
+     uint64_t hash11[8] __attribute__ ((aligned (32)));
+     uint64_t hash12[8] __attribute__ ((aligned (32)));
+     uint64_t hash13[8] __attribute__ ((aligned (32)));
+     uint64_t hash14[8] __attribute__ ((aligned (32)));
+     uint64_t hash15[8] __attribute__ ((aligned (32)));
+     x17_16way_context_overlay ctx;
+
+     memcpy( &ctx.blake, &blake512_8way_ctx, sizeof (blake512_8way_ctx) );
+     blake512_8way_final_le( &blake512_8way_ctx, vhashA, nonceA,
+                                                 x17_16way_midstate );
+     blake512_8way_final_le( &ctx.blake, vhashB, nonceB,
+                                                 x17_16way_midstate );
+
+     bmw512_8way_full( &ctx.bmw, vhashA, vhashA, 64 );
+     bmw512_8way_full( &ctx.bmw, vhashB, vhashB, 64 );
+
+#if defined(__VAES__)
+
+     rintrlv_8x64_4x128( vhashC, vhashD, vhashA, 512 );
+     groestl512_4way_full( &ctx.groestl, vhashC, vhashC, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashD, vhashD, 64 );
+     rintrlv_4x128_8x64( vhashA, vhashC, vhashD, 512 );
+
+     rintrlv_8x64_4x128( vhashC, vhashD, vhashB, 512 );
+     groestl512_4way_full( &ctx.groestl, vhashC, vhashC, 64 );
+     groestl512_4way_full( &ctx.groestl, vhashD, vhashD, 64 );
+     rintrlv_4x128_8x64( vhashA, vhashC, vhashD, 512 );
+     
+#else
+
+     dintrlv_8x64_512( hash00, hash01, hash02, hash03,
+                       hash04, hash05, hash06, hash07, vhashA );
+     dintrlv_8x64_512( hash08, hash09, hash10, hash11,
+                       hash12, hash13, hash14, hash15, vhashB );
+
+     groestl512_full( &ctx.groestl, (char*)hash00, (char*)hash00, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash01, (char*)hash01, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash02, (char*)hash02, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash03, (char*)hash03, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash04, (char*)hash04, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash05, (char*)hash05, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash06, (char*)hash06, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash07, (char*)hash07, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash08, (char*)hash08, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash09, (char*)hash09, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash10, (char*)hash10, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash11, (char*)hash11, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash12, (char*)hash12, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash13, (char*)hash13, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash14, (char*)hash14, 512 );
+     groestl512_full( &ctx.groestl, (char*)hash15, (char*)hash15, 512 );
+
+     intrlv_8x64_512( vhashA, hash00, hash01, hash02, hash03, 
+                              hash04, hash05, hash06, hash07 );
+     intrlv_8x64_512( vhashB, hash08, hash09, hash10, hash11,
+                              hash12, hash13, hash14, hash15 );
+
+#endif
+
+     skein512_8way_full( &ctx.skein, vhashA, vhashA, 64 );
+     skein512_8way_full( &ctx.skein, vhashB, vhashB, 64 );
+
+     jh512_8way_init( &ctx.jh );
+     jh512_8way_update( &ctx.jh, vhashA, 64 );
+     jh512_8way_close( &ctx.jh, vhashA );
+     jh512_8way_init( &ctx.jh );
+     jh512_8way_update( &ctx.jh, vhashB, 64 );
+     jh512_8way_close( &ctx.jh, vhashB );
+
+     keccak512_8way_init( &ctx.keccak );
+     keccak512_8way_update( &ctx.keccak, vhashA, 64 );
+     keccak512_8way_close( &ctx.keccak, vhashA );
+     keccak512_8way_init( &ctx.keccak );
+     keccak512_8way_update( &ctx.keccak, vhashB, 64 );
+     keccak512_8way_close( &ctx.keccak, vhashB );
+
+//
+     rintrlv_8x64_4x128( vhashC, vhashD, vhashA, 512 );
+
+     luffa512_4way_full( &ctx.luffa, vhashC, vhashC, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashD, vhashD, 64 );
+
+     cube_4way_2buf_full( &ctx.cube, vhashC, vhashD, 512, vhashC, vhashD, 64 );
+
+#if defined(__VAES__)
+
+     shavite512_4way_full( &ctx.shavite, vhashC, vhashC, 64 );
+     shavite512_4way_full( &ctx.shavite, vhashD, vhashD, 64 );
+
+#else
+
+     dintrlv_4x128_512( hash00, hash01, hash02, hash03, vhashC );
+     dintrlv_4x128_512( hash04, hash05, hash06, hash07, vhashD );
+
+     shavite512_full( &ctx.shavite, hash00, hash00, 64 );
+     shavite512_full( &ctx.shavite, hash01, hash01, 64 );
+     shavite512_full( &ctx.shavite, hash02, hash02, 64 );
+     shavite512_full( &ctx.shavite, hash03, hash03, 64 );
+     shavite512_full( &ctx.shavite, hash04, hash04, 64 );
+     shavite512_full( &ctx.shavite, hash05, hash05, 64 );
+     shavite512_full( &ctx.shavite, hash06, hash06, 64 );
+     shavite512_full( &ctx.shavite, hash07, hash07, 64 );
+
+     intrlv_4x128_512( vhashC, hash00, hash01, hash02, hash03 );
+     intrlv_4x128_512( vhashD, hash04, hash05, hash06, hash07 );
+
+#endif
+
+     simd512_4way_full( &ctx.simd, vhashC, vhashC, 64 );
+     simd512_4way_full( &ctx.simd, vhashD, vhashD, 64 );
+
+#if defined(__VAES__)
+
+     echo_4way_full( &ctx.echo, vhashC, 512, vhashC, 64 );
+     echo_4way_full( &ctx.echo, vhashD, 512, vhashD, 64 );
+
+     rintrlv_4x128_8x64( vhashA, vhashC, vhashD, 512 );
+
+#else
+
+     dintrlv_4x128_512( hash00, hash01, hash02, hash03, vhashC );
+     dintrlv_4x128_512( hash04, hash05, hash06, hash07, vhashD );
+
+     echo_full( &ctx.echo, (BitSequence *)hash00, 512,
+                     (const BitSequence *)hash00, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash01, 512,
+                     (const BitSequence *)hash01, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash02, 512,
+                     (const BitSequence *)hash02, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash03, 512,
+                     (const BitSequence *)hash03, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash04, 512,
+                     (const BitSequence *)hash04, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash05, 512,
+                     (const BitSequence *)hash05, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash06, 512,
+                     (const BitSequence *)hash06, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash07, 512,
+                     (const BitSequence *)hash07, 64 );
+
+     intrlv_8x64_512( vhashA, hash00, hash01, hash02, hash03,
+                              hash04, hash05, hash06, hash07 );
+
+#endif
+
+//
+
+     rintrlv_8x64_4x128( vhashC, vhashD, vhashB, 512 );
+
+     luffa512_4way_full( &ctx.luffa, vhashC, vhashC, 64 );
+     luffa512_4way_full( &ctx.luffa, vhashD, vhashD, 64 );
+
+     cube_4way_2buf_full( &ctx.cube, vhashC, vhashD, 512, vhashC, vhashD, 64 );
+
+#if defined(__VAES__)
+
+     shavite512_4way_full( &ctx.shavite, vhashC, vhashC, 64 );
+     shavite512_4way_full( &ctx.shavite, vhashD, vhashD, 64 );
+
+#else
+
+     dintrlv_4x128_512( hash08, hash09, hash10, hash11, vhashC );
+     dintrlv_4x128_512( hash12, hash13, hash14, hash15, vhashD );
+
+     shavite512_full( &ctx.shavite, hash08, hash08, 64 );
+     shavite512_full( &ctx.shavite, hash09, hash09, 64 );
+     shavite512_full( &ctx.shavite, hash10, hash10, 64 );
+     shavite512_full( &ctx.shavite, hash11, hash11, 64 );
+     shavite512_full( &ctx.shavite, hash12, hash12, 64 );
+     shavite512_full( &ctx.shavite, hash13, hash13, 64 );
+     shavite512_full( &ctx.shavite, hash14, hash14, 64 );
+     shavite512_full( &ctx.shavite, hash15, hash15, 64 );
+
+     intrlv_4x128_512( vhashC, hash08, hash09, hash10, hash11 );
+     intrlv_4x128_512( vhashD, hash12, hash13, hash14, hash15 );
+
+#endif
+
+     simd512_4way_full( &ctx.simd, vhashC, vhashC, 64 );
+     simd512_4way_full( &ctx.simd, vhashD, vhashD, 64 );
+
+#if defined(__VAES__)
+
+     echo_4way_full( &ctx.echo, vhashC, 512, vhashC, 64 );
+     echo_4way_full( &ctx.echo, vhashD, 512, vhashD, 64 );
+
+     rintrlv_4x128_8x64( vhashB, vhashC, vhashD, 512 );
+
+#else
+
+     dintrlv_4x128_512( hash08, hash09, hash10, hash11, vhashC );
+     dintrlv_4x128_512( hash12, hash13, hash14, hash15, vhashD );
+
+     echo_full( &ctx.echo, (BitSequence *)hash08, 512,
+                     (const BitSequence *)hash08, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash09, 512,
+                     (const BitSequence *)hash09, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash10, 512,
+                     (const BitSequence *)hash10, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash11, 512,
+                     (const BitSequence *)hash11, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash12, 512,
+                     (const BitSequence *)hash12, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash13, 512,
+                     (const BitSequence *)hash13, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash14, 512,
+                     (const BitSequence *)hash14, 64 );
+     echo_full( &ctx.echo, (BitSequence *)hash15, 512,
+                     (const BitSequence *)hash15, 64 );
+
+     intrlv_8x64_512( vhashB, hash08, hash09, hash10, hash11,
+                              hash12, hash13, hash14, hash15 );
+
+#endif
+
+//
+/*
+     intrlv_16x32( vhashA, hash00, hash01, hash02, hash03,
+                           hash04, hash05, hash06, hash07,
+                           hash08, hash09, hash10, hash11,
+                           hash12, hash13, hash14, hash15, 512 );
+     hamsi512_16x32_full( &ctx.hamsi, vhashA, vhashA, 64 );
+     dintrlv_16x32( hash00, hash01, hash02, hash03,
+                    hash04, hash05, hash06, hash07,
+                    hash08, hash09, hash10, hash11,
+                    hash12, hash13, hash14, hash15, vhashA, 512 );
+*/
+
+     
+     hamsi512_8way_init( &ctx.hamsi );
+     hamsi512_8way_update( &ctx.hamsi, vhashA, 64 );
+     hamsi512_8way_close( &ctx.hamsi, vhashA );
+     dintrlv_8x64_512( hash00, hash01, hash02, hash03,
+                       hash04, hash05, hash06, hash07, vhashA );
+     hamsi512_8way_init( &ctx.hamsi );
+     hamsi512_8way_update( &ctx.hamsi, vhashB, 64 );
+     hamsi512_8way_close( &ctx.hamsi, vhashB );
+     dintrlv_8x64_512( hash08, hash09, hash10, hash11,
+                       hash12, hash13, hash14, hash15, vhashB );
+
+
+     fugue512_full( &ctx.fugue, hash00, hash00, 64 );
+     fugue512_full( &ctx.fugue, hash01, hash01, 64 );
+     fugue512_full( &ctx.fugue, hash02, hash02, 64 );
+     fugue512_full( &ctx.fugue, hash03, hash03, 64 );
+     fugue512_full( &ctx.fugue, hash04, hash04, 64 );
+     fugue512_full( &ctx.fugue, hash05, hash05, 64 );
+     fugue512_full( &ctx.fugue, hash06, hash06, 64 );
+     fugue512_full( &ctx.fugue, hash07, hash07, 64 );
+     fugue512_full( &ctx.fugue, hash08, hash08, 64 );
+     fugue512_full( &ctx.fugue, hash09, hash09, 64 );
+     fugue512_full( &ctx.fugue, hash10, hash10, 64 );
+     fugue512_full( &ctx.fugue, hash11, hash11, 64 );
+     fugue512_full( &ctx.fugue, hash12, hash12, 64 );
+     fugue512_full( &ctx.fugue, hash13, hash13, 64 );
+     fugue512_full( &ctx.fugue, hash14, hash14, 64 );
+     fugue512_full( &ctx.fugue, hash15, hash15, 64 );
+
+     intrlv_16x32_512( vhashA, hash00, hash01, hash02, hash03,
+                               hash04, hash05, hash06, hash07,
+                               hash08, hash09, hash10, hash11,
+                               hash12, hash13, hash14, hash15 );
+
+     shabal512_16way_init( &ctx.shabal );
+     shabal512_16way_update( &ctx.shabal, vhashA, 64 );
+     shabal512_16way_close( &ctx.shabal, vhashA );
+
+     dintrlv_16x32_512( hash00, hash01, hash02, hash03,
+                        hash04, hash05, hash06, hash07,
+                        hash08, hash09, hash10, hash11,
+                        hash12, hash13, hash14, hash15, vhashA );
+
+     sph_whirlpool512_full( &ctx.whirlpool, hash00, hash00, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash01, hash01, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash02, hash02, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash03, hash03, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash04, hash04, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash05, hash05, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash06, hash06, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash07, hash07, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash08, hash08, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash09, hash09, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash10, hash10, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash11, hash11, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash12, hash12, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash13, hash13, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash14, hash14, 64 );
+     sph_whirlpool512_full( &ctx.whirlpool, hash15, hash15, 64 );
+
+     intrlv_8x64_512( vhashA, hash00, hash01, hash02, hash03,
+                              hash04, hash05, hash06, hash07 );
+     intrlv_8x64_512( vhashB, hash08, hash09, hash10, hash11,
+                              hash12, hash13, hash14, hash15 );
+
+     sha512_8way_init( &ctx.sha512 );
+     sha512_8way_update( &ctx.sha512, vhashA, 64 );
+     sha512_8way_close( &ctx.sha512, vhashA );
+     sha512_8way_init( &ctx.sha512 );
+     sha512_8way_update( &ctx.sha512, vhashB, 64 );
+     sha512_8way_close( &ctx.sha512, vhashB );
+
+     dintrlv_8x64_512( hash00, hash01, hash02, hash03,
+                       hash04, hash05, hash06, hash07, vhashA );
+     dintrlv_8x64_512( hash08, hash09, hash10, hash11,
+                       hash12, hash13, hash14, hash15, vhashB );
+     intrlv_16x32_512( vhashA, hash00, hash01, hash02, hash03,
+                               hash04, hash05, hash06, hash07,
+                               hash08, hash09, hash10, hash11,
+                               hash12, hash13, hash14, hash15 );
+
+     haval256_5_16way_init( &ctx.haval );
+     haval256_5_16way_update( &ctx.haval, vhashA, 64 );
+     haval256_5_16way_close( &ctx.haval, state );
+
+     return 1;
+}
+
+int scanhash_x17_16way( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t hash32[8*16] __attribute__ ((aligned (128)));
+   uint32_t vdata[20*8]  __attribute__ ((aligned (64)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (64)));
+   __m128i edata[5]      __attribute__ ((aligned (64)));
+   uint32_t *pdata = work->data;
+   const uint32_t *ptarget = work->target;
+   uint32_t *hash32_d7 = &(hash32[7*16]);
+   const uint32_t targ32_d7 = ptarget[7];
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 8;
+   __m512i  nonceA, nonceB;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const __m512i sixteen = v512_64( 16 );
+   const bool bench = opt_benchmark;
+
+   // convert LE32 to LE64
+   edata[0] = mm128_swap64_32( casti_m128i( pdata, 0 ) );
+   edata[1] = mm128_swap64_32( casti_m128i( pdata, 1 ) );
+   edata[2] = mm128_swap64_32( casti_m128i( pdata, 2 ) );
+   edata[3] = mm128_swap64_32( casti_m128i( pdata, 3 ) );
+   edata[4] = mm128_swap64_32( casti_m128i( pdata, 4 ) );
+
+   mm512_intrlv80_8x64( vdata, edata );
+   blake512_8way_prehash_le( &blake512_8way_ctx, x17_16way_midstate, vdata );
+
+   nonceA = _mm512_add_epi32( casti_m512i( vdata, 9 ),
+                              _mm512_set_epi64( 7, 6, 5, 4, 3, 2, 1, 0 ) );
+   nonceB = _mm512_add_epi32( nonceA, v512_64( 8 ) );   
+   do
+   {
+      if ( likely( x17_16way_hash( hash32, nonceA, nonceB, thr_id ) ) )
+      for ( int lane = 0; lane < 16; lane++ )
+      if ( unlikely( ( hash32_d7[ lane ] <= targ32_d7 ) ) )
+      {
+         extr_lane_16x32( lane_hash, hash32, lane, 256 );
+         if ( likely( valid_hash( lane_hash, ptarget ) && !bench ) )
+         {
+            pdata[19] = n + lane;
+            submit_solution( work, lane_hash, mythr );
+         }
+      }
+      nonceA = _mm512_add_epi32( nonceA, sixteen );
+      nonceB = _mm512_add_epi32( nonceB, sixteen );
+      n += 16;
+   } while ( likely( ( n < last_nonce ) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+#endif
 
 #if defined(X17_8WAY)
 

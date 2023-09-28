@@ -3,7 +3,7 @@
 
 #if defined(__SSE2__)
 
-///////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 //
 //                 128 bit SSE vectors
 //
@@ -20,9 +20,9 @@
 // define a local const for repeated references to the same constant.
 //
 // One common use for simd constants is as a control index for vector
-// instructions like blend and shuffle. Alhough the ultimate instruction
-// may execute in a single clock cycle, generating the control index adds
-// several more cycles to the entire operation. 
+// shuffle instructions. Alhough the ultimate instruction may execute in a
+// single clock cycle, generating the control index adds several more cycles
+// to the entire operation. 
 //
 // All of the utilities here assume all data is in registers except
 // in rare cases where arguments are pointers.
@@ -32,7 +32,7 @@
 // Intrinsics automatically promote from REX to VEX when AVX is available
 // but ASM needs to be done manually.
 //
-///////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 
 // Used instead if casting.
@@ -43,8 +43,8 @@ typedef union
 } __attribute__ ((aligned (16))) m128_ovly;
 
 
-#define v128_64(i)    _mm_set1_epi64x(i)
-#define v128_32(i)    _mm_set1_epi32(i)
+#define v128_64(i64)    _mm_set1_epi64x(i64)
+#define v128_32(i32)    _mm_set1_epi32(i32)
 
 // Deprecated. AVX512 adds EVEX encoding (3rd operand) and other improvements
 // that make these functions either unnecessary or inefficient.
@@ -81,8 +81,6 @@ static inline __m128i mm128_mov32_128( const uint32_t n )
 // Pseudo constants
 #define m128_zero      _mm_setzero_si128()
 #define m128_one_128   mm128_mov64_128( 1 )
-//#define m128_one_64    _mm_set1_epi64x( 1 )
-#define m128_one_32    _mm_set1_epi32( 1 )
 
 // ASM avoids the need to initialize return variable to avoid compiler warning.
 // Macro abstracts function parentheses to look like an identifier.
@@ -100,7 +98,7 @@ static inline __m128i mm128_neg1_fn()
 
 #if defined(__SSE4_1__)
 
-/////////////////////////////
+/////////////////////////////////////////////////////////////
 //
 //      _mm_insert_ps( _mm128i v1, __m128i v2, imm8 c )
 //

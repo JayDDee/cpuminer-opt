@@ -1586,39 +1586,43 @@ start:
       else
         new_work = false;
 
-      if ( new_work && !opt_quiet )
+      if ( new_work )
       {
-         double miner_hr = 0.;
-         double net_hr = net_hashrate;
-         double nd = net_diff * exp32;
-         char net_hr_units[4] = {0};
-         char miner_hr_units[4] = {0};
-         char net_ttf[32];
-         char miner_ttf[32];
+         if ( !opt_quiet )
+         {
+            double miner_hr = 0.;
+            double net_hr = net_hashrate;
+            double nd = net_diff * exp32;
+            char net_hr_units[4] = {0};
+            char miner_hr_units[4] = {0};
+            char net_ttf[32];
+            char miner_ttf[32];
 
-         pthread_mutex_lock( &stats_lock );
+            pthread_mutex_lock( &stats_lock );
 
-         for ( int i = 0; i < opt_n_threads; i++ )
-             miner_hr += thr_hashrates[i];
-         global_hashrate = miner_hr;
+            for ( int i = 0; i < opt_n_threads; i++ )
+               miner_hr += thr_hashrates[i];
+            global_hashrate = miner_hr;
 
-         pthread_mutex_unlock( &stats_lock );
+            pthread_mutex_unlock( &stats_lock );
 
-         if ( net_hr > 0. )
-            sprintf_et( net_ttf, nd / net_hr );
-         else
-            sprintf( net_ttf, "NA" );
-         if ( miner_hr > 0. )
-            sprintf_et( miner_ttf, nd / miner_hr );
-         else
-            sprintf( miner_ttf, "NA" );
+            if ( net_hr > 0. )
+               sprintf_et( net_ttf, nd / net_hr );
+            else
+               sprintf( net_ttf, "NA" );
+            if ( miner_hr > 0. )
+               sprintf_et( miner_ttf, nd / miner_hr );
+            else
+               sprintf( miner_ttf, "NA" );
 
-         scale_hash_for_display ( &miner_hr, miner_hr_units );
-         scale_hash_for_display ( &net_hr, net_hr_units );
-         applog2( LOG_INFO,
+            scale_hash_for_display ( &miner_hr, miner_hr_units );
+            scale_hash_for_display ( &net_hr, net_hr_units );
+            applog2( LOG_INFO,
                   "Miner TTF @ %.2f %sh/s %s, Net TTF @ %.2f %sh/s %s",
                   miner_hr, miner_hr_units, miner_ttf, net_hr,
                   net_hr_units, net_ttf );
+         }
+         restart_threads();
       }
    }  // rc
 
@@ -1872,10 +1876,14 @@ bool submit_solution( struct work *work, const void *hash,
            uint32_t* t = (uint32_t*)work->target;
            uint32_t* d = (uint32_t*)work->data;
 
-           applog( LOG_INFO, "Data[ 0: 9]: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x", d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7],d[8],d[9] );
-           applog( LOG_INFO, "Data[10:19]: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x", d[10],d[11],d[12],d[13],d[14],d[15],d[16],d[17],d[18],d[19] );
-           applog( LOG_INFO, "Hash[ 7: 0]: %08x %08x %08x %08x %08x %08x %08x %08x", h[7],h[6],h[5],h[4],h[3],h[2],h[1],h[0] );
-           applog( LOG_INFO, "Targ[ 7: 0]: %08x %08x %08x %08x %08x %08x %08x %08x", t[7],t[6],t[5],t[4],t[3],t[2],t[1],t[0] );
+           applog( LOG_INFO, "Data[ 0: 9]: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x",
+                                                 d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7],d[8],d[9] );
+           applog( LOG_INFO, "Data[10:19]: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x",
+                                        d[10],d[11],d[12],d[13],d[14],d[15],d[16],d[17],d[18],d[19] );
+           applog( LOG_INFO, "Hash[ 7: 0]: %08x %08x %08x %08x %08x %08x %08x %08x",
+                                                            h[7],h[6],h[5],h[4],h[3],h[2],h[1],h[0] );
+           applog( LOG_INFO, "Targ[ 7: 0]: %08x %08x %08x %08x %08x %08x %08x %08x",
+                                                            t[7],t[6],t[5],t[4],t[3],t[2],t[1],t[0] );
         }
      }
      return true;
@@ -2226,7 +2234,7 @@ static void *miner_thread( void *userdata )
 		             goto out;
 	             }
                 g_work_time = time(NULL);
-                restart_threads();
+//                restart_threads();
              }
 
              pthread_rwlock_unlock( &g_work_lock );
@@ -2823,44 +2831,45 @@ static bool cpu_capability( bool display_only )
 {
      char cpu_brand[0x40];
      bool cpu_has_sse2   = has_sse2();
-     bool cpu_has_aes    = has_aes_ni();
      bool cpu_has_sse42  = has_sse42();
      bool cpu_has_avx    = has_avx();
      bool cpu_has_avx2   = has_avx2();
-     bool cpu_has_sha    = has_sha();
      bool cpu_has_avx512 = has_avx512();
-     bool cpu_has_vaes   = has_vaes();
      bool cpu_has_avx10  = has_avx10();
-     bool sw_has_aes    = false;
+     bool cpu_has_aes    = has_aes_ni();
+     bool cpu_has_vaes   = has_vaes();
+     bool cpu_has_sha    = has_sha();
+     bool cpu_has_sha512 = has_sha512();
      bool sw_has_sse2   = false;
      bool sw_has_sse42  = false;
      bool sw_has_avx    = false;
      bool sw_has_avx2   = false;
      bool sw_has_avx512 = false;
-     bool sw_has_sha    = false;
+     bool sw_has_aes    = false;
      bool sw_has_vaes   = false;
+     bool sw_has_sha    = false;
+     bool sw_has_sha512 = false;
      set_t algo_features = algo_gate.optimizations;
      bool algo_has_sse2    = set_incl( SSE2_OPT,    algo_features );
-     bool algo_has_aes     = set_incl( AES_OPT,     algo_features );
      bool algo_has_sse42   = set_incl( SSE42_OPT,   algo_features );
      bool algo_has_avx     = set_incl( AVX_OPT,     algo_features );
      bool algo_has_avx2    = set_incl( AVX2_OPT,    algo_features );
      bool algo_has_avx512  = set_incl( AVX512_OPT,  algo_features );
-     bool algo_has_sha     = set_incl( SHA_OPT,     algo_features );
+     bool algo_has_aes     = set_incl( AES_OPT,     algo_features );
      bool algo_has_vaes    = set_incl( VAES_OPT,    algo_features );
-     bool use_aes;
+     bool algo_has_sha     = set_incl( SHA_OPT,     algo_features );
+     bool algo_has_sha512  = set_incl( SHA512_OPT,  algo_features );
      bool use_sse2;
      bool use_sse42;
      bool use_avx;
      bool use_avx2;
      bool use_avx512;
-     bool use_sha;
+     bool use_aes;
      bool use_vaes;
+     bool use_sha;
+     bool use_sha512;
      bool use_none;
 
-     #ifdef __AES__
-       sw_has_aes = true;
-     #endif
      #ifdef __SSE2__
          sw_has_sse2 = true;
      #endif
@@ -2876,17 +2885,18 @@ static bool cpu_capability( bool display_only )
      #if (defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512BW__) && defined(__AVX512VL__))
          sw_has_avx512 = true;
      #endif
-     #ifdef __SHA__
-         sw_has_sha = true;
+     #ifdef __AES__
+       sw_has_aes = true;
      #endif
      #ifdef __VAES__
          sw_has_vaes = true;
      #endif
-
-
-//     #if !((__AES__) || (__SSE2__))
-//         printf("Neither __AES__ nor __SSE2__ defined.\n");
-//     #endif
+     #ifdef __SHA__
+         sw_has_sha = true;
+     #endif
+     #ifdef __SHA512__
+         sw_has_sha512 = true;
+     #endif
 
      cpu_brand_string( cpu_brand );
      printf( "CPU: %s\n", cpu_brand );
@@ -2909,7 +2919,8 @@ static bool cpu_capability( bool display_only )
      else if ( cpu_has_sse2   )    printf( " SSE2  " );
      if      ( cpu_has_vaes   )    printf( " VAES"   );
      else if ( cpu_has_aes    )    printf( "  AES"   );
-     if      ( cpu_has_sha    )    printf( " SHA"    );
+     if      ( cpu_has_sha512 )    printf( " SHA512" );
+     else if ( cpu_has_sha    )    printf( " SHA"    );
      if      ( cpu_has_avx10  )    printf( " AVX10.%d-%d",
                                     avx10_version(), avx10_vector_length() );
 
@@ -2921,7 +2932,8 @@ static bool cpu_capability( bool display_only )
      else if ( sw_has_sse2   )    printf( " SSE2  " );
      if      ( sw_has_vaes   )    printf( " VAES"   );
      else if ( sw_has_aes    )    printf( "  AES"   );
-     if      ( sw_has_sha    )    printf( " SHA"    );
+     if      ( sw_has_sha512 )    printf( " SHA512" );
+     else if ( sw_has_sha    )    printf( " SHA"    );
 
      if ( !display_only )
      {
@@ -2935,7 +2947,8 @@ static bool cpu_capability( bool display_only )
            else if ( algo_has_sse2   )  printf( " SSE2  " );
            if      ( algo_has_vaes   )  printf( " VAES"   );
            else if ( algo_has_aes    )  printf( "  AES"   );
-           if      ( algo_has_sha    )  printf( " SHA"    );
+           if      ( algo_has_sha512 )  printf( " SHA512" );
+           else if ( algo_has_sha    )  printf( " SHA"    );
         }
      }
      printf("\n");
@@ -2970,16 +2983,17 @@ static bool cpu_capability( bool display_only )
      }
 
      // Determine mining options
-     use_sse2   = cpu_has_sse2   && algo_has_sse2;
+     use_sse2   = cpu_has_sse2   && sw_has_sse2   && algo_has_sse2;
      use_sse42  = cpu_has_sse42  && sw_has_sse42  && algo_has_sse42;
      use_avx    = cpu_has_avx    && sw_has_avx    && algo_has_avx;
-     use_aes    = cpu_has_aes    && sw_has_aes    && algo_has_aes;
      use_avx2   = cpu_has_avx2   && sw_has_avx2   && algo_has_avx2;
      use_avx512 = cpu_has_avx512 && sw_has_avx512 && algo_has_avx512;
-     use_sha    = cpu_has_sha    && sw_has_sha    && algo_has_sha;
+     use_aes    = cpu_has_aes    && sw_has_aes    && algo_has_aes;
      use_vaes   = cpu_has_vaes   && sw_has_vaes   && algo_has_vaes;
+     use_sha    = cpu_has_sha    && sw_has_sha    && algo_has_sha;
+     use_sha512 = cpu_has_sha512 && sw_has_sha512 && algo_has_sha512;
      use_none = !( use_sse2 || use_sse42 || use_avx || use_aes || use_avx512
-                || use_avx2 || use_sha || use_vaes );
+                || use_avx2 || use_sha || use_vaes || use_sha512 );
 
      // Display best options
      printf( "\nStarting miner with" );
@@ -2993,7 +3007,8 @@ static bool cpu_capability( bool display_only )
         else if ( use_sse2   ) printf( " SSE2"   );
         if      ( use_vaes   ) printf( " VAES"   );
         else if ( use_aes    ) printf( " AES"    );
-        if      ( use_sha    ) printf( " SHA"    );
+        if      ( use_sha512 ) printf( " SHA512" );
+        else if ( use_sha    ) printf( " SHA"    );
      }
      printf( "...\n\n" );
 

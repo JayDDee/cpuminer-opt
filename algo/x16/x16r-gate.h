@@ -5,7 +5,7 @@
 #include "simd-utils.h"
 #include <stdint.h>
 #include <unistd.h>
-#include "algo/blake/sph_blake.h"
+#include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
 #include "algo/groestl/sph_groestl.h"
 #include "algo/jh/sph_jh.h"
@@ -30,7 +30,6 @@
 
 #if defined (__AVX2__)
 
-#include "algo/blake/blake-hash-4way.h"
 #include "algo/bmw/bmw-hash-4way.h"
 #include "algo/groestl/aes_ni/hash-groestl.h"
 #include "algo/skein/skein-hash-4way.h"
@@ -199,7 +198,7 @@ union _x16r_context_overlay
         sph_echo512_context      echo;
         sph_fugue512_context    fugue;
 #endif
-        sph_blake512_context    blake;
+        blake512_context        blake;
         sph_bmw512_context      bmw;
         sph_skein512_context    skein;
         sph_jh512_context       jh;

@@ -1,7 +1,7 @@
 #include "lyra2-gate.h"
 #include <memory.h>
 #include <mm_malloc.h>
-#include "algo/blake/blake-hash-4way.h"
+#include "algo/blake/blake256-hash.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/cubehash/cubehash_sse2.h"

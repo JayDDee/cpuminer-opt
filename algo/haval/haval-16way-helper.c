@@ -38,10 +38,10 @@
 #define SPH_XCAT_(a, b)   a ## b
 
 static void
-SPH_XCAT(SPH_XCAT(haval, PASSES), _8way_update)
-( haval_8way_context *sc, const void *data, size_t len )
+SPH_XCAT(SPH_XCAT(haval, PASSES), _16way_update)
+( haval_16way_context *sc, const void *data, size_t len )
 {
-   __m256i *vdata = (__m256i*)data;
+   __m512i *vdata = (__m512i*)data;
    unsigned current;
 
    current = (unsigned)sc->count_low & 127U;
@@ -53,17 +53,17 @@ SPH_XCAT(SPH_XCAT(haval, PASSES), _8way_update)
       clen = 128U - current;
       if ( clen > len )
          clen = len;
-      memcpy_256( sc->buf + (current>>2), vdata, clen>>2 );
+      memcpy_512( sc->buf + (current>>2), vdata, clen>>2 );
       vdata += clen>>2;
       current += clen;
       len -= clen;
       if ( current == 128U )
       {
-         DSTATE_8W;
-         IN_PREPARE_8W(sc->buf);
-         RSTATE_8W;
-         SPH_XCAT(CORE_8W, PASSES)(INW_8W);
-         WSTATE_8W;
+         DSTATE_16W;
+         IN_PREPARE_16W(sc->buf);
+         RSTATE_16W;
+         SPH_XCAT(CORE_16W, PASSES)(INW_16W);
+         WSTATE_16W;
          current = 0;
       }
       clow = sc->count_low;
@@ -75,41 +75,41 @@ SPH_XCAT(SPH_XCAT(haval, PASSES), _8way_update)
 }
 
 static void
-SPH_XCAT(SPH_XCAT(haval, PASSES), _8way_close)( haval_8way_context *sc,
+SPH_XCAT(SPH_XCAT(haval, PASSES), _16way_close)( haval_16way_context *sc,
                                                 void *dst)
 {
    unsigned current;
-   DSTATE_8W;
+   DSTATE_16W;
 
    current = (unsigned)sc->count_low & 127UL;
 
-   sc->buf[ current>>2 ] = v256_32( 1 );
+   sc->buf[ current>>2 ] = v512_32( 1 );
    current += 4;   
-   RSTATE_8W;
+   RSTATE_16W;
    if ( current > 116UL )
    {
-      memset_zero_256( sc->buf + ( current>>2 ), (128UL-current) >> 2 );
+      memset_zero_512( sc->buf + ( current>>2 ), (128UL-current) >> 2 );
       do
       {
-         IN_PREPARE_8W(sc->buf);
-         SPH_XCAT(CORE_8W, PASSES)(INW_8W);
+         IN_PREPARE_16W(sc->buf);
+         SPH_XCAT(CORE_16W, PASSES)(INW_16W);
       } while (0);
       current = 0;
    }
 
    uint32_t t1, t2;
-   memset_zero_256( sc->buf + ( current>>2 ), (116UL-current) >> 2 );
+   memset_zero_512( sc->buf + ( current>>2 ), (116UL-current) >> 2 );
    t1 = 0x01 | (PASSES << 3);
    t2 = sc->olen << 3;
-   sc->buf[ 116>>2 ] = v256_32( ( t1 << 16 ) | ( t2 << 24 ) );
-   sc->buf[ 120>>2 ] = v256_32( sc->count_low << 3 );
-   sc->buf[ 124>>2 ] = v256_32( (sc->count_high << 3)
+   sc->buf[ 116>>2 ] = v512_32( ( t1 << 16 ) | ( t2 << 24 ) );
+   sc->buf[ 120>>2 ] = v512_32( sc->count_low << 3 );
+   sc->buf[ 124>>2 ] = v512_32( (sc->count_high << 3)
                                      | (sc->count_low >> 29) );
    do
    {
-      IN_PREPARE_8W(sc->buf);
-      SPH_XCAT(CORE_8W, PASSES)(INW_8W);
+      IN_PREPARE_16W(sc->buf);
+      SPH_XCAT(CORE_16W, PASSES)(INW_16W);
    } while (0);
-   WSTATE_8W;
-   haval_8way_out( sc, dst );
+   WSTATE_16W;
+   haval_16way_out( sc, dst );
 }

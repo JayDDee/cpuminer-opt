@@ -14,8 +14,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-
+#include "simd-utils.h"
 #include "compat/sph_types.h"
+#include "compat.h"
 #include "sph-blake2s.h"
 
 static const uint32_t blake2s_IV[8] =
@@ -208,8 +209,8 @@ int blake2s_init_key( blake2s_state *S, const uint8_t outlen, const void *key, c
 
 int blake2s_compress( blake2s_state *S, const uint8_t block[BLAKE2S_BLOCKBYTES] )
 {
-	uint32_t m[16];
-	uint32_t v[16];
+	uint32_t _ALIGN(32) m[16];
+	uint32_t _ALIGN(32) v[16];
 
 	for( size_t i = 0; i < 16; ++i )
 		m[i] = load32( block + i * sizeof( m[i] ) );
@@ -225,6 +226,58 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[BLAKE2S_BLOCKBYTES] 
 	v[13] = S->t[1] ^ blake2s_IV[5];
 	v[14] = S->f[0] ^ blake2s_IV[6];
 	v[15] = S->f[1] ^ blake2s_IV[7];
+
+#if defined(__SSE2__)
+
+   __m128i *V = (__m128i*)v;
+
+#define BLAKE2S_ROUND( r ) \
+   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], _mm_set_epi32( \
+                  m[blake2s_sigma[r][ 6]], m[blake2s_sigma[r][ 4]], \
+                  m[blake2s_sigma[r][ 2]], m[blake2s_sigma[r][ 0]] ) ) ); \
+   V[3] = mm128_swap32_16( _mm_xor_si128( V[3], V[0] ) ); \
+   V[2] = _mm_add_epi32( V[2], V[3] ); \
+   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 12 ); \
+   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], _mm_set_epi32( \
+                   m[blake2s_sigma[r][ 7]], m[blake2s_sigma[r][ 5]], \
+                   m[blake2s_sigma[r][ 3]], m[blake2s_sigma[r][ 1]] ) ) ); \
+   V[3] = mm128_shuflr32_8( _mm_xor_si128( V[3], V[0] ) ); \
+   V[2] = _mm_add_epi32( V[2], V[3] ); \
+   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 7 ); \
+   V[0] = mm128_shufll_32( V[0] ); \
+   V[3] = mm128_swap_64( V[3] ); \
+   V[2] = mm128_shuflr_32( V[2] ); \
+   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], _mm_set_epi32( \
+                    m[blake2s_sigma[r][12]], m[blake2s_sigma[r][10]], \
+                    m[blake2s_sigma[r][ 8]], m[blake2s_sigma[r][14]] ) ) ); \
+   V[3] = mm128_swap32_16( _mm_xor_si128( V[3], V[0] ) ); \
+   V[2] = _mm_add_epi32( V[2], V[3] ); \
+   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 12 ); \
+   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], _mm_set_epi32( \
+                    m[blake2s_sigma[r][13]], m[blake2s_sigma[r][11]], \
+                    m[blake2s_sigma[r][ 9]], m[blake2s_sigma[r][15]] ) ) ); \
+   V[3] = mm128_shuflr32_8( _mm_xor_si128( V[3], V[0] ) ); \
+   V[2] = _mm_add_epi32( V[2], V[3] ); \
+   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 7 ); \
+   V[0] = mm128_shuflr_32( V[0] ); \
+   V[3] = mm128_swap_64( V[3] ); \
+   V[2] = mm128_shufll_32( V[2] )
+
+   BLAKE2S_ROUND(0);
+   BLAKE2S_ROUND(1);
+   BLAKE2S_ROUND(2);
+   BLAKE2S_ROUND(3);
+   BLAKE2S_ROUND(4);
+   BLAKE2S_ROUND(5);
+   BLAKE2S_ROUND(6);
+   BLAKE2S_ROUND(7);
+   BLAKE2S_ROUND(8);
+   BLAKE2S_ROUND(9);
+   
+#undef BLAKE2S_ROUND
+
+#else
+
 #define G(r,i,a,b,c,d) \
 	do { \
 		a = a + b + m[blake2s_sigma[r][2*i+0]]; \
@@ -236,6 +289,7 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[BLAKE2S_BLOCKBYTES] 
 		c = c + d; \
 		b = SPH_ROTR32(b ^ c, 7); \
 	} while(0)
+
 #define ROUND(r)  \
 	do { \
 		G(r,0,v[ 0],v[ 4],v[ 8],v[12]); \
@@ -247,7 +301,8 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[BLAKE2S_BLOCKBYTES] 
 		G(r,6,v[ 2],v[ 7],v[ 8],v[13]); \
 		G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 	} while(0)
-	ROUND( 0 );
+
+   ROUND( 0 );
 	ROUND( 1 );
 	ROUND( 2 );
 	ROUND( 3 );
@@ -257,6 +312,8 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[BLAKE2S_BLOCKBYTES] 
 	ROUND( 7 );
 	ROUND( 8 );
 	ROUND( 9 );
+
+#endif
 
 	for( size_t i = 0; i < 8; ++i )
 		S->h[i] = S->h[i] ^ v[i] ^ v[i + 8];

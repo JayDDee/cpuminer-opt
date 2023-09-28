@@ -1,7 +1,7 @@
 #include "lyra2-gate.h"
 #include <memory.h>
 
-#include "algo/blake/blake-hash-4way.h"
+#include "algo/blake/blake256-hash.h"
 #include "algo/bmw/bmw-hash-4way.h"
 #include "algo/cubehash/cubehash_sse2.h" 
 #include "algo/cubehash/cube-hash-2way.h"

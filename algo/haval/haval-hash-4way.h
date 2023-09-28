@@ -107,6 +107,25 @@ void haval256_5_8way_close( void *cc, void *dst );
 
 #endif // AVX2
 
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+typedef struct {
+   __m512i buf[32];
+   __m512i s0, s1, s2, s3, s4, s5, s6, s7;
+   unsigned olen, passes;
+   uint32_t count_high, count_low;
+} haval_16way_context __attribute__ ((aligned (64)));
+
+typedef haval_16way_context haval256_5_16way_context;
+
+void haval256_5_16way_init( void *cc );
+
+void haval256_5_16way_update( void *cc, const void *data, size_t len );
+
+void haval256_5_16way_close( void *cc, void *dst );
+
+#endif // AVX512
+
 #ifdef __cplusplus
 }
 #endif

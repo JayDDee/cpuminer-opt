@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "algo/blake/sph_blake.h"
+#include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
@@ -50,7 +50,7 @@ struct TortureGarden
         sph_groestl512_context  groestl;
         sph_fugue512_context    fugue;
 #endif
-        sph_blake512_context    blake;
+        blake512_context        blake;
         sph_bmw512_context      bmw;
         sph_skein512_context    skein;
         sph_jh512_context       jh;
@@ -80,9 +80,9 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
     switch ( algo )
     {
         case 0:
-            sph_blake512_init(&garden->blake);
-            sph_blake512(&garden->blake, input, 64);
-            sph_blake512_close(&garden->blake, hash);
+            blake512_init(&garden->blake);
+            blake512_update(&garden->blake, input, 64);
+            blake512_close(&garden->blake, hash);
             break;
         case 1:
             sph_bmw512_init(&garden->bmw);

@@ -90,10 +90,7 @@ typedef union
 // code and therefore can't be used as compile time initializers.
 
 #define m256_zero            _mm256_setzero_si256()
-//#define m256_one_256         mm256_mov64_256( 1 )
 #define m256_one_128         mm256_bcast_m128( m128_one_128 )
-#define m256_one_64          _mm256_set1_epi64x( 1 )
-#define m256_one_32          _mm256_set1_epi32( 1 )
 
 static inline __m256i mm256_neg1_fn()
 {

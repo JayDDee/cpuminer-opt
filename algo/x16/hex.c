@@ -41,9 +41,9 @@ int hex_hash( void* output, const void* input, int thrid )
       switch ( algo )
       {
          case BLAKE:
-            sph_blake512_init( &ctx.blake );
-            sph_blake512( &ctx.blake, in, size );
-            sph_blake512_close( &ctx.blake, hash );
+            blake512_init( &ctx.blake );
+            blake512_update( &ctx.blake, in, size );
+            blake512_close( &ctx.blake, hash );
          break;
          case BMW:
             sph_bmw512_init( &ctx.bmw );

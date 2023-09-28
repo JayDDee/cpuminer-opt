@@ -98,7 +98,7 @@ do { \
    ( g ## n0 = _mm_xor_si128( a ## n0, _mm_xor_si128( a ## n1, a ## n4 ) ) )
 
 #define SIGMA_ALL_4W   do { \
-		a0 = _mm_xor_si128( g0, m128_one_32 ); \
+		a0 = _mm_xor_si128( g0, v128_32( 1 ) ); \
 		a1 = _mm_xor_si128( g1, INW2( 0 ) ); \
 		a2 = _mm_xor_si128( g2, INW2( 1 ) ); \
 		a3 = _mm_xor_si128( g3, INW2( 2 ) ); \
@@ -268,7 +268,7 @@ panama_4way_close( void *cc, void *dst )
 
 	sc = cc;
 	current = sc->data_ptr;
-	*(__m128i*)( sc->data + current ) = m128_one_32;
+	*(__m128i*)( sc->data + current ) = v128_32( 1 );
    current++;
    memset_zero_128( (__m128i*)sc->data + current, 32 - current );
    panama_4way_push( sc, sc->data, 1 );
@@ -354,7 +354,7 @@ do { \
 
 
 #define SIGMA_ALL_8W   do { \
-      a0  = _mm256_xor_si256( g0, m256_one_32 ); \
+      a0  = _mm256_xor_si256( g0, v256_32( 1 ) ); \
       a1  = _mm256_xor_si256( g1, INW2( 0 ) ); \
       a2  = _mm256_xor_si256( g2, INW2( 1 ) ); \
       a3  = _mm256_xor_si256( g3, INW2( 2 ) ); \
@@ -521,7 +521,7 @@ panama_8way_close( void *cc, void *dst )
 
    sc = cc;
    current = sc->data_ptr;
-   *(__m256i*)( sc->data + current ) = m256_one_32;
+   *(__m256i*)( sc->data + current ) = v256_32( 1 );
    current++;
    memset_zero_256( (__m256i*)sc->data + current, 32 - current );
    panama_8way_push( sc, sc->data, 1 );

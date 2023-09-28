@@ -21,7 +21,7 @@ union _x16rv2_context_overlay
         sph_echo512_context      echo;
         sph_fugue512_context    fugue;
 #endif
-        sph_blake512_context    blake;
+        blake512_context        blake;
         sph_bmw512_context      bmw;
         sph_skein512_context    skein;
         sph_jh512_context       jh;
@@ -58,9 +58,9 @@ int x16rv2_hash( void* output, const void* input, int thrid )
       switch ( algo )
       {
          case BLAKE:
-            sph_blake512_init( &ctx.blake );
-            sph_blake512( &ctx.blake, in, size );
-            sph_blake512_close( &ctx.blake, hash );
+            blake512_init( &ctx.blake );
+            blake512_update( &ctx.blake, in, size );
+            blake512_close( &ctx.blake, hash );
          break;
          case BMW:
             sph_bmw512_init( &ctx.bmw );

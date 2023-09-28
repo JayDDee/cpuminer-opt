@@ -1,5 +1,5 @@
 #include "x22i-gate.h"
-#include "algo/blake/blake-hash-4way.h"
+#include "algo/blake/blake512-hash.h"
 #include "algo/bmw/bmw-hash-4way.h"
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/groestl/aes_ni/hash-groestl.h"

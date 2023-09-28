@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "algo/blake/sph_blake.h"
+#include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
@@ -32,8 +32,8 @@
 
 union _x17_context_overlay
 {
-        sph_blake512_context blake;
-        sph_bmw512_context bmw;
+        blake512_context        blake;
+        sph_bmw512_context      bmw;
 #if defined(__AES__)
         hashState_groestl       groestl;
         hashState_echo          echo;
@@ -60,13 +60,10 @@ typedef union _x17_context_overlay x17_context_overlay;
 
 int x17_hash(void *output, const void *input, int thr_id )
 {
-//    unsigned char hash[64 * 4] __attribute__((aligned(64))) = {0};
     unsigned char hash[64] __attribute__((aligned(64)));
     x17_context_overlay ctx;
 
-    sph_blake512_init(&ctx.blake);
-    sph_blake512(&ctx.blake, input, 80);
-    sph_blake512_close(&ctx.blake, hash);
+    blake512_full( &ctx.blake, hash, input, 80 );
 
     sph_bmw512_init(&ctx.bmw);
     sph_bmw512(&ctx.bmw, (const void*) hash, 64);
@@ -95,19 +92,15 @@ int x17_hash(void *output, const void *input, int thr_id )
     luffa_full( &ctx.luffa, (BitSequence*)hash, 512,
                             (const BitSequence*)hash, 64 );
 
-    // 8 Cube
     cubehash_full( &ctx.cube, (byte*) hash, 512, (const byte*)hash, 64 );
 
-    // 9 Shavite
     sph_shavite512_init( &ctx.shavite );
     sph_shavite512( &ctx.shavite, hash, 64);
     sph_shavite512_close( &ctx.shavite, hash);
 
-    // 10 Simd
     simd_full( &ctx.simd, (BitSequence*)hash,
                           (const BitSequence*)hash, 512 );
 
-    //11---echo---
 #if defined(__AES__)
     echo_full( &ctx.echo, (BitSequence *)hash, 512,
                     (const BitSequence *)hash, 64 );
@@ -117,25 +110,20 @@ int x17_hash(void *output, const void *input, int thr_id )
     sph_echo512_close( &ctx.echo, hash );
 #endif
 
-    // X13 algos
-    // 12 Hamsi
     sph_hamsi512_init( &ctx.hamsi );
     sph_hamsi512( &ctx.hamsi, hash, 64 );
     sph_hamsi512_close( &ctx.hamsi, hash );
 
-    // 13 Fugue
 #if defined(__AES__)
     fugue512_full( &ctx.fugue, hash, hash, 64 );
 #else
     sph_fugue512_full( &ctx.fugue, hash, hash, 64 );
 #endif
 
-    // X14 Shabal
     sph_shabal512_init( &ctx.shabal );
     sph_shabal512(&ctx.shabal, hash, 64);
     sph_shabal512_close( &ctx.shabal, hash );
        
-    // X15 Whirlpool
     sph_whirlpool_init( &ctx.whirlpool );
     sph_whirlpool( &ctx.whirlpool, hash, 64 );
     sph_whirlpool_close( &ctx.whirlpool, hash );

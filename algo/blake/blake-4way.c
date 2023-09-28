@@ -1,5 +1,5 @@
 #include "blake-gate.h"
-#include "blake-hash-4way.h"
+#include "blake256-hash.h"
 #include <string.h>
 #include <stdint.h>
 #include <memory.h>

@@ -83,7 +83,7 @@ SPH_XCAT(SPH_XCAT(haval, PASSES), _4way_close)( haval_4way_context *sc,
 
    current = (unsigned)sc->count_low & 127UL;
 
-   sc->buf[ current>>2 ] = m128_one_32;
+   sc->buf[ current>>2 ] = v128_32( 1 );
    current += 4;   
    RSTATE;
    if ( current > 116UL )

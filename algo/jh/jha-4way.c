@@ -6,7 +6,7 @@
 
 #if defined(JHA_4WAY)
 
-#include "algo/blake/blake-hash-4way.h"
+#include "algo/blake/blake512-hash.h"
 #include "algo/skein/skein-hash-4way.h"
 #include "algo/jh/jh-hash-4way.h"
 #include "algo/keccak/keccak-hash-4way.h"

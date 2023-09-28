@@ -97,6 +97,7 @@ typedef  uint32_t set_t;
 #define SHA_OPT       0x20   // Zen1, Icelake (deprecated)
 #define AVX512_OPT    0x40   // Skylake-X, Zen4 (AVX512[F,VL,DQ,BW])
 #define VAES_OPT      0x80   // Icelake, Zen3
+#define SHA512_OPT   0x100   // Lunar Lake, Arrow Lake
 
 // AVX10 does not have explicit algo features:
 //  AVX10_512 is compatible with AVX512 + VAES
