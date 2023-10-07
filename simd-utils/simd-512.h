@@ -14,7 +14,7 @@
 //   vectors. It is therefore not technically required for any 512 bit vector
 //   utilities defined below.
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(__x86_64__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 //  AVX512 intrinsics have a few changes from previous conventions.
 //

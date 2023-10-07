@@ -1,9 +1,10 @@
 #include <stdint.h>
-#include <x86intrin.h>
-#include "wolf-aes.h"
 #include "miner.h"
 
 #if defined(__AES__)
+
+#include <x86intrin.h>
+#include "wolf-aes.h"
 
 static inline void ExpandAESKey256_sub1(__m128i *tmp1, __m128i *tmp2)
 {

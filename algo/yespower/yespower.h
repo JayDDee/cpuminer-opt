@@ -155,6 +155,21 @@ extern int yespower_8way_tls( const __m256i *src, size_t srclen,
 
 #endif // AVX2
 
+extern int yespower_ref(yespower_local_t *local,
+    const uint8_t *src, size_t srclen,
+    const yespower_params_t *params, yespower_binary_t *dst, int thrid);
+
+extern int yespower_b2b_ref(yespower_local_t *local,
+    const uint8_t *src, size_t srclen,
+    const yespower_params_t *params, yespower_binary_t *dst, int thrid );
+
+extern int yespower_tls_ref(const uint8_t *src, size_t srclen,
+    const yespower_params_t *params, yespower_binary_t *dst, int thr_id);
+
+extern int yespower_b2b_tls_ref(const uint8_t *src, size_t srclen,
+    const yespower_params_t *params, yespower_binary_t *dst, int thr_id);
+
+
 #ifdef __cplusplus
 }
 #endif

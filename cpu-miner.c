@@ -880,8 +880,8 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
    }
 
    // reverse the bytes in target
-   casti_m128i( work->target, 0 ) = mm128_bswap_128( casti_m128i( target, 1 ) );
-   casti_m128i( work->target, 1 ) = mm128_bswap_128( casti_m128i( target, 0 ) );
+   casti_v128( work->target, 0 ) = v128_bswap128( casti_v128( target, 1 ) );
+   casti_v128( work->target, 1 ) = v128_bswap128( casti_v128( target, 0 ) );
    net_diff = work->targetdiff = hash_to_diff( work->target );
 
    tmp = json_object_get( val, "workid" );
@@ -986,6 +986,17 @@ static inline int stats_ptr_incr( int p )
 void report_summary_log( bool force )
 {
    struct timeval now, et, uptime, start_time;
+
+  if ( rejected_share_count )
+  {
+     if ( rejected_share_count > ( submitted_share_count * .5 ) )
+     {
+        applog(LOG_ERR,"Excessive rejected share rate, exiting...");
+        exit(1);
+     } 
+     else if ( rejected_share_count > ( submitted_share_count * .1 ) )
+       applog(LOG_WARNING,"High rejected share rate, check settings.");
+   }
 
    gettimeofday( &now, NULL );
    timeval_subtract( &et, &now, &five_min_start );
@@ -2827,28 +2838,44 @@ static void show_credits()
 
 #define check_cpu_capability() cpu_capability( false )
 #define display_cpu_capability() cpu_capability( true )
+
+#if defined(__aarch64__)
+
+#define XSTR(x) STR(x)
+#define STR(x) #x
+
+#pragma message "Building for armv" XSTR(__ARM_ARCH)  
+
+#endif
+
 static bool cpu_capability( bool display_only )
 {
      char cpu_brand[0x40];
-     bool cpu_has_sse2   = has_sse2();
-     bool cpu_has_sse42  = has_sse42();
-     bool cpu_has_avx    = has_avx();
-     bool cpu_has_avx2   = has_avx2();
-     bool cpu_has_avx512 = has_avx512();
-     bool cpu_has_avx10  = has_avx10();
-     bool cpu_has_aes    = has_aes_ni();
-     bool cpu_has_vaes   = has_vaes();
-     bool cpu_has_sha    = has_sha();
-     bool cpu_has_sha512 = has_sha512();
-     bool sw_has_sse2   = false;
-     bool sw_has_sse42  = false;
-     bool sw_has_avx    = false;
-     bool sw_has_avx2   = false;
-     bool sw_has_avx512 = false;
-     bool sw_has_aes    = false;
-     bool sw_has_vaes   = false;
-     bool sw_has_sha    = false;
-     bool sw_has_sha512 = false;
+     bool cpu_has_aarch64 = cpu_arch_aarch64();
+     bool cpu_has_x86_64  = cpu_arch_x86_64();
+     bool cpu_has_sse2    = has_sse2();    // X86_64 only
+     bool cpu_has_sse42   = has_sse42();
+     bool cpu_has_avx     = has_avx();
+     bool cpu_has_avx2    = has_avx2();
+     bool cpu_has_avx512  = has_avx512();
+     bool cpu_has_avx10   = has_avx10();
+     bool cpu_has_aes     = has_aes_ni();  // x86_64 or AArch64 AES
+     bool cpu_has_vaes    = has_vaes();
+     bool cpu_has_sha     = has_sha();     // x86_64 or AArch64
+     bool cpu_has_sha512  = has_sha512();
+     bool sw_has_x86_64   = false;
+     bool sw_has_aarch64  = false;
+     int  sw_arm_arch     = 0;
+     bool sw_has_neon     = false;
+     bool sw_has_sse2     = false;        // x86_64 or ARM NEON
+     bool sw_has_sse42    = false;
+     bool sw_has_avx      = false;
+     bool sw_has_avx2     = false;
+     bool sw_has_avx512   = false;
+     bool sw_has_aes      = false;
+     bool sw_has_vaes     = false;
+     bool sw_has_sha      = false;        // x86_64 or AArch64 SHA2
+     bool sw_has_sha512   = false;        // x86_64 or AArch64 SHA3
      set_t algo_features = algo_gate.optimizations;
      bool algo_has_sse2    = set_incl( SSE2_OPT,    algo_features );
      bool algo_has_sse42   = set_incl( SSE42_OPT,   algo_features );
@@ -2868,9 +2895,22 @@ static bool cpu_capability( bool display_only )
      bool use_vaes;
      bool use_sha;
      bool use_sha512;
+     bool use_neon;
      bool use_none;
 
-     #ifdef __SSE2__
+     // x86_64
+     #if defined(__x86_64__)
+         sw_has_x86_64 = true;
+     #elif defined(__aarch64__)
+         sw_has_aarch64 = true;
+         #ifdef __ARM_NEON
+           sw_has_neon = true;
+         #endif
+         #ifdef __ARM_ARCH
+           sw_arm_arch = __ARM_ARCH;
+         #endif
+     #endif
+     #if defined(__SSE2__) || defined(__ARM_NEON)
          sw_has_sse2 = true;
      #endif
      #ifdef __SSE4_2__
@@ -2885,16 +2925,16 @@ static bool cpu_capability( bool display_only )
      #if (defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512BW__) && defined(__AVX512VL__))
          sw_has_avx512 = true;
      #endif
-     #ifdef __AES__
+     #if defined(__AES__) || defined(__ARM_FEATURE_AES)
        sw_has_aes = true;
      #endif
      #ifdef __VAES__
          sw_has_vaes = true;
      #endif
-     #ifdef __SHA__
+     #if defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
          sw_has_sha = true;
      #endif
-     #ifdef __SHA512__
+     #if defined(__SHA512__) || defined(____ARM_FEATURE_SHA3)
          sw_has_sha512 = true;
      #endif
 
@@ -2912,28 +2952,43 @@ static bool cpu_capability( bool display_only )
      #endif
 
      printf("CPU features: ");
-     if      ( cpu_has_avx512 )    printf( " AVX512" );
-     else if ( cpu_has_avx2   )    printf( " AVX2  " );
-     else if ( cpu_has_avx    )    printf( " AVX   " );
-     else if ( cpu_has_sse42  )    printf( " SSE4.2" );
-     else if ( cpu_has_sse2   )    printf( " SSE2  " );
-     if      ( cpu_has_vaes   )    printf( " VAES"   );
-     else if ( cpu_has_aes    )    printf( "  AES"   );
-     if      ( cpu_has_sha512 )    printf( " SHA512" );
-     else if ( cpu_has_sha    )    printf( " SHA"    );
-     if      ( cpu_has_avx10  )    printf( " AVX10.%d-%d",
-                                    avx10_version(), avx10_vector_length() );
+     if ( cpu_has_x86_64  )
+     {
+                                    printf( " x86_64"  );
+       if      ( cpu_has_avx512 )   printf( " AVX512"  );
+       else if ( cpu_has_avx2   )   printf( " AVX2  "  );
+       else if ( cpu_has_avx    )   printf( " AVX   "  );
+       else if ( cpu_has_sse42  )   printf( " SSE4.2"  );
+       else if ( cpu_has_sse2   )   printf( " SSE2  "  );
+     }
+     else if   ( cpu_has_aarch64 )  printf( " AArch64 NEON" ); // NEON assumed
+     if        ( cpu_has_vaes   )   printf( " VAES"    );
+     else if   ( cpu_has_aes    )   printf( "  AES"    );
+     if        ( cpu_has_sha512 )   printf( " SHA512"  );
+     else if   ( cpu_has_sha    )   printf( " SHA256"  );
+     if        ( cpu_has_avx10  )   printf( " AVX10.%d-%d",
+                                      avx10_version(), avx10_vector_length() );
 
      printf("\nSW features:  ");
-     if      ( sw_has_avx512 )    printf( " AVX512" );
-     else if ( sw_has_avx2   )    printf( " AVX2  " );
-     else if ( sw_has_avx    )    printf( " AVX   " );
-     else if ( sw_has_sse42  )    printf( " SSE4.2" );
-     else if ( sw_has_sse2   )    printf( " SSE2  " );
-     if      ( sw_has_vaes   )    printf( " VAES"   );
-     else if ( sw_has_aes    )    printf( "  AES"   );
-     if      ( sw_has_sha512 )    printf( " SHA512" );
-     else if ( sw_has_sha    )    printf( " SHA"    );
+     if ( sw_has_x86_64 )
+     {                     
+                                     printf( " x86_64"  );
+        if      ( sw_has_avx512  )   printf( " AVX512"  );
+        else if ( sw_has_avx2    )   printf( " AVX2  "  );
+        else if ( sw_has_avx     )   printf( " AVX   "  );
+        else if ( sw_has_sse42   )   printf( " SSE4.2"  );
+        else if ( sw_has_sse2    )   printf( " SSE2  "  );
+     }
+     else if    ( sw_has_aarch64 ) 
+     {
+                                     printf( " AArch64" );
+        if      ( sw_arm_arch    )   printf( " armv%d", sw_arm_arch );
+        if      ( sw_has_neon    )   printf( " NEON"    );
+     }
+     if         ( sw_has_vaes    )   printf( " VAES"    );
+     else if    ( sw_has_aes     )   printf( "  AES"    );
+     if         ( sw_has_sha512  )   printf( " SHA512"  );
+     else if    ( sw_has_sha     )   printf( " SHA256"  );
 
      if ( !display_only )
      {
@@ -2948,7 +3003,7 @@ static bool cpu_capability( bool display_only )
            if      ( algo_has_vaes   )  printf( " VAES"   );
            else if ( algo_has_aes    )  printf( "  AES"   );
            if      ( algo_has_sha512 )  printf( " SHA512" );
-           else if ( algo_has_sha    )  printf( " SHA"    );
+           else if ( algo_has_sha    )  printf( " SHA256" );
         }
      }
      printf("\n");
@@ -2992,14 +3047,18 @@ static bool cpu_capability( bool display_only )
      use_vaes   = cpu_has_vaes   && sw_has_vaes   && algo_has_vaes;
      use_sha    = cpu_has_sha    && sw_has_sha    && algo_has_sha;
      use_sha512 = cpu_has_sha512 && sw_has_sha512 && algo_has_sha512;
+     use_neon   = sw_has_aarch64 && sw_has_neon;
      use_none = !( use_sse2 || use_sse42 || use_avx || use_aes || use_avx512
-                || use_avx2 || use_sha || use_vaes || use_sha512 );
+                || use_avx2 || use_sha || use_vaes || use_sha512 || use_neon );
 
      // Display best options
      printf( "\nStarting miner with" );
-     if         ( use_none ) printf( " no optimizations" );
+     if         ( use_none   ) printf( " no optimizations" );
      else
      {
+        if ( cpu_has_aarch64 ) printf( " AArch64");
+        else
+                               printf( " x86_64" );
         if      ( use_avx512 ) printf( " AVX512" );
         else if ( use_avx2   ) printf( " AVX2"   );
         else if ( use_avx    ) printf( " AVX"    );
@@ -3008,13 +3067,16 @@ static bool cpu_capability( bool display_only )
         if      ( use_vaes   ) printf( " VAES"   );
         else if ( use_aes    ) printf( " AES"    );
         if      ( use_sha512 ) printf( " SHA512" );
-        else if ( use_sha    ) printf( " SHA"    );
+        else if ( use_sha    ) printf( " SHA256" );
+        if      ( use_neon   ) printf( " NEON"   );
      }
      printf( "...\n\n" );
 
      return true;
 }
-        
+
+
+
 void show_version_and_exit(void)
 {
         printf("\n built on " __DATE__

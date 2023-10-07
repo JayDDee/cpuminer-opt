@@ -211,7 +211,7 @@ int scanhash_myriad_4way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   mm128_bswap32_intrlv80_4x32( vdata, pdata );
+   v128_bswap32_intrlv80_4x32( vdata, pdata );
    do {
       *noncev = mm128_bswap_32( _mm_set_epi32( n+3,n+2,n+1,n ) );
 

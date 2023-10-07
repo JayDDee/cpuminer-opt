@@ -177,7 +177,7 @@ int scanhash_blakecoin_4way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       HTarget = 0x7f;
 
-   mm128_bswap32_intrlv80_4x32( vdata, pdata );
+   v128_bswap32_intrlv80_4x32( vdata, pdata );
    blake256r8_4way_init( &blakecoin_4w_ctx );
    blake256r8_4way_update( &blakecoin_4w_ctx, vdata, 64 );
 

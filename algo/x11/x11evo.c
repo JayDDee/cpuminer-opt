@@ -19,9 +19,13 @@
   #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
 #endif
-#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
+#if defined(__aarch64__)
+  #include "algo/luffa/sph_luffa.h"
+#else
+  #include "algo/luffa/luffa_for_sse2.h"
+#endif
 
 typedef struct {
 #ifdef __AES__
@@ -31,7 +35,11 @@ typedef struct {
     sph_groestl512_context  groestl;
     sph_echo512_context     echo;
 #endif
-    hashState_luffa         luffa;
+#if defined(__aarch64__)
+        sph_luffa512_context       luffa;
+#else
+        hashState_luffa         luffa;
+#endif
     cubehashParam           cube;
     hashState_sd            simd;
     sph_blake512_context    blake;
@@ -53,7 +61,11 @@ void init_x11evo_ctx()
      sph_groestl512_init( &x11evo_ctx.groestl );
      sph_echo512_init( &x11evo_ctx.echo );
 #endif
+#if defined(__aarch64__)
+     sph_luffa512_init( &x11evo_ctx.luffa );
+#else
      init_luffa( &x11evo_ctx.luffa, 512 );
+#endif
      cubehashInit( &x11evo_ctx.cube, 512, 16, 32 );
      init_sd( &x11evo_ctx.simd, 512 );
      sph_blake512_init( &x11evo_ctx.blake );
@@ -124,9 +136,14 @@ void x11evo_hash( void *state, const void *input )
 	      sph_keccak512_close( &ctx.keccak, (char*)hash );
 	      break;
 	    case 6:
+#if defined(__aarch64__)
+              sph_luffa512(&ctx.luffa, (const void*) hash, 64);
+              sph_luffa512_close(&ctx.luffa, hash);
+#else
               update_and_final_luffa( &ctx.luffa, (char*)hash,
                                       (const char*)hash, 64 );
-	      break;
+#endif
+         break;
 	    case 7:
               cubehashUpdateDigest( &ctx.cube, (char*)hash, 
                                     (const char*)hash, 64 );

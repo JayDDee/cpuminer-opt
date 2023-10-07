@@ -173,7 +173,7 @@ static inline void HMAC_SHA256_80_init_SHA_2BUF( const uint32_t *key0,
    memcpy( pad1, key1 + 16, 16 );
    memcpy( pad1 + 4, keypad, 48 );
 
-   sha256_ni2way_transform_le( tstate0, tstate1, pad0, pad1,
+   sha256_2x_transform_le( tstate0, tstate1, pad0, pad1,
 		               tstate0, tstate1 );
 
    memcpy( ihash0, tstate0, 32 );
@@ -186,7 +186,7 @@ static inline void HMAC_SHA256_80_init_SHA_2BUF( const uint32_t *key0,
    }
    for ( ; i < 16; i++ ) pad0[i] = pad1[i] = 0x5c5c5c5c;
 
-   sha256_ni2way_transform_le( ostate0, ostate1, pad0, pad1,
+   sha256_2x_transform_le( ostate0, ostate1, pad0, pad1,
                                sha256_initial_state, sha256_initial_state );
 
    for ( i = 0; i < 8; i++ )
@@ -196,7 +196,7 @@ static inline void HMAC_SHA256_80_init_SHA_2BUF( const uint32_t *key0,
    }
    for ( ; i < 16; i++ )      pad0[i] = pad1[i] = 0x36363636;
 
-   sha256_ni2way_transform_le( tstate0, tstate1, pad0, pad1, 
+   sha256_2x_transform_le( tstate0, tstate1, pad0, pad1, 
                                sha256_initial_state, sha256_initial_state );
 }
 
@@ -209,7 +209,7 @@ static inline void PBKDF2_SHA256_80_128_SHA_2BUF( const uint32_t *tstate0,
    uint32_t ibuf0[16], obuf0[16], ibuf1[16], obuf1[16];
    int i, j;
 
-   sha256_ni2way_transform_le( istate0, istate1, salt0, salt1,
+   sha256_2x_transform_le( istate0, istate1, salt0, salt1,
                                tstate0, tstate1 );
 
    memcpy( ibuf0, salt0 + 16, 16 );
@@ -225,10 +225,10 @@ static inline void PBKDF2_SHA256_80_128_SHA_2BUF( const uint32_t *tstate0,
       memcpy( obuf1, istate1, 32 );
       ibuf0[4] = ibuf1[4] = i + 1;
 
-      sha256_ni2way_transform_le( obuf0, obuf1, ibuf0, ibuf1,
-                                  obuf0, obuf1 );
-      sha256_ni2way_transform_le( ostateb0, ostateb1, obuf0, obuf1,
-                                  ostate0, ostate1 );
+      sha256_2x_transform_le( obuf0, obuf1, ibuf0, ibuf1,
+                              obuf0, obuf1 );
+      sha256_2x_transform_le( ostateb0, ostateb1, obuf0, obuf1,
+                              ostate0, ostate1 );
       
       for ( j = 0; j < 8; j++ )
       {
@@ -246,20 +246,20 @@ static inline void PBKDF2_SHA256_128_32_SHA_2BUF( uint32_t *tstate0,
    uint32_t buf0[16], buf1[16];
    int i;
 
-   sha256_ni2way_transform_be( tstate0, tstate1, salt0, salt1,
-                               tstate0, tstate1 );   
-   sha256_ni2way_transform_be( tstate0, tstate1, salt0+16, salt1+16,
-                               tstate0, tstate1 );
-   sha256_ni2way_transform_le( tstate0, tstate1, finalblk, finalblk,
-                               tstate0, tstate1 );
+   sha256_2x_transform_be( tstate0, tstate1, salt0, salt1,
+                           tstate0, tstate1 );   
+   sha256_2x_transform_be( tstate0, tstate1, salt0+16, salt1+16,
+                           tstate0, tstate1 );
+   sha256_2x_transform_le( tstate0, tstate1, finalblk, finalblk,
+                           tstate0, tstate1 );
 
    memcpy( buf0, tstate0, 32 );
    memcpy( buf0 + 8, outerpad, 32 );
    memcpy( buf1, tstate1, 32 );
    memcpy( buf1 + 8, outerpad, 32 );
 
-   sha256_ni2way_transform_le( ostate0, ostate1, buf0, buf1,
-                               ostate0, ostate1 );
+   sha256_2x_transform_le( ostate0, ostate1, buf0, buf1,
+                           ostate0, ostate1 );
 
    for ( i = 0; i < 8; i++ )
    {
@@ -271,8 +271,6 @@ static inline void PBKDF2_SHA256_128_32_SHA_2BUF( uint32_t *tstate0,
 
 
 #endif
-
-#ifdef HAVE_SHA256_4WAY
 
 static const uint32_t keypad_4way[4 * 12] = {
 	0x80000000, 0x80000000, 0x80000000, 0x80000000,
@@ -335,14 +333,14 @@ static const uint32_t _ALIGN(16) finalblk_4way[4 * 16] = {
 
 static inline void sha256_4way_init_state( void *state )
 {
-   casti_m128i( state, 0 ) = _mm_set1_epi32( 0x6A09E667 );
-   casti_m128i( state, 1 ) = _mm_set1_epi32( 0xBB67AE85 );
-   casti_m128i( state, 2 ) = _mm_set1_epi32( 0x3C6EF372 );
-   casti_m128i( state, 3 ) = _mm_set1_epi32( 0xA54FF53A );
-   casti_m128i( state, 4 ) = _mm_set1_epi32( 0x510E527F );
-   casti_m128i( state, 5 ) = _mm_set1_epi32( 0x9B05688C );
-   casti_m128i( state, 6 ) = _mm_set1_epi32( 0x1F83D9AB );
-   casti_m128i( state, 7 ) = _mm_set1_epi32( 0x5BE0CD19 );
+   casti_v128( state, 0 ) = v128_32( 0x6A09E667 );
+   casti_v128( state, 1 ) = v128_32( 0xBB67AE85 );
+   casti_v128( state, 2 ) = v128_32( 0x3C6EF372 );
+   casti_v128( state, 3 ) = v128_32( 0xA54FF53A );
+   casti_v128( state, 4 ) = v128_32( 0x510E527F );
+   casti_v128( state, 5 ) = v128_32( 0x9B05688C );
+   casti_v128( state, 6 ) = v128_32( 0x1F83D9AB );
+   casti_v128( state, 7 ) = v128_32( 0x5BE0CD19 );
 }
 
 static inline void HMAC_SHA256_80_init_4way( const uint32_t *key,
@@ -356,22 +354,22 @@ static inline void HMAC_SHA256_80_init_4way( const uint32_t *key,
 	memcpy( pad, key + 4*16, 4*16 );
 	memcpy( pad + 4*4, keypad_4way, 4*48 );
 
-   sha256_4way_transform_le( (__m128i*)ihash, (__m128i*)pad,
-                             (const __m128i*)tstate );
+   sha256_4way_transform_le( (v128_t*)ihash, (v128_t*)pad,
+                             (const v128_t*)tstate );
 
    sha256_4way_init_state( tstate );
 
 	for ( i = 0; i < 4*8; i++ )  pad[i] = ihash[i] ^ 0x5c5c5c5c;
 	for ( ; i < 4*16; i++ )      pad[i] = 0x5c5c5c5c;
 
-   sha256_4way_transform_le( (__m128i*)ostate, (__m128i*)pad,
-                             (const __m128i*)tstate );
+   sha256_4way_transform_le( (v128_t*)ostate, (v128_t*)pad,
+                             (const v128_t*)tstate );
    
    for ( i = 0; i < 4*8; i++ )  pad[i] = ihash[i] ^ 0x36363636;
 	for ( ; i < 4*16; i++ )      pad[i] = 0x36363636;
 
-   sha256_4way_transform_le( (__m128i*)tstate, (__m128i*)pad,
-                             (const __m128i*)tstate );
+   sha256_4way_transform_le( (v128_t*)tstate, (v128_t*)pad,
+                             (const v128_t*)tstate );
 }
 
 static inline void PBKDF2_SHA256_80_128_4way( const uint32_t *tstate,
@@ -383,8 +381,8 @@ static inline void PBKDF2_SHA256_80_128_4way( const uint32_t *tstate,
 	uint32_t _ALIGN(16) obuf[4 * 16];
 	int i, j;
 
-   sha256_4way_transform_le( (__m128i*)istate, (__m128i*)salt,
-                             (const __m128i*)tstate );
+   sha256_4way_transform_le( (v128_t*)istate, (v128_t*)salt,
+                             (const v128_t*)tstate );
 	
 	memcpy(ibuf, salt + 4 * 16, 4 * 16);
 	memcpy(ibuf + 4 * 5, innerpad_4way, 4 * 44);
@@ -397,11 +395,11 @@ static inline void PBKDF2_SHA256_80_128_4way( const uint32_t *tstate,
 		ibuf[4 * 4 + 2] = i + 1;
 		ibuf[4 * 4 + 3] = i + 1;
 
-      sha256_4way_transform_le( (__m128i*)obuf, (__m128i*)ibuf,
-                                (const __m128i*)istate );
+      sha256_4way_transform_le( (v128_t*)obuf, (v128_t*)ibuf,
+                                (const v128_t*)istate );
       
-      sha256_4way_transform_le( (__m128i*)ostate2, (__m128i*)obuf,
-                                (const __m128i*)ostate );
+      sha256_4way_transform_le( (v128_t*)ostate2, (v128_t*)obuf,
+                                (const v128_t*)ostate );
 
       for ( j = 0; j < 4 * 8; j++ )
 			output[4 * 8 * i + j] = bswap_32( ostate2[j] );
@@ -411,37 +409,35 @@ static inline void PBKDF2_SHA256_80_128_4way( const uint32_t *tstate,
 static inline void PBKDF2_SHA256_128_32_4way( uint32_t *tstate,
                uint32_t *ostate, const uint32_t *salt, uint32_t *output )
 {
-   __m128i _ALIGN(64) final[ 8*16 ];
+   v128_t _ALIGN(64) final[ 8*16 ];
 	uint32_t _ALIGN(64) buf[4 * 16];
 	int i;
 	
-   sha256_4way_transform_be( (__m128i*)tstate, (__m128i*)salt,
-                       (const __m128i*)tstate );
-   sha256_4way_transform_be( (__m128i*)tstate, (__m128i*)( salt + 4*16),
-                       (const __m128i*)tstate );
+   sha256_4way_transform_be( (v128_t*)tstate, (v128_t*)salt,
+                       (const v128_t*)tstate );
+   sha256_4way_transform_be( (v128_t*)tstate, (v128_t*)( salt + 4*16),
+                       (const v128_t*)tstate );
 
-   final[ 0] = _mm_set1_epi32( 0x00000001 );
-   final[ 1] = _mm_set1_epi32( 0x80000000 );
+   final[ 0] = v128_32( 0x00000001 );
+   final[ 1] = v128_32( 0x80000000 );
    final[ 2] = final[ 3] = final[ 4] = final[ 5] = final[ 6]
              = final[ 7] = final[ 8] = final[ 9] = final[10]
              = final[11] = final[12] = final[13] = final[14]
-             = _mm_setzero_si128();
-   final[15] = _mm_set1_epi32 ( 0x00000620 );
+             = v128_xor( final[ 0], final[ 0] ); //_mm_setzero_si128();
+   final[15] = v128_32 ( 0x00000620 );
 
-   sha256_4way_transform_le( (__m128i*)tstate, (__m128i*)final,
-                       (const __m128i*)tstate );
+   sha256_4way_transform_le( (v128_t*)tstate, (v128_t*)final,
+                       (const v128_t*)tstate );
    
    memcpy(buf, tstate, 4 * 32);
 	memcpy(buf + 4 * 8, outerpad_4way, 4 * 32);
 
-   sha256_4way_transform_le( (__m128i*)ostate, (__m128i*)buf,
-                             (const __m128i*)ostate );
+   sha256_4way_transform_le( (v128_t*)ostate, (v128_t*)buf,
+                             (const v128_t*)ostate );
 
    for ( i = 0; i < 4 * 8; i++ )
 		output[i] = bswap_32( ostate[i] );
 }
-
-#endif /* HAVE_SHA256_4WAY */
 
 
 #ifdef HAVE_SHA256_8WAY
@@ -878,9 +874,9 @@ static int scrypt_N_1_1_256_8way( const uint32_t *input, uint32_t *output,
    // SSE2 working
    intrlv_4x32( W,     X,      X+ 32,  X+ 64, X+ 96, 1024 );
    intrlv_4x32( W+128, X+128 , X+160,  X+192, X+224, 1024 );
-   scrypt_core_4way( (__m128i*) W,      (__m128i*)V, N ); 
+   scrypt_core_4way( (v128_t*) W,      (v128_t*)V, N ); 
    if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_4way( (__m128i*)(W+128), (__m128i*)V, N ); 
+   scrypt_core_4way( (v128_t*)(W+128), (v128_t*)V, N ); 
    dintrlv_4x32( X,     X+ 32,  X+ 64, X+ 96, W,     1024 );
    dintrlv_4x32( X+128, X+160,  X+192, X+224, W+128, 1024 );
 */
@@ -1016,13 +1012,13 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
    intrlv_4x32( W+128, X+128, X+160, X+192, X+224, 1024 );
    intrlv_4x32( W+256,     X+256,     X+256+ 32, X+256+ 64, X+256+ 96, 1024 );
    intrlv_4x32( W+256+128, X+256+128, X+256+160, X+256+192, X+256+224, 1024 );
-   scrypt_core_simd128_4way( (__m128i*)W, (__m128i*)V, N );
+   scrypt_core_simd128_4way( (v128_t*)W, (v128_t*)V, N );
    if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_simd128_4way( (__m128i*)(W+128), (__m128i*)V, N );
+   scrypt_core_simd128_4way( (v128_t*)(W+128), (v128_t*)V, N );
    if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_simd128_4way( (__m128i*)(W+256), (__m128i*)V, N );
+   scrypt_core_simd128_4way( (v128_t*)(W+256), (v128_t*)V, N );
    if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_simd128_4way( (__m128i*)(W+256+128), (__m128i*)V, N );
+   scrypt_core_simd128_4way( (v128_t*)(W+256+128), (v128_t*)V, N );
    dintrlv_4x32( X,     X+ 32, X+ 64, X+ 96, W,     1024 );
    dintrlv_4x32( X+128, X+160, X+192, X+224, W+128, 1024 );
    dintrlv_4x32( X+256,     X+256+ 32, X+256+ 64, X+256+ 96, W+256,     1024 );
@@ -1138,9 +1134,9 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
    // SSE2 working
    intrlv_4x32( W,     X,      X+ 32,  X+ 64, X+ 96, 1024 );
    intrlv_4x32( W+128, X+128 , X+160,  X+192, X+224, 1024 );
-   scrypt_core_4way( (__m128i*) W,      (__m128i*)V, N );
+   scrypt_core_4way( (v128_t*) W,      (v128_t*)V, N );
    if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_4way( (__m128i*)(W+128), (__m128i*)V, N );
+   scrypt_core_4way( (v128_t*)(W+128), (v128_t*)V, N );
    dintrlv_4x32( X,     X+ 32,  X+ 64, X+ 96, W,     1024 );
    dintrlv_4x32( X+128, X+160,  X+192, X+224, W+128, 1024 );
 */
@@ -1339,7 +1335,7 @@ static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
 
    intrlv_4x32( W, input, input+20, input+40, input+60, 640 );
    for ( int i = 0; i < 8; i++ )
-      casti_m128i( tstate, i ) = _mm_set1_epi32( midstate[i] );
+      casti_v128( tstate, i ) = v128_32( midstate[i] );
 
    HMAC_SHA256_80_init_4way(W, tstate, ostate);
    PBKDF2_SHA256_80_128_4way(tstate, ostate, W, W);
@@ -1354,7 +1350,7 @@ static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
       intrlv_4x32( W, X, X+32, X+64, X+96, 1024 );
    }
    else
-      scrypt_core_4way( (__m128i*)W, (__m128i*)scratchbuf, N );
+      scrypt_core_4way( (v128_t*)W, (v128_t*)scratchbuf, N );
 
 
 
@@ -1364,7 +1360,7 @@ static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
 
    
    // working, simple 4 way parallel, best for scrypt
-//   scrypt_core_4way( (__m128i*)W, (__m128i*)V, N );
+//   scrypt_core_4way( (v128_t*)W, (v128_t*)V, N );
 
 /*   
    // Working Linear single threaded SIMD

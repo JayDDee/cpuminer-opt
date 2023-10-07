@@ -11,7 +11,6 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/nist.h"
@@ -19,6 +18,11 @@
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "algo/groestl/sph_groestl.h"
+#endif
+#if defined(__aarch64__)
+  #include "algo/luffa/sph_luffa.h"
+#else
+  #include "algo/luffa/luffa_for_sse2.h"
 #endif
 
 static __thread uint32_t s_ntime = UINT32_MAX;
@@ -30,7 +34,11 @@ typedef struct {
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
+#if defined(__aarch64__)
+        sph_luffa512_context       luffa;
+#else
         hashState_luffa         luffa;
+#endif
         cubehashParam           cube;
         sph_shavite512_context  shavite;
         hashState_sd            simd;
@@ -51,7 +59,11 @@ void init_tt10_ctx()
         sph_skein512_init( &tt10_ctx.skein );
         sph_jh512_init( &tt10_ctx.jh );
         sph_keccak512_init( &tt10_ctx.keccak );
+#if defined(__aarch64__)
+        sph_luffa512_init( &tt10_ctx.luffa );
+#else
         init_luffa( &tt10_ctx.luffa, 512 );
+#endif
         cubehashInit( &tt10_ctx.cube, 512, 16, 32 );
         sph_shavite512_init( &tt10_ctx.shavite );
         init_sd( &tt10_ctx.simd, 512 );
@@ -177,14 +189,25 @@ void timetravel10_hash(void *output, const void *input)
      case 6:
         if ( i == 0 )
         {
+#if defined(__aarch64__)
+           memcpy( &ctx.luffa, &tt10_mid.luffa, sizeof tt10_mid.luffa );
+           sph_luffa512( &ctx.luffa, input + 64, 16 );
+           sph_luffa512_close( &ctx.luffa, hashB );
+#else           
            memcpy( &ctx.luffa, &tt10_mid.luffa, sizeof tt10_mid.luffa );
            update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
                                    (const BitSequence *)input + 64, 16 );
+#endif        
         }
         else
         {
+#if defined(__aarch64__)
+           sph_luffa512( &ctx.luffa, hashA, dataLen );
+           sph_luffa512_close( &ctx.luffa, hashB );
+#else
            update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
                                    (const BitSequence *)hashA, dataLen );
+#endif
         }
         break;
      case 7:
@@ -297,7 +320,11 @@ int scanhash_timetravel10( struct work *work, uint32_t max_nonce,
            break;
         case 6:
            memcpy( &tt10_mid.luffa, &tt10_ctx.luffa, sizeof(tt10_mid.luffa ) );
+#if defined(__aarch64__)
+           sph_luffa512( &tt10_mid.luffa, endiandata, 64 );
+#else
            update_luffa( &tt10_mid.luffa, (const BitSequence*)endiandata, 64 );
+#endif
            break;
         case 7:
            memcpy( &tt10_mid.cube, &tt10_ctx.cube, sizeof(tt10_mid.cube ) );

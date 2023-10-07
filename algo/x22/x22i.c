@@ -16,7 +16,6 @@
 #include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
-#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/nist.h"
@@ -30,6 +29,11 @@
 #include "algo/lyra2/lyra2.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/swifftx/swifftx.h"
+#if defined(__aarch64__)
+  #include "algo/luffa/sph_luffa.h"
+#else
+  #include "algo/luffa/luffa_for_sse2.h"
+#endif
 
 union _x22i_context_overlay
 {
@@ -47,7 +51,11 @@ union _x22i_context_overlay
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
         sph_skein512_context    skein;
+#if defined(__aarch64__)
+        sph_luffa512_context       luffa;
+#else
         hashState_luffa         luffa;
+#endif
         cubehashParam           cube;
         sph_shavite512_context  shavite;
         hashState_sd            simd;
@@ -99,9 +107,15 @@ int x22i_hash( void *output, const void *input, int thrid )
 
    if ( work_restart[thrid].restart ) return 0;
    
+#if defined(__aarch64__)
+    sph_luffa512_init(&ctx.luffa );
+    sph_luffa512(&ctx.luffa, (const void*) hash, 64);
+    sph_luffa512_close(&ctx.luffa, hash);
+#else
    init_luffa( &ctx.luffa, 512 );
    update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                 (const BitSequence*)hash, 64 );
+#endif
 
    cubehashInit( &ctx.cube, 512, 16, 32 );
    cubehashUpdateDigest( &ctx.cube, (byte*) hash,
@@ -193,7 +207,7 @@ int scanhash_x22i( struct work *work, uint32_t max_nonce,
 
    if ( bench ) ptarget[7] = 0x08ff;
    
-   mm128_bswap32_80( edata, pdata );
+   v128_bswap32_80( edata, pdata );
 
    InitializeSWIFFTX();
    

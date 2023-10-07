@@ -95,6 +95,43 @@
 }
 */
 
+#elif defined(__SSE2__) || defined(__NEON__)   // ready for NEON
+
+#define BLAKE2B_G( Va, Vb, Vc, Vd, Sa, Sb, Sc, Sd ) \
+{ \
+   Va = v128_add64( Va, v128_add64( Vb, \
+                 v128_set_64( m[ sigmaR[ Sc ] ], m[ sigmaR[ Sa ] ] ) ) ); \
+   Vd = v128_swap64_32( v128_xor( Vd, Va ) ); \
+   Vc = v128_add64( Vc, Vd ); \
+   Vb = v128_shuflr64_24( v128_xor( Vb, Vc ) ); \
+\
+   Va = v128_add64( Va, v128_add64( Vb, \
+                 v128_set_64( m[ sigmaR[ Sd ] ], m[ sigmaR[ Sb ] ] ) ) ); \
+   Vd = v128_shuflr64_16( v128_xor( Vd, Va ) ); \
+   Vc = v128_add64( Vc, Vd ); \
+   Vb = v128_ror64( v128_xor( Vb, Vc ), 63 ); \
+}
+
+#define BLAKE2B_ROUND( R ) \
+{ \
+   __m128i *V = (__m128i*)v; \
+   __m128i V2, V3, V6, V7; \
+   const uint8_t *sigmaR = sigma[R]; \
+   BLAKE2B_G( V[0], V[2], V[4], V[6], 0, 1, 2, 3 ); \
+   BLAKE2B_G( V[1], V[3], V[5], V[7], 4, 5, 6, 7 ); \
+   V2 = v128_alignr64( V[3], V[2], 1 ); \
+   V3 = v128_alignr64( V[2], V[3], 1 ); \
+   V6 = v128_alignr64( V[6], V[7], 1 ); \
+   V7 = v128_alignr64( V[7], V[6], 1 ); \
+   BLAKE2B_G( V[0], V2, V[5], V6,  8,  9, 10, 11 ); \
+   BLAKE2B_G( V[1], V3, V[4], V7, 12, 13, 14, 15 ); \
+   V[2] = v128_alignr64( V2, V3, 1 ); \
+   V[3] = v128_alignr64( V3, V2, 1 ); \
+   V[6] = v128_alignr64( V7, V6, 1 ); \
+   V[7] = v128_alignr64( V6, V7, 1 ); \
+}
+
+/*
 #elif defined(__SSE2__)
 // always true
 
@@ -131,6 +168,7 @@
    V[6] = mm128_alignr_64( V7, V6, 1 ); \
    V[7] = mm128_alignr_64( V6, V7, 1 ); \
 }
+*/
 
 #else
 // never used, SSE2 is always available

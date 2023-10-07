@@ -38,7 +38,7 @@ cp $MINGW_LIB/zlib1.dll release/
 cp $MINGW_LIB/libwinpthread-1.dll release/
 cp $GCC_MINGW_LIB/libstdc++-6.dll release/
 cp $GCC_MINGW_LIB/libgcc_s_seh-1.dll release/
-cp $LOCAL_LIB/openssl/libcrypto-1_1-x64.dll release/
+cp ./../libcrypto-1_1-x64.dll release/
 cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
 
 # Start building...

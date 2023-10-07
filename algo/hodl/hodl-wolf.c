@@ -1,7 +1,7 @@
 #include <string.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
-#include <x86intrin.h>
+#include "simd-utils.h"
 #include "sha512-avx.h"
 #include "wolf-aes.h"
 #include "hodl-gate.h"

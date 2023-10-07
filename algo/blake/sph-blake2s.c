@@ -118,15 +118,15 @@ static inline int blake2s_param_set_inner_length( blake2s_param *P, const uint8_
 	return 0;
 }
 
-static inline int blake2s_param_set_salt( blake2s_param *P, const uint8_t salt[BLAKE2S_SALTBYTES] )
+static inline int blake2s_param_set_salt( blake2s_param *P, const uint8_t salt[8] )
 {
-	memcpy( P->salt, salt, BLAKE2S_SALTBYTES );
+	memcpy( P->salt, salt, 8 );
 	return 0;
 }
 
-static inline int blake2s_param_set_personal( blake2s_param *P, const uint8_t personal[BLAKE2S_PERSONALBYTES] )
+static inline int blake2s_param_set_personal( blake2s_param *P, const uint8_t personal[8] )
 {
-	memcpy( P->personal, personal, BLAKE2S_PERSONALBYTES );
+	memcpy( P->personal, personal, 8 );
 	return 0;
 }
 
@@ -159,7 +159,7 @@ int blake2s_init( blake2s_state *S, const uint8_t outlen )
 	blake2s_param P[1];
 
 	/* Move interval verification here? */
-	if ( ( !outlen ) || ( outlen > BLAKE2S_OUTBYTES ) ) return -1;
+	if ( ( !outlen ) || ( outlen > 32 ) ) return -1;
 
 	P->digest_length = outlen;
 	P->key_length    = 0;
@@ -179,9 +179,9 @@ int blake2s_init_key( blake2s_state *S, const uint8_t outlen, const void *key, c
 {
 	blake2s_param P[1];
 
-	if ( ( !outlen ) || ( outlen > BLAKE2S_OUTBYTES ) ) return -1;
+	if ( ( !outlen ) || ( outlen > 32 ) ) return -1;
 
-	if ( !key || !keylen || keylen > BLAKE2S_KEYBYTES ) return -1;
+	if ( !key || !keylen || keylen > 8 ) return -1;
 
 	P->digest_length = outlen;
 	P->key_length    = keylen;
@@ -198,16 +198,16 @@ int blake2s_init_key( blake2s_state *S, const uint8_t outlen, const void *key, c
 	if( blake2s_init_param( S, P ) < 0 ) return -1;
 
 	{
-		uint8_t block[BLAKE2S_BLOCKBYTES];
-		memset( block, 0, BLAKE2S_BLOCKBYTES );
+		uint8_t block[64];
+		memset( block, 0, 64 );
 		memcpy( block, key, keylen );
-		blake2s_update( S, block, BLAKE2S_BLOCKBYTES );
-		secure_zero_memory( block, BLAKE2S_BLOCKBYTES ); /* Burn the key from stack */
+		blake2s_update( S, block, 64 );
+		secure_zero_memory( block, 64 ); /* Burn the key from stack */
 	}
 	return 0;
 }
 
-int blake2s_compress( blake2s_state *S, const uint8_t block[BLAKE2S_BLOCKBYTES] )
+int blake2s_compress( blake2s_state *S, const uint8_t block[64] )
 {
 	uint32_t _ALIGN(32) m[16];
 	uint32_t _ALIGN(32) v[16];
@@ -329,16 +329,16 @@ int blake2s_update( blake2s_state *S, const uint8_t *in, uint64_t inlen )
 	while( inlen > 0 )
 	{
 		size_t left = S->buflen;
-		size_t fill = 2 * BLAKE2S_BLOCKBYTES - left;
+		size_t fill = 2 * 64 - left;
 
 		if( inlen > fill )
 		{
 			memcpy( S->buf + left, in, fill ); // Fill buffer
 			S->buflen += fill;
-			blake2s_increment_counter( S, BLAKE2S_BLOCKBYTES );
+			blake2s_increment_counter( S, 64 );
 			blake2s_compress( S, S->buf ); // Compress
-			memcpy( S->buf, S->buf + BLAKE2S_BLOCKBYTES, BLAKE2S_BLOCKBYTES ); // Shift buffer left
-			S->buflen -= BLAKE2S_BLOCKBYTES;
+			memcpy( S->buf, S->buf + 64, 64 ); // Shift buffer left
+			S->buflen -= 64;
 			in += fill;
 			inlen -= fill;
 		}
@@ -356,19 +356,19 @@ int blake2s_update( blake2s_state *S, const uint8_t *in, uint64_t inlen )
 
 int blake2s_final( blake2s_state *S, uint8_t *out, uint8_t outlen )
 {
-	uint8_t buffer[BLAKE2S_OUTBYTES];
+	uint8_t buffer[32];
 
-	if( S->buflen > BLAKE2S_BLOCKBYTES )
+	if( S->buflen > 64 )
 	{
-		blake2s_increment_counter( S, BLAKE2S_BLOCKBYTES );
+		blake2s_increment_counter( S, 64 );
 		blake2s_compress( S, S->buf );
-		S->buflen -= BLAKE2S_BLOCKBYTES;
-		memcpy( S->buf, S->buf + BLAKE2S_BLOCKBYTES, S->buflen );
+		S->buflen -= 64;
+		memcpy( S->buf, S->buf + 64, S->buflen );
 	}
 
 	blake2s_increment_counter( S, ( uint32_t )S->buflen );
 	blake2s_set_lastblock( S );
-	memset( S->buf + S->buflen, 0, 2 * BLAKE2S_BLOCKBYTES - S->buflen ); /* Padding */
+	memset( S->buf + S->buflen, 0, 2 * 64 - S->buflen ); /* Padding */
 	blake2s_compress( S, S->buf );
 
 	for( int i = 0; i < 8; ++i ) /* Output full hash to temp buffer */
@@ -408,10 +408,10 @@ int blake2s( uint8_t *out, const void *in, const void *key, const uint8_t outlen
 #include "blake2-kat.h" /* test data not included */
 int main( int argc, char **argv )
 {
-	uint8_t key[BLAKE2S_KEYBYTES];
+	uint8_t key[8];
 	uint8_t buf[KAT_LENGTH];
 
-	for( size_t i = 0; i < BLAKE2S_KEYBYTES; ++i )
+	for( size_t i = 0; i < 8; ++i )
 		key[i] = ( uint8_t )i;
 
 	for( size_t i = 0; i < KAT_LENGTH; ++i )
@@ -419,10 +419,10 @@ int main( int argc, char **argv )
 
 	for( size_t i = 0; i < KAT_LENGTH; ++i )
 	{
-		uint8_t hash[BLAKE2S_OUTBYTES];
-		blake2s( hash, buf, key, BLAKE2S_OUTBYTES, i, BLAKE2S_KEYBYTES );
+		uint8_t hash[32];
+		blake2s( hash, buf, key, 32, i, );
 
-		if( 0 != memcmp( hash, blake2s_keyed_kat[i], BLAKE2S_OUTBYTES ) )
+		if( 0 != memcmp( hash, blake2s_keyed_kat[i], 32 ) )
 		{
 			puts( "error" );
 			return -1;

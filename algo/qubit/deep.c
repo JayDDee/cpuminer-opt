@@ -56,21 +56,20 @@ void deep_hash(void *output, const void *input)
         const int midlen = 64;            // bytes
         const int tail   = 80 - midlen;   // 16
         memcpy( &ctx.luffa, &deep_luffa_mid, sizeof deep_luffa_mid );
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash, 
-                                (const BitSequence*)input + midlen, tail );
+        update_and_final_luffa( &ctx.luffa, hash, 
+                                input + midlen, tail );
 
-        cubehashUpdateDigest( &ctx.cubehash, (byte*)hash, 
-                              (const byte*) hash,64);
+        cubehashUpdateDigest( &ctx.cubehash, hash, 
+                               hash,64);
 
 #ifdef __AES__
-        update_final_echo ( &ctx.echo, (BitSequence *) hash,
-                          (const BitSequence *) hash, 512);
+        update_final_echo ( &ctx.echo,  hash,
+                           hash, 512);
 #else
         sph_echo512 (&ctx.echo, (const void*) hash, 64);
         sph_echo512_close(&ctx.echo, (void*) hash);
 #endif
 
-        asm volatile ("emms");
         memcpy(output, hash, 32);
 }
 

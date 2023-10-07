@@ -2,7 +2,7 @@
 #define __HODL_H
 
 #include <stdint.h>
-#include <x86intrin.h>
+#include "simd-utils.h"
 #include "miner.h"
 
 #define AES_ITERATIONS 		15
@@ -16,7 +16,7 @@
 typedef union _CacheEntry
 {
 	uint32_t dwords[GARBAGE_SLICE_SIZE >> 2] __attribute__((aligned(16)));
-	__m128i dqwords[GARBAGE_SLICE_SIZE >> 4] __attribute__((aligned(16)));
+	v128_t dqwords[GARBAGE_SLICE_SIZE >> 4] __attribute__((aligned(16)));
 } CacheEntry;
 
 int scanhash_hodl_wolf( struct work* work, uint32_t max_nonce,

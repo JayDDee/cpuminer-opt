@@ -144,17 +144,17 @@ void timetravel_4way_hash(void *output, const void *input)
         break;
         case 7:
            dintrlv_4x64( hash0, hash1, hash2, hash3, vhashA, dataLen<<3 );
-           cubehashUpdateDigest( &ctx.cube, (byte*)hash0,
-                                      (const byte*)hash0, dataLen );
+           cubehashUpdateDigest( &ctx.cube, hash0,
+                                      hash0, dataLen );
            memcpy( &ctx.cube, &tt8_4way_ctx.cube, sizeof(cubehashParam) );
-           cubehashUpdateDigest( &ctx.cube, (byte*)hash1,
-                                      (const byte*)hash1, dataLen );
+           cubehashUpdateDigest( &ctx.cube, hash1,
+                                      hash1, dataLen );
            memcpy( &ctx.cube, &tt8_4way_ctx.cube, sizeof(cubehashParam) );
-           cubehashUpdateDigest( &ctx.cube, (byte*)hash2,
-                                      (const byte*)hash2, dataLen );
+           cubehashUpdateDigest( &ctx.cube, hash2,
+                                      hash2, dataLen );
            memcpy( &ctx.cube, &tt8_4way_ctx.cube, sizeof(cubehashParam) );
-           cubehashUpdateDigest( &ctx.cube, (byte*)hash3,
-                                      (const byte*)hash3, dataLen );
+           cubehashUpdateDigest( &ctx.cube, hash3,
+                                      hash3, dataLen );
            if ( i != 7 )           
               intrlv_4x64( vhashB, hash0, hash1, hash2, hash3, dataLen<<3 );
         break;

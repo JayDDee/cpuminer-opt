@@ -22,7 +22,7 @@
 // Instructions that can move data across 128 bit lane boundary incur a
 // performance penalty over those that can't.
 
-#if defined(__AVX__)
+#if defined(__x86_64__) && defined(__AVX__)
 
 // Used instead of casting.
 typedef union

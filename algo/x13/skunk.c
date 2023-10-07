@@ -38,7 +38,7 @@ void skunkhash( void *output, const void *input )
      sph_skein512( &ctx.skein, input+64, 16 );
      sph_skein512_close( &ctx.skein, (void*) hash );
 
-     cubehashUpdateDigest( &ctx.cube, (byte*) hash, (const byte*)hash, 64 );
+     cubehashUpdateDigest( &ctx.cube, hash, hash, 64 );
 
 #if defined(__AES__)
      fugue512_Update( &ctx.fugue, hash, 512 ); 

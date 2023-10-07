@@ -10,7 +10,7 @@
 void scrypt_core_16way( __m512i *X, __m512i *V, const uint32_t N );
 
 // Serial SIMD over 4 way parallel
-void scrypt_core_simd128_4way( __m128i *X, __m128i *V, const uint32_t N );
+void scrypt_core_simd128_4way( v128_t *X, v128_t *V, const uint32_t N );
 
 // 4 way parallel over serial SIMD
 void scrypt_core_4way_simd128( __m512i *X, __m512i *V, const uint32_t N );
@@ -44,10 +44,8 @@ void scrypt_core_simd128_2way_4buf( uint64_t *X, uint64_t *V, const uint32_t N )
 
 #endif
 
-#if defined(__SSE2__)
-
 // Parallel 4 way, 4x memory
-void scrypt_core_4way( __m128i *X, __m128i *V, const uint32_t N );
+void scrypt_core_4way( v128_t *X, v128_t *V, const uint32_t N );
 
 // Linear SIMD 1 way, 1x memory, lowest
 void scrypt_core_simd128( uint32_t *X, uint32_t *V, const uint32_t N );
@@ -60,8 +58,6 @@ void scrypt_core_simd128_3buf( uint32_t *X, uint32_t *V, const uint32_t N );
 
 // Quadruple buffered, 4x memory
 void scrypt_core_simd128_4buf( uint32_t *X, uint32_t *V, const uint32_t N );
-
-#endif
 
 // For reference only
 void scrypt_core_1way( uint32_t *X, uint32_t *V, const uint32_t N );

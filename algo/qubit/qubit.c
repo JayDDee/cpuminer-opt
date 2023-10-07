@@ -82,7 +82,6 @@ void qubit_hash(void *output, const void *input)
         sph_echo512_close(&ctx.echo, (void*) hash);
 #endif
 
-        asm volatile ("emms");
         memcpy(output, hash, 32);
 }
 

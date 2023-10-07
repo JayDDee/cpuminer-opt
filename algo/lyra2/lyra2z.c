@@ -53,7 +53,6 @@ int scanhash_lyra2z( struct work *work, uint32_t max_nonce,
 	uint32_t _ALIGN(64) endiandata[20];
 	uint32_t *pdata = work->data;
 	uint32_t *ptarget = work->target;
-	const uint32_t Htarg = ptarget[7];
 	const uint32_t first_nonce = pdata[19];
 	uint32_t nonce = first_nonce;
    int thr_id = mythr->id; 

@@ -24,16 +24,16 @@
 
 #include "compat/sha3_common.h"
 
-#include <emmintrin.h>
+#include "simd-utils.h"
 
 
 typedef struct
 {
-	__m128i			state[4][4];
+	v128_t			state[4][4];
         BitSequence             buffer[192];
-	__m128i			k;
-	__m128i			hashsize;
-	__m128i			const1536;
+	v128_t			k;
+	v128_t			hashsize;
+	v128_t			const1536;
 
 	unsigned int	uRounds;
 	unsigned int	uHashSize;

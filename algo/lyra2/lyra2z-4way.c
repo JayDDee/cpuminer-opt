@@ -312,7 +312,7 @@ int scanhash_lyra2z_4way( struct work *work, uint32_t max_nonce,
 
    if ( bench )   ptarget[7] = 0x0000ff;
 
-   mm128_bswap32_intrlv80_4x32( vdata, pdata );
+   v128_bswap32_intrlv80_4x32( vdata, pdata );
    *noncev = _mm_set_epi32( n+3, n+2, n+1, n );
    lyra2z_4way_midstate( vdata );
 

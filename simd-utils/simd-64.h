@@ -1,7 +1,7 @@
 #if !defined(SIMD_64_H__)
 #define SIMD_64_H__ 1
 
-#if defined(__MMX__) && defined(__SSE__)
+#if defined(__x86_64__) && defined(__MMX__) && defined(__SSE__)
 
 ////////////////////////////////////////////////////////////////
 //

@@ -11,13 +11,13 @@ void sha3d_hash_8way(void *state, const void *input)
     uint32_t buffer[16*8] __attribute__ ((aligned (128)));
     keccak256_8way_context ctx;
 
-    keccak256_8way_init( &ctx );
-    keccak256_8way_update( &ctx, input, 80 );
-    keccak256_8way_close( &ctx, buffer );
+    keccak256_8x64_init( &ctx );
+    keccak256_8x64_update( &ctx, input, 80 );
+    keccak256_8x64_close( &ctx, buffer );
 
-    keccak256_8way_init( &ctx );
-    keccak256_8way_update( &ctx, buffer, 32 );
-    keccak256_8way_close( &ctx, state );
+    keccak256_8x64_init( &ctx );
+    keccak256_8x64_update( &ctx, buffer, 32 );
+    keccak256_8x64_close( &ctx, state );
 }
 
 int scanhash_sha3d_8way( struct work *work, uint32_t max_nonce,
@@ -71,13 +71,13 @@ void sha3d_hash_4way(void *state, const void *input)
     uint32_t buffer[16*4] __attribute__ ((aligned (64)));
     keccak256_4way_context ctx;
 
-    keccak256_4way_init( &ctx );
-    keccak256_4way_update( &ctx, input, 80 );
-    keccak256_4way_close( &ctx, buffer );
+    keccak256_4x64_init( &ctx );
+    keccak256_4x64_update( &ctx, input, 80 );
+    keccak256_4x64_close( &ctx, buffer );
 
-    keccak256_4way_init( &ctx );
-    keccak256_4way_update( &ctx, buffer, 32 );
-    keccak256_4way_close( &ctx, state );
+    keccak256_4x64_init( &ctx );
+    keccak256_4x64_update( &ctx, buffer, 32 );
+    keccak256_4x64_close( &ctx, state );
 }
 
 int scanhash_sha3d_4way( struct work *work, uint32_t max_nonce,

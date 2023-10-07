@@ -14,7 +14,7 @@
 #ifndef __BLAKE2S_HASH_4WAY_H__
 #define __BLAKE2S_HASH_4WAY_H__ 1
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(__ARM_NEON)
 
 #include "simd-utils.h"
 
@@ -29,41 +29,25 @@
 #define ALIGN(x) __attribute__((aligned(x)))
 #endif
 
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-enum blake2s_constant
-{
-   BLAKE2S_BLOCKBYTES = 64,
-   BLAKE2S_OUTBYTES   = 32,
-   BLAKE2S_KEYBYTES   = 32,
-   BLAKE2S_SALTBYTES  = 8,
-   BLAKE2S_PERSONALBYTES = 8
-};
-
-#pragma pack(push, 1)
-typedef struct __blake2s_nway_param
-{
-   uint8_t  digest_length; // 1
-   uint8_t  key_length;    // 2
-   uint8_t  fanout;        // 3
-   uint8_t  depth;         // 4
-   uint32_t leaf_length;   // 8
-   uint8_t  node_offset[6];// 14
-   uint8_t  node_depth;    // 15
-   uint8_t  inner_length;  // 16
-   // uint8_t  reserved[0];
-   uint8_t  salt[BLAKE2S_SALTBYTES]; // 24
-   uint8_t  personal[BLAKE2S_PERSONALBYTES];  // 32
-} blake2s_nway_param;
-#pragma pack(pop)
+   typedef struct __blake2s_nway_param
+   {
+      uint8_t  digest_length; // 1
+      uint8_t  key_length;    // 2
+      uint8_t  fanout;        // 3
+      uint8_t  depth;         // 4
+      uint32_t leaf_length;   // 8
+      uint8_t  node_offset[6];// 14
+      uint8_t  node_depth;    // 15
+      uint8_t  inner_length;  // 16
+      // uint8_t  reserved[0];
+      uint8_t  salt[8]; // 24
+      uint8_t  personal[8];  // 32
+   } blake2s_nway_param;
 
 typedef struct ALIGN( 64 ) __blake2s_4way_state
 {
-   __m128i h[8];
-   uint8_t  buf[ BLAKE2S_BLOCKBYTES * 4 ];
+   v128_t h[8];
+   uint8_t  buf[ 64 * 4 ];
    uint32_t t[2];
    uint32_t f[2];
    size_t   buflen;
@@ -83,7 +67,7 @@ int blake2s_4way_full_blocks( blake2s_4way_state *S, void *out,
 typedef struct ALIGN( 64 ) __blake2s_8way_state
 {
    __m256i h[8];
-   uint8_t  buf[ BLAKE2S_BLOCKBYTES * 8 ];
+   uint8_t  buf[ 32 * 8 ];
    uint32_t t[2];
    uint32_t f[2];
    size_t   buflen;
@@ -104,7 +88,7 @@ int blake2s_8way_full_blocks( blake2s_8way_state *S, void *out,
 typedef struct ALIGN( 64 ) __blake2s_16way_state
 {
    __m512i h[8];
-   uint8_t  buf[ BLAKE2S_BLOCKBYTES * 16 ];
+   uint8_t  buf[ 32 * 16 ];
    uint32_t t[2];
    uint32_t f[2];
    size_t   buflen;
@@ -125,10 +109,6 @@ int blake2s_16way_final( blake2s_16way_state *S, void *out, uint8_t outlen );
 	// Direct Hash Mining Helpers
 	#define blake2s_salt32(out, in, inlen, key32) blake2s(out, in, key32, 32, inlen, 32) /* neoscrypt */
 	#define blake2s_simple(out, in, inlen) blake2s(out, in, NULL, 32, inlen, 0)
-#endif
-
-#if defined(__cplusplus)
-}
 #endif
 
 #endif  // __SSE2__

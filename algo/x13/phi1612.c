@@ -72,7 +72,7 @@ void phi1612_hash(void *output, const void *input)
      sph_jh512( &ctx.jh, (const void*)hash, 64 );
      sph_jh512_close( &ctx.jh, (void*)hash );
 
-     cubehashUpdateDigest( &ctx.cube, (byte*) hash, (const byte*)hash, 64 );
+     cubehashUpdateDigest( &ctx.cube,  hash, hash, 64 );
 
 #if defined(__AES__)
      fugue512_Update( &ctx.fugue, hash, 512 ); 

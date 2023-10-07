@@ -13,7 +13,6 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
 
@@ -23,6 +22,11 @@
 #else
   #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
+#endif
+#if defined(__aarch64__)
+  #include "algo/luffa/sph_luffa.h"
+#else
+  #include "algo/luffa/luffa_for_sse2.h"
 #endif
 
 typedef struct {
@@ -38,7 +42,11 @@ typedef struct {
    sph_jh512_context       jh;
    sph_keccak512_context   keccak;
    sph_skein512_context    skein;
-   hashState_luffa         luffa;
+#if defined(__aarch64__)
+   sph_luffa512_context       luffa;
+#else
+        hashState_luffa         luffa;
+#endif
    cubehashParam           cube;
    sph_shavite512_context  shavite;
    hashState_sd            simd;
@@ -60,7 +68,11 @@ void init_x11_ctx()
    sph_skein512_init( &x11_ctx.skein );
    sph_jh512_init( &x11_ctx.jh );
    sph_keccak512_init( &x11_ctx.keccak );
+#if defined(__aarch64__)
+   sph_luffa512_init( &x11_ctx.luffa );
+#else
    init_luffa( &x11_ctx.luffa, 512 );
+#endif
    cubehashInit( &x11_ctx.cube, 512, 16, 32 );
    sph_shavite512_init( &x11_ctx.shavite );
    init_sd( &x11_ctx.simd, 512 );
@@ -97,8 +109,13 @@ void x11_hash( void *state, const void *input )
     sph_keccak512( &ctx.keccak, (const void*) hash, 64 );
     sph_keccak512_close( &ctx.keccak, hash );
 
+#if defined(__aarch64__)
+    sph_luffa512(&ctx.luffa, (const void*) hash, 64);
+    sph_luffa512_close(&ctx.luffa, hash);
+#else
      update_luffa( &ctx.luffa, (const BitSequence*)hash, 64 );
      final_luffa( &ctx.luffa, (BitSequence*)hash );
+#endif
 
      cubehashUpdate( &ctx.cube, (const byte*) hash, 64 );
      cubehashDigest( &ctx.cube, (byte*)hash );

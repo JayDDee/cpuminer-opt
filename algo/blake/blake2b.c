@@ -138,7 +138,7 @@ int scanhash_blake2b( struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
 
-   mm128_bswap32_80( endiandata, pdata );
+   v128_bswap32_80( endiandata, pdata );
 
    do {
       endiandata[19] = n;

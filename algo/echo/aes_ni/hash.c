@@ -13,6 +13,9 @@
  * Institute of Applied Mathematics, Middle East Technical University, Turkey.
  *
  */
+
+//TODO NEON support, funky shuffles
+
 #if defined(__AES__)
 
 #include <memory.h>

@@ -38,6 +38,7 @@
 #include "simd-utils.h"
 #include "sha256-hash.h"
 
+#if defined(__SSE2__)
 typedef struct _hmac_sha256_4way_context
 {
    sha256_4way_context ictx;
@@ -60,6 +61,8 @@ void hmac_sha256_4way_full( void*, const void *, size_t Klen, const void *,
 void pbkdf2_sha256_4way( uint8_t *, size_t, const uint8_t *, size_t,
                          const uint8_t *, size_t, uint64_t );
 
+#endif
+
 #if defined(__AVX2__)
 
 typedef struct _hmac_sha256_8way_context
@@ -78,7 +81,9 @@ void hmac_sha256_8way_full( void*, const void *, size_t Klen, const void *,
 
 void pbkdf2_sha256_8way( uint8_t *, size_t, const uint8_t *, size_t,
                         const uint8_t *, size_t, uint64_t );
-      
+
+#endif  // AVX2
+       
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 typedef struct _hmac_sha256_16way_context
@@ -100,8 +105,6 @@ void pbkdf2_sha256_16way( uint8_t *, size_t, const uint8_t *, size_t,
                           const uint8_t *, size_t, uint64_t );
 
 
-
 #endif   // AVX512
-#endif   // AVX2
 
 #endif // HMAC_SHA256_4WAY_H__

@@ -197,99 +197,99 @@ do{ \
 do{ \
    TYPE TA = ADD32( XA0, XA3 ); \
    TYPE TB = ADD32( XB0, XB3 ); \
-   TYPE T  = _mm_slli_epi32( TA, 7 ); \
-   TA = _mm_srli_epi32( TA, 25 ); \
+   TYPE T  = v128_sl32( TA, 7 ); \
+   TA = v128_sr32( TA, 25 ); \
    XA1 = XOR( XA1, T  ); \
    XA1 = XOR( XA1, TA  ); \
-   T = _mm_slli_epi32( TB, 7 );\
-   TB = _mm_srli_epi32( TB, 25 ); \
+   T = v128_sl32( TB, 7 );\
+   TB = v128_sr32( TB, 25 ); \
    XB1 = XOR( XB1, T ); \
    XB1 = XOR( XB1, TB ); \
 \
    TA = ADD32( XA1, XA0 ); \
    TB = ADD32( XB1, XB0 ); \
-   T  = _mm_slli_epi32( TA, 9 ); \
-   TA = _mm_srli_epi32( TA, 23 ); \
+   T  = v128_sl32( TA, 9 ); \
+   TA = v128_sr32( TA, 23 ); \
    XA2 = XOR( XA2, T ); \
    XA2 = XOR( XA2, TA ); \
-   T = _mm_slli_epi32( TB, 9 );\
-   TB = _mm_srli_epi32( TB, 23 );\
+   T = v128_sl32( TB, 9 );\
+   TB = v128_sr32( TB, 23 );\
    XB2 = XOR( XB2, T ); \
    XB2 = XOR( XB2, TB ); \
 \
    TA = ADD32( XA2, XA1 ); \
    TB = ADD32( XB2, XB1 ); \
-   T  = _mm_slli_epi32( TA, 13); \
-   TA = _mm_srli_epi32( TA, 19 ); \
+   T  = v128_sl32( TA, 13); \
+   TA = v128_sr32( TA, 19 ); \
    XA1 = ROL_1X32( XA1 ); \
    XB1 = ROL_1X32( XB1 ); \
    XA3 = XOR( XA3, T ); \
    XA3 = XOR( XA3, TA ); \
-   T  = _mm_slli_epi32( TB, 13); \
-   TB = _mm_srli_epi32( TB, 19 ); \
+   T  = v128_sl32( TB, 13); \
+   TB = v128_sr32( TB, 19 ); \
    XB3 = XOR( XB3, T ); \
    XB3 = XOR( XB3, TB ); \
 \
    TA = ADD32( XA3, XA2 ); \
    TB = ADD32( XB3, XB2 ); \
-   T  = _mm_slli_epi32( TA, 18 ); \
-   TA = _mm_srli_epi32( TA, 14 ); \
+   T  = v128_sl32( TA, 18 ); \
+   TA = v128_sr32( TA, 14 ); \
    XA2 = SWAP_64( XA2 ); \
    XB2 = SWAP_64( XB2 ); \
    XA0 = XOR( XA0, T ); \
    XA0 = XOR( XA0, TA ); \
-   T  = _mm_slli_epi32( TB, 18 ); \
-   TB = _mm_srli_epi32( TB, 14 ); \
+   T  = v128_sl32( TB, 18 ); \
+   TB = v128_sr32( TB, 14 ); \
    XB0 = XOR( XB0, T ); \
    XB0 = XOR( XB0, TB ); \
 \
    TA = ADD32( XA0, XA1 ); \
    TB = ADD32( XB0, XB1 ); \
-   T = _mm_slli_epi32( TA, 7 ); \
-   TA = _mm_srli_epi32( TA, 25 ); \
+   T = v128_sl32( TA, 7 ); \
+   TA = v128_sr32( TA, 25 ); \
    XA3 = ROR_1X32( XA3 ); \
    XA3 = XOR( XA3, T ); \
    XA3 = XOR( XA3, TA ); \
-   T = _mm_slli_epi32( TB, 7 ); \
-   TB = _mm_srli_epi32( TB, 25 ); \
+   T = v128_sl32( TB, 7 ); \
+   TB = v128_sr32( TB, 25 ); \
    XB3 = ROR_1X32( XB3 ); \
    XB3 = XOR( XB3, T ); \
    XB3 = XOR( XB3, TB ); \
 \
    TA = ADD32( XA3, XA0 ); \
    TB = ADD32( XB3, XB0 ); \
-   T = _mm_slli_epi32( TA, 9 ); \
-   TA = _mm_srli_epi32( TA, 23 ); \
+   T = v128_sl32( TA, 9 ); \
+   TA = v128_sr32( TA, 23 ); \
    XA2 = XOR( XA2, T ); \
    XA2 = XOR( XA2, TA ); \
-   T = _mm_slli_epi32( TB, 9 ); \
-   TB = _mm_srli_epi32( TB, 23 ); \
+   T = v128_sl32( TB, 9 ); \
+   TB = v128_sr32( TB, 23 ); \
    XB2 = XOR( XB2, T ); \
    XB2 = XOR( XB2, TB ); \
 \
    TA = ADD32( XA2, XA3 ); \
    TB = ADD32( XB2, XB3 ); \
-   T = _mm_slli_epi32( TA, 13 ); \
-   TA = _mm_srli_epi32( TA, 19 ); \
+   T = v128_sl32( TA, 13 ); \
+   TA = v128_sr32( TA, 19 ); \
    XA3 = ROL_1X32( XA3 ); \
    XB3 = ROL_1X32( XB3 ); \
    XA1 = XOR( XA1, T ); \
    XA1 = XOR( XA1, TA ); \
-   T = _mm_slli_epi32( TB, 13 ); \
-   TB = _mm_srli_epi32( TB, 19 ); \
+   T = v128_sl32( TB, 13 ); \
+   TB = v128_sr32( TB, 19 ); \
    XB1 = XOR( XB1, T ); \
    XB1 = XOR( XB1, TB ); \
 \
    TA = ADD32( XA1, XA2 ); \
    TB = ADD32( XB1, XB2 ); \
-   T = _mm_slli_epi32( TA, 18 ); \
-   TA = _mm_srli_epi32( TA, 14 ); \
+   T = v128_sl32( TA, 18 ); \
+   TA = v128_sr32( TA, 14 ); \
    XA2 = SWAP_64( XA2 ); \
    XB2 = SWAP_64( XB2 ); \
    XA0 = XOR( XA0, T ); \
    XA0 = XOR( XA0, TA ); \
-   T = _mm_slli_epi32( TB, 18 ); \
-   TB = _mm_srli_epi32( TB, 14 ); \
+   T = v128_sl32( TB, 18 ); \
+   TB = v128_sr32( TB, 14 ); \
    XA1 = ROR_1X32( XA1 ); \
    XB0 = XOR( XB0, T ); \
    XB0 = XOR( XB0, TB ); \
@@ -423,88 +423,88 @@ do{ \
    TYPE TA = ADD32( XA0, XA3 ); \
    TYPE TB = ADD32( XB0, XB3 ); \
    TYPE TC = ADD32( XC0, XC3 ); \
-   TYPE T  = _mm_slli_epi32( TA, 7 ); \
-   TA = _mm_srli_epi32( TA, 25 ); \
+   TYPE T  = v128_sl32( TA, 7 ); \
+   TA = v128_sr32( TA, 25 ); \
    XA1 = XOR( XA1, T  ); \
    XA1 = XOR( XA1, TA  ); \
-   T = _mm_slli_epi32( TB, 7 );\
-   TB = _mm_srli_epi32( TB, 25 ); \
+   T = v128_sl32( TB, 7 );\
+   TB = v128_sr32( TB, 25 ); \
    XB1 = XOR( XB1, T ); \
    XB1 = XOR( XB1, TB ); \
-   T = _mm_slli_epi32( TC, 7 );\
-   TC = _mm_srli_epi32( TC, 25 );\
+   T = v128_sl32( TC, 7 );\
+   TC = v128_sr32( TC, 25 );\
    XC1 = XOR( XC1, T ); \
    XC1 = XOR( XC1, TC ); \
 \
    TA = ADD32( XA1, XA0 ); \
    TB = ADD32( XB1, XB0 ); \
    TC = ADD32( XC1, XC0 ); \
-   T  = _mm_slli_epi32( TA, 9 ); \
-   TA = _mm_srli_epi32( TA, 23 ); \
+   T  = v128_sl32( TA, 9 ); \
+   TA = v128_sr32( TA, 23 ); \
    XA2 = XOR( XA2, T ); \
    XA2 = XOR( XA2, TA ); \
-   T = _mm_slli_epi32( TB, 9 );\
-   TB = _mm_srli_epi32( TB, 23 );\
+   T = v128_sl32( TB, 9 );\
+   TB = v128_sr32( TB, 23 );\
    XB2 = XOR( XB2, T ); \
    XB2 = XOR( XB2, TB ); \
-   T = _mm_slli_epi32( TC, 9 );\
-   TC = _mm_srli_epi32( TC, 23 );\
+   T = v128_sl32( TC, 9 );\
+   TC = v128_sr32( TC, 23 );\
    XC2 = XOR( XC2, T ); \
    XC2 = XOR( XC2, TC ); \
 \
    TA = ADD32( XA2, XA1 ); \
    TB = ADD32( XB2, XB1 ); \
    TC = ADD32( XC2, XC1 ); \
-   T  = _mm_slli_epi32( TA, 13); \
-   TA = _mm_srli_epi32( TA, 19 ); \
+   T  = v128_sl32( TA, 13); \
+   TA = v128_sr32( TA, 19 ); \
    XA1 = ROL_1X32( XA1 ); \
    XB1 = ROL_1X32( XB1 ); \
    XC1 = ROL_1X32( XC1 ); \
    XA3 = XOR( XA3, T ); \
    XA3 = XOR( XA3, TA ); \
-   T  = _mm_slli_epi32( TB, 13); \
-   TB = _mm_srli_epi32( TB, 19 ); \
+   T  = v128_sl32( TB, 13); \
+   TB = v128_sr32( TB, 19 ); \
    XB3 = XOR( XB3, T ); \
    XB3 = XOR( XB3, TB ); \
-   T  = _mm_slli_epi32( TC, 13); \
-   TC = _mm_srli_epi32( TC, 19 ); \
+   T  = v128_sl32( TC, 13); \
+   TC = v128_sr32( TC, 19 ); \
    XC3 = XOR( XC3, T ); \
    XC3 = XOR( XC3, TC ); \
 \
    TA = ADD32( XA3, XA2 ); \
    TB = ADD32( XB3, XB2 ); \
    TC = ADD32( XC3, XC2 ); \
-   T  = _mm_slli_epi32( TA, 18 ); \
-   TA = _mm_srli_epi32( TA, 14 ); \
+   T  = v128_sl32( TA, 18 ); \
+   TA = v128_sr32( TA, 14 ); \
    XA2 = SWAP_64( XA2 ); \
    XB2 = SWAP_64( XB2 ); \
    XC2 = SWAP_64( XC2 ); \
    XA0 = XOR( XA0, T ); \
    XA0 = XOR( XA0, TA ); \
-   T  = _mm_slli_epi32( TB, 18 ); \
-   TB = _mm_srli_epi32( TB, 14 ); \
+   T  = v128_sl32( TB, 18 ); \
+   TB = v128_sr32( TB, 14 ); \
    XB0 = XOR( XB0, T ); \
    XB0 = XOR( XB0, TB ); \
-   T = _mm_slli_epi32( TC, 18 ); \
-   TC = _mm_srli_epi32( TC, 14 ); \
+   T = v128_sl32( TC, 18 ); \
+   TC = v128_sr32( TC, 14 ); \
    XC0 = XOR( XC0, T ); \
    XC0 = XOR( XC0, TC ); \
 \
    TA = ADD32( XA0, XA1 ); \
    TB = ADD32( XB0, XB1 ); \
    TC = ADD32( XC0, XC1 ); \
-   T = _mm_slli_epi32( TA, 7 ); \
-   TA = _mm_srli_epi32( TA, 25 ); \
+   T = v128_sl32( TA, 7 ); \
+   TA = v128_sr32( TA, 25 ); \
    XA3 = ROR_1X32( XA3 ); \
    XA3 = XOR( XA3, T ); \
    XA3 = XOR( XA3, TA ); \
-   T = _mm_slli_epi32( TB, 7 ); \
-   TB = _mm_srli_epi32( TB, 25 ); \
+   T = v128_sl32( TB, 7 ); \
+   TB = v128_sr32( TB, 25 ); \
    XB3 = ROR_1X32( XB3 ); \
    XB3 = XOR( XB3, T ); \
    XB3 = XOR( XB3, TB ); \
-   T = _mm_slli_epi32( TC, 7 ); \
-   TC = _mm_srli_epi32( TC, 25 ); \
+   T = v128_sl32( TC, 7 ); \
+   TC = v128_sr32( TC, 25 ); \
    XC3 = ROR_1X32( XC3 ); \
    XC3 = XOR( XC3, T ); \
    XC3 = XOR( XC3, TC ); \
@@ -512,55 +512,55 @@ do{ \
    TA = ADD32( XA3, XA0 ); \
    TB = ADD32( XB3, XB0 ); \
    TC = ADD32( XC3, XC0 ); \
-   T = _mm_slli_epi32( TA, 9 ); \
-   TA = _mm_srli_epi32( TA, 23 ); \
+   T = v128_sl32( TA, 9 ); \
+   TA = v128_sr32( TA, 23 ); \
    XA2 = XOR( XA2, T ); \
    XA2 = XOR( XA2, TA ); \
-   T = _mm_slli_epi32( TB, 9 ); \
-   TB = _mm_srli_epi32( TB, 23 ); \
+   T = v128_sl32( TB, 9 ); \
+   TB = v128_sr32( TB, 23 ); \
    XB2 = XOR( XB2, T ); \
    XB2 = XOR( XB2, TB ); \
-   T = _mm_slli_epi32( TC, 9 ); \
-   TC = _mm_srli_epi32( TC, 23 ); \
+   T = v128_sl32( TC, 9 ); \
+   TC = v128_sr32( TC, 23 ); \
    XC2 = XOR( XC2, T ); \
    XC2 = XOR( XC2, TC ); \
 \
    TA = ADD32( XA2, XA3 ); \
    TB = ADD32( XB2, XB3 ); \
    TC = ADD32( XC2, XC3 ); \
-   T = _mm_slli_epi32( TA, 13 ); \
-   TA = _mm_srli_epi32( TA, 19 ); \
+   T = v128_sl32( TA, 13 ); \
+   TA = v128_sr32( TA, 19 ); \
    XA3 = ROL_1X32( XA3 ); \
    XB3 = ROL_1X32( XB3 ); \
    XC3 = ROL_1X32( XC3 ); \
    XA1 = XOR( XA1, T ); \
    XA1 = XOR( XA1, TA ); \
-   T = _mm_slli_epi32( TB, 13 ); \
-   TB = _mm_srli_epi32( TB, 19 ); \
+   T = v128_sl32( TB, 13 ); \
+   TB = v128_sr32( TB, 19 ); \
    XB1 = XOR( XB1, T ); \
    XB1 = XOR( XB1, TB ); \
-   T = _mm_slli_epi32( TC, 13 ); \
-   TC = _mm_srli_epi32( TC, 19 ); \
+   T = v128_sl32( TC, 13 ); \
+   TC = v128_sr32( TC, 19 ); \
    XC1 = XOR( XC1, T ); \
    XC1 = XOR( XC1, TC ); \
 \
    TA = ADD32( XA1, XA2 ); \
    TB = ADD32( XB1, XB2 ); \
    TC = ADD32( XC1, XC2 ); \
-   T = _mm_slli_epi32( TA, 18 ); \
-   TA = _mm_srli_epi32( TA, 14 ); \
+   T = v128_sl32( TA, 18 ); \
+   TA = v128_sr32( TA, 14 ); \
    XA2 = SWAP_64( XA2 ); \
    XB2 = SWAP_64( XB2 ); \
    XA0 = XOR( XA0, T ); \
    XA0 = XOR( XA0, TA ); \
-   T = _mm_slli_epi32( TB, 18 ); \
-   TB = _mm_srli_epi32( TB, 14 ); \
+   T = v128_sl32( TB, 18 ); \
+   TB = v128_sr32( TB, 14 ); \
    XC2 = SWAP_64( XC2 ); \
    XA1 = ROR_1X32( XA1 ); \
    XB0 = XOR( XB0, T ); \
    XB0 = XOR( XB0, TB ); \
-   T = _mm_slli_epi32( TC, 18 ); \
-   TC = _mm_srli_epi32( TC, 14 ); \
+   T = v128_sl32( TC, 18 ); \
+   TC = v128_sr32( TC, 14 ); \
    XB1 = ROR_1X32( XB1 ); \
    XC1 = ROR_1X32( XC1 ); \
    XC0 = XOR( XC0, T ); \
@@ -832,7 +832,7 @@ void scrypt_core_16way( __m512i *X, __m512i *V, const uint32_t N )
 
 // Working, not up to date, needs stream, shuffle optimizations.
 // 4x32 interleaving
-static void salsa8_simd128_4way( __m128i *b, const __m128i *c )
+static void salsa8_simd128_4way( v128_t *b, const v128_t *c )
 {
    __m512i X0, X1, X2, X3, Y0, Y1, Y2, Y3;
    __m512i *B = (__m512i*)b; 
@@ -902,7 +902,7 @@ static void salsa8_simd128_4way( __m128i *b, const __m128i *c )
 // { l3d3, l2d3, l1d3, l0d3, l3d2, l2d2, l1d2, l0d2,
 //   l3d1, l2d1, l1d1, l0d1, l3d0, l2d0, l1d0, l0d0 }
 
-void scrypt_core_simd128_4way( __m128i *X, __m128i *V, const uint32_t N )
+void scrypt_core_simd128_4way( v128_t *X, v128_t *V, const uint32_t N )
 {
    for ( int n = 0; n < N; n++ )
    {
@@ -923,7 +923,7 @@ void scrypt_core_simd128_4way( __m128i *X, __m128i *V, const uint32_t N )
 
       for( int i = 0; i < 32; i++ )
       {
-         X[i] = _mm_xor_si128( X[i], _mm_set_epi32( v[ x16[3] + i ].u32[3],
+         X[i] = v128_xor( X[i], v128_set_32( v[ x16[3] + i ].u32[3],
                                                     v[ x16[2] + i ].u32[2],
                                                     v[ x16[1] + i ].u32[1],
                                                     v[ x16[0] + i ].u32[0] ) );
@@ -2003,28 +2003,28 @@ void scrypt_core_simd128_2way_3buf( uint64_t *X, uint64_t *V,
 // Scrypt 2x faster than pooler
 // 4x memory usage
 // 4x32 interleaving
-static void xor_salsa8_4way( __m128i * const B, const __m128i * const C )
+static void xor_salsa8_4way( v128_t * const B, const v128_t * const C )
 {
-   __m128i x0 = B[ 0] = _mm_xor_si128( B[ 0], C[ 0] );
-   __m128i x1 = B[ 1] = _mm_xor_si128( B[ 1], C[ 1] );
-   __m128i x2 = B[ 2] = _mm_xor_si128( B[ 2], C[ 2] );
-   __m128i x3 = B[ 3] = _mm_xor_si128( B[ 3], C[ 3] );
-   __m128i x4 = B[ 4] = _mm_xor_si128( B[ 4], C[ 4] );
-   __m128i x5 = B[ 5] = _mm_xor_si128( B[ 5], C[ 5] );
-   __m128i x6 = B[ 6] = _mm_xor_si128( B[ 6], C[ 6] );
-   __m128i x7 = B[ 7] = _mm_xor_si128( B[ 7], C[ 7] );
-   __m128i x8 = B[ 8] = _mm_xor_si128( B[ 8], C[ 8] );
-   __m128i x9 = B[ 9] = _mm_xor_si128( B[ 9], C[ 9] );
-   __m128i xa = B[10] = _mm_xor_si128( B[10], C[10] );
-   __m128i xb = B[11] = _mm_xor_si128( B[11], C[11] );
-   __m128i xc = B[12] = _mm_xor_si128( B[12], C[12] );
-   __m128i xd = B[13] = _mm_xor_si128( B[13], C[13] );
-   __m128i xe = B[14] = _mm_xor_si128( B[14], C[14] );
-   __m128i xf = B[15] = _mm_xor_si128( B[15], C[15] );
+   v128_t x0 = B[ 0] = v128_xor( B[ 0], C[ 0] );
+   v128_t x1 = B[ 1] = v128_xor( B[ 1], C[ 1] );
+   v128_t x2 = B[ 2] = v128_xor( B[ 2], C[ 2] );
+   v128_t x3 = B[ 3] = v128_xor( B[ 3], C[ 3] );
+   v128_t x4 = B[ 4] = v128_xor( B[ 4], C[ 4] );
+   v128_t x5 = B[ 5] = v128_xor( B[ 5], C[ 5] );
+   v128_t x6 = B[ 6] = v128_xor( B[ 6], C[ 6] );
+   v128_t x7 = B[ 7] = v128_xor( B[ 7], C[ 7] );
+   v128_t x8 = B[ 8] = v128_xor( B[ 8], C[ 8] );
+   v128_t x9 = B[ 9] = v128_xor( B[ 9], C[ 9] );
+   v128_t xa = B[10] = v128_xor( B[10], C[10] );
+   v128_t xb = B[11] = v128_xor( B[11], C[11] );
+   v128_t xc = B[12] = v128_xor( B[12], C[12] );
+   v128_t xd = B[13] = v128_xor( B[13], C[13] );
+   v128_t xe = B[14] = v128_xor( B[14], C[14] );
+   v128_t xf = B[15] = v128_xor( B[15], C[15] );
 
-   #define ROL32       mm128_rol_32
-   #define ADD32       _mm_add_epi32
-   #define XOR         _mm_xor_si128
+   #define ROL32       v128_rol32
+   #define ADD32       v128_add32
+   #define XOR         v128_xor
 
    SALSA_8ROUNDS;
 
@@ -2032,25 +2032,25 @@ static void xor_salsa8_4way( __m128i * const B, const __m128i * const C )
    #undef ADD32
    #undef XOR 
 
-   B[ 0] = _mm_add_epi32( B[ 0], x0 );
-   B[ 1] = _mm_add_epi32( B[ 1], x1 );
-   B[ 2] = _mm_add_epi32( B[ 2], x2 );
-   B[ 3] = _mm_add_epi32( B[ 3], x3 );
-   B[ 4] = _mm_add_epi32( B[ 4], x4 );
-   B[ 5] = _mm_add_epi32( B[ 5], x5 );
-   B[ 6] = _mm_add_epi32( B[ 6], x6 );
-   B[ 7] = _mm_add_epi32( B[ 7], x7 );
-   B[ 8] = _mm_add_epi32( B[ 8], x8 );
-   B[ 9] = _mm_add_epi32( B[ 9], x9 );
-   B[10] = _mm_add_epi32( B[10], xa );
-   B[11] = _mm_add_epi32( B[11], xb );
-   B[12] = _mm_add_epi32( B[12], xc );
-   B[13] = _mm_add_epi32( B[13], xd );
-   B[14] = _mm_add_epi32( B[14], xe );
-   B[15] = _mm_add_epi32( B[15], xf );
+   B[ 0] = v128_add32( B[ 0], x0 );
+   B[ 1] = v128_add32( B[ 1], x1 );
+   B[ 2] = v128_add32( B[ 2], x2 );
+   B[ 3] = v128_add32( B[ 3], x3 );
+   B[ 4] = v128_add32( B[ 4], x4 );
+   B[ 5] = v128_add32( B[ 5], x5 );
+   B[ 6] = v128_add32( B[ 6], x6 );
+   B[ 7] = v128_add32( B[ 7], x7 );
+   B[ 8] = v128_add32( B[ 8], x8 );
+   B[ 9] = v128_add32( B[ 9], x9 );
+   B[10] = v128_add32( B[10], xa );
+   B[11] = v128_add32( B[11], xb );
+   B[12] = v128_add32( B[12], xc );
+   B[13] = v128_add32( B[13], xd );
+   B[14] = v128_add32( B[14], xe );
+   B[15] = v128_add32( B[15], xf );
 }
 
-void scrypt_core_4way( __m128i *X, __m128i *V, const uint32_t N )
+void scrypt_core_4way( v128_t *X, v128_t *V, const uint32_t N )
 {
    for ( int n = 0; n < N; n++ )
    {
@@ -2074,7 +2074,7 @@ void scrypt_core_4way( __m128i *X, __m128i *V, const uint32_t N )
          m128_ovly v;    
          for ( int l = 0; l < 4; l++ )
             v.u32[l] = ( *(vptr[l] +i ) ) .u32[l];
-         X[i] = _mm_xor_si128( X[i], v.m128 );
+         X[i] = v128_xor( X[i], v.m128 );
       }
 
       xor_salsa8_4way( &X[ 0], &X[16] );
@@ -2095,27 +2095,27 @@ void scrypt_core_4way( __m128i *X, __m128i *V, const uint32_t N )
 // No interleaving
 static void salsa8_simd128( uint32_t *b, const uint32_t * const c)
 {
-   __m128i X0, X1, X2, X3;
-   __m128i *B = (__m128i*)b;
-   const __m128i *C = (const __m128i*)c;
+   v128_t X0, X1, X2, X3;
+   v128_t *B = (v128_t*)b;
+   const v128_t *C = (const v128_t*)c;
 
    // define targets for macros used in round function template
-   #define ROL_1X32    mm128_shufll_32
-   #define ROR_1X32    mm128_shuflr_32
-   #define SWAP_64     mm128_swap_64
-   #define ROL32       mm128_rol_32
-   #define ADD32       _mm_add_epi32
-   #define XOR         _mm_xor_si128
+   #define ROL_1X32    v128_shufll32
+   #define ROR_1X32    v128_shuflr32
+   #define SWAP_64     v128_swap64
+   #define ROL32       v128_rol32
+   #define ADD32       v128_add32
+   #define XOR         v128_xor
    
    // mix C into B then shuffle B into X
-   B[0] = _mm_xor_si128( B[0], C[0] );
-   B[1] = _mm_xor_si128( B[1], C[1] );
-   B[2] = _mm_xor_si128( B[2], C[2] );
-   B[3] = _mm_xor_si128( B[3], C[3] );
+   B[0] = v128_xor( B[0], C[0] );
+   B[1] = v128_xor( B[1], C[1] );
+   B[2] = v128_xor( B[2], C[2] );
+   B[3] = v128_xor( B[3], C[3] );
 
 #if defined(__SSE4_1__)
 
-   __m128i Y0, Y1, Y2, Y3;
+   v128_t Y0, Y1, Y2, Y3;
 
 #if defined(__AVX2__)
    
@@ -2188,19 +2188,19 @@ static void salsa8_simd128( uint32_t *b, const uint32_t * const c)
 
 #endif   // AVX2 else SSE4_1
 
-   B[0] = _mm_add_epi32( B[0], Y0 );
-   B[1] = _mm_add_epi32( B[1], Y1 );
-   B[2] = _mm_add_epi32( B[2], Y2 );
-   B[3] = _mm_add_epi32( B[3], Y3 );
+   B[0] = v128_add32( B[0], Y0 );
+   B[1] = v128_add32( B[1], Y1 );
+   B[2] = v128_add32( B[2], Y2 );
+   B[3] = v128_add32( B[3], Y3 );
 
 #else  // SSE2
 
    m128_ovly y[4], z[4];
 
-   X0 = _mm_set_epi32( b[15], b[10], b[ 5], b[ 0] );
-   X1 = _mm_set_epi32( b[ 3], b[14], b[ 9], b[ 4] );
-   X2 = _mm_set_epi32( b[ 7], b[ 2], b[13], b[ 8] );
-   X3 = _mm_set_epi32( b[11], b[ 6], b[ 1], b[12] );
+   X0 = v128_set_32( b[15], b[10], b[ 5], b[ 0] );
+   X1 = v128_set_32( b[ 3], b[14], b[ 9], b[ 4] );
+   X2 = v128_set_32( b[ 7], b[ 2], b[13], b[ 8] );
+   X3 = v128_set_32( b[11], b[ 6], b[ 1], b[12] );
    
    SALSA_8ROUNDS_FINAL_SIMD128;
 
@@ -2236,10 +2236,10 @@ static void salsa8_simd128( uint32_t *b, const uint32_t * const c)
    z[3].u32[1] = y[2].u32[3];
    z[3].u32[0] = y[3].u32[3];
 
-   B[0] = _mm_add_epi32( B[0], z[0].m128 );
-   B[1] = _mm_add_epi32( B[1], z[1].m128 );
-   B[2] = _mm_add_epi32( B[2], z[2].m128 );
-   B[3] = _mm_add_epi32( B[3], z[3].m128 );
+   B[0] = v128_add32( B[0], z[0].m128 );
+   B[1] = v128_add32( B[1], z[1].m128 );
+   B[2] = v128_add32( B[2], z[2].m128 );
+   B[3] = v128_add32( B[3], z[3].m128 );
 
 #endif
 
@@ -2257,7 +2257,7 @@ void scrypt_core_simd128( uint32_t *X, uint32_t *V, const uint32_t N )
    for ( int n = 0; n < N; n++ )
    {
       for ( int i = 0; i < 8; i++ )
-         _mm_stream_si128( (__m128i*)V + n*8 + i, casti_m128i( X, i ) );
+         _mm_stream_si128( (v128_t*)V + n*8 + i, casti_v128( X, i ) );
 
       salsa8_simd128( &X[ 0], &X[16] );
       salsa8_simd128( &X[16], &X[ 0] );
@@ -2277,15 +2277,15 @@ void scrypt_core_simd128( uint32_t *X, uint32_t *V, const uint32_t N )
 
 static inline void salsa_simd128_shuffle_2buf( uint32_t *xa, uint32_t *xb )
 {
-   __m128i *XA = (__m128i*)xa;
-   __m128i *XB = (__m128i*)xb;
+   v128_t *XA = (v128_t*)xa;
+   v128_t *XB = (v128_t*)xb;
 
 #if defined(__SSE4_1__)
 
-  __m128i t0 = _mm_blend_epi16( XA[0], XA[1], 0xcc );
-  __m128i t1 = _mm_blend_epi16( XA[0], XA[1], 0x33 );
-  __m128i t2 = _mm_blend_epi16( XA[2], XA[3], 0xcc );
-  __m128i t3 = _mm_blend_epi16( XA[2], XA[3], 0x33 );
+  v128_t t0 = _mm_blend_epi16( XA[0], XA[1], 0xcc );
+  v128_t t1 = _mm_blend_epi16( XA[0], XA[1], 0x33 );
+  v128_t t2 = _mm_blend_epi16( XA[2], XA[3], 0xcc );
+  v128_t t3 = _mm_blend_epi16( XA[2], XA[3], 0x33 );
   XA[0] = _mm_blend_epi16( t0, t2, 0xf0 );
   XA[1] = _mm_blend_epi16( t1, t3, 0x3c );
   XA[2] = _mm_blend_epi16( t0, t2, 0x0f );
@@ -2301,16 +2301,16 @@ static inline void salsa_simd128_shuffle_2buf( uint32_t *xa, uint32_t *xb )
 
 #else   // SSE2
 
-   __m128i YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3;
+   v128_t YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3;
    
-   YA0 = _mm_set_epi32( xa[15], xa[10], xa[ 5], xa[ 0] );
-   YB0 = _mm_set_epi32( xb[15], xb[10], xb[ 5], xb[ 0] );
-   YA1 = _mm_set_epi32( xa[ 3], xa[14], xa[ 9], xa[ 4] );
-   YB1 = _mm_set_epi32( xb[ 3], xb[14], xb[ 9], xb[ 4] );
-   YA2 = _mm_set_epi32( xa[ 7], xa[ 2], xa[13], xa[ 8] );
-   YB2 = _mm_set_epi32( xb[ 7], xb[ 2], xb[13], xb[ 8] );
-   YA3 = _mm_set_epi32( xa[11], xa[ 6], xa[ 1], xa[12] );
-   YB3 = _mm_set_epi32( xb[11], xb[ 6], xb[ 1], xb[12] );
+   YA0 = v128_set_32( xa[15], xa[10], xa[ 5], xa[ 0] );
+   YB0 = v128_set_32( xb[15], xb[10], xb[ 5], xb[ 0] );
+   YA1 = v128_set_32( xa[ 3], xa[14], xa[ 9], xa[ 4] );
+   YB1 = v128_set_32( xb[ 3], xb[14], xb[ 9], xb[ 4] );
+   YA2 = v128_set_32( xa[ 7], xa[ 2], xa[13], xa[ 8] );
+   YB2 = v128_set_32( xb[ 7], xb[ 2], xb[13], xb[ 8] );
+   YA3 = v128_set_32( xa[11], xa[ 6], xa[ 1], xa[12] );
+   YB3 = v128_set_32( xb[11], xb[ 6], xb[ 1], xb[12] );
 
    XA[0] = YA0;
    XB[0] = YB0;
@@ -2327,15 +2327,15 @@ static inline void salsa_simd128_shuffle_2buf( uint32_t *xa, uint32_t *xb )
 static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
 {
 
-   __m128i *XA = (__m128i*)xa;
-   __m128i *XB = (__m128i*)xb;
+   v128_t *XA = (v128_t*)xa;
+   v128_t *XB = (v128_t*)xb;
 
 #if defined(__SSE4_1__)
 
-  __m128i t0 = _mm_blend_epi16( XA[0], XA[2], 0xf0 );
-  __m128i t1 = _mm_blend_epi16( XA[0], XA[2], 0x0f );
-  __m128i t2 = _mm_blend_epi16( XA[1], XA[3], 0x3c );
-  __m128i t3 = _mm_blend_epi16( XA[1], XA[3], 0xc3 );
+  v128_t t0 = _mm_blend_epi16( XA[0], XA[2], 0xf0 );
+  v128_t t1 = _mm_blend_epi16( XA[0], XA[2], 0x0f );
+  v128_t t2 = _mm_blend_epi16( XA[1], XA[3], 0x3c );
+  v128_t t3 = _mm_blend_epi16( XA[1], XA[3], 0xc3 );
   XA[0] = _mm_blend_epi16( t0, t2, 0xcc );
   XA[1] = _mm_blend_epi16( t0, t2, 0x33 );
   XA[2] = _mm_blend_epi16( t1, t3, 0xcc );
@@ -2413,29 +2413,29 @@ static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
 static void salsa8_simd128_2buf( uint32_t * const ba, uint32_t * const bb,
                        const uint32_t * const ca, const uint32_t * const cb )
 {
-   __m128i XA0, XA1, XA2, XA3, XB0, XB1, XB2, XB3;
-   __m128i *BA = (__m128i*)ba;
-   __m128i *BB = (__m128i*)bb;
-   const __m128i *CA = (const __m128i*)ca;
-   const __m128i *CB = (const __m128i*)cb;
+   v128_t XA0, XA1, XA2, XA3, XB0, XB1, XB2, XB3;
+   v128_t *BA = (v128_t*)ba;
+   v128_t *BB = (v128_t*)bb;
+   const v128_t *CA = (const v128_t*)ca;
+   const v128_t *CB = (const v128_t*)cb;
 
    // define targets for macros used in round function template
-   #define ROL_1X32    mm128_shufll_32
-   #define ROR_1X32    mm128_shuflr_32
-   #define SWAP_64     mm128_swap_64
-   #define ROL32       mm128_rol_32
-   #define ADD32       _mm_add_epi32
-   #define XOR         _mm_xor_si128
-   #define TYPE        __m128i
+   #define ROL_1X32    v128_shufll32
+   #define ROR_1X32    v128_shuflr32
+   #define SWAP_64     v128_swap64
+   #define ROL32       v128_rol32
+   #define ADD32       v128_add32
+   #define XOR         v128_xor
+   #define TYPE        v128_t
 
-   XA0 = BA[0] = _mm_xor_si128( BA[0], CA[0] );
-   XB0 = BB[0] = _mm_xor_si128( BB[0], CB[0] );
-   XA1 = BA[1] = _mm_xor_si128( BA[1], CA[1] );
-   XB1 = BB[1] = _mm_xor_si128( BB[1], CB[1] );
-   XA2 = BA[2] = _mm_xor_si128( BA[2], CA[2] );
-   XB2 = BB[2] = _mm_xor_si128( BB[2], CB[2] );
-   XA3 = BA[3] = _mm_xor_si128( BA[3], CA[3] );
-   XB3 = BB[3] = _mm_xor_si128( BB[3], CB[3] );
+   XA0 = BA[0] = v128_xor( BA[0], CA[0] );
+   XB0 = BB[0] = v128_xor( BB[0], CB[0] );
+   XA1 = BA[1] = v128_xor( BA[1], CA[1] );
+   XB1 = BB[1] = v128_xor( BB[1], CB[1] );
+   XA2 = BA[2] = v128_xor( BA[2], CA[2] );
+   XB2 = BB[2] = v128_xor( BB[2], CB[2] );
+   XA3 = BA[3] = v128_xor( BA[3], CA[3] );
+   XB3 = BB[3] = v128_xor( BB[3], CB[3] );
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
              
@@ -2447,14 +2447,14 @@ static void salsa8_simd128_2buf( uint32_t * const ba, uint32_t * const bb,
    
 #endif
 
-   BA[0] = _mm_add_epi32( BA[0], XA0 );
-   BB[0] = _mm_add_epi32( BB[0], XB0 );
-   BA[1] = _mm_add_epi32( BA[1], XA1 );
-   BB[1] = _mm_add_epi32( BB[1], XB1 );
-   BA[2] = _mm_add_epi32( BA[2], XA2 );
-   BB[2] = _mm_add_epi32( BB[2], XB2 );
-   BA[3] = _mm_add_epi32( BA[3], XA3 );
-   BB[3] = _mm_add_epi32( BB[3], XB3 );
+   BA[0] = v128_add32( BA[0], XA0 );
+   BB[0] = v128_add32( BB[0], XB0 );
+   BA[1] = v128_add32( BA[1], XA1 );
+   BB[1] = v128_add32( BB[1], XB1 );
+   BA[2] = v128_add32( BA[2], XA2 );
+   BB[2] = v128_add32( BB[2], XB2 );
+   BA[3] = v128_add32( BA[3], XA3 );
+   BB[3] = v128_add32( BB[3], XB3 );
 
    #undef ROL_1X32
    #undef ROR_1X32
@@ -2489,8 +2489,8 @@ void scrypt_core_simd128_2buf( uint32_t *X, uint32_t *V, const uint32_t N )
 
       for ( int i = 0; i < 8; i++ )
       {
-         _mm_stream_si128( (__m128i*)V0 + n*8 + i, casti_m128i( X0, i ) );
-         _mm_stream_si128( (__m128i*)V1 + n*8 + i, casti_m128i( X1, i ) );
+         _mm_stream_si128( (v128_t*)V0 + n*8 + i, casti_v128( X0, i ) );
+         _mm_stream_si128( (v128_t*)V1 + n*8 + i, casti_v128( X1, i ) );
       }
 
    #else
@@ -2535,10 +2535,10 @@ void scrypt_core_simd128_2buf( uint32_t *X, uint32_t *V, const uint32_t N )
       const int j1 = 8 * ( X1[16] & ( N-1 ) );
       for ( int i = 0; i < 8; i++ )
       {
-         const __m128i v0 = _mm_load_si128( ( (__m128i*)V0 ) +j0+i );
-         const __m128i v1 = _mm_load_si128( ( (__m128i*)V1 ) +j1+i );
-         casti_m128i( X0, i ) = _mm_xor_si128( casti_m128i( X0, i ), v0 );
-         casti_m128i( X1, i ) = _mm_xor_si128( casti_m128i( X1, i ), v1 );
+         const v128_t v0 = v128_load( ( (v128_t*)V0 ) +j0+i );
+         const v128_t v1 = v128_load( ( (v128_t*)V1 ) +j1+i );
+         casti_v128( X0, i ) = v128_xor( casti_v128( X0, i ), v0 );
+         casti_v128( X1, i ) = v128_xor( casti_v128( X1, i ), v1 );
       }
 
    #endif
@@ -2555,16 +2555,16 @@ void scrypt_core_simd128_2buf( uint32_t *X, uint32_t *V, const uint32_t N )
 static inline void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
                                         uint32_t *xc )
 {
-   __m128i *XA = (__m128i*)xa;
-   __m128i *XB = (__m128i*)xb;
-   __m128i *XC = (__m128i*)xc;
+   v128_t *XA = (v128_t*)xa;
+   v128_t *XB = (v128_t*)xb;
+   v128_t *XC = (v128_t*)xc;
 
 #if defined(__SSE4_1__)
 
-  __m128i t0 = _mm_blend_epi16( XA[0], XA[1], 0xcc );
-  __m128i t1 = _mm_blend_epi16( XA[0], XA[1], 0x33 );
-  __m128i t2 = _mm_blend_epi16( XA[2], XA[3], 0xcc );
-  __m128i t3 = _mm_blend_epi16( XA[2], XA[3], 0x33 );
+  v128_t t0 = _mm_blend_epi16( XA[0], XA[1], 0xcc );
+  v128_t t1 = _mm_blend_epi16( XA[0], XA[1], 0x33 );
+  v128_t t2 = _mm_blend_epi16( XA[2], XA[3], 0xcc );
+  v128_t t3 = _mm_blend_epi16( XA[2], XA[3], 0x33 );
   XA[0] = _mm_blend_epi16( t0, t2, 0xf0 );
   XA[1] = _mm_blend_epi16( t1, t3, 0x3c );
   XA[2] = _mm_blend_epi16( t0, t2, 0x0f );
@@ -2588,20 +2588,20 @@ static inline void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
 
 #else   // SSE2
 
-   __m128i YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3, YC0, YC1, YC2, YC3;
+   v128_t YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3, YC0, YC1, YC2, YC3;
 
-   YA0 = _mm_set_epi32( xa[15], xa[10], xa[ 5], xa[ 0] );
-   YB0 = _mm_set_epi32( xb[15], xb[10], xb[ 5], xb[ 0] );
-   YC0 = _mm_set_epi32( xc[15], xc[10], xc[ 5], xc[ 0] );
-   YA1 = _mm_set_epi32( xa[ 3], xa[14], xa[ 9], xa[ 4] );
-   YB1 = _mm_set_epi32( xb[ 3], xb[14], xb[ 9], xb[ 4] );
-   YC1 = _mm_set_epi32( xc[ 3], xc[14], xc[ 9], xc[ 4] );
-   YA2 = _mm_set_epi32( xa[ 7], xa[ 2], xa[13], xa[ 8] );
-   YB2 = _mm_set_epi32( xb[ 7], xb[ 2], xb[13], xb[ 8] );
-   YC2 = _mm_set_epi32( xc[ 7], xc[ 2], xc[13], xc[ 8] );
-   YA3 = _mm_set_epi32( xa[11], xa[ 6], xa[ 1], xa[12] );
-   YB3 = _mm_set_epi32( xb[11], xb[ 6], xb[ 1], xb[12] );
-   YC3 = _mm_set_epi32( xc[11], xc[ 6], xc[ 1], xc[12] );
+   YA0 = v128_set_32( xa[15], xa[10], xa[ 5], xa[ 0] );
+   YB0 = v128_set_32( xb[15], xb[10], xb[ 5], xb[ 0] );
+   YC0 = v128_set_32( xc[15], xc[10], xc[ 5], xc[ 0] );
+   YA1 = v128_set_32( xa[ 3], xa[14], xa[ 9], xa[ 4] );
+   YB1 = v128_set_32( xb[ 3], xb[14], xb[ 9], xb[ 4] );
+   YC1 = v128_set_32( xc[ 3], xc[14], xc[ 9], xc[ 4] );
+   YA2 = v128_set_32( xa[ 7], xa[ 2], xa[13], xa[ 8] );
+   YB2 = v128_set_32( xb[ 7], xb[ 2], xb[13], xb[ 8] );
+   YC2 = v128_set_32( xc[ 7], xc[ 2], xc[13], xc[ 8] );
+   YA3 = v128_set_32( xa[11], xa[ 6], xa[ 1], xa[12] );
+   YB3 = v128_set_32( xb[11], xb[ 6], xb[ 1], xb[12] );
+   YC3 = v128_set_32( xc[11], xc[ 6], xc[ 1], xc[12] );
 
    XA[0] = YA0;
    XB[0] = YB0;
@@ -2622,16 +2622,16 @@ static inline void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
 static inline void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
                                           uint32_t* xc )
 {
-   __m128i *XA = (__m128i*)xa;
-   __m128i *XB = (__m128i*)xb;
-   __m128i *XC = (__m128i*)xc;
+   v128_t *XA = (v128_t*)xa;
+   v128_t *XB = (v128_t*)xb;
+   v128_t *XC = (v128_t*)xc;
 
 #if defined(__SSE4_1__)
 
-  __m128i t0 = _mm_blend_epi16( XA[0], XA[2], 0xf0 );
-  __m128i t1 = _mm_blend_epi16( XA[0], XA[2], 0x0f );
-  __m128i t2 = _mm_blend_epi16( XA[1], XA[3], 0x3c );
-  __m128i t3 = _mm_blend_epi16( XA[1], XA[3], 0xc3 );
+  v128_t t0 = _mm_blend_epi16( XA[0], XA[2], 0xf0 );
+  v128_t t1 = _mm_blend_epi16( XA[0], XA[2], 0x0f );
+  v128_t t2 = _mm_blend_epi16( XA[1], XA[3], 0x3c );
+  v128_t t3 = _mm_blend_epi16( XA[1], XA[3], 0xc3 );
   XA[0] = _mm_blend_epi16( t0, t2, 0xcc );
   XA[1] = _mm_blend_epi16( t0, t2, 0x33 );
   XA[2] = _mm_blend_epi16( t1, t3, 0xcc );
@@ -2743,36 +2743,36 @@ static inline void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
 static void salsa8_simd128_3buf( uint32_t *ba, uint32_t *bb, uint32_t *bc,
                const uint32_t *ca, const uint32_t *cb, const uint32_t *cc )
 {
-   __m128i XA0, XA1, XA2, XA3, XB0, XB1, XB2, XB3,
+   v128_t XA0, XA1, XA2, XA3, XB0, XB1, XB2, XB3,
            XC0, XC1, XC2, XC3;
-   __m128i *BA = (__m128i*)ba;
-   __m128i *BB = (__m128i*)bb;
-   __m128i *BC = (__m128i*)bc;
-   const __m128i *CA = (const __m128i*)ca;
-   const __m128i *CB = (const __m128i*)cb;
-   const __m128i *CC = (const __m128i*)cc;
+   v128_t *BA = (v128_t*)ba;
+   v128_t *BB = (v128_t*)bb;
+   v128_t *BC = (v128_t*)bc;
+   const v128_t *CA = (const v128_t*)ca;
+   const v128_t *CB = (const v128_t*)cb;
+   const v128_t *CC = (const v128_t*)cc;
 
    // define targets for macros used in round function template
-   #define ROL_1X32    mm128_shufll_32
-   #define ROR_1X32    mm128_shuflr_32
-   #define SWAP_64     mm128_swap_64
-   #define ROL32       mm128_rol_32
-   #define ADD32       _mm_add_epi32
-   #define XOR         _mm_xor_si128
-   #define TYPE        __m128i
+   #define ROL_1X32    v128_shufll32
+   #define ROR_1X32    v128_shuflr32
+   #define SWAP_64     v128_swap64
+   #define ROL32       v128_rol32
+   #define ADD32       v128_add32
+   #define XOR         v128_xor
+   #define TYPE        v128_t
 
-   XA0 = BA[0] = _mm_xor_si128( BA[0], CA[0] );
-   XB0 = BB[0] = _mm_xor_si128( BB[0], CB[0] );
-   XC0 = BC[0] = _mm_xor_si128( BC[0], CC[0] );
-   XA1 = BA[1] = _mm_xor_si128( BA[1], CA[1] );
-   XB1 = BB[1] = _mm_xor_si128( BB[1], CB[1] );
-   XC1 = BC[1] = _mm_xor_si128( BC[1], CC[1] );
-   XA2 = BA[2] = _mm_xor_si128( BA[2], CA[2] );
-   XB2 = BB[2] = _mm_xor_si128( BB[2], CB[2] );
-   XC2 = BC[2] = _mm_xor_si128( BC[2], CC[2] );
-   XA3 = BA[3] = _mm_xor_si128( BA[3], CA[3] );
-   XB3 = BB[3] = _mm_xor_si128( BB[3], CB[3] );
-   XC3 = BC[3] = _mm_xor_si128( BC[3], CC[3] );
+   XA0 = BA[0] = v128_xor( BA[0], CA[0] );
+   XB0 = BB[0] = v128_xor( BB[0], CB[0] );
+   XC0 = BC[0] = v128_xor( BC[0], CC[0] );
+   XA1 = BA[1] = v128_xor( BA[1], CA[1] );
+   XB1 = BB[1] = v128_xor( BB[1], CB[1] );
+   XC1 = BC[1] = v128_xor( BC[1], CC[1] );
+   XA2 = BA[2] = v128_xor( BA[2], CA[2] );
+   XB2 = BB[2] = v128_xor( BB[2], CB[2] );
+   XC2 = BC[2] = v128_xor( BC[2], CC[2] );
+   XA3 = BA[3] = v128_xor( BA[3], CA[3] );
+   XB3 = BB[3] = v128_xor( BB[3], CB[3] );
+   XC3 = BC[3] = v128_xor( BC[3], CC[3] );
       
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
    
@@ -2784,18 +2784,18 @@ static void salsa8_simd128_3buf( uint32_t *ba, uint32_t *bb, uint32_t *bc,
 
 #endif
 
-   BA[0] = _mm_add_epi32( BA[0], XA0 );
-   BB[0] = _mm_add_epi32( BB[0], XB0 );
-   BC[0] = _mm_add_epi32( BC[0], XC0 );
-   BA[1] = _mm_add_epi32( BA[1], XA1 );
-   BB[1] = _mm_add_epi32( BB[1], XB1 );
-   BC[1] = _mm_add_epi32( BC[1], XC1 );
-   BA[2] = _mm_add_epi32( BA[2], XA2 );
-   BB[2] = _mm_add_epi32( BB[2], XB2 );
-   BC[2] = _mm_add_epi32( BC[2], XC2 );
-   BA[3] = _mm_add_epi32( BA[3], XA3 );
-   BB[3] = _mm_add_epi32( BB[3], XB3 );
-   BC[3] = _mm_add_epi32( BC[3], XC3 );
+   BA[0] = v128_add32( BA[0], XA0 );
+   BB[0] = v128_add32( BB[0], XB0 );
+   BC[0] = v128_add32( BC[0], XC0 );
+   BA[1] = v128_add32( BA[1], XA1 );
+   BB[1] = v128_add32( BB[1], XB1 );
+   BC[1] = v128_add32( BC[1], XC1 );
+   BA[2] = v128_add32( BA[2], XA2 );
+   BB[2] = v128_add32( BB[2], XB2 );
+   BC[2] = v128_add32( BC[2], XC2 );
+   BA[3] = v128_add32( BA[3], XA3 );
+   BB[3] = v128_add32( BB[3], XB3 );
+   BC[3] = v128_add32( BC[3], XC3 );
 
    #undef ROL_1X32
    #undef ROR_1X32
@@ -2833,9 +2833,9 @@ void scrypt_core_simd128_3buf( uint32_t *X, uint32_t *V, const uint32_t N )
 
       for ( int i = 0; i < 8; i++ )
       {
-         _mm_stream_si128( (__m128i*)V0 + n*8 + i, casti_m128i( X0, i ) );
-         _mm_stream_si128( (__m128i*)V1 + n*8 + i, casti_m128i( X1, i ) );
-         _mm_stream_si128( (__m128i*)V2 + n*8 + i, casti_m128i( X2, i ) );
+         _mm_stream_si128( (v128_t*)V0 + n*8 + i, casti_v128( X0, i ) );
+         _mm_stream_si128( (v128_t*)V1 + n*8 + i, casti_v128( X1, i ) );
+         _mm_stream_si128( (v128_t*)V2 + n*8 + i, casti_v128( X2, i ) );
       }
 
    #else
@@ -2891,12 +2891,12 @@ void scrypt_core_simd128_3buf( uint32_t *X, uint32_t *V, const uint32_t N )
       const int j2 = 8 * ( X2[16] & ( N-1 ) );
       for ( int i = 0; i < 8; i++ )
       {
-         const __m128i v0 = _mm_load_si128( ( (__m128i*)V0 ) +j0+i );
-         const __m128i v1 = _mm_load_si128( ( (__m128i*)V1 ) +j1+i );
-         const __m128i v2 = _mm_load_si128( ( (__m128i*)V2 ) +j2+i );
-         casti_m128i( X0, i ) = _mm_xor_si128( casti_m128i( X0, i ), v0 );
-         casti_m128i( X1, i ) = _mm_xor_si128( casti_m128i( X1, i ), v1 );
-         casti_m128i( X2, i ) = _mm_xor_si128( casti_m128i( X2, i ), v2 );
+         const v128_t v0 = v128_load( ( (v128_t*)V0 ) +j0+i );
+         const v128_t v1 = v128_load( ( (v128_t*)V1 ) +j1+i );
+         const v128_t v2 = v128_load( ( (v128_t*)V2 ) +j2+i );
+         casti_v128( X0, i ) = v128_xor( casti_v128( X0, i ), v0 );
+         casti_v128( X1, i ) = v128_xor( casti_v128( X1, i ), v1 );
+         casti_v128( X2, i ) = v128_xor( casti_v128( X2, i ), v2 );
       }
 
    #endif

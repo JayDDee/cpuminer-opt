@@ -353,9 +353,6 @@ int scanhash_lyra2rev2_8way( struct work *work, const uint32_t max_nonce,
    return 0;
 }
 
-#endif
-
-/*
 #elif defined (LYRA2REV2_4WAY)
 
 typedef struct {
@@ -452,7 +449,7 @@ int scanhash_lyra2rev2_4way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   mm128_bswap32_intrlv80_4x32( vdata, pdata );
+   v128_bswap32_intrlv80_4x32( vdata, pdata );
 
    blake256_4way_init( &l2v2_4way_ctx.blake );
    blake256_4way_update( &l2v2_4way_ctx.blake, vdata, 64 );
@@ -480,4 +477,4 @@ int scanhash_lyra2rev2_4way( struct work *work, uint32_t max_nonce,
 }
 
 #endif
-*/
+

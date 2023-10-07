@@ -38,11 +38,12 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <stdint.h>
 #include "haval-hash-4way.h"
 
 // won't compile with sse4.2, not a problem, it's only used with AVX2 4 way.
 //#if defined (__SSE4_2__)
-#if defined(__AVX__)
+#if defined(__AVX__) || defined(__ARM_NEON)
 
 #ifdef __cplusplus
 extern "C"{
@@ -55,97 +56,97 @@ extern "C"{
 #if defined(__AVX512VL__)
 
 // ( ~( a ^ b ) ) & c
-#define mm128_andnotxor( a, b, c ) \
+#define v128_andnotxor( a, b, c ) \
    _mm_ternarylogic_epi32( a, b, c, 0x82  )
 
 #else
 
-#define mm128_andnotxor( a, b, c ) \
-   _mm_andnot_si128( _mm_xor_si128( a, b ), c )
+#define v128_andnotxor( a, b, c ) \
+   v128_andnot( v128_xor( a, b ), c )
 
 #endif
 
 #define F1(x6, x5, x4, x3, x2, x1, x0) \
- mm128_xor3( x0, mm128_andxor( x1, x0, x4 ), \
-                 _mm_xor_si128( _mm_and_si128( x2, x5 ), \
-                                _mm_and_si128( x3, x6 ) ) ) \
+ v128_xor3( x0, v128_andxor( x1, x0, x4 ), \
+                 v128_xor( v128_and( x2, x5 ), \
+                                v128_and( x3, x6 ) ) ) \
 
 #define F2(x6, x5, x4, x3, x2, x1, x0) \
-   mm128_xor3( mm128_andxor( x2, _mm_andnot_si128( x3, x1 ), \
-                       mm128_xor3( _mm_and_si128( x4, x5 ), x6, x0 )  ), \
-               mm128_andxor( x4, x1, x5 ), \
-               mm128_xorand( x0, x3, x5 ) ) \
+   v128_xor3( v128_andxor( x2, v128_andnot( x3, x1 ), \
+                       v128_xor3( v128_and( x4, x5 ), x6, x0 )  ), \
+               v128_andxor( x4, x1, x5 ), \
+               v128_xorand( x0, x3, x5 ) ) \
 
 #define F3(x6, x5, x4, x3, x2, x1, x0) \
-  mm128_xor3( x0, \
-              _mm_and_si128( x3, \
-                         mm128_xor3( _mm_and_si128( x1, x2 ), x6, x0 ) ), \
-              _mm_xor_si128( _mm_and_si128( x1, x4 ), \
-                             _mm_and_si128( x2, x5 ) ) )
+  v128_xor3( x0, \
+              v128_and( x3, \
+                         v128_xor3( v128_and( x1, x2 ), x6, x0 ) ), \
+              v128_xor( v128_and( x1, x4 ), \
+                             v128_and( x2, x5 ) ) )
 
 #define F4(x6, x5, x4, x3, x2, x1, x0) \
-  mm128_xor3( \
-      mm128_andxor( x3, x5, \
-                    _mm_xor_si128( _mm_and_si128( x1, x2 ), \
-                                      _mm_or_si128( x4, x6 ) ) ), \
-      _mm_and_si128( x4, \
-                        mm128_xor3( x0, _mm_andnot_si128( x2, x5 ), \
-                                    _mm_xor_si128( x1, x6 ) ) ), \
-      mm128_xorand( x0, x2, x6 ) )
+  v128_xor3( \
+      v128_andxor( x3, x5, \
+                    v128_xor( v128_and( x1, x2 ), \
+                                      v128_or( x4, x6 ) ) ), \
+      v128_and( x4, \
+                        v128_xor3( x0, v128_andnot( x2, x5 ), \
+                                    v128_xor( x1, x6 ) ) ), \
+      v128_xorand( x0, x2, x6 ) )
 
 #define F5(x6, x5, x4, x3, x2, x1, x0) \
-   _mm_xor_si128( \
-         mm128_andnotxor( mm128_and3( x1, x2, x3 ), x5, x0 ), \
-         mm128_xor3( _mm_and_si128( x1, x4 ), \
-                     _mm_and_si128( x2, x5 ), \
-                     _mm_and_si128( x3, x6 ) ) )
+   v128_xor( \
+         v128_andnotxor( v128_and3( x1, x2, x3 ), x5, x0 ), \
+         v128_xor3( v128_and( x1, x4 ), \
+                     v128_and( x2, x5 ), \
+                     v128_and( x3, x6 ) ) )
   
 
 /*
 #define F1(x6, x5, x4, x3, x2, x1, x0) \
-   _mm_xor_si128( x0, \
-       _mm_xor_si128( _mm_and_si128(_mm_xor_si128( x0, x4 ), x1 ), \
-                      _mm_xor_si128( _mm_and_si128( x2, x5 ), \
-                                     _mm_and_si128( x3, x6 ) ) ) ) \
+   v128_xor( x0, \
+       v128_xor( v128_and(v128_xor( x0, x4 ), x1 ), \
+                      v128_xor( v128_and( x2, x5 ), \
+                                     v128_and( x3, x6 ) ) ) ) \
 
 #define F2(x6, x5, x4, x3, x2, x1, x0) \
-   _mm_xor_si128( \
-      _mm_and_si128( x2, \
-         _mm_xor_si128( _mm_andnot_si128( x3, x1 ), \
-                        _mm_xor_si128( _mm_and_si128( x4, x5 ), \
-                                       _mm_xor_si128( x6, x0 ) ) ) ), \
-         _mm_xor_si128( \
-             _mm_and_si128( x4, _mm_xor_si128( x1, x5 ) ), \
-             _mm_xor_si128( _mm_and_si128( x3, x5 ), x0 ) ) ) \
+   v128_xor( \
+      v128_and( x2, \
+         v128_xor( v128_andnot( x3, x1 ), \
+                        v128_xor( v128_and( x4, x5 ), \
+                                       v128_xor( x6, x0 ) ) ) ), \
+         v128_xor( \
+             v128_and( x4, v128_xor( x1, x5 ) ), \
+             v128_xor( v128_and( x3, x5 ), x0 ) ) ) \
 
 #define F3(x6, x5, x4, x3, x2, x1, x0) \
-  _mm_xor_si128( \
-    _mm_and_si128( x3, \
-      _mm_xor_si128( _mm_and_si128( x1, x2 ), \
-                     _mm_xor_si128( x6, x0 ) ) ), \
-      _mm_xor_si128( _mm_xor_si128(_mm_and_si128( x1, x4 ), \
-                                   _mm_and_si128( x2, x5 ) ), x0 ) )
+  v128_xor( \
+    v128_and( x3, \
+      v128_xor( v128_and( x1, x2 ), \
+                     v128_xor( x6, x0 ) ) ), \
+      v128_xor( v128_xor(v128_and( x1, x4 ), \
+                                   v128_and( x2, x5 ) ), x0 ) )
 
 #define F4(x6, x5, x4, x3, x2, x1, x0) \
-  _mm_xor_si128( \
-     _mm_xor_si128( \
-        _mm_and_si128( x3, \
-           _mm_xor_si128( _mm_xor_si128( _mm_and_si128( x1, x2 ), \
-                                         _mm_or_si128( x4, x6 ) ), x5 ) ), \
-        _mm_and_si128( x4, \
-           _mm_xor_si128( _mm_xor_si128( _mm_and_si128( mm128_not(x2), x5 ), \
-                          _mm_xor_si128( x1, x6 ) ), x0 ) ) ), \
-     _mm_xor_si128( _mm_and_si128( x2, x6 ), x0 ) )
+  v128_xor( \
+     v128_xor( \
+        v128_and( x3, \
+           v128_xor( v128_xor( v128_and( x1, x2 ), \
+                                         v128_or( x4, x6 ) ), x5 ) ), \
+        v128_and( x4, \
+           v128_xor( v128_xor( v128_and( v128_not(x2), x5 ), \
+                          v128_xor( x1, x6 ) ), x0 ) ) ), \
+     v128_xor( v128_and( x2, x6 ), x0 ) )
 
 
 #define F5(x6, x5, x4, x3, x2, x1, x0) \
-   _mm_xor_si128( \
-       _mm_and_si128( x0, \
-            mm128_not( _mm_xor_si128( \
-                    _mm_and_si128( _mm_and_si128( x1, x2 ), x3 ), x5 ) ) ), \
-      _mm_xor_si128( _mm_xor_si128( _mm_and_si128( x1, x4 ), \
-                                    _mm_and_si128( x2, x5 ) ), \
-                                    _mm_and_si128( x3, x6 ) ) )
+   v128_xor( \
+       v128_and( x0, \
+            v128_not( v128_xor( \
+                    v128_and( v128_and( x1, x2 ), x3 ), x5 ) ) ), \
+      v128_xor( v128_xor( v128_and( x1, x4 ), \
+                                    v128_and( x2, x5 ) ), \
+                                    v128_and( x3, x6 ) ) )
 */
 
 /*
@@ -186,17 +187,17 @@ extern "C"{
  */
 #define STEP(n, p, x7, x6, x5, x4, x3, x2, x1, x0, w, c) \
 do { \
-   __m128i t = FP ## n ## _ ## p(x6, x5, x4, x3, x2, x1, x0); \
-   x7 = _mm_add_epi32( _mm_add_epi32( mm128_ror_32( t, 7 ), \
-                                      mm128_ror_32( x7, 11 ) ), \
-                       _mm_add_epi32( w, v128_32( c ) ) ); \
+   v128_t t = FP ## n ## _ ## p(x6, x5, x4, x3, x2, x1, x0); \
+   x7 = v128_add32( v128_add32( v128_ror32( t, 7 ), \
+                                      v128_ror32( x7, 11 ) ), \
+                       v128_add32( w, v128_32( c ) ) ); \
 } while (0)
 
 #define STEP1(n, p, x7, x6, x5, x4, x3, x2, x1, x0, w) \
 do { \
-   __m128i t = FP ## n ## _ ## p(x6, x5, x4, x3, x2, x1, x0); \
-   x7 = _mm_add_epi32( _mm_add_epi32( mm128_ror_32( t, 7 ), \
-                                      mm128_ror_32( x7, 11 ) ), w ); \
+   v128_t t = FP ## n ## _ ## p(x6, x5, x4, x3, x2, x1, x0); \
+   x7 = v128_add32( v128_add32( v128_ror32( t, 7 ), \
+                                      v128_ror32( x7, 11 ) ), w ); \
 } while (0)
 
 /*
@@ -371,7 +372,7 @@ static const uint32_t RK5[32] = {
 };
 
 #define SAVE_STATE \
-   __m128i u0, u1, u2, u3, u4, u5, u6, u7; \
+   v128_t u0, u1, u2, u3, u4, u5, u6, u7; \
    do { \
       u0 = s0; \
       u1 = s1; \
@@ -385,14 +386,14 @@ static const uint32_t RK5[32] = {
 
 #define UPDATE_STATE \
 do { \
-   s0 = _mm_add_epi32( s0, u0 ); \
-   s1 = _mm_add_epi32( s1, u1 ); \
-   s2 = _mm_add_epi32( s2, u2 ); \
-   s3 = _mm_add_epi32( s3, u3 ); \
-   s4 = _mm_add_epi32( s4, u4 ); \
-   s5 = _mm_add_epi32( s5, u5 ); \
-   s6 = _mm_add_epi32( s6, u6 ); \
-   s7 = _mm_add_epi32( s7, u7 ); \
+   s0 = v128_add32( s0, u0 ); \
+   s1 = v128_add32( s1, u1 ); \
+   s2 = v128_add32( s2, u2 ); \
+   s3 = v128_add32( s3, u3 ); \
+   s4 = v128_add32( s4, u4 ); \
+   s5 = v128_add32( s5, u5 ); \
+   s6 = v128_add32( s6, u6 ); \
+   s7 = v128_add32( s7, u7 ); \
 } while (0)
 
 /*
@@ -431,7 +432,7 @@ do { \
 /*
  * DSTATE declares the state variables "s0" to "s7".
  */
-#define DSTATE   __m128i s0, s1, s2, s3, s4, s5, s6, s7
+#define DSTATE   v128_t s0, s1, s2, s3, s4, s5, s6, s7
 
 /*
  * RSTATE fills the state variables from the context "sc".
@@ -486,7 +487,7 @@ haval_4way_init( haval_4way_context *sc, unsigned olen, unsigned passes )
 	
 }
 
-#define IN_PREPARE(indata) const __m128i *const load_ptr = (indata)
+#define IN_PREPARE(indata) const v128_t *const load_ptr = (indata)
 
 #define INW(i)   load_ptr[ i ] 
 
@@ -497,7 +498,7 @@ haval_4way_init( haval_4way_context *sc, unsigned olen, unsigned passes )
 static void
 haval_4way_out( haval_4way_context *sc, void *dst )
 {
-   __m128i *buf = (__m128i*)dst;
+   v128_t *buf = (v128_t*)dst;
    DSTATE;
    RSTATE;
 

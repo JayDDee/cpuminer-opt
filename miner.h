@@ -24,10 +24,6 @@
 
 #endif /* _MSC_VER */
 
-// prevent questions from ARM users that don't read the requirements.
-#if !defined(__x86_64__)
-#error "CPU architecture not supported. Consult the requirements for supported CPUs."
-#endif
 
 #include <stdbool.h>
 #include <inttypes.h>
@@ -126,11 +122,14 @@ static inline bool is_windows(void)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #endif
 
+// deprecated, see simd-int.h
 #if ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))
 #define WANT_BUILTIN_BSWAP
+/*
 #else
 #define bswap_32(x) ((((x) << 24) & 0xff000000u) | (((x) << 8) & 0x00ff0000u) \
                    | (((x) >> 8) & 0x0000ff00u) | (((x) >> 24) & 0x000000ffu))
+*/
 #endif
 
 static inline uint32_t swab32(uint32_t v)
@@ -138,7 +137,11 @@ static inline uint32_t swab32(uint32_t v)
 #ifdef WANT_BUILTIN_BSWAP
    return __builtin_bswap32(v);
 #else
-	return bswap_32(v);
+   return ( (x << 24) & 0xff000000u ) | ( (x <<  8) & 0x00ff0000u )
+        | ( (x >>  8) & 0x0000ff00u ) | ( (x >> 24) & 0x000000ffu )
+
+
+//   return bswap_32(v);
 #endif
 }
 
@@ -180,8 +183,6 @@ static inline void be32enc(void *pp, uint32_t x)
 }
 #endif
 
-// Deprecated in favour of mm64_bswap_32
-//
 // This is a poorman's SIMD instruction, use 64 bit instruction to encode 2
 // uint32_t. This function flips endian on two adjacent 32 bit quantities
 // aligned to 64 bits. If source is LE output is BE, and vice versa.
@@ -195,11 +196,8 @@ static inline void swab32_x2( uint64_t* dst, uint64_t src )
 
 static inline void swab32_array( uint32_t* dst_p, uint32_t* src_p, int n )
 {
-   // Assumes source is LE
-   for ( int i=0; i < n/2; i++ )
+   for ( int i = 0; i < n/2; i++ )
       swab32_x2( &((uint64_t*)dst_p)[i], ((uint64_t*)src_p)[i] );
-//   if ( n % 2 )
-//      be32enc( &dst_p[ n-1 ], src_p[ n-1 ] );
 }
 
 #if !HAVE_DECL_LE32ENC

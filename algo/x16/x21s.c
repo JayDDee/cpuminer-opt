@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <mm_malloc.h>
 #include "algo/sha/sha256-hash.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/tiger/sph_tiger.h"
@@ -71,7 +72,7 @@ int scanhash_x21s( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
    if ( bench )  ptarget[7] = 0x0cff;
 
-   mm128_bswap32_80( edata, pdata );
+   v128_bswap32_80( edata, pdata );
 
    static __thread uint32_t s_ntime = UINT32_MAX;
    if ( s_ntime != pdata[17] )

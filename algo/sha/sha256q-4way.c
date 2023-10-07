@@ -188,7 +188,7 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
-   __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
+   v128_t  *noncev = (v128_t*)vdata + 19;   // aligned
    int thr_id = mythr->id;  // thr_id arg is deprecated
 
    const uint64_t htmax[] = {          0,
@@ -204,7 +204,7 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
                                0xFFFF0000,
                                         0 };
 
-   mm128_bswap32_intrlv80_4x32( vdata, pdata );
+   v128_bswap32_intrlv80_4x32( vdata, pdata );
    sha256_4way_init( &sha256_ctx4 );
    sha256_4way_update( &sha256_ctx4, vdata, 64 );
 
@@ -212,7 +212,7 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
    {
       uint32_t mask = masks[m];
       do {
-         *noncev = mm128_bswap_32( _mm_set_epi32( n+3,n+2,n+1,n ) );
+         *noncev = v128_bswap32( v128_set32( n+3,n+2,n+1,n ) );
          pdata[19] = n;
 
          sha256q_4way_hash( hash, vdata );

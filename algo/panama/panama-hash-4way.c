@@ -42,7 +42,7 @@ do { \
 //
 //    Panama-256 4 way SSE2
 
-#define LVAR17_4W(b)  __m128i \
+#define LVAR17_4W(b)  v128_t \
 	b ## 0, b ## 1, b ## 2, b ## 3, b ## 4, b ## 5, \
 	b ## 6, b ## 7, b ## 8, b ## 9, b ## 10, b ## 11, \
 	b ## 12, b ## 13, b ## 14, b ## 15, b ## 16;
@@ -53,9 +53,9 @@ do { \
 
 #define BUPDATE1_4W( n0, n2 ) \
 do { \
-   sc->buffer[ptr24][n0] = _mm_xor_si128( sc->buffer[ptr24][n0], \
+   sc->buffer[ptr24][n0] = v128_xor( sc->buffer[ptr24][n0], \
                                           sc->buffer[ptr31][n2] ); \
-   sc->buffer[ptr31][n2] = _mm_xor_si128( sc->buffer[ptr31][n2], INW1(n2) ); \
+   sc->buffer[ptr31][n2] = v128_xor( sc->buffer[ptr31][n2], INW1(n2) ); \
 } while (0)
 
 #define BUPDATE_4W \
@@ -71,50 +71,50 @@ do { \
 } while (0)
 
 #define GAMMA_4W(n0, n1, n2, n4)   \
-   (g ## n0 = _mm_xor_si128( a ## n0, \
-                             _mm_or_si128( a ## n1, mm128_not( a ## n2 ) ) ) )
+   (g ## n0 = v128_xor( a ## n0, \
+                             v128_or( a ## n1, v128_not( a ## n2 ) ) ) )
 
 #define PI_ALL_4W   do { \
       a0  = g0; \
-      a1  = mm128_rol_32( g7,   1 ); \
-      a2  = mm128_rol_32( g14,  3 ); \
-      a3  = mm128_rol_32( g4,   6 ); \
-      a4  = mm128_rol_32( g11, 10 ); \
-      a5  = mm128_rol_32( g1,  15 ); \
-      a6  = mm128_rol_32( g8,  21 ); \
-      a7  = mm128_rol_32( g15, 28 ); \
-      a8  = mm128_rol_32( g5,   4 ); \
-      a9  = mm128_rol_32( g12, 13 ); \
-      a10 = mm128_rol_32( g2,  23 ); \
-      a11 = mm128_rol_32( g9,   2 ); \
-      a12 = mm128_rol_32( g16, 14 ); \
-      a13 = mm128_rol_32( g6,  27 ); \
-      a14 = mm128_rol_32( g13,  9 ); \
-      a15 = mm128_rol_32( g3,  24 ); \
-      a16 = mm128_rol_32( g10,  8 ); \
+      a1  = v128_rol32( g7,   1 ); \
+      a2  = v128_rol32( g14,  3 ); \
+      a3  = v128_rol32( g4,   6 ); \
+      a4  = v128_rol32( g11, 10 ); \
+      a5  = v128_rol32( g1,  15 ); \
+      a6  = v128_rol32( g8,  21 ); \
+      a7  = v128_rol32( g15, 28 ); \
+      a8  = v128_rol32( g5,   4 ); \
+      a9  = v128_rol32( g12, 13 ); \
+      a10 = v128_rol32( g2,  23 ); \
+      a11 = v128_rol32( g9,   2 ); \
+      a12 = v128_rol32( g16, 14 ); \
+      a13 = v128_rol32( g6,  27 ); \
+      a14 = v128_rol32( g13,  9 ); \
+      a15 = v128_rol32( g3,  24 ); \
+      a16 = v128_rol32( g10,  8 ); \
    } while (0)
 
 #define THETA_4W(n0, n1, n2, n4)   \
-   ( g ## n0 = _mm_xor_si128( a ## n0, _mm_xor_si128( a ## n1, a ## n4 ) ) )
+   ( g ## n0 = v128_xor( a ## n0, v128_xor( a ## n1, a ## n4 ) ) )
 
 #define SIGMA_ALL_4W   do { \
-		a0 = _mm_xor_si128( g0, v128_32( 1 ) ); \
-		a1 = _mm_xor_si128( g1, INW2( 0 ) ); \
-		a2 = _mm_xor_si128( g2, INW2( 1 ) ); \
-		a3 = _mm_xor_si128( g3, INW2( 2 ) ); \
-		a4 = _mm_xor_si128( g4, INW2( 3 ) ); \
-		a5 = _mm_xor_si128( g5, INW2( 4 ) ); \
-		a6 = _mm_xor_si128( g6, INW2( 5 ) ); \
-		a7 = _mm_xor_si128( g7, INW2( 6 ) ); \
-		a8 = _mm_xor_si128( g8, INW2( 7 ) ); \
-		a9  = _mm_xor_si128( g9,  sc->buffer[ ptr16 ][0] ); \
-		a10 = _mm_xor_si128( g10, sc->buffer[ ptr16 ][1] ); \
-		a11 = _mm_xor_si128( g11, sc->buffer[ ptr16 ][2] ); \
-		a12 = _mm_xor_si128( g12, sc->buffer[ ptr16 ][3] ); \
-		a13 = _mm_xor_si128( g13, sc->buffer[ ptr16 ][4] ); \
-		a14 = _mm_xor_si128( g14, sc->buffer[ ptr16 ][5] ); \
-		a15 = _mm_xor_si128( g15, sc->buffer[ ptr16 ][6] ); \
-		a16 = _mm_xor_si128( g16, sc->buffer[ ptr16 ][7] ); \
+		a0 = v128_xor( g0, v128_32( 1 ) ); \
+		a1 = v128_xor( g1, INW2( 0 ) ); \
+		a2 = v128_xor( g2, INW2( 1 ) ); \
+		a3 = v128_xor( g3, INW2( 2 ) ); \
+		a4 = v128_xor( g4, INW2( 3 ) ); \
+		a5 = v128_xor( g5, INW2( 4 ) ); \
+		a6 = v128_xor( g6, INW2( 5 ) ); \
+		a7 = v128_xor( g7, INW2( 6 ) ); \
+		a8 = v128_xor( g8, INW2( 7 ) ); \
+		a9  = v128_xor( g9,  sc->buffer[ ptr16 ][0] ); \
+		a10 = v128_xor( g10, sc->buffer[ ptr16 ][1] ); \
+		a11 = v128_xor( g11, sc->buffer[ ptr16 ][2] ); \
+		a12 = v128_xor( g12, sc->buffer[ ptr16 ][3] ); \
+		a13 = v128_xor( g13, sc->buffer[ ptr16 ][4] ); \
+		a14 = v128_xor( g14, sc->buffer[ ptr16 ][5] ); \
+		a15 = v128_xor( g15, sc->buffer[ ptr16 ][6] ); \
+		a16 = v128_xor( g16, sc->buffer[ ptr16 ][7] ); \
 	} while (0)
 
 #define PANAMA_STEP_4W   do { \
@@ -138,7 +138,7 @@ panama_4way_push( panama_4way_context *sc, const unsigned char *pbuf,
 	LVARS_4W
 	unsigned ptr0;
 
-#define INW1(i)   casti_m128i( pbuf, i )
+#define INW1(i)   casti_v128( pbuf, i )
 #define INW2(i)   INW1(i)
 
 	M17( RSTATE );
@@ -167,7 +167,7 @@ panama_4way_pull( panama_4way_context *sc, unsigned num )
 #define INW1(i)     INW_H1(INC ## i)
 #define INW_H1(i)   INW_H2(i)
 #define INW_H2(i)   a ## i
-#define INW2(i)     casti_m128i( sc->buffer[ptr4], i )
+#define INW2(i)     casti_v128( sc->buffer[ptr4], i )
 
 	M17( RSTATE );
    ptr0 = sc->buffer_ptr;
@@ -254,7 +254,7 @@ panama_4way_update( void *cc, const void *data, size_t len )
 
    rlen = len & 31;
 	if ( rlen > 0 )
-      memcpy_128( (__m128i*)sc->data, (__m128i*)data  + len - rlen, rlen );
+      v128_memcpy( (v128_t*)sc->data, (v128_t*)data  + len - rlen, rlen );
 
 	sc->data_ptr = rlen;
 }
@@ -268,13 +268,13 @@ panama_4way_close( void *cc, void *dst )
 
 	sc = cc;
 	current = sc->data_ptr;
-	*(__m128i*)( sc->data + current ) = v128_32( 1 );
+	*(v128_t*)( sc->data + current ) = v128_32( 1 );
    current++;
-   memset_zero_128( (__m128i*)sc->data + current, 32 - current );
+   v128_memset_zero( (v128_t*)sc->data + current, 32 - current );
    panama_4way_push( sc, sc->data, 1 );
    panama_4way_pull( sc, 32 );
    for ( i = 0; i < 8; i ++ )
-      casti_m128i( dst, i ) = sc->state[i + 9];
+      casti_v128( dst, i ) = sc->state[i + 9];
 }
 
 

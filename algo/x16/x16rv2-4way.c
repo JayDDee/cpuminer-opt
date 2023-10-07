@@ -605,7 +605,7 @@ int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
       case KECCAK:
       case LUFFA:
       case SHA_512:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          sph_tiger_init( &x16rv2_ctx.tiger );
          sph_tiger( &x16rv2_ctx.tiger, edata, 64 );
          intrlv_8x64( vdata, edata, edata, edata, edata,
@@ -617,7 +617,7 @@ int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
          skein512_8way_update( &x16rv2_ctx.skein, vdata, 64 );
       break;
       case CUBEHASH:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          cubehashInit( &x16rv2_ctx.cube, 512, 16, 32 );
          cubehashUpdate( &x16rv2_ctx.cube, (const byte*)edata, 64 );
          intrlv_8x64( vdata, edata, edata, edata, edata,
@@ -635,7 +635,7 @@ int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
          rintrlv_8x32_8x64( vdata, vdata2, 640 );
       break;
       case WHIRLPOOL:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          sph_whirlpool_init( &x16rv2_ctx.whirlpool );
          sph_whirlpool( &x16rv2_ctx.whirlpool, edata, 64 );
          intrlv_8x64( vdata, edata, edata, edata, edata,
@@ -1094,7 +1094,7 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
       case KECCAK:
       case LUFFA:
       case SHA_512:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          sph_tiger_init( &x16rv2_ctx.tiger );
          sph_tiger( &x16rv2_ctx.tiger, edata, 64 );
          intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
@@ -1104,7 +1104,7 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
          skein512_4way_prehash64( &x16r_ctx.skein, vdata );
       break;
       case CUBEHASH:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          cubehashInit( &x16rv2_ctx.cube, 512, 16, 32 );
          cubehashUpdate( &x16rv2_ctx.cube, (const byte*)edata, 64 );
          intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
@@ -1115,13 +1115,13 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
          hamsi512_4way_update( &x16rv2_ctx.hamsi, vdata, 64 );
       break;
       case SHABAL:
-         mm128_bswap32_intrlv80_4x32( vdata32, pdata );
+         v128_bswap32_intrlv80_4x32( vdata32, pdata );
          shabal512_4way_init( &x16rv2_ctx.shabal );
          shabal512_4way_update( &x16rv2_ctx.shabal, vdata32, 64 );
          rintrlv_4x32_4x64( vdata, vdata32, 640 );
       break;
       case WHIRLPOOL:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          sph_whirlpool_init( &x16rv2_ctx.whirlpool );
          sph_whirlpool( &x16rv2_ctx.whirlpool, edata, 64 );
          intrlv_4x64( vdata, edata, edata, edata, edata, 640 );

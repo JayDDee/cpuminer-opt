@@ -9,7 +9,7 @@
 #ifndef __hash_h
 #define __hash_h
 
-#include <immintrin.h>
+#include "simd-utils.h"
 #include <stdio.h>
 #if defined(_WIN64) || defined(__WINDOWS__)
 #include <windows.h>
@@ -91,8 +91,8 @@ typedef enum
 #define SIZE256 (SIZE_512/16)
 
 typedef struct {
-  __attribute__ ((aligned (32))) __m128i chaining[SIZE256];
-  __attribute__ ((aligned (32))) __m128i buffer[SIZE256];
+  __attribute__ ((aligned (32))) v128_t chaining[SIZE256];
+  __attribute__ ((aligned (32))) v128_t buffer[SIZE256];
   int hashlen;              // bytes
   int blk_count;
   int buf_ptr;              /* data buffer pointer */

@@ -61,7 +61,7 @@
 #ifndef HAVAL_HASH_4WAY_H__
 #define HAVAL_HASH_4WAY_H__ 1
 
-#if defined(__AVX__)
+#if defined(__AVX__) || defined(__ARM_NEON)
 
 #ifdef __cplusplus
 extern "C"{
@@ -73,8 +73,8 @@ extern "C"{
 #define SPH_SIZE_haval256_5   256
 
 typedef struct {
-   __m128i buf[32];
-   __m128i s0, s1, s2, s3, s4, s5, s6, s7;
+   v128_t buf[32];
+   v128_t s0, s1, s2, s3, s4, s5, s6, s7;
    unsigned olen, passes;
    uint32_t count_high, count_low;
 } haval_4way_context;

@@ -38,6 +38,8 @@
  * preparation for a hard-fork).
  */
 
+#if !defined(__aarch64__)
+
 #ifndef _YESPOWER_OPT_C_PASS_
 #define _YESPOWER_OPT_C_PASS_ 1
 #endif
@@ -1358,3 +1360,5 @@ int yespower_free_local(yespower_local_t *local)
 	return free_region(local);
 }
 #endif
+
+#endif // !aarch64

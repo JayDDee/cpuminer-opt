@@ -23,9 +23,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-#include <immintrin.h>
 #include "sponge.h"
 #include "lyra2.h"
+#include "simd-utils.h"
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 

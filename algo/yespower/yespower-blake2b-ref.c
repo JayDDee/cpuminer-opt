@@ -51,7 +51,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "algo/sha/hmac-sha256-hash.h"
+#include "crypto/hmac-blake2b.h"
 //#include "sysendian.h"
 
 #include "yespower.h"
@@ -453,8 +453,9 @@ static void smix(uint32_t *B, size_t r, uint32_t N,
  *
  * Return 0 on success; or -1 on error.
  */
-int yespower_ref( yespower_local_t *local, const uint8_t *src, size_t srclen,
-    const yespower_params_t *params, yespower_binary_t *dst, int thrid ) 
+int yespower_b2b_ref( yespower_local_t *local, const uint8_t *src,
+                      size_t srclen, const yespower_params_t *params,
+                      yespower_binary_t *dst, int thrid ) 
 {
 	yespower_version_t version = params->version;
 	uint32_t N = params->N;
@@ -465,7 +466,8 @@ int yespower_ref( yespower_local_t *local, const uint8_t *src, size_t srclen,
 	size_t B_size, V_size;
 	uint32_t *B, *V, *X, *S;
 	pwxform_ctx_t ctx;
-	uint32_t sha256[8];
+   uint8_t init_hash[32];
+   sph_blake2b_ctx blake2b_ctx;
 
 	/* Sanity-check parameters */
 	if ((version != YESPOWER_0_5 && version != YESPOWER_1_0) ||
@@ -506,7 +508,10 @@ int yespower_ref( yespower_local_t *local, const uint8_t *src, size_t srclen,
 	ctx.Smask = Swidth_to_Smask(ctx.Swidth);
 	ctx.w = 0;
 
-	SHA256_Buf(src, srclen, (uint8_t *)sha256);
+    sph_blake2b_init( &blake2b_ctx, 32, NULL, 0 );
+    sph_blake2b_update( &blake2b_ctx, src, srclen );
+    sph_blake2b_final( &blake2b_ctx, init_hash );
+//	SHA256_Buf(src, srclen, (uint8_t *)sha256);
 
 	if (version != YESPOWER_0_5) {
 		if (pers) {
@@ -518,16 +523,21 @@ int yespower_ref( yespower_local_t *local, const uint8_t *src, size_t srclen,
 	}
 
 	/* 1: (B_0 ... B_{p-1}) <-- PBKDF2(P, S, 1, p * MFLen) */
-	PBKDF2_SHA256((uint8_t *)sha256, sizeof(sha256),
-	    src, srclen, 1, (uint8_t *)B, B_size);
+    pbkdf2_blake2b(init_hash, sizeof(init_hash), src, srclen, 1,
+                        (uint8_t*)B, B_size );
 
-	blkcpy(sha256, B, sizeof(sha256) / sizeof(sha256[0]));
+//   PBKDF2_SHA256((uint8_t *)sha256, sizeof(sha256),
+//	    src, srclen, 1, (uint8_t *)B, B_size);
+
+   memcpy(init_hash, B, sizeof(init_hash));
+   
+//	blkcpy(sha256, B, sizeof(sha256) / sizeof(sha256[0]));
 
 	/* 3: B_i <-- MF(B_i, N) */
 	smix(B, r, N, V, X, &ctx);
 
+/*
 	if (version == YESPOWER_0_5) {
-		/* 5: DK <-- PBKDF2(P, B, 1, dkLen) */
 		PBKDF2_SHA256((uint8_t *)sha256, sizeof(sha256),
 		    (uint8_t *)B, B_size, 1, (uint8_t *)dst, sizeof(*dst));
 
@@ -537,10 +547,14 @@ int yespower_ref( yespower_local_t *local, const uint8_t *src, size_t srclen,
 			SHA256_Buf(sha256, sizeof(sha256), (uint8_t *)dst);
 		}
 	} else {
-		HMAC_SHA256_Buf((uint8_t *)B + B_size - 64, 64,
+
+   HMAC_SHA256_Buf((uint8_t *)B + B_size - 64, 64,
 		    sha256, sizeof(sha256), (uint8_t *)dst);
 	}
+*/
 
+    hmac_blake2b_hash((uint8_t *)dst, B + B_size - 64, 64, init_hash, sizeof(init_hash));
+   
 	/* Success! */
 	retval = 1;
 
@@ -556,14 +570,14 @@ free_V:
 	return retval;
 }
 
-int yespower_tls_ref(const uint8_t *src, size_t srclen,
+int yespower_b2b_tls_ref(const uint8_t *src, size_t srclen,
     const yespower_params_t *params, yespower_binary_t *dst, int thrid )
 {
 /* The reference implementation doesn't use thread-local storage */
-	return yespower_ref(NULL, src, srclen, params, dst, thrid );
+	return yespower_b2b_ref(NULL, src, srclen, params, dst, thrid );
 }
 
-int yespower_init_local_ref(yespower_local_t *local)
+int yespower_b2b_init_local_ref(yespower_local_t *local)
 {
 /* The reference implementation doesn't use the local structure */
 	local->base = local->aligned = NULL;
@@ -571,7 +585,7 @@ int yespower_init_local_ref(yespower_local_t *local)
 	return 0;
 }
 
-int yespower_free_local_ref(yespower_local_t *local)
+int yespower_b2b_free_local_ref(yespower_local_t *local)
 {
 /* The reference implementation frees its memory in yespower() */
 	(void)local; /* unused */

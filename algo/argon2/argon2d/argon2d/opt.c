@@ -131,22 +131,22 @@ static void fill_block(__m256i *state, const block *ref_block,
 
 #else  // SSE2
 
-static void fill_block(__m128i *state, const block *ref_block,
+static void fill_block( v128_t *state, const block *ref_block,
                        block *next_block, int with_xor) {
-    __m128i block_XY[ARGON2_OWORDS_IN_BLOCK];
+    v128_t block_XY[ARGON2_OWORDS_IN_BLOCK];
     unsigned int i;
 
     if (with_xor) {
         for (i = 0; i < ARGON2_OWORDS_IN_BLOCK; i++) {
-            state[i] = _mm_xor_si128(
-                state[i], _mm_load_si128((const __m128i *)ref_block->v + i));
-            block_XY[i] = _mm_xor_si128(
-                state[i], _mm_load_si128((const __m128i *)next_block->v + i));
+            state[i] = v128_xor(
+                state[i], v128_load((const v128_t *)ref_block->v + i));
+            block_XY[i] = v128_xor(
+                state[i], v128_load((const v128_t *)next_block->v + i));
         }
     } else {
         for (i = 0; i < ARGON2_OWORDS_IN_BLOCK; i++) {
-            block_XY[i] = state[i] = _mm_xor_si128(
-                state[i], _mm_load_si128((const __m128i *)ref_block->v + i));
+            block_XY[i] = state[i] = v128_xor(
+                state[i], v128_load((const v128_t *)ref_block->v + i));
         }
     }
 
@@ -185,8 +185,8 @@ static void fill_block(__m128i *state, const block *ref_block,
                   state[39], state[47], state[55], state[63] );
 
     for (i = 0; i < ARGON2_OWORDS_IN_BLOCK; i++) {
-        state[i] = _mm_xor_si128(state[i], block_XY[i]);
-        _mm_store_si128((__m128i *)next_block->v + i, state[i]);
+        state[i] = v128_xor(state[i], block_XY[i]);
+        v128_store((v128_t *)next_block->v + i, state[i]);
     }
 }
 
@@ -202,8 +202,8 @@ static void next_addresses(block *address_block, block *input_block) {
     __m256i zero_block[ARGON2_HWORDS_IN_BLOCK];
     __m256i zero2_block[ARGON2_HWORDS_IN_BLOCK];
 #else
-    __m128i zero_block[ARGON2_OWORDS_IN_BLOCK];
-    __m128i zero2_block[ARGON2_OWORDS_IN_BLOCK];
+    v128_t zero_block[ARGON2_OWORDS_IN_BLOCK];
+    v128_t zero2_block[ARGON2_OWORDS_IN_BLOCK];
 #endif
 
     memset(zero_block, 0, sizeof(zero_block));
@@ -232,7 +232,7 @@ void fill_segment(const argon2_instance_t *instance,
 #elif defined(__AVX2__)
     __m256i state[ARGON2_HWORDS_IN_BLOCK];
 #else
-    __m128i state[ARGON2_OWORDS_IN_BLOCK];
+    v128_t state[ARGON2_OWORDS_IN_BLOCK];
 #endif
 //    int data_independent_addressing;
 

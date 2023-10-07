@@ -17,7 +17,7 @@ int scanhash_x16rt( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
    if ( bench )  ptarget[7] = 0x0cff;
 
-   mm128_bswap32_80( edata, pdata );
+   v128_bswap32_80( edata, pdata );
 
    static __thread uint32_t s_ntime = UINT32_MAX;
    uint32_t masked_ntime = swab32( pdata[17] ) & 0xffffff80;

@@ -371,7 +371,7 @@ int scanhash_lyra2rev3_4way( struct work *work, const uint32_t max_nonce,
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   mm128_bswap32_intrlv80_4x32( vdata, pdata );
+   v128_bswap32_intrlv80_4x32( vdata, pdata );
    *noncev = _mm_set_epi32( n+3, n+2, n+1, n );
 
    blake256_4way_init( &l2v3_4way_ctx.blake );

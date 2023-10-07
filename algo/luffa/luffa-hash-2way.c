@@ -1,5 +1,4 @@
 #include <string.h>
-#include <immintrin.h>
 #include "luffa-hash-2way.h"
 #include <stdio.h>
 

@@ -4,6 +4,9 @@
 #include "nist.h"
 #include "vector.h"
 
+
+#if defined(__SSE2__)
+
 #define PRINT_SOME 0
 
 int SupportedLength(int hashbitlen) {
@@ -938,3 +941,5 @@ void fft128_natural(fft_t *x, unsigned char *a) {
     x[2*i+1] = y[i+64];
   }
 }
+
+#endif // SSE2

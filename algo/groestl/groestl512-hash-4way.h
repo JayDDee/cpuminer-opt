@@ -2,7 +2,6 @@
 #define GROESTL512_HASH_4WAY_H__ 1
 
 #include "simd-utils.h"
-#include <immintrin.h>
 #include <stdint.h>
 #include <stdio.h>
 #if defined(_WIN64) || defined(__WINDOWS__)

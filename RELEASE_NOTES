@@ -65,7 +65,17 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v3.23.4
+
+Source code only. 
+
+Initial experimental support for ARM AArch64 with NEON, SHA2 & AES.
+Arm support is considered alpha quality, use at your own risk.
+x86_64 is unaffected.
+
 v3.23.3
+
+#402: Windows binaries package rebuilt with openssl v1.1.1w (libcrypto-1_1-x64.dll).
 
 #400: Removed excessive thread restarts when mining solo.
 Fixed build_msys2.sh for gcc-13 by removing unsupported option "--param=evrp-mode=legacy" from CFLAGS.

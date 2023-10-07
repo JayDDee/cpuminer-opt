@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "sph_ripemd.h"
 #include "algo/sha/sha256-hash.h"
+#include "algo/sha/sha512-hash.h"
 
 void lbry_hash(void* output, const void* input)
 {

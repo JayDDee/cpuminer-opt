@@ -89,15 +89,15 @@
 typedef  uint32_t set_t;
 
 #define EMPTY_SET        0
-#define SSE2_OPT         1
+#define SSE2_OPT         1   // Core2, NEON
 #define AES_OPT          2  
 #define SSE42_OPT        4
 #define AVX_OPT          8   // Sandybridge
 #define AVX2_OPT      0x10   // Haswell, Zen1
-#define SHA_OPT       0x20   // Zen1, Icelake (deprecated)
+#define SHA_OPT       0x20   // Zen1, Icelake. NEON
 #define AVX512_OPT    0x40   // Skylake-X, Zen4 (AVX512[F,VL,DQ,BW])
 #define VAES_OPT      0x80   // Icelake, Zen3
-#define SHA512_OPT   0x100   // Lunar Lake, Arrow Lake
+#define SHA512_OPT   0x100   // Lunar Lake, Arrow Lake, NEON
 
 // AVX10 does not have explicit algo features:
 //  AVX10_512 is compatible with AVX512 + VAES

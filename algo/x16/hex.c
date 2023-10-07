@@ -86,13 +86,26 @@ int hex_hash( void* output, const void* input, int thrid )
          break;
          case LUFFA:
             if ( i == 0 )
-            update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
+            {
+#if defined(__aarch64__)
+              sph_luffa512(&ctx.luffa, (const void*) in+64, 16 );
+              sph_luffa512_close(&ctx.luffa, hash);
+#else
+              update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                           (const BitSequence*)in+64, 16 );
+#endif
+            }
             else
             {
+#if defined(__aarch64__)
+              sph_luffa512_init(&ctx.luffa );
+              sph_luffa512(&ctx.luffa, (const void*) in, size );
+              sph_luffa512_close(&ctx.luffa, hash);
+#else
                init_luffa( &ctx.luffa, 512 );
                update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                              (const BitSequence*)in, size );
+#endif
             }
             break;
          case CUBEHASH:
@@ -192,7 +205,7 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
    if ( bench )  ptarget[7] = 0x0cff;
 
-   mm128_bswap32_80( edata, pdata );
+   v128_bswap32_80( edata, pdata );
    
    static __thread uint32_t s_ntime = UINT32_MAX;
    uint32_t ntime = swab32(pdata[17]);
@@ -218,8 +231,13 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
          sph_skein512( &hex_ctx.skein, edata, 64 );
       break;
       case LUFFA:
+#if defined(__aarch64__)
+         sph_luffa512_init(&hex_ctx.luffa );
+         sph_luffa512(&hex_ctx.luffa, (const void*) edata, 64);
+#else
          init_luffa( &hex_ctx.luffa, 512 );
          update_luffa( &hex_ctx.luffa, (const BitSequence*)edata, 64 );
+#endif
       break;
       case CUBEHASH:
          cubehashInit( &hex_ctx.cube, 512, 16, 32 );

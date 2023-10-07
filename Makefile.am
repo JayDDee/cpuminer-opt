@@ -280,7 +280,10 @@ cpuminer_SOURCES = \
   algo/yespower/yespower-blake2b.c \
   algo/yespower/crypto/hmac-blake2b.c \
   algo/yespower/yescrypt-r8g.c \
-  algo/yespower/yespower-opt.c
+  algo/yespower/yespower-opt.c \
+  algo/yespower/yespower-ref.c \
+  algo/yespower/yespower-blake2b-ref.c
+  
 
 disable_flags =
 

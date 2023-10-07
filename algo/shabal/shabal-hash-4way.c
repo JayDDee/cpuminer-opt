@@ -33,7 +33,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#ifdef __SSE4_1__
+#if defined(__SSE4_1__) || defined(__ARM_NEON)
 
 #include "shabal-hash-4way.h"
 #ifdef __cplusplus
@@ -1245,16 +1245,16 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 #endif  // AVX2
 
 #define DECL_STATE   \
-	__m128i A0, A1, A2, A3, A4, A5, A6, A7, \
+	v128_t A0, A1, A2, A3, A4, A5, A6, A7, \
 	        A8, A9, AA, AB; \
-	__m128i B0, B1, B2, B3, B4, B5, B6, B7, \
+	v128_t B0, B1, B2, B3, B4, B5, B6, B7, \
 	        B8, B9, BA, BB, BC, BD, BE, BF; \
-	__m128i C0, C1, C2, C3, C4, C5, C6, C7, \
+	v128_t C0, C1, C2, C3, C4, C5, C6, C7, \
 	        C8, C9, CA, CB, CC, CD, CE, CF; \
-	__m128i M0, M1, M2, M3, M4, M5, M6, M7, \
+	v128_t M0, M1, M2, M3, M4, M5, M6, M7, \
 	        M8, M9, MA, MB, MC, MD, ME, MF; \
-   const __m128i FIVE  = v128_32( 5 ); \
-   const __m128i THREE = v128_32( 3 ); \
+   const v128_t FIVE  = v128_32( 5 ); \
+   const v128_t THREE = v128_32( 3 ); \
    uint32_t Wlow, Whigh;
 
 #define READ_STATE(state) do \
@@ -1429,95 +1429,83 @@ do { \
 
 #define INPUT_BLOCK_ADD \
 do { \
-    B0 = _mm_add_epi32( B0, M0 );\
-    B1 = _mm_add_epi32( B1, M1 );\
-    B2 = _mm_add_epi32( B2, M2 );\
-    B3 = _mm_add_epi32( B3, M3 );\
-    B4 = _mm_add_epi32( B4, M4 );\
-    B5 = _mm_add_epi32( B5, M5 );\
-    B6 = _mm_add_epi32( B6, M6 );\
-    B7 = _mm_add_epi32( B7, M7 );\
-    B8 = _mm_add_epi32( B8, M8 );\
-    B9 = _mm_add_epi32( B9, M9 );\
-    BA = _mm_add_epi32( BA, MA );\
-    BB = _mm_add_epi32( BB, MB );\
-    BC = _mm_add_epi32( BC, MC );\
-    BD = _mm_add_epi32( BD, MD );\
-    BE = _mm_add_epi32( BE, ME );\
-    BF = _mm_add_epi32( BF, MF );\
+    B0 = v128_add32( B0, M0 );\
+    B1 = v128_add32( B1, M1 );\
+    B2 = v128_add32( B2, M2 );\
+    B3 = v128_add32( B3, M3 );\
+    B4 = v128_add32( B4, M4 );\
+    B5 = v128_add32( B5, M5 );\
+    B6 = v128_add32( B6, M6 );\
+    B7 = v128_add32( B7, M7 );\
+    B8 = v128_add32( B8, M8 );\
+    B9 = v128_add32( B9, M9 );\
+    BA = v128_add32( BA, MA );\
+    BB = v128_add32( BB, MB );\
+    BC = v128_add32( BC, MC );\
+    BD = v128_add32( BD, MD );\
+    BE = v128_add32( BE, ME );\
+    BF = v128_add32( BF, MF );\
 } while (0)
 
 #define INPUT_BLOCK_SUB \
 do { \
-    C0 = _mm_sub_epi32( C0, M0 ); \
-    C1 = _mm_sub_epi32( C1, M1 ); \
-    C2 = _mm_sub_epi32( C2, M2 ); \
-    C3 = _mm_sub_epi32( C3, M3 ); \
-    C4 = _mm_sub_epi32( C4, M4 ); \
-    C5 = _mm_sub_epi32( C5, M5 ); \
-    C6 = _mm_sub_epi32( C6, M6 ); \
-    C7 = _mm_sub_epi32( C7, M7 ); \
-    C8 = _mm_sub_epi32( C8, M8 ); \
-    C9 = _mm_sub_epi32( C9, M9 ); \
-    CA = _mm_sub_epi32( CA, MA ); \
-    CB = _mm_sub_epi32( CB, MB ); \
-    CC = _mm_sub_epi32( CC, MC ); \
-    CD = _mm_sub_epi32( CD, MD ); \
-    CE = _mm_sub_epi32( CE, ME ); \
-    CF = _mm_sub_epi32( CF, MF ); \
+    C0 = v128_sub32( C0, M0 ); \
+    C1 = v128_sub32( C1, M1 ); \
+    C2 = v128_sub32( C2, M2 ); \
+    C3 = v128_sub32( C3, M3 ); \
+    C4 = v128_sub32( C4, M4 ); \
+    C5 = v128_sub32( C5, M5 ); \
+    C6 = v128_sub32( C6, M6 ); \
+    C7 = v128_sub32( C7, M7 ); \
+    C8 = v128_sub32( C8, M8 ); \
+    C9 = v128_sub32( C9, M9 ); \
+    CA = v128_sub32( CA, MA ); \
+    CB = v128_sub32( CB, MB ); \
+    CC = v128_sub32( CC, MC ); \
+    CD = v128_sub32( CD, MD ); \
+    CE = v128_sub32( CE, ME ); \
+    CF = v128_sub32( CF, MF ); \
 } while (0)
 
 #define XOR_W \
 do { \
-   A0 = _mm_xor_si128( A0, v128_32( Wlow ) ); \
-   A1 = _mm_xor_si128( A1, v128_32( Whigh ) ); \
+   A0 = v128_xor( A0, v128_32( Wlow ) ); \
+   A1 = v128_xor( A1, v128_32( Whigh ) ); \
 } while (0)
 
-#define mm128_swap256_128( v1, v2 ) \
-   v1 = _mm_xor_si128( v1, v2 ); \
-   v2 = _mm_xor_si128( v1, v2 ); \
-   v1 = _mm_xor_si128( v1, v2 );
+#define v128_swap256_128( v1, v2 ) \
+   v1 = v128_xor( v1, v2 ); \
+   v2 = v128_xor( v1, v2 ); \
+   v1 = v128_xor( v1, v2 );
 
 #define SWAP_BC \
 do { \
-    mm128_swap256_128( B0, C0 ); \
-    mm128_swap256_128( B1, C1 ); \
-    mm128_swap256_128( B2, C2 ); \
-    mm128_swap256_128( B3, C3 ); \
-    mm128_swap256_128( B4, C4 ); \
-    mm128_swap256_128( B5, C5 ); \
-    mm128_swap256_128( B6, C6 ); \
-    mm128_swap256_128( B7, C7 ); \
-    mm128_swap256_128( B8, C8 ); \
-    mm128_swap256_128( B9, C9 ); \
-    mm128_swap256_128( BA, CA ); \
-    mm128_swap256_128( BB, CB ); \
-    mm128_swap256_128( BC, CC ); \
-    mm128_swap256_128( BD, CD ); \
-    mm128_swap256_128( BE, CE ); \
-    mm128_swap256_128( BF, CF ); \
+    v128_swap256_128( B0, C0 ); \
+    v128_swap256_128( B1, C1 ); \
+    v128_swap256_128( B2, C2 ); \
+    v128_swap256_128( B3, C3 ); \
+    v128_swap256_128( B4, C4 ); \
+    v128_swap256_128( B5, C5 ); \
+    v128_swap256_128( B6, C6 ); \
+    v128_swap256_128( B7, C7 ); \
+    v128_swap256_128( B8, C8 ); \
+    v128_swap256_128( B9, C9 ); \
+    v128_swap256_128( BA, CA ); \
+    v128_swap256_128( BB, CB ); \
+    v128_swap256_128( BC, CC ); \
+    v128_swap256_128( BD, CD ); \
+    v128_swap256_128( BE, CE ); \
+    v128_swap256_128( BF, CF ); \
 } while (0)
 
 #define PERM_ELT( xa0, xa1, xb0, xb1, xb2, xb3, xc, xm ) \
 do { \
-   xa0 = mm128_xor3( xm, xb1, mm128_xorandnot( \
-           _mm_mullo_epi32( mm128_xor3( xa0, xc, \
-              _mm_mullo_epi32( mm128_rol_32( xa1, 15 ), FIVE ) ), THREE ), \
+   xa0 = v128_xor3( xm, xb1, v128_xorandnot( \
+           v128_mullo32( v128_xor3( xa0, xc, \
+              v128_mullo32( v128_rol32( xa1, 15 ), FIVE ) ), THREE ), \
            xb3, xb2 ) ); \
-   xb0 = mm128_xnor( xa0, mm128_rol_32( xb0, 1 ) ); \
+   xb0 = v128_not( v128_xor( xa0, v128_rol32( xb0, 1 ) ) ); \
 } while (0)
-
-/*
-#define PERM_ELT(xa0, xa1, xb0, xb1, xb2, xb3, xc, xm) \
-do { \
-   xa0 = _mm_xor_si128( xm, _mm_xor_si128( xb1, _mm_xor_si128(  \
-            _mm_andnot_si128( xb3, xb2 ), \
-            _mm_mullo_epi32( _mm_xor_si128( xa0, _mm_xor_si128( xc, \
-               _mm_mullo_epi32(  mm128_rol_32( xa1, 15 ), FIVE ) \
-                   ) ), THREE ) ) ) ); \
-   xb0 = mm128_not( _mm_xor_si128( xa0, mm128_rol_32( xb0, 1 ) ) ); \
-} while (0)
-*/
 
 #define PERM_STEP_0   do { \
 		PERM_ELT(A0, AB, B0, BD, B9, B6, C8, M0); \
@@ -1578,61 +1566,61 @@ do { \
 
 #define APPLY_P \
 do { \
-    B0 = mm128_ror_32( B0, 15 ); \
-    B1 = mm128_ror_32( B1, 15 ); \
-    B2 = mm128_ror_32( B2, 15 ); \
-    B3 = mm128_ror_32( B3, 15 ); \
-    B4 = mm128_ror_32( B4, 15 ); \
-    B5 = mm128_ror_32( B5, 15 ); \
-    B6 = mm128_ror_32( B6, 15 ); \
-    B7 = mm128_ror_32( B7, 15 ); \
-    B8 = mm128_ror_32( B8, 15 ); \
-    B9 = mm128_ror_32( B9, 15 ); \
-    BA = mm128_ror_32( BA, 15 ); \
-    BB = mm128_ror_32( BB, 15 ); \
-    BC = mm128_ror_32( BC, 15 ); \
-    BD = mm128_ror_32( BD, 15 ); \
-    BE = mm128_ror_32( BE, 15 ); \
-    BF = mm128_ror_32( BF, 15 ); \
+    B0 = v128_ror32( B0, 15 ); \
+    B1 = v128_ror32( B1, 15 ); \
+    B2 = v128_ror32( B2, 15 ); \
+    B3 = v128_ror32( B3, 15 ); \
+    B4 = v128_ror32( B4, 15 ); \
+    B5 = v128_ror32( B5, 15 ); \
+    B6 = v128_ror32( B6, 15 ); \
+    B7 = v128_ror32( B7, 15 ); \
+    B8 = v128_ror32( B8, 15 ); \
+    B9 = v128_ror32( B9, 15 ); \
+    BA = v128_ror32( BA, 15 ); \
+    BB = v128_ror32( BB, 15 ); \
+    BC = v128_ror32( BC, 15 ); \
+    BD = v128_ror32( BD, 15 ); \
+    BE = v128_ror32( BE, 15 ); \
+    BF = v128_ror32( BF, 15 ); \
     PERM_STEP_0; \
     PERM_STEP_1; \
     PERM_STEP_2; \
-    AB = _mm_add_epi32( AB, C6 ); \
-    AA = _mm_add_epi32( AA, C5 ); \
-    A9 = _mm_add_epi32( A9, C4 ); \
-    A8 = _mm_add_epi32( A8, C3 ); \
-    A7 = _mm_add_epi32( A7, C2 ); \
-    A6 = _mm_add_epi32( A6, C1 ); \
-    A5 = _mm_add_epi32( A5, C0 ); \
-    A4 = _mm_add_epi32( A4, CF ); \
-    A3 = _mm_add_epi32( A3, CE ); \
-    A2 = _mm_add_epi32( A2, CD ); \
-    A1 = _mm_add_epi32( A1, CC ); \
-    A0 = _mm_add_epi32( A0, CB ); \
-    AB = _mm_add_epi32( AB, CA ); \
-    AA = _mm_add_epi32( AA, C9 ); \
-    A9 = _mm_add_epi32( A9, C8 ); \
-    A8 = _mm_add_epi32( A8, C7 ); \
-    A7 = _mm_add_epi32( A7, C6 ); \
-    A6 = _mm_add_epi32( A6, C5 ); \
-    A5 = _mm_add_epi32( A5, C4 ); \
-    A4 = _mm_add_epi32( A4, C3 ); \
-    A3 = _mm_add_epi32( A3, C2 ); \
-    A2 = _mm_add_epi32( A2, C1 ); \
-    A1 = _mm_add_epi32( A1, C0 ); \
-    A0 = _mm_add_epi32( A0, CF ); \
-    AB = _mm_add_epi32( AB, CE ); \
-    AA = _mm_add_epi32( AA, CD ); \
-    A9 = _mm_add_epi32( A9, CC ); \
-    A8 = _mm_add_epi32( A8, CB ); \
-    A7 = _mm_add_epi32( A7, CA ); \
-    A6 = _mm_add_epi32( A6, C9 ); \
-    A5 = _mm_add_epi32( A5, C8 ); \
-    A4 = _mm_add_epi32( A4, C7 ); \
-    A3 = _mm_add_epi32( A3, C6 ); \
-    A2 = _mm_add_epi32( A2, C5 ); \
-    A1 = _mm_add_epi32( A1, C4 ); \
-    A0 = _mm_add_epi32( A0, C3 ); \
+    AB = v128_add32( AB, C6 ); \
+    AA = v128_add32( AA, C5 ); \
+    A9 = v128_add32( A9, C4 ); \
+    A8 = v128_add32( A8, C3 ); \
+    A7 = v128_add32( A7, C2 ); \
+    A6 = v128_add32( A6, C1 ); \
+    A5 = v128_add32( A5, C0 ); \
+    A4 = v128_add32( A4, CF ); \
+    A3 = v128_add32( A3, CE ); \
+    A2 = v128_add32( A2, CD ); \
+    A1 = v128_add32( A1, CC ); \
+    A0 = v128_add32( A0, CB ); \
+    AB = v128_add32( AB, CA ); \
+    AA = v128_add32( AA, C9 ); \
+    A9 = v128_add32( A9, C8 ); \
+    A8 = v128_add32( A8, C7 ); \
+    A7 = v128_add32( A7, C6 ); \
+    A6 = v128_add32( A6, C5 ); \
+    A5 = v128_add32( A5, C4 ); \
+    A4 = v128_add32( A4, C3 ); \
+    A3 = v128_add32( A3, C2 ); \
+    A2 = v128_add32( A2, C1 ); \
+    A1 = v128_add32( A1, C0 ); \
+    A0 = v128_add32( A0, CF ); \
+    AB = v128_add32( AB, CE ); \
+    AA = v128_add32( AA, CD ); \
+    A9 = v128_add32( A9, CC ); \
+    A8 = v128_add32( A8, CB ); \
+    A7 = v128_add32( A7, CA ); \
+    A6 = v128_add32( A6, C9 ); \
+    A5 = v128_add32( A5, C8 ); \
+    A4 = v128_add32( A4, C7 ); \
+    A3 = v128_add32( A3, C6 ); \
+    A2 = v128_add32( A2, C5 ); \
+    A1 = v128_add32( A1, C4 ); \
+    A0 = v128_add32( A0, C3 ); \
 } while (0)
 
 #define INCR_W   do { \
@@ -1798,8 +1786,8 @@ static void
 shabal_4way_core( void *cc, const unsigned char *data, size_t len )
 {
    shabal_4way_context *sc = (shabal_4way_context*)cc;
-    __m128i *buf;
-    __m128i *vdata = (__m128i*)data;
+    v128_t *buf;
+    v128_t *vdata = (v128_t*)data;
    const int buf_size = 64;  
    size_t ptr;
    DECL_STATE
@@ -1809,7 +1797,7 @@ shabal_4way_core( void *cc, const unsigned char *data, size_t len )
 
    if ( len < (buf_size - ptr ) )
    {
-      memcpy_128( buf + (ptr>>2), vdata, len>>2 );
+      v128_memcpy( buf + (ptr>>2), vdata, len>>2 );
       ptr += len;
       sc->ptr = ptr;
       return;
@@ -1824,7 +1812,7 @@ shabal_4way_core( void *cc, const unsigned char *data, size_t len )
       clen = buf_size - ptr;
       if ( clen > len )
          clen = len;
-      memcpy_128( buf + (ptr>>2), vdata, clen>>2 );
+      v128_memcpy( buf + (ptr>>2), vdata, clen>>2 );
 
       ptr += clen;
       vdata += clen>>2;
@@ -1850,7 +1838,7 @@ shabal_4way_close( void *cc, unsigned ub, unsigned n, void *dst,
                    unsigned size_words )
 {
    shabal_4way_context *sc = (shabal_4way_context*)cc;
-    __m128i *buf;
+    v128_t *buf;
    const int buf_size = 64;
    size_t ptr;
    int i;
@@ -1862,7 +1850,7 @@ shabal_4way_close( void *cc, unsigned ub, unsigned n, void *dst,
    z = 0x80 >> n;
    zz = ((ub & -z) | z) & 0xFF;
    buf[ptr>>2] = v128_32( zz );
-   memset_zero_128( buf + (ptr>>2) + 1, ( (buf_size - ptr) >> 2 ) - 1 );
+   v128_memset_zero( buf + (ptr>>2) + 1, ( (buf_size - ptr) >> 2 ) - 1 );
    READ_STATE(sc);
    DECODE_BLOCK;
    INPUT_BLOCK_ADD;
@@ -1876,7 +1864,7 @@ shabal_4way_close( void *cc, unsigned ub, unsigned n, void *dst,
       APPLY_P;
    }
 
-   __m128i *d = (__m128i*)dst;
+   v128_t *d = (v128_t*)dst;
    if ( size_words == 16 )   // 512
    {
       d[ 0] = B0; d[ 1] = B1; d[ 2] = B2; d[ 3] = B3;

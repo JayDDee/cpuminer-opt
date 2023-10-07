@@ -714,42 +714,42 @@ void FFT( const unsigned char input[EIGHTH_N], swift_int32_t *output )
 
    #undef Q_REDUCE
 
-#elif defined(__SSE4_1__)
+#elif defined(__SSE4_1__) || defined(__ARM_NEON)
 
-   __m128i F[16] __attribute__ ((aligned (64)));
-   __m128i *mul = (__m128i*)multipliers;
-   __m128i *out = (__m128i*)output;
-   __m128i *tbl = (__m128i*)&( fftTable[ input[0] << 3 ] );
+   v128_t F[16] __attribute__ ((aligned (64)));
+   v128_t *mul = (v128_t*)multipliers;
+   v128_t *out = (v128_t*)output;
+   v128_t *tbl = (v128_t*)&( fftTable[ input[0] << 3 ] );
 
-   F[ 0] = _mm_mullo_epi32( mul[ 0], tbl[0] );
-   F[ 1] = _mm_mullo_epi32( mul[ 1], tbl[1] );
-   tbl = (__m128i*)&( fftTable[ input[1] << 3 ] );
-   F[ 2] = _mm_mullo_epi32( mul[ 2], tbl[0] );
-   F[ 3] = _mm_mullo_epi32( mul[ 3], tbl[1] );
-   tbl = (__m128i*)&( fftTable[ input[2] << 3 ] );
-   F[ 4] = _mm_mullo_epi32( mul[ 4], tbl[0] );
-   F[ 5] = _mm_mullo_epi32( mul[ 5], tbl[1] );
-   tbl = (__m128i*)&( fftTable[ input[3] << 3 ] );
-   F[ 6] = _mm_mullo_epi32( mul[ 6], tbl[0] );
-   F[ 7] = _mm_mullo_epi32( mul[ 7], tbl[1] );
-   tbl = (__m128i*)&( fftTable[ input[4] << 3 ] );
-   F[ 8] = _mm_mullo_epi32( mul[ 8], tbl[0] );
-   F[ 9] = _mm_mullo_epi32( mul[ 9], tbl[1] );
-   tbl = (__m128i*)&( fftTable[ input[5] << 3 ] );
-   F[10] = _mm_mullo_epi32( mul[10], tbl[0] );
-   F[11] = _mm_mullo_epi32( mul[11], tbl[1] );
-   tbl = (__m128i*)&( fftTable[ input[6] << 3 ] );
-   F[12] = _mm_mullo_epi32( mul[12], tbl[0] );
-   F[13] = _mm_mullo_epi32( mul[13], tbl[1] );
-   tbl = (__m128i*)&( fftTable[ input[7] << 3 ] );
-   F[14] = _mm_mullo_epi32( mul[14], tbl[0] );
-   F[15] = _mm_mullo_epi32( mul[15], tbl[1] );
+   F[ 0] = v128_mullo32( mul[ 0], tbl[0] );
+   F[ 1] = v128_mullo32( mul[ 1], tbl[1] );
+   tbl = (v128_t*)&( fftTable[ input[1] << 3 ] );
+   F[ 2] = v128_mullo32( mul[ 2], tbl[0] );
+   F[ 3] = v128_mullo32( mul[ 3], tbl[1] );
+   tbl = (v128_t*)&( fftTable[ input[2] << 3 ] );
+   F[ 4] = v128_mullo32( mul[ 4], tbl[0] );
+   F[ 5] = v128_mullo32( mul[ 5], tbl[1] );
+   tbl = (v128_t*)&( fftTable[ input[3] << 3 ] );
+   F[ 6] = v128_mullo32( mul[ 6], tbl[0] );
+   F[ 7] = v128_mullo32( mul[ 7], tbl[1] );
+   tbl = (v128_t*)&( fftTable[ input[4] << 3 ] );
+   F[ 8] = v128_mullo32( mul[ 8], tbl[0] );
+   F[ 9] = v128_mullo32( mul[ 9], tbl[1] );
+   tbl = (v128_t*)&( fftTable[ input[5] << 3 ] );
+   F[10] = v128_mullo32( mul[10], tbl[0] );
+   F[11] = v128_mullo32( mul[11], tbl[1] );
+   tbl = (v128_t*)&( fftTable[ input[6] << 3 ] );
+   F[12] = v128_mullo32( mul[12], tbl[0] );
+   F[13] = v128_mullo32( mul[13], tbl[1] );
+   tbl = (v128_t*)&( fftTable[ input[7] << 3 ] );
+   F[14] = v128_mullo32( mul[14], tbl[0] );
+   F[15] = v128_mullo32( mul[15], tbl[1] );
 
    #define ADD_SUB( a, b ) \
    { \
-      __m128i tmp = b; \
-      b = _mm_sub_epi32( a, b ); \
-      a = _mm_add_epi32( a, tmp ); \
+      v128_t tmp = b; \
+      b = v128_sub32( a, b ); \
+      a = v128_add32( a, tmp ); \
    }
 
    ADD_SUB( F[ 0], F[ 2] );
@@ -760,10 +760,10 @@ void FFT( const unsigned char input[EIGHTH_N], swift_int32_t *output )
    ADD_SUB( F[ 9], F[11] );
    ADD_SUB( F[12], F[14] );
    ADD_SUB( F[13], F[15] );
-   F[ 6] = _mm_slli_epi32( F[ 6], 4 );
-   F[ 7] = _mm_slli_epi32( F[ 7], 4 );
-   F[14] = _mm_slli_epi32( F[14], 4 );
-   F[15] = _mm_slli_epi32( F[15], 4 );
+   F[ 6] = v128_sl32( F[ 6], 4 );
+   F[ 7] = v128_sl32( F[ 7], 4 );
+   F[14] = v128_sl32( F[14], 4 );
+   F[15] = v128_sl32( F[15], 4 );
    ADD_SUB( F[ 0], F[ 4] );
    ADD_SUB( F[ 1], F[ 5] );
    ADD_SUB( F[ 2], F[ 6] );
@@ -772,12 +772,12 @@ void FFT( const unsigned char input[EIGHTH_N], swift_int32_t *output )
    ADD_SUB( F[ 9], F[13] );
    ADD_SUB( F[10], F[14] );
    ADD_SUB( F[11], F[15] );
-   F[10] = _mm_slli_epi32( F[10], 2 );
-   F[11] = _mm_slli_epi32( F[11], 2 );
-   F[12] = _mm_slli_epi32( F[12], 4 );
-   F[13] = _mm_slli_epi32( F[13], 4 );
-   F[14] = _mm_slli_epi32( F[14], 6 );
-   F[15] = _mm_slli_epi32( F[15], 6 );
+   F[10] = v128_sl32( F[10], 2 );
+   F[11] = v128_sl32( F[11], 2 );
+   F[12] = v128_sl32( F[12], 4 );
+   F[13] = v128_sl32( F[13], 4 );
+   F[14] = v128_sl32( F[14], 6 );
+   F[15] = v128_sl32( F[15], 6 );
    ADD_SUB( F[ 0], F[ 8] );
    ADD_SUB( F[ 1], F[ 9] );
    ADD_SUB( F[ 2], F[10] );
@@ -789,10 +789,10 @@ void FFT( const unsigned char input[EIGHTH_N], swift_int32_t *output )
 
    #undef ADD_SUB
 
-   const __m128i mask = _mm_set1_epi32( 0x000000ff );
+   const v128_t mask = v128_32( 0x000000ff );
 
    #define Q_REDUCE( a ) \
-      _mm_sub_epi32( _mm_and_si128( a, mask ), _mm_srai_epi32( a, 8 ) ) 
+      v128_sub32( v128_and( a, mask ), v128_sra32( a, 8 ) ) 
 
    out[ 0] = Q_REDUCE( F[ 0] );
    out[ 1] = Q_REDUCE( F[ 1] );
@@ -1261,14 +1261,14 @@ void SWIFFTSum( const swift_int32_t *input, int m, unsigned char *output,
 
 #elif defined(__SSE4_1__)
 
-   __m128i *res = (__m128i*)result;
+   v128_t *res = (v128_t*)result;
    for ( j = 0; j < N/4; ++j )
    {
-      __m128i sum = _mm_setzero_si128();
-      const __m128i *f = (__m128i*)input + j;
-      const __m128i *k = (__m128i*)a + j;
+      v128_t sum = v128_zero;
+      const v128_t *f = (v128_t*)input + j;
+      const v128_t *k = (v128_t*)a + j;
       for ( i = 0; i < m; i++, f += N/4, k += N/4 )
-         sum = _mm_add_epi32( sum, _mm_mullo_epi32( *f, *k ) );
+         sum = v128_add32( sum, v128_mullo32( *f, *k ) );
       res[j] = sum;
    }
 

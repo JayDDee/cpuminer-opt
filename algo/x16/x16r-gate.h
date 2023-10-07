@@ -12,7 +12,6 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
 #include "algo/echo/sph_echo.h"
@@ -23,33 +22,37 @@
 #include "algo/sha/sha512-hash.h"
 
 #if defined(__AES__)
-#include "algo/echo/aes_ni/hash_api.h"
-#include "algo/groestl/aes_ni/hash-groestl.h"
-#include "algo/fugue/fugue-aesni.h"
+  #include "algo/echo/aes_ni/hash_api.h"
+  #include "algo/groestl/aes_ni/hash-groestl.h"
+  #include "algo/fugue/fugue-aesni.h"
 #endif
 
 #if defined (__AVX2__)
-
-#include "algo/bmw/bmw-hash-4way.h"
-#include "algo/groestl/aes_ni/hash-groestl.h"
-#include "algo/skein/skein-hash-4way.h"
-#include "algo/jh/jh-hash-4way.h"
-#include "algo/keccak/keccak-hash-4way.h"
-#include "algo/luffa/luffa-hash-2way.h"
-#include "algo/cubehash/cube-hash-2way.h"
-#include "algo/simd/simd-hash-2way.h"
-#include "algo/echo/aes_ni/hash_api.h"
-#include "algo/hamsi/hamsi-hash-4way.h"
-#include "algo/shabal/shabal-hash-4way.h"
-
-#if defined(__VAES__)
-#include "algo/groestl/groestl512-hash-4way.h"
-#include "algo/shavite/shavite-hash-2way.h"
-#include "algo/shavite/shavite-hash-4way.h"
-#include "algo/echo/echo-hash-4way.h"
+  #include "algo/bmw/bmw-hash-4way.h"
+  #include "algo/groestl/aes_ni/hash-groestl.h"
+  #include "algo/skein/skein-hash-4way.h"
+  #include "algo/jh/jh-hash-4way.h"
+  #include "algo/keccak/keccak-hash-4way.h"
+  #include "algo/luffa/luffa-hash-2way.h"
+  #include "algo/cubehash/cube-hash-2way.h"
+  #include "algo/simd/simd-hash-2way.h"
+  #include "algo/echo/aes_ni/hash_api.h"
+  #include "algo/hamsi/hamsi-hash-4way.h"
+  #include "algo/shabal/shabal-hash-4way.h"
 #endif
 
-#endif // AVX2
+#if defined(__VAES__)
+  #include "algo/groestl/groestl512-hash-4way.h"
+  #include "algo/shavite/shavite-hash-2way.h"
+  #include "algo/shavite/shavite-hash-4way.h"
+  #include "algo/echo/echo-hash-4way.h"
+#endif
+
+#if defined(__aarch64__)
+  #include "algo/luffa/sph_luffa.h"
+#else
+  #include "algo/luffa/luffa_for_sse2.h"
+#endif
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -203,7 +206,11 @@ union _x16r_context_overlay
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
+#if defined(__aarch64__)
+        sph_luffa512_context       luffa;
+#else
         hashState_luffa         luffa;
+#endif
         cubehashParam           cube;
         shavite512_context      shavite;
         hashState_sd            simd;

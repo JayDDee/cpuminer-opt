@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+#if defined(__SSE2__)
+
 #include <immintrin.h>
 
 #include "argon2.h"
@@ -183,3 +185,5 @@ void ar2_fill_segment(const argon2_instance_t *instance,
 
     free(pseudo_rands);
 }
+
+#endif

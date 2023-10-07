@@ -343,52 +343,52 @@ void blake512_transform( uint64_t *H, const uint64_t *buf, const uint64_t T0,
 
 #define BLAKE512_G( r,  Va, Vb, Vc, Vd, Sa, Sb, Sc, Sd ) \
 { \
-   Va = _mm_add_epi64( Va, _mm_add_epi64( Vb, \
-                            _mm_set_epi64x( CBx( r, Sd ) ^ Mx( r, Sc ), \
+   Va = v128_add64( Va, v128_add64( Vb, \
+                            v128_set_64( CBx( r, Sd ) ^ Mx( r, Sc ), \
                                             CBx( r, Sb ) ^ Mx( r, Sa ) ) ) ); \
-   Vd = mm128_swap64_32( _mm_xor_si128( Vd, Va ) ); \
-   Vc = _mm_add_epi64( Vc, Vd ); \
-   Vb = mm128_ror_64( _mm_xor_si128( Vb, Vc ), 25 ); \
+   Vd = v128_swap64_32( v128_xor( Vd, Va ) ); \
+   Vc = v128_add64( Vc, Vd ); \
+   Vb = v128_ror64( v128_xor( Vb, Vc ), 25 ); \
 \
-   Va = _mm_add_epi64( Va, _mm_add_epi64( Vb, \
-                            _mm_set_epi64x( CBx( r, Sc ) ^ Mx( r, Sd ), \
+   Va = v128_add64( Va, v128_add64( Vb, \
+                            v128_set_64( CBx( r, Sc ) ^ Mx( r, Sd ), \
                                             CBx( r, Sa ) ^ Mx( r, Sb ) ) ) ); \
-   Vd = mm128_shuflr64_16( _mm_xor_si128( Vd, Va ) ); \
-   Vc = _mm_add_epi64( Vc, Vd ); \
-   Vb = mm128_ror_64( _mm_xor_si128( Vb, Vc ), 11 ); \
+   Vd = v128_shuflr64_16( v128_xor( Vd, Va ) ); \
+   Vc = v128_add64( Vc, Vd ); \
+   Vb = v128_ror64( v128_xor( Vb, Vc ), 11 ); \
 }
 
 #define BLAKE512_ROUND( R ) \
 { \
-   __m128i V32, V23, V67, V76; \
+   v128_t V32, V23, V67, V76; \
    BLAKE512_G( R, V[0], V[2], V[4], V[6], 0, 1, 2, 3 ); \
    BLAKE512_G( R, V[1], V[3], V[5], V[7], 4, 5, 6, 7 ); \
-   V32 = mm128_alignr_64( V[3], V[2], 1 ); \
-   V23 = mm128_alignr_64( V[2], V[3], 1 ); \
-   V67 = mm128_alignr_64( V[6], V[7], 1 ); \
-   V76 = mm128_alignr_64( V[7], V[6], 1 ); \
+   V32 = v128_alignr64( V[3], V[2], 1 ); \
+   V23 = v128_alignr64( V[2], V[3], 1 ); \
+   V67 = v128_alignr64( V[6], V[7], 1 ); \
+   V76 = v128_alignr64( V[7], V[6], 1 ); \
    BLAKE512_G( R, V[0], V32, V[5], V67, 8, 9, A, B ); \
    BLAKE512_G( R, V[1], V23, V[4], V76, C, D, E, F ); \
-   V[2] = mm128_alignr_64( V32, V23, 1 ); \
-   V[3] = mm128_alignr_64( V23, V32, 1 ); \
-   V[6] = mm128_alignr_64( V76, V67, 1 ); \
-   V[7] = mm128_alignr_64( V67, V76, 1 ); \
+   V[2] = v128_alignr64( V32, V23, 1 ); \
+   V[3] = v128_alignr64( V23, V32, 1 ); \
+   V[6] = v128_alignr64( V76, V67, 1 ); \
+   V[7] = v128_alignr64( V67, V76, 1 ); \
 }
 
 void blake512_transform( uint64_t *H, const uint64_t *buf,
                          const uint64_t T0, const uint64_t T1 )
 {
-   __m128i V[8];
+   v128_t V[8];
    uint64_t M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, MA, MB, MC, MD, ME, MF;
 
-   V[0] = casti_m128i( H, 0 );
-   V[1] = casti_m128i( H, 1 );
-   V[2] = casti_m128i( H, 2 );
-   V[3] = casti_m128i( H, 3 );
-   V[4] = _mm_set_epi64x( CB1, CB0 );
-   V[5] = _mm_set_epi64x( CB3, CB2 );
-   V[6] = _mm_set_epi64x( T0 ^ CB5, T0 ^ CB4 );
-   V[7] = _mm_set_epi64x( T1 ^ CB7, T1 ^ CB6 );
+   V[0] = casti_v128( H, 0 );
+   V[1] = casti_v128( H, 1 );
+   V[2] = casti_v128( H, 2 );
+   V[3] = casti_v128( H, 3 );
+   V[4] = v128_set_64( CB1, CB0 );
+   V[5] = v128_set_64( CB3, CB2 );
+   V[6] = v128_set_64( T0 ^ CB5, T0 ^ CB4 );
+   V[7] = v128_set_64( T1 ^ CB7, T1 ^ CB6 );
 
    M0 = bswap_64( buf[ 0] );
    M1 = bswap_64( buf[ 1] );
@@ -424,10 +424,10 @@ void blake512_transform( uint64_t *H, const uint64_t *buf,
    BLAKE512_ROUND( 4 );
    BLAKE512_ROUND( 5 );
 
-   casti_m128i( H, 0 ) = mm128_xor3( casti_m128i( H, 0 ), V[0], V[4] );
-   casti_m128i( H, 1 ) = mm128_xor3( casti_m128i( H, 1 ), V[1], V[5] );
-   casti_m128i( H, 2 ) = mm128_xor3( casti_m128i( H, 2 ), V[2], V[6] );
-   casti_m128i( H, 3 ) = mm128_xor3( casti_m128i( H, 3 ), V[3], V[7] );
+   casti_v128( H, 0 ) = v128_xor( casti_v128( H, 0 ), v128_xor( V[0], V[4] ) );
+   casti_v128( H, 1 ) = v128_xor( casti_v128( H, 1 ), v128_xor( V[1], V[5] ) );
+   casti_v128( H, 2 ) = v128_xor( casti_v128( H, 2 ), v128_xor( V[2], V[6] ) );
+   casti_v128( H, 3 ) = v128_xor( casti_v128( H, 3 ), v128_xor( V[3], V[7] ) );
 }
 
 #endif
@@ -611,7 +611,7 @@ void blake512_full( blake512_context *sc, void *dst, const void *data,
   VD = v512_64( T0 ^ CB5 ); \
   VE = v512_64( T1 ^ CB6 ); \
   VF = v512_64( T1 ^ CB7 ); \
-  const __m512i shuf_bswap64 = mm512_bcast_m128( _mm_set_epi64x( \
+  const __m512i shuf_bswap64 = mm512_bcast_m128( v128_set_64( \
                                    0x08090a0b0c0d0e0f, 0x0001020304050607 ) ); \
   M0 = _mm512_shuffle_epi8( *(buf+ 0), shuf_bswap64 ); \
   M1 = _mm512_shuffle_epi8( *(buf+ 1), shuf_bswap64 ); \
@@ -679,7 +679,7 @@ void blake512_8way_compress( blake_8way_big_context *sc )
   VE = v512_64( sc->T1 ^ CB6 );
   VF = v512_64( sc->T1 ^ CB7 );
 
-  const __m512i shuf_bswap64 = mm512_bcast_m128( _mm_set_epi64x( 
+  const __m512i shuf_bswap64 = mm512_bcast_m128( v128_set_64( 
                                    0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
 
   M0 = _mm512_shuffle_epi8( sc->buf[ 0], shuf_bswap64 );
@@ -1347,7 +1347,7 @@ blake512_8way_close(void *cc, void *dst)
   VD = v256_64( T0 ^ CB5 ); \
   VE = v256_64( T1 ^ CB6 ); \
   VF = v256_64( T1 ^ CB7 ); \
-  const __m256i shuf_bswap64 = mm256_bcast_m128( _mm_set_epi64x( \
+  const __m256i shuf_bswap64 = mm256_bcast_m128( v128_set_64( \
                              0x08090a0b0c0d0e0f, 0x0001020304050607 ) ); \
   M0 = _mm256_shuffle_epi8( *(buf+ 0), shuf_bswap64 ); \
   M1 = _mm256_shuffle_epi8( *(buf+ 1), shuf_bswap64 ); \
@@ -1419,7 +1419,7 @@ void blake512_4way_compress( blake_4way_big_context *sc )
                              v256_64( CB6 ) );
   VF = _mm256_xor_si256( v256_64( sc->T1 ),
                              v256_64( CB7 ) );
-  const __m256i shuf_bswap64 = mm256_bcast_m128( _mm_set_epi64x(
+  const __m256i shuf_bswap64 = mm256_bcast_m128( v128_set_64(
                                     0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
 
   M0 = _mm256_shuffle_epi8( sc->buf[ 0], shuf_bswap64 );

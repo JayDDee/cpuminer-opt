@@ -20,7 +20,7 @@ void blake2s_16way_hash( void *output, const void *input )
    blake2s_16way_state ctx;
    memcpy( &ctx, &blake2s_16w_ctx, sizeof ctx );
    blake2s_16way_update( &ctx, input + (64<<4), 16 );
-   blake2s_16way_final( &ctx, output, BLAKE2S_OUTBYTES );
+   blake2s_16way_final( &ctx, output, 32 );
 }
 
 int scanhash_blake2s_16way( struct work *work, uint32_t max_nonce,
@@ -39,7 +39,7 @@ int scanhash_blake2s_16way( struct work *work, uint32_t max_nonce,
    int thr_id = mythr->id;  
 
    mm512_bswap32_intrlv80_16x32( vdata, pdata );
-   blake2s_16way_init( &blake2s_16w_ctx, BLAKE2S_OUTBYTES );
+   blake2s_16way_init( &blake2s_16w_ctx, 32 );
    blake2s_16way_update( &blake2s_16w_ctx, vdata, 64 );
 
    do {
@@ -76,7 +76,7 @@ void blake2s_8way_hash( void *output, const void *input )
    blake2s_8way_state ctx;
    memcpy( &ctx, &blake2s_8w_ctx, sizeof ctx );
    blake2s_8way_update( &ctx, input + (64<<3), 16 );
-   blake2s_8way_final( &ctx, output, BLAKE2S_OUTBYTES );
+   blake2s_8way_final( &ctx, output, 32 );
 }
 
 int scanhash_blake2s_8way( struct work *work, uint32_t max_nonce,
@@ -95,7 +95,7 @@ int scanhash_blake2s_8way( struct work *work, uint32_t max_nonce,
    int thr_id = mythr->id; 
 
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
-   blake2s_8way_init( &blake2s_8w_ctx, BLAKE2S_OUTBYTES );
+   blake2s_8way_init( &blake2s_8w_ctx, 32 );
    blake2s_8way_update( &blake2s_8w_ctx, vdata, 64 );
 
    do {
@@ -131,7 +131,7 @@ void blake2s_4way_hash( void *output, const void *input )
    blake2s_4way_state ctx;
    memcpy( &ctx, &blake2s_4w_ctx, sizeof ctx );
    blake2s_4way_update( &ctx, input + (64<<2), 16 );
-   blake2s_4way_final( &ctx, output, BLAKE2S_OUTBYTES );
+   blake2s_4way_final( &ctx, output, 32 );
 }
 
 int scanhash_blake2s_4way( struct work *work, uint32_t max_nonce,
@@ -149,8 +149,8 @@ int scanhash_blake2s_4way( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    int thr_id = mythr->id; 
 
-   mm128_bswap32_intrlv80_4x32( vdata, pdata );
-   blake2s_4way_init( &blake2s_4w_ctx, BLAKE2S_OUTBYTES );
+   v128_bswap32_intrlv80_4x32( vdata, pdata );
+   blake2s_4way_init( &blake2s_4w_ctx, 32 );
    blake2s_4way_update( &blake2s_4w_ctx, vdata, 64 );
 
    do {
@@ -183,12 +183,12 @@ static __thread blake2s_state blake2s_ctx;
 
 void blake2s_hash( void *output, const void *input )
 {
-   unsigned char _ALIGN(32) hash[BLAKE2S_OUTBYTES];
+   unsigned char _ALIGN(32) hash[32];
    blake2s_state ctx __attribute__ ((aligned (32)));
 
    memcpy( &ctx, &blake2s_ctx, sizeof ctx );
    blake2s_update( &ctx, input+64, 16 );
-   blake2s_final( &ctx, hash, BLAKE2S_OUTBYTES );
+   blake2s_final( &ctx, hash, 32 );
 
    memcpy(output, hash, 32);
 }
@@ -201,14 +201,13 @@ int scanhash_blake2s( struct work *work,uint32_t max_nonce,
    uint32_t _ALIGN(32) hash32[8];
    uint32_t _ALIGN(32) endiandata[20];
    const int thr_id = mythr->id;
-   const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
    uint32_t n = first_nonce;
 
-   mm128_bswap32_80( endiandata, pdata );
+   v128_bswap32_80( endiandata, pdata );
 
    // midstate
-   blake2s_init( &blake2s_ctx, BLAKE2S_OUTBYTES );
+   blake2s_init( &blake2s_ctx, 32 );
    blake2s_update( &blake2s_ctx, (uint8_t*) endiandata, 64 );
 
    do

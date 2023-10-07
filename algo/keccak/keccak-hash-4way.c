@@ -207,30 +207,30 @@ void keccak256_8way_init( void *kc )
 }
 
 void
-keccak256_8way_update(void *cc, const void *data, size_t len)
+keccak256_8x64_update(void *cc, const void *data, size_t len)
 {
     keccak64_8way_core(cc, data, len, 136);
 }
 
 void
-keccak256_8way_close(void *cc, void *dst)
+keccak256_8x64_close(void *cc, void *dst)
 {
     keccak64_8way_close(cc, dst, 32, 136);
 }
 
-void keccak512_8way_init( void *kc )
+void keccak512_8x64_init( void *kc )
 {
    keccak64_8way_init( kc, 512 );
 }
 
 void
-keccak512_8way_update(void *cc, const void *data, size_t len)
+keccak512_8x64_update(void *cc, const void *data, size_t len)
 {
         keccak64_8way_core(cc, data, len, 72);
 }
 
 void
-keccak512_8way_close(void *cc, void *dst)
+keccak512_8x64_close(void *cc, void *dst)
 {
         keccak64_8way_close(cc, dst, 64, 72);
 }
@@ -395,24 +395,24 @@ void keccak256_4way_init( void *kc )
 }
 
 void
-keccak256_4way_update(void *cc, const void *data, size_t len)
+keccak256_4x64_update(void *cc, const void *data, size_t len)
 {
     keccak64_core(cc, data, len, 136);
 }
 
 void
-keccak256_4way_close(void *cc, void *dst)
+keccak256_4x64_close(void *cc, void *dst)
 {
     keccak64_close(cc, dst, 32, 136);
 }
 
-void keccak512_4way_init( void *kc )
+void keccak512_4x64_init( void *kc )
 {
    keccak64_init( kc, 512 );
 }
 
 void
-keccak512_4way_update(void *cc, const void *data, size_t len)
+keccak512_4x64_update(void *cc, const void *data, size_t len)
 {
    keccak64_core(cc, data, len, 72);
 }

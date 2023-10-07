@@ -63,7 +63,7 @@ int scanhash_lyra2h_4way( struct work *work, uint32_t max_nonce,
    if ( opt_benchmark )
       ptarget[7] = 0x0000ff;
 
-   mm128_bswap32_intrlv80_4x32( vdata, pdata );
+   v128_bswap32_intrlv80_4x32( vdata, pdata );
    lyra2h_4way_midstate( vdata );
 
    do {

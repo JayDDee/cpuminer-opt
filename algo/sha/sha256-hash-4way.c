@@ -1,6 +1,3 @@
-
-#if defined(__SSE2__)
-
 #include <stddef.h>
 #include <string.h>
 #include "sha256-hash.h"
@@ -36,30 +33,29 @@ static const uint32_t K256[64] =
 // SHA-256 4 way SSE2
 
 #define CHs(X, Y, Z) \
-   _mm_xor_si128( _mm_and_si128( _mm_xor_si128( Y, Z ), X ), Z ) 
+   v128_xor( v128_and( v128_xor( Y, Z ), X ), Z ) 
 
 #define MAJs(X, Y, Z) \
-  _mm_xor_si128( Y, _mm_and_si128( X_xor_Y = _mm_xor_si128( X, Y ), \
-                                   Y_xor_Z ) )
+  v128_xor( Y, v128_and( X_xor_Y = v128_xor( X, Y ), Y_xor_Z ) )
 
 #define BSG2_0(x) \
-   _mm_xor_si128( _mm_xor_si128( \
-        mm128_ror_32(x,  2), mm128_ror_32(x, 13) ), mm128_ror_32( x, 22) )
+   v128_xor( v128_xor( \
+        v128_ror32(x,  2), v128_ror32(x, 13) ), v128_ror32( x, 22) )
 
 #define BSG2_1(x) \
-   _mm_xor_si128( _mm_xor_si128( \
-        mm128_ror_32(x,  6), mm128_ror_32(x, 11) ), mm128_ror_32( x, 25) )
+   v128_xor( v128_xor( \
+        v128_ror32(x,  6), v128_ror32(x, 11) ), v128_ror32( x, 25) )
 
 #define SSG2_0(x) \
-   _mm_xor_si128( _mm_xor_si128( \
-        mm128_ror_32(x,  7), mm128_ror_32(x, 18) ), _mm_srli_epi32(x, 3) ) 
+   v128_xor( v128_xor( \
+        v128_ror32(x,  7), v128_ror32(x, 18) ), v128_sr32(x, 3) ) 
 
 #define SSG2_1(x) \
-   _mm_xor_si128( _mm_xor_si128( \
-        mm128_ror_32(x, 17), mm128_ror_32(x, 19) ), _mm_srli_epi32(x, 10) )
+   v128_xor( v128_xor( \
+        v128_ror32(x, 17), v128_ror32(x, 19) ), v128_sr32(x, 10) )
 
 #define SHA2s_MEXP( a, b, c, d ) \
-  mm128_add4_32( SSG2_1( a ), b, SSG2_0( c ), d );
+  v128_add4_32( SSG2_1( a ), b, SSG2_0( c ), d );
 
 #define SHA256x4_MSG_EXPANSION( W ) \
    W[ 0] = SHA2s_MEXP( W[14], W[ 9], W[ 1], W[ 0] ); \
@@ -81,19 +77,19 @@ static const uint32_t K256[64] =
 
 #define SHA2s_4WAY_STEP(A, B, C, D, E, F, G, H, i, j) \
 do { \
-  __m128i T1, T2; \
-  __m128i K = v128_32( K256[( (j)+(i) )] ); \
-  T1 = _mm_add_epi32( H, mm128_add4_32( BSG2_1(E), CHs(E, F, G), \
+  v128_t T1, T2; \
+  v128_t K = v128_32( K256[( (j)+(i) )] ); \
+  T1 = v128_add32( H, v128_add4_32( BSG2_1(E), CHs(E, F, G), \
                                         K, W[i] ) ); \
-  T2 = _mm_add_epi32( BSG2_0(A), MAJs(A, B, C) ); \
+  T2 = v128_add32( BSG2_0(A), MAJs(A, B, C) ); \
   Y_xor_Z = X_xor_Y; \
-  D  = _mm_add_epi32( D,  T1 ); \
-  H  = _mm_add_epi32( T1, T2 ); \
+  D  = v128_add32( D,  T1 ); \
+  H  = v128_add32( T1, T2 ); \
 } while (0)
 
 #define SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, j ) \
 { \
-   __m128i X_xor_Y, Y_xor_Z = _mm_xor_si128( B, C ); \
+   v128_t X_xor_Y, Y_xor_Z = v128_xor( B, C ); \
    SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  0, j ); \
    SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  1, j ); \
    SHA2s_4WAY_STEP( G, H, A, B, C, D, E, F,  2, j ); \
@@ -113,10 +109,10 @@ do { \
 }
 
 // LE data, no need to byte swap
-static inline void SHA256_4WAY_TRANSFORM( __m128i *out, __m128i *W,
-                                          const __m128i *in )
+static inline void SHA256_4WAY_TRANSFORM( v128_t *out, v128_t *W,
+                                          const v128_t *in )
 {
-   __m128i A, B, C, D, E, F, G, H;
+   v128_t A, B, C, D, E, F, G, H;
 
    A = in[0];
    B = in[1];
@@ -135,109 +131,102 @@ static inline void SHA256_4WAY_TRANSFORM( __m128i *out, __m128i *W,
    SHA256x4_MSG_EXPANSION( W );
    SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
    
-   out[0] = _mm_add_epi32( in[0], A );
-   out[1] = _mm_add_epi32( in[1], B );
-   out[2] = _mm_add_epi32( in[2], C );
-   out[3] = _mm_add_epi32( in[3], D );
-   out[4] = _mm_add_epi32( in[4], E );
-   out[5] = _mm_add_epi32( in[5], F );
-   out[6] = _mm_add_epi32( in[6], G );
-   out[7] = _mm_add_epi32( in[7], H );
+   out[0] = v128_add32( in[0], A );
+   out[1] = v128_add32( in[1], B );
+   out[2] = v128_add32( in[2], C );
+   out[3] = v128_add32( in[3], D );
+   out[4] = v128_add32( in[4], E );
+   out[5] = v128_add32( in[5], F );
+   out[6] = v128_add32( in[6], G );
+   out[7] = v128_add32( in[7], H );
 }
 
 // LE data, no need to byte swap
-void sha256_4way_transform_le( __m128i *state_out, const __m128i *data,
-                               const __m128i *state_in )
+void sha256_4way_transform_le( v128_t *state_out, const v128_t *data,
+                               const v128_t *state_in )
 {
-   __m128i W[16];
-   memcpy_128( W, data, 16 );
+   v128_t W[16];
+   v128_memcpy( W, data, 16 );
    SHA256_4WAY_TRANSFORM( state_out, W, state_in );
 }
 
 // BE data, need to byte swap input data
-void sha256_4way_transform_be( __m128i *state_out, const __m128i *data,
-                               const __m128i *state_in )
+void sha256_4way_transform_be( v128_t *state_out, const v128_t *data,
+                               const v128_t *state_in )
 {
-   __m128i W[16];
-   mm128_block_bswap_32( W, data );
-   mm128_block_bswap_32( W+8, data+8 );
+   v128_t W[16];
+   v128_block_bswap32( W, data );
+   v128_block_bswap32( W+8, data+8 );
    SHA256_4WAY_TRANSFORM( state_out, W, state_in );
 }
 
 // prehash_3rounds & final_rounds are not working
-void sha256_4way_prehash_3rounds( __m128i *state_mid, __m128i *X,
-                                   const __m128i *W, const __m128i *state_in )
+void sha256_4way_prehash_3rounds( v128_t *state_mid, v128_t *X,
+                                   const v128_t *W, const v128_t *state_in )
 {
-   __m128i A, B, C, D, E, F, G, H;
+   v128_t A, B, C, D, E, F, G, H;
 
    // precalculate constant part msg expansion for second iteration.
    X[ 0] = SHA2s_MEXP( W[14], W[ 9], W[ 1], W[ 0] );
    X[ 1] = SHA2s_MEXP( W[15], W[10], W[ 2], W[ 1] );
-   X[ 2] = _mm_add_epi32( _mm_add_epi32( SSG2_1( X[ 0] ), W[11] ),
-                          W[ 2] );
-   X[ 3] = _mm_add_epi32( _mm_add_epi32( SSG2_1( X[ 1] ), W[12] ),
-                          SSG2_0( W[ 4] ) );
-   X[ 4] = _mm_add_epi32( _mm_add_epi32( W[13], SSG2_0( W[ 5] ) ),
-                          W[ 4] );
-   X[ 5] = _mm_add_epi32( _mm_add_epi32( W[14], SSG2_0( W[ 6] ) ),
-                          W[ 5] );
-   X [6] = _mm_add_epi32( _mm_add_epi32( W[15], SSG2_0( W[ 7] ) ),
-                          W[ 6] );
-   X[ 7] = _mm_add_epi32( _mm_add_epi32( X[ 0], SSG2_0( W[ 8] ) ),
-                          W[ 7] );
-   X[ 8] = _mm_add_epi32( _mm_add_epi32( X[ 1], SSG2_0( W[ 9] ) ),
-                          W[ 8] );
-   X[ 9] = _mm_add_epi32( SSG2_0( W[10] ), W[ 9] );
-   X[10] = _mm_add_epi32( SSG2_0( W[11] ), W[10] );
-   X[11] = _mm_add_epi32( SSG2_0( W[12] ), W[11] );
-   X[12] = _mm_add_epi32( SSG2_0( W[13] ), W[12] );
-   X[13] = _mm_add_epi32( SSG2_0( W[14] ), W[13] );
-   X[14] = _mm_add_epi32( SSG2_0( W[15] ), W[14] );
-   X[15] = _mm_add_epi32( SSG2_0( X[ 0] ), W[15] );
+   X[ 2] = v128_add32( v128_add32( SSG2_1( X[ 0] ), W[11] ), W[ 2] );
+   X[ 3] = v128_add32( v128_add32( SSG2_1( X[ 1] ), W[12] ), SSG2_0( W[ 4] ) );
+   X[ 4] = v128_add32( v128_add32( W[13], SSG2_0( W[ 5] ) ), W[ 4] );
+   X[ 5] = v128_add32( v128_add32( W[14], SSG2_0( W[ 6] ) ), W[ 5] );
+   X [6] = v128_add32( v128_add32( W[15], SSG2_0( W[ 7] ) ), W[ 6] );
+   X[ 7] = v128_add32( v128_add32( X[ 0], SSG2_0( W[ 8] ) ), W[ 7] );
+   X[ 8] = v128_add32( v128_add32( X[ 1], SSG2_0( W[ 9] ) ), W[ 8] );
+   X[ 9] = v128_add32( SSG2_0( W[10] ), W[ 9] );
+   X[10] = v128_add32( SSG2_0( W[11] ), W[10] );
+   X[11] = v128_add32( SSG2_0( W[12] ), W[11] );
+   X[12] = v128_add32( SSG2_0( W[13] ), W[12] );
+   X[13] = v128_add32( SSG2_0( W[14] ), W[13] );
+   X[14] = v128_add32( SSG2_0( W[15] ), W[14] );
+   X[15] = v128_add32( SSG2_0( X[ 0] ), W[15] );
 
-   A = _mm_load_si128( state_in     );
-   B = _mm_load_si128( state_in + 1 );
-   C = _mm_load_si128( state_in + 2 );
-   D = _mm_load_si128( state_in + 3 );
-   E = _mm_load_si128( state_in + 4 );
-   F = _mm_load_si128( state_in + 5 );
-   G = _mm_load_si128( state_in + 6 );
-   H = _mm_load_si128( state_in + 7 );
+   A = v128_load( state_in     );
+   B = v128_load( state_in + 1 );
+   C = v128_load( state_in + 2 );
+   D = v128_load( state_in + 3 );
+   E = v128_load( state_in + 4 );
+   F = v128_load( state_in + 5 );
+   G = v128_load( state_in + 6 );
+   H = v128_load( state_in + 7 );
 
-   __m128i X_xor_Y, Y_xor_Z = _mm_xor_si128( B, C );
+   v128_t X_xor_Y, Y_xor_Z = v128_xor( B, C );
    
    SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  0, 0 );
    SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  1, 0 );
    SHA2s_4WAY_STEP( G, H, A, B, C, D, E, F,  2, 0 );
    
-   _mm_store_si128( state_mid    , A );
-   _mm_store_si128( state_mid + 1, B );
-   _mm_store_si128( state_mid + 2, C );
-   _mm_store_si128( state_mid + 3, D );
-   _mm_store_si128( state_mid + 4, E );
-   _mm_store_si128( state_mid + 5, F );
-   _mm_store_si128( state_mid + 6, G );
-   _mm_store_si128( state_mid + 7, H );
+   v128_store( state_mid    , A );
+   v128_store( state_mid + 1, B );
+   v128_store( state_mid + 2, C );
+   v128_store( state_mid + 3, D );
+   v128_store( state_mid + 4, E );
+   v128_store( state_mid + 5, F );
+   v128_store( state_mid + 6, G );
+   v128_store( state_mid + 7, H );
 }
 
-void sha256_4way_final_rounds( __m128i *state_out, const __m128i *data,
-          const __m128i *state_in, const __m128i *state_mid, const __m128i *X )
+void sha256_4way_final_rounds( v128_t *state_out, const v128_t *data,
+          const v128_t *state_in, const v128_t *state_mid, const v128_t *X )
 {
-   __m128i A, B, C, D, E, F, G, H;
-   __m128i W[16];
+   v128_t A, B, C, D, E, F, G, H;
+   v128_t W[16];
 
-   memcpy_128( W, data, 16 );
+   v128_memcpy( W, data, 16 );
 
-   A = _mm_load_si128( state_mid     );
-   B = _mm_load_si128( state_mid + 1 );
-   C = _mm_load_si128( state_mid + 2 );
-   D = _mm_load_si128( state_mid + 3 );
-   E = _mm_load_si128( state_mid + 4 );
-   F = _mm_load_si128( state_mid + 5 );
-   G = _mm_load_si128( state_mid + 6 );
-   H = _mm_load_si128( state_mid + 7 );
+   A = v128_load( state_mid     );
+   B = v128_load( state_mid + 1 );
+   C = v128_load( state_mid + 2 );
+   D = v128_load( state_mid + 3 );
+   E = v128_load( state_mid + 4 );
+   F = v128_load( state_mid + 5 );
+   G = v128_load( state_mid + 6 );
+   H = v128_load( state_mid + 7 );
 
-   __m128i X_xor_Y, Y_xor_Z = _mm_xor_si128( G, H );
+   v128_t X_xor_Y, Y_xor_Z = v128_xor( G, H );
 
    SHA2s_4WAY_STEP( F, G, H, A, B, C, D, E,  3, 0 );
    SHA2s_4WAY_STEP( E, F, G, H, A, B, C, D,  4, 0 );
@@ -256,27 +245,20 @@ void sha256_4way_final_rounds( __m128i *state_out, const __m128i *data,
    // update precalculated msg expansion with new nonce: W[3].
    W[ 0] = X[ 0];
    W[ 1] = X[ 1];
-   W[ 2] = _mm_add_epi32( X[ 2], SSG2_0( W[ 3] ) );
-   W[ 3] = _mm_add_epi32( X[ 3], W[ 3] );
-   W[ 4] = _mm_add_epi32( X[ 4], SSG2_1( W[ 2] ) );
-   W[ 5] = _mm_add_epi32( X[ 5], SSG2_1( W[ 3] ) );
-   W[ 6] = _mm_add_epi32( X[ 6], SSG2_1( W[ 4] ) );
-   W[ 7] = _mm_add_epi32( X[ 7], SSG2_1( W[ 5] ) );
-   W[ 8] = _mm_add_epi32( X[ 8], SSG2_1( W[ 6] ) );
-   W[ 9] = _mm_add_epi32( X[ 9], _mm_add_epi32( SSG2_1( W[ 7] ),
-                                                W[ 2] ) );
-   W[10] = _mm_add_epi32( X[10], _mm_add_epi32( SSG2_1( W[ 8] ),
-                                                W[ 3] ) );
-   W[11] = _mm_add_epi32( X[11], _mm_add_epi32( SSG2_1( W[ 9] ),
-                                                W[ 4] ) );
-   W[12] = _mm_add_epi32( X[12], _mm_add_epi32( SSG2_1( W[10] ),
-                                                W[ 5] ) );
-   W[13] = _mm_add_epi32( X[13], _mm_add_epi32( SSG2_1( W[11] ),
-                                                W[ 6] ) );
-   W[14] = _mm_add_epi32( X[14], _mm_add_epi32( SSG2_1( W[12] ),
-                                                W[ 7] ) );
-   W[15] = _mm_add_epi32( X[15], _mm_add_epi32( SSG2_1( W[13] ),
-                                                W[ 8] ) );
+   W[ 2] = v128_add32( X[ 2], SSG2_0( W[ 3] ) );
+   W[ 3] = v128_add32( X[ 3], W[ 3] );
+   W[ 4] = v128_add32( X[ 4], SSG2_1( W[ 2] ) );
+   W[ 5] = v128_add32( X[ 5], SSG2_1( W[ 3] ) );
+   W[ 6] = v128_add32( X[ 6], SSG2_1( W[ 4] ) );
+   W[ 7] = v128_add32( X[ 7], SSG2_1( W[ 5] ) );
+   W[ 8] = v128_add32( X[ 8], SSG2_1( W[ 6] ) );
+   W[ 9] = v128_add32( X[ 9], v128_add32( SSG2_1( W[ 7] ), W[ 2] ) );
+   W[10] = v128_add32( X[10], v128_add32( SSG2_1( W[ 8] ), W[ 3] ) );
+   W[11] = v128_add32( X[11], v128_add32( SSG2_1( W[ 9] ), W[ 4] ) );
+   W[12] = v128_add32( X[12], v128_add32( SSG2_1( W[10] ), W[ 5] ) );
+   W[13] = v128_add32( X[13], v128_add32( SSG2_1( W[11] ), W[ 6] ) );
+   W[14] = v128_add32( X[14], v128_add32( SSG2_1( W[12] ), W[ 7] ) );
+   W[15] = v128_add32( X[15], v128_add32( SSG2_1( W[13] ), W[ 8] ) );
 
    SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
    SHA256x4_MSG_EXPANSION( W );
@@ -284,45 +266,47 @@ void sha256_4way_final_rounds( __m128i *state_out, const __m128i *data,
    SHA256x4_MSG_EXPANSION( W );
    SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
 
-   A = _mm_add_epi32( A, _mm_load_si128( state_in     ) );
-   B = _mm_add_epi32( B, _mm_load_si128( state_in + 1 ) );
-   C = _mm_add_epi32( C, _mm_load_si128( state_in + 2 ) );
-   D = _mm_add_epi32( D, _mm_load_si128( state_in + 3 ) );
-   E = _mm_add_epi32( E, _mm_load_si128( state_in + 4 ) );
-   F = _mm_add_epi32( F, _mm_load_si128( state_in + 5 ) );
-   G = _mm_add_epi32( G, _mm_load_si128( state_in + 6 ) );
-   H = _mm_add_epi32( H, _mm_load_si128( state_in + 7 ) );
+   A = v128_add32( A, v128_load( state_in     ) );
+   B = v128_add32( B, v128_load( state_in + 1 ) );
+   C = v128_add32( C, v128_load( state_in + 2 ) );
+   D = v128_add32( D, v128_load( state_in + 3 ) );
+   E = v128_add32( E, v128_load( state_in + 4 ) );
+   F = v128_add32( F, v128_load( state_in + 5 ) );
+   G = v128_add32( G, v128_load( state_in + 6 ) );
+   H = v128_add32( H, v128_load( state_in + 7 ) );
 
-   _mm_store_si128( state_out    ,  A );
-   _mm_store_si128( state_out + 1,  B );
-   _mm_store_si128( state_out + 2,  C );
-   _mm_store_si128( state_out + 3,  D );
-   _mm_store_si128( state_out + 4,  E );
-   _mm_store_si128( state_out + 5,  F );
-   _mm_store_si128( state_out + 6,  G );
-   _mm_store_si128( state_out + 7,  H );
+   v128_store( state_out    ,  A );
+   v128_store( state_out + 1,  B );
+   v128_store( state_out + 2,  C );
+   v128_store( state_out + 3,  D );
+   v128_store( state_out + 4,  E );
+   v128_store( state_out + 5,  F );
+   v128_store( state_out + 6,  G );
+   v128_store( state_out + 7,  H );
 }
 
+# if 0
+
 // Working correctly but still slower
-int sha256_4way_transform_le_short( __m128i *state_out, const __m128i *data,
-                            const __m128i *state_in, const uint32_t *target )
+int sha256_4way_transform_le_short( v128_t *state_out, const v128_t *data,
+                            const v128_t *state_in, const uint32_t *target )
 {
-   __m128i A, B, C, D, E, F, G, H, T0, T1, T2;
-   __m128i vmask, targ, hash;
+   v128_t A, B, C, D, E, F, G, H, T0, T1, T2;
+   v128_t vmask, targ, hash;
    int t6_mask, flip;
-   __m128i W[16];      memcpy_128( W, data, 16 );
+   v128_t W[16];      memcpy_128( W, data, 16 );
 
-   A = _mm_load_si128( state_in   );
-   B = _mm_load_si128( state_in+1 );
-   C = _mm_load_si128( state_in+2 );
-   D = _mm_load_si128( state_in+3 );
-   E = _mm_load_si128( state_in+4 );
-   F = _mm_load_si128( state_in+5 );
-   G = _mm_load_si128( state_in+6 );
-   H = _mm_load_si128( state_in+7 );
+   A = v128_load( state_in   );
+   B = v128_load( state_in+1 );
+   C = v128_load( state_in+2 );
+   D = v128_load( state_in+3 );
+   E = v128_load( state_in+4 );
+   F = v128_load( state_in+5 );
+   G = v128_load( state_in+6 );
+   H = v128_load( state_in+7 );
 
-   const __m128i IV7 = H;
-   const __m128i IV6 = G;
+   const v128_t IV7 = H;
+   const v128_t IV6 = G;
 
    SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 0 );
    SHA256x4_MSG_EXPANSION( W );
@@ -344,7 +328,7 @@ int sha256_4way_transform_le_short( __m128i *state_out, const __m128i *data,
    W[11] = SHA2s_MEXP( W[ 9], W[ 4], W[12], W[11] );
    W[12] = SHA2s_MEXP( W[10], W[ 5], W[13], W[12] );
 
-   __m128i X_xor_Y, Y_xor_Z = _mm_xor_si128( B, C );
+   v128_t X_xor_Y, Y_xor_Z = v128_xor( B, C );
    
    SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  0, 48 );
    SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  1, 48 );
@@ -357,65 +341,64 @@ int sha256_4way_transform_le_short( __m128i *state_out, const __m128i *data,
    SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  8, 48 );
    SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  9, 48 );
 
-   T0 = _mm_add_epi32( v128_32( K256[58] ),
-                   mm128_add4_32( BSG2_1( C ), CHs( C, D, E ), W[10], F ) );
-   B = _mm_add_epi32( B, T0 );
+   T0 = v128_add32( v128_32( K256[58] ),
+                   v128_add4_32( BSG2_1( C ), CHs( C, D, E ), W[10], F ) );
+   B = v128_add32( B, T0 );
 
-   T1 = _mm_add_epi32( v128_32( K256[59] ),
-                    mm128_add4_32( BSG2_1( B ), CHs( B, C, D ), W[11], E ) );
-   A = _mm_add_epi32( A, T1 );
+   T1 = v128_add32( v128_32( K256[59] ),
+                    v128_add4_32( BSG2_1( B ), CHs( B, C, D ), W[11], E ) );
+   A = v128_add32( A, T1 );
 
-   T2 = _mm_add_epi32( v128_32( K256[60] ),
-                    mm128_add4_32( BSG2_1( A ), CHs( A, B, C ), W[12], D ) );
-   H = _mm_add_epi32( H, T2 );
+   T2 = v128_add32( v128_32( K256[60] ),
+                    v128_add4_32( BSG2_1( A ), CHs( A, B, C ), W[12], D ) );
+   H = v128_add32( H, T2 );
 
    targ = v128_32( target[7] );
-   hash = mm128_bswap_32( _mm_add_epi32( H, IV7 ) );
+   hash = v128_bswap32( v128_add32( H, IV7 ) );
 
-   flip = ( (int)target[7] < 0 ? 0xf : 0 ) ^ mm128_movmask_32( hash );
+   flip = ( (int)target[7] < 0 ? 0xf : 0 ) ^ v128_movmask32( hash );
 
-   if ( likely( 0xf == ( flip ^
-                    mm128_movmask_32( _mm_cmpgt_epi32( hash, targ ) ) ) ))
+   if ( likely(
+             0xf == ( flip ^ v128_movmask32( v128_cmpgt32( hash, targ ) ) ) ))
    return 0;
 
-   t6_mask = mm128_movmask_32( vmask =_mm_cmpeq_epi32( hash, targ ) );
+   t6_mask = v128_movmask32( vmask = v128_cmpeq32( hash, targ ) );
 
    // round 58 part 2
-   F = _mm_add_epi32( T0, _mm_add_epi32( BSG2_0( G ), MAJs( G, H, A ) ) );
+   F = v128_add32( T0, v128_add32( BSG2_0( G ), MAJs( G, H, A ) ) );
 
    // round 61  part 1
    W[13] = SHA2s_MEXP( W[11], W[ 6], W[14], W[13] );
-   T0 = _mm_add_epi32( v128_32( K256[61] ),
-                 mm128_add4_32( BSG2_1( H ), CHs( H, A, B ), W[13], C ) );
-   G = _mm_add_epi32( G, T0 );
+   T0 = v128_add32( v128_32( K256[61] ),
+                    v128_add4_32( BSG2_1( H ), CHs( H, A, B ), W[13], C ) );
+   G = v128_add32( G, T0 );
 
    if ( t6_mask )
    {
-      targ = _mm_and_si128( vmask, v128_32( target[6] ) );
-      hash = mm128_bswap_32( _mm_add_epi32( G, IV6 ) );
+      targ = v128_and( vmask, v128_32( target[6] ) );
+      hash = v128_bswap32( v128_add32( G, IV6 ) );
 
-      if ( ( 0 != ( t6_mask & mm128_movmask_32(
-                                 _mm_cmpeq_epi32( hash, targ ) ) ) ))
+      if ( ( 0 != ( t6_mask & v128_movmask32( v128_cmpeq32( hash, targ ) ) ) ))
          return 0;
       else
       {
-         flip = ( (int)target[6] < 0 ? 0xf : 0 ) ^ mm128_movmask_32( hash );
-         if ( 0 != ( t6_mask & ( flip ^ mm128_movmask_32(
-                                       _mm_cmpgt_epi32( hash, targ ) ) ) ) )
+         flip = ( (int)target[6] < 0 ? 0xf : 0 ) ^ v128_movmask32( hash );
+         if ( 0 != ( t6_mask & ( flip ^ v128_movmask32(
+                                             v128_cmpgt32( hash, targ ) ) ) ) )
             return 0;
           else if ( target[6] == 0x80000000 )
           {
-             if ( 0 == ( t6_mask & mm128_movmask_32(
-                   _mm_cmpgt_epi32( hash, _mm_xor_si128( hash, hash ) ) ) ) )
+             if ( 0 == ( t6_mask & v128_movmask32(
+                            v128_cmpgt32( hash, v128_xor( hash, hash ) ) ) ) )
                 return 0;
           }
        }
    }
    
    // rounds 59 to 61 part 2
-   E = _mm_add_epi32( T1, _mm_add_epi32( BSG2_0( F ), MAJs( F, G, H ) ) );
-   D = _mm_add_epi32( T2, _mm_add_epi32( BSG2_0( E ), MAJs( E, F, G ) ) );
-   C = _mm_add_epi32( T0, _mm_add_epi32( BSG2_0( D ), MAJs( D, E, F ) ) );
+   E = v128_add32( T1, v128_add32( BSG2_0( F ), MAJs( F, G, H ) ) );
+   D = v128_add32( T2, v128_add32( BSG2_0( E ), MAJs( E, F, G ) ) );
+   C = v128_add32( T0, v128_add32( BSG2_0( D ), MAJs( D, E, F ) ) );
 
    // rounds 62 & 63
    W[14] = SHA2s_MEXP( W[12], W[ 7], W[15], W[14] );
@@ -424,17 +407,18 @@ int sha256_4way_transform_le_short( __m128i *state_out, const __m128i *data,
    SHA2s_4WAY_STEP( C, D, E, F, G, H, A, B, 14, 48 );
    SHA2s_4WAY_STEP( B, C, D, E, F, G, H, A, 15, 48 );
 
-   state_out[0] = _mm_add_epi32( state_in[0], A );
-   state_out[1] = _mm_add_epi32( state_in[1], B );
-   state_out[2] = _mm_add_epi32( state_in[2], C );
-   state_out[3] = _mm_add_epi32( state_in[3], D );
-   state_out[4] = _mm_add_epi32( state_in[4], E );
-   state_out[5] = _mm_add_epi32( state_in[5], F );
-   state_out[6] = _mm_add_epi32( state_in[6], G );
-   state_out[7] = _mm_add_epi32( state_in[7], H );
+   state_out[0] = v128_add32( state_in[0], A );
+   state_out[1] = v128_add32( state_in[1], B );
+   state_out[2] = v128_add32( state_in[2], C );
+   state_out[3] = v128_add32( state_in[3], D );
+   state_out[4] = v128_add32( state_in[4], E );
+   state_out[5] = v128_add32( state_in[5], F );
+   state_out[6] = v128_add32( state_in[6], G );
+   state_out[7] = v128_add32( state_in[7], H );
 return 1;
 }
 
+#endif
 
 void sha256_4way_init( sha256_4way_context *sc )
 {
@@ -451,7 +435,7 @@ void sha256_4way_init( sha256_4way_context *sc )
 
 void sha256_4way_update( sha256_4way_context *sc, const void *data, size_t len )
 {
-   __m128i *vdata = (__m128i*)data;
+   v128_t *vdata = (v128_t*)data;
    size_t ptr;
    const int buf_size = 64;
 
@@ -464,7 +448,7 @@ void sha256_4way_update( sha256_4way_context *sc, const void *data, size_t len )
       clen = buf_size - ptr;
       if ( clen > len )
          clen = len;
-      memcpy_128( sc->buf + (ptr>>2), vdata, clen>>2 );
+      v128_memcpy( sc->buf + (ptr>>2), vdata, clen>>2 );
       vdata = vdata + (clen>>2);
       ptr += clen;
       len -= clen;
@@ -494,12 +478,12 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
 
     if ( ptr > pad )
     {
-         memset_zero_128( sc->buf + (ptr>>2), (buf_size - ptr) >> 2 );
+         v128_memset_zero( sc->buf + (ptr>>2), (buf_size - ptr) >> 2 );
          sha256_4way_transform_be( sc->val, sc->buf, sc->val );
-         memset_zero_128( sc->buf, pad >> 2 );
+         v128_memset_zero( sc->buf, pad >> 2 );
     }
     else
-         memset_zero_128( sc->buf + (ptr>>2), (pad - ptr) >> 2 );
+         v128_memset_zero( sc->buf + (ptr>>2), (pad - ptr) >> 2 );
 
     low = sc->count_low;
     high = (sc->count_high << 3) | (low >> 29);
@@ -509,7 +493,7 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
     sc->buf[( pad+4 ) >> 2 ] = v128_32( bswap_32( low ) );
     sha256_4way_transform_be( sc->val, sc->buf, sc->val );
 
-    mm128_block_bswap_32( dst, sc->val );
+    v128_block_bswap32( dst, sc->val );
 }
 
 void sha256_4way_full( void *dst, const void *data, size_t len )
@@ -1725,4 +1709,3 @@ void sha256_16way_full( void *dst, const void *data, size_t len )
 
 #endif  // AVX512
 #endif  // __AVX2__
-#endif  // __SSE2__

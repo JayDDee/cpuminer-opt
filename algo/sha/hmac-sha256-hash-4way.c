@@ -31,6 +31,7 @@
 #include "hmac-sha256-hash-4way.h"
 #include "compat.h"
 
+#if defined(__SSE2__)
 // HMAC 4-way SSE2
 
 /**
@@ -168,6 +169,8 @@ pbkdf2_sha256_4way( uint8_t *buf, size_t dkLen,
 		memcpy( &buf[ i*32*4 ], T, clen*4 );
 	}
 }
+
+#endif
 
 #if defined(__AVX2__)
 

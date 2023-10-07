@@ -1,7 +1,7 @@
 #ifndef SHABAL_HASH_4WAY_H__
 #define SHABAL_HASH_4WAY_H__ 1
 
-#ifdef __SSE4_1__
+#if defined(__SSE4_1__) || defined(__ARM_NEON)
 
 #include <stddef.h>
 #include "simd-utils.h"
@@ -65,8 +65,8 @@ void shabal512_8way_addbits_and_close( void *cc, unsigned ub, unsigned n,
 #endif
 
 typedef struct {
-	__m128i buf[16] __attribute__ ((aligned (64)));
-	__m128i A[12], B[16], C[16];
+	v128_t buf[16] __attribute__ ((aligned (64)));
+	v128_t A[12], B[16], C[16];
 	uint32_t Whigh, Wlow;
    size_t ptr;
    bool state_loaded;

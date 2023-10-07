@@ -11,7 +11,6 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/nist.h"
 #include "algo/hamsi/sph_hamsi.h"
@@ -27,6 +26,11 @@
   #include "algo/echo/sph_echo.h"
   #include "algo/groestl/sph_groestl.h"
   #include "algo/fugue/sph_fugue.h"
+#endif
+#if defined(__aarch64__)
+  #include "algo/luffa/sph_luffa.h"
+#else
+  #include "algo/luffa/luffa_for_sse2.h"
 #endif
 
 // Config
@@ -55,7 +59,11 @@ struct TortureGarden
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
+#if defined(__aarch64__)
+        sph_luffa512_context       luffa;
+#else
         hashState_luffa         luffa;
+#endif
         cubehashParam           cube;
         shavite512_context      shavite;
         hashState_sd            simd;
@@ -141,9 +149,15 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
             sph_keccak512_close(&garden->keccak, hash);
             break;
         case 10:
+#if defined(__aarch64__)
+            sph_luffa512_init(&garden->luffa );
+            sph_luffa512(&garden->luffa, (const void*) input, 64);
+            sph_luffa512_close(&garden->luffa, hash);
+#else
             init_luffa( &garden->luffa, 512 );
             update_and_final_luffa( &garden->luffa, (BitSequence*)hash,
                                     (const BitSequence*)input, 64 );
+#endif
             break;
         case 11:
             sph_shabal512_init(&garden->shabal);
@@ -287,7 +301,7 @@ int scanhash_minotaur( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
    uint64_t skipped = 0;
 
-   mm128_bswap32_80( edata, pdata );
+   v128_bswap32_80( edata, pdata );
    do
    {
       edata[19] = n;

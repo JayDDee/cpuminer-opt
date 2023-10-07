@@ -26,7 +26,11 @@ union _x16rv2_context_overlay
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
+#if defined(__aarch64__)
+        sph_luffa512_context       luffa;
+#else
         hashState_luffa         luffa;
+#endif
         cubehashParam           cube;
         shavite512_context      shavite;
         hashState_sd            simd;
@@ -102,9 +106,15 @@ int x16rv2_hash( void* output, const void* input, int thrid )
             sph_tiger( &ctx.tiger, in, size );
             sph_tiger_close( &ctx.tiger, hash );
             padtiger512( hash );
+#if defined(__aarch64__)
+            sph_luffa512_init(&ctx.luffa );
+            sph_luffa512(&ctx.luffa, (const void*) hash, 64);
+            sph_luffa512_close(&ctx.luffa, hash);
+#else
             init_luffa( &ctx.luffa, 512 );
             update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                     (const BitSequence*)hash, 64 );
+#endif
          break;
          case CUBEHASH:
             cubehashInit( &ctx.cube, 512, 16, 32 );
@@ -183,11 +193,11 @@ int scanhash_x16rv2( struct work *work, uint32_t max_nonce,
    volatile uint8_t *restart = &(work_restart[thr_id].restart);
    const bool bench = opt_benchmark;
 
-   casti_m128i( edata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( edata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( edata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( edata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( edata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
+   casti_v128( edata, 0 ) = v128_bswap32( casti_v128( pdata, 0 ) );
+   casti_v128( edata, 1 ) = v128_bswap32( casti_v128( pdata, 1 ) );
+   casti_v128( edata, 2 ) = v128_bswap32( casti_v128( pdata, 2 ) );
+   casti_v128( edata, 3 ) = v128_bswap32( casti_v128( pdata, 3 ) );
+   casti_v128( edata, 4 ) = v128_bswap32( casti_v128( pdata, 4 ) );
 
    static __thread uint32_t s_ntime = UINT32_MAX;
    if ( s_ntime != pdata[17] )

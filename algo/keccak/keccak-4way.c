@@ -8,10 +8,10 @@
 
 void keccakhash_8way(void *state, const void *input)
 {
-    keccak256_8way_context ctx;
-    keccak256_8way_init( &ctx );
-    keccak256_8way_update( &ctx, input, 80 );
-    keccak256_8way_close( &ctx, state );
+    keccak256_8x64_context ctx;
+    keccak256_8x64_init( &ctx );
+    keccak256_8x64_update( &ctx, input, 80 );
+    keccak256_8x64_close( &ctx, state );
 }
 
 int scanhash_keccak_8way( struct work *work, uint32_t max_nonce,
@@ -61,10 +61,10 @@ int scanhash_keccak_8way( struct work *work, uint32_t max_nonce,
 
 void keccakhash_4way(void *state, const void *input)
 {
-    keccak256_4way_context ctx;
-    keccak256_4way_init( &ctx );
-    keccak256_4way_update( &ctx, input, 80 );
-    keccak256_4way_close( &ctx, state );
+    keccak256_4x64_context ctx;
+    keccak256_4x64_init( &ctx );
+    keccak256_4x64_update( &ctx, input, 80 );
+    keccak256_4x64_close( &ctx, state );
 }
 
 int scanhash_keccak_4way( struct work *work, uint32_t max_nonce,

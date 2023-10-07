@@ -47,7 +47,7 @@ void x16r_8way_prehash( void *vdata, void *pdata )
       case LUFFA:
       {
          hashState_luffa ctx_luffa;
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          intrlv_8x64( vdata, edata, edata, edata, edata,
                              edata, edata, edata, edata, 640 );            
          init_luffa( &ctx_luffa, 512 );
@@ -63,7 +63,7 @@ void x16r_8way_prehash( void *vdata, void *pdata )
       case CUBEHASH:
       {
          cubehashParam ctx_cube;
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          intrlv_8x64( vdata, edata, edata, edata, edata,
                              edata, edata, edata, edata, 640 );            
          cubehashInit( &ctx_cube, 512, 16, 32 );
@@ -82,7 +82,7 @@ void x16r_8way_prehash( void *vdata, void *pdata )
          hamsi512_8way_update( &x16r_ctx.hamsi, vdata, 72 );
       break;
       case FUGUE:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          fugue512_init( &x16r_ctx.fugue );
          fugue512_update( &x16r_ctx.fugue, edata, 76 );
          intrlv_8x64( vdata, edata, edata, edata, edata,
@@ -95,7 +95,7 @@ void x16r_8way_prehash( void *vdata, void *pdata )
          rintrlv_8x32_8x64( vdata, vdata2, 640 );
       break;
       case WHIRLPOOL:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          sph_whirlpool_init( &x16r_ctx.whirlpool );
          sph_whirlpool( &x16r_ctx.whirlpool, edata, 64 );
          intrlv_8x64( vdata, edata, edata, edata, edata,
@@ -573,7 +573,7 @@ void x16r_4way_prehash( void *vdata, void *pdata )
       case LUFFA:
       {
          hashState_luffa ctx_luffa;
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
          init_luffa( &ctx_luffa, 512 );
          update_luffa( &ctx_luffa, (const BitSequence*)edata, 64 );
@@ -588,7 +588,7 @@ void x16r_4way_prehash( void *vdata, void *pdata )
       case CUBEHASH:
       {
          cubehashParam ctx_cube;
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
          cubehashInit( &ctx_cube, 512, 16, 32 );
          cubehashUpdate( &ctx_cube, (const byte*)edata, 64 );
@@ -605,19 +605,19 @@ void x16r_4way_prehash( void *vdata, void *pdata )
          hamsi512_4way_update( &x16r_ctx.hamsi, vdata, 72 );
       break;
       case FUGUE:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          fugue512_init( &x16r_ctx.fugue );
          fugue512_update( &x16r_ctx.fugue, edata, 76 );
          intrlv_4x64( vdata, edata, edata, edata, edata, 640 );
       break;
       case SHABAL:
-         mm128_bswap32_intrlv80_4x32( vdata2, pdata );
+         v128_bswap32_intrlv80_4x32( vdata2, pdata );
          shabal512_4way_init( &x16r_ctx.shabal );
          shabal512_4way_update( &x16r_ctx.shabal, vdata2, 64 );
          rintrlv_4x32_4x64( vdata, vdata2, 640 );
       break;
       case WHIRLPOOL:
-         mm128_bswap32_80( edata, pdata );
+         v128_bswap32_80( edata, pdata );
          sph_whirlpool_init( &x16r_ctx.whirlpool );
          sph_whirlpool( &x16r_ctx.whirlpool, edata, 64 );
          intrlv_4x64( vdata, edata, edata, edata, edata, 640 );

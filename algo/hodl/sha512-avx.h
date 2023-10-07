@@ -2,7 +2,7 @@
 #define _SHA512_H
 
 #include <stdint.h>
-#include "emmintrin.h"
+#include "simd-utils.h"
 
 //SHA-512 block size
 #define SHA512_BLOCK_SIZE 128
@@ -24,8 +24,8 @@ typedef struct
    __m256i w[80];
 #elif defined(__SSE4_2__)
 //#elif defined(__AVX__)
-   __m128i h[8];
-   __m128i w[80];
+   v128_t h[8];
+   v128_t w[80];
 #else
    int dummy;
 #endif

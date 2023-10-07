@@ -13,7 +13,6 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
@@ -30,6 +29,12 @@
   #include "algo/echo/sph_echo.h"
   #include "algo/fugue/sph_fugue.h"
 #endif
+#if defined(__aarch64__)
+  #include "algo/luffa/sph_luffa.h"
+#else
+  #include "algo/luffa/luffa_for_sse2.h"
+#endif
+
 
 typedef struct {
         sph_blake512_context    blake;
@@ -37,7 +42,11 @@ typedef struct {
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
+#if defined(__aarch64__)
+        sph_luffa512_context    luffa;
+#else
         hashState_luffa         luffa;
+#endif
         cubehashParam           cubehash;
         sph_shavite512_context  shavite;
         hashState_sd            simd;
@@ -66,7 +75,11 @@ void init_xevan_ctx()
         sph_skein512_init(&xevan_ctx.skein);
         sph_jh512_init(&xevan_ctx.jh);
         sph_keccak512_init(&xevan_ctx.keccak);
+#if defined(__aarch64__)
+        sph_luffa512_init(&xevan_ctx.luffa);
+#else
         init_luffa( &xevan_ctx.luffa, 512 );
+#endif
         cubehashInit( &xevan_ctx.cubehash, 512, 16, 32 );
         sph_shavite512_init( &xevan_ctx.shavite );
         init_sd( &xevan_ctx.simd, 512 );
@@ -80,7 +93,7 @@ void init_xevan_ctx()
         init_echo( &xevan_ctx.echo, 512 );
         fugue512_Init( &xevan_ctx.fugue, 512 );
 #else
-	sph_groestl512_init( &xevan_ctx.groestl );
+        sph_groestl512_init( &xevan_ctx.groestl );
         sph_echo512_init( &xevan_ctx.echo );
         sph_fugue512_init( &xevan_ctx.fugue );
 #endif
@@ -117,8 +130,13 @@ int xevan_hash(void *output, const void *input, int thr_id )
    sph_keccak512(&ctx.keccak, hash, dataLen);
    sph_keccak512_close(&ctx.keccak, hash);
 
+#if defined(__aarch64__)
+   sph_luffa512(&ctx.luffa, hash, dataLen);
+   sph_luffa512_close(&ctx.luffa, hash);
+#else
    update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                  (const BitSequence*)hash, dataLen );
+#endif
 
    cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
                                  (const byte*) hash, dataLen );
@@ -187,8 +205,13 @@ int xevan_hash(void *output, const void *input, int thr_id )
    sph_keccak512(&ctx.keccak, hash, dataLen);
    sph_keccak512_close(&ctx.keccak, hash);
 
+#if defined(__aarch64__)
+   sph_luffa512(&ctx.luffa, hash, dataLen);
+   sph_luffa512_close(&ctx.luffa, hash);
+#else
    update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
                                  (const BitSequence*)hash, dataLen );
+#endif
 
    cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
                                  (const byte*) hash, dataLen );

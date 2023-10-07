@@ -41,7 +41,7 @@ static void
 SPH_XCAT(SPH_XCAT(haval, PASSES), _4way_update)
 ( haval_4way_context *sc, const void *data, size_t len )
 {
-   __m128i *vdata = (__m128i*)data;
+   v128_t *vdata = (v128_t*)data;
    unsigned current;
 
    current = (unsigned)sc->count_low & 127U;
@@ -53,7 +53,7 @@ SPH_XCAT(SPH_XCAT(haval, PASSES), _4way_update)
       clen = 128U - current;
       if ( clen > len )
          clen = len;
-      memcpy_128( sc->buf + (current>>2), vdata, clen>>2 );
+      v128_memcpy( sc->buf + (current>>2), vdata, clen>>2 );
       vdata += clen>>2;
       current += clen;
       len -= clen;
@@ -88,7 +88,7 @@ SPH_XCAT(SPH_XCAT(haval, PASSES), _4way_close)( haval_4way_context *sc,
    RSTATE;
    if ( current > 116UL )
    {
-      memset_zero_128( sc->buf + ( current>>2 ), (128UL-current) >> 2 );
+      v128_memset_zero( sc->buf + ( current>>2 ), (128UL-current) >> 2 );
       do
       {
          IN_PREPARE(sc->buf);
@@ -98,12 +98,12 @@ SPH_XCAT(SPH_XCAT(haval, PASSES), _4way_close)( haval_4way_context *sc,
    }
 
    uint32_t t1, t2;
-   memset_zero_128( sc->buf + ( current>>2 ), (116UL-current) >> 2 );
+   v128_memset_zero( sc->buf + ( current>>2 ), (116UL-current) >> 2 );
    t1 = 0x01 | (PASSES << 3);
    t2 = sc->olen << 3;
-   sc->buf[ 116>>2 ] = _mm_set1_epi32( ( t1 << 16 ) | ( t2 << 24 ) );
-   sc->buf[ 120>>2 ] = _mm_set1_epi32( sc->count_low << 3 );
-   sc->buf[ 124>>2 ] = _mm_set1_epi32( (sc->count_high << 3)
+   sc->buf[ 116>>2 ] = v128_32( ( t1 << 16 ) | ( t2 << 24 ) );
+   sc->buf[ 120>>2 ] = v128_32( sc->count_low << 3 );
+   sc->buf[ 124>>2 ] = v128_32( (sc->count_high << 3)
                                      | (sc->count_low >> 29) );
    do
    {

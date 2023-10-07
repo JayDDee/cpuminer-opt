@@ -75,11 +75,11 @@ int scanhash_lyra2rev3( struct work *work,
 	((uint32_t*)ptarget)[7] = 0x0000ff;
 
    // need big endian data
-   casti_m128i( endiandata, 0 ) = mm128_bswap_32( casti_m128i( pdata, 0 ) );
-   casti_m128i( endiandata, 1 ) = mm128_bswap_32( casti_m128i( pdata, 1 ) );
-   casti_m128i( endiandata, 2 ) = mm128_bswap_32( casti_m128i( pdata, 2 ) );
-   casti_m128i( endiandata, 3 ) = mm128_bswap_32( casti_m128i( pdata, 3 ) );
-   casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
+   casti_v128( endiandata, 0 ) = v128_bswap32( casti_v128( pdata, 0 ) );
+   casti_v128( endiandata, 1 ) = v128_bswap32( casti_v128( pdata, 1 ) );
+   casti_v128( endiandata, 2 ) = v128_bswap32( casti_v128( pdata, 2 ) );
+   casti_v128( endiandata, 3 ) = v128_bswap32( casti_v128( pdata, 3 ) );
+   casti_v128( endiandata, 4 ) = v128_bswap32( casti_v128( pdata, 4 ) );
    l2v3_blake256_midstate( endiandata );
    do
    {

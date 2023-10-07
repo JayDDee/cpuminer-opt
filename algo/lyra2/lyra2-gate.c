@@ -1,5 +1,5 @@
 #include "lyra2-gate.h"
-
+#include <mm_malloc.h>
 
 // huge pages
 //

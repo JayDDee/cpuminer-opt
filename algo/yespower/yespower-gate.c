@@ -35,10 +35,16 @@ __thread sha256_context sha256_prehash_ctx;
 
 // YESPOWER
 
-int yespower_hash( const char *input, char *output, uint32_t len, int thrid )
+int yespower_hash( const char *input, char *output, int thrid )
 {
-   return yespower_tls( input, len, &yespower_params,
+   return yespower_tls( input, 80, &yespower_params,
            (yespower_binary_t*)output, thrid ); 
+}
+
+int yespower_hash_ref( const char *input, char *output, int thrid )
+{
+   return yespower_tls_ref( input, 80, &yespower_params,
+           (yespower_binary_t*)output, thrid );
 }
 
 int scanhash_yespower( struct work *work, uint32_t max_nonce,
@@ -62,7 +68,7 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
    sha256_update( &sha256_prehash_ctx, endiandata, 64 );
 
    do {
-      if ( yespower_hash( (char*)endiandata, (char*)vhash, 80, thr_id ) )
+      if ( algo_gate.hash( (char*)endiandata, (char*)vhash, thr_id ) )
       if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
       {
           be32enc( pdata+19, n );
@@ -77,9 +83,14 @@ int scanhash_yespower( struct work *work, uint32_t max_nonce,
 
 // YESPOWER-B2B
 
-int yespower_b2b_hash( const char *input, char *output, uint32_t len, int thrid )
+int yespower_b2b_hash( const char *input, char *output, int thrid )
 {
-  return yespower_b2b_tls( input, len, &yespower_params, (yespower_binary_t*)output, thrid );
+  return yespower_b2b_tls( input, 80, &yespower_params, (yespower_binary_t*)output, thrid );
+}
+
+int yespower_b2b_hash_ref( const char *input, char *output, int thrid )
+{
+  return yespower_b2b_tls_ref( input, 80, &yespower_params, (yespower_binary_t*)output, thrid );
 }
 
 int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
@@ -99,7 +110,7 @@ int scanhash_yespower_b2b( struct work *work, uint32_t max_nonce,
    endiandata[19] = n;
 
    do {
-      if (yespower_b2b_hash( (char*) endiandata, (char*) vhash, 80, thr_id ) )
+      if ( algo_gate.hash( (char*) endiandata, (char*) vhash, thr_id ) )
       if unlikely( valid_hash( vhash, ptarget ) && !opt_benchmark )
       {
           be32enc( pdata+19, n );
@@ -140,7 +151,11 @@ bool register_yespower_algo( algo_gate_t* gate )
 
   gate->optimizations = SSE2_OPT | SHA_OPT;
   gate->scanhash      = (void*)&scanhash_yespower;
+#if defined(__aarch64__)
+  gate->hash          = (void*)&yespower_hash_ref;
+#else
   gate->hash          = (void*)&yespower_hash;
+#endif
   opt_target_factor = 65536.0;
   return true;
 };
@@ -165,6 +180,11 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
+#if defined(__aarch64__)
+   gate->hash          = (void*)&yespower_hash_ref;
+#else
+   gate->hash          = (void*)&yespower_hash;
+#endif
    yespower_params.version = YESPOWER_0_5;
    opt_target_factor = 65536.0;
 
@@ -197,7 +217,12 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 bool register_yescryptr8_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
-   gate->scanhash   = (void*)&scanhash_yespower;
+   gate->scanhash      = (void*)&scanhash_yespower;
+#if defined(__aarch64__)
+   gate->hash          = (void*)&yespower_hash_ref;
+#else
+   gate->hash          = (void*)&yespower_hash;
+#endif
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 2048;
    yespower_params.r       = 8;
@@ -211,6 +236,11 @@ bool register_yescryptr16_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
+#if defined(__aarch64__)
+   gate->hash          = (void*)&yespower_hash_ref;
+#else
+   gate->hash          = (void*)&yespower_hash;
+#endif
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 4096;
    yespower_params.r       = 16;
@@ -224,6 +254,11 @@ bool register_yescryptr32_algo( algo_gate_t* gate )
 {
    gate->optimizations = SSE2_OPT | SHA_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
+#if defined(__aarch64__)
+   gate->hash          = (void*)&yespower_hash_ref;
+#else
+   gate->hash          = (void*)&yespower_hash;
+#endif
    yespower_params.version = YESPOWER_0_5;
    yespower_params.N       = 4096;
    yespower_params.r       = 32;
@@ -251,7 +286,11 @@ bool register_power2b_algo( algo_gate_t* gate )
 
   gate->optimizations = SSE2_OPT | AVX2_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_b2b;
+#if defined(__aarch64__)
+  gate->hash          = (void*)&yespower_b2b_hash_ref;
+#else
   gate->hash          = (void*)&yespower_b2b_hash;
+#endif
   opt_target_factor = 65536.0;
   return true;
 };
@@ -291,7 +330,11 @@ bool register_yespower_b2b_algo( algo_gate_t* gate )
 
   gate->optimizations = SSE2_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_b2b;
+#if defined(__aarch64__)
+  gate->hash          = (void*)&yespower_b2b_hash_ref;
+#else
   gate->hash          = (void*)&yespower_b2b_hash;
+#endif
   opt_target_factor = 65536.0;
   return true;
 };

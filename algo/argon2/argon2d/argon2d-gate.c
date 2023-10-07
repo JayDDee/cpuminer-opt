@@ -114,7 +114,7 @@ int scanhash_argon2d_dyn( struct work *work, uint32_t max_nonce,
    uint32_t nonce = first_nonce;
    const bool bench = opt_benchmark;
 
-   mm128_bswap32_80( edata, pdata );
+   v128_bswap32_80( edata, pdata );
    do
    {
       edata[19] = nonce;
@@ -160,7 +160,7 @@ int scanhash_argon2d4096( struct work *work, uint32_t max_nonce,
    uint32_t parallelism = 1; // 1 thread, 2 lanes
    const bool bench = opt_benchmark;
 
-   mm128_bswap32_80( edata, pdata );
+   v128_bswap32_80( edata, pdata );
 
    do {
       edata[19] = n;

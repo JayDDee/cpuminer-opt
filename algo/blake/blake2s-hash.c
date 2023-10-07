@@ -12,13 +12,13 @@
  */
 
 #include "blake2s-hash.h"
-
+#include "simd-utils.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 
 //#if defined(__SSE4_2__)
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(__ARM_NEON)
 
 /*
 static const uint32_t blake2s_IV[8] =
@@ -78,43 +78,43 @@ int blake2s_4way_init( blake2s_4way_state *S, const uint8_t outlen )
 
    /* IV XOR ParamBlock */
    for ( size_t i = 0; i < 8; ++i )
-      S->h[i] = _mm_xor_si128( S->h[i], v128_32( p[i] ) );
+      S->h[i] = v128_xor( S->h[i], v128_32( p[i] ) );
    return 0;
 }
 
-int blake2s_4way_compress( blake2s_4way_state *S, const __m128i* block )
+int blake2s_4way_compress( blake2s_4way_state *S, const v128_t* block )
 {
-   __m128i m[16];
-   __m128i v[16];
+   v128_t m[16];
+   v128_t v[16];
 
-   memcpy_128( m, block, 16 );
-   memcpy_128( v, S->h, 8 );
+   v128_memcpy( m, block, 16 );
+   v128_memcpy( v, S->h, 8 );
 
    v[ 8] = v128_64( 0x6A09E6676A09E667ULL );
    v[ 9] = v128_64( 0xBB67AE85BB67AE85ULL );
    v[10] = v128_64( 0x3C6EF3723C6EF372ULL );
    v[11] = v128_64( 0xA54FF53AA54FF53AULL );
-   v[12] = _mm_xor_si128( v128_32( S->t[0] ),
+   v[12] = v128_xor( v128_32( S->t[0] ),
                           v128_64( 0x510E527F510E527FULL ) );
-   v[13] = _mm_xor_si128( v128_32( S->t[1] ),
+   v[13] = v128_xor( v128_32( S->t[1] ),
                           v128_64( 0x9B05688C9B05688CULL ) );
-   v[14] = _mm_xor_si128( v128_32( S->f[0] ),
+   v[14] = v128_xor( v128_32( S->f[0] ),
                           v128_64( 0x1F83D9AB1F83D9ABULL ) );
-   v[15] = _mm_xor_si128( v128_32( S->f[1] ),
+   v[15] = v128_xor( v128_32( S->f[1] ),
                           v128_64( 0x5BE0CD195BE0CD19ULL ) );
 
 #define G4W( sigma0, sigma1, a, b, c, d ) \
 do { \
    uint8_t s0 = sigma0; \
    uint8_t s1 = sigma1; \
-   a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ s0 ] ); \
-   d = mm128_swap32_16( _mm_xor_si128( d, a ) ); \
-   c = _mm_add_epi32( c, d ); \
-   b = mm128_ror_32( _mm_xor_si128( b, c ), 12 ); \
-   a = _mm_add_epi32( _mm_add_epi32( a, b ), m[ s1 ] ); \
-   d = mm128_shuflr32_8( _mm_xor_si128( d, a ) ); \
-   c = _mm_add_epi32( c, d ); \
-   b = mm128_ror_32( _mm_xor_si128( b, c ),  7 ); \
+   a = v128_add32( v128_add32( a, b ), m[ s0 ] ); \
+   d = v128_swap32_16( v128_xor( d, a ) ); \
+   c = v128_add32( c, d ); \
+   b = v128_ror32( v128_xor( b, c ), 12 ); \
+   a = v128_add32( v128_add32( a, b ), m[ s1 ] ); \
+   d = v128_shuflr32_8( v128_xor( d, a ) ); \
+   c = v128_add32( c, d ); \
+   b = v128_ror32( v128_xor( b, c ),  7 ); \
 } while(0)
 
 
@@ -143,7 +143,7 @@ do { \
    ROUND4W( 9 );
 
    for( size_t i = 0; i < 8; ++i )
-      S->h[i] = _mm_xor_si128( _mm_xor_si128( S->h[i], v[i] ), v[i + 8] );
+      S->h[i] = v128_xor( v128_xor( S->h[i], v[i] ), v[i + 8] );
 
 #undef G4W
 #undef ROUND4W
@@ -175,26 +175,26 @@ do { \
 int blake2s_4way_update( blake2s_4way_state *S, const void *in,
                          uint64_t inlen )
 {
-   __m128i *input = (__m128i*)in;
-   __m128i *buf = (__m128i*)S->buf;
+   v128_t *input = (v128_t*)in;
+   v128_t *buf = (v128_t*)S->buf;
 
    while( inlen > 0 )
    {
       size_t left = S->buflen;
-      if( inlen >= BLAKE2S_BLOCKBYTES - left )
+      if( inlen >= 64 - left )
       {
-         memcpy_128( buf + (left>>2), input, (BLAKE2S_BLOCKBYTES - left) >> 2 );
-         S->buflen += BLAKE2S_BLOCKBYTES - left;
-         S->t[0] += BLAKE2S_BLOCKBYTES;
-         S->t[1] += ( S->t[0] < BLAKE2S_BLOCKBYTES );
+         v128_memcpy( buf + (left>>2), input, (64 - left) >> 2 );
+         S->buflen += 64 - left;
+         S->t[0] += 64;
+         S->t[1] += ( S->t[0] < 64 );
          blake2s_4way_compress( S, buf ); 
          S->buflen = 0;
-         input += ( BLAKE2S_BLOCKBYTES >> 2 );
-         inlen -= BLAKE2S_BLOCKBYTES;
+         input += ( 64 >> 2 );
+         inlen -= 64;
       }
       else
       {
-          memcpy_128( buf + ( left>>2 ), input, inlen>>2 );
+          v128_memcpy( buf + ( left>>2 ), input, inlen>>2 );
           S->buflen += (size_t) inlen; 
           input += ( inlen>>2 );
           inlen -= inlen;
@@ -205,7 +205,7 @@ int blake2s_4way_update( blake2s_4way_state *S, const void *in,
 
 int blake2s_4way_final( blake2s_4way_state *S, void *out, uint8_t outlen )
 {
-   __m128i *buf = (__m128i*)S->buf;
+   v128_t *buf = (v128_t*)S->buf;
 
    S->t[0] += S->buflen;
    S->t[1] += ( S->t[0] < S->buflen );
@@ -213,12 +213,12 @@ int blake2s_4way_final( blake2s_4way_state *S, void *out, uint8_t outlen )
       S->f[1] = ~0U;
    S->f[0] = ~0U;
 
-   memset_zero_128( buf + ( S->buflen>>2 ),
-                    ( BLAKE2S_BLOCKBYTES - S->buflen ) >> 2 );      
+   v128_memset_zero( buf + ( S->buflen>>2 ),
+                    ( 64 - S->buflen ) >> 2 );      
    blake2s_4way_compress( S, buf );
 
    for ( int i = 0; i < 8; ++i )
-      casti_m128i( out, i ) = S->h[ i ];
+      casti_v128( out, i ) = S->h[ i ];
    return 0;
 }
 
@@ -226,24 +226,24 @@ int blake2s_4way_final( blake2s_4way_state *S, void *out, uint8_t outlen )
 int blake2s_4way_full_blocks( blake2s_4way_state *S, void *out,
                               const void *input, uint64_t inlen )
 {
-    __m128i *in = (__m128i*)input;
-    __m128i *buf = (__m128i*)S->buf;
+    v128_t *in = (v128_t*)input;
+    v128_t *buf = (v128_t*)S->buf;
 
-    while( inlen > BLAKE2S_BLOCKBYTES )
+    while( inlen > 64 )
     {
-       memcpy_128( buf, in, BLAKE2S_BLOCKBYTES >> 2 );
-       S->buflen = BLAKE2S_BLOCKBYTES;
-       inlen -= BLAKE2S_BLOCKBYTES;
-       S->t[0] += BLAKE2S_BLOCKBYTES;
-       S->t[1] += ( S->t[0] < BLAKE2S_BLOCKBYTES );
+       v128_memcpy( buf, in, 64 >> 2 );
+       S->buflen = 64;
+       inlen -= 64;
+       S->t[0] += 64;
+       S->t[1] += ( S->t[0] < 64 );
        blake2s_4way_compress( S, buf );
        S->buflen = 0;
-       in += ( BLAKE2S_BLOCKBYTES >> 2 );
+       in += ( 64 >> 2 );
     }
 
     // last block
-    memcpy_128( buf, in, BLAKE2S_BLOCKBYTES >> 2 );
-    S->buflen = BLAKE2S_BLOCKBYTES;
+    v128_memcpy( buf, in, 64 >> 2 );
+    S->buflen = 64;
     S->t[0] += S->buflen;
     S->t[1] += ( S->t[0] < S->buflen );
     if ( S->last_node )  S->f[1] = ~0U;
@@ -251,7 +251,7 @@ int blake2s_4way_full_blocks( blake2s_4way_state *S, void *out,
     blake2s_4way_compress( S, buf );
 
     for ( int i = 0; i < 8; ++i )
-      casti_m128i( out, i ) = S->h[ i ];
+      casti_v128( out, i ) = S->h[ i ];
     return 0;
 }
 
@@ -417,7 +417,7 @@ int blake2s_8way_update( blake2s_8way_state *S, const void *in,
 {
   __m256i *input = (__m256i*)in;
   __m256i *buf = (__m256i*)S->buf;
-  const int bsize = BLAKE2S_BLOCKBYTES;
+  const int bsize = 64;
 
    while( inlen > 0 )
    {
@@ -426,8 +426,8 @@ int blake2s_8way_update( blake2s_8way_state *S, const void *in,
       {
          memcpy_256( buf + (left>>2), input, (bsize - left) >> 2 );
          S->buflen += bsize - left;
-         S->t[0] += BLAKE2S_BLOCKBYTES;
-         S->t[1] += ( S->t[0] < BLAKE2S_BLOCKBYTES );
+         S->t[0] += 64;
+         S->t[1] += ( S->t[0] < 64 );
          blake2s_8way_compress( S, buf );
          S->buflen = 0;
          input += ( bsize >> 2 );
@@ -454,8 +454,7 @@ int blake2s_8way_final( blake2s_8way_state *S, void *out, uint8_t outlen )
       S->f[1] = ~0U;
    S->f[0] = ~0U;
 
-   memset_zero_256( buf + ( S->buflen>>2 ),
-                    ( BLAKE2S_BLOCKBYTES - S->buflen ) >> 2 );
+   memset_zero_256( buf + ( S->buflen>>2 ),( 64 - S->buflen ) >> 2 );
    blake2s_8way_compress( S, buf );
 
    for ( int i = 0; i < 8; ++i )
@@ -470,21 +469,21 @@ int blake2s_8way_full_blocks( blake2s_8way_state *S, void *out,
     __m256i *in = (__m256i*)input;
     __m256i *buf = (__m256i*)S->buf;
 
-    while( inlen > BLAKE2S_BLOCKBYTES )
+    while( inlen > 64 )
     {
-       memcpy_256( buf, in, BLAKE2S_BLOCKBYTES >> 2 );
-       S->buflen = BLAKE2S_BLOCKBYTES;
-       inlen -= BLAKE2S_BLOCKBYTES;
-       S->t[0] += BLAKE2S_BLOCKBYTES;
-       S->t[1] += ( S->t[0] < BLAKE2S_BLOCKBYTES );
+       memcpy_256( buf, in, 64 >> 2 );
+       S->buflen = 64;
+       inlen -= 64;
+       S->t[0] += 64;
+       S->t[1] += ( S->t[0] < 64 );
        blake2s_8way_compress( S, buf );
        S->buflen = 0;
-       in += ( BLAKE2S_BLOCKBYTES >> 2 );
+       in += ( 64 >> 2 );
     }
 
     // last block
-    memcpy_256( buf, in, BLAKE2S_BLOCKBYTES >> 2 );
-    S->buflen = BLAKE2S_BLOCKBYTES;
+    memcpy_256( buf, in, 64 >> 2 );
+    S->buflen = 64;
     S->t[0] += S->buflen;
     S->t[1] += ( S->t[0] < S->buflen );
     if ( S->last_node )  S->f[1] = ~0U;
@@ -611,7 +610,7 @@ int blake2s_16way_update( blake2s_16way_state *S, const void *in,
 {
   __m512i *input = (__m512i*)in;
   __m512i *buf = (__m512i*)S->buf;
-  const int bsize = BLAKE2S_BLOCKBYTES;
+  const int bsize = 64;
 
    while( inlen > 0 )
    {
@@ -620,8 +619,8 @@ int blake2s_16way_update( blake2s_16way_state *S, const void *in,
       {
          memcpy_512( buf + (left>>2), input, (bsize - left) >> 2 );
          S->buflen += bsize - left;
-         S->t[0] += BLAKE2S_BLOCKBYTES;
-         S->t[1] += ( S->t[0] < BLAKE2S_BLOCKBYTES );
+         S->t[0] += 64;
+         S->t[1] += ( S->t[0] < 64 );
          blake2s_16way_compress( S, buf );
          S->buflen = 0;
          input += ( bsize >> 2 );
@@ -649,7 +648,7 @@ int blake2s_16way_final( blake2s_16way_state *S, void *out, uint8_t outlen )
    S->f[0] = ~0U;
 
    memset_zero_512( buf + ( S->buflen>>2 ),
-                    ( BLAKE2S_BLOCKBYTES - S->buflen ) >> 2 );
+                    ( 64 - S->buflen ) >> 2 );
    blake2s_16way_compress( S, buf );
 
    for ( int i = 0; i < 8; ++i )

@@ -86,39 +86,38 @@ static inline void extr_lane_2x32( void *dst, const void *src,
 
 // 4x32
 
-#if defined(__SSE4_1__)
+#if ( defined(__x86_64__) && defined(__SSE4_1__) ) || ( defined(__aarch64__) && defined(__ARM_NEON) )
 
 #define ILEAVE_4x32( D0, D1, D2, D3, S0, S1, S2, S3 ) \
-   D0 = mm128_mov32_32( S0, 1, S1, 0 ); \
-   D1 = mm128_mov32_32( S1, 0, S0, 1 ); \
-   D2 = mm128_mov32_32( S2, 0, S0, 2 ); \
-   D3 = mm128_mov32_32( S3, 0, S0, 3 ); \
-   D0 = mm128_mov32_32( D0, 2, S2, 0 ); \
-   D1 = mm128_mov32_32( D1, 2, S2, 1 ); \
-   D2 = mm128_mov32_32( D2, 1, S1, 2 ); \
-   D3 = mm128_mov32_32( D3, 1, S1, 3 ); \
-   D0 = mm128_mov32_32( D0, 3, S3, 0 ); \
-   D1 = mm128_mov32_32( D1, 3, S3, 1 ); \
-   D2 = mm128_mov32_32( D2, 3, S3, 2 ); \
-   D3 = mm128_mov32_32( D3, 2, S2, 3 ); 
+   D0 = v128_mov32( S0, 1, S1, 0 ); \
+   D1 = v128_mov32( S1, 0, S0, 1 ); \
+   D2 = v128_mov32( S2, 0, S0, 2 ); \
+   D3 = v128_mov32( S3, 0, S0, 3 ); \
+   D0 = v128_mov32( D0, 2, S2, 0 ); \
+   D1 = v128_mov32( D1, 2, S2, 1 ); \
+   D2 = v128_mov32( D2, 1, S1, 2 ); \
+   D3 = v128_mov32( D3, 1, S1, 3 ); \
+   D0 = v128_mov32( D0, 3, S3, 0 ); \
+   D1 = v128_mov32( D1, 3, S3, 1 ); \
+   D2 = v128_mov32( D2, 3, S3, 2 ); \
+   D3 = v128_mov32( D3, 2, S2, 3 ); 
 
 #define LOAD_SRCE( S0, S1, S2, S3, src0, i0, src1, i1, src2, i2, src3, i3 ) \
-   S0 = _mm_load_si128( (const __m128i*)(src0) + (i0) ); \
-   S1 = _mm_load_si128( (const __m128i*)(src1) + (i1) ); \
-   S2 = _mm_load_si128( (const __m128i*)(src2) + (i2) ); \
-   S3 = _mm_load_si128( (const __m128i*)(src3) + (i3) );
+   S0 = v128_load( (const v128_t*)(src0) + (i0) ); \
+   S1 = v128_load( (const v128_t*)(src1) + (i1) ); \
+   S2 = v128_load( (const v128_t*)(src2) + (i2) ); \
+   S3 = v128_load( (const v128_t*)(src3) + (i3) );
 
 #define STORE_DEST( D0, D1, D2, D3, dst0, i0, dst1, i1, dst2, i2, dst3, i3 ) \
-   _mm_store_si128( (__m128i*)(dst0) + (i0), D0 ); \
-   _mm_store_si128( (__m128i*)(dst1) + (i1), D1 ); \
-   _mm_store_si128( (__m128i*)(dst2) + (i2), D2 ); \
-   _mm_store_si128( (__m128i*)(dst3) + (i3), D3 ); 
-
+   v128_store( (v128_t*)(dst0) + (i0), D0 ); \
+   v128_store( (v128_t*)(dst1) + (i1), D1 ); \
+   v128_store( (v128_t*)(dst2) + (i2), D2 ); \
+   v128_store( (v128_t*)(dst3) + (i3), D3 ); 
 
 static inline void intrlv_4x32( void *dst, const void *src0, const void *src1,
                       const void *src2, const void *src3, const int bit_len )
 {
-   __m128i D0, D1, D2, D3, S0, S1, S2, S3;
+   v128_t D0, D1, D2, D3, S0, S1, S2, S3;
 
    LOAD_SRCE( S0, S1, S2, S3, src0, 0, src1, 0, src2, 0, src3, 0 );
    ILEAVE_4x32( D0, D1, D2, D3, S0, S1, S2, S3 );
@@ -160,7 +159,7 @@ static inline void intrlv_4x32( void *dst, const void *src0, const void *src1,
 static inline void intrlv_4x32_512( void *dst, const void *src0,
                      const void *src1, const void *src2, const void *src3 )
 {
-   __m128i D0, D1, D2, D3, S0, S1, S2, S3;
+   v128_t D0, D1, D2, D3, S0, S1, S2, S3;
 
    LOAD_SRCE( S0, S1, S2, S3, src0, 0, src1, 0, src2, 0, src3, 0 );
    ILEAVE_4x32( D0, D1, D2, D3, S0, S1, S2, S3 );
@@ -179,7 +178,7 @@ static inline void intrlv_4x32_512( void *dst, const void *src0,
 static inline void dintrlv_4x32( void *dst0, void *dst1, void *dst2,
                            void *dst3, const void *src, const int bit_len )
 {
-   __m128i D0, D1, D2, D3, S0, S1, S2, S3;
+   v128_t D0, D1, D2, D3, S0, S1, S2, S3;
 
    LOAD_SRCE( S0, S1, S2, S3, src, 0, src, 1, src, 2, src, 3 );
    ILEAVE_4x32( D0, D1, D2, D3, S0, S1, S2, S3 );
@@ -221,7 +220,7 @@ static inline void dintrlv_4x32( void *dst0, void *dst1, void *dst2,
 static inline void dintrlv_4x32_512( void *dst0, void *dst1, void *dst2,
                            void *dst3, const void *src )
 {
-   __m128i D0, D1, D2, D3, S0, S1, S2, S3;
+   v128_t D0, D1, D2, D3, S0, S1, S2, S3;
 
    LOAD_SRCE( S0, S1, S2, S3, src, 0, src, 1, src, 2, src, 3 );
    ILEAVE_4x32( D0, D1, D2, D3, S0, S1, S2, S3 );
@@ -382,7 +381,7 @@ static inline void dintrlv_4x32_512( void *dst0, void *dst1, void *dst2,
    d0[15] = s[ 60];   d1[15] = s[ 61];    d2[15] = s[ 62];   d3[15] = s[ 63];
 }
 
-#endif   // SSE4_1 else SSE2
+#endif   // SSE4_1 else SSE2 or NEON
 
 static inline void extr_lane_4x32( void *d, const void *s,
                                    const int lane, const int bit_len )
@@ -408,7 +407,7 @@ static inline void extr_lane_4x32( void *d, const void *s,
 
 #if defined(__SSSE3__)
 
-static inline void mm128_bswap32_80( void *d, void *s )
+static inline void v128_bswap32_80( void *d, void *s )
 {
   const __m128i bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
                                              0x0405060700010203 );
@@ -419,9 +418,20 @@ static inline void mm128_bswap32_80( void *d, void *s )
   casti_m128i( d, 4 ) = _mm_shuffle_epi8( casti_m128i( s, 4 ), bswap_shuf );
 }
 
+#elif defined(__aarch64__) && defined(__ARM_NEON)
+
+static inline void v128_bswap32_80( void *d, void *s )
+{
+  casti_v128( d, 0 ) = v128_bswap32( casti_v128( s, 0 ) );
+  casti_v128( d, 1 ) = v128_bswap32( casti_v128( s, 1 ) );
+  casti_v128( d, 2 ) = v128_bswap32( casti_v128( s, 2 ) );
+  casti_v128( d, 3 ) = v128_bswap32( casti_v128( s, 3 ) );
+  casti_v128( d, 4 ) = v128_bswap32( casti_v128( s, 4 ) );
+}  
+
 #else
 
-static inline void mm128_bswap32_80( void *d, void *s )
+static inline void v128_bswap32_80( void *d, void *s )
 {
   ( (uint32_t*)d )[ 0] = bswap_32( ( (uint32_t*)s )[ 0] );
   ( (uint32_t*)d )[ 1] = bswap_32( ( (uint32_t*)s )[ 1] );
@@ -447,7 +457,9 @@ static inline void mm128_bswap32_80( void *d, void *s )
 
 #endif
 
-static inline void mm128_bswap32_intrlv80_4x32( void *d, const void *src )
+#if defined(__SSE2__)
+
+static inline void v128_bswap32_intrlv80_4x32( void *d, const void *src )
 {
   __m128i s0 = casti_m128i( src,0 );
   __m128i s1 = casti_m128i( src,1 );
@@ -502,6 +514,49 @@ static inline void mm128_bswap32_intrlv80_4x32( void *d, const void *src )
   casti_m128i( d,19 ) = _mm_shuffle_epi32( s4, 0xff );
 }
 
+#elif defined(__aarch64__) && defined(__ARM_NEON)
+
+static inline void v128_bswap32_intrlv80_4x32( void *d, const void *src )
+{
+  v128_t s0 = casti_v128( src,0 );
+  v128_t s1 = casti_v128( src,1 );
+  v128_t s2 = casti_v128( src,2 );
+  v128_t s3 = casti_v128( src,3 );
+  v128_t s4 = casti_v128( src,4 );
+
+  s0 = v128_bswap32( s0 );
+  s1 = v128_bswap32( s1 );
+  s2 = v128_bswap32( s2 );
+  s3 = v128_bswap32( s3 );
+  s4 = v128_bswap32( s4 );
+
+  casti_v128( d, 0 ) = vdupq_laneq_u32( s0, 0 );
+  casti_v128( d, 1 ) = vdupq_laneq_u32( s0, 1 );
+  casti_v128( d, 2 ) = vdupq_laneq_u32( s0, 2 );
+  casti_v128( d, 3 ) = vdupq_laneq_u32( s0, 3 );
+
+  casti_v128( d, 4 ) = vdupq_laneq_u32( s1, 0 );
+  casti_v128( d, 5 ) = vdupq_laneq_u32( s1, 1 );
+  casti_v128( d, 6 ) = vdupq_laneq_u32( s1, 2 );
+  casti_v128( d, 7 ) = vdupq_laneq_u32( s1, 3 );
+
+  casti_v128( d, 8 ) = vdupq_laneq_u32( s2, 0 );
+  casti_v128( d, 9 ) = vdupq_laneq_u32( s2, 1 );
+  casti_v128( d,10 ) = vdupq_laneq_u32( s2, 2 );
+  casti_v128( d,11 ) = vdupq_laneq_u32( s2, 3 );
+
+  casti_v128( d,12 ) = vdupq_laneq_u32( s3, 0 );
+  casti_v128( d,13 ) = vdupq_laneq_u32( s3, 1 );
+  casti_v128( d,14 ) = vdupq_laneq_u32( s3, 2 );
+  casti_v128( d,15 ) = vdupq_laneq_u32( s3, 3 );
+
+  casti_v128( d,16 ) = vdupq_laneq_u32( s2, 0 );
+  casti_v128( d,17 ) = vdupq_laneq_u32( s2, 1 );
+  casti_v128( d,18 ) = vdupq_laneq_u32( s2, 2 );
+  casti_v128( d,19 ) = vdupq_laneq_u32( s2, 3 );
+}
+
+#endif
 
 // 8x32
 
@@ -1365,7 +1420,50 @@ static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
 //
 //     64 bit data
 
+// 2x64    (SSE2)
+
+static inline void intrlv_2x64( void *dst, const void *src0,
+                                const void *src1, const int bit_len )
+{
+   uint64_t *d = (uint64_t*)dst;;
+   const uint64_t *s0 = (const uint64_t*)src0;
+   const uint64_t *s1 = (const uint64_t*)src1;
+   d[ 0] = s0[ 0];    d[ 1] = s1[ 0];   d[ 2] = s0[ 1];    d[ 3] = s1[ 1];
+   d[ 4] = s0[ 2];    d[ 5] = s1[ 2];   d[ 6] = s0[ 3];    d[ 7] = s1[ 3];
+   if ( bit_len <= 256 ) return;
+   d[ 8] = s0[ 4];    d[ 9] = s1[ 4];   d[10] = s0[ 5];    d[11] = s1[ 5];
+   d[12] = s0[ 6];    d[13] = s1[ 6];   d[14] = s0[ 7];    d[15] = s1[ 7];
+   if ( bit_len <= 512 ) return;
+   d[16] = s0[ 8];    d[17] = s1[ 8];   d[18] = s0[ 9];    d[19] = s1[ 9];
+   if ( bit_len <= 640 ) return;
+   d[20] = s0[10];    d[21] = s1[10];   d[22] = s0[11];    d[23] = s1[11];
+   d[24] = s0[12];    d[25] = s1[12];   d[26] = s0[13];    d[27] = s1[13];
+   d[28] = s0[14];    d[29] = s1[14];   d[30] = s0[15];    d[31] = s1[15];
+}
+
+static inline void dintrlv_2x64( void *dst0, void *dst1,
+                                 const void *src, const int bit_len )
+{
+   uint64_t *d0 = (uint64_t*)dst0;
+   uint64_t *d1 = (uint64_t*)dst1;
+   const uint64_t *s = (const uint64_t*)src;
+
+   d0[ 0] = s[ 0];   d1[ 0] = s[ 1];   d0[ 1] = s[ 2];   d1[ 1] = s[ 3];
+   d0[ 2] = s[ 4];   d1[ 2] = s[ 5];   d0[ 3] = s[ 6];   d1[ 3] = s[ 7];
+   if ( bit_len <= 256 ) return;
+   d0[ 4] = s[ 8];   d1[ 4] = s[ 9];   d0[ 5] = s[10];   d1[ 5] = s[11];
+   d0[ 6] = s[12];   d1[ 6] = s[13];   d0[ 7] = s[14];   d1[ 7] = s[15];
+   if ( bit_len <= 512 ) return;
+   d0[ 8] = s[16];   d1[ 8] = s[17];   d0[ 9] = s[18];   d1[ 9] = s[19];
+   if ( bit_len <= 640 ) return;
+   d0[10] = s[20];   d1[10] = s[21];   d0[11] = s[22];   d1[11] = s[23];
+   d0[12] = s[24];   d1[12] = s[25];   d0[13] = s[26];   d1[13] = s[27];
+   d0[14] = s[28];   d1[14] = s[29];   d0[15] = s[30];   d1[15] = s[31];
+}
+
 // 4x64   (AVX2)
+
+#if defined(__SSE2__)
 
 static inline void intrlv_4x64( void *dst, const void *src0,
                     const void *src1, const void *src2, const void *src3,
@@ -1560,6 +1658,8 @@ static inline void mm256_intrlv80_4x64( void *d, const void *src )
                           _mm256_castsi128_si256( s4 ), 0x55 );
 }
 
+#endif
+
 #if defined(__AVX512VL__) && defined(__AVX512VBMI__)
 
 //TODO Enable for AVX10_256 AVX10_512
@@ -1596,7 +1696,7 @@ static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
                          _mm256_castsi128_si256( s4 ) );
 }
 
-#else
+#elif defined(__AVX2__)
 
 static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
 {
@@ -1626,11 +1726,13 @@ static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
                           _mm256_castsi128_si256( s4 ), 0x55 );
 }
 
-#endif
+#endif   // AVX2
 
-#endif  // AVX2
+#endif  // SSE2
 
 // 8x64   (AVX512)
+
+#if defined(__SSE2__)
 
 static inline void intrlv_8x64( void *dst, const void *src0,
        const void *src1, const void *src2, const void *src3,
@@ -1948,6 +2050,8 @@ static inline void extr_lane_8x64( void *dst, const void *src, const int lane,
    return;
 }
 
+#endif  // SSE2
+
 #if defined(__AVX512F__) && defined(__AVX512VL__)
 
 //TODO Enable for AVX10_512
@@ -2051,6 +2155,8 @@ static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
 //      128 bit data
 
 // 2x128  (AVX2)
+
+#if defined(__SSE2__)
 
 static inline void intrlv_2x128( void *dst, const void *src0,
                                  const void *src1, const int bit_len )
@@ -2195,6 +2301,8 @@ static inline void dintrlv_4x128_512( void *dst0, void *dst1, void *dst2,
    d0[3] = s[12];   d1[3] = s[13];    d2[3] = s[14];   d3[3] = s[15];
 }
 
+#endif  // SSE2
+
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #if defined(__AVX512VBMI__)
@@ -2293,6 +2401,8 @@ static inline void dintrlv_2x256( void *dst0, void *dst1,
 // Re-intereleaving
 
 // 4x64 -> 4x32
+
+#if defined(__SSE2__)
 
 static inline void rintrlv_4x64_4x32( void *dst, const void *src,
                                             const int  bit_len )
@@ -2606,6 +2716,7 @@ static inline void rintrlv_8x32_4x128( void *dst0, void *dst1,
 
 // 2x128 -> 4x64
 
+
 static inline void rintrlv_2x128_4x64( void *dst, const void *src0,
                                        const void *src1, const int bit_len )
 {
@@ -2872,6 +2983,7 @@ static inline void rintrlv_8x64_4x128( void *dst0, void *dst1,
 
 // 8x64 -> 2x256
 
+
 static inline void rintrlv_8x64_2x256( void *dst0, void *dst1, void *dst2,
                           void *dst3,  const void *src, const int bit_len )
 {
@@ -3049,6 +3161,8 @@ static inline void rintrlv_2x256_8x64( void *dst, const void *src0,
    d[62] = _mm_unpackhi_epi64( s2[13], s2[15] );
    d[63] = _mm_unpackhi_epi64( s3[13], s3[15] );
 }
+
+#endif  // SSE2
 
 //
 // Some functions customized for mining.

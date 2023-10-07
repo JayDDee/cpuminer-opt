@@ -755,9 +755,9 @@ void memrev(unsigned char *p, size_t len)
 {
    if ( len == 32 )
    {
-      __m128i *pv = (__m128i*)p;
-      __m128i t = mm128_bswap_128( pv[0] );
-      pv[0] =     mm128_bswap_128( pv[1] );   
+      v128_t *pv = (v128_t*)p;
+      v128_t t = v128_bswap128( pv[0] );
+      pv[0] =     v128_bswap128( pv[1] );   
       pv[1] = t;
    }
    else

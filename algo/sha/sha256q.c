@@ -45,7 +45,7 @@ int scanhash_sha256q( struct work *work, uint32_t max_nonce,
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
 
-   mm128_bswap32_80( edata, pdata );
+   v128_bswap32_80( edata, pdata );
    sha256q_midstate( edata );
 
    do

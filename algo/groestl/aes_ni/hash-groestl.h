@@ -9,13 +9,12 @@
 #ifndef __hash_h
 #define __hash_h
 
-#include <immintrin.h>
-
 #include <stdio.h>
 #if defined(_WIN64) || defined(__WINDOWS__)
 #include <windows.h>
 #endif
 #include <stdlib.h>
+#include "simd-utils.h"
 
 #define LENGTH (512)
 
@@ -67,8 +66,8 @@ typedef enum { SUCCESS_GR = 0, FAIL_GR = 1, BAD_HASHBITLEN_GR = 2} HashReturn_gr
 #define SIZE512 (SIZE_1024/16)
 
 typedef struct {
-  __attribute__ ((aligned (64))) __m128i chaining[SIZE512];
-  __attribute__ ((aligned (64))) __m128i buffer[SIZE512];
+  __attribute__ ((aligned (64))) v128_t chaining[SIZE512];
+  __attribute__ ((aligned (64))) v128_t buffer[SIZE512];
   int hashlen;       // byte
   int blk_count;     // SIZE_m128i
   int buf_ptr;       // __m128i offset

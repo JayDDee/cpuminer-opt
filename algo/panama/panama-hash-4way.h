@@ -11,8 +11,8 @@
 
 typedef struct {
    unsigned char data[32<<2];
-   __m128i buffer[32][8];
-   __m128i state[17];
+   v128_t buffer[32][8];
+   v128_t state[17];
    unsigned data_ptr;
    unsigned buffer_ptr;
 } panama_4way_context __attribute__ ((aligned (64)));

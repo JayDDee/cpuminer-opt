@@ -1,4 +1,5 @@
 #include <memory.h>
+#include <mm_malloc.h>
 #include <stdlib.h>
 
 #include "hodl-gate.h"

@@ -11,12 +11,16 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #ifdef __AES__
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "algo/groestl/sph_groestl.h"
+#endif
+#if defined(__aarch64__)
+  #include "algo/luffa/sph_luffa.h"
+#else
+  #include "algo/luffa/luffa_for_sse2.h"
 #endif
 
 static __thread uint32_t s_ntime = UINT32_MAX;
@@ -28,7 +32,11 @@ typedef struct {
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
+#if defined(__aarch64__)
+        sph_luffa512_context       luffa;
+#else
         hashState_luffa         luffa;
+#endif
         cubehashParam           cube;
 #ifdef __AES__
         hashState_groestl       groestl;
@@ -47,7 +55,11 @@ void init_tt8_ctx()
         sph_skein512_init( &tt_ctx.skein );
         sph_jh512_init( &tt_ctx.jh );
         sph_keccak512_init( &tt_ctx.keccak );
+#if defined(__aarch64__)
+        sph_luffa512_init( &tt_ctx.luffa );
+#else
         init_luffa( &tt_ctx.luffa, 512 );
+#endif
         cubehashInit( &tt_ctx.cube, 512, 16, 32 );
 #ifdef __AES__
         init_groestl( &tt_ctx.groestl, 64 );
@@ -171,26 +183,37 @@ void timetravel_hash(void *output, const void *input)
      case 6:
         if ( i == 0 )
         {
+#if defined(__aarch64__)
            memcpy( &ctx.luffa, &tt_mid.luffa, sizeof tt_mid.luffa );
-           update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
-                                   (const BitSequence *)input + 64, 16 );
+           sph_luffa512( &ctx.luffa, input + 64, 16 );
+           sph_luffa512_close( &ctx.luffa, hashB );
+#else
+           memcpy( &ctx.luffa, &tt_mid.luffa, sizeof tt_mid.luffa );
+           update_and_final_luffa( &ctx.luffa, hashB,
+                                   input + 64, 16 );
+#endif
         }
         else
         {
-           update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
-                                   (const BitSequence *)hashA, dataLen );
+#if defined(__aarch64__)
+           sph_luffa512( &ctx.luffa, hashA, dataLen );
+           sph_luffa512_close( &ctx.luffa, hashB );
+#else
+           update_and_final_luffa( &ctx.luffa, hashB,
+                                   hashA, dataLen );
+#endif
         }
         break;
      case 7:
         if ( i == 0 )
         {
            memcpy( &ctx.cube, &tt_mid.cube, sizeof tt_mid.cube );
-           cubehashUpdateDigest( &ctx.cube, (byte*)hashB,
-                                 (const byte*)input + midlen, tail );
+           cubehashUpdateDigest( &ctx.cube, hashB,
+                                 input + midlen, tail );
         }
         else
         {
-           cubehashUpdateDigest( &ctx.cube, (byte*)hashB, (const byte*)hashA,
+           cubehashUpdateDigest( &ctx.cube, hashB, hashA,
                                  dataLen );
         }
         break;
@@ -264,11 +287,15 @@ int scanhash_timetravel( struct work *work, uint32_t max_nonce,
            break;
         case 6:
            memcpy( &tt_mid.luffa, &tt_ctx.luffa, sizeof(tt_mid.luffa ) );
-           update_luffa( &tt_mid.luffa, (const BitSequence*)endiandata, 64 );
+#if defined(__aarch64__)
+           sph_luffa512( &tt_mid.luffa, endiandata, 64 );
+#else
+           update_luffa( &tt_mid.luffa, endiandata, 64 );
+#endif
            break;
         case 7:
            memcpy( &tt_mid.cube, &tt_ctx.cube, sizeof(tt_mid.cube ) );
-           cubehashUpdate( &tt_mid.cube, (const byte*)endiandata, 64 );
+           cubehashUpdate( &tt_mid.cube, endiandata, 64 );
            break;
         default:
            break;

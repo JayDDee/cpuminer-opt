@@ -65,8 +65,8 @@ extern "C" {
 #endif
 
 typedef struct {
-   __m128i block[16] __attribute__ ((aligned (64)));
-   __m128i digest[8];
+   v128_t block[16] __attribute__ ((aligned (64)));
+   v128_t digest[8];
    uint32_t nblocks;
    uint32_t num;
 } sm3_4way_ctx_t;
