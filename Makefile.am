@@ -287,8 +287,6 @@ cpuminer_SOURCES = \
 
 disable_flags =
 
-if USE_ASM
-   cpuminer_SOURCES += asm/neoscrypt_asm.S
 if ARCH_x86
    cpuminer_SOURCES += asm/sha2-x86.S asm/scrypt-x86.S
 endif
