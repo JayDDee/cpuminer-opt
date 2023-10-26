@@ -388,11 +388,11 @@ void blake2b_8way_final( blake2b_8way_ctx *ctx, void *out )
 #define B2B_G(a, b, c, d, x, y) \
 { \
    v[a] = _mm256_add_epi64( _mm256_add_epi64( v[a], v[b] ), x ); \
-	v[d] = mm256_swap64_32( _mm256_xor_si256( v[d], v[a] ) ); \
+	v[d] = mm256_ror_64( _mm256_xor_si256( v[d], v[a] ), 32 ); \
 	v[c] = _mm256_add_epi64( v[c], v[d] ); \
-	v[b] = mm256_shuflr64_24( _mm256_xor_si256( v[b], v[c] ) ); \
+	v[b] = mm256_ror_64( _mm256_xor_si256( v[b], v[c] ), 24 ); \
 	v[a] = _mm256_add_epi64( _mm256_add_epi64( v[a], v[b] ), y ); \
-	v[d] = mm256_shuflr64_16( _mm256_xor_si256( v[d], v[a] ) ); \
+	v[d] = mm256_ror_64( _mm256_xor_si256( v[d], v[a] ), 16 ); \
 	v[c] = _mm256_add_epi64( v[c], v[d] ); \
 	v[b] = mm256_ror_64( _mm256_xor_si256( v[b], v[c] ), 63 ); \
 }

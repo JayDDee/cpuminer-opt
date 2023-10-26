@@ -35,7 +35,7 @@ int scanhash_sha256t_16way( struct work *work, const uint32_t max_nonce,
    const int thr_id = mythr->id;
    const __m512i sixteen = v512_32( 16 );
    const bool bench = opt_benchmark;
-   const __m256i bswap_shuf = mm256_bcast_m128( _mm_set_epi64x(
+   const __m256i bswap_shuf = mm256_bcast_m128( v128_set64(
                                 0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
    // prehash first block directly from pdata
@@ -208,8 +208,7 @@ int scanhash_sha256t_neon_sha2( struct work *work, uint32_t max_nonce,
    uint32_t block2b[16] __attribute__ ((aligned (64)));
    uint32_t hasha[8]   __attribute__ ((aligned (32)));
    uint32_t hashb[8]   __attribute__ ((aligned (32)));
-   uint32_t mstatea[8] __attribute__ ((aligned (32)));
-   uint32_t sstate[8]  __attribute__ ((aligned (32)));
+   uint32_t mstate[8] __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -219,7 +218,7 @@ int scanhash_sha256t_neon_sha2( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
 
    // hash first 64 byte block of data
-   sha256_transform_le( mstatea, pdata, sha256_iv );
+   sha256_transform_le( mstate, pdata, sha256_iv );
 
    // fill & pad second bock without nonce
    memcpy( block1a, pdata + 16, 12 );
@@ -242,11 +241,11 @@ int scanhash_sha256t_neon_sha2( struct work *work, uint32_t max_nonce,
       // Insert nonce for second block
       block1a[3] = n;
       block1b[3] = n+1;
-      sha256_neon2x_transform_le( block2a, block2b, block1a, block1b,
-                                  mstatea, mstatea );
-      sha256_neon2x_transform_le( block2a, block2b, block2a, block2b,
+      sha256_neon_x2sha_transform_le( block2a, block2b, block1a, block1b,
+                                  mstate, mstate );
+      sha256_neon_x2sha_transform_le( block2a, block2b, block2a, block2b,
                                   sha256_iv, sha256_iv );
-      sha256_neon2x_transform_le( hasha, hashb, block2a, block2b,
+      sha256_neon_x2sha_transform_le( hasha, hashb, block2a, block2b,
                                   sha256_iv, sha256_iv );
 
       if ( unlikely( bswap_32( hasha[7] ) <= ptarget[7] ) )
@@ -397,7 +396,7 @@ int scanhash_sha256t_4way( struct work *work, const uint32_t max_nonce,
    for ( int i = 0; i < 19; i++ )
        vdata[i] = v128_32( pdata[i] );
 
-   *noncev = v128_set_32( n+ 3, n+ 2, n+1, n );
+   *noncev = v128_set32( n+ 3, n+ 2, n+1, n );
 
    vdata[16+4] = last_byte;
    v128_memset_zero( vdata+16 + 5, 10 );

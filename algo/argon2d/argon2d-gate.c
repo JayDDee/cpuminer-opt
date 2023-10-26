@@ -68,7 +68,7 @@ bool register_argon2d_crds_algo( algo_gate_t* gate )
 {
         gate->scanhash = (void*)&scanhash_argon2d_crds;
         gate->hash = (void*)&argon2d_crds_hash;
-        gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+        gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
         opt_target_factor = 65536.0;
         return true;
 }
@@ -137,7 +137,7 @@ bool register_argon2d_dyn_algo( algo_gate_t* gate )
 {
         gate->scanhash = (void*)&scanhash_argon2d_dyn;
         gate->hash = (void*)&argon2d_dyn_hash;
-        gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+        gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
         opt_target_factor = 65536.0;
         return true;
 }
@@ -182,7 +182,7 @@ int scanhash_argon2d4096( struct work *work, uint32_t max_nonce,
 bool register_argon2d4096_algo( algo_gate_t* gate )
 {
         gate->scanhash = (void*)&scanhash_argon2d4096;
-        gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+        gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT |NEON_OPT;
         opt_target_factor = 65536.0;
         return true;
 }

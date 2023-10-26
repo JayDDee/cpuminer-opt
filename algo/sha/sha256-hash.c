@@ -1,5 +1,7 @@
 #include "sha256-hash.h"
 
+#if ( defined(__x86_64__) && defined(__SHA__) ) || defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA2)
+
 static const uint32_t SHA256_IV[8] =
 {
    0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
@@ -861,9 +863,7 @@ void sha256_ni2x_final_rounds( uint32_t *out_X, uint32_t *out_Y,
 
 #endif     // SHA
 
-#if defined(__aarch64__) && defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA2)
-
-#pragma message "NEON SHA2 for sha256"
+#if defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA2)
 
 static const uint32_t K256[64] =
 {
@@ -1010,7 +1010,7 @@ static const uint32_t K256[64] =
     vst1q_u32( state_out+4, STATE1 ); \
 }
 
-void sha256_neon_transform_be( uint32_t *state_out, const void *input,
+void sha256_neon_sha_transform_be( uint32_t *state_out, const void *input,
                                const uint32_t *state_in )
 {
 #define load_msg( m, i )  v128_bswap32( casti_v128( m, i ) );
@@ -1018,7 +1018,7 @@ void sha256_neon_transform_be( uint32_t *state_out, const void *input,
 #undef load_msg
 }
 
-void sha256_neon_transform_le( uint32_t *state_out, const void *input,
+void sha256_neon_sha_transform_le( uint32_t *state_out, const void *input,
                                const uint32_t *state_in )
 {
 #define load_msg( m, i )  casti_v128( m, i );
@@ -1026,7 +1026,7 @@ void sha256_neon_transform_le( uint32_t *state_out, const void *input,
 #undef load_msg
 }
 
-#define sha256_neon2x_rounds( state_out_X, state_out_Y, input_X, \
+#define sha256_neon_x2sha_rounds( state_out_X, state_out_Y, input_X, \
                               input_Y, state_in_X, state_in_Y ) \
 { \
     uint32x4_t STATE0_X, STATE1_X, ABEF_SAVE_X, CDGH_SAVE_X; \
@@ -1255,21 +1255,21 @@ void sha256_neon_transform_le( uint32_t *state_out, const void *input,
     vst1q_u32( state_out_Y+4, STATE1_Y ); \
 }   
 
-void sha256_neon2x_transform_le( uint32_t *out_X, uint32_t*out_Y,
+void sha256_neon_x2sha_transform_le( uint32_t *out_X, uint32_t*out_Y,
                                  const void *msg_X, const void *msg_Y,
                                  const uint32_t *in_X, const uint32_t *in_Y )
 {
 #define load_msg( m, i ) casti_v128( m, i )
- sha256_neon2x_rounds( out_X, out_Y, msg_X, msg_Y, in_X, in_Y );
+ sha256_neon_x2sha_rounds( out_X, out_Y, msg_X, msg_Y, in_X, in_Y );
 #undef load_msg
 }
 
-void sha256_neon2x_transform_be( uint32_t *out_X, uint32_t*out_Y,
+void sha256_neon_x2sha_transform_be( uint32_t *out_X, uint32_t*out_Y,
                               const void *msg_X, const void *msg_Y,
                               const uint32_t *in_X, const uint32_t *in_Y )
 {
 #define load_msg( m, i ) v128_bswap32( casti_v128( m, i ) )
- sha256_neon2x_rounds( out_X, out_Y, msg_X, msg_Y, in_X, in_Y );
+ sha256_neon_x2sha_rounds( out_X, out_Y, msg_X, msg_Y, in_X, in_Y );
 #undef load_msg
 }
 
@@ -1367,3 +1367,4 @@ void sha256_full( void *hash, const void *data, size_t len )
    sha256_final( &ctx, hash );
 }
 
+#endif

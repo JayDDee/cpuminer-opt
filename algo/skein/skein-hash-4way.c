@@ -30,19 +30,9 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
-#if defined (__AVX2__)
-
 #include <stddef.h>
 #include <string.h>
 #include "skein-hash-4way.h"
-
-#ifdef __cplusplus
-extern "C"{
-#endif
-
-#ifdef _MSC_VER
-#pragma warning (disable: 4146)
-#endif
 
 /*
 static const uint64_t IV256[] = {
@@ -414,6 +404,8 @@ do { \
 
 #endif // AVX512
 
+#if defined (__AVX2__)
+
 #define TFBIG_KINIT_4WAY( k0, k1, k2, k3, k4, k5, k6, k7, k8, t0, t1, t2 ) \
   k8 = mm256_xor3( mm256_xor3( k0, k1, k2 ), \
                    mm256_xor3( k3, k4, k5 ), \
@@ -516,6 +508,8 @@ do { \
 #define DECL_STATE_BIG_4WAY \
   __m256i h0, h1, h2, h3, h4, h5, h6, h7; \
   uint64_t bcount;
+
+#endif  // AVX2
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -807,6 +801,7 @@ skein512_8way_close(void *cc, void *dst)
 
 #endif // AVX512
 
+#if defined(__AVX2__)
 
 void skein256_4way_init( skein256_4way_context *sc )
 {
@@ -1099,8 +1094,398 @@ skein512_4way_close(void *cc, void *dst)
         skein_big_close_4way(cc, 0, 0, dst, 64);
 }
 
-#ifdef __cplusplus
-}
-#endif
+#endif   // AVX2
 
-#endif
+// SSE2 & NEON
+
+#define TFBIG_KINIT_2WAY( k0, k1, k2, k3, k4, k5, k6, k7, k8, t0, t1, t2 ) \
+  k8 = v128_xor3( v128_xor3( k0, k1, k2 ), \
+                  v128_xor3( k3, k4, k5 ), \
+                  v128_xor3( k6, k7, v128_64( 0x1BD11BDAA9FC1A22 ) ) ); \
+  t2 = t0 ^ t1;
+
+#define TFBIG_ADDKEY_2WAY(w0, w1, w2, w3, w4, w5, w6, w7, k, t, s) \
+  w0 = v128_add64( w0, SKBI(k,s,0) ); \
+  w1 = v128_add64( w1, SKBI(k,s,1) ); \
+  w2 = v128_add64( w2, SKBI(k,s,2) ); \
+  w3 = v128_add64( w3, SKBI(k,s,3) ); \
+  w4 = v128_add64( w4, SKBI(k,s,4) ); \
+  w5 = v128_add64( w5, v128_add64( SKBI(k,s,5), v128_64( SKBT(t,s,0) ) ) ); \
+  w6 = v128_add64( w6, v128_add64( SKBI(k,s,6), v128_64( SKBT(t,s,1) ) ) ); \
+  w7 = v128_add64( w7, v128_add64( SKBI(k,s,7), v128_64(s) ) );
+
+#define TFBIG_MIX_2WAY(x0, x1, rc) \
+     x0 = v128_add64( x0, x1 ); \
+     x1 = v128_xor( v128_rol64( x1, rc ), x0 );
+
+#define TFBIG_MIX8_2WAY(w0, w1, w2, w3, w4, w5, w6, w7, rc0, rc1, rc2, rc3) \
+      TFBIG_MIX_2WAY(w0, w1, rc0); \
+      TFBIG_MIX_2WAY(w2, w3, rc1); \
+      TFBIG_MIX_2WAY(w4, w5, rc2); \
+      TFBIG_MIX_2WAY(w6, w7, rc3);
+
+#define TFBIG_2WAY_4e(s) \
+      TFBIG_ADDKEY_2WAY(p0, p1, p2, p3, p4, p5, p6, p7, h, t, s); \
+      TFBIG_MIX8_2WAY(p0, p1, p2, p3, p4, p5, p6, p7, 46, 36, 19, 37); \
+      TFBIG_MIX8_2WAY(p2, p1, p4, p7, p6, p5, p0, p3, 33, 27, 14, 42); \
+      TFBIG_MIX8_2WAY(p4, p1, p6, p3, p0, p5, p2, p7, 17, 49, 36, 39); \
+      TFBIG_MIX8_2WAY(p6, p1, p0, p7, p2, p5, p4, p3, 44,  9, 54, 56);
+
+#define TFBIG_2WAY_4o(s) \
+      TFBIG_ADDKEY_2WAY(p0, p1, p2, p3, p4, p5, p6, p7, h, t, s); \
+      TFBIG_MIX8_2WAY(p0, p1, p2, p3, p4, p5, p6, p7, 39, 30, 34, 24); \
+      TFBIG_MIX8_2WAY(p2, p1, p4, p7, p6, p5, p0, p3, 13, 50, 10, 17); \
+      TFBIG_MIX8_2WAY(p4, p1, p6, p3, p0, p5, p2, p7, 25, 29, 39, 43); \
+      TFBIG_MIX8_2WAY(p6, p1, p0, p7, p2, p5, p4, p3,  8, 35, 56, 22);
+
+// scale buf offset by 4
+#define UBI_BIG_2WAY(etype, extra) \
+do { \
+  uint64_t t0, t1, t2; \
+  v128u64_t h8; \
+  v128u64_t m0 =  buf[0]; \
+  v128u64_t m1 =  buf[1]; \
+  v128u64_t m2 =  buf[2]; \
+  v128u64_t m3 =  buf[3]; \
+  v128u64_t m4 =  buf[4]; \
+  v128u64_t m5 =  buf[5]; \
+  v128u64_t m6 =  buf[6]; \
+  v128u64_t m7 =  buf[7]; \
+\
+  v128u64_t p0 = m0; \
+  v128u64_t p1 = m1; \
+  v128u64_t p2 = m2; \
+  v128u64_t p3 = m3; \
+  v128u64_t p4 = m4; \
+  v128u64_t p5 = m5; \
+  v128u64_t p6 = m6; \
+  v128u64_t p7 = m7; \
+  t0 = (uint64_t)(bcount << 6) + (uint64_t)(extra); \
+  t1 = (bcount >> 58) + ((uint64_t)(etype) << 55); \
+  TFBIG_KINIT_2WAY(h0, h1, h2, h3, h4, h5, h6, h7, h8, t0, t1, t2); \
+  TFBIG_2WAY_4e(0); \
+  TFBIG_2WAY_4o(1); \
+  TFBIG_2WAY_4e(2); \
+  TFBIG_2WAY_4o(3); \
+  TFBIG_2WAY_4e(4); \
+  TFBIG_2WAY_4o(5); \
+  TFBIG_2WAY_4e(6); \
+  TFBIG_2WAY_4o(7); \
+  TFBIG_2WAY_4e(8); \
+  TFBIG_2WAY_4o(9); \
+  TFBIG_2WAY_4e(10); \
+  TFBIG_2WAY_4o(11); \
+  TFBIG_2WAY_4e(12); \
+  TFBIG_2WAY_4o(13); \
+  TFBIG_2WAY_4e(14); \
+  TFBIG_2WAY_4o(15); \
+  TFBIG_2WAY_4e(16); \
+  TFBIG_2WAY_4o(17); \
+  TFBIG_ADDKEY_2WAY(p0, p1, p2, p3, p4, p5, p6, p7, h, t, 18); \
+  h0 = v128_xor( m0, p0 );\
+  h1 = v128_xor( m1, p1 );\
+  h2 = v128_xor( m2, p2 );\
+  h3 = v128_xor( m3, p3 );\
+  h4 = v128_xor( m4, p4 );\
+  h5 = v128_xor( m5, p5 );\
+  h6 = v128_xor( m6, p6 );\
+  h7 = v128_xor( m7, p7 );\
+} while (0)
+
+#define DECL_STATE_BIG_2WAY \
+  v128u64_t h0, h1, h2, h3, h4, h5, h6, h7; \
+  uint64_t bcount;
+
+
+
+void skein256_2x64_init( skein256_2x64_context *sc )
+{
+        sc->h0 = v128_64( 0xCCD044A12FDB3E13 );
+        sc->h1 = v128_64( 0xE83590301A79A9EB );
+        sc->h2 = v128_64( 0x55AEA0614F816E6F );
+        sc->h3 = v128_64( 0x2A2767A4AE9B94DB );
+        sc->h4 = v128_64( 0xEC06025E74DD7683 );
+        sc->h5 = v128_64( 0xE7A436CDC4746251 );
+        sc->h6 = v128_64( 0xC36FBAF9393AD185 );
+        sc->h7 = v128_64( 0x3EEDBA1833EDFC13 );
+        sc->bcount = 0;
+        sc->ptr = 0;
+}
+
+void skein512_2x64_init( skein512_2x64_context *sc )
+{
+        sc->h0 = v128_64( 0x4903ADFF749C51CE );
+        sc->h1 = v128_64( 0x0D95DE399746DF03 );
+        sc->h2 = v128_64( 0x8FD1934127C79BCE );
+        sc->h3 = v128_64( 0x9A255629FF352CB1 );
+        sc->h4 = v128_64( 0x5DB62599DF6CA7B0 );
+        sc->h5 = v128_64( 0xEABE394CA9D5C3F4 );
+        sc->h6 = v128_64( 0x991112C71A75B523 );
+        sc->h7 = v128_64( 0xAE18A40B660FCC33 );
+        sc->bcount = 0;
+        sc->ptr = 0;
+}
+
+static void
+skein_big_core_2way( skein512_2x64_context *sc, const void *data,
+                     size_t len )
+{
+   v128u64_t *vdata = (v128u64_t*)data;
+   v128u64_t *buf;
+   size_t ptr;
+   unsigned first;
+   DECL_STATE_BIG_2WAY
+
+   buf = sc->buf;
+   ptr = sc->ptr;
+   const int buf_size = 64;   // 64 * _m256i
+
+   if ( len <= buf_size - ptr )
+   {
+       v128_memcpy( buf + (ptr>>3), vdata, len>>3 );
+       sc->ptr = ptr + len;
+       if ( ptr < buf_size ) return;
+   }
+
+   READ_STATE_BIG( sc );
+   first = ( bcount == 0 ) << 7;
+   do {
+       size_t clen;
+
+       if ( ptr == buf_size )
+       {
+            bcount ++;
+            UBI_BIG_2WAY( 96 + first, 0 );
+            first = 0;
+            ptr = 0;
+       }
+       clen = buf_size - ptr;
+       if ( clen > len )
+            clen = len;
+       len -= clen;
+       if ( len == 0 ) break;
+       v128_memcpy( buf + (ptr>>3), vdata, clen>>3 );
+       ptr += clen;
+       vdata += (clen>>3);
+       len -= clen;
+   } while ( len > 0 );
+   WRITE_STATE_BIG( sc );
+   sc->ptr = ptr;
+}
+
+static void
+skein_big_close_2way( skein512_2x64_context *sc, unsigned ub, unsigned n,
+                      void *dst, size_t out_len )
+{
+   v128u64_t *buf;
+   size_t ptr;
+   unsigned et;
+   DECL_STATE_BIG_2WAY
+
+   buf = sc->buf;
+   ptr = sc->ptr;
+        const int buf_size = 64;
+
+   READ_STATE_BIG(sc);
+
+   if ( ptr )
+   {
+      v128_memset_zero( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+      et = 352 + ((bcount == 0) << 7);
+      UBI_BIG_2WAY( et, ptr );
+   }
+
+   v128_memset_zero( buf, buf_size >> 3 );
+   bcount = 0;
+   UBI_BIG_2WAY( 510, 8 );
+
+   buf[0] = h0;
+   buf[1] = h1;
+   buf[2] = h2;
+   buf[3] = h3;
+   buf[4] = h4;
+   buf[5] = h5;
+   buf[6] = h6;
+   buf[7] = h7;
+
+   v128_memcpy( dst, buf, out_len >> 3 );
+}
+
+void
+skein512_2x64_full( skein512_2x64_context *sc, void *out, const void *data,
+                     size_t len )
+{
+   v128u64_t h0, h1, h2, h3, h4, h5, h6, h7;
+   v128u64_t *vdata = (v128u64_t*)data;
+   v128u64_t *buf = sc->buf;
+   size_t ptr = 0;
+   unsigned first;
+   const int buf_size = 64;   // 64 * __m256i
+   uint64_t bcount = 0;
+
+   h0 = v128_64( 0x4903ADFF749C51CE );
+   h1 = v128_64( 0x0D95DE399746DF03 );
+   h2 = v128_64( 0x8FD1934127C79BCE );
+   h3 = v128_64( 0x9A255629FF352CB1 );
+   h4 = v128_64( 0x5DB62599DF6CA7B0 );
+   h5 = v128_64( 0xEABE394CA9D5C3F4 );
+   h6 = v128_64( 0x991112C71A75B523 );
+   h7 = v128_64( 0xAE18A40B660FCC33 );
+
+// Update
+
+   if ( len <= buf_size - ptr )
+   {
+       v128_memcpy( buf + (ptr>>3), vdata, len>>3 );
+       ptr += len;
+   }
+   else
+   {
+      first = ( bcount == 0 ) << 7;
+      do {
+         size_t clen;
+
+         if ( ptr == buf_size )
+         {
+            bcount ++;
+            UBI_BIG_2WAY( 96 + first, 0 );
+            first = 0;
+            ptr = 0;
+         }
+         clen = buf_size - ptr;
+         if ( clen > len )
+            clen = len;
+         v128_memcpy( buf + (ptr>>3), vdata, clen>>3 );
+         ptr += clen;
+         vdata += (clen>>3);
+         len -= clen;
+      } while ( len > 0 );
+   }
+
+// Close
+
+   unsigned et;
+
+   v128_memset_zero( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+   et = 352 + ((bcount == 0) << 7);
+   UBI_BIG_2WAY( et, ptr );
+
+   v128_memset_zero( buf, buf_size >> 3 );
+   bcount = 0;
+   UBI_BIG_2WAY( 510, 8 );
+
+   casti_v128u64( out, 0 ) = h0;
+   casti_v128u64( out, 1 ) = h1;
+   casti_v128u64( out, 2 ) = h2;
+   casti_v128u64( out, 3 ) = h3;
+   casti_v128u64( out, 4 ) = h4;
+   casti_v128u64( out, 5 ) = h5;
+   casti_v128u64( out, 6 ) = h6;
+   casti_v128u64( out, 7 ) = h7;
+}
+
+void
+skein512_2x64_prehash64( skein512_2x64_context *sc, const void *data )
+{
+   v128u64_t *vdata = (v128u64_t*)data;
+   v128u64_t *buf = sc->buf;
+   buf[0] = vdata[0];
+   buf[1] = vdata[1];
+   buf[2] = vdata[2];
+   buf[3] = vdata[3];
+   buf[4] = vdata[4];
+   buf[5] = vdata[5];
+   buf[6] = vdata[6];
+   buf[7] = vdata[7];
+   register v128u64_t h0 = v128_64( 0x4903ADFF749C51CE );
+   register v128u64_t h1 = v128_64( 0x0D95DE399746DF03 );
+   register v128u64_t h2 = v128_64( 0x8FD1934127C79BCE );
+   register v128u64_t h3 = v128_64( 0x9A255629FF352CB1 );
+   register v128u64_t h4 = v128_64( 0x5DB62599DF6CA7B0 );
+   register v128u64_t h5 = v128_64( 0xEABE394CA9D5C3F4 );
+   register v128u64_t h6 = v128_64( 0x991112C71A75B523 );
+   register v128u64_t h7 = v128_64( 0xAE18A40B660FCC33 );
+   uint64_t bcount = 1;
+
+   UBI_BIG_2WAY( 224, 0 );
+   sc->h0 = h0;
+   sc->h1 = h1;
+   sc->h2 = h2;
+   sc->h3 = h3;
+   sc->h4 = h4;
+   sc->h5 = h5;
+   sc->h6 = h6;
+   sc->h7 = h7;
+}
+
+void
+skein512_2x64_final16( skein512_2x64_context *sc,  void *out, const void *data )
+{
+   v128u64_t *vdata = (v128u64_t*)data;
+   v128u64_t *buf = sc->buf;
+   register v128u64_t h0 = sc->h0;
+   register v128u64_t h1 = sc->h1;
+   register v128u64_t h2 = sc->h2;
+   register v128u64_t h3 = sc->h3;
+   register v128u64_t h4 = sc->h4;
+   register v128u64_t h5 = sc->h5;
+   register v128u64_t h6 = sc->h6;
+   register v128u64_t h7 = sc->h7;
+
+   const v128u64_t zero = v128_zero;
+   buf[0] = vdata[0];
+   buf[1] = vdata[1];
+   buf[2] = zero;
+   buf[3] = zero;
+   buf[4] = zero;
+   buf[5] = zero;
+   buf[6] = zero;
+   buf[7] = zero;
+
+   uint64_t bcount = 1;
+   UBI_BIG_2WAY( 352, 16 );
+
+   buf[0] = zero;
+   buf[1] = zero;
+
+   bcount = 0;
+   UBI_BIG_2WAY( 510, 8 );
+
+   casti_v128u64( out, 0 ) = h0;
+   casti_v128u64( out, 1 ) = h1;
+   casti_v128u64( out, 2 ) = h2;
+   casti_v128u64( out, 3 ) = h3;
+   casti_v128u64( out, 4 ) = h4;
+   casti_v128u64( out, 5 ) = h5;
+   casti_v128u64( out, 6 ) = h6;
+   casti_v128u64( out, 7 ) = h7;
+}
+
+// Broken for 80 bytes, use prehash.
+void
+skein256_2x64_update(void *cc, const void *data, size_t len)
+{
+   skein_big_core_2way(cc, data, len);
+}
+
+void
+skein256_2x64_close(void *cc, void *dst)
+{
+   skein_big_close_2way(cc, 0, 0, dst, 32);
+}
+
+
+// Broken for 80 & 128 bytes, use prehash or full
+void
+skein512_2x64_update(void *cc, const void *data, size_t len)
+{
+   skein_big_core_2way(cc, data, len);
+}
+
+void
+skein512_2x64_close(void *cc, void *dst)
+{
+    skein_big_close_2way(cc, 0, 0, dst, 64);
+}
+
+

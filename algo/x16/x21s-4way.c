@@ -193,7 +193,7 @@ bool x21s_8way_thread_init()
    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
 
    const int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
-   x21s_8way_matrix = _mm_malloc( 2 * size, 64 );
+   x21s_8way_matrix = mm_malloc( 2 * size, 64 );
    return x21s_8way_matrix;
 }
 
@@ -347,7 +347,7 @@ bool x21s_4way_thread_init()
    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
 
    const int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
-   x21s_4way_matrix = _mm_malloc( size, 64 );
+   x21s_4way_matrix = mm_malloc( size, 64 );
    return x21s_4way_matrix;
 }
 

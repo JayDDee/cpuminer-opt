@@ -100,22 +100,20 @@ typedef struct {
   int databitlen;
 } hashState_groestl256;
 
-HashReturn_gr init_groestl256( hashState_groestl256*, int );
+int init_groestl256( hashState_groestl256*, int );
 
-HashReturn_gr reinit_groestl256( hashState_groestl256* );
+int reinit_groestl256( hashState_groestl256* );
 
-HashReturn_gr update_groestl256( hashState_groestl256*, const void*,
-                              DataLength_gr );
+int update_groestl256( hashState_groestl256*, const void*, int );
 
-HashReturn_gr final_groestl256( hashState_groestl256*, void* );
+int final_groestl256( hashState_groestl256*, void* );
 
-HashReturn_gr hash_groestli256( int, const BitSequence_gr*, DataLength_gr,
-                            BitSequence_gr* );
+int hash_groestl256( int, const void*, int, uint8_t* );
 
-HashReturn_gr update_and_final_groestl256( hashState_groestl256*, void*,
-                                           const void*, DataLength_gr );
+int update_and_final_groestl256( hashState_groestl256*, void*,
+                                           const void*, int );
 
 int groestl256_full( hashState_groestl256* ctx,
-                   void* output, const void* input, DataLength_gr databitlen );
+                   void* output, const void* input, int databitlen );
 
 #endif /* __hash_h */

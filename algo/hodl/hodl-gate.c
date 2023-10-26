@@ -1,5 +1,5 @@
 #include <memory.h>
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
 #include <stdlib.h>
 
 #include "hodl-gate.h"
@@ -176,7 +176,7 @@ bool register_hodl_algo( algo_gate_t* gate )
   gate->resync_threads        = (void*)&hodl_resync_threads;
   gate->do_this_thread        = (void*)&hodl_do_this_thread;
   gate->work_cmp_size         = 76;
-  hodl_scratchbuf = (unsigned char*)_mm_malloc( 1 << 30, 64 );
+  hodl_scratchbuf = (unsigned char*)mm_malloc( 1 << 30, 64 );
   allow_getwork = false;
   opt_target_factor = 8388608.0;
   return ( hodl_scratchbuf != NULL );

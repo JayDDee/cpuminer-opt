@@ -75,8 +75,6 @@ static void transform( cubehashParam *sp )
 
 #else   // AVX, SSE2, NEON
 
-#pragma message "NEON for Cubehash"
-
     v128_t x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3;
 
     x0 = casti_v128( sp->x, 0 );
@@ -175,25 +173,25 @@ int cubehashInit(cubehashParam *sp, int hashbitlen, int rounds, int blockbytes)
     if ( hashbitlen == 512 )
     {
 
-       x[0] = v128_set_64( 0x4167D83E2D538B8B, 0x50F494D42AEA2A61 );
-       x[1] = v128_set_64( 0x50AC5695CC39968E, 0xC701CF8C3FEE2313 );
-       x[2] = v128_set_64( 0x825B453797CF0BEF, 0xA647A8B34D42C787 );
-       x[3] = v128_set_64( 0xA23911AED0E5CD33, 0xF22090C4EEF864D2 );
-       x[4] = v128_set_64( 0xB64445321B017BEF, 0x148FE485FCD398D9 );
-       x[5] = v128_set_64( 0x0DBADEA991FA7934, 0x2FF5781C6A536159 );
-       x[6] = v128_set_64( 0xBC796576B1C62456, 0xA5A70E75D65C8A2B );
-       x[7] = v128_set_64( 0xD43E3B447795D246, 0xE7989AF11921C8F7 );
+       x[0] = v128_set64( 0x4167D83E2D538B8B, 0x50F494D42AEA2A61 );
+       x[1] = v128_set64( 0x50AC5695CC39968E, 0xC701CF8C3FEE2313 );
+       x[2] = v128_set64( 0x825B453797CF0BEF, 0xA647A8B34D42C787 );
+       x[3] = v128_set64( 0xA23911AED0E5CD33, 0xF22090C4EEF864D2 );
+       x[4] = v128_set64( 0xB64445321B017BEF, 0x148FE485FCD398D9 );
+       x[5] = v128_set64( 0x0DBADEA991FA7934, 0x2FF5781C6A536159 );
+       x[6] = v128_set64( 0xBC796576B1C62456, 0xA5A70E75D65C8A2B );
+       x[7] = v128_set64( 0xD43E3B447795D246, 0xE7989AF11921C8F7 );
     }
     else
     {
-       x[0] = v128_set_64( 0x35481EAE63117E71, 0xCCD6F29FEA2BD4B4 );
-       x[1] = v128_set_64( 0xF4CC12BE7E624131, 0xE5D94E6322512D5B );
-       x[2] = v128_set_64( 0x3361DA8CD0720C35, 0x42AF2070C2D0B696 );
-       x[3] = v128_set_64( 0x40E5FBAB4680AC00, 0x8EF8AD8328CCECA4 );
-       x[4] = v128_set_64( 0xF0B266796C859D41, 0x6107FBD5D89041C3 );
-       x[5] = v128_set_64( 0x93CB628565C892FD, 0x5FA2560309392549 );
-       x[6] = v128_set_64( 0x85254725774ABFDD, 0x9E4B4E602AF2B5AE );
-       x[7] = v128_set_64( 0xD6032C0A9CDAF8AF, 0x4AB6AAD615815AEB );
+       x[0] = v128_set64( 0x35481EAE63117E71, 0xCCD6F29FEA2BD4B4 );
+       x[1] = v128_set64( 0xF4CC12BE7E624131, 0xE5D94E6322512D5B );
+       x[2] = v128_set64( 0x3361DA8CD0720C35, 0x42AF2070C2D0B696 );
+       x[3] = v128_set64( 0x40E5FBAB4680AC00, 0x8EF8AD8328CCECA4 );
+       x[4] = v128_set64( 0xF0B266796C859D41, 0x6107FBD5D89041C3 );
+       x[5] = v128_set64( 0x93CB628565C892FD, 0x5FA2560309392549 );
+       x[6] = v128_set64( 0x85254725774ABFDD, 0x9E4B4E602AF2B5AE );
+       x[7] = v128_set64( 0xD6032C0A9CDAF8AF, 0x4AB6AAD615815AEB );
     }   
 
     return 0;
@@ -229,10 +227,10 @@ int cubehashDigest( cubehashParam *sp, void *digest )
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->x[ sp->pos ] = v128_xor( sp->x[ sp->pos ],
-                                      v128_set_64( 0, 0x80 ) );
+                                      v128_set64( 0, 0x80 ) );
     transform( sp );
 
-    sp->x[7] = v128_xor( sp->x[7], v128_set_64( 0x100000000, 0 ) );
+    sp->x[7] = v128_xor( sp->x[7], v128_set64( 0x100000000, 0 ) );
     transform( sp );
     transform( sp );
     transform( sp );
@@ -274,10 +272,10 @@ int cubehashUpdateDigest( cubehashParam *sp, void *digest,
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->x[ sp->pos ] = v128_xor( sp->x[ sp->pos ],
-                                      v128_set_64( 0, 0x80 ) );
+                                      v128_set64( 0, 0x80 ) );
     transform( sp );
 
-    sp->x[7] = v128_xor( sp->x[7], v128_set_64( 0x100000000, 0 ) );
+    sp->x[7] = v128_xor( sp->x[7], v128_set64( 0x100000000, 0 ) );
 
     transform( sp );
     transform( sp );
@@ -308,29 +306,26 @@ int cubehash_full( cubehashParam *sp, void *digest, int hashbitlen,
     if ( hashbitlen == 512 )
     {
 
-       x[0] = v128_set_64( 0x4167D83E2D538B8B, 0x50F494D42AEA2A61 );
-       x[1] = v128_set_64( 0x50AC5695CC39968E, 0xC701CF8C3FEE2313 );
-       x[2] = v128_set_64( 0x825B453797CF0BEF, 0xA647A8B34D42C787 );
-       x[3] = v128_set_64( 0xA23911AED0E5CD33, 0xF22090C4EEF864D2 );
-       x[4] = v128_set_64( 0xB64445321B017BEF, 0x148FE485FCD398D9 );
-       x[5] = v128_set_64( 0x0DBADEA991FA7934, 0x2FF5781C6A536159 );
-       x[6] = v128_set_64( 0xBC796576B1C62456, 0xA5A70E75D65C8A2B );
-       x[7] = v128_set_64( 0xD43E3B447795D246, 0xE7989AF11921C8F7 );
+       x[0] = v128_set64( 0x4167D83E2D538B8B, 0x50F494D42AEA2A61 );
+       x[1] = v128_set64( 0x50AC5695CC39968E, 0xC701CF8C3FEE2313 );
+       x[2] = v128_set64( 0x825B453797CF0BEF, 0xA647A8B34D42C787 );
+       x[3] = v128_set64( 0xA23911AED0E5CD33, 0xF22090C4EEF864D2 );
+       x[4] = v128_set64( 0xB64445321B017BEF, 0x148FE485FCD398D9 );
+       x[5] = v128_set64( 0x0DBADEA991FA7934, 0x2FF5781C6A536159 );
+       x[6] = v128_set64( 0xBC796576B1C62456, 0xA5A70E75D65C8A2B );
+       x[7] = v128_set64( 0xD43E3B447795D246, 0xE7989AF11921C8F7 );
     }
     else
     {
-       x[0] = v128_set_64( 0x35481EAE63117E71, 0xCCD6F29FEA2BD4B4 );
-       x[1] = v128_set_64( 0xF4CC12BE7E624131, 0xE5D94E6322512D5B );
-       x[2] = v128_set_64( 0x3361DA8CD0720C35, 0x42AF2070C2D0B696 );
-       x[3] = v128_set_64( 0x40E5FBAB4680AC00, 0x8EF8AD8328CCECA4 );
-       x[4] = v128_set_64( 0xF0B266796C859D41, 0x6107FBD5D89041C3 );
-       x[5] = v128_set_64( 0x93CB628565C892FD, 0x5FA2560309392549 );
-       x[6] = v128_set_64( 0x85254725774ABFDD, 0x9E4B4E602AF2B5AE );
-       x[7] = v128_set_64( 0xD6032C0A9CDAF8AF, 0x4AB6AAD615815AEB );
+       x[0] = v128_set64( 0x35481EAE63117E71, 0xCCD6F29FEA2BD4B4 );
+       x[1] = v128_set64( 0xF4CC12BE7E624131, 0xE5D94E6322512D5B );
+       x[2] = v128_set64( 0x3361DA8CD0720C35, 0x42AF2070C2D0B696 );
+       x[3] = v128_set64( 0x40E5FBAB4680AC00, 0x8EF8AD8328CCECA4 );
+       x[4] = v128_set64( 0xF0B266796C859D41, 0x6107FBD5D89041C3 );
+       x[5] = v128_set64( 0x93CB628565C892FD, 0x5FA2560309392549 );
+       x[6] = v128_set64( 0x85254725774ABFDD, 0x9E4B4E602AF2B5AE );
+       x[7] = v128_set64( 0xD6032C0A9CDAF8AF, 0x4AB6AAD615815AEB );
     }
-
-
-
 
     const int len = size / 16;
     const v128_t* in = (v128_t*)data;
@@ -338,7 +333,7 @@ int cubehash_full( cubehashParam *sp, void *digest, int hashbitlen,
     int i;
 
     // It is assumed data is aligned to 256 bits and is a multiple of 128 bits.
-    // Current usage sata is either 64 or 80 bytes.
+    // Current usage data is either 64 or 80 bytes.
 
     for ( i = 0; i < len; i++ )
     {
@@ -353,10 +348,10 @@ int cubehash_full( cubehashParam *sp, void *digest, int hashbitlen,
 
     // pos is zero for 64 byte data, 1 for 80 byte data.
     sp->x[ sp->pos ] = v128_xor( sp->x[ sp->pos ],
-                                      v128_set_64( 0, 0x80 ) );
+                                      v128_set64( 0, 0x80 ) );
     transform( sp );
 
-    sp->x[7] = v128_xor( sp->x[7], v128_set_64( 0x100000000, 0 ) );
+    sp->x[7] = v128_xor( sp->x[7], v128_set64( 0x100000000, 0 ) );
 
     transform( sp );
     transform( sp );

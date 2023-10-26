@@ -8,6 +8,8 @@ bool register_sha256t_algo( algo_gate_t* gate )
 #elif defined(SHA256T_SHA)
     gate->optimizations = SHA_OPT;
     gate->scanhash   = (void*)&scanhash_sha256t_sha;
+#elif defined(SHA256T_NEON_SHA2)
+    gate->scanhash   = (void*)&scanhash_sha256t_neon_sha2;
 #elif defined(SHA256T_8WAY)
     gate->scanhash   = (void*)&scanhash_sha256t_8way;
 #elif defined(SHA256T_4WAY)

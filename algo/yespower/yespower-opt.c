@@ -38,65 +38,15 @@
  * preparation for a hard-fork).
  */
 
-#if !defined(__aarch64__)
+#if defined(__SSE2__) || defined(__aarch64__)
+
+#include "simd-utils.h"
 
 #ifndef _YESPOWER_OPT_C_PASS_
 #define _YESPOWER_OPT_C_PASS_ 1
 #endif
 
 #if _YESPOWER_OPT_C_PASS_ == 1
-/*
- * AVX and especially XOP speed up Salsa20 a lot, but needlessly result in
- * extra instruction prefixes for pwxform (which we make more use of).  While
- * no slowdown from the prefixes is generally observed on AMD CPUs supporting
- * XOP, some slowdown is sometimes observed on Intel CPUs with AVX.
- */
-/*
-#ifdef __XOP__
-#warning "Note: XOP is enabled.  That's great."
-#elif defined(__AVX__)
-#warning "Note: AVX is enabled.  That's OK."
-#elif defined(__SSE2__)
-#warning "Note: AVX and XOP are not enabled.  That's OK."
-#elif defined(__x86_64__) || defined(__i386__)
-#warning "SSE2 not enabled.  Expect poor performance."
-#else
-#warning "Note: building generic code for non-x86.  That's OK."
-#endif
-*/
-
-/*
- * The SSE4 code version has fewer instructions than the generic SSE2 version,
- * but all of the instructions are SIMD, thereby wasting the scalar execution
- * units.  Thus, the generic SSE2 version below actually runs faster on some
- * CPUs due to its balanced mix of SIMD and scalar instructions.
- */
-#undef USE_SSE4_FOR_32BIT
-
-// AVX512 is slow. There isn't enough AVX512 code to make up
-// for the reduced clock. AVX512VL, used for rotate & ternary logic on smaller
-// vectors, is exempt.
-//#define YESPOWER_USE_AVX512 1
-
-#ifdef __SSE2__
-/*
- * GCC before 4.9 would by default unnecessarily use store/load (without
- * SSE4.1) or (V)PEXTR (with SSE4.1 or AVX) instead of simply (V)MOV.
- * This was tracked as GCC bug 54349.
- * "-mtune=corei7" works around this, but is only supported for GCC 4.6+.
- * We use inline asm for pre-4.6 GCC, further down this file.
- */
-#if __GNUC__ == 4 && __GNUC_MINOR__ >= 6 && __GNUC_MINOR__ < 9 && \
-    !defined(__clang__) && !defined(__ICC)
-#pragma GCC target ("tune=corei7")
-#endif
-#include <emmintrin.h>
-#ifdef __XOP__
-#include <x86intrin.h>
-#endif
-#elif defined(__SSE__)
-#include <xmmintrin.h>
-#endif
 
 #include <errno.h>
 #include <stdint.h>
@@ -104,9 +54,21 @@
 #include <string.h>
 #include "algo/sha/hmac-sha256-hash.h"
 #include "algo/sha/hmac-sha256-hash-4way.h"
-
 #include "yespower.h"
 #include "yespower-platform.c"
+
+#if defined(__aarch64__)
+
+#define INTEGERIFY( X )       vgetq_lane_u32( X, 0 )
+#define EXTRACT64( X )        vgetq_lane_u64( X, 0 )
+
+#else
+
+#define INTEGERIFY( X )       _mm_cvtsi128_si32( X )
+#define EXTRACT64( X )        _mm_cvtsi128_si64( X )
+
+#endif
+
 
 #if __STDC_VERSION__ >= 199901L
 /* Have restrict */
@@ -116,25 +78,18 @@
 #define restrict
 #endif
 
-/*
-#ifdef __GNUC__
-#define unlikely(exp) __builtin_expect(exp, 0)
-#else
-#define unlikely(exp) (exp)
-#endif
-*/
-
 #ifdef __SSE__
 #define PREFETCH(x, hint) _mm_prefetch((const char *)(x), (hint));
 #else
 #undef PREFETCH
 #endif
 
-typedef union {
+typedef union
+{
 	uint32_t d[16];
 	uint64_t q[8];
-#ifdef __SSE2__
-	__m128i m128[4];
+#if defined(__SSE2__) || defined(__ARM_NEON)
+	v128_t m128[4];
 #endif
 #if defined(__AVX2__)
    __m256i m256[2];
@@ -179,7 +134,7 @@ static const __m256i simd_shuffle_index =
 
 #endif
 
-#endif
+#endif   // USE AVX512
 
 static inline void salsa20_simd_shuffle(const salsa20_blk_t *Bin,
     salsa20_blk_t *Bout)
@@ -208,10 +163,10 @@ static inline void salsa20_simd_shuffle(const salsa20_blk_t *Bin,
   
 #elif defined(__SSE4_1__)
 
-  __m128i t0 = _mm_blend_epi16( Bin->m128[0], Bin->m128[1], 0xcc );
-  __m128i t1 = _mm_blend_epi16( Bin->m128[0], Bin->m128[1], 0x33 );
-  __m128i t2 = _mm_blend_epi16( Bin->m128[2], Bin->m128[3], 0xcc );
-  __m128i t3 = _mm_blend_epi16( Bin->m128[2], Bin->m128[3], 0x33 );
+  v128_t t0 = _mm_blend_epi16( Bin->m128[0], Bin->m128[1], 0xcc );
+  v128_t t1 = _mm_blend_epi16( Bin->m128[0], Bin->m128[1], 0x33 );
+  v128_t t2 = _mm_blend_epi16( Bin->m128[2], Bin->m128[3], 0xcc );
+  v128_t t3 = _mm_blend_epi16( Bin->m128[2], Bin->m128[3], 0x33 );
   Bout->m128[0] = _mm_blend_epi16( t0, t2, 0xf0 );
   Bout->m128[1] = _mm_blend_epi16( t1, t3, 0x3c );
   Bout->m128[2] = _mm_blend_epi16( t0, t2, 0x0f );
@@ -219,6 +174,8 @@ static inline void salsa20_simd_shuffle(const salsa20_blk_t *Bin,
 
 #else
 
+//TODO  defined SSE2/Neon version using blendv
+  
 #define COMBINE(out, in1, in2) \
 	Bout->q[out] = Bin->d[in1 * 2] | ((uint64_t)Bin->d[in2 * 2 + 1] << 32);
 	COMBINE(0, 0, 2)
@@ -261,10 +218,10 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 
 #elif defined(__SSE4_1__)
 
-  __m128i t0 = _mm_blend_epi16( Bin->m128[0], Bin->m128[2], 0xf0 );
-  __m128i t1 = _mm_blend_epi16( Bin->m128[0], Bin->m128[2], 0x0f );
-  __m128i t2 = _mm_blend_epi16( Bin->m128[1], Bin->m128[3], 0x3c );
-  __m128i t3 = _mm_blend_epi16( Bin->m128[1], Bin->m128[3], 0xc3 );
+  v128_t t0 = _mm_blend_epi16( Bin->m128[0], Bin->m128[2], 0xf0 );
+  v128_t t1 = _mm_blend_epi16( Bin->m128[0], Bin->m128[2], 0x0f );
+  v128_t t2 = _mm_blend_epi16( Bin->m128[1], Bin->m128[3], 0x3c );
+  v128_t t3 = _mm_blend_epi16( Bin->m128[1], Bin->m128[3], 0xc3 );
   Bout->m128[0] = _mm_blend_epi16( t0, t2, 0xcc );
   Bout->m128[1] = _mm_blend_epi16( t0, t2, 0x33 );
   Bout->m128[2] = _mm_blend_epi16( t1, t3, 0xcc );
@@ -291,57 +248,41 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 #define WRITE_X(out) \
  (out).m128[0] = X0; (out).m128[1] = X1; (out).m128[2] = X2; (out).m128[3] = X3;
 
-// Bit rotation optimization
-#if defined(__AVX512VL__)
 
 #define ARX(out, in1, in2, s) \
-   out = _mm_xor_si128(out, _mm_rol_epi32(_mm_add_epi32(in1, in2), s));
-
-#elif defined(__XOP__)
-
-#define ARX(out, in1, in2, s) \
-	out = _mm_xor_si128(out, _mm_roti_epi32(_mm_add_epi32(in1, in2), s));
-
-#else
-
-#define ARX(out, in1, in2, s) { \
-	__m128i tmp = _mm_add_epi32(in1, in2); \
-	out = _mm_xor_si128(out, _mm_slli_epi32(tmp, s)); \
-	out = _mm_xor_si128(out, _mm_srli_epi32(tmp, 32 - s)); \
-}
-
-#endif
+   out = v128_xor( out, v128_rol32( v128_add32( in1, in2 ), s ) );
 
 #define SALSA20_2ROUNDS \
 	/* Operate on "columns" */ \
-	ARX(X1, X0, X3, 7) \
-	ARX(X2, X1, X0, 9) \
-	ARX(X3, X2, X1, 13) \
-	ARX(X0, X3, X2, 18) \
+	ARX( X1, X0, X3,  7 ) \
+	ARX( X2, X1, X0,  9 ) \
+	ARX( X3, X2, X1, 13 ) \
+	ARX( X0, X3, X2, 18 ) \
 	/* Rearrange data */ \
-	X1 = _mm_shuffle_epi32(X1, 0x93); \
-   X3 = _mm_shuffle_epi32(X3, 0x39); \
-	X2 = _mm_shuffle_epi32(X2, 0x4E); \
+	X1 = v128_shufll32( X1 ); \
+   X3 = v128_shuflr32( X3 ); \
+	X2 = v128_swap64( X2 ); \
 	/* Operate on "rows" */ \
-	ARX(X3, X0, X1, 7) \
-	ARX(X2, X3, X0, 9) \
-	ARX(X1, X2, X3, 13) \
-	ARX(X0, X1, X2, 18) \
+	ARX( X3, X0, X1,  7 ) \
+	ARX( X2, X3, X0,  9 ) \
+	ARX( X1, X2, X3, 13 ) \
+	ARX( X0, X1, X2, 18 ) \
 	/* Rearrange data */ \
-   X3 = _mm_shuffle_epi32(X3, 0x93); \
-	X1 = _mm_shuffle_epi32(X1, 0x39); \
-	X2 = _mm_shuffle_epi32(X2, 0x4E);
+   X3 = v128_shufll32( X3 ); \
+	X1 = v128_shuflr32( X1 ); \
+	X2 = v128_swap64( X2 );
 
 /**
  * Apply the Salsa20 core to the block provided in (X0 ... X3).
  */
-#define SALSA20_wrapper(out, rounds) { \
-	__m128i Z0 = X0, Z1 = X1, Z2 = X2, Z3 = X3; \
+#define SALSA20_wrapper( out, rounds ) \
+{ \
+	v128_t Z0 = X0, Z1 = X1, Z2 = X2, Z3 = X3; \
 	rounds \
-	(out).m128[0] = X0 = _mm_add_epi32( X0, Z0 ); \
-	(out).m128[1] = X1 = _mm_add_epi32( X1, Z1 ); \
-	(out).m128[2] = X2 = _mm_add_epi32( X2, Z2 ); \
-	(out).m128[3] = X3 = _mm_add_epi32( X3, Z3 ); \
+	(out).m128[0] = X0 = v128_add32( X0, Z0 ); \
+	(out).m128[1] = X1 = v128_add32( X1, Z1 ); \
+	(out).m128[2] = X2 = v128_add32( X2, Z2 ); \
+	(out).m128[3] = X3 = v128_add32( X3, Z3 ); \
 }
 
 /**
@@ -361,22 +302,21 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 	SALSA20_wrapper(out, SALSA20_8ROUNDS)
 
 #define XOR_X(in) \
-	X0 = _mm_xor_si128( X0, (in).m128[0] ); \
-	X1 = _mm_xor_si128( X1, (in).m128[1] ); \
-	X2 = _mm_xor_si128( X2, (in).m128[2] ); \
-	X3 = _mm_xor_si128( X3, (in).m128[3] );
+	X0 = v128_xor( X0, (in).m128[0] ); \
+	X1 = v128_xor( X1, (in).m128[1] ); \
+	X2 = v128_xor( X2, (in).m128[2] ); \
+	X3 = v128_xor( X3, (in).m128[3] );
 
 #define XOR_X_WRITE_XOR_Y_2(out, in) \
-	(out).m128[0] = Y0 = _mm_xor_si128( (out).m128[0], (in).m128[0] ); \
-	(out).m128[1] = Y1 = _mm_xor_si128( (out).m128[1], (in).m128[1] ); \
-	(out).m128[2] = Y2 = _mm_xor_si128( (out).m128[2], (in).m128[2] ); \
-	(out).m128[3] = Y3 = _mm_xor_si128( (out).m128[3], (in).m128[3] ); \
-	X0 = _mm_xor_si128( X0, Y0 ); \
-	X1 = _mm_xor_si128( X1, Y1 ); \
-	X2 = _mm_xor_si128( X2, Y2 ); \
-	X3 = _mm_xor_si128( X3, Y3 );
+	(out).m128[0] = Y0 = v128_xor( (out).m128[0], (in).m128[0] ); \
+	(out).m128[1] = Y1 = v128_xor( (out).m128[1], (in).m128[1] ); \
+	(out).m128[2] = Y2 = v128_xor( (out).m128[2], (in).m128[2] ); \
+	(out).m128[3] = Y3 = v128_xor( (out).m128[3], (in).m128[3] ); \
+	X0 = v128_xor( X0, Y0 ); \
+	X1 = v128_xor( X1, Y1 ); \
+	X2 = v128_xor( X2, Y2 ); \
+	X3 = v128_xor( X3, Y3 );
 
-#define INTEGERIFY( X ) _mm_cvtsi128_si32( X )
 
 // AVX512 ternary logic optimization
 #if defined(__AVX512VL__)
@@ -406,7 +346,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 
 #define XOR_X_SALSA20_XOR_MEM( in1, in2, out) \
 { \
- __m128i X0, X1, X2, X3; \
+ v128_t X0, X1, X2, X3; \
  X.m512 = _mm512_ternarylogic_epi32( X.m512, (in1).m512, (in2).m512, 0x96 ); \
  X0 = X.m128[0]; \
  X1 = X.m128[1]; \
@@ -421,7 +361,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 
 #define SALSA20_XOR_MEM(in, out) \
 { \
- __m128i X0, X1, X2, X3; \
+ v128_t X0, X1, X2, X3; \
  X.m512 = _mm512_xor_si512( X.m512, (in).m512 ); \
  X0 = X.m128[0]; \
  X1 = X.m128[1]; \
@@ -450,7 +390,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 
 #define XOR_X_SALSA20_XOR_MEM( in1, in2, out) \
 { \
-   __m128i X0, X1, X2, X3; \
+   v128_t X0, X1, X2, X3; \
    X.m256[0] = _mm256_ternarylogic_epi32( X.m256[0], (in1).m256[0], \
                                       (in2).m256[0], 0x96 ); \
    X.m256[1] = _mm256_ternarylogic_epi32( X.m256[1], (in1).m256[1], \
@@ -476,7 +416,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 
 #define XOR_X_SALSA20_XOR_MEM( in1, in2, out) \
 { \
-   __m128i X0, X1, X2, X3; \
+   v128_t X0, X1, X2, X3; \
    X.m256[0] = _mm256_xor_si256( X.m256[0], \
                        _mm256_xor_si256( (in1).m256[0], (in2).m256[0] ) ); \
    X.m256[1] = _mm256_xor_si256( X.m256[1], \
@@ -496,7 +436,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 
 #define SALSA20_XOR_MEM( in, out ) \
 { \
-   __m128i X0, X1, X2, X3; \
+   v128_t X0, X1, X2, X3; \
    X.m256[0] = _mm256_xor_si256( X.m256[0], (in).m256[0] ); \
    X.m256[1] = _mm256_xor_si256( X.m256[1], (in).m256[1] ); \
    X0 = X.m128[0]; \
@@ -510,7 +450,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
    X.m128[3] = X3; \
 }
 
-#else   // SSE2
+#else   // SSE2 or arm
 
 #define READ_X(in) \
    X.m128[0] = (in).m128[0]; \
@@ -519,26 +459,26 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
    X.m128[3] = (in).m128[3];
 
 #define XOR_X_2_XOR_X( in1, in2, in3 ) \
-   X.m128[0] = _mm_xor_si128( (in1).m128[0], \
-                     _mm_xor_si128( (in2).m128[0], (in3).m128[0] ) ); \
-   X.m128[1] = _mm_xor_si128( (in1).m128[1], \
-                     _mm_xor_si128( (in2).m128[1], (in3).m128[1] ) ); \
-   X.m128[2] = _mm_xor_si128( (in1).m128[2], \
-                     _mm_xor_si128( (in2).m128[2], (in3).m128[2] ) ); \
-   X.m128[3] = _mm_xor_si128( (in1).m128[3], \
-                     _mm_xor_si128( (in2).m128[3], (in3).m128[3] ) );
+   X.m128[0] = v128_xor( (in1).m128[0], \
+                     v128_xor( (in2).m128[0], (in3).m128[0] ) ); \
+   X.m128[1] = v128_xor( (in1).m128[1], \
+                     v128_xor( (in2).m128[1], (in3).m128[1] ) ); \
+   X.m128[2] = v128_xor( (in1).m128[2], \
+                     v128_xor( (in2).m128[2], (in3).m128[2] ) ); \
+   X.m128[3] = v128_xor( (in1).m128[3], \
+                     v128_xor( (in2).m128[3], (in3).m128[3] ) );
 
 
 #define XOR_X_SALSA20_XOR_MEM( in1, in2, out) \
 { \
-   __m128i X0 = _mm_xor_si128( X.m128[0], \
-                         _mm_xor_si128( (in1).m128[0], (in2).m128[0] ) ); \
-   __m128i X1 = _mm_xor_si128( X.m128[1], \
-                         _mm_xor_si128( (in1).m128[1], (in2).m128[1] ) ); \
-   __m128i X2 = _mm_xor_si128( X.m128[2], \
-                         _mm_xor_si128( (in1).m128[2], (in2).m128[2] ) ); \
-   __m128i X3 = _mm_xor_si128( X.m128[3], \
-                         _mm_xor_si128( (in1).m128[3], (in2).m128[3] ) ); \
+   v128_t X0 = v128_xor( X.m128[0], \
+                         v128_xor( (in1).m128[0], (in2).m128[0] ) ); \
+   v128_t X1 = v128_xor( X.m128[1], \
+                         v128_xor( (in1).m128[1], (in2).m128[1] ) ); \
+   v128_t X2 = v128_xor( X.m128[2], \
+                         v128_xor( (in1).m128[2], (in2).m128[2] ) ); \
+   v128_t X3 = v128_xor( X.m128[3], \
+                         v128_xor( (in1).m128[3], (in2).m128[3] ) ); \
    SALSA20( out ); \
    X.m128[0] = X0; \
    X.m128[1] = X1; \
@@ -549,10 +489,10 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 // Apply the Salsa20 core to the block provided in X ^ in.
 #define SALSA20_XOR_MEM(in, out) \
 { \
-   __m128i X0 = _mm_xor_si128( X.m128[0], (in).m128[0] ); \
-   __m128i X1 = _mm_xor_si128( X.m128[1], (in).m128[1] ); \
-   __m128i X2 = _mm_xor_si128( X.m128[2], (in).m128[2] ); \
-   __m128i X3 = _mm_xor_si128( X.m128[3], (in).m128[3] ); \
+   v128_t X0 = v128_xor( X.m128[0], (in).m128[0] ); \
+   v128_t X1 = v128_xor( X.m128[1], (in).m128[1] ); \
+   v128_t X2 = v128_xor( X.m128[2], (in).m128[2] ); \
+   v128_t X3 = v128_xor( X.m128[3], (in).m128[3] ); \
    SALSA20( out ) \
    X.m128[0] = X0; \
    X.m128[1] = X1; \
@@ -563,7 +503,11 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 #endif   // AVX512 elif AVX2 else
 
 #define SALSA20 SALSA20_8
-#else /* pass 2 */
+
+
+#else /* pass 2 ------------------------------ */
+
+
 #undef SALSA20
 #define SALSA20 SALSA20_2
 #endif
@@ -573,8 +517,8 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
  * Compute Bout = BlockMix_{salsa20, 1}(Bin).  The input Bin must be 128
  * bytes in length; the output Bout must also be the same size.
  */
-static inline void blockmix_salsa(const salsa20_blk_t *restrict Bin,
-    salsa20_blk_t *restrict Bout)
+static inline void blockmix_salsa( const salsa20_blk_t *restrict Bin,
+                                   salsa20_blk_t *restrict Bout )
 {
    salsa20_blk_t X;
 
@@ -583,8 +527,8 @@ static inline void blockmix_salsa(const salsa20_blk_t *restrict Bin,
 	SALSA20_XOR_MEM(Bin[1], Bout[1]);
 }
 
-static inline uint32_t blockmix_salsa_xor(const salsa20_blk_t *restrict Bin1,
-    const salsa20_blk_t *restrict Bin2, salsa20_blk_t *restrict Bout)
+static inline uint32_t blockmix_salsa_xor( const salsa20_blk_t *restrict Bin1,
+           const salsa20_blk_t *restrict Bin2, salsa20_blk_t *restrict Bout )
 {
    salsa20_blk_t X;
 
@@ -627,172 +571,32 @@ typedef struct {
 #define DECL_SMASK2REG /* empty */
 #define MAYBE_MEMORY_BARRIER /* empty */
 
-/*
- * (V)PSRLDQ and (V)PSHUFD have higher throughput than (V)PSRLQ on some CPUs
- * starting with Sandy Bridge.  Additionally, PSHUFD uses separate source and
- * destination registers, whereas the shifts would require an extra move
- * instruction for our code when building without AVX.  Unfortunately, PSHUFD
- * is much slower on Conroe (4 cycles latency vs. 1 cycle latency for PSRLQ)
- * and somewhat slower on some non-Intel CPUs (luckily not including AMD
- * Bulldozer and Piledriver).
- */
-#ifdef __AVX__
-#define HI32(X) \
-	_mm_srli_si128((X), 4)
-#elif 1 /* As an option, check for __SSE4_1__ here not to hurt Conroe */
-#define HI32(X) \
-	_mm_shuffle_epi32((X), _MM_SHUFFLE(2,3,0,1))
-#else
-#define HI32(X) \
-	_mm_srli_epi64((X), 32)
-#endif
-
-#if defined(__x86_64__) && \
-    __GNUC__ == 4 && __GNUC_MINOR__ < 6 && !defined(__ICC)
-
-#ifdef __AVX__
-
-#define MOVQ "vmovq"
-
-#else
-/* "movq" would be more correct, but "movd" is supported by older binutils
- * due to an error in AMD's spec for x86-64. */
-
-#define MOVQ "movd"
-
-#endif
-
-#define EXTRACT64(X) ({ \
-	uint64_t result; \
-	__asm__(MOVQ " %1, %0" : "=r" (result) : "x" (X)); \
-	result; \
-})
-
-#elif defined(__x86_64__) && !defined(_MSC_VER) && !defined(__OPEN64__)
-/* MSVC and Open64 had bugs */
-
-#define EXTRACT64(X) _mm_cvtsi128_si64(X)
-
-#elif defined(__x86_64__) && defined(__SSE4_1__)
-/* No known bugs for this intrinsic */
-
-#include <smmintrin.h>
-#define EXTRACT64(X) _mm_extract_epi64((X), 0)
-
-#elif defined(USE_SSE4_FOR_32BIT) && defined(__SSE4_1__)
-/* 32-bit */
-#include <smmintrin.h>
-
-#if 0
-/* This is currently unused by the code below, which instead uses these two
- * intrinsics explicitly when (!defined(__x86_64__) && defined(__SSE4_1__)) */
-#define EXTRACT64(X) \
-	((uint64_t)(uint32_t)_mm_cvtsi128_si32(X) | \
-	((uint64_t)(uint32_t)_mm_extract_epi32((X), 1) << 32))
-#endif
-
-#else
-/* 32-bit or compilers with known past bugs in _mm_cvtsi128_si64() */
-
-#define EXTRACT64(X) \
-	((uint64_t)(uint32_t)_mm_cvtsi128_si32(X) | \
-	((uint64_t)(uint32_t)_mm_cvtsi128_si32(HI32(X)) << 32))
-
-#endif
-
-#if defined(__x86_64__) && (defined(__AVX__) || !defined(__GNUC__))
-/* 64-bit with AVX */
-/* Force use of 64-bit AND instead of two 32-bit ANDs */
-
 #undef DECL_SMASK2REG
 
-#if defined(__GNUC__) && !defined(__ICC)
-
 #define DECL_SMASK2REG uint64_t Smask2reg = Smask2;
-/* Force use of lower-numbered registers to reduce number of prefixes, relying
- * on out-of-order execution and register renaming. */
+
+/*
 #define FORCE_REGALLOC_1 \
 	__asm__("" : "=a" (x), "+d" (Smask2reg), "+S" (S0), "+D" (S1));
 #define FORCE_REGALLOC_2 \
 	__asm__("" : : "c" (lo));
-
-#else   // not GNUC
-
-static volatile uint64_t Smask2var = Smask2;
-#define DECL_SMASK2REG uint64_t Smask2reg = Smask2var;
-#define FORCE_REGALLOC_1 /* empty */
-#define FORCE_REGALLOC_2 /* empty */
-
-#endif
+*/
 
 #define PWXFORM_SIMD(X) { \
 	uint64_t x; \
-	FORCE_REGALLOC_1 \
 	uint32_t lo = x = EXTRACT64(X) & Smask2reg; \
-	FORCE_REGALLOC_2 \
 	uint32_t hi = x >> 32; \
-	X = _mm_mul_epu32(HI32(X), X); \
-	X = _mm_add_epi64(X, *(__m128i *)(S0 + lo)); \
-	X = _mm_xor_si128(X, *(__m128i *)(S1 + hi)); \
+	X = v128_mulw32( v128_shuflr32(X), X ); \
+	X = v128_add64( X, *(v128_t *)(S0 + lo) ); \
+	X = v128_xor( X, *(v128_t *)(S1 + hi) ); \
 }
 
-#elif defined(__x86_64__)
-/* 64-bit without AVX.  This relies on out-of-order execution and register
- * renaming.  It may actually be fastest on CPUs with AVX(2) as well - e.g.,
- * it runs great on Haswell. */
-//#warning "Note: using x86-64 inline assembly for pwxform.  That's great."
 
-#undef MAYBE_MEMORY_BARRIER
-
-#define MAYBE_MEMORY_BARRIER \
-	__asm__("" : : : "memory");
-
-#define PWXFORM_SIMD(X) { \
-	__m128i H; \
-	__asm__( \
-	    "movd %0, %%rax\n\t" \
-	    "pshufd $0xb1, %0, %1\n\t" \
-	    "andq %2, %%rax\n\t" \
-	    "pmuludq %1, %0\n\t" \
-	    "movl %%eax, %%ecx\n\t" \
-	    "shrq $0x20, %%rax\n\t" \
-	    "paddq (%3,%%rcx), %0\n\t" \
-	    "pxor (%4,%%rax), %0\n\t" \
-	    : "+x" (X), "=x" (H) \
-	    : "d" (Smask2), "S" (S0), "D" (S1) \
-	    : "cc", "ax", "cx"); \
-}
-
-#elif defined(USE_SSE4_FOR_32BIT) && defined(__SSE4_1__)
-/* 32-bit with SSE4.1 */
-
-#define PWXFORM_SIMD(X) { \
-	__m128i x = _mm_and_si128(X, _mm_set1_epi64x(Smask2)); \
-	__m128i s0 = *(__m128i *)(S0 + (uint32_t)_mm_cvtsi128_si32(x)); \
-	__m128i s1 = *(__m128i *)(S1 + (uint32_t)_mm_extract_epi32(x, 1)); \
-	X = _mm_mul_epu32(HI32(X), X); \
-	X = _mm_add_epi64(X, s0); \
-	X = _mm_xor_si128(X, s1); \
-}
-
-#else
-/* 32-bit without SSE4.1 */
-
-#define PWXFORM_SIMD(X) { \
-	uint64_t x = EXTRACT64(X) & Smask2; \
-	__m128i s0 = *(__m128i *)(S0 + (uint32_t)x); \
-	__m128i s1 = *(__m128i *)(S1 + (x >> 32)); \
-	X = _mm_mul_epu32(HI32(X), X); \
-	X = _mm_add_epi64(X, s0); \
-	X = _mm_xor_si128(X, s1); \
-}
-
-#endif
 
 #define PWXFORM_SIMD_WRITE(X, Sw) \
 	PWXFORM_SIMD(X) \
 	MAYBE_MEMORY_BARRIER \
-	*(__m128i *)(Sw + w) = X; \
+	*(v128_t *)(Sw + w) = X; \
 	MAYBE_MEMORY_BARRIER
 
 #define PWXFORM_ROUND \
@@ -845,8 +649,8 @@ static volatile uint64_t Smask2var = Smask2;
  * Compute Bout = BlockMix_pwxform{salsa20, r, S}(Bin).  The input Bin must
  * be 128r bytes in length; the output Bout must also be the same size.
  */
-static void blockmix(const salsa20_blk_t *restrict Bin,
-    salsa20_blk_t *restrict Bout, size_t r, pwxform_ctx_t *restrict ctx)
+static void blockmix( const salsa20_blk_t *restrict Bin,
+    salsa20_blk_t *restrict Bout, size_t r, pwxform_ctx_t *restrict ctx )
 {
 	if ( unlikely(!ctx) )
    {
@@ -854,7 +658,7 @@ static void blockmix(const salsa20_blk_t *restrict Bin,
 		return;
 	}
 
-   __m128i X0, X1, X2, X3;
+   v128_t X0, X1, X2, X3;
 	uint8_t *S0 = ctx->S0, *S1 = ctx->S1;
 #if _YESPOWER_OPT_C_PASS_ > 1
 	uint8_t *S2 = ctx->S2;
@@ -890,14 +694,14 @@ static void blockmix(const salsa20_blk_t *restrict Bin,
 	SALSA20(Bout[i])
 }
 
-static uint32_t blockmix_xor(const salsa20_blk_t *restrict Bin1,
-    const salsa20_blk_t *restrict Bin2, salsa20_blk_t *restrict Bout,
-    size_t r, pwxform_ctx_t *restrict ctx)
+static uint32_t blockmix_xor( const salsa20_blk_t *restrict Bin1,
+           const salsa20_blk_t *restrict Bin2, salsa20_blk_t *restrict Bout,
+           size_t r, pwxform_ctx_t *restrict ctx )
 {
-	if (unlikely(!ctx))
-		return blockmix_salsa_xor(Bin1, Bin2, Bout);
+	if ( unlikely( !ctx ) )
+		return blockmix_salsa_xor( Bin1, Bin2, Bout );
 
-   __m128i X0, X1, X2, X3;
+   v128_t X0, X1, X2, X3;
 	uint8_t *S0 = ctx->S0, *S1 = ctx->S1;
 #if _YESPOWER_OPT_C_PASS_ > 1
 	uint8_t *S2 = ctx->S2;
@@ -915,10 +719,10 @@ static uint32_t blockmix_xor(const salsa20_blk_t *restrict Bin1,
 	}
 #endif
 
-   X0 = _mm_xor_si128( Bin1[r].m128[0], Bin2[r].m128[0] );
-   X1 = _mm_xor_si128( Bin1[r].m128[1], Bin2[r].m128[1] );
-   X2 = _mm_xor_si128( Bin1[r].m128[2], Bin2[r].m128[2] );
-   X3 = _mm_xor_si128( Bin1[r].m128[3], Bin2[r].m128[3] );
+   X0 = v128_xor( Bin1[r].m128[0], Bin2[r].m128[0] );
+   X1 = v128_xor( Bin1[r].m128[1], Bin2[r].m128[1] );
+   X2 = v128_xor( Bin1[r].m128[2], Bin2[r].m128[2] );
+   X3 = v128_xor( Bin1[r].m128[3], Bin2[r].m128[3] );
 
 	DECL_SMASK2REG
 
@@ -950,8 +754,8 @@ static uint32_t blockmix_xor(const salsa20_blk_t *restrict Bin1,
 static uint32_t blockmix_xor_save( salsa20_blk_t *restrict Bin1out,
         salsa20_blk_t *restrict Bin2,  size_t r, pwxform_ctx_t *restrict ctx )
 {
-   __m128i X0, X1, X2, X3;
-   __m128i Y0, Y1, Y2, Y3;
+   v128_t X0, X1, X2, X3;
+   v128_t Y0, Y1, Y2, Y3;
 	uint8_t *S0 = ctx->S0, *S1 = ctx->S1;
 #if _YESPOWER_OPT_C_PASS_ > 1
 	uint8_t *S2 = ctx->S2;
@@ -969,10 +773,10 @@ static uint32_t blockmix_xor_save( salsa20_blk_t *restrict Bin1out,
 	}
 #endif
 
-   X0 = _mm_xor_si128( Bin1out[r].m128[0], Bin2[r].m128[0] );
-   X1 = _mm_xor_si128( Bin1out[r].m128[1], Bin2[r].m128[1] );
-   X2 = _mm_xor_si128( Bin1out[r].m128[2], Bin2[r].m128[2] );
-   X3 = _mm_xor_si128( Bin1out[r].m128[3], Bin2[r].m128[3] );
+   X0 = v128_xor( Bin1out[r].m128[0], Bin2[r].m128[0] );
+   X1 = v128_xor( Bin1out[r].m128[1], Bin2[r].m128[1] );
+   X2 = v128_xor( Bin1out[r].m128[2], Bin2[r].m128[2] );
+   X3 = v128_xor( Bin1out[r].m128[3], Bin2[r].m128[3] );
 
 	DECL_SMASK2REG
 
@@ -1000,6 +804,7 @@ static uint32_t blockmix_xor_save( salsa20_blk_t *restrict Bin1out,
 
 	return INTEGERIFY( X0 );
 }
+
 
 #if _YESPOWER_OPT_C_PASS_ == 1
 /**

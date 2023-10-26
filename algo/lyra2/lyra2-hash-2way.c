@@ -21,8 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
 #include "compat.h"
+#include "miner.h"
 #include "lyra2.h"
 #include "sponge.h"
 
@@ -468,7 +469,7 @@ int LYRA2RE_2WAY( void *K, uint64_t kLen, const void *pwd,
                                           : BLOCK_LEN_BLAKE2_SAFE_BYTES;
 
    i = (int64_t)ROW_LEN_BYTES * nRows;
-   uint64_t *wholeMatrix = _mm_malloc( 2*i, 64 );
+   uint64_t *wholeMatrix = mm_malloc( 2*i, 64 );
    if (wholeMatrix == NULL)
       return -1;
 
@@ -570,7 +571,7 @@ int LYRA2RE_2WAY( void *K, uint64_t kLen, const void *pwd,
    squeeze_2way( state, K, (unsigned int) kLen );
 
    //================== Freeing the memory =============================//
-   _mm_free(wholeMatrix);
+   mm_free(wholeMatrix);
 
    return 0;
 }
@@ -602,7 +603,7 @@ int LYRA2X_2WAY( void *K, uint64_t kLen, const void *pwd,
                                           : BLOCK_LEN_BLAKE2_SAFE_BYTES;
 
    i = (int64_t)ROW_LEN_BYTES * nRows;
-   uint64_t *wholeMatrix = _mm_malloc( 2*i, 64 );
+   uint64_t *wholeMatrix = mm_malloc( 2*i, 64 );
    if (wholeMatrix == NULL)
       return -1;
 
@@ -704,7 +705,7 @@ int LYRA2X_2WAY( void *K, uint64_t kLen, const void *pwd,
    squeeze_2way( state, K, (unsigned int) kLen );
 
    //================== Freeing the memory =============================//
-   _mm_free(wholeMatrix);
+   mm_free(wholeMatrix);
 
    return 0;
 }

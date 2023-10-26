@@ -8,7 +8,11 @@
 #include <stdio.h>
 #include "algo/luffa/luffa_for_sse2.h" 
 #include "algo/cubehash/cubehash_sse2.h" 
-#include "algo/simd/nist.h"
+#if defined(__aarch64__)
+  #include "algo/simd/sph_simd.h"
+#else
+  #include "algo/simd/nist.h"
+#endif
 #include "algo/shavite/sph_shavite.h"
 #ifdef __AES__
 #include "algo/echo/aes_ni/hash_api.h"
@@ -21,7 +25,11 @@ typedef struct
         hashState_luffa         luffa;
         cubehashParam           cubehash;
         sph_shavite512_context  shavite;
-        hashState_sd            simd;
+#if defined(__aarch64__)
+   sph_simd512_context     simd;
+#else
+   hashState_sd            simd;
+#endif
 #ifdef __AES__
         hashState_echo          echo;
 #else
@@ -37,7 +45,11 @@ void init_qubit_ctx()
         init_luffa(&qubit_ctx.luffa,512);
         cubehashInit(&qubit_ctx.cubehash,512,16,32);
         sph_shavite512_init(&qubit_ctx.shavite);
-        init_sd(&qubit_ctx.simd,512);
+#if defined(__aarch64__)
+   sph_simd512_init( &qubit_ctx.simd );
+#else
+   init_sd( &qubit_ctx.simd, 512 );
+#endif
 #ifdef __AES__
         init_echo(&qubit_ctx.echo, 512);
 #else
@@ -62,17 +74,20 @@ void qubit_hash(void *output, const void *input)
         const int midlen = 64;            // bytes
         const int tail   = 80 - midlen;   // 16
         memcpy( &ctx.luffa, &qubit_luffa_mid, sizeof qubit_luffa_mid );
-        update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)input + midlen, tail );
+        update_and_final_luffa( &ctx.luffa, hash, input + midlen, tail );
 
-        cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
-                              (const byte*) hash, 64 );
+        cubehashUpdateDigest( &ctx.cubehash, hash, hash, 64 );
 
         sph_shavite512( &ctx.shavite, hash, 64);
         sph_shavite512_close( &ctx.shavite, hash);
 
-        update_final_sd( &ctx.simd, (BitSequence *)hash,
-                         (const BitSequence*)hash,  512 );
+#if defined(__aarch64__)
+    sph_simd512(&ctx.simd, (const void*) hash, 64);
+    sph_simd512_close(&ctx.simd, hash);
+#else
+    update_sd( &ctx.simd, (const BitSequence *)hash, 512 );
+    final_sd( &ctx.simd, (BitSequence *)hash );
+#endif
 
 #ifdef __AES__
         update_final_echo( &ctx.echo, (BitSequence *) hash,

@@ -18,7 +18,11 @@
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#include "algo/simd/nist.h"
+#if defined(__aarch64__)
+  #include "algo/simd/sph_simd.h"
+#else
+  #include "algo/simd/nist.h"
+#endif
 #include "algo/sha/sph_sha2.h"
 #if defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"
@@ -29,11 +33,7 @@
   #include "algo/echo/sph_echo.h"
   #include "algo/fugue/sph_fugue.h"
 #endif
-#if defined(__aarch64__)
-  #include "algo/luffa/sph_luffa.h"
-#else
-  #include "algo/luffa/luffa_for_sse2.h"
-#endif
+#include "algo/luffa/luffa_for_sse2.h"
 
 typedef struct {
         sph_blake512_context    blake;
@@ -50,14 +50,14 @@ typedef struct {
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
         sph_skein512_context    skein;
-#if defined(__aarch64__)
-        sph_luffa512_context    luffa;
-#else
         hashState_luffa         luffa;
-#endif
         cubehashParam           cubehash;
         sph_shavite512_context  shavite;
+#if defined(__aarch64__)
+        sph_simd512_context     simd;
+#else
         hashState_sd            simd;
+#endif
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
@@ -83,14 +83,14 @@ void init_sonoa_ctx()
         sph_skein512_init( &sonoa_ctx.skein);
         sph_jh512_init( &sonoa_ctx.jh);
         sph_keccak512_init( &sonoa_ctx.keccak );
-#if defined(__aarch64__)
-        sph_luffa512_init(&sonoa_ctx.luffa);
-#else
         init_luffa( &sonoa_ctx.luffa, 512 );
-#endif
         cubehashInit( &sonoa_ctx.cubehash, 512, 16, 32 );
         sph_shavite512_init( &sonoa_ctx.shavite );
+#if defined(__aarch64__)
+        sph_simd512_init( &sonoa_ctx.simd );
+#else
         init_sd( &sonoa_ctx.simd, 512 );
+#endif
         sph_hamsi512_init( &sonoa_ctx.hamsi );
         sph_shabal512_init( &sonoa_ctx.shabal );
         sph_whirlpool_init( &sonoa_ctx.whirlpool );
@@ -127,21 +127,19 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 	sph_keccak512(&ctx.keccak, hash, 64);
 	sph_keccak512_close(&ctx.keccak, hash);
 
-#if defined(__aarch64__)
-   sph_luffa512(&ctx.luffa, hash, 64 );
-   sph_luffa512_close(&ctx.luffa, hash);
-#else
-   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                 (const BitSequence*)hash, 64 );
+   update_and_final_luffa( &ctx.luffa, hash, hash, 64 );
 
-   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                                   (const byte*)hash, 64 );
+   cubehashUpdateDigest( &ctx.cubehash, hash, hash, 64 );
 
 	sph_shavite512(&ctx.shavite, hash, 64);
 	sph_shavite512_close(&ctx.shavite, hash);
 
-   update_final_sd( &ctx.simd, (BitSequence *)hash,
-                         (const BitSequence *)hash, 512 );
+#if defined(__aarch64__)
+    sph_simd512(&ctx.simd, (const void*) hash, 64);
+    sph_simd512_close(&ctx.simd, hash);
+#else
+    update_final_sd( &ctx.simd, (BitSequence *)hash,
+                       (const BitSequence *)hash, 512 );
 #endif
 
 #if defined(__AES__)
@@ -181,26 +179,23 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_keccak512(&ctx.keccak, hash, 64);
    sph_keccak512_close(&ctx.keccak, hash);
 
-#if defined(__aarch64__)
-   sph_luffa512(&ctx.luffa, hash, 64 );
-   sph_luffa512_close(&ctx.luffa, hash);
-#else
    init_luffa( &ctx.luffa, 512 );
-   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                 (const BitSequence*)hash, 64 );
-#endif
+   update_and_final_luffa( &ctx.luffa, hash, hash, 64 );
 
    cubehashInit( &ctx.cubehash, 512, 16, 32 );
-   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                                   (const byte*)hash, 64 );
+   cubehashUpdateDigest( &ctx.cubehash, hash, hash, 64 );
 
    sph_shavite512_init( &ctx.shavite );
    sph_shavite512(&ctx.shavite, hash, 64);
    sph_shavite512_close(&ctx.shavite, hash);
 
-   init_sd( &ctx.simd, 512 );
+#if defined(__aarch64__)
+   sph_simd512(&ctx.simd, (const void*) hash, 64);
+   sph_simd512_close(&ctx.simd, hash);
+#else
    update_final_sd( &ctx.simd, (BitSequence *)hash,
-                         (const BitSequence *)hash, 512 );
+                       (const BitSequence *)hash, 512 );
+#endif
 
 #if defined(__AES__)
    init_echo( &ctx.echo, 512 );
@@ -244,26 +239,23 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_keccak512(&ctx.keccak, hash, 64);
    sph_keccak512_close(&ctx.keccak, hash);
 
-#if defined(__aarch64__)
-   sph_luffa512(&ctx.luffa, hash, 64 );
-   sph_luffa512_close(&ctx.luffa, hash);
-#else
    init_luffa( &ctx.luffa, 512 );
-   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                 (const BitSequence*)hash, 64 );
-#endif
+   update_and_final_luffa( &ctx.luffa, hash, hash, 64 );
 
    cubehashInit( &ctx.cubehash, 512, 16, 32 );
-   cubehashUpdateDigest( &ctx.cubehash, (byte*)hash,
-                                  (const byte*)hash, 64 );
+   cubehashUpdateDigest( &ctx.cubehash, hash, hash, 64 );
 
    sph_shavite512_init( &ctx.shavite );
    sph_shavite512(&ctx.shavite, hash, 64);
    sph_shavite512_close(&ctx.shavite, hash);
 
-   init_sd( &ctx.simd, 512 );
+#if defined(__aarch64__)
+   sph_simd512(&ctx.simd, (const void*) hash, 64);
+    sph_simd512_close(&ctx.simd, hash);
+#else
    update_final_sd( &ctx.simd, (BitSequence *)hash,
-                         (const BitSequence *)hash, 512 );
+                       (const BitSequence *)hash, 512 );
+#endif
 
 #if defined(__AES__)
    init_echo( &ctx.echo, 512 );
@@ -316,26 +308,23 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_keccak512(&ctx.keccak, hash, 64);
    sph_keccak512_close(&ctx.keccak, hash);
 
-#if defined(__aarch64__)
-   sph_luffa512(&ctx.luffa, hash, 64 );
-   sph_luffa512_close(&ctx.luffa, hash);
-#else
    init_luffa( &ctx.luffa, 512 );
-   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)hash, 64 );
-#endif
+   update_and_final_luffa( &ctx.luffa, hash, hash, 64 );
 
    cubehashInit( &ctx.cubehash, 512, 16, 32 );
-   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                              (const byte*)hash, 64 );
+   cubehashUpdateDigest( &ctx.cubehash, hash, hash, 64 );
 
    sph_shavite512_init( &ctx.shavite );
    sph_shavite512(&ctx.shavite, hash, 64);
    sph_shavite512_close(&ctx.shavite, hash);
 
-   init_sd( &ctx.simd, 512 );
-   update_final_sd( &ctx.simd, (BitSequence *)hash,
-                         (const BitSequence *)hash, 512 );
+#if defined(__aarch64__)
+    sph_simd512(&ctx.simd, (const void*) hash, 64);
+    sph_simd512_close(&ctx.simd, hash);
+#else
+    update_final_sd( &ctx.simd, (BitSequence *)hash,
+                       (const BitSequence *)hash, 512 );
+#endif
 
 #if defined(__AES__)
    init_echo( &ctx.echo, 512 );
@@ -411,26 +400,23 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_keccak512(&ctx.keccak, hash, 64);
    sph_keccak512_close(&ctx.keccak, hash);
 
-#if defined(__aarch64__)
-   sph_luffa512(&ctx.luffa, hash, 64 );
-   sph_luffa512_close(&ctx.luffa, hash);
-#else
    init_luffa( &ctx.luffa, 512 );
-   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)hash, 64 );
-#endif
+   update_and_final_luffa( &ctx.luffa, hash, hash, 64 );
 
    cubehashInit( &ctx.cubehash, 512, 16, 32 );
-   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                              (const byte*)hash, 64 );
+   cubehashUpdateDigest( &ctx.cubehash, hash, hash, 64 );
 
    sph_shavite512_init( &ctx.shavite );
    sph_shavite512(&ctx.shavite, hash, 64);
    sph_shavite512_close(&ctx.shavite, hash);
 
-   init_sd( &ctx.simd, 512 );
-   update_final_sd( &ctx.simd, (BitSequence *)hash,
-                         (const BitSequence *)hash, 512 );
+#if defined(__aarch64__)
+    sph_simd512_init( &ctx.simd );
+    sph_simd512(&ctx.simd, (const void*) hash, 64);
+    sph_simd512_close(&ctx.simd, hash);
+#else
+    simd_full( &ctx.simd, hash, hash, 512 );
+#endif
 
 #if defined(__AES__)
    init_echo( &ctx.echo, 512 );
@@ -487,26 +473,23 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_keccak512(&ctx.keccak, hash, 64);
    sph_keccak512_close(&ctx.keccak, hash);
 
-#if defined(__aarch64__)
-   sph_luffa512(&ctx.luffa, hash, 64 );
-   sph_luffa512_close(&ctx.luffa, hash);
-#else
    init_luffa( &ctx.luffa, 512 );
-   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)hash, 64 );
-#endif
+   update_and_final_luffa( &ctx.luffa, hash, hash, 64 );
 
    cubehashInit( &ctx.cubehash, 512, 16, 32 );
-   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                              (const byte*)hash, 64 );
+   cubehashUpdateDigest( &ctx.cubehash, hash, hash, 64 );
 
    sph_shavite512_init( &ctx.shavite );
    sph_shavite512(&ctx.shavite, hash, 64);
    sph_shavite512_close(&ctx.shavite, hash);
 
-   init_sd( &ctx.simd, 512 );
-   update_final_sd( &ctx.simd, (BitSequence *)hash,
-                         (const BitSequence *)hash, 512 );
+#if defined(__aarch64__)
+    sph_simd512_init( &ctx.simd );
+    sph_simd512(&ctx.simd, (const void*) hash, 64);
+    sph_simd512_close(&ctx.simd, hash);
+#else
+    simd_full( &ctx.simd, hash, hash, 512 );
+#endif
 
 #if defined(__AES__)
    init_echo( &ctx.echo, 512 );
@@ -572,26 +555,23 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_keccak512(&ctx.keccak, hash, 64);
    sph_keccak512_close(&ctx.keccak, hash);
 
-#if defined(__aarch64__)
-   sph_luffa512(&ctx.luffa, hash, 64 );
-   sph_luffa512_close(&ctx.luffa, hash);
-#else
    init_luffa( &ctx.luffa, 512 );
-   update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                (const BitSequence*)hash, 64 );
-#endif
+   update_and_final_luffa( &ctx.luffa, hash, hash, 64 );
 
    cubehashInit( &ctx.cubehash, 512, 16, 32 );
-   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                              (const byte*)hash, 64 );
+   cubehashUpdateDigest( &ctx.cubehash, hash, hash, 64 );
 
    sph_shavite512_init( &ctx.shavite );
    sph_shavite512(&ctx.shavite, hash, 64);
    sph_shavite512_close(&ctx.shavite, hash);
 
-   init_sd( &ctx.simd, 512 );
-   update_final_sd( &ctx.simd, (BitSequence *)hash,
-                         (const BitSequence *)hash, 512 );
+#if defined(__aarch64__)
+    sph_simd512_init( &ctx.simd );
+    sph_simd512(&ctx.simd, (const void*) hash, 64);
+    sph_simd512_close(&ctx.simd, hash);
+#else
+    simd_full( &ctx.simd, hash, hash, 512 );
+#endif
 
 #if defined(__AES__)
    init_echo( &ctx.echo, 512 );

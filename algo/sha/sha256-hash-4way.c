@@ -173,7 +173,7 @@ void sha256_4way_prehash_3rounds( v128_t *state_mid, v128_t *X,
    X[ 3] = v128_add32( v128_add32( SSG2_1( X[ 1] ), W[12] ), SSG2_0( W[ 4] ) );
    X[ 4] = v128_add32( v128_add32( W[13], SSG2_0( W[ 5] ) ), W[ 4] );
    X[ 5] = v128_add32( v128_add32( W[14], SSG2_0( W[ 6] ) ), W[ 5] );
-   X [6] = v128_add32( v128_add32( W[15], SSG2_0( W[ 7] ) ), W[ 6] );
+   X[ 6] = v128_add32( v128_add32( W[15], SSG2_0( W[ 7] ) ), W[ 6] );
    X[ 7] = v128_add32( v128_add32( X[ 0], SSG2_0( W[ 8] ) ), W[ 7] );
    X[ 8] = v128_add32( v128_add32( X[ 1], SSG2_0( W[ 9] ) ), W[ 8] );
    X[ 9] = v128_add32( SSG2_0( W[10] ), W[ 9] );

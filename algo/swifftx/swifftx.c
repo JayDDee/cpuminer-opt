@@ -721,29 +721,29 @@ void FFT( const unsigned char input[EIGHTH_N], swift_int32_t *output )
    v128_t *out = (v128_t*)output;
    v128_t *tbl = (v128_t*)&( fftTable[ input[0] << 3 ] );
 
-   F[ 0] = v128_mullo32( mul[ 0], tbl[0] );
-   F[ 1] = v128_mullo32( mul[ 1], tbl[1] );
+   F[ 0] = v128_mul32( mul[ 0], tbl[0] );
+   F[ 1] = v128_mul32( mul[ 1], tbl[1] );
    tbl = (v128_t*)&( fftTable[ input[1] << 3 ] );
-   F[ 2] = v128_mullo32( mul[ 2], tbl[0] );
-   F[ 3] = v128_mullo32( mul[ 3], tbl[1] );
+   F[ 2] = v128_mul32( mul[ 2], tbl[0] );
+   F[ 3] = v128_mul32( mul[ 3], tbl[1] );
    tbl = (v128_t*)&( fftTable[ input[2] << 3 ] );
-   F[ 4] = v128_mullo32( mul[ 4], tbl[0] );
-   F[ 5] = v128_mullo32( mul[ 5], tbl[1] );
+   F[ 4] = v128_mul32( mul[ 4], tbl[0] );
+   F[ 5] = v128_mul32( mul[ 5], tbl[1] );
    tbl = (v128_t*)&( fftTable[ input[3] << 3 ] );
-   F[ 6] = v128_mullo32( mul[ 6], tbl[0] );
-   F[ 7] = v128_mullo32( mul[ 7], tbl[1] );
+   F[ 6] = v128_mul32( mul[ 6], tbl[0] );
+   F[ 7] = v128_mul32( mul[ 7], tbl[1] );
    tbl = (v128_t*)&( fftTable[ input[4] << 3 ] );
-   F[ 8] = v128_mullo32( mul[ 8], tbl[0] );
-   F[ 9] = v128_mullo32( mul[ 9], tbl[1] );
+   F[ 8] = v128_mul32( mul[ 8], tbl[0] );
+   F[ 9] = v128_mul32( mul[ 9], tbl[1] );
    tbl = (v128_t*)&( fftTable[ input[5] << 3 ] );
-   F[10] = v128_mullo32( mul[10], tbl[0] );
-   F[11] = v128_mullo32( mul[11], tbl[1] );
+   F[10] = v128_mul32( mul[10], tbl[0] );
+   F[11] = v128_mul32( mul[11], tbl[1] );
    tbl = (v128_t*)&( fftTable[ input[6] << 3 ] );
-   F[12] = v128_mullo32( mul[12], tbl[0] );
-   F[13] = v128_mullo32( mul[13], tbl[1] );
+   F[12] = v128_mul32( mul[12], tbl[0] );
+   F[13] = v128_mul32( mul[13], tbl[1] );
    tbl = (v128_t*)&( fftTable[ input[7] << 3 ] );
-   F[14] = v128_mullo32( mul[14], tbl[0] );
-   F[15] = v128_mullo32( mul[15], tbl[1] );
+   F[14] = v128_mul32( mul[14], tbl[0] );
+   F[15] = v128_mul32( mul[15], tbl[1] );
 
    #define ADD_SUB( a, b ) \
    { \
@@ -1268,7 +1268,7 @@ void SWIFFTSum( const swift_int32_t *input, int m, unsigned char *output,
       const v128_t *f = (v128_t*)input + j;
       const v128_t *k = (v128_t*)a + j;
       for ( i = 0; i < m; i++, f += N/4, k += N/4 )
-         sum = v128_add32( sum, v128_mullo32( *f, *k ) );
+         sum = v128_add32( sum, v128_mul32( *f, *k ) );
       res[j] = sum;
    }
 

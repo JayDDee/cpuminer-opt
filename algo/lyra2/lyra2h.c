@@ -3,7 +3,7 @@
 #if !( defined(LYRA2H_8WAY) || defined(LYRA2H_4WAY) )
 
 #include <memory.h>
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
 #include "lyra2.h"
 #include "algo/blake/sph_blake.h"
 
@@ -11,7 +11,7 @@ __thread uint64_t* lyra2h_matrix;
 
 bool lyra2h_thread_init()
 {
-   lyra2h_matrix = _mm_malloc( LYRA2H_MATRIX_SIZE, 64 );
+   lyra2h_matrix = mm_malloc( LYRA2H_MATRIX_SIZE, 64 );
    return lyra2h_matrix;
 }
 

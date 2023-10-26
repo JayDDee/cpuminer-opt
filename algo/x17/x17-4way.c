@@ -32,7 +32,7 @@
 union _x17_16way_context_overlay
 {
     blake512_8way_context    blake;
-    bmw512_8way_context      bmw;
+    bmw512_8x64_context      bmw;
     skein512_8way_context    skein;
     jh512_8way_context       jh;
     keccak512_8way_context   keccak;
@@ -49,7 +49,6 @@ union _x17_16way_context_overlay
 #endif
     simd_4way_context        simd;
     hamsi512_8way_context    hamsi;
-//    hamsi512_16x32_context  hamsi;
     hashState_fugue          fugue;
     shabal512_16way_context  shabal;
     sph_whirlpool_context    whirlpool;
@@ -61,7 +60,7 @@ typedef union _x17_16way_context_overlay x17_16way_context_overlay;
 static __thread __m512i x17_16way_midstate[16] __attribute__((aligned(64)));
 static __thread blake512_8way_context blake512_8way_ctx __attribute__((aligned(64)));
 
-int x17_16way_hash( void *state, const __m512i nonceA, const __m512i nonceB,
+int x17_16x64_hash( void *state, const __m512i nonceA, const __m512i nonceB,
                     int thr_id )
 {
      uint64_t vhashA[8*16] __attribute__ ((aligned (128)));
@@ -86,14 +85,17 @@ int x17_16way_hash( void *state, const __m512i nonceA, const __m512i nonceB,
      uint64_t hash15[8] __attribute__ ((aligned (32)));
      x17_16way_context_overlay ctx;
 
+
+
+
      memcpy( &ctx.blake, &blake512_8way_ctx, sizeof (blake512_8way_ctx) );
      blake512_8way_final_le( &blake512_8way_ctx, vhashA, nonceA,
                                                  x17_16way_midstate );
      blake512_8way_final_le( &ctx.blake, vhashB, nonceB,
                                                  x17_16way_midstate );
 
-     bmw512_8way_full( &ctx.bmw, vhashA, vhashA, 64 );
-     bmw512_8way_full( &ctx.bmw, vhashB, vhashB, 64 );
+     bmw512_8x64_full( &ctx.bmw, vhashA, vhashA, 64 );
+     bmw512_8x64_full( &ctx.bmw, vhashB, vhashB, 64 );
 
 #if defined(__VAES__)
 
@@ -396,7 +398,7 @@ int x17_16way_hash( void *state, const __m512i nonceA, const __m512i nonceB,
      return 1;
 }
 
-int scanhash_x17_16way( struct work *work, uint32_t max_nonce,
+int scanhash_x17_16x32( struct work *work, uint32_t max_nonce,
                         uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash32[8*16] __attribute__ ((aligned (128)));
@@ -416,11 +418,11 @@ int scanhash_x17_16way( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
 
    // convert LE32 to LE64
-   edata[0] = mm128_swap64_32( casti_m128i( pdata, 0 ) );
-   edata[1] = mm128_swap64_32( casti_m128i( pdata, 1 ) );
-   edata[2] = mm128_swap64_32( casti_m128i( pdata, 2 ) );
-   edata[3] = mm128_swap64_32( casti_m128i( pdata, 3 ) );
-   edata[4] = mm128_swap64_32( casti_m128i( pdata, 4 ) );
+   edata[0] = v128_swap64_32( casti_m128i( pdata, 0 ) );
+   edata[1] = v128_swap64_32( casti_m128i( pdata, 1 ) );
+   edata[2] = v128_swap64_32( casti_m128i( pdata, 2 ) );
+   edata[3] = v128_swap64_32( casti_m128i( pdata, 3 ) );
+   edata[4] = v128_swap64_32( casti_m128i( pdata, 4 ) );
 
    mm512_intrlv80_8x64( vdata, edata );
    blake512_8way_prehash_le( &blake512_8way_ctx, x17_16way_midstate, vdata );
@@ -450,14 +452,12 @@ int scanhash_x17_16way( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
-#endif
-
-#if defined(X17_8WAY)
+#elif defined(X17_8WAY)
 
 union _x17_8way_context_overlay
 {
     blake512_8way_context   blake;
-    bmw512_8way_context     bmw;
+    bmw512_8x64_context     bmw;
     skein512_8way_context   skein;
     jh512_8way_context      jh;
     keccak512_8way_context  keccak;
@@ -485,7 +485,7 @@ typedef union _x17_8way_context_overlay x17_8way_context_overlay;
 static __thread __m512i x17_8way_midstate[16] __attribute__((aligned(64)));
 static __thread blake512_8way_context blake512_8way_ctx __attribute__((aligned(64)));
 
-int x17_8way_hash( void *state, const void *input, int thr_id )
+int x17_8x64_hash( void *state, const void *input, int thr_id )
 {
      uint64_t vhash[8*8] __attribute__ ((aligned (128)));
      uint64_t vhashA[8*8] __attribute__ ((aligned (64)));
@@ -503,7 +503,7 @@ int x17_8way_hash( void *state, const void *input, int thr_id )
      blake512_8way_final_le( &blake512_8way_ctx, vhash, casti_m512i( input, 9 ),
                              x17_8way_midstate );
      
-     bmw512_8way_full( &ctx.bmw, vhash, vhash, 64 );
+     bmw512_8x64_full( &ctx.bmw, vhash, vhash, 64 );
 
 #if defined(__VAES__)
 
@@ -661,7 +661,7 @@ int x17_8way_hash( void *state, const void *input, int thr_id )
      return 1;
 }
 
-int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
+int scanhash_x17_8x64( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash32[8*8] __attribute__ ((aligned (128)));
@@ -681,11 +681,11 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
 
    // convert LE32 to LE64
-   edata[0] = mm128_swap64_32( casti_m128i( pdata, 0 ) );
-   edata[1] = mm128_swap64_32( casti_m128i( pdata, 1 ) );
-   edata[2] = mm128_swap64_32( casti_m128i( pdata, 2 ) );
-   edata[3] = mm128_swap64_32( casti_m128i( pdata, 3 ) );
-   edata[4] = mm128_swap64_32( casti_m128i( pdata, 4 ) );
+   edata[0] = v128_swap64_32( casti_m128i( pdata, 0 ) );
+   edata[1] = v128_swap64_32( casti_m128i( pdata, 1 ) );
+   edata[2] = v128_swap64_32( casti_m128i( pdata, 2 ) );
+   edata[3] = v128_swap64_32( casti_m128i( pdata, 3 ) );
+   edata[4] = v128_swap64_32( casti_m128i( pdata, 4 ) );
 
    mm512_intrlv80_8x64( vdata, edata );
    *noncev = _mm512_add_epi32( *noncev, _mm512_set_epi32(
@@ -718,7 +718,7 @@ int scanhash_x17_8way( struct work *work, uint32_t max_nonce,
 union _x17_4way_context_overlay
 {
     blake512_4way_context   blake;
-    bmw512_4way_context     bmw;
+    bmw512_4x64_context     bmw;
 #if defined(__VAES__)
     groestl512_2way_context groestl;
     echo512_2way_context    echo;
@@ -745,7 +745,7 @@ typedef union _x17_4way_context_overlay x17_4way_context_overlay;
 static __thread __m256i x17_4way_midstate[16] __attribute__((aligned(64)));
 static __thread blake512_4way_context blake512_4way_ctx __attribute__((aligned(64)));
 
-int x17_4way_hash( void *state, const void *input, int thr_id )
+int x17_4x64_hash( void *state, const void *input, int thr_id )
 {
      uint64_t vhash[8*4] __attribute__ ((aligned (64)));
      uint64_t vhashA[8*4] __attribute__ ((aligned (64)));
@@ -761,9 +761,9 @@ int x17_4way_hash( void *state, const void *input, int thr_id )
      
 //     blake512_4way_full( &ctx.blake, vhash, input, 80 );
 
-     bmw512_4way_init( &ctx.bmw );
-     bmw512_4way_update( &ctx.bmw, vhash, 64 );
-     bmw512_4way_close( &ctx.bmw, vhash );
+     bmw512_4x64_init( &ctx.bmw );
+     bmw512_4x64_update( &ctx.bmw, vhash, 64 );
+     bmw512_4x64_close( &ctx.bmw, vhash );
 
 #if defined(__VAES__)
 
@@ -875,7 +875,7 @@ int x17_4way_hash( void *state, const void *input, int thr_id )
      return 1;
 }
 
-int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
+int scanhash_x17_4x64( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t hash32[8*4] __attribute__ ((aligned (128)));
@@ -895,11 +895,11 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
 
    // convert LE32 to LE64
-   edata[0] = mm128_swap64_32( casti_m128i( pdata, 0 ) );
-   edata[1] = mm128_swap64_32( casti_m128i( pdata, 1 ) );
-   edata[2] = mm128_swap64_32( casti_m128i( pdata, 2 ) );
-   edata[3] = mm128_swap64_32( casti_m128i( pdata, 3 ) );
-   edata[4] = mm128_swap64_32( casti_m128i( pdata, 4 ) );
+   edata[0] = v128_swap64_32( casti_m128i( pdata, 0 ) );
+   edata[1] = v128_swap64_32( casti_m128i( pdata, 1 ) );
+   edata[2] = v128_swap64_32( casti_m128i( pdata, 2 ) );
+   edata[3] = v128_swap64_32( casti_m128i( pdata, 3 ) );
+   edata[4] = v128_swap64_32( casti_m128i( pdata, 4 ) );
 
    mm256_intrlv80_4x64( vdata, edata );
    *noncev = _mm256_add_epi32( *noncev, _mm256_set_epi32( 0,3,0,2, 0,1,0,0 ) );
@@ -923,6 +923,323 @@ int scanhash_x17_4way( struct work *work, uint32_t max_nonce,
    } while ( ( n < last_nonce ) && !work_restart[thr_id].restart );
    pdata[19] = n;
    *hashes_done = n - first_nonce;
+   return 0;
+}
+
+#elif defined(X17_2X64)
+
+// Need sph in some cases
+//#include "algo/blake/sph_blake.h"
+#include "algo/bmw/sph_bmw.h"
+#include "algo/jh/sph_jh.h"
+//#include "algo/keccak/sph_keccak.h"
+#include "algo/skein/sph_skein.h"
+#include "algo/luffa/sph_luffa.h"
+#include "algo/luffa/luffa_for_sse2.h"
+//#include "algo/cubehash/sph_cubehash.h"
+#include "algo/cubehash/cubehash_sse2.h"
+#include "algo/shavite/sph_shavite.h"
+#include "algo/simd/sph_simd.h"
+#include "algo/simd/nist.h"
+#include "algo/hamsi/sph_hamsi.h"
+#include "algo/shabal/sph_shabal.h"
+#include "algo/whirlpool/sph_whirlpool.h"
+#include "algo/haval/sph-haval.h"
+#include "algo/sha/sph_sha2.h"
+#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
+  #include "algo/groestl/sph_groestl.h"
+  #include "algo/echo/sph_echo.h"
+#endif
+#include "algo/fugue/sph_fugue.h"
+
+union _x17_context_overlay
+{
+//        blake512_2x64_context   blake;
+        blake512_context        blake;
+#if defined(__x86_64__)
+        bmw512_2x64_context     bmw;
+#else
+        sph_bmw512_context      bmw;
+#endif
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+        hashState_groestl       groestl;
+        hashState_echo          echo;
+#else
+        sph_groestl512_context  groestl;
+        sph_echo512_context     echo;
+#endif
+#if defined(__AES__)
+        hashState_fugue         fugue;
+#else
+        sph_fugue512_context    fugue;
+#endif
+#if defined(__x86_64__)
+        jh512_2x64_context      jh;
+#else
+        sph_jh512_context       jh;
+#endif
+        keccak512_2x64_context  keccak;
+#if defined(__x86_64__)
+        skein512_2x64_context   skein;
+#else
+        sph_skein512_context    skein;
+#endif
+#if defined(__x86_64__)
+        hashState_luffa         luffa;
+#else
+        sph_luffa512_context    luffa;
+#endif
+        cubehashParam           cube;
+        sph_shavite512_context  shavite;
+#if defined(__x86_64__)
+        hashState_sd            simd;
+#else
+        sph_simd512_context     simd;
+#endif
+#if defined(__SSE4_2__) // || defined(__ARM_NEON)
+        hamsi_2x64_context      hamsi;
+#else
+        sph_hamsi512_context    hamsi;
+#endif
+        sph_shabal512_context   shabal;
+        sph_whirlpool_context   whirlpool;
+#if defined(__x86_64__)
+        sha512_2x64_context     sha;
+#else
+        sph_sha512_context      sha;
+#endif
+        sph_haval256_5_context  haval;
+};
+typedef union _x17_context_overlay x17_context_overlay;
+
+int x17_2x64_hash( void *output, const void *input, int thr_id )
+{
+    uint8_t vhash[80*2] __attribute__((aligned(64)));
+    uint8_t hash0[64]   __attribute__((aligned(64)));
+    uint8_t hash1[64]   __attribute__((aligned(64)));
+    x17_context_overlay ctx;
+
+//    intrlv_2x64( vhash, input, input+80, 640 );
+//    blake512_2x64_full( &ctx.blake, vhash, vhash, 80 );
+//    dintrlv_2x64( hash0, hash1, vhash, 512 );
+    
+    blake512_full( &ctx.blake, hash0, input,    80 );
+    blake512_full( &ctx.blake, hash1, input+80, 80 );
+
+
+#if defined(__x86_64__)
+    intrlv_2x64( vhash, hash0, hash1, 512 );
+    bmw512_2x64_init( &ctx.bmw );
+    bmw512_2x64_update( &ctx.bmw, vhash, 64 );
+    bmw512_2x64_close( &ctx.bmw, vhash );
+    dintrlv_2x64( hash0, hash1, vhash, 512 );
+#else
+    sph_bmw512_init( &ctx.bmw );
+    sph_bmw512( &ctx.bmw, hash0, 64 );
+    sph_bmw512_close( &ctx.bmw, hash0 );
+    sph_bmw512_init( &ctx.bmw );
+    sph_bmw512( &ctx.bmw, hash1, 64 );
+    sph_bmw512_close( &ctx.bmw, hash1 );
+#endif
+
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+    groestl512_full( &ctx.groestl, hash0, hash0, 512 );
+    groestl512_full( &ctx.groestl, hash1, hash1, 512 );
+#else
+    sph_groestl512_init( &ctx.groestl );
+    sph_groestl512( &ctx.groestl, hash0, 64 );
+    sph_groestl512_close( &ctx.groestl, hash0 );
+    sph_groestl512_init( &ctx.groestl );
+    sph_groestl512( &ctx.groestl, hash1, 64 );
+    sph_groestl512_close( &ctx.groestl, hash1 );
+#endif
+
+#if defined(__x86_64__)
+    intrlv_2x64( vhash, hash0, hash1, 512 );
+    skein512_2x64_full( &ctx.skein, vhash, vhash, 64 );
+    dintrlv_2x64( hash0, hash1, vhash, 512 );
+#else
+    sph_skein512_init( &ctx.skein );
+    sph_skein512( &ctx.skein, hash0, 64 );
+    sph_skein512_close( &ctx.skein, hash0);
+    sph_skein512_init( &ctx.skein );
+    sph_skein512( &ctx.skein, hash1, 64 );
+    sph_skein512_close( &ctx.skein, hash1 );
+#endif
+
+#if defined(__x86_64__)
+    intrlv_2x64( vhash, hash0, hash1, 512);
+    jh512_2x64_ctx( &ctx.jh, vhash, vhash, 64 );
+    dintrlv_2x64( hash0, hash1, vhash, 512 );
+#else
+    sph_jh512_init( &ctx.jh );
+    sph_jh512( &ctx.jh, hash0, 64 );
+    sph_jh512_close( &ctx.jh, hash0 );
+    sph_jh512_init( &ctx.jh);
+    sph_jh512( &ctx.jh, hash1, 64 );
+    sph_jh512_close( &ctx.jh, hash1 );
+#endif
+
+    intrlv_2x64( vhash, hash0, hash1, 512);
+    keccak512_2x64_ctx( &ctx.keccak, vhash, vhash, 64 );
+    dintrlv_2x64( hash0, hash1, vhash, 512 );
+
+#if defined(__x86_64__)
+    luffa_full( &ctx.luffa, hash0, 512, hash0, 64 );
+    luffa_full( &ctx.luffa, hash1, 512, hash1, 64 );
+#else
+    sph_luffa512_init( &ctx.luffa );
+    sph_luffa512( &ctx.luffa, hash0, 64 );
+    sph_luffa512_close( &ctx.luffa, hash0 );
+    sph_luffa512_init( &ctx.luffa );
+    sph_luffa512( &ctx.luffa, hash1, 64 );
+    sph_luffa512_close( &ctx.luffa, hash1 );
+#endif
+
+    cubehash_full( &ctx.cube, hash0, 512, hash0, 64 );
+    cubehash_full( &ctx.cube, hash1, 512, hash1, 64 );
+
+    sph_shavite512_init( &ctx.shavite );
+    sph_shavite512( &ctx.shavite, hash0, 64 );
+    sph_shavite512_close( &ctx.shavite, hash0 );
+    sph_shavite512_init( &ctx.shavite );
+    sph_shavite512( &ctx.shavite, hash1, 64 );
+    sph_shavite512_close( &ctx.shavite, hash1 );
+
+#if defined(__x86_64__)
+    simd_full( &ctx.simd, hash0, hash0, 512 );
+    simd_full( &ctx.simd, hash1, hash1, 512 );
+#else
+    sph_simd512_init( &ctx.simd );
+    sph_simd512( &ctx.simd, hash0, 64 );
+    sph_simd512_close( &ctx.simd, hash0 );
+    sph_simd512_init( &ctx.simd );
+    sph_simd512( &ctx.simd, hash1, 64 );
+    sph_simd512_close( &ctx.simd, hash1 );
+#endif
+
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+    echo_full( &ctx.echo, hash0, 512, hash0, 64 );
+    echo_full( &ctx.echo, hash1, 512, hash1, 64 );
+#else
+    sph_echo512_init( &ctx.echo );
+    sph_echo512( &ctx.echo, hash0, 64 );
+    sph_echo512_close( &ctx.echo, hash0 );
+    sph_echo512_init( &ctx.echo );
+    sph_echo512( &ctx.echo, hash1, 64 );
+    sph_echo512_close( &ctx.echo, hash1 );
+#endif
+
+#if defined(__SSE4_2__) //  || defined(__ARM_NEON)
+    intrlv_2x64( vhash, hash0, hash1, 512 );
+    hamsi512_2x64_ctx( &ctx.hamsi, vhash, vhash, 64 );
+    dintrlv_2x64( hash0, hash1, vhash, 512 );
+#else
+    sph_hamsi512_init( &ctx.hamsi );
+    sph_hamsi512( &ctx.hamsi, hash0, 64 );
+    sph_hamsi512_close( &ctx.hamsi, hash0 );
+    sph_hamsi512_init( &ctx.hamsi );
+    sph_hamsi512( &ctx.hamsi, hash1, 64 );
+    sph_hamsi512_close( &ctx.hamsi, hash1 );
+#endif
+
+#if defined(__AES__)
+    fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+    fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+#else
+    sph_fugue512_full( &ctx.fugue, hash0, hash0, 64 );
+    sph_fugue512_full( &ctx.fugue, hash1, hash1, 64 );
+#endif
+
+    sph_shabal512_init( &ctx.shabal );
+    sph_shabal512( &ctx.shabal, hash0, 64);
+    sph_shabal512_close( &ctx.shabal, hash0 );
+    sph_shabal512_init( &ctx.shabal );
+    sph_shabal512(&ctx.shabal, hash1, 64);
+    sph_shabal512_close( &ctx.shabal, hash1 );
+
+    sph_whirlpool_init( &ctx.whirlpool );
+    sph_whirlpool( &ctx.whirlpool, hash0, 64 );
+    sph_whirlpool_close( &ctx.whirlpool, hash0 );
+    sph_whirlpool_init( &ctx.whirlpool );
+    sph_whirlpool( &ctx.whirlpool, hash1, 64 );
+    sph_whirlpool_close( &ctx.whirlpool, hash1 );
+
+#if defined(__x86_64__)
+    intrlv_2x64( vhash, hash0, hash1, 512 );
+    sha512_2x64_ctx( &ctx.sha, vhash, vhash, 64 );
+    dintrlv_2x64( hash0, hash1, vhash, 512 );
+#else
+    sph_sha512_init( &ctx.sha );
+    sph_sha512( &ctx.sha, hash0, 64 );
+    sph_sha512_close( &ctx.sha, hash0 );
+    sph_sha512_init( &ctx.sha );
+    sph_sha512( &ctx.sha, hash1, 64 );
+    sph_sha512_close( &ctx.sha, hash1 );
+#endif
+
+    sph_haval256_5_init( &ctx.haval );
+    sph_haval256_5( &ctx.haval, hash0, 64 );
+    sph_haval256_5_close( &ctx.haval, output );
+    sph_haval256_5_init( &ctx.haval );
+    sph_haval256_5( &ctx.haval, hash1, 64 );
+    sph_haval256_5_close( &ctx.haval, output+32 );
+
+    return 1;
+}
+
+int scanhash_x17_2x64( struct work *work, uint32_t max_nonce,
+                       uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t hash[8*2]   __attribute__((aligned(64)));
+//   uint32_t vdata[20*2] __attribute__((aligned(64)));
+   uint32_t edata[20*2]   __attribute__((aligned(64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 2;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+//   const v128_t two = v128_64( 2 );
+
+// convert LE32 to LE64 for 2 way blake512
+//   edata[0] = v128_swap64_32( casti_v128( pdata, 0 ) );
+//   edata[1] = v128_swap64_32( casti_v128( pdata, 1 ) );
+//   edata[2] = v128_swap64_32( casti_v128( pdata, 2 ) );
+//   edata[3] = v128_swap64_32( casti_v128( pdata, 3 ) );
+//   edata[4] = v128_swap64_32( casti_v128( pdata, 4 ) );
+//   vdata[9] = v128_add32( vdata[9], v128_set32( 0,1,0,0 ) );
+//   blake512_2way_prehash_le( &blake512_2way_ctx, x17_2way_midstate, vdata );
+//   v128_bswap32_intrlv80_2x64( vdata, edata );
+
+   v128_bswap32_80( edata, pdata );
+   memcpy( edata+20, edata, 80 );
+
+   do
+   {
+      edata[19] = n;
+      edata[39] = n+1;
+      if ( likely( x17_2x64_hash( hash, edata, thr_id ) ) )
+      {
+         if ( unlikely( valid_hash( hash, ptarget ) && !bench ) )
+         {
+applog(LOG_INFO,"Submitted Thread %d, lane %d",thr_id,0);
+              pdata[19] = bswap_32( n );
+//            pdata[19] = n;
+            submit_solution( work, hash, mythr );
+         }
+         if ( unlikely( valid_hash( hash+8, ptarget ) && !bench ) )
+         {
+applog(LOG_INFO,"Submitted Thread %d, lane %d",thr_id,1);            
+            pdata[19] = bswap_32( n+1 );
+            submit_solution( work, hash+8, mythr );
+         }
+      }
+      n += 2;
+   } while ( n < last_nonce && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce;
+   pdata[19] = n;
    return 0;
 }
 

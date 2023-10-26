@@ -32,7 +32,7 @@
 inline void squeeze_2way( uint64_t *State, byte *Out, unsigned int len )
 {
     const int len_m256i = len / 32;
-    const int fullBlocks = len_m256i / BLOCK_LEN_M256I;
+    const int fullBlocks = len_m256i / BLOCK_LEN_256;
     __m512i* state = (__m512i*)State;
     __m512i* out   = (__m512i*)Out;
     int i;
@@ -40,12 +40,12 @@ inline void squeeze_2way( uint64_t *State, byte *Out, unsigned int len )
     //Squeezes full blocks
     for ( i = 0; i < fullBlocks; i++ )
     {
-       memcpy_512( out, state, BLOCK_LEN_M256I );
+       memcpy_512( out, state, BLOCK_LEN_256 );
        LYRA_ROUND_2WAY_AVX512( state[0], state[1], state[2], state[3] );
-       out += BLOCK_LEN_M256I;
+       out += BLOCK_LEN_256;
     }
     //Squeezes remaining bytes
-    memcpy_512( out, state, len_m256i % BLOCK_LEN_M256I );
+    memcpy_512( out, state, len_m256i % BLOCK_LEN_256 );
 }
 
 inline void absorbBlock_2way( uint64_t *State, const uint64_t *In0,
@@ -116,7 +116,7 @@ inline void reducedSqueezeRow0_2way( uint64_t* State, uint64_t* rowOut,
 
 
     register __m512i state0, state1, state2, state3;
-    __m512i* out   = (__m512i*)rowOut + ( (nCols-1) * BLOCK_LEN_M256I );
+    __m512i* out   = (__m512i*)rowOut + ( (nCols-1) * BLOCK_LEN_256 );
 
     state0 = _mm512_load_si512( (__m512i*)State     );
     state1 = _mm512_load_si512( (__m512i*)State + 1 );
@@ -139,7 +139,7 @@ inline void reducedSqueezeRow0_2way( uint64_t* State, uint64_t* rowOut,
        out[2] = state2;
 
        //Goes to next block (column) that will receive the squeezed data
-       out -= BLOCK_LEN_M256I;
+       out -= BLOCK_LEN_256;
 
        LYRA_ROUND_2WAY_AVX512( state0, state1, state2, state3 );
     }
@@ -157,7 +157,7 @@ inline void reducedDuplexRow1_2way( uint64_t *State, uint64_t *rowIn,
     int i;
     register __m512i state0, state1, state2, state3;
     __m512i *in = (__m512i*)rowIn;
-    __m512i *out = (__m512i*)rowOut + ( (nCols-1) * BLOCK_LEN_M256I );
+    __m512i *out = (__m512i*)rowOut + ( (nCols-1) * BLOCK_LEN_256 );
 
     state0 = _mm512_load_si512( (__m512i*)State     );
     state1 = _mm512_load_si512( (__m512i*)State + 1 );
@@ -177,9 +177,9 @@ inline void reducedDuplexRow1_2way( uint64_t *State, uint64_t *rowIn,
          out[2] = _mm512_xor_si512( state2, in[2] );
 
          //Input: next column (i.e., next block in sequence)
-         in += BLOCK_LEN_M256I;
+         in += BLOCK_LEN_256;
          //Output: goes to previous column
-         out -= BLOCK_LEN_M256I;
+         out -= BLOCK_LEN_256;
     }
 
     _mm512_store_si512( (__m512i*)State,     state0 );
@@ -195,7 +195,7 @@ inline void reducedDuplexRowSetup_2way( uint64_t *State, uint64_t *rowIn,
     register __m512i state0, state1, state2, state3;
     __m512i* in    = (__m512i*)rowIn;
     __m512i* inout = (__m512i*)rowInOut;
-    __m512i* out   = (__m512i*)rowOut + ( (nCols-1) * BLOCK_LEN_M256I );
+    __m512i* out   = (__m512i*)rowOut + ( (nCols-1) * BLOCK_LEN_256 );
 
     state0 = _mm512_load_si512( (__m512i*)State     );
     state1 = _mm512_load_si512( (__m512i*)State + 1 );
@@ -234,10 +234,10 @@ inline void reducedDuplexRowSetup_2way( uint64_t *State, uint64_t *rowIn,
       }
 
       //Inputs: next column (i.e., next block in sequence)
-      in    += BLOCK_LEN_M256I;
-      inout += BLOCK_LEN_M256I;
+      in    += BLOCK_LEN_256;
+      inout += BLOCK_LEN_256;
       //Output: goes to previous column
-      out   -= BLOCK_LEN_M256I;
+      out   -= BLOCK_LEN_256;
     }
 
     _mm512_store_si512( (__m512i*)State,     state0 );
@@ -336,10 +336,10 @@ static inline void reducedDuplexRow_2way_normal( uint64_t *State,
      _mm512_mask_store_epi64( inout1 +2, 0xf0, io2 );
 
       //Goes to next block
-      in     += BLOCK_LEN_M256I;
-      inout0 += BLOCK_LEN_M256I;
-      inout1 += BLOCK_LEN_M256I;
-      out    += BLOCK_LEN_M256I;
+      in     += BLOCK_LEN_256;
+      inout0 += BLOCK_LEN_256;
+      inout1 += BLOCK_LEN_256;
+      out    += BLOCK_LEN_256;
    }
 
    _mm512_store_si512( (__m512i*)State,     state0 );
@@ -458,10 +458,10 @@ static inline void reducedDuplexRow_2way_overlap( uint64_t *State,
      _mm512_mask_store_epi64( inout1 +2, 0xf0, io.v512[2] );
 */
       //Goes to next block
-      in     += BLOCK_LEN_M256I;
-      inout0 += BLOCK_LEN_M256I;
-      inout1 += BLOCK_LEN_M256I;
-      out    += BLOCK_LEN_M256I;
+      in     += BLOCK_LEN_256;
+      inout0 += BLOCK_LEN_256;
+      inout1 += BLOCK_LEN_256;
+      out    += BLOCK_LEN_256;
    }
 
    _mm512_store_si512( (__m512i*)State,     state0 );
@@ -550,10 +550,10 @@ static inline void reducedDuplexRow_2way_overlap_X( uint64_t *State,
       inout1[5] = inout.v256[5];
 
        //Goes to next block
-       in     += BLOCK_LEN_M256I;
-       inout0 += BLOCK_LEN_M256I * 2;
-       inout1 += BLOCK_LEN_M256I * 2;
-       out    += BLOCK_LEN_M256I;
+       in     += BLOCK_LEN_256;
+       inout0 += BLOCK_LEN_256 * 2;
+       inout1 += BLOCK_LEN_256 * 2;
+       out    += BLOCK_LEN_256;
    }
 
    _mm512_store_si512( (__m512i*)State,     state0 );
@@ -610,9 +610,9 @@ static inline void reducedDuplexRow_2way_unified( uint64_t *State,
      }
 
      //Goes to next block
-     in    += BLOCK_LEN_M256I;
-     inout += BLOCK_LEN_M256I;
-     out   += BLOCK_LEN_M256I;
+     in    += BLOCK_LEN_256;
+     inout += BLOCK_LEN_256;
+     out   += BLOCK_LEN_256;
    }
 
    _mm512_store_si512( (__m512i*)State,     state0 );

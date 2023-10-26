@@ -39,7 +39,65 @@ static inline uint32_t bswap_32( uint32_t a )
    ( ( ( (x) << 24 ) & 0xff000000 ) | ( ((x) <<  8 ) & 0x00ff0000 ) \
    | ( ( (x) >>  8 ) & 0x0000ff00 ) | ( ((x) >> 24 ) & 0x000000ff ) )
 
+// Poorman's 2 way parallel SIMD uses u64 to bswap 2 u32
+#define bswap_32x2( u64 ) \
+    ( ( (u64) & 0xff000000ff000000 ) >> 24 ) \
+  | ( ( (u64) & 0x00ff000000ff0000 ) >>  8 ) \
+  | ( ( (u64) & 0x0000ff000000ff00 ) <<  8 ) \
+  | ( ( (u64) & 0x000000ff000000ff ) << 24 ) 
+
 #endif
+
+// 128 bit rotation
+#define bswap_128( x ) \
+    ( (uint128_t)(bswap_64( (uint64_t)(x & 0xffffffffffffffff) ) ) << 64 ); \
+ || ( (uint128_t)(bswap_64( (uint64_t)(x >> 64) ) ) ); \
+    
+
+// Set byte order regardless of host order.
+static inline uint64_t be64( const uint64_t u64 )
+{
+  const uint8_t *p = (uint8_t const *)&u64;
+  return ( ( ( (uint64_t)(p[7])         + ( (uint64_t)(p[6]) <<  8 ) ) +
+           ( ( (uint64_t)(p[5]) << 16 ) + ( (uint64_t)(p[4]) << 24 ) ) ) +
+           ( ( (uint64_t)(p[3]) << 32 ) + ( (uint64_t)(p[2]) << 40 ) ) +
+           ( ( (uint64_t)(p[1]) << 48 ) + ( (uint64_t)(p[0]) << 56 ) ) );
+}
+
+static inline uint64_t le64( const uint64_t u64 )
+{
+  const uint8_t *p = (uint8_t const *)&u64;
+  return ( ( ( (uint64_t)(p[0])         + ( (uint64_t)(p[1]) <<  8 ) ) +
+           ( ( (uint64_t)(p[2]) << 16 ) + ( (uint64_t)(p[3]) << 24 ) ) ) +
+           ( ( (uint64_t)(p[3]) << 32 ) + ( (uint64_t)(p[1]) << 40 ) ) +
+           ( ( (uint64_t)(p[2]) << 48 ) + ( (uint64_t)(p[3]) << 56 ) ) );
+}
+
+static inline uint32_t be32( const uint32_t u32 )
+{
+  const uint8_t *p = (uint8_t const *)&u32;
+  return ( ( (uint32_t)(p[3])         + ( (uint32_t)(p[2]) <<  8 ) ) +
+         ( ( (uint32_t)(p[1]) << 16 ) + ( (uint32_t)(p[0]) << 24 ) ) );
+}
+
+static inline uint32_t le32( const uint32_t u32 )
+{
+   const uint8_t *p = (uint8_t const *)&u32;
+   return ( ( (uint32_t)(p[0])        + ( (uint32_t)(p[1]) <<  8 ) ) +
+          ( ( (uint32_t)(p[2]) << 16) + ( (uint32_t)(p[3]) << 24 ) ) );
+}
+
+static inline uint16_t be16( const uint16_t u16 )
+{
+  const uint8_t *p = (uint8_t const *)&u16;
+  return ( (uint16_t)(p[3]) ) + ( (uint16_t)(p[2]) <<  8 );
+}
+
+static inline uint32_t le162( const uint16_t u16 )
+{
+   const uint8_t *p = (uint8_t const *)&u16;
+   return ( (uint16_t)(p[0]) ) + ( (uint16_t)(p[1]) <<  8 );
+}
 
 // Bit rotation
 #if defined(__x86_64__)
@@ -50,10 +108,6 @@ static inline uint32_t bswap_32( uint32_t a )
 #define ror32       __rord
 
 #elif defined(__aarch64__)
-
-//#pragma message "aarch64 fast bit rotation"
-
-// "ror" instruction (intrinsic?) for 32 & 64 bits, args must determine size.
 
 static inline uint64_t ror64( uint64_t a, const int c )
 {

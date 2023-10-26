@@ -229,39 +229,39 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[64] )
 
 #if defined(__SSE2__)
 
-   __m128i *V = (__m128i*)v;
+   v128_t *V = (v128_t*)v;
 
 #define BLAKE2S_ROUND( r ) \
-   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], _mm_set_epi32( \
+   V[0] = v128_add32( V[0], v128_add32( V[1], v128_set32( \
                   m[blake2s_sigma[r][ 6]], m[blake2s_sigma[r][ 4]], \
                   m[blake2s_sigma[r][ 2]], m[blake2s_sigma[r][ 0]] ) ) ); \
-   V[3] = mm128_swap32_16( _mm_xor_si128( V[3], V[0] ) ); \
-   V[2] = _mm_add_epi32( V[2], V[3] ); \
-   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 12 ); \
-   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], _mm_set_epi32( \
+   V[3] = v128_ror32( v128_xor( V[3], V[0] ), 16 ); \
+   V[2] = v128_add32( V[2], V[3] ); \
+   V[1] = v128_ror32( v128_xor( V[1], V[2] ), 12 ); \
+   V[0] = v128_add32( V[0], v128_add32( V[1], v128_set32( \
                    m[blake2s_sigma[r][ 7]], m[blake2s_sigma[r][ 5]], \
                    m[blake2s_sigma[r][ 3]], m[blake2s_sigma[r][ 1]] ) ) ); \
-   V[3] = mm128_shuflr32_8( _mm_xor_si128( V[3], V[0] ) ); \
-   V[2] = _mm_add_epi32( V[2], V[3] ); \
-   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 7 ); \
-   V[0] = mm128_shufll_32( V[0] ); \
-   V[3] = mm128_swap_64( V[3] ); \
-   V[2] = mm128_shuflr_32( V[2] ); \
-   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], _mm_set_epi32( \
+   V[3] = v128_ror32( v128_xor( V[3], V[0] ), 8 ); \
+   V[2] = v128_add32( V[2], V[3] ); \
+   V[1] = v128_ror32( v128_xor( V[1], V[2] ), 7 ); \
+   V[0] = v128_shufll32( V[0] ); \
+   V[3] = v128_swap64( V[3] ); \
+   V[2] = v128_shuflr32( V[2] ); \
+   V[0] = v128_add32( V[0], v128_add32( V[1], v128_set32( \
                     m[blake2s_sigma[r][12]], m[blake2s_sigma[r][10]], \
                     m[blake2s_sigma[r][ 8]], m[blake2s_sigma[r][14]] ) ) ); \
-   V[3] = mm128_swap32_16( _mm_xor_si128( V[3], V[0] ) ); \
-   V[2] = _mm_add_epi32( V[2], V[3] ); \
-   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 12 ); \
-   V[0] = _mm_add_epi32( V[0], _mm_add_epi32( V[1], _mm_set_epi32( \
+   V[3] = v128_ror32( v128_xor( V[3], V[0] ), 16 ); \
+   V[2] = v128_add32( V[2], V[3] ); \
+   V[1] = v128_ror32( v128_xor( V[1], V[2] ), 12 ); \
+   V[0] = v128_add32( V[0], v128_add32( V[1], v128_set32( \
                     m[blake2s_sigma[r][13]], m[blake2s_sigma[r][11]], \
                     m[blake2s_sigma[r][ 9]], m[blake2s_sigma[r][15]] ) ) ); \
-   V[3] = mm128_shuflr32_8( _mm_xor_si128( V[3], V[0] ) ); \
-   V[2] = _mm_add_epi32( V[2], V[3] ); \
-   V[1] = mm128_ror_32( _mm_xor_si128( V[1], V[2] ), 7 ); \
-   V[0] = mm128_shuflr_32( V[0] ); \
-   V[3] = mm128_swap_64( V[3] ); \
-   V[2] = mm128_shufll_32( V[2] )
+   V[3] = v128_ror32( v128_xor( V[3], V[0] ), 8 ); \
+   V[2] = v128_add32( V[2], V[3] ); \
+   V[1] = v128_ror32( v128_xor( V[1], V[2] ), 7 ); \
+   V[0] = v128_shuflr32( V[0] ); \
+   V[3] = v128_swap64( V[3] ); \
+   V[2] = v128_shufll32( V[2] )
 
    BLAKE2S_ROUND(0);
    BLAKE2S_ROUND(1);

@@ -11,8 +11,6 @@
 
 #if defined(__AVX2__) && defined(__VAES__)
 
-#define LENGTH (512)
-
 /* some sizes (number of bytes) */
 #define ROWS (8)
 #define LENGTHFIELDLEN (ROWS)

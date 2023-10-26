@@ -295,7 +295,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
   {
     case ALGO_ALLIUM:       rc = register_allium_algo        ( gate ); break;
     case ALGO_ANIME:        rc = register_anime_algo         ( gate ); break;
-    case ALGO_ARGON2:       rc = register_argon2_algo        ( gate ); break;
     case ALGO_ARGON2D250:   rc = register_argon2d_crds_algo  ( gate ); break;
     case ALGO_ARGON2D500:   rc = register_argon2d_dyn_algo   ( gate ); break;
     case ALGO_ARGON2D4096:  rc = register_argon2d4096_algo   ( gate ); break;

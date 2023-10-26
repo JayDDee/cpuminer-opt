@@ -2,6 +2,7 @@
 #define __VECTOR_H__
 
 #include "compat.h"
+#include "simd-utils.h"
 
 /******************************* 
  * Using GCC vector extensions * 
@@ -133,13 +134,13 @@ union u32 {
 #define vec_or(x,y)        v128_or( x, y )
 #define vec_xor(x,y)       v128_xor( x, y )
 
-#define v16_and vec_and
-#define v16_or  vec_or
-#define v16_xor vec_xor
+#define v16_and v128_and
+#define v16_or  v128_or
+#define v16_xor v128_xor
 
-#define v32_and vec_and
-#define v32_or  vec_or
-#define v32_xor vec_xor
+#define v32_and v128_and
+#define v32_or  v128_or
+#define v32_xor v128_xor
 
 #define vec_andn( x,y )   v128_andnot( x, y )
 #define v16_andn          vec_andn 
@@ -158,7 +159,6 @@ union u32 {
 #define v16_interleavel        v128_unpacklo16
 #define v16_interleaveh        v128_unpackhi16 
 
-// the builtins compile for arm, so ???
 #define v16_mergel(a,b)   V1632(__builtin_ia32_punpcklwd128(a,b))
 #define v16_mergeh(a,b)   V1632(__builtin_ia32_punpckhwd128(a,b))
 

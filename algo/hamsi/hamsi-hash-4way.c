@@ -32,13 +32,8 @@
 
 #include <stddef.h>
 #include <string.h>
-#include "hamsi-hash-4way.h"
-
 #include <stdio.h>
-
-#if defined(__AVX2__)
-
-//#include "hamsi-helper-4way.c"
+#include "hamsi-hash-4way.h"
 
 static const uint32_t HAMSI_IV512[] =
 {
@@ -1120,6 +1115,8 @@ void hamsi512_8way_close( hamsi_8way_big_context *sc, void *dst )
 
 #endif // AVX512
 
+#if defined (__AVX2__)
+
 // Hamsi 4 way AVX2
 
 #if defined(__AVX512VL__)
@@ -1896,15 +1893,15 @@ void hamsi512_4way_init( hamsi_4way_big_context *sc )
 {
    sc->partial_len = 0;
    sc->count_high = sc->count_low = 0;
-
-   sc->h[0] = v256_64( 0x6c70617273746565 );
-   sc->h[1] = v256_64( 0x656e62656b204172 );
-   sc->h[2] = v256_64( 0x302c206272672031 );
-   sc->h[3] = v256_64( 0x3434362c75732032 );
-   sc->h[4] = v256_64( 0x3030312020422d33 );
-   sc->h[5] = v256_64( 0x656e2d484c657576 );
-   sc->h[6] = v256_64( 0x6c65652c65766572 );
-   sc->h[7] = v256_64( 0x6769756d2042656c );
+   uint64_t *iv = (uint64_t*)HAMSI_IV512;
+   sc->h[0] = v256_64( iv[0] );
+   sc->h[1] = v256_64( iv[1] );
+   sc->h[2] = v256_64( iv[2] );
+   sc->h[3] = v256_64( iv[3] );
+   sc->h[4] = v256_64( iv[4] );
+   sc->h[5] = v256_64( iv[5] );
+   sc->h[6] = v256_64( iv[6] );
+   sc->h[7] = v256_64( iv[7] );
 }
 
 void hamsi512_4way_update( hamsi_4way_big_context *sc, const void *data,
@@ -1935,3 +1932,332 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 }
 
 #endif
+
+#if defined(__SSE4_2__) || defined(__ARM_NEON)
+
+#define DECL_STATE_2x64 \
+   v128_t c0, c1, c2, c3, c4, c5, c6, c7; \
+
+#define READ_STATE_2x64(sc) \
+   c0 = sc->h[0]; \
+   c1 = sc->h[1]; \
+   c2 = sc->h[2]; \
+   c3 = sc->h[3]; \
+   c4 = sc->h[4]; \
+   c5 = sc->h[5]; \
+   c6 = sc->h[6]; \
+   c7 = sc->h[7];
+
+#define WRITE_STATE_2x64(sc) \
+   sc->h[0] = c0; \
+   sc->h[1] = c1; \
+   sc->h[2] = c2; \
+   sc->h[3] = c3; \
+   sc->h[4] = c4; \
+   sc->h[5] = c5; \
+   sc->h[6] = c6; \
+   sc->h[7] = c7;
+
+#define INPUT_2x64 \
+{ \
+  v128_t db = *buf; \
+  const v128_t zero = v128_zero; \
+  const uint64_t *tp = (const uint64_t*)T512;  \
+  m0 = m1 = m2 = m3 = m4 = m5 = m6 = m7 = zero; \
+  for ( int i = 63; i >= 0; i-- ) \
+  { \
+     v128_t dm = v128_cmpgt64( zero, v128_sl64( db, i ) ); \
+     m0 = v128_xor( m0, v128_and( dm, v128_64( tp[0] ) ) ); \
+     m1 = v128_xor( m1, v128_and( dm, v128_64( tp[1] ) ) ); \
+     m2 = v128_xor( m2, v128_and( dm, v128_64( tp[2] ) ) ); \
+     m3 = v128_xor( m3, v128_and( dm, v128_64( tp[3] ) ) ); \
+     m4 = v128_xor( m4, v128_and( dm, v128_64( tp[4] ) ) ); \
+     m5 = v128_xor( m5, v128_and( dm, v128_64( tp[5] ) ) ); \
+     m6 = v128_xor( m6, v128_and( dm, v128_64( tp[6] ) ) ); \
+     m7 = v128_xor( m7, v128_and( dm, v128_64( tp[7] ) ) ); \
+     tp += 8; \
+  } \
+}
+
+// v3 no ternary logic, 15 instructions, 9 TL equivalent instructions
+#define SBOX_2x64( a, b, c, d ) \
+{ \
+  v128_t tb, td; \
+  td = v128_xorand( d, a, c ); \
+  tb = v128_xoror( b, d, a ); \
+  c = v128_xor3( c, td, b ); \
+  a = v128_xor( a, c ); \
+  b = v128_xoror( td, tb, a ); \
+  td = v128_xorand( a, td, tb ); \
+  a = c; \
+  c = v128_xor3( tb, b, td ); \
+  d = v128_not( td ); \
+}
+
+#define L_2x64( a, b, c, d ) \
+{ \
+   a = v128_rol32( a, 13 ); \
+   c = v128_rol32( c,  3 ); \
+   b = v128_xor3( a, b, c ); \
+   d = v128_xor3( d, c, v128_sl32( a, 3 ) ); \
+   b = v128_rol32( b, 1 ); \
+   d = v128_rol32( d, 7 ); \
+   a = v128_xor3( a, b, d ); \
+   c = v128_xor3( c, d, v128_sl32( b, 7 ) ); \
+   a = v128_rol32( a,  5 ); \
+   c = v128_rol32( c, 22 ); \
+}
+
+#define ROUND_2x64( alpha ) \
+{ \
+   v128_t t0, t1, t2, t3, t4, t5; \
+   const v128_t mask = v128_64( 0x00000000ffffffff ); \
+   s0 = v128_xor( s0, alpha[ 0] ); \
+   s1 = v128_xor( s1, alpha[ 1] ); \
+   s2 = v128_xor( s2, alpha[ 2] ); \
+   s3 = v128_xor( s3, alpha[ 3] ); \
+   s4 = v128_xor( s4, alpha[ 4] ); \
+   s5 = v128_xor( s5, alpha[ 5] ); \
+   s6 = v128_xor( s6, alpha[ 6] ); \
+   s7 = v128_xor( s7, alpha[ 7] ); \
+   s8 = v128_xor( s8, alpha[ 8] ); \
+   s9 = v128_xor( s9, alpha[ 9] ); \
+   sA = v128_xor( sA, alpha[10] ); \
+   sB = v128_xor( sB, alpha[11] ); \
+   sC = v128_xor( sC, alpha[12] ); \
+   sD = v128_xor( sD, alpha[13] ); \
+   sE = v128_xor( sE, alpha[14] ); \
+   sF = v128_xor( sF, alpha[15] ); \
+\
+  SBOX_2x64( s0, s4, s8, sC ); \
+  SBOX_2x64( s1, s5, s9, sD ); \
+  SBOX_2x64( s2, s6, sA, sE ); \
+  SBOX_2x64( s3, s7, sB, sF ); \
+\
+  s4 = v128_swap64_32( s4 ); \
+  s5 = v128_swap64_32( s5 ); \
+  sD = v128_swap64_32( sD ); \
+  sE = v128_swap64_32( sE ); \
+  t0 = v128_blendv( s5, s4, mask ); \
+  t1 = v128_blendv( sE, sD, mask ); \
+  L_2x64( s0, t0, s9, t1 ); \
+\
+  s6 = v128_swap64_32( s6 ); \
+  sF = v128_swap64_32( sF ); \
+  t2 = v128_blendv( s6, s5, mask ); \
+  t3 = v128_blendv( sF, sE, mask ); \
+  L_2x64( s1, t2, sA, t3 ); \
+  s5 = v128_blendv( t0, t2, mask ); \
+  sE = v128_blendv( t1, t3, mask ); \
+\
+  s7 = v128_swap64_32( s7 ); \
+  sC = v128_swap64_32( sC ); \
+  t4 = v128_blendv( s7, s6, mask ); \
+  t5 = v128_blendv( sC, sF, mask ); \
+  L_2x64( s2, t4, sB, t5 ); \
+  s6 = v128_blendv( t2, t4, mask ); \
+  sF = v128_blendv( t3, t5, mask ); \
+  s6 = v128_swap64_32( s6 ); \
+  sF = v128_swap64_32( sF ); \
+\
+  t2 = v128_blendv( s4, s7, mask ); \
+  t3 = v128_blendv( sD, sC, mask ); \
+  L_2x64( s3, t2, s8, t3 ); \
+  s7 = v128_blendv( t4, t2, mask ); \
+  s4 = v128_blendv( t2, t0, mask ); \
+  sC = v128_blendv( t5, t3, mask ); \
+  sD = v128_blendv( t3, t1, mask ); \
+  s7 = v128_swap64_32( s7 ); \
+  sC = v128_swap64_32( sC ); \
+\
+  t0 = v128_blendv( v128_swap64_32( s8 ), s0, mask ); \
+  t1 = v128_blendv( s9, s1, mask ); \
+  t2 = v128_blendv( sA, v128_swap64_32( s2 ), mask ); \
+  t3 = v128_blendv( s3, sB, mask ); \
+  t3 = v128_swap64_32( t3 ); \
+  L_2x64( t0, t1, t2, t3 ); \
+  t3 = v128_swap64_32( t3 ); \
+  s0 = v128_blendv( s0, t0, mask ); \
+  s8 = v128_blendv( s8, v128_swap64_32( t0 ), mask ); \
+  s1 = v128_blendv( s1, t1, mask ); \
+  s9 = v128_blendv( t1, s9, mask ); \
+  s2 = v128_blendv( v128_swap64_32( t2 ), s2, mask ); \
+  sA = v128_blendv( t2, sA, mask ); \
+  s3 = v128_blendv( t3, s3, mask ); \
+  sB = v128_blendv( sB, t3, mask ); \
+\
+  t0 = v128_blendv( sC, s4, mask ); \
+  t1 = v128_blendv( sD, s5, mask ); \
+  t2 = v128_blendv( sE, s6, mask ); \
+  t3 = v128_blendv( sF, s7, mask ); \
+  L_2x64( t0, t1, t2, t3 ); \
+  s4 = v128_blendv( s4, t0, mask ); \
+  sC = v128_blendv( t0, sC, mask ); \
+  s5 = v128_blendv( s5, t1, mask ); \
+  sD = v128_blendv( t1, sD, mask ); \
+  s6 = v128_blendv( s6, t2, mask ); \
+  sE = v128_blendv( t2, sE, mask ); \
+  s7 = v128_blendv( s7, t3, mask ); \
+  sF = v128_blendv( t3, sF, mask ); \
+  s4 = v128_swap64_32( s4 ); \
+  s5 = v128_swap64_32( s5 ); \
+  sD = v128_swap64_32( sD ); \
+  sE = v128_swap64_32( sE ); \
+}
+
+#define P_2x64 \
+{ \
+   v128_t alpha[16]; \
+   const uint64_t A0 = ( (uint64_t*)alpha_n )[0]; \
+   for( int i = 0; i < 16; i++ ) \
+      alpha[i] = v128_64( ( (uint64_t*)alpha_n )[i] ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( (1ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( (2ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( (3ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( (4ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( (5ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+}
+
+#define PF_2x64 \
+{ \
+   v128_t alpha[16]; \
+   const uint64_t A0 = ( (uint64_t*)alpha_f )[0]; \
+   for( int i = 0; i < 16; i++ ) \
+      alpha[i] = v128_64( ( (uint64_t*)alpha_f )[i] ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( ( 1ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( ( 2ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( ( 3ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( ( 4ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( ( 5ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( ( 6ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( ( 7ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( ( 8ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( ( 9ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( (10ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+   alpha[0] = v128_64( (11ULL << 32) ^ A0 ); \
+   ROUND_2x64( alpha ); \
+}
+
+#define T_2x64 \
+{ /* order is important */ \
+   c7 = sc->h[ 7 ] = v128_xor( sc->h[ 7 ], sB ); \
+   c6 = sc->h[ 6 ] = v128_xor( sc->h[ 6 ], sA ); \
+   c5 = sc->h[ 5 ] = v128_xor( sc->h[ 5 ], s9 ); \
+   c4 = sc->h[ 4 ] = v128_xor( sc->h[ 4 ], s8 ); \
+   c3 = sc->h[ 3 ] = v128_xor( sc->h[ 3 ], s3 ); \
+   c2 = sc->h[ 2 ] = v128_xor( sc->h[ 2 ], s2 ); \
+   c1 = sc->h[ 1 ] = v128_xor( sc->h[ 1 ], s1 ); \
+   c0 = sc->h[ 0 ] = v128_xor( sc->h[ 0 ], s0 ); \
+}
+
+void hamsi64_big( hamsi_2x64_context *sc, v128_t *buf, size_t num )
+{
+   DECL_STATE_2x64;
+   uint32_t tmp;
+
+   tmp = (uint32_t)num << 6;
+   sc->count_low = sc->count_low + tmp;
+   sc->count_high += (uint32_t)( (num >> 13) >> 13 );
+   if ( sc->count_low < tmp )
+      sc->count_high++;
+
+   READ_STATE_2x64( sc );
+   while ( num-- > 0 )
+   {
+      v128_t m0, m1, m2, m3, m4, m5, m6, m7;
+
+      INPUT_2x64;
+      P_2x64;
+      T_2x64;
+      buf++;
+   }
+   WRITE_STATE_2x64( sc );
+}
+
+void hamsi64_big_final( hamsi_2x64_context *sc, v128_t *buf )
+{
+   v128_t m0, m1, m2, m3, m4, m5, m6, m7;
+   DECL_STATE_2x64;
+   READ_STATE_2x64( sc );
+   INPUT_2x64;
+   PF_2x64;
+   T_2x64;
+   WRITE_STATE_2x64( sc );
+}
+
+void hamsi512_2x64_init( hamsi_2x64_context *sc )
+{
+   sc->partial_len = 0;
+   sc->count_high = sc->count_low = 0;
+   uint64_t * iv = (uint64_t*)HAMSI_IV512;
+   sc->h[0] = v128_64( iv[0] );
+   sc->h[1] = v128_64( iv[1] );
+   sc->h[2] = v128_64( iv[2] );
+   sc->h[3] = v128_64( iv[3] );
+   sc->h[4] = v128_64( iv[4] );
+   sc->h[5] = v128_64( iv[5] );
+   sc->h[6] = v128_64( iv[6] );
+   sc->h[7] = v128_64( iv[7] );
+}
+
+void hamsi512_2x64_update( hamsi_2x64_context *sc, const void *data,
+      size_t len )
+{
+   v128_t *vdata = (v128_t*)data;
+
+   hamsi64_big( sc, vdata, len>>3 );
+   vdata += ( (len& ~(size_t)7) >> 3 );
+   len &= (size_t)7;
+   v128_memcpy( sc->buf, vdata, len>>3 );
+   sc->partial_len = len;
+}
+
+void hamsi512_2x64_close( hamsi_2x64_context *sc, void *dst )
+{
+   v128_t pad[1];
+   uint32_t ch, cl;
+
+   ch = bswap_32( sc->count_high );
+   cl = bswap_32( sc->count_low + ( sc->partial_len << 3 ) );
+   pad[0] = v128_64( ((uint64_t)cl << 32 ) | (uint64_t)ch );
+   sc->buf[0] = v128_64( 0x80 );
+   hamsi64_big( sc, sc->buf, 1 );
+   hamsi64_big_final( sc, pad );
+
+   v128_block_bswap32( (v128_t*)dst, sc->h );
+}
+
+void hamsi512_2x64_ctx( hamsi512_2x64_context *sc, void *dst, const void *data, 
+                        size_t len )
+{
+   hamsi512_2x64_init( sc );
+   hamsi512_2x64_update( sc, data, len );
+   hamsi512_2x64_close( sc, dst );
+}
+
+void hamsi512_2x64( void *dst, const void *data, size_t len )
+{
+   hamsi512_2x64_context sc;
+   hamsi512_2x64_init( &sc );
+   hamsi512_2x64_update( &sc, data, len );
+   hamsi512_2x64_close( &sc, dst );
+}   
+
+#endif   // SSE4.1 or NEON

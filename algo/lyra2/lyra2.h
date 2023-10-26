@@ -37,8 +37,8 @@ typedef unsigned char byte;
         #define BLOCK_LEN_BYTES (BLOCK_LEN_INT64 * 8)    //Block length, in bytes
 #endif
 
-#define BLOCK_LEN_M256I (BLOCK_LEN_INT64 / 4 )
-#define BLOCK_LEN_M128I (BLOCK_LEN_INT64 / 2 )
+#define BLOCK_LEN_256 (BLOCK_LEN_INT64 / 4 )
+#define BLOCK_LEN_128 (BLOCK_LEN_INT64 / 2 )
 
 int LYRA2RE( void *K, uint64_t kLen, const void *pwd,
              uint64_t pwdlen, const void *salt, uint64_t saltlen,

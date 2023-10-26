@@ -32,18 +32,9 @@
 
 #include <stddef.h>
 #include <string.h>
-
-#if defined(__SSE4_1__) || defined(__ARM_NEON)
-
 #include "shabal-hash-4way.h"
-#ifdef __cplusplus
-extern "C"{
-#endif
 
-#ifdef _MSC_VER
-#pragma warning (disable: 4146)
-#endif
-
+//#if defined(__SSE4_1__) || defined(__ARM_NEON)
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
@@ -640,12 +631,7 @@ shabal512_16way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
    shabal_16way_close(cc, ub, n, dst, 16);
 }
 
-
-
-
-
 #endif
-
 
 #if defined(__AVX2__)
 
@@ -1028,11 +1014,6 @@ do { \
     A0 = _mm256_add_epi32( A0, C3 ); \
 } while (0)
 
-#define INCR_W8   do { \
-      if ( ( Wlow = Wlow + 1 ) == 0 ) \
-         Whigh = Whigh + 1; \
-   } while (0)
-
 static void
 shabal_8way_init( void *cc, unsigned size )
 {
@@ -1139,7 +1120,8 @@ shabal_8way_core( void *cc, const unsigned char *data, size_t len )
          APPLY_P8;
          INPUT_BLOCK_SUB8;
          SWAP_BC8;
-         INCR_W8;
+         if ( ( Wlow = Wlow + 1 ) == 0 )
+            Whigh = Whigh + 1; 
          ptr = 0;
       }
    }
@@ -1244,20 +1226,18 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 
 #endif  // AVX2
 
+#if defined(__SSE4_1__) || defined(__ARM_NEON)
+
 #define DECL_STATE   \
-	v128_t A0, A1, A2, A3, A4, A5, A6, A7, \
-	        A8, A9, AA, AB; \
-	v128_t B0, B1, B2, B3, B4, B5, B6, B7, \
-	        B8, B9, BA, BB, BC, BD, BE, BF; \
-	v128_t C0, C1, C2, C3, C4, C5, C6, C7, \
-	        C8, C9, CA, CB, CC, CD, CE, CF; \
-	v128_t M0, M1, M2, M3, M4, M5, M6, M7, \
-	        M8, M9, MA, MB, MC, MD, ME, MF; \
-   const v128_t FIVE  = v128_32( 5 ); \
-   const v128_t THREE = v128_32( 3 ); \
+	v128u32_t A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, AA, AB; \
+	v128u32_t B0, B1, B2, B3, B4, B5, B6, B7, B8, B9, BA, BB, BC, BD, BE, BF; \
+	v128u32_t C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, CA, CB, CC, CD, CE, CF; \
+	v128u32_t M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, MA, MB, MC, MD, ME, MF; \
+   const v128u32_t FIVE  = v128_32( 5 ); \
+   const v128u32_t THREE = v128_32( 3 ); \
    uint32_t Wlow, Whigh;
 
-#define READ_STATE(state) do \
+#define READ_STATE( state ) \
 { \
    if ( (state)->state_loaded ) \
    { \
@@ -1356,9 +1336,10 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
    } \
    Wlow = (state)->Wlow; \
    Whigh = (state)->Whigh; \
-} while (0)
+} 
 
-#define WRITE_STATE(state)   do { \
+#define WRITE_STATE(state) \
+{ \
 		(state)->A[0] = A0; \
 		(state)->A[1] = A1; \
 		(state)->A[2] = A2; \
@@ -1405,10 +1386,10 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 		(state)->C[15] = CF; \
 		(state)->Wlow = Wlow; \
 		(state)->Whigh = Whigh; \
-	} while (0)
+} 
 
 #define DECODE_BLOCK \
-do { \
+{ \
    M0 = buf[ 0]; \
    M1 = buf[ 1]; \
    M2 = buf[ 2]; \
@@ -1425,10 +1406,10 @@ do { \
    MD = buf[13]; \
    ME = buf[14]; \
    MF = buf[15]; \
-} while (0)
+}
 
 #define INPUT_BLOCK_ADD \
-do { \
+{ \
     B0 = v128_add32( B0, M0 );\
     B1 = v128_add32( B1, M1 );\
     B2 = v128_add32( B2, M2 );\
@@ -1445,11 +1426,11 @@ do { \
     BD = v128_add32( BD, MD );\
     BE = v128_add32( BE, ME );\
     BF = v128_add32( BF, MF );\
-} while (0)
+}
 
 #define INPUT_BLOCK_SUB \
-do { \
-    C0 = v128_sub32( C0, M0 ); \
+{ \
+     C0 = v128_sub32( C0, M0 ); \
     C1 = v128_sub32( C1, M1 ); \
     C2 = v128_sub32( C2, M2 ); \
     C3 = v128_sub32( C3, M3 ); \
@@ -1465,13 +1446,13 @@ do { \
     CD = v128_sub32( CD, MD ); \
     CE = v128_sub32( CE, ME ); \
     CF = v128_sub32( CF, MF ); \
-} while (0)
+}
 
 #define XOR_W \
-do { \
+{ \
    A0 = v128_xor( A0, v128_32( Wlow ) ); \
    A1 = v128_xor( A1, v128_32( Whigh ) ); \
-} while (0)
+}
 
 #define v128_swap256_128( v1, v2 ) \
    v1 = v128_xor( v1, v2 ); \
@@ -1479,7 +1460,7 @@ do { \
    v1 = v128_xor( v1, v2 );
 
 #define SWAP_BC \
-do { \
+{ \
     v128_swap256_128( B0, C0 ); \
     v128_swap256_128( B1, C1 ); \
     v128_swap256_128( B2, C2 ); \
@@ -1496,18 +1477,19 @@ do { \
     v128_swap256_128( BD, CD ); \
     v128_swap256_128( BE, CE ); \
     v128_swap256_128( BF, CF ); \
-} while (0)
+}
 
 #define PERM_ELT( xa0, xa1, xb0, xb1, xb2, xb3, xc, xm ) \
-do { \
+{ \
    xa0 = v128_xor3( xm, xb1, v128_xorandnot( \
-           v128_mullo32( v128_xor3( xa0, xc, \
-              v128_mullo32( v128_rol32( xa1, 15 ), FIVE ) ), THREE ), \
+           v128_mul32( v128_xor3( xa0, xc, \
+              v128_mul32( v128_rol32( xa1, 15 ), FIVE ) ), THREE ), \
            xb3, xb2 ) ); \
    xb0 = v128_not( v128_xor( xa0, v128_rol32( xb0, 1 ) ) ); \
-} while (0)
+}
 
-#define PERM_STEP_0   do { \
+#define PERM_STEP_0 \
+{ \
 		PERM_ELT(A0, AB, B0, BD, B9, B6, C8, M0); \
 		PERM_ELT(A1, A0, B1, BE, BA, B7, C7, M1); \
 		PERM_ELT(A2, A1, B2, BF, BB, B8, C6, M2); \
@@ -1524,9 +1506,10 @@ do { \
 		PERM_ELT(A1, A0, BD, BA, B6, B3, CB, MD); \
 		PERM_ELT(A2, A1, BE, BB, B7, B4, CA, ME); \
 		PERM_ELT(A3, A2, BF, BC, B8, B5, C9, MF); \
-	} while (0)
+}
 
-#define PERM_STEP_1   do { \
+#define PERM_STEP_1 \
+{ \
 		PERM_ELT(A4, A3, B0, BD, B9, B6, C8, M0); \
 		PERM_ELT(A5, A4, B1, BE, BA, B7, C7, M1); \
 		PERM_ELT(A6, A5, B2, BF, BB, B8, C6, M2); \
@@ -1543,9 +1526,10 @@ do { \
 		PERM_ELT(A5, A4, BD, BA, B6, B3, CB, MD); \
 		PERM_ELT(A6, A5, BE, BB, B7, B4, CA, ME); \
 		PERM_ELT(A7, A6, BF, BC, B8, B5, C9, MF); \
-	} while (0)
+}
 
-#define PERM_STEP_2   do { \
+#define PERM_STEP_2 \
+{ \
 		PERM_ELT(A8, A7, B0, BD, B9, B6, C8, M0); \
 		PERM_ELT(A9, A8, B1, BE, BA, B7, C7, M1); \
 		PERM_ELT(AA, A9, B2, BF, BB, B8, C6, M2); \
@@ -1562,10 +1546,10 @@ do { \
 		PERM_ELT(A9, A8, BD, BA, B6, B3, CB, MD); \
 		PERM_ELT(AA, A9, BE, BB, B7, B4, CA, ME); \
 		PERM_ELT(AB, AA, BF, BC, B8, B5, C9, MF); \
-	} while (0)
+}
 
 #define APPLY_P \
-do { \
+{ \
     B0 = v128_ror32( B0, 15 ); \
     B1 = v128_ror32( B1, 15 ); \
     B2 = v128_ror32( B2, 15 ); \
@@ -1621,12 +1605,7 @@ do { \
     A2 = v128_add32( A2, C5 ); \
     A1 = v128_add32( A1, C4 ); \
     A0 = v128_add32( A0, C3 ); \
-} while (0)
-
-#define INCR_W   do { \
-		if ( ( Wlow = Wlow + 1 ) == 0 ) \
-			Whigh = Whigh + 1; \
-	} while (0)
+}
 
 /*
 static const sph_u32 A_init_256[] = {
@@ -1825,7 +1804,8 @@ shabal_4way_core( void *cc, const unsigned char *data, size_t len )
          APPLY_P;
          INPUT_BLOCK_SUB;
          SWAP_BC;
-         INCR_W;
+         if ( ( Wlow = Wlow + 1 ) == 0 )
+            Whigh = Whigh + 1;
          ptr = 0;
       }
    }
@@ -1927,8 +1907,7 @@ shabal512_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 {
 	shabal_4way_close(cc, ub, n, dst, 16);
 }
-#ifdef __cplusplus
-}
-#endif
 
 #endif
+
+

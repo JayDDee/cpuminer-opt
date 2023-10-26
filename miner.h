@@ -3,8 +3,26 @@
 
 #include <cpuminer-config.h>
 
-#define USER_AGENT PACKAGE_NAME "/" PACKAGE_VERSION
-#define MAX_CPUS 16
+
+#if defined(__x86_64__)
+   #define USER_AGENT_ARCH "x64"
+#elif defined(__aarch64__)
+   #define USER_AGENT_ARCH "arm"
+#else
+   #define USER_AGENT_ARCH
+#endif
+
+#if defined(__linux)
+   #define USER_AGENT_OS   "L"
+#elif defined(WIN32)
+   #define USER_AGENT_OS   "W"
+#else
+   #define USER_AGENT_OS
+#endif
+
+#define USER_AGENT PACKAGE_NAME "-" PACKAGE_VERSION "-" USER_AGENT_ARCH "-" USER_AGENT_OS
+
+//#define MAX_CPUS 128
 
 #ifdef _MSC_VER
 
@@ -42,6 +60,22 @@
 # endif
 #endif
 
+// no mm_maloc for Neon
+#if !defined(__ARM_NEON)
+
+#include <mm_malloc.h>
+
+#define mm_malloc( nbytes, alignment )    _mm_malloc( nbytes, alignment )
+#define mm_free                           _mm_free
+
+#else
+
+#define mm_malloc( nbytes, alignment )    malloc( nbytes )
+#define mm_free                           free
+
+#endif
+
+
 /*
 #ifndef min
 #define min(a,b) (a>b ? (b) :(a))
@@ -68,6 +102,9 @@ extern "C"
 void *alloca (size_t);
 # endif
 //#endif
+
+// keyboard beep
+static const char ASCII_BELL =  '\a';
 
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
@@ -238,8 +275,8 @@ static inline void le16enc(void *pp, uint16_t x)
 
 json_t* json_load_url(char* cfg_url, json_error_t *err);
 
-void sha256_init(uint32_t *state);
-void sha256_transform(uint32_t *state, const uint32_t *block, int swap);
+//void sha256_init(uint32_t *state);
+//void sha256_transform(uint32_t *state, const uint32_t *block, int swap);
 //void sha256d(unsigned char *hash, const unsigned char *data, int len);
 
 #ifdef USE_ASM
@@ -326,6 +363,7 @@ struct thr_api {
 
 void   applog(int prio, const char *fmt, ...);
 void   applog2(int prio, const char *fmt, ...);
+void   applog_nl( const char *fmt, ... );
 void   restart_threads(void);
 extern json_t *json_rpc_call( CURL *curl, const char *url, const char *userpass,
                 	const char *rpc_req, int *curl_err, int flags );
@@ -544,7 +582,6 @@ enum algos {
         ALGO_NULL,
         ALGO_ALLIUM,
         ALGO_ANIME,
-        ALGO_ARGON2,
         ALGO_ARGON2D250,
         ALGO_ARGON2D500,
         ALGO_ARGON2D4096,
@@ -635,11 +672,12 @@ enum algos {
         ALGO_ZR5,
         ALGO_COUNT
 };
+
+// This list must be in exactly the same order as above.
 static const char* const algo_names[] = {
         NULL,
         "allium",
         "anime",
-        "argon2",
         "argon2d250",
         "argon2d500",
         "argon2d4096",
@@ -794,7 +832,7 @@ extern const int pk_buffer_size_max;
 extern int pk_buffer_size;
 extern char *opt_data_file;
 extern bool opt_verify;
-
+extern bool opt_bell;    //  keyboard beep
 static char const usage[] = "\
 Usage: cpuminer [OPTIONS]\n\
 Options:\n\
@@ -1014,6 +1052,7 @@ static struct option const options[] = {
         { "verify", 0, NULL, 1028 },
         { "stratum-keepalive", 0, NULL, 1029 },
         { "version", 0, NULL, 'V' },
+        { "bell", 0, NULL, 1031 },
         { 0, 0, 0, 0 }
 };
 

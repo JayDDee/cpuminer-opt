@@ -37,15 +37,12 @@ int scanhash_yespower_r8g( struct work *work, uint32_t max_nonce,
     const uint32_t last_nonce = max_nonce;
     const int thr_id = mythr->id;
 
-    yespower_params_t params =
-    {
-		.version = YESPOWER_0_5,
-		.N = 2048,
-		.r = 8,
-		.pers = (const uint8_t *)endiandata,
-		.perslen = work->sapling ? 112 : 80,
-    };
-
+    yespower_params.version = YESPOWER_0_5;
+    yespower_params.N = 2048;
+    yespower_params.r = 8;
+    yespower_params.pers = (const uint8_t *)endiandata;
+    yespower_params.perslen = work->sapling ? 112 : 80;
+    
     //we need bigendian data...
     for ( int i = 0 ; i < 32; i++ )
        be32enc( &endiandata[ i], pdata[ i ]);
@@ -56,8 +53,8 @@ int scanhash_yespower_r8g( struct work *work, uint32_t max_nonce,
    sha256_update( &sha256_prehash_ctx, endiandata, 64 );
     
     do {
-       yespower_tls( (unsigned char *)endiandata, params.perslen,
-                      &params, (yespower_binary_t*)hash, thr_id );
+       algo_gate.hash( (unsigned char *)endiandata, 
+                       (yespower_binary_t*)hash, thr_id );
       
        if unlikely( valid_hash( hash, ptarget ) && !opt_benchmark )
        {
@@ -74,9 +71,13 @@ int scanhash_yespower_r8g( struct work *work, uint32_t max_nonce,
 
 bool register_yescryptr8g_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | SHA_OPT;
+  gate->optimizations = SSE2_OPT | SHA_OPT | NEON_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_r8g;
-  gate->hash          = (void*)&yespower_tls;
+#if (__SSE2__) || defined(__aarch64__)
+  gate->hash          = (void*)&yespower_hash;
+#else
+  gate->hash          = (void*)&yespower_hash_ref;
+#endif
   pk_buffer_size      = 26;
   opt_sapling         = true;
   opt_target_factor   = 65536.0;

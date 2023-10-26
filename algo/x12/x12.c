@@ -17,16 +17,16 @@
 #include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#include "algo/simd/nist.h"
+#if defined(__aarch64__)
+  #include "algo/simd/sph_simd.h"
+#else
+  #include "algo/simd/nist.h"
+#endif
 #if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
-#if defined(__aarch64__)
-  #include "algo/luffa/sph_luffa.h"
-#else
-  #include "algo/luffa/luffa_for_sse2.h"
-#endif
+#include "algo/luffa/luffa_for_sse2.h"
 
 typedef struct {
    sph_blake512_context    blake;
@@ -41,14 +41,14 @@ typedef struct {
    sph_groestl512_context   groestl;
    sph_echo512_context      echo;
 #endif
-#if defined(__aarch64__)
-   sph_luffa512_context       luffa;
-#else
    hashState_luffa         luffa;
-#endif
    cubehashParam            cubehash;
    sph_shavite512_context   shavite;
-   hashState_sd             simd;
+#if defined(__aarch64__)
+   sph_simd512_context     simd;
+#else
+   hashState_sd            simd;
+#endif
    sph_hamsi512_context     hamsi;
 } x12_ctx_holder;
 
@@ -68,14 +68,14 @@ void init_x12_ctx()
         sph_groestl512_init(&x12_ctx.groestl);
         sph_echo512_init(&x12_ctx.echo);
 #endif
-#if defined(__aarch64__)
-   sph_luffa512_init(&x12_ctx.luffa );
-#else
    init_luffa( &x12_ctx.luffa, 512 );
-#endif
         cubehashInit( &x12_ctx.cubehash, 512, 16, 32 );
         sph_shavite512_init( &x12_ctx.shavite );
-        init_sd( &x12_ctx.simd, 512 );
+#if defined(__aarch64__)
+   sph_simd512_init( &x12_ctx.simd );
+#else
+   init_sd( &x12_ctx.simd, 512 );
+#endif
         sph_hamsi512_init( &x12_ctx.hamsi );
 };
 
@@ -94,22 +94,20 @@ void x12hash(void *output, const void *input)
    sph_bmw512(&ctx.bmw, hash, 64);
    sph_bmw512_close(&ctx.bmw, hash);
 
-#if defined(__aarch64__)
-    sph_luffa512(&ctx.luffa, (const void*) hash, 64);
-    sph_luffa512_close(&ctx.luffa, hashB);
-#else
-   update_and_final_luffa( &ctx.luffa, (BitSequence*)hashB,
-                           (const BitSequence*)hash, 64 );
-#endif
+   update_and_final_luffa( &ctx.luffa, hashB, hash, 64 );
 
-   cubehashUpdateDigest( &ctx.cubehash, (byte*) hash,
-                         (const byte*)hashB, 64 );
+   cubehashUpdateDigest( &ctx.cubehash, hash,hashB, 64 );
 
    sph_shavite512( &ctx.shavite, hash, 64);
    sph_shavite512_close( &ctx.shavite, hashB);
 
-   update_final_sd( &ctx.simd, (BitSequence *)hash,
-                    (const BitSequence *)hashB, 512 );
+#if defined(__aarch64__)
+    sph_simd512(&ctx.simd, (const void*) hashB, 64);
+    sph_simd512_close(&ctx.simd, hash);
+#else
+    update_sd( &ctx.simd, (const BitSequence *)hash, 512 );
+    final_sd( &ctx.simd, (BitSequence *)hash );
+#endif
 
 #if defined(__AES__)
    update_final_echo ( &ctx.echo, (BitSequence *)hashB,

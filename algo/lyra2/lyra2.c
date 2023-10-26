@@ -21,7 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
+#include "miner.h"
 #include "compat.h"
 #include "lyra2.h"
 #include "sponge.h"
@@ -463,7 +464,7 @@ int LYRA2Z( uint64_t* wholeMatrix, void *K, uint64_t kLen, const void *pwd,
 
     //=================== Initializing the Sponge State ====================//
     //Sponge state: 16 uint64_t, BLOCK_LEN_INT64 words of them for the bitrate (b) and the remainder for the capacity (c)
-//        uint64_t *state = _mm_malloc(16 * sizeof(uint64_t), 32);
+//        uint64_t *state = mm_malloc(16 * sizeof(uint64_t), 32);
 //        if (state == NULL) {
 //                return -1;
 //        }
@@ -572,7 +573,7 @@ int LYRA2RE( void *K, uint64_t kLen, const void *pwd, const uint64_t pwdlen,
                                           : BLOCK_LEN_BLAKE2_SAFE_BYTES;
 
    i = (int64_t)ROW_LEN_BYTES * nRows;
-   uint64_t *wholeMatrix = _mm_malloc( i, 64 );
+   uint64_t *wholeMatrix = mm_malloc( i, 64 );
    if (wholeMatrix == NULL)
       return -1;
 
@@ -720,7 +721,7 @@ int LYRA2RE( void *K, uint64_t kLen, const void *pwd, const uint64_t pwdlen,
    squeeze(state, K, (unsigned int) kLen);
 
    //================== Freeing the memory =============================//
-   _mm_free(wholeMatrix);
+   mm_free(wholeMatrix);
 
    return 0;
 }

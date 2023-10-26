@@ -33,6 +33,14 @@ supported.
 64 bit Linux or Windows operating system. Apple, Android and Raspberry Pi
 are not supported. FreeBSD YMMV.
 
+ARM requirements (Beta):
+
+CPU: Armv8 and NEON, SHA2 & AES are optional
+OS: Linux distribution built for AArch64.
+Packages: source code only.
+
+See wiki for details.
+
 Reporting bugs
 --------------
 
@@ -64,6 +72,26 @@ If not what makes it happen or not happen?
 
 Change Log
 ----------
+
+v23.5
+
+New version numbering drops the leading 3, the major version will now be the calendar year, the minor version identifies planned releases during the year.
+
+BETA: 64 bit ARM support
+- ARM 64 bit CPUs are now supported with source code for Linux. Windows is not supported.
+- NEON, AES & SHA2 are supported.
+- This the first public release and is early Beta quality.
+- Some algorithms do not work on ARM or work at reduced performance.
+See wiki for details: https://github.com/JayDDee/cpuminer-opt/wiki/Support-for-AArch64.
+
+- CPU archtecture and OS detection and logging now support ARM features.
+- New 2way parallel hash for ARM also helps x86_64 CPUs without AVX2 on supported algorithms.
+- Enhanced startup feature logs to support ARM.
+- Removed startup logs for incompatible CPU/SW architectures.
+- Added CPU architecture & OS type to RPC user agent string.
+- Added share reject controls, a warning log is displayed at 10% reject rate, the miner exits with an error log at 50%.
+- Removed argon2 algorithm.
+- New CLI option "--bell" adds an ASCII bell code in the output string of error, warning, & rejected share logs. The option is disabled by default.
 
 v3.23.4
 

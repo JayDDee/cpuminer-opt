@@ -35,8 +35,6 @@
 
 #if ( defined(__AES__) && defined(__SSSE3__) ) || ( defined(__ARM_NEON) && defined(__ARM_FEATURE_AES) )
 
-#pragma message "AES for shavite"
-
 #include "sph_shavite.h"
 #include "simd-utils.h"
 

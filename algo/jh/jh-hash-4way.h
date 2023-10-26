@@ -36,11 +36,6 @@
 #ifndef JH_HASH_4WAY_H__
 #define JH_HASH_4WAY_H__
 
-#ifdef __AVX2__
-
-#ifdef __cplusplus
-extern "C"{
-#endif
 
 #include <stddef.h>
 #include "simd-utils.h"
@@ -60,61 +55,96 @@ extern "C"{
  * <code>memcpy()</code>).
  */
 
- 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-typedef struct {
+typedef struct
+{
     __m512i buf[8];
     __m512i H[16];
     size_t ptr;
     uint64_t block_count;
-} jh_8way_context __attribute__ ((aligned (128)));
+} jh_8x64_context __attribute__ ((aligned (128)));
 
-typedef jh_8way_context jh256_8way_context;
+typedef jh_8x64_context jh256_8x64_context;
+typedef jh_8x64_context jh512_8x64_context;
+#define jh256_8way_context jh256_8x64_context
+#define jh512_8way_context jh512_8x64_context
 
-typedef jh_8way_context jh512_8way_context;
+void jh256_8x64_init( jh_8x64_context *sc);
+void jh256_8x64_update(void *cc, const void *data, size_t len);
+void jh256_8x64_close(void *cc, void *dst);
+void jh256_8x64_ctx( jh_8x64_context *cc, void *dst, const void *data, size_t len );
 
-void jh256_8way_init( jh_8way_context *sc);
+void jh512_8x64_init( jh_8x64_context *sc );
+void jh512_8x64_update(void *cc, const void *data, size_t len);
+void jh512_8x64_close(void *cc, void *dst);
+void jh512_8x64_ctx( jh_8x64_context *cc, void *dst, const void *data, size_t len );
 
-void jh256_8way_update(void *cc, const void *data, size_t len);
+#define jh256_8way_init     jh256_8x64_init
+#define jh256_8way_update   jh256_8x64_update
+#define jh256_8way_close    jh256_8x64_close
 
-void jh256_8way_close(void *cc, void *dst);
-
-void jh512_8way_init( jh_8way_context *sc );
-
-void jh512_8way_update(void *cc, const void *data, size_t len);
-
-void jh512_8way_close(void *cc, void *dst);
+#define jh512_8way_init     jh512_8x64_init
+#define jh512_8way_update   jh512_8x64_update
+#define jh512_8way_close    jh512_8x64_close
 
 #endif
 
-typedef struct {
+#if defined(__AVX2__)
+
+typedef struct
+{
     __m256i buf[8];
     __m256i H[16];
     size_t ptr;
     uint64_t block_count;
-} jh_4way_context __attribute__ ((aligned (128)));
+} jh_4x64_context __attribute__ ((aligned (128)));
 
-typedef jh_4way_context jh256_4way_context;
+typedef jh_4x64_context jh256_4x64_context;
+typedef jh_4x64_context jh512_4x64_context;
+#define jh256_4way_context jh256_4x64_context
+#define jh512_4way_context jh512_4x64_context
 
-typedef jh_4way_context jh512_4way_context;
+void jh256_4x64_init( jh_4x64_context *sc );
+void jh256_4x64_update( void *cc, const void *data, size_t len );
+void jh256_4x64_close( void *cc, void *dst );
+void jh256_4x64_ctx( jh_4x64_context *cc, void *dst, const void *data,
+                     size_t len );
 
-void jh256_4way_init( jh_4way_context *sc);
+void jh512_4x64_init( jh_4x64_context *sc );
+void jh512_4x64_update( void *cc, const void *data, size_t len );
+void jh512_4x64_close( void *cc, void *dst );
+void jh512_4x64_ctx( jh_4x64_context *cc, void *dst, const void *data, size_t len );
 
-void jh256_4way_update(void *cc, const void *data, size_t len);
+#define jh256_4way_init     jh256_4x64_init
+#define jh256_4way_update   jh256_4x64_update 
+#define jh256_4way_close    jh256_4x64_close
 
-void jh256_4way_close(void *cc, void *dst);
-
-void jh512_4way_init( jh_4way_context *sc );
-
-void jh512_4way_update(void *cc, const void *data, size_t len);
-
-void jh512_4way_close(void *cc, void *dst);
-
-#ifdef __cplusplus
-}
-#endif
+#define jh512_4way_init     jh512_4x64_init
+#define jh512_4way_update   jh512_4x64_update 
+#define jh512_4way_close    jh512_4x64_close
 
 #endif // AVX2
+
+typedef struct
+{
+    v128u64_t buf[8];
+    v128u64_t H[16];
+    size_t ptr;
+    uint64_t block_count;
+} jh_2x64_context __attribute__ ((aligned (128)));
+
+typedef jh_2x64_context jh256_2x64_context;
+typedef jh_2x64_context jh512_2x64_context;
+
+void jh256_2x64_init( jh256_2x64_context *cc );
+void jh256_2x64_update( jh256_2x64_context *cc, const void *data, size_t len );
+void jh256_2x64_close( jh256_2x64_context *cc, void *dst );
+void jh256_2x64_ctx( jh256_2x64_context *cc, void *dst, const void *data, size_t len );
+
+void jh512_2x64_init( jh512_2x64_context *cc );
+void jh512_2x64_update( jh256_2x64_context *cc, const void *data, size_t len );
+void jh512_2x64_close( jh256_2x64_context *cc, void *dst );
+void jh512_2x64_ctx( jh256_2x64_context *cc, void *dst, const void *data, size_t len );
 
 #endif

@@ -70,6 +70,7 @@
 
 #include "miner.h"
 #include "algo-gate-api.h"
+#include "algo/sha/sha256-hash.h"
 
 #ifdef WIN32
 #include "compat/winansi.h"
@@ -172,9 +173,11 @@ double net_diff = 0.;
 double net_hashrate = 0.;
 uint64_t net_blocks = 0;
 uint32_t opt_work_size = 0;
+bool     opt_bell = false;
 
 // conditional mining
-bool conditional_state[MAX_CPUS] = { 0 };
+bool *conditional_state = NULL;
+//bool conditional_state[MAX_CPUS] = { 0 };
 double opt_max_temp = 0.0;
 double opt_max_diff = 0.0;
 double opt_max_rate = 0.0;
@@ -987,7 +990,7 @@ void report_summary_log( bool force )
 {
    struct timeval now, et, uptime, start_time;
 
-  if ( rejected_share_count )
+  if ( rejected_share_count > 10 )
   {
      if ( rejected_share_count > ( submitted_share_count * .5 ) )
      {
@@ -1288,12 +1291,13 @@ static int share_result( int result, struct work *work,
      else              rcol = CL_LRD;
    }
 
-   applog( LOG_INFO, "%d %s%s %s%s %s%s %s%s%s, %.3f sec (%dms)",
-           my_stats.share_count, acol, ares, scol, sres, rcol, rres, bcol,
-           bres, CL_N, share_time, latency );
+   const char *bell = !result && opt_bell ? &ASCII_BELL : "";
+   applog( LOG_INFO, "%s%d %s%s %s%s %s%s %s%s%s, %.3f sec (%dms)",
+           bell, my_stats.share_count, acol, ares, scol, sres, rcol, rres,
+           bcol, bres, CL_N, share_time, latency );
    if ( unlikely( !( opt_quiet || result || stale ) ) )
    {
-      applog2( LOG_INFO, "Reject reason: %s", reason ? reason : "NULL" );
+      applog2( LOG_INFO, "%sReject reason: %s", bell, reason ? reason : "" );
       applog2( LOG_INFO, "Share diff: %.5g, Target: %.5g",
                         my_stats.share_diff, my_stats.target_diff );
    }
@@ -2844,7 +2848,7 @@ static void show_credits()
 #define XSTR(x) STR(x)
 #define STR(x) #x
 
-#pragma message "Building for armv" XSTR(__ARM_ARCH)  
+//#pragma message "Building for armv" XSTR(__ARM_ARCH)  
 
 #endif
 
@@ -2854,6 +2858,8 @@ static bool cpu_capability( bool display_only )
      bool cpu_has_aarch64 = cpu_arch_aarch64();
      bool cpu_has_x86_64  = cpu_arch_x86_64();
      bool cpu_has_sse2    = has_sse2();    // X86_64 only
+     bool cpu_has_ssse3   = has_ssse3();    // X86_64 only
+     bool cpu_has_sse41   = has_sse41();    // X86_64 only
      bool cpu_has_sse42   = has_sse42();
      bool cpu_has_avx     = has_avx();
      bool cpu_has_avx2    = has_avx2();
@@ -2867,7 +2873,9 @@ static bool cpu_capability( bool display_only )
      bool sw_has_aarch64  = false;
      int  sw_arm_arch     = 0;
      bool sw_has_neon     = false;
-     bool sw_has_sse2     = false;        // x86_64 or ARM NEON
+     bool sw_has_sse2     = false;        // x86_64
+     bool sw_has_ssse3    = false;        // x86_64
+     bool sw_has_sse41    = false;        // x86_64
      bool sw_has_sse42    = false;
      bool sw_has_avx      = false;
      bool sw_has_avx2     = false;
@@ -2886,6 +2894,7 @@ static bool cpu_capability( bool display_only )
      bool algo_has_vaes    = set_incl( VAES_OPT,    algo_features );
      bool algo_has_sha     = set_incl( SHA_OPT,     algo_features );
      bool algo_has_sha512  = set_incl( SHA512_OPT,  algo_features );
+     bool algo_has_neon    = set_incl( NEON_OPT,    algo_features );
      bool use_sse2;
      bool use_sse42;
      bool use_avx;
@@ -2910,8 +2919,14 @@ static bool cpu_capability( bool display_only )
            sw_arm_arch = __ARM_ARCH;
          #endif
      #endif
-     #if defined(__SSE2__) || defined(__ARM_NEON)
+     #if defined(__SSE2__)
          sw_has_sse2 = true;
+     #endif
+     #if defined(__SSSE3__)
+         sw_has_ssse3 = true;
+     #endif
+     #if defined(__SSE41__)
+         sw_has_sse41 = true;
      #endif
      #ifdef __SSE4_2__
          sw_has_sse42 = true;
@@ -2937,7 +2952,11 @@ static bool cpu_capability( bool display_only )
      #if defined(__SHA512__) || defined(____ARM_FEATURE_SHA3)
          sw_has_sha512 = true;
      #endif
+     #if defined(__ARM_NEON)
+         sw_has_neon = true;
+     #endif
 
+         
      cpu_brand_string( cpu_brand );
      printf( "CPU: %s\n", cpu_brand );
 
@@ -2946,9 +2965,17 @@ static bool cpu_capability( bool display_only )
          " with VC++ 2013\n");
      #elif defined(__GNUC__)
          " with GCC-");
-        printf("%d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+        printf("%d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
      #else
         printf("\n");
+     #endif
+
+     #if defined(__linux)
+        printf(" Linux\n");
+     #elif defined(WIN32)
+        printf(" Windows\n");
+     #else
+       printf("\n");
      #endif
 
      printf("CPU features: ");
@@ -2959,6 +2986,8 @@ static bool cpu_capability( bool display_only )
        else if ( cpu_has_avx2   )   printf( " AVX2  "  );
        else if ( cpu_has_avx    )   printf( " AVX   "  );
        else if ( cpu_has_sse42  )   printf( " SSE4.2"  );
+       else if ( cpu_has_sse41  )   printf( " SSE4.1"  );
+       else if ( cpu_has_ssse3  )   printf( " SSSE3 "  );
        else if ( cpu_has_sse2   )   printf( " SSE2  "  );
      }
      else if   ( cpu_has_aarch64 )  printf( " AArch64 NEON" ); // NEON assumed
@@ -2977,6 +3006,8 @@ static bool cpu_capability( bool display_only )
         else if ( sw_has_avx2    )   printf( " AVX2  "  );
         else if ( sw_has_avx     )   printf( " AVX   "  );
         else if ( sw_has_sse42   )   printf( " SSE4.2"  );
+        else if ( sw_has_sse41   )   printf( " SSE4.1"  );
+        else if ( sw_has_ssse3   )   printf( " SSSE3 "  );
         else if ( sw_has_sse2    )   printf( " SSE2  "  );
      }
      else if    ( sw_has_aarch64 ) 
@@ -2992,7 +3023,7 @@ static bool cpu_capability( bool display_only )
 
      if ( !display_only )
      {
-        printf("\nAlgo features:");
+        printf("\nAlgo features:       ");
         if ( algo_features == EMPTY_SET ) printf( " None" );
         else
         {
@@ -3000,6 +3031,7 @@ static bool cpu_capability( bool display_only )
            else if ( algo_has_avx2   )  printf( " AVX2  " );
            else if ( algo_has_sse42  )  printf( " SSE4.2" );
            else if ( algo_has_sse2   )  printf( " SSE2  " );
+           if      ( algo_has_neon   )  printf( " NEON  " );
            if      ( algo_has_vaes   )  printf( " VAES"   );
            else if ( algo_has_aes    )  printf( "  AES"   );
            if      ( algo_has_sha512 )  printf( " SHA512" );
@@ -3010,8 +3042,9 @@ static bool cpu_capability( bool display_only )
 
      if ( display_only ) return true;
 
+/*     
      // Check for CPU and build incompatibilities
-     if ( !cpu_has_sse2 )
+     if ( !cpu_has_sse2 && !cpu_has_aarch64 )
      {
         printf( "A CPU with SSE2 is required to use cpuminer-opt\n" );
         return false;
@@ -3036,6 +3069,7 @@ static bool cpu_capability( bool display_only )
         printf( "The SW build requires a CPU with SHA!\n" );
         return false;
      }
+*/
 
      // Determine mining options
      use_sse2   = cpu_has_sse2   && sw_has_sse2   && algo_has_sse2;
@@ -3047,18 +3081,18 @@ static bool cpu_capability( bool display_only )
      use_vaes   = cpu_has_vaes   && sw_has_vaes   && algo_has_vaes;
      use_sha    = cpu_has_sha    && sw_has_sha    && algo_has_sha;
      use_sha512 = cpu_has_sha512 && sw_has_sha512 && algo_has_sha512;
-     use_neon   = sw_has_aarch64 && sw_has_neon;
+     use_neon   = sw_has_aarch64 && sw_has_neon   && algo_has_neon;
      use_none = !( use_sse2 || use_sse42 || use_avx || use_aes || use_avx512
                 || use_avx2 || use_sha || use_vaes || use_sha512 || use_neon );
 
      // Display best options
-     printf( "\nStarting miner with" );
-     if         ( use_none   ) printf( " no optimizations" );
+     applog_nl( "Enabled optimizations:" );
+     if         ( use_none   ) printf( " none" );
      else
      {
-        if ( cpu_has_aarch64 ) printf( " AArch64");
-        else
-                               printf( " x86_64" );
+//        if ( cpu_has_aarch64 ) printf( " AArch64");
+//        else
+//                               printf( " x86_64" );
         if      ( use_avx512 ) printf( " AVX512" );
         else if ( use_avx2   ) printf( " AVX2"   );
         else if ( use_avx    ) printf( " AVX"    );
@@ -3070,7 +3104,7 @@ static bool cpu_capability( bool display_only )
         else if ( use_sha    ) printf( " SHA256" );
         if      ( use_neon   ) printf( " NEON"   );
      }
-     printf( "...\n\n" );
+     printf( "\n" );
 
      return true;
 }
@@ -3437,6 +3471,9 @@ void parse_arg(int key, char *arg )
    case 1014:   // hash-meter
       opt_hash_meter = true;
       break;
+   case 1031:   // bell
+      opt_bell = true;
+      break;
    case 1016:			/* --coinbase-addr */
       if ( arg ) coinbase_address = strdup( arg );
 		break;
@@ -3646,6 +3683,52 @@ int main(int argc, char *argv[])
 	long flags;
 	int i, err;
 
+/*
+#include "simd-utils.h"
+
+printf("bswap32: %08x, bswap64: %016lx\n", bswap_32( 0x03020100 ), bswap_64( 0x0706050403020100 ) );
+printf("ror32: %08x, ror64: %016lx\n", ror32( 0x03020100, 8 ), ror64( 0x0706050403020100, 8 ) );
+exit(0);
+
+uint64x2_t a64 = v128_set64( 0x5555555555555555, 0xcccccccccccccccc ) ;
+uint64x2_t c64 = v128_set64( 0xffffffffffffffff, 0x0000000000000000 ) ;
+uint64x2_t mask = v128_set64( 0x0f0f0f0ff0f0f0f0, 0xf0f0f0f00f0f0f0f ) ;
+
+uint32x4_t a32 = v128_set32( 0x0f0e0d0c, 0x0b0a0908, 0x07060504, 0x03020100 );
+uint16x8_t a16 = v128_set16( 0x0f0e, 0x00d0c, 0x0b0a, 0x0908, 0x0706, 0x0504, 0x0302, 0x0100 );
+uint8x16_t a8 = v128_set8(  0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 );
+
+a64 = v128_bswap64( a32 );
+a32 = v128_bswap32( a32 );
+a16 = v128_bswap16( a16 );
+
+uint64_t *b64 = (uint64_t*)&a64;
+uint32_t *b32 = (uint32_t*)&a32;
+uint16_t *b16 = (uint16_t*)&a16;
+
+//a32 = v128_ror32( a32, 4 );
+
+
+printf("64: %016lx, %016lx\n", b64[1], b64[0] );
+
+printf("32: %08x %08x %08x %08x\n",  b32[3], b32[2],  b32[1], b32[0] );
+
+printf("16: %04x %04x %04x %04x %04x %04x %04x %04x\n", b16[7], b16[6],  b16[5], b16[4], b16[3], b16[2],  b16[1], b16[0] );
+
+//a32 = v128_ror32( a32, 28 );
+//printf("32: %08x %08x %08x %08x\n",  b32[3], b32[2],  b32[1], b32[0] );
+//a32 = v128_rol32( a32, 4 );
+//printf("32: %08x %08x %08x %08x\n",  b32[3], b32[2],  b32[1], b32[0] );
+//a32 = v128_rol32( a32, 28 );
+//printf("32: %08x %08x %08x %08x\n",  b32[3], b32[2],  b32[1], b32[0] );
+
+exit(0);
+*/
+
+
+
+
+
 	pthread_mutex_init(&applog_lock, NULL);
 
 	show_credits();
@@ -3838,6 +3921,9 @@ int main(int argc, char *argv[])
          applog( LOG_INFO, "Found %d CPUs in %d groups",
                            num_cpus, num_cpugroups );
 #endif
+   
+   conditional_state = malloc( opt_n_threads * ((sizeof(bool)) ) );
+   memset( conditional_state, 0, opt_n_threads * ((sizeof(bool)) ) );
    
    const int map_size = opt_n_threads < num_cpus ? num_cpus : opt_n_threads;   
    thread_affinity_map = malloc( map_size * (sizeof (int)) );

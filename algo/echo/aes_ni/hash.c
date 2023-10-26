@@ -14,15 +14,11 @@
  *
  */
 
-//TODO NEON support, funky shuffles
-
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
 
 #include <memory.h>
 #include "miner.h"
 #include "hash_api.h"
-//#include "vperm.h"
-#include <immintrin.h>
 #include "simd-utils.h"
 
 MYALIGN const unsigned int _k_s0F[] = {0x0F0F0F0F, 0x0F0F0F0F, 0x0F0F0F0F, 0x0F0F0F0F};
@@ -57,61 +53,61 @@ MYALIGN const unsigned int	mul2ipt[]		= {0x728efc00, 0x6894e61a, 0x3fc3b14d, 0x2
 
 
 #define ECHO_SUBBYTES4(state, j) \
-   state[0][j] = _mm_aesenc_si128(state[0][j], k1);\
-   k1 = _mm_add_epi32(k1, M128(const1));\
-   state[1][j] = _mm_aesenc_si128(state[1][j], k1);\
-   k1 = _mm_add_epi32(k1, M128(const1));\
-   state[2][j] = _mm_aesenc_si128(state[2][j], k1);\
-   k1 = _mm_add_epi32(k1, M128(const1));\
-   state[3][j] = _mm_aesenc_si128(state[3][j], k1);\
-   k1 = _mm_add_epi32(k1, M128(const1));\
-   state[0][j] = _mm_aesenc_si128(state[0][j], m128_zero ); \
-   state[1][j] = _mm_aesenc_si128(state[1][j], m128_zero ); \
-   state[2][j] = _mm_aesenc_si128(state[2][j], m128_zero ); \
-   state[3][j] = _mm_aesenc_si128(state[3][j], m128_zero )
+   state[0][j] = v128_aesenc(state[0][j], k1);\
+   k1 = v128_add32(k1, cast_v128(const1));\
+   state[1][j] = v128_aesenc(state[1][j], k1);\
+   k1 = v128_add32(k1, cast_v128(const1));\
+   state[2][j] = v128_aesenc(state[2][j], k1);\
+   k1 = v128_add32(k1, cast_v128(const1));\
+   state[3][j] = v128_aesenc(state[3][j], k1);\
+   k1 = v128_add32(k1, cast_v128(const1));\
+   state[0][j] = v128_aesenc(state[0][j], v128_zero ); \
+   state[1][j] = v128_aesenc(state[1][j], v128_zero ); \
+   state[2][j] = v128_aesenc(state[2][j], v128_zero ); \
+   state[3][j] = v128_aesenc(state[3][j], v128_zero )
 
 #define ECHO_SUBBYTES(state, i, j) \
-	state[i][j] = _mm_aesenc_si128(state[i][j], k1);\
-   k1 = _mm_add_epi32(k1, M128(const1));\
-	state[i][j] = _mm_aesenc_si128(state[i][j], M128(zero))
+	state[i][j] = v128_aesenc(state[i][j], k1);\
+   k1 = v128_add32(k1, cast_v128(const1));\
+	state[i][j] = v128_aesenc(state[i][j], cast_v128(zero))
 
 #define ECHO_MIXBYTES(state1, state2, j, t1, t2, s2) \
-	s2 = _mm_add_epi8(state1[0][j], state1[0][j]);\
-	t1 = _mm_srli_epi16(state1[0][j], 7);\
-	t1 = _mm_and_si128(t1, M128(lsbmask));\
-	t2 = _mm_shuffle_epi8(M128(mul2mask), t1);\
-	s2 = _mm_xor_si128(s2, t2);\
+	s2 = v128_add8(state1[0][j], state1[0][j]);\
+	t1 = v128_sr16(state1[0][j], 7);\
+	t1 = v128_and(t1, cast_v128(lsbmask));\
+	t2 = v128_shuffle8(cast_v128(mul2mask), t1);\
+	s2 = v128_xor(s2, t2);\
 	state2[0][j] = s2;\
 	state2[1][j] = state1[0][j];\
 	state2[2][j] = state1[0][j];\
-	state2[3][j] = _mm_xor_si128(s2, state1[0][j]);\
-	s2 = _mm_add_epi8(state1[1][(j + 1) & 3], state1[1][(j + 1) & 3]);\
-	t1 = _mm_srli_epi16(state1[1][(j + 1) & 3], 7);\
-	t1 = _mm_and_si128(t1, M128(lsbmask));\
-	t2 = _mm_shuffle_epi8(M128(mul2mask), t1);\
-	s2 = _mm_xor_si128(s2, t2);\
-	state2[0][j] = mm128_xor3(state2[0][j], s2, state1[1][(j + 1) & 3] );\
-	state2[1][j] = _mm_xor_si128(state2[1][j], s2);\
-	state2[2][j] = _mm_xor_si128(state2[2][j], state1[1][(j + 1) & 3]);\
-	state2[3][j] = _mm_xor_si128(state2[3][j], state1[1][(j + 1) & 3]);\
-	s2 = _mm_add_epi8(state1[2][(j + 2) & 3], state1[2][(j + 2) & 3]);\
-	t1 = _mm_srli_epi16(state1[2][(j + 2) & 3], 7);\
-	t1 = _mm_and_si128(t1, M128(lsbmask));\
-	t2 = _mm_shuffle_epi8(M128(mul2mask), t1);\
-	s2 = _mm_xor_si128(s2, t2);\
-	state2[0][j] = _mm_xor_si128(state2[0][j], state1[2][(j + 2) & 3]);\
-	state2[1][j] = mm128_xor3(state2[1][j], s2, state1[2][(j + 2) & 3] );\
-	state2[2][j] = _mm_xor_si128(state2[2][j], s2);\
-	state2[3][j] = _mm_xor_si128(state2[3][j], state1[2][(j + 2) & 3]);\
-	s2 = _mm_add_epi8(state1[3][(j + 3) & 3], state1[3][(j + 3) & 3]);\
-	t1 = _mm_srli_epi16(state1[3][(j + 3) & 3], 7);\
-	t1 = _mm_and_si128(t1, M128(lsbmask));\
-	t2 = _mm_shuffle_epi8(M128(mul2mask), t1);\
-	s2 = _mm_xor_si128(s2, t2);\
-	state2[0][j] = _mm_xor_si128(state2[0][j], state1[3][(j + 3) & 3]);\
-	state2[1][j] = _mm_xor_si128(state2[1][j], state1[3][(j + 3) & 3]);\
-	state2[2][j] = mm128_xor3(state2[2][j], s2, state1[3][(j + 3) & 3] );\
-	state2[3][j] = _mm_xor_si128(state2[3][j], s2)
+	state2[3][j] = v128_xor(s2, state1[0][j]);\
+	s2 = v128_add8(state1[1][(j + 1) & 3], state1[1][(j + 1) & 3]);\
+	t1 = v128_sr16(state1[1][(j + 1) & 3], 7);\
+	t1 = v128_and(t1, cast_v128(lsbmask));\
+	t2 = v128_shuffle8(cast_v128(mul2mask), t1);\
+	s2 = v128_xor(s2, t2);\
+	state2[0][j] = v128_xor3(state2[0][j], s2, state1[1][(j + 1) & 3] );\
+	state2[1][j] = v128_xor(state2[1][j], s2);\
+	state2[2][j] = v128_xor(state2[2][j], state1[1][(j + 1) & 3]);\
+	state2[3][j] = v128_xor(state2[3][j], state1[1][(j + 1) & 3]);\
+	s2 = v128_add8(state1[2][(j + 2) & 3], state1[2][(j + 2) & 3]);\
+	t1 = v128_sr16(state1[2][(j + 2) & 3], 7);\
+	t1 = v128_and(t1, cast_v128(lsbmask));\
+	t2 = v128_shuffle8(cast_v128(mul2mask), t1);\
+	s2 = v128_xor(s2, t2);\
+	state2[0][j] = v128_xor(state2[0][j], state1[2][(j + 2) & 3]);\
+	state2[1][j] = v128_xor3(state2[1][j], s2, state1[2][(j + 2) & 3] );\
+	state2[2][j] = v128_xor(state2[2][j], s2);\
+	state2[3][j] = v128_xor(state2[3][j], state1[2][(j + 2) & 3]);\
+	s2 = v128_add8(state1[3][(j + 3) & 3], state1[3][(j + 3) & 3]);\
+	t1 = v128_sr16(state1[3][(j + 3) & 3], 7);\
+	t1 = v128_and(t1, cast_v128(lsbmask));\
+	t2 = v128_shuffle8(cast_v128(mul2mask), t1);\
+	s2 = v128_xor(s2, t2);\
+	state2[0][j] = v128_xor(state2[0][j], state1[3][(j + 3) & 3]);\
+	state2[1][j] = v128_xor(state2[1][j], state1[3][(j + 3) & 3]);\
+	state2[2][j] = v128_xor3(state2[2][j], s2, state1[3][(j + 3) & 3] );\
+	state2[3][j] = v128_xor(state2[3][j], s2)
 
 
 #define ECHO_ROUND_UNROLL2 \
@@ -199,8 +195,8 @@ MYALIGN const unsigned int	mul2ipt[]		= {0x728efc00, 0x6894e61a, 0x3fc3b14d, 0x2
 void Compress(hashState_echo *ctx, const unsigned char *pmsg, unsigned int uBlockCount)
 {
    unsigned int r, b, i, j;
-   __m128i t1, t2, s2, k1;
-   __m128i _state[4][4], _state2[4][4], _statebackup[4][4]; 
+   v128_t t1, t2, s2, k1;
+   v128_t _state[4][4], _state2[4][4], _statebackup[4][4]; 
 
    for(i = 0; i < 4; i++)
 	for(j = 0; j < ctx->uHashSize / 256; j++)
@@ -208,14 +204,14 @@ void Compress(hashState_echo *ctx, const unsigned char *pmsg, unsigned int uBloc
 
    for(b = 0; b < uBlockCount; b++)
    {
-   	ctx->k = _mm_add_epi64(ctx->k, ctx->const1536);
+   	ctx->k = v128_add64(ctx->k, ctx->const1536);
 
    	// load message
 	   for(j = ctx->uHashSize / 256; j < 4; j++)
 	   {
 	      for(i = 0; i < 4; i++)
 	      {
-		     _state[i][j] = _mm_load_si128((__m128i*)pmsg + 4 * (j - (ctx->uHashSize / 256)) + i);
+		     _state[i][j] = v128_load((v128_t*)pmsg + 4 * (j - (ctx->uHashSize / 256)) + i);
 	      }
 	   }
 
@@ -233,25 +229,25 @@ void Compress(hashState_echo *ctx, const unsigned char *pmsg, unsigned int uBloc
 	   {
 	      for(i = 0; i < 4; i++)
 	      {
-		      _state[i][0] = _mm_xor_si128(_state[i][0], _state[i][1]);
-		      _state[i][0] = _mm_xor_si128(_state[i][0], _state[i][2]);
-		      _state[i][0] = _mm_xor_si128(_state[i][0], _state[i][3]);
-		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][0]);
-		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][1]);
-		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][2]);
-		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][3]);
+		      _state[i][0] = v128_xor(_state[i][0], _state[i][1]);
+		      _state[i][0] = v128_xor(_state[i][0], _state[i][2]);
+		      _state[i][0] = v128_xor(_state[i][0], _state[i][3]);
+		      _state[i][0] = v128_xor(_state[i][0], _statebackup[i][0]);
+		      _state[i][0] = v128_xor(_state[i][0], _statebackup[i][1]);
+		      _state[i][0] = v128_xor(_state[i][0], _statebackup[i][2]);
+		      _state[i][0] = v128_xor(_state[i][0], _statebackup[i][3]);
 	      }
 	   }
 	   else
     	{
 	      for(i = 0; i < 4; i++)
 	      {
-      		_state[i][0] = _mm_xor_si128(_state[i][0], _state[i][2]);
-		      _state[i][1] = _mm_xor_si128(_state[i][1], _state[i][3]);
-		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][0]);
-		      _state[i][0] = _mm_xor_si128(_state[i][0], _statebackup[i][2]);
-		      _state[i][1] = _mm_xor_si128(_state[i][1], _statebackup[i][1]);
-		      _state[i][1] = _mm_xor_si128(_state[i][1], _statebackup[i][3]);
+      		_state[i][0] = v128_xor(_state[i][0], _state[i][2]);
+		      _state[i][1] = v128_xor(_state[i][1], _state[i][3]);
+		      _state[i][0] = v128_xor(_state[i][0], _statebackup[i][0]);
+		      _state[i][0] = v128_xor(_state[i][0], _statebackup[i][2]);
+		      _state[i][1] = v128_xor(_state[i][1], _statebackup[i][1]);
+		      _state[i][1] = v128_xor(_state[i][1], _statebackup[i][3]);
          }
    	}
 	   pmsg += ctx->uBlockLength;
@@ -266,7 +262,7 @@ HashReturn init_echo(hashState_echo *ctx, int nHashSize)
 {
 	int i, j;
 
-        ctx->k = _mm_setzero_si128(); 
+        ctx->k = v128_zero; 
 	ctx->processed_bits = 0;
 	ctx->uBufferBytes = 0;
 
@@ -276,16 +272,16 @@ HashReturn init_echo(hashState_echo *ctx, int nHashSize)
 			ctx->uHashSize = 256;
 			ctx->uBlockLength = 192;
 			ctx->uRounds = 8;
-			ctx->hashsize = _mm_set_epi32(0, 0, 0, 0x00000100);
-			ctx->const1536 = _mm_set_epi32(0x00000000, 0x00000000, 0x00000000, 0x00000600);
+			ctx->hashsize = v128_set32(0, 0, 0, 0x00000100);
+			ctx->const1536 = v128_set32(0x00000000, 0x00000000, 0x00000000, 0x00000600);
 			break;
 
 		case 512:
 			ctx->uHashSize = 512;
 			ctx->uBlockLength = 128;
 			ctx->uRounds = 10;
-			ctx->hashsize = _mm_set_epi32(0, 0, 0, 0x00000200);
-			ctx->const1536 = _mm_set_epi32(0x00000000, 0x00000000, 0x00000000, 0x00000400);
+			ctx->hashsize = v128_set32(0, 0, 0, 0x00000200);
+			ctx->const1536 = v128_set32(0x00000000, 0x00000000, 0x00000000, 0x00000400);
 			break;
 
 		default:
@@ -299,7 +295,7 @@ HashReturn init_echo(hashState_echo *ctx, int nHashSize)
 
 	for(i = 0; i < 4; i++)
 		for(j = nHashSize / 256; j < 4; j++)
-			ctx->state[i][j] = _mm_set_epi32(0, 0, 0, 0);
+			ctx->state[i][j] = v128_set32(0, 0, 0, 0);
 
 	return SUCCESS;
 }
@@ -356,12 +352,12 @@ HashReturn update_echo(hashState_echo *state, const BitSequence *data, DataLengt
 
 HashReturn final_echo(hashState_echo *state, BitSequence *hashval)
 {
-	__m128i remainingbits;
+	v128_t remainingbits;
 
 	// Add remaining bytes in the buffer
 	state->processed_bits += state->uBufferBytes * 8;
 
-	remainingbits = _mm_set_epi32(0, 0, 0, state->uBufferBytes * 8);
+	remainingbits = v128_set32(0, 0, 0, state->uBufferBytes * 8);
 
 	// Pad with 0x80
 	state->buffer[state->uBufferBytes++] = 0x80;
@@ -382,13 +378,13 @@ HashReturn final_echo(hashState_echo *state, BitSequence *hashval)
 		// Last block contains message bits?
 		if(state->uBufferBytes == 1)
 		{
-			state->k = _mm_xor_si128(state->k, state->k);
-			state->k = _mm_sub_epi64(state->k, state->const1536);
+			state->k = v128_xor(state->k, state->k);
+			state->k = v128_sub64(state->k, state->const1536);
 		}
 		else
 		{
-			state->k = _mm_add_epi64(state->k, remainingbits);
-			state->k = _mm_sub_epi64(state->k, state->const1536);
+			state->k = v128_add64(state->k, remainingbits);
+			state->k = v128_sub64(state->k, state->const1536);
 		}
 
 		// Compress
@@ -398,8 +394,8 @@ HashReturn final_echo(hashState_echo *state, BitSequence *hashval)
 	{
 		// Fill with zero and compress
 		memset(state->buffer + state->uBufferBytes, 0, state->uBlockLength - state->uBufferBytes);
-		state->k = _mm_add_epi64(state->k, remainingbits);
-		state->k = _mm_sub_epi64(state->k, state->const1536);
+		state->k = v128_add64(state->k, remainingbits);
+		state->k = v128_sub64(state->k, state->const1536);
 		Compress(state, state->buffer, 1);
 
 		// Last block
@@ -413,19 +409,19 @@ HashReturn final_echo(hashState_echo *state, BitSequence *hashval)
 		*((DataLength*)(state->buffer + state->uBlockLength - 8)) = 0;
 
 		// Compress the last block
-		state->k = _mm_xor_si128(state->k, state->k);
-		state->k = _mm_sub_epi64(state->k, state->const1536);
+		state->k = v128_xor(state->k, state->k);
+		state->k = v128_sub64(state->k, state->const1536);
 		Compress(state, state->buffer, 1);
 	}
 
 	// Store the hash value
-	_mm_store_si128((__m128i*)hashval + 0, state->state[0][0]);
-	_mm_store_si128((__m128i*)hashval + 1, state->state[1][0]);
+	v128_store((v128_t*)hashval + 0, state->state[0][0]);
+	v128_store((v128_t*)hashval + 1, state->state[1][0]);
 
 	if(state->uHashSize == 512)
 	{
-		_mm_store_si128((__m128i*)hashval + 2, state->state[2][0]);
-		_mm_store_si128((__m128i*)hashval + 3, state->state[3][0]);
+		v128_store((v128_t*)hashval + 2, state->state[2][0]);
+		v128_store((v128_t*)hashval + 3, state->state[3][0]);
 	}
 
 	return SUCCESS;
@@ -477,12 +473,12 @@ HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
         state->uBufferBytes += uByteLength;
    }
 
-   __m128i remainingbits;
+   v128_t remainingbits;
 
    // Add remaining bytes in the buffer
    state->processed_bits += state->uBufferBytes * 8;
 
-   remainingbits = _mm_set_epi32( 0, 0, 0, state->uBufferBytes * 8 );
+   remainingbits = v128_set32( 0, 0, 0, state->uBufferBytes * 8 );
 
    // Pad with 0x80
    state->buffer[state->uBufferBytes++] = 0x80;
@@ -503,13 +499,13 @@ HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
         // Last block contains message bits?
         if( state->uBufferBytes == 1 )
         {
-           state->k = _mm_xor_si128( state->k, state->k );
-           state->k = _mm_sub_epi64( state->k, state->const1536 );
+           state->k = v128_xor( state->k, state->k );
+           state->k = v128_sub64( state->k, state->const1536 );
         }
         else
         {
-           state->k = _mm_add_epi64( state->k, remainingbits );
-           state->k = _mm_sub_epi64( state->k, state->const1536 );
+           state->k = v128_add64( state->k, remainingbits );
+           state->k = v128_sub64( state->k, state->const1536 );
         }
 
         // Compress
@@ -520,8 +516,8 @@ HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
         // Fill with zero and compress
         memset( state->buffer + state->uBufferBytes, 0,
                 state->uBlockLength - state->uBufferBytes );
-        state->k = _mm_add_epi64( state->k, remainingbits );
-        state->k = _mm_sub_epi64( state->k, state->const1536 );
+        state->k = v128_add64( state->k, remainingbits );
+        state->k = v128_sub64( state->k, state->const1536 );
         Compress( state, state->buffer, 1 );
 
         // Last block
@@ -536,19 +532,19 @@ HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
                    state->processed_bits;
         *( (DataLength*)(state->buffer + state->uBlockLength - 8) ) = 0;
         // Compress the last block
-        state->k = _mm_xor_si128( state->k, state->k );
-        state->k = _mm_sub_epi64( state->k, state->const1536 );
+        state->k = v128_xor( state->k, state->k );
+        state->k = v128_sub64( state->k, state->const1536 );
         Compress( state, state->buffer, 1) ;
    }
 
    // Store the hash value
-   _mm_store_si128( (__m128i*)hashval + 0, state->state[0][0] );
-   _mm_store_si128( (__m128i*)hashval + 1, state->state[1][0] );
+   v128_store( (v128_t*)hashval + 0, state->state[0][0] );
+   v128_store( (v128_t*)hashval + 1, state->state[1][0] );
 
    if( state->uHashSize == 512 )
    {
-        _mm_store_si128( (__m128i*)hashval + 2, state->state[2][0] );
-        _mm_store_si128( (__m128i*)hashval + 3, state->state[3][0] );
+        v128_store( (v128_t*)hashval + 2, state->state[2][0] );
+        v128_store( (v128_t*)hashval + 3, state->state[3][0] );
 
    }
    return SUCCESS;
@@ -559,7 +555,7 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
 {
    int i, j;
 
-   state->k = m128_zero;
+   state->k = v128_zero;
    state->processed_bits = 0;
    state->uBufferBytes = 0;
 
@@ -569,16 +565,16 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
          state->uHashSize = 256;
          state->uBlockLength = 192;
          state->uRounds = 8;
-         state->hashsize = _mm_set_epi64x( 0, 0x100 );
-         state->const1536 = _mm_set_epi64x( 0, 0x600 );
+         state->hashsize = v128_set64( 0, 0x100 );
+         state->const1536 = v128_set64( 0, 0x600 );
          break;
 
       case 512:
          state->uHashSize = 512;
          state->uBlockLength = 128;
          state->uRounds = 10;
-         state->hashsize = _mm_set_epi64x( 0, 0x200 );
-         state->const1536 = _mm_set_epi64x( 0, 0x400 );
+         state->hashsize = v128_set64( 0, 0x200 );
+         state->const1536 = v128_set64( 0, 0x400 );
          break;
 
       default:
@@ -591,7 +587,7 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
 
    for(i = 0; i < 4; i++)
       for(j = nHashSize / 256; j < 4; j++)
-         state->state[i][j] = m128_zero;
+         state->state[i][j] = v128_zero;
 
 
    unsigned int uBlockCount, uRemainingBytes;
@@ -635,12 +631,12 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
         state->uBufferBytes += datalen;
    }
 
-   __m128i remainingbits;
+   v128_t remainingbits;
 
    // Add remaining bytes in the buffer
    state->processed_bits += state->uBufferBytes * 8;
 
-   remainingbits = _mm_set_epi32( 0, 0, 0, state->uBufferBytes * 8 );
+   remainingbits = v128_set32( 0, 0, 0, state->uBufferBytes * 8 );
 
    // Pad with 0x80
    state->buffer[state->uBufferBytes++] = 0x80;
@@ -661,13 +657,13 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
         // Last block contains message bits?
         if( state->uBufferBytes == 1 )
         {
-           state->k = _mm_xor_si128( state->k, state->k );
-           state->k = _mm_sub_epi64( state->k, state->const1536 );
+           state->k = v128_xor( state->k, state->k );
+           state->k = v128_sub64( state->k, state->const1536 );
         }
         else
         {
-           state->k = _mm_add_epi64( state->k, remainingbits );
-           state->k = _mm_sub_epi64( state->k, state->const1536 );
+           state->k = v128_add64( state->k, remainingbits );
+           state->k = v128_sub64( state->k, state->const1536 );
         }
 
         // Compress
@@ -678,8 +674,8 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
         // Fill with zero and compress
         memset( state->buffer + state->uBufferBytes, 0,
                 state->uBlockLength - state->uBufferBytes );
-        state->k = _mm_add_epi64( state->k, remainingbits );
-        state->k = _mm_sub_epi64( state->k, state->const1536 );
+        state->k = v128_add64( state->k, remainingbits );
+        state->k = v128_sub64( state->k, state->const1536 );
         Compress( state, state->buffer, 1 );
 
         // Last block
@@ -694,19 +690,19 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
                    state->processed_bits;
         *( (DataLength*)(state->buffer + state->uBlockLength - 8) ) = 0;
         // Compress the last block
-        state->k = _mm_xor_si128( state->k, state->k );
-        state->k = _mm_sub_epi64( state->k, state->const1536 );
+        state->k = v128_xor( state->k, state->k );
+        state->k = v128_sub64( state->k, state->const1536 );
         Compress( state, state->buffer, 1) ;
    }
 
    // Store the hash value
-   _mm_store_si128( (__m128i*)hashval + 0, state->state[0][0] );
-   _mm_store_si128( (__m128i*)hashval + 1, state->state[1][0] );
+   v128_store( (v128_t*)hashval + 0, state->state[0][0] );
+   v128_store( (v128_t*)hashval + 1, state->state[1][0] );
 
    if( state->uHashSize == 512 )
    {
-        _mm_store_si128( (__m128i*)hashval + 2, state->state[2][0] );
-        _mm_store_si128( (__m128i*)hashval + 3, state->state[3][0] );
+        v128_store( (v128_t*)hashval + 2, state->state[2][0] );
+        v128_store( (v128_t*)hashval + 3, state->state[3][0] );
 
    }
    return SUCCESS;
@@ -721,12 +717,12 @@ HashReturn hash_echo(int hashbitlen, const BitSequence *data, DataLength databit
 
 	/////
 	/*
-	__m128i a, b, c, d, t[4], u[4], v[4];
+	v128_t a, b, c, d, t[4], u[4], v[4];
 
-	a = _mm_set_epi32(0x0f0e0d0c, 0x0b0a0908, 0x07060504, 0x03020100);
-	b = _mm_set_epi32(0x1f1e1d1c, 0x1b1a1918, 0x17161514, 0x13121110);
-	c = _mm_set_epi32(0x2f2e2d2c, 0x2b2a2928, 0x27262524, 0x23222120);
-	d = _mm_set_epi32(0x3f3e3d3c, 0x3b3a3938, 0x37363534, 0x33323130);
+	a = v128_set32(0x0f0e0d0c, 0x0b0a0908, 0x07060504, 0x03020100);
+	b = v128_set32(0x1f1e1d1c, 0x1b1a1918, 0x17161514, 0x13121110);
+	c = v128_set32(0x2f2e2d2c, 0x2b2a2928, 0x27262524, 0x23222120);
+	d = v128_set32(0x3f3e3d3c, 0x3b3a3938, 0x37363534, 0x33323130);
 
 	t[0] = _mm_unpacklo_epi8(a, b);
 	t[1] = _mm_unpackhi_epi8(a, b);

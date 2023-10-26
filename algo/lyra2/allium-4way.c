@@ -1,6 +1,5 @@
 #include "lyra2-gate.h"
 #include <memory.h>
-#include <mm_malloc.h>
 #include "algo/blake/blake256-hash.h"
 #include "algo/keccak/keccak-hash-4way.h"
 #include "algo/skein/skein-hash-4way.h"
@@ -9,6 +8,19 @@
 #include "algo/groestl/aes_ni/hash-groestl256.h"
 #if defined(__VAES__)
   #include "algo/groestl/groestl256-hash-4way.h"
+#endif
+#include "algo/keccak/sph_keccak.h"
+#include "algo/skein/sph_skein.h"
+#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
+ #include "algo/groestl/sph_groestl.h"
+#endif
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+  #define ALLIUM_16WAY 1
+#elif defined(__AVX2__)
+  #define ALLIUM_8WAY 1
+#elif #defined(__SSE2__) || defined(__ARM_NEON)
+  #define ALLIUM_4WAY 1
 #endif
 
 #if defined (ALLIUM_16WAY)  
@@ -443,4 +455,297 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
+#elif defined(__SSE2__) || defined(__ARM_NEON)
+
+///////////////////
+//
+//    4 way
+
+typedef union
+{
+   keccak256_2x64_context    keccak;
+   cubehashParam             cube;
+#if defined(__x86_64__)
+   skein256_2x64_context     skein;
+#else
+   sph_skein512_context      skein;
 #endif
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+   hashState_groestl256      groestl;
+#else
+   sph_groestl256_context     groestl;
+#endif
+} allium_4way_ctx_holder;
+
+static void allium_4way_hash( void *hash, const void *midstate_vars,
+                               const void *midhash, const void *block )
+{
+   uint64_t vhashA[4*4] __attribute__ ((aligned (64)));
+   uint64_t *hash0 = (uint64_t*)hash;
+   uint64_t *hash1 = (uint64_t*)hash+ 4;
+   uint64_t *hash2 = (uint64_t*)hash+ 8;
+   uint64_t *hash3 = (uint64_t*)hash+12;
+   allium_4way_ctx_holder ctx __attribute__ ((aligned (64)));
+
+   blake256_4way_final_rounds_le( vhashA, midstate_vars, midhash, block, 14 );
+   dintrlv_4x32( hash0, hash1, hash2, hash3, vhashA, 256 );
+
+   intrlv_2x64( vhashA, hash0, hash1, 256 );
+   keccak256_2x64_init( &ctx.keccak );
+   keccak256_2x64_update( &ctx.keccak, vhashA, 32 );
+   keccak256_2x64_close( &ctx.keccak, vhashA );
+   dintrlv_2x64( hash0, hash1, vhashA, 256 );
+   intrlv_2x64( vhashA, hash2, hash3, 256 );
+   keccak256_2x64_init( &ctx.keccak );
+   keccak256_2x64_update( &ctx.keccak, vhashA, 32 );
+   keccak256_2x64_close( &ctx.keccak, vhashA );
+   dintrlv_2x64( hash2, hash3, vhashA, 256 );
+
+   LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
+   LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
+   LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
+   LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
+
+   cubehash_full( &ctx.cube, hash0, 256, hash0, 32 );
+   cubehash_full( &ctx.cube, hash1, 256, hash1, 32 );
+   cubehash_full( &ctx.cube, hash2, 256, hash2, 32 );
+   cubehash_full( &ctx.cube, hash3, 256, hash3, 32 );
+
+   LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
+   LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
+   LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
+   LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
+
+#if defined(__x86_64__)
+   intrlv_2x64( vhashA, hash0, hash1, 256 );
+   skein256_2x64_init( &ctx.skein );
+   skein256_2x64_update( &ctx.skein, vhashA, 32 );
+   skein256_2x64_close( &ctx.skein, vhashA );
+   dintrlv_2x64( hash0, hash1, vhashA, 256 );
+   intrlv_2x64( vhashA, hash2, hash3, 256 );
+   skein256_2x64_init( &ctx.skein );
+   skein256_2x64_update( &ctx.skein, vhashA, 32 );
+   skein256_2x64_close( &ctx.skein, vhashA );
+   dintrlv_2x64( hash2, hash3, vhashA, 256 );
+#else
+    sph_skein256_init( &ctx.skein );
+    sph_skein256( &ctx.skein, hash0, 32 );
+    sph_skein256_close( &ctx.skein, hash0 );
+    sph_skein256_init( &ctx.skein );
+    sph_skein256( &ctx.skein, hash1, 32 );
+    sph_skein256_close( &ctx.skein, hash1 );
+    sph_skein256_init( &ctx.skein );
+    sph_skein256( &ctx.skein, hash2, 32 );
+    sph_skein256_close( &ctx.skein, hash2 );
+    sph_skein256_init( &ctx.skein );
+    sph_skein256( &ctx.skein, hash3, 32 );
+    sph_skein256_close( &ctx.skein, hash3 );
+#endif
+
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+   groestl256_full( &ctx.groestl, hash0, hash0, 256 );
+   groestl256_full( &ctx.groestl, hash1, hash1, 256 );
+   groestl256_full( &ctx.groestl, hash2, hash2, 256 );
+   groestl256_full( &ctx.groestl, hash3, hash3, 256 );
+#else
+   sph_groestl256_init( &ctx.groestl );
+   sph_groestl256( &ctx.groestl, hash0, 32 );
+   sph_groestl256_close( &ctx.groestl, hash0 );
+   sph_groestl256_init( &ctx.groestl );
+   sph_groestl256( &ctx.groestl, hash1, 32 );
+   sph_groestl256_close( &ctx.groestl, hash1 );
+   sph_groestl256_init( &ctx.groestl );
+   sph_groestl256( &ctx.groestl, hash2, 32 );
+   sph_groestl256_close( &ctx.groestl, hash2 );
+   sph_groestl256_init( &ctx.groestl );
+   sph_groestl256( &ctx.groestl, hash3, 32 );
+   sph_groestl256_close( &ctx.groestl, hash3 );
+#endif
+}
+
+int scanhash_allium_4way( struct work *work, uint32_t max_nonce,
+                             uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint64_t hash[4*4] __attribute__ ((aligned (64)));
+   uint32_t midstate_vars[16*4] __attribute__ ((aligned (64)));
+   v128_t block0_hash[8] __attribute__ ((aligned (64)));
+   v128_t block_buf[16] __attribute__ ((aligned (64)));
+   uint32_t phash[8] __attribute__ ((aligned (32))) =
+   {
+      0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
+      0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
+   };
+   uint32_t *pdata = work->data;
+   uint64_t *ptarget = (uint64_t*)work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 4;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+   const v128u32_t four = v128_32(4);
+
+   // Prehash first block
+   blake256_transform_le( phash, pdata, 512, 0, 14 );
+
+   block0_hash[0] = v128_32( phash[0] );
+   block0_hash[1] = v128_32( phash[1] );
+   block0_hash[2] = v128_32( phash[2] );
+   block0_hash[3] = v128_32( phash[3] );
+   block0_hash[4] = v128_32( phash[4] );
+   block0_hash[5] = v128_32( phash[5] );
+   block0_hash[6] = v128_32( phash[6] );
+   block0_hash[7] = v128_32( phash[7] );
+
+   // Build vectored second block, interleave last 16 bytes of data using
+   // unique nonces.
+   block_buf[ 0] = v128_32( pdata[16] );
+   block_buf[ 1] = v128_32( pdata[17] );
+   block_buf[ 2] = v128_32( pdata[18] );
+   block_buf[ 3] = v128_set32( n+3, n+2, n+1, n );
+   block_buf[ 4] = v128_32( 0x80000000 );
+   block_buf[13] = v128_32( 1 );
+   block_buf[15] = v128_32( 640 );
+
+      // Partialy prehash second block without touching nonces
+   blake256_4way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
+
+   do {
+     allium_4way_hash( hash, midstate_vars, block0_hash, block_buf );
+
+     for ( int lane = 0; lane < 4; lane++ )
+     {
+        const uint64_t *lane_hash = hash + (lane<<2);
+        if ( unlikely( valid_hash( lane_hash, ptarget ) && !bench ) )
+        {
+           pdata[19] = n + lane;
+           submit_solution( work, lane_hash, mythr );
+        }
+     }
+     n += 4;
+     block_buf[3] = v128_add32( block_buf[3], four );
+   } while ( likely( (n <= last_nonce) && !work_restart[thr_id].restart ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+#endif
+
+////////////
+//
+//  1 way
+
+
+typedef struct 
+{
+        blake256_context        blake;
+        sph_keccak256_context      keccak;
+        cubehashParam           cube;
+        sph_skein256_context       skein;
+#if defined (__AES__) || defined(__ARM_FEATURE_AES)
+        hashState_groestl256     groestl;
+#else
+        sph_groestl256_context   groestl;
+#endif
+} allium_ctx_holder;
+
+static __thread allium_ctx_holder allium_ctx;
+
+bool init_allium_ctx()
+{
+        sph_keccak256_init( &allium_ctx.keccak );
+        cubehashInit( &allium_ctx.cube, 256, 16, 32 );
+        sph_skein256_init( &allium_ctx.skein );
+#if defined (__AES__) || defined(__ARM_FEATURE_AES)
+        init_groestl256( &allium_ctx.groestl, 32 );
+#else
+        sph_groestl256_init( &allium_ctx.groestl );
+#endif
+        return true;
+}
+
+void allium_hash(void *state, const void *input)
+{
+    uint32_t hash[8] __attribute__ ((aligned (64)));
+    allium_ctx_holder ctx __attribute__ ((aligned (32)));
+
+    memcpy( &ctx, &allium_ctx, sizeof(allium_ctx) );
+    blake256_update( &ctx.blake, input + 64, 16 );
+    blake256_close( &ctx.blake, hash );
+
+    sph_keccak256( &ctx.keccak, hash, 32 );
+    sph_keccak256_close( &ctx.keccak, hash );
+
+    LYRA2RE( hash, 32, hash, 32, hash, 32, 1, 8, 8 );
+
+    cubehashUpdateDigest( &ctx.cube, (byte*)hash, (const byte*)hash, 32 );
+
+    LYRA2RE( hash, 32, hash, 32, hash, 32, 1, 8, 8 );
+
+    sph_skein256( &ctx.skein, hash, 32 );
+    sph_skein256_close( &ctx.skein, hash );
+
+#if defined (__AES__) || defined(__ARM_FEATURE_AES)
+   update_and_final_groestl256( &ctx.groestl, hash, hash, 256 );
+#else
+   sph_groestl256( &ctx.groestl, hash, 32 );
+   sph_groestl256_close( &ctx.groestl, hash );
+#endif
+
+    memcpy(state, hash, 32);
+}
+
+int scanhash_allium( struct work *work, uint32_t max_nonce,
+                     uint64_t *hashes_done, struct thr_info *mythr )
+{
+    uint32_t _ALIGN(128) hash[8];
+    uint32_t _ALIGN(128) edata[20];
+    uint32_t *pdata = work->data;
+    uint32_t *ptarget = work->target;
+    const uint32_t first_nonce = pdata[19];
+    uint32_t nonce = first_nonce;
+    const int thr_id = mythr->id;
+
+    if ( opt_benchmark )
+        ptarget[7] = 0x3ffff;
+
+    for ( int i = 0; i < 19; i++ )
+        edata[i] = bswap_32( pdata[i] );
+
+    blake256_init( &allium_ctx.blake );
+    blake256_update( &allium_ctx.blake, edata, 64 );
+
+    do {
+        edata[19] = nonce;
+        allium_hash( hash, edata );
+        if ( valid_hash( hash, ptarget ) && !opt_benchmark )
+        {
+            pdata[19] = bswap_32( nonce );
+            submit_solution( work, hash, mythr );
+        }
+        nonce++;
+    } while ( nonce < max_nonce && !work_restart[thr_id].restart );
+    pdata[19] = nonce;
+    *hashes_done = pdata[19] - first_nonce;
+    return 0;
+}
+
+bool register_allium_algo( algo_gate_t* gate )
+{
+#if defined (ALLIUM_16WAY)
+  gate->scanhash  = (void*)&scanhash_allium_16way;
+#elif defined (ALLIUM_8WAY)
+  gate->scanhash  = (void*)&scanhash_allium_8way;
+#elif defined (ALLIUM_4WAY)
+  gate->scanhash  = (void*)&scanhash_allium_4way;
+#else
+  gate->miner_thread_init = (void*)&init_allium_ctx;
+  gate->scanhash  = (void*)&scanhash_allium;
+  gate->hash      = (void*)&allium_hash;
+#endif
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT
+                      | VAES_OPT | NEON_OPT;
+  opt_target_factor = 256.0;
+  return true;
+};
+

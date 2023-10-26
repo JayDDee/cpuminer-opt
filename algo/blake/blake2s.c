@@ -7,8 +7,8 @@
   #define BLAKE2S_16WAY
 #elif defined(__AVX2__)
   #define BLAKE2S_8WAY
-#elif defined(__SSE2__)
-  #define BLAKE2S_4WAY
+#elif defined(__SSE2__) || defined(__ARM_NEON)
+//  #define BLAKE2S_4WAY
 #endif
 
 #if defined(BLAKE2S_16WAY)
@@ -145,7 +145,7 @@ int scanhash_blake2s_4way( struct work *work, uint32_t max_nonce,
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
    const uint32_t first_nonce = pdata[19];
-   __m128i  *noncev = (__m128i*)vdata + 19;   // aligned
+   v128_t  *noncev = (v128_t*)vdata + 19;   // aligned
    uint32_t n = first_nonce;
    int thr_id = mythr->id; 
 
@@ -154,7 +154,7 @@ int scanhash_blake2s_4way( struct work *work, uint32_t max_nonce,
    blake2s_4way_update( &blake2s_4w_ctx, vdata, 64 );
 
    do {
-      *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );
+      *noncev = v128_bswap32( v128_set32( n+3, n+2, n+1, n ) );
       pdata[19] = n;
 
       blake2s_4way_hash( hash, vdata );
@@ -245,7 +245,7 @@ bool register_blake2s_algo( algo_gate_t* gate )
   gate->scanhash  = (void*)&scanhash_blake2s;
   gate->hash      = (void*)&blake2s_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
   return true;
 };
 

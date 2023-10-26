@@ -3,7 +3,7 @@
 #ifdef LYRA2H_4WAY
 
 #include <memory.h>
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
 #include "lyra2.h"
 #include "algo/blake/blake256-hash.h"
 
@@ -11,7 +11,7 @@ __thread uint64_t* lyra2h_4way_matrix;
 
 bool lyra2h_4way_thread_init()
 {
- return ( lyra2h_4way_matrix = _mm_malloc( LYRA2H_MATRIX_SIZE, 64 ) );
+ return ( lyra2h_4way_matrix = mm_malloc( LYRA2H_MATRIX_SIZE, 64 ) );
 }
 
 static __thread blake256_4way_context l2h_4way_blake_mid;

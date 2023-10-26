@@ -108,11 +108,11 @@ do { \
    uint8_t s0 = sigma0; \
    uint8_t s1 = sigma1; \
    a = v128_add32( v128_add32( a, b ), m[ s0 ] ); \
-   d = v128_swap32_16( v128_xor( d, a ) ); \
+   d = v128_ror32( v128_xor( d, a ), 16 ); \
    c = v128_add32( c, d ); \
    b = v128_ror32( v128_xor( b, c ), 12 ); \
    a = v128_add32( v128_add32( a, b ), m[ s1 ] ); \
-   d = v128_shuflr32_8( v128_xor( d, a ) ); \
+   d = v128_ror32( v128_xor( d, a ),  8 ); \
    c = v128_add32( c, d ); \
    b = v128_ror32( v128_xor( b, c ),  7 ); \
 } while(0)
@@ -320,13 +320,13 @@ do { \
    uint8_t s0 = sigma0; \
    uint8_t s1 = sigma1; \
    a = _mm256_add_epi32( _mm256_add_epi32( a, b ), m[ s0 ] ); \
-   d = mm256_swap32_16( _mm256_xor_si256( d, a ) ); \
+   d = mm256_ror_32( _mm256_xor_si256( d, a ), 16 ); \
    c = _mm256_add_epi32( c, d ); \
    b = mm256_ror_32( _mm256_xor_si256( b, c ), 12 ); \
    a = _mm256_add_epi32( _mm256_add_epi32( a, b ), m[ s1 ] ); \
-   d = mm256_shuflr32_8( _mm256_xor_si256( d, a ) ); \
+   d = mm256_ror_32( _mm256_xor_si256( d, a ), 8 ); \
    c = _mm256_add_epi32( c, d ); \
-   b = mm256_ror_32( _mm256_xor_si256( b, c ),  7 ); \
+   b = mm256_ror_32( _mm256_xor_si256( b, c ), 7 ); \
 } while(0)
 
 #define ROUND8W(r)  \

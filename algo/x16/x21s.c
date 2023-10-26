@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
 #include "algo/sha/sha256-hash.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/tiger/sph_tiger.h"
@@ -108,7 +108,7 @@ bool x21s_thread_init()
    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
 
    const int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
-   x21s_matrix = _mm_malloc( size, 64 );
+   x21s_matrix = mm_malloc( size, 64 );
    return x21s_matrix;
 }
 

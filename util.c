@@ -86,6 +86,37 @@ bool is_power_of_2( int n )
   return true; 
 } 
 
+// Dsiplay prefix only with no colour & no nl, add more message and nl later
+// with printf.
+// No atomicity between prefix and message.
+void applog_nl( const char *fmt, ... )
+{
+   va_list ap;
+   va_start( ap, fmt );
+
+   int len = 64 + (int) strlen( fmt ) + 2;
+   struct tm tm;
+   char *f = (char*)malloc( len );
+   time_t now = time(NULL);
+   localtime_r( &now, &tm );
+
+   sprintf(f, "[%d-%02d-%02d %02d:%02d:%02d] %s",
+      tm.tm_year + 1900,
+      tm.tm_mon + 1,
+      tm.tm_mday,
+      tm.tm_hour,
+      tm.tm_min,
+      tm.tm_sec,
+      fmt
+   );
+   pthread_mutex_lock( &applog_lock );
+   vfprintf( stdout, f, ap );   /* atomic write to stdout */
+   fflush( stdout );
+   free( f );
+   pthread_mutex_unlock( &applog_lock );
+   va_end( ap );
+}
+
 void applog2( int prio, const char *fmt, ... )
 {
    va_list ap;
@@ -139,7 +170,7 @@ void applog2( int prio, const char *fmt, ... )
       }
       if (!use_colors)
          color = "";
-
+      
       len = 64 + (int) strlen(fmt) + 2;
       f = (char*) malloc(len);
       sprintf(f, "                     %s %s%s\n",
@@ -199,6 +230,7 @@ void applog(int prio, const char *fmt, ...)
 		int len;
 		struct tm tm;
 		time_t now = time(NULL);
+      char *bell = "";
 
 		localtime_r(&now, &tm);
 
@@ -206,18 +238,21 @@ void applog(int prio, const char *fmt, ...)
       {
          case LOG_CRIT:    color = CL_LRD; break;
          case LOG_ERR:     color = CL_RED; break;
-			case LOG_WARNING: color = CL_YL2; break;
+         case LOG_WARNING: color = CL_YL2; break;
          case LOG_MAJR:    color = CL_YL2; break;
 			case LOG_NOTICE:  color = CL_WHT; break;
 			case LOG_INFO:    color = "";     break;
 			case LOG_DEBUG:   color = CL_GRY; break;
          case LOG_MINR:    color = CL_YLW; break;
-         case LOG_GREEN:   color = CL_GRN; prio = LOG_INFO;  break;
+         case LOG_GREEN:   color = CL_GRN; prio = LOG_INFO;   break;
 			case LOG_BLUE:    color = CL_CYN; prio = LOG_NOTICE; break;
          case LOG_PINK:    color = CL_LMA; prio = LOG_NOTICE; break;
 		}
 		if (!use_colors)
 			color = "";
+
+      if ( opt_bell && ( prio == LOG_WARNING || prio == LOG_ERR ) )
+            *bell = ASCII_BELL;
 
 		len = 64 + (int) strlen(fmt) + 2;
 		f = (char*) malloc(len);
@@ -755,10 +790,10 @@ void memrev(unsigned char *p, size_t len)
 {
    if ( len == 32 )
    {
-      v128_t *pv = (v128_t*)p;
-      v128_t t = v128_bswap128( pv[0] );
-      pv[0] =     v128_bswap128( pv[1] );   
-      pv[1] = t;
+      v128u32_t *pv = (v128_t*)p;
+      v128u32_t t = v128_bswap128( pv[0] );
+            pv[0] = v128_bswap128( pv[1] );   
+            pv[1] = t;
    }
    else
    {

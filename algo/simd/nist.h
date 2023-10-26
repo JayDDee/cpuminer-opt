@@ -20,16 +20,16 @@ typedef struct {
   unsigned int n_feistels;
 
 #ifdef HAS_64
-  u64 count;
+  uint64_t count;
 #else
-  u32 count_low;
-  u32 count_high;
+  uint32_t count_low;
+  uint32_t count_high;
 #endif
 
-  DATA_ALIGN(u32 A[32]);
-  u32 *B;
-  u32 *C;
-  u32 *D;
+  DATA_ALIGN(uint32_t A[32]);
+  uint32_t *B;
+  uint32_t *C;
+  uint32_t *D;
   DATA_ALIGN(unsigned char buffer[128]);
   
 } hashState_sd;
@@ -38,13 +38,13 @@ typedef struct {
  * NIST API
  */
 
-HashReturn init_sd(hashState_sd *state, int hashbitlen);
+int init_sd(hashState_sd *state, int hashbitlen);
 
-HashReturn update_sd(hashState_sd *state, const BitSequence *data, DataLength databitlen);
+int update_sd(hashState_sd *state, const BitSequence *data, DataLength databitlen);
 
-HashReturn final_sd(hashState_sd *state, BitSequence *hashval);
+int final_sd(hashState_sd *state, BitSequence *hashval);
 
-HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
+int update_final_sd( hashState_sd *state, BitSequence *hashval,
                             const BitSequence *data, DataLength databitlen );
 
 int simd_full( hashState_sd *state, BitSequence *hashval,
@@ -54,7 +54,7 @@ int simd_full( hashState_sd *state, BitSequence *hashval,
  * Internal API
  */
 
-int SupportedLength(int hashbitlen);
+//int SupportedLength(int hashbitlen);
 int RequiredAlignment(void);
 void SIMD_Compress(hashState_sd * state, const unsigned char *M, int final);
 

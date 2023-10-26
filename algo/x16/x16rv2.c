@@ -26,14 +26,14 @@ union _x16rv2_context_overlay
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
-#if defined(__aarch64__)
-        sph_luffa512_context       luffa;
-#else
         hashState_luffa         luffa;
-#endif
         cubehashParam           cube;
         shavite512_context      shavite;
+#if defined(__aarch64__)
+        sph_simd512_context     simd;
+#else
         hashState_sd            simd;
+#endif        
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
@@ -106,28 +106,25 @@ int x16rv2_hash( void* output, const void* input, int thrid )
             sph_tiger( &ctx.tiger, in, size );
             sph_tiger_close( &ctx.tiger, hash );
             padtiger512( hash );
-#if defined(__aarch64__)
-            sph_luffa512_init(&ctx.luffa );
-            sph_luffa512(&ctx.luffa, (const void*) hash, 64);
-            sph_luffa512_close(&ctx.luffa, hash);
-#else
             init_luffa( &ctx.luffa, 512 );
-            update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                    (const BitSequence*)hash, 64 );
-#endif
+            update_and_final_luffa( &ctx.luffa, hash, hash, 64 );
          break;
          case CUBEHASH:
             cubehashInit( &ctx.cube, 512, 16, 32 );
-            cubehashUpdateDigest( &ctx.cube, (byte*) hash,
-                                  (const byte*)in, size );
+            cubehashUpdateDigest( &ctx.cube, hash, in, size );
          break;
          case SHAVITE:
             shavite512_full( &ctx.shavite, hash, in, size );
          break;
          case SIMD:
-             init_sd( &ctx.simd, 512 );
-             update_final_sd( &ctx.simd, (BitSequence *)hash,
-                              (const BitSequence*)in, size<<3 );
+#if defined(__aarch64__)
+            sph_simd512_init( &ctx.simd );
+            sph_simd512(&ctx.simd, (const void*) hash, 64);
+            sph_simd512_close(&ctx.simd, hash);
+#else
+            simd_full( &ctx.simd, (BitSequence *)hash,
+                             (const BitSequence*)in, size<<3 );
+#endif
          break;
          case ECHO:
 #if defined(__AES__)

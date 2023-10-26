@@ -12,8 +12,8 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#include "algo/simd/nist.h"
 #include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/fugue/sph_fugue.h"
@@ -49,9 +49,9 @@
 #endif
 
 #if defined(__aarch64__)
-  #include "algo/luffa/sph_luffa.h"
+  #include "algo/simd/sph_simd.h"
 #else
-  #include "algo/luffa/luffa_for_sse2.h"
+  #include "algo/simd/nist.h"
 #endif
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
@@ -206,14 +206,14 @@ union _x16r_context_overlay
         sph_skein512_context    skein;
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
-#if defined(__aarch64__)
-        sph_luffa512_context       luffa;
-#else
         hashState_luffa         luffa;
-#endif
         cubehashParam           cube;
         shavite512_context      shavite;
+#if defined(__aarch64__)
+        sph_simd512_context     simd;
+#else
         hashState_sd            simd;
+#endif
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;

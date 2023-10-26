@@ -36,10 +36,28 @@
 #define HAMSI_4WAY_H__
 
 #include <stddef.h>
+#include "simd-utils.h"
+
+// SSE2 or NEON Hamsi-512 2x64
+
+typedef struct
+{
+   v128_t h[8];
+   v128_t buf[1];
+   size_t partial_len;
+   uint32_t count_high, count_low;
+} hamsi_2x64_context;
+typedef hamsi_2x64_context hamsi512_2x64_context;
+
+void hamsi512_2x64_init( hamsi512_2x64_context *sc );
+void hamsi512_2x64_update( hamsi512_2x64_context *sc, const void *data,
+      size_t len );
+void hamsi512_2x64_close( hamsi512_2x64_context *sc, void *dst );
+void hamsi512_2x64_ctx( hamsi512_2x64_context *sc, void *dst, const void *data,
+                        size_t len );
+void hamsi512_2x64( void *dst, const void *data, size_t len );
 
 #if defined (__AVX2__)
-
-#include "simd-utils.h"
 
 // Hamsi-512 4x64
 
@@ -88,7 +106,8 @@ void hamsi512_8x32_full( hamsi512_8x32_context *sc, void *dst, const void *data,
 
 // Hamsi-512 8x64
 
-typedef struct {
+typedef struct
+{
    __m512i h[8];
    __m512i buf[1];
    size_t partial_len;

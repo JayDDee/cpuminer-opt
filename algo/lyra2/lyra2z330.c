@@ -2,7 +2,6 @@
 #include "algo-gate-api.h"
 #include "lyra2.h"
 #include "simd-utils.h"
-#include <mm_malloc.h>
 
 static __thread uint64_t* lyra2z330_wholeMatrix;
 
@@ -62,14 +61,14 @@ bool lyra2z330_thread_init()
    const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
 
    int i = (int64_t)ROW_LEN_BYTES * 330; // nRows;
-   lyra2z330_wholeMatrix = _mm_malloc( i, 64 );
+   lyra2z330_wholeMatrix = mm_malloc( i, 64 );
 
    return lyra2z330_wholeMatrix;
 }
 
 bool register_lyra2z330_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | AVX2_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT | NEON_OPT;
   gate->miner_thread_init = (void*)&lyra2z330_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z330;
   gate->hash       = (void*)&lyra2z330_hash;

@@ -89,15 +89,18 @@
 typedef  uint32_t set_t;
 
 #define EMPTY_SET        0
-#define SSE2_OPT         1   // Core2, NEON
-#define AES_OPT          2  
-#define SSE42_OPT        4
-#define AVX_OPT          8   // Sandybridge
-#define AVX2_OPT      0x10   // Haswell, Zen1
-#define SHA_OPT       0x20   // Zen1, Icelake. NEON
-#define AVX512_OPT    0x40   // Skylake-X, Zen4 (AVX512[F,VL,DQ,BW])
-#define VAES_OPT      0x80   // Icelake, Zen3
-#define SHA512_OPT   0x100   // Lunar Lake, Arrow Lake, NEON
+#define SSE2_OPT         1         // parity with NEON
+#define SSSE3_OPT        1 <<  1   // Intel Core2
+#define SSE41_OPT        1 <<  2
+#define SSE42_OPT        1 <<  3
+#define AVX_OPT          1 <<  4   // Intel Sandybridge
+#define AVX2_OPT         1 <<  5   // Intel Haswell, AMD Zen1
+#define AVX512_OPT       1 <<  6   // Skylake-X, Zen4 (AVX512[F,VL,DQ,BW])
+#define AES_OPT          1 <<  7   // Intel Westmere, AArch64
+#define VAES_OPT         1 <<  8   // Icelake, Zen3
+#define SHA_OPT          1 <<  9   // Zen1, Icelake, AArch64 
+#define SHA512_OPT       1 << 10   // AArch64 
+#define NEON_OPT         1 << 11   // AArch64 
 
 // AVX10 does not have explicit algo features:
 //  AVX10_512 is compatible with AVX512 + VAES

@@ -18,6 +18,7 @@
 #ifndef ARGON2_CORE_H
 #define ARGON2_CORE_H
 
+#include "miner.h"
 #include "argon2.h"
 
 #define CONST_CAST(x) (x)(uintptr_t)

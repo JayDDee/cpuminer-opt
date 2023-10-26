@@ -22,34 +22,13 @@
 #include "simd-utils.h"
 
 #if !defined(__AVX512F__)
+
+
 #if !defined(__AVX2__)
-#if !defined(__XOP__)
-#if defined(__SSSE3__)
-#define r16                                                                    \
-    (_mm_setr_epi8(2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9))
-#define r24                                                                    \
-    (_mm_setr_epi8(3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10))
-#define v128_ror64(x, c)                                                   \
-    (-(c) == 32)                                                               \
-        ? _mm_shuffle_epi32((x), _MM_SHUFFLE(2, 3, 0, 1))                      \
-        : (-(c) == 24)                                                         \
-              ? _mm_shuffle_epi8((x), r24)                                     \
-              : (-(c) == 16)                                                   \
-                    ? _mm_shuffle_epi8((x), r16)                               \
-                    : (-(c) == 63)                                             \
-                          ? v128_xor(v128_sr64((x), -(c)),           \
-                                          v128_add64((x), (x)))             \
-                          : v128_xor(v128_sr64((x), -(c)),           \
-                                          v128_sl64((x), 64 - (-(c))))
-#else /* defined(__SSE2__) */
-#define v128_ror64(r, c)                                                   \
-    v128_xor(v128_sr64((r), -(c)), v128_sl64((r), 64 - (-(c))))
-#endif
-#else
-#endif
+
 
 static BLAKE2_INLINE v128_t fBlaMka(v128_t x, v128_t y) {
-    const v128_t z = v128_mul32(x, y);
+    const v128_t z = v128_mulw32(x, y);
     return v128_add64(v128_add64(x, y), v128_add64(z, z));
 }
 
@@ -61,8 +40,8 @@ static BLAKE2_INLINE v128_t fBlaMka(v128_t x, v128_t y) {
         D0 = v128_xor(D0, A0);                                            \
         D1 = v128_xor(D1, A1);                                            \
                                                                                \
-        D0 = v128_ror64(D0, -32);                                          \
-        D1 = v128_ror64(D1, -32);                                          \
+        D0 = v128_ror64(D0, 32);                                          \
+        D1 = v128_ror64(D1, 32);                                          \
                                                                                \
         C0 = fBlaMka(C0, D0);                                                  \
         C1 = fBlaMka(C1, D1);                                                  \
@@ -70,8 +49,8 @@ static BLAKE2_INLINE v128_t fBlaMka(v128_t x, v128_t y) {
         B0 = v128_xor(B0, C0);                                            \
         B1 = v128_xor(B1, C1);                                            \
                                                                                \
-        B0 = v128_ror64(B0, -24);                                          \
-        B1 = v128_ror64(B1, -24);                                          \
+        B0 = v128_ror64(B0, 24);                                          \
+        B1 = v128_ror64(B1, 24);                                          \
     } while ((void)0, 0)
 
 #define G2(A0, B0, C0, D0, A1, B1, C1, D1)                                     \
@@ -82,8 +61,8 @@ static BLAKE2_INLINE v128_t fBlaMka(v128_t x, v128_t y) {
         D0 = v128_xor(D0, A0);                                            \
         D1 = v128_xor(D1, A1);                                            \
                                                                                \
-        D0 = v128_ror64(D0, -16);                                          \
-        D1 = v128_ror64(D1, -16);                                          \
+        D0 = v128_ror64(D0, 16);                                          \
+        D1 = v128_ror64(D1, 16);                                          \
                                                                                \
         C0 = fBlaMka(C0, D0);                                                  \
         C1 = fBlaMka(C1, D1);                                                  \
@@ -91,11 +70,12 @@ static BLAKE2_INLINE v128_t fBlaMka(v128_t x, v128_t y) {
         B0 = v128_xor(B0, C0);                                            \
         B1 = v128_xor(B1, C1);                                            \
                                                                                \
-        B0 = v128_ror64(B0, -63);                                          \
-        B1 = v128_ror64(B1, -63);                                          \
+        B0 = v128_ror64(B0, 63);                                          \
+        B1 = v128_ror64(B1, 63);                                          \
     } while ((void)0, 0)
 
-#if defined(__SSSE3__)
+#if defined(__SSSE3__)  || defined(__ARM_NEON)
+
 #define DIAGONALIZE(A0, B0, C0, D0, A1, B1, C1, D1)                            \
     do {                                                                       \
         v128_t t0 = v128_alignr8(B1, B0, 8);                               \
@@ -129,7 +109,9 @@ static BLAKE2_INLINE v128_t fBlaMka(v128_t x, v128_t y) {
         D0 = t1;                                                               \
         D1 = t0;                                                               \
     } while ((void)0, 0)
+
 #else /* SSE2 */
+
 #define DIAGONALIZE(A0, B0, C0, D0, A1, B1, C1, D1)                            \
     do {                                                                       \
         v128_t t0 = D0;                                                       \

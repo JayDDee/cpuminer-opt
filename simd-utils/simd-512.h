@@ -251,7 +251,7 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 
 // Source and destination are pointers, may point to same memory.
 // 8 lanes of 64 bytes each
-#define mm512_block_bswap_64( d, s ) do \
+#define mm512_block_bswap_64( d, s ) \
 { \
   const __m512i ctl = mm512_bcast_m128( _mm_set_epi64x( \
                                 0x08090a0b0c0d0e0f, 0x0001020304050607 ) ); \
@@ -263,10 +263,33 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
   casti_m512i( d, 5 ) = _mm512_shuffle_epi8( casti_m512i( s, 5 ), ctl ); \
   casti_m512i( d, 6 ) = _mm512_shuffle_epi8( casti_m512i( s, 6 ), ctl ); \
   casti_m512i( d, 7 ) = _mm512_shuffle_epi8( casti_m512i( s, 7 ), ctl ); \
-} while(0)
+}
+#define mm512_block_bswap64_512    mm512_block_bswap_64
+
+#define mm512_block_bswap64_1024( d, s ) \
+{ \
+  const __m512i ctl = mm512_bcast_m128( _mm_set_epi64x( \
+                                0x08090a0b0c0d0e0f, 0x0001020304050607 ) ); \
+  casti_m512i( d, 0 ) = _mm512_shuffle_epi8( casti_m512i( s, 0 ), ctl ); \
+  casti_m512i( d, 1 ) = _mm512_shuffle_epi8( casti_m512i( s, 1 ), ctl ); \
+  casti_m512i( d, 2 ) = _mm512_shuffle_epi8( casti_m512i( s, 2 ), ctl ); \
+  casti_m512i( d, 3 ) = _mm512_shuffle_epi8( casti_m512i( s, 3 ), ctl ); \
+  casti_m512i( d, 4 ) = _mm512_shuffle_epi8( casti_m512i( s, 4 ), ctl ); \
+  casti_m512i( d, 5 ) = _mm512_shuffle_epi8( casti_m512i( s, 5 ), ctl ); \
+  casti_m512i( d, 6 ) = _mm512_shuffle_epi8( casti_m512i( s, 6 ), ctl ); \
+  casti_m512i( d, 7 ) = _mm512_shuffle_epi8( casti_m512i( s, 7 ), ctl ); \
+  casti_m512i( d, 8 ) = _mm512_shuffle_epi8( casti_m512i( s, 8 ), ctl ); \
+  casti_m512i( d, 9 ) = _mm512_shuffle_epi8( casti_m512i( s, 9 ), ctl ); \
+  casti_m512i( d,10 ) = _mm512_shuffle_epi8( casti_m512i( s,10 ), ctl ); \
+  casti_m512i( d,11 ) = _mm512_shuffle_epi8( casti_m512i( s,11 ), ctl ); \
+  casti_m512i( d,12 ) = _mm512_shuffle_epi8( casti_m512i( s,12 ), ctl ); \
+  casti_m512i( d,13 ) = _mm512_shuffle_epi8( casti_m512i( s,13 ), ctl ); \
+  casti_m512i( d,14 ) = _mm512_shuffle_epi8( casti_m512i( s,14 ), ctl ); \
+  casti_m512i( d,15 ) = _mm512_shuffle_epi8( casti_m512i( s,15 ), ctl ); \
+}
 
 // 16 lanes of 32 bytes each
-#define mm512_block_bswap_32( d, s ) do \
+#define mm512_block_bswap_32( d, s ) \
 { \
   const __m512i ctl = mm512_bcast_m128( _mm_set_epi64x( \
                                 0x0c0d0e0f08090a0b, 0x0405060700010203 ) ); \
@@ -278,7 +301,31 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
   casti_m512i( d, 5 ) = _mm512_shuffle_epi8( casti_m512i( s, 5 ), ctl ); \
   casti_m512i( d, 6 ) = _mm512_shuffle_epi8( casti_m512i( s, 6 ), ctl ); \
   casti_m512i( d, 7 ) = _mm512_shuffle_epi8( casti_m512i( s, 7 ), ctl ); \
-} while(0)
+}
+#define mm512_block_bswap32_256   mm512_block_bswap_32
+
+#define mm512_block_bswap32_512( d, s ) \
+{ \
+  const __m512i ctl = mm512_bcast_m128( _mm_set_epi64x( \
+                                0x0c0d0e0f08090a0b, 0x0405060700010203 ) ); \
+  casti_m512i( d, 0 ) = _mm512_shuffle_epi8( casti_m512i( s, 0 ), ctl ); \
+  casti_m512i( d, 1 ) = _mm512_shuffle_epi8( casti_m512i( s, 1 ), ctl ); \
+  casti_m512i( d, 2 ) = _mm512_shuffle_epi8( casti_m512i( s, 2 ), ctl ); \
+  casti_m512i( d, 3 ) = _mm512_shuffle_epi8( casti_m512i( s, 3 ), ctl ); \
+  casti_m512i( d, 4 ) = _mm512_shuffle_epi8( casti_m512i( s, 4 ), ctl ); \
+  casti_m512i( d, 5 ) = _mm512_shuffle_epi8( casti_m512i( s, 5 ), ctl ); \
+  casti_m512i( d, 6 ) = _mm512_shuffle_epi8( casti_m512i( s, 6 ), ctl ); \
+  casti_m512i( d, 7 ) = _mm512_shuffle_epi8( casti_m512i( s, 7 ), ctl ); \
+  casti_m512i( d, 8 ) = _mm512_shuffle_epi8( casti_m512i( s, 8 ), ctl ); \
+  casti_m512i( d, 9 ) = _mm512_shuffle_epi8( casti_m512i( s, 9 ), ctl ); \
+  casti_m512i( d,10 ) = _mm512_shuffle_epi8( casti_m512i( s,10 ), ctl ); \
+  casti_m512i( d,11 ) = _mm512_shuffle_epi8( casti_m512i( s,11 ), ctl ); \
+  casti_m512i( d,12 ) = _mm512_shuffle_epi8( casti_m512i( s,12 ), ctl ); \
+  casti_m512i( d,13 ) = _mm512_shuffle_epi8( casti_m512i( s,13 ), ctl ); \
+  casti_m512i( d,14 ) = _mm512_shuffle_epi8( casti_m512i( s,14 ), ctl ); \
+  casti_m512i( d,15 ) = _mm512_shuffle_epi8( casti_m512i( s,15 ), ctl ); \
+}
+
 
 
 // Cross-lane shuffles implementing rotation of packed elements.

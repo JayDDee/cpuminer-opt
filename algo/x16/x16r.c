@@ -26,18 +26,12 @@ void x16r_prehash( void *edata, void *pdata )
          sph_skein512( &x16_ctx.skein, edata, 64 );
       break;
       case LUFFA:
-#if defined(__aarch64__)
-         sph_luffa512_init( &x16_ctx.luffa );
-         sph_luffa512( &x16_ctx.luffa, edata, 64 );
-
-#else
          init_luffa( &x16_ctx.luffa, 512 );
-         update_luffa( &x16_ctx.luffa, (const BitSequence*)edata, 64 );
-#endif
+         update_luffa( &x16_ctx.luffa, edata, 64 );
       break;
       case CUBEHASH:
          cubehashInit( &x16_ctx.cube, 512, 16, 32 );
-         cubehashUpdate( &x16_ctx.cube, (const byte*)edata, 64 );
+         cubehashUpdate( &x16_ctx.cube, edata, 64 );
       break;
       case HAMSI:
          sph_hamsi512_init( &x16_ctx.hamsi );
@@ -114,38 +108,29 @@ int x16r_hash_generic( void* output, const void* input, int thrid )
             sph_skein512_close( &ctx.skein, hash );
          break;
          case LUFFA:
-#if defined(__aarch64__)
             if ( i == 0 )
-               sph_luffa512(&ctx.luffa, in+64, 16 );
+               update_and_final_luffa( &ctx.luffa, hash, (const void*)in+64, 16 );
             else
-            {
-               sph_luffa512_init( &ctx.luffa );
-               sph_luffa512( &ctx.luffa, in, size );
-            }
-            sph_luffa512_close( &ctx.luffa, hash );
-#else         
-            if ( i == 0 )
-               update_and_final_luffa( &ctx.luffa, (BitSequence*)hash,
-                                             (const BitSequence*)in+64, 16 );
-            else
-               luffa_full( &ctx.luffa, (BitSequence*)hash, 512,
-                                 (const BitSequence*)in, size );
-#endif
+               luffa_full( &ctx.luffa, hash, 512, in, size );
             break;
          case CUBEHASH:
             if ( i == 0 )
-               cubehashUpdateDigest( &ctx.cube, (byte*)hash,
-                                          (const byte*)in+64, 16 );
+               cubehashUpdateDigest( &ctx.cube, hash, (const void*)in+64, 16 );
             else
-               cubehash_full( &ctx.cube, (byte*)hash, 512,
-                                         (byte*)in, size );
+               cubehash_full( &ctx.cube, hash, 512, in, size );
          break;
          case SHAVITE:
             shavite512_full( &ctx.shavite, hash, in, size );
          break;
          case SIMD:
+#if defined(__aarch64__)
+            sph_simd512_init( &ctx.simd );
+            sph_simd512(&ctx.simd, (const void*) hash, 64);
+            sph_simd512_close(&ctx.simd, hash);
+#else
             simd_full( &ctx.simd, (BitSequence *)hash,
                              (const BitSequence*)in, size<<3 );
+#endif
          break;
          case ECHO:
 #if defined(__AES__)

@@ -101,7 +101,9 @@ int scanhash_verthash( struct work *work, uint32_t max_nonce,
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
 
-   v128_bswap32_80( edata, pdata );
+   for (int i = 0; i < 20; i++)
+         edata[i] = bswap_32( pdata[i] );
+//   v128_bswap32_80( edata, pdata );
    verthash_sha3_512_prehash_72( edata );
 
    do

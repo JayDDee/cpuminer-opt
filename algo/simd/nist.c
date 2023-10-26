@@ -7,7 +7,7 @@
 
 
 /* #define NO_PRECOMPUTED_IV */
-
+#if defined(__SSE2__)  // || defined(__ARM_NEON)
 
 /* 
  * Increase the counter.
@@ -16,7 +16,7 @@ void IncreaseCounter(hashState_sd *state, DataLength databitlen) {
 #ifdef HAS_64
       state->count += databitlen;
 #else
-      u32 old_count = state->count_low;
+      uint32_t old_count = state->count_low;
       state->count_low += databitlen;
       if (state->count_low < old_count)
         state->count_high++;
@@ -28,14 +28,9 @@ void IncreaseCounter(hashState_sd *state, DataLength databitlen) {
  * Initialize the hashState_sd with a given IV.
  * If the IV is NULL, initialize with zeros.
  */
-HashReturn InitIV(hashState_sd *state, int hashbitlen, const u32 *IV) {
+int InitIV(hashState_sd *state, int hashbitlen, const u32 *IV) {
 
-  int n;
-
-  if (!SupportedLength(hashbitlen))
-    return BAD_HASHBITLEN;
-
-  n =  8;
+  int n = 8;
 
   state->hashbitlen = hashbitlen;
   state->n_feistels = n;
@@ -71,15 +66,15 @@ HashReturn InitIV(hashState_sd *state, int hashbitlen, const u32 *IV) {
 
    // free(state->buffer);
   //  free(state->A);	
-  return SUCCESS;
+  return 0;
   
 }
 
 /* 
  * Initialize the hashState_sd.
  */
-HashReturn init_sd(hashState_sd *state, int hashbitlen) {
-  HashReturn r;
+int init_sd(hashState_sd *state, int hashbitlen) {
+  int r;
   char *init;
 
 #ifndef NO_PRECOMPUTED_IV
@@ -91,7 +86,7 @@ HashReturn init_sd(hashState_sd *state, int hashbitlen) {
 //    r=InitIV(state, hashbitlen, IV_384);
 //  else
   if (hashbitlen == 512)
-    r=InitIV(state, hashbitlen, IV_512);
+    r = InitIV(state, hashbitlen, IV_512);
   else
 #endif
     {
@@ -99,7 +94,7 @@ HashReturn init_sd(hashState_sd *state, int hashbitlen) {
        * Nonstandart length: IV is not precomputed.
        */
       r=InitIV(state, hashbitlen, NULL);
-      if (r != SUCCESS)
+      if (r != 0)
         return r;
       
       init = malloc(state->blocksize);
@@ -115,7 +110,7 @@ HashReturn init_sd(hashState_sd *state, int hashbitlen) {
   return r;
 }
 
-HashReturn update_sd( hashState_sd *state, const BitSequence *data,
+int update_sd( hashState_sd *state, const BitSequence *data,
                       DataLength databitlen )
 {
   unsigned current;
@@ -135,7 +130,7 @@ HashReturn update_sd( hashState_sd *state, const BitSequence *data,
   {
     // The number of hashed bits is not a multiple of 8.
     // Very painfull to implement and not required by the NIST API.
-    return FAIL;
+    return 1;
   }
 
   while ( databitlen > 0 )
@@ -156,7 +151,7 @@ HashReturn update_sd( hashState_sd *state, const BitSequence *data,
       {
         memcpy( state->buffer+current/8, data, (databitlen+7)/8 );
         IncreaseCounter( state, databitlen );        
-        return SUCCESS;
+        return 0;
       }
       else
       {
@@ -169,16 +164,16 @@ HashReturn update_sd( hashState_sd *state, const BitSequence *data,
       }
     }
   }
-  return SUCCESS;
+  return 0;
 }
 
-HashReturn final_sd( hashState_sd *state, BitSequence *hashval )
+int final_sd( hashState_sd *state, BitSequence *hashval )
 {
 #ifdef HAS_64
-  u64 l;
+  uint64_t l;
   int current = state->count & (state->blocksize - 1);
 #else
-  u32 l;
+  uint32_t l;
   int current = state->count_low & (state->blocksize - 1);
 #endif
   unsigned int i;
@@ -248,10 +243,10 @@ HashReturn final_sd( hashState_sd *state, BitSequence *hashval )
     BitSequence mask = 0xff << ( 8 - (state->hashbitlen % 8) );
     hashval[state->hashbitlen/8 + 1] = bs[state->hashbitlen/8 + 1] & mask;
   }
-  return SUCCESS;
+  return 0;
 }
 
-HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
+int update_final_sd( hashState_sd *state, BitSequence *hashval,
                             const BitSequence *data, DataLength databitlen )
 {
   int current, i;
@@ -259,7 +254,7 @@ HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
   static int align = -1;
   BitSequence out[64];
   int isshort = 1;
-  u64 l;
+  uint64_t l;
 
   if (align == -1)
     align = RequiredAlignment();
@@ -274,7 +269,7 @@ HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
   {
     // The number of hashed bits is not a multiple of 8.
     // Very painfull to implement and not required by the NIST API.
-    return FAIL;
+    return 1;
   }
 
   while ( databitlen > 0 )
@@ -357,7 +352,7 @@ HashReturn update_final_sd( hashState_sd *state, BitSequence *hashval,
     BitSequence mask = 0xff << ( 8 - (state->hashbitlen % 8) );
     hashval[state->hashbitlen/8 + 1] = out[state->hashbitlen/8 + 1] & mask;
   }
-  return SUCCESS;
+  return 0;
 }
 
 int simd_full( hashState_sd *state, BitSequence *hashval,
@@ -372,7 +367,7 @@ int simd_full( hashState_sd *state, BitSequence *hashval,
   static int align = -1;
   BitSequence out[64];
   int isshort = 1;
-  u64 l;
+  uint64_t l;
 
   if (align == -1)
     align = RequiredAlignment();
@@ -387,7 +382,7 @@ int simd_full( hashState_sd *state, BitSequence *hashval,
   {
     // The number of hashed bits is not a multiple of 8.
     // Very painfull to implement and not required by the NIST API.
-    return FAIL;
+    return 1;
   }
 
   while ( databitlen > 0 )
@@ -470,6 +465,8 @@ int simd_full( hashState_sd *state, BitSequence *hashval,
     BitSequence mask = 0xff << ( 8 - (state->hashbitlen % 8) );
     hashval[state->hashbitlen/8 + 1] = out[state->hashbitlen/8 + 1] & mask;
   }
-  return SUCCESS;
+  return 0;
 }
+
+#endif
 

@@ -16,8 +16,6 @@
 #include <stdlib.h>
 #include "simd-utils.h"
 
-#define LENGTH (512)
-
 #include "brg_endian.h"
 //#define NEED_UINT_64T
 #include "compat/brg_types.h"
@@ -31,6 +29,8 @@
 #define SIZE_1024 ((ROWS)*(COLS1024))
 //#define ROUNDS512 (10)
 #define ROUNDS1024 (14)
+
+#define LENGTH 512
 
 //#if LENGTH<=256
 //#define COLS (COLS512)
@@ -76,17 +76,17 @@ typedef struct {
 } hashState_groestl;
 
 
-HashReturn_gr init_groestl( hashState_groestl*, int );
+int init_groestl( hashState_groestl*, int );
 
-HashReturn_gr reinit_groestl( hashState_groestl* );
+int reinit_groestl( hashState_groestl* );
 
-HashReturn_gr update_groestl( hashState_groestl*, const void*,
-                              DataLength_gr );
+int update_groestl( hashState_groestl*, const void*, int );
 
-HashReturn_gr final_groestl( hashState_groestl*, void* );
+int final_groestl( hashState_groestl*, void* );
 
-HashReturn_gr update_and_final_groestl( hashState_groestl*,  void*,
-                                        const void*, DataLength_gr );
-int groestl512_full( hashState_groestl*,  void*, const void*, uint64_t );
+int update_and_final_groestl( hashState_groestl*,  void*, const void*, int );
+int groestl512( hashState_groestl*,  void*, const void*, uint64_t );
+#define groestl512_full   groestl512
+
 
 #endif /* __hash_h */

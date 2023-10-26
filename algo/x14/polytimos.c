@@ -14,11 +14,7 @@
 #ifdef __AES__
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
-#if defined(__aarch64__)
-  #include "algo/luffa/sph_luffa.h"
-#else
   #include "algo/luffa/luffa_for_sse2.h"
-#endif
 
 typedef struct {
 	sph_skein512_context    skein;
@@ -28,11 +24,7 @@ typedef struct {
 #else
 	sph_echo512_context		echo;
 #endif
-#if defined(__aarch64__)
-   sph_luffa512_context       luffa;
-#else
    hashState_luffa         luffa;
-#endif
 	sph_fugue512_context    fugue;
 	sph_gost512_context     gost;
 } poly_ctx_holder;
@@ -48,11 +40,7 @@ void init_polytimos_ctx()
 #else
    sph_echo512_init(&poly_ctx.echo);
 #endif
-#if defined(__aarch64__)
-   sph_luffa512_init(&poly_ctx.luffa );
-#else
    init_luffa( &poly_ctx.luffa, 512 );
-#endif
    sph_fugue512_init(&poly_ctx.fugue);
    sph_gost512_init(&poly_ctx.gost);
 }
@@ -77,13 +65,7 @@ void polytimos_hash(void *output, const void *input)
 	sph_echo512_close(&ctx.echo, hashA);
 #endif
 
-#if defined(__aarch64__)
-    sph_luffa512(&ctx.luffa, (const void*) hashA, 64);
-    sph_luffa512_close(&ctx.luffa, hashA);
-#else
-    update_and_final_luffa( &ctx.luffa, hashA,
-                                hashA, 64 );
-#endif
+   update_and_final_luffa( &ctx.luffa, hashA, hashA, 64 );
 
 	sph_fugue512(&ctx.fugue, hashA, 64);
 	sph_fugue512_close(&ctx.fugue, hashA);

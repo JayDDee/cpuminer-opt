@@ -50,8 +50,6 @@
 
 #elif defined(__ARM_NEON)
 
-#pragma message "NEON for Luffa"
-
 const uint32x4_t mask = { 0xffffffff, 0, 0xffffffff, 0xffffffff };
 
 // { a1_0, 0, a1_0, a1_0 }
@@ -316,11 +314,11 @@ int update_and_final_luffa( hashState_luffa *state, void* output,
     // 16 byte partial block exists for 80 byte len
     if ( state->rembytes  )
        // padding of partial block
-       rnd512( state, v128_mov64(  0x80000000 ),
+       rnd512( state, v128_set64( 0, 0x0000000080000000 ),
                       v128_bswap32( cast_v128( data ) ) );
     else
        // empty pad block
-       rnd512( state, v128_zero, v128_64( 0x80000000 ) );
+       rnd512( state, v128_zero, v128_64( 0x0000000080000000 ) );
 
     finalization512( state, (uint32_t*) output );
     if ( state->hashbitlen > 512 )
@@ -338,7 +336,7 @@ int luffa_full( hashState_luffa *state, void* output, int hashbitlen,
     state->hashbitlen = hashbitlen;
 #if !defined(__SSE4_1__)
     /* set the lower 32 bits to '1' */
-    MASK= v128_set32(0x00000000, 0x00000000, 0x00000000, 0xffffffff);
+    MASK= v128_set64( 0, 0x00000000ffffffff );
 #endif
     /* set the 32-bit round constant values to the 128-bit data field */
     for ( i=0; i<32; i++ )
@@ -365,11 +363,11 @@ int luffa_full( hashState_luffa *state, void* output, int hashbitlen,
     // 16 byte partial block exists for 80 byte len
     if ( state->rembytes  )
        // padding of partial block
-       rnd512( state, v128_mov64( 0x80000000 ),
+       rnd512( state, v128_set64( 0, 0x0000000080000000 ),
                       v128_bswap32( cast_v128( data ) ) );
     else
        // empty pad block
-       rnd512( state, v128_zero, v128_mov64( 0x80000000 ) );
+       rnd512( state, v128_zero, v128_set64( 0, 0x0000000080000000 ) );
 
     finalization512( state, (uint32_t*) output );
     if ( state->hashbitlen > 512 )

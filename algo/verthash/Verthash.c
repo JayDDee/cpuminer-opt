@@ -9,7 +9,7 @@
 
 #include "algo-gate-api.h"
 #include "Verthash.h"
-#include "mm_malloc.h"
+//#include "mm_malloc.h"
 #include "malloc-huge.h"
 
 //-----------------------------------------------------------------------------
@@ -91,7 +91,7 @@ int verthash_info_init(verthash_info_t* info, const char* file_name)
        if ( !opt_quiet ) applog( LOG_INFO, "Verthash data is using huge pages");
     }
     else
-       info->data = (uint8_t *)_mm_malloc( fileSize, 64 );
+       info->data = (uint8_t *)mm_malloc( fileSize, 64 );
 
     if ( !info->data )
     {
@@ -191,13 +191,13 @@ static void rotate_indexes( uint32_t *p )
    *(__m256i*)hash = _mm256_mullo_epi32( _mm256_xor_si256( \
                                  *(__m256i*)hash, *(__m256i*)blob_off ), k );
 
-#elif defined(__SSE41__)
+#elif defined(__SSE4_1__) // || defined(__ARM_NEON)
 
 #define MULXOR \
-   casti_m128i( hash, 0 ) = _mm_mullo_epi32( _mm_xor_si128( \
-                  casti_m128i( hash, 0 ), casti_m128i( blob_off, 0 ) ), k ); \
-   casti_m128i( hash, 1 ) = _mm_mullo_epi32( _mm_xor_si128( \
-                  casti_m128i( hash, 1 ), casti_m128i( blob_off, 1 ) ), k );
+   casti_v128( hash, 0 ) = v128_mul32( v128_xor( \
+                  casti_v128( hash, 0 ), casti_v128( blob_off, 0 ) ), k ); \
+   casti_v128( hash, 1 ) = v128_mul32( v128_xor( \
+                  casti_v128( hash, 1 ), casti_v128( blob_off, 1 ) ), k );
 
 #else
 
@@ -251,8 +251,8 @@ void verthash_hash( const void *blob_bytes, const size_t blob_size,
                              / VH_BYTE_ALIGNMENT ) + 1;
 #if defined (__AVX2__)        
     const __m256i k = _mm256_set1_epi32( 0x1000193 );
-#elif defined(__SSE41__)
-    const __m128i k = _mm_set1_epi32( 0x1000193 );
+#elif defined(__SSE4_1__) // || defined(__ARM_NEON)
+    const v128u32_t k = v128_32( 0x1000193 );
 #endif
     
     sha3( input, VH_HEADER_SIZE, hash, VH_HASH_OUT_SIZE );

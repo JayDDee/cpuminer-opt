@@ -46,7 +46,7 @@
 #endif
 
 #ifdef __GNUC__
-#if defined(NOASM) || defined(__arm__)
+#if defined(NOASM) || defined(__arm__) || defined(__aarch64__)
 #define ASM 0
 #else
 #define ASM 1

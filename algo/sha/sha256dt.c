@@ -4,28 +4,30 @@
 #include <string.h>
 #include <stdio.h>
 #include "sha256-hash.h"
+#include "sph_sha2.h"
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-  #define SHA256DT_16WAY 1
-#elif defined(__SHA__)
-  #define SHA256DT_SHA 1
+  #define SHA256DT_16X64 1
+#elif defined(__x86_64__) && defined(__SHA__)
+  #define SHA256DT_X86_SHA256 1
 #elif defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA2)
-  #define SHA256DT_NEON_SHA2 1
+  #define SHA256DT_NEON_SHA256 1
 #elif defined(__AVX2__)
-  #define SHA256DT_8WAY 1
-#else
-  #define SHA256DT_4WAY 1
+  #define SHA256DT_8X64 1
+#elif defined (__SSE2__) || defined(__ARM_NEON) 
+  #define SHA256DT_4X64 1
 #endif
+// else ref, should never happen
 
 static const uint32_t sha256dt_iv[8]  __attribute__ ((aligned (32))) =
-   {
-      0xdfa9bf2c, 0xb72074d4, 0x6bb01122, 0xd338e869,
-      0xaa3ff126, 0x475bbf30, 0x8fd52e5b, 0x9f75c9ad
-   };
+{
+   0xdfa9bf2c, 0xb72074d4, 0x6bb01122, 0xd338e869,
+   0xaa3ff126, 0x475bbf30, 0x8fd52e5b, 0x9f75c9ad
+};
 
-#if defined(SHA256DT_SHA)
+#if defined(SHA256DT_X86_SHA256)
 
-int scanhash_sha256dt_sha( struct work *work, uint32_t max_nonce,
+int scanhash_sha256dt_x86_x2sha( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t block1a[16] __attribute__ ((aligned (64)));
@@ -44,8 +46,6 @@ int scanhash_sha256dt_sha( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const v128_t shuf_bswap32 =
-           v128_set64( 0x0c0d0e0f08090a0bULL, 0x0405060700010203ULL );
 
    // hash first 64 byte block of data
    sha256_transform_le( mstatea, pdata, sha256dt_iv );
@@ -106,13 +106,9 @@ int scanhash_sha256dt_sha( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
-#endif
+#elif defined(SHA256DT_NEON_SHA256)
 
-#if defined(SHA256DT_NEON_SHA2)
-
-#pragma message  "SHA256DT  MEON SHA"
-
-int scanhash_sha256dt_neon_sha2( struct work *work, uint32_t max_nonce,
+int scanhash_sha256dt_neon_x2sha( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
    uint32_t block1a[16] __attribute__ ((aligned (64)));
@@ -121,8 +117,7 @@ int scanhash_sha256dt_neon_sha2( struct work *work, uint32_t max_nonce,
    uint32_t block2b[16] __attribute__ ((aligned (64)));
    uint32_t hasha[8]    __attribute__ ((aligned (32)));
    uint32_t hashb[8]    __attribute__ ((aligned (32)));
-   uint32_t mstatea[8]  __attribute__ ((aligned (32)));
-   uint32_t sstate[8]   __attribute__ ((aligned (32)));
+   uint32_t mstate[8]   __attribute__ ((aligned (32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -130,11 +125,9 @@ int scanhash_sha256dt_neon_sha2( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const v128_t shuf_bswap32 =
-           v128_set64( 0x0c0d0e0f08090a0bULL, 0x0405060700010203ULL );
 
    // hash first 64 byte block of data
-   sha256_neon_transform_le( mstatea, pdata, sha256dt_iv );
+   sha256_neon_sha_transform_le( mstate, pdata, sha256dt_iv );
 
    // fill & pad second bock without nonce
    memcpy( block1a, pdata + 16, 12 );
@@ -156,10 +149,10 @@ int scanhash_sha256dt_neon_sha2( struct work *work, uint32_t max_nonce,
       // Insert nonce for second block
       block1a[3] = n;
       block1b[3] = n+1;
-      sha256_neon2x_transform_le( block2a, block2b, block1a, block1b,
-                                  mstatea, mstatea );
+      sha256_neon_x2sha_transform_le( block2a, block2b, block1a, block1b,
+                                  mstate, mstate );
 
-      sha256_neon2x_transform_le( hasha, hashb, block2a, block2b,
+      sha256_neon_x2sha_transform_le( hasha, hashb, block2a, block2b,
                                   sha256dt_iv, sha256dt_iv );
 
       if ( unlikely( bswap_32( hasha[7] ) <= ptarget[7] ) )
@@ -190,11 +183,9 @@ int scanhash_sha256dt_neon_sha2( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
-#endif
+#elif defined(SHA256DT_16X64)
 
-#if defined(SHA256DT_16WAY)
-
-int scanhash_sha256dt_16way( struct work *work, const uint32_t max_nonce,
+int scanhash_sha256dt_16x64( struct work *work, const uint32_t max_nonce,
                            uint64_t *hashes_done, struct thr_info *mythr )
 {
    __m512i  block[16]    __attribute__ ((aligned (128)));
@@ -241,7 +232,7 @@ int scanhash_sha256dt_16way( struct work *work, const uint32_t max_nonce,
    buf[15] = v512_32( 0x480 ); // sha256dt funky bit count
 
    // partially pre-expand & prehash second message block, avoiding the nonces
-   sha256_16way_prehash_3rounds( mstate2, mexp_pre, buf, mstate1 );
+   sha256_16x32_prehash_3rounds( mstate2, mexp_pre, buf, mstate1 );
 
    // vectorize IV for second hash
    istate[0] = v512_32( sha256dt_iv[0] );
@@ -260,8 +251,8 @@ int scanhash_sha256dt_16way( struct work *work, const uint32_t max_nonce,
 
    do
    {
-      sha256_16way_final_rounds( block, buf, mstate1, mstate2, mexp_pre );
-      if ( unlikely( sha256_16way_transform_le_short(
+      sha256_16x32_final_rounds( block, buf, mstate1, mstate2, mexp_pre );
+      if ( unlikely( sha256_16x32_transform_le_short(
                                   hash32, block, istate, ptarget ) ) )
       {
          for ( int lane = 0; lane < 16; lane++ )
@@ -284,11 +275,9 @@ int scanhash_sha256dt_16way( struct work *work, const uint32_t max_nonce,
    return 0;
 }
    
-#endif
+#elif defined(SHA256DT_8X64)
 
-#if defined(SHA256DT_8WAY)
-
-int scanhash_sha256dt_8way( struct work *work, const uint32_t max_nonce,
+int scanhash_sha256dt_8x64( struct work *work, const uint32_t max_nonce,
                            uint64_t *hashes_done, struct thr_info *mythr )
 {
    __m256i  vdata[32]    __attribute__ ((aligned (64)));
@@ -335,15 +324,15 @@ int scanhash_sha256dt_8way( struct work *work, const uint32_t max_nonce,
    istate[6] = v256_32( sha256dt_iv[6] );
    istate[7] = v256_32( sha256dt_iv[7] );
 
-   sha256_8way_transform_le( mstate1, vdata, istate );
+   sha256_8x32_transform_le( mstate1, vdata, istate );
 
    // Do 3 rounds on the first 12 bytes of the next block
-   sha256_8way_prehash_3rounds( mstate2, mexp_pre, vdata + 16, mstate1 );
+   sha256_8x32_prehash_3rounds( mstate2, mexp_pre, vdata + 16, mstate1 );
    
    do
    {
-      sha256_8way_final_rounds( block, vdata+16, mstate1, mstate2, mexp_pre );
-      if ( unlikely( sha256_8way_transform_le_short( hash32, block,
+      sha256_8x32_final_rounds( block, vdata+16, mstate1, mstate2, mexp_pre );
+      if ( unlikely( sha256_8x32_transform_le_short( hash32, block,
                                                      istate, ptarget ) ) )
       {
          for ( int lane = 0; lane < 8; lane++ )
@@ -366,19 +355,17 @@ int scanhash_sha256dt_8way( struct work *work, const uint32_t max_nonce,
    return 0;
 }
 
-#endif
+#elif defined(SHA256DT_4X64)
 
-#if defined(SHA256DT_4WAY)
-
-int scanhash_sha256dt_4way( struct work *work, const uint32_t max_nonce,
+int scanhash_sha256dt_4x64( struct work *work, const uint32_t max_nonce,
                            uint64_t *hashes_done, struct thr_info *mythr )
 {
    v128_t  vdata[32]    __attribute__ ((aligned (64)));
    v128_t  block[16]    __attribute__ ((aligned (32)));
    v128_t  hash32[8]    __attribute__ ((aligned (32)));
-   v128_t  initstate[8] __attribute__ ((aligned (32)));
-   v128_t  midstate[8]  __attribute__ ((aligned (32)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+   v128_t  iv[8]        __attribute__ ((aligned (32)));
+   v128_t  mhash[8]  __attribute__ ((aligned (32)));
+   uint32_t lhash[8] __attribute__ ((aligned (32)));
    uint32_t *hash32_d7 =  (uint32_t*)&( hash32[7] );
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
@@ -406,33 +393,83 @@ int scanhash_sha256dt_4way( struct work *work, const uint32_t max_nonce,
    block[15] = v128_32( 0x300 );
    
    // initialize state
-   initstate[0] = v128_32( sha256dt_iv[0] );
-   initstate[1] = v128_32( sha256dt_iv[1] );
-   initstate[2] = v128_32( sha256dt_iv[2] );
-   initstate[3] = v128_32( sha256dt_iv[3] );
-   initstate[4] = v128_32( sha256dt_iv[4] );
-   initstate[5] = v128_32( sha256dt_iv[5] );
-   initstate[6] = v128_32( sha256dt_iv[6] );
-   initstate[7] = v128_32( sha256dt_iv[7] );
+   iv[0] = v128_32( sha256dt_iv[0] );
+   iv[1] = v128_32( sha256dt_iv[1] );
+   iv[2] = v128_32( sha256dt_iv[2] );
+   iv[3] = v128_32( sha256dt_iv[3] );
+   iv[4] = v128_32( sha256dt_iv[4] );
+   iv[5] = v128_32( sha256dt_iv[5] );
+   iv[6] = v128_32( sha256dt_iv[6] );
+   iv[7] = v128_32( sha256dt_iv[7] );
 
    // hash first 64 bytes of data
-   sha256_4way_transform_le( midstate, vdata, initstate );
+   sha256_4x32_transform_le( mhash, vdata, iv );
+
+/*
+uint32_t m1 [8] __attribute__ ((aligned (32)));
+uint32_t h1 [8] __attribute__ ((aligned (32)));
+uint32_t b1 [16] __attribute__ ((aligned (32)));
+uint32_t e16 [16] __attribute__ ((aligned (32)));
+uint32_t *m4 = (uint32_t*)&midstate;
+uint32_t *h4 = (uint32_t*)hash32;
+   
+sha256_transform_le( m1, pdata, sha256dt_iv );   
+
+   memcpy( e16, pdata + 16, 12 );
+   e16[3] = n;
+   e16[4] = 0x80000000;
+   memset( &e16[5], 0, 40 );
+   e16[15] = 0x480; // funky bit count
+
+   b1[8] = 0x80000000;
+   memset( &b1[9], 0, 24 );
+   b1[9] = b1[10] = b1[11] = b1[12] = b1[13] = b1[14] = 0;
+   b1[15] = 0x300; // bit count
+*/
 
    do
    {
-      sha256_4way_transform_le( block,  vdata+16, midstate  );
-      sha256_4way_transform_le( hash32, block, initstate );
+      sha256_4x32_transform_le( block, vdata+16, mhash  );
 
-      v128_block_bswap32( hash32, hash32 );
+//sha256_transform_le( b1, e16, m1 );      
+
+      sha256_4x32_transform_le( hash32, block, iv );
+
+/*      
+sha256_transform_le( h1, b1, sha256dt_iv );      
+
+printf("final hash1: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+        h1[0],h1[1],h1[2],h1[3],h1[4],h1[5],h1[6],h1[7]);
+printf("final hash4: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+        h4[0],h4[4],h4[8],h4[12],h4[16],h4[20],h4[24],h4[28]);
+
+      casti_v128( h1,0 ) = v128_bswap32( casti_v128( h1,0 ) );
+      casti_v128( h1,1 ) = v128_bswap32( casti_v128( h1,1 ) );
+*/
+      
+//      v128_block_bswap32( hash32, hash32 );
+
+/*      
+printf("bswap hash1: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+        h1[0],h1[1],h1[2],h1[3],h1[4],h1[5],h1[6],h1[7]);
+printf("bswap hash4: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+        h4[0],h4[4],h4[8],h4[12],h4[16],h4[20],h4[24],h4[28]);
+
+exit(0);
+*/
 
       for ( int lane = 0; lane < 4; lane++ )
-      if ( unlikely( hash32_d7[ lane ] <= targ32_d7 ) )
       {
-         extr_lane_4x32( lane_hash, hash32, lane, 256 );
-         if ( likely( valid_hash( lane_hash, ptarget ) && !bench ) )
+         if ( unlikely( bswap_32( hash32_d7[ lane ] ) <= targ32_d7 ) )
          {
-            pdata[19] = n + lane;
-            submit_solution( work, lane_hash, mythr );
+            extr_lane_4x32( lhash, hash32, lane, 256 );
+            casti_v128( lhash, 0 ) = v128_bswap32( casti_v128( lhash, 0 ) );
+            casti_v128( lhash, 1 ) = v128_bswap32( casti_v128( lhash, 1 ) );
+            if ( likely( valid_hash( lhash, ptarget ) && !bench ) )
+            {
+               pdata[19] = n + lane;
+               submit_solution( work, lhash, mythr );
+            }
          }
       }
       *noncev = v128_add32( *noncev, four );
@@ -443,26 +480,84 @@ int scanhash_sha256dt_4way( struct work *work, const uint32_t max_nonce,
    return 0;
 }
 
+#else
+
+int scanhash_sha256dt_ref( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t block1a[16] __attribute__ ((aligned (32)));
+   uint32_t block2a[16] __attribute__ ((aligned (32)));
+   uint32_t hasha[8]    __attribute__ ((aligned (32)));
+   uint32_t mstate[8]   __attribute__ ((aligned (32)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 2;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+
+   // hash first 64 byte block of data
+   sha256_transform_le( mstate, pdata, sha256dt_iv );
+
+   // fill & pad second bock without nonce
+   memcpy( block1a, pdata + 16, 12 );
+   block1a[ 3] = 0;
+   block1a[ 4] = 0x80000000;
+   memset( block1a + 5, 0, 40 );
+   block1a[15] = 0x480; // funky bit count
+
+   // Pad third block
+   block2a[ 8] = 0x80000000;
+   memset( block2a + 9, 0, 24 );
+   block2a[15] = 0x300; // bit count
+
+   do
+   {
+      // Insert nonce for second block
+      block1a[3] = n;
+      sha256_transform_le( block2a, block1a, mstate );
+
+      sha256_transform_le( hasha, block2a, sha256dt_iv );
+
+      if ( unlikely( bswap_32( hasha[7] ) <= ptarget[7] ) )
+      {
+          casti_v128( hasha, 0 ) = v128_bswap32( casti_v128( hasha, 0 ) );
+          casti_v128( hasha, 1 ) = v128_bswap32( casti_v128( hasha, 1 ) );
+          if ( likely( valid_hash( hasha, ptarget ) && !bench ) )
+          {
+             pdata[19] = n;
+             submit_solution( work, hasha, mythr );
+          }
+      }
+      n += 1;
+   } while ( (n < last_nonce) && !work_restart[thr_id].restart );
+
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
 #endif
 
 bool register_sha256dt_algo( algo_gate_t* gate )
 {
-    gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
-#if defined(SHA256DT_16WAY)
-    gate->scanhash = (void*)&scanhash_sha256dt_16way;
-#elif defined(SHA256DT_SHA)
+    gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
+#if defined(SHA256DT_16X64)
+    gate->scanhash = (void*)&scanhash_sha256dt_16x64;
+#elif defined(SHA256DT_X86_SHA256)
     gate->optimizations = SHA_OPT;
-    gate->scanhash = (void*)&scanhash_sha256dt_sha;    
-#elif defined(SHA256DT_NEON_SHA2)
+    gate->scanhash = (void*)&scanhash_sha256dt_x86_x2sha;    
+#elif defined(SHA256DT_NEON_SHA256)
     gate->optimizations = SHA_OPT;
-    gate->scanhash = (void*)&scanhash_sha256dt_neon_sha2;
-#elif defined(SHA256DT_8WAY)
-    gate->scanhash = (void*)&scanhash_sha256dt_8way;
-#elif defined(SHA256DT_4WAY)
-    gate->scanhash = (void*)&scanhash_sha256dt_4way;
+    gate->scanhash = (void*)&scanhash_sha256dt_neon_x2sha;
+#elif defined(SHA256DT_8X64)
+    gate->scanhash = (void*)&scanhash_sha256dt_8x64;
+#elif defined(SHA256DT_4X64)
+    gate->scanhash = (void*)&scanhash_sha256dt_4x64;
+#else 
+    gate->scanhash = (void*)&scanhash_sha256dt_ref;
 #endif
-
-
     return true;
 }
 

@@ -32,7 +32,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include "algo/sha/sha256-hash.h"
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
 #include "malloc-huge.h"
 
 static const uint32_t keypad[12] = {
@@ -55,17 +55,13 @@ static const uint32_t sha256_initial_state[8] =
 };
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-
-#define SCRYPT_THROUGHPUT 16
-
+  #define SCRYPT_THROUGHPUT 16
 #elif defined(__AVX2__)
-
-#define SCRYPT_THROUGHPUT 8
-
+  #define SCRYPT_THROUGHPUT 8
+#elif defined(__SHA__)    // NEON?
+  #define SCRYPT_THROUGHPUT 2
 #else
-
-#define SCRYPT_THROUGHPUT 4
-
+  #define SCRYPT_THROUGHPUT 4
 #endif
 
 // static int scrypt_throughput = 0;
@@ -268,9 +264,7 @@ static inline void PBKDF2_SHA256_128_32_SHA_2BUF( uint32_t *tstate0,
    }
 }
 
-
-
-#endif
+#endif   // SHA
 
 static const uint32_t keypad_4way[4 * 12] = {
 	0x80000000, 0x80000000, 0x80000000, 0x80000000,
@@ -438,7 +432,6 @@ static inline void PBKDF2_SHA256_128_32_4way( uint32_t *tstate,
    for ( i = 0; i < 4 * 8; i++ )
 		output[i] = bswap_32( ostate[i] );
 }
-
 
 #ifdef HAVE_SHA256_8WAY
 
@@ -629,7 +622,6 @@ static inline void HMAC_SHA256_80_init_16way( const uint32_t *key,
                               (const __m512i*)tstate );
 }
 
-
 static inline void PBKDF2_SHA256_80_128_16way( const uint32_t *tstate,
           const uint32_t *ostate, const uint32_t *salt, uint32_t *output )
 {
@@ -803,17 +795,12 @@ static int scrypt_N_1_1_256_8way( const uint32_t *input, uint32_t *output,
       dintrlv_2x128( X+192, X+224, W+192, 1024 );
    }
 
-      
 
    // SCRYPT CORE
-
-  // AVX2
-
 
    // AVX2   
    // disable de/interleave for testing.
 //   scrypt_core_8way( (__m256i*)W , (__m256i*)V, N );
-
 
 /*
    // AVX2 working
@@ -956,7 +943,6 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
                   X+256, X+288, X+320, X+352, X+384, X+416, X+448, X+480,
                   W, 1024 );
 
-
    if ( opt_param_n > 0x4000 )
    {
       scrypt_core_simd128_3buf( X,     scratchbuf, N );
@@ -991,7 +977,6 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
    }
 
    // SCRYPT CORE
-
 
    // AVX512
 /*
@@ -1042,9 +1027,6 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
    dintrlv_4x128( X+256,     X+256+ 32, X+256+ 64, X+256+ 96, W+256,     1024 );
    dintrlv_4x128( X+256+128, X+256+160, X+256+192, X+256+224, W+256+128, 1024 );
 */
-
-
-  // AVX2
 
 /*
    // AVX2
@@ -1239,7 +1221,8 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
 
 #endif // AVX512
 
-#if 0
+#if ( SCRYPT_THROUGHPUT == 2 ) && defined(__SHA__)
+
 static int scrypt_N_1_1_256_sha_2buf( const uint32_t *input, uint32_t *output,
                                       uint32_t *midstate, int N, int thrid )
 {
@@ -1263,6 +1246,12 @@ static int scrypt_N_1_1_256_sha_2buf( const uint32_t *input, uint32_t *output,
 
    return 1;
 }
+
+#endif
+
+#if ( SCRYPT_THROUGHPUT == 4 )
+
+#if defined(__SHA__)
 
 static int scrypt_N_1_1_256_4way_sha( const uint32_t *input, uint32_t *output,
            uint32_t *midstate, int N, int thrid )
@@ -1323,9 +1312,10 @@ static int scrypt_N_1_1_256_4way_sha( const uint32_t *input, uint32_t *output,
 
    return 1;
 }
-#endif
 
-#if ( SCRYPT_THROUGHPUT == 4 )
+#else  
+// SSE2
+
 static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
            uint32_t *midstate, int N, int thrid )
 {
@@ -1351,8 +1341,6 @@ static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
    }
    else
       scrypt_core_4way( (v128_t*)W, (v128_t*)scratchbuf, N );
-
-
 
 //   dintrlv_4x32( X, X+32, X+64, X+96, W, 1024 );
 
@@ -1396,9 +1384,10 @@ static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
 
    return 1;
 }
-#endif   // SCRYPT_THROUGHPUT == 4
 
-//#endif // SHA
+#endif
+
+#endif   // SCRYPT_THROUGHPUT == 4
 
 extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
                             uint64_t *hashes_done, struct thr_info *mythr )
@@ -1422,43 +1411,26 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
       bool rc = true;
       for ( i = 0; i < SCRYPT_THROUGHPUT; i++ ) data[ i*20 + 19 ] = ++n;
 
-//#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 #if ( SCRYPT_THROUGHPUT == 16 )
-//      if ( SCRYPT_THROUGHPUT == 16 )
          rc = scrypt_N_1_1_256_16way( data, hash, midstate, opt_param_n,
                                       thr_id );
-//      else
-//#endif
-//#if defined(__AVX2__)      
 #elif ( SCRYPT_THROUGHPUT == 8 )
-//         if ( SCRYPT_THROUGHPUT == 8 )      
          rc = scrypt_N_1_1_256_8way( data, hash, midstate, opt_param_n,
                                      thr_id );
-//      else
-//#endif
 #elif ( SCRYPT_THROUGHPUT == 4 )
-//      if ( SCRYPT_THROUGHPUT == 4 ) // slower on Ryzen than 8way
-//#if defined(__SHA__)
-//         rc = scrypt_N_1_1_256_4way_sha( data, hash, midstate, opt_param_n,
-//                                         thr_id );
-//#else
+  #if defined(__SHA__)
+         rc = scrypt_N_1_1_256_4way_sha( data, hash, midstate, opt_param_n,
+                                         thr_id );
+  #else
          rc = scrypt_N_1_1_256_4way( data, hash, midstate, opt_param_n,
                                      thr_id );
-#else
-
-#error "Invalid SCRYPT_THROUGHPUT"
-
-#endif
-/*
-#if defined(__SHA__)
-      else
-      if ( SCRYPT_THROUGHPUT == 2 )  // slower on Ryzen than 4way_sha & 8way
+  #endif
+#elif ( SCRYPT_THROUGHPUT == 2 ) && defined(__SHA__)
          rc = scrypt_N_1_1_256_sha_2buf( data, hash, midstate, opt_param_n,
                                          thr_id );
-#endif         
-      else  // should never get here
+#else         
          rc = scrypt_N_1_1_256( data, hash, midstate, opt_param_n, thr_id );
-*/
+#endif
 
       // test the hash
       if ( rc )
@@ -1490,7 +1462,7 @@ bool scrypt_miner_thread_init( int thr_id )
          applog( LOG_NOTICE, "Thread %u is using huge pages", thr_id );
    }
    else
-       scratchbuf = _mm_malloc( scratchbuf_size, 128 );
+       scratchbuf = mm_malloc( scratchbuf_size, 128 );
    
    if ( scratchbuf ) return true;
    
@@ -1500,18 +1472,18 @@ bool scrypt_miner_thread_init( int thr_id )
 
 bool register_scrypt_algo( algo_gate_t* gate )
 {
-//#if defined(__SHA__)
-//   gate->optimizations = SSE2_OPT | SHA_OPT;
-//#else
+#if defined(__SHA__)
+   gate->optimizations = SSE2_OPT | SHA_OPT;
+#else
    gate->optimizations = SSE2_OPT | SSE42_OPT | AVX_OPT | AVX2_OPT | AVX512_OPT;
-//#endif
+#endif
    gate->miner_thread_init =(void*)&scrypt_miner_thread_init;
    gate->scanhash         = (void*)&scanhash_scrypt;
    opt_target_factor = 65536.0;
    opt_param_n = opt_param_n ? opt_param_n : 1024;
    applog( LOG_INFO,"Scrypt paramaters: N= %d, R= 1", opt_param_n );
 
-// scrypt_throughput can be defined at compile time and used to replace
+// scrypt_throughput defined at compile time and used to replace
 // MAX_WAYS to reduce memory usage.
    
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
@@ -1520,19 +1492,15 @@ bool register_scrypt_algo( algo_gate_t* gate )
       scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
    else      
       scratchbuf_size = opt_param_n * 4 * 128;  // 4 way
-
-/* SHA is slower than AVX2 on Ryzen
-#elif defined(__SHA__)
-   scrypt_throughput = 4;
-   scratchbuf_size = opt_param_n * 2 * 128;  // 2 buf
-*/
-
 #elif defined(__AVX2__)
 //   scrypt_throughput = 8;   
    if ( opt_param_n > 0x4000 )
       scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
    else
       scratchbuf_size = opt_param_n * 2 * 128;  // 2 way
+#elif defined(__SHA__)
+//   scrypt_throughput = 4;
+   scratchbuf_size = opt_param_n * 2 * 128;  // 2 buf
 #else
 //   scrypt_throughput = 4;
    if ( opt_param_n > 0x4000 )
@@ -1549,7 +1517,7 @@ bool register_scrypt_algo( algo_gate_t* gate )
    format_number_si( &t_size, t_units );
    format_number_si( &d_size, d_units );
    applog( LOG_INFO,"Throughput %d/thr, Buffer %.0f %siB/thr, Total %.0f %siB\n",
-          SCRYPT_THROUGHPUT, t_size, t_units, d_size, d_units );
+   SCRYPT_THROUGHPUT, t_size, t_units, d_size, d_units );
 
    return true;
 };

@@ -30,7 +30,6 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
-#if defined(__AVX2__)
 
 #include <stddef.h>
 #include <string.h>
@@ -501,7 +500,7 @@ do { \
 } while (0)
 
 static void
-sha512_8way_round( sha512_8way_context *ctx,  __m512i *in, __m512i r[8] )
+sha512_8x64_round( sha512_8x64_context *ctx,  __m512i *in, __m512i r[8] )
 {
    int i;
    register __m512i A, B, C, D, E, F, G, H;
@@ -574,13 +573,13 @@ sha512_8way_round( sha512_8way_context *ctx,  __m512i *in, __m512i r[8] )
    }
 }
 
-void sha512_8way_init( sha512_8way_context *sc )
+void sha512_8x64_init( sha512_8x64_context *sc )
 {
    sc->initialized = false;
    sc->count = 0;
 }
 
-void sha512_8way_update( sha512_8way_context *sc, const void *data, size_t len )
+void sha512_8x64_update( sha512_8x64_context *sc, const void *data, size_t len )
 {
    __m512i *vdata = (__m512i*)data;
    size_t ptr;
@@ -599,14 +598,14 @@ void sha512_8way_update( sha512_8way_context *sc, const void *data, size_t len )
       len -= clen;
       if ( ptr == buf_size )
       {
-         sha512_8way_round( sc, sc->buf, sc->val );
+         sha512_8x64_round( sc, sc->buf, sc->val );
          ptr = 0;
       }
       sc->count += clen;
    }
 }
 
-void sha512_8way_close( sha512_8way_context *sc, void *dst )
+void sha512_8x64_close( sha512_8x64_context *sc, void *dst )
 {
     unsigned ptr;
     const int buf_size = 128;
@@ -620,7 +619,7 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
     if ( ptr > pad )
     {
          memset_zero_512( sc->buf + (ptr>>3), (buf_size - ptr) >> 3 );
-         sha512_8way_round( sc, sc->buf, sc->val );
+         sha512_8x64_round( sc, sc->buf, sc->val );
          memset_zero_512( sc->buf, pad >> 3 );
     }
     else
@@ -630,13 +629,22 @@ void sha512_8way_close( sha512_8way_context *sc, void *dst )
                        v512_64( sc->count >> 61 ), shuff_bswap64 );
     sc->buf[ ( pad+8 ) >> 3 ] = _mm512_shuffle_epi8(
                        v512_64( sc->count <<  3 ), shuff_bswap64 );
-    sha512_8way_round( sc, sc->buf, sc->val );
+    sha512_8x64_round( sc, sc->buf, sc->val );
 
     mm512_block_bswap_64( dst, sc->val );
 }
 
+void sha512_8x64_ctx( sha512_8x64_context *sc, void *dst, const void *data,
+                      size_t len )
+{
+ sha512_8x64_init( sc);
+ sha512_8x64_update( sc, data,len );
+ sha512_8x64_close( sc, dst );
+}
 
 #endif   // AVX512
+
+#if defined(__AVX2__)
 
 // SHA-512 4 way 64 bit
 
@@ -704,7 +712,7 @@ do { \
 #endif  // AVX512VL AVX10_256
 
 static void
-sha512_4way_round( sha512_4way_context *ctx,  __m256i *in, __m256i r[8] )
+sha512_4x64_round( sha512_4x64_context *ctx,  __m256i *in, __m256i r[8] )
 {
    int i;
    register __m256i A, B, C, D, E, F, G, H;
@@ -788,13 +796,13 @@ sha512_4way_round( sha512_4way_context *ctx,  __m256i *in, __m256i r[8] )
    }
 }
 
-void sha512_4way_init( sha512_4way_context *sc )
+void sha512_4x64_init( sha512_4x64_context *sc )
 {
    sc->initialized = false;
    sc->count = 0;
 }
 
-void sha512_4way_update( sha512_4way_context *sc, const void *data, size_t len )
+void sha512_4x64_update( sha512_4x64_context *sc, const void *data, size_t len )
 {
    __m256i *vdata = (__m256i*)data;
    size_t ptr;
@@ -813,14 +821,14 @@ void sha512_4way_update( sha512_4way_context *sc, const void *data, size_t len )
       len -= clen;
       if ( ptr == buf_size )
       {
-         sha512_4way_round( sc, sc->buf, sc->val );
+         sha512_4x64_round( sc, sc->buf, sc->val );
          ptr = 0;
       }
       sc->count += clen;
    }
 }
 
-void sha512_4way_close( sha512_4way_context *sc, void *dst )
+void sha512_4x64_close( sha512_4x64_context *sc, void *dst )
 {
     unsigned ptr;
     const int buf_size = 128;
@@ -834,7 +842,7 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
     if ( ptr > pad )
     {
          memset_zero_256( sc->buf + (ptr>>3), (buf_size - ptr) >> 3 );
-         sha512_4way_round( sc, sc->buf, sc->val );
+         sha512_4x64_round( sc, sc->buf, sc->val );
          memset_zero_256( sc->buf, pad >> 3 );
     }
     else
@@ -844,9 +852,210 @@ void sha512_4way_close( sha512_4way_context *sc, void *dst )
                        v256_64( sc->count >> 61 ), shuff_bswap64 );
     sc->buf[ ( pad+8 ) >> 3 ] = _mm256_shuffle_epi8( 
                        v256_64( sc->count <<  3 ), shuff_bswap64 );
-    sha512_4way_round( sc, sc->buf, sc->val );
+    sha512_4x64_round( sc, sc->buf, sc->val );
 
     mm256_block_bswap_64( dst, sc->val );
 }
 
+void sha512_4x64_ctx( sha512_4x64_context *sc, void *dst, const void *data,
+                      size_t len )
+{
+ sha512_4x64_init( sc);
+ sha512_4x64_update( sc, data,len );
+ sha512_4x64_close( sc, dst );
+}
+
+
+
 #endif  // __AVX2__
+        
+
+// SHA512 2 way 64 SSE2 or NEON
+
+#define BSG5_0_2x64( x )     v128_xor3( v128_ror64( x, 28 ), \
+                                   v128_ror64( x, 34 ), \
+                                   v128_ror64( x, 39 ) )
+
+#define BSG5_1_2x64( x )     v128_xor3( v128_ror64( x, 14 ), \
+                                   v128_ror64( x, 18 ), \
+                                   v128_ror64( x, 41 ) )
+
+#define SSG5_0_2x64( x )     v128_xor3( v128_ror64( x,  1 ), \
+                                   v128_ror64( x,  8 ), \
+                                   v128_sr64( x, 7 ) )
+
+#define SSG5_1_2x64( x )     v128_xor3( v128_ror64( x, 19 ), \
+                                   v128_ror64( x, 61 ), \
+                                   v128_sr64( x, 6 ) )
+
+#define CH_2x64(X, Y, Z) \
+   v128_xor( v128_and( v128_xor( Y, Z ), X ), Z )
+
+#define MAJ_2x64(X, Y, Z) \
+  v128_xor( Y, v128_and( X_xor_Y = v128_xor( X, Y ), Y_xor_Z ) )
+
+#define SHA3_2x64_STEP( A, B, C, D, E, F, G, H, i ) \
+do { \
+  v128u64_t T0 = v128_add64( v128_64( K512[i] ), W[i] ); \
+  v128u64_t T1 = BSG5_1_2x64( E ); \
+  v128u64_t T2 = BSG5_0_2x64( A ); \
+  T0 = v128_add64( T0, CH_2x64( E, F, G ) ); \
+  T1 = v128_add64( T1, H ); \
+  T2 = v128_add64( T2, MAJ_2x64( A, B, C ) ); \
+  T1 = v128_add64( T1, T0 ); \
+  Y_xor_Z = X_xor_Y; \
+  D  = v128_add64( D,  T1 ); \
+  H  = v128_add64( T1, T2 ); \
+} while (0)
+
+static void
+sha512_2x64_round( sha512_2x64_context *ctx, v128u64_t *in, v128u64_t r[8] )
+{
+   int i;
+   register v128u64_t A, B, C, D, E, F, G, H;
+   v128u64_t X_xor_Y, Y_xor_Z;
+   v128u64_t W[80];
+
+   v128_block_bswap64( W  , in );
+   v128_block_bswap64( (&W[8]), (&in[8]) );
+
+   for ( i = 16; i < 80; i++ )
+       W[i] = v128_add4_64( SSG5_0_2x64( W[i-15] ), SSG5_1_2x64( W[i-2] ),
+                             W[ i- 7 ], W[ i-16 ] );
+
+   if ( ctx->initialized )
+   {
+      A = r[0];
+      B = r[1];
+      C = r[2];
+      D = r[3];
+      E = r[4];
+      F = r[5];
+      G = r[6];
+      H = r[7];
+   }
+   else
+   {
+      A = v128_64( 0x6A09E667F3BCC908 );
+      B = v128_64( 0xBB67AE8584CAA73B );
+      C = v128_64( 0x3C6EF372FE94F82B );
+      D = v128_64( 0xA54FF53A5F1D36F1 );
+      E = v128_64( 0x510E527FADE682D1 );
+      F = v128_64( 0x9B05688C2B3E6C1F );
+      G = v128_64( 0x1F83D9ABFB41BD6B );
+      H = v128_64( 0x5BE0CD19137E2179 );
+   }
+
+   Y_xor_Z = v128_xor( B, C );
+
+   for ( i = 0; i < 80; i += 8 )
+   {
+      SHA3_2x64_STEP( A, B, C, D, E, F, G, H, i + 0 );
+      SHA3_2x64_STEP( H, A, B, C, D, E, F, G, i + 1 );
+      SHA3_2x64_STEP( G, H, A, B, C, D, E, F, i + 2 );
+      SHA3_2x64_STEP( F, G, H, A, B, C, D, E, i + 3 );
+      SHA3_2x64_STEP( E, F, G, H, A, B, C, D, i + 4 );
+      SHA3_2x64_STEP( D, E, F, G, H, A, B, C, i + 5 );
+      SHA3_2x64_STEP( C, D, E, F, G, H, A, B, i + 6 );
+      SHA3_2x64_STEP( B, C, D, E, F, G, H, A, i + 7 );
+   }
+
+   if ( ctx->initialized )
+   {
+      r[0] = v128_add64( r[0], A );
+      r[1] = v128_add64( r[1], B );
+      r[2] = v128_add64( r[2], C );
+      r[3] = v128_add64( r[3], D );
+      r[4] = v128_add64( r[4], E );
+      r[5] = v128_add64( r[5], F );
+      r[6] = v128_add64( r[6], G );
+      r[7] = v128_add64( r[7], H );
+   }
+   else
+   {
+      ctx->initialized = true;
+      r[0] = v128_add64( A, v128_64( 0x6A09E667F3BCC908 ) );
+      r[1] = v128_add64( B, v128_64( 0xBB67AE8584CAA73B ) );
+      r[2] = v128_add64( C, v128_64( 0x3C6EF372FE94F82B ) );
+      r[3] = v128_add64( D, v128_64( 0xA54FF53A5F1D36F1 ) );
+      r[4] = v128_add64( E, v128_64( 0x510E527FADE682D1 ) );
+      r[5] = v128_add64( F, v128_64( 0x9B05688C2B3E6C1F ) );
+      r[6] = v128_add64( G, v128_64( 0x1F83D9ABFB41BD6B ) );
+      r[7] = v128_add64( H, v128_64( 0x5BE0CD19137E2179 ) );
+   }
+}
+
+void sha512_2x64_init( sha512_2x64_context *sc )
+{
+   sc->initialized = false;
+   sc->count = 0;
+}
+
+void sha512_2x64_update( sha512_2x64_context *sc, const void *data, size_t len )
+{
+   v128u64_t *vdata = (v128u64_t*)data;
+   size_t ptr;
+   const int buf_size = 128;
+
+   ptr = (unsigned)sc->count & (buf_size - 1U);
+   while ( len > 0 )
+   {
+      size_t clen;
+      clen = buf_size - ptr;
+      if ( clen > len )
+         clen = len;
+      v128_memcpy( sc->buf + (ptr>>3), vdata, clen>>3 );
+      vdata = vdata + (clen>>3);
+      ptr += clen;
+      len -= clen;
+      if ( ptr == buf_size )
+      {
+         sha512_2x64_round( sc, sc->buf, sc->val );
+         ptr = 0;
+      }
+      sc->count += clen;
+   }
+}
+
+void sha512_2x64_close( sha512_2x64_context *sc, void *dst )
+{
+    unsigned ptr;
+    const int buf_size = 128;
+    const int pad = buf_size - 16;
+
+    ptr = (unsigned)sc->count & (buf_size - 1U);
+    sc->buf[ ptr>>3 ] = v128_64( 0x80 );
+    ptr += 8;
+    if ( ptr > pad )
+    {
+         v128_memset_zero( sc->buf + (ptr>>3), (buf_size - ptr) >> 3 );
+         sha512_2x64_round( sc, sc->buf, sc->val );
+         v128_memset_zero( sc->buf, pad >> 3 );
+    }
+    else
+         v128_memset_zero( sc->buf + (ptr>>3), (pad - ptr) >> 3 );
+
+    sc->buf[ pad >> 3 ] = v128_bswap64( v128_64( sc->count >> 61 ) );
+    sc->buf[ ( pad+8 ) >> 3 ] = v128_bswap64( v128_64( sc->count <<  3 ) );
+    sha512_2x64_round( sc, sc->buf, sc->val );
+
+    v128_block_bswap64( castp_v128u64( dst ), sc->val );
+}
+
+void sha512_2x64( void *dst, const void *data, size_t len )
+{
+   sha512_2x64_context sc;
+   sha512_2x64_init( &sc );
+   sha512_2x64_update( &sc, data, len );
+   sha512_2x64_close( &sc, dst );
+}
+
+void sha512_2x64_ctx( sha512_2x64_context *sc, void *dst, const void *data,
+                      size_t len )
+{
+   sha512_2x64_init( sc );
+   sha512_2x64_update( sc, data, len );
+   sha512_2x64_close( sc, dst );
+}
+
+

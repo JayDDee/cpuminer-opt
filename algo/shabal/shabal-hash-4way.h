@@ -1,8 +1,6 @@
 #ifndef SHABAL_HASH_4WAY_H__
 #define SHABAL_HASH_4WAY_H__ 1
 
-#if defined(__SSE4_1__) || defined(__ARM_NEON)
-
 #include <stddef.h>
 #include "simd-utils.h"
 
@@ -64,6 +62,8 @@ void shabal512_8way_addbits_and_close( void *cc, unsigned ub, unsigned n,
 
 #endif
 
+#if defined(__SSE4_1__) || defined(__ARM_NEON)
+
 typedef struct {
 	v128_t buf[16] __attribute__ ((aligned (64)));
 	v128_t A[12], B[16], C[16];
@@ -88,6 +88,41 @@ void shabal512_4way_addbits_and_close( void *cc, unsigned ub, unsigned n,
                                        void *dst );
 
 #endif
+
+// SSE or NEON
+
+/* No __mullo_pi32
+
+typedef struct
+{
+   v64_t buf[16] __attribute__ ((aligned (64)));
+   v64_t A[12], B[16], C[16];
+   uint32_t Whigh, Wlow;
+   size_t ptr;
+   bool state_loaded;
+} shabal_2x32_context;
+
+typedef shabal_2x32_context shabal256_2x32_context;
+typedef shabal_2x32_context shabal512_2x32_context;
+
+void shabal256_2x32_init( void *cc );
+void shabal256_2x32_update( void *cc, const void *data, size_t len );
+void shabal256_2x32_close( void *cc, void *dst );
+void shabal256_2x32_addbits_and_close( void *cc, unsigned ub, unsigned n,
+                                       void *dst );
+
+void shabal512_2x32_init( shabal512_2x32_context *cc );
+void shabal512_2x32_update( shabal512_2x32_context *cc, const void *data,
+                            size_t len );
+void shabal512_2x32_close( shabal512_2x32_context *cc, void *dst );
+void shabal512_2x32_addbits_and_close( shabal512_2x32_context *cc,
+                                       unsigned ub, unsigned n, void *dst );
+void shabal512_2x32_ctx( shabal512_2x32_context *cc, void *dst,
+                         const void *data, size_t len );
+void shabal512_2x32( shabal512_2x32_context *dst, const void *data,
+                     size_t len );
+
+*/
 
 #endif
 

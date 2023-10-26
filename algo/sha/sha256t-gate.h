@@ -9,7 +9,7 @@
 #elif defined(__SHA__)
   #define SHA256T_SHA 1
 #elif defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA2)
-  #define SHA125DT_NEON_SHA2 1
+  #define SHA256T_NEON_SHA2 1
 #elif defined(__AVX2__)
   #define SHA256T_8WAY 1
 #else

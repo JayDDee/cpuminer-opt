@@ -52,14 +52,14 @@
   V[0] = _mm256_add_epi64( V[0], _mm256_add_epi64( V[1], \
               _mm256_set_epi64x( m[ sigmaR[ Sg ] ], m[ sigmaR[ Se ] ], \
                                  m[ sigmaR[ Sc ] ], m[ sigmaR[ Sa ] ] ) ) ); \
-  V[3] = mm256_swap64_32( _mm256_xor_si256( V[3], V[0] ) ); \
+  V[3] = mm256_ror_64( _mm256_xor_si256( V[3], V[0] ), 32 ); \
   V[2] = _mm256_add_epi64( V[2], V[3] ); \
-  V[1] = mm256_shuflr64_24( _mm256_xor_si256( V[1], V[2] ) ); \
+  V[1] = mm256_ror_64( _mm256_xor_si256( V[1], V[2] ), 24 ); \
 \
   V[0] = _mm256_add_epi64( V[0], _mm256_add_epi64( V[1], \
               _mm256_set_epi64x( m[ sigmaR[ Sh ] ], m[ sigmaR[ Sf ] ], \
                                  m[ sigmaR[ Sd ] ], m[ sigmaR[ Sb ] ] ) ) ); \
-  V[3] = mm256_shuflr64_16( _mm256_xor_si256( V[3], V[0] ) ); \
+  V[3] = mm256_ror_64( _mm256_xor_si256( V[3], V[0] ), 16 ); \
   V[2] = _mm256_add_epi64( V[2], V[3] ); \
   V[1] = mm256_ror_64( _mm256_xor_si256( V[1], V[2] ), 63 ); \
 }
@@ -95,27 +95,27 @@
 }
 */
 
-#elif defined(__SSE2__) || defined(__NEON__)   // ready for NEON
+#elif defined(__SSE2__) || defined(__ARM_NEON)
 
 #define BLAKE2B_G( Va, Vb, Vc, Vd, Sa, Sb, Sc, Sd ) \
 { \
    Va = v128_add64( Va, v128_add64( Vb, \
-                 v128_set_64( m[ sigmaR[ Sc ] ], m[ sigmaR[ Sa ] ] ) ) ); \
-   Vd = v128_swap64_32( v128_xor( Vd, Va ) ); \
+                 v128_set64( m[ sigmaR[ Sc ] ], m[ sigmaR[ Sa ] ] ) ) ); \
+   Vd = v128_ror64( v128_xor( Vd, Va ), 32 ); \
    Vc = v128_add64( Vc, Vd ); \
-   Vb = v128_shuflr64_24( v128_xor( Vb, Vc ) ); \
+   Vb = v128_ror64( v128_xor( Vb, Vc ), 24 ); \
 \
    Va = v128_add64( Va, v128_add64( Vb, \
-                 v128_set_64( m[ sigmaR[ Sd ] ], m[ sigmaR[ Sb ] ] ) ) ); \
-   Vd = v128_shuflr64_16( v128_xor( Vd, Va ) ); \
+                 v128_set64( m[ sigmaR[ Sd ] ], m[ sigmaR[ Sb ] ] ) ) ); \
+   Vd = v128_ror64( v128_xor( Vd, Va ), 16 ); \
    Vc = v128_add64( Vc, Vd ); \
    Vb = v128_ror64( v128_xor( Vb, Vc ), 63 ); \
 }
 
 #define BLAKE2B_ROUND( R ) \
 { \
-   __m128i *V = (__m128i*)v; \
-   __m128i V2, V3, V6, V7; \
+   v128_t *V = (v128_t*)v; \
+   v128_t V2, V3, V6, V7; \
    const uint8_t *sigmaR = sigma[R]; \
    BLAKE2B_G( V[0], V[2], V[4], V[6], 0, 1, 2, 3 ); \
    BLAKE2B_G( V[1], V[3], V[5], V[7], 4, 5, 6, 7 ); \
@@ -152,8 +152,8 @@
 
 #define BLAKE2B_ROUND( R ) \
 { \
-   __m128i *V = (__m128i*)v; \
-   __m128i V2, V3, V6, V7; \
+   v128_t *V = (v128_t*)v; \
+   v128_t V2, V3, V6, V7; \
    const uint8_t *sigmaR = sigma[R]; \
    BLAKE2B_G( V[0], V[2], V[4], V[6], 0, 1, 2, 3 ); \
    BLAKE2B_G( V[1], V[3], V[5], V[7], 4, 5, 6, 7 ); \

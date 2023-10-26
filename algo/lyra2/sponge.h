@@ -97,11 +97,11 @@ static const uint64_t blake2b_IV[8] =
 
 #define G_4X64(a,b,c,d) \
    a = _mm256_add_epi64( a, b ); \
-   d = mm256_swap64_32( _mm256_xor_si256( d, a ) ); \
+   d = mm256_ror_64( _mm256_xor_si256( d, a ), 32 ); \
    c = _mm256_add_epi64( c, d ); \
-   b = mm256_shuflr64_24( _mm256_xor_si256( b, c ) ); \
+   b = mm256_ror_64( _mm256_xor_si256( b, c ), 24 ); \
    a = _mm256_add_epi64( a, b ); \
-   d = mm256_shuflr64_16( _mm256_xor_si256( d, a ) ); \
+   d = mm256_ror_64( _mm256_xor_si256( d, a ), 16 ); \
    c = _mm256_add_epi64( c, d ); \
    b = mm256_ror_64( _mm256_xor_si256( b, c ), 63 );
 
@@ -144,38 +144,38 @@ static const uint64_t blake2b_IV[8] =
 
 #endif
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(__ARM_NEON)
 
 // process 2 columns in parallel
 // returns void, all args updated
 #define G_2X64(a,b,c,d) \
-   a = _mm_add_epi64( a, b ); \
-   d = mm128_swap64_32( _mm_xor_si128( d, a) ); \
-   c = _mm_add_epi64( c, d ); \
-   b = mm128_shuflr64_24( _mm_xor_si128( b, c ) ); \
-   a = _mm_add_epi64( a, b ); \
-   d = mm128_shuflr64_16( _mm_xor_si128( d, a ) ); \
-   c = _mm_add_epi64( c, d ); \
-   b = mm128_ror_64( _mm_xor_si128( b, c ), 63 );
+   a = v128_add64( a, b ); \
+   d = v128_ror64( v128_xor( d, a), 32 ); \
+   c = v128_add64( c, d ); \
+   b = v128_ror64( v128_xor( b, c ), 24 ); \
+   a = v128_add64( a, b ); \
+   d = v128_ror64( v128_xor( d, a ), 16 ); \
+   c = v128_add64( c, d ); \
+   b = v128_ror64( v128_xor( b, c ), 63 );
 
 #define LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
 { \
-   __m128i t; \
+   v128u64_t t; \
    G_2X64( s0, s2, s4, s6 ); \
    G_2X64( s1, s3, s5, s7 ); \
-   t = mm128_alignr_64( s7, s6, 1 ); \
-   s6 = mm128_alignr_64( s6, s7, 1 ); \
+   t =  v128_alignr64( s7, s6, 1 ); \
+   s6 = v128_alignr64( s6, s7, 1 ); \
    s7 = t; \
-   t = mm128_alignr_64( s2, s3, 1 ); \
-   s2 =  mm128_alignr_64( s3, s2, 1 ); \
+   t =  v128_alignr64( s2, s3, 1 ); \
+   s2 = v128_alignr64( s3, s2, 1 ); \
    s3 = t; \
    G_2X64( s0, s2, s5, s6 ); \
    G_2X64( s1, s3, s4, s7 ); \
-   t = mm128_alignr_64( s6, s7, 1 ); \
-   s6 = mm128_alignr_64( s7, s6, 1 ); \
+   t =  v128_alignr64( s6, s7, 1 ); \
+   s6 = v128_alignr64( s7, s6, 1 ); \
    s7 = t; \
-   t = mm128_alignr_64( s3, s2, 1 ); \
-   s2 =  mm128_alignr_64( s2, s3, 1 ); \
+   t =  v128_alignr64( s3, s2, 1 ); \
+   s2 = v128_alignr64( s2, s3, 1 ); \
    s3 = t; \
 } 
 
@@ -195,34 +195,31 @@ static const uint64_t blake2b_IV[8] =
 
 #endif // AVX2 else SSE2
 
-
-// Scalar, not used.
-
 static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
     return ( w >> c ) | ( w << ( 64 - c ) );
 }
 
-#define G(r,i,a,b,c,d) \
-  do { \
+#define G( r, i, a, b, c, d ) \
+{ \
     a = a + b; \
-    d = rotr64(d ^ a, 32); \
+    d = ror64( (d) ^ (a), 32 ); \
     c = c + d; \
-    b = rotr64(b ^ c, 24); \
+    b = ror64( (b) ^ (c), 24 ); \
     a = a + b; \
-    d = rotr64(d ^ a, 16); \
+    d = ror64( (d) ^ (a), 16 ); \
     c = c + d; \
-    b = rotr64(b ^ c, 63); \
-  } while(0)
+    b = ror64( (b) ^ (c), 63 ); \
+}
 
 #define ROUND_LYRA(r)  \
-    G(r,0,v[ 0],v[ 4],v[ 8],v[12]); \
-    G(r,1,v[ 1],v[ 5],v[ 9],v[13]); \
-    G(r,2,v[ 2],v[ 6],v[10],v[14]); \
-    G(r,3,v[ 3],v[ 7],v[11],v[15]); \
-    G(r,4,v[ 0],v[ 5],v[10],v[15]); \
-    G(r,5,v[ 1],v[ 6],v[11],v[12]); \
-    G(r,6,v[ 2],v[ 7],v[ 8],v[13]); \
-    G(r,7,v[ 3],v[ 4],v[ 9],v[14]);
+    G( r, 0, v[ 0], v[ 4], v[ 8], v[12] ); \
+    G( r, 1, v[ 1], v[ 5], v[ 9], v[13] ); \
+    G( r, 2, v[ 2], v[ 6], v[10], v[14] ); \
+    G( r, 3, v[ 3], v[ 7], v[11], v[15] ); \
+    G( r, 4, v[ 0], v[ 5], v[10], v[15] ); \
+    G( r, 5, v[ 1], v[ 6], v[11], v[12] ); \
+    G( r, 6, v[ 2], v[ 7], v[ 8], v[13] ); \
+    G( r, 7, v[ 3], v[ 4], v[ 9], v[14] );
 
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)

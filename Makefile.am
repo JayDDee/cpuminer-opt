@@ -22,19 +22,13 @@ cpuminer_SOURCES = \
   sysinfos.c \
   algo-gate-api.c\
   malloc-huge.c \
-  algo/argon2/argon2a/argon2a.c \
-  algo/argon2/argon2a/ar2/argon2.c \
-  algo/argon2/argon2a/ar2/opt.c \
-  algo/argon2/argon2a/ar2/cores.c \
-  algo/argon2/argon2a/ar2/ar2-scrypt-jane.c \
-  algo/argon2/argon2a/ar2/blake2b.c \
-  algo/argon2/argon2d/argon2d-gate.c \
-  algo/argon2/argon2d/blake2/blake2b.c \
-  algo/argon2/argon2d/argon2d/argon2.c \
-  algo/argon2/argon2d/argon2d/core.c \
-  algo/argon2/argon2d/argon2d/opt.c \
-  algo/argon2/argon2d/argon2d/argon2d_thread.c \
-  algo/argon2/argon2d/argon2d/encoding.c \
+  algo/argon2d/argon2d-gate.c \
+  algo/argon2d/blake2/blake2b.c \
+  algo/argon2d/argon2d/argon2.c \
+  algo/argon2d/argon2d/core.c \
+  algo/argon2d/argon2d/opt.c \
+  algo/argon2d/argon2d/argon2d_thread.c \
+  algo/argon2d/argon2d/encoding.c \
   algo/blake/sph_blake.c \
   algo/blake/blake256-hash.c \
   algo/blake/blake512-hash.c \
@@ -63,6 +57,7 @@ cpuminer_SOURCES = \
   algo/bmw/bmw512-4way.c \
   algo/cubehash/cubehash_sse2.c\
   algo/cubehash/cube-hash-2way.c \
+  algo/cubehash/sph_cubehash.c \
   algo/echo/sph_echo.c \
   algo/echo/echo-hash-4way.c \
   algo/echo/aes_ni/hash.c\
@@ -104,6 +99,7 @@ cpuminer_SOURCES = \
   algo/lanehash/lane.c \
   algo/luffa/luffa_for_sse2.c \
   algo/luffa/luffa-hash-2way.c \
+  algo/luffa/sph_luffa.c \
   algo/lyra2/lyra2.c \
   algo/lyra2/sponge.c \
   algo/lyra2/sponge-2way.c \
@@ -114,13 +110,11 @@ cpuminer_SOURCES = \
   algo/lyra2/lyra2rev3.c \
   algo/lyra2/lyra2rev3-4way.c \
   algo/lyra2/lyra2re.c \
-  algo/lyra2/lyra2z.c \
   algo/lyra2/lyra2z-4way.c \
   algo/lyra2/lyra2z330.c \
   algo/lyra2/lyra2h.c \
   algo/lyra2/lyra2h-4way.c \
   algo/lyra2/allium-4way.c \
-  algo/lyra2/allium.c \
   algo/lyra2/phi2-4way.c \
   algo/lyra2/phi2.c \
   algo/m7m/m7m.c \
@@ -179,6 +173,7 @@ cpuminer_SOURCES = \
   algo/shavite/shavite.c \
   algo/simd/nist.c \
   algo/simd/vector.c \
+  algo/simd/sph_simd.c \
   algo/simd/simd-hash-2way.c \
   algo/skein/sph_skein.c \
   algo/skein/skein-hash-4way.c \

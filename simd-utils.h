@@ -29,7 +29,7 @@
 //    is no significant 64 bit vectorization therefore SSE2 is the practical
 //    minimum for using this code.
 //
-//    MMX:     64 bit vectors  
+//    MMX:     64 bit vectors  (Not used in cpuminer-opt) 
 //    SSE2:   128 bit vectors  (64 bit CPUs only, such as Intel Core2.
 //    AVX2:   256 bit vectors  (Starting with Intel Haswell and AMD Ryzen)
 //    AVX512: 512 bit vectors  (Starting with SkylakeX)
@@ -91,6 +91,23 @@
 //
 //    Ex: mm256_shuflr128_32 rotates each 128 bit lane of a 256 bit vector
 //        right by 32 bits.
+// 
+//  New architecture agnostic syntax to support multiple architectures.
+//  currently only used for 128 bit vectors.
+//
+//         [prefix]_[op]esize]
+//
+//  Abbreviated when no vsize, space is removed between op & esize.
+//
+//  Ex:  v128_add32 gets remapped to the appropriate architecture intrinsic.
+//
+//  New type specification includes element size because it's significant on
+//  AArch64. For x86_64 they'r all maped to v128_t. On arm the default is
+//  v128u32_t.
+//
+//   v128_t, v1q28u64_t, v128u32_t.
+//
+//  [prefix] is changed to "v128" or size specific for typedef.
 //
 // Vector constants
 //

@@ -41,12 +41,6 @@
 #ifndef __SKEIN_HASH_4WAY_H__
 #define __SKEIN_HASH_4WAY_H__ 1
 
-#ifdef __AVX2__
-
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 #include <stddef.h>
 #include "simd-utils.h"
 
@@ -78,7 +72,9 @@ void skein256_8way_update( void *cc, const void *data, size_t len );
 void skein256_8way_close( void *cc, void *dst );
 
 #endif // AVX512
-   
+
+#if defined(__AVX2__)
+
 typedef struct
 {
    __m256i buf[8];
@@ -104,8 +100,31 @@ void skein512_4way_prehash64( skein512_4way_context *sc, const void *data );
 void skein512_4way_final16( skein512_4way_context *sc, void *out,
      const void *data );
 
-#ifdef __cplusplus
-}
+
 #endif
-#endif
+
+typedef struct
+{
+   v128u64_t buf[8];
+   v128u64_t h0, h1, h2, h3, h4, h5, h6, h7;
+   size_t ptr;
+   uint64_t bcount;
+} skein_2way_big_context __attribute__ ((aligned (128)));
+
+typedef skein_2way_big_context skein512_2x64_context;
+typedef skein_2way_big_context skein256_2x64_context;
+
+void skein512_2x64_init( skein512_2x64_context *sc );
+void skein512_2x64_full( skein512_2x64_context *sc, void *out,
+                         const void *data, size_t len );
+void skein512_2x64_update( void *cc, const void *data, size_t len );
+void skein512_2x64_close( void *cc, void *dst );
+void skein512_2x64_prehash64( skein512_2x64_context *sc, const void *data );
+void skein512_2x64_final16( skein512_2x64_context *sc, void *out,
+     const void *data );
+
+void skein256_2x64_init( skein256_2x64_context *sc );
+void skein256_2x64_update( void *cc, const void *data, size_t len );
+void skein256_2x64_close( void *cc, void *dst );
+
 #endif

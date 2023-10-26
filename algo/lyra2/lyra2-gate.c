@@ -1,5 +1,5 @@
 #include "lyra2-gate.h"
-#include <mm_malloc.h>
+//#include <mm_malloc.h>
 
 // huge pages
 //
@@ -48,10 +48,10 @@ bool lyra2rev3_thread_init()
 
 #if defined(LYRA2REV3_16WAY)
 //   l2v3_wholeMatrix = _mm_malloc( 2*size, 128 );
-   l2v3_wholeMatrix = _mm_malloc( 2*size, 64 );
+   l2v3_wholeMatrix = mm_malloc( 2*size, 64 );
    init_lyra2rev3_16way_ctx();;
 #else
-   l2v3_wholeMatrix = _mm_malloc( size, 64 );
+   l2v3_wholeMatrix = mm_malloc( size, 64 );
 #if defined (LYRA2REV3_8WAY)
    init_lyra2rev3_8way_ctx();;
 #elif defined (LYRA2REV3_4WAY)
@@ -95,13 +95,13 @@ bool lyra2rev2_thread_init()
 
    int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
 #if defined (LYRA2REV2_16WAY)
-   l2v2_wholeMatrix = _mm_malloc( 2 * size, 64 );   // 2 way
+   l2v2_wholeMatrix = mm_malloc( 2 * size, 64 );   // 2 way
    init_lyra2rev2_16way_ctx();;
 #elif defined (LYRA2REV2_8WAY)
-   l2v2_wholeMatrix = _mm_malloc( size, 64 );
+   l2v2_wholeMatrix = mm_malloc( size, 64 );
    init_lyra2rev2_8way_ctx();;
 #else
-   l2v2_wholeMatrix = _mm_malloc( size, 64 );
+   l2v2_wholeMatrix = mm_malloc( size, 64 );
    init_lyra2rev2_ctx();
 #endif
    return l2v2_wholeMatrix;
@@ -125,6 +125,7 @@ bool register_lyra2rev2_algo( algo_gate_t* gate )
   return true;
 };
 
+/*
 /////////////////////////////
 
 bool register_lyra2z_algo( algo_gate_t* gate )
@@ -146,11 +147,11 @@ bool register_lyra2z_algo( algo_gate_t* gate )
   gate->scanhash   = (void*)&scanhash_lyra2z;
   gate->hash       = (void*)&lyra2z_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
   opt_target_factor = 256.0;
   return true;
 };
-
+*/
 
 ////////////////////////
 
@@ -171,7 +172,7 @@ bool register_lyra2h_algo( algo_gate_t* gate )
 };
 
 /////////////////////////////////
-
+/*
 bool register_allium_algo( algo_gate_t* gate )
 {
 #if defined (ALLIUM_16WAY)
@@ -184,11 +185,11 @@ bool register_allium_algo( algo_gate_t* gate )
   gate->hash      = (void*)&allium_hash;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT
-	                   | VAES_OPT;
+	                   | VAES_OPT | NEON_OPT;
   opt_target_factor = 256.0;
   return true;
 };
-
+*/
 /////////////////////////////////////////
 
 bool phi2_has_roots = false;

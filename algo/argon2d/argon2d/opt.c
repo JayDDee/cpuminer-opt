@@ -86,23 +86,27 @@ static void fill_block( __m512i *state, const block *ref_block,
 
 #elif defined(__AVX2__)
 
-static void fill_block(__m256i *state, const block *ref_block,
-                       block *next_block, int with_xor) {
+static void fill_block( __m256i *state, const block *ref_block,
+                       block *next_block, int with_xor )
+{
     __m256i block_XY[ARGON2_HWORDS_IN_BLOCK];
     unsigned int i;
 
-    if (with_xor) {
-        for (i = 0; i < ARGON2_HWORDS_IN_BLOCK; i++) {
-            state[i] = _mm256_xor_si256(
-                state[i], _mm256_load_si256((const __m256i *)ref_block->v + i));
-            block_XY[i] = _mm256_xor_si256(
-                state[i], _mm256_load_si256((const __m256i *)next_block->v + i));
+    if ( with_xor )
+    {
+        for ( i = 0; i < ARGON2_HWORDS_IN_BLOCK; i++ )
+        {
+            state[i] = _mm256_xor_si256( state[i],
+                       _mm256_load_si256( (const __m256i*)ref_block->v + i) );
+            block_XY[i] = _mm256_xor_si256( state[i],
+                       _mm256_load_si256( (const __m256i*)next_block->v + i) );
         }
-    } else {
-        for (i = 0; i < ARGON2_HWORDS_IN_BLOCK; i++) {
-            block_XY[i] = state[i] = _mm256_xor_si256(
-                state[i], _mm256_load_si256((const __m256i *)ref_block->v + i));
-        }
+    }
+    else
+    {
+        for ( i = 0; i < ARGON2_HWORDS_IN_BLOCK; i++ )
+            block_XY[i] = state[i] = _mm256_xor_si256( state[i],
+                        _mm256_load_si256( (const __m256i*)ref_block->v + i) );
     }
 
     BLAKE2_ROUND_1( state[ 0], state[ 4], state[ 1], state[ 5],
@@ -123,31 +127,36 @@ static void fill_block(__m256i *state, const block *ref_block,
     BLAKE2_ROUND_2( state[ 3], state[ 7], state[11], state[15],
                     state[19], state[23], state[27], state[31] );
 
-    for (i = 0; i < ARGON2_HWORDS_IN_BLOCK; i++) {
-        state[i] = _mm256_xor_si256(state[i], block_XY[i]);
-        _mm256_store_si256((__m256i *)next_block->v + i, state[i]);
+    for ( i = 0; i < ARGON2_HWORDS_IN_BLOCK; i++ )
+    {
+        state[i] = _mm256_xor_si256( state[i], block_XY[i] );
+        _mm256_store_si256( (__m256i*)next_block->v + i, state[i] );
     }
 }
 
 #else  // SSE2
 
 static void fill_block( v128_t *state, const block *ref_block,
-                       block *next_block, int with_xor) {
+                       block *next_block, int with_xor )
+{
     v128_t block_XY[ARGON2_OWORDS_IN_BLOCK];
     unsigned int i;
 
-    if (with_xor) {
-        for (i = 0; i < ARGON2_OWORDS_IN_BLOCK; i++) {
-            state[i] = v128_xor(
-                state[i], v128_load((const v128_t *)ref_block->v + i));
-            block_XY[i] = v128_xor(
-                state[i], v128_load((const v128_t *)next_block->v + i));
+    if ( with_xor )
+    {
+        for ( i = 0; i < ARGON2_OWORDS_IN_BLOCK; i++ )
+        {
+            state[i] = v128_xor( state[i],
+                              v128_load( (const v128_t*)ref_block->v + i) );
+            block_XY[i] = v128_xor( state[i],
+                              v128_load( (const v128_t*)next_block->v + i) );
         }
-    } else {
-        for (i = 0; i < ARGON2_OWORDS_IN_BLOCK; i++) {
-            block_XY[i] = state[i] = v128_xor(
-                state[i], v128_load((const v128_t *)ref_block->v + i));
-        }
+    }
+    else
+    {
+        for ( i = 0; i < ARGON2_OWORDS_IN_BLOCK; i++ )
+            block_XY[i] = state[i] = v128_xor( state[i],
+                              v128_load( (const v128_t*)ref_block->v + i) );
     }
 
     BLAKE2_ROUND( state[ 0], state[ 1], state[ 2], state[ 3],
@@ -184,9 +193,10 @@ static void fill_block( v128_t *state, const block *ref_block,
     BLAKE2_ROUND( state[ 7], state[15], state[23], state[31],  
                   state[39], state[47], state[55], state[63] );
 
-    for (i = 0; i < ARGON2_OWORDS_IN_BLOCK; i++) {
-        state[i] = v128_xor(state[i], block_XY[i]);
-        v128_store((v128_t *)next_block->v + i, state[i]);
+    for ( i = 0; i < ARGON2_OWORDS_IN_BLOCK; i++ )
+    {
+        state[i] = v128_xor( state[i], block_XY[i] );
+        v128_store( (v128_t*)next_block->v + i, state[i] );
     }
 }
 
