@@ -56,10 +56,10 @@ static const uint32_t sha256_initial_state[8] =
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
   #define SCRYPT_THROUGHPUT 16
+#elif defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
+  #define SCRYPT_THROUGHPUT 2
 #elif defined(__AVX2__)
   #define SCRYPT_THROUGHPUT 8
-#elif defined(__SHA__)    // NEON?
-  #define SCRYPT_THROUGHPUT 2
 #else
   #define SCRYPT_THROUGHPUT 4
 #endif
@@ -155,7 +155,7 @@ static inline void PBKDF2_SHA256_128_32(uint32_t *tstate, uint32_t *ostate,
       output[i] = bswap_32( ostate[i] );
 }
 
-#if defined(__SHA__)
+#if defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
 
 static inline void HMAC_SHA256_80_init_SHA_2BUF( const uint32_t *key0, 
                     const uint32_t *key1, uint32_t *tstate0, uint32_t *tstate1,
@@ -265,6 +265,9 @@ static inline void PBKDF2_SHA256_128_32_SHA_2BUF( uint32_t *tstate0,
 }
 
 #endif   // SHA
+
+
+
 
 static const uint32_t keypad_4way[4 * 12] = {
 	0x80000000, 0x80000000, 0x80000000, 0x80000000,
@@ -1221,10 +1224,10 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
 
 #endif // AVX512
 
-#if ( SCRYPT_THROUGHPUT == 2 ) && defined(__SHA__)
+#if ( SCRYPT_THROUGHPUT == 2 ) && ( defined(__SHA__) || defined(__ARM_FEATURE_SHA2) )
 
-static int scrypt_N_1_1_256_sha_2buf( const uint32_t *input, uint32_t *output,
-                                      uint32_t *midstate, int N, int thrid )
+static int scrypt_N_1_1_256_sha_2buf( const uint32_t *input,
+                  uint32_t *output, uint32_t *midstate, int N, int thrid )
 {
     uint32_t _ALIGN(128) tstate[ 2*8 ];
     uint32_t _ALIGN(128) ostate[ 2*8 ];
@@ -1241,13 +1244,13 @@ static int scrypt_N_1_1_256_sha_2buf( const uint32_t *input, uint32_t *output,
     scrypt_core_simd128_2buf( W, scratchbuf, N );
     if ( work_restart[thrid].restart ) return 0;
 
-    PBKDF2_SHA256_128_32_SHA_2BUF( tstate, tstate+8, ostate, ostate+8, W, W+32,
-                                   output, output+8 );
+    PBKDF2_SHA256_128_32_SHA_2BUF( tstate, tstate+8, ostate,
+                                   ostate+8, W, W+32,  output, output+8 );
 
    return 1;
 }
 
-#endif
+#endif   // THROUGHPUT = 2  && SHA
 
 #if ( SCRYPT_THROUGHPUT == 4 )
 
@@ -1267,13 +1270,10 @@ static int scrypt_N_1_1_256_4way_sha( const uint32_t *input, uint32_t *output,
     
     HMAC_SHA256_80_init(  input,     tstate,    ostate    );
     PBKDF2_SHA256_80_128( tstate,    ostate,    input,     W );
-
     HMAC_SHA256_80_init(  input +20, tstate+ 8, ostate+ 8 );
     PBKDF2_SHA256_80_128( tstate+ 8, ostate+ 8, input +20, W+32 );
-
     HMAC_SHA256_80_init(  input +40, tstate+16, ostate+16 );
     PBKDF2_SHA256_80_128( tstate+16, ostate+16, input +40, W+64 );
-
     HMAC_SHA256_80_init(  input +60, tstate+24, ostate+24 );
     PBKDF2_SHA256_80_128( tstate+24, ostate+24, input +60, W+96 );
 
@@ -1303,11 +1303,8 @@ static int scrypt_N_1_1_256_4way_sha( const uint32_t *input, uint32_t *output,
    if ( work_restart[thrid].restart ) return 0;
 
    PBKDF2_SHA256_128_32( tstate,    ostate,    W,    output    );
-
    PBKDF2_SHA256_128_32( tstate+ 8, ostate+ 8, W+32, output+ 8 );
-
    PBKDF2_SHA256_128_32( tstate+16, ostate+16, W+64, output+16 );
-
    PBKDF2_SHA256_128_32( tstate+24, ostate+24, W+96, output+24 );
 
    return 1;
@@ -1418,14 +1415,14 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
          rc = scrypt_N_1_1_256_8way( data, hash, midstate, opt_param_n,
                                      thr_id );
 #elif ( SCRYPT_THROUGHPUT == 4 )
-  #if defined(__SHA__)
+  #if defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
          rc = scrypt_N_1_1_256_4way_sha( data, hash, midstate, opt_param_n,
                                          thr_id );
   #else
          rc = scrypt_N_1_1_256_4way( data, hash, midstate, opt_param_n,
                                      thr_id );
   #endif
-#elif ( SCRYPT_THROUGHPUT == 2 ) && defined(__SHA__)
+#elif ( SCRYPT_THROUGHPUT == 2 ) && ( defined(__SHA__) || defined(__ARM_FEATURE_SHA2) )
          rc = scrypt_N_1_1_256_sha_2buf( data, hash, midstate, opt_param_n,
                                          thr_id );
 #else         
@@ -1472,10 +1469,10 @@ bool scrypt_miner_thread_init( int thr_id )
 
 bool register_scrypt_algo( algo_gate_t* gate )
 {
-#if defined(__SHA__)
-   gate->optimizations = SSE2_OPT | SHA_OPT;
+#if defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
+   gate->optimizations = SSE2_OPT | SHA_OPT | NEON_OPT;
 #else
-   gate->optimizations = SSE2_OPT | SSE42_OPT | AVX_OPT | AVX2_OPT | AVX512_OPT;
+   gate->optimizations = SSE2_OPT | SSE42_OPT | AVX_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
 #endif
    gate->miner_thread_init =(void*)&scrypt_miner_thread_init;
    gate->scanhash         = (void*)&scanhash_scrypt;
@@ -1492,15 +1489,15 @@ bool register_scrypt_algo( algo_gate_t* gate )
       scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
    else      
       scratchbuf_size = opt_param_n * 4 * 128;  // 4 way
+#elif defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
+//   scrypt_throughput = 2;
+   scratchbuf_size = opt_param_n * 2 * 128;  // 2 buf
 #elif defined(__AVX2__)
 //   scrypt_throughput = 8;   
    if ( opt_param_n > 0x4000 )
       scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
    else
       scratchbuf_size = opt_param_n * 2 * 128;  // 2 way
-#elif defined(__SHA__)
-//   scrypt_throughput = 4;
-   scratchbuf_size = opt_param_n * 2 * 128;  // 2 buf
 #else
 //   scrypt_throughput = 4;
    if ( opt_param_n > 0x4000 )

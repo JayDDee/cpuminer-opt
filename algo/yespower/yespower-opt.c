@@ -53,7 +53,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "algo/sha/hmac-sha256-hash.h"
-#include "algo/sha/hmac-sha256-hash-4way.h"
 #include "yespower.h"
 #include "yespower-platform.c"
 

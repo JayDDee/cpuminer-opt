@@ -73,6 +73,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v23.6
+
+ARM: Sha256dt, Sha256t, Sha256d 4-way now working and fully optimized for NEON, SHA also enabled but untested.
+x86: Sha256dt, Sha256t, Sha256d faster SSE2 4-way.
+ARM: Scrypt, Scryptn2 fully optimized for NEON, SHA also enabled but untested.
+Linux: added a log when miner is started as root to discourage doing so.
+
 v23.5
 
 New version numbering drops the leading 3, the major version will now be the calendar year, the minor version identifies planned releases during the year.

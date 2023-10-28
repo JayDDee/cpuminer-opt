@@ -1509,20 +1509,20 @@ static inline void v128_bswap32_intrlv80_2x64( void *d, const void *src )
 
 #elif defined(__ARM_NEON)
 
-  casti_v128u64( d,0 ) = vdupq_laneq_u64( s0, 0 );
-  casti_v128u64( d,1 ) = vdupq_laneq_u64( s0, 1 );
+  casti_v128u64( d,0 ) = vdupq_laneq_u64( (uint64x2_t)s0, 0 );
+  casti_v128u64( d,1 ) = vdupq_laneq_u64( (uint64x2_t)s0, 1 );
 
-  casti_v128u64( d,2 ) = vdupq_laneq_u64( s1, 0 );
-  casti_v128u64( d,3 ) = vdupq_laneq_u64( s1, 1 );
+  casti_v128u64( d,2 ) = vdupq_laneq_u64( (uint64x2_t)s1, 0 );
+  casti_v128u64( d,3 ) = vdupq_laneq_u64( (uint64x2_t)s1, 1 );
 
-  casti_v128u64( d,4 ) = vdupq_laneq_u64( s2, 0 );
-  casti_v128u64( d,5 ) = vdupq_laneq_u64( s2, 1 );
+  casti_v128u64( d,4 ) = vdupq_laneq_u64( (uint64x2_t)s2, 0 );
+  casti_v128u64( d,5 ) = vdupq_laneq_u64( (uint64x2_t)s2, 1 );
 
-  casti_v128u64( d,6 ) = vdupq_laneq_u64( s3, 0 );
-  casti_v128u64( d,7 ) = vdupq_laneq_u64( s3, 1 );
+  casti_v128u64( d,6 ) = vdupq_laneq_u64( (uint64x2_t)s3, 0 );
+  casti_v128u64( d,7 ) = vdupq_laneq_u64( (uint64x2_t)s3, 1 );
 
-  casti_v128u64( d,8 ) = vdupq_laneq_u64( s4, 0 );
-  casti_v128u64( d,9 ) = vdupq_laneq_u64( s4, 1 );
+  casti_v128u64( d,8 ) = vdupq_laneq_u64( (uint64x2_t)s4, 0 );
+  casti_v128u64( d,9 ) = vdupq_laneq_u64( (uint64x2_t)s4, 1 );
 
 #endif
 }

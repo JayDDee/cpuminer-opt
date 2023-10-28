@@ -20,7 +20,7 @@
    #define USER_AGENT_OS
 #endif
 
-#define USER_AGENT PACKAGE_NAME "-" PACKAGE_VERSION "-" USER_AGENT_ARCH "-" USER_AGENT_OS
+#define USER_AGENT PACKAGE_NAME "-" PACKAGE_VERSION "-" USER_AGENT_ARCH USER_AGENT_OS
 
 //#define MAX_CPUS 128
 
@@ -46,7 +46,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include <sys/time.h>
-
+#include <unistd.h>
 #include <pthread.h>
 #include <jansson.h>
 #include <curl/curl.h>
@@ -75,6 +75,15 @@
 
 #endif
 
+
+static inline bool is_root()
+{
+#if defined(WIN32)
+   return false;
+#else
+   return !getuid();
+#endif
+}
 
 /*
 #ifndef min

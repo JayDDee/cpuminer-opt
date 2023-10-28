@@ -2321,6 +2321,12 @@ static void *miner_thread( void *userdata )
        gettimeofday( (struct timeval *) &tv_start, NULL );
 
        // Scan for nonce
+//       nonce_found = scanhash_sha256dt_ref( &work, max_nonce, &hashes_done,
+//                                         mythr );
+//       nonce_found = scanhash_sha256dt_4x32( &work, max_nonce, &hashes_done,
+//                                         mythr );
+
+
        nonce_found = algo_gate.scanhash( &work, max_nonce, &hashes_done,
                                          mythr );
 
@@ -3677,57 +3683,43 @@ static int thread_create(struct thr_info *thr, void* func)
 
 void get_defconfig_path(char *out, size_t bufsize, char *argv0);
 
+
+#include "simd-utils.h"
+#include "algo/sha/sha512-hash.h"
+
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;
 	long flags;
 	int i, err;
 
+
 /*
-#include "simd-utils.h"
+uint64_t h1[8] __attribute__((aligned(32)));;
+uint64_t h2[8*2] __attribute__((aligned(32)));
+uint64_t hx[8*2] __attribute__((aligned(32)));
 
-printf("bswap32: %08x, bswap64: %016lx\n", bswap_32( 0x03020100 ), bswap_64( 0x0706050403020100 ) );
-printf("ror32: %08x, ror64: %016lx\n", ror32( 0x03020100, 8 ), ror64( 0x0706050403020100, 8 ) );
-exit(0);
+uint64_t inp[20*2]   __attribute__((aligned(32))) = {0};
 
-uint64x2_t a64 = v128_set64( 0x5555555555555555, 0xcccccccccccccccc ) ;
-uint64x2_t c64 = v128_set64( 0xffffffffffffffff, 0x0000000000000000 ) ;
-uint64x2_t mask = v128_set64( 0x0f0f0f0ff0f0f0f0, 0xf0f0f0f00f0f0f0f ) ;
+sha512_2x64_context ctx2;
+sph_sha512_context ctx1;
 
-uint32x4_t a32 = v128_set32( 0x0f0e0d0c, 0x0b0a0908, 0x07060504, 0x03020100 );
-uint16x8_t a16 = v128_set16( 0x0f0e, 0x00d0c, 0x0b0a, 0x0908, 0x0706, 0x0504, 0x0302, 0x0100 );
-uint8x16_t a8 = v128_set8(  0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 );
+sha512_2x64_ctx( &ctx2, h2, inp, 80 );
+sha512_2x64_init( &ctx2 );
+sha512_2x64_update( &ctx2, inp, 80 );
+sha512_2x64_close( &ctx2, h2 );
 
-a64 = v128_bswap64( a32 );
-a32 = v128_bswap32( a32 );
-a16 = v128_bswap16( a16 );
-
-uint64_t *b64 = (uint64_t*)&a64;
-uint32_t *b32 = (uint32_t*)&a32;
-uint16_t *b16 = (uint16_t*)&a16;
-
-//a32 = v128_ror32( a32, 4 );
+sph_sha512_init( &ctx1 );
+sph_sha512( &ctx1, inp, 80 );
+sph_sha512_close( &ctx1, h1 );
 
 
-printf("64: %016lx, %016lx\n", b64[1], b64[0] );
+printf("h1: %016lx %016lx %016lx %016lx %016lx %016lx %016lx %016lx\n", h1[0], h1[1], h1[2], h1[3], h1[4], h1[5], h1[6], h1[7]);
 
-printf("32: %08x %08x %08x %08x\n",  b32[3], b32[2],  b32[1], b32[0] );
-
-printf("16: %04x %04x %04x %04x %04x %04x %04x %04x\n", b16[7], b16[6],  b16[5], b16[4], b16[3], b16[2],  b16[1], b16[0] );
-
-//a32 = v128_ror32( a32, 28 );
-//printf("32: %08x %08x %08x %08x\n",  b32[3], b32[2],  b32[1], b32[0] );
-//a32 = v128_rol32( a32, 4 );
-//printf("32: %08x %08x %08x %08x\n",  b32[3], b32[2],  b32[1], b32[0] );
-//a32 = v128_rol32( a32, 28 );
-//printf("32: %08x %08x %08x %08x\n",  b32[3], b32[2],  b32[1], b32[0] );
+printf("h2: %016lx %016lx %016lx %016lx %016lx %016lx %016lx %016lx\n\n", h2[0], h2[2], h2[4], h2[ 6], h2[ 8], h2[10], h2[12], h2[14]);
 
 exit(0);
 */
-
-
-
-
 
 	pthread_mutex_init(&applog_lock, NULL);
 
@@ -3864,6 +3856,9 @@ exit(0);
 		return 1;
 	}
 
+   if ( is_root() )
+      applog( LOG_NOTICE, "Running cpuminer as Superuser is discouraged.");
+   
 #ifndef WIN32
 	if (opt_background)
    {

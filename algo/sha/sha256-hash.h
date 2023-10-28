@@ -97,6 +97,14 @@ void sha256_neon_x2sha_final_rounds( uint32_t *state_out_X,
 #define sha256_prehash_3rounds      sha256_neon_sha_prehash_3rounds
 #define sha256_2x_final_rounds      sha256_neon_x2sha_final_rounds
 
+// generic API
+#define sha256_transform_le        sha256_neon_sha_transform_le
+#define sha256_transform_be        sha256_neon_sha_transform_be
+#define sha256_2x_transform_le     sha256_neon_x2sha_transform_le
+#define sha256_2x_transform_be     sha256_neon_x2sha_transform_be
+#define sha256_prehash_3rounds     sha256_neon_sha_prehash_3rounds
+#define sha256_2x_final_rounds     sha256_neon_x2sha_final_rounds
+
 #else
 // without HW acceleration...
 #include "sph_sha2.h"

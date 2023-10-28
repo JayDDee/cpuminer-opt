@@ -907,7 +907,7 @@ static inline void mm128_block_bswap32_512( __m128i *d, const __m128i *s )
 #else
 
 #define v128_blendv( v1, v0, mask ) \
-           v128_or( v128_andnot( mask, v0 ), v128_and( mask, v1 ) )
+   v128_or( v128_andnot( mask, v0 ), v128_and( mask, v1 ) )
 
 #endif
 

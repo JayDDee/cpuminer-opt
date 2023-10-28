@@ -136,10 +136,10 @@ static void fill_block( __m256i *state, const block *ref_block,
 
 #else  // SSE2
 
-static void fill_block( v128_t *state, const block *ref_block,
+static void fill_block( v128u64_t *state, const block *ref_block,
                        block *next_block, int with_xor )
 {
-    v128_t block_XY[ARGON2_OWORDS_IN_BLOCK];
+    v128u64_t block_XY[ARGON2_OWORDS_IN_BLOCK];
     unsigned int i;
 
     if ( with_xor )

@@ -54,29 +54,29 @@ static const uint32_t K256[64] =
    v128_xor( v128_xor( \
         v128_ror32(x, 17), v128_ror32(x, 19) ), v128_sr32(x, 10) )
 
-#define SHA2s_MEXP( a, b, c, d ) \
+#define SHA256_4X32_MEXP( a, b, c, d ) \
   v128_add4_32( SSG2_1( a ), b, SSG2_0( c ), d );
 
-#define SHA256x4_MSG_EXPANSION( W ) \
-   W[ 0] = SHA2s_MEXP( W[14], W[ 9], W[ 1], W[ 0] ); \
-   W[ 1] = SHA2s_MEXP( W[15], W[10], W[ 2], W[ 1] ); \
-   W[ 2] = SHA2s_MEXP( W[ 0], W[11], W[ 3], W[ 2] ); \
-   W[ 3] = SHA2s_MEXP( W[ 1], W[12], W[ 4], W[ 3] ); \
-   W[ 4] = SHA2s_MEXP( W[ 2], W[13], W[ 5], W[ 4] ); \
-   W[ 5] = SHA2s_MEXP( W[ 3], W[14], W[ 6], W[ 5] ); \
-   W[ 6] = SHA2s_MEXP( W[ 4], W[15], W[ 7], W[ 6] ); \
-   W[ 7] = SHA2s_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] ); \
-   W[ 8] = SHA2s_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] ); \
-   W[ 9] = SHA2s_MEXP( W[ 7], W[ 2], W[10], W[ 9] ); \
-   W[10] = SHA2s_MEXP( W[ 8], W[ 3], W[11], W[10] ); \
-   W[11] = SHA2s_MEXP( W[ 9], W[ 4], W[12], W[11] ); \
-   W[12] = SHA2s_MEXP( W[10], W[ 5], W[13], W[12] ); \
-   W[13] = SHA2s_MEXP( W[11], W[ 6], W[14], W[13] ); \
-   W[14] = SHA2s_MEXP( W[12], W[ 7], W[15], W[14] ); \
-   W[15] = SHA2s_MEXP( W[13], W[ 8], W[ 0], W[15] );
+#define SHA256_4X32_MSG_EXPANSION( W ) \
+   W[ 0] = SHA256_4X32_MEXP( W[14], W[ 9], W[ 1], W[ 0] ); \
+   W[ 1] = SHA256_4X32_MEXP( W[15], W[10], W[ 2], W[ 1] ); \
+   W[ 2] = SHA256_4X32_MEXP( W[ 0], W[11], W[ 3], W[ 2] ); \
+   W[ 3] = SHA256_4X32_MEXP( W[ 1], W[12], W[ 4], W[ 3] ); \
+   W[ 4] = SHA256_4X32_MEXP( W[ 2], W[13], W[ 5], W[ 4] ); \
+   W[ 5] = SHA256_4X32_MEXP( W[ 3], W[14], W[ 6], W[ 5] ); \
+   W[ 6] = SHA256_4X32_MEXP( W[ 4], W[15], W[ 7], W[ 6] ); \
+   W[ 7] = SHA256_4X32_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] ); \
+   W[ 8] = SHA256_4X32_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] ); \
+   W[ 9] = SHA256_4X32_MEXP( W[ 7], W[ 2], W[10], W[ 9] ); \
+   W[10] = SHA256_4X32_MEXP( W[ 8], W[ 3], W[11], W[10] ); \
+   W[11] = SHA256_4X32_MEXP( W[ 9], W[ 4], W[12], W[11] ); \
+   W[12] = SHA256_4X32_MEXP( W[10], W[ 5], W[13], W[12] ); \
+   W[13] = SHA256_4X32_MEXP( W[11], W[ 6], W[14], W[13] ); \
+   W[14] = SHA256_4X32_MEXP( W[12], W[ 7], W[15], W[14] ); \
+   W[15] = SHA256_4X32_MEXP( W[13], W[ 8], W[ 0], W[15] );
 
-#define SHA2s_4WAY_STEP(A, B, C, D, E, F, G, H, i, j) \
-do { \
+#define SHA256_4X32_ROUND(A, B, C, D, E, F, G, H, i, j) \
+{ \
   v128_t T1, T2; \
   v128_t K = v128_32( K256[( (j)+(i) )] ); \
   T1 = v128_add32( H, v128_add4_32( BSG2_1(E), CHs(E, F, G), \
@@ -85,31 +85,41 @@ do { \
   Y_xor_Z = X_xor_Y; \
   D  = v128_add32( D,  T1 ); \
   H  = v128_add32( T1, T2 ); \
-} while (0)
+}
 
-#define SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, j ) \
+#define SHA256_4X32_ROUND_NOMSG( A, B, C, D, E, F, G, H, i, j ) \
+{ \
+   v128_t T1 = v128_add4_32( H, BSG2_1(E), CHs(E, F, G), \
+                                             v128_32( K256[(i)+(j)] ) ); \
+   v128_t T2 = v128_add32( BSG2_0(A), MAJs(A, B, C) ); \
+   Y_xor_Z = X_xor_Y; \
+   D  = v128_add32( D,  T1 ); \
+   H  = v128_add32( T1, T2 ); \
+}
+
+#define SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, j ) \
 { \
    v128_t X_xor_Y, Y_xor_Z = v128_xor( B, C ); \
-   SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  0, j ); \
-   SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  1, j ); \
-   SHA2s_4WAY_STEP( G, H, A, B, C, D, E, F,  2, j ); \
-   SHA2s_4WAY_STEP( F, G, H, A, B, C, D, E,  3, j ); \
-   SHA2s_4WAY_STEP( E, F, G, H, A, B, C, D,  4, j ); \
-   SHA2s_4WAY_STEP( D, E, F, G, H, A, B, C,  5, j ); \
-   SHA2s_4WAY_STEP( C, D, E, F, G, H, A, B,  6, j ); \
-   SHA2s_4WAY_STEP( B, C, D, E, F, G, H, A,  7, j ); \
-   SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  8, j ); \
-   SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  9, j ); \
-   SHA2s_4WAY_STEP( G, H, A, B, C, D, E, F, 10, j ); \
-   SHA2s_4WAY_STEP( F, G, H, A, B, C, D, E, 11, j ); \
-   SHA2s_4WAY_STEP( E, F, G, H, A, B, C, D, 12, j ); \
-   SHA2s_4WAY_STEP( D, E, F, G, H, A, B, C, 13, j ); \
-   SHA2s_4WAY_STEP( C, D, E, F, G, H, A, B, 14, j ); \
-   SHA2s_4WAY_STEP( B, C, D, E, F, G, H, A, 15, j ); \
+   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  0, j ); \
+   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  1, j ); \
+   SHA256_4X32_ROUND( G, H, A, B, C, D, E, F,  2, j ); \
+   SHA256_4X32_ROUND( F, G, H, A, B, C, D, E,  3, j ); \
+   SHA256_4X32_ROUND( E, F, G, H, A, B, C, D,  4, j ); \
+   SHA256_4X32_ROUND( D, E, F, G, H, A, B, C,  5, j ); \
+   SHA256_4X32_ROUND( C, D, E, F, G, H, A, B,  6, j ); \
+   SHA256_4X32_ROUND( B, C, D, E, F, G, H, A,  7, j ); \
+   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  8, j ); \
+   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  9, j ); \
+   SHA256_4X32_ROUND( G, H, A, B, C, D, E, F, 10, j ); \
+   SHA256_4X32_ROUND( F, G, H, A, B, C, D, E, 11, j ); \
+   SHA256_4X32_ROUND( E, F, G, H, A, B, C, D, 12, j ); \
+   SHA256_4X32_ROUND( D, E, F, G, H, A, B, C, 13, j ); \
+   SHA256_4X32_ROUND( C, D, E, F, G, H, A, B, 14, j ); \
+   SHA256_4X32_ROUND( B, C, D, E, F, G, H, A, 15, j ); \
 }
 
 // LE data, no need to byte swap
-static inline void SHA256_4WAY_TRANSFORM( v128_t *out, v128_t *W,
+static inline void SHA256_4X32_TRANSFORM( v128_t *out, v128_t *W,
                                           const v128_t *in )
 {
    v128_t A, B, C, D, E, F, G, H;
@@ -123,13 +133,13 @@ static inline void SHA256_4WAY_TRANSFORM( v128_t *out, v128_t *W,
    G = in[6];
    H = in[7];
 
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 0 );
-   SHA256x4_MSG_EXPANSION( W );
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
-   SHA256x4_MSG_EXPANSION( W );
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
-   SHA256x4_MSG_EXPANSION( W );
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 0 );
+   SHA256_4X32_MSG_EXPANSION( W );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
+   SHA256_4X32_MSG_EXPANSION( W );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
+   SHA256_4X32_MSG_EXPANSION( W );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
    
    out[0] = v128_add32( in[0], A );
    out[1] = v128_add32( in[1], B );
@@ -142,47 +152,37 @@ static inline void SHA256_4WAY_TRANSFORM( v128_t *out, v128_t *W,
 }
 
 // LE data, no need to byte swap
-void sha256_4way_transform_le( v128_t *state_out, const v128_t *data,
+void sha256_4x32_transform_le( v128_t *state_out, const v128_t *data,
                                const v128_t *state_in )
 {
    v128_t W[16];
    v128_memcpy( W, data, 16 );
-   SHA256_4WAY_TRANSFORM( state_out, W, state_in );
+   SHA256_4X32_TRANSFORM( state_out, W, state_in );
 }
 
 // BE data, need to byte swap input data
-void sha256_4way_transform_be( v128_t *state_out, const v128_t *data,
+void sha256_4x32_transform_be( v128_t *state_out, const v128_t *data,
                                const v128_t *state_in )
 {
    v128_t W[16];
    v128_block_bswap32( W, data );
    v128_block_bswap32( W+8, data+8 );
-   SHA256_4WAY_TRANSFORM( state_out, W, state_in );
+   SHA256_4X32_TRANSFORM( state_out, W, state_in );
 }
 
-// prehash_3rounds & final_rounds are not working
-void sha256_4way_prehash_3rounds( v128_t *state_mid, v128_t *X,
-                                   const v128_t *W, const v128_t *state_in )
+void sha256_4x32_prehash_3rounds( v128_t *state_mid, v128_t *X,
+                                  const v128_t *W, const v128_t *state_in )
 {
-   v128_t A, B, C, D, E, F, G, H;
+   v128_t A, B, C, D, E, F, G, H, T1;
 
-   // precalculate constant part msg expansion for second iteration.
-   X[ 0] = SHA2s_MEXP( W[14], W[ 9], W[ 1], W[ 0] );
-   X[ 1] = SHA2s_MEXP( W[15], W[10], W[ 2], W[ 1] );
-   X[ 2] = v128_add32( v128_add32( SSG2_1( X[ 0] ), W[11] ), W[ 2] );
-   X[ 3] = v128_add32( v128_add32( SSG2_1( X[ 1] ), W[12] ), SSG2_0( W[ 4] ) );
-   X[ 4] = v128_add32( v128_add32( W[13], SSG2_0( W[ 5] ) ), W[ 4] );
-   X[ 5] = v128_add32( v128_add32( W[14], SSG2_0( W[ 6] ) ), W[ 5] );
-   X[ 6] = v128_add32( v128_add32( W[15], SSG2_0( W[ 7] ) ), W[ 6] );
-   X[ 7] = v128_add32( v128_add32( X[ 0], SSG2_0( W[ 8] ) ), W[ 7] );
-   X[ 8] = v128_add32( v128_add32( X[ 1], SSG2_0( W[ 9] ) ), W[ 8] );
-   X[ 9] = v128_add32( SSG2_0( W[10] ), W[ 9] );
-   X[10] = v128_add32( SSG2_0( W[11] ), W[10] );
-   X[11] = v128_add32( SSG2_0( W[12] ), W[11] );
-   X[12] = v128_add32( SSG2_0( W[13] ), W[12] );
-   X[13] = v128_add32( SSG2_0( W[14] ), W[13] );
-   X[14] = v128_add32( SSG2_0( W[15] ), W[14] );
-   X[15] = v128_add32( SSG2_0( X[ 0] ), W[15] );
+   X[ 0] = v128_add32( SSG2_0( W[ 1] ), W[ 0] );
+   X[ 1] = v128_add32( v128_add32( SSG2_1( W[15] ), SSG2_0( W[ 2] ) ), W[ 1] );
+   X[ 2] = v128_add32( SSG2_1( X[ 0] ), W[ 2] );
+   X[ 3] = v128_add32( SSG2_1( X[ 1] ), SSG2_0( W[ 4] ) );
+   X[ 4] = SSG2_0( W[15] );
+   X[ 5] = v128_add32( SSG2_0( X[ 0] ), W[15] );
+   // W[0] for round 32
+   X[ 6] = v128_add32( SSG2_0( X[ 1] ), X[ 0] );
 
    A = v128_load( state_in     );
    B = v128_load( state_in + 1 );
@@ -194,11 +194,16 @@ void sha256_4way_prehash_3rounds( v128_t *state_mid, v128_t *X,
    H = v128_load( state_in + 7 );
 
    v128_t X_xor_Y, Y_xor_Z = v128_xor( B, C );
-   
-   SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  0, 0 );
-   SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  1, 0 );
-   SHA2s_4WAY_STEP( G, H, A, B, C, D, E, F,  2, 0 );
-   
+
+   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  0, 0 );
+   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  1, 0 );
+   SHA256_4X32_ROUND( G, H, A, B, C, D, E, F,  2, 0 );
+
+   // round 3 part 1, avoid nonces W[3]
+   T1 = v128_add4_32( E, BSG2_1(B), CHs(B, C, D), v128_32( K256[3] ) );
+   A = v128_add32( A, T1 );
+   E = v128_add32( T1, v128_add32( BSG2_0(F), MAJs(F, G, H) ) );
+
    v128_store( state_mid    , A );
    v128_store( state_mid + 1, B );
    v128_store( state_mid + 2, C );
@@ -209,7 +214,7 @@ void sha256_4way_prehash_3rounds( v128_t *state_mid, v128_t *X,
    v128_store( state_mid + 7, H );
 }
 
-void sha256_4way_final_rounds( v128_t *state_out, const v128_t *data,
+void sha256_4x32_final_rounds( v128_t *state_out, const v128_t *data,
           const v128_t *state_in, const v128_t *state_mid, const v128_t *X )
 {
    v128_t A, B, C, D, E, F, G, H;
@@ -226,45 +231,64 @@ void sha256_4way_final_rounds( v128_t *state_out, const v128_t *data,
    G = v128_load( state_mid + 6 );
    H = v128_load( state_mid + 7 );
 
-   v128_t X_xor_Y, Y_xor_Z = v128_xor( G, H );
+   v128_t X_xor_Y, Y_xor_Z = v128_xor( F, G );
 
-   SHA2s_4WAY_STEP( F, G, H, A, B, C, D, E,  3, 0 );
-   SHA2s_4WAY_STEP( E, F, G, H, A, B, C, D,  4, 0 );
-   SHA2s_4WAY_STEP( D, E, F, G, H, A, B, C,  5, 0 );
-   SHA2s_4WAY_STEP( C, D, E, F, G, H, A, B,  6, 0 );
-   SHA2s_4WAY_STEP( B, C, D, E, F, G, H, A,  7, 0 );
-   SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  8, 0 );
-   SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  9, 0 );
-   SHA2s_4WAY_STEP( G, H, A, B, C, D, E, F, 10, 0 );
-   SHA2s_4WAY_STEP( F, G, H, A, B, C, D, E, 11, 0 );
-   SHA2s_4WAY_STEP( E, F, G, H, A, B, C, D, 12, 0 );
-   SHA2s_4WAY_STEP( D, E, F, G, H, A, B, C, 13, 0 );
-   SHA2s_4WAY_STEP( C, D, E, F, G, H, A, B, 14, 0 );
-   SHA2s_4WAY_STEP( B, C, D, E, F, G, H, A, 15, 0 );
+   // round 3 part 2, add nonces  
+   A = v128_add32( A, W[3] );
+   E = v128_add32( E, W[3] );
 
-   // update precalculated msg expansion with new nonce: W[3].
+   SHA256_4X32_ROUND(       E, F, G, H, A, B, C, D,  4, 0 );
+   SHA256_4X32_ROUND_NOMSG( D, E, F, G, H, A, B, C,  5, 0 );
+   SHA256_4X32_ROUND_NOMSG( C, D, E, F, G, H, A, B,  6, 0 );
+   SHA256_4X32_ROUND_NOMSG( B, C, D, E, F, G, H, A,  7, 0 );
+   SHA256_4X32_ROUND_NOMSG( A, B, C, D, E, F, G, H,  8, 0 );
+   SHA256_4X32_ROUND_NOMSG( H, A, B, C, D, E, F, G,  9, 0 );
+   SHA256_4X32_ROUND_NOMSG( G, H, A, B, C, D, E, F, 10, 0 );
+   SHA256_4X32_ROUND_NOMSG( F, G, H, A, B, C, D, E, 11, 0 );
+   SHA256_4X32_ROUND_NOMSG( E, F, G, H, A, B, C, D, 12, 0 );
+   SHA256_4X32_ROUND_NOMSG( D, E, F, G, H, A, B, C, 13, 0 );
+   SHA256_4X32_ROUND_NOMSG( C, D, E, F, G, H, A, B, 14, 0 );
+   SHA256_4X32_ROUND(       B, C, D, E, F, G, H, A, 15, 0 );
+
    W[ 0] = X[ 0];
    W[ 1] = X[ 1];
    W[ 2] = v128_add32( X[ 2], SSG2_0( W[ 3] ) );
    W[ 3] = v128_add32( X[ 3], W[ 3] );
-   W[ 4] = v128_add32( X[ 4], SSG2_1( W[ 2] ) );
-   W[ 5] = v128_add32( X[ 5], SSG2_1( W[ 3] ) );
-   W[ 6] = v128_add32( X[ 6], SSG2_1( W[ 4] ) );
-   W[ 7] = v128_add32( X[ 7], SSG2_1( W[ 5] ) );
-   W[ 8] = v128_add32( X[ 8], SSG2_1( W[ 6] ) );
-   W[ 9] = v128_add32( X[ 9], v128_add32( SSG2_1( W[ 7] ), W[ 2] ) );
-   W[10] = v128_add32( X[10], v128_add32( SSG2_1( W[ 8] ), W[ 3] ) );
-   W[11] = v128_add32( X[11], v128_add32( SSG2_1( W[ 9] ), W[ 4] ) );
-   W[12] = v128_add32( X[12], v128_add32( SSG2_1( W[10] ), W[ 5] ) );
-   W[13] = v128_add32( X[13], v128_add32( SSG2_1( W[11] ), W[ 6] ) );
-   W[14] = v128_add32( X[14], v128_add32( SSG2_1( W[12] ), W[ 7] ) );
-   W[15] = v128_add32( X[15], v128_add32( SSG2_1( W[13] ), W[ 8] ) );
+   W[ 4] = v128_add32( W[ 4], SSG2_1( W[ 2] ) );
+   W[ 5] = SSG2_1( W[ 3] );
+   W[ 6] = v128_add32( W[15], SSG2_1( W[ 4] ) );
+   W[ 7] = v128_add32( X[ 0], SSG2_1( W[ 5] ) );
+   W[ 8] = v128_add32( X[ 1], SSG2_1( W[ 6] ) );
+   W[ 9] = v128_add32( SSG2_1( W[ 7] ), W[ 2] );
+   W[10] = v128_add32( SSG2_1( W[ 8] ), W[ 3] );
+   W[11] = v128_add32( SSG2_1( W[ 9] ), W[ 4] );
+   W[12] = v128_add32( SSG2_1( W[10] ), W[ 5] );
+   W[13] = v128_add32( SSG2_1( W[11] ), W[ 6] );
+   W[14] = v128_add32( X[ 4], v128_add32( SSG2_1( W[12] ), W[ 7] ) );
+   W[15] = v128_add32( X[ 5], v128_add32( SSG2_1( W[13] ), W[ 8] ) );
 
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
-   SHA256x4_MSG_EXPANSION( W );
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
-   SHA256x4_MSG_EXPANSION( W );
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
+
+   W[ 0] = v128_add32( X[ 6], v128_add32( SSG2_1( W[14] ), W[ 9] ) );
+   W[ 1] = SHA256_4X32_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   W[ 2] = SHA256_4X32_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
+   W[ 3] = SHA256_4X32_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
+   W[ 4] = SHA256_4X32_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
+   W[ 5] = SHA256_4X32_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
+   W[ 6] = SHA256_4X32_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
+   W[ 7] = SHA256_4X32_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
+   W[ 8] = SHA256_4X32_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
+   W[ 9] = SHA256_4X32_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
+   W[10] = SHA256_4X32_MEXP( W[ 8], W[ 3], W[11], W[10] );
+   W[11] = SHA256_4X32_MEXP( W[ 9], W[ 4], W[12], W[11] );
+   W[12] = SHA256_4X32_MEXP( W[10], W[ 5], W[13], W[12] );
+   W[13] = SHA256_4X32_MEXP( W[11], W[ 6], W[14], W[13] );
+   W[14] = SHA256_4X32_MEXP( W[12], W[ 7], W[15], W[14] );
+   W[15] = SHA256_4X32_MEXP( W[13], W[ 8], W[ 0], W[15] );
+
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
+   SHA256_4X32_MSG_EXPANSION( W );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
 
    A = v128_add32( A, v128_load( state_in     ) );
    B = v128_add32( B, v128_load( state_in + 1 ) );
@@ -285,10 +309,11 @@ void sha256_4way_final_rounds( v128_t *state_out, const v128_t *data,
    v128_store( state_out + 7,  H );
 }
 
+
 # if 0
 
 // Working correctly but still slower
-int sha256_4way_transform_le_short( v128_t *state_out, const v128_t *data,
+int sha256_4x32_transform_le_short( v128_t *state_out, const v128_t *data,
                             const v128_t *state_in, const uint32_t *target )
 {
    v128_t A, B, C, D, E, F, G, H, T0, T1, T2;
@@ -308,38 +333,38 @@ int sha256_4way_transform_le_short( v128_t *state_out, const v128_t *data,
    const v128_t IV7 = H;
    const v128_t IV6 = G;
 
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 0 );
-   SHA256x4_MSG_EXPANSION( W );
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
-   SHA256x4_MSG_EXPANSION( W );
-   SHA256x4_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 0 );
+   SHA256_4X32_MSG_EXPANSION( W );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
+   SHA256_4X32_MSG_EXPANSION( W );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
 
-   W[ 0] = SHA2s_MEXP( W[14], W[ 9], W[ 1], W[ 0] );
-   W[ 1] = SHA2s_MEXP( W[15], W[10], W[ 2], W[ 1] );
-   W[ 2] = SHA2s_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
-   W[ 3] = SHA2s_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
-   W[ 4] = SHA2s_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
-   W[ 5] = SHA2s_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
-   W[ 6] = SHA2s_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
-   W[ 7] = SHA2s_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
-   W[ 8] = SHA2s_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
-   W[ 9] = SHA2s_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
-   W[10] = SHA2s_MEXP( W[ 8], W[ 3], W[11], W[10] );
-   W[11] = SHA2s_MEXP( W[ 9], W[ 4], W[12], W[11] );
-   W[12] = SHA2s_MEXP( W[10], W[ 5], W[13], W[12] );
+   W[ 0] = SHA256_4X32_MEXP( W[14], W[ 9], W[ 1], W[ 0] );
+   W[ 1] = SHA256_4X32_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   W[ 2] = SHA256_4X32_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
+   W[ 3] = SHA256_4X32_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
+   W[ 4] = SHA256_4X32_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
+   W[ 5] = SHA256_4X32_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
+   W[ 6] = SHA256_4X32_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
+   W[ 7] = SHA256_4X32_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
+   W[ 8] = SHA256_4X32_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
+   W[ 9] = SHA256_4X32_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
+   W[10] = SHA256_4X32_MEXP( W[ 8], W[ 3], W[11], W[10] );
+   W[11] = SHA256_4X32_MEXP( W[ 9], W[ 4], W[12], W[11] );
+   W[12] = SHA256_4X32_MEXP( W[10], W[ 5], W[13], W[12] );
 
    v128_t X_xor_Y, Y_xor_Z = v128_xor( B, C );
    
-   SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  0, 48 );
-   SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  1, 48 );
-   SHA2s_4WAY_STEP( G, H, A, B, C, D, E, F,  2, 48 );
-   SHA2s_4WAY_STEP( F, G, H, A, B, C, D, E,  3, 48 );
-   SHA2s_4WAY_STEP( E, F, G, H, A, B, C, D,  4, 48 );
-   SHA2s_4WAY_STEP( D, E, F, G, H, A, B, C,  5, 48 );
-   SHA2s_4WAY_STEP( C, D, E, F, G, H, A, B,  6, 48 );
-   SHA2s_4WAY_STEP( B, C, D, E, F, G, H, A,  7, 48 );
-   SHA2s_4WAY_STEP( A, B, C, D, E, F, G, H,  8, 48 );
-   SHA2s_4WAY_STEP( H, A, B, C, D, E, F, G,  9, 48 );
+   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  0, 48 );
+   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  1, 48 );
+   SHA256_4X32_ROUND( G, H, A, B, C, D, E, F,  2, 48 );
+   SHA256_4X32_ROUND( F, G, H, A, B, C, D, E,  3, 48 );
+   SHA256_4X32_ROUND( E, F, G, H, A, B, C, D,  4, 48 );
+   SHA256_4X32_ROUND( D, E, F, G, H, A, B, C,  5, 48 );
+   SHA256_4X32_ROUND( C, D, E, F, G, H, A, B,  6, 48 );
+   SHA256_4X32_ROUND( B, C, D, E, F, G, H, A,  7, 48 );
+   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  8, 48 );
+   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  9, 48 );
 
    T0 = v128_add32( v128_32( K256[58] ),
                    v128_add4_32( BSG2_1( C ), CHs( C, D, E ), W[10], F ) );
@@ -368,7 +393,7 @@ int sha256_4way_transform_le_short( v128_t *state_out, const v128_t *data,
    F = v128_add32( T0, v128_add32( BSG2_0( G ), MAJs( G, H, A ) ) );
 
    // round 61  part 1
-   W[13] = SHA2s_MEXP( W[11], W[ 6], W[14], W[13] );
+   W[13] = SHA256_4X32_MEXP( W[11], W[ 6], W[14], W[13] );
    T0 = v128_add32( v128_32( K256[61] ),
                     v128_add4_32( BSG2_1( H ), CHs( H, A, B ), W[13], C ) );
    G = v128_add32( G, T0 );
@@ -401,11 +426,11 @@ int sha256_4way_transform_le_short( v128_t *state_out, const v128_t *data,
    C = v128_add32( T0, v128_add32( BSG2_0( D ), MAJs( D, E, F ) ) );
 
    // rounds 62 & 63
-   W[14] = SHA2s_MEXP( W[12], W[ 7], W[15], W[14] );
-   W[15] = SHA2s_MEXP( W[13], W[ 8], W[ 0], W[15] );
+   W[14] = SHA256_4X32_MEXP( W[12], W[ 7], W[15], W[14] );
+   W[15] = SHA256_4X32_MEXP( W[13], W[ 8], W[ 0], W[15] );
 
-   SHA2s_4WAY_STEP( C, D, E, F, G, H, A, B, 14, 48 );
-   SHA2s_4WAY_STEP( B, C, D, E, F, G, H, A, 15, 48 );
+   SHA256_4X32_ROUND( C, D, E, F, G, H, A, B, 14, 48 );
+   SHA256_4X32_ROUND( B, C, D, E, F, G, H, A, 15, 48 );
 
    state_out[0] = v128_add32( state_in[0], A );
    state_out[1] = v128_add32( state_in[1], B );
@@ -420,7 +445,7 @@ return 1;
 
 #endif
 
-void sha256_4way_init( sha256_4way_context *sc )
+void sha256_4x32_init( sha256_4x32_context *sc )
 {
    sc->count_high = sc->count_low = 0;
    sc->val[0] = v128_32( sha256_iv[0] );
@@ -433,7 +458,7 @@ void sha256_4way_init( sha256_4way_context *sc )
    sc->val[7] = v128_32( sha256_iv[7] );
 }
 
-void sha256_4way_update( sha256_4way_context *sc, const void *data, size_t len )
+void sha256_4x32_update( sha256_4x32_context *sc, const void *data, size_t len )
 {
    v128_t *vdata = (v128_t*)data;
    size_t ptr;
@@ -454,7 +479,7 @@ void sha256_4way_update( sha256_4way_context *sc, const void *data, size_t len )
       len -= clen;
       if ( ptr == buf_size )
       {
-         sha256_4way_transform_be( sc->val, sc->buf, sc->val );
+         sha256_4x32_transform_be( sc->val, sc->buf, sc->val );
          ptr = 0;
       }
       clow = sc->count_low;
@@ -465,7 +490,7 @@ void sha256_4way_update( sha256_4way_context *sc, const void *data, size_t len )
    }
 }
 
-void sha256_4way_close( sha256_4way_context *sc, void *dst )
+void sha256_4x32_close( sha256_4x32_context *sc, void *dst )
 {
     unsigned ptr;
     uint32_t low, high;
@@ -479,7 +504,7 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
     if ( ptr > pad )
     {
          v128_memset_zero( sc->buf + (ptr>>2), (buf_size - ptr) >> 2 );
-         sha256_4way_transform_be( sc->val, sc->buf, sc->val );
+         sha256_4x32_transform_be( sc->val, sc->buf, sc->val );
          v128_memset_zero( sc->buf, pad >> 2 );
     }
     else
@@ -491,17 +516,17 @@ void sha256_4way_close( sha256_4way_context *sc, void *dst )
 
     sc->buf[  pad     >> 2 ] = v128_32( bswap_32( high ) );
     sc->buf[( pad+4 ) >> 2 ] = v128_32( bswap_32( low ) );
-    sha256_4way_transform_be( sc->val, sc->buf, sc->val );
+    sha256_4x32_transform_be( sc->val, sc->buf, sc->val );
 
     v128_block_bswap32( dst, sc->val );
 }
 
-void sha256_4way_full( void *dst, const void *data, size_t len )
+void sha256_4x32_full( void *dst, const void *data, size_t len )
 {
-   sha256_4way_context ctx;
-   sha256_4way_init( &ctx );
-   sha256_4way_update( &ctx, data, len );
-   sha256_4way_close( &ctx, dst );
+   sha256_4x32_context ctx;
+   sha256_4x32_init( &ctx );
+   sha256_4x32_update( &ctx, data, len );
+   sha256_4x32_close( &ctx, dst );
 }
 
 #if defined(__AVX2__)

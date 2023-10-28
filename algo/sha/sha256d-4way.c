@@ -360,15 +360,17 @@ int scanhash_sha256d_8way( struct work *work, const uint32_t max_nonce,
 
 #if defined(SHA256D_4WAY)
 
-int scanhash_sha256d_4way( struct work *work, const uint32_t max_nonce,
+int scanhash_sha256d_4x32( struct work *work, const uint32_t max_nonce,
                            uint64_t *hashes_done, struct thr_info *mythr )
 {
-   v128_t  vdata[32]    __attribute__ ((aligned (64)));
-   v128_t  block[16]    __attribute__ ((aligned (32)));
-   v128_t  hash32[8]    __attribute__ ((aligned (32)));
-   v128_t  istate[8] __attribute__ ((aligned (32)));
-   v128_t  mstate[8]  __attribute__ ((aligned (32)));
-   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+   v128_t   vdata[32]    __attribute__ ((aligned (64)));
+   v128_t   block[16]    __attribute__ ((aligned (32)));
+   v128_t   hash32[8]    __attribute__ ((aligned (32)));
+   v128_t   iv[8]        __attribute__ ((aligned (32)));
+   v128_t   mhash1[8]    __attribute__ ((aligned (32)));
+   v128_t   mhash2[8]    __attribute__ ((aligned (32)));
+   v128_t   mexp_pre[8]  __attribute__ ((aligned (32)));
+   uint32_t lhash[8] __attribute__ ((aligned (32)));
    uint32_t *hash32_d7 =  (uint32_t*)&( hash32[7] );
    uint32_t *pdata = work->data;
    const uint32_t *ptarget = work->target;
@@ -376,17 +378,16 @@ int scanhash_sha256d_4way( struct work *work, const uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 4;
    uint32_t n = first_nonce;
-   v128_t *noncev = vdata + 19;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
    const v128_t last_byte = v128_32( 0x80000000 );
    const v128_t four = v128_32( 4 );
 
+   memset( block, 0, 16*4*4 );
+
    for ( int i = 0; i < 19; i++ )
-       vdata[i] = v128_32( pdata[i] );
-
-   *noncev = v128_set32( n+ 3, n+ 2, n+1, n );
-
+      vdata[i] = v128_32( pdata[i] );
+   vdata[16+3] = v128_set32( n+3, n+2, n+1, n );
    vdata[16+4] = last_byte;
    v128_memset_zero( vdata+16 + 5, 10 );
    vdata[16+15] = v128_32( 80*8 );
@@ -396,36 +397,39 @@ int scanhash_sha256d_4way( struct work *work, const uint32_t max_nonce,
    block[15] = v128_32( 32*8 );
    
    // initialize state
-   istate[0] = v128_32( sha256_iv[0] );
-   istate[1] = v128_32( sha256_iv[1] );
-   istate[2] = v128_32( sha256_iv[2] );
-   istate[3] = v128_32( sha256_iv[3] );
-   istate[4] = v128_32( sha256_iv[4] );
-   istate[5] = v128_32( sha256_iv[5] );
-   istate[6] = v128_32( sha256_iv[6] );
-   istate[7] = v128_32( sha256_iv[7] );
+   iv[0] = v128_32( sha256_iv[0] );
+   iv[1] = v128_32( sha256_iv[1] );
+   iv[2] = v128_32( sha256_iv[2] );
+   iv[3] = v128_32( sha256_iv[3] );
+   iv[4] = v128_32( sha256_iv[4] );
+   iv[5] = v128_32( sha256_iv[5] );
+   iv[6] = v128_32( sha256_iv[6] );
+   iv[7] = v128_32( sha256_iv[7] );
 
-   // hash first 64 bytes of data
-   sha256_4way_transform_le( mstate, vdata, istate );
+   sha256_4x32_transform_le( mhash1, vdata, iv );
+   sha256_4x32_prehash_3rounds( mhash2, mexp_pre, vdata + 16, mhash1 );
 
    do
    {
-      sha256_4way_transform_le( block,  vdata+16, mstate  );
-      sha256_4way_transform_le( hash32, block, istate );
-
-      v128_block_bswap32( hash32, hash32 );
+      sha256_4x32_final_rounds( block, vdata+16, mhash1, mhash2, mexp_pre );
+//      sha256_4x32_transform_le( block, vdata+16, mhash1 );
+      sha256_4x32_transform_le( hash32, block, iv );
 
       for ( int lane = 0; lane < 4; lane++ )
-      if ( unlikely( hash32_d7[ lane ] <= targ32_d7 ) )
       {
-         extr_lane_4x32( lane_hash, hash32, lane, 256 );
-         if ( likely( valid_hash( lane_hash, ptarget ) && !bench ) )
+         if ( unlikely( bswap_32( hash32_d7[ lane ] ) <= targ32_d7 ) )
          {
-            pdata[19] = n + lane;
-            submit_solution( work, lane_hash, mythr );
+            extr_lane_4x32( lhash, hash32, lane, 256 );
+            casti_v128( lhash, 0 ) = v128_bswap32( casti_v128( lhash, 0 ) );
+            casti_v128( lhash, 1 ) = v128_bswap32( casti_v128( lhash, 1 ) );
+            if ( likely( valid_hash( lhash, ptarget ) && !bench ) )
+            {
+               pdata[19] = n + lane;
+               submit_solution( work, lhash, mythr );
+            }
          }
       }
-      *noncev = v128_add32( *noncev, four );
+      vdata[16+3] = v128_add32( vdata[16+3], four );
       n += 4;
    } while ( (n < last_nonce) && !work_restart[thr_id].restart );
    pdata[19] = n;

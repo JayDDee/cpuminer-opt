@@ -23,56 +23,46 @@
 
 #if !defined(__AVX512F__)
 
-
 #if !defined(__AVX2__)
 
-
-static BLAKE2_INLINE v128_t fBlaMka(v128_t x, v128_t y) {
-    const v128_t z = v128_mulw32(x, y);
-    return v128_add64(v128_add64(x, y), v128_add64(z, z));
+static BLAKE2_INLINE v128_t fBlaMka(v128_t x, v128_t y)
+{
+    const v128u64_t z = v128_mulw32( x, y );
+    return (v128u32_t)v128_add64( v128_add64( (v128u64_t)x, (v128u64_t)y ),
+                                  v128_add64( z, z ) );
 }
 
-#define G1(A0, B0, C0, D0, A1, B1, C1, D1)                                     \
-    do {                                                                       \
-        A0 = fBlaMka(A0, B0);                                                  \
-        A1 = fBlaMka(A1, B1);                                                  \
-                                                                               \
-        D0 = v128_xor(D0, A0);                                            \
-        D1 = v128_xor(D1, A1);                                            \
-                                                                               \
-        D0 = v128_ror64(D0, 32);                                          \
-        D1 = v128_ror64(D1, 32);                                          \
-                                                                               \
-        C0 = fBlaMka(C0, D0);                                                  \
-        C1 = fBlaMka(C1, D1);                                                  \
-                                                                               \
-        B0 = v128_xor(B0, C0);                                            \
-        B1 = v128_xor(B1, C1);                                            \
-                                                                               \
-        B0 = v128_ror64(B0, 24);                                          \
-        B1 = v128_ror64(B1, 24);                                          \
-    } while ((void)0, 0)
+#define G1( A0, B0, C0, D0, A1, B1, C1, D1 ) \
+{ \
+   A0 = fBlaMka( A0, B0 ); \
+   A1 = fBlaMka( A1, B1 ); \
+   D0 = v128_xor( D0, A0 ); \
+   D1 = v128_xor( D1, A1 ); \
+   D0 = v128_ror64( D0, 32 ); \
+   D1 = v128_ror64( D1, 32 ); \
+   C0 = fBlaMka( C0, D0 ); \
+   C1 = fBlaMka( C1, D1 ); \
+   B0 = v128_xor( B0, C0 ); \
+   B1 = v128_xor( B1, C1 ); \
+   B0 = v128_ror64( B0, 24 ); \
+   B1 = v128_ror64( B1, 24 ); \
+} 
 
-#define G2(A0, B0, C0, D0, A1, B1, C1, D1)                                     \
-    do {                                                                       \
-        A0 = fBlaMka(A0, B0);                                                  \
-        A1 = fBlaMka(A1, B1);                                                  \
-                                                                               \
-        D0 = v128_xor(D0, A0);                                            \
-        D1 = v128_xor(D1, A1);                                            \
-                                                                               \
-        D0 = v128_ror64(D0, 16);                                          \
-        D1 = v128_ror64(D1, 16);                                          \
-                                                                               \
-        C0 = fBlaMka(C0, D0);                                                  \
-        C1 = fBlaMka(C1, D1);                                                  \
-                                                                               \
-        B0 = v128_xor(B0, C0);                                            \
-        B1 = v128_xor(B1, C1);                                            \
-                                                                               \
-        B0 = v128_ror64(B0, 63);                                          \
-        B1 = v128_ror64(B1, 63);                                          \
-    } while ((void)0, 0)
+#define G2( A0, B0, C0, D0, A1, B1, C1, D1 ) \
+{ \
+   A0 = fBlaMka( A0, B0 ); \
+   A1 = fBlaMka( A1, B1 ); \
+   D0 = v128_xor( D0, A0 ); \
+   D1 = v128_xor( D1, A1 ); \
+   D0 = v128_ror64( D0, 16 ); \
+   D1 = v128_ror64( D1, 16 ); \
+   C0 = fBlaMka( C0, D0 ); \
+   C1 = fBlaMka( C1, D1 ); \
+   B0 = v128_xor( B0, C0 ); \
+   B1 = v128_xor( B1, C1 ); \
+   B0 = v128_ror64( B0, 63 ); \
+   B1 = v128_ror64( B1, 63 ); \
+}
 
 #if defined(__SSSE3__)  || defined(__ARM_NEON)
 

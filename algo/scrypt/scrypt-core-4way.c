@@ -2303,9 +2303,8 @@ static inline void salsa_simd128_shuffle_2buf( uint32_t *xa, uint32_t *xb )
   XB[2] = _mm_blend_epi16( t0, t2, 0x0f );
   XB[3] = _mm_blend_epi16( t1, t3, 0xc3 );
 
-#elif defined(__SSE2__) ||  defined(__ARM_NEON)
+#else    // SSE2 or NEON  
 
-/*  
   const v128u64_t mask_cc = v128_set64(0xffffffff00000000, 0xffffffff00000000);
   const v128u64_t mask_f0 = v128_set64(0xffffffffffffffff,                  0);
   const v128u64_t mask_3c = v128_set64(0x00000000ffffffff, 0xffffffff00000000);
@@ -2326,9 +2325,10 @@ static inline void salsa_simd128_shuffle_2buf( uint32_t *xa, uint32_t *xb )
   XB[1] = v128_blendv( t1, t3, mask_3c );
   XB[2] = v128_blendv( t2, t0, mask_f0 );
   XB[3] = v128_blendv( t3, t1, mask_3c );
-*/
 
+#endif
 
+/*  
    v128_t YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3;
    
    YA0 = v128_set32( xa[15], xa[10], xa[ 5], xa[ 0] );
@@ -2348,8 +2348,7 @@ static inline void salsa_simd128_shuffle_2buf( uint32_t *xa, uint32_t *xb )
    XB[2] = YB2;
    XA[3] = YA3;
    XB[3] = YB3;
-
-#endif
+*/
 }
 
 static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
@@ -2357,8 +2356,8 @@ static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
 
    v128_t *XA = (v128_t*)xa;
    v128_t *XB = (v128_t*)xb;
-
-#if defined(__SSE4_1__)
+   
+#if defined(__SSE4_1__) 
 
   v128_t t0 = _mm_blend_epi16( XA[0], XA[2], 0xf0 );
   v128_t t1 = _mm_blend_epi16( XA[0], XA[2], 0x0f );
@@ -2377,9 +2376,8 @@ static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
   XB[2] = _mm_blend_epi16( t1, t3, 0xcc );
   XB[3] = _mm_blend_epi16( t1, t3, 0x33 );
 
-#elif defined(__SSE2__) || defined(__ARM_NEON)
+#else   //  SSE2 or NEON
 
-/*
   const v128u64_t mask_cc = v128_set64(0xffffffff00000000, 0xffffffff00000000);
   const v128u64_t mask_f0 = v128_set64(0xffffffffffffffff,                  0);
   const v128u64_t mask_3c = v128_set64(0x00000000ffffffff, 0xffffffff00000000);
@@ -2389,19 +2387,21 @@ static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
   v128_t t2 = v128_blendv( XA[1], XA[3], mask_3c );
   v128_t t3 = v128_blendv( XA[3], XA[1], mask_3c );
   XA[0] = v128_blendv( t0, t2, mask_cc );
-  XA[1] = v128_blendv( t1, t3, mask_cc );
-  XA[2] = v128_blendv( t2, t0, mask_cc );
+  XA[1] = v128_blendv( t2, t0, mask_cc );
+  XA[2] = v128_blendv( t1, t3, mask_cc );
   XA[3] = v128_blendv( t3, t1, mask_cc );
   t0 = v128_blendv( XB[0], XB[2], mask_f0 );
-  t1 = v128_blendv( XB[1], XB[3], mask_3c );
-  t2 = v128_blendv( XB[2], XB[0], mask_f0 );
+  t1 = v128_blendv( XB[2], XB[0], mask_f0 );
+  t2 = v128_blendv( XB[1], XB[3], mask_3c );
   t3 = v128_blendv( XB[3], XB[1], mask_3c );
   XB[0] = v128_blendv( t0, t2, mask_cc );
-  XB[1] = v128_blendv( t1, t3, mask_cc );
-  XB[2] = v128_blendv( t2, t0, mask_cc );
+  XB[1] = v128_blendv( t2, t0, mask_cc );
+  XB[2] = v128_blendv( t1, t3, mask_cc );
   XB[3] = v128_blendv( t3, t1, mask_cc );
-*/
 
+#endif
+
+/*
    v128_ovly ya[4], za[4], yb[4], zb[4];
 
    ya[0].m128 = XA[0];
@@ -2457,9 +2457,7 @@ static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
    XB[2] = zb[2].m128;
    XA[3] = za[3].m128;
    XB[3] = zb[3].m128;
-
-
-#endif
+*/
 }
 
 static void salsa8_simd128_2buf( uint32_t * const ba, uint32_t * const bb,
@@ -2611,7 +2609,7 @@ static inline void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
    v128_t *XB = (v128_t*)xb;
    v128_t *XC = (v128_t*)xc;
 
-#if defined(__SSE4_1__)
+#if defined(__SSE4_1__) 
 
   v128_t t0 = _mm_blend_epi16( XA[0], XA[1], 0xcc );
   v128_t t1 = _mm_blend_epi16( XA[0], XA[1], 0x33 );
@@ -2638,9 +2636,8 @@ static inline void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
   XC[2] = _mm_blend_epi16( t0, t2, 0x0f );
   XC[3] = _mm_blend_epi16( t1, t3, 0xc3 );
 
-#elif defined(__SSE2__) ||  defined(__ARM_NEON)
+#else    // SSE2 or NEON   
 
-/*
   const v128u64_t mask_cc = v128_set64(0xffffffff00000000, 0xffffffff00000000);
   const v128u64_t mask_f0 = v128_set64(0xffffffffffffffff,                  0);
   const v128u64_t mask_3c = v128_set64(0x00000000ffffffff, 0xffffffff00000000);
@@ -2650,28 +2647,29 @@ static inline void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
   v128_t t2 = v128_blendv( XA[2], XA[3], mask_cc );
   v128_t t3 = v128_blendv( XA[3], XA[2], mask_cc );
   XA[0] = v128_blendv( t0, t2, mask_f0 );
-  XA[1] = v128_blendv( t1, t3, mask_3c );
-  XA[2] = v128_blendv( t2, t0, mask_f0 );
+  XA[1] = v128_blendv( t2, t0, mask_f0 );
+  XA[2] = v128_blendv( t1, t3, mask_3c );
   XA[3] = v128_blendv( t3, t1, mask_3c );
   t0 = v128_blendv( XB[0], XB[1], mask_cc );
   t1 = v128_blendv( XB[1], XB[0], mask_cc );
   t2 = v128_blendv( XB[2], XB[3], mask_cc );
   t3 = v128_blendv( XB[3], XB[2], mask_cc );
   XB[0] = v128_blendv( t0, t2, mask_f0 );
-  XB[1] = v128_blendv( t1, t3, mask_3c );
-  XB[2] = v128_blendv( t2, t0, mask_f0 );
+  XB[1] = v128_blendv( t2, t0, mask_f0 );
+  XB[2] = v128_blendv( t1, t3, mask_3c );
   XB[3] = v128_blendv( t3, t1, mask_3c );
   t0 = v128_blendv( XC[0], XC[1], mask_cc );
   t1 = v128_blendv( XC[1], XC[0], mask_cc );
   t2 = v128_blendv( XC[2], XC[3], mask_cc );
   t3 = v128_blendv( XC[3], XC[2], mask_cc );
   XC[0] = v128_blendv( t0, t2, mask_f0 );
-  XC[1] = v128_blendv( t1, t3, mask_3c );
-  XC[2] = v128_blendv( t2, t0, mask_f0 );
+  XC[1] = v128_blendv( t2, t0, mask_f0 );
+  XC[2] = v128_blendv( t1, t3, mask_3c );
   XC[3] = v128_blendv( t3, t1, mask_3c );
-*/
-  
 
+#endif
+
+/*
    v128_t YA0, YA1, YA2, YA3, YB0, YB1, YB2, YB3, YC0, YC1, YC2, YC3;
 
    YA0 = v128_set32( xa[15], xa[10], xa[ 5], xa[ 0] );
@@ -2699,9 +2697,7 @@ static inline void salsa_simd128_shuffle_3buf( uint32_t *xa, uint32_t *xb,
    XA[3] = YA3;
    XB[3] = YB3;
    XC[3] = YC3;
-
-
-#endif
+*/
 }
 
 static inline void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
@@ -2738,9 +2734,8 @@ static inline void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
   XC[2] = _mm_blend_epi16( t1, t3, 0xcc );
   XC[3] = _mm_blend_epi16( t1, t3, 0x33 );
 
-#elif defined(__SSE2__) || defined(__ARM_NEON)
+#else   //  SSE2 or NEON
 
-/*
   const v128u64_t mask_cc = v128_set64(0xffffffff00000000, 0xffffffff00000000);
   const v128u64_t mask_f0 = v128_set64(0xffffffffffffffff,                  0);
   const v128u64_t mask_3c = v128_set64(0x00000000ffffffff, 0xffffffff00000000);
@@ -2750,27 +2745,29 @@ static inline void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
   v128_t t2 = v128_blendv( XA[1], XA[3], mask_3c );
   v128_t t3 = v128_blendv( XA[3], XA[1], mask_3c );
   XA[0] = v128_blendv( t0, t2, mask_cc );
-  XA[1] = v128_blendv( t1, t3, mask_cc );
-  XA[2] = v128_blendv( t2, t0, mask_cc );
+  XA[1] = v128_blendv( t2, t0, mask_cc );
+  XA[2] = v128_blendv( t1, t3, mask_cc );
   XA[3] = v128_blendv( t3, t1, mask_cc );
   t0 = v128_blendv( XB[0], XB[2], mask_f0 );
-  t1 = v128_blendv( XB[1], XB[3], mask_3c );
-  t2 = v128_blendv( XB[2], XB[0], mask_f0 );
+  t1 = v128_blendv( XB[2], XB[0], mask_f0 );
+  t2 = v128_blendv( XB[1], XB[3], mask_3c );
   t3 = v128_blendv( XB[3], XB[1], mask_3c );
   XB[0] = v128_blendv( t0, t2, mask_cc );
-  XB[1] = v128_blendv( t1, t3, mask_cc );
-  XB[2] = v128_blendv( t2, t0, mask_cc );
+  XB[1] = v128_blendv( t2, t0, mask_cc );
+  XB[2] = v128_blendv( t1, t3, mask_cc );
   XB[3] = v128_blendv( t3, t1, mask_cc );
   t0 = v128_blendv( XC[0], XC[2], mask_f0 );
-  t1 = v128_blendv( XC[1], XC[3], mask_3c );
-  t2 = v128_blendv( XC[2], XC[0], mask_f0 );
+  t1 = v128_blendv( XC[2], XC[0], mask_f0 );
+  t2 = v128_blendv( XC[1], XC[3], mask_3c );
   t3 = v128_blendv( XC[3], XC[1], mask_3c );
   XC[0] = v128_blendv( t0, t2, mask_cc );
-  XC[1] = v128_blendv( t1, t3, mask_cc );
-  XC[2] = v128_blendv( t2, t0, mask_cc );
+  XC[1] = v128_blendv( t2, t0, mask_cc );
+  XC[2] = v128_blendv( t1, t3, mask_cc );
   XC[3] = v128_blendv( t3, t1, mask_cc );
-*/
-  
+
+#endif
+
+/*  
    v128_ovly ya[4], za[4], yb[4], zb[4], yc[4], zc[4];
 
    ya[0].m128 = XA[0];
@@ -2850,9 +2847,7 @@ static inline void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
    XA[3] = za[3].m128;
    XB[3] = zb[3].m128;
    XC[3] = zc[3].m128;
-
-
-#endif   
+*/
 }   
 
 // Triple buffered, 3x memory usage

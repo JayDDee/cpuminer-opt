@@ -873,20 +873,20 @@ void sha512_4x64_ctx( sha512_4x64_context *sc, void *dst, const void *data,
 // SHA512 2 way 64 SSE2 or NEON
 
 #define BSG5_0_2x64( x )     v128_xor3( v128_ror64( x, 28 ), \
-                                   v128_ror64( x, 34 ), \
-                                   v128_ror64( x, 39 ) )
+                                        v128_ror64( x, 34 ), \
+                                        v128_ror64( x, 39 ) )
 
 #define BSG5_1_2x64( x )     v128_xor3( v128_ror64( x, 14 ), \
-                                   v128_ror64( x, 18 ), \
-                                   v128_ror64( x, 41 ) )
+                                        v128_ror64( x, 18 ), \
+                                        v128_ror64( x, 41 ) )
 
 #define SSG5_0_2x64( x )     v128_xor3( v128_ror64( x,  1 ), \
-                                   v128_ror64( x,  8 ), \
-                                   v128_sr64( x, 7 ) )
+                                        v128_ror64( x,  8 ), \
+                                        v128_sr64(  x,  7 ) )
 
 #define SSG5_1_2x64( x )     v128_xor3( v128_ror64( x, 19 ), \
-                                   v128_ror64( x, 61 ), \
-                                   v128_sr64( x, 6 ) )
+                                        v128_ror64( x, 61 ), \
+                                        v128_sr64(  x,  6 ) )
 
 #define CH_2x64(X, Y, Z) \
    v128_xor( v128_and( v128_xor( Y, Z ), X ), Z )
