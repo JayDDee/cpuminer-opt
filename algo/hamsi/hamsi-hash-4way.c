@@ -1936,7 +1936,7 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 #if defined(__SSE4_2__) || defined(__ARM_NEON)
 
 #define DECL_STATE_2x64 \
-   v128_t c0, c1, c2, c3, c4, c5, c6, c7; \
+   v128u64_t c0, c1, c2, c3, c4, c5, c6, c7; \
 
 #define READ_STATE_2x64(sc) \
    c0 = sc->h[0]; \
@@ -1960,13 +1960,13 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 
 #define INPUT_2x64 \
 { \
-  v128_t db = *buf; \
-  const v128_t zero = v128_zero; \
+  v128u64_t db = *buf; \
+  const v128u64_t zero = v128_64( 0ull ); \
   const uint64_t *tp = (const uint64_t*)T512;  \
   m0 = m1 = m2 = m3 = m4 = m5 = m6 = m7 = zero; \
   for ( int i = 63; i >= 0; i-- ) \
   { \
-     v128_t dm = v128_cmpgt64( zero, v128_sl64( db, i ) ); \
+     v128u64_t dm = v128_cmpgt64( zero, v128_sl64( db, i ) ); \
      m0 = v128_xor( m0, v128_and( dm, v128_64( tp[0] ) ) ); \
      m1 = v128_xor( m1, v128_and( dm, v128_64( tp[1] ) ) ); \
      m2 = v128_xor( m2, v128_and( dm, v128_64( tp[2] ) ) ); \
@@ -1982,7 +1982,7 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 // v3 no ternary logic, 15 instructions, 9 TL equivalent instructions
 #define SBOX_2x64( a, b, c, d ) \
 { \
-  v128_t tb, td; \
+  v128u64_t tb, td; \
   td = v128_xorand( d, a, c ); \
   tb = v128_xoror( b, d, a ); \
   c = v128_xor3( c, td, b ); \
@@ -2010,7 +2010,7 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 
 #define ROUND_2x64( alpha ) \
 { \
-   v128_t t0, t1, t2, t3, t4, t5; \
+   v128u64_t t0, t1, t2, t3, t4, t5; \
    const v128_t mask = v128_64( 0x00000000ffffffff ); \
    s0 = v128_xor( s0, alpha[ 0] ); \
    s1 = v128_xor( s1, alpha[ 1] ); \
@@ -2107,7 +2107,7 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 
 #define P_2x64 \
 { \
-   v128_t alpha[16]; \
+   v128u64_t alpha[16]; \
    const uint64_t A0 = ( (uint64_t*)alpha_n )[0]; \
    for( int i = 0; i < 16; i++ ) \
       alpha[i] = v128_64( ( (uint64_t*)alpha_n )[i] ); \
@@ -2126,7 +2126,7 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 
 #define PF_2x64 \
 { \
-   v128_t alpha[16]; \
+   v128u64_t alpha[16]; \
    const uint64_t A0 = ( (uint64_t*)alpha_f )[0]; \
    for( int i = 0; i < 16; i++ ) \
       alpha[i] = v128_64( ( (uint64_t*)alpha_f )[i] ); \
@@ -2193,7 +2193,7 @@ void hamsi64_big( hamsi_2x64_context *sc, v128_t *buf, size_t num )
 
 void hamsi64_big_final( hamsi_2x64_context *sc, v128_t *buf )
 {
-   v128_t m0, m1, m2, m3, m4, m5, m6, m7;
+   v128u64_t m0, m1, m2, m3, m4, m5, m6, m7;
    DECL_STATE_2x64;
    READ_STATE_2x64( sc );
    INPUT_2x64;
@@ -2231,15 +2231,15 @@ void hamsi512_2x64_update( hamsi_2x64_context *sc, const void *data,
 
 void hamsi512_2x64_close( hamsi_2x64_context *sc, void *dst )
 {
-   v128_t pad[1];
+   v128u32_t pad;
    uint32_t ch, cl;
 
    ch = bswap_32( sc->count_high );
    cl = bswap_32( sc->count_low + ( sc->partial_len << 3 ) );
-   pad[0] = v128_64( ((uint64_t)cl << 32 ) | (uint64_t)ch );
+   pad = v128_64( ((uint64_t)cl << 32 ) | (uint64_t)ch );
    sc->buf[0] = v128_64( 0x80 );
    hamsi64_big( sc, sc->buf, 1 );
-   hamsi64_big_final( sc, pad );
+   hamsi64_big_final( sc, &pad );
 
    v128_block_bswap32( (v128_t*)dst, sc->h );
 }

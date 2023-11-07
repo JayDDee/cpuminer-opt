@@ -392,8 +392,6 @@ int scanhash_sha256t_4way( struct work *work, const uint32_t max_nonce,
    const v128_t last_byte = v128_32( 0x80000000 );
    const v128_t four = v128_32( 4 );
 
-   memset( block, 0, 16*4*4 );
-
    for ( int i = 0; i < 19; i++ )
       vdata[i] = v128_32( pdata[i] );
    vdata[16+3] = v128_set32( n+3, n+2, n+1, n );

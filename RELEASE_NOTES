@@ -73,6 +73,15 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v23.7
+
+Fixed blakes2s, broken in v3.23.4.
+ARM: SHA2 extension tested and working.
+ARM: sha512256d fully optimized.
+ARM: X17 more optimizations.
+ARM: AES extension working for Shavite.
+ARM errata: CPU features AES & SHA256 are not reported when available.
+
 v23.6
 
 ARM: Sha256dt, Sha256t, Sha256d 4-way now working and fully optimized for NEON, SHA also enabled but untested.

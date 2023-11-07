@@ -14,20 +14,19 @@
 #include "algo/cubehash/cubehash_sse2.h"
 #if defined(__aarch64__)
   #include "algo/simd/sph_simd.h"
-  #include "algo/luffa/sph_luffa.h"
 #endif
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha/sph_sha2.h"
 #include "algo/yespower/yespower.h"
-#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+//#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
-#else
+//#else
   #include "algo/echo/sph_echo.h"
   #include "algo/groestl/sph_groestl.h"
-#endif
+//#endif
 #if defined(__AES__)
   #include "algo/fugue/fugue-aesni.h"
 #else
@@ -48,7 +47,7 @@ typedef struct TortureGarden TortureGarden;
 // Graph of hash algos plus SPH contexts
 struct TortureGarden
 {
-#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
    hashState_echo          echo;
    hashState_groestl       groestl;
 #else
@@ -67,11 +66,7 @@ struct TortureGarden
    sph_keccak512_context   keccak;
    cubehashParam           cube;
    shavite512_context      shavite;
-#if defined(__aarch64__)
-   sph_luffa512_context    luffa;
-#else
    hashState_luffa         luffa;
-#endif
 #if defined(__aarch64__)
    sph_simd512_context     simd;
 #else
@@ -112,7 +107,7 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
             cubehashUpdateDigest( &garden->cube, hash, input, 64 );
             break;
         case 3:
-#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
             echo_full( &garden->echo, hash, 512, input, 64 );
 #else
             sph_echo512_init( &garden->echo );
@@ -128,7 +123,7 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
 #endif
 	         break;
         case 5:
-#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
             groestl512_full( &garden->groestl, hash, input, 512 );
 #else
             sph_groestl512_init( &garden->groestl) ;
@@ -157,13 +152,7 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
             sph_keccak512_close( &garden->keccak, hash );
             break;
         case 10:
-#if defined(__aarch64__)
-            sph_luffa512_init( &garden->luffa );
-            sph_luffa512( &garden->luffa, input, 64 );
-            sph_luffa512_close( &garden->luffa, hash );
-#else
             luffa_full( &garden->luffa, hash, 512, input, 64 );
-#endif
             break;
         case 11:
             sph_shabal512_init( &garden->shabal );

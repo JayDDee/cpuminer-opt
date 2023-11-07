@@ -156,7 +156,6 @@ cpuminer_SOURCES = \
   algo/sha/hmac-sha256-hash.c \
   algo/sha/hmac-sha256-hash-4way.c \
   algo/sha/sha256d.c \
-  algo/sha/sha2.c \
   algo/sha/sha256d-4way.c \
   algo/sha/sha256t-gate.c \
   algo/sha/sha256t-4way.c \

@@ -1200,7 +1200,7 @@ void sha256_neon_sha_transform_le( uint32_t *state_out, const void *input,
     MSG2_Y = vsha256su1q_u32( MSG2_Y, MSG0_Y, MSG1_Y ); \
     /* Rounds 44-47 */ \
     MSG3_X = vsha256su0q_u32( MSG3_X, MSG0_X ); \
-    MSG3_Y = vsha256su0q_u32( MSG3_X, MSG0_Y ); \
+    MSG3_Y = vsha256su0q_u32( MSG3_Y, MSG0_Y ); \
     TMP2_X = STATE0_X; \
     TMP2_Y = STATE0_Y; \
     TMP0_X = vaddq_u32( MSG0_X, casti_v128( K256, 12 ) ); \

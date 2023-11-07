@@ -465,6 +465,7 @@ void blake512_update(blake512_context *sc, const void *data, size_t len)
       {
          if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
             sc->T1 += 1;
+
          blake512_transform( sc->H, (uint64_t*)sc->buf, sc->T0, sc->T1 );
          sc->ptr = 0;
       }
@@ -474,7 +475,7 @@ void blake512_update(blake512_context *sc, const void *data, size_t len)
 void blake512_close( blake512_context *sc, void *dst )
 {
    unsigned char buf[128] __attribute__((aligned(32)));
-   size_t ptr, k;
+   size_t ptr;
    unsigned bit_len;
    uint64_t th, tl;
 
@@ -517,11 +518,8 @@ void blake512_close( blake512_context *sc, void *dst )
       *(uint64_t*)(buf + 120) = bswap_64( tl );
       blake512_update( sc, buf, 128 );
    }
-
-//TODO vectored bswap
    
-   for ( k = 0; k < 8; k ++ )
-      ((uint64_t*)dst)[k] = bswap_64( sc->H[k] );
+   v128_block_bswap64_512( dst, sc->H ); 
 }
 
 void blake512_full( blake512_context *sc, void *dst, const void *data,
@@ -1779,13 +1777,11 @@ blake64_4way_close( blake_4x64_big_context *sc, void *dst )
                                  v256_64( 0x0100000000000000ULL ) );
        buf[112>>3] = v256_64( bswap_64( th ) );
        buf[120>>3] = v256_64( bswap_64( tl ) );
-
        blake64_4way( sc, buf + (ptr>>3), 128 - ptr );
    }
    else
    {
        memset_zero_256( buf + (ptr>>3) + 1, (120 - ptr) >> 3 );
-
        blake64_4way( sc, buf + (ptr>>3), 128 - ptr );
        sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
        sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
@@ -1793,9 +1789,9 @@ blake64_4way_close( blake_4x64_big_context *sc, void *dst )
        buf[104>>3] = v256_64( 0x0100000000000000ULL );
        buf[112>>3] = v256_64( bswap_64( th ) );
        buf[120>>3] = v256_64( bswap_64( tl ) );
-
        blake64_4way( sc, buf, 128 );
    }
+
    mm256_block_bswap_64( (__m256i*)dst, sc->H );
 }
 
@@ -1960,21 +1956,21 @@ void blake512_2x64_compress( blake_2x64_big_context *sc )
 #else  // SSE2 & NEON
 
   M0 = v128_bswap64( sc->buf[ 0] );
-  M1 = v128_bswap64( sc->buf[ 0] );
-  M2 = v128_bswap64( sc->buf[ 0] );
-  M3 = v128_bswap64( sc->buf[ 0] );
-  M4 = v128_bswap64( sc->buf[ 0] );
-  M5 = v128_bswap64( sc->buf[ 0] );
-  M6 = v128_bswap64( sc->buf[ 0] );
-  M7 = v128_bswap64( sc->buf[ 0] );
-  M8 = v128_bswap64( sc->buf[ 0] );
-  M9 = v128_bswap64( sc->buf[ 0] );
-  MA = v128_bswap64( sc->buf[ 0] );
-  MB = v128_bswap64( sc->buf[ 0] );
-  MC = v128_bswap64( sc->buf[ 0] );
-  MD = v128_bswap64( sc->buf[ 0] );
-  ME = v128_bswap64( sc->buf[ 0] );
-  MF = v128_bswap64( sc->buf[ 0] );
+  M1 = v128_bswap64( sc->buf[ 1] );
+  M2 = v128_bswap64( sc->buf[ 2] );
+  M3 = v128_bswap64( sc->buf[ 3] );
+  M4 = v128_bswap64( sc->buf[ 4] );
+  M5 = v128_bswap64( sc->buf[ 5] );
+  M6 = v128_bswap64( sc->buf[ 6] );
+  M7 = v128_bswap64( sc->buf[ 7] );
+  M8 = v128_bswap64( sc->buf[ 8] );
+  M9 = v128_bswap64( sc->buf[ 9] );
+  MA = v128_bswap64( sc->buf[10] );
+  MB = v128_bswap64( sc->buf[11] );
+  MC = v128_bswap64( sc->buf[12] );
+  MD = v128_bswap64( sc->buf[13] );
+  ME = v128_bswap64( sc->buf[14] );
+  MF = v128_bswap64( sc->buf[15] );
   
 #endif
 
@@ -2235,7 +2231,6 @@ blake64_2x64( blake_2x64_big_context *sc, const void *data, size_t len)
    v128u64_t *buf;
    size_t ptr;
    const int buf_size = 128;  //  sizeof/8 
-   DECL_STATE_2X64
 
    buf = sc->buf;
    ptr = sc->ptr;
@@ -2247,7 +2242,6 @@ blake64_2x64( blake_2x64_big_context *sc, const void *data, size_t len)
       return;
    }
 
-   READ_STATE64(sc);
    while ( len > 0 )
    {
       size_t clen;
@@ -2260,13 +2254,12 @@ blake64_2x64( blake_2x64_big_context *sc, const void *data, size_t len)
       len -= clen;
       if ( ptr == buf_size )
       {
-         if ( (T0 = T0 + 1024 ) < 1024 )
-            T1 = T1 + 1;
+         if ( (sc->T0 = sc->T0 + 1024 ) < 1024 )
+            sc->T1 = sc->T1 + 1;
          blake512_2x64_compress( sc );
          ptr = 0;
       }
    }
-   WRITE_STATE64(sc);
    sc->ptr = ptr;
 }
 
@@ -2280,37 +2273,35 @@ blake64_2x64_close( blake_2x64_big_context *sc, void *dst )
 
    ptr = sc->ptr;
    bit_len = ((unsigned)ptr << 3);
-   buf[ptr>>3] = v128_64( 0x80 );
+   sc->buf[ptr>>3] = v128_64( 0x80 );
    tl = sc->T0 + bit_len;
    th = sc->T1;
    if (ptr == 0 )
    {
-   sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
-   sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
+      sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
+      sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
    }
    else if ( sc->T0 == 0 )
    {
-   sc->T0 = 0xFFFFFFFFFFFFFC00ULL + bit_len;
-   sc->T1 = sc->T1 - 1;
+      sc->T0 = 0xFFFFFFFFFFFFFC00ULL + bit_len;
+      sc->T1 = sc->T1 - 1;
    }
    else
-   {
-        sc->T0 -= 1024 - bit_len;
-   }
-
+      sc->T0 -= 1024 - bit_len;
+   
    if ( ptr <= 104 )
    {
-       v128_memset_zero( buf + (ptr>>3) + 1, (104-ptr) >> 3 );
-       buf[104>>3] = v128_or( buf[104>>3], v128_64( 0x0100000000000000ULL ) );
-       buf[112>>3] = v128_64( bswap_64( th ) );
-       buf[120>>3] = v128_64( bswap_64( tl ) );
-
-       blake64_2x64( sc, buf + (ptr>>3), 128 - ptr );
+       v128_memset_zero( sc->buf + (ptr>>3) + 1, (104-ptr) >> 3 );
+       sc->buf[104>>3] = v128_or( sc->buf[104>>3],
+                                  v128_64( 0x0100000000000000ULL ) );
+       sc->buf[112>>3] = v128_64( bswap_64( th ) );
+       sc->buf[120>>3] = v128_64( bswap_64( tl ) );
+       blake64_2x64( sc, sc->buf + (ptr>>3), 128 - ptr );
    }
    else
    {
-       v128_memset_zero( buf + (ptr>>3) + 1, (120 - ptr) >> 3 );
-       blake64_2x64( sc, buf + (ptr>>3), 128 - ptr );
+       v128_memset_zero( sc->buf + (ptr>>3) + 1, (120 - ptr) >> 3 );
+       blake64_2x64( sc, sc->buf + (ptr>>3), 128 - ptr );
        sc->T0 = 0xFFFFFFFFFFFFFC00ULL;
        sc->T1 = 0xFFFFFFFFFFFFFFFFULL;
        v128_memset_zero( buf, 112>>3 );
@@ -2319,6 +2310,7 @@ blake64_2x64_close( blake_2x64_big_context *sc, void *dst )
        buf[120>>3] = v128_64( bswap_64( tl ) );
        blake64_2x64( sc, buf, 128 );
    }
+
    v128_block_bswap64( (v128u64_t*)dst, sc->H );
 }
 
@@ -2326,7 +2318,6 @@ blake64_2x64_close( blake_2x64_big_context *sc, void *dst )
 void blake512_2x64_full( blake_2x64_big_context *sc, void * dst,
                          const void *data, size_t len )
 {
-
 // init
 
    casti_v128u64( sc->H, 0 ) = v128_64( 0x6A09E667F3BCC908 );

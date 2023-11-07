@@ -1527,6 +1527,17 @@ static inline void v128_bswap32_intrlv80_2x64( void *d, const void *src )
 #endif
 }
 
+static inline void extr_lane_2x64( void *dst, const void *src,
+                                   const int lane, const int bit_len )
+{
+   uint64_t *d = (uint64_t*)dst;
+   const uint64_t *s = (const uint64_t*)src;
+   d[ 0] = s[ lane    ];   d[ 1] = s[ lane+ 2 ];
+   d[ 2] = s[ lane+ 4 ];   d[ 3] = s[ lane+ 6 ];
+   if ( bit_len <= 256 ) return;
+   d[ 4] = s[ lane+ 8 ];   d[ 5] = s[ lane+10 ];
+   d[ 6] = s[ lane+12 ];   d[ 7] = s[ lane+14 ];
+}
 
 
 // 4x64   (AVX2)

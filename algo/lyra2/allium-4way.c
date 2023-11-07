@@ -11,7 +11,7 @@
 #endif
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
+#if !defined(__AES__) // && !defined(__ARM_FEATURE_AES) )
  #include "algo/groestl/sph_groestl.h"
 #endif
 
@@ -19,7 +19,7 @@
   #define ALLIUM_16WAY 1
 #elif defined(__AVX2__)
   #define ALLIUM_8WAY 1
-#elif #defined(__SSE2__) || defined(__ARM_NEON)
+#elif defined(__SSE2__) || defined(__ARM_NEON)
   #define ALLIUM_4WAY 1
 #endif
 
@@ -30,7 +30,7 @@ typedef union {
    cube_4way_2buf_context    cube;
    skein256_8way_context     skein;
 #if defined(__VAES__)
-   groestl256_4way_context groestl;
+   groestl256_4way_context   groestl;
 #else
    hashState_groestl256      groestl;
 #endif
@@ -465,12 +465,12 @@ typedef union
 {
    keccak256_2x64_context    keccak;
    cubehashParam             cube;
-#if defined(__x86_64__)
+//#if defined(__x86_64__)
    skein256_2x64_context     skein;
-#else
-   sph_skein512_context      skein;
-#endif
-#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+//#else
+//   sph_skein512_context      skein;
+//#endif
+#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
    hashState_groestl256      groestl;
 #else
    sph_groestl256_context     groestl;
@@ -516,7 +516,7 @@ static void allium_4way_hash( void *hash, const void *midstate_vars,
    LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
    LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
 
-#if defined(__x86_64__)
+//#if defined(__x86_64__)
    intrlv_2x64( vhashA, hash0, hash1, 256 );
    skein256_2x64_init( &ctx.skein );
    skein256_2x64_update( &ctx.skein, vhashA, 32 );
@@ -527,6 +527,7 @@ static void allium_4way_hash( void *hash, const void *midstate_vars,
    skein256_2x64_update( &ctx.skein, vhashA, 32 );
    skein256_2x64_close( &ctx.skein, vhashA );
    dintrlv_2x64( hash2, hash3, vhashA, 256 );
+/*
 #else
     sph_skein256_init( &ctx.skein );
     sph_skein256( &ctx.skein, hash0, 32 );
@@ -541,8 +542,8 @@ static void allium_4way_hash( void *hash, const void *midstate_vars,
     sph_skein256( &ctx.skein, hash3, 32 );
     sph_skein256_close( &ctx.skein, hash3 );
 #endif
-
-#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+*/
+#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
    groestl256_full( &ctx.groestl, hash0, hash0, 256 );
    groestl256_full( &ctx.groestl, hash1, hash1, 256 );
    groestl256_full( &ctx.groestl, hash2, hash2, 256 );

@@ -563,7 +563,7 @@ static void keccak64x2_close( keccak64_ctx_v128 *kc, void *dst,
 {
     unsigned eb;
     union {
-       v128_t tmp[lim + 1];
+       v128_t tmp[140];
        uint64_t dummy;   /* for alignment */
     } u;
     size_t j;

@@ -852,48 +852,10 @@ void jh512_4x64_ctx( jh_4x64_context *cc, void *dst, const void *data, size_t le
           
 // SSE2 & NEON
 
-#if defined(__AVX512VL__)
-//TODO enable for AVX10_256, not used with AVX512VL
-
-#define v128_notxorandnot( a, b, c ) \
-   _mm_ternarylogic_epi64( a, b, c, 0x2d )
-
-#else
-
 #define v128_notxorandnot( a, b, c ) \
    v128_xor( v128_not( a ), v128_andnot( b, c ) )
 
-#endif
 
-#define Sb(x0, x1, x2, x3, c) \
-{ \
-    v128u64_t cc = v128_64( c ); \
-    x3 = v128_not( x3 ); \
-    x0 = v128_xor( x0, v128_andnot( x2, cc ) ); \
-    tmp = v128_xor( cc, v128_and( x0, x1 ) ); \
-    x0 = v128_xor( x0, v128_and( x2, x3 ) ); \
-    x3 = v128_xor( x3, v128_andnot( x1, x2 ) ); \
-    x1 = v128_xor( x1, v128_and( x0, x2 ) ); \
-    x2 = v128_xor( x2, v128_andnot( x3, x0 ) ); \
-    x0 = v128_xor( x0, v128_or( x1, x3 ) ); \
-    x3 = v128_xor( x3, v128_and( x1, x2 ) ); \
-    x1 = v128_xor( x1, v128_and( tmp, x0 ) ); \
-    x2 = v128_xor( x2, tmp ); \
-}
-
-#define Lb(x0, x1, x2, x3, x4, x5, x6, x7) \
-{ \
-    x4 = v128_xor( x4, x1 ); \
-    x5 = v128_xor( x5, x2 ); \
-    x6 = v128_xor( x6, v128_xor( x3, x0 ) ); \
-    x7 = v128_xor( x7, x0 ); \
-    x0 = v128_xor( x0, x5 ); \
-    x1 = v128_xor( x1, x6 ); \
-    x2 = v128_xor( x2, v128_xor( x7, x4 ) ); \
-    x3 = v128_xor( x3, x4 ); \
-}
-
-/*
 #define Sb(x0, x1, x2, x3, c) \
 { \
     const v128u64_t cc = v128_64( c ); \
@@ -920,7 +882,6 @@ void jh512_4x64_ctx( jh_4x64_context *cc, void *dst, const void *data, size_t le
     x2 = v128_xor3( x2, x7, x4 ); \
     x3 = v128_xor( x3, x4 ); \
 }
-*/
 
 #undef Wz
 #define Wz(x, c, n) \

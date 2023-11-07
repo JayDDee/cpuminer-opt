@@ -692,7 +692,7 @@ do { \
    _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( Y, Z ), X ), Z ) 
 
 #define MAJ(X, Y, Z) \
-  _mm256_xor_si256( Y, _mm256_and_si256( X_xor_Y = _mm256_xor_si256( X, Y ), \
+  _mm256_xor_si256( Y, _mm256_and_si256( (X_xor_Y = _mm256_xor_si256( X, Y )), \
                                          Y_xor_Z ) )
 
 #define SHA3_4WAY_STEP( A, B, C, D, E, F, G, H, i ) \
@@ -892,7 +892,7 @@ void sha512_4x64_ctx( sha512_4x64_context *sc, void *dst, const void *data,
    v128_xor( v128_and( v128_xor( Y, Z ), X ), Z )
 
 #define MAJ_2x64(X, Y, Z) \
-  v128_xor( Y, v128_and( X_xor_Y = v128_xor( X, Y ), Y_xor_Z ) )
+  v128_xor( Y, v128_and( (X_xor_Y = v128_xor( X, Y ) ), Y_xor_Z ) )
 
 #define SHA3_2x64_STEP( A, B, C, D, E, F, G, H, i ) \
 do { \
@@ -917,34 +917,20 @@ sha512_2x64_round( sha512_2x64_context *ctx, v128u64_t *in, v128u64_t r[8] )
    v128u64_t W[80];
 
    v128_block_bswap64( W  , in );
-   v128_block_bswap64( (&W[8]), (&in[8]) );
+   v128_block_bswap64( W+8, in+8 );
 
    for ( i = 16; i < 80; i++ )
        W[i] = v128_add4_64( SSG5_0_2x64( W[i-15] ), SSG5_1_2x64( W[i-2] ),
                              W[ i- 7 ], W[ i-16 ] );
 
-   if ( ctx->initialized )
-   {
-      A = r[0];
-      B = r[1];
-      C = r[2];
-      D = r[3];
-      E = r[4];
-      F = r[5];
-      G = r[6];
-      H = r[7];
-   }
-   else
-   {
-      A = v128_64( 0x6A09E667F3BCC908 );
-      B = v128_64( 0xBB67AE8584CAA73B );
-      C = v128_64( 0x3C6EF372FE94F82B );
-      D = v128_64( 0xA54FF53A5F1D36F1 );
-      E = v128_64( 0x510E527FADE682D1 );
-      F = v128_64( 0x9B05688C2B3E6C1F );
-      G = v128_64( 0x1F83D9ABFB41BD6B );
-      H = v128_64( 0x5BE0CD19137E2179 );
-   }
+   A = r[0];
+   B = r[1];
+   C = r[2];
+   D = r[3];
+   E = r[4];
+   F = r[5];
+   G = r[6];
+   H = r[7];
 
    Y_xor_Z = v128_xor( B, C );
 
@@ -960,35 +946,28 @@ sha512_2x64_round( sha512_2x64_context *ctx, v128u64_t *in, v128u64_t r[8] )
       SHA3_2x64_STEP( B, C, D, E, F, G, H, A, i + 7 );
    }
 
-   if ( ctx->initialized )
-   {
-      r[0] = v128_add64( r[0], A );
-      r[1] = v128_add64( r[1], B );
-      r[2] = v128_add64( r[2], C );
-      r[3] = v128_add64( r[3], D );
-      r[4] = v128_add64( r[4], E );
-      r[5] = v128_add64( r[5], F );
-      r[6] = v128_add64( r[6], G );
-      r[7] = v128_add64( r[7], H );
-   }
-   else
-   {
-      ctx->initialized = true;
-      r[0] = v128_add64( A, v128_64( 0x6A09E667F3BCC908 ) );
-      r[1] = v128_add64( B, v128_64( 0xBB67AE8584CAA73B ) );
-      r[2] = v128_add64( C, v128_64( 0x3C6EF372FE94F82B ) );
-      r[3] = v128_add64( D, v128_64( 0xA54FF53A5F1D36F1 ) );
-      r[4] = v128_add64( E, v128_64( 0x510E527FADE682D1 ) );
-      r[5] = v128_add64( F, v128_64( 0x9B05688C2B3E6C1F ) );
-      r[6] = v128_add64( G, v128_64( 0x1F83D9ABFB41BD6B ) );
-      r[7] = v128_add64( H, v128_64( 0x5BE0CD19137E2179 ) );
-   }
+   r[0] = v128_add64( r[0], A );
+   r[1] = v128_add64( r[1], B );
+   r[2] = v128_add64( r[2], C );
+   r[3] = v128_add64( r[3], D );
+   r[4] = v128_add64( r[4], E );
+   r[5] = v128_add64( r[5], F );
+   r[6] = v128_add64( r[6], G );
+   r[7] = v128_add64( r[7], H );
 }
 
 void sha512_2x64_init( sha512_2x64_context *sc )
 {
-   sc->initialized = false;
+   sc->val[0] = v128_64( 0x6A09E667F3BCC908 );
+   sc->val[1] = v128_64( 0xBB67AE8584CAA73B );
+   sc->val[2] = v128_64( 0x3C6EF372FE94F82B );
+   sc->val[3] = v128_64( 0xA54FF53A5F1D36F1 );
+   sc->val[4] = v128_64( 0x510E527FADE682D1 );
+   sc->val[5] = v128_64( 0x9B05688C2B3E6C1F );
+   sc->val[6] = v128_64( 0x1F83D9ABFB41BD6B );
+   sc->val[7] = v128_64( 0x5BE0CD19137E2179 );
    sc->count = 0;
+   sc->initialized = true;
 }
 
 void sha512_2x64_update( sha512_2x64_context *sc, const void *data, size_t len )
@@ -1036,7 +1015,7 @@ void sha512_2x64_close( sha512_2x64_context *sc, void *dst )
          v128_memset_zero( sc->buf + (ptr>>3), (pad - ptr) >> 3 );
 
     sc->buf[ pad >> 3 ] = v128_bswap64( v128_64( sc->count >> 61 ) );
-    sc->buf[ ( pad+8 ) >> 3 ] = v128_bswap64( v128_64( sc->count <<  3 ) );
+    sc->buf[ ( pad+8 ) >> 3 ] = v128_bswap64( v128_64( sc->count << 3 ) );
     sha512_2x64_round( sc, sc->buf, sc->val );
 
     v128_block_bswap64( castp_v128u64( dst ), sc->val );

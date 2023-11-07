@@ -35,40 +35,46 @@
 //#include <mm_malloc.h>
 #include "malloc-huge.h"
 
-static const uint32_t keypad[12] = {
-	0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000280
-};
-static const uint32_t innerpad[11] = {
-	0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x000004a0
-};
-static const uint32_t outerpad[8] = {
-	0x80000000, 0, 0, 0, 0, 0, 0, 0x00000300
-};
-static const uint32_t finalblk[16] = {
-	0x00000001, 0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000620
-};
-
-static const uint32_t sha256_initial_state[8] =
-{
-  0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
-  0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
-};
-
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
   #define SCRYPT_THROUGHPUT 16
 #elif defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
   #define SCRYPT_THROUGHPUT 2
 #elif defined(__AVX2__)
   #define SCRYPT_THROUGHPUT 8
-#else
+#elif defined(__SSE2__) || defined(__ARM_NEON)
   #define SCRYPT_THROUGHPUT 4
+#else
+  #define SCRYPT_THROUGHPUT 1
 #endif
 
-// static int scrypt_throughput = 0;
+static const uint32_t sha256_initial_state[8] __attribute((aligned(32))) =
+{
+  0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
+  0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
+};
 
 static int scratchbuf_size = 0;
-
 static __thread uint32_t *scratchbuf = NULL;
+
+#if (SCRYPT_THROUGHPUT == 1) || defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
+
+static const uint32_t keypad[12] __attribute((aligned(16))) =
+{
+	0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000280
+};
+static const uint32_t innerpad[11] __attribute((aligned(16))) =
+{
+	0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x000004a0
+};
+static const uint32_t outerpad[8] __attribute((aligned(16))) =
+{
+	0x80000000, 0, 0, 0, 0, 0, 0, 0x00000300
+};
+static const uint32_t finalblk[16] __attribute((aligned(16))) =
+{
+	0x00000001, 0x80000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00000620
+};
+
 
 // change this to a constant to be used directly  as input state arg
 // vectors still need an init function.
@@ -155,6 +161,8 @@ static inline void PBKDF2_SHA256_128_32(uint32_t *tstate, uint32_t *ostate,
       output[i] = bswap_32( ostate[i] );
 }
 
+#endif    // throughput 1
+          //
 #if defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
 
 static inline void HMAC_SHA256_80_init_SHA_2BUF( const uint32_t *key0, 
@@ -269,7 +277,8 @@ static inline void PBKDF2_SHA256_128_32_SHA_2BUF( uint32_t *tstate0,
 
 
 
-static const uint32_t keypad_4way[4 * 12] = {
+static const uint32_t keypad_4way[ 4*12 ] __attribute((aligned(32))) = 
+{
 	0x80000000, 0x80000000, 0x80000000, 0x80000000,
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
@@ -283,7 +292,8 @@ static const uint32_t keypad_4way[4 * 12] = {
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
 	0x00000280, 0x00000280, 0x00000280, 0x00000280
 };
-static const uint32_t innerpad_4way[4 * 11] = {
+static const uint32_t innerpad_4way[ 4*11 ] __attribute((aligned(32))) =
+{
 	0x80000000, 0x80000000, 0x80000000, 0x80000000,
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
@@ -296,7 +306,8 @@ static const uint32_t innerpad_4way[4 * 11] = {
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
 	0x000004a0, 0x000004a0, 0x000004a0, 0x000004a0
 };
-static const uint32_t outerpad_4way[4 * 8] = {
+static const uint32_t outerpad_4way[ 4*8 ] __attribute((aligned(32))) =
+{
 	0x80000000, 0x80000000, 0x80000000, 0x80000000,
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
 	0x00000000, 0x00000000, 0x00000000, 0x00000000,

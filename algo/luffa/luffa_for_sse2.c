@@ -33,43 +33,39 @@
 
 #define MULT2( a0, a1 ) \
 { \
-  v128_t b = v128_xor( a0, _mm_maskz_shuffle_epi32( 0xb, a1, 0x10 ) ); \
+  v128_t b = v128_xor( a0, _mm_maskz_shuffle_epi32( 0xb, a1, 0 ) ); \
   a0 = _mm_alignr_epi8( a1, b, 4 ); \
   a1 = _mm_alignr_epi8( b, a1, 4 ); \
 }
 
 #elif defined(__SSE4_1__)
 
-#define MULT2( a0, a1 ) do \
+#define MULT2( a0, a1 ) \
 { \
-  v128_t b = v128_xor( a0, \
-                      _mm_shuffle_epi32( mm128_mask_32( a1, 0xe ), 0x10 ) ); \
+  v128_t b = _mm_shuffle_epi32( a1, 0 ); \
+  b =  v128_xor( a0, v128_mask32( b, 0x4 ) ); \
   a0 = _mm_alignr_epi8( a1, b, 4 ); \
   a1 = _mm_alignr_epi8( b, a1, 4 ); \
-} while(0)
+}
 
 #elif defined(__ARM_NEON)
-
-const uint32x4_t mask = { 0xffffffff, 0, 0xffffffff, 0xffffffff };
 
 // { a1_0, 0, a1_0, a1_0 }
 #define MULT2( a0, a1 ) \
 { \
-  v128_t b = v128_xor( a0, \
-           v128_and( v128_32( vgetq_lane_u32( a1, 0 ) ), mask ) ); \
+  v128_t b = v128_xor( a0, v128_and( vdupq_laneq_u32( a1, 0 ), MASK ) ); \
   a0 = v128_alignr32( a1, b, 1 ); \
   a1 = v128_alignr32( b, a1, 1 ); \
 }
 
 #else   // assume SSE2
 
-#define MULT2( a0, a1 ) do \
+#define MULT2( a0, a1 ) \
 { \
-  v128_t b = v128_xor( a0, \
-                      _mm_shuffle_epi32( v128_and( a1, MASK ), 0x10 ) ); \
+  v128_t b = v128_xor( a0, v128_and( _mm_shuffle_epi32( a1, 0 ), MASK ) ); \
   a0 = v128_or( _mm_srli_si128(  b, 4 ), _mm_slli_si128( a1, 12 ) ); \
   a1 = v128_or( _mm_srli_si128( a1, 4 ), _mm_slli_si128(  b, 12 ) ); \
-} while(0)
+} 
 
 #endif
 
@@ -137,8 +133,8 @@ const uint32x4_t mask = { 0xffffffff, 0, 0xffffffff, 0xffffffff };
     t0 = v128_shufll32( a1 ); \
     a1 = v128_unpacklo32( t0, a0 ); \
     t0 = v128_unpackhi32( t0, a0 ); \
-    t1 = v128_swap64( t0 ); \
-    a0 = v128_swap64( a1 ); \
+    t1 = v128_rev64( t0 ); \
+    a0 = v128_rev64( a1 ); \
     SUBCRUMB( t1, t0, a0, a1 ); \
     t0 = v128_unpacklo32( t0, t1 ); \
     a1 = v128_unpacklo32( a1, a0 ); \
@@ -224,9 +220,10 @@ static const uint32_t CNS_INIT[128] __attribute((aligned(16))) = {
 };
 
 
-v128_t CNS128[32];
+static v128_t CNS128[32];
+
 #if !defined(__SSE4_1__)
-v128_t MASK;
+static v128_t MASK;
 #endif
 
 int init_luffa(hashState_luffa *state, int hashbitlen)
@@ -235,13 +232,13 @@ int init_luffa(hashState_luffa *state, int hashbitlen)
     state->hashbitlen = hashbitlen;
 #if !defined(__SSE4_1__)
     /* set the lower 32 bits to '1' */
-    MASK = v128_set32(0x00000000, 0x00000000, 0x00000000, 0xffffffff);
+    MASK = v128_set32( 0xffffffff, 0, 0xffffffff, 0xffffffff );
 #endif
     /* set the 32-bit round constant values to the 128-bit data field */
     for ( i=0; i<32; i++ )
         CNS128[i] = v128_load( (v128_t*)&CNS_INIT[i*4] );
     for ( i=0; i<10; i++ ) 
-	state->chainv[i] = v128_load( (v128_t*)&IV[i*4] );
+    state->chainv[i] = v128_load( (v128_t*)&IV[i*4] );
     memset(state->buffer, 0, sizeof state->buffer );
     return 0;
 }
@@ -268,7 +265,7 @@ int update_luffa( hashState_luffa *state, const void *data,
       // remaining data bytes
       casti_v128( state->buffer, 0 ) = v128_bswap32( cast_v128( data ) );
       // padding of partial block
-      casti_v128( state->buffer, 1 ) =  v128_set32( 0, 0, 0, 0x80000000 );
+      casti_v128( state->buffer, 1 ) = v128_set32( 0, 0, 0, 0x80000000 );
     }
 
     return 0;
@@ -327,7 +324,6 @@ int update_and_final_luffa( hashState_luffa *state, void* output,
     return 0;
 }
 
-
 int luffa_full( hashState_luffa *state, void* output, int hashbitlen,
               const void* data, size_t inlen )
 {
@@ -336,13 +332,13 @@ int luffa_full( hashState_luffa *state, void* output, int hashbitlen,
     state->hashbitlen = hashbitlen;
 #if !defined(__SSE4_1__)
     /* set the lower 32 bits to '1' */
-    MASK= v128_set64( 0, 0x00000000ffffffff );
+    MASK= v128_set32( 0xffffffff, 0, 0xffffffff, 0xffffffff );
 #endif
     /* set the 32-bit round constant values to the 128-bit data field */
     for ( i=0; i<32; i++ )
-        CNS128[i] = v128_load( (v128_t*)&CNS_INIT[i*4] );
+        CNS128[i] = casti_v128( CNS_INIT, i );
     for ( i=0; i<10; i++ )
-    state->chainv[i] = v128_load( (v128_t*)&IV[i*4] );
+       state->chainv[i] = casti_v128( IV, i );
     memset(state->buffer, 0, sizeof state->buffer );
 
     // update
@@ -376,16 +372,15 @@ int luffa_full( hashState_luffa *state, void* output, int hashbitlen,
     return 0;
 }
 
-
 /***************************************************/
 /* Round function         */
 /* state: hash context    */
 
 static void rnd512( hashState_luffa *state, v128_t msg1, v128_t msg0 )
 {
-    v128_t t0, t1;
-    v128_t *chainv = state->chainv;
-    v128_t x0, x1, x2, x3, x4, x5, x6, x7; 
+    v128u32_t t0, t1;
+    v128u32_t *chainv = state->chainv;
+    v128u32_t x0, x1, x2, x3, x4, x5, x6, x7; 
 
     t0 = v128_xor3( chainv[0], chainv[2], chainv[4] );
     t1 = v128_xor3( chainv[1], chainv[3], chainv[5] );
@@ -472,7 +467,7 @@ static void rnd512( hashState_luffa *state, v128_t msg1, v128_t msg0 )
     chainv[5] = v128_rol32( chainv[5], 2 );
     chainv[7] = v128_rol32( chainv[7], 3 );
     chainv[9] = v128_rol32( chainv[9], 4 );
-    
+
     NMLTOM1024( chainv[0], chainv[2], chainv[4], chainv[6], x0, x1, x2, x3,
                 chainv[1], chainv[3], chainv[5], chainv[7], x4, x5, x6, x7 );
 

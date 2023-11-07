@@ -15,11 +15,11 @@
 //  vxarq_u64( v1, v0, n )    ror( xor( v1, v0 ), n )
 //  vraxlq_u64( v1, v0 )      xor( rol( v1, 1 ), rol( v0, 1 ) )
 //  vbcaxq( v2, v1, v0 )      xor( v2, and( v1, not(v0) ) )
+//  vsraq_n( v1, v0, n )   add( v1, sr( v0, n ) )
 //
-//  might not work, not tried yet:
+//  Doesn't work on RPi but works on OPi:
 //
 //  vornq( v1, v0 )        or( v1, not( v0 ) )
-//  vsraq_n( v1, v0, n )   add( v1, sr( v0, n ) )
 
 #define v128_t                         uint32x4_t   // default, 
 #define v128u64_t                      uint64x2_t
@@ -30,6 +30,15 @@
 // load & store
 #define v128_load( p )                 vld1q_u32( (uint32_t*)(p) )
 #define v128_store( p, v )             vst1q_u32( (uint32_t*)(p), v )
+
+#define v128u64_load( p )              vld1q_u64( (uint64_t*)(p) )
+#define v128u64_store( p, v )          vst1q_u64( (uint64_t*)(p), v )
+#define v128u32_load( p )              vld1q_u32( (uint32_t*)(p) )
+#define v128u32_store( p, v )          vst1q_u32( (uint32_t*)(p), v )
+#define v128u16_load( p )              vld1q_u16( (uint16_t*)(p) )
+#define v128u16_store( p, v )          vst1q_u16( (uint16_t*)(p), v )
+#define v128u8_load( p )               vld1q_u16( (uint8_t*)(p) )
+#define v128u8_store( p, v )           vst1q_u16( (uint8_t*)(p), v )
 
 // load & set1 combined
 #define v128_load1_64(p)               vld1q_dup_u64( (uint64_t*)(p) )
@@ -74,6 +83,9 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 
 #define v128_cmpeq0                    vceqzq_u64
 
+// Not yet needed
+//#define v128_cmpeq1
+
 #define v128_cmpgt64                   vcgtq_u64
 #define v128_cmpgt32                   vcgtq_u32
 #define v128_cmpgt16                   vcgtq_u16
@@ -95,7 +107,7 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 #define v128_sr16                      vshrq_n_u16
 #define v128_sr8                       vshrq_n_u8
 
-// Maybe signed shift will work.
+// Unit tested, working.
 #define v128_sra64                     vshrq_n_s64
 #define v128_sra32                     vshrq_n_s32
 #define v128_sra16                     vshrq_n_s16
@@ -103,25 +115,47 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 // unary logic
 #define v128_not                       vmvnq_u32
 
-// binary
+// binary logic
 #define v128_or                        vorrq_u32
 #define v128_and                       vandq_u32
 #define v128_xor                       veorq_u32
-#define v128_andnot                    vandq_u32
-#define v128_xnor( v1, v0 )            v128_not( v128_xor( v1, v0 ) )
-#define v128_ornot                     vornq_u32 
 
-// ternary logic, veorq_u32 not defined
+// ~v1 & v0
+#define v128_andnot( v1, v0 )          vandq_u32( vmvnq_u32( v1 ), v0 )
+
+// ~( a ^ b ), same as (~a) ^ b
+#define v128_xnor( v1, v0 )            v128_not( v128_xor( v1, v0 ) )
+
+// ~v1 | v0, x86_64 convention, first arg is  not'ed
+#define v128_ornot( v1, v0 )           vornq_u32( v0, v1 ) 
+
+// ternary logic
+
+// v2 ^ v1 ^ v0
+// veorq_u32 not defined
 //#define v128_xor3                      veor3q_u32
 #define v128_xor3( v2, v1, v0 )        veorq_u32( v2, veorq_u32( v1, v0 ) )
-#define v128_nor                       vornq_u32
+
+// v2 & v1 & v0
+#define v128_and3( v2, v1, v0 )        v128_and( v2, v128_and( v1, v0 ) )
+
+// v2 | v1 | v0
+#define v128_or3( v2, v1, v0 )         v128_or( v2, v128_or( v1, v0 ) )
+
+// a ^ ( ~b & c )
 #define v128_xorandnot( v2, v1, v0 )   v128_xor( v2, v128_andnot( v1, v0 ) )
-#define v128_and3( a, b, c )           v128_and( a, v128_and( b, c ) )
-#define v128_or3( a, b, c )            v128_or( a, v128_or( b, c ) )
-#define v128_xorand( a, b, c )         v128_xor( a, v128_and( b, c ) )
-#define v128_andxor( a, b, c )         v128_and( a, v128_xor( b, c ) )
-#define v128_xoror( a, b, c )          v128_xor( a, v128_or( b, c ) )
-#define v128_orand( a, b, c )          v128_or( a, v128_and( b, c ) )
+
+// a ^ ( b & c )
+#define v128_xorand( v2, v1, v0 )      v128_xor( v2, v128_and( v1, v0 ) )
+
+// a & ( b ^ c )
+#define v128_andxor( v2, v1, v0 )      v128_and( v2, v128_xor( v1, v0 ) )
+
+// a ^ ( b | c )
+#define v128_xoror( v2, v1, v0 )       v128_xor( v2, v128_or( v1, v0 ) )
+
+// v2 | ( v1 & v0 )
+#define v128_orand( v2, v1, v0 )       v128_or( v2, v128_and( v1, v0 ) )
 
 // shift 2 concatenated vectors right.
 #define v128_alignr64( v1, v0, c )     vextq_u64( v0, v1, c )
@@ -129,24 +163,15 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 #define v128_alignr8(  v1, v0, c )     vextq_u8(  v0, v1, c ) 
 
 // Intetleave high or low half of 2 vectors.
-#define v128_unpacklo64( v1, v0 )      vzip1q_u64( v0, v1 )
-#define v128_unpackhi64( v1, v0 )      vzip2q_u64( v0, v1 )
-#define v128_unpacklo32( v1, v0 )      vzip1q_u32( v0, v1 )
-#define v128_unpackhi32( v1, v0 )      vzip2q_u32( v0, v1 )
-#define v128_unpacklo16( v1, v0 )      vzip1q_u16( v0, v1 )
-#define v128_unpackhi16( v1, v0 )      vzip2q_u16( v0, v1 )
-#define v128_unpacklo8(  v1, v0 )      vzip1q_u8(  v0, v1 )
-#define v128_unpackhi8(  v1, v0 )      vzip2q_u8(  v0, v1 )
+#define v128_unpacklo64( v1, v0 )      vzip1q_u64( v1, v0 )
+#define v128_unpackhi64( v1, v0 )      vzip2q_u64( v1, v0 )
+#define v128_unpacklo32( v1, v0 )      vzip1q_u32( v1, v0 )
+#define v128_unpackhi32( v1, v0 )      vzip2q_u32( v1, v0 )
+#define v128_unpacklo16( v1, v0 )      vzip1q_u16( v1, v0 )
+#define v128_unpackhi16( v1, v0 )      vzip2q_u16( v1, v0 )
+#define v128_unpacklo8(  v1, v0 )      vzip1q_u8(  v1, v0 )
+#define v128_unpackhi8(  v1, v0 )      vzip2q_u8(  v1, v0 )
 
-// Shorter achchitecture agnostic names for unpack using NEON-like mnemonics
-#define v128_ziplo64                   vzip1q_u64
-#define v128_ziphi64                   vzip2q_u64
-#define v128_ziplo32                   vzip1q_u32
-#define v128_ziphi32                   vzip2q_u32
-#define v128_ziplo16                   vzip1q_u16
-#define v128_ziphi16                   vzip2q_u16
-#define v128_ziplo8                    vzip1q_u8
-#define v128_ziphi8                    vzip2q_u8
 
 // AES
 // consistent with Intel AES, break up for optimizing
@@ -158,9 +183,21 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 
 typedef union
 {
+   uint32x4_t v128;
    uint32x4_t m128;
-   uint32_t u32[4];
+   uint32_t   u32[4];
 } __attribute__ ((aligned (16))) v128_ovly;
+
+
+// Broadcast lane 0 to all lanes
+#define v128_bcast64(v)                vdupq_laneq_u64( v, 0 )
+#define v128_bcast32(v)                vdupq_laneq_u32( v, 0 )
+#define v128_bcast16(v)                vdupq_laneq_u16( v, 0 )
+
+// Replicate (broadcast) lane l to all lanes
+#define v128_replane64( v, l )         vdupq_laneq_u64( v, l )
+#define v128_replane32( v, l )         vdupq_laneq_u32( v, l )
+#define v128_replane16( v, l )         vdupq_laneq_u16( v, l )
 
 // pointer indexing
 #define casti_v128( p, i )             (((uint32x4_t*)(p))[i])
@@ -255,11 +292,12 @@ typedef union
 #define v128_negate16              vnegq_s16
 #define v128_negate8               vnegq_s8
 
+// Nothing else seems to work
 static inline void v128_memset_zero( void *dst, const int n )
 {
-   for( int i = 0; i < n; i++ )
-      ((uint32x4_t*)dst)[n] = (uint32x4_t)(uint128_t)0;
+    memset( dst, 0, n*16 );
 }
+
 
 static inline void v128_memset( void *dst, const void *src, const int n )
 {
@@ -273,67 +311,40 @@ static inline void v128_memcpy( void *dst, const void *src, const int n )
       ((uint32x4_t*)dst)[i] = ((const uint32x4_t*)src)[i];
 }
 
-// how to build a bitmask from vector elements?
+// how to build a bitmask from vector elements? Efficiently???
 #define v128_movmask32                 
 #define v128_movmask64                
 
 // Bit rotation
-//TODO, maybe, Optimize 64 bit rotations
-// Fall back for odd bit rotations
-static inline uint64x2_t v128_ror64( uint64x2_t v, int c )
-{
-   return vsriq_n_u64( vshlq_n_u64( (uint64x2_t)v, 64-c ), (uint64x2_t)v, c );
-}
-
-static inline uint64x2_t v128_rol64( uint64x2_t v, int c )
-{
-   return vsliq_n_u64( vshrq_n_u64( (uint64x2_t)v, 64-c ), (uint64x2_t)v, c );
-}
-
-//static inline uint64x2_t v128_rol64( uint64x2_t v, int c )
-//{  return vsriq_n_u64( vshlq_n_u64( v, c ), v, 64-c ); }
-
-static inline uint32x4_t v128_ror32( uint32x4_t v, int c )
-{  return vsriq_n_u32( vshlq_n_u32( v, 32-c ), v, c ); }
-
-static inline uint32x4_t v128_rol32( uint32x4_t v, int c )
-{  return vsliq_n_u32( vshrq_n_u32( v, 32-c ), v, c ); }
-
-//static inline uint32x4_t v128_rol32( uint32x4_t v, int c )
-//{  return vsriq_n_u32( vshlq_n_u32( v, c ), v, 32-c ); }
-
-static inline uint16x8_t v128_ror16( uint16x8_t v, int c )
-{  return vsriq_n_u16( vshlq_n_u16( v, 16-c ), v, c ); }
-
-static inline uint16x8_t v128_rol16( uint16x8_t v, int c )
-{  return vsliq_n_u16( vshrq_n_u16( v, 16-c ), v, c ); }
-
-//static inline uint16x8_t v128_rol16( uint16x8_t v, int c )
-//{  return vsriq_n_u16( vshlq_n_u16( v, c ), v, 16-c ); }
-
-static inline uint8x16_t v128_ror8( uint8x16_t v, int c )
-{  return vsriq_n_u8( vshlq_n_u8( v, 8-c ), v, c ); }
-
-static inline uint8x16_t v128_rol8( uint8x16_t v, int c )
-{  return vsliq_n_u8( vshrq_n_u8( v, 8-c ), v, c ); }
-
-//static inline uint8x16_t v128_rol8( uint16x8_t v, int c )
-//{  return vsriq_n_u8( vshlq_n_u8( v, c ), v, 8-c ); }
-
-/*
-// Optimzed for half element rotations (swap)
 #define v128_ror64( v, c ) \
-   ( (c) == 32 ) ? (uint64x2_t)vrev64q_u32( v ) : v128_ror64_neon( v, c )
+  ( (c) == 32 ) ? (uint64x2_t)vrev64q_u32( ((uint64x2_t)v) ) \
+   : vsriq_n_u64( vshlq_n_u64( ((uint64x2_t)v), 64-c ), ((uint64x2_t)v), c )
 
 #define v128_rol64( v, c ) \
-   ( (c) == 32 ) ? (uint64x2_t)vrev64q_u32( v ) : v128_rol64_neon( v, c )
-   
+  ( (c) == 32 ) ? (uint64x2_t)vrev64q_u32( ((uint64x2_t)v) ) \
+   : vsliq_n_u64( vshrq_n_u64( ((uint64x2_t)v), 64-c ), ((uint64x2_t)v), c )
+
 #define v128_ror32( v, c ) \
-   ( (c) == 16 ) ? (uint32x4_t)vrev32q_u16( v ) : v128_ror32_neon( v, c )
+  ( (c) == 16 ) ? (uint32x4_t)vrev32q_u16( ((uint32x4_t)v) ) \
+   : vsriq_n_u32( vshlq_n_u32( ((uint32x4_t)v), 32-c ), ((uint32x4_t)v), c )
 
 #define v128_rol32( v, c ) \
-   ( (c) == 16 ) ? (uint32x4_t)vrev32q_u16( v ) : v128_rol32_neon( v, c )
-*/
+  ( (c) == 16 ) ? (uint32x4_t)vrev32q_u16( ((uint32x4_t)v) ) \
+   : vsliq_n_u32( vshrq_n_u32( ((uint32x4_t)v), 32-c ), ((uint32x4_t)v), c )
+
+#define v128_ror16( v, c ) \
+  ( (c) == 8 ) ? (uint16x8_t)vrev16q_u8( ((uint16x8_t)v) ) \
+   : vsriq_n_u16( vshlq_n_u16( ((uint16x8_t)v), 16-c ), ((uint16x8_t)v), c )
+
+#define v128_rol16( v, c ) \
+  ( (c) == 8 ) ? (uint16x8_t)vrev16q_u8( ((uint16x8_t)v) ) \
+   : vsliq_n_u16( vshrq_n_u16( ((uint16x8_t)v), 16-c ), ((uint16x8_t)v), c )
+
+#define v128_ror8( v, c ) \
+      vsriq_n_u8( vshlq_n_u8(  ((uint8x16_t)v),  8-c ), ((uint8x16_t)v), c )
+
+#define v128_rol8( v, c ) \
+      vsliq_n_u8( vshrq_n_u8(  ((uint8x16_t)v),  8-c ), ((uint8x16_t)v), c )
 
 #define v128_2ror64( v1, v0, c ) \
 { \
@@ -361,7 +372,7 @@ static inline uint8x16_t v128_rol8( uint8x16_t v, int c )
  uint32x4_t t1 = vshrq_n_u32( v1, c ); \
  v0 = vsliq_n_u32( v0, 32-(c) ); \
  v1 = vsliq_n_u32( v1, 32-(c) ); \
- v0 = vorrq_u32( v0, t0 ); \
+ v0 = vorrq_32( v0, t0 ); \
  v1 = vorrq_u32( v1, t1 ); \
 }
 
@@ -374,16 +385,6 @@ static inline uint8x16_t v128_rol8( uint8x16_t v, int c )
  v0 = vorrq_u32( v0, t0 ); \
  v1 = vorrq_u32( v1, t1 ); \
 }
-
-// vector rotation , size?
-static inline uint64x2_t v128_swap64( uint64x2_t v )
-{   return vextq_u64( v, v, 1 ); }
-
-static inline uint32x4_t v128_shuflr32( uint32x4_t v )
-{   return vextq_u32( v, v, 1 ); }
-
-static inline uint32x4_t v128_shufll32( uint32x4_t v )
-{   return vextq_u32( v, v, 3 ); }
 
 // Cross lane shuffles, no programmable shuffle in NEON
 
@@ -413,29 +414,54 @@ static inline uint32x4_t v128_shufll32( uint32x4_t v )
               ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 1] ], \
               ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 0] ] )
 
-#define v128_swap64_32( v )             vrev64q_u32( v )
-#define v128_v128_shuflr64_16( v )      v128_ror_64( v, 16 )
-#define v128_v128_shufll64_16( v )      v128_rol_64( v, 16 )
+// sub-vector shuffles sometimes mirror bit rotation. Shuffle is faster.
+// Bit rotation already promotes faster widths. Usage is context sensitive.
+// preferred.
 
-// Don't use as an alias for byte sized bit rotation
-#define v128_swap32_16( v )             vrev64q_u16( v )
-#define v128_v128_shuflr32_8( v )       v128_ror_32( v, 8 )
-#define v128_v128_shufll32_8( v )       v128_rol_32( v, 8 )
+// reverse elements in vector lanes
+#define v128_qrev32            vrev64q_u32
+#define v128_swap64_32         vrev64q_u32  // grandfathered
 
-// reverse elements
-#define v128_rev32( v )                vrev64q_u32( v )
-#define v128_rev16( v )                vrev64q_u16( v )
-#define v128_rev8( v )                 vrev64q_u8( v )
+#define v128_qrev16            vrev64q_u16
+#define v128_lrev16            vrev32q_u16
 
-// reverse bits, nothing like it in x86_64
-#define v128_bitrev8( v )              vrbitq_u8
+// aka bswap
+#define v128_qrev8             vrev64q_u8
+#define v128_lrev8             vrev32q_u8
+#define v128_wrev8             vrev16q_u8
+
+// full vector rotation
+
+// reverse elements in vector
+static inline uint64x2_t v128_rev64( uint64x2_t v )
+{   return vextq_u64( v, v, 1 ); }
+#define v128_swap64     v128_rev64   // grandfathered
+
+#define v128_rev32(v)        v128_rev64( v128_qrev32( v ) )
+#define v128_rev16(v)        v128_rev64( v128_qrev16( v ) )
+
+// shuffle-rotate vector elements
+static inline uint32x4_t v128_shuflr32( uint32x4_t v )
+{   return vextq_u32( v, v, 1 ); }
+
+static inline uint32x4_t v128_shufll32( uint32x4_t v )
+{   return vextq_u32( v, v, 3 ); }
+
+static inline uint16x8_t v128_shuflr16( uint16x8_t v )
+{   return vextq_u16( v, v, 1 ); }
+
+static inline uint16x8_t v128_shufll16( uint16x8_t v )
+{   return vextq_u16( v, v, 7 ); }
+
+// reverse bits in bytes, nothing like it in x86_64
+#define v128_bitrev8           vrbitq_u8
 
 // reverse byte order
-#define v128_bswap16(v)                (uint16x8_t)vrev16q_u8( (uint8x16_t)(v) )
-#define v128_bswap32(v)                (uint32x4_t)vrev32q_u8( (uint8x16_t)(v) )
-#define v128_bswap64(v)                (uint64x2_t)vrev64q_u8( (uint8x16_t)(v) )
-#define v128_bswap128(v)               (uint32x4_t)v128_swap64( v128_bswap64(v) )
-#define v128_bswap256(p)               v128_bswap128( (p)[0], (p)[1] ) 
+#define v128_bswap16(v)        (uint16x8_t)vrev16q_u8( (uint8x16_t)(v) )
+#define v128_bswap32(v)        (uint32x4_t)vrev32q_u8( (uint8x16_t)(v) )
+#define v128_bswap64(v)        (uint64x2_t)vrev64q_u8( (uint8x16_t)(v) )
+#define v128_bswap128(v)       (uint32x4_t)v128_swap64( v128_bswap64(v) )
+#define v128_bswap256(p)       v128_bswap128( (p)[0], (p)[1] ) 
 
 // Usefull for x86_64 but does nothing for ARM
 #define v128_block_bswap32( dst, src ) \

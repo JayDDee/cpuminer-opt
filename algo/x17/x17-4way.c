@@ -929,43 +929,31 @@ int scanhash_x17_4x64( struct work *work, uint32_t max_nonce,
 #elif defined(X17_2X64)
 
 // Need sph in some cases
-//#include "algo/blake/sph_blake.h"
-#include "algo/bmw/sph_bmw.h"
-#include "algo/jh/sph_jh.h"
-//#include "algo/keccak/sph_keccak.h"
-#include "algo/skein/sph_skein.h"
-#include "algo/luffa/sph_luffa.h"
 #include "algo/luffa/luffa_for_sse2.h"
-//#include "algo/cubehash/sph_cubehash.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#include "algo/shavite/sph_shavite.h"
 #include "algo/simd/sph_simd.h"
 #include "algo/simd/nist.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/shabal/sph_shabal.h"
-#include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/sph-haval.h"
-#include "algo/sha/sph_sha2.h"
-#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
+//#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
   #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
-#endif
+//#endif
 #include "algo/fugue/sph_fugue.h"
 
 union _x17_context_overlay
 {
-//        blake512_2x64_context   blake;
-        blake512_context        blake;
-#if defined(__x86_64__)
+        blake512_2x64_context   blake;
         bmw512_2x64_context     bmw;
-#else
-        sph_bmw512_context      bmw;
-#endif
-#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
         hashState_groestl       groestl;
-        hashState_echo          echo;
 #else
         sph_groestl512_context  groestl;
+#endif        
+#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+        hashState_echo          echo;
+#else
         sph_echo512_context     echo;
 #endif
 #if defined(__AES__)
@@ -973,26 +961,14 @@ union _x17_context_overlay
 #else
         sph_fugue512_context    fugue;
 #endif
-#if defined(__x86_64__)
         jh512_2x64_context      jh;
-#else
-        sph_jh512_context       jh;
-#endif
         keccak512_2x64_context  keccak;
-#if defined(__x86_64__)
         skein512_2x64_context   skein;
-#else
-        sph_skein512_context    skein;
-#endif
-#if defined(__x86_64__)
         hashState_luffa         luffa;
-#else
-        sph_luffa512_context    luffa;
-#endif
         cubehashParam           cube;
         sph_shavite512_context  shavite;
 #if defined(__x86_64__)
-        hashState_sd            simd;
+        simd512_context         simd;
 #else
         sph_simd512_context     simd;
 #endif
@@ -1003,11 +979,7 @@ union _x17_context_overlay
 #endif
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
-#if defined(__x86_64__)
         sha512_2x64_context     sha;
-#else
-        sph_sha512_context      sha;
-#endif
         sph_haval256_5_context  haval;
 };
 typedef union _x17_context_overlay x17_context_overlay;
@@ -1019,30 +991,16 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     uint8_t hash1[64]   __attribute__((aligned(64)));
     x17_context_overlay ctx;
 
-//    intrlv_2x64( vhash, input, input+80, 640 );
-//    blake512_2x64_full( &ctx.blake, vhash, vhash, 80 );
-//    dintrlv_2x64( hash0, hash1, vhash, 512 );
-    
-    blake512_full( &ctx.blake, hash0, input,    80 );
-    blake512_full( &ctx.blake, hash1, input+80, 80 );
+    intrlv_2x64( vhash, input, input+80, 640 );
 
-
-#if defined(__x86_64__)
-    intrlv_2x64( vhash, hash0, hash1, 512 );
+    blake512_2x64_full( &ctx.blake, vhash, vhash, 80 );
     bmw512_2x64_init( &ctx.bmw );
     bmw512_2x64_update( &ctx.bmw, vhash, 64 );
     bmw512_2x64_close( &ctx.bmw, vhash );
-    dintrlv_2x64( hash0, hash1, vhash, 512 );
-#else
-    sph_bmw512_init( &ctx.bmw );
-    sph_bmw512( &ctx.bmw, hash0, 64 );
-    sph_bmw512_close( &ctx.bmw, hash0 );
-    sph_bmw512_init( &ctx.bmw );
-    sph_bmw512( &ctx.bmw, hash1, 64 );
-    sph_bmw512_close( &ctx.bmw, hash1 );
-#endif
 
-#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+    dintrlv_2x64( hash0, hash1, vhash, 512 );
+
+#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
     groestl512_full( &ctx.groestl, hash0, hash0, 512 );
     groestl512_full( &ctx.groestl, hash1, hash1, 512 );
 #else
@@ -1054,47 +1012,16 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     sph_groestl512_close( &ctx.groestl, hash1 );
 #endif
 
-#if defined(__x86_64__)
     intrlv_2x64( vhash, hash0, hash1, 512 );
+
     skein512_2x64_full( &ctx.skein, vhash, vhash, 64 );
-    dintrlv_2x64( hash0, hash1, vhash, 512 );
-#else
-    sph_skein512_init( &ctx.skein );
-    sph_skein512( &ctx.skein, hash0, 64 );
-    sph_skein512_close( &ctx.skein, hash0);
-    sph_skein512_init( &ctx.skein );
-    sph_skein512( &ctx.skein, hash1, 64 );
-    sph_skein512_close( &ctx.skein, hash1 );
-#endif
-
-#if defined(__x86_64__)
-    intrlv_2x64( vhash, hash0, hash1, 512);
     jh512_2x64_ctx( &ctx.jh, vhash, vhash, 64 );
-    dintrlv_2x64( hash0, hash1, vhash, 512 );
-#else
-    sph_jh512_init( &ctx.jh );
-    sph_jh512( &ctx.jh, hash0, 64 );
-    sph_jh512_close( &ctx.jh, hash0 );
-    sph_jh512_init( &ctx.jh);
-    sph_jh512( &ctx.jh, hash1, 64 );
-    sph_jh512_close( &ctx.jh, hash1 );
-#endif
-
-    intrlv_2x64( vhash, hash0, hash1, 512);
     keccak512_2x64_ctx( &ctx.keccak, vhash, vhash, 64 );
+
     dintrlv_2x64( hash0, hash1, vhash, 512 );
 
-#if defined(__x86_64__)
     luffa_full( &ctx.luffa, hash0, 512, hash0, 64 );
     luffa_full( &ctx.luffa, hash1, 512, hash1, 64 );
-#else
-    sph_luffa512_init( &ctx.luffa );
-    sph_luffa512( &ctx.luffa, hash0, 64 );
-    sph_luffa512_close( &ctx.luffa, hash0 );
-    sph_luffa512_init( &ctx.luffa );
-    sph_luffa512( &ctx.luffa, hash1, 64 );
-    sph_luffa512_close( &ctx.luffa, hash1 );
-#endif
 
     cubehash_full( &ctx.cube, hash0, 512, hash0, 64 );
     cubehash_full( &ctx.cube, hash1, 512, hash1, 64 );
@@ -1107,8 +1034,8 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     sph_shavite512_close( &ctx.shavite, hash1 );
 
 #if defined(__x86_64__)
-    simd_full( &ctx.simd, hash0, hash0, 512 );
-    simd_full( &ctx.simd, hash1, hash1, 512 );
+    simd512_ctx( &ctx.simd, hash0, hash0, 64 );
+    simd512_ctx( &ctx.simd, hash1, hash1, 64 );
 #else
     sph_simd512_init( &ctx.simd );
     sph_simd512( &ctx.simd, hash0, 64 );
@@ -1118,7 +1045,7 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     sph_simd512_close( &ctx.simd, hash1 );
 #endif
 
-#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
     echo_full( &ctx.echo, hash0, 512, hash0, 64 );
     echo_full( &ctx.echo, hash1, 512, hash1, 64 );
 #else
@@ -1130,7 +1057,7 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     sph_echo512_close( &ctx.echo, hash1 );
 #endif
 
-#if defined(__SSE4_2__) //  || defined(__ARM_NEON)
+#if defined(__SSE4_2__) // || defined(__ARM_NEON)
     intrlv_2x64( vhash, hash0, hash1, 512 );
     hamsi512_2x64_ctx( &ctx.hamsi, vhash, vhash, 64 );
     dintrlv_2x64( hash0, hash1, vhash, 512 );
@@ -1165,18 +1092,9 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     sph_whirlpool( &ctx.whirlpool, hash1, 64 );
     sph_whirlpool_close( &ctx.whirlpool, hash1 );
 
-#if defined(__x86_64__)
     intrlv_2x64( vhash, hash0, hash1, 512 );
     sha512_2x64_ctx( &ctx.sha, vhash, vhash, 64 );
     dintrlv_2x64( hash0, hash1, vhash, 512 );
-#else
-    sph_sha512_init( &ctx.sha );
-    sph_sha512( &ctx.sha, hash0, 64 );
-    sph_sha512_close( &ctx.sha, hash0 );
-    sph_sha512_init( &ctx.sha );
-    sph_sha512( &ctx.sha, hash1, 64 );
-    sph_sha512_close( &ctx.sha, hash1 );
-#endif
 
     sph_haval256_5_init( &ctx.haval );
     sph_haval256_5( &ctx.haval, hash0, 64 );

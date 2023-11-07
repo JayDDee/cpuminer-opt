@@ -3685,41 +3685,14 @@ void get_defconfig_path(char *out, size_t bufsize, char *argv0);
 
 
 #include "simd-utils.h"
-#include "algo/sha/sha512-hash.h"
+#include "algo/hamsi/hamsi-hash-4way.h"
+#include "algo/hamsi/sph_hamsi.h"
 
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;
 	long flags;
 	int i, err;
-
-
-/*
-uint64_t h1[8] __attribute__((aligned(32)));;
-uint64_t h2[8*2] __attribute__((aligned(32)));
-uint64_t hx[8*2] __attribute__((aligned(32)));
-
-uint64_t inp[20*2]   __attribute__((aligned(32))) = {0};
-
-sha512_2x64_context ctx2;
-sph_sha512_context ctx1;
-
-sha512_2x64_ctx( &ctx2, h2, inp, 80 );
-sha512_2x64_init( &ctx2 );
-sha512_2x64_update( &ctx2, inp, 80 );
-sha512_2x64_close( &ctx2, h2 );
-
-sph_sha512_init( &ctx1 );
-sph_sha512( &ctx1, inp, 80 );
-sph_sha512_close( &ctx1, h1 );
-
-
-printf("h1: %016lx %016lx %016lx %016lx %016lx %016lx %016lx %016lx\n", h1[0], h1[1], h1[2], h1[3], h1[4], h1[5], h1[6], h1[7]);
-
-printf("h2: %016lx %016lx %016lx %016lx %016lx %016lx %016lx %016lx\n\n", h2[0], h2[2], h2[4], h2[ 6], h2[ 8], h2[10], h2[12], h2[14]);
-
-exit(0);
-*/
 
 	pthread_mutex_init(&applog_lock, NULL);
 
@@ -4082,7 +4055,7 @@ exit(0);
    applog( LOG_INFO, "%d of %d miner threads started using '%s' algorithm",
                      opt_n_threads, num_cpus, algo_names[opt_algo] );
 
-	/* main loop - simply wait for workio thread to exit */
+      /* main loop - simply wait for workio thread to exit */
 	pthread_join( thr_info[work_thr_id].pth, NULL );
 	applog( LOG_WARNING, "workio thread dead, exiting." );
 	return 0;

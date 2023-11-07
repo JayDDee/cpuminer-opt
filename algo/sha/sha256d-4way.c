@@ -1,9 +1,9 @@
-#include "sha256d-4way.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include "sha256-hash.h"
+#include "sha256d.h"
 
 static const uint32_t sha256_iv[8] __attribute__ ((aligned (32))) =
 {
@@ -383,8 +383,6 @@ int scanhash_sha256d_4x32( struct work *work, const uint32_t max_nonce,
    const v128_t last_byte = v128_32( 0x80000000 );
    const v128_t four = v128_32( 4 );
 
-   memset( block, 0, 16*4*4 );
-
    for ( int i = 0; i < 19; i++ )
       vdata[i] = v128_32( pdata[i] );
    vdata[16+3] = v128_set32( n+3, n+2, n+1, n );
@@ -412,7 +410,6 @@ int scanhash_sha256d_4x32( struct work *work, const uint32_t max_nonce,
    do
    {
       sha256_4x32_final_rounds( block, vdata+16, mhash1, mhash2, mexp_pre );
-//      sha256_4x32_transform_le( block, vdata+16, mhash1 );
       sha256_4x32_transform_le( hash32, block, iv );
 
       for ( int lane = 0; lane < 4; lane++ )

@@ -152,16 +152,6 @@
 #define v128_unpacklo8                 _mm_unpacklo_epi8
 #define v128_unpackhi8                 _mm_unpackhi_epi8
 
-// New shorter agnostic name
-#define v128_ziplo64                   _mm_unpacklo_epi64
-#define v128_ziphi64                   _mm_unpackhi_epi64
-#define v128_ziplo32                   _mm_unpacklo_epi32
-#define v128_ziphi32                   _mm_unpackhi_epi32
-#define v128_ziplo16                   _mm_unpacklo_epi16
-#define v128_ziphi16                   _mm_unpackhi_epi16
-#define v128_ziplo8                    _mm_unpacklo_epi8
-#define v128_ziphi8                    _mm_unpackhi_epi8
-
 // AES
 #define v128_aesenc                    _mm_aesenc_si128
 #define v128_aesenclast                _mm_aesenclast_si128
@@ -171,7 +161,8 @@
 // Used instead if casting.
 typedef union
 {
-   __m128i m128;
+   v128_t   v128;
+   __m128i  m128;
    uint32_t u32[4];
 } __attribute__ ((aligned (16))) m128_ovly;
 #define v128_ovly   m128_ovly
@@ -218,19 +209,41 @@ static inline __m128i mm128_mov32_128( const uint32_t n )
   return a;
 }
 
-// Emulate broadcast & insert instructions not available in SSE2
-// FYI only, not used anywhere
-//#define mm128_bcast_m64( v )   _mm_shuffle_epi32( v, 0x44 )
-//#define mm128_bcast_m32( v )   _mm_shuffle_epi32( v, 0x00 )
+// broadcast lane 0 to all lanes
+#define v128_bcast64(v)                 _mm_shuffle_epi32( v, 0x44 )
+#define v128_bcast32(v)                 _mm_shuffle_epi32( v, 0x00 )
+
+#if defined(__AVX2__)
+
+#define v128_bcast16(v)                 _mm_broadcastw_epi16(v)
+
+#else
+
+#define v128_bcast16(v) \
+   v128_bcast32( v128_or( v128_sl32( v, 16 ), v ) )
+
+#endif
+
+// broadcast lane l to all lanes
+#define v128_replane64( v, l ) \
+   ( (l) == 0 ) ? _mm_shuffle_epi32( v, 0x44 ) \
+                : _mm_shuffle_epi32( v, 0xee )
+
+#define v128_replane32( v, l ) \
+    ( (l) == 0 ) ? _mm_shuffle_epi32( v, 0x00 ) \
+  : ( (l) == 1 ) ? _mm_shuffle_epi32( v, 0x55 ) \
+  : ( (l) == 2 ) ? _mm_shuffle_epi32( v, 0xaa ) \
+  :                _mm_shuffle_epi32( v, 0xff )
 
 // Pseudo constants
 #define v128_zero                       _mm_setzero_si128()
-#define m128_zero                       v128_zero
+#define m128_zero                       _mm_setzero_si128()
+
 
 #if defined(__SSE4_1__)
 
 // Bitwise AND, return 1 if result is all bits clear.
-#define v128_and_eq0                 _mm_testz_si128
+#define v128_and_eq0                    _mm_testz_si128
 
 static inline int v128_cmpeq0( v128_t v )
 {  return v128_and_eq0( v, v ); }
@@ -341,9 +354,12 @@ static inline __m128i v128_neg1_fn()
 */
 
 
+#define mm128_mask_32( v, m )    mm128_xim_32( v, v, m )
+
 // Zero 32 bit elements when corresponding bit in 4 bit mask is set.
-static inline __m128i mm128_mask_32( const __m128i v, const int m ) 
-{   return mm128_xim_32( v, v, m ); }
+//static inline __m128i mm128_mask_32( const __m128i v, const int m ) 
+//{   return mm128_xim_32( v, v, m ); }
+#define v128_mask32    mm128_mask_32
 
 // Copy element i2 of v2 to element i1 of dest and copy remaining elements from v1.
 #define v128_movlane32( v1, l1, v0, l0 ) \
@@ -482,10 +498,6 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 //
 // Bit rotations
-
-// Neon has fast xor-ror, useful for big blake, if it actually works.
-#define v128_xror64( v1, v0, c ) v128_ror64( v128_xor( v1, v0 ) c )
-
 
 // Slow bit rotation, used as last resort
 #define mm128_ror_64_sse2( v, c ) \
@@ -645,32 +657,55 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 // Limited 2 input shuffle, combines shuffle with blend. The destination low
 // half is always taken from v1, and the high half from v2.
-#define mm128_shuffle2_64( v1, v2, c ) \
+#define v128_shuffle2_64( v1, v2, c ) \
    _mm_castpd_si128( _mm_shuffle_pd( _mm_castsi128_pd( v1 ), \
                                      _mm_castsi128_pd( v2 ), c ) ); 
+#define mm128_shuffle2_64   v128_shuffle2_64
 
-#define mm128_shuffle2_32( v1, v2, c ) \
+#define v128_shuffle2_32( v1, v2, c ) \
    _mm_castps_si128( _mm_shuffle_ps( _mm_castsi128_ps( v1 ), \
                                      _mm_castsi128_ps( v2 ), c ) ); 
+#define mm128_shuffle2_32   v128_shuffle2_32
 
 // Rotate vector elements accross all lanes
 
-#define mm128_swap_64( v )     _mm_shuffle_epi32( v, 0x4e )
-#define v128_swap64            mm128_swap_64
-#define mm128_shuflr_64        mm128_swap_64
-#define mm128_shufll_64        mm128_swap_64
+#define v128_shuffle16( v, c ) \
+   _mm_or_si128( _mm_shufflehi_epi16( v, c ), _mm_shufflelo_epi16( v, c ) )
 
-// Don't use as an alias for byte sized bit rotation
-#define mm128_shuflr_32( v )   _mm_shuffle_epi32( v, 0x39 )
-#define v128_shuflr32          mm128_shuflr_32
+// reverse elements in vector
+#define v128_swap64(v)      _mm_shuffle_epi32( v, 0x4e )  // grandfathered 
+#define v128_rev64(v)       _mm_shuffle_epi32( v, 0x4e )  // preferred
+#define v128_rev32(v)       _mm_shuffle_epi32( v, 0x1b )
+#define v128_rev16(v)       v128_shuffle16( v, 0x1b )
 
-#define mm128_shufll_32( v )   _mm_shuffle_epi32( v, 0x93 )
-#define v128_shufll32          mm128_shufll_32
+// rotate vector elements
+#define v128_shuflr32(v)    _mm_shuffle_epi32( v, 0x39 )
+#define v128_shufll32(v)    _mm_shuffle_epi32( v, 0x93 )
 
-#define v128_swap64_32( v )      v128_ror64( v, 32 )
+#define v128_shuflr16(v)    v128_shuffle16( v, 0x39 )
+#define v128_shufll16(v)    v128_shuffle16( v, 0x93 )
 
-#define mm128_rev_32( v )      _mm_shuffle_epi32( v, 0x1b )
-#define v128_rev32             mm128_rev_32
+// Some sub-vector shuffles are identical to bit rotation. Shuffle is faster.
+// Bit rotation already promotes faster widths. Usage of these versions
+// are context sensitive.
+
+// reverse elements in vector lanes
+#define v128_qrev32(v)      v128_ror64( v, 32 )
+#define v128_swap64_32(v)   v128_ror64( v, 32 )   // grandfathered
+
+#define v128_qrev16(v) \
+    _mm_or_si128( _mm_shufflehi_epi16( v, v128u16( 0x1b ) ) \
+                  _mm_shufflelo_epi16( v, v128u16( 0x1b ) ) )
+
+#define v128_lrev16(v)      v128_ror32( v, 16 )
+
+// alias bswap
+#define v128_qrev8(v)       _mm_shuffle_epi8( v, v128_8( 0,1,2,3,4,5,6,7 ) )
+#define v128_lrev8(v)       _mm_shuffle_epi8( v, v128_8( 4,5,6,7, 0,1,2,3 ) )
+#define v128_wrev8(v)       _mm_shuffle_epi8( v, v128_8( 6,7, 4,5, 2,3, 1,0 ) )
+   
+// reverse bits, can it be done?
+//#define v128_bitrev8( v )              vrbitq_u8
 
 /* Not used
 #if defined(__SSSE3__)
@@ -682,7 +717,6 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
 #endif
 */
 
-//
 // Endian byte swap.
 
 #if defined(__SSSE3__)
@@ -798,8 +832,7 @@ static inline __m128i mm128_bswap_16( __m128i v )
   return _mm_or_si128( _mm_slli_epi16( v, 8 ), _mm_srli_epi16( v, 8 ) );
 }
 
-#define mm128_bswap_128( v ) \
-   mm128_swap_64( mm128_bswap_64( v ) )
+#define mm128_bswap_128( v )   v128_qrev32( v128_bswap64( v ) )
 
 static inline void mm128_block_bswap_64( __m128i *d, const __m128i *s )
 {
@@ -846,7 +879,7 @@ static inline void mm128_block_bswap_32( __m128i *d, const __m128i *s )
    d[7] = mm128_bswap_32( s[7] );
 }
 #define mm128_block_bswap32_256 mm128_block_bswap_32
-#define v128_block_bswap32_256 mm128_block_bswap_32
+#define v128_block_bswap32_256  mm128_block_bswap_32
 
 static inline void mm128_block_bswap32_512( __m128i *d, const __m128i *s )
 {

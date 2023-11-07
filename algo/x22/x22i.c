@@ -210,7 +210,7 @@ int scanhash_x22i( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = n;
-      if ( x22i_hash( hash64, edata, thr_id ) );
+      if ( x22i_hash( hash64, edata, thr_id ) )
       if ( unlikely( valid_hash( hash64, ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( n );

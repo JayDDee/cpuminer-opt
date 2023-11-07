@@ -375,16 +375,27 @@ static inline __m256i mm256_not( const __m256i v )
 // Cross lane shuffles
 //
 // Rotate elements accross all lanes.
+#define mm256_shuffle_16( v, c ) \
+   _mm256_or_si256( _mm256_shufflehi_epi16( v, c ), \
+                    _mm256_shufflelo_epi16( v, c ) )
 
 // Swap 128 bit elements in 256 bit vector.
 #define mm256_swap_128( v )     _mm256_permute4x64_epi64( v, 0x4e )
-#define mm256_shuflr_128        mm256_swap_128
-#define mm256_shufll_128        mm256_swap_128
+#define mm256_rev_128( v )      _mm256_permute4x64_epi64( v, 0x4e )
 
 // Rotate 256 bit vector by one 64 bit element
 #define mm256_shuflr_64( v )    _mm256_permute4x64_epi64( v, 0x39 )
 #define mm256_shufll_64( v )    _mm256_permute4x64_epi64( v, 0x93 )
 
+// Reverse 64 bit elements 
+#define mm256_rev_64( v )       _mm256_permute4x64_epi64( v, 0x1b )
+
+#define mm256_rev_32( v ) \
+   _mm256_permute8x32_epi64( v, 0x0000000000000001, 0x0000000200000003, \
+                                0x0000000400000005, 0x0000000600000007 )
+
+#define mm256_rev_16( v ) \
+   _mm256_permute4x64_epi64( mm256_shuffle_16( v, 0x1b ), 0x4e )
 
 /* Not used
 // Rotate 256 bit vector by one 32 bit element.
@@ -423,12 +434,16 @@ static inline __m256i mm256_shufll_32( const __m256i v )
    _mm256_castps_si256( _mm256_shuffle_ps( _mm256_castsi256_ps( v1 ), \
                                            _mm256_castsi256_ps( v2 ), c ) ); 
 
-#define mm256_swap128_64( v )     _mm256_shuffle_epi32( v, 0x4e )
-#define mm256_shuflr128_64        mm256_swap128_64
-#define mm256_shufll128_64        mm256_swap128_64
+#define mm256_swap128_64(v)     _mm256_shuffle_epi32( v, 0x4e )
+#define mm256_rev128_64(v)      _mm256_shuffle_epi32( v, 0x4e )
+#define mm256_rev128_32(v)      _mm256_shuffle_epi32( v, 0x1b )
+#define mm256_rev128_16(v)      mm256_shuffle_16( v, 0x1b )
 
-#define mm256_shuflr128_32( v )   _mm256_shuffle_epi32( v, 0x39 )
-#define mm256_shufll128_32( v )   _mm256_shuffle_epi32( v, 0x93 )
+#define mm256_shuflr128_32(v)   _mm256_shuffle_epi32( v, 0x39 )
+#define mm256_shufll128_32(v)   _mm256_shuffle_epi32( v, 0x93 )
+
+#define mm256_shuflr128_16(v)   _mm256_shuffle_epi16( v, 0x39 )
+#define mm256_shufll128_16(v)   _mm256_shuffle_epi16( v, 0x93 )
 
 /* Not used
 static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
@@ -436,7 +451,19 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 */
 
 // Same as bit rotation but logically used as byte/word rotation.
-#define mm256_swap64_32( v )     mm256_ror_64( v, 32 )
+#define mm256_swap64_32( v )    mm256_ror_64( v, 32 )  // grandfathered
+#define mm256_rev64_32( v )     mm256_ror_64( v, 32 ) 
+
+#define mm256_shuflr64_16(v)    _mm256_ror_epi64( v, 16 )
+#define mm256_shufll64_16(v)    _mm256_rol_epi64( v, 16 )
+
+#define mm256_shuflr64_8(v)     _mm256_ror_epi64( v,  8 )
+#define mm256_shufll64_8(v)     _mm256_rol_epi64( v,  8 )
+
+#define mm256_rev32_16( v )     mm256_ror_32( v, 16 ) 
+
+#define mm256_shuflr32_8(v)     _mm256_ror_epi32( v,  8 )
+#define mm256_shufll32_8(v)     _mm256_rol_epi32( v,  8 )
 
 // Reverse byte order in elements, endian bswap.
 #define mm256_bswap_64( v ) \

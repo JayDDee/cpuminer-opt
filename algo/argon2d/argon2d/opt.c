@@ -242,7 +242,7 @@ void fill_segment(const argon2_instance_t *instance,
 #elif defined(__AVX2__)
     __m256i state[ARGON2_HWORDS_IN_BLOCK];
 #else
-    v128_t state[ARGON2_OWORDS_IN_BLOCK];
+    v128u64_t state[ARGON2_OWORDS_IN_BLOCK];
 #endif
 //    int data_independent_addressing;
 
