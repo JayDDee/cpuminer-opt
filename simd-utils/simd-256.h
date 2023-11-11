@@ -218,7 +218,29 @@ static inline __m256i mm256_not( const __m256i v )
 //
 //           Bit rotations.
 
-// Slow version, used as last resort
+#define mm256_shuffle16( v, c ) \
+   _mm256_shufflehi_epi16( _mm256_shufflelo_epi16( v, c ), c )
+
+#define mm256_qrev32(v)    _mm256_shuffle_epi32( v, 0xb1 )
+#define mm256_swap64_32    mm256_qrev32       // grandfathered
+
+#define mm256_qrev16(v)    mm256_shuffle16( v, 0x1b )
+
+#define mm256_qrev8(v) \
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( \
+                         v128_64( 0x08090a0b0c0d0e0f, 0x0001020304050607 ) ) )
+
+#define mm256_lrev16(v)    mm256_shuffle16( v, 0xb1 )
+
+#define mm256_lrev8(v) \
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( \
+                         v128_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 ) ) )
+
+#define mm256_wrev8(v)  \
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( \
+                         v128_64( 0x0e0f0c0d0a0b0809, 0x0607040502030001 ) ) )
+
+// These should never be called directly by applications.
 #define mm256_ror_64_avx2( v, c ) \
    _mm256_or_si256( _mm256_srli_epi64( v, c ), \
                     _mm256_slli_epi64( v, 64-(c) ) )
@@ -242,40 +264,76 @@ static inline __m256i mm256_not( const __m256i v )
 #define mm256_ror_32    _mm256_ror_epi32
 #define mm256_rol_32    _mm256_rol_epi32
 
+// Redundant but naming may be a better fit in some applications.
+#define mm126_shuflr64_8( v)      _mm256_ror_epi64( v,  8 )
+#define mm156_shufll64_8( v)      _mm256_rol_epi64( v,  8 )
+#define mm256_shuflr64_16(v)      _mm256_ror_epi64( v, 16 )
+#define mm256_shufll64_16(v)      _mm256_rol_epi64( v, 16 )
+#define mm256_shuflr64_24(v)      _mm256_ror_epi64( v, 24 )
+#define mm256_shufll64_24(v)      _mm256_rol_epi64( v, 24 )
+#define mm256_shuflr32_8( v)      _mm256_ror_epi32( v,  8 )
+#define mm256_shufll32_8( v)      _mm256_rol_epi32( v,  8 )
+#define mm256_shuflr32_16(v)      _mm256_ror_epi32( v, 16 )
+#define mm256_shufll32_16(v)      _mm256_rol_epi32( v, 16 )
+
 #else
 
+// ROR & ROL will always find the fastest but these names may be a better fit
+// in some applications.
+#define mm256_shuflr64_8( v ) \
+    _mm256_shuffle_epi8( v, mm256_bcast_m128( \
+                 _mm_set_epi64x( 0x080f0e0d0c0b0a09, 0x0007060504030201 ) ) )
+
+#define mm256_shufll64_8( v ) \
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( \
+                 _mm_set_epi64x( 0x0e0d0c0b0a09080f, 0x0605040302010007 ) ) )
+
+#define mm256_shuflr64_24( v ) \
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( \
+                  _mm_set_epi64x( 0x0a09080f0e0d0c0b, 0x0201000706050403 ) ) )
+
+#define mm256_shufll64_24( v ) \
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( \
+                  _mm_set_epi64x( 0x0c0b0a09080f0e0d, 0x0403020100070605 ) ) )
+
+#define mm256_shuflr32_8( v ) \
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( \
+                  _mm_set_epi64x( 0x0c0f0e0d080b0a09, 0x0407060500030201 ) ) )
+
+#define mm256_shufll32_8( v ) \
+   _mm256_shuffle_epi8( v, mm256_bcast_m128( \
+                  _mm_set_epi64x( 0x0e0d0c0f0a09080b, 0x0605040702010003 ) ) )
+
 #define mm256_ror_64( v, c ) \
-   ( (c) == 32 ) ? _mm256_shuffle_epi32( v, 0xb1 ) \
- : ( (c) == 24 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-              _mm_set_epi64x( 0x0a09080f0e0d0c0b, 0x0201000706050403 ) ) ) \
- : ( (c) == 16 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-              _mm_set_epi64x( 0x09080f0e0d0c0b0a, 0x0100070605040302 ) ) ) \
- : ( (c) ==  8 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-              _mm_set_epi64x( 0x080f0e0d0c0b0a09, 0x0007060504030201 ) ) ) \
+   ( (c) ==  8 ) ? mm256_shuflr64_8( v ) \
+ : ( (c) == 16 ) ? mm256_shuffle16( v, 0x39 ) \
+ : ( (c) == 24 ) ? mm256_shuflr64_24( v ) \
+ : ( (c) == 32 ) ? _mm256_shuffle_epi32( v, 0xb1 ) \
+ : ( (c) == 40 ) ? mm256_shufll64_24( v ) \
+ : ( (c) == 48 ) ? mm256_shuffle16( v, 0x93 ) \
+ : ( (c) == 56 ) ? mm256_shufll64_8( v ) \
  : mm256_ror_64_avx2( v, c )
 
 #define mm256_rol_64( v, c ) \
-   ( (c) == 32 ) ? _mm256_shuffle_epi32( v, 0xb1 ) \
- : ( (c) == 24 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-             _mm_set_epi64x( 0x0c0b0a09080f0e0d, 0x0403020100070605 ) ) ) \
- : ( (c) == 16 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-             _mm_set_epi64x( 0x0d0c0b0a09080f0e, 0x0504030201000706 ) ) ) \
- : ( (c) ==  8 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-             _mm_set_epi64x( 0x0e0d0c0b0a09080f, 0x0605040302010007 ) ) ) \
+   ( (c) ==  8 ) ? mm256_shufll64_8( v ) \
+ : ( (c) == 16 ) ? mm256_shuffle16( v, 0x93 ) \
+ : ( (c) == 24 ) ? mm256_shufll64_24( v ) \
+ : ( (c) == 32 ) ? _mm256_shuffle_epi32( v, 0xb1 ) \
+ : ( (c) == 40 ) ? mm256_shuflr64_24( v ) \
+ : ( (c) == 48 ) ? mm256_shuffle16( v, 0x39 ) \
+ : ( (c) == 56 ) ? mm256_shuflr64_8( v ) \
  : mm256_rol_64_avx2( v, c )
 
 #define mm256_ror_32( v, c ) \
-   ( (c) == 16 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-             _mm_set_epi64x( 0x0d0c0f0e09080b0a, 0x0504070601000302 ) ) )\
- : ( (c) ==  8 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-             _mm_set_epi64x( 0x0c0f0e0d080b0a09, 0x0407060500030201 ) ) ) \
+   ( (c) ==  8 ) ? mm256_shuflr32_8( v ) \
+ : ( (c) == 16 ) ? mm256_lrev16( v ) \
+ : ( (c) == 24 ) ? mm256_shufll32_8( v ) \
  : mm256_ror_32_avx2( v, c )
 
 #define mm256_rol_32( v, c ) \
-   ( (c) == 16 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-             _mm_set_epi64x( 0x0d0c0f0e09080b0a, 0x0504070601000302 ) ) ) \
- : ( (c) ==  8 ) ? _mm256_shuffle_epi8( v, mm256_bcast_m128( \
-             _mm_set_epi64x( 0x0e0d0c0f0a09080b, 0x0605040702010003 ) ) ) \
+   ( (c) ==  8 ) ? mm256_shufll32_8( v ) \
+ : ( (c) == 16 ) ? mm256_lrev16( v ) \
+ : ( (c) == 24 ) ? mm256_shuflr32_8( v ) \
  : mm256_rol_32_avx2( v, c )
 
 #endif
@@ -400,25 +458,19 @@ static inline __m256i mm256_not( const __m256i v )
 /* Not used
 // Rotate 256 bit vector by one 32 bit element.
 #if defined(__AVX512VL__)
-
 static inline __m256i mm256_shuflr_32( const __m256i v )
 { return _mm256_alignr_epi32( v, v, 1 ); }
-
 static inline __m256i mm256_shufll_32( const __m256i v )
 { return _mm256_alignr_epi32( v, v, 15 ); }
-
 #else
-
 #define mm256_shuflr_32( v ) \
     _mm256_permutevar8x32_epi32( v, \
                  _mm256_set_spi64x( 0x0000000000000007, 0x0000000600000005, \
                                     0x0000000400000003, 0x0000000200000001 ) )
-
 #define mm256_shufll_32( v ) \
     _mm256_permutevar8x32_epi32( v, \
                  _mm256_set_epi64x( 0x0000000600000005,  0x0000000400000003, \
                                     0x0000000200000001,  0x0000000000000007 ) )
-
 #endif
 */
 
@@ -449,21 +501,6 @@ static inline __m256i mm256_shufll_32( const __m256i v )
 static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 { return _mm256_alignr_epi8( v, v, c ); }
 */
-
-// Same as bit rotation but logically used as byte/word rotation.
-#define mm256_swap64_32( v )    mm256_ror_64( v, 32 )  // grandfathered
-#define mm256_rev64_32( v )     mm256_ror_64( v, 32 ) 
-
-#define mm256_shuflr64_16(v)    _mm256_ror_epi64( v, 16 )
-#define mm256_shufll64_16(v)    _mm256_rol_epi64( v, 16 )
-
-#define mm256_shuflr64_8(v)     _mm256_ror_epi64( v,  8 )
-#define mm256_shufll64_8(v)     _mm256_rol_epi64( v,  8 )
-
-#define mm256_rev32_16( v )     mm256_ror_32( v, 16 ) 
-
-#define mm256_shuflr32_8(v)     _mm256_ror_epi32( v,  8 )
-#define mm256_shufll32_8(v)     _mm256_rol_epi32( v,  8 )
 
 // Reverse byte order in elements, endian bswap.
 #define mm256_bswap_64( v ) \

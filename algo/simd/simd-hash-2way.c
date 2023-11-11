@@ -12,23 +12,8 @@ uint32_t SIMD_IV_512[] __attribute__((aligned(64))) =
    0x7eef60a1, 0x6b70e3e8, 0x9c1714d1, 0xb958e2a8,
    0xab02675e, 0xed1c014f, 0xcd8d65bb, 0xfdb7a257,
    0x09254899, 0xd699c7bc, 0x9019b6dc, 0x2b9022e4,
-   0x8fa14956, 0x21bf9bd3, 0xb94d0943, 0x6ffddc22 };
-
-#if defined(__x86_64__)
-
-#define SHUFXOR_1 0xb1          // rev64_32
-#define SHUFXOR_2 0x4e          // rev64
-#define SHUFXOR_3 0x1b          // rev32
-
-#elif defined(__aarch64__)
-
-#define SHUFXOR_1(x)     vrev64q_u32(x)
-#define SHUFXOR_2(x)     v128_rev64(x)
-#define SHUFXOR_3(x)     v128_rev64( v128_qrev32(x) )
-
-#else
-
-#endif
+   0x8fa14956, 0x21bf9bd3, 0xb94d0943, 0x6ffddc22
+};
 
 #define CAT(x, y) x##y
 #define XCAT(x,y) CAT(x,y)
@@ -89,8 +74,8 @@ uint32_t SIMD_IV_512[] __attribute__((aligned(64))) =
 #define SUM7_65 4
 #define SUM7_66 5
 
-#define PERM( z, d, a, shufxor ) \
-   XCAT( PERM_, XCAT( SUM7_ ## z, PERM_START ) )( d, a, shufxor )
+#define PERM( p, z, d, a, shufxor ) \
+   XCAT( PERM_, XCAT( SUM7_ ## z, p ) )( d, a, shufxor )
 
 #define PERM_0( d, a, shufxor ) /* XOR 1 */ \
 do { \
@@ -188,15 +173,21 @@ static const m128_v16 FFT256_twiddle[] __attribute__((aligned(64))) =
 
 #if defined(__x86_64__)
 
-#define shufxor(x,s) _mm_shuffle_epi32( x, XCAT( SHUFXOR_, s ))
+#define SHUFXOR_1(x)        _mm_shuffle_epi32(x,0xb1)
+#define SHUFXOR_2(x)        _mm_shuffle_epi32(x,0x4e)
+#define SHUFXOR_3(x)        _mm_shuffle_epi32(x,0x1b)
 
 #elif defined(__aarch64__)
 
-#define shufxor(x,s)   XCAT( SHUFXOR_, s )(x) 
+#define SHUFXOR_1(x)        vrev64q_u32(x)
+#define SHUFXOR_2(x)        v128_rev64(x)
+#define SHUFXOR_3(x)        v128_rev64(v128_qrev32(x))
 
 #else
-//#warning __FILE__ "Unknown or unsupported CPU architecture"
+//unknown or unsupported architecture
 #endif
+
+#define shufxor(x,s)   XCAT(SHUFXOR_,s)(x) 
 
 #define REDUCE(x) \
   v128_sub16( v128_and( x, v128_64( \
@@ -513,7 +504,7 @@ static void ROUNDS512( uint32_t *state, const uint8_t *msg, uint16_t *fft )
 #define Fl(a,b,c,fun) F_##fun (a##l,b##l,c##l)
 #define Fh(a,b,c,fun) F_##fun (a##h,b##h,c##h)
 
-#define STEP_1_(a,b,c,d,w,fun,r,s,z) \
+#define STEP_1_( a,b,c,d,w,fun,r,s,z,p ) \
 do { \
     TTl  = Fl( a,b,c,fun ); \
     TTh  = Fh( a,b,c,fun ); \
@@ -525,10 +516,10 @@ do { \
     TTh  = v128_add32( TTh, w##h ); \
     TTl  = v128_rol32( TTl, s ); \
     TTh  = v128_rol32( TTh, s ); \
-    PERM( z,d,a, shufxor ); \
+    PERM( p, z,d,a, shufxor ); \
 } while(0)
 
-#define STEP_1( a,b,c,d,w,fun,r,s,z )   STEP_1_( a,b,c,d,w,fun,r,s,z )
+#define STEP_1( a,b,c,d,w,fun,r,s,z,p )   STEP_1_( a,b,c,d,w,fun,r,s,z,p )
 
 #define STEP_2_( a,b,c,d,w,fun,r,s ) \
 do { \
@@ -538,10 +529,10 @@ do { \
 
 #define STEP_2( a,b,c,d,w,fun,r,s )  STEP_2_( a,b,c,d,w,fun,r,s )
 
-#define STEP( a,b,c,d,w1,w2,fun,r,s,z ) \
+#define STEP( a,b,c,d,w1,w2,fun,r,s,z,p ) \
 do { \
     register v128u32_t TTl, TTh, Wl=w1, Wh=w2; \
-    STEP_1( a,b,c,d,W,fun,r,s,z ); \
+    STEP_1( a,b,c,d,W,fun,r,s,z,p ); \
     STEP_2( a,b,c,d,W,fun,r,s ); \
 } while(0);
 
@@ -558,63 +549,45 @@ do { \
     w##h = v128_mul16( w##h, code[z].v128 ); \
 } while(0)
 
-#define ROUND( h0,l0,u0,h1,l1,u1,h2,l2,u2,h3,l3,u3,fun,r,s,t,u,z ) \
+#define ROUND( h0,l0,u0,h1,l1,u1,h2,l2,u2,h3,l3,u3,fun,r,s,t,u,z,p ) \
 do { \
     register v128u32_t W0l, W1l, W2l, W3l, TTl; \
     register v128u32_t W0h, W1h, W2h, W3h, TTh; \
     MSG( W0, h0, l0, u0, z ); \
-    STEP_1( S(0), S(1), S(2), S(3), W0, fun, r, s, 0 ); \
+    STEP_1( S(0), S(1), S(2), S(3), W0, fun, r, s, 0, p ); \
     MSG( W1, h1, l1, u1, z ); \
     STEP_2( S(0), S(1), S(2), S(3), W0, fun, r, s ); \
-    STEP_1( S(3), S(0), S(1), S(2), W1, fun, s, t, 1 ); \
+    STEP_1( S(3), S(0), S(1), S(2), W1, fun, s, t, 1, p ); \
     MSG( W2,h2,l2,u2,z ); \
     STEP_2( S(3), S(0), S(1), S(2), W1, fun, s, t ); \
-    STEP_1( S(2), S(3), S(0), S(1), W2, fun, t, u, 2 ); \
+    STEP_1( S(2), S(3), S(0), S(1), W2, fun, t, u, 2, p ); \
     MSG( W3,h3,l3,u3,z ); \
     STEP_2( S(2), S(3), S(0), S(1), W2, fun, t, u ); \
-    STEP_1( S(1), S(2), S(3), S(0), W3, fun, u, r, 3 ); \
+    STEP_1( S(1), S(2), S(3), S(0), W3, fun, u, r, 3, p ); \
     STEP_2( S(1), S(2), S(3), S(0), W3, fun, u, r ); \
 } while(0)
 
    // 4 rounds with code 185
-#define PERM_START 0
-   ROUND(  2, 10, l,  3, 11, l,  0,  8, l,  1,  9, l, 0, 3,  23, 17, 27, 0);
-#undef PERM_START
-#define PERM_START 4
-   ROUND(  3, 11, h,  2, 10, h,  1,  9, h,  0,  8, h, 1, 3,  23, 17, 27, 0);
-#undef PERM_START
-#define PERM_START 1
-   ROUND(  7, 15, h,  5, 13, h,  6, 14, l,  4, 12, l, 0, 28, 19, 22, 7,  0);
-#undef PERM_START
-#define PERM_START 5
-   ROUND(  4, 12, h,  6, 14, h,  5, 13, l,  7, 15, l, 1, 28, 19, 22, 7,  0);
-#undef PERM_START
+   ROUND(  2, 10, l,  3, 11, l,  0,  8, l,  1,  9, l, 0, 3,  23, 17, 27, 0, 0);
+   ROUND(  3, 11, h,  2, 10, h,  1,  9, h,  0,  8, h, 1, 3,  23, 17, 27, 0, 4);
+   ROUND(  7, 15, h,  5, 13, h,  6, 14, l,  4, 12, l, 0, 28, 19, 22, 7,  0, 1);
+   ROUND(  4, 12, h,  6, 14, h,  5, 13, l,  7, 15, l, 1, 28, 19, 22, 7,  0, 5);
 
    // 4 rounds with code 233
-#define PERM_START 2
-   ROUND(  0,  4, h,  1,  5, l,  3,  7, h,  2,  6, l, 0, 29,  9, 15,  5, 1);
-#undef PERM_START
-#define PERM_START 6
-   ROUND(  3,  7, l,  2,  6, h,  0,  4, l,  1,  5, h, 1, 29,  9, 15,  5, 1);
-#undef PERM_START
-#define PERM_START 3
-   ROUND( 11, 15, l,  8, 12, l,  8, 12, h, 11, 15, h, 0,  4, 13, 10, 25, 1);
-#undef PERM_START
-#define PERM_START 0
-   ROUND(  9, 13, h, 10, 14, h, 10, 14, l,  9, 13, l, 1,  4, 13, 10, 25, 1);
-#undef PERM_START
+   ROUND(  0,  4, h,  1,  5, l,  3,  7, h,  2,  6, l, 0, 29,  9, 15,  5, 1, 2);
+   ROUND(  3,  7, l,  2,  6, h,  0,  4, l,  1,  5, h, 1, 29,  9, 15,  5, 1, 6);
+   ROUND( 11, 15, l,  8, 12, l,  8, 12, h, 11, 15, h, 0,  4, 13, 10, 25, 1, 3);
+   ROUND(  9, 13, h, 10, 14, h, 10, 14, l,  9, 13, l, 1,  4, 13, 10, 25, 1, 0);
 
    // 1 round as feed-forward
-#define PERM_START 4
-   STEP( S(0), S(1), S(2), S(3), S[0], S[1], 0,  4, 13, 0 );
-   STEP( S(3), S(0), S(1), S(2), S[2], S[3], 0, 13, 10, 1 );
-   STEP( S(2), S(3), S(0), S(1), S[4], S[5], 0, 10, 25, 2 );
-   STEP( S(1), S(2), S(3), S(0), S[6], S[7], 0, 25,  4, 3 );
+   STEP( S(0), S(1), S(2), S(3), S[0], S[1], 0,  4, 13, 0, 4 );
+   STEP( S(3), S(0), S(1), S(2), S[2], S[3], 0, 13, 10, 1, 4 );
+   STEP( S(2), S(3), S(0), S(1), S[4], S[5], 0, 10, 25, 2, 4 );
+   STEP( S(1), S(2), S(3), S(0), S[6], S[7], 0, 25,  4, 3, 4 );
 
    S[0] = S0l;  S[1] = S0h;  S[2] = S1l;  S[3] = S1h;
    S[4] = S2l;  S[5] = S2h;  S[6] = S3l;  S[7] = S3h;
 
-#undef PERM_START
 #undef STEP_1
 #undef STEP_1_
 #undef STEP_2
@@ -732,6 +705,9 @@ int simd512( void *hashval, const void *data, int datalen )
 #undef REDUCE_FULL_S
 #undef DO_REDUCE_FULL_S
 #undef c1_16
+#undef SHUFXOR_1 
+#undef SHUFXOR_2 
+#undef SHUFXOR_3 
 
 #endif
 
@@ -820,118 +796,12 @@ static const m256_v16 FFT256_Twiddle[] =
        -30,   55,  -58,  -65,  -95,  -40,  -98,   94 }}
 };
 
-#if 0
-// generic 
-#define SHUFXOR_1 0xb1          // 0b10110001 
-#define SHUFXOR_2 0x4e          // 0b01001110 
-#define SHUFXOR_3 0x1b          // 0b00011011 
 
-#define CAT(x, y) x##y
-#define XCAT(x,y) CAT(x,y)
+#define SHUFXOR_1(x)        _mm256_shuffle_epi32(x,0xb1)
+#define SHUFXOR_2(x)        _mm256_shuffle_epi32(x,0x4e)
+#define SHUFXOR_3(x)        _mm256_shuffle_epi32(x,0x1b)
 
-#define SUM7_00 0
-#define SUM7_01 1
-#define SUM7_02 2
-#define SUM7_03 3
-#define SUM7_04 4
-#define SUM7_05 5
-#define SUM7_06 6
-
-#define SUM7_10 1
-#define SUM7_11 2
-#define SUM7_12 3
-#define SUM7_13 4
-#define SUM7_14 5
-#define SUM7_15 6
-#define SUM7_16 0
-
-#define SUM7_20 2
-#define SUM7_21 3
-#define SUM7_22 4
-#define SUM7_23 5
-#define SUM7_24 6
-#define SUM7_25 0
-#define SUM7_26 1
-
-#define SUM7_30 3
-#define SUM7_31 4
-#define SUM7_32 5
-#define SUM7_33 6
-#define SUM7_34 0
-#define SUM7_35 1
-#define SUM7_36 2
-
-#define SUM7_40 4
-#define SUM7_41 5
-#define SUM7_42 6
-#define SUM7_43 0
-#define SUM7_44 1
-#define SUM7_45 2
-#define SUM7_46 3
-
-#define SUM7_50 5
-#define SUM7_51 6
-#define SUM7_52 0
-#define SUM7_53 1
-#define SUM7_54 2
-#define SUM7_55 3
-#define SUM7_56 4
-
-#define SUM7_60 6
-#define SUM7_61 0
-#define SUM7_62 1
-#define SUM7_63 2
-#define SUM7_64 3
-#define SUM7_65 4
-#define SUM7_66 5
-
-
-#define PERM(z,d,a,shufxor) XCAT(PERM_,XCAT(SUM7_##z,PERM_START))(d,a,shufxor)
-
-#define PERM_0(d,a,shufxor) /* XOR 1 */ \
-do { \
-    d##l = shufxor( a##l, 1 ); \
-    d##h = shufxor( a##h, 1 ); \
- } while(0)
-
-#define PERM_1(d,a,shufxor) /* XOR 6 */ \
-do { \
-    d##l = shufxor( a##h, 2 ); \
-    d##h = shufxor( a##l, 2 ); \
-} while(0)
-
-#define PERM_2(d,a,shufxor) /* XOR 2 */ \
-do { \
-    d##l = shufxor( a##l, 2 ); \
-    d##h = shufxor( a##h, 2 ); \
-} while(0)
-
-#define PERM_3(d,a,shufxor) /* XOR 3 */ \
-do { \
-    d##l = shufxor( a##l, 3 ); \
-    d##h = shufxor( a##h, 3 ); \
-} while(0)
-
-#define PERM_4(d,a,shufxor) /* XOR 5 */ \
-do { \
-    d##l = shufxor( a##h, 1 ); \
-    d##h = shufxor( a##l, 1 ); \
-} while(0)
-
-#define PERM_5(d,a,shufxor) /* XOR 7 */ \
-do { \
-    d##l = shufxor( a##h, 3 ); \
-    d##h = shufxor( a##l, 3 ); \
-} while(0)
-
-#define PERM_6(d,a,shufxor) /* XOR 4 */ \
-do { \
-    d##l = a##h; \
-    d##h = a##l; \
-} while(0)
-#endif
-
-#define shufxor2w(x,s) _mm256_shuffle_epi32( x, XCAT( SHUFXOR_, s ))
+#define shufxor2w(x,s)      XCAT(SHUFXOR_,s)(x)
 
 #if defined(__AVX512VL__)
 //TODO Enable for AVX10_256
@@ -1262,7 +1132,7 @@ static void rounds512_2way( uint32_t *state, const uint8_t *msg, uint16_t *fft )
 #define Fl(a,b,c,fun) F_##fun (a##l,b##l,c##l)
 #define Fh(a,b,c,fun) F_##fun (a##h,b##h,c##h)
 
-#define STEP_1_(a,b,c,d,w,fun,r,s,z) \
+#define STEP_1_(a,b,c,d,w,fun,r,s,z,p ) \
 do { \
     TTl  = Fl( a,b,c,fun ); \
     TTh  = Fh( a,b,c,fun ); \
@@ -1274,10 +1144,10 @@ do { \
     TTh  = _mm256_add_epi32( TTh, w##h ); \
     TTl  = mm256_rol_32( TTl, s ); \
     TTh  = mm256_rol_32( TTh, s ); \
-    PERM( z,d,a, shufxor2w ); \
+    PERM( p,z,d,a, shufxor2w ); \
 } while(0)
 
-#define STEP_1( a,b,c,d,w,fun,r,s,z )   STEP_1_( a,b,c,d,w,fun,r,s,z )
+#define STEP_1( a,b,c,d,w,fun,r,s,z,p )   STEP_1_( a,b,c,d,w,fun,r,s,z,p )
 
 #define STEP_2_( a,b,c,d,w,fun,r,s ) \
 do { \
@@ -1287,10 +1157,10 @@ do { \
 
 #define STEP_2( a,b,c,d,w,fun,r,s )  STEP_2_( a,b,c,d,w,fun,r,s )
 
-#define STEP( a,b,c,d,w1,w2,fun,r,s,z ) \
+#define STEP( a,b,c,d,w1,w2,fun,r,s,z, p ) \
 do { \
     register __m256i TTl, TTh, Wl=w1, Wh=w2; \
-    STEP_1( a,b,c,d,W,fun,r,s,z ); \
+    STEP_1( a,b,c,d,W,fun,r,s,z,p ); \
     STEP_2( a,b,c,d,W,fun,r,s ); \
 } while(0);
 
@@ -1307,63 +1177,45 @@ do { \
     w##h = _mm256_mullo_epi16( w##h, code[z].v256 ); \
 } while(0)
 
-#define ROUND( h0,l0,u0,h1,l1,u1,h2,l2,u2,h3,l3,u3,fun,r,s,t,u,z ) \
+#define ROUND( h0,l0,u0,h1,l1,u1,h2,l2,u2,h3,l3,u3,fun,r,s,t,u,z,p ) \
 do { \
     register __m256i W0l, W1l, W2l, W3l, TTl; \
     register __m256i W0h, W1h, W2h, W3h, TTh; \
     MSG( W0, h0, l0, u0, z ); \
-    STEP_1( S(0), S(1), S(2), S(3), W0, fun, r, s, 0 ); \
+    STEP_1( S(0), S(1), S(2), S(3), W0, fun, r, s, 0, p ); \
     MSG( W1, h1, l1, u1, z ); \
     STEP_2( S(0), S(1), S(2), S(3), W0, fun, r, s ); \
-    STEP_1( S(3), S(0), S(1), S(2), W1, fun, s, t, 1 ); \
+    STEP_1( S(3), S(0), S(1), S(2), W1, fun, s, t, 1, p ); \
     MSG( W2,h2,l2,u2,z ); \
     STEP_2( S(3), S(0), S(1), S(2), W1, fun, s, t ); \
-    STEP_1( S(2), S(3), S(0), S(1), W2, fun, t, u, 2 ); \
+    STEP_1( S(2), S(3), S(0), S(1), W2, fun, t, u, 2, p ); \
     MSG( W3,h3,l3,u3,z ); \
     STEP_2( S(2), S(3), S(0), S(1), W2, fun, t, u ); \
-    STEP_1( S(1), S(2), S(3), S(0), W3, fun, u, r, 3 ); \
+    STEP_1( S(1), S(2), S(3), S(0), W3, fun, u, r, 3, p ); \
     STEP_2( S(1), S(2), S(3), S(0), W3, fun, u, r ); \
 } while(0)
 
    // 4 rounds with code 185
-#define PERM_START 0
-   ROUND(  2, 10, l,  3, 11, l,  0,  8, l,  1,  9, l, 0, 3,  23, 17, 27, 0);
-#undef PERM_START
-#define PERM_START 4
-   ROUND(  3, 11, h,  2, 10, h,  1,  9, h,  0,  8, h, 1, 3,  23, 17, 27, 0);
-#undef PERM_START
-#define PERM_START 1
-   ROUND(  7, 15, h,  5, 13, h,  6, 14, l,  4, 12, l, 0, 28, 19, 22, 7,  0);
-#undef PERM_START
-#define PERM_START 5
-   ROUND(  4, 12, h,  6, 14, h,  5, 13, l,  7, 15, l, 1, 28, 19, 22, 7,  0);
-#undef PERM_START
+   ROUND(  2, 10, l,  3, 11, l,  0,  8, l,  1,  9, l, 0, 3,  23, 17, 27, 0, 0);
+   ROUND(  3, 11, h,  2, 10, h,  1,  9, h,  0,  8, h, 1, 3,  23, 17, 27, 0, 4);
+   ROUND(  7, 15, h,  5, 13, h,  6, 14, l,  4, 12, l, 0, 28, 19, 22, 7,  0, 1);
+   ROUND(  4, 12, h,  6, 14, h,  5, 13, l,  7, 15, l, 1, 28, 19, 22, 7,  0, 5);
 
    // 4 rounds with code 233
-#define PERM_START 2
-   ROUND(  0,  4, h,  1,  5, l,  3,  7, h,  2,  6, l, 0, 29,  9, 15,  5, 1);
-#undef PERM_START
-#define PERM_START 6
-   ROUND(  3,  7, l,  2,  6, h,  0,  4, l,  1,  5, h, 1, 29,  9, 15,  5, 1);
-#undef PERM_START
-#define PERM_START 3
-   ROUND( 11, 15, l,  8, 12, l,  8, 12, h, 11, 15, h, 0,  4, 13, 10, 25, 1);
-#undef PERM_START
-#define PERM_START 0
-   ROUND(  9, 13, h, 10, 14, h, 10, 14, l,  9, 13, l, 1,  4, 13, 10, 25, 1);
-#undef PERM_START
+   ROUND(  0,  4, h,  1,  5, l,  3,  7, h,  2,  6, l, 0, 29,  9, 15,  5, 1, 2);
+   ROUND(  3,  7, l,  2,  6, h,  0,  4, l,  1,  5, h, 1, 29,  9, 15,  5, 1, 6);
+   ROUND( 11, 15, l,  8, 12, l,  8, 12, h, 11, 15, h, 0,  4, 13, 10, 25, 1, 3);
+   ROUND(  9, 13, h, 10, 14, h, 10, 14, l,  9, 13, l, 1,  4, 13, 10, 25, 1, 0);
 
    // 1 round as feed-forward
-#define PERM_START 4
-   STEP( S(0), S(1), S(2), S(3), S[0], S[1], 0,  4, 13, 0 );
-   STEP( S(3), S(0), S(1), S(2), S[2], S[3], 0, 13, 10, 1 );
-   STEP( S(2), S(3), S(0), S(1), S[4], S[5], 0, 10, 25, 2 );
-   STEP( S(1), S(2), S(3), S(0), S[6], S[7], 0, 25,  4, 3 );
-
+   STEP( S(0), S(1), S(2), S(3), S[0], S[1], 0,  4, 13, 0, 4 );
+   STEP( S(3), S(0), S(1), S(2), S[2], S[3], 0, 13, 10, 1, 4 );
+   STEP( S(2), S(3), S(0), S(1), S[4], S[5], 0, 10, 25, 2, 4 );
+   STEP( S(1), S(2), S(3), S(0), S[6], S[7], 0, 25,  4, 3, 4 );
+  
    S[0] = S0l;  S[1] = S0h;  S[2] = S1l;  S[3] = S1h;
    S[4] = S2l;  S[5] = S2h;  S[6] = S3l;  S[7] = S3h;
 
-#undef PERM_START
 #undef STEP_1
 #undef STEP_1_
 #undef STEP_2
@@ -1642,6 +1494,10 @@ int simd512_2way( void *hashval, const void *data, int datalen )
    return 0;
 }
 
+#undef SHUFXOR_1
+#undef SHUFXOR_2
+#undef SHUFXOR_3
+
 #endif
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
@@ -1792,7 +1648,11 @@ static const m512_v16 FFT256_Twiddle4w[] =
        -30,   55,  -58,  -65,  -95,  -40,  -98,   94 }}
 };
 
-#define shufxor4w(x,s) _mm512_shuffle_epi32( x, XCAT( SHUFXOR_, s ))
+#define SHUFXOR_1(x)        _mm512_shuffle_epi32(x,0xb1)
+#define SHUFXOR_2(x)        _mm512_shuffle_epi32(x,0x4e)
+#define SHUFXOR_3(x)        _mm512_shuffle_epi32(x,0x1b)
+
+#define shufxor4w(x,s)      XCAT(SHUFXOR_,s)(x)
 
 #define REDUCE4w(x) \
   _mm512_sub_epi16( _mm512_maskz_mov_epi8( 0x5555555555555555, x ), \
@@ -2114,7 +1974,7 @@ static void rounds512_4way( uint32_t *state, const uint8_t *msg, uint16_t *fft )
 
 // targetted
   
-#define STEP_1_(a,b,c,d,w,fun,r,s,z) \
+#define STEP_1_( a,b,c,d,w,fun,r,s,z,p ) \
 do { \
     TTl  = Fl( a,b,c,fun ); \
     TTh  = Fh( a,b,c,fun ); \
@@ -2126,10 +1986,10 @@ do { \
     TTh  = _mm512_add_epi32( TTh, w##h ); \
     TTl  = mm512_rol_32( TTl, s ); \
     TTh  = mm512_rol_32( TTh, s ); \
-    PERM( z,d,a, shufxor4w ); \
+    PERM( p,z,d,a, shufxor4w ); \
 } while(0)
 
-#define STEP_1( a,b,c,d,w,fun,r,s,z )   STEP_1_( a,b,c,d,w,fun,r,s,z )
+#define STEP_1( a,b,c,d,w,fun,r,s,z,p )   STEP_1_( a,b,c,d,w,fun,r,s,z,p )
 
 #define STEP_2_( a,b,c,d,w,fun,r,s ) \
 do { \
@@ -2139,10 +1999,10 @@ do { \
 
 #define STEP_2( a,b,c,d,w,fun,r,s )  STEP_2_( a,b,c,d,w,fun,r,s )
 
-#define STEP( a,b,c,d,w1,w2,fun,r,s,z ) \
+#define STEP( a,b,c,d,w1,w2,fun,r,s,z,p ) \
 do { \
     register __m512i TTl, TTh, Wl=w1, Wh=w2; \
-    STEP_1( a,b,c,d,W,fun,r,s,z ); \
+    STEP_1( a,b,c,d,W,fun,r,s,z,p ); \
     STEP_2( a,b,c,d,W,fun,r,s ); \
 } while(0);
 
@@ -2159,63 +2019,45 @@ do { \
     w##h = _mm512_mullo_epi16( w##h, code[z].v512 ); \
 } while(0)
   
-#define ROUND( h0,l0,u0,h1,l1,u1,h2,l2,u2,h3,l3,u3,fun,r,s,t,u,z ) \
+#define ROUND( h0,l0,u0,h1,l1,u1,h2,l2,u2,h3,l3,u3,fun,r,s,t,u,z,p ) \
 do { \
     register __m512i W0l, W1l, W2l, W3l, TTl; \
     register __m512i W0h, W1h, W2h, W3h, TTh; \
     MSG( W0, h0, l0, u0, z ); \
-    STEP_1( S(0), S(1), S(2), S(3), W0, fun, r, s, 0 ); \
+    STEP_1( S(0), S(1), S(2), S(3), W0, fun, r, s, 0,p ); \
     MSG( W1, h1, l1, u1, z ); \
     STEP_2( S(0), S(1), S(2), S(3), W0, fun, r, s ); \
-    STEP_1( S(3), S(0), S(1), S(2), W1, fun, s, t, 1 ); \
+    STEP_1( S(3), S(0), S(1), S(2), W1, fun, s, t, 1,p ); \
     MSG( W2,h2,l2,u2,z ); \
     STEP_2( S(3), S(0), S(1), S(2), W1, fun, s, t ); \
-    STEP_1( S(2), S(3), S(0), S(1), W2, fun, t, u, 2 ); \
+    STEP_1( S(2), S(3), S(0), S(1), W2, fun, t, u, 2,p ); \
     MSG( W3,h3,l3,u3,z ); \
     STEP_2( S(2), S(3), S(0), S(1), W2, fun, t, u ); \
-    STEP_1( S(1), S(2), S(3), S(0), W3, fun, u, r, 3 ); \
+    STEP_1( S(1), S(2), S(3), S(0), W3, fun, u, r, 3,p ); \
     STEP_2( S(1), S(2), S(3), S(0), W3, fun, u, r ); \
 } while(0)
 
    // 4 rounds with code 185
-#define PERM_START 0
-   ROUND(  2, 10, l,  3, 11, l,  0,  8, l,  1,  9, l, 0, 3,  23, 17, 27, 0);
-#undef PERM_START
-#define PERM_START 4
-   ROUND(  3, 11, h,  2, 10, h,  1,  9, h,  0,  8, h, 1, 3,  23, 17, 27, 0);
-#undef PERM_START
-#define PERM_START 1
-   ROUND(  7, 15, h,  5, 13, h,  6, 14, l,  4, 12, l, 0, 28, 19, 22, 7,  0);
-#undef PERM_START
-#define PERM_START 5
-   ROUND(  4, 12, h,  6, 14, h,  5, 13, l,  7, 15, l, 1, 28, 19, 22, 7,  0);
-#undef PERM_START
+   ROUND(  2, 10, l,  3, 11, l,  0,  8, l,  1,  9, l, 0, 3,  23, 17, 27, 0, 0);
+   ROUND(  3, 11, h,  2, 10, h,  1,  9, h,  0,  8, h, 1, 3,  23, 17, 27, 0, 4);
+   ROUND(  7, 15, h,  5, 13, h,  6, 14, l,  4, 12, l, 0, 28, 19, 22, 7,  0, 1);
+   ROUND(  4, 12, h,  6, 14, h,  5, 13, l,  7, 15, l, 1, 28, 19, 22, 7,  0, 5);
 
    // 4 rounds with code 233
-#define PERM_START 2
-   ROUND(  0,  4, h,  1,  5, l,  3,  7, h,  2,  6, l, 0, 29,  9, 15,  5, 1);
-#undef PERM_START
-#define PERM_START 6
-   ROUND(  3,  7, l,  2,  6, h,  0,  4, l,  1,  5, h, 1, 29,  9, 15,  5, 1);
-#undef PERM_START
-#define PERM_START 3
-   ROUND( 11, 15, l,  8, 12, l,  8, 12, h, 11, 15, h, 0,  4, 13, 10, 25, 1);
-#undef PERM_START
-#define PERM_START 0
-   ROUND(  9, 13, h, 10, 14, h, 10, 14, l,  9, 13, l, 1,  4, 13, 10, 25, 1);
-#undef PERM_START
+   ROUND(  0,  4, h,  1,  5, l,  3,  7, h,  2,  6, l, 0, 29,  9, 15,  5, 1, 2);
+   ROUND(  3,  7, l,  2,  6, h,  0,  4, l,  1,  5, h, 1, 29,  9, 15,  5, 1, 6);
+   ROUND( 11, 15, l,  8, 12, l,  8, 12, h, 11, 15, h, 0,  4, 13, 10, 25, 1, 3);
+   ROUND(  9, 13, h, 10, 14, h, 10, 14, l,  9, 13, l, 1,  4, 13, 10, 25, 1, 0);
 
    // 1 round as feed-forward
-#define PERM_START 4
-   STEP( S(0), S(1), S(2), S(3), S[0], S[1], 0,  4, 13, 0 );
-   STEP( S(3), S(0), S(1), S(2), S[2], S[3], 0, 13, 10, 1 );
-   STEP( S(2), S(3), S(0), S(1), S[4], S[5], 0, 10, 25, 2 );
-   STEP( S(1), S(2), S(3), S(0), S[6], S[7], 0, 25,  4, 3 );
-
+   STEP( S(0), S(1), S(2), S(3), S[0], S[1], 0,  4, 13, 0, 4 );
+   STEP( S(3), S(0), S(1), S(2), S[2], S[3], 0, 13, 10, 1, 4 );
+   STEP( S(2), S(3), S(0), S(1), S[4], S[5], 0, 10, 25, 2, 4 );
+   STEP( S(1), S(2), S(3), S(0), S[6], S[7], 0, 25,  4, 3, 4 );
+  
    S[0] = S0l;  S[1] = S0h;  S[2] = S1l;  S[3] = S1h;
    S[4] = S2l;  S[5] = S2h;  S[6] = S3l;  S[7] = S3h;
 
-#undef PERM_START
 #undef STEP_1
 #undef STEP_1_
 #undef STEP_2

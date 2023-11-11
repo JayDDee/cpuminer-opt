@@ -153,10 +153,16 @@
 #define v128_unpackhi8                 _mm_unpackhi_epi8
 
 // AES
+// Nokey means nothing on x86_64 but it saves an instruction and a register
+// on ARM.
 #define v128_aesenc                    _mm_aesenc_si128
+#define v128_aesenc_nokey(v)           _mm_aesenc_si128( v, v128_zero )
 #define v128_aesenclast                _mm_aesenclast_si128
+#define v128_aesenclast_nokey(v)       _mm_aesenclast_si128( v, v128_zero )
 #define v128_aesdec                    _mm_aesdec_si128
+#define v128_aesdec_nokey(v)           _mm_aesdec_si128( v, v128_zero )
 #define v128_aesdeclast                _mm_aesdeclast_si128
+#define v128_aesdeclast_nokey(v)       _mm_aesdeclast_si128( v, v128_zero )
 
 // Used instead if casting.
 typedef union
@@ -499,73 +505,141 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 //
 // Bit rotations
 
-// Slow bit rotation, used as last resort
-#define mm128_ror_64_sse2( v, c ) \
+#define v128_shuffle16( v, c ) \
+       _mm_shufflehi_epi16( _mm_shufflelo_epi16( v, c ), c )
+
+#define v128_qrev32(v)      _mm_shuffle_epi32( v, 0xb1 )
+#define v128_swap64_32(v)   _mm_shuffle_epi32( v, 0xb1 )  // grandfathered
+
+#define v128_qrev16(v)      v128_shuffle16( v, 0x1b )
+#define v128_lrev16(v)      v128_shuffle16( v, 0xb1 )
+
+// These sgould never be callled from application code, use rol/ror.
+#define v128_ror64_sse2( v, c ) \
    _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) )
 
-#define mm128_rol_64_sse2( v, c ) \
+#define v128_rol64_sse2( v, c ) \
    _mm_or_si128( _mm_slli_epi64( v, c ), _mm_srli_epi64( v, 64-(c) ) )
 
-#define mm128_ror_32_sse2( v, c ) \
+#define v128_ror32_sse2( v, c ) \
    _mm_or_si128( _mm_srli_epi32( v, c ), _mm_slli_epi32( v, 32-(c) ) )
 
-#define mm128_rol_32_sse2( v, c ) \
+#define v128_rol32_sse2( v, c ) \
    _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
 
 #if defined(__AVX512VL__)
 
-#define mm128_ror_64    _mm_ror_epi64
-#define mm128_rol_64    _mm_rol_epi64
-#define mm128_ror_32    _mm_ror_epi32
-#define mm128_rol_32    _mm_rol_epi32
+// AVX512 fastest all rotations.
+#define mm128_ror_64                _mm_ror_epi64
+#define mm128_rol_64                _mm_rol_epi64
+#define mm128_ror_32                _mm_ror_epi32
+#define mm128_rol_32                _mm_rol_epi32
 
-// optimized byte wise rotation
+// ror/rol will alway find the fastest but these names may fit better with
+// application code performing shuffles rather than bit rotations.
+#define v128_shuflr64_8( v)         _mm_ror_epi64( v,  8 )
+#define v128_shufll64_8( v)         _mm_rol_epi64( v,  8 )
+#define v128_shuflr64_16(v)         _mm_ror_epi64( v, 16 )
+#define v128_shufll64_16(v)         _mm_rol_epi64( v, 16 )
+#define v128_shuflr64_24(v)         _mm_ror_epi64( v, 24 )
+#define v128_shufll64_24(v)         _mm_rol_epi64( v, 24 )
+#define v128_shuflr32_8( v)         _mm_ror_epi32( v,  8 )
+#define v128_shufll32_8( v)         _mm_rol_epi32( v,  8 )
+#define v128_shuflr32_16(v)         _mm_ror_epi32( v, 16 )
+#define v128_shufll32_16(v)         _mm_rol_epi32( v, 16 )
+
 #elif defined(__SSSE3__)
+// SSE2: fastest 32 bit, very fast 16, fast 8
+
+#define v128_shuflr64_8( v ) \
+    _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                  0x080f0e0d0c0b0a09, 0x0007060504030201 ) )
+
+#define v128_shufll64_8( v ) \
+   _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                  0x0e0d0c0b0a09080f, 0x0605040302010007 ) )
+
+#define v128_shuflr64_24( v ) \
+    _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                  0x0a09080f0e0d0c0b, 0x0201000706050403 ) )
+
+#define v128_shufll64_24( v ) \
+   _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                  0x0c0b0a09080f0e0d, 0x0403020100070605 ) )
+
+#define v128_shuflr32_8( v ) \
+   _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                  0x0c0f0e0d080b0a09, 0x0407060500030201 ) )
+
+#define v128_shufll32_8( v ) \
+   _mm_shuffle_epi8( v, _mm_set_epi64x( \
+                                  0x0e0d0c0f0a09080b, 0x0605040702010003 ) )
 
 #define mm128_ror_64( v, c ) \
-   ( (c) == 32 ) ? _mm_shuffle_epi32( v, 0xb1 ) \
- : ( (c) == 24 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x0a09080f0e0d0c0b, 0x0201000706050403 ) ) \
- : ( (c) == 16 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x09080f0e0d0c0b0a, 0x0100070605040302 ) ) \
- : ( (c) ==  8 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x080f0e0d0c0b0a09, 0x0007060504030201 ) ) \
- : mm128_ror_64_sse2( v, c ) 
+   ( (c) ==  8 ) ? v128_shuflr64_8( v ) \
+ : ( (c) == 16 ) ? v128_shuffle16( v, 0x39 ) \
+ : ( (c) == 24 ) ? v128_shuflr64_24( v ) \
+ : ( (c) == 32 ) ? _mm_shuffle_epi32( v, 0xb1 ) \
+ : ( (c) == 40 ) ? v128_shufll64_24( v ) \
+ : ( (c) == 48 ) ? v128_shuffle16( v, 0x93 ) \
+ : ( (c) == 56 ) ? v128_shufll64_8( v ) \
+ : v128_ror64_sse2( v, c ) 
 
 #define mm128_rol_64( v, c ) \
-   ( (c) == 32 ) ? _mm_shuffle_epi32( v, 0xb1 ) \
- : ( (c) == 24 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x0c0b0a09080f0e0d, 0x0403020100070605 ) ) \
- : ( (c) == 16 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x0d0c0b0a09080f0e, 0x0504030201000706 ) ) \
- : ( (c) ==  8 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x0e0d0c0b0a09080f, 0x0605040302010007 ) ) \
- : mm128_rol_64_sse2( v, c ) 
+   ( (c) ==  8 ) ? v128_shufll64_8( v ) \
+ : ( (c) == 16 ) ? v128_shuffle16( v, 0x93 ) \
+ : ( (c) == 24 ) ? v128_shufll64_24( v ) \
+ : ( (c) == 32 ) ? _mm_shuffle_epi32( v, 0xb1 ) \
+ : ( (c) == 40 ) ? v128_shuflr64_24( v ) \
+ : ( (c) == 48 ) ? v128_shuffle16( v, 0x39 ) \
+ : ( (c) == 56 ) ? v128_shuflr64_8( v ) \
+ : v128_rol64_sse2( v, c ) 
 
 #define mm128_ror_32( v, c ) \
-   ( (c) == 16 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x0d0c0f0e09080b0a, 0x0504070601000302 ) ) \
- : ( (c) ==  8 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x0c0f0e0d080b0a09, 0x0407060500030201 ) ) \
- : mm128_ror_32_sse2( v, c ) 
+   ( (c) ==  8 ) ? v128_shuflr32_8( v ) \
+ : ( (c) == 16 ) ? v128_lrev16( v ) \
+ : ( (c) == 24 ) ? v128_shufll32_8( v ) \
+ : v128_ror32_sse2( v, c ) 
 
 #define mm128_rol_32( v, c ) \
-   ( (c) == 16 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x0d0c0f0e09080b0a, 0x0504070601000302 ) ) \
- : ( (c) ==  8 ) ? _mm_shuffle_epi8( v, _mm_set_epi64x( \
-                                  0x0e0d0c0f0a09080b, 0x0605040702010003 ) ) \
- : mm128_rol_32_sse2( v, c )
+   ( (c) ==  8 ) ? v128_shufll32_8( v ) \
+ : ( (c) == 16 ) ? v128_lrev16( v ) \
+ : ( (c) == 24 ) ? v128_shuflr32_8( v ) \
+ : v128_rol32_sse2( v, c )
+
+#elif defined(__SSE2__)
+// SSE2: fastest 32 bit, very fast 16
+
+#define mm128_ror_64( v, c ) \
+   ( (c) == 16 ) ? v128_shuffle16( v, 0x39 ) \
+ : ( (c) == 32 ) ? _mm_shuffle_epi32( v, 0xb1 ) \
+ : ( (c) == 48 ) ? v128_shuffle16( v, 0x93 ) \
+ : v128_ror64_sse2( v, c )
+
+#define mm128_rol_64( v, c ) \
+   ( (c) == 16 ) ? v128_shuffle16( v, 0x93 ) \
+ : ( (c) == 32 ) ? _mm_shuffle_epi32( v, 0xb1 ) \
+ : ( (c) == 48 ) ? v128_shuffle16( v, 0x39 ) \
+ : v128_rol64_sse2( v, c )
+
+#define mm128_ror_32( v, c ) \
+  ( (c) == 16 ) ? v128_lrev16( v ) \
+ : v128_ror32_sse2( v, c )
+
+#define mm128_rol_32( v, c ) \
+  ( (c) == 16 ) ? v128_lrev16( v ) \
+ : v128_rol32_sse2( v, c )
 
 #else 
 
-#define mm128_ror_64         mm128_ror_64_sse2
-#define mm128_rol_64         mm128_rol_64_sse2
-#define mm128_ror_32         mm128_ror_32_sse2
-#define mm128_rol_32         mm128_rol_32_sse2
+#define mm128_ror_64         v128_ror64_sse2
+#define mm128_rol_64         v128_rol64_sse2
+#define mm128_ror_32         v128_ror32_sse2
+#define mm128_rol_32         v128_rol32_sse2
 
 #endif
 
-// Architecturally agnostic naming
+// Generic names for portable code
 #define v128_ror64            mm128_ror_64
 #define v128_rol64            mm128_rol_64
 #define v128_ror32            mm128_ror_32
@@ -669,9 +743,6 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 
 // Rotate vector elements accross all lanes
 
-#define v128_shuffle16( v, c ) \
-   _mm_or_si128( _mm_shufflehi_epi16( v, c ), _mm_shufflelo_epi16( v, c ) )
-
 // reverse elements in vector
 #define v128_swap64(v)      _mm_shuffle_epi32( v, 0x4e )  // grandfathered 
 #define v128_rev64(v)       _mm_shuffle_epi32( v, 0x4e )  // preferred
@@ -685,24 +756,12 @@ static inline void memcpy_128( __m128i *dst, const __m128i *src, const int n )
 #define v128_shuflr16(v)    v128_shuffle16( v, 0x39 )
 #define v128_shufll16(v)    v128_shuffle16( v, 0x93 )
 
-// Some sub-vector shuffles are identical to bit rotation. Shuffle is faster.
-// Bit rotation already promotes faster widths. Usage of these versions
-// are context sensitive.
 
-// reverse elements in vector lanes
-#define v128_qrev32(v)      v128_ror64( v, 32 )
-#define v128_swap64_32(v)   v128_ror64( v, 32 )   // grandfathered
-
-#define v128_qrev16(v) \
-    _mm_or_si128( _mm_shufflehi_epi16( v, v128u16( 0x1b ) ) \
-                  _mm_shufflelo_epi16( v, v128u16( 0x1b ) ) )
-
-#define v128_lrev16(v)      v128_ror32( v, 16 )
-
+//TODO fix this
 // alias bswap
-#define v128_qrev8(v)       _mm_shuffle_epi8( v, v128_8( 0,1,2,3,4,5,6,7 ) )
-#define v128_lrev8(v)       _mm_shuffle_epi8( v, v128_8( 4,5,6,7, 0,1,2,3 ) )
-#define v128_wrev8(v)       _mm_shuffle_epi8( v, v128_8( 6,7, 4,5, 2,3, 1,0 ) )
+//#define v128_qrev8(v)       _mm_shuffle_epi8( v, v128_8( 0,1,2,3,4,5,6,7 ) )
+//#define v128_lrev8(v)       _mm_shuffle_epi8( v, v128_8( 4,5,6,7, 0,1,2,3 ) )
+//#define v128_wrev8(v)       _mm_shuffle_epi8( v, v128_8( 6,7, 4,5, 2,3, 1,0 ) )
    
 // reverse bits, can it be done?
 //#define v128_bitrev8( v )              vrbitq_u8
@@ -789,6 +848,16 @@ static inline __m128i mm128_shuflr_x8( const __m128i v, const int c )
 }
 #define mm128_block_bswap32_256      mm128_block_bswap_32
 #define v128_block_bswap32_256       mm128_block_bswap_32
+
+
+#define mm128_block_bswap32_128( d, s ) \
+{ \
+   __m128i ctl = _mm_set_epi64x( 0x0c0d0e0f08090a0b, 0x0405060700010203 ); \
+  casti_m128i( d,0 ) = _mm_shuffle_epi8( casti_m128i( s,0 ), ctl ); \
+  casti_m128i( d,1 ) = _mm_shuffle_epi8( casti_m128i( s,1 ), ctl ); \
+  casti_m128i( d,2 ) = _mm_shuffle_epi8( casti_m128i( s,2 ), ctl ); \
+  casti_m128i( d,3 ) = _mm_shuffle_epi8( casti_m128i( s,3 ), ctl ); \
+}   
 
 #define v128_block_bswap32_512( d, s ) \
 { \

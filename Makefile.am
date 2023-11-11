@@ -79,11 +79,6 @@ cpuminer_SOURCES = \
   algo/hamsi/hamsi-hash-4way.c \
   algo/haval/haval.c \
   algo/haval/haval-hash-4way.c \
-  algo/hodl/aes.c \
-  algo/hodl/hodl-gate.c \
-  algo/hodl/hodl-wolf.c \
-  algo/hodl/sha512_avx.c \
-  algo/hodl/sha512_avx2.c \
   algo/jh/sph_jh.c \
   algo/jh/jh-hash-4way.c \
   algo/jh/jha-gate.c \
@@ -148,6 +143,8 @@ cpuminer_SOURCES = \
   algo/scrypt/scrypt.c \
   algo/scrypt/scrypt-core-4way.c \
   algo/scrypt/neoscrypt.c \
+  algo/sha/sha1.c \
+  algo/sha/sha1-hash.c \
   algo/sha/sha256-hash.c \
   algo/sha/sph_sha2.c \
   algo/sha/sph_sha2big.c \
@@ -278,20 +275,10 @@ cpuminer_SOURCES = \
   algo/yespower/yespower-ref.c \
   algo/yespower/yespower-blake2b-ref.c
   
-
 disable_flags =
 
 if USE_ASM
    cpuminer_SOURCES += asm/neoscrypt_asm.S
-if ARCH_x86
-   cpuminer_SOURCES += asm/sha2-x86.S asm/scrypt-x86.S
-endif
-if ARCH_x86_64
-   cpuminer_SOURCES += asm/sha2-x64.S asm/scrypt-x64.S
-endif
-if ARCH_ARM
-   cpuminer_SOURCES += asm/sha2-arm.S asm/scrypt-arm.S
-endif
 else
    disable_flags += -DNOASM
 endif
@@ -301,7 +288,7 @@ if HAVE_WINDOWS
 endif
 
 cpuminer_LDFLAGS	= @LDFLAGS@
-cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ -lssl -lcrypto -lgmp
+cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@  -lgmp
 cpuminer_CPPFLAGS = @LIBCURL_CPPFLAGS@ $(ALL_INCLUDES)
 cpuminer_CFLAGS   = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
 

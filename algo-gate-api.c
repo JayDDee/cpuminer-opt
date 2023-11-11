@@ -310,7 +310,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_GROESTL:      rc = register_groestl_algo       ( gate ); break;
     case ALGO_HEX:          rc = register_hex_algo           ( gate ); break;
     case ALGO_HMQ1725:      rc = register_hmq1725_algo       ( gate ); break;
-    case ALGO_HODL:         rc = register_hodl_algo          ( gate ); break;
     case ALGO_JHA:          rc = register_jha_algo           ( gate ); break;
     case ALGO_KECCAK:       rc = register_keccak_algo        ( gate ); break;
     case ALGO_KECCAKC:      rc = register_keccakc_algo       ( gate ); break;

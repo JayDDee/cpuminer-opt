@@ -60,7 +60,6 @@ static const sph_u32 IV512[] = {
 static void
 c512( sph_shavite_big_context *sc, const void *msg )
 {
-   const v128_t zero = v128_zero;
    v128_t p0, p1, p2, p3, x;
    v128_t k00, k01, k02, k03, k10, k11, k12, k13;
    v128_t *m = (v128_t*)msg;
@@ -76,39 +75,39 @@ c512( sph_shavite_big_context *sc, const void *msg )
 
    k00 = m[0];
    x = v128_xor( p1, k00 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
 
    k01 = m[1];
    x = v128_xor( x, k01 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
    k02 = m[2];
    x = v128_xor( x, k02 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
    k03 = m[3];
    x = v128_xor( x, k03 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
 
    p0 = v128_xor( p0, x );
 
    k10 = m[4];
    x = v128_xor( p3, k10 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
    k11 = m[5];
    x = v128_xor( x, k11 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
    k12 = m[6];
    x = v128_xor( x, k12 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
    k13 = m[7];
    x = v128_xor( x, k13 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
 
    p2 = v128_xor( p2, x );
 
    for ( r = 0; r < 3; r ++ )
    {
       // round 1, 5, 9
-      k00 = v128_shuflr32( v128_aesenc( k00, zero ) );
+      k00 = v128_shuflr32( v128_aesenc_nokey( k00 ) );
       k00 = v128_xor( k00, k13 ); 
 
       if ( r == 0 )
@@ -116,8 +115,8 @@ c512( sph_shavite_big_context *sc, const void *msg )
                   ~sc->count3, sc->count2, sc->count1, sc->count0 ) ); 
 
       x = v128_xor( p0, k00 );
-      x = v128_aesenc( x, zero );
-      k01 = v128_shuflr32( v128_aesenc( k01, zero ) );
+      x = v128_aesenc_nokey( x );
+      k01 = v128_shuflr32( v128_aesenc_nokey( k01 ) );
       k01 = v128_xor( k01, k00 );
 
       if ( r == 1 )
@@ -125,32 +124,32 @@ c512( sph_shavite_big_context *sc, const void *msg )
                   ~sc->count0, sc->count1, sc->count2, sc->count3 ) );
 
       x = v128_xor( x, k01 );
-      x = v128_aesenc( x, zero );
-      k02 = v128_shuflr32( v128_aesenc( k02, zero ) );
+      x = v128_aesenc_nokey( x );
+      k02 = v128_shuflr32( v128_aesenc_nokey( k02 ) );
       k02 = v128_xor( k02, k01 );
       x = v128_xor( x, k02 );
-      x = v128_aesenc( x, zero );
-      k03 = v128_shuflr32( v128_aesenc( k03, zero ) );
+      x = v128_aesenc_nokey( x );
+      k03 = v128_shuflr32( v128_aesenc_nokey( k03 ) );
       k03 = v128_xor( k03, k02 );
       x = v128_xor( x, k03 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
 
       p3 = v128_xor( p3, x );
 
-      k10 = v128_shuflr32( v128_aesenc( k10, zero ) );
+      k10 = v128_shuflr32( v128_aesenc_nokey( k10 ) );
       k10 = v128_xor( k10, k03 );
 
       x = v128_xor( p2, k10 );
-      x = v128_aesenc( x, zero );
-      k11 = v128_shuflr32( v128_aesenc( k11, zero ) );
+      x = v128_aesenc_nokey( x );
+      k11 = v128_shuflr32( v128_aesenc_nokey( k11 ) );
       k11 = v128_xor( k11, k10 );
       x = v128_xor( x, k11 );
-      x = v128_aesenc( x, zero );
-      k12 = v128_shuflr32( v128_aesenc( k12, zero ) );
+      x = v128_aesenc_nokey( x );
+      k12 = v128_shuflr32( v128_aesenc_nokey( k12 ) );
       k12 = v128_xor( k12, k11 );
       x = v128_xor( x, k12 );
-      x = v128_aesenc( x, zero );
-      k13 = v128_shuflr32( v128_aesenc( k13, zero ) );
+      x = v128_aesenc_nokey( x );
+      k13 = v128_shuflr32( v128_aesenc_nokey( k13 ) );
       k13 = v128_xor( k13, k12 );
 
       if ( r == 2 )
@@ -158,78 +157,78 @@ c512( sph_shavite_big_context *sc, const void *msg )
                   ~sc->count1, sc->count0, sc->count3, sc->count2 ) );
 
       x = v128_xor( x, k13 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       p1 = v128_xor( p1, x );
 
       // round 2, 6, 10
 
       k00 = v128_xor( k00, v128_alignr8( k13, k12, 4 ) );
       x = v128_xor( p3, k00 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k01 = v128_xor( k01, v128_alignr8( k00, k13, 4 ) );
       x = v128_xor( x, k01 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k02 = v128_xor( k02, v128_alignr8( k01, k00, 4 ) );
       x = v128_xor( x, k02 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k03 = v128_xor( k03, v128_alignr8( k02, k01, 4 ) );
       x = v128_xor( x, k03 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
 
       p2 = v128_xor( p2, x );
 
       k10 = v128_xor( k10, v128_alignr8( k03, k02, 4 ) );
       x = v128_xor( p1, k10 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k11 = v128_xor( k11, v128_alignr8( k10, k03, 4 ) );
       x = v128_xor( x, k11 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k12 = v128_xor( k12, v128_alignr8( k11, k10, 4 ) );
       x = v128_xor( x, k12 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k13 = v128_xor( k13, v128_alignr8( k12, k11, 4 ) );
       x = v128_xor( x, k13 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
 
       p0 = v128_xor( p0, x );
 
       // round 3, 7, 11
 
-      k00 = v128_shuflr32( v128_aesenc( k00, zero ) );
+      k00 = v128_shuflr32( v128_aesenc_nokey( k00 ) );
       k00 = v128_xor( k00, k13 );
       x = v128_xor( p2, k00 );
-      x = v128_aesenc( x, zero );
-      k01 = v128_shuflr32( v128_aesenc( k01, zero ) );
+      x = v128_aesenc_nokey( x );
+      k01 = v128_shuflr32( v128_aesenc_nokey( k01 ) );
       k01 = v128_xor( k01, k00 );
       x = v128_xor( x, k01 );
-      x = v128_aesenc( x, zero );
-      k02 = v128_shuflr32( v128_aesenc( k02, zero ) );
+      x = v128_aesenc_nokey( x );
+      k02 = v128_shuflr32( v128_aesenc_nokey( k02 ) );
       k02 = v128_xor( k02, k01 );
       x = v128_xor( x, k02 );
-      x = v128_aesenc( x, zero );
-      k03 = v128_shuflr32( v128_aesenc( k03, zero ) );
+      x = v128_aesenc_nokey( x );
+      k03 = v128_shuflr32( v128_aesenc_nokey( k03 ) );
       k03 = v128_xor( k03, k02 );
       x = v128_xor( x, k03 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
 
       p1 = v128_xor( p1, x );
 
-      k10 = v128_shuflr32( v128_aesenc( k10, zero ) );
+      k10 = v128_shuflr32( v128_aesenc_nokey( k10 ) );
       k10 = v128_xor( k10, k03 );
       x = v128_xor( p0, k10 );
-      x = v128_aesenc( x, zero );
-      k11 = v128_shuflr32( v128_aesenc( k11, zero ) );
+      x = v128_aesenc_nokey( x );
+      k11 = v128_shuflr32( v128_aesenc_nokey( k11 ) );
       k11 = v128_xor( k11, k10 );
       x = v128_xor( x, k11 );
-      x = v128_aesenc( x, zero );
-      k12 = v128_shuflr32( v128_aesenc( k12, zero ) );
+      x = v128_aesenc_nokey( x );
+      k12 = v128_shuflr32( v128_aesenc_nokey( k12 ) );
       k12 = v128_xor( k12, k11 );
       x = v128_xor( x, k12 );
-      x = v128_aesenc( x, zero );
-      k13 = v128_shuflr32( v128_aesenc( k13, zero ) );
+      x = v128_aesenc_nokey( x );
+      k13 = v128_shuflr32( v128_aesenc_nokey( k13 ) );
       k13 = v128_xor( k13, k12 );
       x = v128_xor( x, k13 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
 
       p3 = v128_xor( p3, x );
 
@@ -237,73 +236,73 @@ c512( sph_shavite_big_context *sc, const void *msg )
 
       k00 = v128_xor( k00, v128_alignr8( k13, k12, 4 ) );
       x = v128_xor( p1, k00 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k01 = v128_xor( k01, v128_alignr8( k00, k13, 4 ) );
       x = v128_xor( x, k01 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k02 = v128_xor( k02, v128_alignr8( k01, k00, 4 ) );
       x = v128_xor( x, k02 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k03 = v128_xor( k03, v128_alignr8( k02, k01, 4 ) );
       x = v128_xor( x, k03 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
 
       p0 = v128_xor( p0, x );
 
       k10 = v128_xor( k10, v128_alignr8( k03, k02, 4 ) );
       x = v128_xor( p3, k10 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k11 = v128_xor( k11, v128_alignr8( k10, k03, 4 ) );
       x = v128_xor( x, k11 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k12 = v128_xor( k12, v128_alignr8( k11, k10, 4 ) );
       x = v128_xor( x, k12 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
       k13 = v128_xor( k13, v128_alignr8( k12, k11, 4 ) );
       x = v128_xor( x, k13 );
-      x = v128_aesenc( x, zero );
+      x = v128_aesenc_nokey( x );
 
       p2 = v128_xor( p2, x );
    }
 
    // round 13
 
-   k00 = v128_shuflr32( v128_aesenc( k00, zero ) );
+   k00 = v128_shuflr32( v128_aesenc_nokey( k00 ) );
    k00 = v128_xor( k00, k13 );
    x = v128_xor( p0, k00 );
-   x = v128_aesenc( x, zero );
-   k01 = v128_shuflr32( v128_aesenc( k01, zero ) ); 
+   x = v128_aesenc_nokey( x );
+   k01 = v128_shuflr32( v128_aesenc_nokey( k01 ) ); 
    k01 = v128_xor( k01, k00 );
    x = v128_xor( x, k01 );
-   x = v128_aesenc( x, zero );
-   k02 = v128_shuflr32( v128_aesenc( k02, zero ) );
+   x = v128_aesenc_nokey( x );
+   k02 = v128_shuflr32( v128_aesenc_nokey( k02 ) );
    k02 = v128_xor( k02, k01 );
    x = v128_xor( x, k02 );
-   x = v128_aesenc( x, zero );
-   k03 = v128_shuflr32( v128_aesenc( k03, zero ) );
+   x = v128_aesenc_nokey( x );
+   k03 = v128_shuflr32( v128_aesenc_nokey( k03 ) );
    k03 = v128_xor( k03, k02 );
    x = v128_xor( x, k03 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
 
    p3 = v128_xor( p3, x );
 
-   k10 = v128_shuflr32( v128_aesenc( k10, zero ) );
+   k10 = v128_shuflr32( v128_aesenc_nokey( k10 ) );
    k10 = v128_xor( k10, k03 );
    x = v128_xor( p2, k10 );
-   x = v128_aesenc( x, zero );
-   k11 = v128_shuflr32( v128_aesenc( k11, zero ) );
+   x = v128_aesenc_nokey( x );
+   k11 = v128_shuflr32( v128_aesenc_nokey( k11 ) );
    k11 = v128_xor( k11, k10 );
    x = v128_xor( x, k11 );
-   x = v128_aesenc( x, zero );
-   k12 = v128_shuflr32( v128_aesenc( k12, zero ) );
+   x = v128_aesenc_nokey( x );
+   k12 = v128_shuflr32( v128_aesenc_nokey( k12 ) );
    k12 = v128_xor( k12, v128_xor( k11, v128_set32(
                ~sc->count2, sc->count3, sc->count0, sc->count1 ) ) );
    x = v128_xor( x, k12 );
-   x = v128_aesenc( x, zero );
-   k13 = v128_shuflr32( v128_aesenc( k13, zero ) );
+   x = v128_aesenc_nokey( x );
+   k13 = v128_shuflr32( v128_aesenc_nokey( k13 ) );
    k13 = v128_xor( k13, k12 );
    x = v128_xor( x, k13 );
-   x = v128_aesenc( x, zero );
+   x = v128_aesenc_nokey( x );
 
    p1 = v128_xor( p1, x );
 

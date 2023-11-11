@@ -1,6 +1,9 @@
 #if !defined(SIMD_INT_H__)
 #define SIMD_INT_H__ 1
 
+//TODO compile time test for byte order
+// be64 etc using HW bowap.
+//
 // Endian byte swap
 #if defined(__x86_64__)
 
@@ -8,8 +11,6 @@
 #define bswap_32    __builtin_bswap32
 
 #elif defined(__aarch64__)
-
-//#pragma message "aarch64 fast bswap"
 
 static inline uint64_t bswap_64( uint64_t a )
 {

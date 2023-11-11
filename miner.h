@@ -1,38 +1,41 @@
-#ifndef __MINER_H__
-#define __MINER_H__
+#ifndef MINER_H__
+#define MINER_H__
 
 #include <cpuminer-config.h>
 
-
 #if defined(__x86_64__)
-   #define USER_AGENT_ARCH "x64"
+   #define USER_AGENT_ARCH "x64"     // Intel, AMD x86_64
 #elif defined(__aarch64__)
-   #define USER_AGENT_ARCH "arm"
+   #define USER_AGENT_ARCH "arm"     // AArch64
+//#elif
+//  #define USER_AGENT_ARCH "R5"     // RISC-V             
 #else
    #define USER_AGENT_ARCH
 #endif
 
 #if defined(__linux)
-   #define USER_AGENT_OS   "L"
+   #define USER_AGENT_OS   "L"      // GNU Linux
 #elif defined(WIN32)
-   #define USER_AGENT_OS   "W"
+   #define USER_AGENT_OS   "W"      // MS Windows
+#elif defined(__APPLE__)
+   #define USER_AGENT_OS   "M"      // Apple MacOS
+// is there a generic BSD macro?
+#elif defined(__unix__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) 
+   #define USER_AGENT_OS   "U"      // BSD unix
 #else
    #define USER_AGENT_OS
 #endif
 
 #define USER_AGENT PACKAGE_NAME "-" PACKAGE_VERSION "-" USER_AGENT_ARCH USER_AGENT_OS
 
-//#define MAX_CPUS 128
-
+/*
 #ifdef _MSC_VER
 
-#undef USE_ASM  /* to fix */
-
+#undef USE_ASM 
 #ifdef NOASM
 #undef USE_ASM
 #endif
 
-/* missing arch defines for msvc */
 #if defined(_M_X64)
 #define __i386__ 1
 #define __x86_64__ 1
@@ -40,8 +43,8 @@
 #define __i386__ 1
 #endif
 
-#endif /* _MSC_VER */
-
+#endif
+*/
 
 #include <stdbool.h>
 #include <inttypes.h>
@@ -75,7 +78,7 @@
 
 #endif
 
-
+//TODO for windows
 static inline bool is_root()
 {
 #if defined(WIN32)
@@ -607,7 +610,6 @@ enum algos {
         ALGO_GROESTL,     
         ALGO_HEX,
         ALGO_HMQ1725,
-        ALGO_HODL,
         ALGO_JHA,
         ALGO_KECCAK,
         ALGO_KECCAKC,
@@ -703,7 +705,6 @@ static const char* const algo_names[] = {
         "groestl",
         "hex",
         "hmq1725",
-        "hodl",
         "jha",
         "keccak",
         "keccakc",
@@ -865,7 +866,6 @@ Options:\n\
                           groestl       Groestl coin\n\
                           hex           x16r-hex\n\
                           hmq1725       Espers\n\
-                          hodl          Hodlcoin\n\
                           jha           jackppot (Jackpotcoin)\n\
                           keccak        Maxcoin\n\
                           keccakc       Creative Coin\n\

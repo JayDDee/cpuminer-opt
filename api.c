@@ -8,6 +8,7 @@
  * Software Foundation; either version 2 of the License, or (at your option)
  * any later version.  See COPYING for more details.
  */
+
 #define APIVERSION "1.0"
 
 #ifdef WIN32
@@ -27,9 +28,9 @@
 #include <math.h>
 #include <stdarg.h>
 #include <assert.h>
-#include <openssl/sha.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include "algo/sha/sha1-hash.h"
 
 #include "miner.h"
 #include "sysinfos.c"
@@ -208,7 +209,7 @@ static char *remote_seturl(char *params)
 	return buffer;
 }
 
-/**
+/*-hash*
  * Ask the miner to quit
  */
 static char *remote_quit(char *params)
@@ -336,7 +337,6 @@ static int websocket_handshake(SOCKETTYPE c, char *result, char *clientkey)
 	char inpkey[128] = { 0 };
 	char seckey[64];
 	uchar sha1[20];
-//	SHA_CTX ctx;
 
 	if (opt_protocol)
 		applog(LOG_DEBUG, "clientkey: %s", clientkey);
@@ -346,11 +346,7 @@ static int websocket_handshake(SOCKETTYPE c, char *result, char *clientkey)
 	// SHA-1 test from rfc, returns in base64 "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
 	//sprintf(inpkey, "dGhlIHNhbXBsZSBub25jZQ==258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 
-   SHA1( inpkey, strlen(inpkey), sha1 );
-// Deprecated in openssl-3
-// SHA1_Init(&ctx);
-//	SHA1_Update(&ctx, inpkey, strlen(inpkey));
-//	SHA1_Final(sha1, &ctx);
+   sph_sha1_full( sha1, inpkey, strlen(inpkey) );
 
 	base64_encode(sha1, 20, seckey, sizeof(seckey));
 
@@ -733,3 +729,4 @@ void *api_thread(void *userdata)
 
 	return NULL;
 }
+

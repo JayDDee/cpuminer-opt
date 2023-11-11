@@ -73,6 +73,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v23.8
+
+Cpuminer-opt is no longer dependant on OpenSSL.
+Removed Hodl algo.
+Removed legacy Sha256 & Scrypt ASM code.
+ARM: Echo AES is working and enabled for x17.
+
 v23.7
 
 Fixed blakes2s, broken in v3.23.4.

@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include "hamsi-hash-4way.h"
 
-static const uint32_t HAMSI_IV512[] =
+static const uint32_t HAMSI_IV512[] __attribute__ ((aligned (32))) =
 {
 	 0x73746565, 0x6c706172, 0x6b204172, 0x656e6265,
     0x72672031, 0x302c2062, 0x75732032, 0x3434362c,
@@ -43,7 +43,8 @@ static const uint32_t HAMSI_IV512[] =
 	 0x65766572, 0x6c65652c, 0x2042656c, 0x6769756d
 };
 
-static const uint32_t alpha_n[] = {
+static const uint32_t alpha_n[] __attribute__ ((aligned (32))) =
+{
 	0xff00f0f0, 0xccccaaaa, 0xf0f0cccc, 0xff00aaaa,
    0xccccaaaa, 0xf0f0ff00, 0xaaaacccc, 0xf0f0ff00,
    0xf0f0cccc, 0xaaaaff00, 0xccccff00, 0xaaaaf0f0,
@@ -54,7 +55,8 @@ static const uint32_t alpha_n[] = {
    0xff00cccc, 0xaaaaf0f0,	0xff00aaaa, 0xccccf0f0
 };
 
-static const uint32_t alpha_f[] = {
+static const uint32_t alpha_f[] __attribute__ ((aligned (32))) =
+{
 	0xcaf9639c, 0x0ff0f9c0, 0x639c0ff0,	0xcaf9f9c0,
    0x0ff0f9c0, 0x639ccaf9,	0xf9c00ff0, 0x639ccaf9,
    0x639c0ff0,	0xf9c0caf9, 0x0ff0caf9, 0xf9c0639c,
@@ -69,7 +71,8 @@ static const uint32_t alpha_f[] = {
 
 /* Note: this table lists bits within each byte from least
    siginificant to most significant. */
-static const uint32_t T512[64][16] = {
+static const uint32_t T512[64][16] __attribute__ ((aligned (32))) =
+{
 	{  0xef0b0270, 0x3afd0000, 0x5dae0000, 0x69490000,
       0x9b0f3c06, 0x4405b5f9, 0x66140a51, 0x924f5d0a,
       0xc96b0030, 0xe7250000, 0x2f840000, 0x264f0000,
@@ -2260,4 +2263,4 @@ void hamsi512_2x64( void *dst, const void *data, size_t len )
    hamsi512_2x64_close( &sc, dst );
 }   
 
-#endif   // SSE4.1 or NEON
+#endif   // SSE4.2 or NEON

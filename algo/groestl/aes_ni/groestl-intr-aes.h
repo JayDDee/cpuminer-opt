@@ -61,9 +61,12 @@ static const v128u64_t SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003 };
 #if defined(__ARM_NEON)
 
 // No fast shuffle on NEON
-static const uint32x4_t vmask_d8 = {  3, 1, 2, 0 };  
+//static const uint32x4_t vmask_d8 = {  3, 1, 2, 0 };  
+static const v128u32_t BLEND_MASK = { 0xffffffff, 0, 0, 0xffffffff };
 
-#define gr_shuffle32( v )       v128_shufflev32( v, vmask_d8 )
+#define gr_shuffle32( v )      v128_blendv( v128_qrev32( v ), v, BLEND_MASK )
+
+//#define gr_shuffle32( v )       v128_shufflev32( v, vmask_d8 )
 
 #else
 

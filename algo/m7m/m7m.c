@@ -1,6 +1,8 @@
 #include "cpuminer-config.h"
 #include "algo-gate-api.h"
 
+#if !defined(__APPLE__)
+
 #include <gmp.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -296,8 +298,14 @@ int scanhash_m7m_hash( struct work* work, uint64_t max_nonce,
     return 0;
 }
 
+#endif   // not apple
+
 bool register_m7m_algo( algo_gate_t *gate )
 {
+#if defined(__APPLE__)
+  applog( LOG_ERR, "M7M algo is not supported on MacOS");
+  return false;
+#else  
   gate->optimizations = SHA_OPT;
   init_m7m_ctx();
   gate->scanhash              = (void*)&scanhash_m7m_hash;
@@ -307,6 +315,6 @@ bool register_m7m_algo( algo_gate_t *gate )
   gate->set_work_data_endian  = (void*)&set_work_data_big_endian;
   opt_target_factor = 65536.0;
   return true;
+#endif
 }
-
 

@@ -36,7 +36,7 @@
 #include <memory.h>
 #include <curl/curl.h>
 #include <jansson.h>
-#include <openssl/sha.h>
+//#include <openssl/sha.h>
 //#include <mm_malloc.h>
 #include "sysinfos.c"
 #include "algo/sha/sha256d.h"
@@ -1967,18 +1967,6 @@ void sha256_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
      sha256d( merkle_root, merkle_root, 64 );
   }
 }
-/*
-// OpenSSL single sha256, deprecated
-void SHA256_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
-{
-  SHA256( sctx->job.coinbase, (int)sctx->job.coinbase_size, merkle_root );
-  for ( int i = 0; i < sctx->job.merkle_count; i++ )
-  {
-     memcpy( merkle_root + 32, sctx->job.merkle[i], 32 );
-     sha256d( merkle_root, merkle_root, 64 );
-  }
-}
-*/
 
 // Default is do_nothing (assumed LE)
 void set_work_data_big_endian( struct work *work )
@@ -2212,8 +2200,8 @@ static void *miner_thread( void *userdata )
 //       int64_t max64 = 1000;
        int nonce_found = 0;
 
-       if ( likely( algo_gate.do_this_thread( thr_id ) ) )
-       {
+//       if ( likely( algo_gate.do_this_thread( thr_id ) ) )
+//       {
           if ( have_stratum ) 
           {
              while ( unlikely( stratum_down ) )
@@ -2262,8 +2250,8 @@ static void *miner_thread( void *userdata )
 
           pthread_rwlock_unlock( &g_work_lock );
 
-       } // do_this_thread
-       algo_gate.resync_threads( thr_id, &work );
+//       } // do_this_thread
+//       algo_gate.resync_threads( thr_id, &work );
 
        // conditional mining
        if ( unlikely( !wanna_mine( thr_id ) ) )
@@ -3685,8 +3673,8 @@ void get_defconfig_path(char *out, size_t bufsize, char *argv0);
 
 
 #include "simd-utils.h"
-#include "algo/hamsi/hamsi-hash-4way.h"
-#include "algo/hamsi/sph_hamsi.h"
+#include "algo/echo/aes_ni/hash_api.h"
+#include "compat/aes_helper.c"
 
 int main(int argc, char *argv[])
 {

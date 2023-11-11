@@ -81,7 +81,7 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 #define v128_cmpeq16                   vceqq_u16
 #define v128_cmpeq8                    vceqq_u8
 
-#define v128_cmpeq0                    vceqzq_u64
+#define v128_iszero                    vceqzq_u64
 
 // Not yet needed
 //#define v128_cmpeq1
@@ -174,12 +174,31 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 
 
 // AES
-// consistent with Intel AES, break up for optimizing
-#define v128_aesenc( v, k )            vaesmcq_u8( vaeseq_u8( v, k ) )
-#define v128_aesenclast( v, k )        vaeseq_u8( v, k )
+// consistent with Intel AES intrinsics, break up for optimizing
+#define v128_aesenc( v, k ) \
+   v128_xor( k, vaesmcq_u8( vaeseq_u8( v, v128_zero ) ) )
 
-#define v128_aesdec( v, k )            vaesimcq_u8( vaesdq_u8( v, k ) )
-#define v128_aesdeclast( v, k )        vaesdq_u8( v, k )
+#define v128_aesenc_nokey( v ) \
+   vaesmcq_u8( vaeseq_u8( v, v128_zero ) )
+
+#define v128_aesenclast( v, k ) \
+   v128_xor( k, vaeseq_u8( v, v128_zero ) )
+
+#define v128_aesenclast_nokey( v, k ) \
+   vaeseq_u8( v, v128_zero )
+
+#define v128_aesdec( v, k ) \
+    v128_xor( k, vaesimcq_u8( vaesdq_u8( v, v128_zero ) ) )
+
+#define v128_aesdec_nokey( v, k ) \
+    vaesimcq_u8( vaesdq_u8( v, v128_zero ) )
+
+#define v128_aesdeclast( v, k ) \
+    v128_xor( k, vaesdq_u8( v, v128_zero ) )
+
+#define v128_aesdeclast_nokey( v, k ) \
+    vaesdq_u8( v, v128_zero )
+
 
 typedef union
 {
@@ -189,7 +208,7 @@ typedef union
 } __attribute__ ((aligned (16))) v128_ovly;
 
 
-// Broadcast lane 0 to all lanes
+// Broadcast lane 0 to all lanes, consistent with x86_64 broadcast
 #define v128_bcast64(v)                vdupq_laneq_u64( v, 0 )
 #define v128_bcast32(v)                vdupq_laneq_u32( v, 0 )
 #define v128_bcast16(v)                vdupq_laneq_u16( v, 0 )

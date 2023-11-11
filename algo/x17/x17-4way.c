@@ -951,7 +951,7 @@ union _x17_context_overlay
 #else
         sph_groestl512_context  groestl;
 #endif        
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_echo          echo;
 #else
         sph_echo512_context     echo;
@@ -1045,7 +1045,7 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     sph_simd512_close( &ctx.simd, hash1 );
 #endif
 
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     echo_full( &ctx.echo, hash0, 512, hash0, 64 );
     echo_full( &ctx.echo, hash1, 512, hash1, 64 );
 #else
