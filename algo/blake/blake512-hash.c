@@ -475,11 +475,12 @@ void blake512_update(blake512_context *sc, const void *data, size_t len)
 void blake512_close( blake512_context *sc, void *dst )
 {
    unsigned char buf[128] __attribute__((aligned(32)));
-   size_t ptr;
+   size_t ptr, k;
    unsigned bit_len;
    uint64_t th, tl;
 
    ptr = sc->ptr;
+   memcpy( buf, sc->buf, ptr );
    bit_len = ((unsigned)ptr << 3);
    buf[ptr] = 0x80;
    tl = sc->T0 + bit_len;
@@ -519,7 +520,8 @@ void blake512_close( blake512_context *sc, void *dst )
       blake512_update( sc, buf, 128 );
    }
    
-   v128_block_bswap64_512( dst, sc->H ); 
+   for ( k = 0; k < 8; k ++ )
+      ((uint64_t*)dst)[k] = bswap_64( sc->H[k] );
 }
 
 void blake512_full( blake512_context *sc, void *dst, const void *data,

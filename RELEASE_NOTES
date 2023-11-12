@@ -73,6 +73,11 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v23.9
+
+x86_64: fixed minotaurx crash, broken in 23.7.
+ARM: #407 fix compile error due to incorrect type casting for vrev instruction argument.
+
 v23.8
 
 Cpuminer-opt is no longer dependant on OpenSSL.

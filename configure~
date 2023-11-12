@@ -657,8 +657,6 @@ JANSSON_LIBS
 LIBCURL_CPPFLAGS
 LIBCURL_CFLAGS
 LIBCURL
-HAVE_MACOS_FALSE
-HAVE_MACOS_TRUE
 MINGW_FALSE
 MINGW_TRUE
 ARCH_ARM_FALSE
@@ -6881,14 +6879,6 @@ else
   MINGW_FALSE=
 fi
 
- if test "x$OS" = "xAPPLE"; then
-  HAVE_MACOS_TRUE=
-  HAVE_MACOS_FALSE='#'
-else
-  HAVE_MACOS_TRUE='#'
-  HAVE_MACOS_FALSE=
-fi
-
 
 if test x$request_jansson = xtrue ; then
 	JANSSON_LIBS="compat/jansson/libjansson.a"
@@ -7126,10 +7116,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${MINGW_TRUE}" && test -z "${MINGW_FALSE}"; then
   as_fn_error $? "conditional \"MINGW\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${HAVE_MACOS_TRUE}" && test -z "${HAVE_MACOS_FALSE}"; then
-  as_fn_error $? "conditional \"HAVE_MACOS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

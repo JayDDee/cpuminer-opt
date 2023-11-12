@@ -65,8 +65,6 @@
 #define v128_add32                     _mm_add_epi32
 #define v128_add16                     _mm_add_epi16
 #define v128_add8                      _mm_add_epi8
-#define v128_add4_64                   mm128_add4_64
-#define v128_add4_32                   mm128_add4_32
 
 #define v128_sub64                     _mm_sub_epi64
 #define v128_sub32                     _mm_sub_epi32
@@ -120,8 +118,8 @@
 #define v128_xor                       _mm_xor_si128
 #define v128_xorq                      _mm_xor_si128
 #define v128_andnot                    _mm_andnot_si128
-#define v128_xnor( a, b )              mm128_not( _mm_xor_si128( a, b ) )
-#define v128_ornot( a, b )             mm128_or( a, mm128_not( b ) ) 
+#define v128_xnor( a, b )              v128_not( _mm_xor_si128( a, b ) )
+#define v128_ornot( a, b )             _mm_or_si128( a, v128_not( b ) ) 
 
 // ternary
 #define v128_xorandnot( v2, v1, v0 ) \
@@ -134,13 +132,6 @@
 #define v128_andxor( a, b, c )         _mm_and_si128( a, _mm_xor_si128( b, c ))
 #define v128_xoror( a, b, c )          _mm_xor_si128( a, _mm_or_si128( b, c ) )
 #define v128_orand( a, b, c )          _mm_or_si128( a, _mm_and_si128( b, c ) )
-
-// shift 2 concatenated vectors right
-#define v128_alignr64                  mm128_alignr_64
-#define v128_alignr32                  mm128_alignr_32
-#if defined(__SSSE3__)
-  #define v128_alignr8                 _mm_alignr_epi8
-#endif
 
 // unpack
 #define v128_unpacklo64                _mm_unpacklo_epi64
@@ -404,21 +395,24 @@ static inline __m128i mm128_negate_16( __m128i v )
 
 
 // Add 4 values, fewer dependencies than sequential addition.
-#define mm128_add4_64( a, b, c, d ) \
+#define v128_add4_64( a, b, c, d ) \
    _mm_add_epi64( _mm_add_epi64( a, b ), _mm_add_epi64( c, d ) )
+#define mm128_add4_64 v128_add4_64
 
-#define mm128_add4_32( a, b, c, d ) \
+#define v128_add4_32( a, b, c, d ) \
    _mm_add_epi32( _mm_add_epi32( a, b ), _mm_add_epi32( c, d ) )
-#define v128_add4_32                   mm128_add4_32
+#define mm128_add4_32  v128_add4_32
 
-#define mm128_add4_16( a, b, c, d ) \
+#define v128_add4_16( a, b, c, d ) \
    _mm_add_epi16( _mm_add_epi16( a, b ), _mm_add_epi16( c, d ) )
 
-#define mm128_add4_8( a, b, c, d ) \
+#define v128_add4_8( a, b, c, d ) \
    _mm_add_epi8( _mm_add_epi8( a, b ), _mm_add_epi8( c, d ) )
 
-#define mm128_xor4( a, b, c, d ) \
+#define v128_xor4( a, b, c, d ) \
    _mm_xor_si128( _mm_xor_si128( a, b ), _mm_xor_si128( c, d ) )
+#define mm128_xor4  v128_xor4
+
 
 // Memory functions
 // Mostly for convenience, avoids calculating bytes.
@@ -984,18 +978,23 @@ static inline void mm128_block_bswap32_512( __m128i *d, const __m128i *s )
 
 #if defined(__SSSE3__)
 
-#define mm128_alignr_64( hi, lo, c )    _mm_alignr_epi8( hi, lo, (c)*8 )
-#define mm128_alignr_32( hi, lo, c )    _mm_alignr_epi8( hi, lo, (c)*4 )
+#define v128_alignr8                   _mm_alignr_epi8
+#define v128_alignr64( hi, lo, c )     _mm_alignr_epi8( hi, lo, (c)*8 )
+#define v128_alignr32( hi, lo, c )     _mm_alignr_epi8( hi, lo, (c)*4 )
 
 #else
 
-#define mm128_alignr_64( hi, lo, c ) \
+#define v128_alignr64( hi, lo, c ) \
    _mm_or_si128( _mm_slli_si128( hi, (c)*8 ), _mm_srli_si128( lo, (c)*8 ) )
 
-#define mm128_alignr_32( hi, lo, c ) \
+#define v128_alignr32( hi, lo, c ) \
    _mm_or_si128( _mm_slli_si128( lo, (c)*4 ), _mm_srli_si128( hi, (c)*4 ) )
 
 #endif
+#define mm128_alignr_64                v128_alignr64
+#define mm128_alignr_32                v128_alignr32
+#define mm128_alignr_8                 v128_alignr32
+
 
 // NEON only uses vector mask. x86 blend selects second arg when control bit
 // is set. Blendv selects second arg when sign bit is set. And masking is the

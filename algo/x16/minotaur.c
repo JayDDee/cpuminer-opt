@@ -20,13 +20,12 @@
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha/sph_sha2.h"
 #include "algo/yespower/yespower.h"
-//#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
-//#else
-  #include "algo/echo/sph_echo.h"
-  #include "algo/groestl/sph_groestl.h"
-//#endif
+#endif
+#include "algo/echo/sph_echo.h"
+#include "algo/groestl/sph_groestl.h"
 #if defined(__AES__)
   #include "algo/fugue/fugue-aesni.h"
 #else
@@ -48,11 +47,14 @@ typedef struct TortureGarden TortureGarden;
 struct TortureGarden
 {
 #if defined(__AES__) // || defined(__ARM_FEATURE_AES)
-   hashState_echo          echo;
    hashState_groestl       groestl;
 #else
-   sph_echo512_context     echo;
    sph_groestl512_context  groestl;
+#endif
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+   hashState_echo          echo;
+#else
+   sph_echo512_context     echo;
 #endif
 #if defined(__AES__)
    hashState_fugue         fugue;
@@ -93,9 +95,7 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
     switch ( algo )
     {
         case 0:
-            blake512_init( &garden->blake );
-            blake512_update( &garden->blake, input, 64 );
-            blake512_close( &garden->blake, hash );
+            blake512_full( &garden->blake, hash, input, 64 );
             break;
         case 1:
             sph_bmw512_init( &garden->bmw );
@@ -107,7 +107,7 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
             cubehashUpdateDigest( &garden->cube, hash, input, 64 );
             break;
         case 3:
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             echo_full( &garden->echo, hash, 512, input, 64 );
 #else
             sph_echo512_init( &garden->echo );

@@ -336,27 +336,27 @@ static inline void v128_memcpy( void *dst, const void *src, const int n )
 
 // Bit rotation
 #define v128_ror64( v, c ) \
-  ( (c) == 32 ) ? (uint64x2_t)vrev64q_u32( ((uint64x2_t)v) ) \
+  ( (c) == 32 ) ? (uint64x2_t)vrev64q_u32( ((uint32x4_t)v) ) \
    : vsriq_n_u64( vshlq_n_u64( ((uint64x2_t)v), 64-c ), ((uint64x2_t)v), c )
 
 #define v128_rol64( v, c ) \
-  ( (c) == 32 ) ? (uint64x2_t)vrev64q_u32( ((uint64x2_t)v) ) \
+  ( (c) == 32 ) ? (uint64x2_t)vrev64q_u32( ((uint32x4_t)v) ) \
    : vsliq_n_u64( vshrq_n_u64( ((uint64x2_t)v), 64-c ), ((uint64x2_t)v), c )
 
 #define v128_ror32( v, c ) \
-  ( (c) == 16 ) ? (uint32x4_t)vrev32q_u16( ((uint32x4_t)v) ) \
+  ( (c) == 16 ) ? (uint32x4_t)vrev32q_u16( ((uint16x8_t)v) ) \
    : vsriq_n_u32( vshlq_n_u32( ((uint32x4_t)v), 32-c ), ((uint32x4_t)v), c )
 
 #define v128_rol32( v, c ) \
-  ( (c) == 16 ) ? (uint32x4_t)vrev32q_u16( ((uint32x4_t)v) ) \
+  ( (c) == 16 ) ? (uint32x4_t)vrev32q_u16( ((uint16x8_t)v) ) \
    : vsliq_n_u32( vshrq_n_u32( ((uint32x4_t)v), 32-c ), ((uint32x4_t)v), c )
 
 #define v128_ror16( v, c ) \
-  ( (c) == 8 ) ? (uint16x8_t)vrev16q_u8( ((uint16x8_t)v) ) \
+  ( (c) == 8 ) ? (uint16x8_t)vrev16q_u8( ((uint8x16_t)v) ) \
    : vsriq_n_u16( vshlq_n_u16( ((uint16x8_t)v), 16-c ), ((uint16x8_t)v), c )
 
 #define v128_rol16( v, c ) \
-  ( (c) == 8 ) ? (uint16x8_t)vrev16q_u8( ((uint16x8_t)v) ) \
+  ( (c) == 8 ) ? (uint16x8_t)vrev16q_u8( ((uint8x16_t)v) ) \
    : vsliq_n_u16( vshrq_n_u16( ((uint16x8_t)v), 16-c ), ((uint16x8_t)v), c )
 
 #define v128_ror8( v, c ) \
