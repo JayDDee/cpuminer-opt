@@ -75,16 +75,16 @@
 #define SUBCRUMB( a0, a1, a2, a3 ) \
 { \
     v128_t t = a0; \
-    a0 = mm128_xoror( a3, a0, a1 ); \
+    a0 = v128_xoror( a3, a0, a1 ); \
     a2 = v128_xor( a2, a3 ); \
     a1 = _mm_ternarylogic_epi64( a1, a3, t, 0x87 ); /* a1 xnor (a3 & t) */ \
-    a3 = mm128_xorand( a2, a3, t ); \
-    a2 = mm128_xorand( a1, a2, a0 ); \
+    a3 = v128_xorand( a2, a3, t ); \
+    a2 = v128_xorand( a1, a2, a0 ); \
     a1 = v128_or( a1, a3 ); \
     a3 = v128_xor( a3, a2 ); \
     t  = v128_xor( t, a1 ); \
     a2 = v128_and( a2, a1 ); \
-    a1 = mm128_xnor( a1, a0 ); \
+    a1 = v128_xnor( a1, a0 ); \
     a0 = t; \
 }
 

@@ -159,4 +159,69 @@ int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
     return 0;
 }
 
+#elif defined(SKEIN_2WAY)
+
+static __thread skein512_2x64_context skein512_2x64_ctx
+                                            __attribute__ ((aligned (64)));
+
+void skeinhash_2x64( void *state, const void *input )
+{
+     uint64_t vhash64[8*2] __attribute__ ((aligned (32)));
+     uint32_t hash0[16] __attribute__ ((aligned (32)));
+     uint32_t hash1[16] __attribute__ ((aligned (32)));
+     skein512_2x64_context ctx_skein;
+     memcpy( &ctx_skein, &skein512_2x64_ctx, sizeof( ctx_skein ) );
+
+     skein512_2x64_final16( &ctx_skein, vhash64, input + (64*2) );
+
+     dintrlv_2x64( hash0, hash1, vhash64, 512 );
+
+     sha256_full( hash0, hash0, 64 );
+     sha256_full( hash1, hash1, 64 );
+
+     intrlv_2x32( state, hash0, hash1, 256 );
+}
+
+int scanhash_skein_2x64( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr )
+{
+    uint32_t vdata[20*2] __attribute__ ((aligned (32)));
+    uint32_t hash[8*2] __attribute__ ((aligned (32)));
+    uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+    uint32_t *hash_d7 = &(hash[7<<1]);
+    uint32_t *pdata = work->data;
+    uint32_t *ptarget = work->target;
+    const uint32_t targ_d7 = ptarget[7];
+    const uint32_t first_nonce = pdata[19];
+    const uint32_t last_nonce = max_nonce - 2;
+    uint32_t n = first_nonce;
+    v128u32_t  *noncev = (v128u32_t*)vdata + 9;
+    const int thr_id = mythr->id;
+    const bool bench = opt_benchmark;
+
+   v128_bswap32_intrlv80_2x64( vdata, pdata );
+   skein512_2x64_prehash64( &skein512_2x64_ctx, vdata );
+   *noncev = v128_intrlv_blend_32( v128_set32( n+1, 0, n, 0 ), *noncev );
+   do
+   {
+       skeinhash_2x64( hash, vdata );
+       for ( int lane = 0; lane < 2; lane++ )
+       if ( unlikely( ( hash_d7[ lane ] <= targ_d7 ) && !bench ) )
+       {
+          extr_lane_2x32( lane_hash, hash, lane, 256 );
+          if ( valid_hash( lane_hash, ptarget ) )
+          {
+             pdata[19] = bswap_32( n + lane );
+             submit_solution( work, lane_hash, mythr );
+          }
+       }
+       *noncev = v128_add32( *noncev, v128_64( 0x0000000200000000 ) );
+       n += 2;
+    } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
+
+    pdata[19] = n;
+    *hashes_done = n - first_nonce;
+    return 0;
+}
+
 #endif

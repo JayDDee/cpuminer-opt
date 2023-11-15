@@ -303,7 +303,7 @@ void shavite512_4way_close( shavite512_4way_context *ctx, void *dst )
     count.u32[3] = ctx->count3;
 
     casti_m512i( buf, 6 ) = mm512_bcast_m128(
-                  _mm_insert_epi16( m128_zero, count.u16[0], 7 ) ); 
+                  _mm_insert_epi16( v128_zero, count.u16[0], 7 ) ); 
     casti_m512i( buf, 7 ) = mm512_bcast_m128( _mm_set_epi16(
                   0x0200,       count.u16[7], count.u16[6], count.u16[5],
                   count.u16[4], count.u16[3], count.u16[2], count.u16[1] ) );
@@ -379,7 +379,7 @@ void shavite512_4way_update_close( shavite512_4way_context *ctx, void *dst,
    }
 
     casti_m512i( buf, 6 ) = mm512_bcast_m128(
-                  _mm_insert_epi16( m128_zero, count.u16[0], 7 ) ); 
+                  _mm_insert_epi16( v128_zero, count.u16[0], 7 ) ); 
     casti_m512i( buf, 7 ) = mm512_bcast_m128( _mm_set_epi16(
                   0x0200,       count.u16[7], count.u16[6], count.u16[5],
                   count.u16[4], count.u16[3], count.u16[2], count.u16[1] ) );
@@ -470,7 +470,7 @@ void shavite512_4way_full( shavite512_4way_context *ctx, void *dst,
    }
 
     casti_m512i( buf, 6 ) = mm512_bcast_m128(
-                  _mm_insert_epi16( m128_zero, count.u16[0], 7 ) );
+                  _mm_insert_epi16( v128_zero, count.u16[0], 7 ) );
     casti_m512i( buf, 7 ) = mm512_bcast_m128( _mm_set_epi16(
                   0x0200,       count.u16[7], count.u16[6], count.u16[5],
                   count.u16[4], count.u16[3], count.u16[2], count.u16[1] ) );

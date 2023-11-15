@@ -5,11 +5,11 @@
 #include <stdint.h>
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
- #define SHA512256D_8WAY 1
+#define SHA512256D_8WAY 1
 #elif defined(__AVX2__)
- #define SHA512256D_4WAY 1
+#define SHA512256D_4WAY 1
 #elif defined(__SSE2__) || defined(__ARM_NEON)
- #define SHA512256D_2WAY 1
+#define SHA512256D_2WAY 1
 #endif
 
 #if defined(SHA512256D_8WAY)
@@ -110,14 +110,13 @@ int scanhash_sha512256d_4way( struct work *work, uint32_t max_nonce,
     const uint32_t first_nonce = pdata[19];
     const uint32_t last_nonce = max_nonce - 4;
     uint32_t n = first_nonce;
-    __m256i  *noncev = (__m256i*)vdata + 9;
     const int thr_id = mythr->id;
     const bool bench = opt_benchmark;
     const __m256i four = v256_64( 0x0000000400000000 );
 
     mm256_bswap32_intrlv80_4x64( vdata, pdata );
-    *noncev = mm256_intrlv_blend_32(
-                _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
+    casti_m256i( vdata,9 ) = mm256_intrlv_blend_32( _mm256_set_epi32(
+                     n+3, 0, n+2, 0, n+1, 0, n, 0 ), casti_m256i( vdata,9 ) );
     do
     {
        sha512256d_4way_init( &ctx );
@@ -138,7 +137,7 @@ int scanhash_sha512256d_4way( struct work *work, uint32_t max_nonce,
              submit_solution( work, lane_hash, mythr );
           }
        }
-       *noncev = _mm256_add_epi32( *noncev, four );
+       casti_m256i( vdata,9 ) = _mm256_add_epi32( casti_m256i( vdata,9 ), four );
        n += 4;
     } while ( (n < last_nonce) && !work_restart[thr_id].restart );
 
@@ -180,11 +179,10 @@ int scanhash_sha512256d_2x64( struct work *work, uint32_t max_nonce,
     v128u64_t *noncev = (v128u64_t*)vdata + 9;
     const int thr_id = mythr->id;
     const bool bench = opt_benchmark;
-    const v128u64_t two = v128_64( 0x0000000200000000 );
+    const v128_t two = v128_64( 0x0000000200000000 );
 
     v128_bswap32_intrlv80_2x64( vdata, pdata );
-    *noncev = v128_add32( v128_set32( 1, 0, 0, 0 ), *noncev );
-//    *noncev = v128_intrlv_blend_32( v128_set32( n+1, 0, n, 0 ), *noncev );
+    *noncev = v128_intrlv_blend_32( v128_set32( n+1, 0, n, 0 ), *noncev );
 
     do
     {
@@ -279,7 +277,7 @@ int scanhash_sha512256d( struct work *work,   uint32_t max_nonce,
 
 bool register_sha512256d_algo( algo_gate_t* gate )
 {
-   gate->optimizations = AVX2_OPT | AVX512_OPT;
+   gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
 #if defined(SHA512256D_8WAY)
    gate->scanhash = (void*)&scanhash_sha512256d_8way;
 #elif defined(SHA512256D_4WAY)

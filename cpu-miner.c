@@ -2968,8 +2968,12 @@ static bool cpu_capability( bool display_only )
         printf(" Linux\n");
      #elif defined(WIN32)
         printf(" Windows\n");
+     #elif defined(__APPLE__)
+        printf(" MacOS\n");
+#elif defined(__unix__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) 
+        printf(" Unix\n");
      #else
-       printf("\n");
+        printf("\n");
      #endif
 
      printf("CPU features: ");

@@ -146,7 +146,7 @@ MYALIGN const unsigned int _IV512[] = {
 
 #define SUBSTITUTE(r0, _t2 )\
 	_t2 = _mm_shuffle_epi8(r0, M128(_inv_shift_rows));\
-	_t2 = _mm_aesenclast_si128( _t2, m128_zero )
+	_t2 = _mm_aesenclast_si128( _t2, v128_zero )
 
 #define SUPERMIX(t0, t1, t2, t3, t4)\
    t2 = t0;\
@@ -162,16 +162,16 @@ MYALIGN const unsigned int _IV512[] = {
    t1 = _mm_shuffle_epi8(t4, M128(_supermix1d));\
    t4 = _mm_xor_si128(t4, t1);\
    t1 = _mm_shuffle_epi8(t2, M128(_supermix1a));\
-   t2 = mm128_xor3(t2, t3, t0 );\
+   t2 = v128_xor3(t2, t3, t0 );\
    t2 = _mm_shuffle_epi8(t2, M128(_supermix7a));\
-   t4 = mm128_xor3( t4, t1, t2 ); \
+   t4 = v128_xor3( t4, t1, t2 ); \
    t2 = _mm_shuffle_epi8(t2, M128(_supermix7b));\
    t3 = _mm_shuffle_epi8(t3, M128(_supermix2a));\
    t1 = _mm_shuffle_epi8(t0, M128(_supermix4a));\
    t0 = _mm_shuffle_epi8(t0, M128(_supermix4b));\
-   t4 = mm128_xor3( t4, t2, t1 ); \
+   t4 = v128_xor3( t4, t2, t1 ); \
    t0 = _mm_xor_si128(t0, t3);\
-   t4 = mm128_xor3(t4, t0, _mm_shuffle_epi8(t0, M128(_supermix4c)));
+   t4 = v128_xor3(t4, t0, _mm_shuffle_epi8(t0, M128(_supermix4c)));
 
 /*
 #define SUPERMIX(t0, t1, t2, t3, t4)\
@@ -188,7 +188,7 @@ MYALIGN const unsigned int _IV512[] = {
 	t4 = _mm_xor_si128(t4, t1);\
 	t1 = _mm_shuffle_epi8(t2, M128(_supermix1a));\
 	t4 = _mm_xor_si128(t4, t1);\
-	t2 = mm128_xor3(t2, t3, t0 );\
+	t2 = v128_xor3(t2, t3, t0 );\
 	t2 = _mm_shuffle_epi8(t2, M128(_supermix7a));\
 	t4 = _mm_xor_si128(t4, t2);\
 	t2 = _mm_shuffle_epi8(t2, M128(_supermix7b));\
@@ -485,7 +485,7 @@ HashReturn fugue512_Init(hashState_fugue *ctx, int nHashSize)
 	ctx->uBlockLength = 4;
 
 	for(i = 0; i < 6; i++)
-		ctx->state[i] = m128_zero;
+		ctx->state[i] = v128_zero;
 
 	ctx->state[6]  = _mm_load_si128((__m128i*)_IV512 + 0);
 	ctx->state[7]  = _mm_load_si128((__m128i*)_IV512 + 1);

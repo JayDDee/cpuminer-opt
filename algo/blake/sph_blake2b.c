@@ -131,47 +131,7 @@
    V[7] = v128_alignr64( V6, V7, 1 ); \
 }
 
-/*
-#elif defined(__SSE2__)
-// always true
-
-#define BLAKE2B_G( Va, Vb, Vc, Vd, Sa, Sb, Sc, Sd ) \
-{ \
-   Va = _mm_add_epi64( Va, _mm_add_epi64( Vb, \
-                 _mm_set_epi64x( m[ sigmaR[ Sc ] ], m[ sigmaR[ Sa ] ] ) ) ); \
-   Vd = mm128_swap64_32( _mm_xor_si128( Vd, Va ) ); \
-   Vc = _mm_add_epi64( Vc, Vd ); \
-   Vb = mm128_shuflr64_24( _mm_xor_si128( Vb, Vc ) ); \
-\
-   Va = _mm_add_epi64( Va, _mm_add_epi64( Vb, \
-                 _mm_set_epi64x( m[ sigmaR[ Sd ] ], m[ sigmaR[ Sb ] ] ) ) ); \
-   Vd = mm128_shuflr64_16( _mm_xor_si128( Vd, Va ) ); \
-   Vc = _mm_add_epi64( Vc, Vd ); \
-   Vb = mm128_ror_64( _mm_xor_si128( Vb, Vc ), 63 ); \
-}
-
-#define BLAKE2B_ROUND( R ) \
-{ \
-   v128_t *V = (v128_t*)v; \
-   v128_t V2, V3, V6, V7; \
-   const uint8_t *sigmaR = sigma[R]; \
-   BLAKE2B_G( V[0], V[2], V[4], V[6], 0, 1, 2, 3 ); \
-   BLAKE2B_G( V[1], V[3], V[5], V[7], 4, 5, 6, 7 ); \
-   V2 = mm128_alignr_64( V[3], V[2], 1 ); \
-   V3 = mm128_alignr_64( V[2], V[3], 1 ); \
-   V6 = mm128_alignr_64( V[6], V[7], 1 ); \
-   V7 = mm128_alignr_64( V[7], V[6], 1 ); \
-   BLAKE2B_G( V[0], V2, V[5], V6,  8,  9, 10, 11 ); \
-   BLAKE2B_G( V[1], V3, V[4], V7, 12, 13, 14, 15 ); \
-   V[2] = mm128_alignr_64( V2, V3, 1 ); \
-   V[3] = mm128_alignr_64( V3, V2, 1 ); \
-   V[6] = mm128_alignr_64( V7, V6, 1 ); \
-   V[7] = mm128_alignr_64( V6, V7, 1 ); \
-}
-*/
-
 #else
-// never used, SSE2 is always available
 
 #ifndef ROTR64
 #define ROTR64(x, y)  (((x) >> (y)) ^ ((x) << (64 - (y))))

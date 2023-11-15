@@ -675,11 +675,13 @@ void skein512_8way_full( skein512_8way_context *sc, void *out, const void *data,
 
 // Close
 
-   unsigned et;
-
-   memset_zero_512( buf + (ptr>>3), (buf_size - ptr) >> 3 );
-   et = 352 + ((bcount == 0) << 7);
-   UBI_BIG_8WAY( et, ptr );
+   if ( ptr )
+   {
+      unsigned et;
+      memset_zero_512( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+      et = 352 + ((bcount == 0) << 7);
+      UBI_BIG_8WAY( et, ptr );
+   }
 
    memset_zero_512( buf, buf_size >> 3 );
    bcount = 0;
@@ -970,11 +972,13 @@ skein512_4way_full( skein512_4way_context *sc, void *out, const void *data,
 
 // Close
 
-   unsigned et;
-
-   memset_zero_256( buf + (ptr>>3), (buf_size - ptr) >> 3 );
-   et = 352 + ((bcount == 0) << 7);
-   UBI_BIG_4WAY( et, ptr );
+   if ( ptr )
+   {
+      unsigned et;
+      memset_zero_256( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+      et = 352 + ((bcount == 0) << 7);
+      UBI_BIG_4WAY( et, ptr );
+   }
 
    memset_zero_256( buf, buf_size >> 3 );
    bcount = 0;
@@ -1364,11 +1368,13 @@ skein512_2x64_full( skein512_2x64_context *sc, void *out, const void *data,
 
 // Close
 
-   unsigned et;
-
-   v128_memset_zero( buf + (ptr>>3), (buf_size - ptr) >> 3 );
-   et = 352 + ((bcount == 0) << 7);
-   UBI_BIG_2WAY( et, ptr );
+   if ( ptr )
+   {
+      unsigned et;
+      v128_memset_zero( buf + (ptr>>3), (buf_size - ptr) >> 3 );
+      et = 352 + ((bcount == 0) << 7);
+      UBI_BIG_2WAY( et, ptr );
+   }
 
    v128_memset_zero( buf, buf_size >> 3 );
    bcount = 0;

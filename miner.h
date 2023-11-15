@@ -3,12 +3,16 @@
 
 #include <cpuminer-config.h>
 
+#if !( defined(__SSE2__) || ( defined(__aarch64__) && defined(__ARM_NEON) ) )
+#warning "Unknown or unsupported CPU, requires x86_64 with SSE2 or AArch64 with NEON." 
+#endif
+
 #if defined(__x86_64__)
    #define USER_AGENT_ARCH "x64"     // Intel, AMD x86_64
 #elif defined(__aarch64__)
    #define USER_AGENT_ARCH "arm"     // AArch64
 //#elif
-//  #define USER_AGENT_ARCH "R5"     // RISC-V             
+//  #define USER_AGENT_ARCH "r5"     // RISC-V             
 #else
    #define USER_AGENT_ARCH
 #endif

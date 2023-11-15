@@ -626,7 +626,7 @@ static const __m256i SUBSH_MASK7_2WAY =
 
 #define ROUND_2WAY(i, a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* AddRoundConstant */\
-  b1 = mm256_bcast_m128( mm128_mask_32( m128_neg1, 0x3 ) ); \
+  b1 = mm256_bcast_m128( mm128_mask_32( v128_neg1, 0x3 ) ); \
   a0 = _mm256_xor_si256( a0, mm256_bcast_m128( round_const_l0[i] ) );\
   a1 = _mm256_xor_si256( a1, b1 );\
   a2 = _mm256_xor_si256( a2, b1 );\

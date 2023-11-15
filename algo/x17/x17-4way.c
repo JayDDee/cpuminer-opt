@@ -931,15 +931,19 @@ int scanhash_x17_4x64( struct work *work, uint32_t max_nonce,
 // Need sph in some cases
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#include "algo/simd/sph_simd.h"
-#include "algo/simd/nist.h"
-#include "algo/hamsi/sph_hamsi.h"
+//#include "algo/simd/sph_simd.h"
+//#include "algo/simd/nist.h"
+#if !( defined(__SSE4_2__) || defined(__ARM_NEON) )
+  #include "algo/hamsi/sph_hamsi.h"
+#endif
 #include "algo/shabal/sph_shabal.h"
 #include "algo/haval/sph-haval.h"
-//#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
+#if !( defined(__AES__) ) //|| defined(__ARM_FEATURE_AES) )
   #include "algo/groestl/sph_groestl.h"
+#endif
+#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
   #include "algo/echo/sph_echo.h"
-//#endif
+#endif
 #include "algo/fugue/sph_fugue.h"
 
 union _x17_context_overlay
@@ -967,12 +971,8 @@ union _x17_context_overlay
         hashState_luffa         luffa;
         cubehashParam           cube;
         sph_shavite512_context  shavite;
-#if defined(__x86_64__)
         simd512_context         simd;
-#else
-        sph_simd512_context     simd;
-#endif
-#if defined(__SSE4_2__) // || defined(__ARM_NEON)
+#if defined(__SSE4_2__) || defined(__ARM_NEON)
         hamsi_2x64_context      hamsi;
 #else
         sph_hamsi512_context    hamsi;
@@ -1033,17 +1033,8 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     sph_shavite512( &ctx.shavite, hash1, 64 );
     sph_shavite512_close( &ctx.shavite, hash1 );
 
-#if defined(__x86_64__)
     simd512_ctx( &ctx.simd, hash0, hash0, 64 );
     simd512_ctx( &ctx.simd, hash1, hash1, 64 );
-#else
-    sph_simd512_init( &ctx.simd );
-    sph_simd512( &ctx.simd, hash0, 64 );
-    sph_simd512_close( &ctx.simd, hash0 );
-    sph_simd512_init( &ctx.simd );
-    sph_simd512( &ctx.simd, hash1, 64 );
-    sph_simd512_close( &ctx.simd, hash1 );
-#endif
 
 #if defined(__AES__) || defined(__ARM_FEATURE_AES)
     echo_full( &ctx.echo, hash0, 512, hash0, 64 );
@@ -1057,7 +1048,7 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     sph_echo512_close( &ctx.echo, hash1 );
 #endif
 
-#if defined(__SSE4_2__) // || defined(__ARM_NEON)
+#if defined(__SSE4_2__) || defined(__ARM_NEON)
     intrlv_2x64( vhash, hash0, hash1, 512 );
     hamsi512_2x64_ctx( &ctx.hamsi, vhash, vhash, 64 );
     dintrlv_2x64( hash0, hash1, vhash, 512 );

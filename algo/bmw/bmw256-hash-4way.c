@@ -62,78 +62,78 @@ static const uint32_t IV256[] = {
 */
 
 #define ss0(x) \
-   _mm_xor_si128( _mm_xor_si128( _mm_srli_epi32( (x), 1), \
-                                 _mm_slli_epi32( (x), 3) ), \
-                  _mm_xor_si128( mm128_rol_32( (x),  4), \
-                                 mm128_rol_32( (x), 19) ) )
+   v128_xor( v128_xor( v128_sr32( (x), 1), \
+                                 v128_sl32( (x), 3) ), \
+                  v128_xor( v128_rol32( (x),  4), \
+                                 v128_rol32( (x), 19) ) )
 
 #define ss1(x) \
-   _mm_xor_si128( _mm_xor_si128( _mm_srli_epi32( (x), 1), \
-                                 _mm_slli_epi32( (x), 2) ), \
-                  _mm_xor_si128( mm128_rol_32( (x),  8), \
-                                 mm128_rol_32( (x), 23) ) )
+   v128_xor( v128_xor( v128_sr32( (x), 1), \
+                                 v128_sl32( (x), 2) ), \
+                  v128_xor( v128_rol32( (x),  8), \
+                                 v128_rol32( (x), 23) ) )
 
 #define ss2(x) \
-   _mm_xor_si128( _mm_xor_si128( _mm_srli_epi32( (x), 2), \
-                                 _mm_slli_epi32( (x), 1) ), \
-                  _mm_xor_si128( mm128_rol_32( (x), 12), \
-                                 mm128_rol_32( (x), 25) ) )
+   v128_xor( v128_xor( v128_sr32( (x), 2), \
+                                 v128_sl32( (x), 1) ), \
+                  v128_xor( v128_rol32( (x), 12), \
+                                 v128_rol32( (x), 25) ) )
 
 #define ss3(x) \
-   _mm_xor_si128( _mm_xor_si128( _mm_srli_epi32( (x), 2), \
-                                 _mm_slli_epi32( (x), 2) ), \
-                  _mm_xor_si128( mm128_rol_32( (x), 15), \
-                                 mm128_rol_32( (x), 29) ) )
+   v128_xor( v128_xor( v128_sr32( (x), 2), \
+                                 v128_sl32( (x), 2) ), \
+                  v128_xor( v128_rol32( (x), 15), \
+                                 v128_rol32( (x), 29) ) )
 
 #define ss4(x) \
-  _mm_xor_si128( (x), _mm_srli_epi32( (x), 1 ) )
+  v128_xor( (x), v128_sr32( (x), 1 ) )
 
 #define ss5(x) \
-  _mm_xor_si128( (x), _mm_srli_epi32( (x), 2 ) )
+  v128_xor( (x), v128_sr32( (x), 2 ) )
 
-#define rs1(x)    mm128_rol_32( x,  3 ) 
-#define rs2(x)    mm128_rol_32( x,  7 ) 
-#define rs3(x)    mm128_rol_32( x, 13 ) 
-#define rs4(x)    mm128_rol_32( x, 16 ) 
-#define rs5(x)    mm128_rol_32( x, 19 ) 
-#define rs6(x)    mm128_rol_32( x, 23 ) 
-#define rs7(x)    mm128_rol_32( x, 27 ) 
+#define rs1(x)    v128_rol32( x,  3 ) 
+#define rs2(x)    v128_rol32( x,  7 ) 
+#define rs3(x)    v128_rol32( x, 13 ) 
+#define rs4(x)    v128_rol32( x, 16 ) 
+#define rs5(x)    v128_rol32( x, 19 ) 
+#define rs6(x)    v128_rol32( x, 23 ) 
+#define rs7(x)    v128_rol32( x, 27 ) 
 
 #define rol_off_32( M, j, off ) \
-   mm128_rol_32( M[ ( (j) + (off) ) & 0xF ] , \
+   v128_rol32( M[ ( (j) + (off) ) & 0xF ] , \
                 ( ( (j) + (off) ) & 0xF ) + 1 )
 
 #define add_elt_s( M, H, j ) \
-   _mm_xor_si128( \
-       _mm_add_epi32( \
-             _mm_sub_epi32( _mm_add_epi32( rol_off_32( M, j, 0 ), \
+   v128_xor( \
+       v128_add32( \
+             v128_sub32( v128_add32( rol_off_32( M, j, 0 ), \
                                            rol_off_32( M, j, 3 ) ), \
                             rol_off_32( M, j, 10 ) ), \
-       _mm_set1_epi32( ( (j)+16 ) * 0x05555555UL ) ), \
+       v128_32( ( (j)+16 ) * 0x05555555UL ) ), \
    H[ ( (j)+7 ) & 0xF ] )
 
 
 #define expand1s( qt, M, H, i ) \
-   _mm_add_epi32(  mm128_add4_32( \
-            mm128_add4_32( ss1( qt[ (i)-16 ] ), ss2( qt[ (i)-15 ] ), \
+   v128_add32(  v128_add4_32( \
+            v128_add4_32( ss1( qt[ (i)-16 ] ), ss2( qt[ (i)-15 ] ), \
                            ss3( qt[ (i)-14 ] ), ss0( qt[ (i)-13 ] ) ), \
-            mm128_add4_32( ss1( qt[ (i)-12 ] ), ss2( qt[ (i)-11 ] ), \
+            v128_add4_32( ss1( qt[ (i)-12 ] ), ss2( qt[ (i)-11 ] ), \
                            ss3( qt[ (i)-10 ] ), ss0( qt[ (i)- 9 ] ) ), \
-            mm128_add4_32( ss1( qt[ (i)- 8 ] ), ss2( qt[ (i)- 7 ] ), \
+            v128_add4_32( ss1( qt[ (i)- 8 ] ), ss2( qt[ (i)- 7 ] ), \
                            ss3( qt[ (i)- 6 ] ), ss0( qt[ (i)- 5 ] ) ),  \
-            mm128_add4_32( ss1( qt[ (i)- 4 ] ), ss2( qt[ (i)- 3 ] ), \
+            v128_add4_32( ss1( qt[ (i)- 4 ] ), ss2( qt[ (i)- 3 ] ), \
                            ss3( qt[ (i)- 2 ] ), ss0( qt[ (i)- 1 ] ) ) ), \
       add_elt_s( M, H, (i)-16 ) )
 
 #define expand2s( qt, M, H, i) \
-   _mm_add_epi32( mm128_add4_32( \
-            mm128_add4_32( qt[ (i)-16 ], rs1( qt[ (i)-15 ] ), \
+   v128_add32( v128_add4_32( \
+            v128_add4_32( qt[ (i)-16 ], rs1( qt[ (i)-15 ] ), \
                            qt[ (i)-14 ], rs2( qt[ (i)-13 ] ) ), \
-            mm128_add4_32( qt[ (i)-12 ], rs3( qt[ (i)-11 ] ), \
+            v128_add4_32( qt[ (i)-12 ], rs3( qt[ (i)-11 ] ), \
                            qt[ (i)-10 ], rs4( qt[ (i)- 9 ] ) ), \
-            mm128_add4_32( qt[ (i)- 8 ], rs5( qt[ (i)- 7 ] ), \
+            v128_add4_32( qt[ (i)- 8 ], rs5( qt[ (i)- 7 ] ), \
                            qt[ (i)- 6 ], rs6( qt[ (i)- 5 ] ) ), \
-            mm128_add4_32( qt[ (i)- 4 ], rs7( qt[ (i)- 3 ] ), \
+            v128_add4_32( qt[ (i)- 4 ], rs7( qt[ (i)- 3 ] ), \
                            ss4( qt[ (i)- 2 ] ), ss5( qt[ (i)- 1 ] ) ) ), \
       add_elt_s( M, H, (i)-16 ) )
 
@@ -141,169 +141,169 @@ static const uint32_t IV256[] = {
 // resulting in some sign changes compared to the reference code.
 
 #define Ws0 \
-   _mm_add_epi32( \
-      _mm_add_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 5], H[ 5] ), \
-                        _mm_xor_si128( M[ 7], H[ 7] ) ), \
-         _mm_xor_si128( M[10], H[10] ) ), \
-      _mm_add_epi32( _mm_xor_si128( M[13], H[13] ), \
-                     _mm_xor_si128( M[14], H[14] ) ) )
+   v128_add32( \
+      v128_add32( \
+         v128_sub32( v128_xor( M[ 5], H[ 5] ), \
+                        v128_xor( M[ 7], H[ 7] ) ), \
+         v128_xor( M[10], H[10] ) ), \
+      v128_add32( v128_xor( M[13], H[13] ), \
+                     v128_xor( M[14], H[14] ) ) )
 
 #define Ws1 \
-   _mm_add_epi32( \
-       _mm_add_epi32( \
-          _mm_sub_epi32( _mm_xor_si128( M[ 6], H[ 6] ), \
-                         _mm_xor_si128( M[ 8], H[ 8] ) ), \
-          _mm_xor_si128( M[11], H[11] ) ), \
-       _mm_sub_epi32( _mm_xor_si128( M[14], H[14] ), \
-                      _mm_xor_si128( M[15], H[15] ) ) )
+   v128_add32( \
+       v128_add32( \
+          v128_sub32( v128_xor( M[ 6], H[ 6] ), \
+                         v128_xor( M[ 8], H[ 8] ) ), \
+          v128_xor( M[11], H[11] ) ), \
+       v128_sub32( v128_xor( M[14], H[14] ), \
+                      v128_xor( M[15], H[15] ) ) )
 
 #define Ws2 \
-   _mm_sub_epi32( \
-      _mm_add_epi32( \
-         _mm_add_epi32( _mm_xor_si128( M[ 0], H[ 0] ), \
-                        _mm_xor_si128( M[ 7], H[ 7] ) ), \
-         _mm_xor_si128( M[ 9], H[ 9] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[12], H[12] ), \
-                     _mm_xor_si128( M[15], H[15] ) ) )
+   v128_sub32( \
+      v128_add32( \
+         v128_add32( v128_xor( M[ 0], H[ 0] ), \
+                        v128_xor( M[ 7], H[ 7] ) ), \
+         v128_xor( M[ 9], H[ 9] ) ), \
+      v128_sub32( v128_xor( M[12], H[12] ), \
+                     v128_xor( M[15], H[15] ) ) )
 
 #define Ws3 \
-   _mm_sub_epi32( \
-      _mm_add_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 0], H[ 0] ), \
-                        _mm_xor_si128( M[ 1], H[ 1] ) ), \
-         _mm_xor_si128( M[ 8], H[ 8] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[10], H[10] ), \
-                     _mm_xor_si128( M[13], H[13] ) ) )
+   v128_sub32( \
+      v128_add32( \
+         v128_sub32( v128_xor( M[ 0], H[ 0] ), \
+                        v128_xor( M[ 1], H[ 1] ) ), \
+         v128_xor( M[ 8], H[ 8] ) ), \
+      v128_sub32( v128_xor( M[10], H[10] ), \
+                     v128_xor( M[13], H[13] ) ) )
 
 #define Ws4 \
-   _mm_sub_epi32( \
-      _mm_add_epi32( \
-         _mm_add_epi32( _mm_xor_si128( M[ 1], H[ 1] ), \
-                        _mm_xor_si128( M[ 2], H[ 2] ) ), \
-         _mm_xor_si128( M[ 9], H[ 9] ) ), \
-      _mm_add_epi32( _mm_xor_si128( M[11], H[11] ), \
-                     _mm_xor_si128( M[14], H[14] ) ) )
+   v128_sub32( \
+      v128_add32( \
+         v128_add32( v128_xor( M[ 1], H[ 1] ), \
+                        v128_xor( M[ 2], H[ 2] ) ), \
+         v128_xor( M[ 9], H[ 9] ) ), \
+      v128_add32( v128_xor( M[11], H[11] ), \
+                     v128_xor( M[14], H[14] ) ) )
 
 #define Ws5 \
-   _mm_sub_epi32( \
-      _mm_add_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 3], H[ 3] ), \
-                        _mm_xor_si128( M[ 2], H[ 2] ) ), \
-         _mm_xor_si128( M[10], H[10] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[12], H[12] ), \
-                     _mm_xor_si128( M[15], H[15] ) ) )
+   v128_sub32( \
+      v128_add32( \
+         v128_sub32( v128_xor( M[ 3], H[ 3] ), \
+                        v128_xor( M[ 2], H[ 2] ) ), \
+         v128_xor( M[10], H[10] ) ), \
+      v128_sub32( v128_xor( M[12], H[12] ), \
+                     v128_xor( M[15], H[15] ) ) )
 
 #define Ws6 \
-   _mm_sub_epi32( \
-      _mm_sub_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 4], H[ 4] ), \
-                        _mm_xor_si128( M[ 0], H[ 0] ) ), \
-         _mm_xor_si128( M[ 3], H[ 3] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[11], H[11] ), \
-                     _mm_xor_si128( M[13], H[13] ) ) )
+   v128_sub32( \
+      v128_sub32( \
+         v128_sub32( v128_xor( M[ 4], H[ 4] ), \
+                        v128_xor( M[ 0], H[ 0] ) ), \
+         v128_xor( M[ 3], H[ 3] ) ), \
+      v128_sub32( v128_xor( M[11], H[11] ), \
+                     v128_xor( M[13], H[13] ) ) )
 
 #define Ws7 \
-   _mm_sub_epi32( \
-      _mm_sub_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 1], H[ 1] ), \
-                        _mm_xor_si128( M[ 4], H[ 4] ) ), \
-         _mm_xor_si128( M[ 5], H[ 5] ) ), \
-      _mm_add_epi32( _mm_xor_si128( M[12], H[12] ), \
-                     _mm_xor_si128( M[14], H[14] ) ) )
+   v128_sub32( \
+      v128_sub32( \
+         v128_sub32( v128_xor( M[ 1], H[ 1] ), \
+                        v128_xor( M[ 4], H[ 4] ) ), \
+         v128_xor( M[ 5], H[ 5] ) ), \
+      v128_add32( v128_xor( M[12], H[12] ), \
+                     v128_xor( M[14], H[14] ) ) )
 
 #define Ws8 \
-   _mm_add_epi32( \
-      _mm_sub_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 2], H[ 2] ), \
-                        _mm_xor_si128( M[ 5], H[ 5] ) ), \
-         _mm_xor_si128( M[ 6], H[ 6] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[13], H[13] ), \
-                     _mm_xor_si128( M[15], H[15] ) ) )
+   v128_add32( \
+      v128_sub32( \
+         v128_sub32( v128_xor( M[ 2], H[ 2] ), \
+                        v128_xor( M[ 5], H[ 5] ) ), \
+         v128_xor( M[ 6], H[ 6] ) ), \
+      v128_sub32( v128_xor( M[13], H[13] ), \
+                     v128_xor( M[15], H[15] ) ) )
 #define Ws9 \
-   _mm_sub_epi32( \
-      _mm_add_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 0], H[ 0] ), \
-                        _mm_xor_si128( M[ 3], H[ 3] ) ), \
-         _mm_xor_si128( M[ 6], H[ 6] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[ 7], H[ 7] ), \
-                     _mm_xor_si128( M[14], H[14] ) ) )
+   v128_sub32( \
+      v128_add32( \
+         v128_sub32( v128_xor( M[ 0], H[ 0] ), \
+                        v128_xor( M[ 3], H[ 3] ) ), \
+         v128_xor( M[ 6], H[ 6] ) ), \
+      v128_sub32( v128_xor( M[ 7], H[ 7] ), \
+                     v128_xor( M[14], H[14] ) ) )
 
 #define Ws10 \
-   _mm_sub_epi32( \
-      _mm_sub_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 8], H[ 8] ), \
-                        _mm_xor_si128( M[ 1], H[ 1] ) ), \
-         _mm_xor_si128( M[ 4], H[ 4] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[ 7], H[ 7] ), \
-                     _mm_xor_si128( M[15], H[15] ) ) )
+   v128_sub32( \
+      v128_sub32( \
+         v128_sub32( v128_xor( M[ 8], H[ 8] ), \
+                        v128_xor( M[ 1], H[ 1] ) ), \
+         v128_xor( M[ 4], H[ 4] ) ), \
+      v128_sub32( v128_xor( M[ 7], H[ 7] ), \
+                     v128_xor( M[15], H[15] ) ) )
 
 #define Ws11 \
-   _mm_sub_epi32( \
-      _mm_sub_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 8], H[ 8] ), \
-                        _mm_xor_si128( M[ 0], H[ 0] ) ), \
-         _mm_xor_si128( M[ 2], H[ 2] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[ 5], H[ 5] ), \
-                     _mm_xor_si128( M[ 9], H[ 9] ) ) )
+   v128_sub32( \
+      v128_sub32( \
+         v128_sub32( v128_xor( M[ 8], H[ 8] ), \
+                        v128_xor( M[ 0], H[ 0] ) ), \
+         v128_xor( M[ 2], H[ 2] ) ), \
+      v128_sub32( v128_xor( M[ 5], H[ 5] ), \
+                     v128_xor( M[ 9], H[ 9] ) ) )
 
 #define Ws12 \
-   _mm_sub_epi32( \
-      _mm_sub_epi32( \
-         _mm_add_epi32( _mm_xor_si128( M[ 1], H[ 1] ), \
-                        _mm_xor_si128( M[ 3], H[ 3] ) ), \
-         _mm_xor_si128( M[ 6], H[ 6] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[ 9], H[ 9] ), \
-                     _mm_xor_si128( M[10], H[10] ) ) )
+   v128_sub32( \
+      v128_sub32( \
+         v128_add32( v128_xor( M[ 1], H[ 1] ), \
+                        v128_xor( M[ 3], H[ 3] ) ), \
+         v128_xor( M[ 6], H[ 6] ) ), \
+      v128_sub32( v128_xor( M[ 9], H[ 9] ), \
+                     v128_xor( M[10], H[10] ) ) )
 
 #define Ws13 \
-   _mm_add_epi32( \
-      _mm_add_epi32( \
-         _mm_add_epi32( _mm_xor_si128( M[ 2], H[ 2] ), \
-                        _mm_xor_si128( M[ 4], H[ 4] ) ), \
-         _mm_xor_si128( M[ 7], H[ 7] ) ), \
-      _mm_add_epi32( _mm_xor_si128( M[10], H[10] ), \
-                     _mm_xor_si128( M[11], H[11] ) ) )
+   v128_add32( \
+      v128_add32( \
+         v128_add32( v128_xor( M[ 2], H[ 2] ), \
+                        v128_xor( M[ 4], H[ 4] ) ), \
+         v128_xor( M[ 7], H[ 7] ) ), \
+      v128_add32( v128_xor( M[10], H[10] ), \
+                     v128_xor( M[11], H[11] ) ) )
 
 #define Ws14 \
-   _mm_sub_epi32( \
-      _mm_add_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[ 3], H[ 3] ), \
-                        _mm_xor_si128( M[ 5], H[ 5] ) ), \
-         _mm_xor_si128( M[ 8], H[ 8] ) ), \
-      _mm_add_epi32( _mm_xor_si128( M[11], H[11] ), \
-                     _mm_xor_si128( M[12], H[12] ) ) )
+   v128_sub32( \
+      v128_add32( \
+         v128_sub32( v128_xor( M[ 3], H[ 3] ), \
+                        v128_xor( M[ 5], H[ 5] ) ), \
+         v128_xor( M[ 8], H[ 8] ) ), \
+      v128_add32( v128_xor( M[11], H[11] ), \
+                     v128_xor( M[12], H[12] ) ) )
 
 #define Ws15 \
-   _mm_sub_epi32( \
-      _mm_sub_epi32( \
-         _mm_sub_epi32( _mm_xor_si128( M[12], H[12] ), \
-                        _mm_xor_si128( M[ 4], H[4] ) ), \
-         _mm_xor_si128( M[ 6], H[ 6] ) ), \
-      _mm_sub_epi32( _mm_xor_si128( M[ 9], H[ 9] ), \
-                     _mm_xor_si128( M[13], H[13] ) ) )
+   v128_sub32( \
+      v128_sub32( \
+         v128_sub32( v128_xor( M[12], H[12] ), \
+                        v128_xor( M[ 4], H[4] ) ), \
+         v128_xor( M[ 6], H[ 6] ) ), \
+      v128_sub32( v128_xor( M[ 9], H[ 9] ), \
+                     v128_xor( M[13], H[13] ) ) )
 
 
-void compress_small( const __m128i *M, const __m128i H[16], __m128i dH[16] )
+void compress_small( const v128u64_t *M, const v128u64_t H[16], v128u64_t dH[16] )
 {
-   __m128i qt[32], xl, xh; \
+   v128u64_t qt[32], xl, xh; \
 
-   qt[ 0] = _mm_add_epi32( ss0( Ws0 ), H[ 1] );
-   qt[ 1] = _mm_add_epi32( ss1( Ws1 ), H[ 2] );
-   qt[ 2] = _mm_add_epi32( ss2( Ws2 ), H[ 3] );
-   qt[ 3] = _mm_add_epi32( ss3( Ws3 ), H[ 4] );
-   qt[ 4] = _mm_add_epi32( ss4( Ws4 ), H[ 5] );
-   qt[ 5] = _mm_add_epi32( ss0( Ws5 ), H[ 6] );
-   qt[ 6] = _mm_add_epi32( ss1( Ws6 ), H[ 7] );
-   qt[ 7] = _mm_add_epi32( ss2( Ws7 ), H[ 8] );
-   qt[ 8] = _mm_add_epi32( ss3( Ws8 ), H[ 9] );
-   qt[ 9] = _mm_add_epi32( ss4( Ws9 ), H[10] );
-   qt[10] = _mm_add_epi32( ss0( Ws10), H[11] );
-   qt[11] = _mm_add_epi32( ss1( Ws11), H[12] );
-   qt[12] = _mm_add_epi32( ss2( Ws12), H[13] );
-   qt[13] = _mm_add_epi32( ss3( Ws13), H[14] );
-   qt[14] = _mm_add_epi32( ss4( Ws14), H[15] );
-   qt[15] = _mm_add_epi32( ss0( Ws15), H[ 0] );
+   qt[ 0] = v128_add32( ss0( Ws0 ), H[ 1] );
+   qt[ 1] = v128_add32( ss1( Ws1 ), H[ 2] );
+   qt[ 2] = v128_add32( ss2( Ws2 ), H[ 3] );
+   qt[ 3] = v128_add32( ss3( Ws3 ), H[ 4] );
+   qt[ 4] = v128_add32( ss4( Ws4 ), H[ 5] );
+   qt[ 5] = v128_add32( ss0( Ws5 ), H[ 6] );
+   qt[ 6] = v128_add32( ss1( Ws6 ), H[ 7] );
+   qt[ 7] = v128_add32( ss2( Ws7 ), H[ 8] );
+   qt[ 8] = v128_add32( ss3( Ws8 ), H[ 9] );
+   qt[ 9] = v128_add32( ss4( Ws9 ), H[10] );
+   qt[10] = v128_add32( ss0( Ws10), H[11] );
+   qt[11] = v128_add32( ss1( Ws11), H[12] );
+   qt[12] = v128_add32( ss2( Ws12), H[13] );
+   qt[13] = v128_add32( ss3( Ws13), H[14] );
+   qt[14] = v128_add32( ss4( Ws14), H[15] );
+   qt[15] = v128_add32( ss0( Ws15), H[ 0] );
    qt[16] = expand1s( qt, M, H, 16 );
    qt[17] = expand1s( qt, M, H, 17 );
    qt[18] = expand2s( qt, M, H, 18 );
@@ -321,92 +321,92 @@ void compress_small( const __m128i *M, const __m128i H[16], __m128i dH[16] )
    qt[30] = expand2s( qt, M, H, 30 );
    qt[31] = expand2s( qt, M, H, 31 );
 
-   xl = _mm_xor_si128( mm128_xor4( qt[16], qt[17], qt[18], qt[19] ),
-                       mm128_xor4( qt[20], qt[21], qt[22], qt[23] ) );
-   xh = _mm_xor_si128( xl, _mm_xor_si128(
-                             mm128_xor4( qt[24], qt[25], qt[26], qt[27] ),
-                             mm128_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
+   xl = v128_xor( v128_xor4( qt[16], qt[17], qt[18], qt[19] ),
+                       v128_xor4( qt[20], qt[21], qt[22], qt[23] ) );
+   xh = v128_xor( xl, v128_xor(
+                             v128_xor4( qt[24], qt[25], qt[26], qt[27] ),
+                             v128_xor4( qt[28], qt[29], qt[30], qt[31] ) ) );
 
-   dH[ 0] = _mm_add_epi32(
-                 _mm_xor_si128( M[0],
-                      _mm_xor_si128( _mm_slli_epi32( xh, 5 ),
-                                     _mm_srli_epi32( qt[16], 5 ) ) ),
-                 _mm_xor_si128( _mm_xor_si128( xl, qt[24] ), qt[ 0] ));
-   dH[ 1] = _mm_add_epi32(
-                 _mm_xor_si128( M[1],
-                      _mm_xor_si128( _mm_srli_epi32( xh, 7 ),
-                                     _mm_slli_epi32( qt[17], 8 ) ) ),
-                 _mm_xor_si128( _mm_xor_si128( xl, qt[25] ), qt[ 1] ));
-   dH[ 2] = _mm_add_epi32(
-                 _mm_xor_si128( M[2],
-                      _mm_xor_si128( _mm_srli_epi32( xh, 5 ),
-                                     _mm_slli_epi32( qt[18], 5 ) ) ),
-                 _mm_xor_si128( _mm_xor_si128( xl, qt[26] ), qt[ 2] ));
-   dH[ 3] = _mm_add_epi32(
-                 _mm_xor_si128( M[3],
-                      _mm_xor_si128( _mm_srli_epi32( xh, 1 ),
-                                     _mm_slli_epi32( qt[19], 5 ) ) ),
-                 _mm_xor_si128( _mm_xor_si128( xl, qt[27] ), qt[ 3] ));
-   dH[ 4] = _mm_add_epi32(
-                 _mm_xor_si128( M[4],
-                      _mm_xor_si128( _mm_srli_epi32( xh, 3 ),
-                                     _mm_slli_epi32( qt[20], 0 ) ) ),
-                 _mm_xor_si128( _mm_xor_si128( xl, qt[28] ), qt[ 4] ));
-   dH[ 5] = _mm_add_epi32(
-                 _mm_xor_si128( M[5],
-                      _mm_xor_si128( _mm_slli_epi32( xh, 6 ),
-                                     _mm_srli_epi32( qt[21], 6 ) ) ),
-                 _mm_xor_si128( _mm_xor_si128( xl, qt[29] ), qt[ 5] ));
-   dH[ 6] = _mm_add_epi32(
-                 _mm_xor_si128( M[6],
-                      _mm_xor_si128( _mm_srli_epi32( xh, 4 ),
-                                     _mm_slli_epi32( qt[22], 6 ) ) ),
-                 _mm_xor_si128( _mm_xor_si128( xl, qt[30] ), qt[ 6] ));
-   dH[ 7] = _mm_add_epi32(
-                 _mm_xor_si128( M[7],
-                      _mm_xor_si128( _mm_srli_epi32( xh, 11 ),
-                                     _mm_slli_epi32( qt[23], 2 ) ) ),
-                 _mm_xor_si128( _mm_xor_si128( xl, qt[31] ), qt[ 7] ));
-   dH[ 8] = _mm_add_epi32( _mm_add_epi32(
-                 mm128_rol_32( dH[4], 9 ),
-                 _mm_xor_si128( _mm_xor_si128( xh, qt[24] ), M[ 8] )),
-                 _mm_xor_si128( _mm_slli_epi32( xl, 8 ),
-                                _mm_xor_si128( qt[23], qt[ 8] ) ) );
-   dH[ 9] = _mm_add_epi32( _mm_add_epi32(
-                 mm128_rol_32( dH[5], 10 ),
-                 _mm_xor_si128( _mm_xor_si128( xh, qt[25] ), M[ 9] )),
-                 _mm_xor_si128( _mm_srli_epi32( xl, 6 ),
-                                _mm_xor_si128( qt[16], qt[ 9] ) ) );
-   dH[10] = _mm_add_epi32( _mm_add_epi32(
-                 mm128_rol_32( dH[6], 11 ),
-                 _mm_xor_si128( _mm_xor_si128( xh, qt[26] ), M[10] )),
-                 _mm_xor_si128( _mm_slli_epi32( xl, 6 ),
-                                _mm_xor_si128( qt[17], qt[10] ) ) );
-   dH[11] = _mm_add_epi32( _mm_add_epi32(
-                 mm128_rol_32( dH[7], 12 ),
-                 _mm_xor_si128( _mm_xor_si128( xh, qt[27] ), M[11] )),
-                 _mm_xor_si128( _mm_slli_epi32( xl, 4 ),
-                                _mm_xor_si128( qt[18], qt[11] ) ) );
-   dH[12] = _mm_add_epi32( _mm_add_epi32(
-                 mm128_rol_32( dH[0], 13 ),
-                 _mm_xor_si128( _mm_xor_si128( xh, qt[28] ), M[12] )),
-                 _mm_xor_si128( _mm_srli_epi32( xl, 3 ),
-                                _mm_xor_si128( qt[19], qt[12] ) ) );
-   dH[13] = _mm_add_epi32( _mm_add_epi32(
-                 mm128_rol_32( dH[1], 14 ),
-                 _mm_xor_si128( _mm_xor_si128( xh, qt[29] ), M[13] )),
-                 _mm_xor_si128( _mm_srli_epi32( xl, 4 ),
-                                _mm_xor_si128( qt[20], qt[13] ) ) );
-   dH[14] = _mm_add_epi32( _mm_add_epi32(
-                 mm128_rol_32( dH[2], 15 ),
-                 _mm_xor_si128( _mm_xor_si128( xh, qt[30] ), M[14] )),
-                 _mm_xor_si128( _mm_srli_epi32( xl, 7 ),
-                                _mm_xor_si128( qt[21], qt[14] ) ) );
-   dH[15] = _mm_add_epi32( _mm_add_epi32(
-                 mm128_rol_32( dH[3], 16 ),
-                 _mm_xor_si128( _mm_xor_si128( xh, qt[31] ), M[15] )),
-                 _mm_xor_si128( _mm_srli_epi32( xl, 2 ),
-                                _mm_xor_si128( qt[22], qt[15] ) ) );
+   dH[ 0] = v128_add32(
+                 v128_xor( M[0],
+                      v128_xor( v128_sl32( xh, 5 ),
+                                     v128_sr32( qt[16], 5 ) ) ),
+                 v128_xor( v128_xor( xl, qt[24] ), qt[ 0] ));
+   dH[ 1] = v128_add32(
+                 v128_xor( M[1],
+                      v128_xor( v128_sr32( xh, 7 ),
+                                     v128_sl32( qt[17], 8 ) ) ),
+                 v128_xor( v128_xor( xl, qt[25] ), qt[ 1] ));
+   dH[ 2] = v128_add32(
+                 v128_xor( M[2],
+                      v128_xor( v128_sr32( xh, 5 ),
+                                     v128_sl32( qt[18], 5 ) ) ),
+                 v128_xor( v128_xor( xl, qt[26] ), qt[ 2] ));
+   dH[ 3] = v128_add32(
+                 v128_xor( M[3],
+                      v128_xor( v128_sr32( xh, 1 ),
+                                     v128_sl32( qt[19], 5 ) ) ),
+                 v128_xor( v128_xor( xl, qt[27] ), qt[ 3] ));
+   dH[ 4] = v128_add32(
+                 v128_xor( M[4],
+                      v128_xor( v128_sr32( xh, 3 ),
+                                     v128_sl32( qt[20], 0 ) ) ),
+                 v128_xor( v128_xor( xl, qt[28] ), qt[ 4] ));
+   dH[ 5] = v128_add32(
+                 v128_xor( M[5],
+                      v128_xor( v128_sl32( xh, 6 ),
+                                     v128_sr32( qt[21], 6 ) ) ),
+                 v128_xor( v128_xor( xl, qt[29] ), qt[ 5] ));
+   dH[ 6] = v128_add32(
+                 v128_xor( M[6],
+                      v128_xor( v128_sr32( xh, 4 ),
+                                     v128_sl32( qt[22], 6 ) ) ),
+                 v128_xor( v128_xor( xl, qt[30] ), qt[ 6] ));
+   dH[ 7] = v128_add32(
+                 v128_xor( M[7],
+                      v128_xor( v128_sr32( xh, 11 ),
+                                     v128_sl32( qt[23], 2 ) ) ),
+                 v128_xor( v128_xor( xl, qt[31] ), qt[ 7] ));
+   dH[ 8] = v128_add32( v128_add32(
+                 v128_rol32( dH[4], 9 ),
+                 v128_xor( v128_xor( xh, qt[24] ), M[ 8] )),
+                 v128_xor( v128_sl32( xl, 8 ),
+                                v128_xor( qt[23], qt[ 8] ) ) );
+   dH[ 9] = v128_add32( v128_add32(
+                 v128_rol32( dH[5], 10 ),
+                 v128_xor( v128_xor( xh, qt[25] ), M[ 9] )),
+                 v128_xor( v128_sr32( xl, 6 ),
+                                v128_xor( qt[16], qt[ 9] ) ) );
+   dH[10] = v128_add32( v128_add32(
+                 v128_rol32( dH[6], 11 ),
+                 v128_xor( v128_xor( xh, qt[26] ), M[10] )),
+                 v128_xor( v128_sl32( xl, 6 ),
+                                v128_xor( qt[17], qt[10] ) ) );
+   dH[11] = v128_add32( v128_add32(
+                 v128_rol32( dH[7], 12 ),
+                 v128_xor( v128_xor( xh, qt[27] ), M[11] )),
+                 v128_xor( v128_sl32( xl, 4 ),
+                                v128_xor( qt[18], qt[11] ) ) );
+   dH[12] = v128_add32( v128_add32(
+                 v128_rol32( dH[0], 13 ),
+                 v128_xor( v128_xor( xh, qt[28] ), M[12] )),
+                 v128_xor( v128_sr32( xl, 3 ),
+                                v128_xor( qt[19], qt[12] ) ) );
+   dH[13] = v128_add32( v128_add32(
+                 v128_rol32( dH[1], 14 ),
+                 v128_xor( v128_xor( xh, qt[29] ), M[13] )),
+                 v128_xor( v128_sr32( xl, 4 ),
+                                v128_xor( qt[20], qt[13] ) ) );
+   dH[14] = v128_add32( v128_add32(
+                 v128_rol32( dH[2], 15 ),
+                 v128_xor( v128_xor( xh, qt[30] ), M[14] )),
+                 v128_xor( v128_sr32( xl, 7 ),
+                                v128_xor( qt[21], qt[14] ) ) );
+   dH[15] = v128_add32( v128_add32(
+                 v128_rol32( dH[3], 16 ),
+                 v128_xor( v128_xor( xh, qt[31] ), M[15] )),
+                 v128_xor( v128_sr32( xl, 2 ),
+                                v128_xor( qt[22], qt[15] ) ) );
 }
 
 static const uint32_t final_s[16][4] =
@@ -429,7 +429,7 @@ static const uint32_t final_s[16][4] =
    { 0xaaaaaaaf, 0xaaaaaaaf, 0xaaaaaaaf, 0xaaaaaaaf }
 };
 /*
-static const __m128i final_s[16] =
+static const v128u64_t final_s[16] =
 {
    { 0xaaaaaaa0aaaaaaa0, 0xaaaaaaa0aaaaaaa0 },
    { 0xaaaaaaa1aaaaaaa1, 0xaaaaaaa1aaaaaaa1 },
@@ -451,26 +451,26 @@ static const __m128i final_s[16] =
 */
 void bmw256_4way_init( bmw256_4way_context *ctx )
 {
-   ctx->H[ 0] = _mm_set1_epi64x( 0x4041424340414243 );
-   ctx->H[ 1] = _mm_set1_epi64x( 0x4445464744454647 );
-   ctx->H[ 2] = _mm_set1_epi64x( 0x48494A4B48494A4B );
-   ctx->H[ 3] = _mm_set1_epi64x( 0x4C4D4E4F4C4D4E4F );
-   ctx->H[ 4] = _mm_set1_epi64x( 0x5051525350515253 );
-   ctx->H[ 5] = _mm_set1_epi64x( 0x5455565754555657 );
-   ctx->H[ 6] = _mm_set1_epi64x( 0x58595A5B58595A5B );
-   ctx->H[ 7] = _mm_set1_epi64x( 0x5C5D5E5F5C5D5E5F );
-   ctx->H[ 8] = _mm_set1_epi64x( 0x6061626360616263 );
-   ctx->H[ 9] = _mm_set1_epi64x( 0x6465666764656667 );
-   ctx->H[10] = _mm_set1_epi64x( 0x68696A6B68696A6B );
-   ctx->H[11] = _mm_set1_epi64x( 0x6C6D6E6F6C6D6E6F );
-   ctx->H[12] = _mm_set1_epi64x( 0x7071727370717273 );
-   ctx->H[13] = _mm_set1_epi64x( 0x7475767774757677 );
-   ctx->H[14] = _mm_set1_epi64x( 0x78797A7B78797A7B );
-   ctx->H[15] = _mm_set1_epi64x( 0x7C7D7E7F7C7D7E7F );
+   ctx->H[ 0] = v128_64( 0x4041424340414243 );
+   ctx->H[ 1] = v128_64( 0x4445464744454647 );
+   ctx->H[ 2] = v128_64( 0x48494A4B48494A4B );
+   ctx->H[ 3] = v128_64( 0x4C4D4E4F4C4D4E4F );
+   ctx->H[ 4] = v128_64( 0x5051525350515253 );
+   ctx->H[ 5] = v128_64( 0x5455565754555657 );
+   ctx->H[ 6] = v128_64( 0x58595A5B58595A5B );
+   ctx->H[ 7] = v128_64( 0x5C5D5E5F5C5D5E5F );
+   ctx->H[ 8] = v128_64( 0x6061626360616263 );
+   ctx->H[ 9] = v128_64( 0x6465666764656667 );
+   ctx->H[10] = v128_64( 0x68696A6B68696A6B );
+   ctx->H[11] = v128_64( 0x6C6D6E6F6C6D6E6F );
+   ctx->H[12] = v128_64( 0x7071727370717273 );
+   ctx->H[13] = v128_64( 0x7475767774757677 );
+   ctx->H[14] = v128_64( 0x78797A7B78797A7B );
+   ctx->H[15] = v128_64( 0x7C7D7E7F7C7D7E7F );
 
 
 //   for ( int i = 0; i < 16; i++ )
-//      sc->H[i] = _mm_set1_epi32( iv[i] );
+//      sc->H[i] = v128_32( iv[i] );
    ctx->ptr = 0;
    ctx->bit_count = 0;
 }
@@ -478,10 +478,10 @@ void bmw256_4way_init( bmw256_4way_context *ctx )
 static void
 bmw32_4way(bmw_4way_small_context *sc, const void *data, size_t len)
 {
-   __m128i *vdata = (__m128i*)data;
-   __m128i *buf;
-   __m128i htmp[16];
-   __m128i *h1, *h2;
+   v128u64_t *vdata = (v128u64_t*)data;
+   v128u64_t *buf;
+   v128u64_t htmp[16];
+   v128u64_t *h1, *h2;
    size_t ptr;
    const int buf_size = 64;  // bytes of one lane, compatible with len
 
@@ -497,13 +497,13 @@ bmw32_4way(bmw_4way_small_context *sc, const void *data, size_t len)
       clen = buf_size - ptr;
       if ( clen > len )
          clen = len;
-      memcpy_128( buf + (ptr>>2), vdata, clen >> 2 );
+      v128_memcpy( buf + (ptr>>2), vdata, clen >> 2 );
       vdata += ( clen >> 2 );
       len -= clen;
       ptr += clen;
       if ( ptr == buf_size )
       {
-         __m128i *ht;
+         v128u64_t *ht;
          compress_small( buf, h1, h2 );
          ht = h1;
          h1 = h2;
@@ -513,46 +513,45 @@ bmw32_4way(bmw_4way_small_context *sc, const void *data, size_t len)
    }
    sc->ptr = ptr;
 
-
    if ( h1 != sc->H )
-        memcpy_128( sc->H, h1, 16 );
+        v128_memcpy( sc->H, h1, 16 );
 }
 
 static void
 bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
 	void *dst, size_t out_size_w32)
 {
-   __m128i *buf;
-   __m128i h1[16], h2[16], *h;
+   v128u64_t *buf;
+   v128u64_t h1[16], h2[16], *h;
    size_t ptr, u, v;
    const int buf_size = 64;  // bytes of one lane, compatible with len
 
    buf = sc->buf;
    ptr = sc->ptr;
-   buf[ ptr>>2 ] = _mm_set1_epi64x( 0x0000008000000080 );
+   buf[ ptr>>2 ] = v128_64( 0x0000008000000080 );
    ptr += 4;
    h = sc->H;
 
    // assume bit_count fits in 32 bits 
    if ( ptr > buf_size - 4 )
    {
-      memset_zero_128( buf + (ptr>>2), (buf_size - ptr) >> 2 );
+      v128_memset_zero( buf + (ptr>>2), (buf_size - ptr) >> 2 );
       compress_small( buf, h, h1 );
       ptr = 0;
       h = h1;
    }
-   memset_zero_128( buf + (ptr>>2), (buf_size - 8 - ptr) >> 2 );
-   buf[ (buf_size - 8) >> 2 ] = _mm_set1_epi32( sc->bit_count + n );
-   buf[ (buf_size - 4) >> 2 ] = m128_zero;
+   v128_memset_zero( buf + (ptr>>2), (buf_size - 8 - ptr) >> 2 );
+   buf[ (buf_size - 8) >> 2 ] = v128_32( sc->bit_count + n );
+   buf[ (buf_size - 4) >> 2 ] = v128_zero;
    compress_small( buf, h, h2 );
 
    for ( u = 0; u < 16; u ++ )
       buf[u] = h2[u];
 
-   compress_small( buf, (__m128i*)final_s, h1 );
+   compress_small( buf, (v128u64_t*)final_s, h1 );
 
    for (u = 0, v = 16 - out_size_w32; u < out_size_w32; u ++, v ++)
-      casti_m128i( dst, u ) = h1[v];
+      casti_v128( dst, u ) = h1[v];
 }
 
 /*

@@ -38,7 +38,7 @@
 #include <stddef.h>
 #include "simd-utils.h"
 
-// SSE2 or NEON Hamsi-512 2x64
+#if defined(__SSE4_2__) || defined(__ARM_NEON)
 
 typedef struct
 {
@@ -56,6 +56,8 @@ void hamsi512_2x64_close( hamsi512_2x64_context *sc, void *dst );
 void hamsi512_2x64_ctx( hamsi512_2x64_context *sc, void *dst, const void *data,
                         size_t len );
 void hamsi512_2x64( void *dst, const void *data, size_t len );
+
+#endif
 
 #if defined (__AVX2__)
 

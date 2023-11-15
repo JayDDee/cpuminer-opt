@@ -411,11 +411,11 @@ static inline void v128_bswap32_80( void *d, void *s )
 {
   const v128_t bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
                                              0x0405060700010203 );
-  casti_m128i( d, 0 ) = _mm_shuffle_epi8( casti_m128i( s, 0 ), bswap_shuf );
-  casti_m128i( d, 1 ) = _mm_shuffle_epi8( casti_m128i( s, 1 ), bswap_shuf );
-  casti_m128i( d, 2 ) = _mm_shuffle_epi8( casti_m128i( s, 2 ), bswap_shuf );
-  casti_m128i( d, 3 ) = _mm_shuffle_epi8( casti_m128i( s, 3 ), bswap_shuf );
-  casti_m128i( d, 4 ) = _mm_shuffle_epi8( casti_m128i( s, 4 ), bswap_shuf );
+  casti_v128( d, 0 ) = _mm_shuffle_epi8( casti_v128( s, 0 ), bswap_shuf );
+  casti_v128( d, 1 ) = _mm_shuffle_epi8( casti_v128( s, 1 ), bswap_shuf );
+  casti_v128( d, 2 ) = _mm_shuffle_epi8( casti_v128( s, 2 ), bswap_shuf );
+  casti_v128( d, 3 ) = _mm_shuffle_epi8( casti_v128( s, 3 ), bswap_shuf );
+  casti_v128( d, 4 ) = _mm_shuffle_epi8( casti_v128( s, 4 ), bswap_shuf );
 }
 
 #elif defined(__aarch64__) && defined(__ARM_NEON)
@@ -461,11 +461,11 @@ static inline void v128_bswap32_80( void *d, void *s )
 
 static inline void v128_bswap32_intrlv80_4x32( void *d, const void *src )
 {
-  v128_t s0 = casti_m128i( src,0 );
-  v128_t s1 = casti_m128i( src,1 );
-  v128_t s2 = casti_m128i( src,2 );
-  v128_t s3 = casti_m128i( src,3 );
-  v128_t s4 = casti_m128i( src,4 );
+  v128_t s0 = casti_v128( src,0 );
+  v128_t s1 = casti_v128( src,1 );
+  v128_t s2 = casti_v128( src,2 );
+  v128_t s3 = casti_v128( src,3 );
+  v128_t s4 = casti_v128( src,4 );
 
 #if defined(__SSSE3__)
 
@@ -480,38 +480,38 @@ static inline void v128_bswap32_intrlv80_4x32( void *d, const void *src )
 
 #else
 
-  s0 = mm128_bswap_32( s0 );
-  s1 = mm128_bswap_32( s1 );
-  s2 = mm128_bswap_32( s2 );
-  s3 = mm128_bswap_32( s3 );
-  s4 = mm128_bswap_32( s4 );
+  s0 = v128_bswap32( s0 );
+  s1 = v128_bswap32( s1 );
+  s2 = v128_bswap32( s2 );
+  s3 = v128_bswap32( s3 );
+  s4 = v128_bswap32( s4 );
 
 #endif
 
-  casti_m128i( d, 0 ) = _mm_shuffle_epi32( s0, 0x00 );
-  casti_m128i( d, 1 ) = _mm_shuffle_epi32( s0, 0x55 );
-  casti_m128i( d, 2 ) = _mm_shuffle_epi32( s0, 0xaa );
-  casti_m128i( d, 3 ) = _mm_shuffle_epi32( s0, 0xff );
+  casti_v128( d, 0 ) = _mm_shuffle_epi32( s0, 0x00 );
+  casti_v128( d, 1 ) = _mm_shuffle_epi32( s0, 0x55 );
+  casti_v128( d, 2 ) = _mm_shuffle_epi32( s0, 0xaa );
+  casti_v128( d, 3 ) = _mm_shuffle_epi32( s0, 0xff );
 
-  casti_m128i( d, 4 ) = _mm_shuffle_epi32( s1, 0x00 );
-  casti_m128i( d, 5 ) = _mm_shuffle_epi32( s1, 0x55 );
-  casti_m128i( d, 6 ) = _mm_shuffle_epi32( s1, 0xaa );
-  casti_m128i( d, 7 ) = _mm_shuffle_epi32( s1, 0xff );
+  casti_v128( d, 4 ) = _mm_shuffle_epi32( s1, 0x00 );
+  casti_v128( d, 5 ) = _mm_shuffle_epi32( s1, 0x55 );
+  casti_v128( d, 6 ) = _mm_shuffle_epi32( s1, 0xaa );
+  casti_v128( d, 7 ) = _mm_shuffle_epi32( s1, 0xff );
 
-  casti_m128i( d, 8 ) = _mm_shuffle_epi32( s2, 0x00 );
-  casti_m128i( d, 9 ) = _mm_shuffle_epi32( s2, 0x55 );
-  casti_m128i( d,10 ) = _mm_shuffle_epi32( s2, 0xaa );
-  casti_m128i( d,11 ) = _mm_shuffle_epi32( s2, 0xff );
+  casti_v128( d, 8 ) = _mm_shuffle_epi32( s2, 0x00 );
+  casti_v128( d, 9 ) = _mm_shuffle_epi32( s2, 0x55 );
+  casti_v128( d,10 ) = _mm_shuffle_epi32( s2, 0xaa );
+  casti_v128( d,11 ) = _mm_shuffle_epi32( s2, 0xff );
 
-  casti_m128i( d,12 ) = _mm_shuffle_epi32( s3, 0x00 );
-  casti_m128i( d,13 ) = _mm_shuffle_epi32( s3, 0x55 );
-  casti_m128i( d,14 ) = _mm_shuffle_epi32( s3, 0xaa );
-  casti_m128i( d,15 ) = _mm_shuffle_epi32( s3, 0xff );
+  casti_v128( d,12 ) = _mm_shuffle_epi32( s3, 0x00 );
+  casti_v128( d,13 ) = _mm_shuffle_epi32( s3, 0x55 );
+  casti_v128( d,14 ) = _mm_shuffle_epi32( s3, 0xaa );
+  casti_v128( d,15 ) = _mm_shuffle_epi32( s3, 0xff );
 
-  casti_m128i( d,16 ) = _mm_shuffle_epi32( s4, 0x00 );
-  casti_m128i( d,17 ) = _mm_shuffle_epi32( s4, 0x55 );
-  casti_m128i( d,18 ) = _mm_shuffle_epi32( s4, 0xaa );
-  casti_m128i( d,19 ) = _mm_shuffle_epi32( s4, 0xff );
+  casti_v128( d,16 ) = _mm_shuffle_epi32( s4, 0x00 );
+  casti_v128( d,17 ) = _mm_shuffle_epi32( s4, 0x55 );
+  casti_v128( d,18 ) = _mm_shuffle_epi32( s4, 0xaa );
+  casti_v128( d,19 ) = _mm_shuffle_epi32( s4, 0xff );
 }
 
 #elif defined(__aarch64__) && defined(__ARM_NEON)
@@ -797,11 +797,11 @@ static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
    const __m256i c1 = v256_32( 0x04050607 );
    const __m256i c2 = v256_32( 0x08090a0b );
    const __m256i c3 = v256_32( 0x0c0d0e0f );
-   const v128_t s0 = casti_m128i( src,0 );
-   const v128_t s1 = casti_m128i( src,1 );
-   const v128_t s2 = casti_m128i( src,2 );
-   const v128_t s3 = casti_m128i( src,3 );
-   const v128_t s4 = casti_m128i( src,4 );
+   const v128_t s0 = casti_v128( src,0 );
+   const v128_t s1 = casti_v128( src,1 );
+   const v128_t s2 = casti_v128( src,2 );
+   const v128_t s3 = casti_v128( src,3 );
+   const v128_t s4 = casti_v128( src,4 );
 
    casti_m256i( d, 0 ) = _mm256_permutexvar_epi8( c0,
                           _mm256_castsi128_si256( s0 ) );
@@ -855,11 +855,11 @@ static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
   const __m256i c2 = _mm256_add_epi32( c1, c1 );
   const __m256i c3 = _mm256_add_epi32( c2, c1 );
 
-  v128_t s0 = casti_m128i( src,0 );
-  v128_t s1 = casti_m128i( src,1 );
-  v128_t s2 = casti_m128i( src,2 );
-  v128_t s3 = casti_m128i( src,3 );
-  v128_t s4 = casti_m128i( src,4 );
+  v128_t s0 = casti_v128( src,0 );
+  v128_t s1 = casti_v128( src,1 );
+  v128_t s2 = casti_v128( src,2 );
+  v128_t s3 = casti_v128( src,3 );
+  v128_t s4 = casti_v128( src,4 );
 
   s0 = _mm_shuffle_epi8( s0, bswap_shuf );
   s1 = _mm_shuffle_epi8( s1, bswap_shuf );
@@ -1303,11 +1303,11 @@ static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
    const __m512i c1 = v512_32( 0x04050607 );
    const __m512i c2 = v512_32( 0x08090a0b );
    const __m512i c3 = v512_32( 0x0c0d0e0f );
-   const v128_t s0 = casti_m128i( src,0 );
-   const v128_t s1 = casti_m128i( src,1 );
-   const v128_t s2 = casti_m128i( src,2 );
-   const v128_t s3 = casti_m128i( src,3 );
-   const v128_t s4 = casti_m128i( src,4 );
+   const v128_t s0 = casti_v128( src,0 );
+   const v128_t s1 = casti_v128( src,1 );
+   const v128_t s2 = casti_v128( src,2 );
+   const v128_t s3 = casti_v128( src,3 );
+   const v128_t s4 = casti_v128( src,4 );
  
    casti_m512i( d, 0 ) = _mm512_permutexvar_epi8( c0,
                           _mm512_castsi128_si512( s0 ) );
@@ -1360,11 +1360,11 @@ static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
   const __m512i c1 = v512_32( 1 );
   const __m512i c2 = _mm512_add_epi32( c1, c1 );
   const __m512i c3 = _mm512_add_epi32( c2, c1 );
-  v128_t s0 = casti_m128i( src,0 );
-  v128_t s1 = casti_m128i( src,1 );
-  v128_t s2 = casti_m128i( src,2 );
-  v128_t s3 = casti_m128i( src,3 );
-  v128_t s4 = casti_m128i( src,4 );
+  v128_t s0 = casti_v128( src,0 );
+  v128_t s1 = casti_v128( src,1 );
+  v128_t s2 = casti_v128( src,2 );
+  v128_t s3 = casti_v128( src,3 );
+  v128_t s4 = casti_v128( src,4 );
 
   s0 = _mm_shuffle_epi8( s0, bswap_shuf );
   s1 = _mm_shuffle_epi8( s1, bswap_shuf );
@@ -1492,20 +1492,20 @@ static inline void v128_bswap32_intrlv80_2x64( void *d, const void *src )
 
 #if defined(__SSE2__)
 
-  casti_m128i( d,0 ) = _mm_shuffle_epi32( s0, 0x44 );
-  casti_m128i( d,1 ) = _mm_shuffle_epi32( s0, 0xee );
+  casti_v128( d,0 ) = _mm_shuffle_epi32( s0, 0x44 );
+  casti_v128( d,1 ) = _mm_shuffle_epi32( s0, 0xee );
 
-  casti_m128i( d,2 ) = _mm_shuffle_epi32( s1, 0x44 );
-  casti_m128i( d,3 ) = _mm_shuffle_epi32( s1, 0xee );
+  casti_v128( d,2 ) = _mm_shuffle_epi32( s1, 0x44 );
+  casti_v128( d,3 ) = _mm_shuffle_epi32( s1, 0xee );
 
-  casti_m128i( d,4 ) = _mm_shuffle_epi32( s2, 0x44 );
-  casti_m128i( d,5 ) = _mm_shuffle_epi32( s2, 0xee );
+  casti_v128( d,4 ) = _mm_shuffle_epi32( s2, 0x44 );
+  casti_v128( d,5 ) = _mm_shuffle_epi32( s2, 0xee );
 
-  casti_m128i( d,6 ) = _mm_shuffle_epi32( s3, 0x44 );
-  casti_m128i( d,7 ) = _mm_shuffle_epi32( s3, 0xee );
+  casti_v128( d,6 ) = _mm_shuffle_epi32( s3, 0x44 );
+  casti_v128( d,7 ) = _mm_shuffle_epi32( s3, 0xee );
 
-  casti_m128i( d,8 ) = _mm_shuffle_epi32( s4, 0x44 );
-  casti_m128i( d,9 ) = _mm_shuffle_epi32( s4, 0xee );
+  casti_v128( d,8 ) = _mm_shuffle_epi32( s4, 0x44 );
+  casti_v128( d,9 ) = _mm_shuffle_epi32( s4, 0xee );
 
 #elif defined(__ARM_NEON)
 
@@ -1719,7 +1719,7 @@ static inline void mm256_intrlv80_4x64( void *d, const void *src )
 {
   __m256i s0 = casti_m256i( src,0 );
   __m256i s1 = casti_m256i( src,1 );
-  v128_t s4 = casti_m128i( src,4 );
+  v128_t s4 = casti_v128( src,4 );
 
   casti_m256i( d, 0 ) = _mm256_permute4x64_epi64( s0, 0x00 );
   casti_m256i( d, 1 ) = _mm256_permute4x64_epi64( s0, 0x55 );
@@ -1747,11 +1747,11 @@ static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
 {
    const __m256i c0 = v256_64( 0x0405060700010203 );
    const __m256i c1 = v256_64( 0x0c0d0e0f08090a0b );
-   const v128_t s0 = casti_m128i( src,0 );
-   const v128_t s1 = casti_m128i( src,1 );
-   const v128_t s2 = casti_m128i( src,2 );
-   const v128_t s3 = casti_m128i( src,3 );
-   const v128_t s4 = casti_m128i( src,4 );
+   const v128_t s0 = casti_v128( src,0 );
+   const v128_t s1 = casti_v128( src,1 );
+   const v128_t s2 = casti_v128( src,2 );
+   const v128_t s3 = casti_v128( src,3 );
+   const v128_t s4 = casti_v128( src,4 );
 
    casti_m256i( d,0 ) = _mm256_permutexvar_epi8( c0,
                          _mm256_castsi128_si256( s0 ) );
@@ -1783,7 +1783,7 @@ static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
                     _mm_set_epi64x( 0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
   __m256i s0 = casti_m256i( src,0 );
   __m256i s1 = casti_m256i( src,1 );
-  v128_t s4 = casti_m128i( src,4 );
+  v128_t s4 = casti_v128( src,4 );
 
   s0 = _mm256_shuffle_epi8( s0, bswap_shuf );
   s1 = _mm256_shuffle_epi8( s1, bswap_shuf );
@@ -2162,11 +2162,11 @@ static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
 {
    const __m512i c0 = v512_64( 0x0405060700010203 );
    const __m512i c1 = v512_64( 0x0c0d0e0f08090a0b );
-   const v128_t s0 = casti_m128i( src,0 );
-   const v128_t s1 = casti_m128i( src,1 );
-   const v128_t s2 = casti_m128i( src,2 );
-   const v128_t s3 = casti_m128i( src,3 );
-   const v128_t s4 = casti_m128i( src,4 );
+   const v128_t s0 = casti_v128( src,0 );
+   const v128_t s1 = casti_v128( src,1 );
+   const v128_t s2 = casti_v128( src,2 );
+   const v128_t s3 = casti_v128( src,3 );
+   const v128_t s4 = casti_v128( src,4 );
 
    casti_m512i( d,0 ) = _mm512_permutexvar_epi8( c0,
                          _mm512_castsi128_si512( s0 ) );
@@ -2197,11 +2197,11 @@ static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
   const v128_t bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
                                              0x0405060700010203 );
   const __m512i c1 = v512_64( 1 );
-  v128_t s0 = casti_m128i( src,0 );
-  v128_t s1 = casti_m128i( src,1 );
-  v128_t s2 = casti_m128i( src,2 );
-  v128_t s3 = casti_m128i( src,3 );
-  v128_t s4 = casti_m128i( src,4 );
+  v128_t s0 = casti_v128( src,0 );
+  v128_t s1 = casti_v128( src,1 );
+  v128_t s2 = casti_v128( src,2 );
+  v128_t s3 = casti_v128( src,3 );
+  v128_t s4 = casti_v128( src,4 );
 
   s0 = _mm_shuffle_epi8( s0, bswap_shuf );
   s1 = _mm_shuffle_epi8( s1, bswap_shuf );
@@ -2391,11 +2391,11 @@ static inline void mm512_bswap32_intrlv80_4x128( void *d, const void *src )
 {
   const __m512i bswap_shuf = mm512_bcast_m128(
                     _mm_set_epi64x( 0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
-  const v128_t s0 = casti_m128i( src,0 );
-  const v128_t s1 = casti_m128i( src,1 );
-  const v128_t s2 = casti_m128i( src,2 );
-  const v128_t s3 = casti_m128i( src,3 );
-  const v128_t s4 = casti_m128i( src,4 );
+  const v128_t s0 = casti_v128( src,0 );
+  const v128_t s1 = casti_v128( src,1 );
+  const v128_t s2 = casti_v128( src,2 );
+  const v128_t s3 = casti_v128( src,3 );
+  const v128_t s4 = casti_v128( src,4 );
 
   casti_m512i( d,0 ) = _mm512_permutexvar_epi8( _mm512_castsi128_si512( s0 ),
                                                  bswap_shuf );
@@ -2415,11 +2415,11 @@ static inline void mm512_bswap32_intrlv80_4x128( void *d, const void *src )
 {
   const v128_t bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
                                              0x0405060700010203 );
-  v128_t s0 = casti_m128i( src,0 );
-  v128_t s1 = casti_m128i( src,1 );
-  v128_t s2 = casti_m128i( src,2 );
-  v128_t s3 = casti_m128i( src,3 );
-  v128_t s4 = casti_m128i( src,4 );
+  v128_t s0 = casti_v128( src,0 );
+  v128_t s1 = casti_v128( src,1 );
+  v128_t s2 = casti_v128( src,2 );
+  v128_t s3 = casti_v128( src,3 );
+  v128_t s4 = casti_v128( src,4 );
 
   s0 = _mm_shuffle_epi8( s0, bswap_shuf );
   s1 = _mm_shuffle_epi8( s1, bswap_shuf );
@@ -2489,44 +2489,44 @@ static inline void rintrlv_4x64_4x32( void *dst, const void *src,
    const v128_t *s = (const v128_t*)src;
    v128_t *d = (v128_t*)dst;
 
-   d[ 0] = mm128_shuffle2_32( s[ 0], s[ 1], 0x88 );
-   d[ 1] = mm128_shuffle2_32( s[ 0], s[ 1], 0xdd );
-   d[ 2] = mm128_shuffle2_32( s[ 2], s[ 3], 0x88 );
-   d[ 3] = mm128_shuffle2_32( s[ 2], s[ 3], 0xdd );
-   d[ 4] = mm128_shuffle2_32( s[ 4], s[ 5], 0x88 );
-   d[ 5] = mm128_shuffle2_32( s[ 4], s[ 5], 0xdd );
-   d[ 6] = mm128_shuffle2_32( s[ 6], s[ 7], 0x88 );
-   d[ 7] = mm128_shuffle2_32( s[ 6], s[ 7], 0xdd );
+   d[ 0] = v128_shuffle2_32( s[ 0], s[ 1], 0x88 );
+   d[ 1] = v128_shuffle2_32( s[ 0], s[ 1], 0xdd );
+   d[ 2] = v128_shuffle2_32( s[ 2], s[ 3], 0x88 );
+   d[ 3] = v128_shuffle2_32( s[ 2], s[ 3], 0xdd );
+   d[ 4] = v128_shuffle2_32( s[ 4], s[ 5], 0x88 );
+   d[ 5] = v128_shuffle2_32( s[ 4], s[ 5], 0xdd );
+   d[ 6] = v128_shuffle2_32( s[ 6], s[ 7], 0x88 );
+   d[ 7] = v128_shuffle2_32( s[ 6], s[ 7], 0xdd );
 
    if ( bit_len <= 256 ) return;
 
-   d[ 8] = mm128_shuffle2_32( s[ 8], s[ 9], 0x88 );
-   d[ 9] = mm128_shuffle2_32( s[ 8], s[ 9], 0xdd );
-   d[10] = mm128_shuffle2_32( s[10], s[11], 0x88 );
-   d[11] = mm128_shuffle2_32( s[10], s[11], 0xdd );
-   d[12] = mm128_shuffle2_32( s[12], s[13], 0x88 );
-   d[13] = mm128_shuffle2_32( s[12], s[13], 0xdd );
-   d[14] = mm128_shuffle2_32( s[14], s[15], 0x88 );
-   d[15] = mm128_shuffle2_32( s[14], s[15], 0xdd );
+   d[ 8] = v128_shuffle2_32( s[ 8], s[ 9], 0x88 );
+   d[ 9] = v128_shuffle2_32( s[ 8], s[ 9], 0xdd );
+   d[10] = v128_shuffle2_32( s[10], s[11], 0x88 );
+   d[11] = v128_shuffle2_32( s[10], s[11], 0xdd );
+   d[12] = v128_shuffle2_32( s[12], s[13], 0x88 );
+   d[13] = v128_shuffle2_32( s[12], s[13], 0xdd );
+   d[14] = v128_shuffle2_32( s[14], s[15], 0x88 );
+   d[15] = v128_shuffle2_32( s[14], s[15], 0xdd );
 
    if ( bit_len <= 512 ) return;
 
-   d[16] = mm128_shuffle2_32( s[16], s[17], 0x88 );
-   d[17] = mm128_shuffle2_32( s[16], s[17], 0xdd );
-   d[18] = mm128_shuffle2_32( s[18], s[19], 0x88 );
-   d[19] = mm128_shuffle2_32( s[18], s[19], 0xdd );
-   d[20] = mm128_shuffle2_32( s[20], s[21], 0x88 );
-   d[21] = mm128_shuffle2_32( s[20], s[21], 0xdd );
-   d[22] = mm128_shuffle2_32( s[22], s[23], 0x88 );
-   d[23] = mm128_shuffle2_32( s[22], s[23], 0xdd );
-   d[24] = mm128_shuffle2_32( s[24], s[25], 0x88 );
-   d[25] = mm128_shuffle2_32( s[24], s[25], 0xdd );
-   d[26] = mm128_shuffle2_32( s[26], s[27], 0x88 );
-   d[27] = mm128_shuffle2_32( s[26], s[27], 0xdd );
-   d[28] = mm128_shuffle2_32( s[28], s[29], 0x88 );
-   d[29] = mm128_shuffle2_32( s[28], s[29], 0xdd );
-   d[30] = mm128_shuffle2_32( s[30], s[31], 0x88 );
-   d[31] = mm128_shuffle2_32( s[30], s[31], 0xdd );
+   d[16] = v128_shuffle2_32( s[16], s[17], 0x88 );
+   d[17] = v128_shuffle2_32( s[16], s[17], 0xdd );
+   d[18] = v128_shuffle2_32( s[18], s[19], 0x88 );
+   d[19] = v128_shuffle2_32( s[18], s[19], 0xdd );
+   d[20] = v128_shuffle2_32( s[20], s[21], 0x88 );
+   d[21] = v128_shuffle2_32( s[20], s[21], 0xdd );
+   d[22] = v128_shuffle2_32( s[22], s[23], 0x88 );
+   d[23] = v128_shuffle2_32( s[22], s[23], 0xdd );
+   d[24] = v128_shuffle2_32( s[24], s[25], 0x88 );
+   d[25] = v128_shuffle2_32( s[24], s[25], 0xdd );
+   d[26] = v128_shuffle2_32( s[26], s[27], 0x88 );
+   d[27] = v128_shuffle2_32( s[26], s[27], 0xdd );
+   d[28] = v128_shuffle2_32( s[28], s[29], 0x88 );
+   d[29] = v128_shuffle2_32( s[28], s[29], 0xdd );
+   d[30] = v128_shuffle2_32( s[30], s[31], 0x88 );
+   d[31] = v128_shuffle2_32( s[30], s[31], 0xdd );
 
 // if ( bit_len <= 1024 ) return;
 }
@@ -2537,77 +2537,77 @@ static inline void rintrlv_8x64_8x32( void *dst, const void *src,
    const v128_t *s = (const v128_t*)src;
    v128_t *d = (v128_t*)dst;
 
-   d[ 0] = mm128_shuffle2_32( s[ 0], s[ 1], 0x88 );
-   d[ 1] = mm128_shuffle2_32( s[ 2], s[ 3], 0x88 );
-   d[ 2] = mm128_shuffle2_32( s[ 0], s[ 1], 0xdd );
-   d[ 3] = mm128_shuffle2_32( s[ 2], s[ 3], 0xdd );
-   d[ 4] = mm128_shuffle2_32( s[ 4], s[ 5], 0x88 );
-   d[ 5] = mm128_shuffle2_32( s[ 6], s[ 7], 0x88 );
-   d[ 6] = mm128_shuffle2_32( s[ 4], s[ 5], 0xdd );
-   d[ 7] = mm128_shuffle2_32( s[ 6], s[ 7], 0xdd );
-   d[ 8] = mm128_shuffle2_32( s[ 8], s[ 9], 0x88 );
-   d[ 9] = mm128_shuffle2_32( s[10], s[11], 0x88 );
-   d[10] = mm128_shuffle2_32( s[ 8], s[ 9], 0xdd );
-   d[11] = mm128_shuffle2_32( s[10], s[11], 0xdd );
-   d[12] = mm128_shuffle2_32( s[12], s[13], 0x88 );
-   d[13] = mm128_shuffle2_32( s[14], s[15], 0x88 );
-   d[14] = mm128_shuffle2_32( s[12], s[13], 0xdd );
-   d[15] = mm128_shuffle2_32( s[14], s[15], 0xdd );
+   d[ 0] = v128_shuffle2_32( s[ 0], s[ 1], 0x88 );
+   d[ 1] = v128_shuffle2_32( s[ 2], s[ 3], 0x88 );
+   d[ 2] = v128_shuffle2_32( s[ 0], s[ 1], 0xdd );
+   d[ 3] = v128_shuffle2_32( s[ 2], s[ 3], 0xdd );
+   d[ 4] = v128_shuffle2_32( s[ 4], s[ 5], 0x88 );
+   d[ 5] = v128_shuffle2_32( s[ 6], s[ 7], 0x88 );
+   d[ 6] = v128_shuffle2_32( s[ 4], s[ 5], 0xdd );
+   d[ 7] = v128_shuffle2_32( s[ 6], s[ 7], 0xdd );
+   d[ 8] = v128_shuffle2_32( s[ 8], s[ 9], 0x88 );
+   d[ 9] = v128_shuffle2_32( s[10], s[11], 0x88 );
+   d[10] = v128_shuffle2_32( s[ 8], s[ 9], 0xdd );
+   d[11] = v128_shuffle2_32( s[10], s[11], 0xdd );
+   d[12] = v128_shuffle2_32( s[12], s[13], 0x88 );
+   d[13] = v128_shuffle2_32( s[14], s[15], 0x88 );
+   d[14] = v128_shuffle2_32( s[12], s[13], 0xdd );
+   d[15] = v128_shuffle2_32( s[14], s[15], 0xdd );
 
    if ( bit_len <= 256 ) return;
 
-   d[16] = mm128_shuffle2_32( s[16], s[17], 0x88 );
-   d[17] = mm128_shuffle2_32( s[18], s[19], 0x88 );
-   d[18] = mm128_shuffle2_32( s[16], s[17], 0xdd );
-   d[19] = mm128_shuffle2_32( s[18], s[19], 0xdd );
-   d[20] = mm128_shuffle2_32( s[20], s[21], 0x88 );
-   d[21] = mm128_shuffle2_32( s[22], s[23], 0x88 );
-   d[22] = mm128_shuffle2_32( s[20], s[21], 0xdd );
-   d[23] = mm128_shuffle2_32( s[22], s[23], 0xdd );
-   d[24] = mm128_shuffle2_32( s[24], s[25], 0x88 );
-   d[25] = mm128_shuffle2_32( s[26], s[27], 0x88 );
-   d[26] = mm128_shuffle2_32( s[24], s[25], 0xdd );
-   d[27] = mm128_shuffle2_32( s[26], s[27], 0xdd );
-   d[28] = mm128_shuffle2_32( s[28], s[29], 0x88 );
-   d[29] = mm128_shuffle2_32( s[30], s[31], 0x88 );
-   d[30] = mm128_shuffle2_32( s[28], s[29], 0xdd );
-   d[31] = mm128_shuffle2_32( s[30], s[31], 0xdd );
+   d[16] = v128_shuffle2_32( s[16], s[17], 0x88 );
+   d[17] = v128_shuffle2_32( s[18], s[19], 0x88 );
+   d[18] = v128_shuffle2_32( s[16], s[17], 0xdd );
+   d[19] = v128_shuffle2_32( s[18], s[19], 0xdd );
+   d[20] = v128_shuffle2_32( s[20], s[21], 0x88 );
+   d[21] = v128_shuffle2_32( s[22], s[23], 0x88 );
+   d[22] = v128_shuffle2_32( s[20], s[21], 0xdd );
+   d[23] = v128_shuffle2_32( s[22], s[23], 0xdd );
+   d[24] = v128_shuffle2_32( s[24], s[25], 0x88 );
+   d[25] = v128_shuffle2_32( s[26], s[27], 0x88 );
+   d[26] = v128_shuffle2_32( s[24], s[25], 0xdd );
+   d[27] = v128_shuffle2_32( s[26], s[27], 0xdd );
+   d[28] = v128_shuffle2_32( s[28], s[29], 0x88 );
+   d[29] = v128_shuffle2_32( s[30], s[31], 0x88 );
+   d[30] = v128_shuffle2_32( s[28], s[29], 0xdd );
+   d[31] = v128_shuffle2_32( s[30], s[31], 0xdd );
 
    if ( bit_len <= 512 ) return;
 
-   d[32] = mm128_shuffle2_32( s[32], s[33], 0x88 );
-   d[33] = mm128_shuffle2_32( s[34], s[35], 0x88 );
-   d[34] = mm128_shuffle2_32( s[32], s[33], 0xdd );
-   d[35] = mm128_shuffle2_32( s[34], s[35], 0xdd );
-   d[36] = mm128_shuffle2_32( s[36], s[37], 0x88 );
-   d[37] = mm128_shuffle2_32( s[38], s[39], 0x88 );
-   d[38] = mm128_shuffle2_32( s[36], s[37], 0xdd );
-   d[39] = mm128_shuffle2_32( s[38], s[39], 0xdd );
-   d[40] = mm128_shuffle2_32( s[40], s[41], 0x88 );
-   d[41] = mm128_shuffle2_32( s[42], s[43], 0x88 );
-   d[42] = mm128_shuffle2_32( s[40], s[41], 0xdd );
-   d[43] = mm128_shuffle2_32( s[42], s[43], 0xdd );
-   d[44] = mm128_shuffle2_32( s[44], s[45], 0x88 );
-   d[45] = mm128_shuffle2_32( s[46], s[47], 0x88 );
-   d[46] = mm128_shuffle2_32( s[44], s[45], 0xdd );
-   d[47] = mm128_shuffle2_32( s[46], s[47], 0xdd );
+   d[32] = v128_shuffle2_32( s[32], s[33], 0x88 );
+   d[33] = v128_shuffle2_32( s[34], s[35], 0x88 );
+   d[34] = v128_shuffle2_32( s[32], s[33], 0xdd );
+   d[35] = v128_shuffle2_32( s[34], s[35], 0xdd );
+   d[36] = v128_shuffle2_32( s[36], s[37], 0x88 );
+   d[37] = v128_shuffle2_32( s[38], s[39], 0x88 );
+   d[38] = v128_shuffle2_32( s[36], s[37], 0xdd );
+   d[39] = v128_shuffle2_32( s[38], s[39], 0xdd );
+   d[40] = v128_shuffle2_32( s[40], s[41], 0x88 );
+   d[41] = v128_shuffle2_32( s[42], s[43], 0x88 );
+   d[42] = v128_shuffle2_32( s[40], s[41], 0xdd );
+   d[43] = v128_shuffle2_32( s[42], s[43], 0xdd );
+   d[44] = v128_shuffle2_32( s[44], s[45], 0x88 );
+   d[45] = v128_shuffle2_32( s[46], s[47], 0x88 );
+   d[46] = v128_shuffle2_32( s[44], s[45], 0xdd );
+   d[47] = v128_shuffle2_32( s[46], s[47], 0xdd );
 
-   d[48] = mm128_shuffle2_32( s[48], s[49], 0x88 );
-   d[49] = mm128_shuffle2_32( s[50], s[51], 0x88 );
-   d[50] = mm128_shuffle2_32( s[48], s[49], 0xdd );
-   d[51] = mm128_shuffle2_32( s[50], s[51], 0xdd );
-   d[52] = mm128_shuffle2_32( s[52], s[53], 0x88 );
-   d[53] = mm128_shuffle2_32( s[54], s[55], 0x88 );
-   d[54] = mm128_shuffle2_32( s[52], s[53], 0xdd );
-   d[55] = mm128_shuffle2_32( s[54], s[55], 0xdd );
-   d[56] = mm128_shuffle2_32( s[56], s[57], 0x88 );
-   d[57] = mm128_shuffle2_32( s[58], s[59], 0x88 );
-   d[58] = mm128_shuffle2_32( s[56], s[57], 0xdd );
-   d[59] = mm128_shuffle2_32( s[58], s[59], 0xdd );
-   d[60] = mm128_shuffle2_32( s[60], s[61], 0x88 );
-   d[61] = mm128_shuffle2_32( s[62], s[63], 0x88 );
-   d[62] = mm128_shuffle2_32( s[60], s[61], 0xdd );
-   d[63] = mm128_shuffle2_32( s[62], s[63], 0xdd );
+   d[48] = v128_shuffle2_32( s[48], s[49], 0x88 );
+   d[49] = v128_shuffle2_32( s[50], s[51], 0x88 );
+   d[50] = v128_shuffle2_32( s[48], s[49], 0xdd );
+   d[51] = v128_shuffle2_32( s[50], s[51], 0xdd );
+   d[52] = v128_shuffle2_32( s[52], s[53], 0x88 );
+   d[53] = v128_shuffle2_32( s[54], s[55], 0x88 );
+   d[54] = v128_shuffle2_32( s[52], s[53], 0xdd );
+   d[55] = v128_shuffle2_32( s[54], s[55], 0xdd );
+   d[56] = v128_shuffle2_32( s[56], s[57], 0x88 );
+   d[57] = v128_shuffle2_32( s[58], s[59], 0x88 );
+   d[58] = v128_shuffle2_32( s[56], s[57], 0xdd );
+   d[59] = v128_shuffle2_32( s[58], s[59], 0xdd );
+   d[60] = v128_shuffle2_32( s[60], s[61], 0x88 );
+   d[61] = v128_shuffle2_32( s[62], s[63], 0x88 );
+   d[62] = v128_shuffle2_32( s[60], s[61], 0xdd );
+   d[63] = v128_shuffle2_32( s[62], s[63], 0xdd );
 
 // if ( bit_len <= 1024 ) return;
 }
@@ -3248,12 +3248,21 @@ static inline void rintrlv_2x256_8x64( void *dst, const void *src0,
 
 // blend 2 vectors while interleaving: { hi[n], lo[n-1], ... hi[1], lo[0] }
 #if defined(__SSE4_1__)
-// No SSE2 implementation.
 
-//#define mm128_intrlv_blend_64( hi, lo )   _mm_blend_epi16( hi, lo, 0x0f )
-//#define mm128_intrlv_blend_32( hi, lo )   _mm_blend_epi16( hi, lo, 0x33 )
+#define v128_intrlv_blend_64( hi, lo )   _mm_blend_epi16( hi, lo, 0x0f )
+#define v128_intrlv_blend_32( hi, lo )   _mm_blend_epi16( hi, lo, 0x33 )
 
-#endif   // SSE4_1
+#elif defined(__SSE2__) || defined(__ARM_NEON)
+
+#define v128_intrlv_blend_64( hi, lo )  \
+   v128_blendv( hi, lo, v128_set64( 0ull, 0xffffffffffffffffull ) )
+
+#define v128_intrlv_blend_32( hi, lo ) \
+   v128_blendv( hi, lo, v128_set64( 0xffffffffull, 0xffffffffull ) )
+
+#else
+// unknown, unsupported architecture
+#endif
 
 #if defined(__AVX2__)
 

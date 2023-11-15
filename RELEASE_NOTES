@@ -73,6 +73,14 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v23.10
+
+x86_64: Fixed scrypt, scryptn2 algos SSE2. 
+Fixed sha512d256d algo AVX2, SSE2, NEON.
+Fixed a bug in Skein N-way that reduced performance.
+ARM: Skein algo optimized for NEON & SHA2.
+Skein2 algo 2-way optimized for NEON & SSE2.
+
 v23.9
 
 x86_64: fixed minotaurx crash, broken in 23.7.

@@ -429,7 +429,7 @@ void blake256_transform_le( uint32_t *H, const uint32_t *buf,
 #define BLAKE256_4X32_BLOCK_BSWAP32 \
 { \
    v128_t shuf_bswap32 = v128_set64( 0x0c0d0e0f08090a0b, \
-                                          0x0405060700010203 ); \
+                                     0x0405060700010203 ); \
    M0 = _mm_shuffle_epi8( buf[ 0], shuf_bswap32 ); \
    M1 = _mm_shuffle_epi8( buf[ 1], shuf_bswap32 ); \
    M2 = _mm_shuffle_epi8( buf[ 2], shuf_bswap32 ); \
@@ -931,14 +931,14 @@ void blake256_4x32_final_rounds_le( void *final_hash, const void *midstate,
    const v128_t shuf_bswap32 =
                       v128_set64( 0x0c0d0e0f08090a0b, 0x0405060700010203 );
 
-   H[0] = _mm_shuffle_epi8( mm128_xor3( V8, V0, h[0] ), shuf_bswap32 );
-   H[1] = _mm_shuffle_epi8( mm128_xor3( V9, V1, h[1] ), shuf_bswap32 );
-   H[2] = _mm_shuffle_epi8( mm128_xor3( VA, V2, h[2] ), shuf_bswap32 );
-   H[3] = _mm_shuffle_epi8( mm128_xor3( VB, V3, h[3] ), shuf_bswap32 );
-   H[4] = _mm_shuffle_epi8( mm128_xor3( VC, V4, h[4] ), shuf_bswap32 );
-   H[5] = _mm_shuffle_epi8( mm128_xor3( VD, V5, h[5] ), shuf_bswap32 );
-   H[6] = _mm_shuffle_epi8( mm128_xor3( VE, V6, h[6] ), shuf_bswap32 );
-   H[7] = _mm_shuffle_epi8( mm128_xor3( VF, V7, h[7] ), shuf_bswap32 );
+   H[0] = _mm_shuffle_epi8( v128_xor3( V8, V0, h[0] ), shuf_bswap32 );
+   H[1] = _mm_shuffle_epi8( v128_xor3( V9, V1, h[1] ), shuf_bswap32 );
+   H[2] = _mm_shuffle_epi8( v128_xor3( VA, V2, h[2] ), shuf_bswap32 );
+   H[3] = _mm_shuffle_epi8( v128_xor3( VB, V3, h[3] ), shuf_bswap32 );
+   H[4] = _mm_shuffle_epi8( v128_xor3( VC, V4, h[4] ), shuf_bswap32 );
+   H[5] = _mm_shuffle_epi8( v128_xor3( VD, V5, h[5] ), shuf_bswap32 );
+   H[6] = _mm_shuffle_epi8( v128_xor3( VE, V6, h[6] ), shuf_bswap32 );
+   H[7] = _mm_shuffle_epi8( v128_xor3( VF, V7, h[7] ), shuf_bswap32 );
 
 #else
 

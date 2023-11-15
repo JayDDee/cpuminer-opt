@@ -191,7 +191,7 @@ static void rotate_indexes( uint32_t *p )
    *(__m256i*)hash = _mm256_mullo_epi32( _mm256_xor_si256( \
                                  *(__m256i*)hash, *(__m256i*)blob_off ), k );
 
-#elif defined(__SSE4_1__) // || defined(__ARM_NEON)
+#elif defined(__SSE4_1__)  || defined(__ARM_NEON)
 
 #define MULXOR \
    casti_v128( hash, 0 ) = v128_mul32( v128_xor( \
@@ -251,7 +251,7 @@ void verthash_hash( const void *blob_bytes, const size_t blob_size,
                              / VH_BYTE_ALIGNMENT ) + 1;
 #if defined (__AVX2__)        
     const __m256i k = _mm256_set1_epi32( 0x1000193 );
-#elif defined(__SSE4_1__) // || defined(__ARM_NEON)
+#elif defined(__SSE4_1__)  || defined(__ARM_NEON)
     const v128u32_t k = v128_32( 0x1000193 );
 #endif
     

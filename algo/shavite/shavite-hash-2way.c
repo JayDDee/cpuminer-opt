@@ -71,7 +71,7 @@ static const uint32_t IV512[] =
 static void
 c512_2way( shavite512_2way_context *ctx, const void *msg )
 {
-   const __m128i zero = _mm_setzero_si128();
+   const v128_t zero = v128_zero;
    __m256i p0, p1, p2, p3, x;
    __m256i k00, k01, k02, k03, k10, k11, k12, k13;
    __m256i *m = (__m256i*)msg;
@@ -278,7 +278,7 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
 void shavite512_2way_init( shavite512_2way_context *ctx )
 {
     __m256i *h = (__m256i*)ctx->h;
-    __m128i *iv = (__m128i*)IV512;
+    v128_t *iv = (v128_t*)IV512;
    
    h[0] = mm256_bcast_m128( iv[0] );
    h[1] = mm256_bcast_m128( iv[1] );
@@ -358,7 +358,7 @@ void shavite512_2way_close( shavite512_2way_context *ctx, void *dst )
     count.u32[3] = ctx->count3;
 
     casti_m256i( buf, 6 ) = mm256_bcast_m128(
-                  _mm_insert_epi16( m128_zero, count.u16[0], 7 ) ); 
+                  _mm_insert_epi16( v128_zero, count.u16[0], 7 ) ); 
     casti_m256i( buf, 7 ) = mm256_bcast_m128( _mm_set_epi16(
                   0x0200,       count.u16[7], count.u16[6], count.u16[5],
                   count.u16[4], count.u16[3], count.u16[2], count.u16[1] ) );
@@ -434,7 +434,7 @@ void shavite512_2way_update_close( shavite512_2way_context *ctx, void *dst,
    }
 
     casti_m256i( buf, 6 ) = mm256_bcast_m128(
-                  _mm_insert_epi16( m128_zero, count.u16[0], 7 ) ); 
+                  _mm_insert_epi16( v128_zero, count.u16[0], 7 ) ); 
     casti_m256i( buf, 7 ) = mm256_bcast_m128( _mm_set_epi16(
                   0x0200,       count.u16[7], count.u16[6], count.u16[5],
                   count.u16[4], count.u16[3], count.u16[2], count.u16[1] ) );
@@ -451,7 +451,7 @@ void shavite512_2way_full( shavite512_2way_context *ctx, void *dst,
                            const void *data, size_t len )
 {
     __m256i *h = (__m256i*)ctx->h;
-    __m128i *iv = (__m128i*)IV512;
+    v128_t *iv = (v128_t*)IV512;
 
    h[0] = mm256_bcast_m128( iv[0] );
    h[1] = mm256_bcast_m128( iv[1] );
@@ -524,7 +524,7 @@ void shavite512_2way_full( shavite512_2way_context *ctx, void *dst,
    }
 
     casti_m256i( buf, 6 ) = mm256_bcast_m128(
-                  _mm_insert_epi16( m128_zero, count.u16[0], 7 ) );
+                  _mm_insert_epi16( v128_zero, count.u16[0], 7 ) );
     casti_m256i( buf, 7 ) = mm256_bcast_m128( _mm_set_epi16(
                   0x0200,       count.u16[7], count.u16[6], count.u16[5],
                   count.u16[4], count.u16[3], count.u16[2], count.u16[1] ) );

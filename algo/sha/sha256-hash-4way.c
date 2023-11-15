@@ -319,7 +319,7 @@ int sha256_4x32_transform_le_short( v128_t *state_out, const v128_t *data,
    v128_t A, B, C, D, E, F, G, H, T0, T1, T2;
    v128_t vmask, targ, hash;
    int t6_mask, flip;
-   v128_t W[16];      memcpy_128( W, data, 16 );
+   v128_t W[16];      v128_memcpy( W, data, 16 );
 
    A = v128_load( state_in   );
    B = v128_load( state_in+1 );

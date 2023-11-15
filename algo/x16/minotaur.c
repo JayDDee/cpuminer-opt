@@ -11,7 +11,9 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
+#include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
+#include "algo/simd/simd-hash-2way.h"
 #if defined(__aarch64__)
   #include "algo/simd/sph_simd.h"
 #endif
@@ -31,8 +33,6 @@
 #else
   #include "algo/fugue/sph_fugue.h"
 #endif
-#include "algo/luffa/luffa_for_sse2.h"
-#include "algo/simd/nist.h"
 
 // Config
 #define MINOTAUR_ALGO_COUNT	16
@@ -69,11 +69,7 @@ struct TortureGarden
    cubehashParam           cube;
    shavite512_context      shavite;
    hashState_luffa         luffa;
-#if defined(__aarch64__)
-   sph_simd512_context     simd;
-#else
-   hashState_sd            simd;
-#endif
+   simd512_context         simd;
    sph_hamsi512_context    hamsi;
    sph_shabal512_context   shabal;
    sph_whirlpool_context   whirlpool;
@@ -165,13 +161,7 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
             sph_shavite512_close( &garden->shavite, hash );          
             break;
         case 13:
-#if defined(__aarch64__)
-            sph_simd512_init( &garden->simd );
-            sph_simd512( &garden->simd, input, 64);
-            sph_simd512_close( &garden->simd, hash );
-#else
-            simd_full( &garden->simd, (BitSequence *)hash, input, 512 );
-#endif
+            simd512_ctx( &garden->simd, hash, input, 64 );
             break;
         case 14:
             sph_skein512_init( &garden->skein );
