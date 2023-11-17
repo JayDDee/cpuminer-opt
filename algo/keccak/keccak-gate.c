@@ -17,6 +17,9 @@ bool register_keccak_algo( algo_gate_t* gate )
 #elif defined (KECCAK_4WAY)
   gate->scanhash  = (void*)&scanhash_keccak_4way;
   gate->hash      = (void*)&keccakhash_4way;
+#elif defined (KECCAK_2WAY)
+  gate->scanhash  = (void*)&scanhash_keccak_2x64;
+  gate->hash      = (void*)&keccakhash_2x64;
 #else
   gate->scanhash  = (void*)&scanhash_keccak;
   gate->hash      = (void*)&keccakhash;
@@ -37,6 +40,9 @@ bool register_keccakc_algo( algo_gate_t* gate )
 #elif defined (KECCAK_4WAY)
   gate->scanhash  = (void*)&scanhash_keccak_4way;
   gate->hash      = (void*)&keccakhash_4way;
+#elif defined (KECCAK_2WAY)
+  gate->scanhash  = (void*)&scanhash_keccak_2x64;
+  gate->hash      = (void*)&keccakhash_2x64;
 #else
   gate->scanhash  = (void*)&scanhash_keccak;
   gate->hash      = (void*)&keccakhash;
@@ -75,15 +81,17 @@ void sha3d_gen_merkle_root( char* merkle_root, struct stratum_ctx* sctx )
 bool register_sha3d_algo( algo_gate_t* gate )
 {
   hard_coded_eb = 6;
-//  opt_extranonce = false;
-  gate->optimizations = AVX2_OPT | AVX512_OPT;
+  gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
   gate->gen_merkle_root = (void*)&sha3d_gen_merkle_root;
-#if defined (KECCAK_8WAY)
+#if defined (SHA3D_8WAY)
   gate->scanhash  = (void*)&scanhash_sha3d_8way;
   gate->hash      = (void*)&sha3d_hash_8way;
-#elif defined (KECCAK_4WAY)
+#elif defined (SHA3D_4WAY)
   gate->scanhash  = (void*)&scanhash_sha3d_4way;
   gate->hash      = (void*)&sha3d_hash_4way;
+#elif defined (SHA3D_2WAY)
+  gate->scanhash  = (void*)&scanhash_sha3d_2x64;
+  gate->hash      = (void*)&sha3d_hash_2x64;
 #else
   gate->scanhash  = (void*)&scanhash_sha3d;
   gate->hash      = (void*)&sha3d_hash;

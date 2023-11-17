@@ -52,7 +52,7 @@ int hex_hash( void* output, const void* input, int thrid )
          break;
          case GROESTL:
 #if defined(__AES__)
-            groestl512_full( &ctx.groestl, (char*)hash, (char*)in, size<<3 );
+            groestl512_full( &ctx.groestl, hash, in, size<<3 );
 #else
             sph_groestl512_init( &ctx.groestl );
             sph_groestl512( &ctx.groestl, in, size );
@@ -108,26 +108,15 @@ int hex_hash( void* output, const void* input, int thrid )
             shavite512_full( &ctx.shavite, hash, in, size );
          break;
          case SIMD:
-#if defined(__aarch64__)
-            sph_simd512_init( &ctx.simd );
-            sph_simd512(&ctx.simd, (const void*) hash, 64);
-            sph_simd512_close(&ctx.simd, hash);
-#else
-            simd_full( &ctx.simd, (BitSequence *)hash,
-                             (const BitSequence*)in, size<<3 );
-             init_sd( &ctx.simd, 512 );
-             update_final_sd( &ctx.simd, (BitSequence *)hash,
-                              (const BitSequence*)in, size<<3 );
-#endif
+            simd512_ctx( &ctx.simd, hash, in, size<<3 );
          break;
          case ECHO:
-#if defined(__AES__)
-            echo_full( &ctx.echo, (BitSequence *)hash, 512,
-                              (const BitSequence *)in, size );
+#if defined(__AES__) || defined(__ARM_FEATURE_AES) 
+            echo_full( &ctx.echo, hash, 512, in, size );
 #else
-             sph_echo512_init( &ctx.echo );
-             sph_echo512( &ctx.echo, in, size );
-             sph_echo512_close( &ctx.echo, hash );
+            sph_echo512_init( &ctx.echo );
+            sph_echo512( &ctx.echo, in, size );
+            sph_echo512_close( &ctx.echo, hash );
 #endif
          break;
          case HAMSI:

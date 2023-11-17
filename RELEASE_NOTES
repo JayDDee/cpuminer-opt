@@ -27,17 +27,19 @@ See INSTALL_LINUX or INSTALL_WINDOWS for compile instructions
 Requirements
 ------------
 
-Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
-supported.
+- A x86_64 architecture CPU with a minimum of SSE2 support. This includes Intel Core2 and newer and AMD equivalents.
+- Arm CPU supporting AArch64 and NEON.
 
-64 bit Linux or Windows operating system. Apple, Android and Raspberry Pi
-are not supported. FreeBSD YMMV.
+32 bit CPUs are not supported.
 
-ARM requirements (Beta):
+Older CPUs are supported by open source cpuminer-multi by TPruvot but at reduced performance.
 
-CPU: Armv8 and NEON, SHA2 & AES are optional
-OS: Linux distribution built for AArch64.
-Packages: source code only.
+Mining on mobile devices that meet the requirements is not recommended due to the risk of
+overheating and damaging the battery. Mining has unlimited demand, it will push any device
+to or beyond its limits. There is also a fire risk with overheated lithium batteries.
+
+Beware of apps claiming "mobile only mining". There is no such thing, they aren't miners.
+If a mobile CPU can mine it any CPU can.
 
 See wiki for details.
 
@@ -73,12 +75,18 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v23.11
+
+This is a release candidate for full AArch64 support, marking the end of the Beta phase.
+Fixed hmq1725 & x25x algos, SSE2 & NEON, broken in v3.23.4.
+Most CPU-mineable SHA3 algos (X*) upgraded to 2-way SSE2 & NEON.
+
 v23.10
 
 x86_64: Fixed scrypt, scryptn2 algos SSE2. 
-Fixed sha512d256d algo AVX2, SSE2, NEON.
+Fixed sha512256d algo AVX2, SSE2, NEON.
 Fixed a bug in Skein N-way that reduced performance.
-ARM: Skein algo optimized for NEON & SHA2.
+ARM: Skein optimized for NEON, SHA2 & SSE2.
 Skein2 algo 2-way optimized for NEON & SSE2.
 
 v23.9

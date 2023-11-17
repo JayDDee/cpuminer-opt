@@ -13,10 +13,13 @@ __thread x16r_8way_context_overlay x16r_ctx;
 
 __thread x16r_4way_context_overlay x16r_ctx;
 
+#elif defined (X16R_2WAY)
+
+__thread x16r_2x64_context_overlay x16r_ctx;
+
 #endif
 
-__thread x16r_context_overlay x16_ctx;
-
+__thread x16r_context_overlay x16r_ref_ctx;
 
 void x16r_getAlgoString( const uint8_t* prevblock, char *output )
 {
@@ -58,11 +61,15 @@ bool register_x16r_algo( algo_gate_t* gate )
 #elif defined (X16R_4WAY)
   gate->scanhash  = (void*)&scanhash_x16r_4way;
   gate->hash      = (void*)&x16r_4way_hash;
+#elif defined (X16R_2WAY)
+  gate->scanhash  = (void*)&scanhash_x16r_2x64;
+  gate->hash      = (void*)&x16r_2x64_hash;
 #else
   gate->scanhash  = (void*)&scanhash_x16r;
   gate->hash      = (void*)&x16r_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT
+                      | NEON_OPT;
   x16_r_s_getAlgoString = (void*)&x16r_getAlgoString;
   opt_target_factor = 256.0;
   return true;
@@ -76,11 +83,15 @@ bool register_x16rv2_algo( algo_gate_t* gate )
 #elif defined (X16RV2_4WAY)
   gate->scanhash  = (void*)&scanhash_x16rv2_4way;
   gate->hash      = (void*)&x16rv2_4way_hash;
+#elif defined (X16RV2_2WAY)
+  gate->scanhash  = (void*)&scanhash_x16rv2_2x64;
+  gate->hash      = (void*)&x16rv2_2x64_hash;
 #else
   gate->scanhash  = (void*)&scanhash_x16rv2;
   gate->hash      = (void*)&x16rv2_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT
+                      | NEON_OPT;
   x16_r_s_getAlgoString = (void*)&x16r_getAlgoString;
   opt_target_factor = 256.0;
   return true;
@@ -94,11 +105,15 @@ bool register_x16s_algo( algo_gate_t* gate )
 #elif defined (X16R_4WAY)
   gate->scanhash  = (void*)&scanhash_x16r_4way;
   gate->hash      = (void*)&x16r_4way_hash;
+#elif defined (X16R_2WAY)
+  gate->scanhash  = (void*)&scanhash_x16r_2x64;
+  gate->hash      = (void*)&x16r_2x64_hash;
 #else
   gate->scanhash  = (void*)&scanhash_x16r;
   gate->hash      = (void*)&x16r_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT
+                      | NEON_OPT;
   x16_r_s_getAlgoString = (void*)&x16s_getAlgoString;
   opt_target_factor = 256.0;
   return true;
@@ -107,7 +122,6 @@ bool register_x16s_algo( algo_gate_t* gate )
 ////////////////
 //
 //   X16RT
-
 
 void x16rt_getTimeHash( const uint32_t timeStamp, void* timeHash )
 {
@@ -221,34 +235,42 @@ void veil_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 
 bool register_x16rt_algo( algo_gate_t* gate )
 {
-#if defined (X16R_8WAY)
+#if defined (X16RT_8WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_8way;
   gate->hash      = (void*)&x16r_8way_hash;
-#elif defined (X16R_4WAY)
+#elif defined (X16RT_4WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_4way;
   gate->hash      = (void*)&x16r_4way_hash;
+#elif defined (X16RT_2WAY)
+  gate->scanhash  = (void*)&scanhash_x16rt_2x64;
+  gate->hash      = (void*)&x16r_2x64_hash;
 #else
   gate->scanhash  = (void*)&scanhash_x16rt;
   gate->hash      = (void*)&x16r_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT
+                      | NEON_OPT;
   opt_target_factor = 256.0;
   return true;
 };
 
 bool register_x16rt_veil_algo( algo_gate_t* gate )
 {
-#if defined (X16R_8WAY)
+#if defined (X16RT_8WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_8way;
   gate->hash      = (void*)&x16r_8way_hash;
-#elif defined (X16R_4WAY)
+#elif defined (X16RT_4WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_4way;
   gate->hash      = (void*)&x16r_4way_hash;
+#elif defined (X16RT_2WAY)
+  gate->scanhash  = (void*)&scanhash_x16rt_2x64;
+  gate->hash      = (void*)&x16r_2x64_hash;
 #else
   gate->scanhash  = (void*)&scanhash_x16rt;
   gate->hash      = (void*)&x16r_hash;
 #endif
-  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT
+                      | NEON_OPT;
   gate->build_extraheader = (void*)&veil_build_extraheader;
   opt_target_factor = 256.0;
   return true;
@@ -262,7 +284,7 @@ bool register_hex_algo( algo_gate_t* gate )
 {
   gate->scanhash        = (void*)&scanhash_hex;
   gate->hash            = (void*)&x16r_hash;
-  gate->optimizations   = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT;
+  gate->optimizations   = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
   gate->gen_merkle_root = (void*)&sha256_gen_merkle_root;
   opt_target_factor = 128.0;
   return true;
@@ -274,20 +296,25 @@ bool register_hex_algo( algo_gate_t* gate )
 
 bool register_x21s_algo( algo_gate_t* gate )
 {
-#if defined (X16R_8WAY)
+#if defined (X21S_8WAY)
   gate->scanhash          = (void*)&scanhash_x21s_8way;
   gate->hash              = (void*)&x21s_8way_hash;
   gate->miner_thread_init = (void*)&x21s_8way_thread_init;
-#elif defined (X16R_4WAY)
+#elif defined (X21S_4WAY)
   gate->scanhash          = (void*)&scanhash_x21s_4way;
   gate->hash              = (void*)&x21s_4way_hash;
   gate->miner_thread_init = (void*)&x21s_4way_thread_init;
+#elif defined (X21S_2WAY)
+  gate->scanhash          = (void*)&scanhash_x21s_2x64;
+  gate->hash              = (void*)&x21s_2x64_hash;
+  gate->miner_thread_init = (void*)&x21s_2x64_thread_init;
 #else
   gate->scanhash          = (void*)&scanhash_x21s;
   gate->hash              = (void*)&x21s_hash;
   gate->miner_thread_init = (void*)&x21s_thread_init;
 #endif
-  gate->optimizations  = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT;
+  gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT
+                      | NEON_OPT;
   x16_r_s_getAlgoString   = (void*)&x16s_getAlgoString;
   opt_target_factor = 256.0;
   return true;

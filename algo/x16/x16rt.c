@@ -1,6 +1,6 @@
 #include "x16r-gate.h"
 
-#if !defined(X16R_8WAY) && !defined(X16R_4WAY)
+#if !defined(X16RT_8WAY) && !defined(X16RT_4WAY)
 
 int scanhash_x16rt( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr )

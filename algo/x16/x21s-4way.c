@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "algo/haval/haval-hash-4way.h"
+#include "algo/haval/sph-haval.h"
 #include "algo/tiger/sph_tiger.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/lyra2/lyra2.h"
@@ -349,6 +350,121 @@ bool x21s_4way_thread_init()
    const int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
    x21s_4way_matrix = mm_malloc( size, 64 );
    return x21s_4way_matrix;
+}
+
+#elif defined (X21S_2WAY)
+
+static __thread uint64_t* x21s_2x64_matrix;
+
+union _x21s_2x64_context_overlay
+{
+    sph_haval256_5_context  haval;
+    sph_tiger_context       tiger;
+    sph_gost512_context     gost;
+} __attribute__ ((aligned (64)));
+
+typedef union _x21s_2x64_context_overlay x21s_2x64_context_overlay;
+
+int x21s_2x64_hash( void* output, const void* input, int thrid )
+{
+   uint8_t  shash[64*2] __attribute__ ((aligned (64)));
+   x21s_2x64_context_overlay ctx;
+   uint32_t *hash0 = (uint32_t*)  shash;
+   uint32_t *hash1 = (uint32_t*)( shash+64  );
+
+   if ( !x16r_2x64_hash_generic( shash, input, thrid ) )
+      return 0;
+
+   sph_haval256_5_init( &ctx.haval );
+   sph_haval256_5( &ctx.haval, hash0, 64 );
+   sph_haval256_5_close( &ctx.haval, hash0 );
+   sph_haval256_5_init( &ctx.haval );
+   sph_haval256_5( &ctx.haval, hash1, 64 );
+   sph_haval256_5_close( &ctx.haval, hash1 );
+
+   sph_tiger_init( &ctx.tiger );
+   sph_tiger ( &ctx.tiger, (const void*) hash0, 64 );
+   sph_tiger_close( &ctx.tiger, (void*) hash0 );
+   sph_tiger_init( &ctx.tiger );
+   sph_tiger ( &ctx.tiger, (const void*) hash1, 64 );
+   sph_tiger_close( &ctx.tiger, (void*) hash1 );
+
+   LYRA2REV2( x21s_2x64_matrix, (void*) hash0, 32, (const void*) hash0, 32,
+            (const void*) hash0, 32, 1, 4, 4 );
+   LYRA2REV2( x21s_2x64_matrix, (void*) hash1, 32, (const void*) hash1, 32,
+            (const void*) hash1, 32, 1, 4, 4 );
+
+   sph_gost512_init( &ctx.gost );
+   sph_gost512 ( &ctx.gost, (const void*) hash0, 64 );
+   sph_gost512_close( &ctx.gost, (void*) hash0 );
+   sph_gost512_init( &ctx.gost );
+   sph_gost512 ( &ctx.gost, (const void*) hash1, 64 );
+   sph_gost512_close( &ctx.gost, (void*) hash1 );
+
+   sha256_full( output,    hash0, 64 );
+   sha256_full( output+32, hash1, 64 );
+
+   return 1;
+}
+
+int scanhash_x21s_2x64( struct work *work, uint32_t max_nonce,
+                        uint64_t *hashes_done, struct thr_info *mythr)
+{
+   uint32_t hash[16*2] __attribute__ ((aligned (64)));
+   uint32_t vdata[20*2] __attribute__ ((aligned (64)));
+   uint32_t bedata1[2] __attribute__((aligned(64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 2;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+   v128_t *noncev = (v128_t*)vdata + 9;
+   volatile uint8_t *restart = &(work_restart[thr_id].restart);
+
+   if ( bench )  ptarget[7] = 0x0cff;
+
+   bedata1[0] = bswap_32( pdata[1] );
+   bedata1[1] = bswap_32( pdata[2] );
+
+   static __thread uint32_t s_ntime = UINT32_MAX;
+   uint32_t ntime = bswap_32( pdata[17] );
+   if ( s_ntime != ntime )
+   {
+      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
+      s_ntime = ntime;
+      if ( opt_debug && !thr_id )
+              applog( LOG_DEBUG, "hash order %s (%08x)", x16r_hash_order, ntime );
+   }
+
+   x16r_2x64_prehash( vdata, pdata );
+   *noncev = v128_intrlv_blend_32( v128_set32( n+1, 0, n, 0 ), *noncev );
+   do
+   {
+      if ( x21s_2x64_hash( hash, vdata, thr_id ) )
+      for ( int i = 0; i < 2; i++ )
+      if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
+      {
+         pdata[19] = bswap_32( n+i );
+         submit_solution( work, hash+(i<<3), mythr );
+      }
+      *noncev = v128_add32( *noncev, v128_64( 0x0000000200000000 ) );
+      n += 2;
+   } while ( likely( (  n < last_nonce ) && !(*restart) ) );
+   pdata[19] = n;
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+bool x21s_2x64_thread_init()
+{
+   const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols
+   const int64_t ROW_LEN_BYTES = ROW_LEN_INT64 * 8;
+
+   const int size = (int64_t)ROW_LEN_BYTES * 4; // nRows;
+   x21s_2x64_matrix = mm_malloc( size, 64 );
+   return x21s_2x64_matrix;
 }
 
 #endif
