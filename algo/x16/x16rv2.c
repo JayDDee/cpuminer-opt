@@ -6,21 +6,15 @@
  */
 #include "x16r-gate.h"
 
-#if !defined(X16R_8WAY) && !defined(X16R_4WAY)
+#if !defined(X16RV2_8WAY) && !defined(X16RV2_4WAY) && !defined(X16RV2_2WAY)
 
 #include "algo/tiger/sph_tiger.h"
 
 union _x16rv2_context_overlay
 {
-#if defined(__AES__)
-        hashState_echo          echo;
-        hashState_groestl       groestl;
-        hashState_fugue         fugue;
-#else
         sph_groestl512_context   groestl;
         sph_echo512_context      echo;
         sph_fugue512_context    fugue;
-#endif
         blake512_context        blake;
         sph_bmw512_context      bmw;
         sph_skein512_context    skein;
@@ -29,11 +23,7 @@ union _x16rv2_context_overlay
         hashState_luffa         luffa;
         cubehashParam           cube;
         shavite512_context      shavite;
-#if defined(__aarch64__)
         sph_simd512_context     simd;
-#else
-        hashState_sd            simd;
-#endif        
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
@@ -72,15 +62,9 @@ int x16rv2_hash( void* output, const void* input, int thrid )
             sph_bmw512_close(&ctx.bmw, hash);
          break;
          case GROESTL:
-#if defined(__AES__)
-            init_groestl( &ctx.groestl, 64 );
-            update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                      (const char*)in, size<<3 );
-#else
             sph_groestl512_init( &ctx.groestl );
             sph_groestl512( &ctx.groestl, in, size );
             sph_groestl512_close(&ctx.groestl, hash);
-#endif
          break;
          case SKEIN:
             sph_skein512_init( &ctx.skein );
@@ -117,25 +101,14 @@ int x16rv2_hash( void* output, const void* input, int thrid )
             shavite512_full( &ctx.shavite, hash, in, size );
          break;
          case SIMD:
-#if defined(__aarch64__)
             sph_simd512_init( &ctx.simd );
-            sph_simd512(&ctx.simd, (const void*) hash, 64);
+            sph_simd512(&ctx.simd, hash, 64);
             sph_simd512_close(&ctx.simd, hash);
-#else
-            simd_full( &ctx.simd, (BitSequence *)hash,
-                             (const BitSequence*)in, size<<3 );
-#endif
          break;
          case ECHO:
-#if defined(__AES__)
-             init_echo( &ctx.echo, 512 );
-             update_final_echo ( &ctx.echo, (BitSequence *)hash,
-                                (const BitSequence*)in, size<<3 );
-#else
              sph_echo512_init( &ctx.echo );
              sph_echo512( &ctx.echo, in, size );
              sph_echo512_close( &ctx.echo, hash );
-#endif
          break;
          case HAMSI:
              sph_hamsi512_init( &ctx.hamsi );
@@ -143,11 +116,7 @@ int x16rv2_hash( void* output, const void* input, int thrid )
              sph_hamsi512_close( &ctx.hamsi, hash );
          break;
          case FUGUE:
-#if defined(__AES__)
-             fugue512_full( &ctx.fugue, hash, in, size );
-#else
              sph_fugue512_full( &ctx.fugue, hash, in, size );
-#endif
 	     break;
          case SHABAL:
              sph_shabal512_init( &ctx.shabal );

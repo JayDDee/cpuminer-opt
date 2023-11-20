@@ -8,19 +8,27 @@
   #define BMW512_8WAY 1
 #elif defined(__AVX2__)
   #define BMW512_4WAY 1
+#elif defined(__SSE2__) || defined(__ARM_NEON)
+  #define BMW512_2WAY 1
 #endif
 
 #if defined(BMW512_8WAY)
 
 void bmw512hash_8way( void *state, const void *input );
 int scanhash_bmw512_8way( struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done, struct thr_info *mythr );
+                          uint64_t *hashes_done, struct thr_info *mythr );
 
 #elif defined(BMW512_4WAY)
 
 void bmw512hash_4way( void *state, const void *input );
 int scanhash_bmw512_4way( struct work *work, uint32_t max_nonce,
-                         uint64_t *hashes_done, struct thr_info *mythr );
+                          uint64_t *hashes_done, struct thr_info *mythr );
+
+#elif defined(BMW512_2WAY)
+
+void bmw512hash_2x64( void *state, const void *input );
+int scanhash_bmw512_2x64( struct work *work, uint32_t max_nonce,
+                          uint64_t *hashes_done, struct thr_info *mythr );
 
 #else
 

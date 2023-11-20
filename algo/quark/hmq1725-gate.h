@@ -29,7 +29,6 @@ int scanhash_hmq1725_4way( struct work *work, uint32_t max_nonce,
 void hmq1725hash( void *state, const void *input );
 int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr );
-void init_hmq1725_ctx();
 
 #endif
 

@@ -1133,14 +1133,12 @@ int scanhash_x17_2x64( struct work *work, uint32_t max_nonce,
       {
          if ( unlikely( valid_hash( hash, ptarget ) && !bench ) )
          {
-applog(LOG_INFO,"Submitted Thread %d, lane %d",thr_id,0);
               pdata[19] = bswap_32( n );
 //            pdata[19] = n;
             submit_solution( work, hash, mythr );
          }
          if ( unlikely( valid_hash( hash+8, ptarget ) && !bench ) )
          {
-applog(LOG_INFO,"Submitted Thread %d, lane %d",thr_id,1);            
             pdata[19] = bswap_32( n+1 );
             submit_solution( work, hash+8, mythr );
          }

@@ -15,7 +15,7 @@
 #include "algo/gost/sph_gost.h"
 #include "algo/lyra2/lyra2.h"
 
-#if !defined(X16R_8WAY) && !defined(X16R_4WAY)
+#if !defined(X21S_8WAY) && !defined(X21S_4WAY)
 
 static __thread uint64_t* x21s_matrix;
 

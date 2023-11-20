@@ -5,24 +5,23 @@
 #include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
 #if defined(__AES__)
-  #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/groestl/sph_groestl.h"
-  #include "algo/echo/sph_echo.h"
   #include "algo/fugue/sph_fugue.h"
+#endif
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+  #include "algo/echo/aes_ni/hash_api.h"
+#else
+  #include "algo/echo/sph_echo.h"
 #endif
 #include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
-#if defined(__aarch64__)
-  #include "algo/simd/sph_simd.h"
-#else
-  #include "algo/simd/nist.h"
-#endif
+#include "algo/simd/simd-hash-2way.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
@@ -41,12 +40,15 @@ union _x22i_context_overlay
         sph_bmw512_context     bmw;
 #if defined(__AES__)
         hashState_groestl       groestl;
-        hashState_echo          echo;
         hashState_fugue         fugue;
 #else
         sph_groestl512_context  groestl;
-        sph_echo512_context     echo;
         sph_fugue512_context    fugue;
+#endif
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+        hashState_echo          echo;
+#else
+        sph_echo512_context     echo;
 #endif
         sph_jh512_context       jh;
         sph_keccak512_context   keccak;
@@ -54,11 +56,7 @@ union _x22i_context_overlay
         hashState_luffa         luffa;
         cubehashParam           cube;
         sph_shavite512_context  shavite;
-#if defined(__aarch64__)
-        sph_simd512_context     simd;
-#else
-        hashState_sd            simd;
-#endif
+        simd512_context         simd;
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
@@ -84,9 +82,7 @@ int x22i_hash( void *output, const void *input, int thrid )
    sph_bmw512_close(&ctx.bmw, hash);
 
 #if defined(__AES__)
-   init_groestl( &ctx.groestl, 64 );
-   update_and_final_groestl( &ctx.groestl, (char*)hash,
-                                  (const char*)hash, 512 );
+   groestl512_full( &ctx.groestl, hash, hash, 512 );
 #else
    sph_groestl512_init( &ctx.groestl );
    sph_groestl512( &ctx.groestl, hash, 64 );
@@ -109,26 +105,16 @@ int x22i_hash( void *output, const void *input, int thrid )
    
    luffa_full( &ctx.luffa, hash, 512, hash, 64 );
 
-   cubehashInit( &ctx.cube, 512, 16, 32 );
-   cubehashUpdateDigest( &ctx.cube, hash, hash, 64 );
-
+   cubehash_full( &ctx.cube, hash, 512, hash, 64 );
+   
    sph_shavite512_init(&ctx.shavite);
    sph_shavite512(&ctx.shavite, (const void*) hash, 64);
    sph_shavite512_close(&ctx.shavite, hash);
 
-#if defined(__aarch64__)
-    sph_simd512_init(&ctx.simd );
-    sph_simd512(&ctx.simd, (const void*) hash, 64);
-    sph_simd512_close(&ctx.simd, hash);
-#else
-    simd_full( &ctx.simd, (BitSequence *)hash,
-                       (const BitSequence *)hash, 512 );
-#endif
+   simd512_ctx( &ctx.simd, hash, hash, 64 );
 
-#if defined(__AES__)
-   init_echo( &ctx.echo, 512 );
-   update_final_echo ( &ctx.echo, (BitSequence*)hash,
-                            (const BitSequence*)hash, 512 );
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+   echo_full( &ctx.echo, hash, 512, hash, 64 );
 #else
    sph_echo512_init( &ctx.echo );
    sph_echo512( &ctx.echo, hash, 64 );
@@ -192,8 +178,8 @@ int x22i_hash( void *output, const void *input, int thrid )
 int scanhash_x22i( struct work *work, uint32_t max_nonce,
              uint64_t *hashes_done, struct thr_info *mythr)
 {
-   uint32_t edata[20] __attribute__((aligned(64)));
-   uint32_t hash64[8] __attribute__((aligned(64)));
+   uint32_t edata[20] __attribute__((aligned(32)));
+   uint32_t hash64[8] __attribute__((aligned(32)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    uint32_t n = pdata[19];

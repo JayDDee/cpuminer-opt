@@ -2,12 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-//#include "sph_keccak.h"
 #include "bmw-hash-4way.h"
 
 #if defined(BMW512_8WAY)
 
-void bmw512hash_8way(void *state, const void *input)
+void bmw512hash_8way( void *state, const void *input )
 {
     bmw512_8way_context ctx;
     bmw512_8way_init( &ctx );
@@ -27,9 +26,9 @@ int scanhash_bmw512_8way( struct work *work, uint32_t max_nonce,
    uint32_t n = pdata[19];
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 8;
-   __m512i  *noncev = (__m512i*)vdata + 9;   // aligned
+   __m512i  *noncev = (__m512i*)vdata + 9;
    const uint32_t Htarg = ptarget[7];
-   int thr_id = mythr->id;
+   const int thr_id = mythr->id;
 
    mm512_bswap32_intrlv80_8x64( vdata, pdata );
    do {
@@ -43,7 +42,7 @@ int scanhash_bmw512_8way( struct work *work, uint32_t max_nonce,
       if ( unlikely( hash7[ lane<<1 ] <= Htarg ) )
       {
           extr_lane_8x64( lane_hash, hash, lane, 256 );
-          if ( fulltest( lane_hash, ptarget ) )
+          if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ))
           {
               pdata[19] = n + lane;
               submit_solution( work, lane_hash, mythr );
@@ -59,9 +58,7 @@ int scanhash_bmw512_8way( struct work *work, uint32_t max_nonce,
    
 #elif defined(BMW512_4WAY)
 
-//#ifdef BMW512_4WAY
-
-void bmw512hash_4way(void *state, const void *input)
+void bmw512hash_4way( void *state, const void *input )
 {
     bmw512_4way_context ctx;
     bmw512_4way_init( &ctx );
@@ -80,10 +77,10 @@ int scanhash_bmw512_4way( struct work *work, uint32_t max_nonce,
    uint32_t *ptarget = work->target;
    uint32_t n = pdata[19];
    const uint32_t first_nonce = pdata[19];
-   const uint32_t last_nonce = max_nonce -  4;
-   __m256i  *noncev = (__m256i*)vdata + 9;   // aligned
+   const uint32_t last_nonce = max_nonce - 4;
+   __m256i  *noncev = (__m256i*)vdata + 9; 
    const uint32_t Htarg = ptarget[7];
-    int thr_id = mythr->id;  // thr_id arg is deprecated
+   const int thr_id = mythr->id;  
 
    mm256_bswap32_intrlv80_4x64( vdata, pdata );
    do {
@@ -96,13 +93,64 @@ int scanhash_bmw512_4way( struct work *work, uint32_t max_nonce,
       if ( unlikely( hash7[ lane<<1 ] <= Htarg ) )
       {
           extr_lane_4x64( lane_hash, hash, lane, 256 );
-          if ( fulltest( lane_hash, ptarget ) )
+          if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ))
           {
               pdata[19] = n + lane;
               submit_solution( work, lane_hash, mythr );
           }
       }
       n += 4;
+
+   } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
+
+   *hashes_done = n - first_nonce;
+   return 0;
+}
+
+#elif defined(BMW512_2WAY)
+
+void bmw512hash_2x64( void *state, const void *input )
+{
+    bmw512_2x64_context ctx;
+    bmw512_2x64_init( &ctx );
+    bmw512_2x64_update( &ctx, input, 80 );
+    bmw512_2x64_close( &ctx, state );
+}
+
+int scanhash_bmw512_2x64( struct work *work, uint32_t max_nonce,
+                          uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t vdata[24*2] __attribute__ ((aligned (64)));
+   uint32_t hash[16*2] __attribute__ ((aligned (32)));
+   uint32_t lane_hash[8] __attribute__ ((aligned (32)));
+   uint32_t *hash7 = &(hash[13]);   // 3*4+1
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   uint32_t n = pdata[19];
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 2;
+   v128_t *noncev = (v128_t*)vdata + 9;  
+   const uint32_t Htarg = ptarget[7];
+   const int thr_id = mythr->id; 
+
+   v128_bswap32_intrlv80_2x64( vdata, pdata );
+   do {
+      *noncev = v128_intrlv_blend_32( v128_bswap32(
+                                      v128_set32( n+1, 0, n, 0 ) ), *noncev );
+
+      bmw512hash_2x64( hash, vdata );
+
+      for ( int lane = 0; lane < 2; lane++ )
+      if ( unlikely( hash7[ lane<<1 ] <= Htarg ) )
+      {
+          extr_lane_2x64( lane_hash, hash, lane, 256 );
+          if ( likely( valid_hash( lane_hash, ptarget ) && !opt_benchmark ))
+          {
+              pdata[19] = n + lane;
+              submit_solution( work, lane_hash, mythr );
+          }
+      }
+      n += 2;
 
    } while ( likely( (n < last_nonce) && !work_restart[thr_id].restart ) );
 

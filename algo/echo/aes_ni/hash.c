@@ -236,9 +236,7 @@ void Compress(hashState_echo *ctx, const unsigned char *pmsg, unsigned int uBloc
 
 }
 
-
-
-HashReturn init_echo(hashState_echo *ctx, int nHashSize)
+HashReturn init_echo( hashState_echo *ctx, int nHashSize )
 {
 	int i, j;
 
@@ -280,7 +278,8 @@ HashReturn init_echo(hashState_echo *ctx, int nHashSize)
 	return SUCCESS;
 }
 
-HashReturn update_echo(hashState_echo *state, const BitSequence *data, DataLength databitlen)
+HashReturn update_echo( hashState_echo *state, const void *data,
+                        uint32_t databitlen )
 {
 	unsigned int uByteLength, uBlockCount, uRemainingBytes;
 
@@ -330,7 +329,7 @@ HashReturn update_echo(hashState_echo *state, const BitSequence *data, DataLengt
 	return SUCCESS;
 }
 
-HashReturn final_echo(hashState_echo *state, BitSequence *hashval)
+HashReturn final_echo( hashState_echo *state, void *hashval)
 {
 	v128_t remainingbits;
 
@@ -407,8 +406,8 @@ HashReturn final_echo(hashState_echo *state, BitSequence *hashval)
 	return SUCCESS;
 }
 
-HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
-                              const BitSequence *data, DataLength databitlen )
+HashReturn update_final_echo( hashState_echo *state, void *hashval,
+                              const void *data, uint32_t databitlen )
 {
    unsigned int uByteLength, uBlockCount, uRemainingBytes;
 
@@ -530,8 +529,8 @@ HashReturn update_final_echo( hashState_echo *state, BitSequence *hashval,
    return SUCCESS;
 }
 
-HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
-            int nHashSize, const BitSequence *data, DataLength datalen )
+HashReturn echo_full( hashState_echo *state, void *hashval,
+            int nHashSize, const void *data, uint32_t datalen )
 {
    int i, j;
 
@@ -578,7 +577,7 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
         {
            // Fill the buffer
            memcpy( state->buffer + state->uBufferBytes,
-                   (void*)data, state->uBlockLength - state->uBufferBytes );
+                   data, state->uBlockLength - state->uBufferBytes );
 
            // Process buffer
            Compress( state, state->buffer, 1 );
@@ -601,7 +600,7 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
         }
 
         if( uRemainingBytes > 0 )
-        memcpy(state->buffer, (void*)data, uRemainingBytes);
+        memcpy(state->buffer, data, uRemainingBytes);
 
         state->uBufferBytes = uRemainingBytes;
    }
@@ -689,7 +688,7 @@ HashReturn echo_full( hashState_echo *state, BitSequence *hashval,
 }
 
 
-
+#if 0
 HashReturn hash_echo(int hashbitlen, const BitSequence *data, DataLength databitlen, BitSequence *hashval)
 {
 	HashReturn hRet;
@@ -746,5 +745,6 @@ HashReturn hash_echo(int hashbitlen, const BitSequence *data, DataLength databit
 
 	return SUCCESS;
 }
+#endif
 
 #endif
