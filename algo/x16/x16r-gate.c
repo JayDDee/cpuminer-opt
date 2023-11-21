@@ -5,15 +5,15 @@ __thread char x16r_hash_order[ X16R_HASH_FUNC_COUNT + 1 ] = { 0 };
 
 void (*x16_r_s_getAlgoString) ( const uint8_t*, char* ) = NULL;
 
-#if defined (X16R_8WAY)
+#if defined(X16R_8WAY)
 
 __thread x16r_8way_context_overlay x16r_ctx;
 
-#elif defined (X16R_4WAY)
+#elif defined(X16R_4WAY)
 
 __thread x16r_4way_context_overlay x16r_ctx;
 
-#elif defined (X16R_2WAY)
+#elif defined(X16R_2WAY)
 
 __thread x16r_2x64_context_overlay x16r_ctx;
 
@@ -55,13 +55,13 @@ void x16s_getAlgoString( const uint8_t* prevblock, char *output )
 
 bool register_x16r_algo( algo_gate_t* gate )
 {
-#if defined (X16R_8WAY)
+#if defined(X16R_8WAY)
   gate->scanhash  = (void*)&scanhash_x16r_8way;
   gate->hash      = (void*)&x16r_8way_hash;
-#elif defined (X16R_4WAY)
+#elif defined(X16R_4WAY)
   gate->scanhash  = (void*)&scanhash_x16r_4way;
   gate->hash      = (void*)&x16r_4way_hash;
-#elif defined (X16R_2WAY)
+#elif defined(X16R_2WAY)
   gate->scanhash  = (void*)&scanhash_x16r_2x64;
   gate->hash      = (void*)&x16r_2x64_hash;
 #else
@@ -77,13 +77,13 @@ bool register_x16r_algo( algo_gate_t* gate )
 
 bool register_x16rv2_algo( algo_gate_t* gate )
 {
-#if defined (X16RV2_8WAY)
+#if defined(X16RV2_8WAY)
   gate->scanhash  = (void*)&scanhash_x16rv2_8way;
   gate->hash      = (void*)&x16rv2_8way_hash;
-#elif defined (X16RV2_4WAY)
+#elif defined(X16RV2_4WAY)
   gate->scanhash  = (void*)&scanhash_x16rv2_4way;
   gate->hash      = (void*)&x16rv2_4way_hash;
-#elif defined (X16RV2_2WAY)
+#elif defined(X16RV2_2WAY)
   gate->scanhash  = (void*)&scanhash_x16rv2_2x64;
   gate->hash      = (void*)&x16rv2_2x64_hash;
 #else
@@ -99,13 +99,13 @@ bool register_x16rv2_algo( algo_gate_t* gate )
 
 bool register_x16s_algo( algo_gate_t* gate )
 {
-#if defined (X16R_8WAY)
+#if defined(X16R_8WAY)
   gate->scanhash  = (void*)&scanhash_x16r_8way;
   gate->hash      = (void*)&x16r_8way_hash;
-#elif defined (X16R_4WAY)
+#elif defined(X16R_4WAY)
   gate->scanhash  = (void*)&scanhash_x16r_4way;
   gate->hash      = (void*)&x16r_4way_hash;
-#elif defined (X16R_2WAY)
+#elif defined(X16R_2WAY)
   gate->scanhash  = (void*)&scanhash_x16r_2x64;
   gate->hash      = (void*)&x16r_2x64_hash;
 #else
@@ -235,13 +235,13 @@ void veil_build_extraheader( struct work* g_work, struct stratum_ctx* sctx )
 
 bool register_x16rt_algo( algo_gate_t* gate )
 {
-#if defined (X16RT_8WAY)
+#if defined(X16RT_8WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_8way;
   gate->hash      = (void*)&x16r_8way_hash;
-#elif defined (X16RT_4WAY)
+#elif defined(X16RT_4WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_4way;
   gate->hash      = (void*)&x16r_4way_hash;
-#elif defined (X16RT_2WAY)
+#elif defined(X16RT_2WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_2x64;
   gate->hash      = (void*)&x16r_2x64_hash;
 #else
@@ -256,13 +256,13 @@ bool register_x16rt_algo( algo_gate_t* gate )
 
 bool register_x16rt_veil_algo( algo_gate_t* gate )
 {
-#if defined (X16RT_8WAY)
+#if defined(X16RT_8WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_8way;
   gate->hash      = (void*)&x16r_8way_hash;
-#elif defined (X16RT_4WAY)
+#elif defined(X16RT_4WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_4way;
   gate->hash      = (void*)&x16r_4way_hash;
-#elif defined (X16RT_2WAY)
+#elif defined(X16RT_2WAY)
   gate->scanhash  = (void*)&scanhash_x16rt_2x64;
   gate->hash      = (void*)&x16r_2x64_hash;
 #else
@@ -296,15 +296,15 @@ bool register_hex_algo( algo_gate_t* gate )
 
 bool register_x21s_algo( algo_gate_t* gate )
 {
-#if defined (X21S_8WAY)
+#if defined(X21S_8WAY)
   gate->scanhash          = (void*)&scanhash_x21s_8way;
   gate->hash              = (void*)&x21s_8way_hash;
   gate->miner_thread_init = (void*)&x21s_8way_thread_init;
-#elif defined (X21S_4WAY)
+#elif defined(X21S_4WAY)
   gate->scanhash          = (void*)&scanhash_x21s_4way;
   gate->hash              = (void*)&x21s_4way_hash;
   gate->miner_thread_init = (void*)&x21s_4way_thread_init;
-#elif defined (X21S_2WAY)
+#elif defined(X21S_2WAY)
   gate->scanhash          = (void*)&scanhash_x21s_2x64;
   gate->hash              = (void*)&x21s_2x64_hash;
   gate->miner_thread_init = (void*)&x21s_2x64_thread_init;

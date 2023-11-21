@@ -31,7 +31,7 @@ int scanhash_x16rt( struct work *work, uint32_t max_nonce,
                         x16r_hash_order, swab32( pdata[17] ), timeHash );
    }
    
-   x16r_prehash( edata, pdata );
+   x16r_prehash( edata, pdata, x16r_hash_order );
    
    do
    {

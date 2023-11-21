@@ -930,7 +930,9 @@ static inline void cpu_brand_string( char* s )
 
 #elif defined(__arm__) || defined(__aarch64__)
 
-    sprintf( s, "ARM 64 bit CPU" );
+    unsigned int cpu_info[4] = { 0 };
+    cpuid( 0, 0, cpu_info );
+    sprintf( s, "ARM 64 bit CPU, HWCAP %08x", cpu_info[0] );
 
 #else
 

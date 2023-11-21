@@ -672,6 +672,7 @@ enum algos {
         ALGO_X16RT_VEIL,
         ALGO_X16S,
         ALGO_X17,
+        ALGO_X20R,
         ALGO_X21S,
         ALGO_X22I,
         ALGO_X25X,
@@ -767,6 +768,7 @@ static const char* const algo_names[] = {
         "x16rt-veil",
         "x16s",
         "x17",
+        "x20r",
         "x21s",
         "x22i",
         "x25x",
@@ -930,6 +932,7 @@ Options:\n\
                           x16rt-veil    Veil (VEIL)\n\
                           x16s\n\
                           x17\n\
+                          x20r\n\
                           x21s\n\
                           x22i\n\
                           x25x\n\

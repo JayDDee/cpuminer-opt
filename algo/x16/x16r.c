@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-void x16r_prehash( void *edata, void *pdata )
+void x16r_prehash( void *edata, void *pdata, const char *hash_order )
 {
-   const char elem = x16r_hash_order[0];
+   const char elem = hash_order[0];
    const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
 
    switch ( algo )
@@ -52,17 +52,18 @@ void x16r_prehash( void *edata, void *pdata )
    }
 }
 
-int x16r_hash_generic( void* output, const void* input, int thrid )
+int x16r_hash_generic( void* output, const void* input, int thrid, 
+                       const char *hash_order, const int func_count )
 {
-   uint32_t _ALIGN(128) hash[16];
+   uint32_t _ALIGN(32) hash[16];
    x16r_context_overlay ctx;
    memcpy( &ctx, &x16r_ref_ctx, sizeof(ctx) );
    void *in = (void*) input;
    int size = 80;
 
-   for ( int i = 0; i < 16; i++ )
+   for ( int i = 0; i < func_count; i++ )
    {
-      const char elem = x16r_hash_order[i];
+      const char elem = hash_order[i];
       const uint8_t algo = elem >= 'A' ? elem - 'A' + 10 : elem - '0';
 
       switch ( algo )
@@ -196,7 +197,8 @@ int x16r_hash_generic( void* output, const void* input, int thrid )
 int x16r_hash( void* output, const void* input, int thrid )
 {  
    uint8_t hash[64] __attribute__ ((aligned (64)));
-   if ( !x16r_hash_generic( hash, input, thrid ) )
+   if ( !x16r_hash_generic( hash, input, thrid, x16r_hash_order, 
+                            X16R_HASH_FUNC_COUNT ) )
       return 0;
    
     memcpy( output, hash, 32 );
@@ -206,8 +208,8 @@ int x16r_hash( void* output, const void* input, int thrid )
 int scanhash_x16r( struct work *work, uint32_t max_nonce,
                    uint64_t *hashes_done, struct thr_info *mythr )
 {
-   uint32_t _ALIGN(128) hash32[8];
-   uint32_t _ALIGN(128) edata[20];
+   uint32_t _ALIGN(32) hash32[8];
+   uint32_t _ALIGN(32) edata[20];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -229,7 +231,7 @@ int scanhash_x16r( struct work *work, uint32_t max_nonce,
            applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
    }
 
-   x16r_prehash( edata, pdata );
+   x16r_prehash( edata, pdata, x16r_hash_order );
 
    do
    {

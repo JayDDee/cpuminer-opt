@@ -381,7 +381,7 @@ static inline void dintrlv_4x32_512( void *dst0, void *dst1, void *dst2,
    d0[15] = s[ 60];   d1[15] = s[ 61];    d2[15] = s[ 62];   d3[15] = s[ 63];
 }
 
-#endif   // SSE4_1 else SSE2 or NEON
+#endif   // SSE4_1 or NEON else SSE2
 
 static inline void extr_lane_4x32( void *d, const void *s,
                                    const int lane, const int bit_len )

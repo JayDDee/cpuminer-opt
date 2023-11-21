@@ -30,12 +30,12 @@ int scanhash_x16rt_8way( struct work *work, uint32_t max_nonce,
       x16rt_getTimeHash( masked_ntime, &timeHash );
       x16rt_getAlgoString( &timeHash[0], x16r_hash_order );
       s_ntime = masked_ntime;
-      if ( !thr_id )
-          applog( LOG_INFO, "Hash order %s, Ntime %08x, time hash %08x",
-                            x16r_hash_order, bswap_32( pdata[17] ), timeHash );
+      if ( !opt_quiet && !thr_id )
+          applog( LOG_INFO, "Hash order %s, Ntime %08x",
+                            x16r_hash_order, bswap_32( pdata[17] ) );
    }
 
-   x16r_8way_prehash( vdata, pdata );
+   x16r_8way_prehash( vdata, pdata, x16r_hash_order );
    *noncev = mm512_intrlv_blend_32( _mm512_set_epi32(
                              n+7, 0, n+6, 0, n+5, 0, n+4, 0,
                              n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
@@ -84,12 +84,12 @@ int scanhash_x16rt_4way( struct work *work, uint32_t max_nonce,
       x16rt_getTimeHash( masked_ntime, &timeHash );
       x16rt_getAlgoString( &timeHash[0], x16r_hash_order );
       s_ntime = masked_ntime;
-      if ( !thr_id )
-          applog( LOG_INFO, "Hash order %s, Ntime %08x, time hash %08x",
-                            x16r_hash_order, bswap_32( pdata[17] ), timeHash );
+      if ( !opt_quiet && !thr_id )
+          applog( LOG_INFO, "Hash order %s, Ntime %08x",
+                            x16r_hash_order, bswap_32( pdata[17] ) );
    }
 
-   x16r_4way_prehash( vdata, pdata );
+   x16r_4way_prehash( vdata, pdata, x16r_hash_order );
    *noncev = mm256_intrlv_blend_32(
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
@@ -137,12 +137,12 @@ int scanhash_x16rt_2x64( struct work *work, uint32_t max_nonce,
       x16rt_getTimeHash( masked_ntime, &timeHash );
       x16rt_getAlgoString( &timeHash[0], x16r_hash_order );
       s_ntime = masked_ntime;
-      if ( !thr_id )
-          applog( LOG_INFO, "Hash order %s, Ntime %08x, time hash %08x",
-                            x16r_hash_order, bswap_32( pdata[17] ), timeHash );
+      if ( !opt_quiet && !thr_id )
+          applog( LOG_INFO, "Hash order %s, Ntime %08x",
+                            x16r_hash_order, bswap_32( pdata[17] ) );
    }
 
-   x16r_2x64_prehash( vdata, pdata );
+   x16r_2x64_prehash( vdata, pdata, x16r_hash_order );
    *noncev = v128_intrlv_blend_32( v128_set32( n+1, 0, n, 0 ), *noncev );
    do
    {

@@ -33,7 +33,8 @@ int x21s_hash( void* output, const void* input, int thrid )
    uint32_t _ALIGN(128) hash[16];
    x21s_context_overlay ctx;
 
-   if ( !x16r_hash_generic( hash, input, thrid ) )
+   if ( !x16r_hash_generic( hash, input, thrid, x16r_hash_order,
+                            X16R_HASH_FUNC_COUNT ) )
       return 0;
 
    sph_haval256_5_init( &ctx.haval );
@@ -84,7 +85,7 @@ int scanhash_x21s( struct work *work, uint32_t max_nonce,
           applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
    }
 
-   x16r_prehash( edata, pdata );
+   x16r_prehash( edata, pdata, x16r_hash_order );
 
    do
    {

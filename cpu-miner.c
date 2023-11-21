@@ -2837,15 +2837,6 @@ static void show_credits()
 #define check_cpu_capability() cpu_capability( false )
 #define display_cpu_capability() cpu_capability( true )
 
-#if defined(__aarch64__)
-
-#define XSTR(x) STR(x)
-#define STR(x) #x
-
-//#pragma message "Building for armv" XSTR(__ARM_ARCH)  
-
-#endif
-
 static bool cpu_capability( bool display_only )
 {
      char cpu_brand[0x40];

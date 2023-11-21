@@ -43,7 +43,8 @@ int x21s_8way_hash( void* output, const void* input, int thrid )
    uint32_t *hash7 = (uint32_t*)( shash+448 );
    x21s_8way_context_overlay ctx;
 
-   if ( !x16r_8way_hash_generic( shash, input, thrid ) )
+   if ( !x16r_8way_hash_generic( shash, input, thrid, x16r_hash_order, 
+                                 X16R_HASH_FUNC_COUNT ) )
       return 0;
 
    intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
@@ -135,7 +136,6 @@ int scanhash_x21s_8way( struct work *work, uint32_t max_nonce,
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t *hash7 = &hash[7<<3];
    uint32_t lane_hash[8] __attribute__ ((aligned (64)));
-   uint32_t bedata1[2] __attribute__((aligned(64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t Htarg = ptarget[7];
@@ -149,20 +149,18 @@ int scanhash_x21s_8way( struct work *work, uint32_t max_nonce,
 
    if ( bench )   ptarget[7] = 0x0cff;
 
-   bedata1[0] = bswap_32( pdata[1] );
-   bedata1[1] = bswap_32( pdata[2] );
-
-   static __thread uint32_t s_ntime = UINT32_MAX;
-   uint32_t ntime = bswap_32( pdata[17] );
-   if ( s_ntime != ntime )
+   static __thread uint32_t saved_height = UINT32_MAX;
+   if ( work->height != saved_height )
    {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
-      s_ntime = ntime;
-      if ( opt_debug && !thr_id )
-              applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
+      vdata[1] = bswap_32( pdata[1] );
+      vdata[2] = bswap_32( pdata[2] );
+      saved_height = work->height;
+      x16_r_s_getAlgoString( (const uint8_t*)(&vdata[1]), x16r_hash_order );
+      if ( !opt_quiet && !thr_id )
+           applog( LOG_INFO, "hash order %s", x16r_hash_order );
    }
 
-   x16r_8way_prehash( vdata, pdata );
+   x16r_8way_prehash( vdata, pdata, x16r_hash_order );
    *noncev = mm512_intrlv_blend_32( _mm512_set_epi32(
                              n+7, 0, n+6, 0, n+5, 0, n+4, 0,
                              n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
@@ -224,7 +222,8 @@ int x21s_4way_hash( void* output, const void* input, int thrid )
    uint32_t *hash2 = (uint32_t*)( shash+128 );
    uint32_t *hash3 = (uint32_t*)( shash+192 );
 
-   if ( !x16r_4way_hash_generic( shash, input, thrid ) )
+   if ( !x16r_4way_hash_generic( shash, input, thrid, x16r_hash_order,
+                                 X16R_HASH_FUNC_COUNT ) )
       return 0;
 
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3,  512 );
@@ -308,20 +307,18 @@ int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
 
    if ( bench )  ptarget[7] = 0x0cff;
  
-   bedata1[0] = bswap_32( pdata[1] );
-   bedata1[1] = bswap_32( pdata[2] );
-
-   static __thread uint32_t s_ntime = UINT32_MAX;
-   uint32_t ntime = bswap_32( pdata[17] );
-   if ( s_ntime != ntime )
+   static __thread uint32_t saved_height = UINT32_MAX;
+   if ( work->height != saved_height )
    {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
-      s_ntime = ntime;
-      if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)", x16r_hash_order, ntime );
+      vdata[1] = bswap_32( pdata[1] );
+      vdata[2] = bswap_32( pdata[2] );
+      saved_height = work->height;
+      x16_r_s_getAlgoString( (const uint8_t*)(&vdata[1]), x16r_hash_order );
+      if ( !opt_quiet && !thr_id )
+           applog( LOG_INFO, "hash order %s", x16r_hash_order );
    }
 
-   x16r_4way_prehash( vdata, pdata );
+   x16r_4way_prehash( vdata, pdata, x16r_hash_order );
    *noncev = mm256_intrlv_blend_32(
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
@@ -372,7 +369,8 @@ int x21s_2x64_hash( void* output, const void* input, int thrid )
    uint32_t *hash0 = (uint32_t*)  shash;
    uint32_t *hash1 = (uint32_t*)( shash+64  );
 
-   if ( !x16r_2x64_hash_generic( shash, input, thrid ) )
+   if ( !x16r_2x64_hash_generic( shash, input, thrid, x16r_hash_order, 
+                                 X16R_HASH_FUNC_COUNT ) )
       return 0;
 
    sph_haval256_5_init( &ctx.haval );
@@ -412,7 +410,6 @@ int scanhash_x21s_2x64( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[16*2] __attribute__ ((aligned (64)));
    uint32_t vdata[20*2] __attribute__ ((aligned (64)));
-   uint32_t bedata1[2] __attribute__((aligned(64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -425,20 +422,18 @@ int scanhash_x21s_2x64( struct work *work, uint32_t max_nonce,
 
    if ( bench )  ptarget[7] = 0x0cff;
 
-   bedata1[0] = bswap_32( pdata[1] );
-   bedata1[1] = bswap_32( pdata[2] );
-
-   static __thread uint32_t s_ntime = UINT32_MAX;
-   uint32_t ntime = bswap_32( pdata[17] );
-   if ( s_ntime != ntime )
+   static __thread uint32_t saved_height = UINT32_MAX;
+   if ( work->height != saved_height )
    {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
-      s_ntime = ntime;
-      if ( opt_debug && !thr_id )
-              applog( LOG_DEBUG, "hash order %s (%08x)", x16r_hash_order, ntime );
+      vdata[1] = bswap_32( pdata[1] );
+      vdata[2] = bswap_32( pdata[2] );
+      saved_height = work->height;
+      x16_r_s_getAlgoString( (const uint8_t*)(&vdata[1]), x16r_hash_order );
+      if ( !opt_quiet && !thr_id )
+           applog( LOG_INFO, "hash order %s", x16r_hash_order );
    }
 
-   x16r_2x64_prehash( vdata, pdata );
+   x16r_2x64_prehash( vdata, pdata, x16r_hash_order );
    *noncev = v128_intrlv_blend_32( v128_set32( n+1, 0, n, 0 ), *noncev );
    do
    {

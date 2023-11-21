@@ -75,6 +75,11 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v23.13
+
+Added x20r algo.
+Eliminated redundant hash order calculations for x16r family.
+
 v23.12
 
 Several bugs fixes and speed improvements for x16r family for all CPU architectures.

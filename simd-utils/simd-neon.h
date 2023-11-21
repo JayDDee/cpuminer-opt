@@ -40,7 +40,7 @@
 #define v128u8_load( p )              vld1q_u16( (uint8_t*)(p) )
 #define v128u8_store( p, v )          vst1q_u16( (uint8_t*)(p), v )
 
-// load & set1 combined
+// load & set1 combined, doesn't work
 #define v128_load1_64(p)              vld1q_dup_u64( (uint64_t*)(p) )
 #define v128_load1_32(p)              vld1q_dup_u32( (uint32_t*)(p) )
 #define v128_load1_16(p)              vld1q_dup_u16( (uint16_t*)(p) )

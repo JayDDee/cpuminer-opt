@@ -593,7 +593,6 @@ int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
    uint32_t vdata[20*8] __attribute__ ((aligned (64)));
    uint32_t vdata2[20*8] __attribute__ ((aligned (64)));
    uint32_t edata[20] __attribute__ ((aligned (64)));
-   uint32_t bedata1[2] __attribute__((aligned(64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -606,19 +605,15 @@ int scanhash_x16rv2_8way( struct work *work, uint32_t max_nonce,
 
    if ( bench ) ptarget[7] = 0x0cff;
 
-   mm512_bswap32_intrlv80_8x64( vdata, pdata );
-
-   bedata1[0] = bswap_32( pdata[1] );
-   bedata1[1] = bswap_32( pdata[2] );
-
-   static __thread uint32_t s_ntime = UINT32_MAX;
-   const uint32_t ntime = bswap_32( pdata[17] );
-   if ( s_ntime != ntime )
+   static __thread uint32_t saved_height = UINT32_MAX;
+   if ( work->height != saved_height )
    {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
-      s_ntime = ntime;
+      vdata[1] = bswap_32( pdata[1] );
+      vdata[2] = bswap_32( pdata[2] );
+      saved_height = work->height;
+      x16_r_s_getAlgoString( (const uint8_t*)(&vdata[1]), x16r_hash_order );
       if ( !opt_quiet && !thr_id )
-         applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
+           applog( LOG_INFO, "hash order %s", x16r_hash_order );
    }
 
    // Do midstate prehash on hash functions with block size <= 64 bytes.
@@ -1108,7 +1103,6 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
    uint32_t vdata[24*4] __attribute__ ((aligned (64)));
    uint32_t vdata32[20*4] __attribute__ ((aligned (64)));
    uint32_t edata[20];
-   uint32_t bedata1[2];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -1121,17 +1115,15 @@ int scanhash_x16rv2_4way( struct work *work, uint32_t max_nonce,
 
    if ( bench )  ptarget[7] = 0x0fff;
    
-   bedata1[0] = bswap_32( pdata[1] );
-   bedata1[1] = bswap_32( pdata[2] );
-
-   static __thread uint32_t s_ntime = UINT32_MAX;
-   const uint32_t ntime = bswap_32(pdata[17]);
-   if ( s_ntime != ntime )
+   static __thread uint32_t saved_height = UINT32_MAX;
+   if ( work->height != saved_height )
    {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
-      s_ntime = ntime;
+      vdata[1] = bswap_32( pdata[1] );
+      vdata[2] = bswap_32( pdata[2] );
+      saved_height = work->height;
+      x16_r_s_getAlgoString( (const uint8_t*)(&vdata[1]), x16r_hash_order );
       if ( !opt_quiet && !thr_id )
-         applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
+           applog( LOG_INFO, "hash order %s", x16r_hash_order );
    }
 
    // Do midstate prehash on hash functions with block size <= 64 bytes.
@@ -1550,7 +1542,6 @@ int scanhash_x16rv2_2x64( struct work *work, uint32_t max_nonce,
    uint32_t hash[2*16] __attribute__ ((aligned (64)));
    uint32_t vdata[24*2] __attribute__ ((aligned (64)));
    uint32_t edata[20];
-   uint32_t bedata1[2];
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];
@@ -1563,17 +1554,15 @@ int scanhash_x16rv2_2x64( struct work *work, uint32_t max_nonce,
 
    if ( bench )  ptarget[7] = 0x0fff;
 
-   bedata1[0] = bswap_32( pdata[1] );
-   bedata1[1] = bswap_32( pdata[2] );
-
-   static __thread uint32_t s_ntime = UINT32_MAX;
-   const uint32_t ntime = bswap_32(pdata[17]);
-   if ( s_ntime != ntime )
+   static __thread uint32_t saved_height = UINT32_MAX;
+   if ( work->height != saved_height )
    {
-      x16_r_s_getAlgoString( (const uint8_t*)bedata1, x16r_hash_order );
-      s_ntime = ntime;
+      vdata[1] = bswap_32( pdata[1] );
+      vdata[2] = bswap_32( pdata[2] );
+      saved_height = work->height;
+      x16_r_s_getAlgoString( (const uint8_t*)(&vdata[1]), x16r_hash_order );
       if ( !opt_quiet && !thr_id )
-         applog( LOG_INFO, "hash order %s (%08x)", x16r_hash_order, ntime );
+           applog( LOG_INFO, "hash order %s", x16r_hash_order );
    }
 
    // Do midstate prehash on hash functions with block size <= 64 bytes.

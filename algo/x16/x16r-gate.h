@@ -149,18 +149,23 @@ union _x16r_8way_context_overlay
     hashState_echo          echo;
 #endif
 } __attribute__ ((aligned (64)));
+#define  _x16r_8x64_context_overlay _x16r_8way_context_overlay
 
 typedef union _x16r_8way_context_overlay x16r_8way_context_overlay;
+#define  x16r_8x64_context_overlay x16r_8way_context_overlay
 
 extern __thread x16r_8way_context_overlay x16r_ctx;
 
-void x16r_8way_prehash( void *, void * );
-int x16r_8way_hash_generic( void *, const void *, int );
+void x16r_8way_prehash( void *, void *, const char * );
+int x16r_8way_hash_generic( void *, const void *, int, const char*, const int );
 int x16r_8way_hash( void *, const void *, int );
 int scanhash_x16r_8way( struct work *, uint32_t ,
                         uint64_t *, struct thr_info * );
-extern __thread x16r_8way_context_overlay x16r_ctx;
 
+#define x16r_8x64_prehash         x16r_8way_prehash
+#define x16r_8x64_hash_generic    x16r_8way_hash_generic
+#define x16r_8x64_hash            x16r_8way_hash
+#define scanhash_x16r_8x64        scanhash_x16r_8x64
 
 #elif defined(X16R_4WAY)
 
@@ -189,17 +194,23 @@ union _x16r_4way_context_overlay
     sph_whirlpool_context   whirlpool;
     sha512_4way_context     sha512;
 } __attribute__ ((aligned (64)));
+#define  _x16r_4x64_context_overlay _x16r_4way_context_overlay
 
 typedef union _x16r_4way_context_overlay x16r_4way_context_overlay;
+#define  x16r_4x64_context_overlay x16r_4way_context_overlay
 
 extern __thread x16r_4way_context_overlay x16r_ctx;
 
-void x16r_4way_prehash( void *, void * );
-int x16r_4way_hash_generic( void *, const void *, int );
+void x16r_4way_prehash( void *, void *, const char * );
+int x16r_4way_hash_generic( void *, const void *, int, const char*, const int );
 int x16r_4way_hash( void *, const void *, int );
 int scanhash_x16r_4way( struct work *, uint32_t,
                         uint64_t *, struct thr_info * );
-extern __thread x16r_4way_context_overlay x16r_ctx;
+
+#define x16r_4x64_prehash         x16r_4way_prehash
+#define x16r_4x64_hash_generic    x16r_4way_hash_generic
+#define x16r_4x64_hash            x16r_4way_hash
+#define scanhash_x16r_4x64        scanhash_x16r_4x64
 
 #elif defined(X16R_2WAY)
 
@@ -241,8 +252,8 @@ union _x16r_2x64_context_overlay
 
 typedef union _x16r_2x64_context_overlay x16r_2x64_context_overlay;
 
-void x16r_2x64_prehash( void *, void * );
-int x16r_2x64_hash_generic( void *, const void *, int );
+void x16r_2x64_prehash( void *, void *, const char * );
+int x16r_2x64_hash_generic( void *, const void *, int, const char*, const int );
 int x16r_2x64_hash( void *, const void *, int );
 int scanhash_x16r_2x64( struct work *, uint32_t,
                         uint64_t *, struct thr_info * );
@@ -288,8 +299,8 @@ typedef union _x16r_context_overlay x16r_context_overlay;
 
 extern __thread x16r_context_overlay x16r_ref_ctx;
 
-void x16r_prehash( void *, void * );
-int x16r_hash_generic( void *, const void *, int );
+void x16r_prehash( void *, void *, const char * );
+int x16r_hash_generic( void *, const void *, int, const char*, const int );
 int x16r_hash( void *, const void *, int );
 int scanhash_x16r( struct work *, uint32_t, uint64_t *, struct thr_info * );
 
