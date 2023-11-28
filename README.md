@@ -87,7 +87,6 @@ Supported Algorithms
                           groestl       Groestl coin
                           hex           x16r-hex
                           hmq1725       
-                          hodl          Hodlcoin
                           jha           Jackpotcoin
                           keccak        Maxcoin
                           keccakc       Creative coin
@@ -115,9 +114,11 @@ Supported Algorithms
                           scrypt:N      scrypt(N, 1, 1)
                           scryptn2      scrypt(1048576, 1, 1)
                           sha256d       Double SHA-256
+                          sha256dt
                           sha256q       Quad SHA-256
                           sha256t       Triple SHA-256
                           sha3d         Double keccak256 (BSHA3)
+                          sha512256d
                           skein         Skein+Sha (Skeincoin)
                           skein2        Double Skein (Woodcoin)
                           skunk         Signatum (SIGT)
@@ -145,6 +146,7 @@ Supported Algorithms
                           x16rt-veil    veil
                           x16s          
                           x17
+                          x20r
                           x21s
                           x22i
                           x25x

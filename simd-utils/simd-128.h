@@ -322,6 +322,7 @@ static inline __m128i v128_neg1_fn()
 #define mm128_xim_32( v1, v0, c ) \
    _mm_castps_si128( _mm_insert_ps( _mm_castsi128_ps( v1 ), \
                                     _mm_castsi128_ps( v0 ), c ) )
+#define v128_xim32 mm128_xim_32
 
 // Examples of simple operations using xim:
 /*

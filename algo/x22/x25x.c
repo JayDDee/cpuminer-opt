@@ -5,15 +5,15 @@
 #include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
 #if defined(__AES__)
-  #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/fugue/fugue-aesni.h"
 #else
-  #include "algo/groestl/sph_groestl.h"
   #include "algo/fugue/sph_fugue.h"
 #endif
 #if defined(__AES__) || defined(__ARM_FEATURE_AES)
+  #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #else
+  #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
 #endif
 #include "algo/skein/sph_skein.h"
@@ -42,15 +42,15 @@ union _x25x_context_overlay
         blake512_context        blake;
         sph_bmw512_context      bmw;
 #if defined(__AES__)
-        hashState_groestl       groestl;
         hashState_fugue         fugue;
 #else
-        sph_groestl512_context  groestl;
         sph_fugue512_context    fugue;
 #endif
 #if defined(__AES__) || defined(__ARM_FEATURE_AES)
+        hashState_groestl       groestl;
         hashState_echo          echo;
 #else
+        sph_groestl512_context  groestl;
         sph_echo512_context     echo;
 #endif
         sph_jh512_context       jh;
@@ -86,7 +86,7 @@ int x25x_hash( void *output, const void *input, int thrid )
    sph_bmw512(&ctx.bmw, (const void*) &hash[0], 64);
    sph_bmw512_close(&ctx.bmw, &hash[1]);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    groestl512_full( &ctx.groestl, (void*)&hash[2], (const void*)&hash[1], 512 );
 #else
    sph_groestl512_init( &ctx.groestl );
@@ -119,7 +119,7 @@ int x25x_hash( void *output, const void *input, int thrid )
    simd512_ctx( &ctx.simd, (void*)&hash[9], (const void*)&hash[8], 64 ); 
 
 #if defined(__AES__) || defined(__ARM_FEATURE_AES)
-    echo_full( &ctx.echo, (void*)&hash[10], 512, (const void*)&hash[9], 64 );
+   echo_full( &ctx.echo, (void*)&hash[10], 512, (const void*)&hash[9], 64 );
 #else
    sph_echo512_init( &ctx.echo );
    sph_echo512( &ctx.echo, &hash[9], 64 );

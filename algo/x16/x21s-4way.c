@@ -294,7 +294,6 @@ int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
 {
    uint32_t hash[16*4] __attribute__ ((aligned (64)));
    uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-   uint32_t bedata1[2] __attribute__((aligned(64)));
    uint32_t *pdata = work->data;
    uint32_t *ptarget = work->target;
    const uint32_t first_nonce = pdata[19];

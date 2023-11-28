@@ -60,53 +60,16 @@ static const v128u64_t SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003 };
 
 #if defined(__ARM_NEON)
 
-// No fast shuffle on NEON
-//static const uint32x4_t vmask_d8 = {  3, 1, 2, 0 };  
-static const v128u32_t BLEND_MASK = { 0xffffffff, 0, 0, 0xffffffff };
+static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
+   { 0x03020100, 0x0b0a0908, 0x07060504, 0x0f0e0d0c };
 
-#define gr_shuffle32( v )      v128_blendv( v128_qrev32( v ), v, BLEND_MASK )
-
-/*
-#define TRANSP_MASK \
-     0xd,0x5,0x9,0x1,0xc,0x4,0x8,0x0,0xf,0x7,0xb,0x3,0xe,0x6,0xa,0x2
-#define SUBSH_MASK0 \
-     0xb,0xe,0x1,0x4,0x7,0xa,0xd,0x0,0x3,0x6,0x9,0xc,0xf,0x2,0x5,0x8
-#define SUBSH_MASK1 \
-     0xc,0xf,0x2,0x5,0x8,0xb,0xe,0x1,0x4,0x7,0xa,0xd,0x0,0x3,0x6,0x9
-#define SUBSH_MASK2 \
-     0xd,0x0,0x3,0x6,0x9,0xc,0xf,0x2,0x5,0x8,0xb,0xe,0x1,0x4,0x7,0xa
-#define SUBSH_MASK3 \
-     0xe,0x1,0x4,0x7,0xa,0xd,0x0,0x3,0x6,0x9,0xc,0xf,0x2,0x5,0x8,0xb
-#define SUBSH_MASK4  \
-     0xf,0x2,0x5,0x8,0xb,0xe,0x1,0x4,0x7,0xa,0xd,0x0,0x3,0x6,0x9,0xc
-#define SUBSH_MASK5 \
-     0x0,0x3,0x6,0x9,0xc,0xf,0x2,0x5,0x8,0xb,0xe,0x1,0x4,0x7,0xa,0xd
-#define SUBSH_MASK6 \
-     0x1,0x4,0x7,0xa,0xd,0x0,0x3,0x6,0x9,0xc,0xf,0x2,0x5,0x8,0xb,0xe
-#define SUBSH_MASK7 \
-     0x6,0x9,0xc,0xf,0x2,0x5,0x8,0xb,0xe,0x1,0x4,0x7,0xa,0xd,0x0,0x3
-
-//#define gr_shuffle8( v, c )    v128_shullfev8( v, c )
-
-
-#define gr_shuffle8( v, c15, c14, c13, c12, c11, c10, c09, c08, \
-                        c07, c06, c05, c04, c03, c02, c01, c00 ) \
-  v128_movlane8( v128_movlane8( v128_movlane8( v128_movlane8( \
-  v128_movlane8( v128_movlane8( v128_movlane8( v128_movlane8( \
-  v128_movlane8( v128_movlane8( v128_movlane8( v128_movlane8( \
-  v128_movlane8( v128_movlane8( v128_movlane8( v128_movlane8( \
-    v, 15, v, c15 ), 14, v, c14 ), 13, v, c13 ), 12, v, c12 ), \
-       11, v, c11 ), 10, v, c10 ),  9, v, c09 ),  8, v, c08 ), \
-        7, v, c07 ),  6, v, c06 ),  5, v, c05 ),  4, v, c04 ), \
-        3, v, c03 ),  2, v, c02 ),  1, v, c01 ),  0, v, c00 )
-*/
+#define gr_shuffle32(v)       vqtbl1q_u8( v, gr_mask ) 
 
 #else
 
-#define gr_shuffle32( v )       _mm_shuffle_epi32( v, 0xd8 )
+#define gr_shuffle32(v)       _mm_shuffle_epi32( v, 0xd8 )
 
 #endif
-
 
 #define tos(a)    #a
 #define tostr(a)  tos(a)
@@ -334,17 +297,16 @@ static const v128u32_t BLEND_MASK = { 0xffffffff, 0, 0, 0xffffffff };
  */
 #define SUBMIX(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* SubBytes */\
-  b0 = v128_xor(b0, b0);\
-  a0 = v128_aesenclast(a0, b0);\
-  a1 = v128_aesenclast(a1, b0);\
-  a2 = v128_aesenclast(a2, b0);\
-  a3 = v128_aesenclast(a3, b0);\
-  a4 = v128_aesenclast(a4, b0);\
-  a5 = v128_aesenclast(a5, b0);\
-  a6 = v128_aesenclast(a6, b0);\
-  a7 = v128_aesenclast(a7, b0);\
+  a0 = v128_aesenclast_nokey( a0 ); \
+  a1 = v128_aesenclast_nokey( a1 ); \
+  a2 = v128_aesenclast_nokey( a2 ); \
+  a3 = v128_aesenclast_nokey( a3 ); \
+  a4 = v128_aesenclast_nokey( a4 ); \
+  a5 = v128_aesenclast_nokey( a5 ); \
+  a6 = v128_aesenclast_nokey( a6 ); \
+  a7 = v128_aesenclast_nokey( a7 ); \
   /* MixBytes */\
-  MixBytes(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7);\
+  MixBytes( a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7 ); \
 }
 
 #define ROUNDS_P(){\
@@ -362,10 +324,9 @@ static const v128u32_t BLEND_MASK = { 0xffffffff, 0, 0, 0xffffffff };
     xmm13 = v128_shuffle8( xmm13, SUBSH_MASK5 ); \
     xmm14 = v128_shuffle8( xmm14, SUBSH_MASK6 ); \
     xmm15 = v128_shuffle8( xmm15, SUBSH_MASK7 ); \
-    /* SubBytes + MixBytes */\
+     /* SubBytes + MixBytes */\
     SUBMIX( xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, \
             xmm0, xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6,  xmm7 ); \
-    \
     /* AddRoundConstant P1024 */\
     xmm0 = v128_xor( xmm0, \
              casti_v128( round_const_p, round_counter+1 ) ); \
@@ -467,7 +428,6 @@ static const v128u32_t BLEND_MASK = { 0xffffffff, 0, 0, 0xffffffff };
   t1 = v128_unpackhi16(t1, i3);\
   i2 = v128_unpacklo16(i2, i3);\
   i0 = v128_unpacklo16(i0, i1);\
-\
   /* shuffle with immediate */\
   t0 = gr_shuffle32( t0 ); \
   t1 = gr_shuffle32( t1 ); \
@@ -477,7 +437,6 @@ static const v128u32_t BLEND_MASK = { 0xffffffff, 0, 0, 0xffffffff };
   i2 = gr_shuffle32( i2 ); \
   i4 = gr_shuffle32( i4 ); \
   i6 = gr_shuffle32( i6 ); \
-\
   /* continue with unpack */\
   t4 = i0;\
   i0 = v128_unpacklo32(i0, i2);\
@@ -584,7 +543,8 @@ static const v128u32_t BLEND_MASK = { 0xffffffff, 0, 0, 0xffffffff };
   /* transpose done */\
 }/**/
 
-
+#if 0
+// not used
 void INIT( v128_t* chaining )
 {
   static v128_t xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
@@ -613,6 +573,7 @@ void INIT( v128_t* chaining )
   chaining[6] = xmm14;
   chaining[7] = xmm15;
 }
+#endif
 
 void TF1024( v128_t* chaining, const v128_t* message )
 {

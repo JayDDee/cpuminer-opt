@@ -75,6 +75,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v23.14
+
+ARM: Groestl AES optimizations enabled.
+All: Small optimization to Shabal 4way.
+x86_64: Extend Shabal 4way support to SSE2 from SSE4.1.
+All: deleted some unused files.
+
 v23.13
 
 Added x20r algo.

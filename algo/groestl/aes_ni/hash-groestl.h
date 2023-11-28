@@ -87,6 +87,7 @@ int final_groestl( hashState_groestl*, void* );
 int update_and_final_groestl( hashState_groestl*,  void*, const void*, int );
 int groestl512( hashState_groestl*,  void*, const void*, uint64_t );
 #define groestl512_full   groestl512
+#define groestl512_ctx    groestl512
 
 
 #endif /* __hash_h */

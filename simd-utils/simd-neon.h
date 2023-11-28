@@ -68,7 +68,7 @@
 #define v128_mul32                    vmulq_u32
 #define v128_mul16                    vmulq_u16
 
-// slow, tested with argon2d
+// Widening, shuffle high element to align with Intel
 static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 {
    return vmull_u32( vget_low_u32( vcopyq_laneq_u32( v1, 1, v1, 2 ) ),
@@ -86,7 +86,7 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 
 // Not yet needed
 //#define v128_cmpeq1
-
+// Signed
 #define v128_cmpgt64( v1, v0 )        vcgtq_s64( (int64x2_t)v1, (int64x2_t)v0 )
 #define v128_cmpgt32( v1, v0 )        vcgtq_s32( (int32x4_t)v1, (int32x4_t)v0 )
 #define v128_cmpgt16( v1, v0 )        vcgtq_s16( (int16x8_t)v1, (int16x8_t)v0 )
@@ -406,34 +406,15 @@ static inline void v128_memcpy( void *dst, const void *src, const int n )
  v1 = vorrq_u32( v1, t1 ); \
 }
 
-// Cross lane shuffles, no programmable shuffle in NEON
-
-// vector mask, use as last resort. prefer rev, alignr, etc
+// vector mask, use as last resort. prefer tbl, rev, alignr, etc
 #define v128_shufflev32( v, vmask ) \
   v128_set32( ((uint32_t*)&v)[ ((uint32_t*)(&vmask))[3] ], \
               ((uint32_t*)&v)[ ((uint32_t*)(&vmask))[2] ], \
               ((uint32_t*)&v)[ ((uint32_t*)(&vmask))[1] ], \
               ((uint32_t*)&v)[ ((uint32_t*)(&vmask))[0] ] ) \
 
-// compatible with x86_64, but very slow, avoid
 #define v128_shuffle8( v, vmask ) \
-   v128_set8( ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[15] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[14] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[13] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[12] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[11] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[10] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 9] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 8] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 7] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 6] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 5] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 4] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 3] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 2] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 1] ], \
-              ((uint8_t*)&v)[ ((uint8_t*)(&vmask))[ 0] ] )
-
+     vqtbl1q_u8( (uint8x16_t)v, (uint8x16_t)vmask );
 
 // sub-vector shuffles sometimes mirror bit rotation. Shuffle is faster.
 // Bit rotation already promotes faster widths. Usage is context sensitive.

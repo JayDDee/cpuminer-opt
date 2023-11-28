@@ -587,8 +587,8 @@ void sha256_ni2x_final_rounds( uint32_t *out_X, uint32_t *out_Y,
     // Add the nonces (msg[0] lane 3) to A & E (STATE0 lanes 1 & 3)
     TMSG0_X = casti_m128i( msg_X, 0 );
     TMSG0_Y = casti_m128i( msg_Y, 0 );
-    TMP_X = mm128_xim_32( TMSG0_X, TMSG0_X, 0xd5 );
-    TMP_Y = mm128_xim_32( TMSG0_Y, TMSG0_Y, 0xd5 );
+    TMP_X = v128_xim32( TMSG0_X, TMSG0_X, 0xd5 );
+    TMP_Y = v128_xim32( TMSG0_Y, TMSG0_Y, 0xd5 );
     STATE0_X = _mm_add_epi32( STATE0_X, TMP_X );
     STATE0_Y = _mm_add_epi32( STATE0_Y, TMP_Y );
 

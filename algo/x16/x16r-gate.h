@@ -218,7 +218,7 @@ union _x16r_2x64_context_overlay
 {
     blake512_2x64_context   blake;
     bmw512_2x64_context     bmw;
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     hashState_groestl       groestl;
 #else
     sph_groestl512_context  groestl;

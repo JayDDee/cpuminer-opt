@@ -67,7 +67,7 @@ int scanhash_lyra2h_4way( struct work *work, uint32_t max_nonce,
    lyra2h_4way_midstate( vdata );
 
    do {
-     *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );
+     *noncev = v128_bswap32( _mm_set_epi32( n+3, n+2, n+1, n ) );
       lyra2h_4way_hash( hash, vdata );
 
       for ( int i = 0; i < 4; i++ )

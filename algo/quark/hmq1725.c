@@ -7,15 +7,15 @@
 #include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
 #if defined(__AES__)
-  #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/fugue/fugue-aesni.h"
 #else
-  #include "algo/groestl/sph_groestl.h"
   #include "algo/fugue/sph_fugue.h"
 #endif
 #if defined(__AES__) || defined(__ARM_FEATURE_AES)
+  #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #else
+  #include "algo/groestl/sph_groestl.h"
   #include "algo/echo/sph_echo.h"
 #endif
 #include "algo/jh/sph_jh.h"
@@ -33,18 +33,18 @@
 
 union _hmq1725_ctx_holder
 {
-   blake512_context    blake;
+   blake512_context        blake;
    sph_bmw512_context      bmw;
 #if defined(__AES__)
-   hashState_groestl       groestl;
    hashState_fugue         fugue;
 #else
-   sph_groestl512_context  groestl;
    sph_fugue512_context    fugue;
 #endif
 #if defined(__AES__) || defined(__ARM_FEATURE_AES)
+   hashState_groestl       groestl;
    hashState_echo          echo;
 #else
+   sph_groestl512_context  groestl;
    sph_echo512_context     echo;
 #endif
    sph_skein512_context    skein;
@@ -61,9 +61,6 @@ union _hmq1725_ctx_holder
    sph_haval256_5_context  haval;
 };
 typedef union _hmq1725_ctx_holder hmq1725_ctx_holder;
-
-//static hmq1725_ctx_holder hmq1725_ctx __attribute__ ((aligned (64)));
-//static __thread sph_bmw512_context hmq_bmw_mid __attribute__ ((aligned (64)));
 
 extern void hmq1725hash(void *state, const void *input)
 {
@@ -82,7 +79,7 @@ extern void hmq1725hash(void *state, const void *input)
 
     if ( hashB[0] & mask )   //1
     {
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
        groestl512_full( &ctx.groestl, hashA, hashB, 512 );
 #else
        sph_groestl512_init( &ctx.groestl );
@@ -226,7 +223,7 @@ extern void hmq1725hash(void *state, const void *input)
        sph_sha512_close( &ctx.sha, hashA );
     }
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     groestl512_full( &ctx.groestl, hashB, hashA, 512 );
 #else
     sph_groestl512_init( &ctx.groestl );

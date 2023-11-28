@@ -1092,7 +1092,7 @@ int x16r_2x64_hash_generic( void* output, const void* input, int thrid,
             dintrlv_2x64( hash0, hash1, vhash, 512 );
          break;
          case GROESTL:
-#if defined(__AES__)  // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             groestl512_full( &ctx.groestl, hash0, in0, size<<3 );
             groestl512_full( &ctx.groestl, hash1, in1, size<<3 );
 #else
@@ -1173,7 +1173,7 @@ int x16r_2x64_hash_generic( void* output, const void* input, int thrid,
             simd512_ctx( &ctx.simd, hash1, in1, size );
          break;
          case ECHO:
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             echo_full( &ctx.echo, hash0, 512, in0, size );
             echo_full( &ctx.echo, hash1, 512, in1, size );
 #else

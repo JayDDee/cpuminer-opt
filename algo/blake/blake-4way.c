@@ -39,7 +39,7 @@ int scanhash_blake_4way( struct work *work, uint32_t max_nonce,
    blake256r14_4way_update( &blake_4w_ctx, vdata, 64 );
 
    do {
-      *noncev = mm128_bswap_32( _mm_set_epi32( n+3, n+2, n+1, n ) );
+      *noncev = v128_bswap32( _mm_set_epi32( n+3, n+2, n+1, n ) );
 
       blakehash_4way( hash, vdata );
 

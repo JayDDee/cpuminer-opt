@@ -3666,11 +3666,6 @@ static int thread_create(struct thr_info *thr, void* func)
 
 void get_defconfig_path(char *out, size_t bufsize, char *argv0);
 
-
-#include "simd-utils.h"
-#include "algo/echo/aes_ni/hash_api.h"
-#include "compat/aes_helper.c"
-
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;

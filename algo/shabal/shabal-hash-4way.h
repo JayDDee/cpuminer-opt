@@ -62,7 +62,7 @@ void shabal512_8way_addbits_and_close( void *cc, unsigned ub, unsigned n,
 
 #endif
 
-#if defined(__SSE4_1__) || defined(__ARM_NEON)
+#if defined(__SSE2__) || defined(__ARM_NEON)
 
 typedef struct {
 	v128_t buf[16] __attribute__ ((aligned (64)));

@@ -27,7 +27,7 @@
 #else
   #include "algo/echo/sph_echo.h"
 #endif
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
  #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "algo/groestl/sph_groestl.h"
@@ -50,7 +50,7 @@ typedef struct TortureGarden TortureGarden;
 // Graph of hash algos plus SPH contexts
 struct TortureGarden
 {
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_groestl       groestl;
 #else
    sph_groestl512_context  groestl;
@@ -123,7 +123,7 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
 #endif
 	         break;
         case 5:
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             groestl512_full( &garden->groestl, hash, input, 512 );
 #else
             sph_groestl512_init( &garden->groestl) ;

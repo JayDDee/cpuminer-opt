@@ -938,7 +938,7 @@ int scanhash_x17_4x64( struct work *work, uint32_t max_nonce,
 #endif
 #include "algo/shabal/sph_shabal.h"
 #include "algo/haval/sph-haval.h"
-#if !( defined(__AES__) ) //|| defined(__ARM_FEATURE_AES) )
+#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
   #include "algo/groestl/sph_groestl.h"
 #endif
 #if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
@@ -950,7 +950,7 @@ union _x17_context_overlay
 {
         blake512_2x64_context   blake;
         bmw512_2x64_context     bmw;
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_groestl       groestl;
 #else
         sph_groestl512_context  groestl;
@@ -1000,7 +1000,7 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
 
     dintrlv_2x64( hash0, hash1, vhash, 512 );
 
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     groestl512_full( &ctx.groestl, hash0, hash0, 512 );
     groestl512_full( &ctx.groestl, hash1, hash1, 512 );
 #else

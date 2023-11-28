@@ -1,3 +1,6 @@
+#if !defined GROESTL256_INTR_AES_H__
+#define GROESTL256_INTR_AES_H__
+
 /* groestl-intr-aes.h     Aug 2011
  *
  * Groestl implementation with intrinsics using ssse3, sse4.1, and aes
@@ -50,17 +53,16 @@ static const v128u64_t SUBSH_MASK7 = { 0x090c000306080b07, 0x02050f0a0d01040e };
 
 #if defined(__ARM_NEON)
 
-// No fast shuffle on NEON
-static const uint32x4_t vmask_d8 = {  3, 1, 2, 0 };
+static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
+   { 0x03020100, 0x0b0a0908, 0x07060504, 0x0f0e0d0c };
 
-#define gr_shuffle32( v )       v128_shufflev32( v, vmask_d8 )
+#define gr_shuffle32(v)       vqtbl1q_u8( v, gr_mask ) 
 
 #else
 
-#define gr_shuffle32( v )       _mm_shuffle_epi32( v, 0xd8 )
+#define gr_shuffle32(v)       _mm_shuffle_epi32( v, 0xd8 )
 
 #endif
-
 
 #define tos(a)    #a
 #define tostr(a)  tos(a)
@@ -598,4 +600,4 @@ void OF512( v128_t* chaining )
   chaining[3] = xmm11;
 }
 
-
+#endif

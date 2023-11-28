@@ -146,7 +146,7 @@ int groestl512( hashState_groestl* ctx, void* output, const void* input,
    const int hash_offset = SIZE512 - hashlen_m128i;
    uint64_t blocks = len / SIZE512;
    v128_t* in = (v128_t*)input;
-
+   
    // digest any full blocks, process directly from input 
    for ( i = 0; i < blocks; i++ )
       TF1024( ctx->chaining, &in[ i * SIZE512 ] );
@@ -181,6 +181,7 @@ int groestl512( hashState_groestl* ctx, void* output, const void* input,
 
    // digest final padding block and do output transform
    TF1024( ctx->chaining, ctx->buffer );
+
    OF1024( ctx->chaining );
 
    // store hash result in output 

@@ -465,12 +465,8 @@ typedef union
 {
    keccak256_2x64_context    keccak;
    cubehashParam             cube;
-//#if defined(__x86_64__)
    skein256_2x64_context     skein;
-//#else
-//   sph_skein512_context      skein;
-//#endif
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_groestl256      groestl;
 #else
    sph_groestl256_context     groestl;
@@ -516,7 +512,6 @@ static void allium_4way_hash( void *hash, const void *midstate_vars,
    LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
    LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
 
-//#if defined(__x86_64__)
    intrlv_2x64( vhashA, hash0, hash1, 256 );
    skein256_2x64_init( &ctx.skein );
    skein256_2x64_update( &ctx.skein, vhashA, 32 );
@@ -527,23 +522,8 @@ static void allium_4way_hash( void *hash, const void *midstate_vars,
    skein256_2x64_update( &ctx.skein, vhashA, 32 );
    skein256_2x64_close( &ctx.skein, vhashA );
    dintrlv_2x64( hash2, hash3, vhashA, 256 );
-/*
-#else
-    sph_skein256_init( &ctx.skein );
-    sph_skein256( &ctx.skein, hash0, 32 );
-    sph_skein256_close( &ctx.skein, hash0 );
-    sph_skein256_init( &ctx.skein );
-    sph_skein256( &ctx.skein, hash1, 32 );
-    sph_skein256_close( &ctx.skein, hash1 );
-    sph_skein256_init( &ctx.skein );
-    sph_skein256( &ctx.skein, hash2, 32 );
-    sph_skein256_close( &ctx.skein, hash2 );
-    sph_skein256_init( &ctx.skein );
-    sph_skein256( &ctx.skein, hash3, 32 );
-    sph_skein256_close( &ctx.skein, hash3 );
-#endif
-*/
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    groestl256_full( &ctx.groestl, hash0, hash0, 256 );
    groestl256_full( &ctx.groestl, hash1, hash1, 256 );
    groestl256_full( &ctx.groestl, hash2, hash2, 256 );

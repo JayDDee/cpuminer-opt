@@ -34,8 +34,6 @@
 #include <string.h>
 #include "shabal-hash-4way.h"
 
-//#if defined(__SSE4_1__) || defined(__ARM_NEON)
-
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
 #define DECL_STATE16   \
@@ -47,8 +45,6 @@
            C8, C9, CA, CB, CC, CD, CE, CF; \
    __m512i M0, M1, M2, M3, M4, M5, M6, M7, \
            M8, M9, MA, MB, MC, MD, ME, MF; \
-   const __m512i FIVE  = v512_32( 5 ); \
-   const __m512i THREE = v512_32( 3 ); \
    uint32_t Wlow, Whigh;
 
 #define READ_STATE16(state) do \
@@ -292,11 +288,21 @@ do { \
     mm512_swap1024_512( BF, CF ); \
 } while (0)
 
+static inline __m512i v512_mult_x3( const __m512i x )
+{
+   return _mm512_add_epi32( x, _mm512_slli_epi32( x, 1 ) );
+}
+
+static inline __m512i v512_mult_x5( const __m512i x )
+{
+   return _mm512_add_epi32( x, _mm512_slli_epi32( x, 2 ) );
+}
+
 #define PERM_ELT16( xa0, xa1, xb0, xb1, xb2, xb3, xc, xm ) \
 do { \
    xa0 = mm512_xor3( xm, xb1, mm512_xorandnot( \
-           _mm512_mullo_epi32( mm512_xor3( xa0, xc, \
-              _mm512_mullo_epi32( mm512_rol_32( xa1, 15 ), FIVE ) ), THREE ), \
+           v512_mult_x3( mm512_xor3( xa0, xc, \
+              v512_mult_x5( mm512_rol_32( xa1, 15 ) ) ) ), \
            xb3, xb2 ) ); \
    xb0 = mm512_xnor( xa0, mm512_rol_32( xb0, 1 ) ); \
 } while (0)
@@ -644,8 +650,6 @@ shabal512_16way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
            C8, C9, CA, CB, CC, CD, CE, CF; \
    __m256i M0, M1, M2, M3, M4, M5, M6, M7, \
            M8, M9, MA, MB, MC, MD, ME, MF; \
-   const __m256i FIVE  = v256_32( 5 ); \
-   const __m256i THREE = v256_32( 3 ); \
    uint32_t Wlow, Whigh;
 
 #define READ_STATE8(state) do \
@@ -889,11 +893,21 @@ do { \
     mm256_swap512_256( BF, CF ); \
 } while (0)
 
+static inline __m256i v256_mult_x3( const __m256i x )
+{
+   return _mm256_add_epi32( x, _mm256_slli_epi32( x, 1 ) );
+}
+
+static inline __m256i v256_mult_x5( const __m256i x )
+{
+   return _mm256_add_epi32( x, _mm256_slli_epi32( x, 2 ) );
+}
+
 #define PERM_ELT8( xa0, xa1, xb0, xb1, xb2, xb3, xc, xm ) \
 do { \
    xa0 = mm256_xor3( xm, xb1, mm256_xorandnot( \
-           _mm256_mullo_epi32( mm256_xor3( xa0, xc, \
-              _mm256_mullo_epi32( mm256_rol_32( xa1, 15 ), FIVE ) ), THREE ), \
+           v256_mult_x3( mm256_xor3( xa0, xc, \
+              v256_mult_x5( mm256_rol_32( xa1, 15 ) ) ) ), \
            xb3, xb2 ) ); \
    xb0 = mm256_xnor( xa0, mm256_rol_32( xb0, 1 ) ); \
 } while (0)
@@ -1226,15 +1240,13 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 
 #endif  // AVX2
 
-#if defined(__SSE4_1__) || defined(__ARM_NEON)
+#if defined(__SSE2__) || defined(__ARM_NEON)
 
 #define DECL_STATE   \
 	v128u32_t A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, AA, AB; \
 	v128u32_t B0, B1, B2, B3, B4, B5, B6, B7, B8, B9, BA, BB, BC, BD, BE, BF; \
 	v128u32_t C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, CA, CB, CC, CD, CE, CF; \
 	v128u32_t M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, MA, MB, MC, MD, ME, MF; \
-   const v128u32_t FIVE  = v128_32( 5 ); \
-   const v128u32_t THREE = v128_32( 3 ); \
    uint32_t Wlow, Whigh;
 
 #define READ_STATE( state ) \
@@ -1479,12 +1491,22 @@ shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
     v128_swap256_128( BF, CF ); \
 }
 
+static inline v128_t v128_mult_x3( const v128_t x )
+{
+   return v128_add32( x, v128_sl32( x, 1 ) );
+}
+
+static inline v128_t v128_mult_x5( const v128_t x )
+{
+   return v128_add32( x, v128_sl32( x, 2 ) );
+}
+
 #define PERM_ELT( xa0, xa1, xb0, xb1, xb2, xb3, xc, xm ) \
 { \
    xa0 = v128_xor3( xm, xb1, v128_xorandnot( \
-           v128_mul32( v128_xor3( xa0, xc, \
-              v128_mul32( v128_rol32( xa1, 15 ), FIVE ) ), THREE ), \
-           xb3, xb2 ) ); \
+                               v128_mult_x3( v128_xor3( xa0, xc, \
+                                   v128_mult_x5( v128_rol32( xa1, 15 ) ) ) ), \
+                               xb3, xb2 ) ); \
    xb0 = v128_not( v128_xor( xa0, v128_rol32( xb0, 1 ) ) ); \
 }
 
