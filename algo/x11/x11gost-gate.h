@@ -8,6 +8,8 @@
   #define X11GOST_8WAY 1
 #elif defined(__AVX2__) && defined(__AES__)
   #define X11GOST_4WAY 1
+#elif defined(__SSE2__) || defined(__ARM_NEON)
+  #define X11GOST_2WAY 1
 #endif
 
 bool register_x11gost_algo( algo_gate_t* gate );
@@ -25,6 +27,12 @@ void x11gost_4way_hash( void *state, const void *input );
 int scanhash_x11gost_4way( struct work *work, uint32_t max_nonce,
                          uint64_t *hashes_done, struct thr_info *mythr );
 void init_x11gost_4way_ctx();
+
+#elif defined(X11GOST_2WAY)
+
+int x11gost_2x64_hash( void *state, const void *input, int thr_id );
+int scanhash_x11gost_2x64( struct work *work, uint32_t max_nonce,
+                           uint64_t *hashes_done, struct thr_info *mythr );
 
 #else
 

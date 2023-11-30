@@ -236,7 +236,7 @@ int scanhash_qubit_2way( struct work *work,uint32_t max_nonce,
 
      casti_m256i( endiandata, 0 ) = mm256_bswap_32( casti_m256i( pdata, 0 ) );
      casti_m256i( endiandata, 1 ) = mm256_bswap_32( casti_m256i( pdata, 1 ) );
-     casti_m128i( endiandata, 4 ) = mm128_bswap_32( casti_m128i( pdata, 4 ) );
+     casti_v128(  endiandata, 4 ) = v128_bswap32(   casti_v128(  pdata, 4 ) );
 
      uint64_t *edata = (uint64_t*)endiandata;
      intrlv_2x128( (uint64_t*)vdata, edata, edata, 640 );

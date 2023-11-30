@@ -207,7 +207,7 @@ static inline __m128i mm128_mov32_128( const uint32_t n )
 
 #endif
 
-// broadcast lane l to all lanes
+// broadcast (replicate) lane l to all lanes
 #define v128_replane64( v, l ) \
    ( (l) == 0 ) ? _mm_shuffle_epi32( v, 0x44 ) \
                 : _mm_shuffle_epi32( v, 0xee )
@@ -319,29 +319,27 @@ static inline __m128i v128_neg1_fn()
 //    c[7:6] source element selector
 
 // Convert type and abbreviate name: eXtract Insert Mask = XIM
-#define mm128_xim_32( v1, v0, c ) \
+#define v128_xim32( v1, v0, c ) \
    _mm_castps_si128( _mm_insert_ps( _mm_castsi128_ps( v1 ), \
                                     _mm_castsi128_ps( v0 ), c ) )
-#define v128_xim32 mm128_xim_32
 
 // Examples of simple operations using xim:
 /*
 // Copy i32 to element c of dest and copy remaining elemnts from v.
 #define v128_put32( v, i32, c ) \
-      mm128_xim_32( v, mm128_mov32_128( i32 ), (c)<<4 )
+      v128_xim_32( v, mm128_mov32_128( i32 ), (c)<<4 )
 */
 
 
-#define mm128_mask_32( v, m )    mm128_xim_32( v, v, m )
+#define v128_mask32( v, m )    v128_xim32( v, v, m & 0xf )
 
 // Zero 32 bit elements when corresponding bit in 4 bit mask is set.
-//static inline __m128i mm128_mask_32( const __m128i v, const int m ) 
-//{   return mm128_xim_32( v, v, m ); }
-#define v128_mask32    mm128_mask_32
+//static inline __m128i v128_mask32( const __m128i v, const int m ) 
+//{   return v128_xim32( v, v, m ); }
 
-// Copy element i2 of v2 to element i1 of dest and copy remaining elements from v1.
+// Copy element l0 of v0 to element l1 of dest and copy remaining elements from v1.
 #define v128_movlane32( v1, l1, v0, l0 ) \
-  mm128_xim_32( v1, v0, ( (l1)<<4 ) | ( (l0)<<6 ) )
+  v128_xim32( v1, v0, ( (l1)<<4 ) | ( (l0)<<6 ) )
 
 #endif  // SSE4_1
 
@@ -452,7 +450,7 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 
 #define v128_orand( a, b, c )     _mm_or_si128( a, _mm_and_si128( b, c ) )
 
-#define v128_xnor( a, b )         mm128_not( _mm_xor_si128( a, b ) )
+#define v128_xnor( a, b )         v128_not( _mm_xor_si128( a, b ) )
 
 #endif
 
@@ -483,7 +481,7 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 #define v128_qrev16(v)      v128_shuffle16( v, 0x1b )
 #define v128_lrev16(v)      v128_shuffle16( v, 0xb1 )
 
-// These should never be callled from application code, use rol/ror.
+// Internal use only, should never be callled from application code.
 #define v128_ror64_sse2( v, c ) \
    _mm_or_si128( _mm_srli_epi64( v, c ), _mm_slli_epi64( v, 64-(c) ) )
 
@@ -498,14 +496,14 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 
 #if defined(__AVX512VL__)
 
-// AVX512 fastest all rotations.
+// AVX512 fastest for all rotations.
 #define v128_ror64                _mm_ror_epi64
 #define v128_rol64                _mm_rol_epi64
 #define v128_ror32                _mm_ror_epi32
 #define v128_rol32                _mm_rol_epi32
 
 // ror/rol will always find the fastest but these names may fit better with
-// application code performing shuffles rather than bit rotations.
+// application code performing byte operations rather than bit rotations.
 #define v128_shuflr64_8( v)         _mm_ror_epi64( v,  8 )
 #define v128_shufll64_8( v)         _mm_rol_epi64( v,  8 )
 #define v128_shuflr64_16(v)         _mm_ror_epi64( v, 16 )
@@ -577,7 +575,7 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
  : v128_rol32_sse2( v, c )
 
 #elif defined(__SSE2__)
-// SSE2: fastest 32 bit, very fast 16
+// SSE2: fastest 32 bit, very fast 16, all else slow
 
 #define v128_ror64( v, c ) \
    ( (c) == 16 ) ? v128_shuffle16( v, 0x39 ) \
@@ -608,9 +606,7 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 
 #endif
 
-//#define v128_ror64            mm128_ror_64
-//#define v128_rol64            mm128_rol_64
-//#define v128_ror32            mm128_ror_32
+// deprecated
 #define mm128_rol_32        v128_rol32
 
 /* not used
@@ -633,7 +629,7 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
    _mm_ror_epi32( v0, c ); \
    _mm_ror_epi32( v1, c )
 
-#define mm128_2rol32( v1, v0, c ) \
+#define v128_2rol32( v1, v0, c ) \
    _mm_rol_epi32( v0, c ); \
    _mm_rol_epi32( v1, c )
 
@@ -684,11 +680,13 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 
 // Cross lane shuffles
 
+// No NEON version
 #define v128_shuffle32     _mm_shuffle_epi32
 
-// shuffle using vector mask, for compatibility with NEON
+/* Not used, exists only for compatibility with NEON if ever needed.
 #define v128_shufflev32( v, vmask ) \
   v128_shuffle32( v, mm128_movmask_32( vmask ) )
+*/
 
 #define v128_shuffle8     _mm_shuffle_epi8
 
@@ -697,12 +695,10 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 #define v128_shuffle2_64( v1, v2, c ) \
    _mm_castpd_si128( _mm_shuffle_pd( _mm_castsi128_pd( v1 ), \
                                      _mm_castsi128_pd( v2 ), c ) ); 
-#define mm128_shuffle2_64   v128_shuffle2_64
 
 #define v128_shuffle2_32( v1, v2, c ) \
    _mm_castps_si128( _mm_shuffle_ps( _mm_castsi128_ps( v1 ), \
                                      _mm_castsi128_ps( v2 ), c ) ); 
-#define mm128_shuffle2_32   v128_shuffle2_32
 
 // Rotate vector elements accross all lanes
 
@@ -734,6 +730,7 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 #define v128_bswap32( v ) \
    _mm_shuffle_epi8( v, _mm_set_epi64x( 0x0c0d0e0f08090a0b, \
                                         0x0405060700010203 ) )
+// deprecated
 #define mm128_bswap_32      v128_bswap32
 
 #define v128_bswap16( v ) \

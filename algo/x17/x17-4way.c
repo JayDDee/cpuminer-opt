@@ -928,11 +928,8 @@ int scanhash_x17_4x64( struct work *work, uint32_t max_nonce,
 
 #elif defined(X17_2X64)
 
-// Need sph in some cases
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
-//#include "algo/simd/sph_simd.h"
-//#include "algo/simd/nist.h"
 #if !( defined(__SSE4_2__) || defined(__ARM_NEON) )
   #include "algo/hamsi/sph_hamsi.h"
 #endif
@@ -940,11 +937,9 @@ int scanhash_x17_4x64( struct work *work, uint32_t max_nonce,
 #include "algo/haval/sph-haval.h"
 #if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
   #include "algo/groestl/sph_groestl.h"
-#endif
-#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
   #include "algo/echo/sph_echo.h"
+  #include "algo/fugue/sph_fugue.h"
 #endif
-#include "algo/fugue/sph_fugue.h"
 
 union _x17_context_overlay
 {
@@ -960,7 +955,7 @@ union _x17_context_overlay
 #else
         sph_echo512_context     echo;
 #endif
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_fugue         fugue;
 #else
         sph_fugue512_context    fugue;
@@ -1061,7 +1056,7 @@ int x17_2x64_hash( void *output, const void *input, int thr_id )
     sph_hamsi512_close( &ctx.hamsi, hash1 );
 #endif
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     fugue512_full( &ctx.fugue, hash0, hash0, 64 );
     fugue512_full( &ctx.fugue, hash1, hash1, 64 );
 #else

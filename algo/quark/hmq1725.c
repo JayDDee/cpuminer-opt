@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/fugue/sph_fugue.h"
@@ -35,7 +35,7 @@ union _hmq1725_ctx_holder
 {
    blake512_context        blake;
    sph_bmw512_context      bmw;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_fugue         fugue;
 #else
    sph_fugue512_context    fugue;
@@ -177,7 +177,7 @@ extern void hmq1725hash(void *state, const void *input)
     sph_hamsi512( &ctx.hamsi, hashA, 64 ); //3
     sph_hamsi512_close( &ctx.hamsi, hashB ); //4
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     fugue512_full( &ctx.fugue, hashA, hashB, 64 );
 #else
     sph_fugue512_init( &ctx.fugue );
@@ -208,7 +208,7 @@ extern void hmq1725hash(void *state, const void *input)
 
     if ( hashB[0] & mask ) //7
     {
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
        fugue512_full( &ctx.fugue, hashA, hashB, 64 );
 #else
        sph_fugue512_init( &ctx.fugue );
@@ -259,30 +259,18 @@ extern void hmq1725hash(void *state, const void *input)
 int scanhash_hmq1725( struct work *work, uint32_t max_nonce,
                       uint64_t *hashes_done, struct thr_info *mythr )
 {
-//        uint32_t endiandata[32] __attribute__((aligned(64)));
-        uint32_t endiandata[20] __attribute__((aligned(32)));
-        uint32_t hash64[8] __attribute__((aligned(32)));
-        uint32_t *pdata = work->data;
-        uint32_t *ptarget = work->target;
+   uint32_t endiandata[20] __attribute__((aligned(32)));
+   uint32_t hash64[8] __attribute__((aligned(32)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
 	uint32_t n = pdata[19] - 1;
 	const uint32_t first_nonce = pdata[19];
    int thr_id = mythr->id;  // thr_id arg is deprecated
-	//const uint32_t Htarg = ptarget[7];
 
 	//we need bigendian data...
-//        for (int k = 0; k < 32; k++)
-        for (int k = 0; k < 20; k++)
-                be32enc(&endiandata[k], pdata[k]);
+   for (int k = 0; k < 20; k++)
+         be32enc(&endiandata[k], pdata[k]);
 
-//        hmq_bmw512_midstate( endiandata );
-
-//	if (opt_debug) 
-//	{
-//		applog(LOG_DEBUG, "Thr: %02d, firstN: %08x, maxN: %08x, ToDo: %d", thr_id, first_nonce, max_nonce, max_nonce-first_nonce);
-//	}
-	
-	/* I'm to lazy to put the loop in an inline function... so dirty copy'n'paste.... */
-	/* i know that i could set a variable, but i don't know how the compiler will optimize it, not that then the cpu needs to load the value *everytime* in a register */
 	if (ptarget[7]==0) {
 		do {
 			pdata[19] = ++n;

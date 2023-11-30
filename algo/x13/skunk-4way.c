@@ -155,13 +155,13 @@ void skunk_4way_hash( void *output, const void *input )
      skein512_4way_final16( &ctx.skein, vhash, input + (64*4) );
      dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
-     cubehashUpdateDigest( &ctx.cube, (byte*) hash0, (const byte*)hash0, 64 );
+     cubehashUpdateDigest( &ctx.cube, hash0, hash0, 64 );
      memcpy( &ctx.cube, &skunk_4way_ctx.cube, sizeof(cubehashParam) );
-     cubehashUpdateDigest( &ctx.cube, (byte*)hash1, (const byte*) hash1, 64 );
+     cubehashUpdateDigest( &ctx.cube, hash1, hash1, 64 );
      memcpy( &ctx.cube, &skunk_4way_ctx.cube, sizeof(cubehashParam) );
-     cubehashUpdateDigest( &ctx.cube, (byte*)hash2, (const byte*) hash2, 64 );
+     cubehashUpdateDigest( &ctx.cube, hash2, hash2, 64 );
      memcpy( &ctx.cube, &skunk_4way_ctx.cube, sizeof(cubehashParam) );
-     cubehashUpdateDigest( &ctx.cube, (byte*)hash3, (const byte*) hash3, 64 );
+     cubehashUpdateDigest( &ctx.cube, hash3, hash3, 64 );
 
      fugue512_full( &ctx.fugue, hash0, hash0, 64 );
      fugue512_full( &ctx.fugue, hash1, hash1, 64 );

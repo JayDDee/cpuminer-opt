@@ -240,7 +240,7 @@ union _x16r_2x64_context_overlay
 #else
     sph_hamsi512_context    hamsi;
 #endif
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     hashState_fugue         fugue;
 #else
     sph_fugue512_context    fugue;
@@ -267,7 +267,7 @@ union _x16r_context_overlay
 {
         blake512_context        blake;
         sph_bmw512_context      bmw;
-#if defined(__AES__) // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_groestl       groestl;
 #else
         sph_groestl512_context  groestl;
@@ -285,7 +285,7 @@ union _x16r_context_overlay
         sph_echo512_context     echo;
 #endif
         sph_hamsi512_context    hamsi;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_fugue         fugue;
 #else
         sph_fugue512_context    fugue;

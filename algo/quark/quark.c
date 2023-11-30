@@ -7,12 +7,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include "algo/blake/sph_blake.h"
+#include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "algo/groestl/sph_groestl.h"
@@ -21,9 +21,9 @@
 void quark_hash(void *state, const void *input)
 {
    uint32_t hash[16] __attribute__((aligned(64)));
-   sph_blake512_context    ctx_blake;
+   blake512_context        ctx_blake;
    sph_bmw512_context      ctx_bmw;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_groestl       ctx_groestl;
 #else
    sph_groestl512_context  ctx_groestl;
@@ -33,17 +33,15 @@ void quark_hash(void *state, const void *input)
    sph_keccak512_context   ctx_keccak;
    uint32_t mask = 8;
 
-   sph_blake512_init( &ctx_blake );
-   sph_blake512( &ctx_blake, input, 80 );
-   sph_blake512_close( &ctx_blake, hash );
-
+   blake512_full( &ctx_blake, hash, input, 80 );
+   
    sph_bmw512_init( &ctx_bmw );
    sph_bmw512( &ctx_bmw, hash, 64 );
    sph_bmw512_close( &ctx_bmw, hash ); 
 
    if ( hash[0] & mask )
    {
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
       init_groestl( &ctx_groestl, 64 );
       update_and_final_groestl( &ctx_groestl, (char*)hash,
                                         (const char*)hash, 512 );
@@ -60,7 +58,7 @@ void quark_hash(void *state, const void *input)
       sph_skein512_close( &ctx_skein, hash );
    }
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_groestl( &ctx_groestl, 64 );
    update_and_final_groestl( &ctx_groestl, (char*)hash,
                                      (const char*)hash, 512 );
@@ -76,9 +74,7 @@ void quark_hash(void *state, const void *input)
 
    if ( hash[0] & mask )
    {
-      sph_blake512_init( &ctx_blake );
-      sph_blake512( &ctx_blake, hash, 64 );
-      sph_blake512_close( &ctx_blake, hash );
+      blake512_full( &ctx_blake, hash, hash, 64 );
    }
    else
    {

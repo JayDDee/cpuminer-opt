@@ -704,15 +704,15 @@ static void AddXor512(const void *a,const void *b,void *c)
                                            casti_m256i( b, 0 ) );
    casti_m256i( c, 1 ) = _mm256_xor_si256( casti_m256i( a, 1 ),
                                            casti_m256i( b, 1 ) );
-#elif defined(__SSE2__)
-   casti_m128i( c, 0 ) = _mm_xor_si128( casti_m128i( a, 0 ),
-                                        casti_m128i( b, 0 ) );
-   casti_m128i( c, 1 ) = _mm_xor_si128( casti_m128i( a, 1 ),
-                                        casti_m128i( b, 1 ) );
-   casti_m128i( c, 2 ) = _mm_xor_si128( casti_m128i( a, 2 ),
-                                        casti_m128i( b, 2 ) );
-   casti_m128i( c, 3 ) = _mm_xor_si128( casti_m128i( a, 3 ),
-                                        casti_m128i( b, 3 ) );
+#elif defined(__SSE2__) || defined(__ARM_NEON)
+   casti_v128( c, 0 ) = v128_xor( casti_v128( a, 0 ),
+                                  casti_v128( b, 0 ) );
+   casti_v128( c, 1 ) = v128_xor( casti_v128( a, 1 ),
+                                  casti_v128( b, 1 ) );
+   casti_v128( c, 2 ) = v128_xor( casti_v128( a, 2 ),
+                                  casti_v128( b, 2 ) );
+   casti_v128( c, 3 ) = v128_xor( casti_v128( a, 3 ),
+                                  casti_v128( b, 3 ) );
 #else
    const unsigned long long *A=a, *B=b;
 	unsigned long long *C=c;

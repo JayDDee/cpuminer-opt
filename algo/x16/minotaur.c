@@ -14,9 +14,6 @@
 #include "algo/luffa/luffa_for_sse2.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/simd-hash-2way.h"
-//#if defined(__aarch64__)
-//  #include "algo/simd/sph_simd.h"
-//#endif
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/whirlpool/sph_whirlpool.h"
@@ -32,7 +29,7 @@
 #else
   #include "algo/groestl/sph_groestl.h"
 #endif
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/fugue/sph_fugue.h"
@@ -60,7 +57,7 @@ struct TortureGarden
 #else
    sph_echo512_context     echo;
 #endif
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_fugue         fugue;
 #else
    sph_fugue512_context    fugue;
@@ -116,7 +113,7 @@ static int get_hash( void *output, const void *input, TortureGarden *garden,
 #endif
 	         break;
         case 4:
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             fugue512_full( &garden->fugue, hash, input, 64 );
 #else
             sph_fugue512_full( &garden->fugue, hash, input, 64 );

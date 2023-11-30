@@ -1,6 +1,8 @@
 #include "x11gost-gate.h"
 
-#if !defined(X11GOST_8WAY) && !defined(X11GOST_4WAY)
+// no longer used, not working when last used.
+
+#if !defined(X11GOST_8WAY) && !defined(X11GOST_4WAY) && !defined(X11GOST_2WAY)
 
 #include <stdlib.h>
 #include <stdint.h>

@@ -75,6 +75,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v23.15
+
+Fixed x11gost (sib) algo for all architectures, broken in v3.23.4.
+ARM: Fugue AES optimizations enabled.
+ARM: quark, qubit, x11gost algos optimized with NEON & AES.
+
 v23.14
 
 ARM: Groestl AES optimizations enabled.

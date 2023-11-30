@@ -4,7 +4,7 @@
 
 #include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/fugue/sph_fugue.h"
@@ -38,7 +38,7 @@ union _x22i_context_overlay
 {
         blake512_context       blake;
         sph_bmw512_context     bmw;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_fugue         fugue;
 #else
         sph_fugue512_context    fugue;
@@ -127,7 +127,7 @@ int x22i_hash( void *output, const void *input, int thrid )
    sph_hamsi512(&ctx.hamsi, (const void*) hash, 64);
    sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    fugue512_full( &ctx.fugue, hash, hash, 64 );
 #else
    sph_fugue512_init(&ctx.fugue);
@@ -147,7 +147,7 @@ int x22i_hash( void *output, const void *input, int thrid )
    sph_sha512( &ctx.sha512, &hash[128], 64 );
    sph_sha512_close( &ctx.sha512, &hash[192] );
    
-   ComputeSingleSWIFFTX((unsigned char*)hash, (unsigned char*)hash2);
+   ComputeSingleSWIFFTX( (unsigned char*)hash, (unsigned char*)hash2 );
 
    if ( work_restart[thrid].restart ) return 0;
    
@@ -162,7 +162,7 @@ int x22i_hash( void *output, const void *input, int thrid )
    sph_tiger_close(&ctx.tiger, (void*) hash2);
 
    memset(hash, 0, 64);
-   LYRA2RE((void*) hash, 32, (const void*) hash2, 32, (const void*) hash2, 32, 1, 4, 4);
+   LYRA2RE( (void*)hash, 32, (const void*)hash2, 32, (const void*)hash2, 32, 1, 4, 4 );
 
    sph_gost512_init(&ctx.gost);
    sph_gost512 (&ctx.gost, (const void*) hash, 64);

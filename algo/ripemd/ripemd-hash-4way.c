@@ -45,10 +45,10 @@ static const uint32_t IV[5] =
 
 #define RR(a, b, c, d, e, f, s, r, k) \
 do{ \
-   a = _mm_add_epi32( mm128_rol_32( _mm_add_epi32( _mm_add_epi32( \
+   a = _mm_add_epi32( v128_rol32( _mm_add_epi32( _mm_add_epi32( \
                 _mm_add_epi32( a, f( b ,c, d ) ), r ), \
                                  _mm_set1_epi64x( k ) ), s ), e ); \
-   c = mm128_rol_32( c, 10 );\
+   c = v128_rol32( c, 10 );\
 } while (0)
 
 #define ROUND1(a, b, c, d, e, f, s, r, k)  \

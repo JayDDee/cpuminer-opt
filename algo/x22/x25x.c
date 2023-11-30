@@ -4,7 +4,7 @@
 
 #include "algo/blake/blake512-hash.h"
 #include "algo/bmw/sph_bmw.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/fugue/fugue-aesni.h"
 #else
   #include "algo/fugue/sph_fugue.h"
@@ -41,7 +41,7 @@ union _x25x_context_overlay
 {
         blake512_context        blake;
         sph_bmw512_context      bmw;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_fugue         fugue;
 #else
         sph_fugue512_context    fugue;
@@ -132,7 +132,7 @@ int x25x_hash( void *output, const void *input, int thrid )
    sph_hamsi512(&ctx.hamsi, (const void*) &hash[10], 64);
    sph_hamsi512_close(&ctx.hamsi, &hash[11]);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    fugue512_full( &ctx.fugue, &hash[12], &hash[11], 64 );
 #else
    sph_fugue512_init(&ctx.fugue);

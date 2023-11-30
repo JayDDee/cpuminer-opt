@@ -68,7 +68,7 @@
 #define v128_mul32                    vmulq_u32
 #define v128_mul16                    vmulq_u16
 
-// Widening, shuffle high element to align with Intel
+// Widening multiply, align source elements with Intel
 static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 {
    return vmull_u32( vget_low_u32( vcopyq_laneq_u32( v1, 1, v1, 2 ) ),
@@ -97,7 +97,7 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 #define v128_cmplt16( v1, v0 )        vcltq_s16( (int16x8_t)v1, (int16x8_t)v0 )
 #define v128_cmplt8( v1, v0 )         vcltq_s8( (int8x16_t)v1, (int8x16_t)v0 )
 
-// bit shift
+// Logical bit shift
 #define v128_sl64                     vshlq_n_u64
 #define v128_sl32                     vshlq_n_u32
 #define v128_sl16                     vshlq_n_u16
@@ -108,7 +108,7 @@ static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
 #define v128_sr16                     vshrq_n_u16
 #define v128_sr8                      vshrq_n_u8
 
-// Unit tested, working.
+// Arithmetic shift.
 #define v128_sra64( v, c )            vshrq_n_s64( (int64x2_t)v, c )
 #define v128_sra32( v, c )            vshrq_n_s32( (int32x4_t)v, c )
 #define v128_sra16( v, c )            vshrq_n_s16( (int16x8_t)v, c )
@@ -255,24 +255,24 @@ typedef union
 #define v128_8                         vmovq_n_u8
 
 #define v64_set32( u32_1, u32_0 ) \
-   vcreate_u32( ( (uint64_t)(u32_1) << 32 ) | (uint64_t)(u32_0) )
+  vcreate_u32( ( (uint64_t)(u32_1) << 32 ) | (uint64_t)(u32_0) )
 
 #define v64_set16( u16_3, u16_2, u16_1, u16_0 ) \
-    vcreate_u16( ( (uint64_t)( ( (uint32_t)(u16_3) << 16 ) \
-                               | (uint32_t)(u16_2)       ) << 32 ) \
-               | ( (uint64_t)( ( (uint32_t)(u16_1) << 16 ) \
-                               | (uint32_t)(u16_0)       )       ) )
+  vcreate_u16( ( (uint64_t)( ( (uint32_t)(u16_3) << 16) \
+                             | (uint32_t)(u16_2)       ) << 32 ) \
+             | ( (uint64_t)( ( (uint32_t)(u16_1) << 16) \
+                             | (uint32_t)(u16_0)       )       ) )
 
 #define v64_set8( u8_7, u8_6, u8_5, u8_4, u8_3, u8_2, u8_1, u8_0 ) \
-    vcreate_u8( \
-     ( (uint64_t)( ( (uint32_t)(((uint16_t)(u8_7) << 8 ) \
-                               | (uint16_t)(u8_6)      ) << 16 ) \
-                 | ( (uint32_t)(((uint16_t)(u8_5) << 8 ) \
-                               | (uint16_t)(u8_4)      )       )) << 32 )  \
-   | ( (uint64_t)( ( (uint32_t)(((uint16_t)(u8_3) << 8 ) \
-                               | (uint16_t)(u8_2)      ) << 16 ) \
-                 | ( (uint32_t)(((uint16_t)(u8_1) << 8 ) \
-                               | (uint16_t)(u8_0)      )       ))       ))
+  vcreate_u8( \
+     ( (uint64_t)( ( (uint32_t)( ((uint16_t)(u8_7) << 8) \
+                                | (uint16_t)(u8_6)      ) << 16 ) \
+                 | ( (uint32_t)( ((uint16_t)(u8_5) << 8) \
+                                | (uint16_t)(u8_4)      )       ) ) << 32 )  \
+   | ( (uint64_t)( ( (uint32_t)( ((uint16_t)(u8_3) << 8) \
+                                | (uint16_t)(u8_2)      ) << 16 ) \
+                 | ( (uint32_t)( ((uint16_t)(u8_1) << 8) \
+                                | (uint16_t)(u8_0)      )       ) )       ) )
 
 #define v128_set64( u64_1, u64_0 ) \
    vcombine_u64( vcreate_u64( u64_0 ), vcreate_u64( u64_1 ) ) 
@@ -406,15 +406,17 @@ static inline void v128_memcpy( void *dst, const void *src, const int n )
  v1 = vorrq_u32( v1, t1 ); \
 }
 
+/* not used anywhere and hopefully never will
 // vector mask, use as last resort. prefer tbl, rev, alignr, etc
 #define v128_shufflev32( v, vmask ) \
   v128_set32( ((uint32_t*)&v)[ ((uint32_t*)(&vmask))[3] ], \
               ((uint32_t*)&v)[ ((uint32_t*)(&vmask))[2] ], \
               ((uint32_t*)&v)[ ((uint32_t*)(&vmask))[1] ], \
               ((uint32_t*)&v)[ ((uint32_t*)(&vmask))[0] ] ) \
+*/
 
 #define v128_shuffle8( v, vmask ) \
-     vqtbl1q_u8( (uint8x16_t)v, (uint8x16_t)vmask );
+     vqtbl1q_u8( (uint8x16_t)v, (uint8x16_t)vmask )
 
 // sub-vector shuffles sometimes mirror bit rotation. Shuffle is faster.
 // Bit rotation already promotes faster widths. Usage is context sensitive.
@@ -531,20 +533,6 @@ static inline uint16x8_t v128_shufll16( uint16x8_t v )
    casti_v128u64( dst,14 ) = v128_bswap64( casti_v128u64( src,14 ) ); \
    casti_v128u64( dst,15 ) = v128_bswap64( casti_v128u64( src,15 ) ); \
 }
-
-// Prograsmmable shuffles
-// no compatible shuffles with x86_64, will require targeted user code.
-              
-#define v128_extractmask8( df, de, dd, dc, db, da, d9, d8, \
-                           d7, d6, d5, d4, d3, d2, d1, d0, vmask )   \
-  d0 = ((uint8_t*)(&vmask))[0];   d1 = ((uint8_t*)(&vmask))[1]; \
-  d2 = ((uint8_t*)(&vmask))[2];   d3 = ((uint8_t*)(&vmask))[3]; \
-  d4 = ((uint8_t*)(&vmask))[0];   d5 = ((uint8_t*)(&vmask))[1]; \
-  d6 = ((uint8_t*)(&vmask))[2];   d7 = ((uint8_t*)(&vmask))[3]; \
-  d8 = ((uint8_t*)(&vmask))[0];   d9 = ((uint8_t*)(&vmask))[1]; \
-  da = ((uint8_t*)(&vmask))[2];   db = ((uint8_t*)(&vmask))[3]; \
-  dc = ((uint8_t*)(&vmask))[0];   dd = ((uint8_t*)(&vmask))[1]; \
-  de = ((uint8_t*)(&vmask))[2];   df = ((uint8_t*)(&vmask))[3]; 
 
 // Blendv
 #define v128_blendv( v1, v0, mask ) \

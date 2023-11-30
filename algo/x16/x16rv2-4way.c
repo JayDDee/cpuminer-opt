@@ -1230,7 +1230,7 @@ union _x16rv2_2x64_context_overlay
 #else
     sph_hamsi512_context    hamsi;
 #endif
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     hashState_fugue         fugue;
 #else
     sph_fugue512_context    fugue;
@@ -1445,7 +1445,7 @@ int x16rv2_2x64_hash( void* output, const void* input, int thrid )
 #endif
          break;
          case FUGUE:
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             if ( i == 0 )
             {
                fugue512_update( &ctx.fugue, in0 + 76, 4 );
@@ -1607,7 +1607,7 @@ int scanhash_x16rv2_2x64( struct work *work, uint32_t max_nonce,
       break;
       case FUGUE:
          v128_bswap32_80( edata, pdata );
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
          fugue512_init( &x16rv2_ctx.fugue );
          fugue512_update( &x16rv2_ctx.fugue, edata, 76 );
 #else

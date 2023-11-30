@@ -506,4 +506,156 @@ int scanhash_x11gost_4way( struct work *work, uint32_t max_nonce,
      return 0;
 }
 
+#elif defined (X11GOST_2WAY)
+
+#include "algo/luffa/luffa_for_sse2.h"
+#include "algo/cubehash/cubehash_sse2.h"
+#if !( defined(__AES__) || defined(__ARM_FEATURE_AES) )
+  #include "algo/groestl/sph_groestl.h"
+  #include "algo/echo/sph_echo.h"
+#endif
+
+union _x11gost_context_overlay
+{
+        blake512_2x64_context   blake;
+        bmw512_2x64_context     bmw;
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+        hashState_groestl       groestl;
+#else
+        sph_groestl512_context  groestl;
+#endif
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+        hashState_echo          echo;
+#else
+        sph_echo512_context     echo;
+#endif
+        jh512_2x64_context      jh;
+        keccak512_2x64_context  keccak;
+        skein512_2x64_context   skein;
+        hashState_luffa         luffa;
+        cubehashParam           cube;
+        sph_shavite512_context  shavite;
+        simd512_context         simd;
+        sph_gost512_context     gost;
+};
+typedef union _x11gost_context_overlay x11gost_context_overlay;
+
+int x11gost_2x64_hash( void *state, const void *input, int thr_id )
+{
+    uint8_t vhash[80*2] __attribute__((aligned(64)));
+    uint8_t hash0[64]   __attribute__((aligned(64)));
+    uint8_t hash1[64]   __attribute__((aligned(64)));
+    x11gost_context_overlay ctx;
+
+    intrlv_2x64( vhash, input, input+80, 640 );
+
+    blake512_2x64_full( &ctx.blake, vhash, vhash, 80 );
+    bmw512_2x64_init( &ctx.bmw );
+    bmw512_2x64_update( &ctx.bmw, vhash, 64 );
+    bmw512_2x64_close( &ctx.bmw, vhash );
+
+    dintrlv_2x64( hash0, hash1, vhash, 512 );
+
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+    groestl512_full( &ctx.groestl, hash0, hash0, 512 );
+    groestl512_full( &ctx.groestl, hash1, hash1, 512 );
+#else
+    sph_groestl512_init( &ctx.groestl );
+    sph_groestl512( &ctx.groestl, hash0, 64 );
+    sph_groestl512_close( &ctx.groestl, hash0 );
+    sph_groestl512_init( &ctx.groestl );
+    sph_groestl512( &ctx.groestl, hash1, 64 );
+    sph_groestl512_close( &ctx.groestl, hash1 );
+#endif
+
+    intrlv_2x64( vhash, hash0, hash1, 512 );
+
+    skein512_2x64_full( &ctx.skein, vhash, vhash, 64 );
+    jh512_2x64_ctx( &ctx.jh, vhash, vhash, 64 );
+    keccak512_2x64_ctx( &ctx.keccak, vhash, vhash, 64 );
+
+    dintrlv_2x64( hash0, hash1, vhash, 512 );
+    
+    sph_gost512_init( &ctx.gost );
+    sph_gost512( &ctx.gost, hash0, 64 );
+    sph_gost512_close( &ctx.gost, hash0 );
+    sph_gost512_init( &ctx.gost );
+    sph_gost512( &ctx.gost, hash1, 64 );
+    sph_gost512_close( &ctx.gost, hash1 );
+
+    luffa_full( &ctx.luffa, hash0, 512, hash0, 64 );
+    luffa_full( &ctx.luffa, hash1, 512, hash1, 64 );
+
+    cubehash_full( &ctx.cube, hash0, 512, hash0, 64 );
+    cubehash_full( &ctx.cube, hash1, 512, hash1, 64 );
+
+    sph_shavite512_init( &ctx.shavite );
+    sph_shavite512( &ctx.shavite, hash0, 64 );
+    sph_shavite512_close( &ctx.shavite, hash0 );
+    sph_shavite512_init( &ctx.shavite );
+    sph_shavite512( &ctx.shavite, hash1, 64 );
+    sph_shavite512_close( &ctx.shavite, hash1 );
+
+    simd512_ctx( &ctx.simd, hash0, hash0, 64 );
+    simd512_ctx( &ctx.simd, hash1, hash1, 64 );
+
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
+    echo_full( &ctx.echo, hash0, 512, hash0, 64 );
+    echo_full( &ctx.echo, hash1, 512, hash1, 64 );
+#else
+    sph_echo512_init( &ctx.echo );
+    sph_echo512( &ctx.echo, hash0, 64 );
+    sph_echo512_close( &ctx.echo, hash0 );
+    sph_echo512_init( &ctx.echo );
+    sph_echo512( &ctx.echo, hash1, 64 );
+    sph_echo512_close( &ctx.echo, hash1 );
+#endif
+
+    memcpy( state,    hash0, 32 );
+    memcpy( state+32, hash1, 32 );
+
+    return 1;
+}
+
+int scanhash_x11gost_2x64( struct work *work, uint32_t max_nonce,
+                       uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t hash[8*2]   __attribute__((aligned(64)));
+   uint32_t edata[20*2]   __attribute__((aligned(64)));
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t first_nonce = pdata[19];
+   const uint32_t last_nonce = max_nonce - 2;
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+   const bool bench = opt_benchmark;
+
+   v128_bswap32_80( edata, pdata );
+   memcpy( edata+20, edata, 80 );
+
+   do
+   {
+      edata[19] = n;
+      edata[39] = n+1;
+      if ( likely( x11gost_2x64_hash( hash, edata, thr_id ) ) )
+      {
+         if ( unlikely( valid_hash( hash, ptarget ) && !bench ) )
+         {
+            pdata[19] = bswap_32( n );
+            submit_solution( work, hash, mythr );
+         }
+         if ( unlikely( valid_hash( hash+8, ptarget ) && !bench ) )
+         {
+            pdata[19] = bswap_32( n+1 );
+            submit_solution( work, hash+8, mythr );
+         }
+      }
+      n += 2;
+   } while ( n < last_nonce && !work_restart[thr_id].restart );
+   *hashes_done = n - first_nonce;
+   pdata[19] = n;
+   return 0;
+}
+
+
 #endif

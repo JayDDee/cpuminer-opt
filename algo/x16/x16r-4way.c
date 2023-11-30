@@ -1022,7 +1022,7 @@ void x16r_2x64_prehash( void *vdata, void *pdata, const char *hash_order )
       break;
       case FUGUE:
          v128_bswap32_80( edata, pdata );
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
          fugue512_init( &x16r_ctx.fugue );
          fugue512_update( &x16r_ctx.fugue, edata, 76 );
 #else         
@@ -1218,7 +1218,7 @@ int x16r_2x64_hash_generic( void* output, const void* input, int thrid,
 #endif
             break;
          case FUGUE:
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             if ( i == 0 )
             {
                fugue512_update( &ctx.fugue, in0 + 76, 4 );
