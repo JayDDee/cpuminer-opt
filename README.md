@@ -228,7 +228,7 @@ Happy mining!
 
 ARM
 ---------
-cd && sudo apt-get install build-essential autoconf automake libssl-dev libcurl4-openssl-dev libjansson-dev zlib1g-dev screen git && git clone https://github.com/jakubartur/cpuminer-opt.git && cd cpuminer-opt && ./autogen.sh && ./nomacro.pl && ./configure --disable-assembly CFLAGS="-Ofast -march=native" --with-crypto --with-curl && make -j8
+cd && sudo apt-get install build-essential autoconf automake libssl-dev libcurl4-openssl-dev libjansson-dev zlib1g-dev screen git && git clone https://github.com/JayDDee/cpuminer-opt.git && cd cpuminer-opt && ./autogen.sh && ./nomacro.pl && ./configure --disable-assembly CFLAGS="-Ofast -march=native" --with-crypto --with-curl && make -j8
 
 ---------
 
