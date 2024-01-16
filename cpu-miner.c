@@ -1159,8 +1159,8 @@ void report_summary_log( bool force )
          applog2( LOG_MINR, "Count mismatch: %d, stats may be inaccurate",
                             mismatch );
       else if ( !opt_quiet )
-         applog2( LOG_INFO, CL_LBL
-                  "Count mismatch, submitted share may still be pending" CL_N );
+         applog2( LOG_INFO, "%sCount mismatch, submitted share may still be pending",
+                             use_colors ? CL_LBL : "" );
    }
 }
 
@@ -1294,7 +1294,7 @@ static int share_result( int result, struct work *work,
    const char *bell = !result && opt_bell ? &ASCII_BELL : "";
    applog( LOG_INFO, "%s%d %s%s %s%s %s%s %s%s%s, %.3f sec (%dms)",
            bell, my_stats.share_count, acol, ares, scol, sres, rcol, rres,
-           bcol, bres, CL_N, share_time, latency );
+           bcol, bres, use_colors ? CL_N : "", share_time, latency );
    if ( unlikely( !( opt_quiet || result || stale ) ) )
    {
       applog2( LOG_INFO, "%sReject reason: %s", bell, reason ? reason : "" );
@@ -1850,7 +1850,8 @@ bool submit_solution( struct work *work, const void *hash,
 {
 // Job went stale during hashing of a valid share.
 //   if ( !opt_quiet && work_restart[ thr->id ].restart )
-//      applog( LOG_INFO, CL_LBL "Share may be stale, submitting anyway..." CL_N );
+//      applog( LOG_INFO, "%sShare may be stale, submitting anyway...",
+//                        use_colors ? CL_LBL : "" );
    
    work->sharediff = hash_to_diff( hash );
    if ( likely( submit_work( thr, work ) ) )

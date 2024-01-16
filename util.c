@@ -2653,7 +2653,7 @@ void applog_hash64(void *hash)
 }
 
 #define printpfx(n,h) \
-	printf("%s%11s%s: %s\n", CL_CYN, n, CL_N, format_hash(s, (uint8_t*) h))
+	printf("%s%11s%s: %s\n", use_colors ? CL_CYN : "", n, use_colors ? CL_N : "", format_hash(s, (uint8_t*) h))
 
 void print_hash_tests(void)
 {
@@ -2663,7 +2663,7 @@ void print_hash_tests(void)
         int algo;
 	scratchbuf = (uchar*) calloc(128, 1024);
 
-	printf(CL_WHT "CPU HASH ON EMPTY BUFFER RESULTS:" CL_N "\n\n");
+	printf("%sCPU HASH ON EMPTY BUFFER RESULTS:%s\n\n", use_colors ? CL_WHT : "", use_colors ? CL_N : "");
 
 	//buf[0] = 1; buf[64] = 2; // for endian tests
    for ( algo=0; algo < ALGO_COUNT; algo++ )
