@@ -15,6 +15,6 @@ rm -f config.status
 #CFLAGS="-O3 -march=native -Wall" ./configure --with-curl --with-crypto=$HOME/usr
 CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
 
-make -j $nproc
+make -j $(nproc)
 
 strip -s cpuminer
