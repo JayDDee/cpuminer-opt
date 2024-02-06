@@ -13,7 +13,7 @@ rm -f config.status
 CFLAGS="-O3 -march=icelake-client -Wall" ./configure --with-curl
 # Rocketlake needs gcc-11
 #CFLAGS="-O3 -march=rocketlake -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx512-sha-vaes
 
@@ -34,7 +34,7 @@ rm -f config.status
 # Inclomplete list of Zen4 AVX512 extensions but includes all extensions used by cpuminer.
 CFLAGS="-O3 -march=znver3 -mavx512f -mavx512cd -mavx512dq -mavx512bw -mavx512vl -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vpopcntdq -Wall" ./configure --with-curl
 #CFLAGS="-O3 -march=znver2 -mvaes -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vbmi -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-zen4
 
@@ -43,7 +43,7 @@ make clean || echo clean
 rm -f config.status
 #CFLAGS="-O3 -march=znver2 -mvaes" ./configure --with-curl
 CFLAGS="-O3 -march=znver3 -fno-common " ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-zen3
 
@@ -51,7 +51,7 @@ mv cpuminer cpuminer-zen3
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=skylake-avx512 -maes -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx512
 
@@ -60,7 +60,7 @@ make clean || echo done
 rm -f config.status
 # vaes doesn't include aes
 CFLAGS="-O3 -maes -mavx2 -msha -mvaes -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx2-sha-vaes
 
@@ -69,7 +69,7 @@ make clean || echo done
 rm -f config.status
 #CFLAGS="-O3 -march=znver1 -maes -Wall" ./configure --with-curl
 CFLAGS="-O3 -maes -mavx2 -msha -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx2-sha
 
@@ -78,7 +78,7 @@ make clean || echo clean
 rm -f config.status
 # GCC 9 doesn't include AES with core-avx2
 CFLAGS="-O3 -march=core-avx2 -maes -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx2
 
@@ -86,7 +86,7 @@ mv cpuminer cpuminer-avx2
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=corei7-avx -maes -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx
 
@@ -94,7 +94,7 @@ mv cpuminer cpuminer-avx
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=westmere -maes -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-aes-sse42
 
@@ -102,7 +102,7 @@ mv cpuminer cpuminer-aes-sse42
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=corei7 -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-sse42
 
@@ -110,7 +110,7 @@ mv cpuminer cpuminer-sse42
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=core2 -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-ssse3
 
@@ -118,7 +118,7 @@ mv cpuminer cpuminer-ssse3
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -msse2 -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-sse2
 
@@ -126,7 +126,7 @@ mv cpuminer cpuminer-sse2
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=x86-64 -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-x64
 
@@ -134,6 +134,6 @@ mv cpuminer cpuminer-x64
 make clean || echo done
 rm -f config.status
 CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 
