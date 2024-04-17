@@ -16,14 +16,14 @@ bool register_timetravel_algo( algo_gate_t* gate )
   return true;
 };
 
-inline void tt_swap( int *a, int *b )
+static inline void tt_swap( int *a, int *b )
 {
         int c = *a;
         *a = *b;
         *b = c;
 }
 
-inline void reverse( int *pbegin, int *pend )
+static inline void reverse( int *pbegin, int *pend )
 {
    while ( (pbegin != pend) && (pbegin != --pend) )
    {

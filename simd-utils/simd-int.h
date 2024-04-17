@@ -164,11 +164,10 @@ static inline uint32_t ror32( uint32_t a, const int c )
 // obsolete test
 // Compiler check for __int128 support
 // Configure also has a test for int128.
-#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
+//#if ( __GNUC__ > 4 ) || ( ( __GNUC__ == 4 ) && ( __GNUC_MINOR__ >= 8 ) )
   #define GCC_INT128 1
-#endif
+//#endif
 
-// obsolte test
 #if !defined(GCC_INT128)
   #warning "__int128 not supported, requires GCC-4.8 or newer."
 #endif

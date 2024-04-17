@@ -107,16 +107,16 @@ typedef  uint32_t set_t;
 //  AVX10_256 is compatible with AVX2 + VAES
 
 // return set containing all elements from sets a & b
-inline set_t set_union ( set_t a, set_t b ) { return a | b; }
+static inline set_t set_union ( set_t a, set_t b ) { return a | b; }
 
 // return set contained common elements from sets a & b
-inline set_t set_intsec ( set_t a, set_t b) { return a & b; }
+static inline set_t set_intsec ( set_t a, set_t b) { return a & b; }
 
 // all elements in set a are included in set b
-inline bool set_incl ( set_t a, set_t b ) { return (a & b) == a; }
+static inline bool set_incl ( set_t a, set_t b ) { return (a & b) == a; }
 
 // no elements in set a are included in set b
-inline bool set_excl ( set_t a, set_t b ) { return (a & b) == 0; }
+static inline bool set_excl ( set_t a, set_t b ) { return (a & b) == 0; }
 
 typedef struct
 {

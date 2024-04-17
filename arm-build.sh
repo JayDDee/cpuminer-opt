@@ -9,6 +9,6 @@ rm -f config.status
 
 CFLAGS="-O3 -march=native -Wall -flax-vector-conversions" ./configure  --with-curl 
 
-make -j $nproc
+make -j $(nproc)
 
 strip -s cpuminer

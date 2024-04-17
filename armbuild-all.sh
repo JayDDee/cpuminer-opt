@@ -10,33 +10,33 @@ make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
 CFLAGS="-O3 -march=armv8-a+crypto+sha2+aes -Wall -flax-vector-conversions" ./configure  --with-curl 
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-armv8-aes-sha2
 
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=armv8-a+crypto+sha2 -Wall -flax-vector-conversions" ./configure  --with-curl      
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-armv8-sha2
 
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=armv8-a+crypto+aes -Wall -flax-vector-conversions" ./configure  --with-curl      
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-armv8-aes
 
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=armv8-a -Wall -flax-vector-conversions" ./configure  --with-curl
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-armv8
 
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=native -Wall -flax-vector-conversions" ./configure  --with-curl     
-make -j $nproc
+make -j $(nproc)
 strip -s cpuminer

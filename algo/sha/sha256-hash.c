@@ -1,6 +1,6 @@
 #include "sha256-hash.h"
 
-#if ( defined(__x86_64__) && defined(__SHA__) ) || defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA2)
+#if ( defined(__x86_64__) && defined(__SHA__) ) || ( defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA2) )
 
 static const uint32_t SHA256_IV[8] =
 {
@@ -189,7 +189,7 @@ static const uint32_t SHA256_IV[8] =
     _mm_store_si128( (__m128i*) &state_out[4], STATE1 ); \
 }
 
-void sha256_opt_transform_le( uint32_t *state_out, const void *input,
+void sha256_x86_sha_transform_le( uint32_t *state_out, const void *input,
                               const uint32_t *state_in )
 {
 #define load_msg( m, i ) casti_v128( m, i )
@@ -197,7 +197,7 @@ void sha256_opt_transform_le( uint32_t *state_out, const void *input,
 #undef load_msg
 }
 
-void sha256_opt_transform_be( uint32_t *state_out, const void *input,
+void sha256_x86_sha_transform_be( uint32_t *state_out, const void *input,
                               const uint32_t *state_in )
 {
 #define load_msg( m, i ) v128_bswap32( casti_v128( m, i ) )
@@ -517,7 +517,7 @@ void sha256_opt_transform_be( uint32_t *state_out, const void *input,
     _mm_store_si128( (__m128i*) &out_Y[4], STATE1_Y ); \
 }
 
-void sha256_ni2x_transform_le( uint32_t *out_X, uint32_t*out_Y,
+void sha256_x86_x2sha_transform_le( uint32_t *out_X, uint32_t*out_Y,
                                  const void *msg_X, const void *msg_Y,
                                  const uint32_t *in_X, const uint32_t *in_Y )
 {
@@ -526,7 +526,7 @@ void sha256_ni2x_transform_le( uint32_t *out_X, uint32_t*out_Y,
 #undef load_msg
 }
 
-void sha256_ni2x_transform_be( uint32_t *out_X, uint32_t*out_Y,
+void sha256_x86_x2sha_transform_be( uint32_t *out_X, uint32_t*out_Y,
                               const void *msg_X, const void *msg_Y,
                               const uint32_t *in_X, const uint32_t *in_Y )
 {
@@ -541,7 +541,7 @@ void sha256_ni2x_transform_be( uint32_t *out_X, uint32_t*out_Y,
 // The goal is to avoid any redundant processing in final. Prehash is almost
 // 4 rounds total, only missing the final addition of the nonce.
 // Nonce must be set to zero for prehash.
-void sha256_ni_prehash_3rounds( uint32_t *ostate, const void *msg,
+void sha256_x86_sha_prehash_3rounds( uint32_t *ostate, const void *msg,
                                 uint32_t *sstate, const uint32_t *istate )
 {
    __m128i STATE0, STATE1, MSG, TMP;
@@ -569,7 +569,7 @@ void sha256_ni_prehash_3rounds( uint32_t *ostate, const void *msg,
    casti_m128i( ostate, 1 ) = STATE1;
 }
 
-void sha256_ni2x_final_rounds( uint32_t *out_X, uint32_t *out_Y,
+void sha256_x86_x2sha_final_rounds( uint32_t *out_X, uint32_t *out_Y,
                  const void *msg_X, const void *msg_Y,
                  const uint32_t *state_mid_X, const uint32_t *state_mid_Y,
                  const uint32_t *state_save_X, const uint32_t *state_save_Y )

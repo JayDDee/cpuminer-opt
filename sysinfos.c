@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "miner.h"
+#include "simd-utils.h"
 
 #if defined(__aarch64__) && !defined(__APPLE__)
 // for arm's "cpuid"
@@ -223,8 +224,8 @@ static inline int cpu_fanpercent()
 #define AVX512_F_Flag            (1<<16)
 #define AVX512_DQ_Flag           (1<<17)
 #define AVX512_IFMA_Flag         (1<<21)
-#define AVX512_PF_Flag           (1<<26)
-#define AVX512_ER_Flag           (1<<27)
+#define AVX512_PF_Flag           (1<<26)   // obsolete
+#define AVX512_ER_Flag           (1<<27)   // obsolete
 #define AVX512_CD_Flag           (1<<28)
 #define SHA_Flag                 (1<<29)
 #define AVX512_BW_Flag           (1<<30)
@@ -237,8 +238,8 @@ static inline int cpu_fanpercent()
 #define AVX512_BITALG_Flag       (1<<12)
 #define AVX512_VPOPCNTDQ_Flag    (1<<14)
 // EDX
-#define AVX512_4VNNIW_Flag       (1<< 2)
-#define AVX512_4FMAPS_Flag       (1<< 3)
+#define AVX512_4VNNIW_Flag       (1<< 2)   // obsolete
+#define AVX512_4FMAPS_Flag       (1<< 3)   // obsolete
 #define AVX512_VP2INTERSECT_Flag (1<< 8)
 #define AMX_BF16_Flag            (1<<22)
 #define AVX512_FP16_Flag         (1<<23)
@@ -557,10 +558,15 @@ static inline bool has_aes_ni()
 #elif defined(__aarch64__) && !defined(__APPLE__)
    if ( has_neon() )
    {
-      unsigned int cpu_info[4] = { 0 };
+#if defined(KERNEL_HWCAP_AES)
+      return true;
+#else
+      return false;
+#endif
+/*      unsigned int cpu_info[4] = { 0 };
       cpuid( 0, 0, cpu_info );
       return cpu_info[0] & HWCAP_AES;
-   }
+*/   }
    return false;
 #else
    return false;
@@ -602,10 +608,15 @@ static inline bool has_sha()
 #elif defined(__aarch64__) && !defined(__APPLE__)
     if ( has_neon() )
     {
-       unsigned int cpu_info[4] = { 0 };
+#if defined(KERNEL_HWCAP_SHA2)
+       return true;
+#else
+       return false;
+#endif
+/*       unsigned int cpu_info[4] = { 0 };
        cpuid( 0, 0, cpu_info );
        return cpu_info[0] & HWCAP_SHA2;
-    }
+*/    }
     return false;
 #else
     return false;

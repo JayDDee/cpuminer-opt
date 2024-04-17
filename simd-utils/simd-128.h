@@ -141,7 +141,7 @@
 #define v128_aesdeclast                _mm_aesdeclast_si128
 #define v128_aesdeclast_nokey(v)       _mm_aesdeclast_si128( v, v128_zero )
 
-// Used instead if casting.
+// Used instead of casting.
 typedef union
 {
    v128_t   v128;

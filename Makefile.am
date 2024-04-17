@@ -16,6 +16,7 @@ bin_PROGRAMS	= cpuminer
 dist_man_MANS	= cpuminer.1
 
 cpuminer_SOURCES = \
+  dummy.cpp \
   cpu-miner.c \
   util.c \
   api.c \
@@ -113,7 +114,6 @@ cpuminer_SOURCES = \
   algo/lyra2/phi2-4way.c \
   algo/lyra2/phi2.c \
   algo/m7m/m7m.c \
-  algo/m7m/magimath.cpp \
   algo/nist5/nist5-gate.c \
   algo/nist5/nist5-4way.c \
   algo/nist5/nist5.c \
@@ -289,7 +289,7 @@ if HAVE_WINDOWS
 endif
 
 cpuminer_LDFLAGS	= @LDFLAGS@
-cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@  -lgmp
+cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ -lgmp
 cpuminer_CPPFLAGS = @LIBCURL_CPPFLAGS@ $(ALL_INCLUDES)
 cpuminer_CFLAGS   = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
 

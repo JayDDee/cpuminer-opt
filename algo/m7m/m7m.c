@@ -21,7 +21,7 @@
 #define EPS1 DBL_EPSILON
 #define EPS2 3.0e-11
 
-inline double exp_n( double xt )
+static inline double exp_n( double xt )
 {
     if ( xt < -700.0 )
         return 0;
@@ -33,7 +33,7 @@ inline double exp_n( double xt )
         return exp( xt );
 }
 
-inline double exp_n2( double x1, double x2 )
+static inline double exp_n2( double x1, double x2 )
 {
     double p1 = -700., p2 = -37., p3 = -0.8e-8, p4 = 0.8e-8,
            p5 = 37., p6 = 700.;

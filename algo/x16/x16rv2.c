@@ -33,7 +33,7 @@ union _x16rv2_context_overlay
 typedef union _x16rv2_context_overlay x16rv2_context_overlay;
 
 // Pad the 24 bytes tiger hash to 64 bytes
-inline void padtiger512(uint32_t* hash) {
+static inline void padtiger512(uint32_t* hash) {
    for (int i = (24/4); i < (64/4); i++) hash[i] = 0;
 }
 

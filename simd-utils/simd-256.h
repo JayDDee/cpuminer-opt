@@ -429,6 +429,19 @@ static inline __m256i mm256_not( const __m256i v )
 
 #endif     // AVX512 else AVX2
 
+#if defined(__AVX2__)
+
+// 128 bit version of unpack
+#define v256_unpacklo128( v1, v0 )   _mm256_permute2x128_si256( v1, v0, 0x20 )
+#define v256_unpackhi128( v1, v0 )   _mm256_permute2x128_si256( v1, v0, 0x31 )
+
+#else
+
+#define v256_unpacklo128( v1, v0 )   _mm256_permute2f128_si256( v1, v0, 0x20 )
+#define v256_unpackhi128( v1, v0 )   _mm256_permute2f128_si256( v1, v0, 0x31 )
+
+#endif
+
 //
 // Cross lane shuffles
 //

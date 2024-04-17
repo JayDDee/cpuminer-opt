@@ -1294,7 +1294,7 @@ static int share_result( int result, struct work *work,
    const char *bell = !result && opt_bell ? &ASCII_BELL : "";
    applog( LOG_INFO, "%s%d %s%s %s%s %s%s %s%s%s, %.3f sec (%dms)",
            bell, my_stats.share_count, acol, ares, scol, sres, rcol, rres,
-           bcol, bres, CL_N, share_time, latency );
+           bcol, bres, use_colors ? CL_N : "", share_time, latency );
    if ( unlikely( !( opt_quiet || result || stale ) ) )
    {
       applog2( LOG_INFO, "%sReject reason: %s", bell, reason ? reason : "" );

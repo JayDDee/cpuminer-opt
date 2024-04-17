@@ -205,7 +205,7 @@ void sha1_x86_sha_transform_be( uint32_t *state_out, const void *input,
 
 #endif
 
-#if defined(__aarch64__) && defined(__ARM_FEATURE_SHA2)
+#if defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA2)
 
 #define sha1_neon_rounds( state_out, data, state_in ) \
 { \

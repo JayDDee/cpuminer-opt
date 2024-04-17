@@ -5,27 +5,21 @@
 #include "simd-utils.h"
 #include "cpuminer-config.h"
 
-// generic interface 
+static const uint32_t SHA256_IV[8];
+
+#if defined(__x86_64__) && defined(__SHA__)
 
 typedef struct
 {
-   unsigned char buf[64];    /* first field, for alignment */
+   unsigned char buf[64];
    uint32_t state[8];
    uint64_t count;
 } sha256_context __attribute__((aligned(64)));
-
-static const uint32_t SHA256_IV[8];
 
 void sha256_full( void *hash, const void *data, size_t len );
 void sha256_update( sha256_context *ctx, const void *data, size_t len );
 void sha256_final( sha256_context *ctx, void *hash );
 void sha256_ctx_init( sha256_context *ctx );
-void sha256_transform_le( uint32_t *state_out, const uint32_t *data,
-                          const uint32_t *state_in );
-void sha256_transform_be( uint32_t *state_out, const uint32_t *data,
-                          const uint32_t *state_in );
-
-#if defined(__x86_64__) && defined(__SHA__)
 
 void sha256_x86_sha_transform_le( uint32_t *state_out, const void *input,
                                   const uint32_t *state_in );
@@ -50,14 +44,6 @@ void sha256_x86_x2sha_final_rounds( uint32_t *state_out_X, uint32_t *state_out_Y
                  const uint32_t *state_mid_X, const uint32_t *state_mid_Y,
                  const uint32_t *state_save_X, const uint32_t *state_save_Y );
 
-// Temporary during name transition
-#define sha256_opt_transform_le   sha256_x86_sha_transform_le
-#define sha256_opt_transform_be   sha256_x86_sha_transform_be
-#define sha256_ni2x_transform_le  sha256_x86_x2sha_transform_le
-#define sha256_ni2x_transform_be  sha256_x86_x2sha_transform_be
-#define sha256_ni_prehash_3rounds sha256_x86_sha_prehash_3rounds
-#define sha256_ni2x_final_rounds  sha256_x86_x2sha_final_rounds
-
 // generic API
 #define sha256_transform_le        sha256_x86_sha_transform_le
 #define sha256_transform_be        sha256_x86_sha_transform_be
@@ -67,6 +53,20 @@ void sha256_x86_x2sha_final_rounds( uint32_t *state_out_X, uint32_t *state_out_Y
 #define sha256_2x_final_rounds     sha256_x86_x2sha_final_rounds
 
 #elif defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA2)
+
+// SHA-256 AArch64 with NEON & SHA2
+
+typedef struct
+{
+   unsigned char buf[64];
+   uint32_t state[8];
+   uint64_t count;
+} sha256_context __attribute__((aligned(64)));
+
+void sha256_full( void *hash, const void *data, size_t len );
+void sha256_update( sha256_context *ctx, const void *data, size_t len );
+void sha256_final( sha256_context *ctx, void *hash );
+void sha256_ctx_init( sha256_context *ctx );
 
 void sha256_neon_sha_transform_be( uint32_t *state_out, const void *input,
                                    const uint32_t *state_in );
@@ -89,14 +89,6 @@ void sha256_neon_x2sha_final_rounds( uint32_t *state_out_X,
                  const uint32_t *state_mid_X, const uint32_t *state_mid_Y,
                  const uint32_t *state_save_X, const uint32_t *state_save_Y );
 
-// Temporary during name transition
-#define sha256_transform_le         sha256_neon_sha_transform_le
-#define sha256_transform_be         sha256_neon_sha_transform_be
-#define sha256_2x_transform_le      sha256_neon_x2sha_transform_le
-#define sha256_2x_transform_be      sha256_neon_x2sha_transform_be
-#define sha256_prehash_3rounds      sha256_neon_sha_prehash_3rounds
-#define sha256_2x_final_rounds      sha256_neon_x2sha_final_rounds
-
 // generic API
 #define sha256_transform_le        sha256_neon_sha_transform_le
 #define sha256_transform_be        sha256_neon_sha_transform_be
@@ -106,9 +98,11 @@ void sha256_neon_x2sha_final_rounds( uint32_t *state_out_X,
 #define sha256_2x_final_rounds     sha256_neon_x2sha_final_rounds
 
 #else
+
 // without HW acceleration...
 #include "sph_sha2.h"
 
+#define sha256_context              sph_sha256_context
 #define sha256_full                 sph_sha256_full
 #define sha256_ctx_init             sph_sha256_init
 #define sha256_update               sph_sha256
@@ -117,12 +111,11 @@ void sha256_neon_x2sha_final_rounds( uint32_t *state_out_X,
 #define sha256_transform_be         sph_sha256_transform_be
 #define sha256_prehash_3rounds      sph_sha256_prehash_3rounds
 
-
 #endif
 
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
 
-// SHA-256 16 way
+// SHA-256 16 way x86_64
 
 typedef struct
 {
@@ -147,7 +140,7 @@ void sha256_16x32_final_rounds( __m512i *state_out, const __m512i *data,
 int sha256_16x32_transform_le_short( __m512i *state_out, const __m512i *data,
                             const __m512i *state_in, const uint32_t *target );
 
-#define sha256_16way_context sha256_16x32_context
+#define sha256_16way_context               sha256_16x32_context
 #define sha256_16way_init                  sha256_16x32_init
 #define sha256_16way_update                sha256_16x32_update
 #define sha256_16way_close                 sha256_16x32_close
@@ -162,7 +155,7 @@ int sha256_16x32_transform_le_short( __m512i *state_out, const __m512i *data,
 
 #if defined (__AVX2__)
 
-// SHA-256 8 way
+// SHA-256 8 way x86_64
 
 typedef struct
 {
@@ -201,7 +194,7 @@ int sha256_8x32_transform_le_short( __m256i *state_out, const __m256i *data,
 
 #endif  // AVX2
 
-// SHA-256 4 way
+// SHA-256 4 way x86_64 with SSE2 or AArch64 with NEON
 
 typedef struct
 {

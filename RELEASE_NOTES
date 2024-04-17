@@ -75,6 +75,15 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v24.1
+
+#414: fix bug in merkle error handling.
+#416: change $nproc to $(nproc) in build scripts.
+#420: change some inline function definitions to static inline. 
+#413: Fix formatting error for share result log when using no-color.
+Faster 2 way interleaving.
+Cleanup sha256 architecture targetting.
+
 v23.15
 
 Fixed x11gost (sib) algo for all architectures, broken in v3.23.4.
