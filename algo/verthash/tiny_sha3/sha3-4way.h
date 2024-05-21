@@ -37,7 +37,7 @@ int sha3_4way_final( void *md, sha3_4way_ctx_t *c );    // digest goes to md
 void *sha3_4way( const void *in, size_t inlen, void *md, int mdlen );
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // state context
 typedef struct

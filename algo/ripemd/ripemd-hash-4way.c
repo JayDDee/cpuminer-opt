@@ -35,13 +35,13 @@ static const uint32_t IV[5] =
    _mm_xor_si128( _mm_and_si128( _mm_xor_si128( y, z ), x ), z )
 
 #define F3(x, y, z) \
-   _mm_xor_si128( _mm_or_si128( x, v128_not( y ) ), z )
+   _mm_xor_si128( v128_ornot( y, x ), z )
 
 #define F4(x, y, z) \
    _mm_xor_si128( _mm_and_si128( _mm_xor_si128( x, y ), z ), y )
 
 #define F5(x, y, z) \
-   _mm_xor_si128( x, _mm_or_si128( y, v128_not( z ) ) )
+   _mm_xor_si128( x, v128_ornot( z, y ) )
 
 #define RR(a, b, c, d, e, f, s, r, k) \
 do{ \
@@ -335,13 +335,13 @@ void ripemd160_4way_close( ripemd160_4way_context  *sc, void *dst )
    _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( y, z ), x ), z )
 
 #define F8W_3(x, y, z) \
-   _mm256_xor_si256( _mm256_or_si256( x, mm256_not( y ) ), z )
+   _mm256_xor_si256( mm256_ornot( y, x ), z )
 
 #define F8W_4(x, y, z) \
    _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( x, y ), z ), y )
 
 #define F8W_5(x, y, z) \
-   _mm256_xor_si256( x, _mm256_or_si256( y, mm256_not( z ) ) )
+   _mm256_xor_si256( x, mm256_ornot( z, y ) )
 
 #define RR_8W(a, b, c, d, e, f, s, r, k) \
 do{ \
@@ -625,7 +625,7 @@ void ripemd160_8way_close( ripemd160_8way_context  *sc, void *dst )
 
 #endif // __AVX2__
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 //  RIPEMD-160 16 way
 

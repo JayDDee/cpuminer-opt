@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "algo-gate-api.h"
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define SHA256D_16WAY 1
 #elif defined(__SHA__)
   #define SHA256D_SHA 1

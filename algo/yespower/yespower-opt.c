@@ -93,12 +93,12 @@ typedef union
 #if defined(__AVX2__)
    __m256i m256[2];
 #endif
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(YESPOWER_USE_AVX512) && defined(SIMD512)
    __m512i m512;
 #endif
 } salsa20_blk_t;
 
-#if defined(YESPOWER_USE_AVX512) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(YESPOWER_USE_AVX512) && defined(SIMD512)
 // Slow
 
 static const __m512i simd_shuffle_index = 
@@ -114,7 +114,7 @@ static const __m512i simd_unshuffle_index =
 
 #elif defined(__AVX2__)
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 // alternative when not using 512 bit vectors
 
 static const __m256i simd_shuffle_index =
@@ -138,13 +138,13 @@ static const __m256i simd_shuffle_index =
 static inline void salsa20_simd_shuffle(const salsa20_blk_t *Bin,
     salsa20_blk_t *Bout)
 {
-#if defined(YESPOWER_USE_AVX512) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(YESPOWER_USE_AVX512) && defined(SIMD512)
   
   Bout->m512 = _mm512_permutexvar_epi32( simd_shuffle_index, Bin->m512 );
 
 #elif defined(__AVX2__)
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
   Bout->m256[0] = _mm256_permutex2var_epi32( Bin->m256[0], simd_shuffle_index,
                                              Bin->m256[1] );
@@ -193,13 +193,13 @@ static inline void salsa20_simd_shuffle(const salsa20_blk_t *Bin,
 static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
     salsa20_blk_t *Bout)
 {
-#if defined(YESPOWER_USE_AVX512) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(YESPOWER_USE_AVX512) && defined(SIMD512)
 
   Bout->m512 = _mm512_permutexvar_epi32( simd_unshuffle_index, Bin->m512 );    
 
 #elif defined(__AVX2__)
   
-#if defined(__AVX512VL__)
+#if defined(VL256)
   
   Bout->m256[0] = _mm256_permutex2var_epi32( Bin->m256[0], simd_unshuffle_index,
                                              Bin->m256[1] );
@@ -318,7 +318,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 
 
 // AVX512 ternary logic optimization
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 #define XOR_X_XOR_X( in1, in2 ) \
  X0 =  _mm_ternarylogic_epi32( X0, (in1).m128[0], (in2).m128[0], 0x96 ); \
@@ -335,7 +335,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 #endif
 
 // General vectored optimizations
-#if defined(YESPOWER_USE_AVX512) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(YESPOWER_USE_AVX512) && defined(SIMD512)
 
 #define READ_X( in ) \
   X.m512 = (in).m512;
@@ -379,7 +379,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
   X.m256[0] = (in).m256[0]; \
   X.m256[1] = (in).m256[1];
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 #define XOR_X_2_XOR_X( in1, in2, in3 ) \
    X.m256[0] = _mm256_ternarylogic_epi32( (in1).m256[0], (in2).m256[0], \

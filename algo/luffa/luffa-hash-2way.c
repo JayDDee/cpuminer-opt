@@ -59,7 +59,7 @@ static const uint32_t CNS_INIT[128] __attribute((aligned(64))) = {
 };
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 #define cns4w(i)  mm512_bcast_m128( ( (__m128i*)CNS_INIT)[i] )
 
@@ -524,8 +524,7 @@ int luffa_4way_update_close( luffa_4way_context *state,
     a = _mm256_xor_si256( a, c0 ); \
     b = _mm256_xor_si256( b, c1 );
 
-//TODO Enable for AVX10_256, not used with AVX512 or AVX10_512
-#if defined(__AVX512VL__) 
+#if defined(VL256) 
 
 #define MULT2( a0, a1 ) \
 { \

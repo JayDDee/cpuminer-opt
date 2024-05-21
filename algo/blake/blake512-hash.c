@@ -349,16 +349,16 @@ void blake512_transform( uint64_t *H, const uint64_t *buf, const uint64_t T0,
    Va = v128_add64( Va, v128_add64( Vb, \
                             v128_set64( CBx( r, Sd ) ^ Mx( r, Sc ), \
                                         CBx( r, Sb ) ^ Mx( r, Sa ) ) ) ); \
-   Vd = v128_ror64( v128_xor( Vd, Va ), 32 ); \
+   Vd = v128_ror64xor( Vd, Va, 32 ); \
    Vc = v128_add64( Vc, Vd ); \
-   Vb = v128_ror64( v128_xor( Vb, Vc ), 25 ); \
+   Vb = v128_ror64xor( Vb, Vc, 25 ); \
 \
    Va = v128_add64( Va, v128_add64( Vb, \
                             v128_set64( CBx( r, Sc ) ^ Mx( r, Sd ), \
                                         CBx( r, Sa ) ^ Mx( r, Sb ) ) ) ); \
-   Vd = v128_ror64( v128_xor( Vd, Va ), 16 ); \
+   Vd = v128_ror64xor( Vd, Va, 16 ); \
    Vc = v128_add64( Vc, Vd ); \
-   Vb = v128_ror64( v128_xor( Vb, Vc ), 11 ); \
+   Vb = v128_ror64xor( Vb, Vc, 11 ); \
 }
 
 #define BLAKE512_ROUND( R ) \
@@ -559,7 +559,7 @@ void blake512_full( blake512_context *sc, void *dst, const void *data,
 
 #if defined(__AVX2__)
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 ////////////////////////////////////
 //
@@ -1887,13 +1887,13 @@ blake512_4x64_close(void *cc, void *dst)
 #define GB_2X64( m0, m1, c0, c1, a, b, c, d ) \
 { \
    a = v128_add64( v128_add64( v128_xor( v128_64( c1 ), m0 ), b ), a ); \
-   d = v128_ror64( v128_xor( d, a ), 32 ); \
+   d = v128_ror64xor( d, a, 32 ); \
    c = v128_add64( c, d ); \
-   b = v128_ror64( v128_xor( b, c ), 25 ); \
+   b = v128_ror64xor( b, c, 25 ); \
    a = v128_add64( v128_add64( v128_xor( v128_64( c0 ), m1 ), b ), a ); \
-   d = v128_ror64( v128_xor( d, a ), 16 ); \
+   d = v128_ror64xor( d, a, 16 ); \
    c = v128_add64( c, d ); \
-   b = v128_ror64( v128_xor( b, c ), 11 ); \
+   b = v128_ror64xor( b, c, 11 ); \
 }
 
 #define ROUND_B_2X64(r) \
@@ -2054,9 +2054,9 @@ void blake512_2x64_prehash_part1_le( blake_2x64_big_context *sc,
    // G4 skip nonce
    V0 = v128_add64( v128_add64( v128_xor( v128_64( CB9 ), sc->buf[ 8] ), V5 ),
                                           V0 );
-   VF = v128_ror64( v128_xor( VF, V0 ), 32 );
+   VF = v128_ror64xor( VF, V0, 32 );
    VA = v128_add64( VA, VF );
-   V5 = v128_ror64( v128_xor( V5, VA ), 25 );
+   V5 = v128_ror64xor( V5, VA, 25 );
    V0 = v128_add64( V0, V5 );
 
    GB_2X64( sc->buf[10], sc->buf[11], CBA, CBB, V1, V6, VB, VC );
@@ -2137,9 +2137,9 @@ void blake512_2x64_prehash_part2_le( blake_2x64_big_context *sc, void *hash,
 
    // finish round 0, with the nonce now available 
    V0 = v128_add64( V0, v128_xor( v128_64( CB8 ), M9 ) );
-   VF = v128_ror64( v128_xor( VF, V0 ), 16 );
+   VF = v128_ror64xor( VF, V0, 16 );
    VA = v128_add64( VA, VF );
-   V5 = v128_ror64( v128_xor( V5, VA ), 11 );
+   V5 = v128_ror64xor( V5, VA, 11 );
 
    // Round 1
    // G0
@@ -2147,34 +2147,34 @@ void blake512_2x64_prehash_part2_le( blake_2x64_big_context *sc, void *hash,
 
    // G1
    V1 = v128_add64( V1, V5 );
-   VD = v128_ror64( v128_xor( VD, V1 ), 32 );
+   VD = v128_ror64xor( VD, V1, 32 );
    V9 = v128_add64( V9, VD );
-   V5 = v128_ror64( v128_xor( V5, V9 ), 25 );
+   V5 = v128_ror64xor( V5, V9, 25 );
    V1 = v128_add64( V1, v128_add64( v128_xor( v128_64( CBx(1,2) ), Mx(1,3) ),
                                               V5 ) );
-   VD = v128_ror64( v128_xor( VD, V1 ), 16 );
+   VD = v128_ror64xor( VD, V1, 16 );
    V9 = v128_add64( V9, VD );
-   V5 = v128_ror64( v128_xor( V5, V9 ), 11 );
+   V5 = v128_ror64xor( V5, V9, 11 );
 
    // G2
    V2 = v128_add64( V2, v128_xor( v128_64( CBF ), M9 ) );
-   VE = v128_ror64( v128_xor( VE, V2 ), 32 );
+   VE = v128_ror64xor( VE, V2, 32 );
    VA = v128_add64( VA, VE );
-   V6 = v128_ror64( v128_xor( V6, VA ), 25 );
+   V6 = v128_ror64xor( V6, VA, 25 );
    V2 = v128_add64( V2, v128_add64( v128_xor( v128_64( CB9 ), MF ), V6 ) );
-   VE = v128_ror64( v128_xor( VE, V2 ), 16 );
+   VE = v128_ror64xor( VE, V2, 16 );
    VA = v128_add64( VA, VE );
-   V6 = v128_ror64( v128_xor( V6, VA ), 11 );
+   V6 = v128_ror64xor( V6, VA, 11 );
 
    // G3
-   VF = v128_ror64( v128_xor( VF, V3 ), 32 );
+   VF = v128_ror64xor( VF, V3, 32 );
    VB = v128_add64( VB, VF );
-   V7 = v128_ror64( v128_xor( V7, VB ), 25 );
+   V7 = v128_ror64xor( V7, VB, 25 );
    V3 = v128_add64( V3, v128_add64( v128_xor( v128_64( CBx(1, 6) ), Mx(1, 7) ),
                                               V7 ) );
-   VF = v128_ror64( v128_xor( VF, V3 ), 16 );
+   VF = v128_ror64xor( VF, V3, 16 );
    VB = v128_add64( VB, VF );
-   V7 = v128_ror64( v128_xor( V7, VB ), 11 );
+   V7 = v128_ror64xor( V7, VB, 11 );
 
    // G4, G5, G6, G7
    GB_2X64(Mx(1, 8), Mx(1, 9), CBx(1, 8), CBx(1, 9), V0, V5, VA, VF);

@@ -41,7 +41,7 @@
 //  lyra2z330, lyra2h, 
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 /**
  * Executes Lyra2 based on the G function from Blake2b. This version supports salts and passwords

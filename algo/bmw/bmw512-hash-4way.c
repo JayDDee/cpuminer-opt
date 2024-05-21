@@ -950,7 +950,7 @@ bmw512_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
 
 #endif  // __AVX2__
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // BMW-512 8 WAY
 

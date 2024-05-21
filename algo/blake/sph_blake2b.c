@@ -101,15 +101,15 @@
 { \
    Va = v128_add64( Va, v128_add64( Vb, \
                  v128_set64( m[ sigmaR[ Sc ] ], m[ sigmaR[ Sa ] ] ) ) ); \
-   Vd = v128_ror64( v128_xor( Vd, Va ), 32 ); \
+   Vd = v128_ror64xor( Vd, Va, 32 ); \
    Vc = v128_add64( Vc, Vd ); \
-   Vb = v128_ror64( v128_xor( Vb, Vc ), 24 ); \
+   Vb = v128_ror64xor( Vb, Vc, 24 ); \
 \
    Va = v128_add64( Va, v128_add64( Vb, \
                  v128_set64( m[ sigmaR[ Sd ] ], m[ sigmaR[ Sb ] ] ) ) ); \
-   Vd = v128_ror64( v128_xor( Vd, Va ), 16 ); \
+   Vd = v128_ror64xor( Vd, Va, 16 ); \
    Vc = v128_add64( Vc, Vd ); \
-   Vb = v128_ror64( v128_xor( Vb, Vc ), 63 ); \
+   Vb = v128_ror64xor( Vb, Vc, 63 ); \
 }
 
 #define BLAKE2B_ROUND( R ) \

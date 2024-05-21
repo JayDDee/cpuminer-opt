@@ -68,4 +68,4 @@ int update_and_final_luffa( hashState_luffa *state, void* output,
 
 int luffa_full( hashState_luffa *state, void* output, int hashbitlen,
                                    const void* data, size_t inlen );
-#endif   // LUFFA_FOR_SSE2_H___
+#endif   // LUFFA_FOR_SSE2_H__

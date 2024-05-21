@@ -75,6 +75,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v24.2
+
+x86_64: Fixed blakes2s for AVX2 & AVX512, x25x for AVX512, broken in v3.23.4.
+x86_64: Initial support for CPUs with AVX10, needs GCC-14.
+ARM NEON: Various code optimisations.
+
 v24.1
 
 #414: fix bug in merkle error handling.

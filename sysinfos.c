@@ -436,19 +436,40 @@ static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 #warning "__ARM_NEON"
 #endif
 #ifdef __ARM_FEATURE_CRYPTO
-#warning "___ARM_FEATURE_CRYPTO"
+#warning "__ARM_FEATURE_CRYPTO"
 #endif
 #ifdef __ARM_FEATURE_AES
-#warning "___ARM_FEATURE_AES"
+#warning "__ARM_FEATURE_AES"
 #endif
 #ifdef __ARM_FEATURE_SHA2
-#warning "___ARM_FEATURE_SHA2"
+#warning "__ARM_FEATURE_SHA2"
 #endif
 #ifdef __ARM_FEATURE_SHA3
-#warning "___ARM_FEATURE_SHA3"
+#warning "__ARM_FEATURE_SHA3"
 #endif
 */
 
+// GCC-14.1: the AVX512 macros are defined even when compiled with only
+// -mavx10.1-256, causing compile errors in AVX512 code. Only with
+// -mavx10.1-512 does it compile successfully.
+// __EVEX512__ is set only when compiled with -mavx10.1-512.
+// Adding -fno-evex512 doesn't help.
+// Building with -mapxf fails to configure on a CPU without APX because it can
+// run the test program.
+/*
+#ifdef __AVX10_1__
+#warning "__AVX10_1__"
+#endif
+#ifdef __AVX10_1_256__
+#warning "__AVX10_1_256__"
+#endif
+#ifdef __AVX10_1_512__
+#warning "__AVX10_1_512__"
+#endif
+#ifdef __EVEX512__
+#warning "__EVEX512__"
+#endif
+*/
 
 
 // Typical display format: AVX10.[version]_[vectorlength], if vector length is

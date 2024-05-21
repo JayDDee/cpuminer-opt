@@ -204,7 +204,7 @@ static const uint64_t IV512[] =
       (state)->H[15] = h7l; \
    } while (0)
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 #define Sb_8W(x0, x1, x2, x3, c) \
 { \
@@ -364,8 +364,7 @@ static const uint64_t IV512[] =
 
 #if defined(__AVX2__)
 
-#if defined(__AVX512VL__)
-//TODO enable for AVX10_256, not used with AVX512VL
+#if defined(VL256)
 
 #define notxorandnot( a, b, c ) \
    _mm256_ternarylogic_epi64( a, b, c, 0x2d )
@@ -522,7 +521,7 @@ static const uint64_t IV512[] =
 
 #endif   // AVX2
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 void jh256_8x64_init( jh_8x64_context *sc )
 {

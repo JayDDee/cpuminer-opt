@@ -21,7 +21,7 @@
 #include "blake2-impl.h"
 #include "simd-utils.h"
 
-#if !defined(__AVX512F__)
+#if !defined(SIMD512)
 
 #if !defined(__AVX2__)
 

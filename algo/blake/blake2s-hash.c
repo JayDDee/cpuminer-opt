@@ -497,7 +497,7 @@ int blake2s_8way_full_blocks( blake2s_8way_state *S, void *out,
 
 #endif // __AVX2__
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // Blake2s-256 16 way
 

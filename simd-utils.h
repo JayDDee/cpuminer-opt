@@ -139,6 +139,43 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
+
+// SIMD512: Use 512, 256 & 128 bit vectors, excludes AVX512VBMI
+// VL256: Include AVX512VL instructions on 256 & 128 bit vectors
+// VBMI: Include AVX512VBMI instructions on all vectors.
+
+// AVX10 can exist without support for 512 bit vectors.
+#if defined(__AVX10_1_512__)
+  #define SIMD512 1
+#elif !defined(__AVX10_1__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+   #define SIMD512 1
+#endif
+
+// AVX512VL instructions applied to 256 & 128 bit vectors is supported with 
+// either AVX512VL or any version of AVX10.
+#if defined(__AVX10_1__)
+  #define VL256 1
+#elif defined(__AVX512VL__)
+  #define VL256 1
+#endif
+
+// VBMI does not exist on early versions of AVX512
+#if defined(__AVX10_1__) || defined(__AVX512VBMI__)
+  #define VBMI 1
+#endif
+
+/*
+#if defined(SIMD512)
+#warning "SIMD512"
+#endif
+#if defined(VBMI)
+#warning "VBMI"
+#endif
+#if defined(VL256)
+#warning "VL256"
+#endif
+*/
 
 #if defined(__x86_64__)
 

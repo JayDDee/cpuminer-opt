@@ -43,7 +43,7 @@
 
 #define SIZE256 (SIZE_512/16)
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 typedef struct {
   __attribute__ ((aligned (128))) __m512i chaining[SIZE256];

@@ -51,7 +51,7 @@
 #endif
 
 // X16R, X16S
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define X16R_8WAY   1
 #elif defined(__AVX2__) && defined(__AES__)
   #define X16R_4WAY   1
@@ -59,7 +59,7 @@
   #define X16R_2WAY   1
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define X16RV2_8WAY 1
 #elif defined(__AVX2__) && defined(__AES__)
   #define X16RV2_4WAY 1
@@ -68,7 +68,7 @@
 #endif
 
 // X16RT, VEIL
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define X16RT_8WAY  1
 #elif defined(__AVX2__) && defined(__AES__)
   #define X16RT_4WAY  1
@@ -76,7 +76,7 @@
   #define X16RT_2WAY  1
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define X21S_8WAY   1
 #elif defined(__AVX2__) && defined(__AES__)
   #define X21S_4WAY   1

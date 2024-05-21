@@ -803,8 +803,7 @@ static const m256_v16 FFT256_Twiddle[] =
 
 #define shufxor2w(x,s)      XCAT(SHUFXOR_,s)(x)
 
-#if defined(__AVX512VL__)
-//TODO Enable for AVX10_256
+#if defined(VL256)
 
 #define REDUCE(x) \
   _mm256_sub_epi16( _mm256_maskz_mov_epi8( 0x55555555, x ), \
@@ -1500,7 +1499,7 @@ int simd512_2way( void *hashval, const void *data, int datalen )
 
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 ////////////////////////////////////
 //

@@ -4,7 +4,7 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define BMW512_8WAY 1
 #elif defined(__AVX2__)
   #define BMW512_4WAY 1

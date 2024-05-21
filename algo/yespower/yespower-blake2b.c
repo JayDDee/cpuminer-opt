@@ -259,7 +259,7 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 #define WRITE_X(out) \
     (out).q[0] = X0; (out).q[1] = X1; (out).q[2] = X2; (out).q[3] = X3;
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 #define ARX(out, in1, in2, s) \
    out = _mm_xor_si128(out, _mm_rol_epi32(_mm_add_epi32(in1, in2), s));

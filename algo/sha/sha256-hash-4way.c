@@ -580,7 +580,7 @@ void sha256_4x32_full( void *dst, const void *data, size_t len )
 // to avoid recalculating it as Y^Z. This optimization is not applicable
 // when MAJ is optimized with ternary logic.
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 #define CHx(X, Y, Z)    _mm256_ternarylogic_epi32( X, Y, Z, 0xca )
 
@@ -788,7 +788,7 @@ void sha256_8way_prehash_3rounds( __m256i *state_mid, __m256i *X,
    G = _mm256_load_si256( state_in + 6 );
    H = _mm256_load_si256( state_in + 7 );
 
-#if !defined(__AVX512VL__)
+#if !defined(VL256)
    __m256i X_xor_Y, Y_xor_Z = _mm256_xor_si256( B, C );
 #endif
 
@@ -830,7 +830,7 @@ void sha256_8way_final_rounds( __m256i *state_out, const __m256i *data,
    G = _mm256_load_si256( state_mid + 6 );
    H = _mm256_load_si256( state_mid + 7 );
 
-#if !defined(__AVX512VL__)
+#if !defined(VL256)
    __m256i X_xor_Y, Y_xor_Z = _mm256_xor_si256( F, G );
 #endif
 
@@ -936,7 +936,7 @@ int sha256_8way_transform_le_short( __m256i *state_out, const __m256i *data,
    const __m256i IV7 = H;
    const __m256i IV6 = G;
 
-#if !defined(__AVX512VL__)
+#if !defined(VL256)
    __m256i X_xor_Y, Y_xor_Z = _mm256_xor_si256( B, C );
 #endif
 
@@ -981,7 +981,7 @@ int sha256_8way_transform_le_short( __m256i *state_out, const __m256i *data,
    W[11] = SHA256_8WAY_MEXP( W[ 9], W[ 4], W[12], W[11] );
    W[12] = SHA256_8WAY_MEXP( W[10], W[ 5], W[13], W[12] );
 
-#if !defined(__AVX512VL__)
+#if !defined(VL256)
    Y_xor_Z = _mm256_xor_si256( B, C );
 #endif
 
@@ -1172,7 +1172,7 @@ void sha256_8way_full( void *dst, const void *data, size_t len )
    sha256_8way_close( &ctx, dst );
 }
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // SHA-256 16 way
 

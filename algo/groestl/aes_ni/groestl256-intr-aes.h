@@ -95,7 +95,7 @@ static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
    This implementation costs 7.7 c/b giving total speed on SNB: 10.7c/b.
    K. Matusiewicz, 2011/05/29 */
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 #define MixBytes(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* t_i = a_i + a_{i+1} */\

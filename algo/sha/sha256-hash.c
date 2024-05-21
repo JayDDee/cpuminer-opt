@@ -10,6 +10,28 @@ static const uint32_t SHA256_IV[8] =
 
 #if defined(__x86_64__) && defined(__SHA__)
 
+
+/* common code used for rounds 12 through 51  */
+
+#define sha256_generic_qround( s0, s1, m, a, b, c ) \
+    TMP = _mm_alignr_epi8( a, c, 4 ); \
+    s1 = _mm_sha256rnds2_epu32( s1, s0, m ); \
+    b  = _mm_add_epi32( b, TMP ); \
+    b  = _mm_sha256msg2_epu32( b, a ); \
+    m  = _mm_shuffle_epi32( m, 0x0e ); \
+    s0 = _mm_sha256rnds2_epu32( s0, s1, m ); \
+    c  = _mm_sha256msg1_epu32( c, a );
+
+// r12-15      
+// sha256_generic_qround( s0, s1, m, t3, t0, t2 )
+// r16-19
+// sha256_generic_qround( s0, s1, m, t0, t1, t3 )
+// r20-23
+// sha256_generic_qround( s0, s1, m, t1, t2, t0 ) 
+// r24-27
+// sha256_generic_qround( s0, s1, m, t2, t3, t1 ) ... 
+
+
 #define sha256_opt_rounds( state_out, input, state_in ) \
 { \
     __m128i STATE0, STATE1; \
@@ -887,14 +909,14 @@ static const uint32_t K256[64] =
 
 #define sha256_neon_rounds( state_out, input, state_in ) \
 { \
-    uint32x4_t STATE0, STATE1, ABEF_SAVE, CDGH_SAVE; \
+    uint32x4_t STATE0, STATE1, ABCD_SAVE, EFGH_SAVE; \
     uint32x4_t MSG0, MSG1, MSG2, MSG3; \
     uint32x4_t TMP0, TMP1, TMP2; \
 \
     STATE0 = vld1q_u32( state_in   ); \
     STATE1 = vld1q_u32( state_in+4 ); \
-    ABEF_SAVE = STATE0; \
-    CDGH_SAVE = STATE1; \
+    ABCD_SAVE = STATE0; \
+    EFGH_SAVE = STATE1; \
 \
     MSG0 = load_msg( input, 0 ); \
     MSG1 = load_msg( input, 1 ); \
@@ -1004,8 +1026,8 @@ static const uint32_t K256[64] =
     TMP2 = STATE0; \
     STATE0 = vsha256hq_u32( STATE0, STATE1, TMP1 ); \
     STATE1 = vsha256h2q_u32( STATE1, TMP2, TMP1 ); \
-    STATE0 = vaddq_u32( STATE0, ABEF_SAVE ); \
-    STATE1 = vaddq_u32( STATE1, CDGH_SAVE ); \
+    STATE0 = vaddq_u32( STATE0, ABCD_SAVE ); \
+    STATE1 = vaddq_u32( STATE1, EFGH_SAVE ); \
     vst1q_u32( state_out  , STATE0 ); \
     vst1q_u32( state_out+4, STATE1 ); \
 }
@@ -1029,8 +1051,8 @@ void sha256_neon_sha_transform_le( uint32_t *state_out, const void *input,
 #define sha256_neon_x2sha_rounds( state_out_X, state_out_Y, input_X, \
                               input_Y, state_in_X, state_in_Y ) \
 { \
-    uint32x4_t STATE0_X, STATE1_X, ABEF_SAVE_X, CDGH_SAVE_X; \
-    uint32x4_t STATE0_Y, STATE1_Y, ABEF_SAVE_Y, CDGH_SAVE_Y; \
+    uint32x4_t STATE0_X, STATE1_X, ABCD_SAVE_X, EFGH_SAVE_X; \
+    uint32x4_t STATE0_Y, STATE1_Y, ABCD_SAVE_Y, EFGH_SAVE_Y; \
     uint32x4_t MSG0_X, MSG1_X, MSG2_X, MSG3_X; \
     uint32x4_t MSG0_Y, MSG1_Y, MSG2_Y, MSG3_Y; \
     uint32x4_t TMP0_X, TMP1_X, TMP2_X; \
@@ -1040,10 +1062,10 @@ void sha256_neon_sha_transform_le( uint32_t *state_out, const void *input,
     STATE0_Y = vld1q_u32( state_in_Y   ); \
     STATE1_X = vld1q_u32( state_in_X+4 ); \
     STATE1_Y = vld1q_u32( state_in_Y+4 ); \
-    ABEF_SAVE_X = STATE0_X; \
-    ABEF_SAVE_Y = STATE0_Y; \
-    CDGH_SAVE_X = STATE1_X; \
-    CDGH_SAVE_Y = STATE1_Y; \
+    ABCD_SAVE_X = STATE0_X; \
+    ABCD_SAVE_Y = STATE0_Y; \
+    EFGH_SAVE_X = STATE1_X; \
+    EFGH_SAVE_Y = STATE1_Y; \
 \
     MSG0_X = load_msg( input_X, 0 ); \
     MSG0_Y = load_msg( input_Y, 0 ); \
@@ -1245,10 +1267,10 @@ void sha256_neon_sha_transform_le( uint32_t *state_out, const void *input,
     STATE0_Y = vsha256hq_u32( STATE0_Y, STATE1_Y, TMP1_Y ); \
     STATE1_X = vsha256h2q_u32( STATE1_X, TMP2_X, TMP1_X ); \
     STATE1_Y = vsha256h2q_u32( STATE1_Y, TMP2_Y, TMP1_Y ); \
-    STATE0_X = vaddq_u32( STATE0_X, ABEF_SAVE_X ); \
-    STATE0_Y = vaddq_u32( STATE0_Y, ABEF_SAVE_Y ); \
-    STATE1_X = vaddq_u32( STATE1_X, CDGH_SAVE_X ); \
-    STATE1_Y = vaddq_u32( STATE1_Y, CDGH_SAVE_Y ); \
+    STATE0_X = vaddq_u32( STATE0_X, ABCD_SAVE_X ); \
+    STATE0_Y = vaddq_u32( STATE0_Y, ABCD_SAVE_Y ); \
+    STATE1_X = vaddq_u32( STATE1_X, EFGH_SAVE_X ); \
+    STATE1_Y = vaddq_u32( STATE1_Y, EFGH_SAVE_Y ); \
     vst1q_u32( state_out_X  , STATE0_X ); \
     vst1q_u32( state_out_Y  , STATE0_Y ); \
     vst1q_u32( state_out_X+4, STATE1_X ); \

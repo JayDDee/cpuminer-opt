@@ -4,7 +4,7 @@
 #include "algo/gost/sph_gost.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "lyra2.h"
-#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(__VAES__) && defined(SIMD512)
   #include "algo/echo/echo-hash-4way.h"
 #elif defined(__AES__)
   #include "algo/echo/aes_ni/hash_api.h"

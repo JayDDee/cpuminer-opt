@@ -152,7 +152,7 @@ void *sha3_4way( const void *in, size_t inlen, void *md, int mdlen )
     return md;
 }
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 void sha3_8way_keccakf( __m512i st[25] )
 {

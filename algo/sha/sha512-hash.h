@@ -25,7 +25,7 @@ void sha512_opt_transform_le( uint64_t *state_out, const void *input,
 
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // SHA-512 8 way
 

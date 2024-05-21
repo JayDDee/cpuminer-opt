@@ -745,7 +745,7 @@ do{ \
    SALSA_2ROUNDS; SALSA_2ROUNDS; SALSA_2ROUNDS; SALSA_2ROUNDS;
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // Tested OK but very slow
 // 16 way parallel, requires 16x32 interleaving
@@ -2487,7 +2487,7 @@ static void salsa8_simd128_2buf( uint32_t * const ba, uint32_t * const bb,
    XA3 = BA[3] = v128_xor( BA[3], CA[3] );
    XB3 = BB[3] = v128_xor( BB[3], CB[3] );
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
              
    SALSA_8ROUNDS_SIMD128_2BUF;
 
@@ -2886,7 +2886,7 @@ static void salsa8_simd128_3buf( uint32_t *ba, uint32_t *bb, uint32_t *bc,
    XB3 = BB[3] = v128_xor( BB[3], CB[3] );
    XC3 = BC[3] = v128_xor( BC[3], CC[3] );
       
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
    
    SALSA_8ROUNDS_SIMD128_3BUF;
 

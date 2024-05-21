@@ -6,7 +6,7 @@
 
 #if defined(__AVX2__)
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 struct _cube_4way_context
 {

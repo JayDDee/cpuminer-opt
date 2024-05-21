@@ -207,12 +207,12 @@ static inline __m128i mm128_mov32_128( const uint32_t n )
 
 #endif
 
-// broadcast (replicate) lane l to all lanes
-#define v128_replane64( v, l ) \
+// Broadcast lane l to all lanes
+#define v128_duplane64( v, l ) \
    ( (l) == 0 ) ? _mm_shuffle_epi32( v, 0x44 ) \
                 : _mm_shuffle_epi32( v, 0xee )
 
-#define v128_replane32( v, l ) \
+#define v128_duplane32( v, l ) \
     ( (l) == 0 ) ? _mm_shuffle_epi32( v, 0x00 ) \
   : ( (l) == 1 ) ? _mm_shuffle_epi32( v, 0x55 ) \
   : ( (l) == 2 ) ? _mm_shuffle_epi32( v, 0xaa ) \
@@ -347,8 +347,7 @@ static inline __m128i v128_neg1_fn()
 // Basic operations without equivalent SIMD intrinsic
 
 // Bitwise not (~v)  
-#if defined(__AVX512VL__)
-//TODO Enable for AVX10_256
+#if defined(VL256)
 
 static inline __m128i v128_not( const __m128i v )
 {  return _mm_ternarylogic_epi64( v, v, v, 1 ); }
@@ -402,8 +401,10 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 {   for ( int i = 0; i < n; i ++ ) dst[i] = src[i]; }
 #define  memcpy_128           v128_memcpy  
 
-#if defined(__AVX512VL__)
-//TODO Enable for AVX10_256
+#if defined(VL256)
+
+// ~v1 | v0
+#define v128_ornot( v1, v0 )      _mm_ternarylogic_epi64( v1, v0, v0, 0xcf )
 
 // a ^ b ^ c
 #define v128_xor3( a, b, c )      _mm_ternarylogic_epi64( a, b, c, 0x96 )
@@ -434,6 +435,8 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 
 #else
 
+#define v128_ornot( v1, v0 )      _mm_or_si128( v1, v128_not( v0 ) )
+
 #define v128_xor3( a, b, c )      _mm_xor_si128( a, _mm_xor_si128( b, c ) )
 
 #define v128_and3( a, b, c )      _mm_and_si128( a, _mm_and_si128( b, c ) )
@@ -454,7 +457,6 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 
 #endif
 
-#define v128_ornot( a, b )             _mm_or_si128( a, v128_not( b ) )
 
 // Mask making
 // Equivalent of AVX512 _mm_movepi64_mask & _mm_movepi32_mask.
@@ -494,7 +496,7 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 #define v128_rol32_sse2( v, c ) \
    _mm_or_si128( _mm_slli_epi32( v, c ), _mm_srli_epi32( v, 32-(c) ) )
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 // AVX512 fastest for all rotations.
 #define v128_ror64                _mm_ror_epi64
@@ -609,13 +611,15 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 // deprecated
 #define mm128_rol_32        v128_rol32
 
+// ror( v1 ^ v0, n )
+#define v128_ror64xor( v1, v0, n )  v128_ror64( v128_xor( v1, v0 ), n ) 
+
 /* not used
 // x2 rotates elements in 2 individual vectors in a double buffered
 // optimization for SSE2, does nothing for AVX512 but is there for
 // transparency.
 
-#if defined(__AVX512VL__)
-//TODO Enable for AVX10_256
+#if defined(VL256)
 
 #define v128_2ror64( v1, v0, c ) \
    _mm_ror_epi64( v0, c ); \
@@ -917,10 +921,8 @@ static inline void mm128_block_bswap32_512( __m128i *d, const __m128i *s )
 #define v128_block_bswap32             mm128_block_bswap_32
 #define v128_block_bswap64             mm128_block_bswap_64
 
-
 // alignr instruction for 32 & 64 bit elements is only available with AVX512
 // but emulated here. Behaviour is consistent with Intel alignr intrinsics.
-
 #if defined(__SSSE3__)
 
 #define v128_alignr8                   _mm_alignr_epi8
@@ -928,6 +930,9 @@ static inline void mm128_block_bswap32_512( __m128i *d, const __m128i *s )
 #define v128_alignr32( hi, lo, c )     _mm_alignr_epi8( hi, lo, (c)*4 )
 
 #else
+
+#define v128_alignr8( hi, lo, c ) \
+   _mm_or_si128( _mm_slli_si128( hi, c ), _mm_srli_si128( lo, c ) )
 
 #define v128_alignr64( hi, lo, c ) \
    _mm_or_si128( _mm_slli_si128( hi, (c)*8 ), _mm_srli_si128( lo, (c)*8 ) )
@@ -937,12 +942,15 @@ static inline void mm128_block_bswap32_512( __m128i *d, const __m128i *s )
 
 #endif
 
+// blend using vector mask
 #if defined(__SSE4_1__)
 
+// Bytewise using sign bit of each byte element of mask
 #define v128_blendv                    _mm_blendv_epi8
 
 #else
 
+// Bitwise
 #define v128_blendv( v1, v0, mask ) \
    v128_or( v128_andnot( mask, v1 ), v128_and( mask, v0 ) )
 

@@ -298,7 +298,7 @@ static const uint64_t IV512[] = {
       sc->bcount = bcount;
    
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 #define TFBIG_KINIT_8WAY( k0, k1, k2, k3, k4, k5, k6, k7, k8, t0, t1, t2 ) \
   k8 = mm512_xor3( mm512_xor3( k0, k1, k2 ), \
@@ -511,7 +511,7 @@ do { \
 
 #endif  // AVX2
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 void skein256_8way_init( skein256_8way_context *sc )
 {

@@ -184,7 +184,7 @@ int scanhash_4way_64in_32out( struct work *work, uint32_t max_nonce,
 
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 //int scanhash_8way_64_64( struct work *work, uint32_t max_nonce,
 //                      uint64_t *hashes_done, struct thr_info *mythr )

@@ -99,8 +99,11 @@ typedef  uint32_t set_t;
 #define AES_OPT          1 <<  7   // Intel Westmere, AArch64
 #define VAES_OPT         1 <<  8   // Icelake, Zen3
 #define SHA_OPT          1 <<  9   // Zen1, Icelake, AArch64 
+#define SHA256_OPT       1 <<  9   // Zen1, Icelake, AArch64 
 #define SHA512_OPT       1 << 10   // Intel Arrow Lake, AArch64 
 #define NEON_OPT         1 << 11   // AArch64 
+#define AVX10_256        1 << 12
+#define AVX10_512        1 << 13
 
 // AVX10 does not have explicit algo features:
 //  AVX10_512 is compatible with AVX512 + VAES
@@ -246,7 +249,7 @@ int scanhash_4way_64in_32out( struct work *work, uint32_t max_nonce,
 
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 //int scanhash_8way_64in_64out( struct work *work, uint32_t max_nonce,
 //                      uint64_t *hashes_done, struct thr_info *mythr );

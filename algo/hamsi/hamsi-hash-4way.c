@@ -382,7 +382,7 @@ static const uint32_t T512[64][16] __attribute__ ((aligned (32))) =
 #define S1F   MF
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // Hamsi 8 way AVX512 
 
@@ -1122,7 +1122,7 @@ void hamsi512_8way_close( hamsi_8way_big_context *sc, void *dst )
 
 // Hamsi 4 way AVX2
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 #define INPUT_BIG \
 do { \
@@ -1501,7 +1501,7 @@ do { /* order is important */ \
    sc->h[14] = CE; \
    sc->h[15] = CF;
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 #define INPUT_8X32 \
 { \

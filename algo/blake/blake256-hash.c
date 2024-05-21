@@ -1611,7 +1611,7 @@ void blake256_8way_final_rounds_le( void *final_hash, const void *midstate,
 
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 ///////////////////////////////////////
 //
@@ -2617,7 +2617,7 @@ blake32_8way_close_le( blake_8way_small_context *sc, unsigned ub, unsigned n,
 #endif
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 //Blake-256 16 way AVX512
 

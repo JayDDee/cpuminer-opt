@@ -687,7 +687,7 @@ void FFT( const unsigned char input[EIGHTH_N], swift_int32_t *output )
 
    #undef ADD_SUB
 
-#if defined (__AVX512VL__) && defined(__AVX512BW__)   
+#if defined(VL256)   
 
    #define Q_REDUCE( a ) \
        _mm256_sub_epi32( _mm256_maskz_mov_epi8( 0x11111111, a ), \
@@ -1233,7 +1233,7 @@ void SWIFFTSum( const swift_int32_t *input, int m, unsigned char *output,
 	swift_int32_t result[N] __attribute__ ((aligned (64)));
 	register swift_int16_t carry = 0;
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
    __m512i *res = (__m512i*)result;
    for ( j = 0; j < N/16; ++j )

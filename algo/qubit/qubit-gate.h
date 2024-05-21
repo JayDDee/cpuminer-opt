@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define QUBIT_4WAY 1
 #elif defined(__AVX2__) && defined(__AES__)
   #define QUBIT_2WAY 1

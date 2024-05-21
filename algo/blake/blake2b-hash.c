@@ -226,7 +226,7 @@ static const uint8_t sigma[12][16] =
 #define Mx_(n)      Mx__(n)
 #define Mx__(n)     M ## n
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 #define B2B8W_G(a, b, c, d, x, y) \
 { \

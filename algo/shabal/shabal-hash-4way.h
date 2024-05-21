@@ -8,7 +8,7 @@
 
 #define SPH_SIZE_shabal512   512
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 typedef struct {
    __m512i buf[16];

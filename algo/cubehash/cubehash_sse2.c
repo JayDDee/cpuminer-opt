@@ -13,7 +13,7 @@ static void transform( cubehashParam *sp )
     int r;
     const int rounds = sp->rounds;
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
     register __m512i x0, x1;
 

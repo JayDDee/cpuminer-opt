@@ -35,7 +35,7 @@
 //#include <mm_malloc.h>
 #include "malloc-huge.h"
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define SCRYPT_THROUGHPUT 16
 #elif defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
   #define SCRYPT_THROUGHPUT 2
@@ -592,7 +592,7 @@ static inline void PBKDF2_SHA256_128_32_8way( uint32_t *tstate,
 
 #endif /* HAVE_SHA256_8WAY */
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 static inline void sha256_16way_init_state( void *state )
 {
@@ -1494,7 +1494,7 @@ bool register_scrypt_algo( algo_gate_t* gate )
 // scrypt_throughput defined at compile time and used to replace
 // MAX_WAYS to reduce memory usage.
    
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 //   scrypt_throughput = 16;
    if ( opt_param_n > 0x4000 )
       scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf

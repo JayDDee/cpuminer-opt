@@ -22,7 +22,7 @@
 #include "algo/sha/sph_sha2.h"
 #include "x16r-gate.h"
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define X20R_8WAY   1
 #elif defined(__AVX2__) && defined(__AES__)
   #define X20R_4WAY   1

@@ -30,8 +30,7 @@ static const uint32_t IV512[] =
 
 #endif
 
-#if defined (__AVX512VL__)
-//TODO Enable for AVX10_256
+#if defined (VL256)
 
 #define DECL_m256i_count \
    const __m256i count = \

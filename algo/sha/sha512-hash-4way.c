@@ -73,29 +73,10 @@ static const uint64_t K512[80] =
 
 // Experimental. Not tested. Not reviewed. Compile tested only.
 
-// Needs GCC-13 for compilation.
-// Needs Intel Lunar lake or Arrow Lake CPU, or AMD Zen-{5,6}? for execution.
+// Needs GCC-14 for compilation.
+// Needs Intel Lunarlake or Arrowlake CPU, or AMD Zen-6? for execution.
 // Modelled after noloader sha256 implementation.
 
-// It's not clear how SHA512 will be supported before AVX10 considering how
-// dependant it is on _mm256_alignr_epi64 which is only available with AVX512VL
-// until AVX10-256.
-
-#if defined(__AVX512VL__)
-
-#define mm256_alignr_1x64( v1, v0 )   _mm256_alignr_epi64( v1, v0, 1 )
-
-#else
-// Ugly workaround to make it work with AVX2
-
-static const __m256i mask __attribute__ ((aligned (32)))
-                          = { 0xffffffffffffffffull, 0ull, 0ull, 0ull };
-
-#define mm256_alignr_1x64( v1, v0 ) \
-  _mm256_or_si256( _mm256_and_si256( mm256_shuflr_64( v1 ),           mask  ), \
-                   _mm256_and_si256( mm256_shuflr_64( v0 ), mm256_not(mask) ) );
-
-#endif
 
 void sha512_opt_transform_be( uint64_t *state_out, const void *input,
                               const uint64_t *state_in )
@@ -109,7 +90,7 @@ void sha512_opt_transform_be( uint64_t *state_out, const void *input,
     TMP = _mm256_load_si256( (__m256i*) &state_in[0] );
     STATE1 = _mm256_load_si256( (__m256i*) &state_in[4] );
     BSWAP64 = mm256_bcast_m128( _mm_set_epi64x( 0x08090a0b0c0d0e0f,
-                                                0x0001020304050607 ) )
+                                                0x0001020304050607 ) );
     TMP = _mm256_permute4x64_epi64( TMP, 0xB1 );             // CDAB
     STATE1 = _mm256_permute4x64_epi64( STATE1, 0x1B );       // EFGH
     STATE0 = _mm256_permute2x128_si256( TMP, STATE1, 0x21 ); // ABEF
@@ -123,153 +104,233 @@ void sha512_opt_transform_be( uint64_t *state_out, const void *input,
     TMSG0 = _mm256_load_si256( (const __m256i*) (input+0) );
     TMSG0 = _mm256_shuffle_epi8( TMSG0, BSWAP64 );
     MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 0 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128 (MSG ) );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
 
     // Rounds 4-7
     TMSG1 = _mm256_load_si256( (const __m256i*) (input+16) );
     TMSG1 = _mm256_shuffle_epi8( TMSG1, BSWAP64 );
     MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 1 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                        _mm256_castsi256_si128( MSG ) );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, TMSG1 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, _mm256_castsi256_si128( TMSG1 ) );
 
     // Rounds 8-11
     TMSG2 = _mm256_load_si256( (const __m256i*) (input+32) );
     TMSG2 = _mm256_shuffle_epi8( TMSG2, BSWAP64 );
     MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 2 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, TMSG2 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, _mm256_castsi256_si128( TMSG2 ) );
 
     // Rounds 12-15
     TMSG3 = _mm256_load_si256( (const __m256i*) (input+48) );
     TMSG3 = _mm256_shuffle_epi8( TMSG3, BSWAP64 );
     MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 3 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = _mm256_shuffle2_64( TMSG3, TMSG2, 1 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_shuffle2_64( TMSG3, TMSG2, 1 );
     TMSG0 = _mm256_add_epi32( TMSG0, TMP );
     TMSG0 = _mm256_sha512msg2_epi64( TMSG0, TMSG3 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, TMSG3 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, _mm256_castsi256_si128( TMSG3 ) );
     
     // Rounds 16-19
     MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 4 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG0, TMSG3 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG0, TMSG3, 1 );
     TMSG1 = _mm256_add_epi64( TMSG1, TMP );
     TMSG1 = _mm256_sha512msg2_epi64( TMSG1, TMSG0 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, TMSG0 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, _mm256_castsi256_si128( TMSG0 ) );
 
     // Rounds 20-23
     MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 5 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG1, TMSG0 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG1, TMSG0, 1 );
     TMSG2 = _mm256_add_epi64( TMSG2, TMP );
     TMSG2 = _mm256_sha512msg2_epi64( TMSG2, TMSG1 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, TMSG1 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, _mm256_castsi256_si128( TMSG1 ) );
 
     // Rounds 24-27
     MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 6 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG2, TMSG1 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG2, TMSG1, 1 );
     TMSG3 = _mm256_add_epi32( TMSG3, TMP );
     TMSG3 = _mm256_sha512msg2_epi64( TMSG3, TMSG2 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, TMSG2 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, _mm256_castsi256_si128( TMSG2 ) );
     
     // Rounds 28-31
     MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 7 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG) ;
-    TMP = mm256_alignr_1x64( TMSG3, TMSG2 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG3, TMSG2, 1 );
     TMSG0 = _mm256_add_epi64( TMSG0, TMP );
     TMSG0 = _mm256_sha512msg2_epi64( TMSG0, TMSG3 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, TMSG3 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, _mm256_castsi256_si128( TMSG3 ) );
 
     // Rounds 32-35
     MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 8 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG0, TMSG3 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG0, TMSG3, 1 );
     TMSG1 = _mm256_add_epi64( TMSG1, TMP );
     TMSG1 = _mm256_sha512msg2_epi64( TMSG1, TMSG0 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, TMSG0 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, _mm256_castsi256_si128( TMSG0 ) );
 
     // Rounds 36-39
     MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 9 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG1, TMSG0 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG1, TMSG0, 1 );
     TMSG2 = _mm256_add_epi64( TMSG2, TMP );
     TMSG2 = _mm256_sha512msg2_epi64( TMSG2, TMSG1 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, TMSG1 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, _mm256_castsi256_si128( TMSG1 ) );
 
     // Rounds 40-43
     MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 10 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG2, TMSG1 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG2, TMSG1, 1 );
     TMSG3 = _mm256_add_epi64( TMSG3, TMP );
     TMSG3 = _mm256_sha512msg2_epi64( TMSG3, TMSG2 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, TMSG2 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, _mm256_castsi256_si128( TMSG2 ) );
 
     // Rounds 44-47
     MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 11 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG3, TMSG2 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG3, TMSG2, 1 );
     TMSG0 = _mm256_add_epi64( TMSG0, TMP );
     TMSG0 = _mm256_sha512msg2_epi64( TMSG0, TMSG3 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, TMSG3 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, _mm256_castsi256_si128( TMSG3 ) );
 
     // Rounds 48-51
     MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 12 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG0, TMSG3 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG0, TMSG3, 1 );
     TMSG1 = _mm256_add_epi64( TMSG1, TMP );
     TMSG1 = _mm256_sha512msg2_epi64( TMSG1, TMSG0 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, TMSG0 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, _mm256_castsi256_si128( TMSG0 ) );
 
     // Rounds 52-55
     MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 13 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG1, TMSG0 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG1, TMSG0, 1 );
     TMSG2 = _mm256_add_epi64( TMSG2, TMP );
     TMSG2 = _mm256_sha512msg2_epi64( TMSG2, TMSG1 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, _mm256_castsi256_si128( TMSG1 ) );
 
     // Rounds 56-59
     MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 14 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG2, TMSG1 ) ;
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG2, TMSG1, 1 );
     TMSG3 = _mm256_add_epi64( TMSG3, TMP );
     TMSG3 = _mm256_sha512msg2_epi64( TMSG3, TMSG2 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, _mm256_castsi256_si128( TMSG2 ) );
 
     // Rounds 60-63
     MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 15 ) );
-    STATE1 = _mm256_sha512nds2_epi64( STATE1, STATE0, MSG );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG3, TMSG2, 1 );
+    TMSG0 = _mm256_add_epi64( TMSG0, TMP );
+    TMSG0 = _mm256_sha512msg2_epi64( TMSG0, TMSG3 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, _mm256_castsi256_si128( TMSG3 ) );
+    
+    // Rounds 64-67
+    MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 16 ) );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG0, TMSG3, 1 );
+    TMSG1 = _mm256_add_epi64( TMSG1, TMP );
+    TMSG1 = _mm256_sha512msg2_epi64( TMSG1, TMSG0 );
+    MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, _mm256_castsi256_si128( TMSG0 ) );
+
+    // Rounds 68-71
+    MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 17 ) );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG1, TMSG0, 1 );
+    TMSG2 = _mm256_add_epi64( TMSG2, TMP );
+    TMSG2 = _mm256_sha512msg2_epi64( TMSG2, TMSG1 );
+    MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+
+    // Rounds 72-75
+    MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 18 ) );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG2, TMSG1, 1 );
+    TMSG3 = _mm256_add_epi64( TMSG3, TMP );
+    TMSG3 = _mm256_sha512msg2_epi64( TMSG3, TMSG2 );
+    MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
+
+    // Rounds 76-79
+    MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 19 ) );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
+                                       _mm256_castsi256_si128( MSG ) );
+    MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1,
+                                       _mm256_castsi256_si128( MSG ) );
 
     // Add initial state
     STATE0 = _mm256_add_epi64( STATE0, ABEF_SAVE );
@@ -289,7 +350,7 @@ void sha512_opt_transform_le( uint64_t *state_out, const void *input,
                               const uint64_t *state_in )
 {
     __m256i STATE0, STATE1;
-    __m256i MSG, TMP, BSWAP64;
+    __m256i MSG, TMP;
     __m256i TMSG0, TMSG1, TMSG2, TMSG3;
     __m256i ABEF_SAVE, CDGH_SAVE;
 
@@ -308,141 +369,190 @@ void sha512_opt_transform_le( uint64_t *state_out, const void *input,
     // Rounds 0-3
     TMSG0 = _mm256_load_si256( (const __m256i*) (input+0) );
     MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 0 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
 
     // Rounds 4-7
     TMSG1 = _mm256_load_si256( (const __m256i*) (input+16) );
     MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 1 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, TMSG1 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, _mm256_castsi256_si128( TMSG1 ) );
 
     // Rounds 8-11
     TMSG2 = _mm256_load_si256( (const __m256i*) (input+32) );
     MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 2 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, TMSG2 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, _mm256_castsi256_si128( TMSG2 ) );
 
     // Rounds 12-15
     TMSG3 = _mm256_load_si256( (const __m256i*) (input+48) );
     MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 3 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = _mm256_shuffle2_64( TMSG3, TMSG2, 1 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_shuffle2_64( TMSG3, TMSG2, 1 );
     TMSG0 = _mm256_add_epi32( TMSG0, TMP );
     TMSG0 = _mm256_sha512msg2_epi64( TMSG0, TMSG3 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, TMSG3 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, _mm256_castsi256_si128( TMSG3 ) );
 
     // Rounds 16-19
     MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 4 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG0, TMSG3 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG0, TMSG3, 1 );
     TMSG1 = _mm256_add_epi64( TMSG1, TMP );
     TMSG1 = _mm256_sha512msg2_epi64( TMSG1, TMSG0 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, TMSG0 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, _mm256_castsi256_si128( TMSG0 ) );
 
     // Rounds 20-23
     MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 5 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG1, TMSG0 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG1, TMSG0, 1 );
     TMSG2 = _mm256_add_epi64( TMSG2, TMP );
     TMSG2 = _mm256_sha512msg2_epi64( TMSG2, TMSG1 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, TMSG1 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, _mm256_castsi256_si128( TMSG1 ) );
 
     // Rounds 24-27
     MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 6 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG2, TMSG1 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG2, TMSG1, 1 );
     TMSG3 = _mm256_add_epi32( TMSG3, TMP );
     TMSG3 = _mm256_sha512msg2_epi64( TMSG3, TMSG2 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, TMSG2 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, _mm256_castsi256_si128( TMSG2 ) );
 
     // Rounds 28-31
     MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 7 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG) ;
-    TMP = mm256_alignr_1x64( TMSG3, TMSG2 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG3, TMSG2, 1 );
     TMSG0 = _mm256_add_epi64( TMSG0, TMP );
     TMSG0 = _mm256_sha512msg2_epi64( TMSG0, TMSG3 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, TMSG3 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, _mm256_castsi256_si128( TMSG3 ) );
 
     // Rounds 32-35
     MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 8 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG0, TMSG3 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG0, TMSG3, 1 );
     TMSG1 = _mm256_add_epi64( TMSG1, TMP );
     TMSG1 = _mm256_sha512msg2_epi64( TMSG1, TMSG0 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, TMSG0 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, _mm256_castsi256_si128( TMSG0 ) );
 
     // Rounds 36-39
     MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 9 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG1, TMSG0 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG1, TMSG0, 1 );
     TMSG2 = _mm256_add_epi64( TMSG2, TMP );
     TMSG2 = _mm256_sha512msg2_epi64( TMSG2, TMSG1 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, TMSG1 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, _mm256_castsi256_si128( TMSG1 ) );
 
     // Rounds 40-43
     MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 10 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG2, TMSG1 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG2, TMSG1, 1 );
     TMSG3 = _mm256_add_epi64( TMSG3, TMP );
     TMSG3 = _mm256_sha512msg2_epi64( TMSG3, TMSG2 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, TMSG2 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, _mm256_castsi256_si128( TMSG2 ) );
 
     // Rounds 44-47
     MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 11 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG3, TMSG2 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG3, TMSG2, 1 );
     TMSG0 = _mm256_add_epi64( TMSG0, TMP );
     TMSG0 = _mm256_sha512msg2_epi64( TMSG0, TMSG3 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, TMSG3 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, _mm256_castsi256_si128( TMSG3 ) );
 
     // Rounds 48-51
     MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 12 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG0, TMSG3 );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG0, TMSG3, 1 );
     TMSG1 = _mm256_add_epi64( TMSG1, TMP );
     TMSG1 = _mm256_sha512msg2_epi64( TMSG1, TMSG0 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
-    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, TMSG0 );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, _mm256_castsi256_si128( TMSG0 ) );
+
+    // Rounds 52-55
+    MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 13 ) );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG1, TMSG0, 1 );
+    TMSG2 = _mm256_add_epi64( TMSG2, TMP );
+    TMSG2 = _mm256_sha512msg2_epi64( TMSG2, TMSG1 );
+    MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG0 = _mm256_sha512msg1_epi64( TMSG0, _mm256_castsi256_si128( TMSG1 ) );
 
     // Rounds 56-59
     MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 14 ) );
-    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, MSG );
-    TMP = mm256_alignr_1x64( TMSG2, TMSG1 ) ;
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG2, TMSG1, 1 );
     TMSG3 = _mm256_add_epi64( TMSG3, TMP );
     TMSG3 = _mm256_sha512msg2_epi64( TMSG3, TMSG2 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG1 = _mm256_sha512msg1_epi64( TMSG1, _mm256_castsi256_si128( TMSG2 ) );
 
     // Rounds 60-63
     MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 15 ) );
-    STATE1 = _mm256_sha512nds2_epi64( STATE1, STATE0, MSG );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG3, TMSG2, 1 );
+    TMSG0 = _mm256_add_epi64( TMSG0, TMP );
+    TMSG0 = _mm256_sha512msg2_epi64( TMSG0, TMSG3 );
     MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
-    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, MSG );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG2 = _mm256_sha512msg1_epi64( TMSG2, _mm256_castsi256_si128( TMSG3 ) );
+
+    // Rounds 64-67
+    MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 16 ) );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG0, TMSG3, 1 );
+    TMSG1 = _mm256_add_epi64( TMSG1, TMP );
+    TMSG1 = _mm256_sha512msg2_epi64( TMSG1, TMSG0 );
+    MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+    TMSG3 = _mm256_sha512msg1_epi64( TMSG3, _mm256_castsi256_si128( TMSG0 ) );
+
+    // Rounds 68-71
+    MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 17 ) );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG1, TMSG0, 1 );
+    TMSG2 = _mm256_add_epi64( TMSG2, TMP );
+    TMSG2 = _mm256_sha512msg2_epi64( TMSG2, TMSG1 );
+    MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+
+    // Rounds 72-75
+    MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 18 ) );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    TMP = mm256_alignr64( TMSG2, TMSG1, 1 );
+    TMSG3 = _mm256_add_epi64( TMSG3, TMP );
+    TMSG3 = _mm256_sha512msg2_epi64( TMSG3, TMSG2 );
+    MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
+
+    // Rounds 76-79
+    MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 19 ) );
+    STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0, _mm256_castsi256_si128( MSG ) );
+    MSG = _mm256_permute4x64_epi64( MSG, 0x0E );
+    STATE0 = _mm256_sha512rnds2_epi64( STATE0, STATE1, _mm256_castsi256_si128( MSG ) );
 
     // Add initial state
     STATE0 = _mm256_add_epi64( STATE0, ABEF_SAVE );
@@ -462,7 +572,7 @@ void sha512_opt_transform_le( uint64_t *state_out, const void *input,
 #endif
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // SHA-512 8 way 64 bit
 
@@ -664,8 +774,7 @@ void sha512_8x64_ctx( sha512_8x64_context *sc, void *dst, const void *data,
                                     mm256_ror_64( x, 61 ), \
                                     _mm256_srli_epi64( x, 6 ) )
 
-#if defined(__AVX512VL__)
-//TODO Enable for AVX10_256
+#if defined(VL256)
 // 4 way is not used whith AVX512 but will be whith AVX10_256 when it
 // becomes available.
 
@@ -717,7 +826,7 @@ sha512_4x64_round( sha512_4x64_context *ctx,  __m256i *in, __m256i r[8] )
    int i;
    register __m256i A, B, C, D, E, F, G, H;
 
-#if !defined(__AVX512VL__)
+#if !defined(VL256)
 // Disable for AVX10_256
    __m256i X_xor_Y, Y_xor_Z;
 #endif
@@ -754,7 +863,7 @@ sha512_4x64_round( sha512_4x64_context *ctx,  __m256i *in, __m256i r[8] )
       H = v256_64( 0x5BE0CD19137E2179 );
    }
 
-#if !defined(__AVX512VL__)
+#if !defined(VL256)
 // Disable for AVX10_256
    Y_xor_Z = _mm256_xor_si256( B, C );
 #endif

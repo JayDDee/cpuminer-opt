@@ -14,7 +14,13 @@
 //   vectors. It is therefore not technically required for any 512 bit vector
 //   utilities defined below.
 
-#if defined(__x86_64__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+// if avx10   // avx512 is always set
+//      if evex512: yes   
+// else if avx512 : yes   // avx512 is set but not avx10
+// else           : no    // avx512 not set or avx10.1 is set without evex512
+
+
+#if defined(SIMD512)
 
 //  AVX512 intrinsics have a few changes from previous conventions.
 //
@@ -179,6 +185,9 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 //
 // Ternary logic uses 8 bit truth table to define any 3 input logical
 // expression using any number or combinations of AND, OR, XOR, NOT.
+
+// ~v1 | v0
+#define mm512_ornot( v1, v0 )      _mm512_ternarylogic_epi64( v1, v0, v0, 0xcf )
 
 // a ^ b ^ c
 #define mm512_xor3( a, b, c )      _mm512_ternarylogic_epi64( a, b, c, 0x96 )

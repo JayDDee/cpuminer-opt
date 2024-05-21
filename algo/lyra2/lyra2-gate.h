@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "lyra2.h"
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define LYRA2REV3_16WAY 1
 #elif defined(__AVX2__)
   #define LYRA2REV3_8WAY 1
@@ -49,7 +49,7 @@ bool init_lyra2rev3_ctx();
 
 //////////////////////////////////
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define LYRA2REV2_16WAY 1
 #elif defined(__AVX2__)
   #define LYRA2REV2_8WAY 1
@@ -108,7 +108,7 @@ bool lyra2h_thread_init();
 
 /////////////////////////////////////////
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define PHI2_8WAY 1
 #elif defined(__AVX2__) && defined(__AES__)
   #define PHI2_4WAY 1

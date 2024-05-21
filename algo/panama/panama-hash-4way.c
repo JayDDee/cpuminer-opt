@@ -71,8 +71,7 @@ do { \
 } while (0)
 
 #define GAMMA_4W(n0, n1, n2, n4)   \
-   (g ## n0 = v128_xor( a ## n0, \
-                             v128_or( a ## n1, v128_not( a ## n2 ) ) ) )
+   (g ## n0 = v128_xor( a ## n0, v128_ornot( a ## n2, a ## n1 ) ) )
 
 #define PI_ALL_4W   do { \
       a0  = g0; \
@@ -312,7 +311,7 @@ do { \
       BUPDATE1_8W( 7, 1 ); \
 } while (0)
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 #define GAMMA_8W(n0, n1, n2, n4)   \
    ( g ## n0 = _mm256_ternarylogic_epi32( a ## n0, a ## n2, a ## n1, 0x4b ) )  

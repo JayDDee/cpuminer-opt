@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "blake2b-hash.h"
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define BLAKE2B_8WAY
 #elif defined(__AVX2__)
   #define BLAKE2B_4WAY

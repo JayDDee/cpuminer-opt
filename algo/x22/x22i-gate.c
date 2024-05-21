@@ -32,7 +32,7 @@ bool register_x22i_algo( algo_gate_t* gate )
 #endif
 
   gate->optimizations = SSE2_OPT | SSE42_OPT | AES_OPT | AVX2_OPT | SHA_OPT
-                      | AVX512_OPT | VAES_OPT;
+                      | AVX512_OPT | VAES_OPT | NEON_OPT;
   return true;
 };
 
@@ -49,7 +49,7 @@ bool register_x25x_algo( algo_gate_t* gate )
   gate->hash      = (void*)&x25x_hash;
 #endif
   gate->optimizations = SSE2_OPT | SSE42_OPT | AES_OPT | AVX2_OPT | SHA_OPT |
-                        AVX512_OPT | VAES_OPT;
+                        AVX512_OPT | VAES_OPT | NEON_OPT;
   InitializeSWIFFTX();
   return true;
 };

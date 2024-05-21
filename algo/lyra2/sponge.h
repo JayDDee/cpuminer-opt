@@ -43,7 +43,7 @@ static const uint64_t blake2b_IV[8] =
   0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL
 };
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 #define G2W_4X64(a,b,c,d) \
    a = _mm512_add_epi64( a, b ); \
@@ -150,13 +150,13 @@ static const uint64_t blake2b_IV[8] =
 // returns void, all args updated
 #define G_2X64(a,b,c,d) \
    a = v128_add64( a, b ); \
-   d = v128_ror64( v128_xor( d, a), 32 ); \
+   d = v128_ror64xor( d, a, 32 ); \
    c = v128_add64( c, d ); \
-   b = v128_ror64( v128_xor( b, c ), 24 ); \
+   b = v128_ror64xor( b, c, 24 ); \
    a = v128_add64( a, b ); \
-   d = v128_ror64( v128_xor( d, a ), 16 ); \
+   d = v128_ror64xor( d, a, 16 ); \
    c = v128_add64( c, d ); \
-   b = v128_ror64( v128_xor( b, c ), 63 );
+   b = v128_ror64xor( b, c, 63 );
 
 #define LYRA_ROUND_AVX(s0,s1,s2,s3,s4,s5,s6,s7) \
 { \
@@ -222,7 +222,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
     G( r, 7, v[ 3], v[ 4], v[ 9], v[14] );
 
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 union _ovly_512
 {

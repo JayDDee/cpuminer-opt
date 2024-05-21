@@ -87,7 +87,7 @@ void bmw256_8way_close( bmw256_8way_context *ctx, void *dst );
 
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // BMW-256 16 way 32
 
@@ -157,7 +157,7 @@ void bmw512_4way_addbits_and_close(
 
 #endif  // __AVX2__
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // BMW-512 64 bit 8 way
 typedef struct

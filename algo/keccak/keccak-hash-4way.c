@@ -57,7 +57,7 @@ static const uint64_t RC[] = {
 
 #define DO(x)   x
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 #define INPUT_BUF(size)   do { \
     size_t j; \

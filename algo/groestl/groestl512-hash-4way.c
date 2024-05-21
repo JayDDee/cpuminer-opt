@@ -17,7 +17,7 @@
 
 #if defined(__AVX2__) && defined(__VAES__)
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 int groestl512_4way_init( groestl512_4way_context* ctx, uint64_t hashlen )
 {

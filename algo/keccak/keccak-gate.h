@@ -4,7 +4,7 @@
 #include "algo-gate-api.h"
 #include <stdint.h>
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define KECCAK_8WAY 1
 #elif defined(__AVX2__)
   #define KECCAK_4WAY 1
@@ -12,7 +12,7 @@
   #define KECCAK_2WAY 1
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define SHA3D_8WAY 1
 #elif defined(__AVX2__)
   #define SHA3D_4WAY 1

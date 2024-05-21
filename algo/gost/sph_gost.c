@@ -696,7 +696,7 @@ static void AddModulo512(const void *a,const void *b,void *c)
 
 static void AddXor512(const void *a,const void *b,void *c)
 {
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
    casti_m512i( c, 0 ) = _mm512_xor_si512( casti_m512i( a, 0 ),
                                            casti_m512i( b, 0 ) );
 #elif defined(__AVX2__)

@@ -84,7 +84,7 @@ void pbkdf2_sha256_8way( uint8_t *, size_t, const uint8_t *, size_t,
 
 #endif  // AVX2
        
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 typedef struct _hmac_sha256_16way_context
 {

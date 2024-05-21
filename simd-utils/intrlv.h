@@ -469,7 +469,7 @@ static inline void v128_bswap32_intrlv80_4x32( void *d, const void *src )
 #if defined(__SSSE3__)
 
   const v128_t bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
-                                             0x0405060700010203 );
+                                            0x0405060700010203 );
 
   s0 = _mm_shuffle_epi8( s0, bswap_shuf );
   s1 = _mm_shuffle_epi8( s1, bswap_shuf );
@@ -913,9 +913,7 @@ static inline void extr_lane_8x32( void *d, const void *s,
 
 #if defined(__AVX2__)
 
-#if defined(__AVX512VL__) && defined(__AVX512VBMI__)
-
-//TODO Enable for AVX10_256 AVX10_512
+#if defined(VL256) && defined(VBMI)
 
 // Combine byte swap & broadcast in one permute
 static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
@@ -977,7 +975,7 @@ static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
 static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
 {
   const v128_t bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
-                                             0x0405060700010203 );
+                                            0x0405060700010203 );
   const __m256i c1 = v256_32( 1 );
   const __m256i c2 = _mm256_add_epi32( c1, c1 );
   const __m256i c3 = _mm256_add_epi32( c2, c1 );
@@ -1035,7 +1033,8 @@ static inline void mm256_bswap32_intrlv80_8x32( void *d, const void *src )
                          _mm256_castsi128_si256( s4 ), c3 );
 }
 
-#endif   // AVX512VBMI else
+#endif
+
 #endif   // AVX2
 
 // 16x32
@@ -1417,11 +1416,9 @@ static inline void extr_lane_16x32( void *d, const void *s,
    ((uint32_t*)d)[15] = ((const uint32_t*)s)[ lane+240 ];
 }
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
-#if defined(__AVX512VBMI__)
-
-// TODO Enable for AVX10_512
+#if defined(VBMI)
 
 // Combine byte swap & broadcast in one permute
 static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
@@ -1540,7 +1537,7 @@ static inline void mm512_bswap32_intrlv80_16x32( void *d, const void *src )
                           _mm512_castsi128_si512( s4 ) );
 }
 
-#endif    // VBMI else
+#endif
 #endif    // AVX512
 
 ///////////////////////////
@@ -1983,9 +1980,9 @@ static inline void mm256_intrlv80_4x64( void *d, const void *src )
 
 #endif
 
-#if defined(__AVX512VL__) && defined(__AVX512VBMI__)
+#if defined(__AVX2__) 
 
-//TODO Enable for AVX10_256 AVX10_512
+#if defined(VL256) && defined(VBMI)
 
 static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
 {
@@ -2019,7 +2016,7 @@ static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
                          _mm256_castsi128_si256( s4 ) );
 }
 
-#elif defined(__AVX2__)
+#else
 
 static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
 {
@@ -2048,6 +2045,8 @@ static inline void mm256_bswap32_intrlv80_4x64( void *d, const void *src )
   casti_m256i( d, 9 ) = _mm256_permute4x64_epi64(
                           _mm256_castsi128_si256( s4 ), 0x55 );
 }
+
+#endif
 
 #endif   // AVX2
 
@@ -2375,9 +2374,7 @@ static inline void extr_lane_8x64( void *dst, const void *src, const int lane,
 
 #endif  // SSE2
 
-#if defined(__AVX512F__) && defined(__AVX512VL__)
-
-//TODO Enable for AVX10_512
+#if defined(SIMD512)
 
 // broadcast to all lanes
 static inline void mm512_intrlv80_8x64( void *dst, const void *src )
@@ -2399,7 +2396,7 @@ static inline void mm512_intrlv80_8x64( void *dst, const void *src )
 
 // byte swap and broadcast to all lanes
 
-#if defined(__AVX512VBMI__)
+#if defined(VBMI)
 
 // Combine byte swap & broadcast in one permute
 static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
@@ -2626,10 +2623,9 @@ static inline void dintrlv_4x128_512( void *dst0, void *dst1, void *dst2,
 
 #endif  // SSE2
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
-#if defined(__AVX512VBMI__)
-//TODO Enable for AVX10_512
+#if defined(VBMI)
 
 static inline void mm512_bswap32_intrlv80_4x128( void *d, const void *src )
 {
@@ -3532,9 +3528,7 @@ do { \
 
 #endif  // AVX2
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-
-//TODO Enable for AVX10_512
+#if defined(SIMD512)
 
 /*
 #define mm512_intrlv_blend_128( hi, lo ) \
@@ -3559,7 +3553,7 @@ do { \
     dst[7] = _mm512_mask_blend_epi64( mask, a[7], b[7] ); \
 } while(0)
 
-#endif // AVX512
+#endif // SIMD512
 
 #undef ILEAVE_4x32
 #undef LOAD_SRCE_4x32

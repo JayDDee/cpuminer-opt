@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include "algo/swifftx/swifftx.h"
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define X22I_8WAY 1
 #elif defined(__AVX2__) && defined(__AES__)
   #define X22I_4WAY 1
@@ -50,7 +50,7 @@ int scanhash_x22i( struct work *work, uint32_t max_nonce,
 
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
   #define X25X_8WAY 1
 #elif defined(__AVX2__) && defined(__AES__)
   #define X25X_4WAY 1

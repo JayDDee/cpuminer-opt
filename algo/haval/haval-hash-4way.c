@@ -53,7 +53,7 @@ extern "C"{
 #define SPH_SMALL_FOOTPRINT_HAVAL   1
 //#endif
 
-#if defined(__AVX512VL__)
+#if defined(VL256)
 
 // ( ~( a ^ b ) ) & c
 #define v128_andnotxor( a, b, c ) \
@@ -583,7 +583,7 @@ do { \
 
 // Haval-256 8 way 32 bit avx2
 
-#if defined (__AVX512VL__)
+#if defined (VL256)
 
 // ( ~( a ^ b ) ) & c
 #define mm256_andnotxor( a, b, c ) \
@@ -882,7 +882,7 @@ do { \
 
 #endif // AVX2
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512) 
 
 // ( ~( a ^ b ) ) & c
 #define mm512_andnotxor( a, b, c ) \

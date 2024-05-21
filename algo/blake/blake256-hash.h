@@ -147,7 +147,7 @@ void blake256r8_8way_close(void *cc, void *dst);
 #define blake256r8_8x32_update        blake256r14_8way_update
 #define blake256r8_8x32_close         blake256r14_8way_close
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 ///////////////////////////////////
 //

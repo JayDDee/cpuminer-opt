@@ -50,7 +50,7 @@ static const __m128i round_const_q[] __attribute__ ((aligned (64))) =
    { 0x8292a2b2c2d2e2f2, 0x0212223242526272 }
 };
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 static const __m512i TRANSP_MASK = { 0x0d0509010c040800, 0x0f070b030e060a02,
                                      0x1d1519111c141810, 0x1f171b131e161a12,

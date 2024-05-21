@@ -35,7 +35,7 @@
  * @pre all block pointers must be valid
  */
 
-#if defined(__AVX512F__)
+#if defined(SIMD512)
 
 static inline __m512i blamka( __m512i x, __m512i y )
 {
@@ -237,7 +237,7 @@ void fill_segment(const argon2_instance_t *instance,
     uint64_t pseudo_rand, ref_index, ref_lane;
     uint32_t prev_offset, curr_offset;
     uint32_t starting_index, i;
-#if defined(__AVX512F__)
+#if defined(SIMD512)
     __m512i state[ARGON2_512BIT_WORDS_IN_BLOCK];
 #elif defined(__AVX2__)
     __m256i state[ARGON2_HWORDS_IN_BLOCK];

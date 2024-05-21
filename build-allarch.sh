@@ -4,7 +4,7 @@
 # during develpment. However the information contained may provide compilation
 # tips to users.
 
-rm cpuminer-avx512-sha-vaes cpuminer-avx512 cpuminer-avx2 cpuminer-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen cpuminer-zen3 cpuminer-zen4 cpuminer-alderlake cpuminer-x64 cpuminer-armv8 cpuminer-armv8-aes cpuminer-armv8-sha2 cpuminer-armv8-aes-sha2  > /dev/null
+rm cpuminer-avx512-sha-vaes cpuminer-avx512 cpuminer-avx2 cpuminer-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen cpuminer-zen3 cpuminer-zen4 cpuminer-zen5 cpuminer-alderlake cpuminer-x64 cpuminer-armv8 cpuminer-armv8-aes cpuminer-armv8-sha2 cpuminer-armv8-aes-sha2  > /dev/null
 
 # AVX512 SHA VAES: Intel Core Icelake, Rocketlake
 make distclean || echo clean
@@ -17,20 +17,35 @@ make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx512-sha-vaes
 
-# AVX256 SHA VAES: Intel Core Alderlake, needs gcc-12
+# Intel Core Alderlake: AVX2 SHA VAES, needs gcc-12
+make clean || echo clean
+rm -f config.status
+CFLAGS="-O3 -march=alderlake -Wall" ./configure --with-curl
+make -j 8
+strip -s cpuminer
+mv cpuminer cpuminer-alderlake
+
+# Intel Core Arrowlake: AVX2 SHA512 VAES, needs gcc-14
 #make clean || echo clean
 #rm -f config.status
-#./autogen.sh || echo done
-#CFLAGS="-O3 -march=alderlake -Wall" ./configure --with-curl
+#CFLAGS="-O3 -march=arrowlake-s -Wall" ./configure --with-curl
 #make -j 8
 #strip -s cpuminer
-#mv cpuminer cpuminer-alderlake
+#mv cpuminer cpuminer-arrowlake
 
-# Zen4 AVX512 SHA VAES
+# Zen5: AVX512 SHA VAES, requires gcc-14.
+#make clean || echo clean
+#rm -f config.status
+#CFLAGS="-O3 -march=znver5" ./configure --with-curl
+#make -j $(nproc)
+#strip -s cpuminer
+#mv cpuminer cpuminer-zen4
+
+# Zen4: AVX512 SHA VAES
 make clean || echo clean
 rm -f config.status
 # znver3 needs gcc-11, znver4 needs gcc-12.3.
-#CFLAGS="-O3 -march=znver4" ./configure --with-curl
+#CFLAGS="-O3 -march=znver4 -Wall" ./configure --with-curl
 # Inclomplete list of Zen4 AVX512 extensions but includes all extensions used by cpuminer.
 CFLAGS="-O3 -march=znver3 -mavx512f -mavx512cd -mavx512dq -mavx512bw -mavx512vl -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vpopcntdq -Wall" ./configure --with-curl
 #CFLAGS="-O3 -march=znver2 -mvaes -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vbmi -Wall" ./configure --with-curl
@@ -55,7 +70,7 @@ make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx512
 
-# AVX2 SHA VAES: Intel Alderlake, AMD Zen3
+# AVX2 SHA VAES: generic
 make clean || echo done
 rm -f config.status
 # vaes doesn't include aes

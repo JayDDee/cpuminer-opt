@@ -306,7 +306,7 @@ pbkdf2_sha256_8way( uint8_t *buf, size_t dkLen, const uint8_t *passwd,
    }
 }
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // HMAC 16-way AVX512
 

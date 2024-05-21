@@ -52,7 +52,7 @@ int simd512_2way( void *hashval, const void *data, int datalen );
 
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 typedef struct
 {

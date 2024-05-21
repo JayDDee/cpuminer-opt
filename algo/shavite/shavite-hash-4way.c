@@ -1,7 +1,7 @@
 #include "shavite-hash-4way.h"
 #include <stdint.h>
 
-#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(__VAES__) && defined(SIMD512)
 
 static const uint32_t IV512[] =
 {

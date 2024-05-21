@@ -92,7 +92,7 @@ void blake512_4x64_final_le( blake_4x64_big_context *sc, void *hash,
 #define blake512_4way_prehash_le  blake512_4x64_prehash_le
 #define blake512_4way_final_le    blake512_4x64_final_le
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 ////////////////////////////
 //

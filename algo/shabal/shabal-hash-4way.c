@@ -34,7 +34,7 @@
 #include <string.h>
 #include "shabal-hash-4way.h"
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 #define DECL_STATE16   \
    __m512i A0, A1, A2, A3, A4, A5, A6, A7, \

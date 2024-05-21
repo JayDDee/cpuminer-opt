@@ -28,8 +28,7 @@
     a = v128_xor( a, c0 ); \
     b = v128_xor( b, c1 ); \
 
-#if defined(__AVX512VL__)
-//TODO enable for AVX10_512 AVX10_256
+#if defined(VL256)
 
 #define MULT2( a0, a1 ) \
 { \
@@ -69,8 +68,7 @@
 
 #endif
 
-#if defined(__AVX512VL__)
-//TODO enable for AVX10_512 AVX10_256
+#if defined(VL256)
 
 #define SUBCRUMB( a0, a1, a2, a3 ) \
 { \

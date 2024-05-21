@@ -1,9 +1,9 @@
 #ifndef SHAVITE_HASH_4WAY_H__
 #define SHAVITE_HASH_4WAY_H__ 1
 
-#if defined(__VAES__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-  
 #include "simd-utils.h"
+
+#if defined(__VAES__) && defined(SIMD512)
 
 typedef struct {
         unsigned char buf[128<<2];

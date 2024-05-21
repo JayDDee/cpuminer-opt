@@ -113,7 +113,7 @@ void sha256_neon_x2sha_final_rounds( uint32_t *state_out_X,
 
 #endif
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // SHA-256 16 way x86_64
 

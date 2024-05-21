@@ -11,7 +11,7 @@ static const unsigned int mul2ipt[] __attribute__ ((aligned (64))) =
 };
 */
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 #define ECHO_SUBBYTES4(state, j) \
    state[0][j] = _mm512_aesenc_epi128( state[0][j], k1 ); \

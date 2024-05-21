@@ -26,7 +26,7 @@ static const uint64_t IV512[] =
 0xA5A70E75D65C8A2B, 0xBC796576B1C62456, 0xE7989AF11921C8F7, 0xD43E3B447795D246
 };
 
-#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#if defined(SIMD512)
 
 // 4 way 128 is handy to avoid reinterleaving in many algos.
 // If reinterleaving is necessary it may be more efficient to use
