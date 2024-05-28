@@ -98,7 +98,6 @@ typedef  uint32_t set_t;
 #define AVX512_OPT       1 <<  6   // Skylake-X, Zen4 (AVX512[F,VL,DQ,BW])
 #define AES_OPT          1 <<  7   // Intel Westmere, AArch64
 #define VAES_OPT         1 <<  8   // Icelake, Zen3
-#define SHA_OPT          1 <<  9   // Zen1, Icelake, AArch64 
 #define SHA256_OPT       1 <<  9   // Zen1, Icelake, AArch64 
 #define SHA512_OPT       1 << 10   // Intel Arrow Lake, AArch64 
 #define NEON_OPT         1 << 11   // AArch64 

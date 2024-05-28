@@ -195,10 +195,6 @@ static const uint64_t blake2b_IV[8] =
 
 #endif // AVX2 else SSE2
 
-static inline uint64_t rotr64( const uint64_t w, const unsigned c ){
-    return ( w >> c ) | ( w << ( 64 - c ) );
-}
-
 #define G( r, i, a, b, c, d ) \
 { \
     a = a + b; \

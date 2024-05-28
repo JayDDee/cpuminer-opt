@@ -16,7 +16,7 @@
 #include "miner.h"
 #include "simd-utils.h"
 
-#if defined(__aarch64__) && !defined(__APPLE__)
+#if defined(__aarch64__)
 // for arm's "cpuid"
 #include <sys/auxv.h>
 #include <asm/hwcap.h>
@@ -309,13 +309,48 @@ static inline void cpuid( unsigned int leaf, unsigned int subleaf,
 #endif
 }
 
-#elif defined(__aarch64__) && !defined(__APPLE__)
+#elif defined(__aarch64__)
 
 static inline void cpuid( unsigned int leaf, unsigned int subleaf,
                           unsigned int output[4] )
 {
+   
     output[0] = getauxval(AT_HWCAP);
+    output[1] = getauxval(AT_HWCAP2);
+
+/*    
+#define has(CAP, hwcap) !!((hwcap) & HWCAP_##CAP)
+#define pr(CAP, hwcap) printf("%10s = %d\n", #CAP, has(CAP, hwcap))
+
+	unsigned long hwcaps = getauxval(AT_HWCAP);
+	printf("HWCAP = 0x%lx\n", hwcaps);
+
+	pr(FP, hwcaps);
+	pr(ASIMD, hwcaps);
+	pr(EVTSTRM, hwcaps);
+	pr(AES, hwcaps);
+	pr(PMULL, hwcaps);
+	pr(SHA1, hwcaps);
+	pr(SHA2, hwcaps);
+	pr(CRC32, hwcaps);
+	pr(ATOMICS, hwcaps);
+	pr(FPHP, hwcaps);
+	pr(ASIMDHP, hwcaps);
+	pr(CPUID, hwcaps);
+	pr(ASIMDRDM, hwcaps);
+	pr(JSCVT, hwcaps);
+	pr(FCMA, hwcaps);
+	pr(LRCPC, hwcaps);
+	pr(DCPOP, hwcaps);
+	pr(SHA3, hwcaps);
+	pr(SM3, hwcaps);
+	pr(SM4, hwcaps);
+	pr(ASIMDDP, hwcaps);
+	pr(SHA512, hwcaps);
+	pr(SVE, hwcaps);
+*/    
 }   
+
 
 #else
 #define cpuid(leaf, subleaf, out) out[0] = 0;
@@ -482,7 +517,6 @@ static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 //   1     1    1    1    = AVX10 512 bit max  (version 1 granite rapids)
 // Other combinations are not defined.
 
-// No technical need for this, the code won't run if false.
 static inline bool cpu_arch_x86_64()
 {
 #if defined(__x86_64__)
@@ -515,11 +549,11 @@ static inline bool has_sse()
 static inline bool has_sse2()
 {
 #if defined(__x86_64__)
-    unsigned int cpu_info[4] = { 0 };
-    cpuid( CPU_INFO, 0, cpu_info );
-    return cpu_info[ EDX_Reg ] & SSE2_Flag;
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( CPU_INFO, 0, cpu_info );
+   return cpu_info[ EDX_Reg ] & SSE2_Flag;
 #else
-    return false;
+   return false;
 #endif
 }
 
@@ -556,43 +590,18 @@ static inline bool has_sse42()
 #endif
 }
 
+/* doesn't work
 static inline bool has_neon()
 {
-#if defined(__aarch64__) && !defined(__APPLE__)
-    unsigned int cpu_info[4] = { 0 };
-    return cpu_info[0];
-#else
-    return false;
-#endif
-}
-
-static inline bool has_aes_ni()
-{
-#if defined(__x86_64__)
-   if ( has_sse2() )
-   {
-      unsigned int cpu_info[4] = { 0 };
-      cpuid( CPU_INFO, 0, cpu_info );
-      return cpu_info[ ECX_Reg ] & AES_NI_Flag;
-   }
-   return false;
-#elif defined(__aarch64__) && !defined(__APPLE__)
-   if ( has_neon() )
-   {
-#if defined(KERNEL_HWCAP_AES)
-      return true;
-#else
-      return false;
-#endif
-/*      unsigned int cpu_info[4] = { 0 };
-      cpuid( 0, 0, cpu_info );
-      return cpu_info[0] & HWCAP_AES;
-*/   }
-   return false;
+#if defined(__aarch64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( 0, 0, cpu_info );
+   return cpu_info[0] & HWCAP_NEON;
 #else
    return false;
 #endif
 }
+*/
 
 static inline bool has_avx()
 {
@@ -616,54 +625,25 @@ static inline bool has_avx2()
 #endif
 }
 
-static inline bool has_sha()
+static inline bool has_sve()
 {
-#if defined(__x86_64__)
-    if ( has_avx() )
-    {
-       unsigned int cpu_info[4] = { 0 };
-       cpuid( EXTENDED_FEATURES, 0, cpu_info );
-       return cpu_info[ EBX_Reg ] & SHA_Flag;
-    }
-    return false;
-#elif defined(__aarch64__) && !defined(__APPLE__)
-    if ( has_neon() )
-    {
-#if defined(KERNEL_HWCAP_SHA2)
-       return true;
+#if defined(__aarch64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( 0, 0, cpu_info );
+   return cpu_info[0] & HWCAP_SVE;
 #else
-       return false;
-#endif
-/*       unsigned int cpu_info[4] = { 0 };
-       cpuid( 0, 0, cpu_info );
-       return cpu_info[0] & HWCAP_SHA2;
-*/    }
-    return false;
-#else
-    return false;
+   return false;
 #endif
 }
 
-static inline bool has_sha512()
+static inline bool has_sve2()
 {
-#if defined(__x86_64__)
-    if ( has_avx2() )
-    {
-       unsigned int cpu_info[4] = { 0 };
-       cpuid( EXTENDED_FEATURES, 1, cpu_info );
-       return cpu_info[ EAX_Reg ] & SHA512_Flag;
-    }
-    return false;
-#elif defined(__aarch64__) && !defined(__APPLE__)
-    if ( has_neon() )
-    {
-       unsigned int cpu_info[4] = { 0 };
-       cpuid( 0, 0, cpu_info );
-       return cpu_info[0] & HWCAP_SHA3;
-    }
-    return false;
+#if defined(__aarch64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( 0, 0, cpu_info );
+   return cpu_info[1] & HWCAP2_SVE2;
 #else
-    return false;
+   return false;
 #endif
 }
 
@@ -723,21 +703,6 @@ static inline bool has_avx512()
 #endif
 }
 
-static inline bool has_vaes()
-{
-#if defined(__x86_64__)
-   if ( has_avx2() )
-   {
-       unsigned int cpu_info[4] = { 0 };
-       cpuid( EXTENDED_FEATURES, 0, cpu_info );
-       return cpu_info[ ECX_Reg ] & VAES_Flag;
-   }
-   return false;
-#else
-   return false;
-#endif
-}
-
 static inline bool has_vbmi()
 {
 #if defined(__x86_64__)
@@ -757,6 +722,112 @@ static inline bool has_vbmi2()
     return cpu_info[ ECX_Reg ] & AVX512_VBMI2_Flag;
 #else
     return false;
+#endif
+}
+
+static inline bool has_aes()
+{
+#if defined(__x86_64__)
+   if ( has_sse2() )
+   {
+      unsigned int cpu_info[4] = { 0 };
+      cpuid( CPU_INFO, 0, cpu_info );
+      return cpu_info[ ECX_Reg ] & AES_NI_Flag;
+   }
+   return false;
+#elif defined(__aarch64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( 0, 0, cpu_info );
+   return cpu_info[0] & HWCAP_AES;
+#else
+   return false;
+#endif
+}
+
+static inline bool has_vaes()
+{
+#if defined(__x86_64__)
+   if ( has_avx2() )
+   {
+       unsigned int cpu_info[4] = { 0 };
+       cpuid( EXTENDED_FEATURES, 0, cpu_info );
+       return cpu_info[ ECX_Reg ] & VAES_Flag;
+   }
+   return false;
+#else
+   return false;
+#endif
+}
+
+static inline bool has_sveaes()
+{
+#if defined(__aarch64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( 0, 0, cpu_info );
+   return cpu_info[1] & HWCAP2_SVEAES;
+#else
+   return false;
+#endif
+}
+
+static inline bool has_sha256()
+{
+#if defined(__x86_64__)
+   if ( has_avx() )
+   {
+      unsigned int cpu_info[4] = { 0 };
+      cpuid( EXTENDED_FEATURES, 0, cpu_info );
+      return cpu_info[ EBX_Reg ] & SHA_Flag;
+   }
+   return false;
+#elif defined(__aarch64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( 0, 0, cpu_info );
+   return cpu_info[0] & HWCAP_SHA2;
+#else
+   return false;
+#endif
+}
+
+static inline bool has_sha512()
+{
+#if defined(__x86_64__)
+   if ( has_avx2() )
+   {
+      unsigned int cpu_info[4] = { 0 };
+      cpuid( EXTENDED_FEATURES, 1, cpu_info );
+      return cpu_info[ EAX_Reg ] & SHA512_Flag;
+   }
+   return false;
+#elif defined(__aarch64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( 0, 0, cpu_info );
+   return cpu_info[0] & HWCAP_SHA512;
+#else
+   return false;
+#endif
+}
+
+// Arm only
+static inline bool has_sha3()
+{
+#if defined(__aarch64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( 0, 0, cpu_info );
+   return cpu_info[0] & HWCAP_SHA3;
+#else
+   return false;
+#endif
+}
+
+static inline bool has_svesha3()
+{
+#if defined(__aarch64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( 0, 0, cpu_info );
+   return cpu_info[1] & HWCAP2_SVESHA3;
+#else
+   return false;
 #endif
 }
 
@@ -962,9 +1033,7 @@ static inline void cpu_brand_string( char* s )
 
 #elif defined(__arm__) || defined(__aarch64__)
 
-    unsigned int cpu_info[4] = { 0 };
-    cpuid( 0, 0, cpu_info );
-    sprintf( s, "ARM 64 bit CPU, HWCAP %08x", cpu_info[0] );
+    sprintf( s, "ARM 64 bit CPU" );
 
 #else
 

@@ -108,8 +108,12 @@ static inline uint32_t le162( const uint16_t u16 )
 #define rol32       __rold
 #define ror32       __rord
 
+/*  these don't seem to work
 #elif defined(__aarch64__)
 
+// Documentation is vague, ror exists but is ambiguous. Docs say it can
+// do 32 or 64 registers. Assuming that is architecture specific andcan
+// only do 32 bit on 32 bit arch. Rarely used so not a big issue.
 static inline uint64_t ror64( uint64_t a, const int c )
 {
    uint64_t b;
@@ -125,6 +129,7 @@ static inline uint32_t ror32( uint32_t a, const int c )
    return b;
 }
 #define rol32( a, c )     ror32( a, 32-(c) )
+*/
 
 #else
 

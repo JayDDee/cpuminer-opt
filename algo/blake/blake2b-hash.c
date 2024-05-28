@@ -240,7 +240,7 @@ static const uint8_t sigma[12][16] =
    v[b] = mm512_ror_64( _mm512_xor_si512( v[b], v[c] ), 63 ); \
 }
 
-static void blake2b_8way_compress( blake2b_8way_ctx *ctx, int last )
+static void blake2b_8x64_compress( blake2b_8x64_ctx *ctx, int last )
 {  
    __m512i v[16], m[16];
 
@@ -306,7 +306,7 @@ static void blake2b_8way_compress( blake2b_8way_ctx *ctx, int last )
    ctx->h[7] = mm512_xor3( ctx->h[7], v[7], v[15] );
 }
 
-int blake2b_8way_init( blake2b_8way_ctx *ctx )
+int blake2b_8x64_init( blake2b_8x64_ctx *ctx )
 {
    size_t i;
 
@@ -333,7 +333,7 @@ int blake2b_8way_init( blake2b_8way_ctx *ctx )
 }
 
 
-void blake2b_8way_update( blake2b_8way_ctx *ctx, const void *input,
+void blake2b_8x64_update( blake2b_8x64_ctx *ctx, const void *input,
                           size_t inlen )
 {
    __m512i* in =(__m512i*)input;
@@ -348,7 +348,7 @@ void blake2b_8way_update( blake2b_8way_ctx *ctx, const void *input,
          ctx->t[0] += ctx->c;
          if ( ctx->t[0] < ctx->c )
             ctx->t[1]++;
-         blake2b_8way_compress( ctx, 0 );
+         blake2b_8x64_compress( ctx, 0 );
          ctx->c = 0;
       }
       ctx->b[ c++ ] = in[i];
@@ -356,7 +356,7 @@ void blake2b_8way_update( blake2b_8way_ctx *ctx, const void *input,
    }
 }
 
-void blake2b_8way_final( blake2b_8way_ctx *ctx, void *out )
+void blake2b_8x64_final( blake2b_8x64_ctx *ctx, void *out )
 {
    size_t c;
    c = ctx->c >> 3;
@@ -371,7 +371,7 @@ void blake2b_8way_final( blake2b_8way_ctx *ctx, void *out )
       ctx->c += 8;
    }
 
-   blake2b_8way_compress( ctx, 1 );           // final block flag = 1
+   blake2b_8x64_compress( ctx, 1 );           // final block flag = 1
 
    casti_m512i( out, 0 ) = ctx->h[0];
    casti_m512i( out, 1 ) = ctx->h[1];
@@ -407,7 +407,7 @@ static const uint64_t blake2b_iv[8] = {
 };
 */
 
-static void blake2b_4way_compress( blake2b_4way_ctx *ctx, int last )
+static void blake2b_4x64_compress( blake2b_4x64_ctx *ctx, int last )
 {
 	__m256i v[16], m[16];
 
@@ -473,7 +473,7 @@ static void blake2b_4way_compress( blake2b_4way_ctx *ctx, int last )
    ctx->h[7] = _mm256_xor_si256( _mm256_xor_si256( ctx->h[7], v[7] ), v[15] );
 }
 
-int blake2b_4way_init( blake2b_4way_ctx *ctx ) 
+int blake2b_4x64_init( blake2b_4x64_ctx *ctx ) 
 {
 	size_t i;
 
@@ -499,7 +499,7 @@ int blake2b_4way_init( blake2b_4way_ctx *ctx )
 	return 0;
 }
 
-void blake2b_4way_update( blake2b_4way_ctx *ctx, const void *input,
+void blake2b_4x64_update( blake2b_4x64_ctx *ctx, const void *input,
                           size_t inlen ) 
 {
    __m256i* in =(__m256i*)input;
@@ -514,7 +514,7 @@ void blake2b_4way_update( blake2b_4way_ctx *ctx, const void *input,
 			ctx->t[0] += ctx->c;
 			if ( ctx->t[0] < ctx->c )
 				ctx->t[1]++;
-			blake2b_4way_compress( ctx, 0 );
+			blake2b_4x64_compress( ctx, 0 );
 			ctx->c = 0;
 		}
       ctx->b[ c++ ] = in[i];
@@ -522,7 +522,7 @@ void blake2b_4way_update( blake2b_4way_ctx *ctx, const void *input,
    }
 }
 
-void blake2b_4way_final( blake2b_4way_ctx *ctx, void *out )
+void blake2b_4x64_final( blake2b_4x64_ctx *ctx, void *out )
 {
 	size_t c;
    c = ctx->c >> 3;
@@ -537,7 +537,7 @@ void blake2b_4way_final( blake2b_4way_ctx *ctx, void *out )
       ctx->c += 8;
    }
 
-   blake2b_4way_compress( ctx, 1 );           // final block flag = 1
+   blake2b_4x64_compress( ctx, 1 );           // final block flag = 1
 
    casti_m256i( out, 0 ) = ctx->h[0];
    casti_m256i( out, 1 ) = ctx->h[1];

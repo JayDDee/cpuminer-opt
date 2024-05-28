@@ -71,12 +71,13 @@ static const uint64_t K512[80] =
 
 // SHA-512 implemented using SHA512 CPU extension.
 
-// Experimental. Not tested. Not reviewed. Compile tested only.
+// Experimental. Not supported. Not tested. Not reviewed. Compile tested only.
+// Modelled after noloader sha256 implementation, replacing 4x32 bit
+// instructions with equivalent 4x64 bit instructions and increasing rounds
+// to 80.
 
 // Needs GCC-14 for compilation.
 // Needs Intel Lunarlake or Arrowlake CPU, or AMD Zen-6? for execution.
-// Modelled after noloader sha256 implementation.
-
 
 void sha512_opt_transform_be( uint64_t *state_out, const void *input,
                               const uint64_t *state_in )
@@ -571,6 +572,20 @@ void sha512_opt_transform_le( uint64_t *state_out, const void *input,
 
 #endif
 
+/*
+#if defined(__ARM_FEATURE_NEON) && defined(__ARM_FEATURE_SHA512)
+
+uint64x2_t sha512_compile_test( uint64x2_t test )
+{
+   test = vsha512hq_u64( test, test, test );
+   test = vsha512h2q_u64( test, test, test );
+   test = vsha512su0q_u64( test, test );
+   test = vsha512su1q_u64( test, test, test );
+   return test;
+}
+
+#endif
+*/
 
 #if defined(SIMD512)
 

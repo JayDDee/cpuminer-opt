@@ -38,7 +38,9 @@
 #define v128u8_load( p )              vld1q_u16( (uint8_t*)(p) )
 #define v128u8_store( p, v )          vst1q_u16( (uint8_t*)(p), v )
 
-// load & set1 combined, doesn't work
+// load & set1 combined. What if source is already loaded?
+// Don't use, leave it up to the compiler to optimize.
+// Same with vld1q_lane.
 #define v128_load1_64(p)              vld1q_dup_u64( (uint64_t*)(p) )
 #define v128_load1_32(p)              vld1q_dup_u32( (uint32_t*)(p) )
 #define v128_load1_16(p)              vld1q_dup_u16( (uint16_t*)(p) )
@@ -61,17 +63,13 @@
 #define v128_sub16                    vsubq_u16
 #define v128_sub8                     vsubq_u8
 
-// returns low half, u64 undocumented, may not exist.
-#define v128_mul64                    vmulq_u64
+// returns low half
 #define v128_mul32                    vmulq_u32
 #define v128_mul16                    vmulq_u16
 
-// Widening multiply, align source elements with Intel
-static inline uint64x2_t v128_mulw32( uint32x4_t v1, uint32x4_t v0 )
-{
-   return vmull_u32( vget_low_u32( vcopyq_laneq_u32( v1, 1, v1, 2 ) ),
-                     vget_low_u32( vcopyq_laneq_u32( v0, 1, v0, 2 ) ) );
-}
+// Widening multiply, realign source elements from x86_64 to NEON.
+#define v128_mulw32( v1, v0 ) \
+   vmull_u32( vmovn_u64( v1 ), vmovn_u64( v0 ) )
 
 // compare
 #define v128_cmpeq64                  vceqq_u64
@@ -315,7 +313,6 @@ static inline void v128_memset_zero( void *dst, const int n )
     memset( dst, 0, n*16 );
 }
 
-
 static inline void v128_memset( void *dst, const void *src, const int n )
 {
    for( int i = 0; i < n; i++ )
@@ -373,7 +370,7 @@ static inline void v128_memcpy( void *dst, const void *src, const int n )
                  ((uint8x16_t)(v)), c )
 
 
-// ror( v1 ^ v0, n )
+// ( v1 ^ v0 ) >>> n 
 #if defined(__ARM_FEATURE_SHA3)
 
 #define v128_ror64xor( v1, v0, n )  vxarq_u64( v1, v0, n ) 
@@ -438,7 +435,6 @@ static inline void v128_memcpy( void *dst, const void *src, const int n )
 
 // sub-vector shuffles sometimes mirror bit rotation. Shuffle is faster.
 // Bit rotation already promotes faster widths. Usage is context sensitive.
-// preferred.
 
 // reverse elements in vector lanes
 #define v128_qrev32            vrev64q_u32
@@ -496,7 +492,7 @@ static inline uint16x8_t v128_shufll16( uint16x8_t v )
    casti_v128u32( dst,6 ) = v128_bswap32( casti_v128u32( src,6 ) ); \
    casti_v128u32( dst,7 ) = v128_bswap32( casti_v128u32( src,7 ) ); \
 }
-#define v128_block_bswap32_256( dst, src ) \
+#define v128_block_bswap32_256    v128_block_bswap32
 
 #define v128_block_bswap32_512( dst, src ) \
 { \

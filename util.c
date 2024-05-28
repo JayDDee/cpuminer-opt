@@ -2239,7 +2239,7 @@ static bool stratum_benchdata(json_t *result, json_t *params, int thr_id)
 #endif
 
 	cpu_bestfeature(arch, 16);
-	if (has_aes_ni()) strcat(arch, " NI");
+	if (has_aes()) strcat(arch, " NI");
 
 	cpu_getmodelid(vendorid, 32);
 	cpu_getname(cpuname, 80);

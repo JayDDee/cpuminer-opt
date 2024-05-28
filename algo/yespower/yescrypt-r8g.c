@@ -71,7 +71,7 @@ int scanhash_yespower_r8g( struct work *work, uint32_t max_nonce,
 
 bool register_yescryptr8g_algo( algo_gate_t* gate )
 {
-  gate->optimizations = SSE2_OPT | SHA_OPT | NEON_OPT;
+  gate->optimizations = SSE2_OPT | SHA256_OPT | NEON_OPT;
   gate->scanhash      = (void*)&scanhash_yespower_r8g;
 #if (__SSE2__) || defined(__aarch64__)
   gate->hash          = (void*)&yespower_hash;

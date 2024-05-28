@@ -73,10 +73,10 @@ typedef union
 
 #else
 
-#define mm256_bcast128lo_64( i64 )   mm256_bcast_m128( mm128_mov64_128( i64 ) )
+#define mm256_bcast128lo_64( i64 )   mm256_bcast_m128( v128_mov64( i64 ) )
 
 #define mm256_bcast128hi_64( i64 )   _mm256_permute4x64_epi64( \
-                   _mm256_castsi128_si256( mm128_mov64_128( i64 ) ), 0x11 )
+                   _mm256_castsi128_si256( v128_mov64( i64 ) ), 0x11 )
 
 #endif
 

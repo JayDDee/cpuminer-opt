@@ -8,15 +8,15 @@ bool register_skein_algo( algo_gate_t* gate )
     gate->scanhash  = (void*)&scanhash_skein_8way;
     gate->hash      = (void*)&skeinhash_8way;
 #elif defined(SKEIN_4WAY)
-    gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | SHA_OPT | NEON_OPT;
+    gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | SHA256_OPT | NEON_OPT;
     gate->scanhash  = (void*)&scanhash_skein_4way;
     gate->hash      = (void*)&skeinhash_4way;
 #elif defined(SKEIN_2WAY)
-    gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | SHA_OPT | NEON_OPT;
+    gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | SHA256_OPT | NEON_OPT;
     gate->scanhash  = (void*)&scanhash_skein_2x64;
     gate->hash      = (void*)&skeinhash_2x64;
 #else
-    gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | SHA_OPT | NEON_OPT;
+    gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | SHA256_OPT | NEON_OPT;
     gate->scanhash  = (void*)&scanhash_skein;
     gate->hash      = (void*)&skeinhash;
 #endif

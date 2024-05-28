@@ -318,7 +318,7 @@ bool register_minotaur_algo( algo_gate_t* gate )
   gate->hash              = (void*)&minotaur_hash;
   gate->miner_thread_init = (void*)&initialize_torture_garden;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
-  if ( opt_algo == ALGO_MINOTAURX ) gate->optimizations |= SHA_OPT;
+  if ( opt_algo == ALGO_MINOTAURX ) gate->optimizations |= SHA256_OPT;
   return true;
 };
 

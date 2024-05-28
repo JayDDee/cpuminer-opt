@@ -8,14 +8,14 @@ void sha256d( void *hash, const void *data, int len )
 }
 bool register_sha256d_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+   gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
 #if defined(SHA256D_16WAY)
    gate->scanhash = (void*)&scanhash_sha256d_16way;
 #elif defined(SHA256D_SHA)
-   gate->optimizations = SHA_OPT;
+   gate->optimizations = SSE2_OPT | SHA256_OPT;
    gate->scanhash = (void*)&scanhash_sha256d_sha;
 #elif defined(SHA256D_NEON_SHA2)
-   gate->optimizations = SHA_OPT;
+   gate->optimizations = NEON_OPT | SHA256_OPT;
    gate->scanhash = (void*)&scanhash_sha256d_neon_sha2;
 #elif defined(SHA256D_8WAY)
    gate->scanhash = (void*)&scanhash_sha256d_8way;

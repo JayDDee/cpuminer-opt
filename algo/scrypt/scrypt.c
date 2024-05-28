@@ -1481,7 +1481,7 @@ bool scrypt_miner_thread_init( int thr_id )
 bool register_scrypt_algo( algo_gate_t* gate )
 {
 #if defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
-   gate->optimizations = SSE2_OPT | SHA_OPT | NEON_OPT;
+   gate->optimizations = SSE2_OPT | SHA256_OPT | NEON_OPT;
 #else
    gate->optimizations = SSE2_OPT | SSE42_OPT | AVX_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
 #endif

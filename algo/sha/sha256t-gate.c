@@ -6,9 +6,10 @@ bool register_sha256t_algo( algo_gate_t* gate )
 #if defined(SHA256T_16WAY)
     gate->scanhash   = (void*)&scanhash_sha256t_16way;
 #elif defined(SHA256T_SHA)
-    gate->optimizations = SHA_OPT;
+    gate->optimizations = SSE2_OPT | SHA256_OPT;
     gate->scanhash   = (void*)&scanhash_sha256t_sha;
 #elif defined(SHA256T_NEON_SHA2)
+    gate->optimizations = NEON_OPT | SHA256_OPT;
     gate->scanhash   = (void*)&scanhash_sha256t_neon_sha2;
 #elif defined(SHA256T_8WAY)
     gate->scanhash   = (void*)&scanhash_sha256t_8way;
@@ -28,7 +29,7 @@ bool register_sha256q_algo( algo_gate_t* gate )
     gate->scanhash   = (void*)&scanhash_sha256q_16way;
     gate->hash       = (void*)&sha256q_16way_hash;
 //#elif defined(SHA256T_SHA)
-//    gate->optimizations = SHA_OPT;
+//    gate->optimizations = SHA256_OPT;
 //    gate->scanhash   = (void*)&scanhash_sha256q;
 //    gate->hash       = (void*)&sha256q_hash;
 #elif defined(SHA256T_8WAY)

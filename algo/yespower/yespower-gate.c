@@ -162,7 +162,7 @@ bool register_yespower_algo( algo_gate_t* gate )
   if ( yespower_params.pers )
      applog( LOG_NOTICE,"Key= \"%s\"\n", yespower_params.pers );
 
-  gate->optimizations = SSE2_OPT | SHA_OPT | NEON_OPT;
+  gate->optimizations = SSE2_OPT | SHA256_OPT | NEON_OPT;
   gate->scanhash      = (void*)&scanhash_yespower;
 #if (__SSE2__) || defined(__aarch64__)
   gate->hash          = (void*)&yespower_hash;
@@ -180,7 +180,7 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
   yespower_params.r       = 16;
   yespower_params.pers    = NULL;
   yespower_params.perslen = 0;
-  gate->optimizations     = SSE2_OPT | SHA_OPT | NEON_OPT;
+  gate->optimizations     = SSE2_OPT | SHA256_OPT | NEON_OPT;
   gate->scanhash          = (void*)&scanhash_yespower;
 #if (__SSE2__) || defined(__aarch64__)
   gate->hash              = (void*)&yespower_hash;
@@ -195,7 +195,7 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
 
 bool register_yescrypt_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | SHA_OPT | NEON_OPT;
+   gate->optimizations = SSE2_OPT | SHA256_OPT | NEON_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
 #if (__SSE2__) || defined(__aarch64__)
    gate->hash       = (void*)&yespower_hash;
@@ -233,7 +233,7 @@ bool register_yescrypt_algo( algo_gate_t* gate )
 
 bool register_yescryptr8_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | SHA_OPT | NEON_OPT;
+   gate->optimizations = SSE2_OPT | SHA256_OPT | NEON_OPT;
    gate->scanhash      = (void*)&scanhash_yespower;
 #if (__SSE2__) || defined(__aarch64__)
    gate->hash          = (void*)&yespower_hash;
@@ -251,7 +251,7 @@ bool register_yescryptr8_algo( algo_gate_t* gate )
 
 bool register_yescryptr16_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | SHA_OPT | NEON_OPT;
+   gate->optimizations = SSE2_OPT | SHA256_OPT | NEON_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
 #if (__SSE2__) || defined(__aarch64__)
    gate->hash          = (void*)&yespower_hash;
@@ -269,7 +269,7 @@ bool register_yescryptr16_algo( algo_gate_t* gate )
 
 bool register_yescryptr32_algo( algo_gate_t* gate )
 {
-   gate->optimizations = SSE2_OPT | SHA_OPT | NEON_OPT;
+   gate->optimizations = SSE2_OPT | SHA256_OPT | NEON_OPT;
    gate->scanhash   = (void*)&scanhash_yespower;
 #if (__SSE2__) || defined(__aarch64__)
    gate->hash          = (void*)&yespower_hash;

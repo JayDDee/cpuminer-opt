@@ -51,7 +51,6 @@ int lbry_get_work_data_size() { return LBRY_WORK_DATA_SIZE; }
 
 bool register_lbry_algo( algo_gate_t* gate )
 {
-//  gate->optimizations = AVX2_OPT | AVX512_OPT | SHA_OPT;
 #if defined (LBRY_16WAY)
   gate->scanhash              = (void*)&scanhash_lbry_16way;
   gate->hash                  = (void*)&lbry_16way_hash;
@@ -67,7 +66,7 @@ bool register_lbry_algo( algo_gate_t* gate )
 #else 
   gate->scanhash              = (void*)&scanhash_lbry;
   gate->hash                  = (void*)&lbry_hash;
-  gate->optimizations = AVX2_OPT | AVX512_OPT | SHA_OPT;
+  gate->optimizations = AVX2_OPT | AVX512_OPT | SHA256_OPT;
 #endif
   gate->build_stratum_request = (void*)&lbry_le_build_stratum_request;
   gate->build_extraheader     = (void*)&lbry_build_extraheader;

@@ -11,8 +11,8 @@
  * this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 //#pragma once
-#ifndef __BLAKE2S_HASH_4WAY_H__
-#define __BLAKE2S_HASH_4WAY_H__ 1
+#ifndef BLAKE2S_HASH_4WAY_H__
+#define BLAKE2S_HASH_4WAY_H__ 1
 
 #if defined(__SSE2__) || defined(__ARM_NEON)
 

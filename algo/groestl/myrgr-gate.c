@@ -16,7 +16,7 @@ bool register_myriad_algo( algo_gate_t* gate )
   init_myrgr_ctx();
   gate->scanhash  = (void*)&scanhash_myriad;
   gate->hash      = (void*)&myriad_hash;
-  gate->optimizations = AES_OPT | SSE2_OPT | AVX2_OPT | SHA_OPT | VAES_OPT;
+  gate->optimizations = AES_OPT | SSE2_OPT | AVX2_OPT | SHA256_OPT | VAES_OPT;
 #endif
   return true;
 };

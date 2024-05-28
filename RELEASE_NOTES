@@ -75,6 +75,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v24.3
+
+ARM: CPU feature detection and reporting is now working.
+ARM: Verthash is now working.
+ARM: Small speedup for yescrypt, yespower & argon2d.
+Code cleanup.
+
 v24.2
 
 x86_64: Fixed blakes2s for AVX2 & AVX512, x25x for AVX512, broken in v3.23.4.

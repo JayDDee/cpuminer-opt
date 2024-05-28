@@ -2074,7 +2074,7 @@ void scrypt_core_4way( v128_t *X, v128_t *V, const uint32_t N )
          v128_ovly v;    
          for ( int l = 0; l < 4; l++ )
             v.u32[l] = ( *(vptr[l] +i ) ) .u32[l];
-         X[i] = v128_xor( X[i], v.m128 );
+         X[i] = v128_xor( X[i], v.v128 );
       }
 
       xor_salsa8_4way( &X[ 0], &X[16] );
@@ -2211,10 +2211,10 @@ static void salsa8_simd128( uint32_t *b, const uint32_t * const c)
    // X2 is shuffled left 2 (swap_64)    { xd, x8, x7, x2 }
    // X3 is shuffled left 3 (ror_1x32)   { xc, xb, x6, x1 }
 
-   y[0].m128 = X0;
-   y[1].m128 = X1;
-   y[2].m128 = X2;
-   y[3].m128 = X3;
+   y[0].v128 = X0;
+   y[1].v128 = X1;
+   y[2].v128 = X2;
+   y[3].v128 = X3;
 
    z[0].u32[0] = y[0].u32[0];
    z[0].u32[3] = y[1].u32[0];
@@ -2236,10 +2236,10 @@ static void salsa8_simd128( uint32_t *b, const uint32_t * const c)
    z[3].u32[1] = y[2].u32[3];
    z[3].u32[0] = y[3].u32[3];
 
-   B[0] = v128_add32( B[0], z[0].m128 );
-   B[1] = v128_add32( B[1], z[1].m128 );
-   B[2] = v128_add32( B[2], z[2].m128 );
-   B[3] = v128_add32( B[3], z[3].m128 );
+   B[0] = v128_add32( B[0], z[0].v128 );
+   B[1] = v128_add32( B[1], z[1].v128 );
+   B[2] = v128_add32( B[2], z[2].v128 );
+   B[3] = v128_add32( B[3], z[3].v128 );
 
 #endif
 
@@ -2404,14 +2404,14 @@ static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
 /*
    v128_ovly ya[4], za[4], yb[4], zb[4];
 
-   ya[0].m128 = XA[0];
-   yb[0].m128 = XB[0];
-   ya[1].m128 = XA[1];
-   yb[1].m128 = XB[1];
-   ya[2].m128 = XA[2];
-   yb[2].m128 = XB[2];
-   ya[3].m128 = XA[3];
-   yb[3].m128 = XB[3];
+   ya[0].v128 = XA[0];
+   yb[0].v128 = XB[0];
+   ya[1].v128 = XA[1];
+   yb[1].v128 = XB[1];
+   ya[2].v128 = XA[2];
+   yb[2].v128 = XB[2];
+   ya[3].v128 = XA[3];
+   yb[3].v128 = XB[3];
 
    za[0].u32[0] = ya[0].u32[0];
    zb[0].u32[0] = yb[0].u32[0];
@@ -2449,14 +2449,14 @@ static inline void salsa_simd128_unshuffle_2buf( uint32_t* xa, uint32_t* xb )
    za[3].u32[3] = ya[0].u32[3];
    zb[3].u32[3] = yb[0].u32[3];
 
-   XA[0] = za[0].m128;
-   XB[0] = zb[0].m128;
-   XA[1] = za[1].m128;
-   XB[1] = zb[1].m128;
-   XA[2] = za[2].m128;
-   XB[2] = zb[2].m128;
-   XA[3] = za[3].m128;
-   XB[3] = zb[3].m128;
+   XA[0] = za[0].v128;
+   XB[0] = zb[0].v128;
+   XA[1] = za[1].v128;
+   XB[1] = zb[1].v128;
+   XA[2] = za[2].v128;
+   XB[2] = zb[2].v128;
+   XA[3] = za[3].v128;
+   XB[3] = zb[3].v128;
 */
 }
 
@@ -2770,18 +2770,18 @@ static inline void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
 /*  
    v128_ovly ya[4], za[4], yb[4], zb[4], yc[4], zc[4];
 
-   ya[0].m128 = XA[0];
-   yb[0].m128 = XB[0];
-   yc[0].m128 = XC[0];
-   ya[1].m128 = XA[1];
-   yb[1].m128 = XB[1];
-   yc[1].m128 = XC[1];
-   ya[2].m128 = XA[2];
-   yb[2].m128 = XB[2];
-   yc[2].m128 = XC[2];
-   ya[3].m128 = XA[3];
-   yb[3].m128 = XB[3];
-   yc[3].m128 = XC[3];
+   ya[0].v128 = XA[0];
+   yb[0].v128 = XB[0];
+   yc[0].v128 = XC[0];
+   ya[1].v128 = XA[1];
+   yb[1].v128 = XB[1];
+   yc[1].v128 = XC[1];
+   ya[2].v128 = XA[2];
+   yb[2].v128 = XB[2];
+   yc[2].v128 = XC[2];
+   ya[3].v128 = XA[3];
+   yb[3].v128 = XB[3];
+   yc[3].v128 = XC[3];
 
    za[0].u32[0] = ya[0].u32[0];
    zb[0].u32[0] = yb[0].u32[0];
@@ -2835,18 +2835,18 @@ static inline void salsa_simd128_unshuffle_3buf( uint32_t* xa, uint32_t* xb,
    zb[3].u32[3] = yb[0].u32[3];
    zc[3].u32[3] = yc[0].u32[3];
 
-   XA[0] = za[0].m128;
-   XB[0] = zb[0].m128;
-   XC[0] = zc[0].m128;
-   XA[1] = za[1].m128;
-   XB[1] = zb[1].m128;
-   XC[1] = zc[1].m128;
-   XA[2] = za[2].m128;
-   XB[2] = zb[2].m128;
-   XC[2] = zc[2].m128;
-   XA[3] = za[3].m128;
-   XB[3] = zb[3].m128;
-   XC[3] = zc[3].m128;
+   XA[0] = za[0].v128;
+   XB[0] = zb[0].v128;
+   XC[0] = zc[0].v128;
+   XA[1] = za[1].v128;
+   XB[1] = zb[1].v128;
+   XC[1] = zc[1].v128;
+   XA[2] = za[2].v128;
+   XB[2] = zb[2].v128;
+   XC[2] = zc[2].v128;
+   XA[3] = za[3].v128;
+   XB[3] = zb[3].v128;
+   XC[3] = zc[3].v128;
 */
 }   
 
@@ -3049,7 +3049,7 @@ static void xor_salsa8(uint32_t * const B, const uint32_t * const C)
             xf = (B[15] ^= C[15]);
 
    
-   #define ROL32( a, c )    ror32( a, c )
+   #define ROL32( a, c )    rol32( a, c )
    #define ADD32( a, b )    ( (a)+(b) )
    #define XOR( a, b )      ( (a)^(b) )
 
