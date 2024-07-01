@@ -2436,7 +2436,7 @@ static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
 static inline void mm512_bswap32_intrlv80_8x64( void *d, const void *src )
 {
   const v128_t bswap_shuf = _mm_set_epi64x( 0x0c0d0e0f08090a0b,
-                                             0x0405060700010203 );
+                                            0x0405060700010203 );
   const __m512i c1 = v512_64( 1 );
   v128_t s0 = casti_v128( src,0 );
   v128_t s1 = casti_v128( src,1 );

@@ -185,6 +185,8 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 //
 // Ternary logic uses 8 bit truth table to define any 3 input logical
 // expression using any number or combinations of AND, OR, XOR, NOT.
+// Macros with duplicate references to the same argument are
+// not expression safe. Switch to inline function if required.
 
 // ~v1 | v0
 #define mm512_ornot( v1, v0 )      _mm512_ternarylogic_epi64( v1, v0, v0, 0xcf )

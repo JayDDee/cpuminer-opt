@@ -456,7 +456,6 @@ static inline uint64x2_t v128_rev64( uint64x2_t v )
 #define v128_swap64     v128_rev64   // grandfathered
 
 #define v128_rev32(v)        v128_rev64( v128_qrev32( v ) )
-#define v128_rev16(v)        v128_rev64( v128_qrev16( v ) )
 
 // shuffle-rotate vector elements
 static inline uint32x4_t v128_shuflr32( uint32x4_t v )
@@ -464,12 +463,6 @@ static inline uint32x4_t v128_shuflr32( uint32x4_t v )
 
 static inline uint32x4_t v128_shufll32( uint32x4_t v )
 {   return vextq_u32( v, v, 3 ); }
-
-static inline uint16x8_t v128_shuflr16( uint16x8_t v )
-{   return vextq_u16( v, v, 1 ); }
-
-static inline uint16x8_t v128_shufll16( uint16x8_t v )
-{   return vextq_u16( v, v, 7 ); }
 
 // reverse bits in bytes, nothing like it in x86_64
 #define v128_bitrev8           vrbitq_u8
@@ -547,7 +540,8 @@ static inline uint16x8_t v128_shufll16( uint16x8_t v )
    casti_v128u64( dst,15 ) = v128_bswap64( casti_v128u64( src,15 ) ); \
 }
 
-// Bitwise blend using vector mask
+// Bitwise blend using vector mask, use only bytewise for compatibility
+// with x86_64.
 #define v128_blendv( v1, v0, mask )    vbslq_u32( mask, v1, v0 )
 
 #endif   // __ARM_NEON

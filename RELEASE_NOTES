@@ -75,6 +75,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v24.4
+
+x86_64: fixed a bug in ornot macro for AVX2 which broke some algos in v24.2.
+x86_64: fixed a bug in alignr macros for SSE2.
+ARM: CPU feature reporting enhancements.
+Some code cleanup.
+
 v24.3
 
 ARM: CPU feature detection and reporting is now working.

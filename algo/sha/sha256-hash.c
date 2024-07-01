@@ -569,8 +569,8 @@ void sha256_x86_sha_prehash_3rounds( uint32_t *ostate, const void *msg,
    __m128i STATE0, STATE1, MSG, TMP;
 
    // Load initial values
-   TMP    = casti_m128i( istate, 0 );
-   STATE1 = casti_m128i( istate, 1 );
+   TMP    = casti_v128u32( istate, 0 );
+   STATE1 = casti_v128u32( istate, 1 );
 
    TMP    = _mm_shuffle_epi32( TMP, 0xB1 );       // CDAB
    STATE1 = _mm_shuffle_epi32( STATE1, 0x1B );    // EFGH
@@ -578,17 +578,17 @@ void sha256_x86_sha_prehash_3rounds( uint32_t *ostate, const void *msg,
    STATE1 = _mm_blend_epi16( STATE1, TMP, 0xF0 ); // CDGH
 
    // Save current hash
-   casti_m128i( sstate, 0 ) = STATE0;
-   casti_m128i( sstate, 1 ) = STATE1;
+   casti_v128u32( sstate, 0 ) = STATE0;
+   casti_v128u32( sstate, 1 ) = STATE1;
 
    // Rounds 0 to 3
-   MSG = casti_m128i( msg, 0 );
+   MSG = casti_v128u32( msg, 0 );
    TMP = _mm_set_epi64x( 0xE9B5DBA5B5C0FBCFULL, 0x71374491428A2F98ULL );
    MSG = _mm_add_epi32( MSG, TMP );
    STATE1 = _mm_sha256rnds2_epu32( STATE1, STATE0, MSG );
    MSG = _mm_shuffle_epi32( MSG, 0x0E );
-   casti_m128i( ostate, 0 ) = _mm_sha256rnds2_epu32( STATE0, STATE1, MSG );
-   casti_m128i( ostate, 1 ) = STATE1;
+   casti_v128u32( ostate, 0 ) = _mm_sha256rnds2_epu32( STATE0, STATE1, MSG );
+   casti_v128u32( ostate, 1 ) = STATE1;
 }
 
 void sha256_x86_x2sha_final_rounds( uint32_t *out_X, uint32_t *out_Y,
@@ -601,22 +601,22 @@ void sha256_x86_x2sha_final_rounds( uint32_t *out_X, uint32_t *out_Y,
     __m128i TMSG0_X, TMSG1_X, TMSG2_X, TMSG3_X;
     __m128i TMSG0_Y, TMSG1_Y, TMSG2_Y, TMSG3_Y;
 
-    STATE0_X = casti_m128i( state_mid_X, 0 );
-    STATE1_X = casti_m128i( state_mid_X, 1 );
-    STATE0_Y = casti_m128i( state_mid_Y, 0 );
-    STATE1_Y = casti_m128i( state_mid_Y, 1 );
+    STATE0_X = casti_v128u32( state_mid_X, 0 );
+    STATE1_X = casti_v128u32( state_mid_X, 1 );
+    STATE0_Y = casti_v128u32( state_mid_Y, 0 );
+    STATE1_Y = casti_v128u32( state_mid_Y, 1 );
 
     // Add the nonces (msg[0] lane 3) to A & E (STATE0 lanes 1 & 3)
-    TMSG0_X = casti_m128i( msg_X, 0 );
-    TMSG0_Y = casti_m128i( msg_Y, 0 );
+    TMSG0_X = casti_v128u32( msg_X, 0 );
+    TMSG0_Y = casti_v128u32( msg_Y, 0 );
     TMP_X = v128_xim32( TMSG0_X, TMSG0_X, 0xd5 );
     TMP_Y = v128_xim32( TMSG0_Y, TMSG0_Y, 0xd5 );
     STATE0_X = _mm_add_epi32( STATE0_X, TMP_X );
     STATE0_Y = _mm_add_epi32( STATE0_Y, TMP_Y );
 
     // Rounds 4 to 7
-    TMSG1_X = casti_m128i( msg_X, 1 );
-    TMSG1_Y = casti_m128i( msg_Y, 1 );
+    TMSG1_X = casti_v128u32( msg_X, 1 );
+    TMSG1_Y = casti_v128u32( msg_Y, 1 );
     TMP_X = _mm_set_epi64x( 0xAB1C5ED5923F82A4ULL, 0x59F111F13956C25BULL );
     MSG_X = _mm_add_epi32( TMSG1_X, TMP_X );
     MSG_Y = _mm_add_epi32( TMSG1_Y, TMP_X );
@@ -638,8 +638,8 @@ void sha256_x86_x2sha_final_rounds( uint32_t *out_X, uint32_t *out_Y,
     STATE0_Y = _mm_sha256rnds2_epu32( STATE0_Y, STATE1_Y, MSG_X );
 
     // Rounds 12 to 15
-    TMSG3_X = casti_m128i( msg_X, 3 );
-    TMSG3_Y = casti_m128i( msg_Y, 3 );
+    TMSG3_X = casti_v128u32( msg_X, 3 );
+    TMSG3_Y = casti_v128u32( msg_Y, 3 );
     TMP_X = _mm_set_epi64x( 0xC19BF1749BDC06A7ULL, 0x80DEB1FE72BE5D74ULL );
     MSG_X = _mm_add_epi32( TMSG3_X, TMP_X );
     MSG_Y = _mm_add_epi32( TMSG3_Y, TMP_X );
@@ -867,20 +867,20 @@ void sha256_x86_x2sha_final_rounds( uint32_t *out_X, uint32_t *out_Y,
     STATE0_Y = _mm_sha256rnds2_epu32( STATE0_Y, STATE1_Y, MSG_Y );
 
     // Add saved state to new state
-    STATE0_X = _mm_add_epi32( STATE0_X, casti_m128i( state_save_X, 0 ) );
-    STATE1_X = _mm_add_epi32( STATE1_X, casti_m128i( state_save_X, 1 ) );
-    STATE0_Y = _mm_add_epi32( STATE0_Y, casti_m128i( state_save_Y, 0 ) );
-    STATE1_Y = _mm_add_epi32( STATE1_Y, casti_m128i( state_save_Y, 1 ) );
+    STATE0_X = _mm_add_epi32( STATE0_X, casti_v128u32( state_save_X, 0 ) );
+    STATE1_X = _mm_add_epi32( STATE1_X, casti_v128u32( state_save_X, 1 ) );
+    STATE0_Y = _mm_add_epi32( STATE0_Y, casti_v128u32( state_save_Y, 0 ) );
+    STATE1_Y = _mm_add_epi32( STATE1_Y, casti_v128u32( state_save_Y, 1 ) );
 
     // Unshuffle & save state    
     TMP_X = _mm_shuffle_epi32( STATE0_X, 0x1B );                        // FEBA
     TMP_Y = _mm_shuffle_epi32( STATE0_Y, 0x1B );
     STATE1_X = _mm_shuffle_epi32( STATE1_X, 0xB1 );                     // DCHG
     STATE1_Y = _mm_shuffle_epi32( STATE1_Y, 0xB1 );
-    casti_m128i( out_X, 0 ) = _mm_blend_epi16( TMP_X, STATE1_X, 0xF0 ); // DCBA
-    casti_m128i( out_Y, 0 ) = _mm_blend_epi16( TMP_Y, STATE1_Y, 0xF0 );
-    casti_m128i( out_X, 1 ) = _mm_alignr_epi8( STATE1_X, TMP_X, 8 );    // ABEF
-    casti_m128i( out_Y, 1 ) = _mm_alignr_epi8( STATE1_Y, TMP_Y, 8 );
+    casti_v128u32( out_X, 0 ) = _mm_blend_epi16( TMP_X, STATE1_X, 0xF0 ); // DCBA
+    casti_v128u32( out_Y, 0 ) = _mm_blend_epi16( TMP_Y, STATE1_Y, 0xF0 );
+    casti_v128u32( out_X, 1 ) = _mm_alignr_epi8( STATE1_X, TMP_X, 8 );    // ABEF
+    casti_v128u32( out_Y, 1 ) = _mm_alignr_epi8( STATE1_Y, TMP_Y, 8 );
 }
 
 #endif     // SHA

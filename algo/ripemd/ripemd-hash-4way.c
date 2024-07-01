@@ -319,7 +319,7 @@ void ripemd160_4way_close( ripemd160_4way_context  *sc, void *dst )
     sc->buf[ (pad>>2) + 1 ] = _mm_set1_epi32( high );
     ripemd160_4way_round( sc );
     for (u = 0; u < 5; u ++)
-        casti_m128i( dst, u ) = sc->val[u];
+        casti_v128u32( dst, u ) = sc->val[u];
 }
 
 #endif

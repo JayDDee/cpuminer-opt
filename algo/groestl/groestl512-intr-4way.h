@@ -239,7 +239,7 @@ static const __m512i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003,
   { \
     /* AddRoundConstant P1024 */\
     xmm8 = _mm512_xor_si512( xmm8, mm512_bcast_m128( \
-             casti_m128i( round_const_p, round_counter ) ) ); \
+             casti_v128u32( round_const_p, round_counter ) ) ); \
     /* ShiftBytes P1024 + pre-AESENCLAST */\
     xmm8  = _mm512_shuffle_epi8( xmm8,  SUBSH_MASK0 ); \
     xmm9  = _mm512_shuffle_epi8( xmm9,  SUBSH_MASK1 );\
@@ -254,7 +254,7 @@ static const __m512i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003,
     \
      /* AddRoundConstant P1024 */\
     xmm0 = _mm512_xor_si512( xmm0, mm512_bcast_m128( \
-             casti_m128i( round_const_p, round_counter+1 ) ) ); \
+             casti_v128u32( round_const_p, round_counter+1 ) ) ); \
     /* ShiftBytes P1024 + pre-AESENCLAST */\
     xmm0 = _mm512_shuffle_epi8( xmm0, SUBSH_MASK0 );\
     xmm1 = _mm512_shuffle_epi8( xmm1, SUBSH_MASK1 );\
@@ -283,7 +283,7 @@ static const __m512i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003,
     xmm13 = _mm512_xor_si512( xmm13, xmm1 );\
     xmm14 = _mm512_xor_si512( xmm14, xmm1 );\
     xmm15 = _mm512_xor_si512( xmm15, mm512_bcast_m128( \
-                 casti_m128i( round_const_q, round_counter ) ) ); \
+                 casti_v128u32( round_const_q, round_counter ) ) ); \
     /* ShiftBytes Q1024 + pre-AESENCLAST */\
     xmm8  = _mm512_shuffle_epi8( xmm8,  SUBSH_MASK1 );\
     xmm9  = _mm512_shuffle_epi8( xmm9,  SUBSH_MASK3 );\
@@ -306,7 +306,7 @@ static const __m512i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003,
     xmm5 = _mm512_xor_si512( xmm5, xmm9 );\
     xmm6 = _mm512_xor_si512( xmm6, xmm9 );\
     xmm7 = _mm512_xor_si512( xmm7, mm512_bcast_m128( \
-             casti_m128i( round_const_q, round_counter+1 ) ) ); \
+             casti_v128u32( round_const_q, round_counter+1 ) ) ); \
     /* ShiftBytes Q1024 + pre-AESENCLAST */\
     xmm0 = _mm512_shuffle_epi8( xmm0, SUBSH_MASK1 );\
     xmm1 = _mm512_shuffle_epi8( xmm1, SUBSH_MASK3 );\
@@ -812,7 +812,7 @@ static const __m256i SUBSH_MASK7_2WAY =
   { \
     /* AddRoundConstant P1024 */\
     xmm8 = _mm256_xor_si256( xmm8, mm256_bcast_m128( \
-             casti_m128i( round_const_p, round_counter ) ) ); \
+             casti_v128u32( round_const_p, round_counter ) ) ); \
     /* ShiftBytes P1024 + pre-AESENCLAST */\
     xmm8  = _mm256_shuffle_epi8( xmm8,  SUBSH_MASK0_2WAY ); \
     xmm9  = _mm256_shuffle_epi8( xmm9,  SUBSH_MASK1_2WAY );\
@@ -827,7 +827,7 @@ static const __m256i SUBSH_MASK7_2WAY =
     \
      /* AddRoundConstant P1024 */\
     xmm0 = _mm256_xor_si256( xmm0, mm256_bcast_m128( \
-             casti_m128i( round_const_p, round_counter+1 ) ) ); \
+             casti_v128u32( round_const_p, round_counter+1 ) ) ); \
     /* ShiftBytes P1024 + pre-AESENCLAST */\
     xmm0 = _mm256_shuffle_epi8( xmm0, SUBSH_MASK0_2WAY );\
     xmm1 = _mm256_shuffle_epi8( xmm1, SUBSH_MASK1_2WAY );\
@@ -856,7 +856,7 @@ static const __m256i SUBSH_MASK7_2WAY =
     xmm13 = _mm256_xor_si256( xmm13, xmm1 );\
     xmm14 = _mm256_xor_si256( xmm14, xmm1 );\
     xmm15 = _mm256_xor_si256( xmm15, mm256_bcast_m128( \
-                 casti_m128i( round_const_q, round_counter ) ) ); \
+                 casti_v128u32( round_const_q, round_counter ) ) ); \
     /* ShiftBytes Q1024 + pre-AESENCLAST */\
     xmm8  = _mm256_shuffle_epi8( xmm8,  SUBSH_MASK1_2WAY );\
     xmm9  = _mm256_shuffle_epi8( xmm9,  SUBSH_MASK3_2WAY );\
@@ -879,7 +879,7 @@ static const __m256i SUBSH_MASK7_2WAY =
     xmm5 = _mm256_xor_si256( xmm5, xmm9 );\
     xmm6 = _mm256_xor_si256( xmm6, xmm9 );\
     xmm7 = _mm256_xor_si256( xmm7, mm256_bcast_m128( \
-             casti_m128i( round_const_q, round_counter+1 ) ) ); \
+             casti_v128u32( round_const_q, round_counter+1 ) ) ); \
     /* ShiftBytes Q1024 + pre-AESENCLAST */\
     xmm0 = _mm256_shuffle_epi8( xmm0, SUBSH_MASK1_2WAY );\
     xmm1 = _mm256_shuffle_epi8( xmm1, SUBSH_MASK3_2WAY );\

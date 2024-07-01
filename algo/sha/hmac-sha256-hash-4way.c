@@ -74,8 +74,8 @@ hmac_sha256_4way_init( hmac_sha256_4way_context *ctx, const void *_K,
 	memset( pad, 0x36, 64*4 );
 
    for ( i = 0; i < Klen; i++ )
-		casti_m128i( pad, i ) = _mm_xor_si128( casti_m128i( pad, i ),
-                                             casti_m128i( K, i ) );
+		casti_v128u32( pad, i ) = _mm_xor_si128( casti_v128u32( pad, i ),
+                                               casti_v128u32( K, i ) );
 
    sha256_4way_update( &ctx->ictx, pad, 64 );
 
@@ -83,8 +83,8 @@ hmac_sha256_4way_init( hmac_sha256_4way_context *ctx, const void *_K,
 	sha256_4way_init( &ctx->octx );
 	memset( pad, 0x5c, 64*4 );
 	for ( i = 0; i < Klen/4; i++ )
-		casti_m128i( pad, i ) = _mm_xor_si128( casti_m128i( pad, i ),
-                                             casti_m128i( K, i ) );
+		casti_v128u32( pad, i ) = _mm_xor_si128( casti_v128u32( pad, i ),
+                                               casti_v128u32( K, i ) );
 	sha256_4way_update( &ctx->octx, pad, 64 );
 }
 
@@ -158,8 +158,8 @@ pbkdf2_sha256_4way( uint8_t *buf, size_t dkLen,
 
 			/* ... xor U_j ... */
 			for ( k = 0; k < 8; k++ )
-				casti_m128i( T, k ) = _mm_xor_si128( casti_m128i( T, k ),
-                                                 casti_m128i( U, k ) );
+				casti_v128u32( T, k ) = _mm_xor_si128( casti_v128u32( T, k ),
+                                                   casti_v128u32( U, k ) );
 		}
 
 		/* Copy as many bytes as necessary into buf. */

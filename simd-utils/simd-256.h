@@ -172,7 +172,7 @@ static inline __m256i mm256_not( const __m256i v )
     
 #else
 
-#define mm256_ornot( v1, v0 )      _mm256_or_si256( v1, mm256_not( v0 ) )
+#define mm256_ornot( v1, v0 )      _mm256_or_si256( mm256_not( v1 ), v0 )
 
 #define mm256_xor3( a, b, c ) \
   _mm256_xor_si256( a, _mm256_xor_si256( b, c ) )
@@ -217,12 +217,11 @@ static inline __m256i mm256_not( const __m256i v )
 #define mm256_movmask_32( v ) \
    _mm256_movemask_ps( _mm256_castsi256_ps( v ) )
 
-//
-//           Bit rotations.
-
+// shuffle 16 bit elements within 64 bit lanes.
 #define mm256_shuffle16( v, c ) \
    _mm256_shufflehi_epi16( _mm256_shufflelo_epi16( v, c ), c )
 
+// reverse elements within lanes.
 #define mm256_qrev32(v)    _mm256_shuffle_epi32( v, 0xb1 )
 #define mm256_swap64_32    mm256_qrev32       // grandfathered
 
@@ -241,6 +240,9 @@ static inline __m256i mm256_not( const __m256i v )
 #define mm256_wrev8(v)  \
    _mm256_shuffle_epi8( v, mm256_bcast_m128( \
                          v128_64( 0x0e0f0c0d0a0b0809, 0x0607040502030001 ) ) )
+
+//
+//           Bit rotations.
 
 // These should never be called directly by applications.
 #define mm256_ror_64_avx2( v, c ) \

@@ -62,8 +62,6 @@ union u32 {
 #define v32_andn(x,y) ((v32) vec_andn((x), (y)))
 #endif
 
-//TODO  aarch support for widening multiply
-
 #if defined(__SSE2__)
 
 #define vec_and(x,y) ((x)&(y))

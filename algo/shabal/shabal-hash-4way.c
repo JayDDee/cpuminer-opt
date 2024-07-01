@@ -300,11 +300,12 @@ static inline __m512i v512_mult_x5( const __m512i x )
 
 #define PERM_ELT16( xa0, xa1, xb0, xb1, xb2, xb3, xc, xm ) \
 do { \
-   xa0 = mm512_xor3( xm, xb1, mm512_xorandnot( \
-           v512_mult_x3( mm512_xor3( xa0, xc, \
-              v512_mult_x5( mm512_rol_32( xa1, 15 ) ) ) ), \
-           xb3, xb2 ) ); \
-   xb0 = mm512_xnor( xa0, mm512_rol_32( xb0, 1 ) ); \
+   xa0 = mm512_xor3( xa0, xc, \
+                     v512_mult_x5( mm512_rol_32( xa1, 15 ) ) ); \
+   xb0 = mm512_rol_32( xb0, 1 ); \
+   xa0 = mm512_xor3( xm, xb1, \
+                     mm512_xorandnot( v512_mult_x3( xa0 ), xb3, xb2 ) ); \
+   xb0 = mm512_xnor( xa0, xb0 ); \
 } while (0)
 
 #define PERM_STEP_0_16  do { \
@@ -905,11 +906,12 @@ static inline __m256i v256_mult_x5( const __m256i x )
 
 #define PERM_ELT8( xa0, xa1, xb0, xb1, xb2, xb3, xc, xm ) \
 do { \
-   xa0 = mm256_xor3( xm, xb1, mm256_xorandnot( \
-           v256_mult_x3( mm256_xor3( xa0, xc, \
-              v256_mult_x5( mm256_rol_32( xa1, 15 ) ) ) ), \
-           xb3, xb2 ) ); \
-   xb0 = mm256_xnor( xa0, mm256_rol_32( xb0, 1 ) ); \
+   xa0 = mm256_xor3( xa0, xc, \
+                     v256_mult_x5( mm256_rol_32( xa1, 15 ) ) ); \
+   xb0 = mm256_rol_32( xb0, 1 ); \
+   xa0 = mm256_xor3( xm, xb1, \
+                     mm256_xorandnot( v256_mult_x3( xa0 ), xb3, xb2 ) ); \
+   xb0 = mm256_xnor( xa0, xb0 ); \
 } while (0)
 
 #define PERM_STEP_0_8   do { \

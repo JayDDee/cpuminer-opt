@@ -47,25 +47,19 @@
   a1 = _mm_alignr_epi8( b, a1, 4 ); \
 }
 
-#elif defined(__ARM_NEON)
+
+#elif defined(__ARM_NEON) || defined(__SSE2__)
 
 // { a1_0, 0, a1_0, a1_0 }
 #define MULT2( a0, a1 ) \
 { \
-  v128_t b = v128_xor( a0, v128_and( vdupq_laneq_u32( a1, 0 ), MASK ) ); \
+  v128_t b = v128_xor( a0, v128_and( v128_bcast32( a1 ), MASK ) ); \
   a0 = v128_alignr32( a1, b, 1 ); \
   a1 = v128_alignr32( b, a1, 1 ); \
 }
 
-#else   // assume SSE2
-
-#define MULT2( a0, a1 ) \
-{ \
-  v128_t b = v128_xor( a0, v128_and( _mm_shuffle_epi32( a1, 0 ), MASK ) ); \
-  a0 = v128_or( _mm_srli_si128(  b, 4 ), _mm_slli_si128( a1, 12 ) ); \
-  a1 = v128_or( _mm_srli_si128( a1, 4 ), _mm_slli_si128(  b, 12 ) ); \
-} 
-
+#else
+  #warning __FILE__ ":" __LINE__ " Unknown or unsupported CPU architecture."
 #endif
 
 #if defined(VL256)

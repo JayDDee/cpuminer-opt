@@ -418,11 +418,11 @@ int scanhash_x17_16x32( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
 
    // convert LE32 to LE64
-   edata[0] = v128_swap64_32( casti_m128i( pdata, 0 ) );
-   edata[1] = v128_swap64_32( casti_m128i( pdata, 1 ) );
-   edata[2] = v128_swap64_32( casti_m128i( pdata, 2 ) );
-   edata[3] = v128_swap64_32( casti_m128i( pdata, 3 ) );
-   edata[4] = v128_swap64_32( casti_m128i( pdata, 4 ) );
+   edata[0] = v128_swap64_32( casti_v128u32( pdata, 0 ) );
+   edata[1] = v128_swap64_32( casti_v128u32( pdata, 1 ) );
+   edata[2] = v128_swap64_32( casti_v128u32( pdata, 2 ) );
+   edata[3] = v128_swap64_32( casti_v128u32( pdata, 3 ) );
+   edata[4] = v128_swap64_32( casti_v128u32( pdata, 4 ) );
 
    mm512_intrlv80_8x64( vdata, edata );
    blake512_8way_prehash_le( &blake512_8way_ctx, x17_16way_midstate, vdata );
@@ -681,11 +681,11 @@ int scanhash_x17_8x64( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
 
    // convert LE32 to LE64
-   edata[0] = v128_swap64_32( casti_m128i( pdata, 0 ) );
-   edata[1] = v128_swap64_32( casti_m128i( pdata, 1 ) );
-   edata[2] = v128_swap64_32( casti_m128i( pdata, 2 ) );
-   edata[3] = v128_swap64_32( casti_m128i( pdata, 3 ) );
-   edata[4] = v128_swap64_32( casti_m128i( pdata, 4 ) );
+   edata[0] = v128_swap64_32( casti_v128u32( pdata, 0 ) );
+   edata[1] = v128_swap64_32( casti_v128u32( pdata, 1 ) );
+   edata[2] = v128_swap64_32( casti_v128u32( pdata, 2 ) );
+   edata[3] = v128_swap64_32( casti_v128u32( pdata, 3 ) );
+   edata[4] = v128_swap64_32( casti_v128u32( pdata, 4 ) );
 
    mm512_intrlv80_8x64( vdata, edata );
    *noncev = _mm512_add_epi32( *noncev, _mm512_set_epi32(
@@ -895,11 +895,11 @@ int scanhash_x17_4x64( struct work *work, uint32_t max_nonce,
    const bool bench = opt_benchmark;
 
    // convert LE32 to LE64
-   edata[0] = v128_swap64_32( casti_m128i( pdata, 0 ) );
-   edata[1] = v128_swap64_32( casti_m128i( pdata, 1 ) );
-   edata[2] = v128_swap64_32( casti_m128i( pdata, 2 ) );
-   edata[3] = v128_swap64_32( casti_m128i( pdata, 3 ) );
-   edata[4] = v128_swap64_32( casti_m128i( pdata, 4 ) );
+   edata[0] = v128_swap64_32( casti_v128u32( pdata, 0 ) );
+   edata[1] = v128_swap64_32( casti_v128u32( pdata, 1 ) );
+   edata[2] = v128_swap64_32( casti_v128u32( pdata, 2 ) );
+   edata[3] = v128_swap64_32( casti_v128u32( pdata, 3 ) );
+   edata[4] = v128_swap64_32( casti_v128u32( pdata, 4 ) );
 
    mm256_intrlv80_4x64( vdata, edata );
    *noncev = _mm256_add_epi32( *noncev, _mm256_set_epi32( 0,3,0,2, 0,1,0,0 ) );
