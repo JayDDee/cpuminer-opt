@@ -32,6 +32,14 @@
 // Intrinsics automatically promote from REX to VEX when AVX is available
 // but ASM needs to be done manually.
 //
+// APX supports EGPR which adds 16 more GPRs and 3 operand instructions.
+// This may affect ASM that include instructions that are superseded by APX
+// versions and are therefore incompatible with APX.
+// As a result GCC-14 disables EGPR by default and can be enabled with
+// "-mapx-inline-asm-use-gpr32"
+//TODO
+// Some ASM functions may need to be updated to support EGPR with APX.
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 // New architecturally agnostic syntax: 
@@ -164,7 +172,7 @@ typedef union
 // necessary the cvt, set, or set1 intrinsics can be used allowing the
 // compiler to exploit new features to produce optimum code.
 // Currently only used internally and by Luffa.
-
+// It also has implications for APX EGPR feature.
 
 #define v128_mov64       _mm_cvtsi64_si128
 #define v128_mov32       _mm_cvtsi32_si128

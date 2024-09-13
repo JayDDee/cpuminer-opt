@@ -10,7 +10,18 @@
 // This code is not used anywhere annd likely never will. It's intent was
 // to support 2 way parallel hashing using  MMX, or NEON for 32 bit hash
 // functions, but hasn't been implementedwas never implemented.
-// 
+//
+// MMX is being deprecated by compilers, all intrinsics will be converted to use SSE
+// registers and instructions. MMX will still be available using ASM.
+// For backward compatibility it's likely the compiler won't allow mixing explicit SSE
+// with promoted MMX. It is therefore preferable to implement all 64 bit vector code
+// using explicit SSE with the upper 64 bits being ignored.
+// Using SSE for 64 bit vectors will complicate loading arrays from memory which will
+// always load 128 bits. Odd indexes will need to be extracted from the upper 64 bits
+// of the even index SSE register. 
+// In most cases the exiting 4x32 SSE code can be used with 2 lanes being ignored
+// making ths file obsolete.
+
 
 #define v64_t                        __m64
 #define v64u32_t                     v64_t

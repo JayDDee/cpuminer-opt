@@ -1591,13 +1591,13 @@ start:
          last_targetdiff = net_diff;
 
          applog( LOG_BLUE, "New Block %d, Tx %d, Net Diff %.5g, Ntime %08x",
-                                work->height, work->tx_count, net_diff,
-                                work->data[ algo_gate.ntime_index ] );
+                             work->height, work->tx_count, net_diff,
+                             bswap_32( work->data[ algo_gate.ntime_index ] ) );
       }
-      else if ( memcmp( &work->data[1], &g_work.data[1], 32 ) )
+      else if ( memcmp( work->data, g_work.data, algo_gate.work_cmp_size ) )
          applog( LOG_BLUE, "New Work: Block %d, Tx %d, Net Diff %.5g, Ntime %08x",
-                                work->height, work->tx_count, net_diff,
-                                work->data[ algo_gate.ntime_index ] );
+                             work->height, work->tx_count, net_diff,
+                             bswap_32( work->data[ algo_gate.ntime_index ] ) );
       else
         new_work = false;
 
@@ -2139,7 +2139,7 @@ static void *miner_thread( void *userdata )
 //   uint32_t end_nonce = opt_benchmark
 //                      ? ( 0xffffffffU / opt_n_threads ) * (thr_id + 1) - 0x20
 //                      : 0;
-   uint32_t end_nonce = 0xffffffffU / opt_n_threads  * (thr_id + 1) - 0x20;
+   uint32_t end_nonce = 0xffffffffU / opt_n_threads  * (thr_id + 1) - opt_n_threads;
 
    memset( &work, 0, sizeof(work) );
  
@@ -2206,58 +2206,58 @@ static void *miner_thread( void *userdata )
 //       int64_t max64 = 1000;
        int nonce_found = 0;
 
-//       if ( likely( algo_gate.do_this_thread( thr_id ) ) )
-//       {
-          if ( have_stratum ) 
+       if ( have_stratum ) 
+       {
+          while ( unlikely( stratum_down ) )
+             sleep( 1 );
+          if ( unlikely( ( *nonceptr >= end_nonce )
+                        && !work_restart[thr_id].restart ) )
           {
-             while ( unlikely( stratum_down ) )
-                sleep( 1 );
-             if ( unlikely( ( *nonceptr >= end_nonce )
-                         && !work_restart[thr_id].restart ) )
+             if ( opt_extranonce )
+                stratum_gen_work( &stratum, &g_work );
+             else
              {
-                if ( opt_extranonce )
-                   stratum_gen_work( &stratum, &g_work );
-                else
+                if ( !thr_id )
                 {
-                   if ( !thr_id )
-                   {
-                      applog( LOG_WARNING, "nonce range exhausted, extranonce not subscribed" );
-                      applog( LOG_WARNING, "waiting for new work...");
-                   }
-                   while ( !work_restart[thr_id].restart )
-                      sleep ( 1 );
+                   applog( LOG_WARNING, "Nonce range exhausted, extranonce not subscribed." );
+                   applog( LOG_WARNING, "Waiting for new work...");
                 }
+                while ( !work_restart[thr_id].restart )
+                   sleep ( 1 );
              }
           }
-          else if ( !opt_benchmark ) // GBT or getwork
+       }
+       else if ( !opt_benchmark ) // GBT or getwork
+       {
+         // max64 is used to set end_nonce to match the scantime.
+         // It also factors the nonce range to end the scan when nonces are
+         // exhausted. In either case needing new work can be assumed.
+         // Only problem is every thread will call get_work.
+         // First thread resets scantime blocking all subsequent threads
+         // from fetching new work.
+
+          pthread_rwlock_wrlock( &g_work_lock );
+          const time_t now = time(NULL);
+          if ( ( ( now - g_work_time ) >= opt_scantime )
+             || ( *nonceptr >= end_nonce ) )
           {
-             pthread_rwlock_wrlock( &g_work_lock );
-
-             if ( ( ( time(NULL) - g_work_time ) >= opt_scantime )
-               || ( *nonceptr >= end_nonce ) )
+             if ( unlikely( !get_work( mythr, &g_work ) ) )
              {
-                if ( unlikely( !get_work( mythr, &g_work ) ) )
-                {
-                   pthread_rwlock_unlock( &g_work_lock );
-		             applog( LOG_ERR, "work retrieval failed, exiting miner thread %d", thr_id );
-		             goto out;
-	             }
-                g_work_time = time(NULL);
-//                restart_threads();
-             }
-
-             pthread_rwlock_unlock( &g_work_lock );
+                pthread_rwlock_unlock( &g_work_lock );
+                applog( LOG_ERR, "work retrieval failed, exiting miner thread %d", thr_id );
+		          goto out;
+	          }
+             g_work_time = now;
           }
-
-          pthread_rwlock_rdlock( &g_work_lock );
-
-          algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce );
-          work_restart[thr_id].restart = 0;
-
           pthread_rwlock_unlock( &g_work_lock );
+       }
 
-//       } // do_this_thread
-//       algo_gate.resync_threads( thr_id, &work );
+       pthread_rwlock_rdlock( &g_work_lock );
+
+       algo_gate.get_new_work( &work, &g_work, thr_id, &end_nonce );
+       work_restart[thr_id].restart = 0;
+
+       pthread_rwlock_unlock( &g_work_lock );
 
        // conditional mining
        if ( unlikely( !wanna_mine( thr_id ) ) )
@@ -2315,12 +2315,6 @@ static void *miner_thread( void *userdata )
        gettimeofday( (struct timeval *) &tv_start, NULL );
 
        // Scan for nonce
-//       nonce_found = scanhash_sha256dt_ref( &work, max_nonce, &hashes_done,
-//                                         mythr );
-//       nonce_found = scanhash_sha256dt_4x32( &work, max_nonce, &hashes_done,
-//                                         mythr );
-
-
        nonce_found = algo_gate.scanhash( &work, max_nonce, &hashes_done,
                                          mythr );
 
@@ -2342,8 +2336,8 @@ static void *miner_thread( void *userdata )
        // If unsubmiited nonce(s) found, submit now. 
        if ( unlikely( nonce_found && !opt_benchmark ) )
        {  
-//          applog( LOG_WARNING, "BUG: See RELEASE_NOTES for reporting bugs. Algo = %s.",
-//                               algo_names[ opt_algo ] );
+          applog( LOG_WARNING, "BUG: See RELEASE_NOTES for reporting bugs. Algo = %s.",
+                               algo_names[ opt_algo ] );
           if ( !submit_work( mythr, &work ) )
           {
              applog( LOG_WARNING, "Failed to submit share." );

@@ -644,7 +644,6 @@ enum algos {
         ALGO_SHA256T,
         ALGO_SHA3D,
         ALGO_SHA512256D,
-        ALGO_SHAVITE3,    
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
         ALGO_SKUNK,
@@ -740,7 +739,6 @@ static const char* const algo_names[] = {
         "sha256t",
         "sha3d",
         "sha512256d",
-        "shavite3",
         "skein",
         "skein2",
         "skunk",
@@ -904,7 +902,6 @@ Options:\n\
                           sha256t       Triple SHA-256, Onecoin (OC)\n\
                           sha3d         Double Keccak256 (BSHA3)\n\
                           sha512256d    Double SHA-512 (Radiant)\n\
-                          shavite3      Shavite3\n\
                           skein         Skein+Sha (Skeincoin)\n\
                           skein2        Double Skein (Woodcoin)\n\
                           skunk         Signatum (SIGT)\n\

@@ -166,7 +166,6 @@ cpuminer_SOURCES = \
   algo/shavite/sph-shavite-aesni.c \
   algo/shavite/shavite-hash-2way.c \
   algo/shavite/shavite-hash-4way.c \
-  algo/shavite/shavite.c \
   algo/simd/nist.c \
   algo/simd/vector.c \
   algo/simd/sph_simd.c \

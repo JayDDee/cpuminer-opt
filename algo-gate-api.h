@@ -165,10 +165,10 @@ char* ( *malloc_txs_request )   ( struct work* );
 void ( *set_work_data_endian )  ( struct work* );
 
 // Diverge mining threads
-bool ( *do_this_thread )        ( int );
+//bool ( *do_this_thread )        ( int );
 
 // After do_this_thread
-void ( *resync_threads )        ( int, struct work* );
+//void ( *resync_threads )        ( int, struct work* );
 
 json_t* ( *longpoll_rpc_call )  ( CURL*, int*, char* );
 

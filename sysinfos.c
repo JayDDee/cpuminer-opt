@@ -169,17 +169,17 @@ static inline int cpu_fanpercent()
 }
 
 
-// CPUID
+// x86_64 CPUID
 
 // This list is incomplete, it only contains features of interest to cpuminer.
 // refer to http://en.wikipedia.org/wiki/CPUID for details.
 
 // AVX10 compatibility notes
 //
-// Notation used: AVX10i.[version]_[vectorwidth]
-// AVX10.1_512 is a rebranding of AVX512 and is effectively the AVX* superset
+// Display format: AVX10.[version]-[vectorwidth]
+// AVX10.1-512 is a rebranding of AVX512 and is effectively the AVX* superset
 // with full 512 bit vector support.
-// AVX10.2_256 is effectively AVX2 + AVX512_VL, all AVX512 instructions and
+// AVX10.2-256 is effectively AVX2 + AVX512_VL, all AVX512 instructions and
 // features applied only to 256 bit and 128 bit vectors.
 // Future AVX10 versions will add new instructions and features.
 
@@ -321,12 +321,12 @@ static inline void cpuid( unsigned int leaf, unsigned int subleaf,
                           unsigned int output[4] )
 {
 #if defined(AT_HWCAP)
-    output[0] = getauxval(AT_HWCAP);
+    output[0] = getauxval( AT_HWCAP );
 #else
     output[0] = 0;
 #endif
 #if defined(AT_HWCAP2)
-    output[1] = getauxval(AT_HWCAP2);
+    output[1] = getauxval( AT_HWCAP2 );
 #else
     output[1] = 0;
 #endif    
@@ -508,29 +508,6 @@ static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 #endif
 */
 
-// GCC-14.1: the AVX512 macros are defined even when compiled with only
-// -mavx10.1-256, causing compile errors in AVX512 code. Only with
-// -mavx10.1-512 does it compile successfully.
-// __EVEX512__ is set only when compiled with -mavx10.1-512.
-// Adding -fno-evex512 doesn't help.
-// Building with -mapxf fails on a CPU without APX because configure can't
-// run its test program.
-/*
-#ifdef __AVX10_1__
-#warning "__AVX10_1__"
-#endif
-#ifdef __AVX10_1_256__
-#warning "__AVX10_1_256__"
-#endif
-#ifdef __AVX10_1_512__
-#warning "__AVX10_1_512__"
-#endif
-#ifdef __EVEX512__
-#warning "__EVEX512__"
-#endif
-*/
-
-
 // Typical display format: AVX10.[version]_[vectorlength], if vector length is
 // omitted 256 is the default.
 //    Ex: AVX10.1_512
@@ -646,7 +623,7 @@ static inline bool has_avx2()
 #endif
 }
 
-// Also ensure kernel supports feature
+// SVE vector width is determined at run time.
 static inline bool has_sve()
 {
 #if defined(__aarch64__) && defined(HWCAP_SVE)
@@ -780,6 +757,7 @@ static inline bool has_aes()
    }
    return false;
 #elif defined(__aarch64__) && defined(HWCAP_AES)
+   // NEON AES
    unsigned int cpu_info[4] = { 0 };
    cpuid( 0, 0, cpu_info );
    return cpu_info[0] & HWCAP_AES;
@@ -825,6 +803,7 @@ static inline bool has_sha256()
    }
    return false;
 #elif defined(__aarch64__) && defined(HWCAP_SHA2)
+   // NEON SHA256
    unsigned int cpu_info[4] = { 0 };
    cpuid( 0, 0, cpu_info );
    return cpu_info[0] & HWCAP_SHA2;
@@ -844,6 +823,7 @@ static inline bool has_sha512()
    }
    return false;
 #elif defined(__aarch64__) && defined(HWCAP_SHA512)
+   // NEON SHA512
    unsigned int cpu_info[4] = { 0 };
    cpuid( 0, 0, cpu_info );
    return cpu_info[0] & HWCAP_SHA512;
@@ -856,6 +836,7 @@ static inline bool has_sha512()
 static inline bool has_sha3()
 {
 #if defined(__aarch64__) && defined(HWCAP_SHA3)
+   // NEON SHA3
    unsigned int cpu_info[4] = { 0 };
    cpuid( 0, 0, cpu_info );
    return cpu_info[0] & HWCAP_SHA3;
@@ -948,7 +929,7 @@ static inline bool has_avx10_512()
     return false;
 }
 
-// Includes 128 but may not include 512
+// Includes 128 but might not include 512
 static inline bool has_avx10_256()
 {
 #if defined(__x86_64__)

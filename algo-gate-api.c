@@ -263,8 +263,8 @@ static void init_algo_gate( algo_gate_t* gate )
    gate->build_block_header      = (void*)&std_build_block_header;
    gate->build_extraheader       = (void*)&std_build_extraheader;
    gate->set_work_data_endian    = (void*)&do_nothing;
-   gate->resync_threads          = (void*)&do_nothing;
-   gate->do_this_thread          = (void*)&return_true;
+//   gate->resync_threads          = (void*)&do_nothing;
+//   gate->do_this_thread          = (void*)&return_true;
    gate->longpoll_rpc_call       = (void*)&std_longpoll_rpc_call;
    gate->get_work_data_size      = (void*)&std_get_work_data_size;
    gate->optimizations           = EMPTY_SET;
@@ -340,7 +340,6 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_SHA256T:      rc = register_sha256t_algo       ( gate ); break;
     case ALGO_SHA3D:        rc = register_sha3d_algo         ( gate ); break;
     case ALGO_SHA512256D:   rc = register_sha512256d_algo    ( gate ); break;
-    case ALGO_SHAVITE3:     rc = register_shavite_algo       ( gate ); break;
     case ALGO_SKEIN:        rc = register_skein_algo         ( gate ); break;
     case ALGO_SKEIN2:       rc = register_skein2_algo        ( gate ); break;
     case ALGO_SKUNK:        rc = register_skunk_algo         ( gate ); break;

@@ -125,7 +125,7 @@ static inline __m512i mm512_perm_128( const __m512i v, const int c )
 // Pseudo constants.
 #define m512_zero       _mm512_setzero_si512()
 
-// use asm to avoid compiler warning for unitialized local
+// use asm to avoid compiler warning for uninitialized local
 static inline __m512i mm512_neg1_fn()
 {
    __m512i v;
