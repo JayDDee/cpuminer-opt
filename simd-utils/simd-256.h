@@ -174,17 +174,22 @@ static inline __m256i mm256_not( const __m256i v )
 
 #define mm256_ornot( v1, v0 )      _mm256_or_si256( mm256_not( v1 ), v0 )
 
+// usage hints to improve performance when ternary logic is not avalable:
+// If overwriting an input arg put that arg first so the intermediate
+// result can be stored in the dest.
+// Put an arg with the nearest dependency last so independant args can be
+// processed first.
 #define mm256_xor3( a, b, c ) \
-  _mm256_xor_si256( a, _mm256_xor_si256( b, c ) )
+  _mm256_xor_si256( _mm256_xor_si256( a, b ), c )
 
 #define mm256_xor4( a, b, c, d ) \
   _mm256_xor_si256( _mm256_xor_si256( a, b ), _mm256_xor_si256( c, d ) )
 
 #define mm256_and3( a, b, c ) \
-  _mm256_and_si256( a, _mm256_and_si256( b, c ) )
+  _mm256_and_si256( _mm256_and_si256( a, b ), c )
 
 #define mm256_or3( a, b, c ) \
-   _mm256_or_si256( a, _mm256_or_si256( b, c ) )
+   _mm256_or_si256( _mm256_or_si256( a, b ), c )
 
 #define mm256_xorand( a, b, c ) \
   _mm256_xor_si256( a, _mm256_and_si256( b, c ) )

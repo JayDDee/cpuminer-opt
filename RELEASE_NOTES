@@ -75,6 +75,14 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v24.6
+
+ARM: Fixed scryptn2, x16*, broken in v24.2. 
+ARM: Small improvement to interleaving.
+Eliminated some potential compile errors in code that was dependent on 
+compiler optimisations.
+x86_64: improved support for AVX10 compilation, needs GCC-14 or higher.
+
 v24.5
 
 Fix MinGW compile error after MSys2 upgrade to GCC-14.2. 

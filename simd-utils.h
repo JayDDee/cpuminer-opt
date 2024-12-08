@@ -141,18 +141,15 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// GCC-14.1: the AVX512 macros are defined even when compiled with only
-// -mavx10.1-256, causing compile errors in AVX512 code. Only with
-// -mavx10.1-512 does it compile successfully.
-// __EVEX512__ is set only when compiled with -mavx10.1-512.
-// Adding -fno-evex512 doesn't help.
-// Building with -mapxf fails on a CPU without APX because configure can't
-// run its test program.
+// AVX512 macros are not a reliable indicator of 512 bit vector capability
+// because they get defined with AVX10_1_256 which doesn't support 512 bit.
+// EVEX512 is also unreliable as it can also be defined when 512b is not
+// available.
+// Use AVX10_1_512 for 512b & AVX10_1_256 for 256b whenever AVX10 is present.
+// Use AVX512 macros only whithout AVX10.
+
 /*
 // Test for macros
-#ifdef __AVX10__
-#warning "__AVX10__"
-#endif
 #ifdef __AVX10_1__
 #warning "__AVX10_1__"
 #endif
@@ -162,39 +159,38 @@
 #ifdef __AVX10_1_512__
 #warning "__AVX10_1_512__"
 #endif
+#ifdef __EVEX256__
+#warning "__EVEX256__"
+#endif
 #ifdef __EVEX512__
 #warning "__EVEX512__"
 #endif
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+#warning "AVX512"
+#endif
 */
 
-// AVX10 complicates vector support by adding AVX512 features to CPUs without 512 bit
-// vector support. AVX10.1 is just a renaming of AVX512 and is only available for
-// Intel P-core only CPUs. AVX10.2 adds support for E-cores that don't support 512 bit
-// vectors. The following macros simplify things.
-// SIMD512: Use 512, 256 & 128 bit vectors, AVX512VBMI is not included and must be
-//          tested seperately. 
+// SIMD512: Use 512, 256 & 128 bit vectors, AVX512VBMI is not included and
+// must be tested seperately. 
 // VL256: Include AVX512VL instructions for 256 & 128 bit vectors.
 // VBMI: Include AVX512VBMI instructions for supported vector lengths.
 
-// AVX10 can exist without support for 512 bit vectors.
-#if defined(__AVX10_1_512__)
-  #define SIMD512 1
-#elif !defined(__AVX10_1__) && defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-   #define SIMD512 1
-#endif
+#if defined(__AVX10_1__)
 
-// AVX512VL instructions applied to 256 & 128 bit vectors is supported with 
-// either AVX512VL or AVX10. Support for CPUs without 512 bit vectors is available 
-// with AVX10.2.
-#if defined(__AVX10_2__) || defined(__AVX10_1_512__)
   #define VL256 1
-#elif defined(__AVX512VL__)
-  #define VL256 1
-#endif
-
-// VBMI does not exist on early versions of AVX512
-#if defined(__AVX10_1__) || defined(__AVX512VBMI__)
   #define VBMI 1
+  #if defined(__AVX10_1_512__)
+    #define SIMD512 1
+  #endif
+
+#elif defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
+
+  #define VL256 1
+  #define SIMD512 1
+  #if defined(__AVX512VBMI__)
+    #define VBMI 1
+  #endif
+
 #endif
 
 /*
@@ -232,10 +228,6 @@
 
 // x86_64 AVX512 512 bit vectors
 #include "simd-utils/simd-512.h"
-
-// move up after cleaning
-// CPU architectire abstraction
-//#include "simd-utils/simd-portable.h"
 
 // aarch64 neon 128 bit vectors
 #include "simd-utils/simd-neon.h"

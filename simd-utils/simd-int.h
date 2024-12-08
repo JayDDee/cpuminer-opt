@@ -2,7 +2,7 @@
 #define SIMD_INT_H__ 1
 
 //TODO compile time test for byte order
-// be64 etc using HW bowap.
+// be64 etc using HW bswap.
 //
 // Endian byte swap
 #if defined(__x86_64__)
@@ -94,7 +94,7 @@ static inline uint16_t be16( const uint16_t u16 )
   return ( (uint16_t)(p[3]) ) + ( (uint16_t)(p[2]) <<  8 );
 }
 
-static inline uint32_t le162( const uint16_t u16 )
+static inline uint32_t le16( const uint16_t u16 )
 {
    const uint8_t *p = (uint8_t const *)&u16;
    return ( (uint16_t)(p[0]) ) + ( (uint16_t)(p[1]) <<  8 );
@@ -112,7 +112,7 @@ static inline uint32_t le162( const uint16_t u16 )
 #elif defined(__aarch64__)
 
 // Documentation is vague, ror exists but is ambiguous. Docs say it can
-// do 32 or 64 registers. Assuming that is architecture specific andcan
+// do 32 or 64 bit registers. Assuming that is architecture specific and can
 // only do 32 bit on 32 bit arch. Rarely used so not a big issue.
 static inline uint64_t ror64( uint64_t a, const int c )
 {

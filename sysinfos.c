@@ -316,6 +316,7 @@ static inline void cpuid( unsigned int leaf, unsigned int subleaf,
 // included in the compile.
 // This can occur if compiling with an old kernel and a new CPU and could
 // result in a suboptimal build.
+// leaf and subleaf arguments are ignored.
 
 static inline void cpuid( unsigned int leaf, unsigned int subleaf,
                           unsigned int output[4] )
@@ -365,7 +366,8 @@ static inline void cpuid( unsigned int leaf, unsigned int subleaf,
 }   
 
 #else
-#define cpuid(leaf, subleaf, out) out[0] = 0;
+#define cpuid( leaf, subleaf, output ) \
+   output[0] = output[1] = output[2] = output[3] = 0;
 #endif
 
 static inline void cpu_getname(char *outbuf, size_t maxsz)

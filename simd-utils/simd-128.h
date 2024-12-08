@@ -439,11 +439,11 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 
 #define v128_ornot( v1, v0 )      _mm_or_si128( v128_not( v1 ), v0 )
 
-#define v128_xor3( a, b, c )      _mm_xor_si128( a, _mm_xor_si128( b, c ) )
+#define v128_xor3( a, b, c )      _mm_xor_si128( _mm_xor_si128( a, b ), c )
 
-#define v128_and3( a, b, c )      _mm_and_si128( a, _mm_and_si128( b, c ) )
+#define v128_and3( a, b, c )      _mm_and_si128( _mm_and_si128( a, b ), c )
 
-#define v128_or3( a, b, c )       _mm_or_si128( a, _mm_or_si128( b, c ) )
+#define v128_or3( a, b, c )       _mm_or_si128( _mm_or_si128( a, b ), c )
 
 #define v128_xorand( a, b, c )    _mm_xor_si128( a, _mm_and_si128( b, c ) )
 

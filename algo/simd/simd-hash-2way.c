@@ -231,7 +231,7 @@ static void FFT64( void *a )
    //  Unrolled decimation in frequency (DIF) radix-2 NTT.
    //  Output data is in revbin_permuted order.
 
-  static const int w[] = {0, 2, 4, 6};
+//  static const int w[] = {0, 2, 4, 6};
 
 #define BUTTERFLY_0( i,j ) \
 do { \
@@ -240,25 +240,25 @@ do { \
     X(i) = v128_sub16( X(i), v ); \
 } while(0)
 
-#define BUTTERFLY_N( i,j,n ) \
+#define BUTTERFLY_N( i, j, w_n ) \
 do { \
     v128u16_t v = X(j); \
     X(j) = v128_add16( X(i), X(j) ); \
-    X(i) = v128_sl16( v128_sub16( X(i), v ), w[n] ); \
+    X(i) = v128_sl16( v128_sub16( X(i), v ), w_n ); \
 } while(0)
 
   BUTTERFLY_0( 0, 4 );
-  BUTTERFLY_N( 1, 5, 1 );
-  BUTTERFLY_N( 2, 6, 2 );
-  BUTTERFLY_N( 3, 7, 3 );
+  BUTTERFLY_N( 1, 5, 2 );
+  BUTTERFLY_N( 2, 6, 4 );
+  BUTTERFLY_N( 3, 7, 6 );
 
   DO_REDUCE( 2 );
   DO_REDUCE( 3 );
 
   BUTTERFLY_0( 0, 2 );
   BUTTERFLY_0( 4, 6 );
-  BUTTERFLY_N( 1, 3, 2 );
-  BUTTERFLY_N( 5, 7, 2 );
+  BUTTERFLY_N( 1, 3, 4 );
+  BUTTERFLY_N( 5, 7, 4 );
 
   DO_REDUCE( 1 );
 
@@ -329,10 +329,10 @@ do { \
 } while(0)
 
 
-#define BUTTERFLY_N( i,j,n ) \
+#define BUTTERFLY_N( i, j, w_n ) \
 do { \
    v128u16_t u = X(j); \
-   X(i) = v128_sl16( X(i), w[n] ); \
+   X(i) = v128_sl16( X(i), w_n ); \
    X(j) = v128_sub16( X(j), X(i) ); \
    X(i) = v128_add16( u, X(i) ); \
 } while(0)
@@ -353,15 +353,15 @@ do { \
 
   BUTTERFLY_0( 0, 2 );
   BUTTERFLY_0( 4, 6 );
-  BUTTERFLY_N( 1, 3, 2 );
-  BUTTERFLY_N( 5, 7, 2 );
+  BUTTERFLY_N( 1, 3, 4 );
+  BUTTERFLY_N( 5, 7, 4 );
 
   DO_REDUCE( 3 );
 
   BUTTERFLY_0( 0, 4 );
-  BUTTERFLY_N( 1, 5, 1 );
-  BUTTERFLY_N( 2, 6, 2 );
-  BUTTERFLY_N( 3, 7, 3 );
+  BUTTERFLY_N( 1, 5, 2 );
+  BUTTERFLY_N( 2, 6, 4 );
+  BUTTERFLY_N( 3, 7, 6 );
 
   DO_REDUCE_FULL_S( 0 );
   DO_REDUCE_FULL_S( 1 );
@@ -853,7 +853,7 @@ static void fft64_2way( void *a )
    //  Unrolled decimation in frequency (DIF) radix-2 NTT.
    //  Output data is in revbin_permuted order.
 
-  static const int w[] = {0, 2, 4, 6};
+//  static const int w[] = {0, 2, 4, 6};
 //   __m256i *Twiddle = (__m256i*)FFT64_Twiddle;
 
 
@@ -864,25 +864,25 @@ do { \
     X(i) = _mm256_sub_epi16( X(i), v ); \
 } while(0)
 
-#define BUTTERFLY_N( i,j,n ) \
+#define BUTTERFLY_N( i, j, w_n ) \
 do { \
     __m256i v = X(j); \
     X(j) = _mm256_add_epi16( X(i), X(j) ); \
-    X(i) = _mm256_slli_epi16( _mm256_sub_epi16( X(i), v ), w[n] ); \
+    X(i) = _mm256_slli_epi16( _mm256_sub_epi16( X(i), v ), w_n ); \
 } while(0)
 
   BUTTERFLY_0( 0, 4 );
-  BUTTERFLY_N( 1, 5, 1 );
-  BUTTERFLY_N( 2, 6, 2 );
-  BUTTERFLY_N( 3, 7, 3 );
+  BUTTERFLY_N( 1, 5, 2 );
+  BUTTERFLY_N( 2, 6, 4 );
+  BUTTERFLY_N( 3, 7, 6 );
 
   DO_REDUCE( 2 );
   DO_REDUCE( 3 );
 
   BUTTERFLY_0( 0, 2 );
   BUTTERFLY_0( 4, 6 );
-  BUTTERFLY_N( 1, 3, 2 );
-  BUTTERFLY_N( 5, 7, 2 );
+  BUTTERFLY_N( 1, 3, 4 );
+  BUTTERFLY_N( 5, 7, 4 );
 
   DO_REDUCE( 1 );
 
@@ -953,10 +953,10 @@ do { \
 } while(0)
 
 
-#define BUTTERFLY_N( i,j,n ) \
+#define BUTTERFLY_N( i, j, w_n ) \
 do { \
    __m256i u = X(j); \
-   X(i) = _mm256_slli_epi16( X(i), w[n] ); \
+   X(i) = _mm256_slli_epi16( X(i), w_n ); \
    X(j) = _mm256_sub_epi16( X(j), X(i) ); \
    X(i) = _mm256_add_epi16( u, X(i) ); \
 } while(0)
@@ -977,15 +977,15 @@ do { \
 
   BUTTERFLY_0( 0, 2 );
   BUTTERFLY_0( 4, 6 );
-  BUTTERFLY_N( 1, 3, 2 );
-  BUTTERFLY_N( 5, 7, 2 );
+  BUTTERFLY_N( 1, 3, 4 );
+  BUTTERFLY_N( 5, 7, 4 );
 
   DO_REDUCE( 3 );
 
   BUTTERFLY_0( 0, 4 );
-  BUTTERFLY_N( 1, 5, 1 );
-  BUTTERFLY_N( 2, 6, 2 );
-  BUTTERFLY_N( 3, 7, 3 );
+  BUTTERFLY_N( 1, 5, 2 );
+  BUTTERFLY_N( 2, 6, 4 );
+  BUTTERFLY_N( 3, 7, 6 );
 
   DO_REDUCE_FULL_S( 0 );
   DO_REDUCE_FULL_S( 1 );
@@ -1709,11 +1709,11 @@ do { \
     X(i) = _mm512_sub_epi16( X(i), v ); \
 } while(0)
 
-#define BUTTERFLY_N( i, j, w ) \
+#define BUTTERFLY_N( i, j, w_n ) \
 do { \
     __m512i v = X(j); \
     X(j) = _mm512_add_epi16( X(i), X(j) ); \
-    X(i) = _mm512_slli_epi16( _mm512_sub_epi16( X(i), v ), w ); \
+    X(i) = _mm512_slli_epi16( _mm512_sub_epi16( X(i), v ), w_n ); \
 } while(0)
 
   BUTTERFLY_0( 0, 4 );
@@ -1792,10 +1792,10 @@ do { \
 } while(0)
 
 
-#define BUTTERFLY_N( i, j, w ) \
+#define BUTTERFLY_N( i, j, w_n ) \
 do { \
    __m512i u = X(j); \
-   X(i) = _mm512_slli_epi16( X(i), w ); \
+   X(i) = _mm512_slli_epi16( X(i), w_n ); \
    X(j) = _mm512_sub_epi16( X(j), X(i) ); \
    X(i) = _mm512_add_epi16( u, X(i) ); \
 } while(0)

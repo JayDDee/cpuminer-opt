@@ -191,7 +191,7 @@ static inline uint32_t swab32(uint32_t x)
    return __builtin_bswap32(x);
 #else
    return ( ( (x) << 24 ) & 0xff000000u ) | ( ( (x) <<  8 ) & 0x00ff0000u )
-        | ( ( (x) >>  8 ) & 0x0000ff00u ) | ( ( (x) >> 24 ) & 0x000000ffu )
+        | ( ( (x) >>  8 ) & 0x0000ff00u ) | ( ( (x) >> 24 ) & 0x000000ffu );
 
 
 //   return bswap_32(v);

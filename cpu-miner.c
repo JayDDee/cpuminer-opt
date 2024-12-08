@@ -2840,8 +2840,6 @@ static void show_credits()
 static bool cpu_capability( bool display_only )
 {
      char cpu_brand[0x40];
-     bool cpu_has_aarch64  = cpu_arch_aarch64();
-     bool cpu_has_x86_64   = cpu_arch_x86_64();
      bool cpu_has_sse2     = has_sse2();     // X86_64 only
      bool cpu_has_ssse3    = has_ssse3();    // X86_64 only
      bool cpu_has_sse41    = has_sse41();    // X86_64 only
@@ -2914,7 +2912,7 @@ static bool cpu_capability( bool display_only )
            sw_arm_arch = __ARM_ARCH;
          #endif
      #endif
-     // x86_64_only
+     // x86_64 only
      #if defined(__SSE2__)
          sw_has_sse2 = true;
      #endif
@@ -2998,57 +2996,57 @@ static bool cpu_capability( bool display_only )
      #endif
 
      printf("CPU features: ");
-     if ( cpu_has_x86_64  )
+     if ( cpu_arch_x86_64()  )
      {
-       if      ( cpu_has_avx512 )    printf( " AVX512"  );
-       else if ( cpu_has_avx2   )    printf( " AVX2  "  );
-       else if ( cpu_has_avx    )    printf( " AVX   "  );
-       else if ( cpu_has_sse42  )    printf( " SSE4.2"  );
-       else if ( cpu_has_sse41  )    printf( " SSE4.1"  );
-       else if ( cpu_has_ssse3  )    printf( " SSSE3 "  );
-       else if ( cpu_has_sse2   )    printf( " SSE2  "  );
+       if      ( cpu_has_avx10  )    printf( " AVX10.%d-%d", avx10_version(),
+                                                       avx10_vector_length() );
+       if      ( cpu_has_avx512 )    printf( " AVX512" );
+       else if ( cpu_has_avx2   )    printf( " AVX2  " );
+       else if ( cpu_has_avx    )    printf( " AVX   " );
+       else if ( cpu_has_sse42  )    printf( " SSE4.2" );
+       else if ( cpu_has_sse41  )    printf( " SSE4.1" );
+       else if ( cpu_has_ssse3  )    printf( " SSSE3 " );
+       else if ( cpu_has_sse2   )    printf( " SSE2  " );
      }
-     else if   ( cpu_has_aarch64 )
+     else if   ( cpu_arch_aarch64() )
      {
        if      ( cpu_has_neon   )    printf( "       NEON" );
        if      ( cpu_has_sve2   )    printf( " SVE2-%d", sve_vector_length() );
-       else if ( cpu_has_sve    )    printf( " SVE"     );
-       if      ( cpu_has_sme2   )    printf( " SME2"    );
-       else if ( cpu_has_sme    )    printf( " SME"     );
-     }
-     if        ( cpu_has_vaes   )    printf( " VAES"    );
-     else if   ( cpu_has_aes    )    printf( "  AES"    );
-     if        ( cpu_has_sha512 )    printf( " SHA512"  );
-     else if   ( cpu_has_sha256 )    printf( " SHA256"  );
-     if        ( cpu_has_avx10  )    printf( " AVX10.%d-%d",
-                                      avx10_version(), avx10_vector_length() );
+       else if ( cpu_has_sve    )    printf( " SVE"    );
+       if      ( cpu_has_sme2   )    printf( " SME2"   );
+       else if ( cpu_has_sme    )    printf( " SME"    );
+     }     
+     if        ( cpu_has_vaes   )    printf( " VAES"   );
+     else if   ( cpu_has_aes    )    printf( "  AES"   );
+     if        ( cpu_has_sha512 )    printf( " SHA512" );
+     else if   ( cpu_has_sha256 )    printf( " SHA256" );
 
      printf("\nSW features:  ");
      if ( sw_has_x86_64 )
      {                     
-        if      ( sw_has_avx512  )   printf( " AVX512"  );
-        else if ( sw_has_avx2    )   printf( " AVX2  "  );
-        else if ( sw_has_avx     )   printf( " AVX   "  );
-        else if ( sw_has_sse42   )   printf( " SSE4.2"  );
-        else if ( sw_has_sse41   )   printf( " SSE4.1"  );
-        else if ( sw_has_ssse3   )   printf( " SSSE3 "  );
-        else if ( sw_has_sse2    )   printf( " SSE2  "  );
         if      ( sw_has_avx10_512 ) printf( " AVX10-512" );
         else if ( sw_has_avx10_256 ) printf( " AVX10-256" );
+        else if ( sw_has_avx512    ) printf( " AVX512" );
+        else if ( sw_has_avx2      ) printf( " AVX2  " );
+        else if ( sw_has_avx       ) printf( " AVX   " );
+        else if ( sw_has_sse42     ) printf( " SSE4.2" );
+        else if ( sw_has_sse41     ) printf( " SSE4.1" );
+        else if ( sw_has_ssse3     ) printf( " SSSE3 " );
+        else if ( sw_has_sse2      ) printf( " SSE2  " );
      }
      else if    ( sw_has_aarch64 ) 
      {
         if      ( sw_arm_arch    )   printf( " armv%d", sw_arm_arch );
-        if      ( sw_has_neon    )   printf( " NEON"    );
-        if      ( sw_has_sve2    )   printf( " SVE2"    );
-        else if ( sw_has_sve     )   printf( " SVE"     );
-        if      ( sw_has_sme2    )   printf( " SME2"    );
-        else if ( sw_has_sme     )   printf( " SME"     );
+        if      ( sw_has_neon    )   printf( " NEON"   );
+        if      ( sw_has_sve2    )   printf( " SVE2"   );
+        else if ( sw_has_sve     )   printf( " SVE"    );
+        if      ( sw_has_sme2    )   printf( " SME2"   );
+        else if ( sw_has_sme     )   printf( " SME"    );
      }
-     if         ( sw_has_vaes    )   printf( " VAES"    );
-     else if    ( sw_has_aes     )   printf( "  AES"    );
-     if         ( sw_has_sha512  )   printf( " SHA512"  );
-     else if    ( sw_has_sha256  )   printf( " SHA256"  );
+     if         ( sw_has_vaes    )   printf( " VAES"   );
+     else if    ( sw_has_aes     )   printf( "  AES"   );
+     if         ( sw_has_sha512  )   printf( " SHA512" );
+     else if    ( sw_has_sha256  )   printf( " SHA256" );
 
      if ( !display_only )
      {

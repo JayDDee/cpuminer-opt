@@ -387,7 +387,7 @@ static const uint32_t T512[64][16] __attribute__ ((aligned (32))) =
 // Hamsi 8 way AVX512 
 
 // Intel docs say _mm512_movepi64_mask & _mm512_cmplt_epi64_mask have same
-// timig. However, when tested hashing X13 on i9-9940x using cmplt with zero
+// timing. However, testing hashing X13 on i9-9940x using cmplt with zero
 // had a 3% faster overall hashrate than than using movepi. 
 
 #define INPUT_BIG8 \
@@ -418,12 +418,10 @@ static const uint32_t T512[64][16] __attribute__ ((aligned (32))) =
   tb = mm512_xoror( b, d, a ); \
   a = _mm512_xor_si512( a, c ); \
   b = mm512_xoror( td, tb, a ); \
-  td = mm512_xorand( a, td, tb ); \
+  d = _mm512_ternarylogic_epi64( a, td, tb, 0x87 );/* not( xorand( a, td, tb ) ); */ \
   a = c; \
-  c = mm512_xor3( tb, b, td ); \
-  d = mm512_not( td ); \
+  c = _mm512_ternarylogic_epi64( tb, b, d, 0x69 ); /* not( xor3( tb, b, d ) ); */ \
 }
-
 
 /*
 #define SBOX8( a, b, c, d ) \
@@ -1155,11 +1153,99 @@ do { \
   b = mm256_xoror( td, tb, a ); \
   d = _mm256_ternarylogic_epi64( a, td, tb, 0x87 );/* mm256_not( mm256_xorand( a, td, tb ) ); */ \
   a = c; \
-  c = _mm256_ternarylogic_epi64( tb, b, d, 0x69 ); /*mm256_not( mm256_xor3( tb, b, d ) );*/ \
+  c = _mm256_ternarylogic_epi64( tb, b, d, 0x69 ); /* mm256_not( mm256_xor3( tb, b, d ) ); */ \
 }
 
 #else
 
+#define INPUT_BIG_sub( db_i ) \
+{ \
+     const __m256i dm = _mm256_cmpgt_epi64( zero, db_i ); \
+     m0 = _mm256_xor_si256( m0, _mm256_and_si256( dm, v256_64( tp[0] ) ) ); \
+     m1 = _mm256_xor_si256( m1, _mm256_and_si256( dm, v256_64( tp[1] ) ) ); \
+     m2 = _mm256_xor_si256( m2, _mm256_and_si256( dm, v256_64( tp[2] ) ) ); \
+     m3 = _mm256_xor_si256( m3, _mm256_and_si256( dm, v256_64( tp[3] ) ) ); \
+     m4 = _mm256_xor_si256( m4, _mm256_and_si256( dm, v256_64( tp[4] ) ) ); \
+     m5 = _mm256_xor_si256( m5, _mm256_and_si256( dm, v256_64( tp[5] ) ) ); \
+     m6 = _mm256_xor_si256( m6, _mm256_and_si256( dm, v256_64( tp[6] ) ) ); \
+     m7 = _mm256_xor_si256( m7, _mm256_and_si256( dm, v256_64( tp[7] ) ) ); \
+     tp += 8; \
+}
+
+#define INPUT_BIG \
+{ \
+  const __m256i db = *buf; \
+  const __m256i zero = m256_zero; \
+  const uint64_t *tp = (const uint64_t*)T512;  \
+  m0 = m1 = m2 = m3 = m4 = m5 = m6 = m7 = zero; \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,63 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,62 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,61 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,60 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,59 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,58 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,57 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,56 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,55 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,54 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,53 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,52 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,51 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,50 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,49 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,48 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,47 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,46 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,45 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,44 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,43 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,42 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,41 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,40 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,39 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,38 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,37 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,36 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,35 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,34 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,33 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,32 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,31 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,30 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,29 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,28 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,27 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,26 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,25 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,24 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,23 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,22 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,21 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,20 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,19 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,18 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,17 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,16 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,15 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,14 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,13 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,12 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,11 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db,10 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db, 9 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db, 8 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db, 7 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db, 6 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db, 5 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db, 4 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db, 3 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db, 2 ) ); \
+  INPUT_BIG_sub( _mm256_slli_epi64( db, 1 ) ); \
+  INPUT_BIG_sub( db ); \
+}
+
+#if 0
+// dependent on the compiler unrolling the loop
 #define INPUT_BIG \
 do { \
   __m256i db = *buf; \
@@ -1180,6 +1266,7 @@ do { \
      tp += 8; \
   } \
 } while (0)
+#endif
 
 // v3 no ternary logic, 15 instructions, 9 TL equivalent instructions
 #define SBOX( a, b, c, d ) \
@@ -1219,7 +1306,7 @@ do { \
 do { \
    a = mm256_rol_32( a, 13 ); \
    c = mm256_rol_32( c,  3 ); \
-   b = mm256_xor3( a, b, c ); \
+   b = mm256_xor3( b, a, c ); \
    d = mm256_xor3( d, c, _mm256_slli_epi32( a, 3 ) ); \
    b = mm256_rol_32( b, 1 ); \
    d = mm256_rol_32( d, 7 ); \
@@ -1961,6 +2048,94 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
    sc->h[6] = c6; \
    sc->h[7] = c7;
 
+#define INPUT_2x64_sub( db_i ) \
+{ \
+     const v128u64_t dm = v128_cmpgt64( zero, db_i ); \
+     m0 = v128_xor( m0, v128_and( dm, v128_64( tp[0] ) ) ); \
+     m1 = v128_xor( m1, v128_and( dm, v128_64( tp[1] ) ) ); \
+     m2 = v128_xor( m2, v128_and( dm, v128_64( tp[2] ) ) ); \
+     m3 = v128_xor( m3, v128_and( dm, v128_64( tp[3] ) ) ); \
+     m4 = v128_xor( m4, v128_and( dm, v128_64( tp[4] ) ) ); \
+     m5 = v128_xor( m5, v128_and( dm, v128_64( tp[5] ) ) ); \
+     m6 = v128_xor( m6, v128_and( dm, v128_64( tp[6] ) ) ); \
+     m7 = v128_xor( m7, v128_and( dm, v128_64( tp[7] ) ) ); \
+     tp += 8; \
+}
+
+#define INPUT_2x64 \
+{ \
+  const v128u64_t db = *buf; \
+  const v128u64_t zero = v128_zero; \
+  const uint64_t *tp = (const uint64_t*)T512;  \
+  m0 = m1 = m2 = m3 = m4 = m5 = m6 = m7 = zero; \
+  INPUT_2x64_sub( v128_sl64( db,63 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,62 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,61 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,60 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,59 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,58 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,57 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,56 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,55 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,54 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,53 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,52 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,51 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,50 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,49 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,48 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,47 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,46 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,45 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,44 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,43 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,42 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,41 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,40 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,39 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,38 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,37 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,36 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,35 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,34 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,33 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,32 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,31 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,30 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,29 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,28 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,27 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,26 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,25 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,24 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,23 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,22 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,21 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,20 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,19 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,18 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,17 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,16 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,15 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,14 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,13 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,12 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,11 ) ); \
+  INPUT_2x64_sub( v128_sl64( db,10 ) ); \
+  INPUT_2x64_sub( v128_sl64( db, 9 ) ); \
+  INPUT_2x64_sub( v128_sl64( db, 8 ) ); \
+  INPUT_2x64_sub( v128_sl64( db, 7 ) ); \
+  INPUT_2x64_sub( v128_sl64( db, 6 ) ); \
+  INPUT_2x64_sub( v128_sl64( db, 5 ) ); \
+  INPUT_2x64_sub( v128_sl64( db, 4 ) ); \
+  INPUT_2x64_sub( v128_sl64( db, 3 ) ); \
+  INPUT_2x64_sub( v128_sl64( db, 2 ) ); \
+  INPUT_2x64_sub( v128_sl64( db, 1 ) ); \
+  INPUT_2x64_sub( db ); \
+}
+
+#if 0
+// Dependent on the compiler unrolling the loop.
 #define INPUT_2x64 \
 { \
   v128u64_t db = *buf; \
@@ -1981,6 +2156,7 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
      tp += 8; \
   } \
 }
+#endif
 
 // v3 no ternary logic, 15 instructions, 9 TL equivalent instructions
 #define SBOX_2x64( a, b, c, d ) \
@@ -2001,7 +2177,7 @@ void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
 { \
    a = v128_rol32( a, 13 ); \
    c = v128_rol32( c,  3 ); \
-   b = v128_xor3( a, b, c ); \
+   b = v128_xor3( c, a, b ); \
    d = v128_xor3( d, c, v128_sl32( a, 3 ) ); \
    b = v128_rol32( b, 1 ); \
    d = v128_rol32( d, 7 ); \
