@@ -97,7 +97,7 @@ Supported Algorithms
                           lyra2rev3     lyrav2v3
                           lyra2z        
                           lyra2z330     
-                          m7m           
+                          m7m           Cryptonite, Magi
                           minotaur 
                           minotaurx
                           myr-gr        Myriad-Groestl
