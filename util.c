@@ -1414,6 +1414,12 @@ static bool send_line( struct stratum_ctx *sctx, char *s )
 		int n;
 		fd_set wd;
 
+// Something nasty going on With Windows on aarch64. This hack prevents
+// corrupting the sctx pointer. This only works if placed inside the while loop.
+#if defined(__aarch64__) && defined(WIN32) && defined(ARM_WIN_HACK)
+      printf("");
+#endif
+
 		FD_ZERO( &wd );
 		FD_SET( sctx->sock, &wd );
 		if ( select( (int) ( sctx->sock + 1 ), NULL, &wd, NULL, &timeout ) < 1 )

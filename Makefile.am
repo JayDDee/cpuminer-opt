@@ -293,10 +293,6 @@ cpuminer_CPPFLAGS = @LIBCURL_CPPFLAGS@ $(ALL_INCLUDES)
 cpuminer_CFLAGS   = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
 
 if HAVE_WINDOWS
-cpuminer_CFLAGS += -Wl,--stack,10485760
-endif
-
-if HAVE_WINDOWS
 # use to profile an object
 # gprof_cflags = -pg -g3
 # cpuminer_LDFLAGS += -pg

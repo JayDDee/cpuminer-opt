@@ -1,4 +1,4 @@
-AC_INIT([cpuminer-opt], [24.6])
+AC_INIT([cpuminer-opt], [24.7])
 
 AC_PREREQ([2.59c])
 AC_CANONICAL_SYSTEM
@@ -41,33 +41,32 @@ AC_CHECK_DECLS([be32dec, le32dec, be32enc, le32enc, le16dec, le16enc], [], [],
 AC_FUNC_ALLOCA
 AC_CHECK_FUNCS([getopt_long])
 
-MINGW_TARGET=`$CC -dumpmachine 2>&1`
-case $MINGW_TARGET in
-  arm*-*-*)
-    have_arm=true
-    ;;
-  i*86-*-mingw*)
-    have_x86=true
-    have_win32=true
-    CFLAGS="-Icompat/pthreads $CFLAGS"
-    PTHREAD_LDFLAGS="-Lcompat/pthreads/x86"
-    WS2_LIBS="-lws2_32"
-    ;;
-  x86_64-*-mingw*|amd64-*-mingw*)
-    have_x86_64=true
-    have_win32=true
-    CFLAGS="-Icompat/pthreads $CFLAGS"
-    PTHREAD_LDFLAGS="-Lcompat/pthreads/x64"
-    # SHOULD BE AT END! after -lcrypto #
-    WS2_LIBS="-L/mingw/x86_64-w64-mingw32/lib -lws2_32"
-    ;;
+case $target in
   i*86-*-*)
     have_x86=true
     ;;
   x86_64-*-*|amd64-*-*)
     have_x86_64=true
     ;;
+  arm*-*-*)
+    have_arm=true
+    ;;
+  powerpc*-*-*)
+    have_ppc=true
+    ;;
 esac
+
+PTHREAD_FLAGS="-pthread"
+WS2_LIBS=""
+
+case $target in
+  *-*-mingw*)
+    have_win32=true
+    PTHREAD_FLAGS=""
+    WS2_LIBS="-lws2_32"
+    ;;
+esac
+
 
 AC_ARG_ENABLE([assembly],
   AS_HELP_STRING([--disable-assembly], [disable assembly-language routines]))
@@ -113,15 +112,13 @@ fi
 
 AC_CHECK_LIB(jansson, json_loads, request_jansson=false, request_jansson=true)
 
-# GC2 for GNU static
-if test "x$have_win32" = "xtrue" ; then
-   # MinGW
-   AC_CHECK_LIB([pthread], [pthread_create], PTHREAD_LIBS="-lpthreadGC2",[])
-else
-   AC_CHECK_LIB([pthread], [pthread_create], PTHREAD_LIBS="-lpthread",[])
-fi
+AC_CHECK_LIB([pthread], [pthread_create], PTHREAD_LIBS="-lpthread",
+  AC_CHECK_LIB([pthreadGC2], [pthread_create], PTHREAD_LIBS="-lpthreadGC2",
+    AC_CHECK_LIB([pthreadGC1], [pthread_create], PTHREAD_LIBS="-lpthreadGC1",
+      AC_CHECK_LIB([pthreadGC], [pthread_create], PTHREAD_LIBS="-lpthreadGC"
+))))
 
-LDFLAGS="$PTHREAD_LDFLAGS $LDFLAGS"
+#LDFLAGS="$PTHREAD_LDFLAGS $LDFLAGS"
 # PTHREAD_LIBS="$PTHREAD_LIBS"
 
 AC_MSG_CHECKING(whether __uint128_t is supported)

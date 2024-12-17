@@ -16,7 +16,12 @@
 #include "miner.h"
 #include "simd-utils.h"
 
-#if defined(__aarch64__)
+// missing on mingw on arm
+#if defined(__aarch64__) && !defined(WIN32)
+#define ARM_AUXV 
+#endif
+
+#if defined(ARM_AUXV)
 // for arm's "cpuid"
 #include <sys/auxv.h>
 #include <asm/hwcap.h>
@@ -309,7 +314,7 @@ static inline void cpuid( unsigned int leaf, unsigned int subleaf,
 #endif
 }
 
-#elif defined(__aarch64__)
+#elif defined(ARM_AUXV)
 
 // Always test if HWCAP variable is defined in the kernel before attempting
 // to compile it. If not defined the feature can't be tested and won't be
@@ -963,7 +968,7 @@ static inline unsigned int avx10_vector_length()
 // ARM SVE vector register length
 static inline int sve_vector_length()
 {
-#if defined(__aarch64__)
+#if defined(ARM_AUXV)
    if ( has_sve() )
       return prctl( (PR_SVE_GET_VL & PR_SVE_VL_LEN_MASK) * 8 );
 #endif

@@ -75,6 +75,10 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v24.7
+
+ARM: compile works for Windows using MSys2 & MingW, see wiki for details.
+
 v24.6
 
 ARM: Fixed scryptn2, x16*, broken in v24.2. 
