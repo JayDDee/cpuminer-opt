@@ -3,10 +3,7 @@
 
 #include <cpuminer-config.h>
 
-#if !( defined(__SSE2__) || ( defined(__aarch64__) && defined(__ARM_NEON) ) )
-#warning "Unknown or unsupported CPU, requires x86_64 with SSE2 or AArch64 with NEON." 
-#endif
-
+// CPU architecture
 #if defined(__x86_64__)
    #define USER_AGENT_ARCH "x64"     // Intel, AMD x86_64
 #elif defined(__aarch64__)
@@ -17,14 +14,15 @@
    #define USER_AGENT_ARCH
 #endif
 
+// Operating system
+// __APPLE__ includes MacOS & IOS, no MacOS only macros found.
 #if defined(__linux)
    #define USER_AGENT_OS   "L"      // GNU Linux
 #elif defined(WIN32)
    #define USER_AGENT_OS   "W"      // MS Windows
 #elif defined(__APPLE__)
    #define USER_AGENT_OS   "M"      // Apple MacOS
-// is there a generic BSD macro?
-#elif defined(__unix__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) 
+#elif defined(__bsd__) || defined(__unix__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) 
    #define USER_AGENT_OS   "U"      // BSD unix
 #else
    #define USER_AGENT_OS

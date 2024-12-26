@@ -11,18 +11,18 @@
 
 export LOCAL_LIB="$HOME/usr/lib"
 export CONFIGURE_ARGS="--with-curl=$LOCAL_LIB/curl --host=x86_64-w64-mingw32"
-#export CONFIGURE_ARGS="--with-curl=$LOCAL_LIB/curl --with-crypto=$LOCAL_LIB/openssl --host=x86_64-w64-mingw32"
 export MINGW_LIB="/usr/x86_64-w64-mingw32/lib"
 # set correct gcc version
 export GCC_MINGW_LIB="/usr/lib/gcc/x86_64-w64-mingw32/9.3-win32"
 # used by GCC
 export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs"
-#export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs -L$LOCAL_LIB/openssl"
 # Support for Windows 7 CPU groups, AES sometimes not included in -march
 # CPU groups disabled due to incompatibilities between Intel and AMD CPUs.
-#export DEFAULT_CFLAGS="-maes -O3 -Wall -D_WIN32_WINNT=0x0601"
-export DEFAULT_CFLAGS="-maes -O3 -Wall"
-export DEFAULT_CFLAGS_OLD="-O3 -Wall"
+# CPU groups are enabled by default in Makefile, use -U to disable.
+export DEFAULT_CFLAGS="-maes -O3 -Wall -U_WIN32_WINNT"
+export DEFAULT_CFLAGS_OLD="-O3 -Wall -U_WIN32_WINNT"
+#export DEFAULT_CFLAGS="-maes -O3 -Wall"
+#export DEFAULT_CFLAGS_OLD="-O3 -Wall"
 
 # make link to local gmp header file.
 ln -s $LOCAL_LIB/gmp/gmp.h ./gmp.h
@@ -40,7 +40,6 @@ cp $MINGW_LIB/zlib1.dll release/
 cp $MINGW_LIB/libwinpthread-1.dll release/
 cp $GCC_MINGW_LIB/libstdc++-6.dll release/
 cp $GCC_MINGW_LIB/libgcc_s_seh-1.dll release/
-#cp ./../libcrypto-1_1-x64.dll release/
 cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
 
 # Start building...

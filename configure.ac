@@ -1,4 +1,4 @@
-AC_INIT([cpuminer-opt], [24.7])
+AC_INIT([cpuminer-opt], [24.8])
 
 AC_PREREQ([2.59c])
 AC_CANONICAL_SYSTEM
@@ -48,8 +48,8 @@ case $target in
   x86_64-*-*|amd64-*-*)
     have_x86_64=true
     ;;
-  arm*-*-*)
-    have_arm=true
+  aarch64*-*-*|arm64*-*-*)
+    have_aarch64=true
     ;;
   powerpc*-*-*)
     have_ppc=true
@@ -64,6 +64,9 @@ case $target in
     have_win32=true
     PTHREAD_FLAGS=""
     WS2_LIBS="-lws2_32"
+    ;;
+  *-apple-*)
+    have_apple=true
     ;;
 esac
 
@@ -135,8 +138,9 @@ AM_CONDITIONAL([HAVE_WINDOWS], [test x$have_win32 = xtrue])
 AM_CONDITIONAL([USE_ASM], [test x$enable_assembly != xno])
 AM_CONDITIONAL([ARCH_x86], [test x$have_x86 = xtrue])
 AM_CONDITIONAL([ARCH_x86_64], [test x$have_x86_64 = xtrue])
-AM_CONDITIONAL([ARCH_ARM], [test x$have_arm = xtrue])
+AM_CONDITIONAL([ARCH_ARM64], [test x$have_aarch64 = xtrue])
 AM_CONDITIONAL([MINGW], [test "x$OS" = "xWindows_NT"])
+AM_CONDITIONAL([HAVE_APPLE], [test x$have_apple = xtrue])
 
 if test x$request_jansson = xtrue ; then
 	JANSSON_LIBS="compat/jansson/libjansson.a"

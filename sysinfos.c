@@ -16,8 +16,8 @@
 #include "miner.h"
 #include "simd-utils.h"
 
-// missing on mingw on arm
-#if defined(__aarch64__) && !defined(WIN32)
+// Missing on MinGW, MacOS
+#if defined(__aarch64__) && !defined(WIN32) && !defined(__APPLE__)
 #define ARM_AUXV 
 #endif
 
@@ -28,7 +28,7 @@
 #include <sys/prctl.h>
 #endif
 
-#ifndef WIN32
+#if !(defined(WIN32) || defined(__APPLE__))
 
 // 1035g1: /sys/devices/platform/coretemp.0/hwmon/hwmon3/temp1_input
 // 1035g1: /sys/class/hwmon/hwmon1/temp1_input wrong temp
@@ -152,7 +152,7 @@ static inline void linux_cpu_hilo_freq( float *lo, float *hi )
 
 static inline float cpu_temp( int core )
 {
-#ifdef WIN32
+#if defined(WIN32) || defined(__APPLE__)
 	return 0.;
 #else
 	return linux_cputemp( core );
@@ -161,7 +161,7 @@ static inline float cpu_temp( int core )
 
 static inline uint32_t cpu_clock( int core )
 {
-#ifdef WIN32
+#if defined(WIN32) || defined(__APPLE__)
 	return 0;
 #else
 	return linux_cpufreq( core );
@@ -280,8 +280,8 @@ static inline int cpu_fanpercent()
 #define FMA3_mask    (FMA3_Flag|AVX_mask)
 #define AVX512_mask  (AVX512_VL_Flag|AVX512_BW_Flag|AVX512_DQ_Flag|AVX512_F_Flag)
 
-
 #if defined(__x86_64__)
+
 static inline void cpuid( unsigned int leaf, unsigned int subleaf,
                           unsigned int output[4] )
 {
@@ -965,7 +965,7 @@ static inline unsigned int avx10_vector_length()
     return 0;
 }
 
-// ARM SVE vector register length
+// ARM SVE vector register length, converted from bytes to bits.
 static inline int sve_vector_length()
 {
 #if defined(ARM_AUXV)

@@ -288,11 +288,24 @@ if HAVE_WINDOWS
 endif
 
 cpuminer_LDFLAGS	= @LDFLAGS@
-cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ -lgmp
+cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@
 cpuminer_CPPFLAGS = @LIBCURL_CPPFLAGS@ $(ALL_INCLUDES)
 cpuminer_CFLAGS   = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
 
+# Linking GMP fails on MacOS
+if !HAVE_APPLE
+   cpuminer_LDADD += -lgmp
+endif
+
+if ARCH_ARM64
+   cpuminer_CFLAGS += -flax-vector-conversions
+endif
+
 if HAVE_WINDOWS
+
+# Add -U_WIN32_WINNT to command line CFLAGS to undefine
+cpuminer_CFLAGS += -D_WIN32_WINNT=0x0601
+
 # use to profile an object
 # gprof_cflags = -pg -g3
 # cpuminer_LDFLAGS += -pg
@@ -305,6 +318,5 @@ common_ccflags = $(DEFS) $(ALL_INCLUDES) $(cpuminer_CPPFLAGS) $(CPPFLAGS) $(cpum
 cpuminer-neoscrypt.o: neoscrypt.c
 	@echo "CUSTOM ${@}: ${filter %.o,${^}} ${filter %.c,${^}}"
 	$(CC) $(common_ccflags) -g -O3 $(gprof_cflags) -MT $@ -MD -MP -c -o $@ $<
-
 
 endif

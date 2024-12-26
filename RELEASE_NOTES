@@ -75,6 +75,16 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v24.8
+
+ARM: Apple MacOS on M series CPU is now supported compiled from source
+code, see Wiki for details.
+ARM: Fix incorrect compiler version display when using clang. 
+build.sh can now be used to compile all targets, arm_build.sh & build_msys2.sh
+have been removed.
+Windows: MSys2 build now enables CPU groups by default, prebuilt binaries
+continue to be compiled with CPU groups disabled.
+
 v24.7
 
 ARM: compile works for Windows using MSys2 & MingW, see wiki for details.

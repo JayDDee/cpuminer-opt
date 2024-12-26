@@ -206,7 +206,7 @@ static uint32_t last_block_height = 0;
 static double   highest_share = 0;   // highest accepted share diff
 static double   lowest_share = 9e99; // lowest accepted share diff
 static double   last_targetdiff = 0.;
-#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
+#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32) || defined(__APPLE__))
 static uint32_t hi_temp = 0;
 static uint32_t prev_temp = 0;
 #endif
@@ -992,19 +992,19 @@ void report_summary_log( bool force )
 
   if ( rejected_share_count > 10 )
   {
-     if ( rejected_share_count > ( submitted_share_count * .5 ) )
+     if ( rejected_share_count > ( submitted_share_count / 2 ) )
      {
         applog(LOG_ERR,"Excessive rejected share rate, exiting...");
         exit(1);
      } 
-     else if ( rejected_share_count > ( submitted_share_count * .1 ) )
+     else if ( rejected_share_count > ( submitted_share_count / 10 ) )
        applog(LOG_WARNING,"High rejected share rate, check settings.");
    }
 
    gettimeofday( &now, NULL );
    timeval_subtract( &et, &now, &five_min_start );
 
-#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
+#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32) || defined(__APPLE__))
 
    // Display CPU temperature and clock rate.
    int curr_temp = cpu_temp(0); 
@@ -1013,8 +1013,9 @@ void report_summary_log( bool force )
 
    if ( !opt_quiet || ( curr_temp >= 80 ) )
    {
-      int wait_time = curr_temp >= 90 ? 5 : curr_temp >= 80 ? 30 :
-                                            curr_temp >= 70 ? 60 : 120;
+      int wait_time = curr_temp >= 90 ? 5
+                    : curr_temp >= 80 ? 30
+                    : curr_temp >= 70 ? 60 : 120;
       timeval_subtract( &diff, &now, &cpu_temp_time );
       if ( ( diff.tv_sec > wait_time )
         || ( ( curr_temp > prev_temp ) && ( curr_temp >= 75 ) ) )
@@ -1912,7 +1913,7 @@ static bool wanna_mine(int thr_id)
 {
 	bool state = true;
 
-#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32))
+#if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32) || defined(__APPLE__))
   
 	if (opt_max_temp > 0.0)
    {
@@ -2400,7 +2401,7 @@ static void *miner_thread( void *userdata )
              {
                 scale_hash_for_display( &hashrate,  hr_units );
                 sprintf( hr, "%.2f", hashrate );
-#if (defined(_WIN64) || defined(__WINDOWS__) || defined(_WIN32))
+#if (defined(_WIN64) || defined(__WINDOWS__) || defined(_WIN32) || defined(__APPLE__))
                 applog( LOG_NOTICE, "Total: %s %sH/s", hr, hr_units );
 #else
                 float lo_freq = 0., hi_freq = 0.;
@@ -2974,23 +2975,25 @@ static bool cpu_capability( bool display_only )
      printf( "CPU: %s\n", cpu_brand );
 
      printf("SW built on " __DATE__
-     #ifdef _MSC_VER
-         " with VC++ 2013\n");
+     #if defined(__clang__)
+        " with CLANG-%d.%d.%d", __clang_major__, __clang_minor__, __clang_patchlevel__);
      #elif defined(__GNUC__)
-         " with GCC-");
-        printf("%d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-     #else
-        printf("\n");
+        " with GCC-%d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
      #endif
 
      #if defined(__linux)
         printf(" Linux\n");
      #elif defined(WIN32)
-        printf(" Windows\n");
+        printf(" Windows");
+        #if defined(__MINGW64__)
+          printf(" MinGW-w64\n");
+        #else
+          printf("\n");
+        #endif
      #elif defined(__APPLE__)
         printf(" MacOS\n");
-#elif defined(__unix__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) 
-        printf(" Unix\n");
+     #elif defined(__bsd__) || defined(__unix__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) 
+        printf(" BSD/Unix\n");
      #else
         printf("\n");
      #endif
@@ -3050,7 +3053,7 @@ static bool cpu_capability( bool display_only )
 
      if ( !display_only )
      {
-        printf("\nAlgo features:       ");
+        printf("\nAlgo features:");
         if ( algo_features == EMPTY_SET ) printf( " None" );
         else
         {
@@ -3058,7 +3061,7 @@ static bool cpu_capability( bool display_only )
            else if ( algo_has_avx2   )  printf( " AVX2  " );
            else if ( algo_has_sse42  )  printf( " SSE4.2" );
            else if ( algo_has_sse2   )  printf( " SSE2  " );
-           if      ( algo_has_neon   )  printf( " NEON  " );
+           if      ( algo_has_neon   )  printf( " NEON"   );
            if      ( algo_has_vaes   )  printf( " VAES"   );
            else if ( algo_has_aes    )  printf( "  AES"   );
            if      ( algo_has_sha512 )  printf( " SHA512" );
@@ -3691,9 +3694,6 @@ int main(int argc, char *argv[])
 	{
  	   int cpus = GetActiveProcessorCount( i );
 	   num_cpus += cpus;
-
-//	   if (opt_debug)
-//         applog( LOG_INFO, "Found %d CPUs in CPU group %d", cpus, i );
 	}
 
 #else

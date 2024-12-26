@@ -15,51 +15,43 @@ rm -f config.status
 ./autogen.sh || echo done
 CFLAGS="-O3 -march=armv9-a+crypto+sha3 -Wall -flax-vector-conversions" ./configure  --with-curl
 make -j $(nproc)
-strip -s cpuminer
 mv cpuminer cpuminer-armv9-crypto-sha3
 
 make clean || echo clean
 CFLAGS="-O3 -march=armv9-a+crypto -Wall -flax-vector-conversions" ./configure  --with-curl
 make -j $(nproc)
-strip -s cpuminer
 mv cpuminer cpuminer-armv9-crypto
 
 make clean || echo clean
 CFLAGS="-O3 -march=armv9-a -Wall -flax-vector-conversions" ./configure  --with-curl
 make -j $(nproc)
-strip -s cpuminer
 mv cpuminer cpuminer-armv9
 
 # SVE2 available in armv8.5
 make clean || echo clean
 CFLAGS="-O3 -march=armv8.5-a+crypto+sha3+sve2 -Wall -flax-vector-conversions" ./configure  --with-curl
 make -j $(nproc)
-strip -s cpuminer
 mv cpuminer cpuminer-armv8.5-crypto-sha3-sve2
 
 # SHA3 available in armv8.4
 make clean || echo clean
 CFLAGS="-O3 -march=armv8.4-a+crypto+sha3 -Wall -flax-vector-conversions" ./configure  --with-curl
 make -j $(nproc)
-strip -s cpuminer
 mv cpuminer cpuminer-armv8.4-crypto-sha3
 
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=armv8-a+crypto -Wall -flax-vector-conversions" ./configure  --with-curl
 make -j $(nproc)
-strip -s cpuminer
 mv cpuminer cpuminer-armv8-crypto
 
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=armv8-a -Wall -flax-vector-conversions" ./configure  --with-curl
 make -j $(nproc)
-strip -s cpuminer
 mv cpuminer cpuminer-armv8
 
 make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=native -Wall -flax-vector-conversions" ./configure  --with-curl     
 make -j $(nproc)
-strip -s cpuminer
