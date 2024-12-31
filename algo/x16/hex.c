@@ -236,7 +236,7 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = nonce;
-      if ( hex_hash( hash32, edata, thr_id ) );
+      if ( hex_hash( hash32, edata, thr_id ) )
       if ( unlikely( valid_hash( hash32, ptarget ) && !bench ) )
       {
          be32enc( &pdata[19], nonce );

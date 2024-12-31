@@ -29,7 +29,6 @@
 //    is no significant 64 bit vectorization therefore SSE2 is the practical
 //    minimum for using this code.
 //
-//    MMX:     64 bit vectors  (Not used in cpuminer-opt) 
 //    SSE2:   128 bit vectors  (64 bit CPUs only, such as Intel Core2.
 //    AVX2:   256 bit vectors  (Starting with Intel Haswell and AMD Ryzen)
 //    AVX512: 512 bit vectors  (Starting with SkylakeX)
@@ -216,9 +215,6 @@
 #endif
 
 #include "simd-utils/simd-int.h"
-
-// x86_64 MMX 64 bit vectors
-#include "simd-utils/simd-64.h"
 
 // x86_64 SSE2 128 bit vectors
 #include "simd-utils/simd-128.h"

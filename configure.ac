@@ -1,4 +1,4 @@
-AC_INIT([cpuminer-opt], [24.8])
+AC_INIT([cpuminer-opt], [25.1])
 
 AC_PREREQ([2.59c])
 AC_CANONICAL_SYSTEM
@@ -45,11 +45,19 @@ case $target in
   i*86-*-*)
     have_x86=true
     ;;
+  aarch64-apple-*|arm64-apple-*)
+    have_arm64=true
+    have_arm64_apple=true
+    ;;
+  x86_64-apple-*|amd64-apple-*)
+    have_x86_64=true
+    have_x86_64_apple=true
+    ;;
   x86_64-*-*|amd64-*-*)
     have_x86_64=true
     ;;
   aarch64*-*-*|arm64*-*-*)
-    have_aarch64=true
+    have_arm4=true
     ;;
   powerpc*-*-*)
     have_ppc=true
@@ -69,7 +77,6 @@ case $target in
     have_apple=true
     ;;
 esac
-
 
 AC_ARG_ENABLE([assembly],
   AS_HELP_STRING([--disable-assembly], [disable assembly-language routines]))
@@ -138,9 +145,11 @@ AM_CONDITIONAL([HAVE_WINDOWS], [test x$have_win32 = xtrue])
 AM_CONDITIONAL([USE_ASM], [test x$enable_assembly != xno])
 AM_CONDITIONAL([ARCH_x86], [test x$have_x86 = xtrue])
 AM_CONDITIONAL([ARCH_x86_64], [test x$have_x86_64 = xtrue])
-AM_CONDITIONAL([ARCH_ARM64], [test x$have_aarch64 = xtrue])
+AM_CONDITIONAL([ARCH_ARM64], [test x$have_arm64 = xtrue])
 AM_CONDITIONAL([MINGW], [test "x$OS" = "xWindows_NT"])
 AM_CONDITIONAL([HAVE_APPLE], [test x$have_apple = xtrue])
+AM_CONDITIONAL([ARM64_APPLE], [test x$have_arm64_apple = xtrue])
+AM_CONDITIONAL([X86_64_APPLE], [test x$have_x86_64_apple = xtrue])
 
 if test x$request_jansson = xtrue ; then
 	JANSSON_LIBS="compat/jansson/libjansson.a"

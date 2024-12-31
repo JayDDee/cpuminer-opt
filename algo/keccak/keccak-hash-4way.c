@@ -161,29 +161,25 @@ keccak64_8way_core( keccak64_ctx_m512i *kc, const void *data, size_t len,
 static void keccak64_8way_close( keccak64_ctx_m512i *kc, void *dst,
                                  size_t byte_len, size_t lim )
 {
-    unsigned eb;
-    union {
-       __m512i tmp[lim + 1];
-       uint64_t dummy;   /* for alignment */
-    } u;
+    __m512i tmp[lim + 1] __attribute__ ((aligned (64)));
     size_t j;
     size_t m512_len = byte_len >> 3;
+    const unsigned eb = hard_coded_eb;
 
-    eb = hard_coded_eb;
     if ( kc->ptr == (lim - 8) )
     {
         const uint64_t t = eb | 0x8000000000000000;
-        u.tmp[0] = _mm512_set1_epi64( t );
+        tmp[0] = _mm512_set1_epi64( t );
         j = 8;
     }
     else
     {
         j = lim - kc->ptr;
-        u.tmp[0] = _mm512_set1_epi64( eb );
-        memset_zero_512( u.tmp + 1, (j>>3) - 2 );
-        u.tmp[ (j>>3) - 1] = _mm512_set1_epi64( 0x8000000000000000 );
+        tmp[0] = _mm512_set1_epi64( eb );
+        memset_zero_512( tmp + 1, (j>>3) - 2 );
+        tmp[ (j>>3) - 1] = _mm512_set1_epi64( 0x8000000000000000 );
     }
-    keccak64_8way_core( kc, u.tmp, j, lim );
+    keccak64_8way_core( kc, tmp, j, lim );
     /* Finalize the "lane complement" */
     NOT64( kc->w[ 1], kc->w[ 1] );
     NOT64( kc->w[ 2], kc->w[ 2] );
@@ -361,29 +357,25 @@ keccak64_core( keccak64_ctx_m256i *kc, const void *data, size_t len,
 static void keccak64_close( keccak64_ctx_m256i *kc, void *dst, size_t byte_len,
             size_t lim )
 {
-    unsigned eb;
-    union {
-       __m256i tmp[lim + 1];
-       uint64_t dummy;   /* for alignment */
-    } u;
+    __m256i tmp[lim + 1] __attribute__ ((aligned (32)));
     size_t j;
     size_t m256_len = byte_len >> 3;
+    const unsigned eb = hard_coded_eb;
 
-    eb = hard_coded_eb;
     if ( kc->ptr == (lim - 8) )
     {
         const uint64_t t = eb | 0x8000000000000000;
-        u.tmp[0] = _mm256_set1_epi64x( t );
+        tmp[0] = _mm256_set1_epi64x( t );
         j = 8;
     }
     else
     {
         j = lim - kc->ptr;
-        u.tmp[0] = _mm256_set1_epi64x( eb );
-        memset_zero_256( u.tmp + 1, (j>>3) - 2 );
-        u.tmp[ (j>>3) - 1] = _mm256_set1_epi64x( 0x8000000000000000 );
+        tmp[0] = _mm256_set1_epi64x( eb );
+        memset_zero_256( tmp + 1, (j>>3) - 2 );
+        tmp[ (j>>3) - 1] = _mm256_set1_epi64x( 0x8000000000000000 );
     }
-    keccak64_core( kc, u.tmp, j, lim );
+    keccak64_core( kc, tmp, j, lim );
     /* Finalize the "lane complement" */
     NOT64( kc->w[ 1], kc->w[ 1] );
     NOT64( kc->w[ 2], kc->w[ 2] );

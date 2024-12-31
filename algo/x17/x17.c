@@ -18,11 +18,7 @@
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/sph-haval.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#if defined(__aarch64__)
-  #include "algo/simd/sph_simd.h"
-#else
-  #include "algo/simd/nist.h"
-#endif
+#include "algo/simd/simd-hash-2way.h"
 #include "algo/sha/sph_sha2.h"
 #if defined(__AES__)
   #include "algo/fugue/fugue-aesni.h"
@@ -34,7 +30,7 @@
   #include "algo/fugue/sph_fugue.h"
 #endif
 #include "algo/blake/sph_blake.h"
-#include "algo/cubehash/sph_cubehash.h"
+//#include "algo/cubehash/sph_cubehash.h"
 #include "algo/luffa/sph_luffa.h"
 
 
@@ -63,17 +59,9 @@ union _x17_context_overlay
 #else
         hashState_luffa         luffa;
 #endif
-//#if defined(__aarch64__)
-//        sph_cubehash512_context    cube;
-//#else
         cubehashParam           cube;
-//#endif
         sph_shavite512_context  shavite;
-#if defined(__aarch64__)
-        sph_simd512_context     simd;
-#else
-        hashState_sd            simd;
-#endif
+        simd512_context         simd;
         sph_hamsi512_context    hamsi;
         sph_shabal512_context   shabal;
         sph_whirlpool_context   whirlpool;
@@ -127,26 +115,13 @@ int x17_hash(void *output, const void *input, int thr_id )
     luffa_full( &ctx.luffa, hash, 512, hash, 64 );
 #endif
 
-//#if defined(__aarch64__)
-//    sph_cubehash512_init(&ctx.cube);
-//    sph_cubehash512(&ctx.cube, (const void*) hash, 64);
-//    sph_cubehash512_close(&ctx.cube, hash);
-//#else
     cubehash_full( &ctx.cube, hash, 512, hash, 64 );
-//#endif
 
     sph_shavite512_init( &ctx.shavite );
     sph_shavite512( &ctx.shavite, hash, 64);
     sph_shavite512_close( &ctx.shavite, hash);
 
-#if defined(__aarch64__)
-    sph_simd512_init( &ctx.simd );
-    sph_simd512(&ctx.simd, (const void*) hash, 64);
-    sph_simd512_close(&ctx.simd, hash);
-#else
-    simd_full( &ctx.simd, (BitSequence *)hash,
-               (const BitSequence *)hash, 512 );
-#endif
+    simd512_ctx( &ctx.simd, hash, hash, 64 );        
 
 #if defined(__AES__)
     echo_full( &ctx.echo, (BitSequence *)hash, 512,

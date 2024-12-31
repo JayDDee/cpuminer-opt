@@ -20,11 +20,7 @@
   #include "algo/echo/sph_echo.h"
 #endif
 #include "algo/cubehash/cubehash_sse2.h"
-#if defined(__aarch64__)
-  #include "algo/simd/sph_simd.h"
-#else
-  #include "algo/simd/nist.h"
-#endif
+#include "algo/simd/simd-hash-2way.h"
 #include "algo/luffa/luffa_for_sse2.h"
 
 typedef struct {
@@ -37,11 +33,7 @@ typedef struct {
 #endif
     hashState_luffa         luffa;
     cubehashParam           cube;
-#if defined(__aarch64__)
-   sph_simd512_context     simd;
-#else
-   hashState_sd            simd;
-#endif
+   simd512_context         simd;
     sph_blake512_context    blake;
     sph_bmw512_context      bmw;
     sph_skein512_context    skein;
@@ -63,11 +55,6 @@ void init_x11evo_ctx()
 #endif
      init_luffa( &x11evo_ctx.luffa, 512 );
      cubehashInit( &x11evo_ctx.cube, 512, 16, 32 );
-#if defined(__aarch64__)
-     sph_simd512_init( &x11evo_ctx.simd );
-#else
-     init_sd( &x11evo_ctx.simd, 512 );
-#endif
      sph_blake512_init( &x11evo_ctx.blake );
      sph_bmw512_init( &x11evo_ctx.bmw );
      sph_skein512_init( &x11evo_ctx.skein );
@@ -146,12 +133,7 @@ void x11evo_hash( void *state, const void *input )
 	      sph_shavite512_close( &ctx.shavite, (char*)hash );
 	      break;
 	    case 9:
-#if defined(__aarch64__)
-         sph_simd512(&ctx.simd, (const void*) hash, 64);
-         sph_simd512_close(&ctx.simd, hash);
-#else
-         update_final_sd( &ctx.simd, (char*)hash, (const char*)hash, 512 );
-#endif
+         simd512_ctx( &ctx.simd, hash, hash, 64 );
     break;
 	    case 10:
 #ifdef __AES__

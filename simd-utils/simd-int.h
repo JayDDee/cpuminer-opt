@@ -19,6 +19,9 @@ static inline uint64_t bswap_64( uint64_t a )
    return b;
 }
 
+// This produces warnings from clang, but its suggested workaround 
+// "rev32 %w0, %w1\n\t" produced errors instead. GCC doesn't complain and
+// it works as is on both.
 static inline uint32_t bswap_32( uint32_t a )
 {
    uint32_t b;

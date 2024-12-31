@@ -75,6 +75,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v25.1
+
+MacOS ARM64: m7m algo is now working.
+MacOS ARM64: can now be compiled with GCC.
+MacOS x86_64: is now working compiled with GCC.
+Fixed some minor bugs & removed some obsolete code.
+
 v24.8
 
 ARM: Apple MacOS on M series CPU is now supported compiled from source

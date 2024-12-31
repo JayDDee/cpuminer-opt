@@ -17,11 +17,7 @@
 #include "algo/echo/sph_echo.h"
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#if defined(__aarch64__)
-  #include "algo/simd/sph_simd.h"
-#else
-  #include "algo/simd/nist.h"
-#endif
+#include "algo/simd/simd-hash-2way.h"
 #if defined(__AES__)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
@@ -44,11 +40,7 @@ typedef struct {
    hashState_luffa         luffa;
    cubehashParam            cubehash;
    sph_shavite512_context   shavite;
-#if defined(__aarch64__)
-   sph_simd512_context     simd;
-#else
-   hashState_sd            simd;
-#endif
+   simd512_context         simd;
    sph_hamsi512_context     hamsi;
 } x12_ctx_holder;
 
@@ -68,14 +60,9 @@ void init_x12_ctx()
         sph_groestl512_init(&x12_ctx.groestl);
         sph_echo512_init(&x12_ctx.echo);
 #endif
-   init_luffa( &x12_ctx.luffa, 512 );
+        init_luffa( &x12_ctx.luffa, 512 );
         cubehashInit( &x12_ctx.cubehash, 512, 16, 32 );
         sph_shavite512_init( &x12_ctx.shavite );
-#if defined(__aarch64__)
-   sph_simd512_init( &x12_ctx.simd );
-#else
-   init_sd( &x12_ctx.simd, 512 );
-#endif
         sph_hamsi512_init( &x12_ctx.hamsi );
 };
 
@@ -101,13 +88,7 @@ void x12hash(void *output, const void *input)
    sph_shavite512( &ctx.shavite, hash, 64);
    sph_shavite512_close( &ctx.shavite, hashB);
 
-#if defined(__aarch64__)
-    sph_simd512(&ctx.simd, (const void*) hashB, 64);
-    sph_simd512_close(&ctx.simd, hash);
-#else
-    update_sd( &ctx.simd, (const BitSequence *)hash, 512 );
-    final_sd( &ctx.simd, (BitSequence *)hash );
-#endif
+   simd512_ctx( &ctx.simd, hash, hashB, 64 );
 
 #if defined(__AES__)
    update_final_echo ( &ctx.echo, (BitSequence *)hashB,

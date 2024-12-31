@@ -13,17 +13,13 @@
 #include "algo/skein/sph_skein.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/shavite/sph_shavite.h"
-#if defined(__aarch64__)
-  #include "algo/simd/sph_simd.h"
-#else
-  #include "algo/simd/nist.h"
-#endif
+#include "algo/simd/simd-hash-2way.h"
 #ifdef __AES__
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "algo/groestl/sph_groestl.h"
 #endif
-  #include "algo/luffa/luffa_for_sse2.h"
+#include "algo/luffa/luffa_for_sse2.h"
 
 static __thread uint32_t s_ntime = UINT32_MAX;
 static __thread int permutation[TT10_FUNC_COUNT] = { 0 };
@@ -37,11 +33,7 @@ typedef struct {
         hashState_luffa         luffa;
         cubehashParam           cube;
         sph_shavite512_context  shavite;
-#if defined(__aarch64__)
-   sph_simd512_context     simd;
-#else
-   hashState_sd            simd;
-#endif
+        simd512_context         simd;
 #ifdef __AES__
         hashState_groestl       groestl;
 #else
@@ -62,11 +54,6 @@ void init_tt10_ctx()
         init_luffa( &tt10_ctx.luffa, 512 );
         cubehashInit( &tt10_ctx.cube, 512, 16, 32 );
         sph_shavite512_init( &tt10_ctx.shavite );
-#if defined(__aarch64__)
-   sph_simd512_init( &tt10_ctx.simd );
-#else
-   init_sd( &tt10_ctx.simd, 512 );
-#endif
 #ifdef __AES__
         init_groestl( &tt10_ctx.groestl, 64 );
 #else
@@ -222,27 +209,7 @@ void timetravel10_hash(void *output, const void *input)
         }
         break;
      case 9:
-        if ( i == 0 )
-        {
-           memcpy( &ctx.simd, &tt10_mid.simd, sizeof tt10_mid.simd );
-#if defined(__aarch64__)
-           sph_simd512(&ctx.simd, (const void*) input + midlen, tail );
-           sph_simd512_close(&ctx.simd, hash);
-#else
-           update_final_sd( &ctx.simd, (BitSequence *)hashB,
-                            (const BitSequence *)input + midlen, tail*8 );
-#endif
-        }
-        else
-        {
-#if defined(__aarch64__)
-           sph_simd512(&ctx.simd, (const void*) hash, 64);
-           sph_simd512_close(&ctx.simd, hash);
-#else
-           update_sd( &ctx.simd, (const BitSequence *)hashA, dataLen*8 );
-           final_sd( &ctx.simd, (BitSequence *)hashB );
-#endif
-        }
+        simd512_ctx( &ctx.simd, hashB, hashA, dataLen );
         break;
      default:
 	break;
@@ -324,15 +291,6 @@ int scanhash_timetravel10( struct work *work, uint32_t max_nonce,
         case 8:
            memcpy( &tt10_mid.shavite, &tt10_ctx.shavite, sizeof(tt10_mid.shavite ) );
            sph_shavite512( &tt10_mid.shavite, endiandata, 64 );
-           break;
-        case 9:
-           memcpy( &tt10_mid.simd, &tt10_ctx.simd, sizeof(tt10_mid.simd ) );
-#if defined(__aarch64__)
-           sph_simd512( &tt10_mid.simd, (const void*) endiandata, 64 );
-           sph_simd512_close( &tt10_mid.simd, hash);
-#else
-           update_sd( &tt10_mid.simd, (const BitSequence *)endiandata, 512 );
-#endif
            break;
         default:
            break;

@@ -18,7 +18,6 @@
 #include "algo/cubehash/cube-hash-2way.h"
 #include "algo/shavite/shavite-hash-2way.h"
 #include "algo/shavite/sph_shavite.h"
-#include "algo/simd/nist.h"
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/fugue/fugue-aesni.h"
 #include "algo/whirlpool/sph_whirlpool.h"

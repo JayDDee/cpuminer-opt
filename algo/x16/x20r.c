@@ -137,7 +137,7 @@ int scanhash_x20r_8x64( struct work *work, uint32_t max_nonce,
                              n+3, 0, n+2, 0, n+1, 0, n,   0 ), *noncev );
    do
    {
-      if( x20r_8x64_hash( hash, vdata, thr_id ) );
+      if ( x20r_8x64_hash( hash, vdata, thr_id ) )
       for ( int i = 0; i < 8; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {
@@ -205,7 +205,7 @@ int scanhash_x20r_4x64( struct work *work, uint32_t max_nonce,
                    _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
    do
    {
-      if ( x20r_4x64_hash( hash, vdata, thr_id ) );
+      if ( x20r_4x64_hash( hash, vdata, thr_id ) )
       for ( int i = 0; i < 4; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {
@@ -269,7 +269,7 @@ int scanhash_x20r_2x64( struct work *work, uint32_t max_nonce,
    *noncev = v128_intrlv_blend_32( v128_set32( n+1, 0, n, 0 ), *noncev );
    do
    {
-      if ( x20r_2x64_hash( hash, vdata, thr_id ) );
+      if ( x20r_2x64_hash( hash, vdata, thr_id ) )
       for ( int i = 0; i < 2; i++ )
       if ( unlikely( valid_hash( hash + (i<<3), ptarget ) && !bench ) )
       {

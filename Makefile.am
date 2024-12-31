@@ -5,15 +5,31 @@ else
 JANSSON_INCLUDES=
 endif
 
-EXTRA_DIST	= example-cfg.json nomacro.pl
+# Hook for for GMP on MacOS which is provided by homebrew.
+# Homebrew has different linkage on x86_64 & ARM64.
+# Need complex expressions, nesting or elseif, none seem to work.
+if !HAVE_APPLE
+  GMP_INCLUDES =
+  GMP_LIB = -lgmp
+endif
+if ARM64_APPLE
+  GMP_INCLUDES = -I/opt/homebrew/include
+  GMP_LIB = /opt/homebrew/lib/libgmp.a
+endif
+if X86_64_APPLE
+  GMP_INCLUDES = -I/usr/local/include
+  GMP_LIB = /usr/local/lib/libgmp.a
+endif
 
-SUBDIRS		= compat
+EXTRA_DIST = example-cfg.json nomacro.pl
 
-ALL_INCLUDES	= @PTHREAD_FLAGS@ -fno-strict-aliasing $(JANSSON_INCLUDES) -I.
+SUBDIRS = compat
 
-bin_PROGRAMS	= cpuminer
+ALL_INCLUDES = @PTHREAD_FLAGS@ -fno-strict-aliasing $(JANSSON_INCLUDES) $(GMP_INCLUDES) -I.
 
-dist_man_MANS	= cpuminer.1
+bin_PROGRAMS = cpuminer
+
+dist_man_MANS = cpuminer.1
 
 cpuminer_SOURCES = \
   dummy.cpp \
@@ -166,8 +182,6 @@ cpuminer_SOURCES = \
   algo/shavite/sph-shavite-aesni.c \
   algo/shavite/shavite-hash-2way.c \
   algo/shavite/shavite-hash-4way.c \
-  algo/simd/nist.c \
-  algo/simd/vector.c \
   algo/simd/sph_simd.c \
   algo/simd/simd-hash-2way.c \
   algo/skein/sph_skein.c \
@@ -287,15 +301,10 @@ if HAVE_WINDOWS
    cpuminer_SOURCES += compat/winansi.c
 endif
 
-cpuminer_LDFLAGS	= @LDFLAGS@
-cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@
+cpuminer_LDFLAGS = @LDFLAGS@
+cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ $(GMP_LIB)
 cpuminer_CPPFLAGS = @LIBCURL_CPPFLAGS@ $(ALL_INCLUDES)
-cpuminer_CFLAGS   = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
-
-# Linking GMP fails on MacOS
-if !HAVE_APPLE
-   cpuminer_LDADD += -lgmp
-endif
+cpuminer_CFLAGS = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
 
 if ARCH_ARM64
    cpuminer_CFLAGS += -flax-vector-conversions

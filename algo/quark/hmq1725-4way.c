@@ -11,7 +11,6 @@
 #include "algo/luffa/luffa-hash-2way.h"
 #include "algo/cubehash/cube-hash-2way.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#include "algo/simd/nist.h"
 #include "algo/shavite/sph_shavite.h"
 #include "algo/shavite/shavite-hash-2way.h"
 #include "algo/simd/simd-hash-2way.h"
@@ -617,9 +616,9 @@ union _hmq1725_4way_context_overlay
     cubehashParam           cube;
     cube_2way_context       cube2;
     sph_shavite512_context  shavite;
-    hashState_sd            sd;
+    simd512_context         simd;
     shavite512_2way_context shavite2;
-    simd_2way_context       simd;
+    simd_2way_context       simd_2way;
     hashState_echo          echo;
     hamsi512_4way_context   hamsi;
     hashState_fugue         fugue;
@@ -753,8 +752,8 @@ extern void hmq1725_4way_hash(void *state, const void *input)
     shavite512_2way_full( &ctx.shavite2, vhashA, vhashA, 64 );
     shavite512_2way_full( &ctx.shavite2, vhashB, vhashB, 64 );
 
-    simd512_2way_full( &ctx.simd, vhashA, vhashA, 64 );
-    simd512_2way_full( &ctx.simd, vhashB, vhashB, 64 );
+    simd512_2way_full( &ctx.simd_2way, vhashA, vhashA, 64 );
+    simd512_2way_full( &ctx.simd_2way, vhashB, vhashB, 64 );
 
     rintrlv_2x128_4x64( vhash, vhashA, vhashB, 512 );     
 
@@ -869,41 +868,25 @@ extern void hmq1725_4way_hash(void *state, const void *input)
        echo_full( &ctx.echo, (BitSequence *)hash0, 512,
                        (const BitSequence *)hash0, 64 );
     else
-    {
-       init_sd( &ctx.sd, 512 );
-       update_final_sd( &ctx.sd, (BitSequence *)hash0,
-                           (const BitSequence *)hash0, 512 );
-    }
+       simd512_ctx( &ctx.simd, hash0, hash0, 64 );
 
    if ( hash1[0] & mask ) //4
        echo_full( &ctx.echo, (BitSequence *)hash1, 512,
                        (const BitSequence *)hash1, 64 );
    else
-   {
-       init_sd( &ctx.sd, 512 );
-       update_final_sd( &ctx.sd, (BitSequence *)hash1,
-                           (const BitSequence *)hash1, 512 );
-   }
+       simd512_ctx( &ctx.simd, hash1, hash1, 64 );
 
    if ( hash2[0] & mask ) //4
        echo_full( &ctx.echo, (BitSequence *)hash2, 512,
                        (const BitSequence *)hash2, 64 );
    else
-   {
-       init_sd( &ctx.sd, 512 );
-       update_final_sd( &ctx.sd, (BitSequence *)hash2,
-                           (const BitSequence *)hash2, 512 );
-   }
+       simd512_ctx( &ctx.simd, hash2, hash2, 64 );
 
    if ( hash3[0] & mask ) //4
        echo_full( &ctx.echo, (BitSequence *)hash3, 512,
                        (const BitSequence *)hash3, 64 );
    else
-   {
-       init_sd( &ctx.sd, 512 );
-       update_final_sd( &ctx.sd, (BitSequence *)hash3,
-                           (const BitSequence *)hash3, 512 );
-   }
+       simd512_ctx( &ctx.simd, hash3, hash3, 64 );
 
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 

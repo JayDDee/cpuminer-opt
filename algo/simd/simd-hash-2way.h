@@ -1,7 +1,6 @@
 #ifndef SIMD_HASH_2WAY_H__
 #define SIMD_HASH_2WAY_H__ 1
 
-#include "simd-compat.h"
 #include "simd-utils.h"
 
 #if defined(__SSE2__) || defined (__ARM_NEON)
@@ -34,7 +33,7 @@ typedef struct
   unsigned int hashbitlen;
   unsigned int blocksize;
   unsigned int n_feistels;
-} simd512_2way_context __attribute__((aligned(128)));
+} simd512_2way_context __attribute__((aligned(64)));
 #define simd_2way_context simd512_2way_context
 
 // databitlen is bits
