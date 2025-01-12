@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 make distclean || echo clean
 rm -f config.status

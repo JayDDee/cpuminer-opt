@@ -286,15 +286,15 @@ static inline void drop_policy(void) { }
 static void affine_to_cpu( struct thr_info *thr )
 {
    int thread = thr->id;
-   unsigned long last_error;    
-   bool ok;
+   unsigned long last_error = 0;    
+   bool ok = true;
 
 #if defined(WINDOWS_CPU_GROUPS_ENABLED)
    unsigned long group_size = GetActiveProcessorCount( 0 );
    unsigned long group      = thread / group_size;
    unsigned long cpu        = thread_affinity_map[ thread % group_size ];
 
-   GROUP_AFFINITY affinity;
+   GROUP_AFFINITY affinity = {0};
    affinity.Group = group;
    affinity.Mask = 1ULL << cpu;
 
@@ -320,8 +320,7 @@ static void affine_to_cpu( struct thr_info *thr )
    {
       last_error = GetLastError();
       if ( !thread )
-      applog( LOG_WARNING, "Set affinity returned error 0x%x for thread %d",
-                           last_error, thread );
+         applog( LOG_WARNING, "Set affinity returned error 0x%x", last_error );
    }
 }   
 
@@ -2913,6 +2912,7 @@ static bool cpu_capability( bool display_only )
            sw_arm_arch = __ARM_ARCH;
          #endif
      #endif
+
      // x86_64 only
      #if defined(__SSE2__)
          sw_has_sse2 = true;
@@ -2941,9 +2941,10 @@ static bool cpu_capability( bool display_only )
      #if defined(__AVX10_1_512__)
          sw_has_avx10_512 = true;
      #endif
+
      // x86_64 or AArch64 
      #if defined(__AES__) || defined(__ARM_FEATURE_AES)
-       sw_has_aes = true;
+         sw_has_aes = true;
      #endif
      #ifdef __VAES__
          sw_has_vaes = true;
@@ -2954,6 +2955,7 @@ static bool cpu_capability( bool display_only )
      #if defined(__SHA512__) || defined(__ARM_FEATURE_SHA512)
          sw_has_sha512 = true;
      #endif
+
      // AArch64 only
      #if defined(__ARM_NEON)
          sw_has_neon = true;
@@ -2971,16 +2973,20 @@ static bool cpu_capability( bool display_only )
          sw_has_sme2 = true;
      #endif
 
+     // CPU
      cpu_brand_string( cpu_brand );
      printf( "CPU: %s\n", cpu_brand );
 
-     printf("SW built on " __DATE__
+     // Build
+     printf( "SW built on " __DATE__
      #if defined(__clang__)
-        " with CLANG-%d.%d.%d", __clang_major__, __clang_minor__, __clang_patchlevel__);
+        " with CLANG-%d.%d.%d", __clang_major__, __clang_minor__,
+                                __clang_patchlevel__ );
      #elif defined(__GNUC__)
-        " with GCC-%d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+        " with GCC-%d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__ );
      #endif
 
+     // OS
      #if defined(__linux)
         printf(" Linux\n");
      #elif defined(WIN32)
@@ -3106,6 +3112,7 @@ static bool cpu_capability( bool display_only )
      return true;
 }
 
+/*
 void show_version_and_exit(void)
 {
         printf("\n built on " __DATE__
@@ -3162,12 +3169,11 @@ void show_version_and_exit(void)
         printf("\n");
         exit(0);
 }
-
+*/
 void show_usage_and_exit(int status)
 {
 	if (status)
                 fprintf(stderr, "Try `--help' for more information.\n");
-//		fprintf(stderr, "Try `" PACKAGE_NAME " --help' for more information.\n");
 	else
 		printf(usage);
 	exit(status);
@@ -3183,7 +3189,6 @@ void parse_arg(int key, char *arg )
 {
 	char *p;
 	int v, i;
-//	uint64_t ul;
 	double d;
 
 	switch( key )
@@ -3327,7 +3332,8 @@ void parse_arg(int key, char *arg )
 		free(rpc_user);
 		rpc_user = strdup(arg);
 		break;
-	case 'o':  // url
+
+   case 'o':  // url
    {
 		char *ap, *hp;
 		ap = strstr( arg, "://" );
@@ -3392,7 +3398,8 @@ void parse_arg(int key, char *arg )
 		have_stratum = !opt_benchmark && !strncasecmp( rpc_url, "stratum", 7 );
 		break;
 	}
-	case 'O':  // userpass
+
+   case 'O':  // userpass
 		p = strchr(arg, ':');
 		if (!p)
       {
@@ -3552,10 +3559,10 @@ void parse_arg(int key, char *arg )
    case 1029:  // stratum-keepalive
       opt_stratum_keepalive = true;
       break;
-   case 'V':
+   case 'V':   // version
       display_cpu_capability();
       exit(0);
-	case 'h':
+	case 'h':   // help
 		show_usage_and_exit(0);
 
    default:
@@ -3864,12 +3871,23 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-#if defined(WIN32) && defined(WINDOWS_CPU_GROUPS_ENABLED)
-      if ( opt_debug || ( !opt_quiet && num_cpugroups > 1 ) )
-         applog( LOG_INFO, "Found %d CPUs in %d groups",
-                           num_cpus, num_cpugroups );
+#if defined(WIN32)
+
+#if defined(_WIN32_WINNT)
+   if (opt_debug)
+      applog( LOG_INFO, "_WIN232_WINNT = 0x%04x", _WIN32_WINNT ); 
+#else
+   if (opt_debug)
+      applog( LOG_INFO, "_WIN232_WINNT undefined." );
 #endif
-   
+#if defined(WINDOWS_CPU_GROUPS_ENABLED)
+   if ( opt_debug || ( !opt_quiet && num_cpugroups > 1 ) )
+      applog( LOG_INFO, "Found %d CPUs in %d groups",
+                              num_cpus, num_cpugroups );
+#endif
+
+#endif
+
    conditional_state = malloc( opt_n_threads * ((sizeof(bool)) ) );
    memset( conditional_state, 0, opt_n_threads * ((sizeof(bool)) ) );
    
@@ -3890,7 +3908,7 @@ int main(int argc, char *argv[])
          if ( cpu < num_cpus ) active_cpus++;
       }
       if ( opt_n_threads > active_cpus )
-         applog( LOG_WARNING, "Affinity: more threads (%d) than active CPUs (%d)", opt_n_threads, active_cpus );
+         applog( LOG_WARNING, "More miner threads (%d) than active CPUs in affinity mask (%d)", opt_n_threads, active_cpus );
       if ( !opt_quiet )
       {
          char affinity_mask[64];

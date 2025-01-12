@@ -36,34 +36,18 @@ for compile instructions.
 Requirements
 ------------
 
-1. A x86_64 architecture CPU with a minimum of SSE2 support. This includes
-Intel Core2 and newer and AMD equivalents. Further optimizations are available
-on some algoritms for CPUs with AES, AVX, AVX2, SHA, AVX512 and VAES.
-
-32 bit CPUs are not supported.
-Other CPU architectures such as ARM, Raspberry Pi, RISC-V, Xeon Phi, etc,
-are not supported.
+1. A 64 bit CPU supporting x86_64 (Intel or AMD) or aarch64 (ARM).
+x86_64 requires SSE2, aarch64 requires armv8 & NEON.
 
 Mobile CPUs like laptop computers are not recommended because they aren't
 designed for extreme heat of operating at full load for extended periods of
 time.
 
-Older CPUs and ARM architecture may be supported by cpuminer-multi by TPruvot.
-
-2. 64 bit Linux or Windows OS. Ubuntu and Fedora based distributions,
-including Mint and Centos, are known to work and have all dependencies
-in their repositories. Others may work but may require more effort. Older
-versions such as Centos 6 don't work due to missing features. 
-
-Windows 7 or newer is supported with mingw_w64 and msys or using the pre-built
-binaries. WindowsXP 64 bit is YMMV.
-
-FreeBSD is not actively tested but should work, YMMV.
-MacOS, OSx and Android are not supported.
+2. 64 bit operating system including Linux, Windows, MacOS, or BSD.
+Android, IOS and alt OSs like Haiku & ReactOS are not supported.
 
 3. Stratum pool supporting stratum+tcp:// or stratum+ssl:// protocols or
-RPC getwork using http:// or https://.
-GBT is YMMV.
+RPC getblockte,plate using http:// or https://.
 
 Supported Algorithms
 --------------------

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # make clean and rm all the targetted executables.
 

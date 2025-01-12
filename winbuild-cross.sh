@@ -16,13 +16,8 @@ export MINGW_LIB="/usr/x86_64-w64-mingw32/lib"
 export GCC_MINGW_LIB="/usr/lib/gcc/x86_64-w64-mingw32/9.3-win32"
 # used by GCC
 export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs"
-# Support for Windows 7 CPU groups, AES sometimes not included in -march
-# CPU groups disabled due to incompatibilities between Intel and AMD CPUs.
-# CPU groups are enabled by default in Makefile, use -U to disable.
-export DEFAULT_CFLAGS="-maes -O3 -Wall -U_WIN32_WINNT"
-export DEFAULT_CFLAGS_OLD="-O3 -Wall -U_WIN32_WINNT"
-#export DEFAULT_CFLAGS="-maes -O3 -Wall"
-#export DEFAULT_CFLAGS_OLD="-O3 -Wall"
+export DEFAULT_CFLAGS="-maes -O3 -Wall"
+export DEFAULT_CFLAGS_OLD="-O3 -Wall"
 
 # make link to local gmp header file.
 ln -s $LOCAL_LIB/gmp/gmp.h ./gmp.h

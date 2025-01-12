@@ -1,31 +1,35 @@
 
-if WANT_JANSSON
-JANSSON_INCLUDES= -I$(top_srcdir)/compat/jansson
+if HAVE_APPLE
+# MacOS uses Homebrew to install needed packages but they aren't linked for
+# the jansson test in configure. Ignore the failed test & link them now,
+# different path for different CPU arch.
+
+if ARCH_ARM64
+  EXTRA_INCLUDES = -I/opt/homebrew/include
+  EXTRA_LIBS     = -L/opt/homebrew/lib
 else
-JANSSON_INCLUDES=
+  EXTRA_INCLUDES = -I/usr/local/include
+  EXTRA_LIBS     = -L/usr/local/lib
 endif
 
-# Hook for for GMP on MacOS which is provided by homebrew.
-# Homebrew has different linkage on x86_64 & ARM64.
-# Need complex expressions, nesting or elseif, none seem to work.
-if !HAVE_APPLE
-  GMP_INCLUDES =
-  GMP_LIB = -lgmp
+else
+
+if WANT_JANSSON
+# Can't find jansson libraries, compile the included source code.
+  EXTRA_INCLUDES = -I$(top_srcdir)/compat/jansson
+  EXTRA_LIBS     = -L$(top_srcdir)/compat/jansson
+else
+  EXTRA_INCLUDES =
+  EXTRA_LIBS     =
 endif
-if ARM64_APPLE
-  GMP_INCLUDES = -I/opt/homebrew/include
-  GMP_LIB = /opt/homebrew/lib/libgmp.a
-endif
-if X86_64_APPLE
-  GMP_INCLUDES = -I/usr/local/include
-  GMP_LIB = /usr/local/lib/libgmp.a
+
 endif
 
 EXTRA_DIST = example-cfg.json nomacro.pl
 
 SUBDIRS = compat
 
-ALL_INCLUDES = @PTHREAD_FLAGS@ -fno-strict-aliasing $(JANSSON_INCLUDES) $(GMP_INCLUDES) -I.
+ALL_INCLUDES = @PTHREAD_FLAGS@ -fno-strict-aliasing $(EXTRA_INCLUDES) -I.
 
 bin_PROGRAMS = cpuminer
 
@@ -288,21 +292,20 @@ cpuminer_SOURCES = \
   algo/yespower/yespower-opt.c \
   algo/yespower/yespower-ref.c \
   algo/yespower/yespower-blake2b-ref.c
-  
-disable_flags =
-
-if USE_ASM
-   cpuminer_SOURCES += asm/neoscrypt_asm.S
-else
-   disable_flags += -DNOASM
-endif
 
 if HAVE_WINDOWS
    cpuminer_SOURCES += compat/winansi.c
 endif
 
+if USE_ASM
+   disable_flags =
+   cpuminer_SOURCES += asm/neoscrypt_asm.S
+else
+   disable_flags += -DNOASM
+endif
+
 cpuminer_LDFLAGS = @LDFLAGS@
-cpuminer_LDADD	= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ $(GMP_LIB)
+cpuminer_LDADD	= $(EXTRA_LIBS) @LIBCURL@ -ljansson @PTHREAD_LIBS@ @WS2_LIBS@ -lgmp
 cpuminer_CPPFLAGS = @LIBCURL_CPPFLAGS@ $(ALL_INCLUDES)
 cpuminer_CFLAGS = -Wno-pointer-sign -Wno-pointer-to-int-cast $(disable_flags)
 
@@ -311,9 +314,6 @@ if ARCH_ARM64
 endif
 
 if HAVE_WINDOWS
-
-# Add -U_WIN32_WINNT to command line CFLAGS to undefine
-cpuminer_CFLAGS += -D_WIN32_WINNT=0x0601
 
 # use to profile an object
 # gprof_cflags = -pg -g3
