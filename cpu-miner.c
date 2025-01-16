@@ -2878,6 +2878,7 @@ static bool cpu_capability( bool display_only )
      bool sw_has_vaes      = false;
      bool sw_has_sha256    = false;        // x86_64 or AArch64
      bool sw_has_sha512    = false;        // x86_64 or AArch64
+/*
      set_t algo_features   = algo_gate.optimizations;
      bool algo_has_sse2    = set_incl( SSE2_OPT,    algo_features );
      bool algo_has_sse42   = set_incl( SSE42_OPT,   algo_features );
@@ -2900,7 +2901,7 @@ static bool cpu_capability( bool display_only )
      bool use_sha512;
      bool use_neon;
      bool use_none;
-
+*/
      #if defined(__x86_64__)
          sw_has_x86_64 = true;
      #elif defined(__aarch64__)
@@ -3057,6 +3058,9 @@ static bool cpu_capability( bool display_only )
      if         ( sw_has_sha512  )   printf( " SHA512" );
      else if    ( sw_has_sha256  )   printf( " SHA256" );
 
+     printf("\n");
+     
+/*     
      if ( !display_only )
      {
         printf("\nAlgo features:");
@@ -3076,6 +3080,7 @@ static bool cpu_capability( bool display_only )
      }
      printf("\n");
 
+     
      if ( display_only ) return true;
 
      // Determine mining options
@@ -3108,6 +3113,7 @@ static bool cpu_capability( bool display_only )
         else if ( use_sha256 ) printf( " SHA256" );
         printf( "\n" );
      }
+*/
 
      return true;
 }

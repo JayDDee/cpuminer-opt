@@ -274,9 +274,6 @@ static inline void PBKDF2_SHA256_128_32_SHA_2BUF( uint32_t *tstate0,
 
 #endif   // SHA
 
-
-
-
 static const uint32_t keypad_4way[ 4*12 ] __attribute((aligned(32))) = 
 {
 	0x80000000, 0x80000000, 0x80000000, 0x80000000,
@@ -447,7 +444,7 @@ static inline void PBKDF2_SHA256_128_32_4way( uint32_t *tstate,
 		output[i] = bswap_32( ostate[i] );
 }
 
-#ifdef HAVE_SHA256_8WAY
+#if defined(__AVX2__)
 
 /*
 static const uint32_t _ALIGN(32) finalblk_8way[8 * 16] = {
@@ -590,7 +587,7 @@ static inline void PBKDF2_SHA256_128_32_8way( uint32_t *tstate,
 		output[i] = bswap_32(ostate[i]);
 }
 
-#endif /* HAVE_SHA256_8WAY */
+#endif //AVX2
 
 #if defined(SIMD512)
 
@@ -724,25 +721,10 @@ static inline void PBKDF2_SHA256_128_32_16way( uint32_t *tstate,
 
 #endif // AVX512
 
-#define SCRYPT_MAX_WAYS 12
-#define HAVE_SCRYPT_3WAY 1
-void scrypt_core(uint32_t *X, uint32_t *V, int N);
-void scrypt_core_3way(uint32_t *X, uint32_t *V, int N);
-
-#if defined(__AVX2__)
-#undef SCRYPT_MAX_WAYS
-#define SCRYPT_MAX_WAYS 24
-#define HAVE_SCRYPT_6WAY 1
-void scrypt_core_6way(uint32_t *X, uint32_t *V, int N);
-#endif
-
-#ifndef SCRYPT_MAX_WAYS
-#define SCRYPT_MAX_WAYS 1
-#endif
-
 #include "scrypt-core-4way.h"
 
-/*
+#if ( SCRYPT_THROUGHPUT == 1 )
+   
 static bool scrypt_N_1_1_256( const uint32_t *input, uint32_t *output,
                               uint32_t *midstate, int N, int thr_id )
 {
@@ -752,15 +734,12 @@ static bool scrypt_N_1_1_256( const uint32_t *input, uint32_t *output,
 	memcpy(tstate, midstate, 32);
 	HMAC_SHA256_80_init(input, tstate, ostate);
 	PBKDF2_SHA256_80_128(tstate, ostate, input, X);
-
-   scrypt_core_simd128( X, scratchbuf, N );  // woring
-//   scrypt_core_1way( X, V, N );  // working
-//   scrypt_core(X, V, N);
-
+   scrypt_core_1way( X, scratchbuf, N ); 
 	PBKDF2_SHA256_128_32(tstate, ostate, X, output);
    return true;
 }
-*/
+
+#endif
 
 #if ( SCRYPT_THROUGHPUT == 8 )
 
@@ -1201,20 +1180,6 @@ static int scrypt_N_1_1_256_16way( const uint32_t *input, uint32_t *output,
    if ( work_restart[thrid].restart ) return 0;
    scrypt_core_simd128_2buf( X+448, V, N );
 ********************/
-/*
-   scrypt_core_3way( X,     V, N );
-   if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_3way( X+ 96, V, N );
-   if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_simd128_2buf( X+192, V, N );
-   if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_3way( X+256, V, N );
-   if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_3way( X+352, V, N );
-   if ( work_restart[thrid].restart ) return 0;
-   scrypt_core_simd128_2buf( X+448, V, N );
-*/
-
 
    if ( work_restart[thrid].restart ) return 0;
 
@@ -1321,8 +1286,7 @@ static int scrypt_N_1_1_256_4way_sha( const uint32_t *input, uint32_t *output,
    return 1;
 }
 
-#else  
-// SSE2
+#elif defined(__SSE2__) || defined(__ARM_NEON)  
 
 static int scrypt_N_1_1_256_4way( const uint32_t *input,	uint32_t *output,
            uint32_t *midstate, int N, int thrid )
@@ -1481,7 +1445,7 @@ bool scrypt_miner_thread_init( int thr_id )
 bool register_scrypt_algo( algo_gate_t* gate )
 {
 #if defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
-   gate->optimizations = SSE2_OPT | SHA256_OPT | NEON_OPT;
+   gate->optimizations = SSE2_OPT | SSE42_OPT | AVX_OPT | SHA256_OPT | NEON_OPT;
 #else
    gate->optimizations = SSE2_OPT | SSE42_OPT | AVX_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
 #endif
@@ -1491,31 +1455,31 @@ bool register_scrypt_algo( algo_gate_t* gate )
    opt_param_n = opt_param_n ? opt_param_n : 1024;
    applog( LOG_INFO,"Scrypt paramaters: N= %d, R= 1", opt_param_n );
 
-// scrypt_throughput defined at compile time and used to replace
-// MAX_WAYS to reduce memory usage.
-   
-#if defined(SIMD512)
-//   scrypt_throughput = 16;
-   if ( opt_param_n > 0x4000 )
-      scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
-   else      
-      scratchbuf_size = opt_param_n * 4 * 128;  // 4 way
-#elif defined(__SHA__) || defined(__ARM_FEATURE_SHA2)
-//   scrypt_throughput = 2;
-   scratchbuf_size = opt_param_n * 2 * 128;  // 2 buf
-#elif defined(__AVX2__)
-//   scrypt_throughput = 8;   
-   if ( opt_param_n > 0x4000 )
-      scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
-   else
-      scratchbuf_size = opt_param_n * 2 * 128;  // 2 way
-#else
-//   scrypt_throughput = 4;
-   if ( opt_param_n > 0x4000 )
-   scratchbuf_size = opt_param_n * 2 * 128;  // 2 buf
-   else
-   scratchbuf_size = opt_param_n * 4 * 128;  // 4 way
-#endif
+   switch ( SCRYPT_THROUGHPUT )
+   {
+     case 16:  // AVX512
+       if ( opt_param_n > 0x4000 )
+         scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
+       else      
+         scratchbuf_size = opt_param_n * 4 * 128;  // 4 way
+     break;
+     case 2:  // SHA256
+         scratchbuf_size = opt_param_n * 2 * 128;  // 2 buf
+     break;
+     case 8:  // AVX2
+       if ( opt_param_n > 0x4000 )
+         scratchbuf_size = opt_param_n * 3 * 128;  // 3 buf
+     else
+         scratchbuf_size = opt_param_n * 2 * 128;  // 2 way
+     break;
+     case 4:  // SSE2, NEON
+       if ( opt_param_n > 0x4000 )
+         scratchbuf_size = opt_param_n * 2 * 128;  // 2 buf
+       else
+         scratchbuf_size = opt_param_n * 4 * 128;  // 4 way
+     default:
+         scratchbuf_size = opt_param_n;  // 1 way
+   }
 
    char t_units[4] = {0};
    char d_units[4] = {0};

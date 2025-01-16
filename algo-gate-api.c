@@ -295,8 +295,8 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
   {
     case ALGO_ALLIUM:       rc = register_allium_algo        ( gate ); break;
     case ALGO_ANIME:        rc = register_anime_algo         ( gate ); break;
-    case ALGO_ARGON2D250:   rc = register_argon2d_crds_algo  ( gate ); break;
-    case ALGO_ARGON2D500:   rc = register_argon2d_dyn_algo   ( gate ); break;
+    case ALGO_ARGON2D250:   rc = register_argon2d250_algo    ( gate ); break;
+    case ALGO_ARGON2D500:   rc = register_argon2d500_algo    ( gate ); break;
     case ALGO_ARGON2D4096:  rc = register_argon2d4096_algo   ( gate ); break;
     case ALGO_AXIOM:        rc = register_axiom_algo         ( gate ); break;
     case ALGO_BLAKE:        rc = register_blake_algo         ( gate ); break;
@@ -416,8 +416,6 @@ void exec_hash_function( int algo, void *output, const void *pdata )
 const char* const algo_alias_map[][2] =
 {
 //   alias                proper
-  { "argon2d-dyn",       "argon2d500"     },
-  { "argon2d-uis",       "argon2d4096"    },
   { "bcd",               "x13bcd"         },
   { "bitcore",           "timetravel10"   },
   { "bitzeny",           "yescryptr8"     },

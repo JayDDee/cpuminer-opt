@@ -289,26 +289,6 @@ static inline void le16enc(void *pp, uint16_t x)
 
 json_t* json_load_url(char* cfg_url, json_error_t *err);
 
-//void sha256_init(uint32_t *state);
-//void sha256_transform(uint32_t *state, const uint32_t *block, int swap);
-//void sha256d(unsigned char *hash, const unsigned char *data, int len);
-
-#ifdef USE_ASM
-#if defined(__ARM_NEON__) || defined(__i386__) || defined(__x86_64__)
-#define HAVE_SHA256_4WAY 1
-int sha256_use_4way();
-void sha256_init_4way(uint32_t *state);
-void sha256_transform_4way(uint32_t *state, const uint32_t *block, int swap);
-#endif
-//#if defined(__x86_64__) && defined(USE_AVX2)
-#if defined(__x86_64__) && defined(__AVX2__)
-#define HAVE_SHA256_8WAY 1
-int sha256_use_8way();
-void sha256_init_8way(uint32_t *state);
-void sha256_transform_8way(uint32_t *state, const uint32_t *block, int swap);
-#endif
-#endif
-
 struct work;
 
 void work_free(struct work *w);
@@ -851,10 +831,9 @@ Options:\n\
   -a, --algo=ALGO       specify the algorithm to use\n\
                           allium        Garlicoin (GRLC)\n\
                           anime         Animecoin (ANI)\n\
-                          argon2        Argon2 Coin (AR2)\n\
                           argon2d250\n\
-                          argon2d500    argon2d-dyn, Dynamic (DYN)\n\
-                          argon2d4096   argon2d-uis, Unitus (UIS)\n\
+                          argon2d500\n\
+                          argon2d4096\n\
                           axiom         Shabal-256 MemoHash\n\
                           blake         blake256r14 (SFR)\n\
                           blake2b       Blake2b 256\n\

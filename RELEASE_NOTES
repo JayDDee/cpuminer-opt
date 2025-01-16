@@ -75,6 +75,13 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v25.3
+
+#442, #443: Fixed a regression in Makefile.am.
+Updated dockerfile.
+Removed algo features log display.
+Some code cleanup.
+
 v25.2
 
 ARM: Fixed regression from v25.1 that could cause build fail.

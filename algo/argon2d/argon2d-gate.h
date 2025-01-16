@@ -5,19 +5,19 @@
 #include <stdint.h>
 
 // Credits: version = 0x10, m_cost = 250.
-bool register_argon2d_crds_algo( algo_gate_t* gate );
+bool register_argon2d250_algo( algo_gate_t* gate );
 
-void argon2d_crds_hash( void *state, const void *input );
+void argon2d250_hash( void *state, const void *input );
 
-int scanhash_argon2d_crds( struct work *work, uint32_t max_nonce,
+int scanhash_argon2d250( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr );
 
 // Dynamic: version = 0x10, m_cost = 500.
-bool register_argon2d_dyn_algo( algo_gate_t* gate );
+bool register_argon2d500_algo( algo_gate_t* gate );
 
-void argon2d_dyn_hash( void *state, const void *input );
+void argon2d500_hash( void *state, const void *input );
 
-int scanhash_argon2d_dyn( struct work *work, uint32_t max_nonce,
+int scanhash_argon2d500( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr );
 
 

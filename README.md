@@ -55,9 +55,9 @@ Supported Algorithms
                           allium        Garlicoin
                           anime         Animecoin
                           argon2        Argon2 coin (AR2)
-                          argon2d250    argon2d-crds, Credits (CRDS)
-                          argon2d500    argon2d-dyn,  Dynamic (DYN)
-                          argon2d4096   argon2d-uis, Unitus, (UIS)
+                          argon2d250    
+                          argon2d500
+                          argon2d4096
                           blake         Blake-256
                           blake2b       Blake2-512
                           blake2s       Blake2-256

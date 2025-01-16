@@ -301,7 +301,7 @@ if USE_ASM
    disable_flags =
    cpuminer_SOURCES += asm/neoscrypt_asm.S
 else
-   disable_flags += -DNOASM
+   disable_flags = -DNOASM
 endif
 
 cpuminer_LDFLAGS = @LDFLAGS@

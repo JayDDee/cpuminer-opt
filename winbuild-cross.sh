@@ -120,12 +120,12 @@ CFLAGS="-msse2 $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
 make -j 8
 strip -s cpuminer.exe
 mv cpuminer.exe release/cpuminer-sse2.exe
-make clean || echo clean
+#make clean || echo clean
 
 # Native with CPU groups ennabled
-make clean || echo clean
-rm -f config.status
-CFLAGS="-march=native $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
-make -j 8
-strip -s cpuminer.exe
+#make clean || echo clean
+#rm -f config.status
+#CFLAGS="-march=native $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
+#make -j 8
+#strip -s cpuminer.exe
 
