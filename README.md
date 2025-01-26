@@ -55,8 +55,9 @@ Supported Algorithms
                           allium        Garlicoin
                           anime         Animecoin
                           argon2        Argon2 coin (AR2)
-                          argon2d250    
+                          argon2d250
                           argon2d500
+                          argon2d1000                        
                           argon2d4096
                           blake         Blake-256
                           blake2b       Blake2-512
