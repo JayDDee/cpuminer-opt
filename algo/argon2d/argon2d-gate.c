@@ -138,6 +138,75 @@ bool register_argon2d500_algo( algo_gate_t* gate )
         return true;
 }
 
+// Zero Dynamics Cash
+
+void argon2d1000_hash( void *output, const void *input )
+{
+    argon2_context context;
+    context.out = (uint8_t *)output;
+    context.outlen = (uint32_t)OUTPUT_BYTES;
+    context.pwd = (uint8_t *)input;
+    context.pwdlen = (uint32_t)INPUT_BYTES;
+    context.salt = (uint8_t *)input; //salt = input
+    context.saltlen = (uint32_t)INPUT_BYTES;
+    context.secret = NULL;
+    context.secretlen = 0;
+    context.ad = NULL;
+    context.adlen = 0;
+    context.allocate_cbk = NULL;
+    context.free_cbk = NULL;
+    context.flags = DEFAULT_ARGON2_FLAG; // = ARGON2_DEFAULT_FLAGS
+    // main configurable Argon2 hash parameters
+    context.m_cost = 1000;  // Memory in KiB (1MB)
+    context.lanes = 8;     // Degree of Parallelism
+    context.threads = 1;   // Threads
+    context.t_cost = 2;    // Iterations
+    context.version = ARGON2_VERSION_10;
+
+    argon2_ctx( &context, Argon2_d );
+}
+
+int scanhash_argon2d1000( struct work *work, uint32_t max_nonce,
+                      uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t _ALIGN(64) edata[20];
+   uint32_t _ALIGN(64) hash[8];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const int thr_id = mythr->id; 
+   const uint32_t first_nonce = (const uint32_t)pdata[19];
+   const uint32_t last_nonce = (const uint32_t)max_nonce;
+   uint32_t nonce = first_nonce;
+   const bool bench = opt_benchmark;
+
+   v128_bswap32_80( edata, pdata );
+   do
+   {
+      edata[19] = nonce;
+      argon2d1000_hash( hash, edata );
+      if ( unlikely( valid_hash( (uint64_t*)hash, (uint64_t*)ptarget )
+           && !bench ) )
+      {
+          pdata[19] = bswap_32( nonce );;
+          submit_solution( work, hash, mythr );
+      }
+      nonce++;
+  } while ( likely( nonce < last_nonce && !work_restart[thr_id].restart ) );
+
+   pdata[19] = nonce;
+   *hashes_done = pdata[19] - first_nonce;
+   return 0;
+}
+
+bool register_argon2d1000_algo( algo_gate_t* gate )
+{
+        gate->scanhash = (void*)&scanhash_argon2d1000;
+        gate->hash = (void*)&argon2d1000_hash;
+        gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
+        opt_target_factor = 65536.0;
+        return true;
+}
+
 int scanhash_argon2d4096( struct work *work, uint32_t max_nonce,
                            uint64_t *hashes_done, struct thr_info *mythr )
 {

@@ -20,6 +20,13 @@ void argon2d500_hash( void *state, const void *input );
 int scanhash_argon2d500( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr );
 
+// Zero Dynamics Cash version = 0x10, m_cost = 1000.
+bool register_argon2d1000_algo( algo_gate_t* gate );
+
+void argon2d1000_hash( void *state, const void *input );
+
+int scanhash_argon2d1000( struct work *work, uint32_t max_nonce,
+                    uint64_t *hashes_done, struct thr_info *mythr );
 
 // Unitus: version = 0x13, m_cost = 4096.
 bool register_argon2d4096_algo( algo_gate_t* gate );
