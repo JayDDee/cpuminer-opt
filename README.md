@@ -47,7 +47,7 @@ time.
 Android, IOS and alt OSs like Haiku & ReactOS are not supported.
 
 3. Stratum pool supporting stratum+tcp:// or stratum+ssl:// protocols or
-RPC getblockte,plate using http:// or https://.
+RPC getblocktemplate using http:// or https://.
 
 Supported Algorithms
 --------------------
