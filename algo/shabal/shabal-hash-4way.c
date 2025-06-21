@@ -430,9 +430,9 @@ do { \
    } while (0)
 
 static void
-shabal_16way_init( void *cc, unsigned size )
+shabal_16x32_init( void *cc, unsigned size )
 {
-   shabal_16way_context *sc = (shabal_16way_context*)cc;
+   shabal_16x32_context *sc = (shabal_16x32_context*)cc;
 
    if ( size == 512 )
    { // copy immediate constants directly to working registers later.
@@ -494,9 +494,9 @@ shabal_16way_init( void *cc, unsigned size )
 }
 
 static void
-shabal_16way_core( void *cc, const unsigned char *data, size_t len )
+shabal_16x32_core( void *cc, const unsigned char *data, size_t len )
 {
-   shabal_16way_context *sc = (shabal_16way_context*)cc;
+   shabal_16x32_context *sc = (shabal_16x32_context*)cc;
     __m512i *buf;
     __m512i *vdata = (__m512i*)data;
    const int buf_size = 64;
@@ -544,10 +544,10 @@ shabal_16way_core( void *cc, const unsigned char *data, size_t len )
 }
 
 static void
-shabal_16way_close( void *cc, unsigned ub, unsigned n, void *dst,
+shabal_16x32_close( void *cc, unsigned ub, unsigned n, void *dst,
                    unsigned size_words )
 {
-   shabal_16way_context *sc = (shabal_16way_context*)cc;
+   shabal_16x32_context *sc = (shabal_16x32_context*)cc;
     __m512i *buf;
    const int buf_size = 64;
    size_t ptr;
@@ -590,52 +590,39 @@ shabal_16way_close( void *cc, unsigned ub, unsigned n, void *dst,
 }
 
 void
-shabal256_16way_init( void *cc )
+shabal256_16x32_init( void *cc )
 {
-   shabal_16way_init(cc, 256);
+   shabal_16x32_init(cc, 256);
 }
 
 void
-shabal256_16way_update( void *cc, const void *data, size_t len )
+shabal256_16x32_update( void *cc, const void *data, size_t len )
 {
-   shabal_16way_core( cc, data, len );
+   shabal_16x32_core( cc, data, len );
 }
 
 void
-shabal256_16way_close( void *cc, void *dst )
+shabal256_16x32_close( void *cc, void *dst )
 {
-   shabal_16way_close(cc, 0, 0, dst, 8);
+   shabal_16x32_close(cc, 0, 0, dst, 8);
 }
 
 void
-shabal256_16way_addbits_and_close( void *cc, unsigned ub, unsigned n,
-                                  void *dst )
+shabal512_16x32_init(void *cc)
 {
-   shabal_16way_close(cc, ub, n, dst, 8);
+   shabal_16x32_init(cc, 512);
 }
 
 void
-shabal512_16way_init(void *cc)
+shabal512_16x32_update(void *cc, const void *data, size_t len)
 {
-   shabal_16way_init(cc, 512);
+   shabal_16x32_core(cc, data, len);
 }
 
 void
-shabal512_16way_update(void *cc, const void *data, size_t len)
+shabal512_16x32_close(void *cc, void *dst)
 {
-   shabal_16way_core(cc, data, len);
-}
-
-void
-shabal512_16way_close(void *cc, void *dst)
-{
-   shabal_16way_close(cc, 0, 0, dst, 16);
-}
-
-void
-shabal512_16way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
-{
-   shabal_16way_close(cc, ub, n, dst, 16);
+   shabal_16x32_close(cc, 0, 0, dst, 16);
 }
 
 #endif
@@ -1031,9 +1018,9 @@ do { \
 } while (0)
 
 static void
-shabal_8way_init( void *cc, unsigned size )
+shabal_8x32_init( void *cc, unsigned size )
 {
-   shabal_8way_context *sc = (shabal_8way_context*)cc;
+   shabal_8x32_context *sc = (shabal_8x32_context*)cc;
 
    if ( size == 512 )
    { // copy immediate constants directly to working registers later.
@@ -1095,9 +1082,9 @@ shabal_8way_init( void *cc, unsigned size )
 }
 
 static void
-shabal_8way_core( void *cc, const unsigned char *data, size_t len )
+shabal_8x32_core( void *cc, const unsigned char *data, size_t len )
 {
-   shabal_8way_context *sc = (shabal_8way_context*)cc;
+   shabal_8x32_context *sc = (shabal_8x32_context*)cc;
     __m256i *buf;
     __m256i *vdata = (__m256i*)data;
    const int buf_size = 64;
@@ -1146,10 +1133,10 @@ shabal_8way_core( void *cc, const unsigned char *data, size_t len )
 }
 
 static void
-shabal_8way_close( void *cc, unsigned ub, unsigned n, void *dst,
+shabal_8x32_close( void *cc, unsigned ub, unsigned n, void *dst,
                    unsigned size_words )
 {
-   shabal_8way_context *sc = (shabal_8way_context*)cc;
+   shabal_8x32_context *sc = (shabal_8x32_context*)cc;
     __m256i *buf;
    const int buf_size = 64;
    size_t ptr;
@@ -1192,52 +1179,39 @@ shabal_8way_close( void *cc, unsigned ub, unsigned n, void *dst,
 }
 
 void
-shabal256_8way_init( void *cc )
+shabal256_8x32_init( void *cc )
 {
-   shabal_8way_init(cc, 256);
+   shabal_8x32_init(cc, 256);
 }
 
 void
-shabal256_8way_update( void *cc, const void *data, size_t len )
+shabal256_8x32_update( void *cc, const void *data, size_t len )
 {
-   shabal_8way_core( cc, data, len );
+   shabal_8x32_core( cc, data, len );
 }
 
 void
-shabal256_8way_close( void *cc, void *dst )
+shabal256_8x32_close( void *cc, void *dst )
 {
-   shabal_8way_close(cc, 0, 0, dst, 8);
+   shabal_8x32_close(cc, 0, 0, dst, 8);
 }
 
 void
-shabal256_8way_addbits_and_close( void *cc, unsigned ub, unsigned n,
-                                  void *dst )
+shabal512_8x32_init(void *cc)
 {
-   shabal_8way_close(cc, ub, n, dst, 8);
+   shabal_8x32_init(cc, 512);
 }
 
 void
-shabal512_8way_init(void *cc)
+shabal512_8x32_update(void *cc, const void *data, size_t len)
 {
-   shabal_8way_init(cc, 512);
+   shabal_8x32_core(cc, data, len);
 }
 
 void
-shabal512_8way_update(void *cc, const void *data, size_t len)
+shabal512_8x32_close(void *cc, void *dst)
 {
-   shabal_8way_core(cc, data, len);
-}
-
-void
-shabal512_8way_close(void *cc, void *dst)
-{
-   shabal_8way_close(cc, 0, 0, dst, 16);
-}
-
-void
-shabal512_8way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
-{
-   shabal_8way_close(cc, ub, n, dst, 16);
+   shabal_8x32_close(cc, 0, 0, dst, 16);
 }
 
 #endif  // AVX2
@@ -1674,9 +1648,9 @@ static const sph_u32 C_init_512[] = {
 */
 
 static void
-shabal_4way_init( void *cc, unsigned size )
+shabal_4x32_init( void *cc, unsigned size )
 {
-   shabal_4way_context *sc = (shabal_4way_context*)cc;
+   shabal_4x32_context *sc = (shabal_4x32_context*)cc;
 
    if ( size == 512 )
    { // copy immediate constants directly to working registers later.
@@ -1786,9 +1760,9 @@ shabal_4way_init( void *cc, unsigned size )
 }
 
 static void
-shabal_4way_core( void *cc, const unsigned char *data, size_t len )
+shabal_4x32_core( void *cc, const unsigned char *data, size_t len )
 {
-   shabal_4way_context *sc = (shabal_4way_context*)cc;
+   shabal_4x32_context *sc = (shabal_4x32_context*)cc;
     v128_t *buf;
     v128_t *vdata = (v128_t*)data;
    const int buf_size = 64;  
@@ -1838,10 +1812,10 @@ shabal_4way_core( void *cc, const unsigned char *data, size_t len )
 }
 
 static void
-shabal_4way_close( void *cc, unsigned ub, unsigned n, void *dst,
+shabal_4x32_close( void *cc, unsigned ub, unsigned n, void *dst,
                    unsigned size_words )
 {
-   shabal_4way_context *sc = (shabal_4way_context*)cc;
+   shabal_4x32_context *sc = (shabal_4x32_context*)cc;
     v128_t *buf;
    const int buf_size = 64;
    size_t ptr;
@@ -1884,52 +1858,39 @@ shabal_4way_close( void *cc, unsigned ub, unsigned n, void *dst,
 }
 
 void
-shabal256_4way_init( void *cc )
+shabal256_4x32_init( void *cc )
 {
-	shabal_4way_init(cc, 256);
+	shabal_4x32_init(cc, 256);
 }
 
 void
-shabal256_4way_update( void *cc, const void *data, size_t len )
+shabal256_4x32_update( void *cc, const void *data, size_t len )
 {
-	shabal_4way_core( cc, data, len );
+	shabal_4x32_core( cc, data, len );
 }
 
 void
-shabal256_4way_close( void *cc, void *dst )
+shabal256_4x32_close( void *cc, void *dst )
 {
-	shabal_4way_close(cc, 0, 0, dst, 8);
+	shabal_4x32_close(cc, 0, 0, dst, 8);
 }
 
 void
-shabal256_4way_addbits_and_close( void *cc, unsigned ub, unsigned n,
-                                  void *dst )
+shabal512_4x32_init(void *cc)
 {
-	shabal_4way_close(cc, ub, n, dst, 8);
+	shabal_4x32_init(cc, 512);
 }
 
 void
-shabal512_4way_init(void *cc)
+shabal512_4x32_update(void *cc, const void *data, size_t len)
 {
-	shabal_4way_init(cc, 512);
+	shabal_4x32_core(cc, data, len);
 }
 
 void
-shabal512_4way_update(void *cc, const void *data, size_t len)
+shabal512_4x32_close(void *cc, void *dst)
 {
-	shabal_4way_core(cc, data, len);
-}
-
-void
-shabal512_4way_close(void *cc, void *dst)
-{
-	shabal_4way_close(cc, 0, 0, dst, 16);
-}
-
-void
-shabal512_4way_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
-{
-	shabal_4way_close(cc, ub, n, dst, 16);
+	shabal_4x32_close(cc, 0, 0, dst, 16);
 }
 
 #endif

@@ -10,9 +10,9 @@ rm cpuminer-arrowlake* cpuminer-graniterapids* cpuminer-avx512-sha-vaes cpuminer
 make distclean || echo clean
 rm -f config.status
 ./autogen.sh || echo done
-CFLAGS="-O3 -march=icelake-client -Wall" ./configure --with-curl
+#CFLAGS="-O3 -march=icelake-client -Wall" ./configure --with-curl
 # Rocketlake needs gcc-11
-#CFLAGS="-O3 -march=rocketlake -Wall" ./configure --with-curl
+CFLAGS="-O3 -march=rocketlake -Wall" ./configure --with-curl
 make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx512-sha-vaes
@@ -21,7 +21,7 @@ mv cpuminer cpuminer-avx512-sha-vaes
 #make clean || echo clean
 #rm -f config.status
 #CFLAGS="-O3 -march=alderlake -Wall" ./configure --with-curl
-#make -j 8
+#make -j $(nproc)
 #strip -s cpuminer
 #mv cpuminer cpuminer-alderlake
 
@@ -30,35 +30,43 @@ mv cpuminer cpuminer-avx512-sha-vaes
 #make clean || echo clean
 #rm -f config.status
 #CFLAGS="-O3 -march=arrowlake-s -Wall" ./configure --with-curl
-#make -j 8
+#make -j $(nproc)
 #strip -s cpuminer
 #mv cpuminer cpuminer-arrowlake-s
 
 # Intel Core Graniterapids: AVX512, SHA256, VAES, needs gcc-14
-# Apparently Granitrapids will not include AVX10, SHA512 or APX,
+# Granitrapids does not build with AVX10, SHA512 or APX.
 # wait for Diamondrapids & gcc-15.
 #make clean || echo clean
 #rm -f config.status
 #CFLAGS="-O3 -march=graniterapids -Wall" ./configure --with-curl
-#make -j 8
+#make -j $(nproc)
 #strip -s cpuminer
 #mv cpuminer cpuminer-graniterapids
 
-# Force AVX10-256
+# SHA512 AVX10.1
 #make clean || echo clean
 #rm -f config.status
-#CFLAGS="-O3 -march=arrowlake-s -mavx10.1-256 -Wall" ./configure --with-curl
-#make -j 8
+#CFLAGS="-O3 -march=graniterapids -msha512 -mavx10.1 -Wall" ./configure --with-curl
+#make -j $(nproc)
 #strip -s cpuminer
-#mv cpuminer cpuminer-avx10-256
+#mv cpuminer cpuminer-avx10_1
 
-# Force SHA512 AVX10-512
+# SHA512 AVX10.2
 #make clean || echo clean
 #rm -f config.status
-#CFLAGS="-O3 -march=graniterapids -msha512 -mavx10.1-512 -Wall" ./configure --with-curl
-#make -j 8
+#CFLAGS="-O3 -march=graniterapids -msha512 -mavx10.2 -Wall" ./configure --with-curl
+#make -j $(nproc)
 #strip -s cpuminer
-#mv cpuminer cpuminer-avx10-512
+#mv cpuminer cpuminer-avx10_2
+
+# Diamondrapids: AVX10.2, SHA512, APX; needs GCC-15 & CPU with APX to compile.
+#make clean || echo clean
+#rm -f config.status
+#CFLAGS="-O3 -march=diamondrapids -Wall" ./configure --with-curl
+#make -j $(nproc)
+#strip -s cpuminer
+#mv cpuminer cpuminer-diamondrapids
 
 # Zen5: AVX512 SHA VAES, requires gcc-14.
 #make clean || echo clean
@@ -71,11 +79,10 @@ mv cpuminer cpuminer-avx512-sha-vaes
 # Zen4: AVX512 SHA VAES
 make clean || echo clean
 rm -f config.status
-# znver3 needs gcc-11, znver4 needs gcc-12.3.
+# Zen4: AVX512, SHA, VAES, needs gcc-12.3.
 #CFLAGS="-O3 -march=znver4 -Wall" ./configure --with-curl
 # Inclomplete list of Zen4 AVX512 extensions but includes all extensions used by cpuminer.
 CFLAGS="-O3 -march=znver3 -mavx512f -mavx512cd -mavx512dq -mavx512bw -mavx512vl -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vpopcntdq -Wall" ./configure --with-curl
-#CFLAGS="-O3 -march=znver2 -mvaes -mavx512f -mavx512dq -mavx512bw -mavx512vl -mavx512vbmi -Wall" ./configure --with-curl
 make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-zen4
@@ -83,7 +90,6 @@ mv cpuminer cpuminer-zen4
 # Zen3 AVX2 SHA VAES
 make clean || echo clean
 rm -f config.status
-#CFLAGS="-O3 -march=znver2 -mvaes" ./configure --with-curl
 CFLAGS="-O3 -march=znver3 -fno-common " ./configure --with-curl
 make -j $(nproc)
 strip -s cpuminer
@@ -159,7 +165,7 @@ mv cpuminer cpuminer-ssse3
 # SSE2
 make clean || echo clean
 rm -f config.status
-CFLAGS="-O3 -msse2 -Wall" ./configure --with-curl
+CFLAGS="-O3 -march=x86-64 -msse2 -Wall" ./configure --with-curl
 make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-sse2

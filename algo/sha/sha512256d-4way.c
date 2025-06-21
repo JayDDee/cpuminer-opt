@@ -14,7 +14,7 @@
 
 #if defined(SHA512256D_8WAY)
 
-static void sha512256d_8way_init( sha512_8way_context *ctx )
+static void sha512256d_8x64_init( sha512_8x64_context *ctx )
 {
   ctx->count = 0;
   ctx->initialized = true;
@@ -33,7 +33,7 @@ int scanhash_sha512256d_8way( struct work *work, uint32_t max_nonce,
 {
     uint64_t hash[8*8] __attribute__ ((aligned (128)));
     uint32_t vdata[20*8] __attribute__ ((aligned (64)));
-    sha512_8way_context ctx; 
+    sha512_8x64_context ctx; 
     uint32_t lane_hash[8] __attribute__ ((aligned (32)));
     uint64_t *hash_q3 = &(hash[3*8]);
     uint32_t *pdata = work->data;
@@ -53,13 +53,13 @@ int scanhash_sha512256d_8way( struct work *work, uint32_t max_nonce,
                                   n+3, 0, n+2, 0, n+1, 0, n  , 0 ), *noncev );
     do
     {
-       sha512256d_8way_init( &ctx );
-       sha512_8way_update( &ctx, vdata, 80 );
-       sha512_8way_close( &ctx, hash );        
+       sha512256d_8x64_init( &ctx );
+       sha512_8x64_update( &ctx, vdata, 80 );
+       sha512_8x64_close( &ctx, hash );        
 
-       sha512256d_8way_init( &ctx );
-       sha512_8way_update( &ctx, hash, 32 );
-       sha512_8way_close( &ctx, hash );
+       sha512256d_8x64_init( &ctx );
+       sha512_8x64_update( &ctx, hash, 32 );
+       sha512_8x64_close( &ctx, hash );
 
        for ( int lane = 0; lane < 8; lane++ )
        if ( unlikely( hash_q3[ lane ] <= targ_q3 && !bench ) )
@@ -82,7 +82,7 @@ int scanhash_sha512256d_8way( struct work *work, uint32_t max_nonce,
 
 #elif defined(SHA512256D_4WAY)
 
-static void sha512256d_4way_init( sha512_4way_context *ctx )
+static void sha512256d_4x64_init( sha512_4x64_context *ctx )
 {
   ctx->count = 0;
   ctx->initialized = true;
@@ -101,7 +101,7 @@ int scanhash_sha512256d_4way( struct work *work, uint32_t max_nonce,
 {
     uint64_t hash[8*4] __attribute__ ((aligned (64)));
     uint32_t vdata[20*4] __attribute__ ((aligned (64)));
-    sha512_4way_context ctx;
+    sha512_4x64_context ctx;
     uint32_t lane_hash[8] __attribute__ ((aligned (32)));
     uint64_t *hash_q3 = &(hash[3*4]);
     uint32_t *pdata = work->data;
@@ -119,13 +119,13 @@ int scanhash_sha512256d_4way( struct work *work, uint32_t max_nonce,
                      n+3, 0, n+2, 0, n+1, 0, n, 0 ), casti_m256i( vdata,9 ) );
     do
     {
-       sha512256d_4way_init( &ctx );
-       sha512_4way_update( &ctx, vdata, 80 );
-       sha512_4way_close( &ctx, hash );
+       sha512256d_4x64_init( &ctx );
+       sha512_4x64_update( &ctx, vdata, 80 );
+       sha512_4x64_close( &ctx, hash );
 
-       sha512256d_4way_init( &ctx );
-       sha512_4way_update( &ctx, hash, 32 );
-       sha512_4way_close( &ctx, hash );
+       sha512256d_4x64_init( &ctx );
+       sha512_4x64_update( &ctx, hash, 32 );
+       sha512_4x64_close( &ctx, hash );
 
        for ( int lane = 0; lane < 4; lane++ )
        if ( hash_q3[ lane ] <= targ_q3 )

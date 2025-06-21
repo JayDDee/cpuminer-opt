@@ -72,17 +72,17 @@ typedef struct
    size_t partial_len;
    uint32_t count_high, count_low;
 } hamsi_4way_big_context;
-typedef hamsi_4way_big_context hamsi512_4way_context;
+typedef hamsi_4way_big_context hamsi512_4x64_context;
 
-void hamsi512_4way_init( hamsi512_4way_context *sc );
-void hamsi512_4way_update( hamsi512_4way_context *sc, const void *data,
+void hamsi512_4x64_init( hamsi512_4x64_context *sc );
+void hamsi512_4x64_update( hamsi512_4x64_context *sc, const void *data,
       size_t len );
-void hamsi512_4way_close( hamsi512_4way_context *sc, void *dst );
+void hamsi512_4x64_close( hamsi512_4x64_context *sc, void *dst );
 
-#define hamsi512_4x64_context   hamsi512_4way_context
-#define hamsi512_4x64_init      hamsi512_4way_init
-#define hamsi512_4x64_update    hamsi512_4way_update
-#define hamsi512_4x64_close     hamsi512_4way_close
+#define hamsi512_4way_context   hamsi512_4x64_context
+#define hamsi512_4way_init      hamsi512_4x64_init
+#define hamsi512_4way_update    hamsi512_4x64_update
+#define hamsi512_4way_close     hamsi512_4x64_close
 
 // Hamsi-512 8x32
 
@@ -115,17 +115,17 @@ typedef struct
    size_t partial_len;
    uint32_t count_high, count_low;
 } hamsi_8way_big_context;
-typedef hamsi_8way_big_context hamsi512_8way_context;
+typedef hamsi_8way_big_context hamsi512_8x64_context;
 
-void hamsi512_8way_init( hamsi512_8way_context *sc );
-void hamsi512_8way_update( hamsi512_8way_context *sc, const void *data,
+void hamsi512_8x64_init( hamsi512_8x64_context *sc );
+void hamsi512_8x64_update( hamsi512_8x64_context *sc, const void *data,
                            size_t len );
-void hamsi512_8way_close( hamsi512_8way_context *sc, void *dst );
+void hamsi512_8x64_close( hamsi512_8x64_context *sc, void *dst );
 
-#define hamsi512_8x64_context   hamsi512_8way_context
-#define hamsi512_8x64_init      hamsi512_8way_init
-#define hamsi512_8x64_update    hamsi512_8way_update
-#define hamsi512_8x64_close     hamsi512_8way_close
+#define hamsi512_8way_context   hamsi512_8x64_context
+#define hamsi512_8way_init      hamsi512_8x64_init
+#define hamsi512_8way_update    hamsi512_8x64_update
+#define hamsi512_8way_close     hamsi512_8x64_close
 
 // Hamsi-512 16x32
 

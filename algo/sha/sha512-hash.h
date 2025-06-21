@@ -36,7 +36,6 @@ typedef struct
    uint64_t count;
    bool initialized;
 } sha512_8x64_context __attribute__ ((aligned (128)));
-#define sha512_8way_context sha512_8x64_context
 
 void sha512_8x64_init( sha512_8x64_context *sc);
 void sha512_8x64_update( sha512_8x64_context *sc, const void *data, 
@@ -44,10 +43,6 @@ void sha512_8x64_update( sha512_8x64_context *sc, const void *data,
 void sha512_8x64_close( sha512_8x64_context *sc, void *dst );
 void sha512_8x64_ctx( sha512_8x64_context *sc, void *dst, const void *data,
                       size_t len );
-
-#define sha512_8way_init     sha512_8x64_init
-#define sha512_8way_update   sha512_8x64_update
-#define sha512_8way_close    sha512_8x64_close
 
 #endif  // AVX512
 
@@ -62,7 +57,6 @@ typedef struct
    uint64_t count;
    bool initialized;
 } sha512_4x64_context __attribute__ ((aligned (64)));
-#define sha512_4way_context sha512_4x64_context
 
 void sha512_4x64_init( sha512_4x64_context *sc);
 void sha512_4x64_update( sha512_4x64_context *sc, const void *data,
@@ -70,10 +64,6 @@ void sha512_4x64_update( sha512_4x64_context *sc, const void *data,
 void sha512_4x64_close( sha512_4x64_context *sc, void *dst );
 void sha512_4x64_ctx( sha512_4x64_context *sc, void *dst, const void *data,
                        size_t len );
-
-#define sha512_4way_init     sha512_4x64_init
-#define sha512_4way_update   sha512_4x64_update
-#define sha512_4way_close    sha512_4x64_close
 
 #endif  // AVX2
 

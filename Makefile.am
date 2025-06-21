@@ -43,6 +43,7 @@ cpuminer_SOURCES = \
   sysinfos.c \
   algo-gate-api.c\
   malloc-huge.c \
+  simd-utils/simd-constants.c \
   algo/argon2d/argon2d-gate.c \
   algo/argon2d/blake2/blake2b.c \
   algo/argon2d/argon2d/argon2.c \

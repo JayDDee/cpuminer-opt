@@ -31,7 +31,7 @@
 #include "hmac-sha256-hash-4way.h"
 #include "compat.h"
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(__ARM_NEON)
 // HMAC 4-way SSE2
 
 /**
@@ -62,30 +62,30 @@ hmac_sha256_4way_init( hmac_sha256_4way_context *ctx, const void *_K,
 	/* If Klen > 64, the key is really SHA256(K). */
 	if ( Klen > 64 )
    {
-		sha256_4way_init( &ctx->ictx );
-		sha256_4way_update( &ctx->ictx, K, Klen );
-		sha256_4way_close( &ctx->ictx, khash );
+		sha256_4x32_init( &ctx->ictx );
+		sha256_4x32_update( &ctx->ictx, K, Klen );
+		sha256_4x32_close( &ctx->ictx, khash );
 		K = khash;
 		Klen = 32;
 	}
 
 	/* Inner SHA256 operation is SHA256(K xor [block of 0x36] || data). */
-   sha256_4way_init( &ctx->ictx );
+   sha256_4x32_init( &ctx->ictx );
 	memset( pad, 0x36, 64*4 );
 
    for ( i = 0; i < Klen; i++ )
-		casti_v128u32( pad, i ) = _mm_xor_si128( casti_v128u32( pad, i ),
-                                               casti_v128u32( K, i ) );
+		casti_v128u32( pad, i ) = v128_xor( casti_v128u32( pad, i ),
+                                          casti_v128u32( K, i ) );
 
-   sha256_4way_update( &ctx->ictx, pad, 64 );
+   sha256_4x32_update( &ctx->ictx, pad, 64 );
 
 	/* Outer SHA256 operation is SHA256(K xor [block of 0x5c] || hash). */
-	sha256_4way_init( &ctx->octx );
+	sha256_4x32_init( &ctx->octx );
 	memset( pad, 0x5c, 64*4 );
 	for ( i = 0; i < Klen/4; i++ )
-		casti_v128u32( pad, i ) = _mm_xor_si128( casti_v128u32( pad, i ),
-                                               casti_v128u32( K, i ) );
-	sha256_4way_update( &ctx->octx, pad, 64 );
+		casti_v128u32( pad, i ) = v128_xor( casti_v128u32( pad, i ),
+                                          casti_v128u32( K, i ) );
+	sha256_4x32_update( &ctx->octx, pad, 64 );
 }
 
 /* Add bytes to the HMAC-SHA256 operation. */
@@ -94,7 +94,7 @@ hmac_sha256_4way_update( hmac_sha256_4way_context *ctx, const void *in,
                          size_t len )
 {
 	/* Feed data to the inner SHA256 operation. */
-	sha256_4way_update( &ctx->ictx, in, len );
+	sha256_4x32_update( &ctx->ictx, in, len );
 }
 
 /* Finish an HMAC-SHA256 operation. */
@@ -104,13 +104,13 @@ hmac_sha256_4way_close( hmac_sha256_4way_context *ctx, void *digest )
 	unsigned char ihash[32*4] __attribute__ ((aligned (64)));
 
 	/* Finish the inner SHA256 operation. */
-	sha256_4way_close( &ctx->ictx, ihash );
+	sha256_4x32_close( &ctx->ictx, ihash );
 
 	/* Feed the inner hash to the outer SHA256 operation. */
-	sha256_4way_update( &ctx->octx, ihash, 32 );
+	sha256_4x32_update( &ctx->octx, ihash, 32 );
 
 	/* Finish the outer SHA256 operation. */
-	sha256_4way_close( &ctx->octx, digest );
+	sha256_4x32_close( &ctx->octx, digest );
 }
 
 /**
@@ -126,7 +126,7 @@ pbkdf2_sha256_4way( uint8_t *buf, size_t dkLen,
 	hmac_sha256_4way_context PShctx, hctx;
 	uint8_t _ALIGN(128) T[32*4];
 	uint8_t _ALIGN(128) U[32*4];
-   __m128i ivec;
+   v128u32_t ivec;
    size_t i, clen;
 	uint64_t j;
 	int k;
@@ -139,7 +139,7 @@ pbkdf2_sha256_4way( uint8_t *buf, size_t dkLen,
 	for ( i = 0; i * 32 < dkLen; i++ )
    {
 		/* Generate INT(i + 1). */
-      ivec = _mm_set1_epi32( bswap_32( i+1 ) ); 
+      ivec = v128_32( bswap_32( i+1 ) ); 
 
 		/* Compute U_1 = PRF(P, S || INT(i)). */
 		memcpy( &hctx, &PShctx, sizeof(hmac_sha256_4way_context) );
@@ -158,8 +158,8 @@ pbkdf2_sha256_4way( uint8_t *buf, size_t dkLen,
 
 			/* ... xor U_j ... */
 			for ( k = 0; k < 8; k++ )
-				casti_v128u32( T, k ) = _mm_xor_si128( casti_v128u32( T, k ),
-                                                   casti_v128u32( U, k ) );
+				casti_v128u32( T, k ) = v128_xor( casti_v128u32( T, k ),
+                                              casti_v128u32( U, k ) );
 		}
 
 		/* Copy as many bytes as necessary into buf. */
@@ -199,30 +199,30 @@ hmac_sha256_8way_init( hmac_sha256_8way_context *ctx, const void *_K,
    /* If Klen > 64, the key is really SHA256(K). */
    if ( Klen > 64 )
    {
-      sha256_8way_init( &ctx->ictx );
-      sha256_8way_update( &ctx->ictx, K, Klen );
-      sha256_8way_close( &ctx->ictx, khash );
+      sha256_8x32_init( &ctx->ictx );
+      sha256_8x32_update( &ctx->ictx, K, Klen );
+      sha256_8x32_close( &ctx->ictx, khash );
       K = khash;
       Klen = 32;
    }
 
    /* Inner SHA256 operation is SHA256(K xor [block of 0x36] || data). */
-   sha256_8way_init( &ctx->ictx );
+   sha256_8x32_init( &ctx->ictx );
    memset( pad, 0x36, 64*8);
 
    for ( i = 0; i < Klen/4; i++ )
       casti_m256i( pad, i ) = _mm256_xor_si256( casti_m256i( pad, i ),
                                                 casti_m256i( K, i ) );
 
-   sha256_8way_update( &ctx->ictx, pad, 64 );
+   sha256_8x32_update( &ctx->ictx, pad, 64 );
 
    /* Outer SHA256 operation is SHA256(K xor [block of 0x5c] || hash). */
-   sha256_8way_init( &ctx->octx );
+   sha256_8x32_init( &ctx->octx );
    memset( pad, 0x5c, 64*8 );
    for ( i = 0; i < Klen/4; i++ )
       casti_m256i( pad, i ) = _mm256_xor_si256( casti_m256i( pad, i ),
                                                 casti_m256i( K, i ) );
-   sha256_8way_update( &ctx->octx, pad, 64 );
+   sha256_8x32_update( &ctx->octx, pad, 64 );
 }
 
 void
@@ -230,7 +230,7 @@ hmac_sha256_8way_update( hmac_sha256_8way_context *ctx, const void *in,
                          size_t len )
 {
    /* Feed data to the inner SHA256 operation. */
-   sha256_8way_update( &ctx->ictx, in, len );
+   sha256_8x32_update( &ctx->ictx, in, len );
 }
 
 /* Finish an HMAC-SHA256 operation. */
@@ -240,13 +240,13 @@ hmac_sha256_8way_close( hmac_sha256_8way_context *ctx, void *digest )
    unsigned char ihash[32*8] __attribute__ ((aligned (128)));
 
    /* Finish the inner SHA256 operation. */
-   sha256_8way_close( &ctx->ictx, ihash );
+   sha256_8x32_close( &ctx->ictx, ihash );
 
    /* Feed the inner hash to the outer SHA256 operation. */
-   sha256_8way_update( &ctx->octx, ihash, 32 );
+   sha256_8x32_update( &ctx->octx, ihash, 32 );
 
    /* Finish the outer SHA256 operation. */
-   sha256_8way_close( &ctx->octx, digest );
+   sha256_8x32_close( &ctx->octx, digest );
 }
 
 /**
@@ -332,21 +332,21 @@ hmac_sha256_16way_init( hmac_sha256_16way_context *ctx, const void *_K,
    /* If Klen > 64, the key is really SHA256(K). */
    if ( Klen > 64 )
    {
-      sha256_16way_init( &ctx->ictx );
-      sha256_16way_update( &ctx->ictx, K, Klen );
-      sha256_16way_close( &ctx->ictx, khash );
+      sha256_16x32_init( &ctx->ictx );
+      sha256_16x32_update( &ctx->ictx, K, Klen );
+      sha256_16x32_close( &ctx->ictx, khash );
       K = khash;
       Klen = 32;
    }
 
    /* Inner SHA256 operation is SHA256(K xor [block of 0x36] || data). */
-   sha256_16way_init( &ctx->ictx );
+   sha256_16x32_init( &ctx->ictx );
    memset( pad, 0x36, 64*16 );
 
    for ( i = 0; i < Klen; i++ )
       casti_m512i( pad, i ) = _mm512_xor_si512( casti_m512i( pad, i ),
                                                 casti_m512i( K, i ) );
-   sha256_16way_update( &ctx->ictx, pad, 64 );
+   sha256_16x32_update( &ctx->ictx, pad, 64 );
 
    /* Outer SHA256 operation is SHA256(K xor [block of 0x5c] || hash). */
    sha256_16way_init( &ctx->octx );
@@ -354,7 +354,7 @@ hmac_sha256_16way_init( hmac_sha256_16way_context *ctx, const void *_K,
    for ( i = 0; i < Klen/4; i++ )
       casti_m512i( pad, i ) = _mm512_xor_si512( casti_m512i( pad, i ),
                                              casti_m512i( K, i ) );
-   sha256_16way_update( &ctx->octx, pad, 64 );
+   sha256_16x32_update( &ctx->octx, pad, 64 );
 }
    
 void
@@ -362,7 +362,7 @@ hmac_sha256_16way_update( hmac_sha256_16way_context *ctx, const void *in,
                          size_t len )
 {
    /* Feed data to the inner SHA256 operation. */
-   sha256_16way_update( &ctx->ictx, in, len );
+   sha256_16x32_update( &ctx->ictx, in, len );
 }
 
 /* Finish an HMAC-SHA256 operation. */
@@ -372,13 +372,13 @@ hmac_sha256_16way_close( hmac_sha256_16way_context *ctx, void *digest )
    unsigned char ihash[32*16] __attribute__ ((aligned (128)));
 
    /* Finish the inner SHA256 operation. */
-   sha256_16way_close( &ctx->ictx, ihash );
+   sha256_16x32_close( &ctx->ictx, ihash );
 
    /* Feed the inner hash to the outer SHA256 operation. */
-   sha256_16way_update( &ctx->octx, ihash, 32 );
+   sha256_16x32_update( &ctx->octx, ihash, 32 );
 
    /* Finish the outer SHA256 operation. */
-   sha256_16way_close( &ctx->octx, digest );
+   sha256_16x32_close( &ctx->octx, digest );
 }
 
 /**

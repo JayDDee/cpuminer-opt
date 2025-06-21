@@ -173,20 +173,12 @@ static inline int cpu_fanpercent()
 	return 0;
 }
 
+#if defined(__x86_64__)
 
 // x86_64 CPUID
 
 // This list is incomplete, it only contains features of interest to cpuminer.
 // refer to http://en.wikipedia.org/wiki/CPUID for details.
-
-// AVX10 compatibility notes
-//
-// Display format: AVX10.[version]-[vectorwidth]
-// AVX10.1-512 is a rebranding of AVX512 and is effectively the AVX* superset
-// with full 512 bit vector support.
-// AVX10.2-256 is effectively AVX2 + AVX512_VL, all AVX512 instructions and
-// features applied only to 256 bit and 128 bit vectors.
-// Future AVX10 versions will add new instructions and features.
 
 // Register array indexes
 #define EAX_Reg  (0)
@@ -209,6 +201,7 @@ static inline int cpu_fanpercent()
 // CPU_INFO: EAX=1, ECX=0
 // ECX
 #define SSE3_Flag                 1    
+#define PCLMULQDQ_Flag           (1<< 1)
 #define SSSE3_Flag               (1<< 9)
 #define XOP_Flag                 (1<<11)   // obsolete
 #define FMA3_Flag                (1<<12)
@@ -239,6 +232,7 @@ static inline int cpu_fanpercent()
 #define AVX512_VBMI_Flag         (1<< 1) 
 #define AVX512_VBMI2_Flag        (1<< 6)
 #define VAES_Flag                (1<< 9)
+#define VPCLMULQDQ_Flag          (1<<10)
 #define AVX512_VNNI_Flag         (1<<11)
 #define AVX512_BITALG_Flag       (1<<12)
 #define AVX512_VPOPCNTDQ_Flag    (1<<14)
@@ -260,6 +254,8 @@ static inline int cpu_fanpercent()
 #define AVX512_BF16_Flag         (1<< 5)
 #define AMX_FP16_Flag            (1<<21)
 #define AVX_IFMA_Flag            (1<<23)
+#define MOVRS_Flag               (1<<31)  // Both names are referenced in docs
+#define AVX10_MOVRS_Flag         (1<<31)
 // EDX
 #define AVX_VNNI_INT8_Flag       (1<< 4)
 #define AVX_NE_CONVERT_Flag      (1<< 5)
@@ -271,16 +267,14 @@ static inline int cpu_fanpercent()
 // AVX10_FEATURES: EAX=0x24, ECX=0
 // EBX
 #define AVX10_VERSION_mask        0xff      // bits [7:0]
-#define AVX10_128_Flag           (1<<16)
-#define AVX10_256_Flag           (1<<17)   
-#define AVX10_512_Flag           (1<<18)   
+//#define AVX10_128_Flag           (1<<16)
+//#define AVX10_256_Flag           (1<<17)   
+//#define AVX10_512_Flag           (1<<18)   
 
 // Use this to detect presence of feature
 #define AVX_mask     (AVX_Flag|XSAVE_Flag|OSXSAVE_Flag)
 #define FMA3_mask    (FMA3_Flag|AVX_mask)
 #define AVX512_mask  (AVX512_VL_Flag|AVX512_BW_Flag|AVX512_DQ_Flag|AVX512_F_Flag)
-
-#if defined(__x86_64__)
 
 static inline void cpuid( unsigned int leaf, unsigned int subleaf,
                           unsigned int output[4] )
@@ -317,7 +311,7 @@ static inline void cpuid( unsigned int leaf, unsigned int subleaf,
 #elif defined(ARM_AUXV)
 
 // Always test if HWCAP variable is defined in the kernel before attempting
-// to compile it. If not defined the feature can't be tested and won't be
+// to compile this. If not defined the feature can't be tested and won't be
 // included in the compile.
 // This can occur if compiling with an old kernel and a new CPU and could
 // result in a suboptimal build.
@@ -543,6 +537,15 @@ static inline bool cpu_arch_aarch64()
 #endif
 }   
 
+static inline bool cpu_arch_riscv64()
+{
+#if defined(__riscv) && ( __riscv_xlen == 64 )
+   return true;
+#else
+   return false;
+#endif
+}
+
 static inline bool has_sse()
 {
 #if defined(__x86_64__)
@@ -602,6 +605,16 @@ static inline bool has_sse42()
 static inline bool has_neon()
 {
 #if defined(__aarch64__)
+   return true;
+#else
+   return false;
+#endif
+}
+
+// No apparent CPUID equivalent on riscv, returns SW build info.
+static inline bool has_rvv()
+{
+#if defined(__riscv) && defined(__riscv_vector)
    return true;
 #else
    return false;
@@ -897,7 +910,6 @@ static inline bool has_apx_f()
 #endif
 }
 
-// Not much use on it's own
 static inline bool has_avx10()
 {
 #if defined(__x86_64__)
@@ -922,55 +934,39 @@ static inline unsigned int avx10_version()
     return 0;
 }
 
-// also includes 256 & 128
-static inline bool has_avx10_512()
-{
-#if defined(__x86_64__)
-    if ( has_avx10() )
-    {
-       unsigned int cpu_info[4] = { 0 };
-       cpuid( AVX10_FEATURES, 0, cpu_info );
-       return cpu_info[ EBX_Reg ] & AVX10_512_Flag;
-    }
-#endif
-    return false;
-}
-
-// Includes 128 but might not include 512
-static inline bool has_avx10_256()
-{
-#if defined(__x86_64__)
-    if ( has_avx10() )
-    {
-       unsigned int cpu_info[4] = { 0 };
-       cpuid( AVX10_FEATURES, 0, cpu_info );
-       return cpu_info[ EBX_Reg ] & AVX10_256_Flag;
-    }
-#endif
-    return false;
-}
-
-// AVX10 vector register length
-static inline unsigned int avx10_vector_length()
-{
-#if defined(__x86_64__)
-    if ( has_avx10() )
-    {
-       unsigned int cpu_info[4] = { 0 };
-       cpuid( AVX10_FEATURES, 0, cpu_info );
-       return cpu_info[ EBX_Reg ] & AVX10_512_Flag ? 512
-          : ( cpu_info[ EBX_Reg ] & AVX10_256_Flag ? 256 : 0 );
-    }
-#endif
-    return 0;
-}
-
 // ARM SVE vector register length, converted from bytes to bits.
 static inline int sve_vector_length()
 {
 #if defined(ARM_AUXV)
    if ( has_sve() )
       return prctl( (PR_SVE_GET_VL & PR_SVE_VL_LEN_MASK) * 8 );
+#endif
+   return 0;
+}
+
+// Assume min_vlen refers to the register size
+static inline int rvv_vector_length()
+{
+#if defined(__riscv) && defined(__riscv_vector) && defined(__riscv_v_min_vlen)
+   return __riscv_v_min_vlen;
+#endif
+   return 0;
+}
+
+// generic
+static inline int vector_length()
+{
+#if defined(__x86_64__)
+   return has_avx10() || has_avx512() ? 512
+        : has_avx2()   ? 256
+        : has_sse2()   ? 128
+        :                0;
+#elif defined(__aarch64__)
+   return has_sve()    ? sve_vector_length()
+        : has_neon()   ? 128
+        :                0;
+#elif defined(__riscv) && defined(__riscv_vector)
+   return rvv_vector_length();
 #endif
    return 0;
 }
@@ -1061,13 +1057,17 @@ static inline void cpu_brand_string( char* s )
         memcpy( s + 32, cpu_info, sizeof(cpu_info) );
     }
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__aarch64__)
 
     sprintf( s, "ARM 64 bit CPU" );
 
+#elif defined(__riscv) && (__riscv_xlen == 64)   
+
+    sprintf( s, "RISC-V 64 bit CPU" );
+    
 #else
 
-    sprintf( s, "unknown CPU architecture" );
+    sprintf( s, "unknown/unsupported CPU architecture" );
 
 #endif
 }    

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # This script is not intended for users, it is only used for compile testing
-# during develpment. However the information contained may provide compilation
+# during development. However, the information contained may provide compilation
 # tips to users.
 
 rm cpuminer cpuminer-armv9-crypto-sha3 cpuminer-armv9-crypto cpuminer-armv9 cpuminer-armv8.5-crypto-sha3-sve2 cpuminer-armv8.4-crypto-sha3 cpuminer-armv8 cpuminer-armv8-crypto cpuminer-avx512-sha-vaes cpuminer-avx512 cpuminer-avx2-sha cpuminer-avx2-sha-vaes cpuminer-avx2 cpuminer-avx cpuminer-aes-sse42 cpuminer-sse42 cpuminer-ssse3 cpuminer-sse2 cpuminer-zen cpuminer-zen3 cpuminer-zen4 cpuminer-alderlake cpuminer-x64 > /dev/null

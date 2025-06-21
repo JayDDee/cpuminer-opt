@@ -31,20 +31,20 @@
 
 union _hmq1725_8way_context_overlay
 {
-    blake512_8way_context   blake;
-    bmw512_8way_context     bmw;
-    skein512_8way_context   skein;
-    jh512_8way_context      jh;
-    keccak512_8way_context  keccak;
+    blake512_8x64_context   blake;
+    bmw512_8x64_context     bmw;
+    skein512_8x64_context   skein;
+    jh512_8x64_context      jh;
+    keccak512_8x64_context  keccak;
     luffa_4way_context      luffa;
     cube_4way_context       cube;
     simd_4way_context       simd;
-    hamsi512_8way_context   hamsi;
+    hamsi512_8x64_context   hamsi;
     hashState_fugue         fugue;
-    shabal512_8way_context  shabal;
+    shabal512_8x32_context  shabal;
     sph_whirlpool_context   whirlpool;
-    sha512_8way_context     sha512;
-    haval256_5_8way_context haval;
+    sha512_8x64_context     sha512;
+    haval256_8x32_context   haval;
 #if defined(__VAES__)
     groestl512_4way_context groestl;
     shavite512_4way_context shavite;
@@ -81,7 +81,7 @@ extern void hmq1725_8way_hash(void *state, const void *input)
    __m512i* vhB = (__m512i*)vhashB;
    __m512i* vhC = (__m512i*)vhashC;
 
-   bmw512_8way_full( &ctx.bmw, vhash, input, 80 );
+   bmw512_8x64_full( &ctx.bmw, vhash, input, 80 );
 
    dintrlv_8x64_512( hash0, hash1, hash2, hash3,
                      hash4, hash5, hash6, hash7, vhash );
@@ -141,26 +141,26 @@ extern void hmq1725_8way_hash(void *state, const void *input)
 
    // B
    if ( likely( vh_mask & 0xff ) )
-       skein512_8way_full( &ctx.skein, vhashB, vhash, 64 );
+       skein512_8x64_full( &ctx.skein, vhashB, vhash, 64 );
 
    mm512_blend_hash_8x64( vh, vhC, vhB, vh_mask );
 
-   jh512_8way_init( &ctx.jh );
-   jh512_8way_update( &ctx.jh, vhash, 64 );
-   jh512_8way_close( &ctx.jh, vhash );
+   jh512_8x64_init( &ctx.jh );
+   jh512_8x64_update( &ctx.jh, vhash, 64 );
+   jh512_8x64_close( &ctx.jh, vhash );
 
-   keccak512_8way_init( &ctx.keccak );
-   keccak512_8way_update( &ctx.keccak, vhash, 64 );
-   keccak512_8way_close( &ctx.keccak, vhash );
+   keccak512_8x64_init( &ctx.keccak );
+   keccak512_8x64_update( &ctx.keccak, vhash, 64 );
+   keccak512_8x64_close( &ctx.keccak, vhash );
 
    vh_mask = _mm512_testn_epi64_mask( vh[0], vmask );
 
    // A
    if ( ( vh_mask & 0xff ) != 0xff )
-       blake512_8way_full( &ctx.blake, vhashA, vhash, 64 );
+       blake512_8x64_full( &ctx.blake, vhashA, vhash, 64 );
    // B
    if ( vh_mask & 0xff )
-       bmw512_8way_full( &ctx.bmw, vhashB, vhash, 64 );
+       bmw512_8x64_full( &ctx.bmw, vhashB, vhash, 64 );
 
    mm512_blend_hash_8x64( vh, vhA, vhB, vh_mask );
    rintrlv_8x64_4x128( vhashA, vhashB, vhash, 512 );
@@ -176,16 +176,16 @@ extern void hmq1725_8way_hash(void *state, const void *input)
 
    if ( likely( ( vh_mask & 0xff ) != 0xff ) )
    {
-      keccak512_8way_init( &ctx.keccak );
-      keccak512_8way_update( &ctx.keccak, vhash, 64 );
-      keccak512_8way_close( &ctx.keccak, vhashA );
+      keccak512_8x64_init( &ctx.keccak );
+      keccak512_8x64_update( &ctx.keccak, vhash, 64 );
+      keccak512_8x64_close( &ctx.keccak, vhashA );
    }
 
    if ( likely( vh_mask & 0xff ) )
    {
-      jh512_8way_init( &ctx.jh );
-      jh512_8way_update( &ctx.jh, vhash, 64 );
-      jh512_8way_close( &ctx.jh, vhashB );
+      jh512_8x64_init( &ctx.jh );
+      jh512_8x64_update( &ctx.jh, vhash, 64 );
+      jh512_8x64_close( &ctx.jh, vhashB );
    }
 
    mm512_blend_hash_8x64( vh, vhA, vhB, vh_mask );
@@ -251,9 +251,9 @@ extern void hmq1725_8way_hash(void *state, const void *input)
    // B
    if ( likely( vh_mask & 0xff ) )
    {
-      haval256_5_8way_init( &ctx.haval );
-      haval256_5_8way_update( &ctx.haval, vhash, 64 );
-      haval256_5_8way_close( &ctx.haval, vhash );
+      haval256_8x32_init( &ctx.haval );
+      haval256_8x32_update( &ctx.haval, vhash, 64 );
+      haval256_8x32_close( &ctx.haval, vhash );
       memset( &vhash[8<<3], 0, 32<<3 );
       rintrlv_8x32_8x64( vhashB, vhash, 512 );
    }
@@ -296,7 +296,7 @@ extern void hmq1725_8way_hash(void *state, const void *input)
 
 #endif
 
-   blake512_8way_full( &ctx.blake, vhash, vhash, 64 );
+   blake512_8x64_full( &ctx.blake, vhash, vhash, 64 );
 
    vh_mask = _mm512_testn_epi64_mask( vh[0], vmask );
 
@@ -351,9 +351,9 @@ extern void hmq1725_8way_hash(void *state, const void *input)
 
    mm512_blend_hash_8x64( vh, vhC, vhB, vh_mask );
 
-   hamsi512_8way_init( &ctx.hamsi );
-   hamsi512_8way_update( &ctx.hamsi, vhash, 64 );
-   hamsi512_8way_close( &ctx.hamsi, vhash );
+   hamsi512_8x64_init( &ctx.hamsi );
+   hamsi512_8x64_update( &ctx.hamsi, vhash, 64 );
+   hamsi512_8x64_close( &ctx.hamsi, vhash );
 
    dintrlv_8x64_512( hash0, hash1, hash2, hash3,
                      hash4, hash5, hash6, hash7, vhash );
@@ -429,9 +429,9 @@ extern void hmq1725_8way_hash(void *state, const void *input)
 
    rintrlv_8x64_8x32( vhashA, vhash, 512 );
 
-   shabal512_8way_init( &ctx.shabal );
-   shabal512_8way_update( &ctx.shabal, vhashA, 64 );
-   shabal512_8way_close( &ctx.shabal, vhash );
+   shabal512_8x32_init( &ctx.shabal );
+   shabal512_8x32_update( &ctx.shabal, vhashA, 64 );
+   shabal512_8x32_close( &ctx.shabal, vhash );
 
    dintrlv_8x32_512( hash0, hash1, hash2, hash3,
                      hash4, hash5, hash6, hash7, vhash );
@@ -474,9 +474,9 @@ extern void hmq1725_8way_hash(void *state, const void *input)
    // B
    if ( likely( vh_mask & 0xff ) )
    {
-      sha512_8way_init( &ctx.sha512 );
-      sha512_8way_update( &ctx.sha512, vhash, 64 );
-      sha512_8way_close( &ctx.sha512, vhashB );
+      sha512_8x64_init( &ctx.sha512 );
+      sha512_8x64_update( &ctx.sha512, vhash, 64 );
+      sha512_8x64_close( &ctx.sha512, vhashB );
    }
 
    mm512_blend_hash_8x64( vh, vhA, vhB, vh_mask );
@@ -509,9 +509,9 @@ extern void hmq1725_8way_hash(void *state, const void *input)
    
 #endif
 
-   sha512_8way_init( &ctx.sha512 );
-   sha512_8way_update( &ctx.sha512, vhash, 64 );
-   sha512_8way_close( &ctx.sha512, vhash );
+   sha512_8x64_init( &ctx.sha512 );
+   sha512_8x64_update( &ctx.sha512, vhash, 64 );
+   sha512_8x64_close( &ctx.sha512, vhash );
 
    vh_mask = _mm512_testn_epi64_mask( vh[0], vmask );
    dintrlv_8x64_512( hash0, hash1, hash2, hash3,
@@ -522,9 +522,9 @@ extern void hmq1725_8way_hash(void *state, const void *input)
    {
       intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                          hash7 );
-      haval256_5_8way_init( &ctx.haval );
-      haval256_5_8way_update( &ctx.haval, vhash, 64 );
-      haval256_5_8way_close( &ctx.haval, vhash );
+      haval256_8x32_init( &ctx.haval );
+      haval256_8x32_update( &ctx.haval, vhash, 64 );
+      haval256_8x32_close( &ctx.haval, vhash );
       memset( &vhash[8<<3], 0, 32<<3 );
       rintrlv_8x32_8x64( vhashA, vhash, 512 );
    }
@@ -551,9 +551,9 @@ extern void hmq1725_8way_hash(void *state, const void *input)
                     hash7 );
    mm512_blend_hash_8x64( vh, vhA, vhB, vh_mask );
 
-   bmw512_8way_init( &ctx.bmw );
-   bmw512_8way_update( &ctx.bmw, vhash, 64 );
-   bmw512_8way_close( &ctx.bmw, state );
+   bmw512_8x64_init( &ctx.bmw );
+   bmw512_8x64_update( &ctx.bmw, vhash, 64 );
+   bmw512_8x64_close( &ctx.bmw, state );
 }
 
 int scanhash_hmq1725_8way( struct work *work, uint32_t max_nonce,
@@ -605,12 +605,12 @@ int scanhash_hmq1725_8way( struct work *work, uint32_t max_nonce,
 
 union _hmq1725_4way_context_overlay
 {
-    blake512_4way_context   blake;
-    bmw512_4way_context     bmw;
+    blake512_4x64_context   blake;
+    bmw512_4x64_context     bmw;
     hashState_groestl       groestl;
-    skein512_4way_context   skein;
-    jh512_4way_context      jh;
-    keccak512_4way_context  keccak;
+    skein512_4x64_context   skein;
+    jh512_4x64_context      jh;
+    keccak512_4x64_context  keccak;
     hashState_luffa         luffa;
     luffa_2way_context      luffa2;
     cubehashParam           cube;
@@ -620,12 +620,12 @@ union _hmq1725_4way_context_overlay
     shavite512_2way_context shavite2;
     simd_2way_context       simd_2way;
     hashState_echo          echo;
-    hamsi512_4way_context   hamsi;
+    hamsi512_4x64_context   hamsi;
     hashState_fugue         fugue;
-    shabal512_4way_context  shabal;
+    shabal512_4x32_context  shabal;
     sph_whirlpool_context   whirlpool;
-    sha512_4way_context     sha512;
-    haval256_5_4way_context haval;
+    sha512_4x64_context     sha512;
+    haval256_4x32_context haval;
 #if defined(__VAES__)
     groestl512_2way_context groestl2;
     echo_2way_context       echo2;
@@ -652,9 +652,9 @@ extern void hmq1725_4way_hash(void *state, const void *input)
    __m256i* vhA = (__m256i*)vhashA;
    __m256i* vhB = (__m256i*)vhashB;
 
-   bmw512_4way_init( &ctx.bmw );
-   bmw512_4way_update( &ctx.bmw, input, 80 );
-   bmw512_4way_close( &ctx.bmw, vhash );
+   bmw512_4x64_init( &ctx.bmw );
+   bmw512_4x64_update( &ctx.bmw, input, 80 );
+   bmw512_4x64_close( &ctx.bmw, vhash );
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
@@ -686,17 +686,17 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 // B
 
     if ( h_mask & 0xffffffff )
-       skein512_4way_full( &ctx.skein, vhashB, vhash, 64 );
+       skein512_4x64_full( &ctx.skein, vhashB, vhash, 64 );
 
     mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-    jh512_4way_init( &ctx.jh );
-    jh512_4way_update( &ctx.jh, vhash, 64 );
-    jh512_4way_close( &ctx.jh, vhash );
+    jh512_4x64_init( &ctx.jh );
+    jh512_4x64_update( &ctx.jh, vhash, 64 );
+    jh512_4x64_close( &ctx.jh, vhash );
 
-    keccak512_4way_init( &ctx.keccak );
-    keccak512_4way_update( &ctx.keccak, vhash, 64 );
-    keccak512_4way_close( &ctx.keccak, vhash );
+    keccak512_4x64_init( &ctx.keccak );
+    keccak512_4x64_update( &ctx.keccak, vhash, 64 );
+    keccak512_4x64_close( &ctx.keccak, vhash );
 
 // second fork, A = blake parallel, B= bmw parallel.
     
@@ -704,13 +704,13 @@ extern void hmq1725_4way_hash(void *state, const void *input)
     h_mask = _mm256_movemask_epi8( vh_mask );
 
     if ( ( h_mask & 0xffffffff ) != 0xffffffff )
-       blake512_4way_full( &ctx.blake, vhashA, vhash, 64 );
+       blake512_4x64_full( &ctx.blake, vhashA, vhash, 64 );
 
     if ( h_mask & 0xffffffff )
     {
-       bmw512_4way_init( &ctx.bmw );
-       bmw512_4way_update( &ctx.bmw, vhash, 64 );
-       bmw512_4way_close( &ctx.bmw, vhashB );
+       bmw512_4x64_init( &ctx.bmw );
+       bmw512_4x64_update( &ctx.bmw, vhash, 64 );
+       bmw512_4x64_close( &ctx.bmw, vhashB );
     }
 
     mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
@@ -733,16 +733,16 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
     if ( ( h_mask & 0xffffffff ) != 0xffffffff )
     {
-        keccak512_4way_init( &ctx.keccak );
-        keccak512_4way_update( &ctx.keccak, vhash, 64 );
-        keccak512_4way_close( &ctx.keccak, vhashA );
+        keccak512_4x64_init( &ctx.keccak );
+        keccak512_4x64_update( &ctx.keccak, vhash, 64 );
+        keccak512_4x64_close( &ctx.keccak, vhashA );
     }
 
     if ( h_mask & 0xffffffff )
     {
-        jh512_4way_init( &ctx.jh );
-        jh512_4way_update( &ctx.jh, vhash, 64 );
-        jh512_4way_close( &ctx.jh, vhashB );
+        jh512_4x64_init( &ctx.jh );
+        jh512_4x64_update( &ctx.jh, vhash, 64 );
+        jh512_4x64_close( &ctx.jh, vhashB );
     }
 
     mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
@@ -778,9 +778,9 @@ extern void hmq1725_4way_hash(void *state, const void *input)
     // B
     if ( h_mask & 0xffffffff )
     {
-       haval256_5_4way_init( &ctx.haval );
-       haval256_5_4way_update( &ctx.haval, vhash, 64 );
-       haval256_5_4way_close( &ctx.haval, vhash );
+       haval256_4x32_init( &ctx.haval );
+       haval256_4x32_update( &ctx.haval, vhash, 64 );
+       haval256_4x32_close( &ctx.haval, vhash );
        memset( &vhash[8<<2], 0, 32<<2 );
        rintrlv_4x32_4x64( vhashB, vhash, 512 );
     }
@@ -813,7 +813,7 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
 #endif
 
-    blake512_4way_full( &ctx.blake, vhash, vhash, 64 );
+    blake512_4x64_full( &ctx.blake, vhash, vhash, 64 );
 
     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
@@ -845,9 +845,9 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
     intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 512 );
 
-    hamsi512_4way_init( &ctx.hamsi );
-    hamsi512_4way_update( &ctx.hamsi, vhash, 64 );
-    hamsi512_4way_close( &ctx.hamsi, vhash );
+    hamsi512_4x64_init( &ctx.hamsi );
+    hamsi512_4x64_update( &ctx.hamsi, vhash, 64 );
+    hamsi512_4x64_close( &ctx.hamsi, vhash );
 
     dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 512 );
 
@@ -890,9 +890,9 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
 
-   shabal512_4way_init( &ctx.shabal );
-   shabal512_4way_update( &ctx.shabal, vhash, 64 );
-   shabal512_4way_close( &ctx.shabal, vhash );
+   shabal512_4x32_init( &ctx.shabal );
+   shabal512_4x32_update( &ctx.shabal, vhash, 64 );
+   shabal512_4x32_close( &ctx.shabal, vhash );
 
    dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
@@ -921,9 +921,9 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
    if ( h_mask & 0xffffffff )
    {
-      sha512_4way_init( &ctx.sha512 );
-      sha512_4way_update( &ctx.sha512, vhash, 64 );
-      sha512_4way_close( &ctx.sha512, vhashB );
+      sha512_4x64_init( &ctx.sha512 );
+      sha512_4x64_update( &ctx.sha512, vhash, 64 );
+      sha512_4x64_close( &ctx.sha512, vhashB );
    }
 
    mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
@@ -950,9 +950,9 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
 #endif
 
-   sha512_4way_init( &ctx.sha512 ); 
-   sha512_4way_update( &ctx.sha512, vhash, 64 );
-   sha512_4way_close( &ctx.sha512, vhash ); 
+   sha512_4x64_init( &ctx.sha512 ); 
+   sha512_4x64_update( &ctx.sha512, vhash, 64 );
+   sha512_4x64_close( &ctx.sha512, vhash ); 
 
 // A = haval parallel, B = Whirlpool serial
 
@@ -964,9 +964,9 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
    if ( ( h_mask & 0xffffffff ) != 0xffffffff )
    {
-      haval256_5_4way_init( &ctx.haval );
-      haval256_5_4way_update( &ctx.haval, vhash, 64 );
-      haval256_5_4way_close( &ctx.haval, vhash );
+      haval256_4x32_init( &ctx.haval );
+      haval256_4x32_update( &ctx.haval, vhash, 64 );
+      haval256_4x32_close( &ctx.haval, vhash );
       memset( &vhash[8<<2], 0, 32<<2 );
       rintrlv_4x32_4x64( vhashA, vhash, 512 );
    }
@@ -984,9 +984,9 @@ extern void hmq1725_4way_hash(void *state, const void *input)
 
    mm256_blend_hash_4x64( vh, vhA, vhB, vh_mask );
 
-   bmw512_4way_init( &ctx.bmw );
-   bmw512_4way_update( &ctx.bmw, vhash, 64 );
-   bmw512_4way_close( &ctx.bmw, state );
+   bmw512_4x64_init( &ctx.bmw );
+   bmw512_4x64_update( &ctx.bmw, vhash, 64 );
+   bmw512_4x64_close( &ctx.bmw, state );
 }
 
 int scanhash_hmq1725_4way( struct work *work, uint32_t max_nonce,

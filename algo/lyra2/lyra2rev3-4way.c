@@ -9,18 +9,18 @@
 #if defined (LYRA2REV3_16WAY)
 
 typedef struct {
-   blake256_16way_context     blake;
+   blake256_16x32_context     blake;
    cube_4way_context          cube;
-   bmw256_16way_context       bmw;
+   bmw256_16x32_context       bmw;
 } lyra2v3_16way_ctx_holder;
 
 static __thread lyra2v3_16way_ctx_holder l2v3_16way_ctx;
 
 bool init_lyra2rev3_16way_ctx()
 {
-   blake256_16way_init( &l2v3_16way_ctx.blake );
+   blake256_16x32_init( &l2v3_16way_ctx.blake );
    cube_4way_init( &l2v3_16way_ctx.cube, 256, 16, 32 );
-   bmw256_16way_init( &l2v3_16way_ctx.bmw );
+   bmw256_16x32_init( &l2v3_16way_ctx.bmw );
    return true;
 }
 
@@ -46,8 +46,8 @@ void lyra2rev3_16way_hash( void *state, const void *input )
    lyra2v3_16way_ctx_holder ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &l2v3_16way_ctx, sizeof(l2v3_16way_ctx) );
 
-   blake256_16way_update( &ctx.blake, input + (64*16), 16 );
-   blake256_16way_close( &ctx.blake, vhash );
+   blake256_16x32_update( &ctx.blake, input + (64*16), 16 );
+   blake256_16x32_close( &ctx.blake, vhash );
 
    dintrlv_16x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
            hash8, hash9, hash10, hash11 ,hash12, hash13, hash14, hash15,
@@ -120,8 +120,8 @@ void lyra2rev3_16way_hash( void *state, const void *input )
              hash7, hash8, hash9, hash10, hash11, hash12, hash13, hash14,
              hash15, 256 );
 
-   bmw256_16way_update( &ctx.bmw, vhash, 32 );
-   bmw256_16way_close( &ctx.bmw, state );
+   bmw256_16x32_update( &ctx.bmw, vhash, 32 );
+   bmw256_16x32_close( &ctx.bmw, state );
 }
 
 
@@ -145,8 +145,8 @@ int scanhash_lyra2rev3_16way( struct work *work, const uint32_t max_nonce,
 
    mm512_bswap32_intrlv80_16x32( vdata, pdata );
 
-   blake256_16way_init( &l2v3_16way_ctx.blake );
-   blake256_16way_update( &l2v3_16way_ctx.blake, vdata, 64 );
+   blake256_16x32_init( &l2v3_16way_ctx.blake );
+   blake256_16x32_update( &l2v3_16way_ctx.blake, vdata, 64 );
 
    do
    {
@@ -178,18 +178,18 @@ int scanhash_lyra2rev3_16way( struct work *work, const uint32_t max_nonce,
 #elif defined (LYRA2REV3_8WAY)
 
 typedef struct {
-   blake256_8way_context     blake;
+   blake256_8x32_context     blake;
    cubehashParam             cube;
-   bmw256_8way_context       bmw;
+   bmw256_8x32_context       bmw;
 } lyra2v3_8way_ctx_holder;
 
 static __thread lyra2v3_8way_ctx_holder l2v3_8way_ctx;
 
 bool init_lyra2rev3_8way_ctx()
 {
-   blake256_8way_init( &l2v3_8way_ctx.blake );
+   blake256_8x32_init( &l2v3_8way_ctx.blake );
    cubehashInit( &l2v3_8way_ctx.cube, 256, 16, 32 );
-   bmw256_8way_init( &l2v3_8way_ctx.bmw );
+   bmw256_8x32_init( &l2v3_8way_ctx.bmw );
    return true;
 }
 
@@ -207,8 +207,8 @@ void lyra2rev3_8way_hash( void *state, const void *input )
    lyra2v3_8way_ctx_holder ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &l2v3_8way_ctx, sizeof(l2v3_8way_ctx) );
 
-   blake256_8way_update( &ctx.blake, input + (64*8), 16 );
-   blake256_8way_close( &ctx.blake, vhash );
+   blake256_8x32_update( &ctx.blake, input + (64*8), 16 );
+   blake256_8x32_close( &ctx.blake, vhash );
 
    dintrlv_8x32( hash0, hash1, hash2, hash3,
                        hash4, hash5, hash6, hash7, vhash, 256 );
@@ -243,8 +243,8 @@ void lyra2rev3_8way_hash( void *state, const void *input )
    intrlv_8x32( vhash, hash0, hash1, hash2, hash3,
                              hash4, hash5, hash6, hash7, 256 );
 
-   bmw256_8way_update( &ctx.bmw, vhash, 32 );
-   bmw256_8way_close( &ctx.bmw, state );
+   bmw256_8x32_update( &ctx.bmw, vhash, 32 );
+   bmw256_8x32_close( &ctx.bmw, state );
 
    }
 
@@ -269,8 +269,8 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
 
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
    *noncev = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
-   blake256_8way_init( &l2v3_8way_ctx.blake );
-   blake256_8way_update( &l2v3_8way_ctx.blake, vdata, 64 );
+   blake256_8x32_init( &l2v3_8way_ctx.blake );
+   blake256_8x32_update( &l2v3_8way_ctx.blake, vdata, 64 );
 
    do
    {
@@ -300,19 +300,18 @@ int scanhash_lyra2rev3_8way( struct work *work, const uint32_t max_nonce,
 #if defined (LYRA2REV3_4WAY)  
 
 typedef struct {
-   blake256_4way_context     blake;
+   blake256_4x32_context     blake;
    cubehashParam             cube;
-   bmw256_4way_context       bmw;
+   bmw256_4x32_context       bmw;
 } lyra2v3_4way_ctx_holder;
 
-//static lyra2v3_4way_ctx_holder l2v3_4way_ctx;
 static __thread lyra2v3_4way_ctx_holder l2v3_4way_ctx;
 
 bool init_lyra2rev3_4way_ctx()
 {
-   blake256_4way_init( &l2v3_4way_ctx.blake );
+   blake256_4x32_init( &l2v3_4way_ctx.blake );
    cubehashInit( &l2v3_4way_ctx.cube, 256, 16, 32 );
-   bmw256_4way_init( &l2v3_4way_ctx.bmw );
+   bmw256_4x32_init( &l2v3_4way_ctx.bmw );
    return true;
 }
 
@@ -326,8 +325,8 @@ void lyra2rev3_4way_hash( void *state, const void *input )
    lyra2v3_4way_ctx_holder ctx __attribute__ ((aligned (64))); 
    memcpy( &ctx, &l2v3_4way_ctx, sizeof(l2v3_4way_ctx) );
 
-   blake256_4way_update( &ctx.blake, input + (64*4), 16 );
-   blake256_4way_close( &ctx.blake, vhash );
+   blake256_4x32_update( &ctx.blake, input + (64*4), 16 );
+   blake256_4x32_close( &ctx.blake, vhash );
    dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
    LYRA2REV3( l2v3_wholeMatrix, hash0, 32, hash0, 32, hash0, 32, 1, 4, 4 );
@@ -349,8 +348,8 @@ void lyra2rev3_4way_hash( void *state, const void *input )
    LYRA2REV3( l2v3_wholeMatrix, hash3, 32, hash3, 32, hash3, 32, 1, 4, 4 );
 
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
-   bmw256_4way_update( &ctx.bmw, vhash, 32 );
-   bmw256_4way_close( &ctx.bmw, state );
+   bmw256_4x32_update( &ctx.bmw, vhash, 32 );
+   bmw256_4x32_close( &ctx.bmw, state );
 }
 
 int scanhash_lyra2rev3_4way( struct work *work, const uint32_t max_nonce,
@@ -374,8 +373,8 @@ int scanhash_lyra2rev3_4way( struct work *work, const uint32_t max_nonce,
    v128_bswap32_intrlv80_4x32( vdata, pdata );
    *noncev = _mm_set_epi32( n+3, n+2, n+1, n );
 
-   blake256_4way_init( &l2v3_4way_ctx.blake );
-   blake256_4way_update( &l2v3_4way_ctx.blake, vdata, 64 );
+   blake256_4x32_init( &l2v3_4way_ctx.blake );
+   blake256_4x32_update( &l2v3_4way_ctx.blake, vdata, 64 );
 
    do
    {

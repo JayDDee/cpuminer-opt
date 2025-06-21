@@ -125,19 +125,19 @@ bool register_x21s__algo( algo_gate_t* gate );
 
 union _x16r_8way_context_overlay
 {
-    blake512_8way_context   blake;
-    bmw512_8way_context     bmw;
-    skein512_8way_context   skein;
-    jh512_8way_context      jh;
-    keccak512_8way_context  keccak;
+    blake512_8x64_context   blake;
+    bmw512_8x64_context     bmw;
+    skein512_8x64_context   skein;
+    jh512_8x64_context      jh;
+    keccak512_8x64_context  keccak;
     luffa_4way_context      luffa;
     cube_4way_context       cube;
     simd_4way_context       simd;
-    hamsi512_8way_context   hamsi;
+    hamsi512_8x64_context   hamsi;
     hashState_fugue         fugue;
-    shabal512_8way_context  shabal;
+    shabal512_8x32_context  shabal;
     sph_whirlpool_context   whirlpool;
-    sha512_8way_context     sha512;
+    sha512_8x64_context     sha512;
 #if defined(__VAES__)
     groestl512_4way_context groestl;
     shavite512_4way_context shavite;
@@ -170,8 +170,8 @@ int scanhash_x16r_8way( struct work *, uint32_t ,
 
 union _x16r_4way_context_overlay
 {
-    blake512_4way_context   blake;
-    bmw512_4way_context     bmw;
+    blake512_4x64_context   blake;
+    bmw512_4x64_context     bmw;
 #if defined(__VAES__)
     groestl512_2way_context groestl;
     shavite512_2way_context shavite;
@@ -181,17 +181,17 @@ union _x16r_4way_context_overlay
     shavite512_context      shavite;
     hashState_echo          echo;
 #endif
-    skein512_4way_context   skein;
-    jh512_4way_context      jh;
-    keccak512_4way_context  keccak;
+    skein512_4x64_context   skein;
+    jh512_4x64_context      jh;
+    keccak512_4x64_context  keccak;
     luffa_2way_context      luffa;
     cube_2way_context       cube;
     simd_2way_context       simd;
-    hamsi512_4way_context   hamsi;
+    hamsi512_4x64_context   hamsi;
     hashState_fugue         fugue;
-    shabal512_4way_context  shabal;
+    shabal512_4x32_context  shabal;
     sph_whirlpool_context   whirlpool;
-    sha512_4way_context     sha512;
+    sha512_4x64_context     sha512;
 } __attribute__ ((aligned (64)));
 #define  _x16r_4x64_context_overlay _x16r_4way_context_overlay
 

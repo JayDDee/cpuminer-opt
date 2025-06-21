@@ -180,20 +180,9 @@ void sha256_8x32_final_rounds( __m256i *state_out, const __m256i *data,
 int sha256_8x32_transform_le_short( __m256i *state_out, const __m256i *data,
                              const __m256i *state_in, const uint32_t *target );
 
-// Temporary API during naming transition
-#define sha256_8way_context               sha256_8x32_context
-#define sha256_8way_init                  sha256_8x32_init
-#define sha256_8way_update                sha256_8x32_update
-#define sha256_8way_close                 sha256_8x32_close
-#define sha256_8way_full                  sha256_8x32_full
-#define sha256_8way_transform_le          sha256_8x32_transform_le
-#define sha256_8way_transform_be          sha256_8x32_transform_be
-#define sha256_8way_prehash_3rounds       sha256_8x32_prehash_3rounds
-#define sha256_8way_final_rounds          sha256_8x32_final_rounds
-#define sha256_8way_transform_le_short    sha256_8x32_transform_le_short
-
 #endif  // AVX2
 
+#if defined(__SSE2__) || defined(__ARM_NEON)
 // SHA-256 4 way x86_64 with SSE2 or AArch64 with NEON
 
 typedef struct
@@ -219,16 +208,5 @@ void sha256_4x32_final_rounds( v128_t *state_out, const v128_t *data,
 int sha256_4x32_transform_le_short( v128_t *state_out, const v128_t *data,
                             const v128_t *state_in, const uint32_t *target );
 
-// Temporary API during naming transition
-#define sha256_4way_context              sha256_4x32_context
-#define sha256_4way_init                 sha256_4x32_init
-#define sha256_4way_update               sha256_4x32_update
-#define sha256_4way_close                sha256_4x32_close
-#define sha256_4way_full                 sha256_4x32_full
-#define sha256_4way_transform_le         sha256_4x32_transform_le
-#define sha256_4way_transform_be         sha256_4x32_transform_be
-#define sha256_4way_prehash_3rounds      sha256_4x32_prehash_3rounds
-#define sha256_4way_final_rounds         sha256_4x32_final_rounds
-#define sha256_4way_transform_le_short   sha256_4x32_transform_le_short
-
-#endif
+#endif // SSE2 || NEON
+#endif // SHA256_HASH_H__

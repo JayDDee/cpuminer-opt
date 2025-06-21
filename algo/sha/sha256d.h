@@ -12,7 +12,7 @@
   #define SHA256D_NEON_SHA2 1
 #elif defined(__AVX2__)
   #define SHA256D_8WAY 1
-#else
+#elif defined(__SSE2__) || defined(__ARM_NEON) 
   #define SHA256D_4WAY 1
 #endif
 

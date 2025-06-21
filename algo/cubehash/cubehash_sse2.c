@@ -39,7 +39,7 @@ static void transform( cubehashParam *sp )
 
 #elif defined(__AVX2__)
 
-    register __m256i x0, x1, x2, x3, y0, y1;
+    register __m256i x0, x1, x2, x3, t0;
 
     x0 = _mm256_load_si256( (__m256i*)sp->x     );
     x1 = _mm256_load_si256( (__m256i*)sp->x + 1 );   
@@ -50,10 +50,10 @@ static void transform( cubehashParam *sp )
     { 
         x2 = _mm256_add_epi32( x0, x2 );
         x3 = _mm256_add_epi32( x1, x3 );
-        y0 = mm256_rol_32( x1, 7 );
-        y1 = mm256_rol_32( x0, 7 );
-        x0 = _mm256_xor_si256( y0, x2 );
-        x1 = _mm256_xor_si256( y1, x3 );
+        t0 = mm256_rol_32( x1, 7 );
+        x1 = mm256_rol_32( x0, 7 );
+        x0 = _mm256_xor_si256( t0, x2 );
+        x1 = _mm256_xor_si256( x1, x3 );
         x2 = mm256_swap128_64( x2 );
         x3 = mm256_swap128_64( x3 );
         x2 = _mm256_add_epi32( x0, x2 );
@@ -75,7 +75,7 @@ static void transform( cubehashParam *sp )
 
 #else   // AVX, SSE2, NEON
 
-    v128_t x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3;
+    v128_t x0, x1, x2, x3, x4, x5, x6, x7, t0, t1;
 
     x0 = casti_v128( sp->x, 0 );
     x1 = casti_v128( sp->x, 1 );
@@ -92,16 +92,12 @@ static void transform( cubehashParam *sp )
        x5 = v128_add32( x1, x5 );
        x6 = v128_add32( x2, x6 );
        x7 = v128_add32( x3, x7 );
-       y0 = x2;
-       y1 = x3;
-       y2 = x0;
-       y3 = x1;
-       x0 = v128_rol32( y0, 7 );
-       x1 = v128_rol32( y1, 7 );
-       x2 = v128_rol32( y2, 7 );
-       x3 = v128_rol32( y3, 7 );
-       x0 = v128_xor( x0, x4 );
-       x1 = v128_xor( x1, x5 );
+       t0 = v128_rol32( x2, 7 );
+       t1 = v128_rol32( x3, 7 );
+       x2 = v128_rol32( x0, 7 );
+       x3 = v128_rol32( x1, 7 );
+       x0 = v128_xor( t0, x4 );
+       x1 = v128_xor( t1, x5 );
        x2 = v128_xor( x2, x6 );
        x3 = v128_xor( x3, x7 );
        x4 = v128_swap64( x4 );
@@ -112,19 +108,15 @@ static void transform( cubehashParam *sp )
        x5 = v128_add32( x1, x5 );
        x6 = v128_add32( x2, x6 );
        x7 = v128_add32( x3, x7 );
-       y0 = x1;
-       y1 = x0;
-       y2 = x3;
-       y3 = x2;
-       x0 = v128_rol32( y0, 11 );
-       x1 = v128_rol32( y1, 11 );
-       x2 = v128_rol32( y2, 11 );
-       x3 = v128_rol32( y3, 11 );
-	    x0 = v128_xor( x0, x4 );
-	    x1 = v128_xor( x1, x5 );
-	    x2 = v128_xor( x2, x6 );
-	    x3 = v128_xor( x3, x7 );
-	    x4 = v128_swap64_32( x4 );
+       t0 = v128_rol32( x1, 11 );
+       x1 = v128_rol32( x0, 11 );
+       t1 = v128_rol32( x3, 11 );
+       x3 = v128_rol32( x2, 11 );
+       x0 = v128_xor( t0, x4 );
+       x1 = v128_xor( x1, x5 );
+       x2 = v128_xor( t1, x6 );
+       x3 = v128_xor( x3, x7 );
+       x4 = v128_swap64_32( x4 );
 	    x5 = v128_swap64_32( x5 );
 	    x6 = v128_swap64_32( x6 );
 	    x7 = v128_swap64_32( x7 );

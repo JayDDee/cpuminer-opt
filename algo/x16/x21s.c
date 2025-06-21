@@ -78,7 +78,7 @@ int scanhash_x21s( struct work *work, uint32_t max_nonce,
    static __thread uint32_t s_ntime = UINT32_MAX;
    if ( s_ntime != pdata[17] )
    {
-      uint32_t ntime = swab32(pdata[17]);
+      uint32_t ntime = bswap_32(pdata[17]);
       x16_r_s_getAlgoString( (const uint8_t*)(&edata[1]), x16r_hash_order );
       s_ntime = ntime;
       if ( opt_debug && !thr_id )

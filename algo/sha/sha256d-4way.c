@@ -32,8 +32,6 @@ int scanhash_sha256d_sha( struct work *work, uint32_t max_nonce,
    uint32_t n = first_nonce;
    const int thr_id = mythr->id;
    const bool bench = opt_benchmark;
-   const v128_t shuf_bswap32 =
-           v128_set64( 0x0c0d0e0f08090a0bULL, 0x0405060700010203ULL );
 
    // hash first 64 byte block of data
    sha256_transform_le( mstatea, pdata, sha256_iv );
@@ -69,10 +67,8 @@ int scanhash_sha256d_sha( struct work *work, uint32_t max_nonce,
 
       if ( unlikely( bswap_32( hasha[7] ) <= ptarget[7] ) )
       {
-          casti_v128( hasha, 0 ) =
-               _mm_shuffle_epi8( casti_v128( hasha, 0 ), shuf_bswap32 );
-          casti_v128( hasha, 1 ) =
-               _mm_shuffle_epi8( casti_v128( hasha, 1 ), shuf_bswap32 );
+          casti_v128( hasha, 0 ) = v128_bswap32( casti_v128( hasha, 0 ) );
+          casti_v128( hasha, 1 ) = v128_bswap32( casti_v128( hasha, 1 ) );
           if ( likely( valid_hash( hasha, ptarget ) && !bench ) )
           {
              pdata[19] = n;
@@ -81,10 +77,8 @@ int scanhash_sha256d_sha( struct work *work, uint32_t max_nonce,
       }
       if ( unlikely( bswap_32( hashb[7] ) <= ptarget[7] ) )
       {
-         casti_v128( hashb, 0 ) =
-               _mm_shuffle_epi8( casti_v128( hashb, 0 ), shuf_bswap32 );
-         casti_v128( hashb, 1 ) =
-               _mm_shuffle_epi8( casti_v128( hashb, 1 ), shuf_bswap32 );
+         casti_v128( hashb, 0 ) = v128_bswap32( casti_v128( hashb, 0 ) );
+         casti_v128( hashb, 1 ) = v128_bswap32( casti_v128( hashb, 1 ) );
          if ( likely( valid_hash( hashb, ptarget ) && !bench ) )
          {
             pdata[19] = n+1;
@@ -204,8 +198,6 @@ int scanhash_sha256d_16way( struct work *work, const uint32_t max_nonce,
    const int thr_id = mythr->id;
    const __m512i sixteen = v512_32( 16 );
    const bool bench = opt_benchmark;
-   const __m256i bswap_shuf = mm256_bcast_m128( _mm_set_epi64x(
-                                0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
    // prehash first block directly from pdata
    sha256_transform_le( phash, pdata, sha256_iv );
@@ -231,7 +223,7 @@ int scanhash_sha256d_16way( struct work *work, const uint32_t max_nonce,
    buf[15] = v512_32( 80*8 );  // bit count
 
    // partially pre-expand & prehash second message block, avoiding the nonces
-   sha256_16way_prehash_3rounds( mstate2, mexp_pre, buf, mstate1 );
+   sha256_16x32_prehash_3rounds( mstate2, mexp_pre, buf, mstate1 );
 
    // vectorize IV for second hash
    istate[0] = v512_32( sha256_iv[0] );
@@ -250,15 +242,14 @@ int scanhash_sha256d_16way( struct work *work, const uint32_t max_nonce,
 
    do
    {
-      sha256_16way_final_rounds( block, buf, mstate1, mstate2, mexp_pre );
-      if ( unlikely( sha256_16way_transform_le_short(
+      sha256_16x32_final_rounds( block, buf, mstate1, mstate2, mexp_pre );
+      if ( unlikely( sha256_16x32_transform_le_short(
                                   hash32, block, istate, ptarget ) ) )
       {
          for ( int lane = 0; lane < 16; lane++ )
          {
             extr_lane_16x32( phash, hash32, lane, 256 );
-            casti_m256i( phash, 0 ) =
-                   _mm256_shuffle_epi8( casti_m256i( phash, 0 ), bswap_shuf ); 
+            casti_m256i( phash, 0 ) = mm256_bswap_32( casti_m256i( phash, 0 ) ); 
             if ( likely( valid_hash( phash, ptarget ) && !bench ) )
             {
               pdata[19] = n + lane;
@@ -299,8 +290,6 @@ int scanhash_sha256d_8way( struct work *work, const uint32_t max_nonce,
    const bool bench = opt_benchmark;
    const __m256i last_byte = v256_32( 0x80000000 );
    const __m256i eight = v256_32( 8 );
-   const __m256i bswap_shuf = mm256_bcast_m128( _mm_set_epi64x(
-                                0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
    for ( int i = 0; i < 19; i++ )
       vdata[i] = v256_32( pdata[i] );
@@ -325,22 +314,22 @@ int scanhash_sha256d_8way( struct work *work, const uint32_t max_nonce,
    istate[6] = v256_32( sha256_iv[6] );
    istate[7] = v256_32( sha256_iv[7] );
 
-   sha256_8way_transform_le( mstate1, vdata, istate );
+   sha256_8x32_transform_le( mstate1, vdata, istate );
 
    // Do 3 rounds on the first 12 bytes of the next block
-   sha256_8way_prehash_3rounds( mstate2, mexp_pre, vdata + 16, mstate1 );
+   sha256_8x32_prehash_3rounds( mstate2, mexp_pre, vdata + 16, mstate1 );
    
    do
    {
-      sha256_8way_final_rounds( block, vdata+16, mstate1, mstate2, mexp_pre );
-      if ( unlikely( sha256_8way_transform_le_short( hash32, block,
+      sha256_8x32_final_rounds( block, vdata+16, mstate1, mstate2, mexp_pre );
+      if ( unlikely( sha256_8x32_transform_le_short( hash32, block,
                                                      istate, ptarget ) ) )
       {
          for ( int lane = 0; lane < 8; lane++ )
          {
             extr_lane_8x32( lane_hash, hash32, lane, 256 );
             casti_m256i( lane_hash, 0 ) =
-               _mm256_shuffle_epi8( casti_m256i( lane_hash, 0 ), bswap_shuf );
+                                mm256_bswap_32( casti_m256i( lane_hash, 0 ) );
             if ( likely( valid_hash( lane_hash, ptarget ) && !bench ) )
             {
                pdata[19] = n + lane;

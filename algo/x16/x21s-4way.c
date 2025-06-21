@@ -21,10 +21,10 @@ static __thread uint64_t* x21s_8way_matrix;
 
 union _x21s_8way_context_overlay
 {
-    haval256_5_8way_context haval;
+    haval256_8x32_context   haval;
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
-    sha256_8way_context     sha256;
+    sha256_8x32_context     sha256;
 } __attribute__ ((aligned (64)));
 
 typedef union _x21s_8way_context_overlay x21s_8way_context_overlay;
@@ -50,9 +50,9 @@ int x21s_8way_hash( void* output, const void* input, int thrid )
    intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                     hash7 );
 
-   haval256_5_8way_init( &ctx.haval );
-   haval256_5_8way_update( &ctx.haval, vhash, 64 );
-   haval256_5_8way_close( &ctx.haval, vhash );
+   haval256_8x32_init( &ctx.haval );
+   haval256_8x32_update( &ctx.haval, vhash, 64 );
+   haval256_8x32_close( &ctx.haval, vhash );
 
    dintrlv_8x32_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                      hash7, vhash );
@@ -122,9 +122,9 @@ int x21s_8way_hash( void* output, const void* input, int thrid )
 
    intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                     hash7 );
-   sha256_8way_init( &ctx.sha256 );
-   sha256_8way_update( &ctx.sha256, vhash, 64 );
-   sha256_8way_close( &ctx.sha256, output );
+   sha256_8x32_init( &ctx.sha256 );
+   sha256_8x32_update( &ctx.sha256, vhash, 64 );
+   sha256_8x32_close( &ctx.sha256, output );
 
    return 1;
 }
@@ -202,11 +202,11 @@ static __thread uint64_t* x21s_4way_matrix;
 
 union _x21s_4way_context_overlay
 {
-    haval256_5_4way_context haval;
+    haval256_4x32_context   haval;
     sph_tiger_context       tiger;
     sph_gost512_context     gost;
 #if !defined(__SHA__)
-    sha256_4way_context     sha256;
+    sha256_4x32_context     sha256;
 #endif
 } __attribute__ ((aligned (64)));
 
@@ -228,9 +228,9 @@ int x21s_4way_hash( void* output, const void* input, int thrid )
 
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3,  512 );
 
-   haval256_5_4way_init( &ctx.haval );
-   haval256_5_4way_update( &ctx.haval, vhash, 64 );
-   haval256_5_4way_close( &ctx.haval, vhash );
+   haval256_4x32_init( &ctx.haval );
+   haval256_4x32_update( &ctx.haval, vhash, 64 );
+   haval256_4x32_close( &ctx.haval, vhash );
 
    dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 512 );
 
@@ -279,9 +279,9 @@ int x21s_4way_hash( void* output, const void* input, int thrid )
 #else
 
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 512 );
-   sha256_4way_init( &ctx.sha256 );
-   sha256_4way_update( &ctx.sha256, vhash, 64 );
-   sha256_4way_close( &ctx.sha256, vhash );
+   sha256_4x32_init( &ctx.sha256 );
+   sha256_4x32_update( &ctx.sha256, vhash, 64 );
+   sha256_4x32_close( &ctx.sha256, vhash );
    dintrlv_4x32( output, output+32, output+64,output+96, vhash, 256 );
 
 #endif

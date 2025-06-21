@@ -152,7 +152,7 @@ int stratum_thr_id = -1;
 int api_thr_id = -1;
 bool stratum_need_reset = false;
 struct work_restart *work_restart = NULL;
-struct stratum_ctx stratum;
+struct stratum_ctx stratum = {0};
 double opt_diff_factor = 1.0;
 double opt_target_factor = 1.0;
 uint32_t zr5_pok = 0;
@@ -187,7 +187,7 @@ static bool opt_api_enabled = false;
 char *opt_api_allow = NULL;
 int opt_api_listen = 0;
 int opt_api_remote = 0;
-char *default_api_allow = "127.0.0.1";
+const char *default_api_allow = "127.0.0.1";
 int default_api_listen = 4048; 
 
   pthread_mutex_t applog_lock;
@@ -870,9 +870,9 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
    work->tx_count = tx_count;
 
    /* assemble block header */
-   algo_gate.build_block_header( work, swab32( version ),
+   algo_gate.build_block_header( work, bswap_32( version ),
                                  (uint32_t*) prevhash, (uint32_t*) merkle_tree,
-                                 swab32( curtime ), le32dec( &bits ),
+                                 bswap_32( curtime ), le32dec( &bits ),
                                  final_sapling_hash );
 
    if ( unlikely( !jobj_binary( val, "target", target, sizeof(target) ) ) )
@@ -1773,7 +1773,7 @@ static bool get_work(struct thr_info *thr, struct work *work)
       // why 74? std cmp_size is 76, std data is 128
 		for ( int n = 0; n < 74; n++ ) ( (char*)work->data )[n] = n;
 
-      work->data[algo_gate.ntime_index] = swab32(ts);  // ntime
+      work->data[algo_gate.ntime_index] = bswap_32(ts);  // ntime
   
       // this overwrites much of the for loop init
       memset( work->data + algo_gate.nonce_index, 0x00, 52);  // nonce..nonce+52
@@ -2009,24 +2009,29 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 {
    bool new_job;
 
-   pthread_rwlock_wrlock( &g_work_lock );
    pthread_mutex_lock( &sctx->work_lock );
 
    new_job =  sctx->new_job;  // otherwise just increment extranonce2
    sctx->new_job = false;
+
+   pthread_rwlock_wrlock( &g_work_lock );
    
    free( g_work->job_id );
    g_work->job_id = strdup( sctx->job.job_id );
    g_work->xnonce2_len = sctx->xnonce2_size;
    g_work->xnonce2 = (uchar*) realloc( g_work->xnonce2, sctx->xnonce2_size );
+   g_work->height = sctx->block_height;
+   g_work->targetdiff = sctx->job.diff
+                           / ( opt_target_factor * opt_diff_factor );
    memcpy( g_work->xnonce2, sctx->job.xnonce2, sctx->xnonce2_size );
    algo_gate.build_extraheader( g_work, sctx );
    net_diff = nbits_to_diff( g_work->data[ algo_gate.nbits_index ] );
    algo_gate.set_work_data_endian( g_work );
-   g_work->height = sctx->block_height;
-   g_work->targetdiff = sctx->job.diff
-                           / ( opt_target_factor * opt_diff_factor );
    diff_to_hash( g_work->target, g_work->targetdiff );
+
+   g_work_time = time(NULL);
+   restart_threads();
+   pthread_rwlock_unlock( &g_work_lock );
 
    // Pre increment extranonce2 in case of being called again before receiving
    // a new job
@@ -2034,11 +2039,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
          t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] );
          t++ );
 
-   g_work_time = time(NULL);
-   restart_threads();
-
    pthread_mutex_unlock( &sctx->work_lock );
-   pthread_rwlock_unlock( &g_work_lock );
 
    pthread_mutex_lock( &stats_lock );
 
@@ -2072,7 +2073,7 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 
    // Update data and calculate new estimates.
    if ( ( stratum_diff != sctx->job.diff )
-   || ( last_block_height != sctx->block_height ) )
+     || ( last_block_height != sctx->block_height ) )
    {
       if ( unlikely( !session_first_block ) )
          session_first_block = stratum.block_height;
@@ -2189,7 +2190,7 @@ static void *miner_thread( void *userdata )
    }
 
    // wait for stratum to send first job
-   if ( have_stratum ) while ( unlikely( stratum_down ) )
+   if ( have_stratum ) while ( unlikely( !stratum.job.job_id ) )
    {
      if ( opt_debug )
         applog( LOG_INFO, "Thread %d waiting for first job", thr_id );
@@ -2203,7 +2204,6 @@ static void *miner_thread( void *userdata )
    {
        uint64_t hashes_done;
        struct timeval tv_start, tv_end, diff;
-//       int64_t max64 = 1000;
        int nonce_found = 0;
 
        if ( have_stratum ) 
@@ -2229,13 +2229,6 @@ static void *miner_thread( void *userdata )
        }
        else if ( !opt_benchmark ) // GBT or getwork
        {
-         // max64 is used to set end_nonce to match the scantime.
-         // It also factors the nonce range to end the scan when nonces are
-         // exhausted. In either case needing new work can be assumed.
-         // Only problem is every thread will call get_work.
-         // First thread resets scantime blocking all subsequent threads
-         // from fetching new work.
-
           pthread_rwlock_wrlock( &g_work_lock );
           const time_t now = time(NULL);
           if ( ( ( now - g_work_time ) >= opt_scantime )
@@ -2872,8 +2865,7 @@ static bool cpu_capability( bool display_only )
      bool sw_has_avx       = false;
      bool sw_has_avx2      = false;
      bool sw_has_avx512    = false;
-     bool sw_has_avx10_256 = false;
-     bool sw_has_avx10_512 = false;
+     bool sw_has_avx10     = false;
      bool sw_has_aes       = false;
      bool sw_has_vaes      = false;
      bool sw_has_sha256    = false;        // x86_64 or AArch64
@@ -2936,11 +2928,13 @@ static bool cpu_capability( bool display_only )
      #if (defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512BW__) && defined(__AVX512VL__))
          sw_has_avx512 = true;
      #endif
-     #if defined(__AVX10_1_256__)
-         sw_has_avx10_256 = true;
-     #endif
-     #if defined(__AVX10_1_512__)
-         sw_has_avx10_512 = true;
+// AVX10 version is not significant as of AVX10.2. If that changes use a better
+// way to test the version than sequentially.
+//     #if defined(__AVX10_2__)
+// 
+//     #elif defined(__AVX10_1__)
+     #if defined(__AVX10_1__)
+         sw_has_avx10 = true;
      #endif
 
      // x86_64 or AArch64 
@@ -3008,8 +3002,7 @@ static bool cpu_capability( bool display_only )
      printf("CPU features: ");
      if ( cpu_arch_x86_64()  )
      {
-       if      ( cpu_has_avx10  )    printf( " AVX10.%d-%d", avx10_version(),
-                                                       avx10_vector_length() );
+       if      ( cpu_has_avx10  )    printf( " AVX10.%d", avx10_version() );
        if      ( cpu_has_avx512 )    printf( " AVX512" );
        else if ( cpu_has_avx2   )    printf( " AVX2  " );
        else if ( cpu_has_avx    )    printf( " AVX   " );
@@ -3034,8 +3027,7 @@ static bool cpu_capability( bool display_only )
      printf("\nSW features:  ");
      if ( sw_has_x86_64 )
      {                     
-        if      ( sw_has_avx10_512 ) printf( " AVX10-512" );
-        else if ( sw_has_avx10_256 ) printf( " AVX10-256" );
+        if      ( sw_has_avx10     ) printf( " AVX10 " );
         else if ( sw_has_avx512    ) printf( " AVX512" );
         else if ( sw_has_avx2      ) printf( " AVX2  " );
         else if ( sw_has_avx       ) printf( " AVX   " );
@@ -3060,122 +3052,9 @@ static bool cpu_capability( bool display_only )
 
      printf("\n");
      
-/*     
-     if ( !display_only )
-     {
-        printf("\nAlgo features:");
-        if ( algo_features == EMPTY_SET ) printf( " None" );
-        else
-        {
-           if      ( algo_has_avx512 )  printf( " AVX512" );
-           else if ( algo_has_avx2   )  printf( " AVX2  " );
-           else if ( algo_has_sse42  )  printf( " SSE4.2" );
-           else if ( algo_has_sse2   )  printf( " SSE2  " );
-           if      ( algo_has_neon   )  printf( " NEON"   );
-           if      ( algo_has_vaes   )  printf( " VAES"   );
-           else if ( algo_has_aes    )  printf( "  AES"   );
-           if      ( algo_has_sha512 )  printf( " SHA512" );
-           else if ( algo_has_sha256 )  printf( " SHA256" );
-        }
-     }
-     printf("\n");
-
-     
-     if ( display_only ) return true;
-
-     // Determine mining options
-     use_sse2   = cpu_has_sse2   && sw_has_sse2   && algo_has_sse2;
-     use_sse42  = cpu_has_sse42  && sw_has_sse42  && algo_has_sse42;
-     use_avx    = cpu_has_avx    && sw_has_avx    && algo_has_avx;
-     use_avx2   = cpu_has_avx2   && sw_has_avx2   && algo_has_avx2;
-     use_avx512 = cpu_has_avx512 && sw_has_avx512 && algo_has_avx512;
-     use_aes    = cpu_has_aes    && sw_has_aes    && algo_has_aes;
-     use_vaes   = cpu_has_vaes   && sw_has_vaes   && algo_has_vaes;
-     use_sha256 = cpu_has_sha256 && sw_has_sha256 && algo_has_sha256;
-     use_sha512 = cpu_has_sha512 && sw_has_sha512 && algo_has_sha512;
-     use_neon   = sw_has_aarch64 && sw_has_neon   && algo_has_neon;
-     use_none = !( use_sse2 || use_sse42 || use_avx || use_aes || use_avx512
-             || use_avx2 || use_sha256 || use_vaes || use_sha512 || use_neon );
-
-     // Display best options
-     if ( !use_none )
-     {
-        applog_nl( "Enabled optimizations:" );
-        if      ( use_neon   ) printf( " NEON"   );
-        if      ( use_avx512 ) printf( " AVX512" );
-        else if ( use_avx2   ) printf( " AVX2"   );
-        else if ( use_avx    ) printf( " AVX"    );
-        else if ( use_sse42  ) printf( " SSE42"  );
-        else if ( use_sse2   ) printf( " SSE2"   );
-        if      ( use_vaes   ) printf( " VAES"   );
-        else if ( use_aes    ) printf( " AES"    );
-        if      ( use_sha512 ) printf( " SHA512" );
-        else if ( use_sha256 ) printf( " SHA256" );
-        printf( "\n" );
-     }
-*/
-
      return true;
 }
 
-/*
-void show_version_and_exit(void)
-{
-        printf("\n built on " __DATE__
-#ifdef _MSC_VER
-         " with VC++ 2013\n");
-#elif defined(__GNUC__)
-         " with GCC");
-        printf(" %d.%d.%d\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-#endif
-        printf(" features:"
-#if defined(USE_ASM) && defined(__i386__)
-                " i386"
-#endif
-#if defined(USE_ASM) && defined(__x86_64__)
-                " x86_64"
-#endif
-#if defined(USE_ASM) && (defined(__i386__) || defined(__x86_64__))
-                " SSE2"
-#endif
-#if defined(__x86_64__) && defined(USE_AVX)
-                " AVX"
-#endif
-#if defined(__x86_64__) && defined(USE_AVX2)
-                " AVX2"
-#endif
-#if defined(__x86_64__) && defined(USE_XOP)
-                " XOP"
-#endif
-#if defined(USE_ASM) && defined(__arm__) && defined(__APCS_32__)
-                " ARM"
-#if defined(__ARM_ARCH_5E__) || defined(__ARM_ARCH_5TE__) || \
-        defined(__ARM_ARCH_5TEJ__) || defined(__ARM_ARCH_6__) || \
-        defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) || \
-        defined(__ARM_ARCH_6M__) || defined(__ARM_ARCH_6T2__) || \
-        defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) || \
-        defined(__ARM_ARCH_7__) || \
-        defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7R__) || \
-        defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
-                " ARMv5E"
-#endif
-#if defined(__ARM_NEON__)
-                " NEON"
-#endif
-#endif
-                "\n\n");
-
-        printf("%s\n", curl_version());
-#ifdef JANSSON_VERSION
-        printf("jansson/%s ", JANSSON_VERSION);
-#endif
-#ifdef PTW32_VERSION
-        printf("pthreads/%d.%d.%d.%d ", PTW32_VERSION);
-#endif
-        printf("\n");
-        exit(0);
-}
-*/
 void show_usage_and_exit(int status)
 {
 	if (status)
@@ -3253,7 +3132,7 @@ void parse_arg(int key, char *arg )
 		else if ( arg )
       {
 			/* port or 0 to disable */
-         opt_api_allow = default_api_allow;      
+         opt_api_allow = (char*)default_api_allow;      
          opt_api_listen = atoi(arg);
 		}
       break;
@@ -3289,7 +3168,7 @@ void parse_arg(int key, char *arg )
 
    // debug overrides quiet          
 	case 'q':  // quiet
-		if ( !( opt_debug || opt_protocol ) ) opt_quiet = true;
+      opt_quiet = !( opt_debug || opt_protocol );
 		break;
 	case 'D':  // debug
 		opt_debug = true;

@@ -39,16 +39,14 @@
 #include <stddef.h>
 #include "simd-utils.h"
 
-#define SPH_SIZE_bmw256   256
-
-#define SPH_SIZE_bmw512   512
-
 // BMW-256 4 way 32
+
+#if defined(__SSE2__) || defined(__ARM_NEON)
 
 typedef struct
 {
-   v128_t buf[64];
-   v128_t H[16];
+   v128u32_t buf[64];
+   v128u32_t H[16];
    size_t ptr;
    uint32_t bit_count;  // assume bit_count fits in 32 bits
 } bmw_4way_small_context;
@@ -58,12 +56,18 @@ typedef bmw_4way_small_context bmw256_4way_context;
 void bmw256_4way_init( bmw256_4way_context *ctx );
 
 void bmw256_4way_update(void *cc, const void *data, size_t len);
-#define bmw256_4way bmw256_4way_update
 
 void bmw256_4way_close(void *cc, void *dst);
 
 void bmw256_4way_addbits_and_close(
         void *cc, unsigned ub, unsigned n, void *dst);
+
+#define bmw256_4x32_context bmw256_4way_context
+#define bmw256_4x32_init    bmw256_4way_init
+#define bmw256_4x32_update  bmw256_4way_update
+#define bmw256_4x32_close   bmw256_4way_close
+
+#endif
 
 #if defined(__AVX2__)
 
@@ -85,6 +89,11 @@ void bmw256_8way_update( bmw256_8way_context *ctx, const void *data,
 #define bmw256_8way bmw256_8way_update
 void bmw256_8way_close( bmw256_8way_context *ctx, void *dst );
 
+#define bmw256_8x32_context bmw256_8way_context
+#define bmw256_8x32_init    bmw256_8way_init
+#define bmw256_8x32_update  bmw256_8way_update
+#define bmw256_8x32_close   bmw256_8way_close
+
 #endif
 
 #if defined(SIMD512)
@@ -105,6 +114,11 @@ void bmw256_16way_init( bmw256_16way_context *ctx );
 void bmw256_16way_update( bmw256_16way_context *ctx, const void *data,
                           size_t len );
 void bmw256_16way_close( bmw256_16way_context *ctx, void *dst );
+
+#define bmw256_16x32_context bmw256_16way_context
+#define bmw256_16x32_init    bmw256_16way_init
+#define bmw256_16x32_update  bmw256_16way_update
+#define bmw256_16x32_close   bmw256_16way_close
 
 #endif
 

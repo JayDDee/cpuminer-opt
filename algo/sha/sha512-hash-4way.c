@@ -83,15 +83,13 @@ void sha512_opt_transform_be( uint64_t *state_out, const void *input,
                               const uint64_t *state_in )
 {
     __m256i STATE0, STATE1;
-    __m256i MSG, TMP, BSWAP64;
+    __m256i MSG, TMP;
     __m256i TMSG0, TMSG1, TMSG2, TMSG3;
     __m256i ABEF_SAVE, CDGH_SAVE;
 
     // Load initial values
     TMP = _mm256_load_si256( (__m256i*) &state_in[0] );
     STATE1 = _mm256_load_si256( (__m256i*) &state_in[4] );
-    BSWAP64 = mm256_bcast_m128( _mm_set_epi64x( 0x08090a0b0c0d0e0f,
-                                                0x0001020304050607 ) );
     TMP = _mm256_permute4x64_epi64( TMP, 0xB1 );             // CDAB
     STATE1 = _mm256_permute4x64_epi64( STATE1, 0x1B );       // EFGH
     STATE0 = _mm256_permute2x128_si256( TMP, STATE1, 0x21 ); // ABEF
@@ -103,7 +101,7 @@ void sha512_opt_transform_be( uint64_t *state_out, const void *input,
 
     // Rounds 0-3
     TMSG0 = _mm256_load_si256( (const __m256i*) (input+0) );
-    TMSG0 = _mm256_shuffle_epi8( TMSG0, BSWAP64 );
+    TMSG0 = mm256_bswap_64( TMSG0 );
     MSG = _mm256_add_epi64( TMSG0, casti_m256i( K512, 0 ) );
     STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
                                        _mm256_castsi256_si128 (MSG ) );
@@ -113,7 +111,7 @@ void sha512_opt_transform_be( uint64_t *state_out, const void *input,
 
     // Rounds 4-7
     TMSG1 = _mm256_load_si256( (const __m256i*) (input+16) );
-    TMSG1 = _mm256_shuffle_epi8( TMSG1, BSWAP64 );
+    TMSG1 = mm256_bswap_64( TMSG1 );
     MSG = _mm256_add_epi64( TMSG1, casti_m256i( K512, 1 ) );
     STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
                                         _mm256_castsi256_si128( MSG ) );
@@ -124,7 +122,7 @@ void sha512_opt_transform_be( uint64_t *state_out, const void *input,
 
     // Rounds 8-11
     TMSG2 = _mm256_load_si256( (const __m256i*) (input+32) );
-    TMSG2 = _mm256_shuffle_epi8( TMSG2, BSWAP64 );
+    TMSG2 = mm256_bswap_64( TMSG2 );
     MSG = _mm256_add_epi64( TMSG2, casti_m256i( K512, 2 ) );
     STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
                                        _mm256_castsi256_si128( MSG ) );
@@ -135,7 +133,7 @@ void sha512_opt_transform_be( uint64_t *state_out, const void *input,
 
     // Rounds 12-15
     TMSG3 = _mm256_load_si256( (const __m256i*) (input+48) );
-    TMSG3 = _mm256_shuffle_epi8( TMSG3, BSWAP64 );
+    TMSG3 = mm256_bswap_64( TMSG3 );
     MSG = _mm256_add_epi64( TMSG3, casti_m256i( K512, 3 ) );
     STATE1 = _mm256_sha512rnds2_epi64( STATE1, STATE0,
                                        _mm256_castsi256_si128( MSG ) );
@@ -735,8 +733,6 @@ void sha512_8x64_close( sha512_8x64_context *sc, void *dst )
     unsigned ptr;
     const int buf_size = 128;
     const int pad = buf_size - 16;
-    const __m512i shuff_bswap64 = mm512_bcast_m128( _mm_set_epi64x(
-                                    0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
     sc->buf[ ptr>>3 ] = v512_64( 0x80 );
@@ -750,10 +746,8 @@ void sha512_8x64_close( sha512_8x64_context *sc, void *dst )
     else
          memset_zero_512( sc->buf + (ptr>>3), (pad - ptr) >> 3 );
 
-    sc->buf[ pad >> 3 ] = _mm512_shuffle_epi8(
-                       v512_64( sc->count >> 61 ), shuff_bswap64 );
-    sc->buf[ ( pad+8 ) >> 3 ] = _mm512_shuffle_epi8(
-                       v512_64( sc->count <<  3 ), shuff_bswap64 );
+    sc->buf[ pad >> 3 ] = v512_64( bswap_64( sc->count >> 61 ) );
+    sc->buf[ ( pad+8 ) >> 3 ] = v512_64( bswap_64( sc->count <<  3 ) );
     sha512_8x64_round( sc, sc->buf, sc->val );
 
     mm512_block_bswap_64( dst, sc->val );
@@ -957,8 +951,6 @@ void sha512_4x64_close( sha512_4x64_context *sc, void *dst )
     unsigned ptr;
     const int buf_size = 128;
     const int pad = buf_size - 16;
-    const __m256i shuff_bswap64 = mm256_bcast_m128( _mm_set_epi64x(
-                                    0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
 
     ptr = (unsigned)sc->count & (buf_size - 1U);
     sc->buf[ ptr>>3 ] = v256_64( 0x80 );
@@ -972,10 +964,8 @@ void sha512_4x64_close( sha512_4x64_context *sc, void *dst )
     else
          memset_zero_256( sc->buf + (ptr>>3), (pad - ptr) >> 3 );
 
-    sc->buf[ pad >> 3 ] = _mm256_shuffle_epi8(
-                       v256_64( sc->count >> 61 ), shuff_bswap64 );
-    sc->buf[ ( pad+8 ) >> 3 ] = _mm256_shuffle_epi8( 
-                       v256_64( sc->count <<  3 ), shuff_bswap64 );
+    sc->buf[ pad >> 3 ] = v256_64( bswap_64( sc->count >> 61 ) );
+    sc->buf[ ( pad+8 ) >> 3 ] = v256_64( bswap_64( sc->count <<  3 ) );
     sha512_4x64_round( sc, sc->buf, sc->val );
 
     mm256_block_bswap_64( dst, sc->val );
@@ -1138,8 +1128,8 @@ void sha512_2x64_close( sha512_2x64_context *sc, void *dst )
     else
          v128_memset_zero( sc->buf + (ptr>>3), (pad - ptr) >> 3 );
 
-    sc->buf[ pad >> 3 ] = v128_bswap64( v128_64( sc->count >> 61 ) );
-    sc->buf[ ( pad+8 ) >> 3 ] = v128_bswap64( v128_64( sc->count << 3 ) );
+    sc->buf[ pad >> 3 ] = v128_64( bswap_64( sc->count >> 61 ) );
+    sc->buf[ ( pad+8 ) >> 3 ] = v128_64( bswap_64( sc->count << 3 ) );
     sha512_2x64_round( sc, sc->buf, sc->val );
 
     v128_block_bswap64( castp_v128u64( dst ), sc->val );

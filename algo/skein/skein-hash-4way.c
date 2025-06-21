@@ -513,7 +513,7 @@ do { \
 
 #if defined(SIMD512)
 
-void skein256_8way_init( skein256_8way_context *sc )
+void skein256_8x64_init( skein256_8x64_context *sc )
 {
         sc->h0 = _mm512_set1_epi64( 0xCCD044A12FDB3E13 );
         sc->h1 = _mm512_set1_epi64( 0xE83590301A79A9EB );
@@ -527,7 +527,7 @@ void skein256_8way_init( skein256_8way_context *sc )
         sc->ptr = 0;
 }
 
-void skein512_8way_init( skein512_8way_context *sc )
+void skein512_8x64_init( skein512_8x64_context *sc )
 {
         sc->h0 = _mm512_set1_epi64( 0x4903ADFF749C51CE );
         sc->h1 = _mm512_set1_epi64( 0x0D95DE399746DF03 );
@@ -542,7 +542,7 @@ void skein512_8way_init( skein512_8way_context *sc )
 }
 
 static void
-skein_big_core_8way( skein512_8way_context *sc, const void *data,
+skein_big_core_8x64( skein512_8x64_context *sc, const void *data,
                      size_t len )
 {
    __m512i *vdata = (__m512i*)data;
@@ -587,7 +587,7 @@ skein_big_core_8way( skein512_8way_context *sc, const void *data,
 }
 
 static void
-skein_big_close_8way( skein512_8way_context *sc, unsigned ub, unsigned n,
+skein_big_close_8x64( skein512_8x64_context *sc, unsigned ub, unsigned n,
                       void *dst, size_t out_len )
 {
    __m512i *buf;
@@ -621,7 +621,7 @@ skein_big_close_8way( skein512_8way_context *sc, unsigned ub, unsigned n,
    memcpy_512( dst, buf, out_len >> 3 );
 }
 
-void skein512_8way_full( skein512_8way_context *sc, void *out, const void *data,
+void skein512_8x64_full( skein512_8x64_context *sc, void *out, const void *data,
                      size_t len )
 {
    __m512i h0, h1, h2, h3, h4, h5, h6, h7;
@@ -698,7 +698,7 @@ void skein512_8way_full( skein512_8way_context *sc, void *out, const void *data,
 }
 
 void
-skein512_8way_prehash64( skein512_8way_context *sc, const void *data )
+skein512_8x64_prehash64( skein512_8x64_context *sc, const void *data )
 {
    __m512i *vdata = (__m512i*)data;
    __m512i *buf = sc->buf;
@@ -732,7 +732,7 @@ skein512_8way_prehash64( skein512_8way_context *sc, const void *data )
 }
 
 void
-skein512_8way_final16( skein512_8way_context *sc,  void *output,
+skein512_8x64_final16( skein512_8x64_context *sc,  void *output,
                        const void *data )
 {
    __m512i *in = (__m512i*)data;
@@ -778,34 +778,34 @@ skein512_8way_final16( skein512_8way_context *sc,  void *output,
 
 
 void
-skein256_8way_update(void *cc, const void *data, size_t len)
+skein256_8x64_update(void *cc, const void *data, size_t len)
 {
-   skein_big_core_8way(cc, data, len);
+   skein_big_core_8x64(cc, data, len);
 }
 
 void
-skein256_8way_close(void *cc, void *dst)
+skein256_8x64_close(void *cc, void *dst)
 {
-        skein_big_close_8way(cc, 0, 0, dst, 32);
+        skein_big_close_8x64(cc, 0, 0, dst, 32);
 }
 
 void
-skein512_8way_update(void *cc, const void *data, size_t len)
+skein512_8x64_update(void *cc, const void *data, size_t len)
 {
-   skein_big_core_8way(cc, data, len);
+   skein_big_core_8x64(cc, data, len);
 }
 
 void
-skein512_8way_close(void *cc, void *dst)
+skein512_8x64_close(void *cc, void *dst)
 {
-        skein_big_close_8way(cc, 0, 0, dst, 64);
+        skein_big_close_8x64(cc, 0, 0, dst, 64);
 }
 
 #endif // AVX512
 
 #if defined(__AVX2__)
 
-void skein256_4way_init( skein256_4way_context *sc )
+void skein256_4x64_init( skein256_4x64_context *sc )
 {
         sc->h0 = _mm256_set1_epi64x( 0xCCD044A12FDB3E13 );
         sc->h1 = _mm256_set1_epi64x( 0xE83590301A79A9EB );
@@ -819,7 +819,7 @@ void skein256_4way_init( skein256_4way_context *sc )
         sc->ptr = 0;
 }
 
-void skein512_4way_init( skein512_4way_context *sc )
+void skein512_4x64_init( skein512_4x64_context *sc )
 {
         sc->h0 = _mm256_set1_epi64x( 0x4903ADFF749C51CE );
         sc->h1 = _mm256_set1_epi64x( 0x0D95DE399746DF03 );
@@ -835,7 +835,7 @@ void skein512_4way_init( skein512_4way_context *sc )
 
 // Do not use for 128 bt data length
 static void
-skein_big_core_4way( skein512_4way_context *sc, const void *data,
+skein_big_core_4x64( skein512_4x64_context *sc, const void *data,
                      size_t len )
 {
    __m256i *vdata = (__m256i*)data;
@@ -882,7 +882,7 @@ skein_big_core_4way( skein512_4way_context *sc, const void *data,
 }
 
 static void
-skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
+skein_big_close_4x64( skein512_4x64_context *sc, unsigned ub, unsigned n,
                       void *dst, size_t out_len )
 {
 	__m256i *buf;
@@ -920,7 +920,7 @@ skein_big_close_4way( skein512_4way_context *sc, unsigned ub, unsigned n,
 }
 
 void
-skein512_4way_full( skein512_4way_context *sc, void *out, const void *data,
+skein512_4x64_full( skein512_4x64_context *sc, void *out, const void *data,
                      size_t len )
 {
    __m256i h0, h1, h2, h3, h4, h5, h6, h7;
@@ -995,7 +995,7 @@ skein512_4way_full( skein512_4way_context *sc, void *out, const void *data,
 }
 
 void
-skein512_4way_prehash64( skein512_4way_context *sc, const void *data )
+skein512_4x64_prehash64( skein512_4x64_context *sc, const void *data )
 {
    __m256i *vdata = (__m256i*)data;
    __m256i *buf = sc->buf;
@@ -1029,7 +1029,7 @@ skein512_4way_prehash64( skein512_4way_context *sc, const void *data )
 }
 
 void
-skein512_4way_final16( skein512_4way_context *sc,  void *out, const void *data )
+skein512_4x64_final16( skein512_4x64_context *sc,  void *out, const void *data )
 {
    __m256i *vdata = (__m256i*)data;
    __m256i *buf = sc->buf;
@@ -1073,29 +1073,29 @@ skein512_4way_final16( skein512_4way_context *sc,  void *out, const void *data )
 
 // Broken for 80 bytes, use prehash.
 void
-skein256_4way_update(void *cc, const void *data, size_t len)
+skein256_4x64_update(void *cc, const void *data, size_t len)
 {
-	skein_big_core_4way(cc, data, len);
+	skein_big_core_4x64(cc, data, len);
 }
 
 void
-skein256_4way_close(void *cc, void *dst)
+skein256_4x64_close(void *cc, void *dst)
 {
-        skein_big_close_4way(cc, 0, 0, dst, 32);
+        skein_big_close_4x64(cc, 0, 0, dst, 32);
 }
 
 
 // Broken for 80 & 128 bytes, use prehash or full
 void
-skein512_4way_update(void *cc, const void *data, size_t len)
+skein512_4x64_update(void *cc, const void *data, size_t len)
 {
-	skein_big_core_4way(cc, data, len);
+	skein_big_core_4x64(cc, data, len);
 }
 
 void
-skein512_4way_close(void *cc, void *dst)
+skein512_4x64_close(void *cc, void *dst)
 {
-        skein_big_close_4way(cc, 0, 0, dst, 64);
+        skein_big_close_4x64(cc, 0, 0, dst, 64);
 }
 
 #endif   // AVX2
@@ -1231,7 +1231,7 @@ void skein512_2x64_init( skein512_2x64_context *sc )
 }
 
 static void
-skein_big_core_2way( skein512_2x64_context *sc, const void *data,
+skein_big_core_2x64( skein512_2x64_context *sc, const void *data,
                      size_t len )
 {
    v128u64_t *vdata = (v128u64_t*)data;
@@ -1278,7 +1278,7 @@ skein_big_core_2way( skein512_2x64_context *sc, const void *data,
 }
 
 static void
-skein_big_close_2way( skein512_2x64_context *sc, unsigned ub, unsigned n,
+skein_big_close_2x64( skein512_2x64_context *sc, unsigned ub, unsigned n,
                       void *dst, size_t out_len )
 {
    v128u64_t *buf;
@@ -1471,13 +1471,13 @@ skein512_2x64_final16( skein512_2x64_context *sc,  void *out, const void *data )
 void
 skein256_2x64_update(void *cc, const void *data, size_t len)
 {
-   skein_big_core_2way(cc, data, len);
+   skein_big_core_2x64(cc, data, len);
 }
 
 void
 skein256_2x64_close(void *cc, void *dst)
 {
-   skein_big_close_2way(cc, 0, 0, dst, 32);
+   skein_big_close_2x64(cc, 0, 0, dst, 32);
 }
 
 
@@ -1485,13 +1485,12 @@ skein256_2x64_close(void *cc, void *dst)
 void
 skein512_2x64_update(void *cc, const void *data, size_t len)
 {
-   skein_big_core_2way(cc, data, len);
+   skein_big_core_2x64(cc, data, len);
 }
 
 void
 skein512_2x64_close(void *cc, void *dst)
 {
-    skein_big_close_2way(cc, 0, 0, dst, 64);
+    skein_big_close_2x64(cc, 0, 0, dst, 64);
 }
-
 

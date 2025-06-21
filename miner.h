@@ -8,8 +8,8 @@
    #define USER_AGENT_ARCH "x64"     // Intel, AMD x86_64
 #elif defined(__aarch64__)
    #define USER_AGENT_ARCH "arm"     // AArch64
-//#elif
-//  #define USER_AGENT_ARCH "r5"     // RISC-V             
+#elif defined(__riscv)
+   #define USER_AGENT_ARCH "rv"     // RISC-V             
 #else
    #define USER_AGENT_ARCH
 #endif
@@ -65,7 +65,7 @@
 # endif
 #endif
 
-// no mm_maloc for Neon
+// no mm_malloc for Neon
 #if !defined(__ARM_NEON)
 
 #include <mm_malloc.h>
@@ -173,6 +173,7 @@ static inline bool is_windows(void)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #endif
 
+#if 0
 // deprecated, see simd-int.h
 #if ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))
 #define WANT_BUILTIN_BSWAP
@@ -183,6 +184,7 @@ static inline bool is_windows(void)
 */
 #endif
 
+/*
 static inline uint32_t swab32(uint32_t x)
 {
 #ifdef WANT_BUILTIN_BSWAP
@@ -195,6 +197,8 @@ static inline uint32_t swab32(uint32_t x)
 //   return bswap_32(v);
 #endif
 }
+*/
+#endif
 
 // Swap any two variables of the same type without using a temp
 #define swap_vars(a,b) a^=b; b^=a; a^=b;

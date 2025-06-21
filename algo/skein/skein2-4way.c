@@ -21,17 +21,17 @@ int scanhash_skein2_8way( struct work *work, uint32_t max_nonce,
     __m512i  *noncev = (__m512i*)vdata + 9; 
     const int thr_id = mythr->id; 
     const bool bench = opt_benchmark;
-    skein512_8way_context ctx;
+    skein512_8x64_context ctx;
 
     mm512_bswap32_intrlv80_8x64( vdata, pdata );
     *noncev = mm512_intrlv_blend_32(
                 _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
                                   n+3, 0, n+2, 0, n+1, 0, n  , 0 ), *noncev );
-    skein512_8way_prehash64( &ctx, vdata );
+    skein512_8x64_prehash64( &ctx, vdata );
     do
     {
-       skein512_8way_final16( &ctx, hash, vdata + (16*8) );
-       skein512_8way_full( &ctx, hash, hash, 64 );
+       skein512_8x64_final16( &ctx, hash, vdata + (16*8) );
+       skein512_8x64_full( &ctx, hash, hash, 64 );
 
        for ( int lane = 0; lane < 8; lane++ )
        if ( unlikely( hashq3[ lane ] <= targq3 && !bench ) )
@@ -71,16 +71,16 @@ int scanhash_skein2_4way( struct work *work, uint32_t max_nonce,
     __m256i  *noncev = (__m256i*)vdata + 9; 
     const int thr_id = mythr->id;  
     const bool bench = opt_benchmark;
-    skein512_4way_context ctx;
+    skein512_4x64_context ctx;
 
     mm256_bswap32_intrlv80_4x64( vdata, pdata );
-    skein512_4way_prehash64( &ctx, vdata );
+    skein512_4x64_prehash64( &ctx, vdata );
     *noncev = mm256_intrlv_blend_32(
                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );
     do 
     {
-       skein512_4way_final16( &ctx, hash, vdata + (16*4) );
-       skein512_4way_full( &ctx, hash, hash, 64 );
+       skein512_4x64_final16( &ctx, hash, vdata + (16*4) );
+       skein512_4x64_full( &ctx, hash, hash, 64 );
 
        for ( int lane = 0; lane < 4; lane++ )
        if ( hash_q3[ lane ] <= targ_q3 )

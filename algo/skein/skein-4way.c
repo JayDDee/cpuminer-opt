@@ -6,23 +6,23 @@
 
 #if defined (SKEIN_8WAY)
 
-static __thread skein512_8way_context skein512_8way_ctx
+static __thread skein512_8x64_context skein512_8x64_ctx
                                             __attribute__ ((aligned (64)));
 
 void skeinhash_8way( void *state, const void *input )
 {
      uint64_t vhash64[8*8] __attribute__ ((aligned (128)));
-     skein512_8way_context ctx_skein;
-     memcpy( &ctx_skein, &skein512_8way_ctx, sizeof( ctx_skein ) );
+     skein512_8x64_context ctx_skein;
+     memcpy( &ctx_skein, &skein512_8x64_ctx, sizeof( ctx_skein ) );
      uint32_t vhash32[16*8] __attribute__ ((aligned (128)));
-     sha256_8way_context ctx_sha256;
+     sha256_8x32_context ctx_sha256;
 
-     skein512_8way_final16( &ctx_skein, vhash64, input + (64*8) );
+     skein512_8x64_final16( &ctx_skein, vhash64, input + (64*8) );
      rintrlv_8x64_8x32( vhash32, vhash64, 512 );
 
-     sha256_8way_init( &ctx_sha256 );
-     sha256_8way_update( &ctx_sha256, vhash32, 64 );
-     sha256_8way_close( &ctx_sha256, state );
+     sha256_8x32_init( &ctx_sha256 );
+     sha256_8x32_update( &ctx_sha256, vhash32, 64 );
+     sha256_8x32_close( &ctx_sha256, state );
 }
 
 int scanhash_skein_8way( struct work *work, uint32_t max_nonce,
@@ -46,7 +46,7 @@ int scanhash_skein_8way( struct work *work, uint32_t max_nonce,
    *noncev = mm512_intrlv_blend_32(
                 _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
                                   n+3, 0, n+2, 0, n+1, 0, n  , 0 ), *noncev );
-   skein512_8way_prehash64( &skein512_8way_ctx, vdata );
+   skein512_8x64_prehash64( &skein512_8x64_ctx, vdata );
    do
    {
        skeinhash_8way( hash, vdata );
@@ -73,14 +73,14 @@ int scanhash_skein_8way( struct work *work, uint32_t max_nonce,
 
 #elif defined (SKEIN_4WAY)
 
-static __thread skein512_4way_context skein512_4way_ctx
+static __thread skein512_4x64_context skein512_4x64_ctx
                                             __attribute__ ((aligned (64)));
 
 void skeinhash_4way( void *state, const void *input )
 {
      uint64_t vhash64[8*4] __attribute__ ((aligned (128)));
-     skein512_4way_context ctx_skein;
-     memcpy( &ctx_skein, &skein512_4way_ctx, sizeof( ctx_skein ) );
+     skein512_4x64_context ctx_skein;
+     memcpy( &ctx_skein, &skein512_4x64_ctx, sizeof( ctx_skein ) );
 #if defined(__SHA__)
      uint32_t hash0[16] __attribute__ ((aligned (64)));
      uint32_t hash1[16] __attribute__ ((aligned (64)));
@@ -88,10 +88,10 @@ void skeinhash_4way( void *state, const void *input )
      uint32_t hash3[16] __attribute__ ((aligned (64)));
 #else
      uint32_t vhash32[16*4] __attribute__ ((aligned (64)));
-     sha256_4way_context ctx_sha256;
+     sha256_4x32_context ctx_sha256;
 #endif
 
-     skein512_4way_final16( &ctx_skein, vhash64, input + (64*4) );
+     skein512_4x64_final16( &ctx_skein, vhash64, input + (64*4) );
 
 #if defined(__SHA__)      
 
@@ -107,9 +107,9 @@ void skeinhash_4way( void *state, const void *input )
 #else
 
      rintrlv_4x64_4x32( vhash32, vhash64, 512 );
-     sha256_4way_init( &ctx_sha256 );
-     sha256_4way_update( &ctx_sha256, vhash32, 64 );
-     sha256_4way_close( &ctx_sha256, state );
+     sha256_4x32_init( &ctx_sha256 );
+     sha256_4x32_update( &ctx_sha256, vhash32, 64 );
+     sha256_4x32_close( &ctx_sha256, state );
 
 #endif
 }
@@ -132,7 +132,7 @@ int scanhash_skein_4way( struct work *work, uint32_t max_nonce,
     const bool bench = opt_benchmark;
 
    mm256_bswap32_intrlv80_4x64( vdata, pdata );
-   skein512_4way_prehash64( &skein512_4way_ctx, vdata );
+   skein512_4x64_prehash64( &skein512_4x64_ctx, vdata );
 
    *noncev = mm256_intrlv_blend_32(
                 _mm256_set_epi32( n+3, 0, n+2, 0, n+1, 0, n, 0 ), *noncev );

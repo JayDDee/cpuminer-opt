@@ -231,7 +231,7 @@ int scanhash_x25x( struct work *work, uint32_t max_nonce,
    do
    {
       edata[19] = n;
-      if ( x25x_hash( hash64, edata, thr_id ) );
+      if ( x25x_hash( hash64, edata, thr_id ) )
       if ( unlikely( valid_hash( hash64, ptarget ) && !bench ) )
       {
          pdata[19] = bswap_32( n );

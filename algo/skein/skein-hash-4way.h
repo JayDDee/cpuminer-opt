@@ -52,24 +52,36 @@ typedef struct
    __m512i h0, h1, h2, h3, h4, h5, h6, h7;
    size_t ptr;
    uint64_t bcount;
-} skein_8way_big_context __attribute__ ((aligned (128)));
+} skein_8x64_big_context __attribute__ ((aligned (128)));
 
-typedef skein_8way_big_context skein512_8way_context;
-typedef skein_8way_big_context skein256_8way_context;
+typedef skein_8x64_big_context skein512_8x64_context;
+typedef skein_8x64_big_context skein256_8x64_context;
 
-void skein512_8way_full( skein512_8way_context *sc, void *out,
+void skein512_8x64_full( skein512_8x64_context *sc, void *out,
                          const void *data, size_t len );
-void skein512_8way_init( skein512_8way_context *sc );
-void skein512_8way_update( void *cc, const void *data, size_t len );
-void skein512_8way_close( void *cc, void *dst );
+void skein512_8x64_init( skein512_8x64_context *sc );
+void skein512_8x64_update( void *cc, const void *data, size_t len );
+void skein512_8x64_close( void *cc, void *dst );
 
-void skein512_8way_prehash64( skein512_8way_context *sc, const void *data );
-void skein512_8way_final16( skein512_8way_context *sc, void *out,
+void skein512_8x64_prehash64( skein512_8x64_context *sc, const void *data );
+void skein512_8x64_final16( skein512_8x64_context *sc, void *out,
      const void *data );
 
-void skein256_8way_init( skein256_8way_context *sc );
-void skein256_8way_update( void *cc, const void *data, size_t len );
-void skein256_8way_close( void *cc, void *dst );
+void skein256_8x64_init( skein256_8x64_context *sc );
+void skein256_8x64_update( void *cc, const void *data, size_t len );
+void skein256_8x64_close( void *cc, void *dst );
+
+#define skein512_8way_context       skein512_8x64_context
+#define skein512_8way_full          skein512_8x64_full
+#define skein512_8way_init          skein512_8x64_init
+#define skein512_8way_update        skein512_8x64_update
+#define skein512_8way_close         skein512_8x64_close
+#define skein512_8way_prehash64     skein512_8x64_prehash64
+#define skein512_8way_final16       skein512_8x64_final16
+#define skein256_8way_context       skein256_8x64_context
+#define skein256_8way_init          skein256_8x64_init
+#define skein256_8way_update        skein256_8x64_update
+#define skein256_8way_close         skein256_8x64_close
 
 #endif // AVX512
 
@@ -81,25 +93,35 @@ typedef struct
    __m256i h0, h1, h2, h3, h4, h5, h6, h7;
    size_t ptr;
 	uint64_t bcount;
-} skein_4way_big_context __attribute__ ((aligned (128)));
+} skein_4x64_big_context __attribute__ ((aligned (128)));
 
-typedef skein_4way_big_context skein512_4way_context;
-typedef skein_4way_big_context skein256_4way_context;
+typedef skein_4x64_big_context skein512_4x64_context;
+typedef skein_4x64_big_context skein256_4x64_context;
 
-void skein512_4way_init( skein512_4way_context *sc );
-void skein512_4way_full( skein512_4way_context *sc, void *out,
+void skein512_4x64_init( skein512_4x64_context *sc );
+void skein512_4x64_full( skein512_4x64_context *sc, void *out,
                          const void *data, size_t len );
-void skein512_4way_update( void *cc, const void *data, size_t len );
-void skein512_4way_close( void *cc, void *dst );
-
-void skein256_4way_init( skein256_4way_context *sc );
-void skein256_4way_update( void *cc, const void *data, size_t len );
-void skein256_4way_close( void *cc, void *dst );
-
-void skein512_4way_prehash64( skein512_4way_context *sc, const void *data );
-void skein512_4way_final16( skein512_4way_context *sc, void *out,
+void skein512_4x64_update( void *cc, const void *data, size_t len );
+void skein512_4x64_close( void *cc, void *dst );
+void skein512_4x64_prehash64( skein512_4x64_context *sc, const void *data );
+void skein512_4x64_final16( skein512_4x64_context *sc, void *out,
      const void *data );
 
+void skein256_4x64_init( skein256_4x64_context *sc );
+void skein256_4x64_update( void *cc, const void *data, size_t len );
+void skein256_4x64_close( void *cc, void *dst );
+
+#define skein512_4way_context       skein512_4x64_context
+#define skein512_4way_full          skein512_4x64_full
+#define skein512_4way_init          skein512_4x64_init
+#define skein512_4way_update        skein512_4x64_update
+#define skein512_4way_close         skein512_4x64_close
+#define skein512_4way_prehash64     skein512_4x64_prehash64
+#define skein512_4way_final16       skein512_4x64_final16
+#define skein256_4way_context       skein256_4x64_context
+#define skein256_4way_init          skein256_4x64_init
+#define skein256_4way_update        skein256_4x64_update
+#define skein256_4way_close         skein256_4x64_close
 
 #endif
 
@@ -109,10 +131,10 @@ typedef struct
    v128u64_t h0, h1, h2, h3, h4, h5, h6, h7;
    size_t ptr;
    uint64_t bcount;
-} skein_2way_big_context __attribute__ ((aligned (128)));
+} skein_2x64_big_context __attribute__ ((aligned (128)));
 
-typedef skein_2way_big_context skein512_2x64_context;
-typedef skein_2way_big_context skein256_2x64_context;
+typedef skein_2x64_big_context skein512_2x64_context;
+typedef skein_2x64_big_context skein256_2x64_context;
 
 void skein512_2x64_init( skein512_2x64_context *sc );
 void skein512_2x64_full( skein512_2x64_context *sc, void *out,

@@ -227,7 +227,7 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[64] )
 	v[14] = S->f[0] ^ blake2s_IV[6];
 	v[15] = S->f[1] ^ blake2s_IV[7];
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(__ARM_NEON)
 
    v128_t *V = (v128_t*)v;
 
@@ -263,19 +263,6 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[64] )
    V[3] = v128_swap64( V[3] ); \
    V[2] = v128_shufll32( V[2] )
 
-   BLAKE2S_ROUND(0);
-   BLAKE2S_ROUND(1);
-   BLAKE2S_ROUND(2);
-   BLAKE2S_ROUND(3);
-   BLAKE2S_ROUND(4);
-   BLAKE2S_ROUND(5);
-   BLAKE2S_ROUND(6);
-   BLAKE2S_ROUND(7);
-   BLAKE2S_ROUND(8);
-   BLAKE2S_ROUND(9);
-   
-#undef BLAKE2S_ROUND
-
 #else
 
 #define G(r,i,a,b,c,d) \
@@ -290,7 +277,7 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[64] )
 		b = SPH_ROTR32(b ^ c, 7); \
 	} while(0)
 
-#define ROUND(r)  \
+#define BLAKE2S_ROUND(r)  \
 	do { \
 		G(r,0,v[ 0],v[ 4],v[ 8],v[12]); \
 		G(r,1,v[ 1],v[ 5],v[ 9],v[13]); \
@@ -302,24 +289,25 @@ int blake2s_compress( blake2s_state *S, const uint8_t block[64] )
 		G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 	} while(0)
 
-   ROUND( 0 );
-	ROUND( 1 );
-	ROUND( 2 );
-	ROUND( 3 );
-	ROUND( 4 );
-	ROUND( 5 );
-	ROUND( 6 );
-	ROUND( 7 );
-	ROUND( 8 );
-	ROUND( 9 );
-
 #endif
+
+   BLAKE2S_ROUND(0);
+   BLAKE2S_ROUND(1);
+   BLAKE2S_ROUND(2);
+   BLAKE2S_ROUND(3);
+   BLAKE2S_ROUND(4);
+   BLAKE2S_ROUND(5);
+   BLAKE2S_ROUND(6);
+   BLAKE2S_ROUND(7);
+   BLAKE2S_ROUND(8);
+   BLAKE2S_ROUND(9);
+   
 
 	for( size_t i = 0; i < 8; ++i )
 		S->h[i] = S->h[i] ^ v[i] ^ v[i + 8];
 
 #undef G
-#undef ROUND
+#undef BLAKE2S_ROUND
 	return 0;
 }
 

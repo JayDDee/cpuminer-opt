@@ -26,9 +26,9 @@
 #if defined (ALLIUM_16WAY)  
 
 typedef union {
-   keccak256_8way_context    keccak;
+   keccak256_8x64_context    keccak;
    cube_4way_2buf_context    cube;
-   skein256_8way_context     skein;
+   skein256_8x64_context     skein;
 #if defined(__VAES__)
    groestl256_4way_context   groestl;
 #else
@@ -60,7 +60,7 @@ static void allium_16way_hash( void *state, const void *midstate_vars,
    uint32_t hash15[8] __attribute__ ((aligned (32)));
    allium_16way_ctx_holder ctx __attribute__ ((aligned (64)));
 
-   blake256_16way_final_rounds_le( vhash, midstate_vars, midhash, block, 14 );
+   blake256_16x32_final_rounds_le( vhash, midstate_vars, midhash, block, 14 );
 
    dintrlv_16x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                   hash8, hash9, hash10, hash11, hash12, hash13, hash14, hash15,
@@ -70,12 +70,12 @@ static void allium_16way_hash( void *state, const void *midstate_vars,
    intrlv_8x64( vhashB, hash8, hash9, hash10, hash11, hash12, hash13, hash14,
                 hash15, 256 );
    
-   keccak256_8way_init( &ctx.keccak );
-   keccak256_8way_update( &ctx.keccak, vhashA, 32 );
-   keccak256_8way_close( &ctx.keccak, vhashA);
-   keccak256_8way_init( &ctx.keccak );
-   keccak256_8way_update( &ctx.keccak, vhashB, 32 );
-   keccak256_8way_close( &ctx.keccak, vhashB);
+   keccak256_8x64_init( &ctx.keccak );
+   keccak256_8x64_update( &ctx.keccak, vhashA, 32 );
+   keccak256_8x64_close( &ctx.keccak, vhashA);
+   keccak256_8x64_init( &ctx.keccak );
+   keccak256_8x64_update( &ctx.keccak, vhashB, 32 );
+   keccak256_8x64_close( &ctx.keccak, vhashB);
 
    dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                  vhashA, 256 );
@@ -153,12 +153,12 @@ static void allium_16way_hash( void *state, const void *midstate_vars,
    intrlv_8x64( vhashB, hash8, hash9, hash10, hash11, hash12, hash13, hash14,
                 hash15, 256 );
 
-   skein256_8way_init( &ctx.skein );
-   skein256_8way_update( &ctx.skein, vhashA, 32 );
-   skein256_8way_close( &ctx.skein, vhashA );
-   skein256_8way_init( &ctx.skein );
-   skein256_8way_update( &ctx.skein, vhashB, 32 );
-   skein256_8way_close( &ctx.skein, vhashB );
+   skein256_8x64_init( &ctx.skein );
+   skein256_8x64_update( &ctx.skein, vhashA, 32 );
+   skein256_8x64_close( &ctx.skein, vhashA );
+   skein256_8x64_init( &ctx.skein );
+   skein256_8x64_update( &ctx.skein, vhashB, 32 );
+   skein256_8x64_close( &ctx.skein, vhashB );
 
    dintrlv_8x64( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                  vhashA, 256 );
@@ -251,7 +251,7 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n+ 1, n );
 
    // Partialy prehash second block without touching nonces in block_buf[3].
-   blake256_16way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
+   blake256_16x32_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
      allium_16way_hash( hash, midstate_vars, block0_hash, block_buf );
@@ -273,9 +273,9 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
 #elif defined (ALLIUM_8WAY)  
 
 typedef union {
-   keccak256_4way_context    keccak;
+   keccak256_4x64_context    keccak;
    cube_2way_context         cube;
-   skein256_4way_context     skein;
+   skein256_4x64_context     skein;
 #if defined(__VAES__)
    groestl256_2way_context   groestl;
 #else
@@ -298,19 +298,19 @@ static void allium_8way_hash( void *hash, const void *midstate_vars,
    uint64_t *hash7 = (uint64_t*)hash+28;
    allium_8way_ctx_holder ctx __attribute__ ((aligned (64))); 
 
-   blake256_8way_final_rounds_le( vhashA, midstate_vars, midhash, block, 14 );
+   blake256_8x32_final_rounds_le( vhashA, midstate_vars, midhash, block, 14 );
 
    dintrlv_8x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                  vhashA, 256 );
    intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 256 );
    intrlv_4x64( vhashB, hash4, hash5, hash6, hash7, 256 );
 
-   keccak256_4way_init( &ctx.keccak );
-   keccak256_4way_update( &ctx.keccak, vhashA, 32 );
-   keccak256_4way_close( &ctx.keccak, vhashA );
-   keccak256_4way_init( &ctx.keccak );
-   keccak256_4way_update( &ctx.keccak, vhashB, 32 );
-   keccak256_4way_close( &ctx.keccak, vhashB );
+   keccak256_4x64_init( &ctx.keccak );
+   keccak256_4x64_update( &ctx.keccak, vhashA, 32 );
+   keccak256_4x64_close( &ctx.keccak, vhashA );
+   keccak256_4x64_init( &ctx.keccak );
+   keccak256_4x64_update( &ctx.keccak, vhashB, 32 );
+   keccak256_4x64_close( &ctx.keccak, vhashB );
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhashA, 256 );
    dintrlv_4x64( hash4, hash5, hash6, hash7, vhashB, 256 );
@@ -350,12 +350,12 @@ static void allium_8way_hash( void *hash, const void *midstate_vars,
    intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 256 );
    intrlv_4x64( vhashB, hash4, hash5, hash6, hash7, 256 );
 
-   skein256_4way_init( &ctx.skein );
-   skein256_4way_update( &ctx.skein, vhashA, 32 );
-   skein256_4way_close( &ctx.skein, vhashA );
-   skein256_4way_init( &ctx.skein );
-   skein256_4way_update( &ctx.skein, vhashB, 32 );
-   skein256_4way_close( &ctx.skein, vhashB );
+   skein256_4x64_init( &ctx.skein );
+   skein256_4x64_update( &ctx.skein, vhashA, 32 );
+   skein256_4x64_close( &ctx.skein, vhashA );
+   skein256_4x64_init( &ctx.skein );
+   skein256_4x64_update( &ctx.skein, vhashB, 32 );
+   skein256_4x64_close( &ctx.skein, vhashB );
 
 #if defined(__VAES__)
 
@@ -433,7 +433,7 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
                                      n+ 3, n+ 2, n+ 1, n );
 
    // Partialy prehash second block without touching nonces
-   blake256_8way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
+   blake256_8x32_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
      allium_8way_hash( hash, midstate_vars, block0_hash, block_buf );
@@ -483,7 +483,7 @@ static void allium_4way_hash( void *hash, const void *midstate_vars,
    uint64_t *hash3 = (uint64_t*)hash+12;
    allium_4way_ctx_holder ctx __attribute__ ((aligned (64)));
 
-   blake256_4way_final_rounds_le( vhashA, midstate_vars, midhash, block, 14 );
+   blake256_4x32_final_rounds_le( vhashA, midstate_vars, midhash, block, 14 );
    dintrlv_4x32( hash0, hash1, hash2, hash3, vhashA, 256 );
 
    intrlv_2x64( vhashA, hash0, hash1, 256 );
@@ -588,7 +588,7 @@ int scanhash_allium_4way( struct work *work, uint32_t max_nonce,
    block_buf[15] = v128_32( 640 );
 
       // Partialy prehash second block without touching nonces
-   blake256_4way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
+   blake256_4x32_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
      allium_4way_hash( hash, midstate_vars, block0_hash, block_buf );
@@ -615,7 +615,6 @@ int scanhash_allium_4way( struct work *work, uint32_t max_nonce,
 ////////////
 //
 //  1 way
-
 
 typedef struct 
 {

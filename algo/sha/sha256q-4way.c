@@ -7,28 +7,28 @@
 
 #if defined(SHA256T_16WAY)
 
-static __thread sha256_16way_context sha256_ctx16 __attribute__ ((aligned (64)));
+static __thread sha256_16x32_context sha256_ctx16 __attribute__ ((aligned (64)));
 
 void sha256q_16way_hash( void* output, const void* input )
 {
    uint32_t vhash[8*16] __attribute__ ((aligned (64)));
-   sha256_16way_context ctx;
+   sha256_16x32_context ctx;
    memcpy( &ctx, &sha256_ctx16, sizeof ctx );
 
-   sha256_16way_update( &ctx, input + (64<<4), 16 );
-   sha256_16way_close( &ctx, vhash );
+   sha256_16x32_update( &ctx, input + (64<<4), 16 );
+   sha256_16x32_close( &ctx, vhash );
 
-   sha256_16way_init( &ctx );
-   sha256_16way_update( &ctx, vhash, 32 );
-   sha256_16way_close( &ctx, vhash );
+   sha256_16x32_init( &ctx );
+   sha256_16x32_update( &ctx, vhash, 32 );
+   sha256_16x32_close( &ctx, vhash );
 
-   sha256_16way_init( &ctx );
-   sha256_16way_update( &ctx, vhash, 32 );
-   sha256_16way_close( &ctx, vhash );
+   sha256_16x32_init( &ctx );
+   sha256_16x32_update( &ctx, vhash, 32 );
+   sha256_16x32_close( &ctx, vhash );
 
-   sha256_16way_init( &ctx );
-   sha256_16way_update( &ctx, vhash, 32 );
-   sha256_16way_close( &ctx, output );
+   sha256_16x32_init( &ctx );
+   sha256_16x32_update( &ctx, vhash, 32 );
+   sha256_16x32_close( &ctx, output );
 }
 
 int scanhash_sha256q_16way( struct work *work, const uint32_t max_nonce,
@@ -51,8 +51,8 @@ int scanhash_sha256q_16way( struct work *work, const uint32_t max_nonce,
    mm512_bswap32_intrlv80_16x32( vdata, pdata );
    *noncev = _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+9, n+8,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n+1, n );
-   sha256_16way_init( &sha256_ctx16 );
-   sha256_16way_update( &sha256_ctx16, vdata, 64 );
+   sha256_16x32_init( &sha256_ctx16 );
+   sha256_16x32_update( &sha256_ctx16, vdata, 64 );
 
    do
    {
@@ -80,28 +80,28 @@ int scanhash_sha256q_16way( struct work *work, const uint32_t max_nonce,
 
 #if defined(SHA256T_8WAY)
 
-static __thread sha256_8way_context sha256_ctx8 __attribute__ ((aligned (64)));
+static __thread sha256_8x32_context sha256_ctx8 __attribute__ ((aligned (64)));
 
 void sha256q_8way_hash( void* output, const void* input )
 {
    uint32_t vhash[8*8] __attribute__ ((aligned (64)));
-   sha256_8way_context ctx;
+   sha256_8x32_context ctx;
    memcpy( &ctx, &sha256_ctx8, sizeof ctx );
 
-   sha256_8way_update( &ctx, input + (64<<3), 16 );
-   sha256_8way_close( &ctx, vhash );
+   sha256_8x32_update( &ctx, input + (64<<3), 16 );
+   sha256_8x32_close( &ctx, vhash );
 
-   sha256_8way_init( &ctx );
-   sha256_8way_update( &ctx, vhash, 32 );
-   sha256_8way_close( &ctx, vhash );
+   sha256_8x32_init( &ctx );
+   sha256_8x32_update( &ctx, vhash, 32 );
+   sha256_8x32_close( &ctx, vhash );
 
-   sha256_8way_init( &ctx );
-   sha256_8way_update( &ctx, vhash, 32 );
-   sha256_8way_close( &ctx, vhash );
+   sha256_8x32_init( &ctx );
+   sha256_8x32_update( &ctx, vhash, 32 );
+   sha256_8x32_close( &ctx, vhash );
 
-   sha256_8way_init( &ctx );
-   sha256_8way_update( &ctx, vhash, 32 );
-   sha256_8way_close( &ctx, output );
+   sha256_8x32_init( &ctx );
+   sha256_8x32_update( &ctx, vhash, 32 );
+   sha256_8x32_close( &ctx, output );
 }
 
 int scanhash_sha256q_8way( struct work *work, const uint32_t max_nonce,
@@ -123,8 +123,8 @@ int scanhash_sha256q_8way( struct work *work, const uint32_t max_nonce,
 
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
    *noncev = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
-   sha256_8way_init( &sha256_ctx8 );
-   sha256_8way_update( &sha256_ctx8, vdata, 64 );
+   sha256_8x32_init( &sha256_ctx8 );
+   sha256_8x32_update( &sha256_ctx8, vdata, 64 );
 
    do
    {
@@ -152,28 +152,28 @@ int scanhash_sha256q_8way( struct work *work, const uint32_t max_nonce,
 
 #if defined(SHA256T_4WAY)
 
-static __thread sha256_4way_context sha256_ctx4 __attribute__ ((aligned (64)));
+static __thread sha256_4x32_context sha256_ctx4 __attribute__ ((aligned (64)));
 
 void sha256q_4way_hash( void* output, const void* input )
 {
    uint32_t vhash[8*4] __attribute__ ((aligned (64)));
-   sha256_4way_context ctx;
+   sha256_4x32_context ctx;
    memcpy( &ctx, &sha256_ctx4, sizeof ctx );
 
-   sha256_4way_update( &ctx, input + (64<<2), 16 );
-   sha256_4way_close( &ctx, vhash );
+   sha256_4x32_update( &ctx, input + (64<<2), 16 );
+   sha256_4x32_close( &ctx, vhash );
 
-   sha256_4way_init( &ctx );
-   sha256_4way_update( &ctx, vhash, 32 );
-   sha256_4way_close( &ctx, vhash );
+   sha256_4x32_init( &ctx );
+   sha256_4x32_update( &ctx, vhash, 32 );
+   sha256_4x32_close( &ctx, vhash );
 
-   sha256_4way_init( &ctx );
-   sha256_4way_update( &ctx, vhash, 32 );
-   sha256_4way_close( &ctx, vhash );
+   sha256_4x32_init( &ctx );
+   sha256_4x32_update( &ctx, vhash, 32 );
+   sha256_4x32_close( &ctx, vhash );
 
-   sha256_4way_init( &ctx );
-   sha256_4way_update( &ctx, vhash, 32 );
-   sha256_4way_close( &ctx, output );
+   sha256_4x32_init( &ctx );
+   sha256_4x32_update( &ctx, vhash, 32 );
+   sha256_4x32_close( &ctx, output );
 }
 
 int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
@@ -205,8 +205,8 @@ int scanhash_sha256q_4way( struct work *work, uint32_t max_nonce,
                                         0 };
 
    v128_bswap32_intrlv80_4x32( vdata, pdata );
-   sha256_4way_init( &sha256_ctx4 );
-   sha256_4way_update( &sha256_ctx4, vdata, 64 );
+   sha256_4x32_init( &sha256_ctx4 );
+   sha256_4x32_update( &sha256_ctx4, vdata, 64 );
 
    for ( int m = 0; m < 6; m++ ) if ( Htarg <= htmax[m] )
    {

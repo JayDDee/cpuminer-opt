@@ -61,6 +61,11 @@ int blake2s_4way_final( blake2s_4way_state *S, void *out, uint8_t outlen );
 int blake2s_4way_full_blocks( blake2s_4way_state *S, void *out,
                               const void *input, uint64_t inlen );
 
+#define blake2s_4x32_state       blake2s_4way_state
+#define blake2s_4x32_init        blake2s_4way_init
+#define blake2s_4x32_update      blake2s_4way_update
+#define blake2s_4x32_final       blake2s_4way_final
+#define blake2s_4x32_full_blocks blake2s_4way_full_blocks
 
 #if defined(__AVX2__)
 
@@ -81,6 +86,12 @@ int blake2s_8way_final( blake2s_8way_state *S, void *out, uint8_t outlen );
 int blake2s_8way_full_blocks( blake2s_8way_state *S, void *out,
                               const void *input, uint64_t inlen );
 
+#define blake2s_8x32_state       blake2s_8way_state
+#define blake2s_8x32_init        blake2s_8way_init
+#define blake2s_8x32_update      blake2s_8way_update
+#define blake2s_8x32_final       blake2s_8way_final
+#define blake2s_8x32_full_blocks blake2s_8way_full_blocks
+
 #endif
 
 #if defined(SIMD512)
@@ -99,6 +110,11 @@ int blake2s_16way_init( blake2s_16way_state *S, const uint8_t outlen );
 int blake2s_16way_update( blake2s_16way_state *S, const void *in,
                          uint64_t inlen );
 int blake2s_16way_final( blake2s_16way_state *S, void *out, uint8_t outlen );
+
+#define blake2s_16x32_state       blake2s_16way_state
+#define blake2s_16x32_init        blake2s_16way_init
+#define blake2s_16x32_update      blake2s_16way_update
+#define blake2s_16x32_final       blake2s_16way_final
 
 #endif
 

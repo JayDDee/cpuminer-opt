@@ -30,6 +30,7 @@ static const uint32_t K256[64] =
    0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2
 };
 
+#if defined(__SSE2__) || defined(__ARM_NEON)
 // SHA-256 4 way SSE2
 
 #define CHs(X, Y, Z) \
@@ -309,142 +310,6 @@ void sha256_4x32_final_rounds( v128_t *state_out, const v128_t *data,
    v128_store( state_out + 7,  H );
 }
 
-
-# if 0
-
-// Working correctly but still slower
-int sha256_4x32_transform_le_short( v128_t *state_out, const v128_t *data,
-                            const v128_t *state_in, const uint32_t *target )
-{
-   v128_t A, B, C, D, E, F, G, H, T0, T1, T2;
-   v128_t vmask, targ, hash;
-   int t6_mask, flip;
-   v128_t W[16];      v128_memcpy( W, data, 16 );
-
-   A = v128_load( state_in   );
-   B = v128_load( state_in+1 );
-   C = v128_load( state_in+2 );
-   D = v128_load( state_in+3 );
-   E = v128_load( state_in+4 );
-   F = v128_load( state_in+5 );
-   G = v128_load( state_in+6 );
-   H = v128_load( state_in+7 );
-
-   const v128_t IV7 = H;
-   const v128_t IV6 = G;
-
-   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 0 );
-   SHA256_4X32_MSG_EXPANSION( W );
-   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
-   SHA256_4X32_MSG_EXPANSION( W );
-   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
-
-   W[ 0] = SHA256_4X32_MEXP( W[14], W[ 9], W[ 1], W[ 0] );
-   W[ 1] = SHA256_4X32_MEXP( W[15], W[10], W[ 2], W[ 1] );
-   W[ 2] = SHA256_4X32_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
-   W[ 3] = SHA256_4X32_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
-   W[ 4] = SHA256_4X32_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
-   W[ 5] = SHA256_4X32_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
-   W[ 6] = SHA256_4X32_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
-   W[ 7] = SHA256_4X32_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
-   W[ 8] = SHA256_4X32_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
-   W[ 9] = SHA256_4X32_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
-   W[10] = SHA256_4X32_MEXP( W[ 8], W[ 3], W[11], W[10] );
-   W[11] = SHA256_4X32_MEXP( W[ 9], W[ 4], W[12], W[11] );
-   W[12] = SHA256_4X32_MEXP( W[10], W[ 5], W[13], W[12] );
-
-   v128_t X_xor_Y, Y_xor_Z = v128_xor( B, C );
-   
-   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  0, 48 );
-   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  1, 48 );
-   SHA256_4X32_ROUND( G, H, A, B, C, D, E, F,  2, 48 );
-   SHA256_4X32_ROUND( F, G, H, A, B, C, D, E,  3, 48 );
-   SHA256_4X32_ROUND( E, F, G, H, A, B, C, D,  4, 48 );
-   SHA256_4X32_ROUND( D, E, F, G, H, A, B, C,  5, 48 );
-   SHA256_4X32_ROUND( C, D, E, F, G, H, A, B,  6, 48 );
-   SHA256_4X32_ROUND( B, C, D, E, F, G, H, A,  7, 48 );
-   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  8, 48 );
-   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  9, 48 );
-
-   T0 = v128_add32( v128_32( K256[58] ),
-                   v128_add4_32( BSG2_1( C ), CHs( C, D, E ), W[10], F ) );
-   B = v128_add32( B, T0 );
-
-   T1 = v128_add32( v128_32( K256[59] ),
-                    v128_add4_32( BSG2_1( B ), CHs( B, C, D ), W[11], E ) );
-   A = v128_add32( A, T1 );
-
-   T2 = v128_add32( v128_32( K256[60] ),
-                    v128_add4_32( BSG2_1( A ), CHs( A, B, C ), W[12], D ) );
-   H = v128_add32( H, T2 );
-
-   targ = v128_32( target[7] );
-   hash = v128_bswap32( v128_add32( H, IV7 ) );
-
-   flip = ( (int)target[7] < 0 ? 0xf : 0 ) ^ v128_movmask32( hash );
-
-   if ( likely(
-             0xf == ( flip ^ v128_movmask32( v128_cmpgt32( hash, targ ) ) ) ))
-   return 0;
-
-   t6_mask = v128_movmask32( vmask = v128_cmpeq32( hash, targ ) );
-
-   // round 58 part 2
-   F = v128_add32( T0, v128_add32( BSG2_0( G ), MAJs( G, H, A ) ) );
-
-   // round 61  part 1
-   W[13] = SHA256_4X32_MEXP( W[11], W[ 6], W[14], W[13] );
-   T0 = v128_add32( v128_32( K256[61] ),
-                    v128_add4_32( BSG2_1( H ), CHs( H, A, B ), W[13], C ) );
-   G = v128_add32( G, T0 );
-
-   if ( t6_mask )
-   {
-      targ = v128_and( vmask, v128_32( target[6] ) );
-      hash = v128_bswap32( v128_add32( G, IV6 ) );
-
-      if ( ( 0 != ( t6_mask & v128_movmask32( v128_cmpeq32( hash, targ ) ) ) ))
-         return 0;
-      else
-      {
-         flip = ( (int)target[6] < 0 ? 0xf : 0 ) ^ v128_movmask32( hash );
-         if ( 0 != ( t6_mask & ( flip ^ v128_movmask32(
-                                             v128_cmpgt32( hash, targ ) ) ) ) )
-            return 0;
-          else if ( target[6] == 0x80000000 )
-          {
-             if ( 0 == ( t6_mask & v128_movmask32(
-                            v128_cmpgt32( hash, v128_xor( hash, hash ) ) ) ) )
-                return 0;
-          }
-       }
-   }
-   
-   // rounds 59 to 61 part 2
-   E = v128_add32( T1, v128_add32( BSG2_0( F ), MAJs( F, G, H ) ) );
-   D = v128_add32( T2, v128_add32( BSG2_0( E ), MAJs( E, F, G ) ) );
-   C = v128_add32( T0, v128_add32( BSG2_0( D ), MAJs( D, E, F ) ) );
-
-   // rounds 62 & 63
-   W[14] = SHA256_4X32_MEXP( W[12], W[ 7], W[15], W[14] );
-   W[15] = SHA256_4X32_MEXP( W[13], W[ 8], W[ 0], W[15] );
-
-   SHA256_4X32_ROUND( C, D, E, F, G, H, A, B, 14, 48 );
-   SHA256_4X32_ROUND( B, C, D, E, F, G, H, A, 15, 48 );
-
-   state_out[0] = v128_add32( state_in[0], A );
-   state_out[1] = v128_add32( state_in[1], B );
-   state_out[2] = v128_add32( state_in[2], C );
-   state_out[3] = v128_add32( state_in[3], D );
-   state_out[4] = v128_add32( state_in[4], E );
-   state_out[5] = v128_add32( state_in[5], F );
-   state_out[6] = v128_add32( state_in[6], G );
-   state_out[7] = v128_add32( state_in[7], H );
-return 1;
-}
-
-#endif
-
 void sha256_4x32_init( sha256_4x32_context *sc )
 {
    sc->count_high = sc->count_low = 0;
@@ -529,29 +394,31 @@ void sha256_4x32_full( void *dst, const void *data, size_t len )
    sha256_4x32_close( &ctx, dst );
 }
 
+#endif  // SSE2 || NEON
+
 #if defined(__AVX2__)
 
 // SHA-256 8 way
 
 #define BSG2_0x(x) \
-   _mm256_xor_si256( _mm256_xor_si256( mm256_ror_32( x,  2 ), \
-                                       mm256_ror_32( x, 13 ) ), \
-                                       mm256_ror_32( x, 22 ) )
+   mm256_xor3( mm256_ror_32( x,  2 ), \
+               mm256_ror_32( x, 13 ), \
+               mm256_ror_32( x, 22 ) )
 
 #define BSG2_1x(x) \
-   _mm256_xor_si256( _mm256_xor_si256( mm256_ror_32( x,  6 ), \
-                                       mm256_ror_32( x, 11 ) ), \
-                                       mm256_ror_32( x, 25 ) )
+   mm256_xor3( mm256_ror_32( x,  6 ), \
+               mm256_ror_32( x, 11 ), \
+               mm256_ror_32( x, 25 ) )
 
 #define SSG2_0x(x) \
-   _mm256_xor_si256( _mm256_xor_si256( mm256_ror_32( x,  7 ), \
-                                       mm256_ror_32( x, 18 ) ), \
-                                       _mm256_srli_epi32( x, 3 ) ) 
+   mm256_xor3( mm256_ror_32( x,  7 ), \
+               mm256_ror_32( x, 18 ), \
+               _mm256_srli_epi32( x, 3 ) ) 
 
 #define SSG2_1x(x) \
-   _mm256_xor_si256( _mm256_xor_si256( mm256_ror_32( x, 17 ), \
-                                       mm256_ror_32( x, 19 ) ), \
-                                       _mm256_srli_epi32( x, 10 ) )
+   mm256_xor3( mm256_ror_32( x, 17 ), \
+               mm256_ror_32( x, 19 ), \
+               _mm256_srli_epi32( x, 10 ) )
 
 #define SHA256_8WAY_MEXP( a, b, c, d ) \
      mm256_add4_32( SSG2_1x( a ), b, SSG2_0x( c ), d );
@@ -574,13 +441,8 @@ void sha256_4x32_full( void *dst, const void *data, size_t len )
       W[14] = SHA256_8WAY_MEXP( W[12], W[ 7], W[15], W[14] ); \
       W[15] = SHA256_8WAY_MEXP( W[13], W[ 8], W[ 0], W[15] ); 
 
-
-// With AVX512VL ternary logic optimizations are available.
-// If not optimize by forwarding the result of X^Y in MAJ to the next round
-// to avoid recalculating it as Y^Z. This optimization is not applicable
-// when MAJ is optimized with ternary logic.
-
 #if defined(VL256)
+// AVX512 or AVX10-256
 
 #define CHx(X, Y, Z)    _mm256_ternarylogic_epi32( X, Y, Z, 0xca )
 
@@ -745,7 +607,7 @@ static inline void SHA256_8WAY_TRANSFORM( __m256i *out, __m256i *W,
 }
 
 // accepts LE input data
-void sha256_8way_transform_le( __m256i *state_out, const __m256i *data,
+void sha256_8x32_transform_le( __m256i *state_out, const __m256i *data,
                                const __m256i *state_in )
 {
    __m256i W[16];
@@ -754,7 +616,7 @@ void sha256_8way_transform_le( __m256i *state_out, const __m256i *data,
 }
 
 // Accepts BE input data, need to bswap
-void sha256_8way_transform_be( __m256i *state_out, const __m256i *data,
+void sha256_8x32_transform_be( __m256i *state_out, const __m256i *data,
                                const __m256i *state_in )
 {
    __m256i W[16];
@@ -764,7 +626,7 @@ void sha256_8way_transform_be( __m256i *state_out, const __m256i *data,
 }
 
 // Aggressive prehashing, LE byte order
-void sha256_8way_prehash_3rounds( __m256i *state_mid, __m256i *X,
+void sha256_8x32_prehash_3rounds( __m256i *state_mid, __m256i *X,
                                   const __m256i *W, const __m256i *state_in )
 {
    __m256i A, B, C, D, E, F, G, H, T1;
@@ -813,7 +675,7 @@ void sha256_8way_prehash_3rounds( __m256i *state_mid, __m256i *X,
    _mm256_store_si256( state_mid + 7, H );
 }
 
-void sha256_8way_final_rounds( __m256i *state_out, const __m256i *data,
+void sha256_8x32_final_rounds( __m256i *state_out, const __m256i *data,
           const __m256i *state_in, const __m256i *state_mid, const __m256i *X )
 {
    __m256i A, B, C, D, E, F, G, H;
@@ -914,14 +776,12 @@ void sha256_8way_final_rounds( __m256i *state_out, const __m256i *data,
    _mm256_store_si256( state_out + 7,  H );
 }
 
-int sha256_8way_transform_le_short( __m256i *state_out, const __m256i *data,
+int sha256_8x32_transform_le_short( __m256i *state_out, const __m256i *data,
                            const __m256i *state_in, const uint32_t *target )
 {
    __m256i A, B, C, D, E, F, G, H, T0, T1, T2;
    __m256i vmask, targ, hash;
    __m256i W[16];  memcpy_256( W, data, 16 );
-   const __m256i bswap_shuf = mm256_bcast_m128( _mm_set_epi64x(
-                              0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
    uint8_t flip, t6_mask;
 
    A = _mm256_load_si256( state_in   );
@@ -1012,7 +872,7 @@ int sha256_8way_transform_le_short( __m256i *state_out, const __m256i *data,
 
    // Got H, test it.
    targ = v256_32( target[7] );
-   hash = _mm256_shuffle_epi8( _mm256_add_epi32( H, IV7 ), bswap_shuf );
+   hash = mm256_bswap_32( _mm256_add_epi32( H, IV7 ) );
    if ( target[7] )
    {
       flip = ( (int)target[7] < 0 ? -1 : 0 ) ^ mm256_movmask_32( hash );
@@ -1035,7 +895,7 @@ int sha256_8way_transform_le_short( __m256i *state_out, const __m256i *data,
    { 
       // Testing H was inconclusive: hash7 == target7, need to test G
       targ = _mm256_and_si256( vmask, v256_32( target[6] ) );
-      hash = _mm256_shuffle_epi8( _mm256_add_epi32( G, IV6 ), bswap_shuf );
+      hash = mm256_bswap_32( _mm256_add_epi32( G, IV6 ) );
 
       if ( likely( 0 == ( t6_mask & mm256_movmask_32(
                                       _mm256_cmpeq_epi32( hash, targ ) ) ) ))
@@ -1083,8 +943,7 @@ int sha256_8way_transform_le_short( __m256i *state_out, const __m256i *data,
    return 1;
 }
 
-
-void sha256_8way_init( sha256_8way_context *sc )
+void sha256_8x32_init( sha256_8x32_context *sc )
 {
    sc->count_high = sc->count_low = 0;
    sc->val[0] = v256_32( sha256_iv[0] );
@@ -1100,7 +959,7 @@ void sha256_8way_init( sha256_8way_context *sc )
 // need to handle odd byte length for yespower.
 // Assume only last update is odd.
 
-void sha256_8way_update( sha256_8way_context *sc, const void *data, size_t len )
+void sha256_8x32_update( sha256_8x32_context *sc, const void *data, size_t len )
 {
    __m256i *vdata = (__m256i*)data;
    size_t ptr;
@@ -1121,7 +980,7 @@ void sha256_8way_update( sha256_8way_context *sc, const void *data, size_t len )
       len -= clen;
       if ( ptr == buf_size )
       {
-         sha256_8way_transform_be( sc->val, sc->buf, sc->val );
+         sha256_8x32_transform_be( sc->val, sc->buf, sc->val );
          ptr = 0;
       }
       clow = sc->count_low;
@@ -1132,7 +991,7 @@ void sha256_8way_update( sha256_8way_context *sc, const void *data, size_t len )
    }
 }
 
-void sha256_8way_close( sha256_8way_context *sc, void *dst )
+void sha256_8x32_close( sha256_8x32_context *sc, void *dst )
 {
     unsigned ptr;
     uint32_t low, high;
@@ -1146,7 +1005,7 @@ void sha256_8way_close( sha256_8way_context *sc, void *dst )
     if ( ptr > pad )
     {
          memset_zero_256( sc->buf + (ptr>>2), (buf_size - ptr) >> 2 );
-         sha256_8way_transform_be( sc->val, sc->buf, sc->val );
+         sha256_8x32_transform_be( sc->val, sc->buf, sc->val );
          memset_zero_256( sc->buf, pad >> 2 );
     }
     else
@@ -1159,17 +1018,17 @@ void sha256_8way_close( sha256_8way_context *sc, void *dst )
     sc->buf[   pad     >> 2 ] = v256_32( bswap_32( high ) );
     sc->buf[ ( pad+4 ) >> 2 ] = v256_32( bswap_32( low ) );
 
-    sha256_8way_transform_be( sc->val, sc->buf, sc->val );
+    sha256_8x32_transform_be( sc->val, sc->buf, sc->val );
 
     mm256_block_bswap_32( dst, sc->val );
 }
 
-void sha256_8way_full( void *dst, const void *data, size_t len )
+void sha256_8x32_full( void *dst, const void *data, size_t len )
 {
-   sha256_8way_context ctx;
-   sha256_8way_init( &ctx );
-   sha256_8way_update( &ctx, data, len );
-   sha256_8way_close( &ctx, dst );
+   sha256_8x32_context ctx;
+   sha256_8x32_init( &ctx );
+   sha256_8x32_update( &ctx, data, len );
+   sha256_8x32_close( &ctx, dst );
 }
 
 #if defined(SIMD512)
@@ -1302,7 +1161,7 @@ static inline void SHA256_16WAY_TRANSFORM( __m512i *out, __m512i *W,
 }
 
 // accepts LE input data
-void sha256_16way_transform_le( __m512i *state_out, const __m512i *data,
+void sha256_16x32_transform_le( __m512i *state_out, const __m512i *data,
                                 const __m512i *state_in )
 {
    __m512i W[16];
@@ -1311,7 +1170,7 @@ void sha256_16way_transform_le( __m512i *state_out, const __m512i *data,
 }
 
 // Accepts BE input data, need to bswap
-void sha256_16way_transform_be( __m512i *state_out, const __m512i *data,
+void sha256_16x32_transform_be( __m512i *state_out, const __m512i *data,
                                 const __m512i *state_in )
 {
    __m512i W[16];
@@ -1321,7 +1180,7 @@ void sha256_16way_transform_be( __m512i *state_out, const __m512i *data,
 }
  
 // Aggressive prehashing, LE byte order
-void sha256_16way_prehash_3rounds( __m512i *state_mid, __m512i *X, 
+void sha256_16x32_prehash_3rounds( __m512i *state_mid, __m512i *X, 
                                    const __m512i *W, const __m512i *state_in )
 {
    __m512i A, B, C, D, E, F, G, H, T1;
@@ -1369,7 +1228,7 @@ void sha256_16way_prehash_3rounds( __m512i *state_mid, __m512i *X,
    _mm512_store_si512( state_mid + 7, H );
 }   
 
-void sha256_16way_final_rounds( __m512i *state_out, const __m512i *data,
+void sha256_16x32_final_rounds( __m512i *state_out, const __m512i *data,
           const __m512i *state_in, const __m512i *state_mid, const __m512i *X )
 {
    __m512i A, B, C, D, E, F, G, H;
@@ -1470,15 +1329,13 @@ void sha256_16way_final_rounds( __m512i *state_out, const __m512i *data,
 
 // returns 0 if hash aborted early and invalid,
 // returns 1 for completed hash with at least one valid candidate.
-int sha256_16way_transform_le_short( __m512i *state_out, const __m512i *data,
+int sha256_16x32_transform_le_short( __m512i *state_out, const __m512i *data,
                               const __m512i *state_in, const uint32_t *target )
 {
    __m512i A, B, C, D, E, F, G, H, hash, targ;
    __m512i T0, T1, T2;
    __m512i W[16];      memcpy_512( W, data, 16 );
    __mmask16 t6_mask;
-   const __m512i bswap_shuf = mm512_bcast_m128( _mm_set_epi64x(
-                              0x0c0d0e0f08090a0b, 0x0405060700010203 ) ); 
 
    A = _mm512_load_si512( state_in   );
    B = _mm512_load_si512( state_in+1 );
@@ -1588,7 +1445,7 @@ int sha256_16way_transform_le_short( __m512i *state_out, const __m512i *data,
    H = _mm512_add_epi32( H, T2 );
 
    // got H, test it against target[7]
-   hash = _mm512_shuffle_epi8( _mm512_add_epi32( H , IV7 ), bswap_shuf );
+   hash = mm512_bswap_32( _mm512_add_epi32( H , IV7 ) );
    targ = v512_32( target[7] );
    if ( target[7] )
    if ( likely( 0 == _mm512_cmple_epu32_mask( hash, targ ) ))
@@ -1608,7 +1465,7 @@ int sha256_16way_transform_le_short( __m512i *state_out, const __m512i *data,
    // got G, test it against target[6] if indicated
    if ( (uint16_t)t6_mask )
    {
-      hash = _mm512_shuffle_epi8( _mm512_add_epi32( G, IV6 ), bswap_shuf );
+      hash = mm512_bswap_32( _mm512_add_epi32( G, IV6 ) );
       targ = v512_32( target[6] );
       if ( likely( 0 == _mm512_mask_cmple_epu32_mask( t6_mask, hash, targ ) ))
           return 0;
@@ -1644,7 +1501,7 @@ int sha256_16way_transform_le_short( __m512i *state_out, const __m512i *data,
    return 1;
 }
 
-void sha256_16way_init( sha256_16way_context *sc )
+void sha256_16x32_init( sha256_16x32_context *sc )
 {
    sc->count_high = sc->count_low = 0;
    sc->val[0] = v512_32( sha256_iv[0] );
@@ -1657,7 +1514,7 @@ void sha256_16way_init( sha256_16way_context *sc )
    sc->val[7] = v512_32( sha256_iv[7] );
 }
 
-void sha256_16way_update( sha256_16way_context *sc, const void *data,
+void sha256_16x32_update( sha256_16x32_context *sc, const void *data,
                            size_t len )
 {
    __m512i *vdata = (__m512i*)data;
@@ -1679,7 +1536,7 @@ void sha256_16way_update( sha256_16way_context *sc, const void *data,
       len -= clen;
       if ( ptr == buf_size )
       {
-         sha256_16way_transform_be( sc->val, sc->buf, sc->val );
+         sha256_16x32_transform_be( sc->val, sc->buf, sc->val );
          ptr = 0;
       }
       clow = sc->count_low;
@@ -1690,7 +1547,7 @@ void sha256_16way_update( sha256_16way_context *sc, const void *data,
    }
 }
 
-void sha256_16way_close( sha256_16way_context *sc, void *dst )
+void sha256_16x32_close( sha256_16x32_context *sc, void *dst )
 {
     unsigned ptr;
     uint32_t low, high;
@@ -1704,7 +1561,7 @@ void sha256_16way_close( sha256_16way_context *sc, void *dst )
     if ( ptr > pad )
     {
          memset_zero_512( sc->buf + (ptr>>2), (buf_size - ptr) >> 2 );
-         sha256_16way_transform_be( sc->val, sc->buf, sc->val );
+         sha256_16x32_transform_be( sc->val, sc->buf, sc->val );
          memset_zero_512( sc->buf, pad >> 2 );
     }
     else
@@ -1717,17 +1574,17 @@ void sha256_16way_close( sha256_16way_context *sc, void *dst )
     sc->buf[   pad     >> 2 ] = v512_32( bswap_32( high ) );
     sc->buf[ ( pad+4 ) >> 2 ] = v512_32( bswap_32( low ) );
 
-    sha256_16way_transform_be( sc->val, sc->buf, sc->val );
+    sha256_16x32_transform_be( sc->val, sc->buf, sc->val );
 
     mm512_block_bswap_32( dst, sc->val );
 }
 
-void sha256_16way_full( void *dst, const void *data, size_t len )
+void sha256_16x32_full( void *dst, const void *data, size_t len )
 {
-   sha256_16way_context ctx;
-   sha256_16way_init( &ctx );
-   sha256_16way_update( &ctx, data, len );
-   sha256_16way_close( &ctx, dst );
+   sha256_16x32_context ctx;
+   sha256_16x32_init( &ctx );
+   sha256_16x32_update( &ctx, data, len );
+   sha256_16x32_close( &ctx, dst );
 }
 
 #undef CH

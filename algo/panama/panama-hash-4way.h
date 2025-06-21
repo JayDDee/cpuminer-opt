@@ -18,10 +18,13 @@ typedef struct {
 } panama_4way_context __attribute__ ((aligned (64)));
 
 void panama_4way_init( void *cc );
-
 void panama_4way_update( void *cc, const void *data, size_t len );
-
 void panama_4way_close( void *cc, void *dst );
+
+#define panama_4x32_context panama_4way_context
+#define panama_4x32_init    panama_4way_init
+#define panama_4x32_update  panama_4way_update
+#define panama_4x32_close   panama_4way_close
 
 #if defined(__AVX2__)
 
@@ -34,10 +37,13 @@ typedef struct {
 } panama_8way_context __attribute__ ((aligned (128)));
 
 void panama_8way_init( void *cc );
-
 void panama_8way_update( void *cc, const void *data, size_t len );
-
 void panama_8way_close( void *cc, void *dst );
+
+#define panama_8x32_context panama_8way_context
+#define panama_8x32_init    panama_8way_init
+#define panama_8x32_update  panama_8way_update
+#define panama_8x32_close   panama_8way_close
 
 #endif
 #endif

@@ -189,7 +189,7 @@ int scanhash_hex( struct work *work, uint32_t max_nonce,
    v128_bswap32_80( edata, pdata );
    
    static __thread uint32_t s_ntime = UINT32_MAX;
-   uint32_t ntime = swab32(pdata[17]);
+   uint32_t ntime = bswap_32(pdata[17]);
    if ( s_ntime != ntime )
    {
       hex_getAlgoString( (const uint32_t*) (&edata[1]), x16r_hash_order );

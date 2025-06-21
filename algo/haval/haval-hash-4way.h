@@ -82,11 +82,14 @@ typedef struct {
 typedef haval_4way_context haval256_5_4way_context;
 
 void haval256_5_4way_init( void *cc );
-
 void haval256_5_4way_update( void *cc, const void *data, size_t len );
 //#define haval256_5_4way haval256_5_4way_update
-
 void haval256_5_4way_close( void *cc, void *dst );
+
+#define haval256_4x32_context    haval256_5_4way_context
+#define haval256_4x32_init       haval256_5_4way_init
+#define haval256_4x32_update     haval256_5_4way_update
+#define haval256_4x32_close      haval256_5_4way_close
 
 #if defined(__AVX2__)
 
@@ -100,10 +103,13 @@ typedef struct {
 typedef haval_8way_context haval256_5_8way_context;
 
 void haval256_5_8way_init( void *cc );
-
 void haval256_5_8way_update( void *cc, const void *data, size_t len );
-
 void haval256_5_8way_close( void *cc, void *dst );
+
+#define haval256_8x32_context    haval256_5_8way_context
+#define haval256_8x32_init       haval256_5_8way_init
+#define haval256_8x32_update     haval256_5_8way_update
+#define haval256_8x32_close      haval256_5_8way_close
 
 #endif // AVX2
 
@@ -119,10 +125,13 @@ typedef struct {
 typedef haval_16way_context haval256_5_16way_context;
 
 void haval256_5_16way_init( void *cc );
-
 void haval256_5_16way_update( void *cc, const void *data, size_t len );
-
 void haval256_5_16way_close( void *cc, void *dst );
+
+#define haval256_16x32_context    haval256_5_16way_context
+#define haval256_16x32_init       haval256_5_16way_init
+#define haval256_16x32_update     haval256_5_16way_update
+#define haval256_16x32_close      haval256_5_16way_close
 
 #endif // AVX512
 

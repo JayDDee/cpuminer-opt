@@ -423,33 +423,6 @@ void blake256_transform_le( uint32_t *H, const uint32_t *buf,
 		(state)->T1 = T1; \
 	} while (0)
 
-
-#if defined(__SSSE3__)
-
-#define BLAKE256_4X32_BLOCK_BSWAP32 \
-{ \
-   v128_t shuf_bswap32 = v128_set64( 0x0c0d0e0f08090a0b, \
-                                     0x0405060700010203 ); \
-   M0 = _mm_shuffle_epi8( buf[ 0], shuf_bswap32 ); \
-   M1 = _mm_shuffle_epi8( buf[ 1], shuf_bswap32 ); \
-   M2 = _mm_shuffle_epi8( buf[ 2], shuf_bswap32 ); \
-   M3 = _mm_shuffle_epi8( buf[ 3], shuf_bswap32 ); \
-   M4 = _mm_shuffle_epi8( buf[ 4], shuf_bswap32 ); \
-   M5 = _mm_shuffle_epi8( buf[ 5], shuf_bswap32 ); \
-   M6 = _mm_shuffle_epi8( buf[ 6], shuf_bswap32 ); \
-   M7 = _mm_shuffle_epi8( buf[ 7], shuf_bswap32 ); \
-   M8 = _mm_shuffle_epi8( buf[ 8], shuf_bswap32 ); \
-   M9 = _mm_shuffle_epi8( buf[ 9], shuf_bswap32 ); \
-   MA = _mm_shuffle_epi8( buf[10], shuf_bswap32 ); \
-   MB = _mm_shuffle_epi8( buf[11], shuf_bswap32 ); \
-   MC = _mm_shuffle_epi8( buf[12], shuf_bswap32 ); \
-   MD = _mm_shuffle_epi8( buf[13], shuf_bswap32 ); \
-   ME = _mm_shuffle_epi8( buf[14], shuf_bswap32 ); \
-   MF = _mm_shuffle_epi8( buf[15], shuf_bswap32 ); \
-}
-
-#else  // SSE2
-
 #define BLAKE256_4X32_BLOCK_BSWAP32 \
 { \
    M0 = v128_bswap32( buf[0] ); \
@@ -469,8 +442,6 @@ void blake256_transform_le( uint32_t *H, const uint32_t *buf,
    ME = v128_bswap32( buf[14] ); \
    MF = v128_bswap32( buf[15] ); \
 }
-
-#endif  // SSSE3 else SSE2
 
 #define COMPRESS32_4X32( rounds ) \
 { \
@@ -926,22 +897,6 @@ void blake256_4x32_final_rounds_le( void *final_hash, const void *midstate,
       ROUND_S_4X32_3;
    }
 
-#if defined(__SSSE3__)
-
-   const v128_t shuf_bswap32 =
-                      v128_set64( 0x0c0d0e0f08090a0b, 0x0405060700010203 );
-
-   H[0] = _mm_shuffle_epi8( v128_xor3( V8, V0, h[0] ), shuf_bswap32 );
-   H[1] = _mm_shuffle_epi8( v128_xor3( V9, V1, h[1] ), shuf_bswap32 );
-   H[2] = _mm_shuffle_epi8( v128_xor3( VA, V2, h[2] ), shuf_bswap32 );
-   H[3] = _mm_shuffle_epi8( v128_xor3( VB, V3, h[3] ), shuf_bswap32 );
-   H[4] = _mm_shuffle_epi8( v128_xor3( VC, V4, h[4] ), shuf_bswap32 );
-   H[5] = _mm_shuffle_epi8( v128_xor3( VD, V5, h[5] ), shuf_bswap32 );
-   H[6] = _mm_shuffle_epi8( v128_xor3( VE, V6, h[6] ), shuf_bswap32 );
-   H[7] = _mm_shuffle_epi8( v128_xor3( VF, V7, h[7] ), shuf_bswap32 );
-
-#else
-
    H[0] = v128_bswap32( v128_xor3( V8, V0, h[0] ) );
    H[1] = v128_bswap32( v128_xor3( V9, V1, h[1] ) );
    H[2] = v128_bswap32( v128_xor3( VA, V2, h[2] ) );
@@ -950,8 +905,6 @@ void blake256_4x32_final_rounds_le( void *final_hash, const void *midstate,
    H[5] = v128_bswap32( v128_xor3( VD, V5, h[5] ) );
    H[6] = v128_bswap32( v128_xor3( VE, V6, h[6] ) );
    H[7] = v128_bswap32( v128_xor3( VF, V7, h[7] ) );
-
-#endif
 }
 
 #if defined (__AVX2__)
@@ -1291,24 +1244,22 @@ do { \
    VD = v256_32( T0 ^ 0x299F31D0 ); \
    VE = v256_32( T1 ^ 0x082EFA98 ); \
    VF = v256_32( T1 ^ 0xEC4E6C89 ); \
-   const __m256i shuf_bswap32 = mm256_set2_64( \
-                               0x0c0d0e0f08090a0b, 0x0405060700010203 ); \
-   M0 = _mm256_shuffle_epi8( * buf    , shuf_bswap32 ); \
-   M1 = _mm256_shuffle_epi8( *(buf+ 1), shuf_bswap32 ); \
-   M2 = _mm256_shuffle_epi8( *(buf+ 2), shuf_bswap32 ); \
-   M3 = _mm256_shuffle_epi8( *(buf+ 3), shuf_bswap32 ); \
-   M4 = _mm256_shuffle_epi8( *(buf+ 4), shuf_bswap32 ); \
-   M5 = _mm256_shuffle_epi8( *(buf+ 5), shuf_bswap32 ); \
-   M6 = _mm256_shuffle_epi8( *(buf+ 6), shuf_bswap32 ); \
-   M7 = _mm256_shuffle_epi8( *(buf+ 7), shuf_bswap32 ); \
-   M8 = _mm256_shuffle_epi8( *(buf+ 8), shuf_bswap32 ); \
-   M9 = _mm256_shuffle_epi8( *(buf+ 9), shuf_bswap32 ); \
-   MA = _mm256_shuffle_epi8( *(buf+10), shuf_bswap32 ); \
-   MB = _mm256_shuffle_epi8( *(buf+11), shuf_bswap32 ); \
-   MC = _mm256_shuffle_epi8( *(buf+12), shuf_bswap32 ); \
-   MD = _mm256_shuffle_epi8( *(buf+13), shuf_bswap32 ); \
-   ME = _mm256_shuffle_epi8( *(buf+14), shuf_bswap32 ); \
-   MF = _mm256_shuffle_epi8( *(buf+15), shuf_bswap32 ); \
+   M0 = mm256_bswap_32( * buf     ); \
+   M1 = mm256_bswap_32( *(buf+ 1) ); \
+   M2 = mm256_bswap_32( *(buf+ 2) ); \
+   M3 = mm256_bswap_32( *(buf+ 3) ); \
+   M4 = mm256_bswap_32( *(buf+ 4) ); \
+   M5 = mm256_bswap_32( *(buf+ 5) ); \
+   M6 = mm256_bswap_32( *(buf+ 6) ); \
+   M7 = mm256_bswap_32( *(buf+ 7) ); \
+   M8 = mm256_bswap_32( *(buf+ 8) ); \
+   M9 = mm256_bswap_32( *(buf+ 9) ); \
+   MA = mm256_bswap_32( *(buf+10) ); \
+   MB = mm256_bswap_32( *(buf+11) ); \
+   MC = mm256_bswap_32( *(buf+12) ); \
+   MD = mm256_bswap_32( *(buf+13) ); \
+   ME = mm256_bswap_32( *(buf+14) ); \
+   MF = mm256_bswap_32( *(buf+15) ); \
    ROUND_S_8WAY(0); \
    ROUND_S_8WAY(1); \
    ROUND_S_8WAY(2); \
@@ -1401,7 +1352,7 @@ do { \
    H7 = mm256_xor3( VF, V7, H7 ); \
 }
 
-void blake256_8way_round0_prehash_le( void *midstate, const void *midhash,
+void blake256_8x32_round0_prehash_le( void *midstate, const void *midhash,
                                       void *data )
 {
    __m256i *M = (__m256i*)data;
@@ -1491,7 +1442,7 @@ void blake256_8way_round0_prehash_le( void *midstate, const void *midhash,
                          _mm256_xor_si256( v256_32( CSE ), M[15] ) );
 }
 
-void blake256_8way_final_rounds_le( void *final_hash, const void *midstate,
+void blake256_8x32_final_rounds_le( void *final_hash, const void *midstate,
                      const void *midhash, const void *data, const int rounds )
 {
    __m256i *H = (__m256i*)final_hash;
@@ -1596,17 +1547,14 @@ void blake256_8way_final_rounds_le( void *final_hash, const void *midstate,
       ROUND256_8WAY_3;
    }
 
-   const __m256i shuf_bswap32 =
-                  mm256_set2_64( 0x0c0d0e0f08090a0b, 0x0405060700010203 );
-
-   H[0] = _mm256_shuffle_epi8( mm256_xor3( V8, V0, h[0] ), shuf_bswap32 );
-   H[1] = _mm256_shuffle_epi8( mm256_xor3( V9, V1, h[1] ), shuf_bswap32 );
-   H[2] = _mm256_shuffle_epi8( mm256_xor3( VA, V2, h[2] ), shuf_bswap32 );
-   H[3] = _mm256_shuffle_epi8( mm256_xor3( VB, V3, h[3] ), shuf_bswap32 );
-   H[4] = _mm256_shuffle_epi8( mm256_xor3( VC, V4, h[4] ), shuf_bswap32 );
-   H[5] = _mm256_shuffle_epi8( mm256_xor3( VD, V5, h[5] ), shuf_bswap32 );
-   H[6] = _mm256_shuffle_epi8( mm256_xor3( VE, V6, h[6] ), shuf_bswap32 );
-   H[7] = _mm256_shuffle_epi8( mm256_xor3( VF, V7, h[7] ), shuf_bswap32 );
+   H[0] = mm256_bswap_32( mm256_xor3( V8, V0, h[0] ) );
+   H[1] = mm256_bswap_32( mm256_xor3( V9, V1, h[1] ) );
+   H[2] = mm256_bswap_32( mm256_xor3( VA, V2, h[2] ) );
+   H[3] = mm256_bswap_32( mm256_xor3( VB, V3, h[3] ) );
+   H[4] = mm256_bswap_32( mm256_xor3( VC, V4, h[4] ) );
+   H[5] = mm256_bswap_32( mm256_xor3( VD, V5, h[5] ) );
+   H[6] = mm256_bswap_32( mm256_xor3( VE, V6, h[6] ) );
+   H[7] = mm256_bswap_32( mm256_xor3( VF, V7, h[7] ) );
 }
 
 #endif
@@ -1933,8 +1881,6 @@ do { \
    __m512i M8, M9, MA, MB, MC, MD, ME, MF; \
    __m512i V0, V1, V2, V3, V4, V5, V6, V7; \
    __m512i V8, V9, VA, VB, VC, VD, VE, VF; \
-   const __m512i shuf_bswap32 = mm512_bcast_m128( v128_set64( \
-                                 0x0c0d0e0f08090a0b, 0x0405060700010203 ) ); \
    V0 = H0; \
    V1 = H1; \
    V2 = H2; \
@@ -1951,22 +1897,22 @@ do { \
    VD = v512_32( T0 ^ 0x299F31D0 ); \
    VE = v512_32( T1 ^ 0x082EFA98 ); \
    VF = v512_32( T1 ^ 0xEC4E6C89 ); \
-   M0 = _mm512_shuffle_epi8( * buf    , shuf_bswap32 ); \
-   M1 = _mm512_shuffle_epi8( *(buf+ 1), shuf_bswap32 ); \
-   M2 = _mm512_shuffle_epi8( *(buf+ 2), shuf_bswap32 ); \
-   M3 = _mm512_shuffle_epi8( *(buf+ 3), shuf_bswap32 ); \
-   M4 = _mm512_shuffle_epi8( *(buf+ 4), shuf_bswap32 ); \
-   M5 = _mm512_shuffle_epi8( *(buf+ 5), shuf_bswap32 ); \
-   M6 = _mm512_shuffle_epi8( *(buf+ 6), shuf_bswap32 ); \
-   M7 = _mm512_shuffle_epi8( *(buf+ 7), shuf_bswap32 ); \
-   M8 = _mm512_shuffle_epi8( *(buf+ 8), shuf_bswap32 ); \
-   M9 = _mm512_shuffle_epi8( *(buf+ 9), shuf_bswap32 ); \
-   MA = _mm512_shuffle_epi8( *(buf+10), shuf_bswap32 ); \
-   MB = _mm512_shuffle_epi8( *(buf+11), shuf_bswap32 ); \
-   MC = _mm512_shuffle_epi8( *(buf+12), shuf_bswap32 ); \
-   MD = _mm512_shuffle_epi8( *(buf+13), shuf_bswap32 ); \
-   ME = _mm512_shuffle_epi8( *(buf+14), shuf_bswap32 ); \
-   MF = _mm512_shuffle_epi8( *(buf+15), shuf_bswap32 ); \
+   M0 = mm512_bswap_32( * buf     ); \
+   M1 = mm512_bswap_32( *(buf+ 1) ); \
+   M2 = mm512_bswap_32( *(buf+ 2) ); \
+   M3 = mm512_bswap_32( *(buf+ 3) ); \
+   M4 = mm512_bswap_32( *(buf+ 4) ); \
+   M5 = mm512_bswap_32( *(buf+ 5) ); \
+   M6 = mm512_bswap_32( *(buf+ 6) ); \
+   M7 = mm512_bswap_32( *(buf+ 7) ); \
+   M8 = mm512_bswap_32( *(buf+ 8) ); \
+   M9 = mm512_bswap_32( *(buf+ 9) ); \
+   MA = mm512_bswap_32( *(buf+10) ); \
+   MB = mm512_bswap_32( *(buf+11) ); \
+   MC = mm512_bswap_32( *(buf+12) ); \
+   MD = mm512_bswap_32( *(buf+13) ); \
+   ME = mm512_bswap_32( *(buf+14) ); \
+   MF = mm512_bswap_32( *(buf+15) ); \
    ROUND_S_16WAY(0); \
    ROUND_S_16WAY(1); \
    ROUND_S_16WAY(2); \
@@ -2063,7 +2009,7 @@ do { \
 // is constant for every nonce and only needs to be run once per job. The
 // second part is run for each nonce using the precalculated midstate and the
 // hash from the first block.
-void blake256_16way_round0_prehash_le( void *midstate, const void *midhash,
+void blake256_16x32_round0_prehash_le( void *midstate, const void *midhash,
                                        void *data )
 {
    __m512i *M = (__m512i*)data;
@@ -2157,7 +2103,7 @@ void blake256_16way_round0_prehash_le( void *midstate, const void *midhash,
 }
 
 // Dfault is 14 rounds, blakecoin & vanilla are 8.
-void blake256_16way_final_rounds_le( void *final_hash, const void *midstate,
+void blake256_16x32_final_rounds_le( void *final_hash, const void *midstate,
                      const void *midhash, const void *data, const int rounds )
 {
    __m512i *H = (__m512i*)final_hash;
@@ -2274,27 +2220,23 @@ void blake256_16way_final_rounds_le( void *final_hash, const void *midstate,
    }
 
    // Byte swap final hash
-   const __m512i shuf_bswap32 =  mm512_bcast_m128( v128_set64( 
-                                 0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
-   H[0] = _mm512_shuffle_epi8( mm512_xor3( V8, V0, h[0] ), shuf_bswap32 );
-   H[1] = _mm512_shuffle_epi8( mm512_xor3( V9, V1, h[1] ), shuf_bswap32 );
-   H[2] = _mm512_shuffle_epi8( mm512_xor3( VA, V2, h[2] ), shuf_bswap32 );
-   H[3] = _mm512_shuffle_epi8( mm512_xor3( VB, V3, h[3] ), shuf_bswap32 );
-   H[4] = _mm512_shuffle_epi8( mm512_xor3( VC, V4, h[4] ), shuf_bswap32 );
-   H[5] = _mm512_shuffle_epi8( mm512_xor3( VD, V5, h[5] ), shuf_bswap32 );
-   H[6] = _mm512_shuffle_epi8( mm512_xor3( VE, V6, h[6] ), shuf_bswap32 );
-   H[7] = _mm512_shuffle_epi8( mm512_xor3( VF, V7, h[7] ), shuf_bswap32 );
+   H[0] = mm512_bswap_32( mm512_xor3( V8, V0, h[0] ) );
+   H[1] = mm512_bswap_32( mm512_xor3( V9, V1, h[1] ) );
+   H[2] = mm512_bswap_32( mm512_xor3( VA, V2, h[2] ) );
+   H[3] = mm512_bswap_32( mm512_xor3( VB, V3, h[3] ) );
+   H[4] = mm512_bswap_32( mm512_xor3( VC, V4, h[4] ) );
+   H[5] = mm512_bswap_32( mm512_xor3( VD, V5, h[5] ) );
+   H[6] = mm512_bswap_32( mm512_xor3( VE, V6, h[6] ) );
+   H[7] = mm512_bswap_32( mm512_xor3( VF, V7, h[7] ) );
 }
 
 #endif
 
 // Blake-256 4 way
 
-static const uint32_t salt_zero_4x32_small[4] = { 0, 0, 0, 0 };
-
 static void
 blake32_4x32_init( blake_4x32_small_context *ctx, const uint32_t *iv,
-                   const uint32_t *salt, int rounds )
+                   int rounds )
 {
    casti_v128( ctx->H, 0 ) = v128_64( 0x6A09E6676A09E667 );
    casti_v128( ctx->H, 1 ) = v128_64( 0xBB67AE85BB67AE85 );
@@ -2404,11 +2346,10 @@ blake32_4x32_close( blake_4x32_small_context *ctx, unsigned ub, unsigned n,
 
 // Blake-256 8 way
 
-static const uint32_t salt_zero_8way_small[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 static void
-blake32_8way_init( blake_8way_small_context *sc, const uint32_t *iv,
-                   const uint32_t *salt, int rounds )
+blake32_8way_init( blake256_8x32_context *sc, const uint32_t *iv,
+                   int rounds )
 {
    casti_m256i( sc->H, 0 ) = v256_64( 0x6A09E6676A09E667 );
    casti_m256i( sc->H, 1 ) = v256_64( 0xBB67AE85BB67AE85 );
@@ -2424,7 +2365,7 @@ blake32_8way_init( blake_8way_small_context *sc, const uint32_t *iv,
 }
 
 static void
-blake32_8way( blake_8way_small_context *sc, const void *data, size_t len )
+blake32_8way( blake256_8x32_context *sc, const void *data, size_t len )
 {
    __m256i *vdata = (__m256i*)data;
    __m256i *buf;
@@ -2466,7 +2407,7 @@ blake32_8way( blake_8way_small_context *sc, const void *data, size_t len )
 }
 
 static void
-blake32_8way_close( blake_8way_small_context *sc, unsigned ub, unsigned n,
+blake32_8way_close( blake256_8x32_context *sc, unsigned ub, unsigned n,
                     void *dst, size_t out_size_w32 )
 {
    __m256i buf[16];
@@ -2520,7 +2461,7 @@ blake32_8way_close( blake_8way_small_context *sc, unsigned ub, unsigned n,
 }
 
 static void
-blake32_8way_le( blake_8way_small_context *sc, const void *data, size_t len )
+blake32_8way_le( blake256_8x32_context *sc, const void *data, size_t len )
 {
    __m256i *vdata = (__m256i*)data;
    __m256i *buf;
@@ -2562,7 +2503,7 @@ blake32_8way_le( blake_8way_small_context *sc, const void *data, size_t len )
 }
 
 static void
-blake32_8way_close_le( blake_8way_small_context *sc, unsigned ub, unsigned n,
+blake32_8way_close_le( blake256_8x32_context *sc, unsigned ub, unsigned n,
                        void *dst, size_t out_size_w32 )
 {
    __m256i buf[16];
@@ -2622,8 +2563,8 @@ blake32_8way_close_le( blake_8way_small_context *sc, unsigned ub, unsigned n,
 //Blake-256 16 way AVX512
 
 static void
-blake32_16way_init( blake_16way_small_context *sc, const uint32_t *iv,
-                   const uint32_t *salt, int rounds )
+blake32_16way_init( blake256_16x32_context *sc, const uint32_t *iv,
+                    int rounds )
 {
    casti_m512i( sc->H, 0 ) = v512_64( 0x6A09E6676A09E667 );
    casti_m512i( sc->H, 1 ) = v512_64( 0xBB67AE85BB67AE85 );
@@ -2639,7 +2580,7 @@ blake32_16way_init( blake_16way_small_context *sc, const uint32_t *iv,
 }
 
 static void
-blake32_16way( blake_16way_small_context *sc, const void *data, size_t len )
+blake32_16way( blake256_16x32_context *sc, const void *data, size_t len )
 {
    __m512i *vdata = (__m512i*)data;
    __m512i *buf;
@@ -2679,7 +2620,7 @@ blake32_16way( blake_16way_small_context *sc, const void *data, size_t len )
    sc->ptr = ptr;
 }
 static void
-blake32_16way_close( blake_16way_small_context *sc, unsigned ub, unsigned n,
+blake32_16way_close( blake256_16x32_context *sc, unsigned ub, unsigned n,
                     void *dst, size_t out_size_w32 )
 {
    __m512i buf[16];
@@ -2733,7 +2674,7 @@ blake32_16way_close( blake_16way_small_context *sc, unsigned ub, unsigned n,
 }
 
 static void
-blake32_16way_le( blake_16way_small_context *sc, const void *data, size_t len )
+blake32_16way_le( blake256_16x32_context *sc, const void *data, size_t len )
 {
    __m512i *vdata = (__m512i*)data;
    __m512i *buf;
@@ -2776,7 +2717,7 @@ blake32_16way_le( blake_16way_small_context *sc, const void *data, size_t len )
 }
 
 static void
-blake32_16way_close_le( blake_16way_small_context *sc, unsigned ub, unsigned n,
+blake32_16way_close_le( blake256_16x32_context *sc, unsigned ub, unsigned n,
                     void *dst, size_t out_size_w32 )
 {
    __m512i buf[16];
@@ -2827,65 +2768,65 @@ blake32_16way_close_le( blake_16way_small_context *sc, unsigned ub, unsigned n,
 }
 
 void
-blake256_16way_init(void *cc)
+blake256_16x32_init(void *cc)
 {
-   blake32_16way_init( cc, IV256, salt_zero_8way_small, 14 );
+   blake32_16way_init( cc, IV256, 14 );
 }
 
 void
-blake256_16way_update(void *cc, const void *data, size_t len)
+blake256_16x32_update(void *cc, const void *data, size_t len)
 {
         blake32_16way(cc, data, len);
 }
 
 void
-blake256_16way_close(void *cc, void *dst)
+blake256_16x32_close(void *cc, void *dst)
 {
         blake32_16way_close(cc, 0, 0, dst, 8);
 }
 
 void
-blake256_16way_update_le(void *cc, const void *data, size_t len)
+blake256_16x32_update_le(void *cc, const void *data, size_t len)
 {
    blake32_16way_le(cc, data, len);
 }
 
 void
-blake256_16way_close_le(void *cc, void *dst)
+blake256_16x32_close_le(void *cc, void *dst)
 {
     blake32_16way_close_le(cc, 0, 0, dst, 8);
 }
 
 void blake256r14_16way_init(void *cc)
 {
-   blake32_16way_init( cc, IV256, salt_zero_8way_small, 14 );
+   blake32_16way_init( cc, IV256, 14 );
 }
 
 void
-blake256r14_16way_update(void *cc, const void *data, size_t len)
+blake256r14_16x32_update(void *cc, const void *data, size_t len)
 {
    blake32_16way(cc, data, len);
 }
 
 void
-blake256r14_16way_close(void *cc, void *dst)
+blake256r14_16x32_close(void *cc, void *dst)
 {
    blake32_16way_close(cc, 0, 0, dst, 8);
 }
 
 void blake256r8_16way_init(void *cc)
 {
-   blake32_16way_init( cc, IV256, salt_zero_8way_small, 8 );
+   blake32_16way_init( cc, IV256, 8 );
 }
 
 void
-blake256r8_16way_update(void *cc, const void *data, size_t len)
+blake256r8_16x32_update(void *cc, const void *data, size_t len)
 {
    blake32_16way(cc, data, len);
 }
 
 void
-blake256r8_16way_close(void *cc, void *dst)
+blake256r8_16x32_close(void *cc, void *dst)
 {
    blake32_16way_close(cc, 0, 0, dst, 8);
 }
@@ -2898,7 +2839,7 @@ blake256r8_16way_close(void *cc, void *dst)
 void
 blake256_4x32_init(void *ctx)
 {
-   blake32_4x32_init( ctx, IV256, salt_zero_4x32_small, 14 );
+   blake32_4x32_init( ctx, IV256, 14 );
 }
 
 void
@@ -2918,31 +2859,31 @@ blake256_4x32_close(void *ctx, void *dst)
 // Blake-256 8 way
 
 void
-blake256_8way_init(void *cc)
+blake256_8x32_init(void *cc)
 {
-   blake32_8way_init( cc, IV256, salt_zero_8way_small, 14 );
+   blake32_8way_init( cc, IV256, 14 );
 }
 
 void
-blake256_8way_update(void *cc, const void *data, size_t len)
+blake256_8x32_update(void *cc, const void *data, size_t len)
 {
         blake32_8way(cc, data, len);
 }
 
 void
-blake256_8way_close(void *cc, void *dst)
+blake256_8x32_close(void *cc, void *dst)
 {
         blake32_8way_close(cc, 0, 0, dst, 8);
 }
 
 void
-blake256_8way_update_le(void *cc, const void *data, size_t len)
+blake256_8x32_update_le(void *cc, const void *data, size_t len)
 {
         blake32_8way_le(cc, data, len);
 }
 
 void
-blake256_8way_close_le(void *cc, void *dst)
+blake256_8x32_close_le(void *cc, void *dst)
 {
         blake32_8way_close_le(cc, 0, 0, dst, 8);
 }
@@ -2952,7 +2893,7 @@ blake256_8way_close_le(void *cc, void *dst)
 // 14 rounds Blake, Decred
 void blake256r14_4x32_init(void *cc)
 {
-   blake32_4x32_init( cc, IV256, salt_zero_4x32_small, 14 );
+   blake32_4x32_init( cc, IV256, 14 );
 }
 
 void
@@ -2969,19 +2910,19 @@ blake256r14_4x32_close(void *cc, void *dst)
 
 #if defined(__AVX2__)
 
-void blake256r14_8way_init(void *cc)
+void blake256r14_8x32_init(void *cc)
 {
-   blake32_8way_init( cc, IV256, salt_zero_8way_small, 14 );
+   blake32_8way_init( cc, IV256, 14 );
 }
 
 void
-blake256r14_8way_update(void *cc, const void *data, size_t len)
+blake256r14_8x32_update(void *cc, const void *data, size_t len)
 {
    blake32_8way(cc, data, len);
 }
 
 void
-blake256r14_8way_close(void *cc, void *dst)
+blake256r14_8x32_close(void *cc, void *dst)
 {
    blake32_8way_close(cc, 0, 0, dst, 8);
 }
@@ -2991,7 +2932,7 @@ blake256r14_8way_close(void *cc, void *dst)
 // 8 rounds Blakecoin, Vanilla
 void blake256r8_4x32_init(void *cc)
 {
-   blake32_4x32_init( cc, IV256, salt_zero_4x32_small, 8 );
+   blake32_4x32_init( cc, IV256, 8 );
 }
 
 void
@@ -3008,19 +2949,19 @@ blake256r8_4x32_close(void *cc, void *dst)
 
 #if defined (__AVX2__)
 
-void blake256r8_8way_init(void *cc)
+void blake256r8_8x32_init(void *cc)
 {
-   blake32_8way_init( cc, IV256, salt_zero_8way_small, 8 );
+   blake32_8way_init( cc, IV256, 8 );
 }
 
 void
-blake256r8_8way_update(void *cc, const void *data, size_t len)
+blake256r8_8x32_update(void *cc, const void *data, size_t len)
 {
    blake32_8way(cc, data, len);
 }
 
 void
-blake256r8_8way_close(void *cc, void *dst)
+blake256r8_8x32_close(void *cc, void *dst)
 {
    blake32_8way_close(cc, 0, 0, dst, 8);
 }

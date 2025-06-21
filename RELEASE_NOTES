@@ -75,10 +75,16 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v25.4
+
+x86_64: improved handling of vector constants used for byte permutations.
+x86_64: removed hooks for cancelled AVX10-256.
+Minor bug fixes & improvements.
+More code cleanup.
+
 v25.3
 
 #442, #443: Fixed a regression in Makefile.am.
-Updated dockerfile.
 Removed algo features log display.
 Some code cleanup.
 
@@ -87,7 +93,7 @@ v25.2
 ARM: Fixed regression from v25.1 that could cause build fail.
 BSD: FreeBSD is now supported. Other BSDs may also work.
 MacOS: build with installed jansson library instead of compiling the included source code.
-Windows: remove "_WIN32_WINNT=0x0601" which is a downgrade on Win11.
+Windows: remove "_WIN32_WINNT=0x0601" which was a downgrade on Win11.
 Changed build.sh shell from bash to sh.
 
 v25.1

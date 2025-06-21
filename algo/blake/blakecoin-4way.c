@@ -54,10 +54,10 @@ int scanhash_blakecoin_16way( struct work *work, uint32_t max_nonce,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
 
    // Partialy prehash second block without touching nonces in block_buf[3].
-   blake256_16way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
+   blake256_16x32_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
-      blake256_16way_final_rounds_le( hash32, midstate_vars, block0_hash,
+      blake256_16x32_final_rounds_le( hash32, midstate_vars, block0_hash,
                                       block_buf, rounds );
       for ( int lane = 0; lane < 16; lane++ )
       if ( unlikely( hash32_d7[ lane ] <= targ32_d7 ) )
@@ -123,10 +123,10 @@ int scanhash_blakecoin_8way( struct work *work, uint32_t max_nonce,
    block_buf[3] = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
 
    // Partialy prehash second block without touching nonces in block_buf[3].
-   blake256_8way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
+   blake256_8x32_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
-      blake256_8way_final_rounds_le( hash32, midstate_vars, block0_hash,
+      blake256_8x32_final_rounds_le( hash32, midstate_vars, block0_hash,
                                      block_buf, rounds );
       for ( int lane = 0; lane < 8; lane++ )
       if ( unlikely( hash32_d7[ lane ] <= targ32_d7 ) )
@@ -148,16 +148,16 @@ int scanhash_blakecoin_8way( struct work *work, uint32_t max_nonce,
    
 #elif defined (BLAKECOIN_4WAY)
 
-blake256r8_4way_context blakecoin_4w_ctx;
+blake256r8_4x32_context blakecoin_4w_ctx;
 
 void blakecoin_4way_hash(void *state, const void *input)
 {
      uint32_t vhash[8*4] __attribute__ ((aligned (64)));
-     blake256r8_4way_context ctx;
+     blake256r8_4x32_context ctx;
 
      memcpy( &ctx, &blakecoin_4w_ctx, sizeof ctx );
-     blake256r8_4way_update( &ctx, input + (64<<2), 16 );
-     blake256r8_4way_close( &ctx, vhash );
+     blake256r8_4x32_update( &ctx, input + (64<<2), 16 );
+     blake256r8_4x32_close( &ctx, vhash );
 
      dintrlv_4x32( state, state+32, state+64, state+96, vhash, 256 );
 }
@@ -178,8 +178,8 @@ int scanhash_blakecoin_4way( struct work *work, uint32_t max_nonce,
       HTarget = 0x7f;
 
    v128_bswap32_intrlv80_4x32( vdata, pdata );
-   blake256r8_4way_init( &blakecoin_4w_ctx );
-   blake256r8_4way_update( &blakecoin_4w_ctx, vdata, 64 );
+   blake256r8_4x32_init( &blakecoin_4w_ctx );
+   blake256r8_4x32_update( &blakecoin_4w_ctx, vdata, 64 );
 
    do {
       *noncev = v128_bswap32( _mm_set_epi32( n+3, n+2, n+1, n ) );

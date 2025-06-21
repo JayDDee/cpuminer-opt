@@ -7,25 +7,24 @@
 #include "algo/cubehash/cubehash_sse2.h" 
 #include "algo/cubehash/cube-hash-2way.h"
 
-
 #if defined (LYRA2REV2_16WAY)
 
 typedef struct {
-   blake256_16way_context    blake;
-   keccak256_8way_context    keccak;
+   blake256_16x32_context    blake;
+   keccak256_8x64_context    keccak;
    cubehashParam             cube;
-   skein256_8way_context     skein;
-   bmw256_16way_context      bmw;
+   skein256_8x64_context     skein;
+   bmw256_16x32_context      bmw;
 } lyra2v2_16way_ctx_holder __attribute__ ((aligned (64)));
 
 static lyra2v2_16way_ctx_holder l2v2_16way_ctx;
 
 bool init_lyra2rev2_16way_ctx()
 {
-   keccak256_8way_init( &l2v2_16way_ctx.keccak );
+   keccak256_8x64_init( &l2v2_16way_ctx.keccak );
    cubehashInit( &l2v2_16way_ctx.cube, 256, 16, 32 );
-   skein256_8way_init( &l2v2_16way_ctx.skein );
-   bmw256_16way_init( &l2v2_16way_ctx.bmw );
+   skein256_8x64_init( &l2v2_16way_ctx.skein );
+   bmw256_16x32_init( &l2v2_16way_ctx.bmw );
    return true;
 }
 
@@ -51,8 +50,8 @@ void lyra2rev2_16way_hash( void *state, const void *input )
    lyra2v2_16way_ctx_holder ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &l2v2_16way_ctx, sizeof(l2v2_16way_ctx) );
 
-   blake256_16way_update( &ctx.blake, input + (64<<4), 16 );
-   blake256_16way_close( &ctx.blake, vhash );
+   blake256_16x32_update( &ctx.blake, input + (64<<4), 16 );
+   blake256_16x32_close( &ctx.blake, vhash );
 
    dintrlv_16x32( hash0,  hash1,  hash2,  hash3,
                   hash4,  hash5,  hash6,  hash7,
@@ -62,17 +61,17 @@ void lyra2rev2_16way_hash( void *state, const void *input )
    intrlv_8x64( vhash, hash0, hash1, hash2, hash3,
                        hash4, hash5, hash6, hash7, 256 );
 
-   keccak256_8way_update( &ctx.keccak, vhash, 32 );
-   keccak256_8way_close( &ctx.keccak, vhash );
+   keccak256_8x64_update( &ctx.keccak, vhash, 32 );
+   keccak256_8x64_close( &ctx.keccak, vhash );
 
    dintrlv_8x64( hash0, hash1, hash2, hash3,
                  hash4, hash5, hash6, hash7, vhash, 256 );
    intrlv_8x64( vhash, hash8,  hash9,  hash10, hash11,
                        hash12, hash13, hash14, hash15, 256 );
 
-   keccak256_8way_init( &ctx.keccak );
-   keccak256_8way_update( &ctx.keccak, vhash, 32 );
-   keccak256_8way_close( &ctx.keccak, vhash );
+   keccak256_8x64_init( &ctx.keccak );
+   keccak256_8x64_update( &ctx.keccak, vhash, 32 );
+   keccak256_8x64_close( &ctx.keccak, vhash );
 
    dintrlv_8x64( hash8,  hash9,  hash10,  hash11,
                  hash12, hash13, hash14, hash15, vhash, 256 );
@@ -122,21 +121,20 @@ void lyra2rev2_16way_hash( void *state, const void *input )
 
    intrlv_8x64( vhash, hash0, hash1, hash2, hash3,
                        hash4, hash5, hash6, hash7, 256 );
-   skein256_8way_update( &ctx.skein, vhash, 32 );
-   skein256_8way_close( &ctx.skein, vhash );
+   skein256_8x64_update( &ctx.skein, vhash, 32 );
+   skein256_8x64_close( &ctx.skein, vhash );
 
    dintrlv_8x64( hash0, hash1, hash2, hash3,
                  hash4, hash5, hash6, hash7, vhash, 256 );
    intrlv_8x64( vhash, hash8,  hash9,  hash10, hash11, hash12,
                        hash13, hash14, hash15, 256 );
 
-   skein256_8way_init( &ctx.skein );
-   skein256_8way_update( &ctx.skein, vhash, 32 );
-   skein256_8way_close( &ctx.skein, vhash );
+   skein256_8x64_init( &ctx.skein );
+   skein256_8x64_update( &ctx.skein, vhash, 32 );
+   skein256_8x64_close( &ctx.skein, vhash );
 
    dintrlv_8x64( hash8,  hash9,  hash10, hash11,
                  hash12, hash13, hash14, hash15, vhash, 256 );
-
    
    cubehash_full( &ctx.cube, (byte*) hash0,  256, (const byte*) hash0, 32 );
    cubehash_full( &ctx.cube, (byte*) hash1,  256, (const byte*) hash1, 32 );
@@ -160,8 +158,8 @@ void lyra2rev2_16way_hash( void *state, const void *input )
                         hash8,  hash9,  hash10, hash11,
                         hash12, hash13, hash14, hash15, 256 );
 
-   bmw256_16way_update( &ctx.bmw, vhash, 32 );
-   bmw256_16way_close( &ctx.bmw, state );
+   bmw256_16x32_update( &ctx.bmw, vhash, 32 );
+   bmw256_16x32_close( &ctx.bmw, state );
 }
 
 int scanhash_lyra2rev2_16way( struct work *work, const uint32_t max_nonce,
@@ -186,8 +184,8 @@ int scanhash_lyra2rev2_16way( struct work *work, const uint32_t max_nonce,
    mm512_bswap32_intrlv80_16x32( vdata, pdata );
    *noncev = _mm512_set_epi32( n+15, n+14, n+13, n+12, n+11, n+10, n+ 9, n+ 8,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n+ 1, n );
-   blake256_16way_init( &l2v2_16way_ctx.blake );
-   blake256_16way_update( &l2v2_16way_ctx.blake, vdata, 64 );
+   blake256_16x32_init( &l2v2_16way_ctx.blake );
+   blake256_16x32_update( &l2v2_16way_ctx.blake, vdata, 64 );
 
    do
    {
@@ -214,21 +212,21 @@ int scanhash_lyra2rev2_16way( struct work *work, const uint32_t max_nonce,
 #elif defined (LYRA2REV2_8WAY)
 
 typedef struct {
-   blake256_8way_context     blake;
-   keccak256_4way_context    keccak;
+   blake256_8x32_context     blake;
+   keccak256_4x64_context    keccak;
    cubehashParam             cube;
-   skein256_4way_context     skein;
-   bmw256_8way_context       bmw;
+   skein256_4x64_context     skein;
+   bmw256_8x32_context       bmw;
 } lyra2v2_8way_ctx_holder __attribute__ ((aligned (64)));
 
 static lyra2v2_8way_ctx_holder l2v2_8way_ctx;
 
 bool init_lyra2rev2_8way_ctx()
 {
-   keccak256_4way_init( &l2v2_8way_ctx.keccak );
+   keccak256_4x64_init( &l2v2_8way_ctx.keccak );
    cubehashInit( &l2v2_8way_ctx.cube, 256, 16, 32 );
-   skein256_4way_init( &l2v2_8way_ctx.skein );
-   bmw256_8way_init( &l2v2_8way_ctx.bmw );
+   skein256_4x64_init( &l2v2_8way_ctx.skein );
+   bmw256_8x32_init( &l2v2_8way_ctx.bmw );
    return true;
 }
 
@@ -246,20 +244,20 @@ void lyra2rev2_8way_hash( void *state, const void *input )
    lyra2v2_8way_ctx_holder ctx __attribute__ ((aligned (64)));
    memcpy( &ctx, &l2v2_8way_ctx, sizeof(l2v2_8way_ctx) );
 
-   blake256_8way_update( &ctx.blake, input + (64<<3), 16 );
-   blake256_8way_close( &ctx.blake, vhash );
+   blake256_8x32_update( &ctx.blake, input + (64<<3), 16 );
+   blake256_8x32_close( &ctx.blake, vhash );
 
    dintrlv_8x32( hash0, hash1, hash2, hash3,
                  hash4, hash5, hash6, hash7, vhash, 256 );
 
    intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 256 );
-   keccak256_4way_update( &ctx.keccak, vhash, 32 );
-   keccak256_4way_close( &ctx.keccak, vhash );
+   keccak256_4x64_update( &ctx.keccak, vhash, 32 );
+   keccak256_4x64_close( &ctx.keccak, vhash );
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 256 );
    intrlv_4x64( vhash, hash4, hash5, hash6, hash7, 256 );
-   keccak256_4way_init( &ctx.keccak );
-   keccak256_4way_update( &ctx.keccak, vhash, 32 );
-   keccak256_4way_close( &ctx.keccak, vhash );
+   keccak256_4x64_init( &ctx.keccak );
+   keccak256_4x64_update( &ctx.keccak, vhash, 32 );
+   keccak256_4x64_close( &ctx.keccak, vhash );
    dintrlv_4x64( hash4, hash5, hash6, hash7, vhash, 256 );
 
    cubehash_full( &ctx.cube, (byte*) hash0, 256, (const byte*) hash0, 32 );
@@ -282,13 +280,13 @@ void lyra2rev2_8way_hash( void *state, const void *input )
    LYRA2REV2( l2v2_wholeMatrix, hash7, 32, hash7, 32, hash7, 32, 1, 4, 4 );
    
    intrlv_4x64( vhash, hash0, hash1, hash2, hash3, 256 );
-   skein256_4way_update( &ctx.skein, vhash, 32 );
-   skein256_4way_close( &ctx.skein, vhash );
+   skein256_4x64_update( &ctx.skein, vhash, 32 );
+   skein256_4x64_close( &ctx.skein, vhash );
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash, 256 );
    intrlv_4x64( vhash, hash4, hash5, hash6, hash7, 256 );
-   skein256_4way_init( &ctx.skein );
-   skein256_4way_update( &ctx.skein, vhash, 32 );
-   skein256_4way_close( &ctx.skein, vhash );
+   skein256_4x64_init( &ctx.skein );
+   skein256_4x64_update( &ctx.skein, vhash, 32 );
+   skein256_4x64_close( &ctx.skein, vhash );
    dintrlv_4x64( hash4, hash5, hash6, hash7, vhash, 256 );
 
    cubehash_full( &ctx.cube, (byte*) hash0, 256, (const byte*) hash0, 32 );
@@ -303,8 +301,8 @@ void lyra2rev2_8way_hash( void *state, const void *input )
    intrlv_8x32( vhash, hash0, hash1, hash2, hash3,
                        hash4, hash5, hash6, hash7, 256 );
 
-   bmw256_8way_update( &ctx.bmw, vhash, 32 );
-   bmw256_8way_close( &ctx.bmw, state );
+   bmw256_8x32_update( &ctx.bmw, vhash, 32 );
+   bmw256_8x32_close( &ctx.bmw, state );
 }
 
 int scanhash_lyra2rev2_8way( struct work *work, const uint32_t max_nonce,
@@ -328,8 +326,8 @@ int scanhash_lyra2rev2_8way( struct work *work, const uint32_t max_nonce,
 
    mm256_bswap32_intrlv80_8x32( vdata, pdata );
    *noncev = _mm256_set_epi32( n+7, n+6, n+5, n+4, n+3, n+2, n+1, n );
-   blake256_8way_init( &l2v2_8way_ctx.blake );
-   blake256_8way_update( &l2v2_8way_ctx.blake, vdata, 64 );
+   blake256_8x32_init( &l2v2_8way_ctx.blake );
+   blake256_8x32_update( &l2v2_8way_ctx.blake, vdata, 64 );
 
    do
    {
@@ -356,21 +354,21 @@ int scanhash_lyra2rev2_8way( struct work *work, const uint32_t max_nonce,
 #elif defined (LYRA2REV2_4WAY)
 
 typedef struct {
-   blake256_4way_context     blake;
-   keccak256_4way_context    keccak;
+   blake256_4x32_context     blake;
+   keccak256_4x64_context    keccak;
    cubehashParam             cube;
-   skein256_4way_context     skein;
-   bmw256_4way_context          bmw;
+   skein256_4x64_context     skein;
+   bmw256_4x32_context          bmw;
 } lyra2v2_4way_ctx_holder;
 
 static lyra2v2_4way_ctx_holder l2v2_4way_ctx;
 
 bool init_lyra2rev2_4way_ctx()
 {
-   keccak256_4way_init( &l2v2_4way_ctx.keccak );
+   keccak256_4x64_init( &l2v2_4way_ctx.keccak );
    cubehashInit( &l2v2_4way_ctx.cube, 256, 16, 32 );
-   skein256_4way_init( &l2v2_4way_ctx.skein );
-   bmw256_4way_init( &l2v2_4way_ctx.bmw );
+   skein256_4x64_init( &l2v2_4way_ctx.skein );
+   bmw256_4x32_init( &l2v2_4way_ctx.bmw );
    return true;
 }
 
@@ -385,13 +383,13 @@ void lyra2rev2_4way_hash( void *state, const void *input )
    lyra2v2_4way_ctx_holder ctx __attribute__ ((aligned (64))); 
    memcpy( &ctx, &l2v2_4way_ctx, sizeof(l2v2_4way_ctx) );
 
-   blake256_4way_update( &ctx.blake, input + (64<<2), 16 );
-   blake256_4way_close( &ctx.blake, vhash );
+   blake256_4x32_update( &ctx.blake, input + (64<<2), 16 );
+   blake256_4x32_close( &ctx.blake, vhash );
 
    rintrlv_4x32_4x64( vhash64, vhash, 256 );
 
-   keccak256_4way_update( &ctx.keccak, vhash64, 32 );
-   keccak256_4way_close( &ctx.keccak, vhash64 );
+   keccak256_4x64_update( &ctx.keccak, vhash64, 32 );
+   keccak256_4x64_close( &ctx.keccak, vhash64 );
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
@@ -410,8 +408,8 @@ void lyra2rev2_4way_hash( void *state, const void *input )
 
    intrlv_4x64( vhash64, hash0, hash1, hash2, hash3, 256 );
 
-   skein256_4way_update( &ctx.skein, vhash64, 32 );
-   skein256_4way_close( &ctx.skein, vhash64 );
+   skein256_4x64_update( &ctx.skein, vhash64, 32 );
+   skein256_4x64_close( &ctx.skein, vhash64 );
 
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhash64, 256 );
 
@@ -426,8 +424,8 @@ void lyra2rev2_4way_hash( void *state, const void *input )
 
    intrlv_4x32( vhash, hash0, hash1, hash2, hash3, 256 );
 
-   bmw256_4way_update( &ctx.bmw, vhash, 32 );
-   bmw256_4way_close( &ctx.bmw, state );
+   bmw256_4x32_update( &ctx.bmw, vhash, 32 );
+   bmw256_4x32_close( &ctx.bmw, state );
 }
 
 int scanhash_lyra2rev2_4way( struct work *work, uint32_t max_nonce,
@@ -451,8 +449,8 @@ int scanhash_lyra2rev2_4way( struct work *work, uint32_t max_nonce,
 
    v128_bswap32_intrlv80_4x32( vdata, pdata );
 
-   blake256_4way_init( &l2v2_4way_ctx.blake );
-   blake256_4way_update( &l2v2_4way_ctx.blake, vdata, 64 );
+   blake256_4x32_init( &l2v2_4way_ctx.blake );
+   blake256_4x32_update( &l2v2_4way_ctx.blake, vdata, 64 );
 
    do
    {

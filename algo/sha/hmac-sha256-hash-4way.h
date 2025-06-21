@@ -1,6 +1,6 @@
 /*-
  * Copyright 2005,2007,2009 Colin Percival
- * Copyright 2020 JayDDee@gmailcom
+ * Copyright 2020 JayDDee246@gmailcom
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,11 +38,12 @@
 #include "simd-utils.h"
 #include "sha256-hash.h"
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(__ARM_NEON)
+
 typedef struct _hmac_sha256_4way_context
 {
-   sha256_4way_context ictx;
-   sha256_4way_context octx;
+   sha256_4x32_context ictx;
+   sha256_4x32_context octx;
 } hmac_sha256_4way_context;
 
 //void SHA256_Buf( const void *, size_t len, uint8_t digest[32] );
@@ -67,8 +68,8 @@ void pbkdf2_sha256_4way( uint8_t *, size_t, const uint8_t *, size_t,
 
 typedef struct _hmac_sha256_8way_context
 {
-   sha256_8way_context ictx;
-   sha256_8way_context octx;
+   sha256_8x32_context ictx;
+   sha256_8x32_context octx;
 } hmac_sha256_8way_context;
 
 //void SHA256_Buf( const void *, size_t len, uint8_t digest[32] );
@@ -88,8 +89,8 @@ void pbkdf2_sha256_8way( uint8_t *, size_t, const uint8_t *, size_t,
 
 typedef struct _hmac_sha256_16way_context
 {
-   sha256_16way_context ictx;
-   sha256_16way_context octx;
+   sha256_16x32_context ictx;
+   sha256_16x32_context octx;
 } hmac_sha256_16way_context;
 
 //void SHA256_Buf( const void *, size_t len, uint8_t digest[32] );

@@ -1059,7 +1059,7 @@ void hamsi_8way_big( hamsi_8way_big_context *sc, __m512i *buf, size_t num )
    WRITE_STATE_BIG8( sc );
 }
 
-void hamsi_8way_big_final( hamsi_8way_big_context *sc, __m512i *buf )
+void hamsi_8way_big_final( hamsi512_8x64_context *sc, __m512i *buf )
 {
    __m512i m0, m1, m2, m3, m4, m5, m6, m7;
 
@@ -1071,7 +1071,7 @@ void hamsi_8way_big_final( hamsi_8way_big_context *sc, __m512i *buf )
    WRITE_STATE_BIG8( sc );
 }
 
-void hamsi512_8way_init( hamsi_8way_big_context *sc )
+void hamsi512_8x64_init( hamsi512_8x64_context *sc )
 {
    sc->partial_len = 0;
    sc->count_high = sc->count_low = 0;
@@ -1087,7 +1087,7 @@ void hamsi512_8way_init( hamsi_8way_big_context *sc )
    sc->h[7] = v512_64( iv[7] );
    }
 
-void hamsi512_8way_update( hamsi_8way_big_context *sc, const void *data,
+void hamsi512_8x64_update( hamsi512_8x64_context *sc, const void *data,
                            size_t len )
 {
    __m512i *vdata = (__m512i*)data;
@@ -1099,7 +1099,7 @@ void hamsi512_8way_update( hamsi_8way_big_context *sc, const void *data,
    sc->partial_len = len;
 }
 
-void hamsi512_8way_close( hamsi_8way_big_context *sc, void *dst )
+void hamsi512_8x64_close( hamsi512_8x64_context *sc, void *dst )
 {
    __m512i pad[1];
    uint32_t ch, cl;
@@ -1944,7 +1944,7 @@ void hamsi512_8x32_full( hamsi512_8x32_context *sc, void * dst,
 
 ////////////
 
-void hamsi_big( hamsi_4way_big_context *sc, __m256i *buf, size_t num )
+void hamsi_big( hamsi512_4x64_context *sc, __m256i *buf, size_t num )
 {
    DECL_STATE_BIG
    uint32_t tmp;
@@ -1968,7 +1968,7 @@ void hamsi_big( hamsi_4way_big_context *sc, __m256i *buf, size_t num )
    WRITE_STATE_BIG( sc );
 }
 
-void hamsi_big_final( hamsi_4way_big_context *sc, __m256i *buf )
+void hamsi_big_final( hamsi512_4x64_context *sc, __m256i *buf )
 {
    __m256i m0, m1, m2, m3, m4, m5, m6, m7;
    DECL_STATE_BIG
@@ -1979,7 +1979,7 @@ void hamsi_big_final( hamsi_4way_big_context *sc, __m256i *buf )
    WRITE_STATE_BIG( sc );
 }
 
-void hamsi512_4way_init( hamsi_4way_big_context *sc )
+void hamsi512_4x64_init( hamsi512_4x64_context *sc )
 {
    sc->partial_len = 0;
    sc->count_high = sc->count_low = 0;
@@ -1994,7 +1994,7 @@ void hamsi512_4way_init( hamsi_4way_big_context *sc )
    sc->h[7] = v256_64( iv[7] );
 }
 
-void hamsi512_4way_update( hamsi_4way_big_context *sc, const void *data,
+void hamsi512_4x64_update( hamsi512_4x64_context *sc, const void *data,
       size_t len )
 {
    __m256i *vdata = (__m256i*)data;
@@ -2006,7 +2006,7 @@ void hamsi512_4way_update( hamsi_4way_big_context *sc, const void *data,
    sc->partial_len = len;
 }
 
-void hamsi512_4way_close( hamsi_4way_big_context *sc, void *dst )
+void hamsi512_4x64_close( hamsi512_4x64_context *sc, void *dst )
 {
    __m256i pad[1];
    uint32_t ch, cl;

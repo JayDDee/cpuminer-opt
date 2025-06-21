@@ -45,7 +45,7 @@ static void lyra2z_16way_hash( void *state, const void *midstate_vars,
     uint32_t hash14[8] __attribute__ ((aligned (32)));
     uint32_t hash15[8] __attribute__ ((aligned (32)));
 
-    blake256_16way_final_rounds_le( vhash, midstate_vars, midhash, block, 14 );
+    blake256_16x32_final_rounds_le( vhash, midstate_vars, midhash, block, 14 );
 
     dintrlv_16x32( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
               hash8, hash9, hash10, hash11 ,hash12, hash13, hash14, hash15,
@@ -139,7 +139,7 @@ int scanhash_lyra2z_16way( struct work *work, uint32_t max_nonce,
                                n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
 
    // Partialy prehash second block without touching nonces in block_buf[3].
-   blake256_16way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
+   blake256_16x32_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
      lyra2z_16way_hash( hash, midstate_vars, block0_hash, block_buf );
@@ -180,7 +180,7 @@ static void lyra2z_8way_hash( void *state, const void *midstate_vars,
      uint32_t hash7[8] __attribute__ ((aligned (32)));
      uint32_t vhash[8*8] __attribute__ ((aligned (64)));
 
-     blake256_8way_final_rounds_le( vhash, midstate_vars, midhash, block, 14 );
+     blake256_8x32_final_rounds_le( vhash, midstate_vars, midhash, block, 14 );
 
      dintrlv_8x32( hash0, hash1, hash2, hash3,
                    hash4, hash5, hash6, hash7, vhash, 256 );
@@ -246,7 +246,7 @@ int scanhash_lyra2z_8way( struct work *work, uint32_t max_nonce,
             _mm256_set_epi32( n+ 7, n+ 6, n+ 5, n+ 4, n+ 3, n+ 2, n +1, n );
 
    // Partialy prehash second block without touching nonces
-   blake256_8way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
+   blake256_8x32_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
      lyra2z_8way_hash( hash, midstate_vars, block0_hash, block_buf );
@@ -279,12 +279,12 @@ bool lyra2z_4way_thread_init()
  return ( lyra2z_4way_matrix = mm_malloc( LYRA2Z_MATRIX_SIZE, 64 ) );
 }
 
-static __thread blake256_4way_context l2z_4way_blake_mid;
+static __thread blake256_4x32_context l2z_4way_blake_mid;
 
 void lyra2z_4way_midstate( const void* input )
 {
-       blake256_4way_init( &l2z_4way_blake_mid );
-       blake256_4way_update( &l2z_4way_blake_mid, input, 64 );
+       blake256_4x32_init( &l2z_4way_blake_mid );
+       blake256_4x32_update( &l2z_4way_blake_mid, input, 64 );
 }
 
 void lyra2z_4way_hash( void *hash, const void *midstate_vars,
@@ -295,15 +295,8 @@ void lyra2z_4way_hash( void *hash, const void *midstate_vars,
      uint32_t hash2[8] __attribute__ ((aligned (64)));
      uint32_t hash3[8] __attribute__ ((aligned (64)));
      uint32_t vhash[8*4] __attribute__ ((aligned (64)));
-//     blake256_4way_context ctx_blake __attribute__ ((aligned (64)));
 
-     blake256_4way_final_rounds_le( vhash, midstate_vars, midhash, block, 14 );
-
-/*
-     memcpy( &ctx_blake, &l2z_4way_blake_mid, sizeof l2z_4way_blake_mid );
-     blake256_4way_update( &ctx_blake, input + (64*4), 16 );
-     blake256_4way_close( &ctx_blake, vhash );
-*/
+     blake256_4x32_final_rounds_le( vhash, midstate_vars, midhash, block, 14 );
 
      dintrlv_4x32( hash0, hash1, hash2, hash3, vhash, 256 );
 
@@ -357,7 +350,7 @@ int scanhash_lyra2z_4way( struct work *work, uint32_t max_nonce,
    block_buf[15] = v128_32( 640 );
 
    // Partialy prehash second block without touching nonces
-   blake256_4way_round0_prehash_le( midstate_vars, block0_hash, block_buf );
+   blake256_4x32_round0_prehash_le( midstate_vars, block0_hash, block_buf );
 
    do {
       lyra2z_4way_hash( hash, midstate_vars, block0_hash, block_buf );
@@ -454,11 +447,9 @@ bool register_lyra2z_algo( algo_gate_t* gate )
 #if defined(LYRA2Z_16WAY)
   gate->miner_thread_init = (void*)&lyra2z_16way_thread_init;
   gate->scanhash          = (void*)&scanhash_lyra2z_16way;
-//  gate->hash       = (void*)&lyra2z_16way_hash;
 #elif defined(LYRA2Z_8WAY)
   gate->miner_thread_init = (void*)&lyra2z_8way_thread_init;
   gate->scanhash          = (void*)&scanhash_lyra2z_8way;
-//  gate->hash       = (void*)&lyra2z_8way_hash;
 #elif defined(LYRA2Z_4WAY)
   gate->miner_thread_init = (void*)&lyra2z_4way_thread_init;
   gate->scanhash          = (void*)&scanhash_lyra2z_4way;

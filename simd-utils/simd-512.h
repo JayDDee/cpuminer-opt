@@ -108,11 +108,13 @@ typedef union
 
 // A simple 128 bit permute, using function instead of macro avoids
 // problems if the v arg passed as an expression.
-static inline __m512i mm512_perm_128( const __m512i v, const int c )
+static inline __m512i mm512_perm128( const __m512i v, const int c )
 {  return _mm512_shuffle_i64x2( v, v, c ); }
 
 // Broadcast 128 bit vector to all lanes of 512 bit vector.
-#define mm512_bcast_m128( v )  mm512_perm_128( _mm512_castsi128_si512( v ), 0 )
+#define mm512_bcast128( v )    mm512_perm128( _mm512_castsi128_si512( v ), 0 )
+// deprecated
+#define mm512_bcast_m128  mm512_bcast128 
 
 // Set either the low or high 64 bit elements in 128 bit lanes, other elements
 // are set to zero.
@@ -120,7 +122,7 @@ static inline __m512i mm512_perm_128( const __m512i v, const int c )
 #define mm512_bcast128hi_64( i64 )     _mm512_maskz_set1_epi64( 0xaa, i64 )
 
 #define mm512_set2_64( i1, i0 ) \
-   mm512_bcast_m128( _mm_set_epi64x( i1, i0 ) )
+   mm512_bcast128( _mm_set_epi64x( i1, i0 ) )
 
 // Pseudo constants.
 #define m512_zero       _mm512_setzero_si512()
@@ -248,105 +250,57 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 //
 // Reverse byte order of packed elements, vectorized endian conversion.
 
-#define mm512_bswap_64( v ) \
-   _mm512_shuffle_epi8( v, mm512_bcast_m128( _mm_set_epi64x( \
-                              0x08090a0b0c0d0e0f, 0x0001020304050607 ) ) )
+#define mm512_bswap_64( v )  _mm512_shuffle_epi8( v, V512_BSWAP64 )
 
-#define mm512_bswap_32( v ) \
-   _mm512_shuffle_epi8( v, mm512_bcast_m128( _mm_set_epi64x( \
-                              0x0c0d0e0f08090a0b, 0x0405060700010203 ) ) )
+#define mm512_bswap_32( v )  _mm512_shuffle_epi8( v, V512_BSWAP32 )
+
+/* not used
+#define mm512_bswap_16( v ) \
+   _mm512_shuffle_epi8( v, mm512_bcast128( _mm_set_epi64x( \
+                              0x0e0f0c0d0a0b0809, 0x0607040502030001 ) ) )
+*/
 
 #define mm512_bswap_16( v ) \
-   _mm512_shuffle_epi8( v, mm512_bcast_m128( _mm_set_epi64x( \
-                              0x0e0f0c0d0a0b0809, 0x0607040502030001 ) ) )
 
 // Source and destination are pointers, may point to same memory.
 // 8 lanes of 64 bytes each
 #define mm512_block_bswap_64( d, s ) \
 { \
-  const __m512i ctl = mm512_bcast_m128( _mm_set_epi64x( \
-                                0x08090a0b0c0d0e0f, 0x0001020304050607 ) ); \
-  casti_m512i( d, 0 ) = _mm512_shuffle_epi8( casti_m512i( s, 0 ), ctl ); \
-  casti_m512i( d, 1 ) = _mm512_shuffle_epi8( casti_m512i( s, 1 ), ctl ); \
-  casti_m512i( d, 2 ) = _mm512_shuffle_epi8( casti_m512i( s, 2 ), ctl ); \
-  casti_m512i( d, 3 ) = _mm512_shuffle_epi8( casti_m512i( s, 3 ), ctl ); \
-  casti_m512i( d, 4 ) = _mm512_shuffle_epi8( casti_m512i( s, 4 ), ctl ); \
-  casti_m512i( d, 5 ) = _mm512_shuffle_epi8( casti_m512i( s, 5 ), ctl ); \
-  casti_m512i( d, 6 ) = _mm512_shuffle_epi8( casti_m512i( s, 6 ), ctl ); \
-  casti_m512i( d, 7 ) = _mm512_shuffle_epi8( casti_m512i( s, 7 ), ctl ); \
-}
-#define mm512_block_bswap64_512    mm512_block_bswap_64
-
-#define mm512_block_bswap64_1024( d, s ) \
-{ \
-  const __m512i ctl = mm512_bcast_m128( _mm_set_epi64x( \
-                                0x08090a0b0c0d0e0f, 0x0001020304050607 ) ); \
-  casti_m512i( d, 0 ) = _mm512_shuffle_epi8( casti_m512i( s, 0 ), ctl ); \
-  casti_m512i( d, 1 ) = _mm512_shuffle_epi8( casti_m512i( s, 1 ), ctl ); \
-  casti_m512i( d, 2 ) = _mm512_shuffle_epi8( casti_m512i( s, 2 ), ctl ); \
-  casti_m512i( d, 3 ) = _mm512_shuffle_epi8( casti_m512i( s, 3 ), ctl ); \
-  casti_m512i( d, 4 ) = _mm512_shuffle_epi8( casti_m512i( s, 4 ), ctl ); \
-  casti_m512i( d, 5 ) = _mm512_shuffle_epi8( casti_m512i( s, 5 ), ctl ); \
-  casti_m512i( d, 6 ) = _mm512_shuffle_epi8( casti_m512i( s, 6 ), ctl ); \
-  casti_m512i( d, 7 ) = _mm512_shuffle_epi8( casti_m512i( s, 7 ), ctl ); \
-  casti_m512i( d, 8 ) = _mm512_shuffle_epi8( casti_m512i( s, 8 ), ctl ); \
-  casti_m512i( d, 9 ) = _mm512_shuffle_epi8( casti_m512i( s, 9 ), ctl ); \
-  casti_m512i( d,10 ) = _mm512_shuffle_epi8( casti_m512i( s,10 ), ctl ); \
-  casti_m512i( d,11 ) = _mm512_shuffle_epi8( casti_m512i( s,11 ), ctl ); \
-  casti_m512i( d,12 ) = _mm512_shuffle_epi8( casti_m512i( s,12 ), ctl ); \
-  casti_m512i( d,13 ) = _mm512_shuffle_epi8( casti_m512i( s,13 ), ctl ); \
-  casti_m512i( d,14 ) = _mm512_shuffle_epi8( casti_m512i( s,14 ), ctl ); \
-  casti_m512i( d,15 ) = _mm512_shuffle_epi8( casti_m512i( s,15 ), ctl ); \
+  casti_m512i( d, 0 ) = mm512_bswap_64( casti_m512i( s, 0 ) ); \
+  casti_m512i( d, 1 ) = mm512_bswap_64( casti_m512i( s, 1 ) ); \
+  casti_m512i( d, 2 ) = mm512_bswap_64( casti_m512i( s, 2 ) ); \
+  casti_m512i( d, 3 ) = mm512_bswap_64( casti_m512i( s, 3 ) ); \
+  casti_m512i( d, 4 ) = mm512_bswap_64( casti_m512i( s, 4 ) ); \
+  casti_m512i( d, 5 ) = mm512_bswap_64( casti_m512i( s, 5 ) ); \
+  casti_m512i( d, 6 ) = mm512_bswap_64( casti_m512i( s, 6 ) ); \
+  casti_m512i( d, 7 ) = mm512_bswap_64( casti_m512i( s, 7 ) ); \
 }
 
 // 16 lanes of 32 bytes each
 #define mm512_block_bswap_32( d, s ) \
 { \
-  const __m512i ctl = mm512_bcast_m128( _mm_set_epi64x( \
-                                0x0c0d0e0f08090a0b, 0x0405060700010203 ) ); \
-  casti_m512i( d, 0 ) = _mm512_shuffle_epi8( casti_m512i( s, 0 ), ctl ); \
-  casti_m512i( d, 1 ) = _mm512_shuffle_epi8( casti_m512i( s, 1 ), ctl ); \
-  casti_m512i( d, 2 ) = _mm512_shuffle_epi8( casti_m512i( s, 2 ), ctl ); \
-  casti_m512i( d, 3 ) = _mm512_shuffle_epi8( casti_m512i( s, 3 ), ctl ); \
-  casti_m512i( d, 4 ) = _mm512_shuffle_epi8( casti_m512i( s, 4 ), ctl ); \
-  casti_m512i( d, 5 ) = _mm512_shuffle_epi8( casti_m512i( s, 5 ), ctl ); \
-  casti_m512i( d, 6 ) = _mm512_shuffle_epi8( casti_m512i( s, 6 ), ctl ); \
-  casti_m512i( d, 7 ) = _mm512_shuffle_epi8( casti_m512i( s, 7 ), ctl ); \
+  casti_m512i( d, 0 ) = mm512_bswap_32( casti_m512i( s, 0 ) ); \
+  casti_m512i( d, 1 ) = mm512_bswap_32( casti_m512i( s, 1 ) ); \
+  casti_m512i( d, 2 ) = mm512_bswap_32( casti_m512i( s, 2 ) ); \
+  casti_m512i( d, 3 ) = mm512_bswap_32( casti_m512i( s, 3 ) ); \
+  casti_m512i( d, 4 ) = mm512_bswap_32( casti_m512i( s, 4 ) ); \
+  casti_m512i( d, 5 ) = mm512_bswap_32( casti_m512i( s, 5 ) ); \
+  casti_m512i( d, 6 ) = mm512_bswap_32( casti_m512i( s, 6 ) ); \
+  casti_m512i( d, 7 ) = mm512_bswap_32( casti_m512i( s, 7 ) ); \
 }
 #define mm512_block_bswap32_256   mm512_block_bswap_32
-
-#define mm512_block_bswap32_512( d, s ) \
-{ \
-  const __m512i ctl = mm512_bcast_m128( _mm_set_epi64x( \
-                                0x0c0d0e0f08090a0b, 0x0405060700010203 ) ); \
-  casti_m512i( d, 0 ) = _mm512_shuffle_epi8( casti_m512i( s, 0 ), ctl ); \
-  casti_m512i( d, 1 ) = _mm512_shuffle_epi8( casti_m512i( s, 1 ), ctl ); \
-  casti_m512i( d, 2 ) = _mm512_shuffle_epi8( casti_m512i( s, 2 ), ctl ); \
-  casti_m512i( d, 3 ) = _mm512_shuffle_epi8( casti_m512i( s, 3 ), ctl ); \
-  casti_m512i( d, 4 ) = _mm512_shuffle_epi8( casti_m512i( s, 4 ), ctl ); \
-  casti_m512i( d, 5 ) = _mm512_shuffle_epi8( casti_m512i( s, 5 ), ctl ); \
-  casti_m512i( d, 6 ) = _mm512_shuffle_epi8( casti_m512i( s, 6 ), ctl ); \
-  casti_m512i( d, 7 ) = _mm512_shuffle_epi8( casti_m512i( s, 7 ), ctl ); \
-  casti_m512i( d, 8 ) = _mm512_shuffle_epi8( casti_m512i( s, 8 ), ctl ); \
-  casti_m512i( d, 9 ) = _mm512_shuffle_epi8( casti_m512i( s, 9 ), ctl ); \
-  casti_m512i( d,10 ) = _mm512_shuffle_epi8( casti_m512i( s,10 ), ctl ); \
-  casti_m512i( d,11 ) = _mm512_shuffle_epi8( casti_m512i( s,11 ), ctl ); \
-  casti_m512i( d,12 ) = _mm512_shuffle_epi8( casti_m512i( s,12 ), ctl ); \
-  casti_m512i( d,13 ) = _mm512_shuffle_epi8( casti_m512i( s,13 ), ctl ); \
-  casti_m512i( d,14 ) = _mm512_shuffle_epi8( casti_m512i( s,14 ), ctl ); \
-  casti_m512i( d,15 ) = _mm512_shuffle_epi8( casti_m512i( s,15 ), ctl ); \
-}
-
-
 
 // Cross-lane shuffles implementing rotation of packed elements.
 // 
 
+// shuffle 16 bit elements within 64 bit lanes.
+#define mm512_shuffle16( v, c ) \
+   _mm512_shufflehi_epi16( _mm512_shufflelo_epi16( v, c ), c )
+
 // Rotate elements across entire vector.
-static inline __m512i mm512_swap_256( const __m512i v )
+static inline __m512i mm512_rev_256( const __m512i v )
 { return _mm512_alignr_epi64( v, v, 4 ); }
-#define mm512_shuflr_256   mm512_swap_256
-#define mm512_shufll_256   mm512_swap_256
+#define mm512_swap_256      mm512_rev_256     // grandfathered
 
 static inline __m512i mm512_shuflr_128( const __m512i v )
 { return _mm512_alignr_epi64( v, v, 2 ); }
@@ -394,9 +348,8 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 // Rotate elements within 256 bit lanes of 512 bit vector.
 
 // Swap hi & lo 128 bits in each 256 bit lane
-#define mm512_swap256_128( v )      _mm512_permutex_epi64( v, 0x4e )
-#define mm512_shuflr256_128 mm512_swap256_128
-#define mm512_shufll256_128 mm512_swap256_128
+#define mm512_rev256_128( v )       _mm512_permutex_epi64( v, 0x4e )
+#define mm512_swap256_128           mm512_rev256_128  // grandfathered
 
 // Rotate 256 bit lanes by one 64 bit element
 #define mm512_shuflr256_64( v )     _mm512_permutex_epi64( v, 0x39 )
@@ -450,15 +403,23 @@ static inline __m512i mm512_shuflr_x32( const __m512i v, const int n )
 //
 // Shuffle/rotate elements within 128 bit lanes of 512 bit vector.
  
-#define mm512_swap128_64( v )   _mm512_shuffle_epi32( v, 0x4e )
-#define mm512_shuflr128_64      mm512_swap128_64
-#define mm512_shufll128_64      mm512_swap128_64
+#define mm512_rev128_64( v )      _mm512_shuffle_epi32( v, 0x4e )
+#define mm512_swap128_64          mm512_rev128_64   // grandfathered
+
+/*not used
+#define mm512_rev128_32(v)        _mm526_shuffle_epi32( v, 0x1b )
+#define mm512_rev128_16(v)         mm512_shuffle16( v, 0x1b )
+*/
 
 // Rotate 128 bit lanes by one 32 bit element
 #define mm512_shuflr128_32( v )    _mm512_shuffle_epi32( v, 0x39 )
 #define mm512_shufll128_32( v )    _mm512_shuffle_epi32( v, 0x93 )
 
 /* Not used
+
+#define mm512_shuflr128_16(v)   mm512_shuffle16( v, 0x39 )
+#define mm512_shufll128_16(v)   mm512_shuffle16( v, 0x93 )
+   
 // Rotate 128 bit lanes right by c bytes, versatile and just as fast
 static inline __m512i mm512_shuflr128_x8( const __m512i v, const int c )
 {  return _mm512_alignr_epi8( v, v, c ); }
@@ -476,11 +437,10 @@ static inline __m512i mm512_shuflr128_x8( const __m512i v, const int c )
                                            _mm512_castsi512_ps( v2 ), c ) ); 
 
 // 64 bit lanes
-// Not really necessary with AVX512, included for consistency with AVX2/SSE.
+// ROL, ROR not necessary with AVX512, included for consistency with AVX2/SSE.
 
-#define mm512_swap64_32( v )    _mm512_shuffle_epi32( v, 0xb1 )
-#define mm512_shuflr64_32       mm512_swap64_32
-#define mm512_shufll64_32       mm512_swap64_32
+#define mm512_qrev32( v )       _mm512_shuffle_epi32( v, 0xb1 )
+#define mm512_swap64_32         mm512_qrev32        // grandfathered
 
 #define mm512_shuflr64_24( v )  _mm512_ror_epi64( v, 24 )
 #define mm512_shufll64_24( v )  _mm512_rol_epi64( v, 24 )
@@ -494,9 +454,7 @@ static inline __m512i mm512_shuflr128_x8( const __m512i v, const int c )
 /* Not used
 // 32 bit lanes
 
-#define mm512_swap32_16( v )    _mm512_ror_epi32( v, 16 )
-#define mm512_shuflr32_16       mm512_swap32_16
-#define mm512_shufll32_16       mm512_swap32_16
+#define mm512_lrev16( v )       _mm512_ror_epi32( v, 16 )
 
 #define mm512_shuflr32_8( v )   _mm512_ror_epi32( v,  8 )
 #define mm512_shufll32_8( v )   _mm512_rol_epi32( v,  8 )

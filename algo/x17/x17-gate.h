@@ -6,10 +6,8 @@
 
 #if defined(SIMD512)
   #define X17_8WAY 1
-//  #define X17_16X32 1
 #elif defined(__AVX2__) && defined(__AES__)
   #define X17_4WAY 1
-  #define X17_8X32 1
 #elif defined(__SSE2__) || defined(__ARM_NEON)
   #define X17_2X64 1
 #endif

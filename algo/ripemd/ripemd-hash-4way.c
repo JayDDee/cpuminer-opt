@@ -57,7 +57,7 @@ do{ \
 #define ROUND2(a, b, c, d, e, f, s, r, k)  \
 	RR(a ## 2, b ## 2, c ## 2, d ## 2, e ## 2, f, s, r, K2 ## k)
 
-static void ripemd160_4way_round( ripemd160_4way_context *sc )
+static void ripemd160_4x32_round( ripemd160_4x32_context *sc )
 {
    const __m128i *in = (__m128i*)sc->buf;
    __m128i *h  = (__m128i*)sc->val;
@@ -249,7 +249,7 @@ static void ripemd160_4way_round( ripemd160_4way_context *sc )
    h[0] = tmp;
 }
 
-void ripemd160_4way_init( ripemd160_4way_context *sc )
+void ripemd160_4x32_init( ripemd160_4x32_context *sc )
 {
    sc->val[0] = _mm_set1_epi64x( 0x6745230167452301 );
    sc->val[1] = _mm_set1_epi64x( 0xEFCDAB89EFCDAB89 );
@@ -259,7 +259,7 @@ void ripemd160_4way_init( ripemd160_4way_context *sc )
    sc->count_high = sc->count_low = 0;
 }
 
-void ripemd160_4way_update( ripemd160_4way_context *sc, const void *data,
+void ripemd160_4x32_update( ripemd160_4x32_context *sc, const void *data,
                             size_t len )
 {
    __m128i *vdata = (__m128i*)data;
@@ -281,7 +281,7 @@ void ripemd160_4way_update( ripemd160_4way_context *sc, const void *data,
       len -= clen;
       if ( ptr == block_size )
       {
-         ripemd160_4way_round( sc );
+         ripemd160_4x32_round( sc );
          ptr = 0;
       }
       clow = sc->count_low;
@@ -292,7 +292,7 @@ void ripemd160_4way_update( ripemd160_4way_context *sc, const void *data,
    }
 }
 
-void ripemd160_4way_close( ripemd160_4way_context  *sc, void *dst )
+void ripemd160_4x32_close( ripemd160_4x32_context  *sc, void *dst )
 {
    unsigned ptr, u;
    uint32_t low, high;
@@ -306,7 +306,7 @@ void ripemd160_4way_close( ripemd160_4way_context  *sc, void *dst )
    if ( ptr > pad )
    {
        memset_zero_128( sc->buf + (ptr>>2), (block_size - ptr) >> 2 );
-       ripemd160_4way_round( sc );
+       ripemd160_4x32_round( sc );
        memset_zero_128( sc->buf, pad>>2 );
    }
    else
@@ -317,7 +317,7 @@ void ripemd160_4way_close( ripemd160_4way_context  *sc, void *dst )
     low = low << 3;
     sc->buf[  pad>>2      ] = _mm_set1_epi32( low  );
     sc->buf[ (pad>>2) + 1 ] = _mm_set1_epi32( high );
-    ripemd160_4way_round( sc );
+    ripemd160_4x32_round( sc );
     for (u = 0; u < 5; u ++)
         casti_v128u32( dst, u ) = sc->val[u];
 }
@@ -357,7 +357,7 @@ do{ \
 #define ROUND2_8W(a, b, c, d, e, f, s, r, k)  \
         RR_8W(a ## 2, b ## 2, c ## 2, d ## 2, e ## 2, f, s, r, K2 ## k)
 
-static void ripemd160_8way_round( ripemd160_8way_context *sc )
+static void ripemd160_8x32_round( ripemd160_8x32_context *sc )
 {
    const __m256i *in = (__m256i*)sc->buf;
    __m256i *h  = (__m256i*)sc->val;
@@ -550,7 +550,7 @@ static void ripemd160_8way_round( ripemd160_8way_context *sc )
 }
 
 
-void ripemd160_8way_init( ripemd160_8way_context *sc )
+void ripemd160_8x32_init( ripemd160_8x32_context *sc )
 {
    sc->val[0] = _mm256_set1_epi64x( 0x6745230167452301 );
    sc->val[1] = _mm256_set1_epi64x( 0xEFCDAB89EFCDAB89 );
@@ -560,7 +560,7 @@ void ripemd160_8way_init( ripemd160_8way_context *sc )
    sc->count_high = sc->count_low = 0;
 }
 
-void ripemd160_8way_update( ripemd160_8way_context *sc, const void *data,
+void ripemd160_8x32_update( ripemd160_8x32_context *sc, const void *data,
                             size_t len )
 {
    __m256i *vdata = (__m256i*)data;
@@ -582,7 +582,7 @@ void ripemd160_8way_update( ripemd160_8way_context *sc, const void *data,
       len -= clen;
       if ( ptr == block_size )
       {
-         ripemd160_8way_round( sc );
+         ripemd160_8x32_round( sc );
          ptr = 0;
       }
       clow = sc->count_low;
@@ -593,7 +593,7 @@ void ripemd160_8way_update( ripemd160_8way_context *sc, const void *data,
    }
 }
 
-void ripemd160_8way_close( ripemd160_8way_context  *sc, void *dst )
+void ripemd160_8x32_close( ripemd160_8x32_context  *sc, void *dst )
 {
    unsigned ptr, u;
    uint32_t low, high;
@@ -607,7 +607,7 @@ void ripemd160_8way_close( ripemd160_8way_context  *sc, void *dst )
    if ( ptr > pad )
    {
        memset_zero_256( sc->buf + (ptr>>2), (block_size - ptr) >> 2 );
-       ripemd160_8way_round( sc );
+       ripemd160_8x32_round( sc );
        memset_zero_256( sc->buf, pad>>2 );
    }
    else
@@ -618,7 +618,7 @@ void ripemd160_8way_close( ripemd160_8way_context  *sc, void *dst )
     low = low << 3;
     sc->buf[  pad>>2      ] = _mm256_set1_epi32( low  );
     sc->buf[ (pad>>2) + 1 ] = _mm256_set1_epi32( high );
-    ripemd160_8way_round( sc );
+    ripemd160_8x32_round( sc );
     for (u = 0; u < 5; u ++)
         casti_m256i( dst, u ) = sc->val[u];
 }
@@ -628,7 +628,6 @@ void ripemd160_8way_close( ripemd160_8way_context  *sc, void *dst )
 #if defined(SIMD512)
 
 //  RIPEMD-160 16 way
-
 
 #define F16W_1(x, y, z) \
    _mm512_xor_si512( _mm512_xor_si512( x, y ), z )
@@ -659,7 +658,7 @@ do{ \
 #define ROUND2_16W(a, b, c, d, e, f, s, r, k)  \
         RR_16W(a ## 2, b ## 2, c ## 2, d ## 2, e ## 2, f, s, r, K2 ## k)
 
-static void ripemd160_16way_round( ripemd160_16way_context *sc )
+static void ripemd160_16x32_round( ripemd160_16x32_context *sc )
 {
    const __m512i *in = (__m512i*)sc->buf;
    __m512i *h  = (__m512i*)sc->val;
@@ -851,7 +850,7 @@ static void ripemd160_16way_round( ripemd160_16way_context *sc )
    h[0] = tmp;
 }
 
-void ripemd160_16way_init( ripemd160_16way_context *sc )
+void ripemd160_16x32_init( ripemd160_16x32_context *sc )
 {
    sc->val[0] = _mm512_set1_epi64( 0x6745230167452301 );
    sc->val[1] = _mm512_set1_epi64( 0xEFCDAB89EFCDAB89 );
@@ -861,7 +860,7 @@ void ripemd160_16way_init( ripemd160_16way_context *sc )
    sc->count_high = sc->count_low = 0;
 }
 
-void ripemd160_16way_update( ripemd160_16way_context *sc, const void *data,
+void ripemd160_16x32_update( ripemd160_16x32_context *sc, const void *data,
                       size_t len )
 {
    __m512i *vdata = (__m512i*)data;
@@ -883,7 +882,7 @@ void ripemd160_16way_update( ripemd160_16way_context *sc, const void *data,
       len -= clen;
       if ( ptr == block_size )
       {
-         ripemd160_16way_round( sc );
+         ripemd160_16x32_round( sc );
          ptr = 0;
       }
       clow = sc->count_low;
@@ -894,7 +893,7 @@ void ripemd160_16way_update( ripemd160_16way_context *sc, const void *data,
    }
 }
 
-void ripemd160_16way_close( ripemd160_16way_context  *sc, void *dst )
+void ripemd160_16x32_close( ripemd160_16x32_context  *sc, void *dst )
 {
    unsigned ptr, u;
    uint32_t low, high;
@@ -908,7 +907,7 @@ void ripemd160_16way_close( ripemd160_16way_context  *sc, void *dst )
    if ( ptr > pad )
    {
        memset_zero_512( sc->buf + (ptr>>2), (block_size - ptr) >> 2 );
-       ripemd160_16way_round( sc );
+       ripemd160_16x32_round( sc );
        memset_zero_512( sc->buf, pad>>2 );
    }
    else
@@ -919,7 +918,7 @@ void ripemd160_16way_close( ripemd160_16way_context  *sc, void *dst )
     low = low << 3;
     sc->buf[  pad>>2      ] = _mm512_set1_epi32( low  );
     sc->buf[ (pad>>2) + 1 ] = _mm512_set1_epi32( high );
-    ripemd160_16way_round( sc );
+    ripemd160_16x32_round( sc );
     for (u = 0; u < 5; u ++)
         casti_m512i( dst, u ) = sc->val[u];
 }

@@ -16,28 +16,27 @@ extern void pentablakehash_4way( void *output, const void *input )
      uint64_t hash2[8] __attribute__ ((aligned (64)));
      uint64_t hash3[8] __attribute__ ((aligned (64)));
      uint64_t vhash[8*4] __attribute__ ((aligned (64)));
-     blake512_4way_context ctx;
+     blake512_4x64_context ctx;
 
+     blake512_4x64_init( &ctx );
+     blake512_4x64_update( &ctx, input, 80 );
+     blake512_4x64_close( &ctx, vhash );
 
-     blake512_4way_init( &ctx );
-     blake512_4way_update( &ctx, input, 80 );
-     blake512_4way_close( &ctx, vhash );
+     blake512_4x64_init( &ctx );
+     blake512_4x64_update( &ctx, vhash, 64 );
+     blake512_4x64_close( &ctx, vhash );
 
-     blake512_4way_init( &ctx );
-     blake512_4way_update( &ctx, vhash, 64 );
-     blake512_4way_close( &ctx, vhash );
+     blake512_4x64_init( &ctx );
+     blake512_4x64_update( &ctx, vhash, 64 );
+     blake512_4x64_close( &ctx, vhash );
 
-     blake512_4way_init( &ctx );
-     blake512_4way_update( &ctx, vhash, 64 );
-     blake512_4way_close( &ctx, vhash );
+     blake512_4x64_init( &ctx );
+     blake512_4x64_update( &ctx, vhash, 64 );
+     blake512_4x64_close( &ctx, vhash );
 
-     blake512_4way_init( &ctx );
-     blake512_4way_update( &ctx, vhash, 64 );
-     blake512_4way_close( &ctx, vhash );
-
-     blake512_4way_init( &ctx );
-     blake512_4way_update( &ctx, vhash, 64 );
-     blake512_4way_close( &ctx, vhash );
+     blake512_4x64_init( &ctx );
+     blake512_4x64_update( &ctx, vhash, 64 );
+     blake512_4x64_close( &ctx, vhash );
 
      memcpy( output,    hash0, 32 );
      memcpy( output+32, hash1, 32 );

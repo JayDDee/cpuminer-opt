@@ -617,24 +617,22 @@ void blake512_full( blake512_context *sc, void *dst, const void *data,
   VD = v512_64( CB5 ^ T0 ); \
   VE = v512_64( CB6 ^ T1 ); \
   VF = v512_64( CB7 ^ T1 ); \
-  const __m512i shuf_bswap64 = mm512_bcast_m128( v128_set64( \
-                                   0x08090a0b0c0d0e0f, 0x0001020304050607 ) ); \
-  M0 = _mm512_shuffle_epi8( *(buf+ 0), shuf_bswap64 ); \
-  M1 = _mm512_shuffle_epi8( *(buf+ 1), shuf_bswap64 ); \
-  M2 = _mm512_shuffle_epi8( *(buf+ 2), shuf_bswap64 ); \
-  M3 = _mm512_shuffle_epi8( *(buf+ 3), shuf_bswap64 ); \
-  M4 = _mm512_shuffle_epi8( *(buf+ 4), shuf_bswap64 ); \
-  M5 = _mm512_shuffle_epi8( *(buf+ 5), shuf_bswap64 ); \
-  M6 = _mm512_shuffle_epi8( *(buf+ 6), shuf_bswap64 ); \
-  M7 = _mm512_shuffle_epi8( *(buf+ 7), shuf_bswap64 ); \
-  M8 = _mm512_shuffle_epi8( *(buf+ 8), shuf_bswap64 ); \
-  M9 = _mm512_shuffle_epi8( *(buf+ 9), shuf_bswap64 ); \
-  MA = _mm512_shuffle_epi8( *(buf+10), shuf_bswap64 ); \
-  MB = _mm512_shuffle_epi8( *(buf+11), shuf_bswap64 ); \
-  MC = _mm512_shuffle_epi8( *(buf+12), shuf_bswap64 ); \
-  MD = _mm512_shuffle_epi8( *(buf+13), shuf_bswap64 ); \
-  ME = _mm512_shuffle_epi8( *(buf+14), shuf_bswap64 ); \
-  MF = _mm512_shuffle_epi8( *(buf+15), shuf_bswap64 ); \
+  M0 = mm512_bswap_64( *(buf+ 0) ); \
+  M1 = mm512_bswap_64( *(buf+ 1) ); \
+  M2 = mm512_bswap_64( *(buf+ 2) ); \
+  M3 = mm512_bswap_64( *(buf+ 3) ); \
+  M4 = mm512_bswap_64( *(buf+ 4) ); \
+  M5 = mm512_bswap_64( *(buf+ 5) ); \
+  M6 = mm512_bswap_64( *(buf+ 6) ); \
+  M7 = mm512_bswap_64( *(buf+ 7) ); \
+  M8 = mm512_bswap_64( *(buf+ 8) ); \
+  M9 = mm512_bswap_64( *(buf+ 9) ); \
+  MA = mm512_bswap_64( *(buf+10) ); \
+  MB = mm512_bswap_64( *(buf+11) ); \
+  MC = mm512_bswap_64( *(buf+12) ); \
+  MD = mm512_bswap_64( *(buf+13) ); \
+  ME = mm512_bswap_64( *(buf+14) ); \
+  MF = mm512_bswap_64( *(buf+15) ); \
   ROUND_B_8WAY(0); \
   ROUND_B_8WAY(1); \
   ROUND_B_8WAY(2); \
@@ -661,7 +659,7 @@ void blake512_full( blake512_context *sc, void *dst, const void *data,
   H7 = mm512_xor3( VF, V7, H7 ); \
 }
 
-void blake512_8way_compress( blake_8way_big_context *sc )
+void blake512_8x64_compress( blake_8x64_big_context *sc )
 { 
   __m512i M0, M1, M2, M3, M4, M5, M6, M7;
   __m512i M8, M9, MA, MB, MC, MD, ME, MF;
@@ -685,25 +683,22 @@ void blake512_8way_compress( blake_8way_big_context *sc )
   VE = v512_64( CB6 ^ sc->T1 );
   VF = v512_64( CB7 ^ sc->T1 );
 
-  const __m512i shuf_bswap64 = mm512_bcast_m128( v128_set64( 
-                                   0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
-
-  M0 = _mm512_shuffle_epi8( sc->buf[ 0], shuf_bswap64 );
-  M1 = _mm512_shuffle_epi8( sc->buf[ 1], shuf_bswap64 );
-  M2 = _mm512_shuffle_epi8( sc->buf[ 2], shuf_bswap64 );
-  M3 = _mm512_shuffle_epi8( sc->buf[ 3], shuf_bswap64 );
-  M4 = _mm512_shuffle_epi8( sc->buf[ 4], shuf_bswap64 );
-  M5 = _mm512_shuffle_epi8( sc->buf[ 5], shuf_bswap64 );
-  M6 = _mm512_shuffle_epi8( sc->buf[ 6], shuf_bswap64 );
-  M7 = _mm512_shuffle_epi8( sc->buf[ 7], shuf_bswap64 );
-  M8 = _mm512_shuffle_epi8( sc->buf[ 8], shuf_bswap64 );
-  M9 = _mm512_shuffle_epi8( sc->buf[ 9], shuf_bswap64 );
-  MA = _mm512_shuffle_epi8( sc->buf[10], shuf_bswap64 );
-  MB = _mm512_shuffle_epi8( sc->buf[11], shuf_bswap64 );
-  MC = _mm512_shuffle_epi8( sc->buf[12], shuf_bswap64 );
-  MD = _mm512_shuffle_epi8( sc->buf[13], shuf_bswap64 );
-  ME = _mm512_shuffle_epi8( sc->buf[14], shuf_bswap64 );
-  MF = _mm512_shuffle_epi8( sc->buf[15], shuf_bswap64 );
+  M0 = mm512_bswap_64( sc->buf[ 0] );
+  M1 = mm512_bswap_64( sc->buf[ 1] );
+  M2 = mm512_bswap_64( sc->buf[ 2] );
+  M3 = mm512_bswap_64( sc->buf[ 3] );
+  M4 = mm512_bswap_64( sc->buf[ 4] );
+  M5 = mm512_bswap_64( sc->buf[ 5] );
+  M6 = mm512_bswap_64( sc->buf[ 6] );
+  M7 = mm512_bswap_64( sc->buf[ 7] );
+  M8 = mm512_bswap_64( sc->buf[ 8] );
+  M9 = mm512_bswap_64( sc->buf[ 9] );
+  MA = mm512_bswap_64( sc->buf[10] );
+  MB = mm512_bswap_64( sc->buf[11] );
+  MC = mm512_bswap_64( sc->buf[12] );
+  MD = mm512_bswap_64( sc->buf[13] );
+  ME = mm512_bswap_64( sc->buf[14] );
+  MF = mm512_bswap_64( sc->buf[15] );
 
   ROUND_B_8WAY(0);
   ROUND_B_8WAY(1);
@@ -733,7 +728,7 @@ void blake512_8way_compress( blake_8way_big_context *sc )
 }
 
 // won't be used after prehash implemented
-void blake512_8way_compress_le( blake_8x64_big_context *sc )
+void blake512_8x64_compress_le( blake_8x64_big_context *sc )
 {
   __m512i M0, M1, M2, M3, M4, M5, M6, M7;
   __m512i M8, M9, MA, MB, MC, MD, ME, MF;
@@ -1177,7 +1172,7 @@ void blake512_8x64_full( blake_8x64_big_context *sc, void * dst,
    {
       if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
             sc->T1 = sc->T1 + 1;
-      blake512_8way_compress( sc );
+      blake512_8x64_compress( sc );
       sc->ptr = 0;
    }
 
@@ -1213,7 +1208,7 @@ void blake512_8x64_full( blake_8x64_big_context *sc, void * dst,
    if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
        sc->T1 = sc->T1 + 1;
 
-   blake512_8way_compress( sc );
+   blake512_8x64_compress( sc );
    
    mm512_block_bswap_64( (__m512i*)dst, sc->H );
 }
@@ -1244,7 +1239,7 @@ void blake512_8x64_full_le( blake_8x64_big_context *sc, void * dst,
    {
       if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
             sc->T1 = sc->T1 + 1;
-      blake512_8way_compress_le( sc );
+      blake512_8x64_compress_le( sc );
       sc->ptr = 0;
    }
 
@@ -1280,7 +1275,7 @@ void blake512_8x64_full_le( blake_8x64_big_context *sc, void * dst,
    if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
        sc->T1 = sc->T1 + 1;
 
-   blake512_8way_compress_le( sc );
+   blake512_8x64_compress_le( sc );
 
    mm512_block_bswap_64( (__m512i*)dst, sc->H );
 }
@@ -1355,24 +1350,22 @@ blake512_8x64_close(void *cc, void *dst)
   VD = v256_64( CB5 ^ T0 ); \
   VE = v256_64( CB6 ^ T1 ); \
   VF = v256_64( CB7 ^ T1 ); \
-  const __m256i shuf_bswap64 = mm256_bcast_m128( v128_set64( \
-                             0x08090a0b0c0d0e0f, 0x0001020304050607 ) ); \
-  M0 = _mm256_shuffle_epi8( *(buf+ 0), shuf_bswap64 ); \
-  M1 = _mm256_shuffle_epi8( *(buf+ 1), shuf_bswap64 ); \
-  M2 = _mm256_shuffle_epi8( *(buf+ 2), shuf_bswap64 ); \
-  M3 = _mm256_shuffle_epi8( *(buf+ 3), shuf_bswap64 ); \
-  M4 = _mm256_shuffle_epi8( *(buf+ 4), shuf_bswap64 ); \
-  M5 = _mm256_shuffle_epi8( *(buf+ 5), shuf_bswap64 ); \
-  M6 = _mm256_shuffle_epi8( *(buf+ 6), shuf_bswap64 ); \
-  M7 = _mm256_shuffle_epi8( *(buf+ 7), shuf_bswap64 ); \
-  M8 = _mm256_shuffle_epi8( *(buf+ 8), shuf_bswap64 ); \
-  M9 = _mm256_shuffle_epi8( *(buf+ 9), shuf_bswap64 ); \
-  MA = _mm256_shuffle_epi8( *(buf+10), shuf_bswap64 ); \
-  MB = _mm256_shuffle_epi8( *(buf+11), shuf_bswap64 ); \
-  MC = _mm256_shuffle_epi8( *(buf+12), shuf_bswap64 ); \
-  MD = _mm256_shuffle_epi8( *(buf+13), shuf_bswap64 ); \
-  ME = _mm256_shuffle_epi8( *(buf+14), shuf_bswap64 ); \
-  MF = _mm256_shuffle_epi8( *(buf+15), shuf_bswap64 ); \
+  M0 = mm256_bswap_64( *(buf+ 0) ); \
+  M1 = mm256_bswap_64( *(buf+ 1) ); \
+  M2 = mm256_bswap_64( *(buf+ 2) ); \
+  M3 = mm256_bswap_64( *(buf+ 3) ); \
+  M4 = mm256_bswap_64( *(buf+ 4) ); \
+  M5 = mm256_bswap_64( *(buf+ 5) ); \
+  M6 = mm256_bswap_64( *(buf+ 6) ); \
+  M7 = mm256_bswap_64( *(buf+ 7) ); \
+  M8 = mm256_bswap_64( *(buf+ 8) ); \
+  M9 = mm256_bswap_64( *(buf+ 9) ); \
+  MA = mm256_bswap_64( *(buf+10) ); \
+  MB = mm256_bswap_64( *(buf+11) ); \
+  MC = mm256_bswap_64( *(buf+12) ); \
+  MD = mm256_bswap_64( *(buf+13) ); \
+  ME = mm256_bswap_64( *(buf+14) ); \
+  MF = mm256_bswap_64( *(buf+15) ); \
   ROUND_B_4WAY(0); \
   ROUND_B_4WAY(1); \
   ROUND_B_4WAY(2); \
@@ -1400,7 +1393,7 @@ blake512_8x64_close(void *cc, void *dst)
 }
 
 
-void blake512_4way_compress( blake_4x64_big_context *sc )
+void blake512_4x64_compress( blake_4x64_big_context *sc )
 {
   __m256i M0, M1, M2, M3, M4, M5, M6, M7;
   __m256i M8, M9, MA, MB, MC, MD, ME, MF;
@@ -1423,25 +1416,23 @@ void blake512_4way_compress( blake_4x64_big_context *sc )
   VD = v256_64( CB5 ^ sc->T0 );
   VE = v256_64( CB6 ^ sc->T1 );
   VF = v256_64( CB7 ^ sc->T1 );
-  const __m256i shuf_bswap64 = mm256_bcast_m128( v128_set64(
-                                    0x08090a0b0c0d0e0f, 0x0001020304050607 ) );
 
-  M0 = _mm256_shuffle_epi8( sc->buf[ 0], shuf_bswap64 );
-  M1 = _mm256_shuffle_epi8( sc->buf[ 1], shuf_bswap64 );
-  M2 = _mm256_shuffle_epi8( sc->buf[ 2], shuf_bswap64 );
-  M3 = _mm256_shuffle_epi8( sc->buf[ 3], shuf_bswap64 );
-  M4 = _mm256_shuffle_epi8( sc->buf[ 4], shuf_bswap64 );
-  M5 = _mm256_shuffle_epi8( sc->buf[ 5], shuf_bswap64 );
-  M6 = _mm256_shuffle_epi8( sc->buf[ 6], shuf_bswap64 );
-  M7 = _mm256_shuffle_epi8( sc->buf[ 7], shuf_bswap64 );
-  M8 = _mm256_shuffle_epi8( sc->buf[ 8], shuf_bswap64 );
-  M9 = _mm256_shuffle_epi8( sc->buf[ 9], shuf_bswap64 );
-  MA = _mm256_shuffle_epi8( sc->buf[10], shuf_bswap64 );
-  MB = _mm256_shuffle_epi8( sc->buf[11], shuf_bswap64 );
-  MC = _mm256_shuffle_epi8( sc->buf[12], shuf_bswap64 );
-  MD = _mm256_shuffle_epi8( sc->buf[13], shuf_bswap64 );
-  ME = _mm256_shuffle_epi8( sc->buf[14], shuf_bswap64 );
-  MF = _mm256_shuffle_epi8( sc->buf[15], shuf_bswap64 );
+  M0 = mm256_bswap_64( sc->buf[ 0] );
+  M1 = mm256_bswap_64( sc->buf[ 1] );
+  M2 = mm256_bswap_64( sc->buf[ 2] );
+  M3 = mm256_bswap_64( sc->buf[ 3] );
+  M4 = mm256_bswap_64( sc->buf[ 4] );
+  M5 = mm256_bswap_64( sc->buf[ 5] );
+  M6 = mm256_bswap_64( sc->buf[ 6] );
+  M7 = mm256_bswap_64( sc->buf[ 7] );
+  M8 = mm256_bswap_64( sc->buf[ 8] );
+  M9 = mm256_bswap_64( sc->buf[ 9] );
+  MA = mm256_bswap_64( sc->buf[10] );
+  MB = mm256_bswap_64( sc->buf[11] );
+  MC = mm256_bswap_64( sc->buf[12] );
+  MD = mm256_bswap_64( sc->buf[13] );
+  ME = mm256_bswap_64( sc->buf[14] );
+  MF = mm256_bswap_64( sc->buf[15] );
 
   ROUND_B_4WAY(0);
   ROUND_B_4WAY(1);
@@ -1470,7 +1461,7 @@ void blake512_4way_compress( blake_4x64_big_context *sc )
   sc->H[7] = mm256_xor3( VF, V7, sc->H[7] );
 }
 
-void blake512_4x64_prehash_le( blake_4x64_big_context *sc, __m256i *midstate,
+void blake512_4x64_prehash_le( blake512_4x64_context *sc, __m256i *midstate,
                                const void *data )
 {
    __m256i V0, V1, V2, V3, V4, V5, V6, V7;
@@ -1562,7 +1553,7 @@ void blake512_4x64_prehash_le( blake_4x64_big_context *sc, __m256i *midstate,
    midstate[15] = VF;
 }
 
-void blake512_4x64_final_le( blake_4x64_big_context *sc, void *hash,
+void blake512_4x64_final_le( blake512_4x64_context *sc, void *hash,
                              const __m256i nonce, const __m256i *midstate )
 {
    __m256i M0, M1, M2, M3, M4, M5, M6, M7;
@@ -1685,7 +1676,7 @@ void blake512_4x64_final_le( blake_4x64_big_context *sc, void *hash,
 }
 
 
-void blake512_4x64_init( blake_4x64_big_context *sc )
+void blake512_4x64_init( blake512_4x64_context *sc )
 {
    casti_m256i( sc->H, 0 ) = v256_64( 0x6A09E667F3BCC908 );
    casti_m256i( sc->H, 1 ) = v256_64( 0xBB67AE8584CAA73B );
@@ -1798,7 +1789,7 @@ blake64_4way_close( blake_4x64_big_context *sc, void *dst )
 }
 
 // init, update & close
-void blake512_4x64_full( blake_4x64_big_context *sc, void * dst,
+void blake512_4x64_full( blake512_4x64_context *sc, void * dst,
                          const void *data, size_t len )
 {
 
@@ -1824,7 +1815,7 @@ void blake512_4x64_full( blake_4x64_big_context *sc, void * dst,
    {
       if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
          sc->T1 =  sc->T1 + 1;
-      blake512_4way_compress( sc );
+      blake512_4x64_compress( sc );
       sc->ptr = 0;
    }
 
@@ -1859,7 +1850,7 @@ void blake512_4x64_full( blake_4x64_big_context *sc, void * dst,
    if ( ( sc->T0 = sc->T0 + 1024 ) < 1024 )
        sc->T1 = sc->T1 + 1;
 
-   blake512_4way_compress( sc );
+   blake512_4x64_compress( sc );
 
    mm256_block_bswap_64( (__m256i*)dst, sc->H );
 }
@@ -1934,29 +1925,6 @@ void blake512_2x64_compress( blake_2x64_big_context *sc )
   VE = v128_64( CB6 ^ sc->T1 );
   VF = v128_64( CB7 ^ sc->T1 );
 
-#if defined(__SSSE3__)
-
-  const v128u64_t shuf_bswap64 = v128_set64(
-                                 0x08090a0b0c0d0e0f, 0x0001020304050607 );
-  M0 = v128_shuffle8( sc->buf[ 0], shuf_bswap64 );
-  M1 = v128_shuffle8( sc->buf[ 1], shuf_bswap64 );
-  M2 = v128_shuffle8( sc->buf[ 2], shuf_bswap64 );
-  M3 = v128_shuffle8( sc->buf[ 3], shuf_bswap64 );
-  M4 = v128_shuffle8( sc->buf[ 4], shuf_bswap64 );
-  M5 = v128_shuffle8( sc->buf[ 5], shuf_bswap64 );
-  M6 = v128_shuffle8( sc->buf[ 6], shuf_bswap64 );
-  M7 = v128_shuffle8( sc->buf[ 7], shuf_bswap64 );
-  M8 = v128_shuffle8( sc->buf[ 8], shuf_bswap64 );
-  M9 = v128_shuffle8( sc->buf[ 9], shuf_bswap64 );
-  MA = v128_shuffle8( sc->buf[10], shuf_bswap64 );
-  MB = v128_shuffle8( sc->buf[11], shuf_bswap64 );
-  MC = v128_shuffle8( sc->buf[12], shuf_bswap64 );
-  MD = v128_shuffle8( sc->buf[13], shuf_bswap64 );
-  ME = v128_shuffle8( sc->buf[14], shuf_bswap64 );
-  MF = v128_shuffle8( sc->buf[15], shuf_bswap64 );
-
-#else  // SSE2 & NEON
-
   M0 = v128_bswap64( sc->buf[ 0] );
   M1 = v128_bswap64( sc->buf[ 1] );
   M2 = v128_bswap64( sc->buf[ 2] );
@@ -1974,8 +1942,6 @@ void blake512_2x64_compress( blake_2x64_big_context *sc )
   ME = v128_bswap64( sc->buf[14] );
   MF = v128_bswap64( sc->buf[15] );
   
-#endif
-
   ROUND_B_2X64(0);
   ROUND_B_2X64(1);
   ROUND_B_2X64(2);

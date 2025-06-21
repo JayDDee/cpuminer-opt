@@ -140,28 +140,28 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// AVX512 macros are not a reliable indicator of 512 bit vector capability
-// because they get defined with AVX10_1_256 which doesn't support 512 bit.
-// EVEX512 is also unreliable as it can also be defined when 512b is not
-// available.
-// Use AVX10_1_512 for 512b & AVX10_1_256 for 256b whenever AVX10 is present.
-// Use AVX512 macros only whithout AVX10.
-
 /*
-// Test for macros
-#ifdef __AVX10_1__
+// Test for AVX10 macros
+// AVX10-256 was abandoned by Intel before any CPUs were built.
+#ifdef __AVX10__            // does not exist
+#warning "__AVX10__"   
+#endif
+#ifdef __AVX10_1__          // GCC-14
 #warning "__AVX10_1__"
 #endif
-#ifdef __AVX10_1_256__
+#ifdef __AVX10_2__          // GCC-15
+#warning "__AVX10_2__"
+#endif
+#ifdef __AVX10_1_256__      // obsolete
 #warning "__AVX10_1_256__"
 #endif
-#ifdef __AVX10_1_512__
-#warning "__AVX10_1_512__"
+#ifdef __AVX10_1_512__    
+#warning "__AVX10_1_512__"  // does not exist
 #endif
-#ifdef __EVEX256__
-#warning "__EVEX256__"
+#ifdef __EVEX256__          // likely obsolete
+#warning "__EVEX256__"   
 #endif
-#ifdef __EVEX512__
+#ifdef __EVEX512__          // likely obsolete
 #warning "__EVEX512__"
 #endif
 #if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
@@ -169,27 +169,14 @@
 #endif
 */
 
-// SIMD512: Use 512, 256 & 128 bit vectors, AVX512VBMI is not included and
-// must be tested seperately. 
-// VL256: Include AVX512VL instructions for 256 & 128 bit vectors.
-// VBMI: Include AVX512VBMI instructions for supported vector lengths.
-
-#if defined(__AVX10_1__)
-
-  #define VL256 1
-  #define VBMI 1
-  #if defined(__AVX10_1_512__)
-    #define SIMD512 1
-  #endif
-
-#elif defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__)
-
-  #define VL256 1
+// With Intel abandoning AVX10-256 the SIM512 & VL256 macros are almost
+// identical with the only difference being VBMI is included in VL256.
+#if defined(__AVX10_1__) || ( defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX512BW__) )
   #define SIMD512 1
-  #if defined(__AVX512VBMI__)
+  #define VL256 1
+  #if defined(__AVX10_1__) || defined(__AVX512VBMI__)
     #define VBMI 1
   #endif
-
 #endif
 
 /*
@@ -204,13 +191,75 @@
 #endif
 */
 
+// targetted intrinsics
 #if defined(__x86_64__)
+  #include <x86intrin.h>
+#elif defined(__aarch64__) && defined(__ARM_NEON)
+  #include <arm_neon.h>
+#elif defined(__riscv) && defined(__riscv_vector)
+  #include <riscv_vector.h> 
+#endif
 
-#include <x86intrin.h>
+// Single global definition for frequently used vector constants.
+// The GCC optimizer can merge constants but merging different vector lengths
+// might be beyond it's scope. 
 
-#elif defined(__aarch64__)
+// Frequently used SSE/AVX shuffle constants.
+#if defined(SIMD512)
 
-#include <arm_neon.h>
+// When used with shuffle_epi8 performs are standard bswap of all elements.
+// When used with permutexvar_epi8 (requires AVX512VBMI or AVX10) performs a
+// bswap of the elements in the lower 128 bits of the source and broadcasts
+// the result to all 128 bit lanes of the destination.
+
+extern const __m512i V512_BSWAP64;
+#define V256_BSWAP64 _mm512_castsi512_si256( V512_BSWAP64 )
+#define V128_BSWAP64 _mm512_castsi512_si128( V512_BSWAP64 )
+
+extern const __m512i V512_BSWAP32;
+#define V256_BSWAP32 _mm512_castsi512_si256( V512_BSWAP32 )
+#define V128_BSWAP32 _mm512_castsi512_si128( V512_BSWAP32 )
+
+#elif defined(__AVX2__)
+
+extern const __m256i V256_BSWAP64;
+#define V128_BSWAP64 _mm256_castsi256_si128( V256_BSWAP64 )
+
+extern const __m256i V256_BSWAP32;
+#define V128_BSWAP32 _mm256_castsi256_si128( V256_BSWAP32 )
+
+// These shuffles aren't needed with AVX512, uses ror/rol instead.
+
+extern const __m256i V256_SHUFLR64_8;
+#define V128_SHUFLR64_8 _mm256_castsi256_si128( V256_SHUFLR64_8 )
+
+extern const __m256i V256_SHUFLR64_24;
+#define V128_SHUFLR64_24 _mm256_castsi256_si128( V256_SHUFLR64_24 )
+
+extern const __m256i V256_SHUFLL64_8;
+#define V128_SHUFLL64_8 _mm256_castsi256_si128( V256_SHUFLL64_8 )
+
+extern const __m256i V256_SHUFLL64_24;
+#define V128_SHUFLL64_24 _mm256_castsi256_si128( V256_SHUFLL64_24 )
+
+extern const __m256i V256_SHUFLR32_8;
+#define V128_SHUFLR32_8 _mm256_castsi256_si128( V256_SHUFLR32_8 )
+
+extern const __m256i V256_SHUFLL32_8;
+#define V128_SHUFLL32_8 _mm256_castsi256_si128( V256_SHUFLL32_8 )
+
+#elif defined(__SSSE3__)
+
+extern const __m128i V128_BSWAP64;
+extern const __m128i V128_BSWAP32;
+
+extern const __m128i V128_SHUFLR64_8;
+extern const __m128i V128_SHUFLR64_24;
+extern const __m128i V128_SHUFLL64_8;
+extern const __m128i V128_SHUFLL64_24;
+
+extern const __m128i V128_SHUFLR32_8;
+extern const __m128i V128_SHUFLL32_8;
 
 #endif
 
@@ -225,7 +274,7 @@
 // x86_64 AVX512 512 bit vectors
 #include "simd-utils/simd-512.h"
 
-// aarch64 neon 128 bit vectors
+// aarch64 NEON 128 bit vectors
 #include "simd-utils/simd-neon.h"
 
 #include "simd-utils/intrlv.h"

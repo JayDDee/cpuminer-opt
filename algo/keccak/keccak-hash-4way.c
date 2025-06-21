@@ -190,7 +190,7 @@ static void keccak64_8way_close( keccak64_ctx_m512i *kc, void *dst,
     memcpy_512( dst, kc->w, m512_len );
 }
 
-void keccak256_8way_init( void *kc )
+void keccak256_8x64_init( void *kc )
 {
    keccak64_8way_init( kc, 256 );
 }

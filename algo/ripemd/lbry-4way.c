@@ -13,7 +13,7 @@
 
 #if defined(LBRY_16WAY)
 
-static __thread sha256_16way_context sha256_16w_mid;
+static __thread sha256_16x32_context sha256_16w_mid;
 
 void lbry_16way_hash( void* output, const void* input )
 {
@@ -36,17 +36,17 @@ void lbry_16way_hash( void* output, const void* input )
    uint32_t _ALIGN(64) h13[32];
    uint32_t _ALIGN(64) h14[32];
    uint32_t _ALIGN(64) h15[32];
-   sha256_16way_context    ctx_sha256 __attribute__ ((aligned (64)));
-   sha512_8way_context     ctx_sha512;
-   ripemd160_16way_context ctx_ripemd;
+   sha256_16x32_context    ctx_sha256 __attribute__ ((aligned (64)));
+   sha512_8x64_context     ctx_sha512;
+   ripemd160_16x32_context ctx_ripemd;
 
    memcpy( &ctx_sha256, &sha256_16w_mid, sizeof(ctx_sha256) );
-   sha256_16way_update( &ctx_sha256, input + (LBRY_MIDSTATE<<4), LBRY_TAIL );
-   sha256_16way_close( &ctx_sha256, vhashA );
+   sha256_16x32_update( &ctx_sha256, input + (LBRY_MIDSTATE<<4), LBRY_TAIL );
+   sha256_16x32_close( &ctx_sha256, vhashA );
 
-   sha256_16way_init( &ctx_sha256 );
-   sha256_16way_update( &ctx_sha256, vhashA, 32 );
-   sha256_16way_close( &ctx_sha256, vhashA );
+   sha256_16x32_init( &ctx_sha256 );
+   sha256_16x32_update( &ctx_sha256, vhashA, 32 );
+   sha256_16x32_close( &ctx_sha256, vhashA );
 
    // reinterleave to do sha512 4-way 64 bit twice.
    dintrlv_16x32( h0, h1, h2, h3, h4, h5, h6, h7,
@@ -54,13 +54,13 @@ void lbry_16way_hash( void* output, const void* input )
    intrlv_8x64( vhashA, h0, h1, h2, h3, h4, h5, h6, h7, 256 );
    intrlv_8x64( vhashB, h8, h9, h10, h11, h12, h13, h14, h15, 256 );
 
-   sha512_8way_init( &ctx_sha512 );
-   sha512_8way_update( &ctx_sha512, vhashA, 32 );
-   sha512_8way_close( &ctx_sha512, vhashA );
+   sha512_8x64_init( &ctx_sha512 );
+   sha512_8x64_update( &ctx_sha512, vhashA, 32 );
+   sha512_8x64_close( &ctx_sha512, vhashA );
 
-   sha512_8way_init( &ctx_sha512 );
-   sha512_8way_update( &ctx_sha512, vhashB, 32 );
-   sha512_8way_close( &ctx_sha512, vhashB );
+   sha512_8x64_init( &ctx_sha512 );
+   sha512_8x64_update( &ctx_sha512, vhashB, 32 );
+   sha512_8x64_close( &ctx_sha512, vhashB );
 
    // back to 8-way 32 bit
    dintrlv_8x64( h0, h1, h2, h3, h4, h5, h6, h7, vhashA, 512 );
@@ -68,22 +68,22 @@ void lbry_16way_hash( void* output, const void* input )
    intrlv_16x32( vhashA, h0, h1, h2, h3, h4, h5, h6, h7,
                          h8, h9, h10, h11, h12, h13, h14, h15, 512 );
 
-   ripemd160_16way_init( &ctx_ripemd );
-   ripemd160_16way_update( &ctx_ripemd, vhashA, 32 );
-   ripemd160_16way_close( &ctx_ripemd, vhashB );
+   ripemd160_16x32_init( &ctx_ripemd );
+   ripemd160_16x32_update( &ctx_ripemd, vhashA, 32 );
+   ripemd160_16x32_close( &ctx_ripemd, vhashB );
 
-   ripemd160_16way_init( &ctx_ripemd );
-   ripemd160_16way_update( &ctx_ripemd, vhashA+(8<<4), 32 );
-   ripemd160_16way_close( &ctx_ripemd, vhashC );
+   ripemd160_16x32_init( &ctx_ripemd );
+   ripemd160_16x32_update( &ctx_ripemd, vhashA+(8<<4), 32 );
+   ripemd160_16x32_close( &ctx_ripemd, vhashC );
 
-   sha256_16way_init( &ctx_sha256 );
-   sha256_16way_update( &ctx_sha256, vhashB, 20 );
-   sha256_16way_update( &ctx_sha256, vhashC, 20 );
-   sha256_16way_close( &ctx_sha256, vhashA );
+   sha256_16x32_init( &ctx_sha256 );
+   sha256_16x32_update( &ctx_sha256, vhashB, 20 );
+   sha256_16x32_update( &ctx_sha256, vhashC, 20 );
+   sha256_16x32_close( &ctx_sha256, vhashA );
 
-   sha256_16way_init( &ctx_sha256 );
-   sha256_16way_update( &ctx_sha256, vhashA, 32 );
-   sha256_16way_close( &ctx_sha256, output );
+   sha256_16x32_init( &ctx_sha256 );
+   sha256_16x32_update( &ctx_sha256, vhashA, 32 );
+   sha256_16x32_close( &ctx_sha256, output );
 }
 
 int scanhash_lbry_16way( struct work *work, uint32_t max_nonce,
@@ -115,8 +115,8 @@ int scanhash_lbry_16way( struct work *work, uint32_t max_nonce,
    intrlv_16x32( vdata, edata, edata, edata, edata, edata, edata, edata,
         edata, edata, edata, edata, edata, edata, edata, edata, edata, 1024 );
 
-   sha256_16way_init( &sha256_16w_mid );
-   sha256_16way_update( &sha256_16w_mid, vdata, LBRY_MIDSTATE );
+   sha256_16x32_init( &sha256_16w_mid );
+   sha256_16x32_update( &sha256_16w_mid, vdata, LBRY_MIDSTATE );
 
    do
    {
@@ -144,7 +144,7 @@ int scanhash_lbry_16way( struct work *work, uint32_t max_nonce,
 
 #elif defined(LBRY_8WAY)
 
-static __thread sha256_8way_context sha256_8w_mid;
+static __thread sha256_8x32_context sha256_8w_mid;
 
 void lbry_8way_hash( void* output, const void* input )
 {
@@ -159,52 +159,52 @@ void lbry_8way_hash( void* output, const void* input )
    uint32_t _ALIGN(32) h5[32];
    uint32_t _ALIGN(32) h6[32];
    uint32_t _ALIGN(32) h7[32];
-   sha256_8way_context     ctx_sha256 __attribute__ ((aligned (64)));
-   sha512_4way_context     ctx_sha512;
-   ripemd160_8way_context  ctx_ripemd;
+   sha256_8x32_context     ctx_sha256 __attribute__ ((aligned (64)));
+   sha512_4x64_context     ctx_sha512;
+   ripemd160_8x32_context  ctx_ripemd;
 
    memcpy( &ctx_sha256, &sha256_8w_mid, sizeof(ctx_sha256) );
-   sha256_8way_update( &ctx_sha256, input + (LBRY_MIDSTATE<<3), LBRY_TAIL );
-   sha256_8way_close( &ctx_sha256, vhashA );
+   sha256_8x32_update( &ctx_sha256, input + (LBRY_MIDSTATE<<3), LBRY_TAIL );
+   sha256_8x32_close( &ctx_sha256, vhashA );
 
-   sha256_8way_init( &ctx_sha256 );
-   sha256_8way_update( &ctx_sha256, vhashA, 32 );
-   sha256_8way_close( &ctx_sha256, vhashA );
+   sha256_8x32_init( &ctx_sha256 );
+   sha256_8x32_update( &ctx_sha256, vhashA, 32 );
+   sha256_8x32_close( &ctx_sha256, vhashA );
 
    // reinterleave to do sha512 4-way 64 bit twice.
    dintrlv_8x32( h0, h1, h2, h3, h4, h5, h6, h7, vhashA, 256 );
    intrlv_4x64( vhashA, h0, h1, h2, h3, 256 );
    intrlv_4x64( vhashB, h4, h5, h6, h7, 256 );
 
-   sha512_4way_init( &ctx_sha512 );
-   sha512_4way_update( &ctx_sha512, vhashA, 32 );
-   sha512_4way_close( &ctx_sha512, vhashA );
+   sha512_4x64_init( &ctx_sha512 );
+   sha512_4x64_update( &ctx_sha512, vhashA, 32 );
+   sha512_4x64_close( &ctx_sha512, vhashA );
 
-   sha512_4way_init( &ctx_sha512 );
-   sha512_4way_update( &ctx_sha512, vhashB, 32 );
-   sha512_4way_close( &ctx_sha512, vhashB );
+   sha512_4x64_init( &ctx_sha512 );
+   sha512_4x64_update( &ctx_sha512, vhashB, 32 );
+   sha512_4x64_close( &ctx_sha512, vhashB );
 
    // back to 8-way 32 bit
    dintrlv_4x64( h0, h1, h2, h3, vhashA, 512 );
    dintrlv_4x64( h4, h5, h6, h7, vhashB, 512 );
    intrlv_8x32( vhashA, h0, h1, h2, h3, h4, h5, h6, h7, 512 );
 
-   ripemd160_8way_init( &ctx_ripemd );
-   ripemd160_8way_update( &ctx_ripemd, vhashA, 32 );
-   ripemd160_8way_close( &ctx_ripemd, vhashB );
+   ripemd160_8x32_init( &ctx_ripemd );
+   ripemd160_8x32_update( &ctx_ripemd, vhashA, 32 );
+   ripemd160_8x32_close( &ctx_ripemd, vhashB );
 
-   ripemd160_8way_init( &ctx_ripemd );
-   ripemd160_8way_update( &ctx_ripemd, vhashA+(8<<3), 32 );
-   ripemd160_8way_close( &ctx_ripemd, vhashC );
+   ripemd160_8x32_init( &ctx_ripemd );
+   ripemd160_8x32_update( &ctx_ripemd, vhashA+(8<<3), 32 );
+   ripemd160_8x32_close( &ctx_ripemd, vhashC );
 
-   sha256_8way_init( &ctx_sha256 );
-   sha256_8way_update( &ctx_sha256, vhashB, 20 );
-   sha256_8way_update( &ctx_sha256, vhashC, 20 );
-   sha256_8way_close( &ctx_sha256, vhashA );
+   sha256_8x32_init( &ctx_sha256 );
+   sha256_8x32_update( &ctx_sha256, vhashB, 20 );
+   sha256_8x32_update( &ctx_sha256, vhashC, 20 );
+   sha256_8x32_close( &ctx_sha256, vhashA );
 
-   sha256_8way_init( &ctx_sha256 );
-   sha256_8way_update( &ctx_sha256, vhashA, 32 );
-   sha256_8way_close( &ctx_sha256, output );
+   sha256_8x32_init( &ctx_sha256 );
+   sha256_8x32_update( &ctx_sha256, vhashA, 32 );
+   sha256_8x32_close( &ctx_sha256, output );
 }
 
 int scanhash_lbry_8way( struct work *work, uint32_t max_nonce,
@@ -235,8 +235,8 @@ int scanhash_lbry_8way( struct work *work, uint32_t max_nonce,
    intrlv_8x32( vdata, edata, edata, edata, edata,
                        edata, edata, edata, edata, 1024 );
 
-   sha256_8way_init( &sha256_8w_mid );
-   sha256_8way_update( &sha256_8w_mid, vdata, LBRY_MIDSTATE );
+   sha256_8x32_init( &sha256_8w_mid );
+   sha256_8x32_update( &sha256_8w_mid, vdata, LBRY_MIDSTATE );
 
    do
    {

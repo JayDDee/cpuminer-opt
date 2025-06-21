@@ -17,7 +17,6 @@
 #elif defined (__SSE2__) || defined(__ARM_NEON) 
   #define SHA256DT_4X32 1
 #endif
-// else ref, should never happen
 
 static const uint32_t sha256dt_iv[8]  __attribute__ ((aligned (32))) =
 {
@@ -205,8 +204,6 @@ int scanhash_sha256dt_16x32( struct work *work, const uint32_t max_nonce,
    const int thr_id = mythr->id;
    const __m512i sixteen = v512_32( 16 );
    const bool bench = opt_benchmark;
-   const __m256i bswap_shuf = mm256_bcast_m128( v128_set64(
-                                0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
    // prehash first block directly from pdata
    sha256_transform_le( phash, pdata, sha256dt_iv );
@@ -258,8 +255,7 @@ int scanhash_sha256dt_16x32( struct work *work, const uint32_t max_nonce,
          for ( int lane = 0; lane < 16; lane++ )
          {
             extr_lane_16x32( phash, hash32, lane, 256 );
-            casti_m256i( phash, 0 ) =
-                   _mm256_shuffle_epi8( casti_m256i( phash, 0 ), bswap_shuf ); 
+            casti_m256i( phash, 0 ) = mm256_bswap_32( casti_m256i( phash, 0 ) ); 
             if ( likely( valid_hash( phash, ptarget ) && !bench ) )
             {
               pdata[19] = n + lane;
@@ -298,8 +294,6 @@ int scanhash_sha256dt_8x32( struct work *work, const uint32_t max_nonce,
    const bool bench = opt_benchmark;
    const __m256i last_byte = v256_32( 0x80000000 );
    const __m256i eight = v256_32( 8 );
-   const __m256i bswap_shuf = mm256_bcast_m128( v128_set64(
-                                0x0c0d0e0f08090a0b, 0x0405060700010203 ) );
 
    for ( int i = 0; i < 19; i++ )
       vdata[i] = v256_32( pdata[i] );
@@ -339,7 +333,7 @@ int scanhash_sha256dt_8x32( struct work *work, const uint32_t max_nonce,
          {
             extr_lane_8x32( lane_hash, hash32, lane, 256 );
             casti_m256i( lane_hash, 0 ) =
-               _mm256_shuffle_epi8( casti_m256i( lane_hash, 0 ), bswap_shuf );
+                                mm256_bswap_32( casti_m256i( lane_hash, 0 ) );
             if ( likely( valid_hash( lane_hash, ptarget ) && !bench ) )
             {
                pdata[19] = n + lane;
@@ -406,7 +400,6 @@ int scanhash_sha256dt_4x32( struct work *work, const uint32_t max_nonce,
    do
    {
       sha256_4x32_final_rounds( block, vdata+16, mhash1, mhash2, mexp_pre );
-//      sha256_4x32_transform_le( block, vdata+16, mhash1 );
       sha256_4x32_transform_le( hash32, block, iv );
 
       for ( int lane = 0; lane < 4; lane++ )

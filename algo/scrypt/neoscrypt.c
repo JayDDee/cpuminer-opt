@@ -597,6 +597,45 @@ static void blake2s_compress(blake2s_state *S, const void *buf) {
     v[13] = S->t[1] ^ blake2s_IV[5];
     v[14] = S->f[0] ^ blake2s_IV[6];
     v[15] = S->f[1] ^ blake2s_IV[7];
+
+#if defined(__SSE2__) || defined(__ARM_NEON)
+
+   v128_t *V = (v128_t*)v;
+
+#define ROUND( r ) \
+   V[0] = v128_add32( V[0], v128_add32( V[1], v128_set32( \
+                  m[blake2s_sigma[r][ 6]], m[blake2s_sigma[r][ 4]], \
+                  m[blake2s_sigma[r][ 2]], m[blake2s_sigma[r][ 0]] ) ) ); \
+   V[3] = v128_ror32( v128_xor( V[3], V[0] ), 16 ); \
+   V[2] = v128_add32( V[2], V[3] ); \
+   V[1] = v128_ror32( v128_xor( V[1], V[2] ), 12 ); \
+   V[0] = v128_add32( V[0], v128_add32( V[1], v128_set32( \
+                   m[blake2s_sigma[r][ 7]], m[blake2s_sigma[r][ 5]], \
+                   m[blake2s_sigma[r][ 3]], m[blake2s_sigma[r][ 1]] ) ) ); \
+   V[3] = v128_ror32( v128_xor( V[3], V[0] ), 8 ); \
+   V[2] = v128_add32( V[2], V[3] ); \
+   V[1] = v128_ror32( v128_xor( V[1], V[2] ), 7 ); \
+   V[0] = v128_shufll32( V[0] ); \
+   V[3] = v128_swap64( V[3] ); \
+   V[2] = v128_shuflr32( V[2] ); \
+   V[0] = v128_add32( V[0], v128_add32( V[1], v128_set32( \
+                    m[blake2s_sigma[r][12]], m[blake2s_sigma[r][10]], \
+                    m[blake2s_sigma[r][ 8]], m[blake2s_sigma[r][14]] ) ) ); \
+   V[3] = v128_ror32( v128_xor( V[3], V[0] ), 16 ); \
+   V[2] = v128_add32( V[2], V[3] ); \
+   V[1] = v128_ror32( v128_xor( V[1], V[2] ), 12 ); \
+   V[0] = v128_add32( V[0], v128_add32( V[1], v128_set32( \
+                    m[blake2s_sigma[r][13]], m[blake2s_sigma[r][11]], \
+                    m[blake2s_sigma[r][ 9]], m[blake2s_sigma[r][15]] ) ) ); \
+   V[3] = v128_ror32( v128_xor( V[3], V[0] ), 8 ); \
+   V[2] = v128_add32( V[2], V[3] ); \
+   V[1] = v128_ror32( v128_xor( V[1], V[2] ), 7 ); \
+   V[0] = v128_shuflr32( V[0] ); \
+   V[3] = v128_swap64( V[3] ); \
+   V[2] = v128_shufll32( V[2] )
+
+#else
+
 #define G(r,i,a,b,c,d) \
   do { \
     a = a + b + m[blake2s_sigma[r][2*i+0]]; \
@@ -619,6 +658,9 @@ static void blake2s_compress(blake2s_state *S, const void *buf) {
     G(r, 6, v[ 2], v[ 7], v[ 8], v[13]); \
     G(r, 7, v[ 3], v[ 4], v[ 9], v[14]); \
   } while(0)
+
+#endif
+
     ROUND(0);
     ROUND(1);
     ROUND(2);

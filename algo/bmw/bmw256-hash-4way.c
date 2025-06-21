@@ -45,7 +45,7 @@ extern "C"{
 
 #define LPAR   (
 
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined(__ARM_NEON)
 
 // BMW-256 4 way 32
 /*
@@ -284,9 +284,9 @@ static const uint32_t IV256[] = {
                      v128_xor( M[13], H[13] ) ) )
 
 
-void compress_small( const v128u64_t *M, const v128u64_t H[16], v128u64_t dH[16] )
+void compress_small( const v128u32_t *M, const v128u32_t H[16], v128u32_t dH[16] )
 {
-   v128u64_t qt[32], xl, xh; \
+   v128u32_t qt[32], xl, xh; \
 
    qt[ 0] = v128_add32( ss0( Ws0 ), H[ 1] );
    qt[ 1] = v128_add32( ss1( Ws1 ), H[ 2] );
@@ -428,49 +428,25 @@ static const uint32_t final_s[16][4] =
    { 0xaaaaaaae, 0xaaaaaaae, 0xaaaaaaae, 0xaaaaaaae },
    { 0xaaaaaaaf, 0xaaaaaaaf, 0xaaaaaaaf, 0xaaaaaaaf }
 };
-/*
-static const v128u64_t final_s[16] =
-{
-   { 0xaaaaaaa0aaaaaaa0, 0xaaaaaaa0aaaaaaa0 },
-   { 0xaaaaaaa1aaaaaaa1, 0xaaaaaaa1aaaaaaa1 },
-   { 0xaaaaaaa2aaaaaaa2, 0xaaaaaaa2aaaaaaa2 },
-   { 0xaaaaaaa3aaaaaaa3, 0xaaaaaaa3aaaaaaa3 },
-   { 0xaaaaaaa4aaaaaaa4, 0xaaaaaaa4aaaaaaa4 },
-   { 0xaaaaaaa5aaaaaaa5, 0xaaaaaaa5aaaaaaa5 },
-   { 0xaaaaaaa6aaaaaaa6, 0xaaaaaaa6aaaaaaa6 },
-   { 0xaaaaaaa7aaaaaaa7, 0xaaaaaaa7aaaaaaa7 },
-   { 0xaaaaaaa8aaaaaaa8, 0xaaaaaaa8aaaaaaa8 },
-   { 0xaaaaaaa9aaaaaaa9, 0xaaaaaaa9aaaaaaa9 },
-   { 0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa },
-   { 0xaaaaaaabaaaaaaab, 0xaaaaaaabaaaaaaab },
-   { 0xaaaaaaacaaaaaaac, 0xaaaaaaacaaaaaaac },
-   { 0xaaaaaaadaaaaaaad, 0xaaaaaaadaaaaaaad },
-   { 0xaaaaaaaeaaaaaaae, 0xaaaaaaaeaaaaaaae },
-   { 0xaaaaaaafaaaaaaaf, 0xaaaaaaafaaaaaaaf }
-};
-*/
+
 void bmw256_4way_init( bmw256_4way_context *ctx )
 {
-   ctx->H[ 0] = v128_64( 0x4041424340414243 );
-   ctx->H[ 1] = v128_64( 0x4445464744454647 );
-   ctx->H[ 2] = v128_64( 0x48494A4B48494A4B );
-   ctx->H[ 3] = v128_64( 0x4C4D4E4F4C4D4E4F );
-   ctx->H[ 4] = v128_64( 0x5051525350515253 );
-   ctx->H[ 5] = v128_64( 0x5455565754555657 );
-   ctx->H[ 6] = v128_64( 0x58595A5B58595A5B );
-   ctx->H[ 7] = v128_64( 0x5C5D5E5F5C5D5E5F );
-   ctx->H[ 8] = v128_64( 0x6061626360616263 );
-   ctx->H[ 9] = v128_64( 0x6465666764656667 );
-   ctx->H[10] = v128_64( 0x68696A6B68696A6B );
-   ctx->H[11] = v128_64( 0x6C6D6E6F6C6D6E6F );
-   ctx->H[12] = v128_64( 0x7071727370717273 );
-   ctx->H[13] = v128_64( 0x7475767774757677 );
-   ctx->H[14] = v128_64( 0x78797A7B78797A7B );
-   ctx->H[15] = v128_64( 0x7C7D7E7F7C7D7E7F );
-
-
-//   for ( int i = 0; i < 16; i++ )
-//      sc->H[i] = v128_32( iv[i] );
+   ctx->H[ 0] = v128_32( 0x40414243 );
+   ctx->H[ 1] = v128_32( 0x44454647 );
+   ctx->H[ 2] = v128_32( 0x48494A4B );
+   ctx->H[ 3] = v128_32( 0x4C4D4E4F );
+   ctx->H[ 4] = v128_32( 0x50515253 );
+   ctx->H[ 5] = v128_32( 0x54555657 );
+   ctx->H[ 6] = v128_32( 0x58595A5B );
+   ctx->H[ 7] = v128_32( 0x5C5D5E5F );
+   ctx->H[ 8] = v128_32( 0x60616263 );
+   ctx->H[ 9] = v128_32( 0x64656667 );
+   ctx->H[10] = v128_32( 0x68696A6B );
+   ctx->H[11] = v128_32( 0x6C6D6E6F );
+   ctx->H[12] = v128_32( 0x70717273 );
+   ctx->H[13] = v128_32( 0x74757677 );
+   ctx->H[14] = v128_32( 0x78797A7B );
+   ctx->H[15] = v128_32( 0x7C7D7E7F );
    ctx->ptr = 0;
    ctx->bit_count = 0;
 }
@@ -478,10 +454,10 @@ void bmw256_4way_init( bmw256_4way_context *ctx )
 static void
 bmw32_4way(bmw_4way_small_context *sc, const void *data, size_t len)
 {
-   v128u64_t *vdata = (v128u64_t*)data;
-   v128u64_t *buf;
-   v128u64_t htmp[16];
-   v128u64_t *h1, *h2;
+   v128u32_t *vdata = (v128u32_t*)data;
+   v128u32_t *buf;
+   v128u32_t htmp[16];
+   v128u32_t *h1, *h2;
    size_t ptr;
    const int buf_size = 64;  // bytes of one lane, compatible with len
 
@@ -503,7 +479,7 @@ bmw32_4way(bmw_4way_small_context *sc, const void *data, size_t len)
       ptr += clen;
       if ( ptr == buf_size )
       {
-         v128u64_t *ht;
+         v128u32_t *ht;
          compress_small( buf, h1, h2 );
          ht = h1;
          h1 = h2;
@@ -521,14 +497,14 @@ static void
 bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
 	void *dst, size_t out_size_w32)
 {
-   v128u64_t *buf;
-   v128u64_t h1[16], h2[16], *h;
+   v128u32_t *buf;
+   v128u32_t h1[16], h2[16], *h;
    size_t ptr, u, v;
    const int buf_size = 64;  // bytes of one lane, compatible with len
 
    buf = sc->buf;
    ptr = sc->ptr;
-   buf[ ptr>>2 ] = v128_64( 0x0000008000000080 );
+   buf[ ptr>>2 ] = v128_32( 0x00000080 );
    ptr += 4;
    h = sc->H;
 
@@ -548,7 +524,7 @@ bmw32_4way_close(bmw_4way_small_context *sc, unsigned ub, unsigned n,
    for ( u = 0; u < 16; u ++ )
       buf[u] = h2[u];
 
-   compress_small( buf, (v128u64_t*)final_s, h1 );
+   compress_small( buf, (v128u32_t*)final_s, h1 );
 
    for (u = 0, v = 16 - out_size_w32; u < out_size_w32; u ++, v ++)
       casti_v128( dst, u ) = h1[v];
