@@ -3760,10 +3760,10 @@ int main(int argc, char *argv[])
 
 #if defined(_WIN32_WINNT)
    if (opt_debug)
-      applog( LOG_INFO, "_WIN232_WINNT = 0x%04x", _WIN32_WINNT ); 
+      applog( LOG_INFO, "_WIN32_WINNT = 0x%04x", _WIN32_WINNT ); 
 #else
    if (opt_debug)
-      applog( LOG_INFO, "_WIN232_WINNT undefined." );
+      applog( LOG_INFO, "_WIN32_WINNT undefined." );
 #endif
 #if defined(WINDOWS_CPU_GROUPS_ENABLED)
    if ( opt_debug || ( !opt_quiet && num_cpugroups > 1 ) )

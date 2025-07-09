@@ -783,29 +783,6 @@ void sha512_8x64_ctx( sha512_8x64_context *sc, void *dst, const void *data,
                                     mm256_ror_64( x, 61 ), \
                                     _mm256_srli_epi64( x, 6 ) )
 
-#if defined(VL256)
-// 4 way is not used whith AVX512 but will be whith AVX10_256 when it
-// becomes available.
-
-#define CH( X, Y, Z )    _mm256_ternarylogic_epi64( X, Y, Z, 0xca )
-
-#define MAJ( X, Y, Z )   _mm256_ternarylogic_epi64( X, Y, Z, 0xe8 )
-   
-#define SHA3_4WAY_STEP( A, B, C, D, E, F, G, H, i ) \
-do { \
-  __m256i T0 = _mm256_add_epi64( v256_64( K512[i] ), W[i] ); \
-  __m256i T1 = BSG5_1( E ); \
-  __m256i T2 = BSG5_0( A ); \
-  T0 = _mm256_add_epi64( T0, CH( E, F, G ) ); \
-  T1 = _mm256_add_epi64( T1, H ); \
-  T2 = _mm256_add_epi64( T2, MAJ( A, B, C ) ); \
-  T1 = _mm256_add_epi64( T1, T0 ); \
-  D  = _mm256_add_epi64( D,  T1 ); \
-  H  = _mm256_add_epi64( T1, T2 ); \
-} while (0)
-
-#else   // AVX2 only
-
 #define CH(X, Y, Z) \
    _mm256_xor_si256( _mm256_and_si256( _mm256_xor_si256( Y, Z ), X ), Z ) 
 
@@ -827,19 +804,12 @@ do { \
   H  = _mm256_add_epi64( T1, T2 ); \
 } while (0)
 
-#endif  // AVX512VL AVX10_256
-
 static void
 sha512_4x64_round( sha512_4x64_context *ctx,  __m256i *in, __m256i r[8] )
 {
    int i;
    register __m256i A, B, C, D, E, F, G, H;
-
-#if !defined(VL256)
-// Disable for AVX10_256
    __m256i X_xor_Y, Y_xor_Z;
-#endif
-
    __m256i W[80];
 
    mm256_block_bswap_64( W  , in );
@@ -872,10 +842,7 @@ sha512_4x64_round( sha512_4x64_context *ctx,  __m256i *in, __m256i r[8] )
       H = v256_64( 0x5BE0CD19137E2179 );
    }
 
-#if !defined(VL256)
-// Disable for AVX10_256
    Y_xor_Z = _mm256_xor_si256( B, C );
-#endif
 
    for ( i = 0; i < 80; i += 8 )
    {

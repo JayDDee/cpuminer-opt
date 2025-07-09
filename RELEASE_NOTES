@@ -75,6 +75,12 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v25.5
+
+x86_64: Fixed and insidious bug in sha256 early rejection optimization for AVX2 & AVX512.
+x86_64: Faster sha256d, sha256dt for AVX2 & AVX512.
+Other small bug fixes.
+
 v25.4
 
 x86_64: improved handling of vector constants used for byte permutations.

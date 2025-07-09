@@ -4,9 +4,10 @@
 #if defined(__aarch64__) && defined(__ARM_NEON)
 
 // Targeted functions supporting NEON SIMD 128 & 64 bit vectors.
-// Element size matters!
 //
-// Intel naming is generally used.
+// Intel style naming is generally used, however, this not an attempt to emulate Intel
+// intructions. It's focussed on the functions used in this program and the best way
+// to implement them with NEON.
 //
 // Some advanced logical operations that require SHA3. Prior to GCC-13
 // they also require armv8.2

@@ -14,12 +14,6 @@
 //   vectors. It is therefore not technically required for any 512 bit vector
 //   utilities defined below.
 
-// if avx10   // avx512 is always set
-//      if evex512: yes   
-// else if avx512 : yes   // avx512 is set but not avx10
-// else           : no    // avx512 not set or avx10.1 is set without evex512
-
-
 #if defined(SIMD512)
 
 //  AVX512 intrinsics have a few changes from previous conventions.
@@ -57,7 +51,7 @@
 //      - if an argument is to referenced multiple times a C inline function
 //        should be used instead of a macro to prevent an expression argument
 //        from being evaluated multiple times (wasteful) or produces side
-//         effects (very bad).
+//        effects (very bad).
 //
 //    There are 2 areas where overhead is a major concern: constants and
 //    permutations.

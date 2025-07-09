@@ -217,7 +217,9 @@ static inline __m256i mm256_not( const __m256i v )
 // Equivalent of AVX512 _mm256_movepi64_mask & _mm256_movepi32_mask.
 // Returns 4 or 8 bit integer mask from MSBit of 64 or 32 bit elements.
 // Effectively a sign test.
-
+// The functions return int which can promote small integers to int when used
+// in an expression. Users should mask the slack bits strategically to maintain
+// data integrity.
 #define mm256_movmask_64( v ) \
    _mm256_movemask_pd( _mm256_castsi256_pd( v ) )
 
