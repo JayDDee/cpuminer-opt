@@ -297,6 +297,8 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_ANIME:        rc = register_anime_algo         ( gate ); break;
     case ALGO_ARGON2D250:   rc = register_argon2d250_algo    ( gate ); break;
     case ALGO_ARGON2D500:   rc = register_argon2d500_algo    ( gate ); break;
+    case ALGO_ARGON2D1000:  rc = register_argon2d1000_algo   ( gate ); break;
+    case ALGO_ARGON2D16000: rc = register_argon2d16000_algo  ( gate ); break;
     case ALGO_ARGON2D4096:  rc = register_argon2d4096_algo   ( gate ); break;
     case ALGO_AXIOM:        rc = register_axiom_algo         ( gate ); break;
     case ALGO_BLAKE:        rc = register_blake_algo         ( gate ); break;

@@ -108,7 +108,24 @@ extern "C"{
 	} while (0)
 
 #define AES_ROUND_NOKEY_LE(X0, X1, X2, X3, Y0, Y1, Y2, Y3) \
-	AES_ROUND_LE(X0, X1, X2, X3, 0, 0, 0, 0, Y0, Y1, Y2, Y3)
+{ \
+      (Y0) = AES0[(X0) & 0xFF] \
+         ^ AES1[((X1) >> 8) & 0xFF] \
+         ^ AES2[((X2) >> 16) & 0xFF] \
+         ^ AES3[((X3) >> 24) & 0xFF]; \
+      (Y1) = AES0[(X1) & 0xFF] \
+         ^ AES1[((X2) >> 8) & 0xFF] \
+         ^ AES2[((X3) >> 16) & 0xFF] \
+         ^ AES3[((X0) >> 24) & 0xFF]; \
+      (Y2) = AES0[(X2) & 0xFF] \
+         ^ AES1[((X3) >> 8) & 0xFF] \
+         ^ AES2[((X0) >> 16) & 0xFF] \
+         ^ AES3[((X1) >> 24) & 0xFF]; \
+      (Y3) = AES0[(X3) & 0xFF] \
+         ^ AES1[((X0) >> 8) & 0xFF] \
+         ^ AES2[((X1) >> 16) & 0xFF] \
+         ^ AES3[((X2) >> 24) & 0xFF]; \
+}
 
 #endif
 

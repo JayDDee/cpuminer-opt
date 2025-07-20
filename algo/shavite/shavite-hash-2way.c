@@ -109,7 +109,7 @@ c512_2way( shavite512_2way_context *ctx, const void *msg )
 
    for ( r = 0; r < 3; r ++ )
    {
-      // round 1, 5, 9
+     // round 1, 5, 9
 
      k00 = _mm256_xor_si256( k13, mm256_shuflr128_32(
                                   mm256_aesenc_2x128( k00, zero ) ) );

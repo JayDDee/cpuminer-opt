@@ -187,9 +187,21 @@
 // vzipq_u32 can do hi & lo and return uint32x4x2, no 64 bit version.
 
 // AES
-// consistent with Intel AES intrinsics, break up for optimizing
-#define v128_aesenc( v, k ) \
-   v128_xor( k, vaesmcq_u8( vaeseq_u8( v, v128_zero ) ) )
+
+// xor key with result after encryption, x86_64 format.
+#define v128_aesencxor( v, k ) \
+   v128_xor( vaesmcq_u8( vaeseq_u8( v, v128_zero ) ), k )
+// default is x86_64 format.
+#define v128_aesenc v128_aesencxor
+
+// xor key with v before encryption, arm64 format.
+#define v128_xoraesenc( v, k ) \
+   vaesmcq_u8( vaeseq_u8( v, k ) )
+
+// xor v with k_in before encryption then xor the result with k_out afterward.
+// Uses the applicable optimization based on the target.
+#define v128_xoraesencxor( v, k_in, k_out ) \
+   v128_xor( v128_xoraesenc( v, k_in ), k_out )
 
 #define v128_aesenc_nokey( v ) \
    vaesmcq_u8( vaeseq_u8( v, v128_zero ) )
