@@ -338,6 +338,7 @@ bool register_algo_gate( int algo, algo_gate_t *gate )
     case ALGO_SCRYPT:       rc = register_scrypt_algo        ( gate ); break;
     case ALGO_SHA256D:      rc = register_sha256d_algo       ( gate ); break;
     case ALGO_SHA256DT:     rc = register_sha256dt_algo      ( gate ); break;
+    case ALGO_CPUNET:       rc = register_cpunet_algo        ( gate ); break;
     case ALGO_SHA256Q:      rc = register_sha256q_algo       ( gate ); break;
     case ALGO_SHA256T:      rc = register_sha256t_algo       ( gate ); break;
     case ALGO_SHA3D:        rc = register_sha3d_algo         ( gate ); break;

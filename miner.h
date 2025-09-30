@@ -624,6 +624,7 @@ enum algos {
         ALGO_SCRYPT,
         ALGO_SHA256D,
         ALGO_SHA256DT,
+        ALGO_CPUNET,
         ALGO_SHA256Q,
         ALGO_SHA256T,
         ALGO_SHA3D,
@@ -721,6 +722,7 @@ static const char* const algo_names[] = {
         "scrypt",
         "sha256d",
         "sha256dt",
+        "cpunet",
         "sha256q",
         "sha256t",
         "sha3d",
@@ -885,6 +887,7 @@ Options:\n\
                           scryptn2      scrypt(1048576, 1,1)\n\
                           sha256d       Double SHA-256\n\
                           sha256dt      Modified sha256d (Novo)\n\
+                          cpunet        SHA-256d with \"cpunet\\0\" appended\n\
                           sha256q       Quad SHA-256, Pyrite (PYE)\n\
                           sha256t       Triple SHA-256, Onecoin (OC)\n\
                           sha3d         Double Keccak256 (BSHA3)\n\
