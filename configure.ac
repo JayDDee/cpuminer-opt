@@ -99,32 +99,63 @@ AM_CONDITIONAL([ARCH_ARM64], [test x$have_arm64 = xtrue])
 AM_CONDITIONAL([MINGW], [test "x$OS" = "xWindows_NT"])
 AM_CONDITIONAL([HAVE_APPLE], [test x$have_apple = xtrue])
 
-# libcurl install path (for mingw : --with-curl=/usr/local)
+# libcurl detection
 AC_ARG_WITH([curl],
-   [  --with-curl=PATH         prefix where curl is installed [default=/usr]])
+   [  --with-curl=PATH         prefix where curl is installed [default=auto]])
 
-if test -n "$with_curl" ; then
+# Initialize libcurl variables
+LIBCURL_CFLAGS=""
+LIBCURL_CPPFLAGS=""
+LIBCURL_LDFLAGS=""
+LIBCURL=""
+
+# Check for libcurl using pkg-config first (if available)
+AC_PATH_PROG([PKG_CONFIG], [pkg-config], [no])
+have_libcurl=no
+
+if test -z "$with_curl" -o "$with_curl" = "auto" -o "$with_curl" = "yes"; then
+   if test "$PKG_CONFIG" != "no" && $PKG_CONFIG --exists libcurl; then
+      LIBCURL_CFLAGS=`$PKG_CONFIG --cflags libcurl 2>/dev/null`
+      LIBCURL=`$PKG_CONFIG --libs libcurl 2>/dev/null`
+      have_libcurl=yes
+      AC_MSG_NOTICE([Using libcurl flags from pkg-config: $LIBCURL])
+      AC_DEFINE([HAVE_LIBCURL], [1], [Define if libcurl is available])
+   else
+      # pkg-config not available or failed, try manual detection
+      AC_CHECK_LIB([curl], [curl_multi_timeout],
+         [
+            LIBCURL="-lcurl -lz"
+            have_libcurl=yes
+            AC_DEFINE([HAVE_LIBCURL], [1], [Define if libcurl is available])
+            AC_MSG_NOTICE([Using libcurl from system paths])
+         ],
+         [
+            if test "$with_curl" != "auto"; then
+               AC_MSG_ERROR([curl library required but not found])
+            else
+               AC_MSG_WARN([curl library not found, network mining will not work])
+            fi
+         ]
+      )
+   fi
+elif test -n "$with_curl" -a "$with_curl" != "no"; then
+   # Manual path specified
    LIBCURL_CFLAGS="$LIBCURL_CFLAGS -I$with_curl/include"
    LIBCURL_CPPFLAGS="$LIBCURL_CPPFLAGS -I$with_curl/include"
    LIBCURL_LDFLAGS="-L$with_curl/lib $LIBCURL_LDFLAGS"
    LIBCURL="-lcurl -lz"
+   have_libcurl=yes
+   AC_DEFINE([HAVE_LIBCURL], [1], [Define if libcurl is available])
+   AC_MSG_NOTICE([Using libcurl from $with_curl])
 fi
 
 CFLAGS="$CFLAGS $LIBCURL_CFLAGS"
 CPPFLAGS="$CPPFLAGS $LIBCURL_CPPFLAGS"
 LDFLAGS="$LDFLAGS $LIBCURL_LDFLAGS"
 
-# AC_CHECK_LIB([curl], [curl_multi_timeout],
-#    have_libcurl=yes,
-#    have_libcurl=no AC_MSG_ERROR([curl library required])
-# )
-
-# LIBCURL_CHECK_CONFIG([yes], 7.15, curlconfig=yes, curlconfig=no)
-
 AC_SUBST(LIBCURL)
 AC_SUBST(LIBCURL_CFLAGS)
 AC_SUBST(LIBCURL_CPPFLAGS)
-# AC_SUBST(LIBCURL_LDFLAGS)
 
 AC_SUBST(JANSSON_LIBS)
 AC_SUBST(PTHREAD_FLAGS)
