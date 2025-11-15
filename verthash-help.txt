@@ -55,9 +55,9 @@ the current directory it will be created.
 
 Data file creation can take up to 30 minutes on a spinning hard drive. 
 Once created the new data file will be verified and used immediately
-if a valid url and user were included on the command line.
+if a valid url and user was included on the command line.
 
-A default data file can be created by ommitting the url option. That will
+A default data file can also be created by ommitting the url option. That will
 either verify an existing default data file or create one and verify it,
 then exit.
 

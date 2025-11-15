@@ -75,6 +75,14 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v25.7
+
+Fixed a bug calculating TTF longer than 1 year.
+Faster argon2d.
+Faster hamsi AVX512.
+Faster switfftx AVX2.
+Other small fixes and improvements.
+
 v25.6
 
 Added argon2d1000, argon2d16000 algos.

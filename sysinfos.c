@@ -474,6 +474,7 @@ static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 }
  
 /*
+// ARM feature compiler flags
 #ifdef __aarch64__
 #warning "__aarch64__"
 #endif
@@ -508,16 +509,6 @@ static inline void cpu_getmodelid(char *outbuf, size_t maxsz)
 #warning "__ARM_FEATURE_SME"
 #endif
 */
-
-// Typical display format: AVX10.[version]_[vectorlength], if vector length is
-// omitted 256 is the default.
-//    Ex: AVX10.1_512
-// Flags:
-// AVX10  128  256  512
-//   0     0    0    0    = AVX10 not supported
-//   1     1    1    0    = AVX10 256 bit max  (version 2)
-//   1     1    1    1    = AVX10 512 bit max  (version 1 granite rapids)
-// Other combinations are not defined.
 
 static inline bool cpu_arch_x86_64()
 {
@@ -766,6 +757,17 @@ static inline bool has_vbmi2()
 #endif
 }
 
+static inline bool has_amx()
+{
+#if defined(__x86_64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( EXTENDED_FEATURES, 0, cpu_info );
+   return cpu_info[ EDX_Reg ] & AMX_TILE_Flag;
+#else
+   return false;
+#endif
+}
+
 static inline bool has_aes()
 {
 #if defined(__x86_64__)
@@ -815,12 +817,9 @@ static inline bool has_sveaes()
 static inline bool has_sha256()
 {
 #if defined(__x86_64__)
-   if ( has_avx() )
-   {
       unsigned int cpu_info[4] = { 0 };
       cpuid( EXTENDED_FEATURES, 0, cpu_info );
       return cpu_info[ EBX_Reg ] & SHA_Flag;
-   }
    return false;
 #elif defined(__aarch64__) && defined(HWCAP_SHA2)
    // NEON SHA256
@@ -835,7 +834,7 @@ static inline bool has_sha256()
 static inline bool has_sha512()
 {
 #if defined(__x86_64__)
-   if ( has_avx2() )
+   if ( has_avx() )
    {
       unsigned int cpu_info[4] = { 0 };
       cpuid( EXTENDED_FEATURES, 1, cpu_info );
@@ -852,7 +851,6 @@ static inline bool has_sha512()
 #endif
 }
 
-// Arm only
 static inline bool has_sha3()
 {
 #if defined(__aarch64__) && defined(HWCAP_SHA3)
@@ -944,16 +942,6 @@ static inline int sve_vector_length()
    return 0;
 }
 
-// Assume min_vlen refers to the register size
-static inline int rvv_vector_length()
-{
-#if defined(__riscv) && defined(__riscv_vector) && defined(__riscv_v_min_vlen)
-   return __riscv_v_min_vlen;
-#endif
-   return 0;
-}
-
-// generic
 static inline int vector_length()
 {
 #if defined(__x86_64__)
@@ -965,8 +953,8 @@ static inline int vector_length()
    return has_sve()    ? sve_vector_length()
         : has_neon()   ? 128
         :                0;
-#elif defined(__riscv) && defined(__riscv_vector)
-   return rvv_vector_length();
+#elif defined(__riscv) && defined(__riscv_vector) && defined(__riscv_v_min_vlen)
+   return __riscv_v_min_vlen;
 #endif
    return 0;
 }

@@ -503,32 +503,28 @@ do { \
   SBOX8( s2, s6, sA, sE ); /* ( m1, c3, m5, c7 ) */ \
   SBOX8( s3, s7, sB, sF ); /* ( c1, m3, c5, m7 ) */ \
   s4 = mm512_swap64_32( s4 ); \
-  s5 = mm512_swap64_32( s5 ); \
+  t0 = _mm512_mask_shuffle_epi32( s4, 0xaaaa, s5, 0xb1 ); \
   sD = mm512_swap64_32( sD ); \
-  sE = mm512_swap64_32( sE ); \
-  t0 = _mm512_mask_blend_epi32( 0xaaaa, s4, s5 ); \
-  t1 = _mm512_mask_blend_epi32( 0xaaaa, sD, sE ); \
+  t1 = _mm512_mask_shuffle_epi32( sD, 0xaaaa, sE, 0xb1 ); \
   L8( s0, t0, s9, t1 ); \
   s6 = mm512_swap64_32( s6 ); \
   sF = mm512_swap64_32( sF ); \
-  t2 = _mm512_mask_blend_epi32( 0xaaaa, s5, s6 ); \
-  t3 = _mm512_mask_blend_epi32( 0xaaaa, sE, sF ); \
+  t2 = _mm512_mask_shuffle_epi32( s6, 0x5555, s5, 0xb1 ); \
+  t3 = _mm512_mask_shuffle_epi32( sF, 0x5555, sE, 0xb1 ); \
   L8( s1, t2, sA, t3 ); \
   s5 = _mm512_mask_blend_epi32( 0x5555, t0, t2 ); \
   sE = _mm512_mask_blend_epi32( 0x5555, t1, t3 ); \
 \
-  s7 = mm512_swap64_32( s7 ); \
-  sC = mm512_swap64_32( sC ); \
-  t4 = _mm512_mask_blend_epi32( 0xaaaa, s6, s7 ); \
-  t5 = _mm512_mask_blend_epi32( 0xaaaa, sF, sC ); \
+  t4 = _mm512_mask_shuffle_epi32( s6, 0xaaaa, s7, 0xb1 ); \
+  t5 = _mm512_mask_shuffle_epi32( sF, 0xaaaa, sC, 0xb1 ); \
   L8( s2, t4, sB, t5 ); \
   s6 = _mm512_mask_blend_epi32( 0x5555, t2, t4 ); \
   sF = _mm512_mask_blend_epi32( 0x5555, t3, t5 ); \
   s6 = mm512_swap64_32( s6 ); \
   sF = mm512_swap64_32( sF ); \
 \
-  t2 = _mm512_mask_blend_epi32( 0xaaaa, s7, s4 ); \
-  t3 = _mm512_mask_blend_epi32( 0xaaaa, sC, sD ); \
+  t2 = _mm512_mask_shuffle_epi32( s4, 0x5555, s7, 0xb1 ); \
+  t3 = _mm512_mask_shuffle_epi32( sD, 0x5555, sC, 0xb1 ); \
   L8( s3, t2, s8, t3 ); \
   s7 = _mm512_mask_blend_epi32( 0x5555, t4, t2 ); \
   s4 = _mm512_mask_blend_epi32( 0xaaaa, t0, t2 ); \
@@ -537,21 +533,20 @@ do { \
   s7 = mm512_swap64_32( s7 ); \
   sC = mm512_swap64_32( sC ); \
 \
-  t0 = _mm512_mask_blend_epi32( 0xaaaa, s0, mm512_swap64_32( s8 ) ); \
+  t0 = _mm512_mask_shuffle_epi32( s0, 0xaaaa, s8, 0xb1 ); \
   t1 = _mm512_mask_blend_epi32( 0xaaaa, s1, s9 ); \
-  t2 = _mm512_mask_blend_epi32( 0xaaaa, mm512_swap64_32( s2 ), sA ); \
+  t2 = _mm512_mask_shuffle_epi32( sA, 0x5555, s2, 0xb1 ); \
   t3 = _mm512_mask_blend_epi32( 0x5555, s3, sB ); \
   t3 = mm512_swap64_32( t3 ); \
   L8( t0, t1, t2, t3 ); \
-  t3 = mm512_swap64_32( t3 ); \
   s0 = _mm512_mask_blend_epi32( 0x5555, s0, t0 ); \
-  s8 = _mm512_mask_blend_epi32( 0x5555, s8, mm512_swap64_32( t0 ) ); \
+  s8 = _mm512_mask_shuffle_epi32( s8, 0x5555, t0, 0xb1 ); \
   s1 = _mm512_mask_blend_epi32( 0x5555, s1, t1 ); \
   s9 = _mm512_mask_blend_epi32( 0xaaaa, s9, t1 ); \
-  s2 = _mm512_mask_blend_epi32( 0xaaaa, s2, mm512_swap64_32( t2 ) ); \
+  s2 = _mm512_mask_shuffle_epi32( s2, 0xaaaa, t2, 0xb1 ); \
   sA = _mm512_mask_blend_epi32( 0xaaaa, sA, t2 ); \
-  s3 = _mm512_mask_blend_epi32( 0xaaaa, s3, t3 ); \
-  sB = _mm512_mask_blend_epi32( 0x5555, sB, t3 ); \
+  s3 = _mm512_mask_shuffle_epi32( s3, 0xaaaa, t3, 0xb1 ); \
+  sB = _mm512_mask_shuffle_epi32( sB, 0x5555, t3, 0xb1 ); \
 \
   t0 = _mm512_mask_blend_epi32( 0xaaaa, s4, sC ); \
   t1 = _mm512_mask_blend_epi32( 0xaaaa, s5, sD ); \
@@ -1268,7 +1263,7 @@ do { \
 } while (0)
 #endif
 
-// v3 no ternary logic, 15 instructions, 9 TL equivalent instructions
+// v3, 15 instructions
 #define SBOX( a, b, c, d ) \
 { \
   __m256i tb, td; \
@@ -1286,7 +1281,7 @@ do { \
 #endif
 
 /*
-/ v2, 16 instructions, 10 TL equivalent instructions
+/ v2, 16 instructions
 #define SBOX( a, b, c, d ) \
 { \
   __m256i t = mm256_xorand( d, a, c ); \

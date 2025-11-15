@@ -683,8 +683,9 @@ void compress_big( const __m256i *M, const __m256i H[16], __m256i dH[16] )
    mj[14] = mm256_rol_64( M[14], 15 );
    mj[15] = mm256_rol_64( M[15], 16 );
 
-   __m256i K = _mm256_set1_epi64x( 16 * 0x0555555555555555ULL );
-   const __m256i Kincr = _mm256_set1_epi64x( 0x0555555555555555ULL );
+   __m256i K = _mm256_set1_epi64x( 0x5555555555555550ULL );
+   static const __m256i Kincr = { 0x0555555555555555ULL, 0x0555555555555555ULL,
+                                  0x0555555555555555ULL, 0x0555555555555555ULL };
 
    qt[16] = add_elt_b( mj[ 0], mj[ 3], mj[10], H[ 7], K );
    K = _mm256_add_epi64( K, Kincr );
@@ -1094,7 +1095,7 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
                         __m512i dH[16] )
 {
    __m512i qt[32], xl, xh;
-   __m512i mh[16];
+   __m512i mh[16], mj[16];
    int i;
 
    for ( i = 0; i < 16; i++ )
@@ -1117,8 +1118,6 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
    qt[14] = _mm512_add_epi64( s8b4( W8b14), H[15] );
    qt[15] = _mm512_add_epi64( s8b0( W8b15), H[ 0] );
 
-   __m512i mj[16];
- 
    mj[ 0] = mm512_rol_64( M[ 0],  1 );
    mj[ 1] = mm512_rol_64( M[ 1],  2 );
    mj[ 2] = mm512_rol_64( M[ 2],  3 );
@@ -1136,8 +1135,11 @@ void compress_big_8way( const __m512i *M, const __m512i H[16],
    mj[14] = mm512_rol_64( M[14], 15 );
    mj[15] = mm512_rol_64( M[15], 16 );
 
-   __m512i K = _mm512_set1_epi64( 16 * 0x0555555555555555ULL );
-   const __m512i Kincr = _mm512_set1_epi64( 0x0555555555555555ULL );
+   __m512i K = _mm512_set1_epi64( 0x5555555555555550ULL );
+   static const __m512i Kincr = { 0x0555555555555555ULL, 0x0555555555555555ULL,
+                                  0x0555555555555555ULL, 0x0555555555555555ULL,
+                                  0x0555555555555555ULL, 0x0555555555555555ULL,
+                                  0x0555555555555555ULL, 0x0555555555555555ULL };
 
    qt[16] = add_elt_b8( mj[ 0], mj[ 3], mj[10], H[ 7], K );
    K = _mm512_add_epi64( K, Kincr );

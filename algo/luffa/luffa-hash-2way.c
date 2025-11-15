@@ -80,14 +80,14 @@ static const uint32_t CNS_INIT[128] __attribute((aligned(64))) = {
     __m512i t = a0; \
     a0 = mm512_xoror( a3, a0, a1 ); \
     a2 = _mm512_xor_si512( a2, a3 ); \
-    a1 = _mm512_ternarylogic_epi64( a1, a3, t, 0x87 ); /* a1 xnor (a3 & t) */ \
+    a1 = _mm512_ternarylogic_epi64( a1, a3, t, 0x87 ); /* a1 nxor (a3 & t) */ \
     a3 = mm512_xorand( a2, a3, t ); \
     a2 = mm512_xorand( a1, a2, a0); \
     a1 = _mm512_or_si512( a1, a3 ); \
     a3 = _mm512_xor_si512( a3, a2 ); \
     t  = _mm512_xor_si512( t, a1 ); \
     a2 = _mm512_and_si512( a2, a1 ); \
-    a1 = mm512_xnor( a1, a0 ); \
+    a1 = mm512_nxor( a1, a0 ); \
     a0 = t; \
 }
 
@@ -527,14 +527,14 @@ int luffa_4way_update_close( luffa_4way_context *state,
     __m256i t = a0; \
     a0 = mm256_xoror( a3, a0, a1 ); \
     a2 = _mm256_xor_si256( a2, a3 ); \
-    a1 = _mm256_ternarylogic_epi64( a1, a3, t, 0x87 ); /* a1 xnor (a3 & t) */ \
+    a1 = _mm256_ternarylogic_epi64( a1, a3, t, 0x87 ); /* a1 nxor (a3 & t) */ \
     a3 = mm256_xorand( a2, a3, t ); \
     a2 = mm256_xorand( a1, a2, a0); \
     a1 = _mm256_or_si256( a1, a3 ); \
     a3 = _mm256_xor_si256( a3, a2 ); \
     t  = _mm256_xor_si256( t, a1 ); \
     a2 = _mm256_and_si256( a2, a1 ); \
-    a1 = mm256_xnor( a1, a0 ); \
+    a1 = mm256_nxor( a1, a0 ); \
     a0 = t; \
 }
 

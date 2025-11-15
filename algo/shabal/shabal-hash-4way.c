@@ -305,7 +305,7 @@ do { \
    xb0 = mm512_rol_32( xb0, 1 ); \
    xa0 = mm512_xor3( xm, xb1, \
                      mm512_xorandnot( v512_mult_x3( xa0 ), xb3, xb2 ) ); \
-   xb0 = mm512_xnor( xa0, xb0 ); \
+   xb0 = mm512_nxor( xa0, xb0 ); \
 } while (0)
 
 #define PERM_STEP_0_16  do { \
@@ -898,7 +898,7 @@ do { \
    xb0 = mm256_rol_32( xb0, 1 ); \
    xa0 = mm256_xor3( xm, xb1, \
                      mm256_xorandnot( v256_mult_x3( xa0 ), xb3, xb2 ) ); \
-   xb0 = mm256_xnor( xa0, xb0 ); \
+   xb0 = mm256_nxor( xa0, xb0 ); \
 } while (0)
 
 #define PERM_STEP_0_8   do { \

@@ -640,24 +640,25 @@ void FFT( const unsigned char input[EIGHTH_N], swift_int32_t *output )
 #if defined(__AVX2__)
 
    __m256i F0, F1, F2, F3, F4, F5, F6, F7;
-   __m256i tbl = *(__m256i*)&( fftTable[ input[0] << 3 ] );
+   __m256i *table = (__m256i*)fftTable;
+   __m256i tbl = table[ input[0] ];
    __m256i *mul = (__m256i*)multipliers;
    __m256i *out = (__m256i*)output;
 
    F0 = _mm256_mullo_epi32( mul[0], tbl );
-   tbl = *(__m256i*)&( fftTable[ input[1] << 3 ] );
+   tbl = table[ input[1] ];
    F1 = _mm256_mullo_epi32( mul[1], tbl );
-   tbl = *(__m256i*)&( fftTable[ input[2] << 3 ] );
+   tbl = table[ input[2] ];
    F2 = _mm256_mullo_epi32( mul[2], tbl );
-   tbl = *(__m256i*)&( fftTable[ input[3] << 3 ] );
+   tbl = table[ input[3] ];
    F3 = _mm256_mullo_epi32( mul[3], tbl );
-   tbl = *(__m256i*)&( fftTable[ input[4] << 3 ] );
+   tbl = table[ input[4] ];
    F4 = _mm256_mullo_epi32( mul[4], tbl );
-   tbl = *(__m256i*)&( fftTable[ input[5] << 3 ] );
+   tbl = table[ input[5] ];
    F5 = _mm256_mullo_epi32( mul[5], tbl );
-   tbl = *(__m256i*)&( fftTable[ input[6] << 3 ] );
+   tbl = table[ input[6] ];
    F6 = _mm256_mullo_epi32( mul[6], tbl );
-   tbl = *(__m256i*)&( fftTable[ input[7] << 3 ] );
+   tbl = table[ input[7]  ];
    F7 = _mm256_mullo_epi32( mul[7], tbl );
 
    #define ADD_SUB( a, b ) \
@@ -677,9 +678,9 @@ void FFT( const unsigned char input[EIGHTH_N], swift_int32_t *output )
    ADD_SUB( F1, F3 );
    ADD_SUB( F4, F6 );
    ADD_SUB( F5, F7 );  
-   F5 = _mm256_slli_epi32( F5, 2 );
    F6 = _mm256_slli_epi32( F6, 4 );
    F7 = _mm256_slli_epi32( F7, 6 );
+   F5 = _mm256_slli_epi32( F5, 2 );
    ADD_SUB( F0, F4 );
    ADD_SUB( F1, F5 );
    ADD_SUB( F2, F6 );

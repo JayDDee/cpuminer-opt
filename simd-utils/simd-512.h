@@ -18,8 +18,13 @@
 
 //  AVX512 intrinsics have a few changes from previous conventions.
 //
-//    "_mm512_cmp" instructions now returns a bitmask instead of a vector mask.
-//    This removes the need for an explicit movemask instruction.
+//    "_mm512_cmp" instructions now return a bitmask instead of a vector mask.
+//    This removes the need for an explicit movemask instruction. It is also
+//    slower than AVX2 cmp. There is no version of AVX512 cmp that returns a
+//    vector result resulting in a double penalty if a vector result is needed:
+//    slower cmp instruction & extra instruction to convert bit mask into 
+//    vector mask. 256 bit & 128 bit still have legacy cmp returning vector
+//    while AVX512VL adds masked versions returning bit mask.
 //
 //    Many previously sizeless (si) instructions now have sized (epi) versions
 //    to accomodate masking packed elements.
@@ -30,7 +35,7 @@
 //    list.
 //
 //    "_mm512_permutex_epi64" only shuffles within 256 bit lanes. All other
-//    AVX512 permutes can cross all lanes.
+//    AVX512 instructions using the permute name can cross all lanes.
 //
 //    New alignr instructions for epi64 and epi32 operate across the entire
 //    vector but slower than epi8 which continues to be restricted to 128 bit
@@ -50,16 +55,17 @@
 //        parentheses to ensure the expression argument is evaluated first.
 //      - if an argument is to referenced multiple times a C inline function
 //        should be used instead of a macro to prevent an expression argument
-//        from being evaluated multiple times (wasteful) or produces side
+//        from being evaluated multiple times (wasteful) or produce side
 //        effects (very bad).
 //
 //    There are 2 areas where overhead is a major concern: constants and
 //    permutations.
 //
 //    Constants need to be composed at run time by assembling individual
-//    elements, very expensive. The cost is proportional to the number of
-//    different elements therefore use the largest element size possible,
-//    merge smaller integer elements to 64 bits, and group repeated elements.
+//    elements or loaded from memory, very expensive. The cost of runtime
+//    construction is proportional to the number of different elements
+//    therefore use the largest element size possible merging smaller integer
+//    elements to 64 bits, and group repeated elements.
 //
 //    Constants with repeating patterns can be optimized with the smaller
 //    patterns repeated more frequently being more efficient.
@@ -67,14 +73,15 @@
 //    Some specific constants can be very efficient. Zero is very efficient,
 //    1 and -1 slightly less so. 
 //
-//    If an expensive constant is to be reused in the same function it should
-//    be declared as a local variable defined once and reused.
+//    If an expensive constant is to be reused in the same function it may
+//    be declared as a local variable defined once and reused. If frequently
+//    used it can be declared as a static const in memory.
 //
 //    Permutations can be very expensive if they use a vector control index,
-//    even if the permutation itself is quite efficient.
-//    The index is essentially a constant with all the baggage that brings.
-//    The same rules apply, if an index is to be reused it should be defined
-//    as a local. This applies specifically to bswap operations.
+//    even if the permute instruction itself is quite efficient.
+//    The index is essentially a vector constant with all the baggage that
+//    brings. The same rules apply, if an index is to be reused it should either
+//    be defined as a local or static const.
 //
 //    Permutations that cross 128 bit lanes are typically slower and often need
 //    a vector control index. If the permutation doesn't need to cross 128 bit
@@ -221,7 +228,7 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_nor( a, b )          _mm512_ternarylogic_epi64( a, b, b, 0x01 )
 
 // ~( a ^ b ),  (~a) ^ b
-#define mm512_xnor( a, b )         _mm512_ternarylogic_epi64( a, b, b, 0x81 )
+#define mm512_nxor( a, b )         _mm512_ternarylogic_epi64( a, b, b, 0x81 )
 
 // ~( a & b )
 #define mm512_nand( a, b )         _mm512_ternarylogic_epi64( a, b, b, 0xef )
@@ -241,6 +248,15 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_ror_32 _mm512_ror_epi32
 #define mm512_rol_32 _mm512_rol_epi32
 
+/* not used
+#if defined(__AVX512VBMI2__)
+
+#define mm512_ror_16( v, c )   _mm512_shrdi_epi16( c, v, v )
+#define mm512_rol_16( v, c )   _mm512_shldi_epi16( c, v, v )
+
+#endif
+*/
+
 //
 // Reverse byte order of packed elements, vectorized endian conversion.
 
@@ -249,9 +265,17 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #define mm512_bswap_32( v )  _mm512_shuffle_epi8( v, V512_BSWAP32 )
 
 /* not used
+#if defined(__AVX512VBMI2__)
+
+#define mm512_bswap_16( v )  mm512_ror_16( v, 8 )
+
+#else
+
 #define mm512_bswap_16( v ) \
    _mm512_shuffle_epi8( v, mm512_bcast128( _mm_set_epi64x( \
-                              0x0e0f0c0d0a0b0809, 0x0607040502030001 ) ) )
+                                0x0e0f0c0d0a0b0809, 0x0607040502030001 ) ) )
+
+#endif
 */
 
 #define mm512_bswap_16( v ) \
@@ -431,8 +455,7 @@ static inline __m512i mm512_shuflr128_x8( const __m512i v, const int c )
                                            _mm512_castsi512_ps( v2 ), c ) ); 
 
 // 64 bit lanes
-// ROL, ROR not necessary with AVX512, included for consistency with AVX2/SSE.
-
+// Redundant with ror & rol but included for consistency with AVX2/SSE.
 #define mm512_qrev32( v )       _mm512_shuffle_epi32( v, 0xb1 )
 #define mm512_swap64_32         mm512_qrev32        // grandfathered
 

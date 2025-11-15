@@ -304,39 +304,28 @@ void get_defconfig_path(char *out, size_t bufsize, char *argv0)
 	free(cmd);
 }
 
-
-void format_hashrate(double hashrate, char *output)
+// Decimal SI, factors 0f 1000
+void scale_hash_for_display ( double* hashrate, char* prefix )
 {
-	char prefix = '\0';
-
-	if (hashrate < 10000) {
-		// nop
-	}
-	else if (hashrate < 1e7) {
-		prefix = 'k';
-		hashrate *= 1e-3;
-	}
-	else if (hashrate < 1e10) {
-		prefix = 'M';
-		hashrate *= 1e-6;
-	}
-	else if (hashrate < 1e13) {
-		prefix = 'G';
-		hashrate *= 1e-9;
-	}
-	else {
-		prefix = 'T';
-		hashrate *= 1e-12;
-	}
-
-	sprintf(
-		output,
-		prefix ? "%.2f %cH/s" : "%.2f H/s%c",
-		hashrate, prefix
-	);
+       if ( *hashrate < 1e4  )    *prefix =  0;
+  else if ( *hashrate < 1e7  )  { *prefix = 'k';  *hashrate /= 1e3;  }
+  else if ( *hashrate < 1e10 )  { *prefix = 'M';  *hashrate /= 1e6;  }
+  else if ( *hashrate < 1e13 )  { *prefix = 'G';  *hashrate /= 1e9;  }
+  else if ( *hashrate < 1e16 )  { *prefix = 'T';  *hashrate /= 1e12; }
+  else if ( *hashrate < 1e19 )  { *prefix = 'P';  *hashrate /= 1e15; }
+  else if ( *hashrate < 1e22 )  { *prefix = 'E';  *hashrate /= 1e18; }
+  else if ( *hashrate < 1e25 )  { *prefix = 'Z';  *hashrate /= 1e21; }
+  else                          { *prefix = 'Y';  *hashrate /= 1e24; }
 }
 
-// For use with MiB etc
+void format_hashrate( double hashrate, char *output )
+{
+	char prefix = '\0';
+   scale_hash_for_display( &hashrate, &prefix );
+	sprintf( output, prefix ? "%.2f %cH/s" : "%.2f H/s%c", hashrate, prefix	);
+}
+
+// Binary SI, factors of 1024
 void format_number_si( double* n, char* si_units )
 {
   if ( *n < 1024*10 )  {  *si_units = 0;   return;  }

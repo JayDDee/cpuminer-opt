@@ -447,7 +447,7 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 #define v128_orand( a, b, c )     _mm_ternarylogic_epi64( a, b, c, 0xf8 )
 
 // ~( a ^ b ), same as (~a) ^ b
-#define v128_xnor( a, b )         _mm_ternarylogic_epi64( a, b, b, 0x81 )
+#define v128_nxor( a, b )         _mm_ternarylogic_epi64( a, b, b, 0x81 )
 
 #else
 
@@ -469,7 +469,7 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 
 #define v128_orand( a, b, c )     _mm_or_si128( a, _mm_and_si128( b, c ) )
 
-#define v128_xnor( a, b )         v128_not( _mm_xor_si128( a, b ) )
+#define v128_nxor( a, b )         v128_not( _mm_xor_si128( a, b ) )
 
 #endif
 

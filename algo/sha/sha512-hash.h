@@ -5,7 +5,7 @@
 #include "simd-utils.h"
 #include "sph_sha2.h"
 
-#if defined(__SHA512__) && defined(__AVX2__)
+#if defined(__SHA512__) && defined(__AVX__)
 
 // Experimental, untested
 // Need to substitute for sph_sha512

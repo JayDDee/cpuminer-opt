@@ -171,6 +171,53 @@ static const m128_v16 FFT256_twiddle[] __attribute__((aligned(64))) =
    {{ -30,   55,  -58,  -65,  -95,  -40,  -98,   94 }},
 };
 
+#if defined(__AVX2__)
+
+static const __m256i V256_00FF = { 0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff,
+                                   0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff };
+#define V128_00FF _mm256_castsi256_si128( V256_00FF )
+
+#elif defined(__SSE2__) || defined(__ARM_NEON )
+
+static const v128u64_t V128_00FF = { 0x00ff00ff00ff00ff, 0x00ff00ff00ff00ff };
+
+#endif
+
+#if defined(SIMD512)
+
+static const __m512i V512_0101 = { 0x0101010101010101, 0x0101010101010101,
+                                   0x0101010101010101, 0x0101010101010101,
+                                   0x0101010101010101, 0x0101010101010101,
+                                   0x0101010101010101, 0x0101010101010101 };
+#define V256_0101 _mm512_castsi512_si256( V512_0101 )
+#define V128_0101 _mm512_castsi512_si128( V512_0101 )
+
+
+static const __m512i V512_0080 = { 0x0080008000800080, 0x0080008000800080,
+                                   0x0080008000800080, 0x0080008000800080,
+                                   0x0080008000800080, 0x0080008000800080,
+                                   0x0080008000800080, 0x0080008000800080 };
+#define V256_0080 _mm512_castsi512_si256( V512_0080 )
+#define V128_0080 _mm512_castsi512_si128( V512_0080 )
+
+#elif defined(__AVX2__)
+
+static const __m256i V256_0101 = { 0x0101010101010101, 0x0101010101010101,
+                                   0x0101010101010101, 0x0101010101010101 };
+#define V128_0101 _mm256_castsi256_si128( V256_0101 )
+
+static const __m256i V256_0080 = { 0x0080008000800080, 0x0080008000800080,
+                                   0x0080008000800080, 0x0080008000800080 };
+#define V128_0080 _mm256_castsi256_si128( V256_0080 )
+
+#elif defined(__SSE2__) || defined(__ARM_NEON )
+
+static const v128u64_t V128_0101 = { 0x0101010101010101, 0x0101010101010101 };
+
+static const v128u64_t V128_0080 = { 0x0080008000800080, 0x0080008000800080 };
+
+#endif
+
 #if defined(__x86_64__)
 
 #define SHUFXOR_1(x)        _mm_shuffle_epi32(x,0xb1)
@@ -190,13 +237,10 @@ static const m128_v16 FFT256_twiddle[] __attribute__((aligned(64))) =
 #define shufxor(x,s)   XCAT(SHUFXOR_,s)(x) 
 
 #define REDUCE(x) \
-  v128_sub16( v128_and( x, v128_64( \
-                         0x00ff00ff00ff00ff ) ), v128_sra16( x, 8 ) )
+  v128_sub16( v128_and( x, V128_00FF ), v128_sra16( x, 8 ) )
 
 #define EXTRA_REDUCE_S(x)\
-  v128_sub16( x, v128_and( \
-          v128_64( 0x0101010101010101 ), \
-          v128_cmpgt16( x, v128_64( 0x0080008000800080 ) ) ) )
+  v128_sub16( x, v128_and( V128_0101, v128_cmpgt16( x, V128_0080 ) ) )
 
 #define REDUCE_FULL_S( x )  EXTRA_REDUCE_S( REDUCE (x ) )
 
@@ -293,10 +337,9 @@ do { \
   // This will make the full FFT_64 in order.
 #define INTERLEAVE(i,j) \
   do { \
-    v128u16_t t1= X(i); \
-    v128u16_t t2= X(j); \
-    X(i) = v128_unpacklo16( t1, t2 ); \
-    X(j) = v128_unpackhi16( t1, t2 ); \
+    v128u16_t t = X(i); \
+    X(i) = v128_unpacklo16( t, X(j) ); \
+    X(j) = v128_unpackhi16( t, X(j) ); \
   } while(0)
 
   INTERLEAVE( 1, 0 );
@@ -803,23 +846,12 @@ static const m256_v16 FFT256_Twiddle[] =
 
 #define shufxor2w(x,s)      XCAT(SHUFXOR_,s)(x)
 
-#if defined(VL256)
-
 #define REDUCE(x) \
-  _mm256_sub_epi16( _mm256_maskz_mov_epi8( 0x55555555, x ), \
-                    _mm256_srai_epi16( x, 8 ) )
-#else
-
-#define REDUCE(x) \
-  _mm256_sub_epi16( _mm256_and_si256( x, _mm256_set1_epi64x( \
-                         0x00ff00ff00ff00ff ) ), _mm256_srai_epi16( x, 8 ) )
-
-#endif
+  _mm256_sub_epi16( _mm256_and_si256( x, V256_00FF ), _mm256_srai_epi16( x, 8 ) )
 
 #define EXTRA_REDUCE_S(x)\
-  _mm256_sub_epi16( x, _mm256_and_si256( \
-          _mm256_set1_epi64x( 0x0101010101010101 ), \
-          _mm256_cmpgt_epi16( x, _mm256_set1_epi64x( 0x0080008000800080 ) ) ) )
+  _mm256_sub_epi16( x, _mm256_and_si256( V256_0101, \
+                                         _mm256_cmpgt_epi16( x, V256_0080 ) ) )
 
 #define REDUCE_FULL_S( x )  EXTRA_REDUCE_S( REDUCE (x ) )
 
@@ -917,10 +949,9 @@ do { \
   // This will make the full FFT_64 in order.
 #define INTERLEAVE(i,j) \
   do { \
-    __m256i t1= X(i); \
-    __m256i t2= X(j); \
-    X(i) = _mm256_unpacklo_epi16( t1, t2 ); \
-    X(j) = _mm256_unpackhi_epi16( t1, t2 ); \
+    __m256i t = X(i); \
+    X(i) = _mm256_unpacklo_epi16( t, X(j) ); \
+    X(j) = _mm256_unpackhi_epi16( t, X(j) ); \
   } while(0)
 
   INTERLEAVE( 1, 0 );
@@ -1658,10 +1689,8 @@ static const m512_v16 FFT256_Twiddle4w[] =
                     _mm512_srai_epi16( x, 8 ) )
 
 #define EXTRA_REDUCE_S4w(x) \
-  _mm512_sub_epi16( x, _mm512_and_si512( \
-             _mm512_set1_epi64( 0x0101010101010101 ), \
-             _mm512_movm_epi16( _mm512_cmpgt_epi16_mask( \
-                             x, _mm512_set1_epi64( 0x0080008000800080 ) ) ) ) )
+  _mm512_sub_epi16( x, _mm512_and_si512( V512_0101, \
+             _mm512_movm_epi16( _mm512_cmpgt_epi16_mask( x, V512_0080 ) ) ) )
 
 // generic, except it calls targetted macros
 #define REDUCE_FULL_S4w( x )  EXTRA_REDUCE_S4w( REDUCE4w (x ) )

@@ -542,7 +542,9 @@ void applog_hash(void *hash);
 void format_hashrate(double hashrate, char *output);
 void print_hash_tests(void);
 
+// Factors of 1000 used for hashes, ie kH/s, Mh/s.
 void scale_hash_for_display ( double* hashrate, char* units );
+// Factors of 1024 used for bytes, ie kiB, MiB.
 void format_number_si( double* hashrate, char* si_units );
 void report_summary_log( bool force );
 

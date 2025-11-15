@@ -921,40 +921,33 @@ out:
    return rc;
 }
 
-// returns the unit prefix and the hashrate appropriately scaled.
-void scale_hash_for_display ( double* hashrate, char* prefix )
-{
-       if ( *hashrate < 1e4  )    *prefix =  0;
-  else if ( *hashrate < 1e7  )  { *prefix = 'k';  *hashrate /= 1e3;  }
-  else if ( *hashrate < 1e10 )  { *prefix = 'M';  *hashrate /= 1e6;  }  
-  else if ( *hashrate < 1e13 )  { *prefix = 'G';  *hashrate /= 1e9;  }
-  else if ( *hashrate < 1e16 )  { *prefix = 'T';  *hashrate /= 1e12; }
-  else if ( *hashrate < 1e19 )  { *prefix = 'P';  *hashrate /= 1e15; }
-  else if ( *hashrate < 1e22 )  { *prefix = 'E';  *hashrate /= 1e18; }
-  else if ( *hashrate < 1e25 )  { *prefix = 'Z';  *hashrate /= 1e21; } 
-  else                          { *prefix = 'Y';  *hashrate /= 1e24; }
-}
-
+// Does not account for leap years.
 static inline void sprintf_et( char *str, long unsigned int seconds )
 {
-   long unsigned int min = seconds / 60;
-   long unsigned int sec = seconds % 60;
-   long unsigned int hrs = min / 60;
-   
-   if ( unlikely( hrs ) )   
+   long unsigned int minutes = seconds / 60;
+   if ( minutes )
    {
-      long unsigned int days = hrs / 24;
-      long unsigned int years = days / 365;
-      if ( years )      // 0y000d
-         sprintf( str, "%luy%lud", years, years % 365 );
-      else if ( days )  // 0d00h
-         sprintf( str, "%lud%02luh", days, hrs % 24 );
-      else         // 0h00m  
-         sprintf( str, "%luh%02lum", hrs, min % 60 );
+      long unsigned int hours = minutes / 60;
+      if ( hours )
+      {
+         long unsigned int days = hours / 24;
+         if ( days )
+         {
+            long unsigned int years = days / 365;
+            if ( years )   
+               sprintf( str, "%luy%03lud", years, days % 365 ); // 0y000d
+            else
+               sprintf( str, "%lud%02luh", days, hours % 24 );  // 0d00h
+         }
+         else
+            sprintf( str, "%luh%02lum", hours, minutes % 60 );  // 0h00m
+      }
+      else
+         sprintf( str, "%lum%02lus", minutes, seconds % 60 );   // 0m00s
    }
-   else         // 0m00s
-      sprintf( str, "%lum%02lus", min, sec );
-}
+   else
+      sprintf( str, "%lus", seconds );   // 0s
+}      
 
 const long double exp32  = EXP32;                                 // 2**32
 const long double exp48  = EXP32 * EXP16;                         // 2**48
@@ -2833,67 +2826,29 @@ static void show_credits()
 static bool cpu_capability( bool display_only )
 {
      char cpu_brand[0x40];
-     bool cpu_has_sse2     = has_sse2();     // X86_64 only
-     bool cpu_has_ssse3    = has_ssse3();    // X86_64 only
-     bool cpu_has_sse41    = has_sse41();    // X86_64 only
-     bool cpu_has_sse42    = has_sse42();
-     bool cpu_has_avx      = has_avx();
-     bool cpu_has_neon     = has_neon();     // AArch64 
-     bool cpu_has_sve      = has_sve();      // aarch64 only, insignificant
-     bool cpu_has_sve2     = has_sve2();     // AArch64 only
-     bool cpu_has_sme      = has_sme();
-     bool cpu_has_sme2     = has_sme2();  
-     bool cpu_has_avx2     = has_avx2(); 
-     bool cpu_has_avx512   = has_avx512();
-     bool cpu_has_avx10    = has_avx10();
-     bool cpu_has_aes      = has_aes();      // x86_64 or AArch64
-     bool cpu_has_vaes     = has_vaes();     // X86_64 only
-     bool cpu_has_sha256   = has_sha256();   // x86_64 or AArch64
-     bool cpu_has_sha512   = has_sha512();
      bool sw_has_x86_64    = false;
      bool sw_has_aarch64   = false;
      int  sw_arm_arch      = 0;            // AArch64 version
      bool sw_has_neon      = false;        // AArch64
-     bool sw_has_sve       = false;        // AArch64
-     bool sw_has_sve2      = false;        // AArch64
+     bool sw_has_sve       = false;
+     bool sw_has_sve2      = false;
      bool sw_has_sme       = false;  
      bool sw_has_sme2      = false; 
      bool sw_has_sse2      = false;        // x86_64
-     bool sw_has_ssse3     = false;        // x86_64
-     bool sw_has_sse41     = false;        // x86_64
+     bool sw_has_ssse3     = false;
+     bool sw_has_sse41     = false;
      bool sw_has_sse42     = false;
      bool sw_has_avx       = false;
      bool sw_has_avx2      = false;
      bool sw_has_avx512    = false;
      bool sw_has_avx10     = false;
-     bool sw_has_aes       = false;
-     bool sw_has_vaes      = false;
+     bool sw_has_amx       = false;
+     bool sw_has_apx       = false;
+     bool sw_has_aes       = false;        // x86_64 or AArch64
+     bool sw_has_vaes      = false;        // x86_64
      bool sw_has_sha256    = false;        // x86_64 or AArch64
-     bool sw_has_sha512    = false;        // x86_64 or AArch64
-/*
-     set_t algo_features   = algo_gate.optimizations;
-     bool algo_has_sse2    = set_incl( SSE2_OPT,    algo_features );
-     bool algo_has_sse42   = set_incl( SSE42_OPT,   algo_features );
-     bool algo_has_avx     = set_incl( AVX_OPT,     algo_features );
-     bool algo_has_avx2    = set_incl( AVX2_OPT,    algo_features );
-     bool algo_has_avx512  = set_incl( AVX512_OPT,  algo_features );
-     bool algo_has_aes     = set_incl( AES_OPT,     algo_features );
-     bool algo_has_vaes    = set_incl( VAES_OPT,    algo_features );
-     bool algo_has_sha256  = set_incl( SHA256_OPT,  algo_features );
-     bool algo_has_sha512  = set_incl( SHA512_OPT,  algo_features );
-     bool algo_has_neon    = set_incl( NEON_OPT,    algo_features );
-     bool use_sse2;
-     bool use_sse42;
-     bool use_avx;
-     bool use_avx2;
-     bool use_avx512;
-     bool use_aes;
-     bool use_vaes;
-     bool use_sha256;
-     bool use_sha512;
-     bool use_neon;
-     bool use_none;
-*/
+     bool sw_has_sha512    = false;
+
      #if defined(__x86_64__)
          sw_has_x86_64 = true;
      #elif defined(__aarch64__)
@@ -2928,13 +2883,14 @@ static bool cpu_capability( bool display_only )
      #if (defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512BW__) && defined(__AVX512VL__))
          sw_has_avx512 = true;
      #endif
-// AVX10 version is not significant as of AVX10.2. If that changes use a better
-// way to test the version than sequentially.
-//     #if defined(__AVX10_2__)
-// 
-//     #elif defined(__AVX10_1__)
-     #if defined(__AVX10_1__)
+     #if defined(__AVX10_1__)    // version is not significant
          sw_has_avx10 = true;
+     #endif
+     #ifdef __AMX_TILE__
+         sw_has_amx = true;
+     #endif
+     #ifdef __APX_F__
+         sw_has_apx = true;
      #endif
 
      // x86_64 or AArch64 
@@ -2955,6 +2911,7 @@ static bool cpu_capability( bool display_only )
      #if defined(__ARM_NEON)
          sw_has_neon = true;
      #endif
+     // FYI, SVE & SME not used by cpuminer
      #if defined(__ARM_FEATURE_SVE)
          sw_has_sve = true;
      #endif
@@ -2975,8 +2932,7 @@ static bool cpu_capability( bool display_only )
      // Build
      printf( "SW built on " __DATE__
      #if defined(__clang__)
-        " with CLANG-%d.%d.%d", __clang_major__, __clang_minor__,
-                                __clang_patchlevel__ );
+        " with CLANG-%d.%d.%d", __clang_major__, __clang_minor__, __clang_patchlevel__ );
      #elif defined(__GNUC__)
         " with GCC-%d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__ );
      #endif
@@ -3002,27 +2958,30 @@ static bool cpu_capability( bool display_only )
      printf("CPU features: ");
      if ( cpu_arch_x86_64()  )
      {
-       if      ( cpu_has_avx10  )    printf( " AVX10.%d", avx10_version() );
-       if      ( cpu_has_avx512 )    printf( " AVX512" );
-       else if ( cpu_has_avx2   )    printf( " AVX2  " );
-       else if ( cpu_has_avx    )    printf( " AVX   " );
-       else if ( cpu_has_sse42  )    printf( " SSE4.2" );
-       else if ( cpu_has_sse41  )    printf( " SSE4.1" );
-       else if ( cpu_has_ssse3  )    printf( " SSSE3 " );
-       else if ( cpu_has_sse2   )    printf( " SSE2  " );
+       if      ( has_avx10()  )    printf( " AVX10.%d", avx10_version() );
+       else if ( has_avx512() )    printf( " AVX512" );
+       else if ( has_avx2()   )    printf( " AVX2  " );
+       else if ( has_avx()    )    printf( " AVX   " );
+       else if ( has_sse42()  )    printf( " SSE4.2" );
+       else if ( has_sse41()  )    printf( " SSE4.1" );
+       else if ( has_ssse3()  )    printf( " SSSE3 " );
+       else if ( has_sse2()   )    printf( " SSE2  " );
+       if      ( has_amx()    )    printf( " AMX"    );
+       if      ( has_apx_f()  )    printf( " APX"    );
+
      }
      else if   ( cpu_arch_aarch64() )
      {
-       if      ( cpu_has_neon   )    printf( "       NEON" );
-       if      ( cpu_has_sve2   )    printf( " SVE2-%d", sve_vector_length() );
-       else if ( cpu_has_sve    )    printf( " SVE"    );
-       if      ( cpu_has_sme2   )    printf( " SME2"   );
-       else if ( cpu_has_sme    )    printf( " SME"    );
+       if      ( has_neon()   )    printf( "       NEON" );
+       if      ( has_sve2()   )    printf( " SVE2-%d", sve_vector_length() );
+       else if ( has_sve()    )    printf( " SVE"    );
+       if      ( has_sme2()   )    printf( " SME2"   );
+       else if ( has_sme()    )    printf( " SME"    );
      }     
-     if        ( cpu_has_vaes   )    printf( " VAES"   );
-     else if   ( cpu_has_aes    )    printf( "  AES"   );
-     if        ( cpu_has_sha512 )    printf( " SHA512" );
-     else if   ( cpu_has_sha256 )    printf( " SHA256" );
+     if        ( has_vaes()   )    printf( " VAES"   );
+     else if   ( has_aes()    )    printf( "  AES"   );
+     if        ( has_sha512() )    printf( " SHA512" );
+     else if   ( has_sha256() )    printf( " SHA256" );
 
      printf("\nSW features:  ");
      if ( sw_has_x86_64 )
@@ -3035,6 +2994,8 @@ static bool cpu_capability( bool display_only )
         else if ( sw_has_sse41     ) printf( " SSE4.1" );
         else if ( sw_has_ssse3     ) printf( " SSSE3 " );
         else if ( sw_has_sse2      ) printf( " SSE2  " );
+        if      ( sw_has_amx       ) printf( " AMX"    );
+        if      ( sw_has_apx       ) printf( " APX"    );
      }
      else if    ( sw_has_aarch64 ) 
      {

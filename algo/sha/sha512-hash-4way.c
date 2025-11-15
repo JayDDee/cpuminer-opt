@@ -67,7 +67,7 @@ static const uint64_t K512[80] =
  0x4CC5D4BECB3E42B6, 0x597F299CFC657E2A, 0x5FCB6FAB3AD6FAEC, 0x6C44198C4A475817
 };
 
-#if defined(__AVX2__) && defined(__SHA512__)
+#if defined(__AVX__) && defined(__SHA512__)
 
 // SHA-512 implemented using SHA512 CPU extension.
 
