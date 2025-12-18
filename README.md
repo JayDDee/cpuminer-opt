@@ -142,6 +142,7 @@ Supported Algorithms
                           yescryptr32   WAVI
                           yespower      Cryply
                           yespowerr16   Yenten (YTN)
+                          yespowermwc   Miners World Coin (MWC)
                           yespower-b2b  generic yespower + blake2b
                           zr5           Ziftr
 

@@ -193,7 +193,7 @@ bool register_yespowerr16_algo( algo_gate_t* gate )
 
 // Legacy Yescrypt (yespower v0.5)
 
-bool register_yespoweradvc_algo( algo_gate_t* gate )
+bool register_yespowermwc_algo( algo_gate_t* gate )
 {
   yespower_params.version = YESPOWER_1_0;
   yespower_params.N       = 2048;
