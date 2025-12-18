@@ -1,0 +1,171 @@
+name: cpuminer-opt CI
+
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - 'contrib/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    env:
+      MAKEJOBS: "-j3"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ======================
+          # LINUX
+          # ======================
+          - name: x86_64-linux
+            os: ubuntu-22.04
+            platform: linux
+            arch: x86_64
+
+          # ======================
+          # MACOS
+          # ======================
+          - name: x86_64-macos
+            os: macos-15-intel          # Intel runner
+            platform: macos
+            arch: x86_64
+            host: x86_64-apple-darwin
+
+          - name: arm64-macos
+            os: macos-latest      # Apple Silicon
+            platform: macos
+            arch: arm64
+            host: arm64-apple-darwin
+
+          # ======================
+          # WINDOWS
+          # ======================
+          - name: x86_64-win
+            os: windows-latest
+            platform: windows
+            arch: x86_64
+
+          - name: i686-win
+            os: windows-latest
+            platform: windows
+            arch: i686
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # =================================================
+      # LINUX
+      # =================================================
+      - name: Install Linux base deps
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential autoconf automake libtool pkg-config \
+            libcurl4-openssl-dev libjansson-dev libssl-dev libgmp-dev
+
+      - name: Build (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          ./autogen.sh || true
+
+          CONF=""
+
+          case "${{ matrix.arch }}" in
+            aarch64)
+              export CC=aarch64-linux-gnu-gcc
+              CONF="--host=${{ matrix.host }}"
+              ;;
+            armhf)
+              export CC=arm-linux-gnueabihf-gcc
+              CONF="--host=${{ matrix.host }}"
+              ;;
+          esac
+
+          ./configure --with-curl $CONF
+          make -j3
+
+      # =================================================
+      # MACOS
+      # =================================================
+      - name: Install macOS deps
+        if: matrix.platform == 'macos'
+        run: |
+          brew update
+          brew install automake autoconf libtool pkg-config \
+                       curl jansson openssl gmp
+
+      - name: Build (macOS)
+        if: matrix.platform == 'macos'
+        run: |
+          ./autogen.sh || true
+
+          BREW_PREFIX="$(brew --prefix)"
+          export CPPFLAGS="-I${BREW_PREFIX}/include"
+          export LDFLAGS="-L${BREW_PREFIX}/lib"
+
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then
+            export CFLAGS="-arch x86_64"
+            export CXXFLAGS="-arch x86_64"
+          fi
+
+          ./configure --with-curl --host=${{ matrix.host }}
+          make -j3
+
+      # =================================================
+      # WINDOWS (MSYS2)
+      # =================================================
+      - name: Setup MSYS2
+        if: matrix.platform == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >
+            base-devel
+            automake autoconf libtool pkg-config
+            mingw-w64-x86_64-toolchain
+            mingw-w64-i686-toolchain
+            mingw-w64-x86_64-curl
+            mingw-w64-i686-curl
+            mingw-w64-x86_64-jansson
+            mingw-w64-i686-jansson
+            mingw-w64-x86_64-openssl
+            mingw-w64-i686-openssl
+            mingw-w64-x86_64-gmp
+            mingw-w64-i686-gmp
+
+      - name: Build (Windows)
+        if: matrix.platform == 'windows'
+        shell: msys2 {0}
+        run: |
+          ./autogen.sh || true
+
+          if [ "${{ matrix.arch }}" = "i686" ]; then
+            export MSYSTEM=MINGW32
+          else
+            export MSYSTEM=MINGW64
+          fi
+
+          ./configure --with-curl
+          make -j3
+
+      # =================================================
+      # ARTIFACTS
+      # =================================================
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpuminer-opt-${{ matrix.name }}
+          path: |
+            cpuminer
+            *.exe
