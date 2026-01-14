@@ -257,6 +257,15 @@ static inline void memcpy_512( __m512i *dst, const __m512i *src, const int n )
 #endif
 */
 
+/* Zen6 AMD only
+// Reverse bits in bytes
+#if defined(__AVX512BMM__)
+
+#define mm512_bitrev8           _mm512_vbitrevb_epi8
+
+#endif
+*/
+
 //
 // Reverse byte order of packed elements, vectorized endian conversion.
 

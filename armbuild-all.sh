@@ -56,7 +56,7 @@ make clean || echo clean
 rm -f config.status
 CFLAGS="-O3 -march=armv8.2-a+crypto -Wall -flax-vector-conversions" ./configure  --with-curl
 make -j $(nproc)
-mv cpuminer cpuminer-armv8-crypto
+mv cpuminer cpuminer-armv8.2-crypto
 
 make clean || echo clean
 rm -f config.status

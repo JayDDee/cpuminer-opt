@@ -32,8 +32,6 @@ Requirements
 
 32 bit CPUs are not supported.
 
-Older CPUs are supported by open source cpuminer-multi by TPruvot but at reduced performance.
-
 Mining on mobile devices that meet the requirements is not recommended due to the risk of
 overheating and damaging the battery. Mining has unlimited demand, it will push any device
 to or beyond its limits. There is also a fire risk with overheated lithium batteries.
@@ -74,6 +72,10 @@ If not what makes it happen or not happen?
 
 Change Log
 ----------
+
+v26.1
+
+Fixed segfault in scrypt algo on some older CPUs.
 
 v25.7
 

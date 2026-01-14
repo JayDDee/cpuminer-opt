@@ -1137,7 +1137,7 @@ do { \
   } \
 } while (0)
 
-// v3 ternary logic, 8 instructions, 2 local vars
+// v4 ternary logic, 8 instructions, 2 local vars
 #define SBOX( a, b, c, d ) \
 { \
   __m256i tb, td; \

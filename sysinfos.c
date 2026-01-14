@@ -16,8 +16,8 @@
 #include "miner.h"
 #include "simd-utils.h"
 
-// Missing on MinGW, MacOS
-#if defined(__aarch64__) && !defined(WIN32) && !defined(__APPLE__)
+// hwcap.h missing on MinGW, MacOS
+#if defined(__aarch64__) && !(defined(WIN32) || defined(__APPLE__)) 
 #define ARM_AUXV 
 #endif
 
@@ -191,6 +191,7 @@ static inline int cpu_fanpercent()
 #define CPU_INFO             (1)
 #define CACHE_TLB_DESCRIPTOR (2)
 #define EXTENDED_FEATURES    (7)
+#define EXTENDED_FEATURE_ID  (0x21)
 #define AVX10_FEATURES       (0x24)
 #define HIGHEST_EXT_FUNCTION (0x80000000)
 #define EXTENDED_CPU_INFO    (0x80000001)
@@ -254,8 +255,8 @@ static inline int cpu_fanpercent()
 #define AVX512_BF16_Flag         (1<< 5)
 #define AMX_FP16_Flag            (1<<21)
 #define AVX_IFMA_Flag            (1<<23)
-#define MOVRS_Flag               (1<<31)  // Both names are referenced in docs
 #define AVX10_MOVRS_Flag         (1<<31)
+#define MOVRS_Flag               (1<<31)  // Both names are referenced in docs
 // EDX
 #define AVX_VNNI_INT8_Flag       (1<< 4)
 #define AVX_NE_CONVERT_Flag      (1<< 5)
@@ -263,6 +264,10 @@ static inline int cpu_fanpercent()
 #define AVX_VNNI_INT16_Flag      (1<<10)
 #define AVX10_Flag               (1<<19)
 #define APX_F_Flag               (1<<21)
+
+// EXTENDED_FEATURE_ID: EAX=0x21, ECX=0
+// EAX
+#define AVX512_BMM_Flag          (1<<23)   // Zen6 AMD only
 
 // AVX10_FEATURES: EAX=0x24, ECX=0
 // EBX
@@ -735,7 +740,7 @@ static inline bool has_avx512()
 #endif
 }
 
-static inline bool has_vbmi()
+static inline bool has_avx512vbmi()
 {
 #if defined(__x86_64__)
    unsigned int cpu_info[4] = { 0 };
@@ -746,12 +751,24 @@ static inline bool has_vbmi()
 #endif
 }
 
-static inline bool has_vbmi2()
+static inline bool has_avx512vbmi2()
 {
 #if defined(__x86_64__)
    unsigned int cpu_info[4] = { 0 };
    cpuid( EXTENDED_FEATURES, 0, cpu_info );
    return cpu_info[ ECX_Reg ] & AVX512_VBMI2_Flag;
+#else
+   return false;
+#endif
+}
+
+// Zen6 AMD only
+static inline bool has_avx512bmm()
+{
+#if defined(__x86_64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( EXTENDED_FEATURE_ID, 0, cpu_info );
+   return cpu_info[ EAX_Reg ] & AVX512_BMM_Flag;
 #else
    return false;
 #endif
@@ -817,10 +834,9 @@ static inline bool has_sveaes()
 static inline bool has_sha256()
 {
 #if defined(__x86_64__)
-      unsigned int cpu_info[4] = { 0 };
-      cpuid( EXTENDED_FEATURES, 0, cpu_info );
-      return cpu_info[ EBX_Reg ] & SHA_Flag;
-   return false;
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( EXTENDED_FEATURES, 0, cpu_info );
+   return cpu_info[ EBX_Reg ] & SHA_Flag;
 #elif defined(__aarch64__) && defined(HWCAP_SHA2)
    // NEON SHA256
    unsigned int cpu_info[4] = { 0 };
@@ -851,6 +867,7 @@ static inline bool has_sha512()
 #endif
 }
 
+// ARM64 only
 static inline bool has_sha3()
 {
 #if defined(__aarch64__) && defined(HWCAP_SHA3)

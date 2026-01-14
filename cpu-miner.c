@@ -1232,7 +1232,7 @@ static int share_result( int result, struct work *work,
      sprintf( ares, "A%d", accepted_share_count );
      sprintf( bres, "B%d", solved_block_count );
      if ( reason )
-        stale = strstr( reason, "job" );
+        stale = strstr( reason, "job" ) || strstr( reason, "Job" );
      else if ( work )
         stale =  work->data[ algo_gate.ntime_index ]
              != g_work.data[ algo_gate.ntime_index ];

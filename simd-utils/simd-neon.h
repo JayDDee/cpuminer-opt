@@ -431,8 +431,10 @@ static inline uint32x4_t v128_shuflr32( uint32x4_t v )
 static inline uint32x4_t v128_shufll32( uint32x4_t v )
 {   return vextq_u32( v, v, 3 ); }
 
-// reverse bits in bytes, nothing like it in x86_64
+/* not used
+// reverse bits in bytes, nothing like it in x86_64 until Zen6
 #define v128_bitrev8           vrbitq_u8
+*/
 
 // reverse byte order
 #define v128_bswap16(v)        (uint16x8_t)vrev16q_u8( (uint8x16_t)(v) )

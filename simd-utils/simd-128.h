@@ -642,6 +642,15 @@ static inline void v128_memcpy( v128_t *dst, const v128_t *src, const int n )
 #define v128_shuflr32(v)    _mm_shuffle_epi32( v, 0x39 )
 #define v128_shufll32(v)    _mm_shuffle_epi32( v, 0x93 )
 
+/* Zen6 AMD only
+// Reverse bits in bytes
+#if defined(__AVX512VL__) && defined(__AVX512BMM__)
+
+#define v128_bitrev8           _mm_vbitrevb_epi8
+
+#endif
+*/
+
 // Endian byte swap.
 
 #if defined(__SSSE3__)

@@ -409,6 +409,15 @@ static inline __m256i mm256_shuflr128_x8( const __m256i v, const int c )
 { return _mm256_alignr_epi8( v, v, c ); }
 */
 
+/* Zen6 AMD only
+// Reverse bits in bytes
+#if defined(__AVX512VL__) && defined(__AVX512BMM__)
+
+#define mm256_bitrev8           _mm256_vbitrevb_epi8
+
+#endif
+*/
+
 // Reverse byte order in elements, endian bswap.
 #define mm256_bswap_64( v )     _mm256_shuffle_epi8( v, V256_BSWAP64 )
 
