@@ -2,7 +2,7 @@
 
 **Family:** single-hash and short fixed-chain proof-of-work algorithms
 **Algorithm names:** `sha256d`, `sha256t`, `sha256q`, `sha256dt`, `sha256csm`, `sha512256d`,
-`sha3d`, `keccak`, `keccakc`, `blake`, `blakecoin`, `vanilla`, `blake2s`, `blake2b`,
+`sha3d`, `keccak`, `keccakc`, `k12`, `blake`, `blakecoin`, `vanilla`, `blake2s`, `blake2b`,
 `pentablake`, `bmw`, `bmw512`, `groestl`, `dmd-gr`, `myr-gr`, `skein`, `skein2`,
 `whirlpool`, `whirlpoolx`, `whirlpoolx2`, `nist5`, `quark`, `qubit`, `anime`
 
@@ -45,6 +45,10 @@ merkle root with `sha3d`, `sha3t` uses the ordinary `sha256d`. See [SHA3T](sha3t
 |---|---|---|
 | `keccak` | Keccak-256 | Maxcoin |
 | `keccakc` | Keccak-256 (SHA-3 padding variant) | Creative Coin |
+| `k12` | KangarooTwelve, 32-byte output, no customization string | |
+
+`k12` is Keccak-p[1600,12] under the KangarooTwelve tree construction, not a Keccak-256
+round-count variant. The same primitive hashes the seed inside `panthera`.
 
 ## BLAKE
 

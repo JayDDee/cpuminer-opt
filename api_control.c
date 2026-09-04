@@ -541,6 +541,18 @@ static bool switch_algo( int new_algo, bool memcheck )
       return false;
    }
 
+
+   /* Unconditional: a switch is rare, and registration mutates globals as
+    * well as the gate (opt_target_factor), where a leak looks identical in the
+    * share log to a header-format bug. */
+   if ( opt_debug )
+      applog( LOG_INFO, "control: %s active -- target_factor %.0f, "
+                        "nonce_index %d, ntime_index %d, nbits_index %d, "
+                        "work_data %d B",
+              algo_names[ new_algo ], opt_target_factor,
+              algo_gate.nonce_index, algo_gate.ntime_index,
+              algo_gate.nbits_index, algo_gate.get_work_data_size() );
+
    /* Only now, and only on the success path: a rolled-back switch never ran the
     * new algorithm, so its stats still describe what is still running. Threads
     * are parked here, which is what makes an unlocked reset safe. */

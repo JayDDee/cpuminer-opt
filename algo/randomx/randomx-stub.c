@@ -2,7 +2,7 @@
  *
  * This file exists so the shared code needs no #ifdefs. cpu-miner.c and util.c
  * call seven RandomX entry points, all of them gated behind
- * rx_algo_is_randomx(), which here always answers false -- so those call sites
+ * rx_algo_uses_monero_stratum(), which here always answers false -- so those call sites
  * take the bitcoin-stratum path and the bodies below only have to satisfy the
  * linker. The one that does run is register_randomx_algo(), when a user asks
  * for an algo this build does not contain, so it names the flag instead of
@@ -28,7 +28,30 @@ bool register_randomx_algo( algo_gate_t *gate )
 /* False for every algo, which is what makes the call sites in cpu-miner.c and
  * util.c fall through to the bitcoin-stratum path and never reach the rest of
  * this file. */
-bool rx_algo_is_randomx( int algo )
+bool rx_algo_uses_monero_stratum( int algo )
+{
+   (void)algo;
+   return false;
+}
+
+/* Lets register_k12_algo() refuse up front: k12 borrows this dialect, so in a
+ * --disable-randomx build it has no wire to speak and must not fall back to
+ * the bitcoin stratum. */
+bool rx_stratum_available( void ) { return false; }
+
+unsigned rx_algo_nonce_bytes( int algo )
+{
+   (void)algo;
+   return 4;
+}
+
+bool rx_algo_needs_seed( int algo )
+{
+   (void)algo;
+   return false;
+}
+
+bool rx_variant_select_plain( int algo )
 {
    (void)algo;
    return false;

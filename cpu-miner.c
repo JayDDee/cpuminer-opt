@@ -409,6 +409,7 @@ static char const short_options[] =
 
 static struct work g_work __attribute__ ((aligned (64))) = {{ 0 }};
 time_t g_work_time = 0;
+
 pthread_rwlock_t g_work_lock;
 static bool   submit_old = false;
 char*  lp_id;
@@ -1611,6 +1612,7 @@ void std_le_build_stratum_request( char *req, struct work *work )
    bin2hex( ntimestr, (char*)(&ntime), sizeof(uint32_t) );
    bin2hex( noncestr, (char*)(&nonce), sizeof(uint32_t) );
    xnonce2str = abin2hex( work->xnonce2, work->xnonce2_len );
+
    snprintf( req, JSON_BUF_LEN, json_submit_req, rpc_user, work->job_id,
              xnonce2str, ntimestr, noncestr );
    free( xnonce2str );
@@ -2775,6 +2777,7 @@ static void *miner_thread( void *userdata )
           // are __thread, so only this thread can do it, and the control layer
           // sequences the two phases around the gate swap.
           api_ctl_thread_service( thr_id );
+
           thr_hashrates[thr_id] = 0.;
           usleep( 100000 );
           continue;
@@ -3170,7 +3173,7 @@ static bool stratum_handle_response( char *buf )
    res_val = json_object_get( val, "result" );
    if ( !res_val ) { /* now what? */ }
 
-   if ( rx_algo_is_randomx( opt_algo ) )
+   if ( rx_algo_uses_monero_stratum( opt_algo ) )
    {
       /* Monero answers a submit with result:{"status":"OK"} and
        * error:{"code":..,"message":..}, which neither json_is_true(result) nor
@@ -3315,7 +3318,7 @@ static void *stratum_thread(void *userdata )
           * first job, instead of subscribe + authorize. */
          bool connected = stratum_connect( &stratum, stratum.url );
          if ( connected )
-            connected = rx_algo_is_randomx( opt_algo )
+            connected = rx_algo_uses_monero_stratum( opt_algo )
                       ? rx_stratum_login( &stratum, rpc_user, rpc_pass )
                       : (    stratum_subscribe( &stratum )
                           && stratum_authorize( &stratum, rpc_user, rpc_pass ) );
@@ -3341,7 +3344,7 @@ static void *stratum_thread(void *userdata )
             {
                /* RandomX: the dataset must match the job's seed_hash before
                 * any thread hashes. Nothing is running yet at this point. */
-               if ( rx_algo_is_randomx( opt_algo )
+               if ( rx_algo_uses_monero_stratum( opt_algo )
                     && !rx_stratum_prepare_seed( &stratum ) )
                {
                   applog( LOG_ERR, "RandomX: dataset init failed" );
@@ -3434,7 +3437,7 @@ static void *stratum_thread(void *userdata )
              * want g_work_lock, so the rebuild must run here -- after
              * restart_threads() and before stratum_gen_work takes g_work_lock.
              * Inside stratum_gen_work it deadlocks. */
-            if ( rx_algo_is_randomx( opt_algo ) )
+            if ( rx_algo_uses_monero_stratum( opt_algo ) )
             {
                restart_threads();
                if ( !rx_stratum_prepare_seed( &stratum ) )

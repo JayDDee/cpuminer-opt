@@ -549,7 +549,9 @@ struct stratum_job
     * next_seed_hash is the next epoch's key, sent ahead of the boundary and
     * empty most of the time; the pre-warm signal for a background rebuild. */
    bool          rx_job;
-   unsigned char rx_blob[128];
+   /* Must be >= RX_BLOB_MAX (algo/randomx/randomx-gate.h), which checks it.
+    * Panthera's blob is 140 bytes, well past a Monero blob's 76. */
+   unsigned char rx_blob[176];
    size_t        rx_blob_len;
    uint64_t      rx_target;
    unsigned char rx_seed_hash[32];
@@ -703,6 +705,7 @@ enum algos {
         ALGO_HMQ1725,
         ALGO_HOOHASHV110,    /* PePePoW                            */
         ALGO_JHA,
+        ALGO_K12,            /* KangarooTwelve                     */
         ALGO_KECCAK,
         ALGO_KECCAKC,
         ALGO_LBRY,
@@ -723,6 +726,7 @@ enum algos {
         ALGO_NEOSCRYPT_XAYA,
         ALGO_NIST5,
         ALGO_ODO,
+        ALGO_PANTHERA,
         ALGO_PENTABLAKE,
         ALGO_PHI1612,
         ALGO_PHI2,
@@ -837,6 +841,7 @@ static const char* const algo_names[] = {
         "hmq1725",
         "hoohashv110",
         "jha",
+        "k12",
         "keccak",
         "keccakc",
         "lbry",
@@ -857,6 +862,7 @@ static const char* const algo_names[] = {
         "neoscrypt-xaya",
         "nist5",
         "odo",
+        "panthera",
         "pentablake",
         "phi1612",
         "phi2",
@@ -983,6 +989,7 @@ extern bool opt_randomize;
 extern bool allow_mininginfo;
 extern pthread_rwlock_t g_work_lock;
 extern time_t g_work_time;
+
 extern bool opt_stratum_stats;
 extern int num_cpus;
 extern int num_cpugroups;
@@ -1040,6 +1047,7 @@ Options:\n\
                           hoohashv110   PepePow\n\
                           jha           jackppot (Jackpotcoin)\n\
                           keccak        Maxcoin\n\
+                          k12           KangarooTwelve\n\
                           keccakc       Creative Coin\n\
                           lbry          LBC, LBRY Credits\n\
                           lyra2h        Hppcoin\n\
@@ -1058,6 +1066,7 @@ Options:\n\
                           neoscrypt     NeoScrypt(128, 2, 1)\n\
                           nist5         Nist5\n\
                           odo           Odocrypt, DigiByte (DGB)\n\
+                          panthera      Scala (XLA)\n\
                           pentablake    5 x blake512\n\
                           phi1612       phi\n\
                           phi2\n\

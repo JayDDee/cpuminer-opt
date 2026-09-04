@@ -103,4 +103,8 @@ RX_VARIANT_CORE( rxgrft_, rx_core_graft, "graft" );
 RX_VARIANT_CORE( rxarq_,  rx_core_arq,   "arq"   );
 #endif
 
+#if defined(RANDOMX_HAVE_PANTHERA_CORE)
+RX_VARIANT_CORE( rxpan_,  rx_core_panthera, "panthera" );
+#endif
+
 const rx_core_t *rx_core = &rx_core_stock;

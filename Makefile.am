@@ -190,6 +190,27 @@ librandomx_arq.a: librandomx_arq_raw.a $(RANDOMX_PREFIX_SYMS)
 
 RANDOMX_LIBS += librandomx_arq.a
 RANDOMX_VARIANT_DEFINES += -DRANDOMX_HAVE_ARQ_CORE
+
+# ------------------------------------------- fifth core: panthera (Scala)
+# Panthera is a tier-2 variant PLUS a seed hook: it post-processes the initial
+# seed with yespower and KangarooTwelve. config/panthera.h supplies both the
+# constants and RANDOMX_SEED_HOOK; the hook body lives in panthera-seed.c,
+# outside the core, so this archive keeps an unprefixed reference to it (the
+# same arrangement as the shared argon2 satellites).
+noinst_LIBRARIES += librandomx_panthera_raw.a
+librandomx_panthera_raw_a_SOURCES   = $(RANDOMX_CORE_SRC)
+librandomx_panthera_raw_a_CPPFLAGS  = $(RANDOMX_CORE_CPPFLAGS) $(RANDOMX_PAN_CONFIG)
+librandomx_panthera_raw_a_CFLAGS    = $(RANDOMX_CORE_CFLAGS)
+librandomx_panthera_raw_a_CXXFLAGS  = $(RANDOMX_CORE_CXXFLAGS)
+librandomx_panthera_raw_a_CCASFLAGS = $(RANDOMX_CORE_CPPFLAGS) $(RANDOMX_PAN_CONFIG)
+
+RANDOMX_PAN_CONFIG   = -include $(top_srcdir)/algo/randomx/config/panthera.h
+
+librandomx_panthera.a: librandomx_panthera_raw.a $(RANDOMX_PREFIX_SYMS)
+	$(AM_V_GEN)$(SHELL) $(RANDOMX_PREFIX_SYMS) $< $@ rxpan_ "$(NM)" "$(OBJCOPY)"
+
+RANDOMX_LIBS += librandomx_panthera.a
+RANDOMX_VARIANT_DEFINES += -DRANDOMX_HAVE_PANTHERA_CORE
 endif
 # ^ HAVE_RANDOMX_VARIANTS
 # NB: CLEANFILES is assigned with '=' further down, so the prefixed archives are
@@ -586,6 +607,10 @@ cpuminer_SOURCES += \
   algo/randomx/randomx-vm.c \
   algo/randomx/randomx-variant.c \
   algo/randomx/randomx-core.c \
+  algo/randomx/panthera-seed.c \
+  algo/k12/k12-gate.c \n  algo/k12/KangarooTwelve.c \
+  algo/k12/KeccakP-1600-reference.c \
+  algo/k12/KeccakSpongeWidth1600.c \
   algo/randomx/randomx-kat.c
 else
 cpuminer_SOURCES += algo/randomx/randomx-stub.c
@@ -602,7 +627,8 @@ EXTRA_cpuminer_DEPENDENCIES = build-stamp.$(OBJEXT)
 CLEANFILES = build-stamp.c build-stamp.$(OBJEXT) \
   librandomx_wow.a librandomx_wow.a.syms \
   librandomx_graft.a librandomx_graft.a.syms \
-  librandomx_arq.a librandomx_arq.a.syms
+  librandomx_arq.a librandomx_arq.a.syms \
+  librandomx_panthera.a librandomx_panthera.a.syms
 
 build-stamp.c: $(cpuminer_OBJECTS) libcurvehash_secp256k1.a $(RANDOMX_LIBS)
 	$(AM_V_GEN)printf 'const char build_stamp_date[] = "%s";\n' \

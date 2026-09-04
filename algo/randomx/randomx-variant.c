@@ -32,6 +32,12 @@ static const rx_variant_t rx_variants[] =
    /* algo, pool string, salt (NULL = core default), startup check, core */
    { ALGO_RANDOMX,     "rx/0",   NULL, 0, NULL,              NULL },
 
+   /* Not a RandomX variant: k12 is here only for the dialect set and the
+    * pool's algo string. No salt, no core, no VM; selected with
+    * rx_variant_select_plain(), and kept off the dataset path by
+    * rx_algo_needs_seed(). */
+   { ALGO_K12,         "k12",    NULL, 0, NULL,              NULL },
+
    /* Tier 1: stock core, salt applied at runtime. */
    { ALGO_RANDOMX_SFX, "rx/sfx", RX_SALT( RANDOMX_ARGON_SALT_SFX ),
                                        rx_kat_sfx_vector, NULL },
@@ -48,6 +54,14 @@ static const rx_variant_t rx_variants[] =
 #if defined(RANDOMX_HAVE_ARQ_CORE)
    { ALGO_RANDOMX_ARQ, "rx/arq", NULL, 0, rx_variant_arq_vectors,
                                                               &rx_core_arq },
+#endif
+
+   /* Scala. Not an "rx/" name: its pool string is plain "panthera", and it
+    * is more than a configuration -- its core also carries a seed hook that
+    * runs yespower and KangarooTwelve (algo/randomx/panthera-seed.c). */
+#if defined(RANDOMX_HAVE_PANTHERA_CORE)
+   { ALGO_PANTHERA, "panthera", NULL, 0, rx_variant_panthera_vectors,
+                                                         &rx_core_panthera },
 #endif
 };
 
@@ -143,7 +157,7 @@ bool rx_variant_differs_from_rx0( void )
  */
 typedef struct
 {
-   const char *blob;   /* 152 hex chars, nonce already at byte 39 */
+   const char *blob;   /* hex, any supported blob length; nonce at byte 39 */
    const char *want;   /* 64 hex chars */
    const char *note;
 } rx_vector_t;
@@ -178,9 +192,9 @@ static const rx_vector_t rx_graft_vectors[] =
  * set, so the set must share a seed. */
 static bool rx_check_vectors( const rx_core_t *core, const char *seed_hex,
                               const rx_vector_t *v, size_t n,
-                              const char *label )
+                              size_t blob_len, const char *label )
 {
-   unsigned char seed[32], blob[76], hash[32], want[32];
+   unsigned char seed[32], blob[RX_BLOB_MAX], hash[32], want[32];
    randomx_cache *cache;
    randomx_vm *vm;
    size_t i;
@@ -211,10 +225,22 @@ static bool rx_check_vectors( const rx_core_t *core, const char *seed_hex,
 
    for ( i = 0; i < n; i++ )
    {
-      /* Guard the literals: the blobs are written as concatenated pieces, so
-       * a miscount would silently shift the input. */
-      if ( strlen( v[i].blob ) != 152 || strlen( v[i].want ) != 64
-           || !hex2bin( blob, v[i].blob, 76 )
+      /* blob_len is stated by the caller and checked against every literal
+       * rather than derived from it. The literals are written as concatenated
+       * 64-char pieces, and a dropped run of zeros still yields a plausible
+       * length -- derived, that shifts the hashed input and reports a plain
+       * MISMATCH, which sends you looking at the algorithm instead of at the
+       * transcription. */
+      if ( strlen( v[i].blob ) != blob_len * 2 )
+      {
+         applog( LOG_ERR, "RandomX %s: vector literal is %u hex chars, "
+                 "expected %u (%s)", label, (unsigned)strlen( v[i].blob ),
+                 (unsigned)( blob_len * 2 ), v[i].note );
+         bad++;
+         continue;
+      }
+      if ( strlen( v[i].want ) != 64
+           || !hex2bin( blob, v[i].blob, blob_len )
            || !hex2bin( want, v[i].want, 32 ) )
       {
          applog( LOG_ERR, "RandomX %s: malformed vector literal (%s)",
@@ -222,7 +248,7 @@ static bool rx_check_vectors( const rx_core_t *core, const char *seed_hex,
          bad++;
          continue;
       }
-      core->calculate_hash( vm, blob, sizeof blob, hash );
+      core->calculate_hash( vm, blob, blob_len, hash );
       if ( memcmp( hash, want, 32 ) )
       {
          char got[65];
@@ -264,12 +290,48 @@ static const rx_vector_t rx_arq_vectors[] =
      "same blob, nonce 64130080" },
 };
 
+/* Scala. Both are different nonces on one blob, so the pair pins the nonce
+ * offset independently of either share. The blob is 140 bytes -- longer than
+ * a Monero one, which is why RX_BLOB_MAX and RX_NONCE_WORD moved. */
+static const char RX_PANTHERA_SEED[] =
+   "41dedb6c0f089231a5d648402aa3c5818a38db96a10fe9cd1acf9b7b2a205d2a";
+
+static const rx_vector_t rx_panthera_vectors[] =
+{
+   { "1010fcdcebd406059c915b18943b99fe9a97f5fce8e1b2cd37425942327db4a9"
+     "af523f990937706d020060000000000000000000000000000000000000000000"
+     "0000000000000000000000000000000000000000000000000000000000000000"
+     "0000000000000000000000a4fc40f1a25d11ba5c5c728bc010f60c9a572c4f4f"
+     "4aee4d18975e8232a259f201",
+     "84e95fa09f9e91bef565991a10591597038561f471c072932d25d6d913320000",
+     "nonce 6d020060" },
+   { "1010fcdcebd406059c915b18943b99fe9a97f5fce8e1b2cd37425942327db4a9"
+     "af523f99093770610f00f0000000000000000000000000000000000000000000"
+     "0000000000000000000000000000000000000000000000000000000000000000"
+     "0000000000000000000000a4fc40f1a25d11ba5c5c728bc010f60c9a572c4f4f"
+     "4aee4d18975e8232a259f201",
+     "b66d4cfa08fe231d7da594209fd801661d96a47c7361a132869fc0025d360000",
+     "same blob, nonce 610f00f0" },
+};
+
+bool rx_variant_panthera_vectors( void )
+{
+#if defined(RANDOMX_HAVE_PANTHERA_CORE)
+   return rx_check_vectors( &rx_core_panthera, RX_PANTHERA_SEED,
+                            rx_panthera_vectors,
+                            sizeof rx_panthera_vectors / sizeof *rx_panthera_vectors,
+                            140, "panthera" );
+#else
+   return false;
+#endif
+}
+
 bool rx_variant_arq_vectors( void )
 {
 #if defined(RANDOMX_HAVE_ARQ_CORE)
    return rx_check_vectors( &rx_core_arq, RX_ARQ_SEED, rx_arq_vectors,
                             sizeof rx_arq_vectors / sizeof *rx_arq_vectors,
-                            "rx/arq" );
+                            76, "rx/arq" );
 #else
    return false;
 #endif
@@ -280,13 +342,40 @@ bool rx_variant_graft_vectors( void )
 #if defined(RANDOMX_HAVE_GRAFT_CORE)
    return rx_check_vectors( &rx_core_graft, RX_GRAFT_SEED, rx_graft_vectors,
                             sizeof rx_graft_vectors / sizeof *rx_graft_vectors,
-                            "rx/graft" );
+                            76, "rx/graft" );
 #else
    return false;
 #endif
 }
 
-bool rx_algo_is_randomx( int algo )
+unsigned rx_algo_nonce_bytes( int algo )
+{
+   /* Aeon's blob zeroes 8 bytes at offset 39 and its reference miner
+    * increments a uint64 there; submitting 4 is rejected outright. */
+   return algo == ALGO_K12 ? 8 : 4;
+}
+
+bool rx_algo_needs_seed( int algo )
+{
+   /* Every RandomX variant keys a 2080 MiB-class dataset on the job's
+    * seed_hash. k12 reuses only the wire: no dataset, and its pool omits the
+    * field, so demanding one would reject every job. */
+   return algo != ALGO_K12;
+}
+
+bool rx_variant_select_plain( int algo )
+{
+   size_t i;
+   for ( i = 0; i < sizeof rx_variants / sizeof *rx_variants; i++ )
+      if ( rx_variants[i].algo == algo )
+      {
+         rx_cur = &rx_variants[i];
+         return true;
+      }
+   return false;
+}
+
+bool rx_algo_uses_monero_stratum( int algo )
 {
    size_t i;
    for ( i = 0; i < sizeof rx_variants / sizeof *rx_variants; i++ )

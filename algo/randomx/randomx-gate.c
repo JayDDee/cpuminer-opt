@@ -245,8 +245,8 @@ static bool rx_same_template( const struct work *work,
    return memcmp( a + tail, b + tail, work->rx_blob_len - tail ) == 0;
 }
 
-static void rx_get_new_work( struct work *work, struct work *g_work,
-                             int thr_id, uint32_t *end_nonce_ptr )
+void rx_get_new_work( struct work *work, struct work *g_work,
+                      int thr_id, uint32_t *end_nonce_ptr )
 {
    uint32_t *nonceptr = work->data + RX_NONCE_WORD;
 

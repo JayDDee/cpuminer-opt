@@ -88,6 +88,7 @@ Supported Algorithms
                           hmq1725       
                           hoohashv110   PepePow
                           jha           Jackpotcoin
+                          k12           KangarooTwelve
                           keccak        Maxcoin
                           keccakc       Creative coin
                           lbry          LBC, LBRY Credits
@@ -108,6 +109,7 @@ Supported Algorithms
                           neoscrypt-xaya Xaya (CHI), SpaceXpanse (ROD)
                           nist5         Nist5
                           odo           DigiByte (DGB)
+                          panthera      Scala (XLA)
                           pentablake    Pentablake
                           phi1612       phi
                           phi2          

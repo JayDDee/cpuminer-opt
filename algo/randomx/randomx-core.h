@@ -75,6 +75,9 @@ extern const rx_core_t rx_core_graft;
 #if defined(RANDOMX_HAVE_ARQ_CORE)
 extern const rx_core_t rx_core_arq;
 #endif
+#if defined(RANDOMX_HAVE_PANTHERA_CORE)
+extern const rx_core_t rx_core_panthera;
+#endif
 
 /* Selected by rx_variant_select() before anything allocates. Defaults to the
  * stock core so a build that never selects a variant behaves as before. */

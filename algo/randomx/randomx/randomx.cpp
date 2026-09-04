@@ -44,6 +44,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cfenv>
 #endif
 
+/* cpuminer-opt local change (see algo/randomx/config/README.md).
+ *
+ * A variant may transform the initial seed between the blake2b of an input and
+ * the scratchpad fill -- Scala's panthera runs yespower then KangarooTwelve
+ * over it. A variant core defines this in its injected config header; for
+ * rx/0 and every configuration-only variant it expands to nothing, so this
+ * file compiles unchanged.
+ *
+ * Applied ONLY where tempHash comes from an input, never to the in-loop
+ * blake2b of the register file. */
+#ifndef RANDOMX_SEED_HOOK
+#define RANDOMX_SEED_HOOK( seed, len )   ((void)0)
+#endif
+
 extern "C" {
 
 	randomx_flags randomx_get_flags() {
@@ -391,6 +405,7 @@ extern "C" {
 
 		alignas(16) uint64_t tempHash[8];
 		int blakeResult = blake2b(tempHash, sizeof(tempHash), input, inputSize, nullptr, 0);
+		RANDOMX_SEED_HOOK(tempHash, sizeof(tempHash));
 		assert(blakeResult == 0);
 		machine->initScratchpad(&tempHash);
 		machine->resetRoundingMode();
@@ -411,6 +426,7 @@ extern "C" {
 
 	void randomx_calculate_hash_first(randomx_vm* machine, const void* input, size_t inputSize) {
 		blake2b(machine->tempHash, sizeof(machine->tempHash), input, inputSize, nullptr, 0);
+		RANDOMX_SEED_HOOK(machine->tempHash, sizeof(machine->tempHash));
 		machine->initScratchpad(machine->tempHash);
 	}
 
@@ -424,6 +440,7 @@ extern "C" {
 
 		// Finish current hash and fill the scratchpad for the next hash at the same time
 		blake2b(machine->tempHash, sizeof(machine->tempHash), nextInput, nextInputSize, nullptr, 0);
+		RANDOMX_SEED_HOOK(machine->tempHash, sizeof(machine->tempHash));
 		machine->hashAndFill(output, RANDOMX_HASH_SIZE, machine->tempHash);
 	}
 

@@ -2161,6 +2161,10 @@ static bool stratum_notify_equihash(struct stratum_ctx *sctx, json_t *params)
     hex2bin(sctx->job.nbits,      nbits,      4);
 
     sctx->job.clean       = clean;
+    /* Bitcoin-stratum job: clear the Monero-dialect flag, which only
+     * rx_stratum_job() sets. Left set across a runtime algo switch it makes
+     * stratum_gen_work() build the work item as a RandomX one. */
+    sctx->job.rx_job      = false;
     sctx->job.diff        = sctx->next_diff;
     sctx->job.is_equihash = true;
 
@@ -2308,6 +2312,8 @@ static bool stratum_notify_sha256dv(struct stratum_ctx *sctx, json_t *params)
     sctx->job.veil_nonce_hi = nonce_hi;
     sctx->job.veil_sha256dv = true;
     sctx->job.clean         = clean;
+    /* Bitcoin-stratum job: clear the Monero-dialect flag (see above). */
+    sctx->job.rx_job        = false;
     sctx->job.diff          = sctx->next_diff;
 
     sctx->block_height = height;
@@ -2469,6 +2475,10 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	hex2bin( sctx->job.xnonce2 + sctx->xnonce2_size, coinb2, coinb2_size );
 	free( sctx->job.job_id );
 	sctx->job.job_id = strdup( job_id );
+	/* Bitcoin-stratum job: clear the Monero-dialect flag, which only
+	 * rx_stratum_job() sets. Left set across a runtime algo switch it makes
+	 * stratum_gen_work() build the work item as a RandomX one. */
+	sctx->job.rx_job = false;
 	hex2bin( sctx->job.prevhash, prevhash, 32 );
    if ( has_claim ) hex2bin( sctx->job.extra, extradata, 32 );
    if ( has_roots ) hex2bin( sctx->job.extra, extradata, 64 );
@@ -2890,7 +2900,7 @@ bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 	}
 	/* Monero/RandomX pushes {"method":"job","params":{...}}: a different
 	 * protocol, not a notify variant. See algo/randomx/randomx-stratum.c. */
-	if (!strcasecmp(method, "job") && rx_algo_is_randomx(opt_algo)) {
+	if (!strcasecmp(method, "job") && rx_algo_uses_monero_stratum(opt_algo)) {
 		ret = rx_stratum_job(sctx, params);
 		goto out;
 	}

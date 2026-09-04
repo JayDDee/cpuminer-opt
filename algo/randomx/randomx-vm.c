@@ -195,13 +195,16 @@ static bool rx_alloc( void )
       rx_cache = rx_core->alloc_cache( cf );
       if ( !rx_cache )
       {
-         applog( LOG_ERR, "RandomX: cache allocation failed (need %u MiB)",
-                 (unsigned)( RANDOMX_ARGON_MEMORY / 1024 ) );
+         applog( LOG_ERR, "RandomX: cache allocation failed (need %lu MiB)",
+                 rx_core->argon_memory() / 1024 );
          return false;
       }
    }
-   applog( LOG_INFO, "RandomX cache:   %u MiB, %s",
-           (unsigned)( RANDOMX_ARGON_MEMORY / 1024 ),
+   /* From the selected core, not RANDOMX_ARGON_MEMORY: this file is compiled
+    * once against the stock configuration, so the macro says 256 MiB even
+    * when a variant core is using 128. */
+   applog( LOG_INFO, "RandomX cache:   %lu MiB, %s",
+           rx_core->argon_memory() / 1024,
            rx_cache_lp ? "large pages" : "normal pages" );
 
    /* Fast mode. Fall back to light mode rather than refusing to mine: light

@@ -88,10 +88,14 @@ static bool rx_parse_job( struct stratum_ctx *sctx, json_t *job )
    seed   = json_string_value( json_object_get( job, "seed_hash" ) );
    algo   = json_string_value( json_object_get( job, "algo"      ) );
 
-   if ( !blob || !job_id || !target || !seed )
+   /* seed_hash is required only by the algos that key a dataset on it; see
+    * rx_algo_needs_seed(). k12 shares this dialect and its pool omits it. */
+   if ( !blob || !job_id || !target
+        || ( !seed && rx_algo_needs_seed( opt_algo ) ) )
    {
-      applog( LOG_ERR, "RandomX job missing a required field "
-                       "(blob/job_id/target/seed_hash)" );
+      applog( LOG_ERR, "%s job missing a required field (blob/job_id/target%s)",
+              rx_variant_pool_algo(),
+              rx_algo_needs_seed( opt_algo ) ? "/seed_hash" : "" );
       return false;
    }
 
@@ -127,7 +131,10 @@ static bool rx_parse_job( struct stratum_ctx *sctx, json_t *job )
    }
    sctx->job.rx_blob_len = blob_len;
 
-   if ( strlen( seed ) != 64 || !hex2bin( sctx->job.rx_seed_hash, seed, 32 ) )
+   if ( !rx_algo_needs_seed( opt_algo ) )
+      memset( sctx->job.rx_seed_hash, 0, 32 );
+   else if ( strlen( seed ) != 64
+             || !hex2bin( sctx->job.rx_seed_hash, seed, 32 ) )
    {
       applog( LOG_ERR, "RandomX job seed_hash is not 32 bytes of hex" );
       return false;
@@ -284,9 +291,15 @@ bool rx_stratum_job( struct stratum_ctx *sctx, json_t *params )
  * See the lock-order note in randomx-vm.c: doing this inside stratum_gen_work,
  * which holds g_work_lock, would deadlock against a miner holding the dataset
  * read lock and waiting for g_work_lock. */
+bool rx_stratum_available( void ) { return true; }
+
 bool rx_stratum_prepare_seed( struct stratum_ctx *sctx )
 {
    unsigned char seed[32];
+
+   /* Nothing to key: no dataset, so no rebuild and no blocking. */
+   if ( !rx_algo_needs_seed( opt_algo ) )
+      return true;
 
    /* Test hook, off unless the environment asks for it. */
    {
@@ -356,12 +369,17 @@ void rx_build_stratum_request( char *req, struct work *work,
                                struct stratum_ctx *sctx )
 {
    static int seq = 4;   /* the shared handler ignores ids below 4 */
-   char noncestr[16], hashstr[65];
+   /* 8 bytes = 16 hex chars + NUL. Sized for the widest nonce field, not the
+    * common one -- a 16-byte buffer here would overflow by one on k12. */
+   char noncestr[17], hashstr[65];
    const unsigned char *blob = (const unsigned char*) work->data;
 
-   /* The nonce is submitted as the 4 raw bytes at offset 39, in memory order
-    * (xmrig hexes &nonce directly, so it is little endian on the wire). */
-   bin2hex( noncestr, blob + RX_NONCE_OFFSET, 4 );
+   /* The nonce is submitted as the raw bytes at offset 39, in memory order
+    * (xmrig hexes &nonce directly, so it is little endian on the wire). The
+    * field is 4 bytes for RandomX and 8 for k12 -- see
+    * rx_algo_nonce_bytes(); the pool validates the length. */
+   bin2hex( noncestr, blob + RX_NONCE_OFFSET,
+            rx_algo_nonce_bytes( opt_algo ) );
    bin2hex( hashstr,  work->rx_result, 32 );
 
    snprintf( req, JSON_BUF_LEN,
@@ -383,7 +401,27 @@ bool rx_stratum_parse_response( json_t *val, bool *accepted,
    const char *status, *msg;
 
    id = json_object_get( val, "id" );
-   if ( !id || json_is_null( id ) || json_integer_value( id ) < 4 )
+   if ( !id || json_is_null( id ) )
+      return false;
+
+   /* The id is not always the integer we sent: some pools echo their own
+    * session id as a string, and json_integer_value() answers 0 for a string,
+    * so a bare "< 4" test classifies every submit reply as not ours and the
+    * reject reason never reaches the log. Integer ids keep the numeric gate
+    * (below 4 is login/keepalive); a string id is identified by shape, the
+    * login reply being the only one carrying result.job. */
+   if ( json_is_integer( id ) )
+   {
+      if ( json_integer_value( id ) < 4 )
+         return false;
+   }
+   else if ( json_is_string( id ) )
+   {
+      json_t *r = json_object_get( val, "result" );
+      if ( r && json_is_object( r ) && json_object_get( r, "job" ) )
+         return false;
+   }
+   else
       return false;
 
    res = json_object_get( val, "result" );

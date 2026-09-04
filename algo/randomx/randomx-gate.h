@@ -11,17 +11,36 @@
  * endian. Confirmed against xmrig Job::nonceOffset() (39 for the RandomX
  * family) and against live jobs from the pool. */
 #define RX_NONCE_OFFSET 39
-#define RX_BLOB_MAX     128
+
+/* Largest hashing blob accepted. Monero's is 76 bytes; Scala's panthera sends
+ * 140, so this is not a Monero-only bound. Raising it costs nothing at run
+ * time but is coupled to two buffers -- see the checks below. */
+#define RX_BLOB_MAX     176
 
 /* The shared miner loop tracks the nonce as work->data[algo_gate.nonce_index]
  * and relies on being able to increment it (std_get_new_work's `else
  * ++(*nonceptr)` is what stops a found share being re-found and submitted as a
  * duplicate). Byte offset 39 is not 4-byte aligned, so no word index can alias
  * the real nonce. Instead the nonce lives in a scratch word PAST the blob:
- * scanhash copies it into the blob at offset 39 before each hash. Word 32 is
- * the first word beyond a maximum-size (128-byte) blob, and work->data has 48.
+ * scanhash copies it into the blob at offset 39 before each hash. It must be
+ * the first word beyond a maximum-size blob, so it moves with RX_BLOB_MAX.
  */
-#define RX_NONCE_WORD   32
+#define RX_NONCE_WORD   44
+
+/* The three sizes above are coupled to two fixed buffers, and getting it wrong
+ * would corrupt memory rather than fail a test, so check it here:
+ *   - struct stratum_job.rx_blob (miner.h) holds the blob
+ *   - struct work.data is uint32_t[48] = 192 bytes and holds the blob PLUS the
+ *     scratch nonce word, so the word must sit past the blob and still fit. */
+#if RX_BLOB_MAX > 176
+#error "RX_BLOB_MAX exceeds stratum_job.rx_blob[176] in miner.h -- grow both"
+#endif
+#if ( RX_NONCE_WORD * 4 ) < RX_BLOB_MAX
+#error "RX_NONCE_WORD overlaps the blob -- it must be past RX_BLOB_MAX"
+#endif
+#if ( RX_NONCE_WORD + 1 ) * 4 > 192
+#error "RX_NONCE_WORD does not fit in struct work.data[48]"
+#endif
 
 struct randomx_vm;
 
@@ -73,8 +92,25 @@ typedef struct
 /* Set membership, so the several `opt_algo == ALGO_RANDOMX` tests in the
  * shared code do not have to grow a term per variant -- each one gates
  * protocol dialect or connection behaviour, and missing one silently speaks
- * the wrong dialect. */
-bool rx_algo_is_randomx( int algo );
+ * the wrong dialect. The set is "speaks the Monero stratum", not "is a RandomX
+ * variant": k12 is in it and has no VM, no dataset and no core. */
+bool rx_algo_uses_monero_stratum( int algo );
+
+/* Width of the blob's nonce field in bytes. RandomX/Monero is 4; Aeon's k12
+ * is 8, and the pool answers "incorrect size of nonce" if the submitted hex is
+ * the wrong length. The extra bytes are the high half of a little-endian
+ * counter, so they stay zero while the 32-bit nonce space is unexhausted. */
+unsigned rx_algo_nonce_bytes( int algo );
+
+/* False for an algo that shares the dialect but keys nothing on a seed. k12's
+ * pool sends no `seed_hash` field at all, so requiring one rejects every job.
+ * True for every RandomX variant, which all key a dataset on it. */
+bool rx_algo_needs_seed( int algo );
+
+/* True when the real Monero stratum is compiled in, false in the
+ * --disable-randomx stub build. Lets a non-RandomX consumer of this dialect
+ * refuse at registration instead of silently talking the wrong protocol. */
+bool rx_stratum_available( void );
 
 const rx_variant_t *rx_variant( void );
 const char *rx_variant_pool_algo( void );
@@ -82,6 +118,11 @@ const char *rx_variant_pool_algo( void );
 /* Applies the variant's salt to the core. Must be called before the first
  * cache init and never again. */
 bool rx_variant_select( int algo );
+
+/* Points the current-variant pointer at `algo`'s row and does nothing else --
+ * no salt, no core switch, no banner. For a dialect-only member of the table
+ * such as k12, whose sole use of it is the pool's algo string. */
+bool rx_variant_select_plain( int algo );
 
 /* --- randomx-stratum.c : the Monero stratum dialect --------------------- */
 
@@ -115,6 +156,11 @@ bool rx_stratum_parse_response( json_t *val, bool *accepted,
 
 bool register_randomx_algo( algo_gate_t *gate );
 
+/* Shared with any algo using this dialect: the nonce lives in a scratch word
+ * past the blob, so the generic get_new_work cannot be used. */
+void rx_get_new_work( struct work *work, struct work *g_work,
+                      int thr_id, uint32_t *end_nonce_ptr );
+
 /* --- randomx-kat.c ------------------------------------------------------ */
 
 /* Quick startup self-test: argon2 cache fill + one interpreter and one JIT
@@ -135,6 +181,9 @@ bool rx_variant_graft_vectors( void );
 
 /* rx/arq: two vectors from shares a live ArQmA pool accepted. */
 bool rx_variant_arq_vectors( void );
+
+/* panthera: two vectors from shares a live Scala pool accepted. */
+bool rx_variant_panthera_vectors( void );
 
 /* rx/sfx: a real vector, reconstructed from a share a live Safex pool
  * accepted. Sets and restores the salt itself, so it is valid to call with

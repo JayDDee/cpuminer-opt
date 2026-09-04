@@ -47,6 +47,7 @@ bool register_hmq1725_algo( algo_gate_t *gate );
 bool register_hoohashv110_algo( algo_gate_t *gate );
 bool register_jha_algo( algo_gate_t *gate );
 bool register_keccak_algo( algo_gate_t *gate );
+bool register_k12_algo( algo_gate_t *gate );
 bool register_keccakc_algo( algo_gate_t *gate );
 bool register_lbry_algo( algo_gate_t *gate );
 bool register_lyra2h_algo( algo_gate_t *gate );
