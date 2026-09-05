@@ -32,6 +32,7 @@ extern double api_get_best_share( void );
 extern bool   api_get_thread_shares( int thr_id, uint32_t *accepted,
                                      uint32_t *rejected );
 extern uint32_t api_get_pool_disconnects( void );
+extern bool     api_get_pool_session_s( uint32_t *out );
 
 static time_t api_start_time = 0;
 
@@ -92,7 +93,11 @@ void api_collect_summary( struct api_summary_snapshot *s )
    if ( short_url )
       snprintf( s->url, sizeof(s->url), "%s", short_url );
 
-   s->hashrate  = (double)global_hashrate;
+   /* Parked reports 0, not the last value (docs/api-rest.md section 6.1):
+    * global_hashrate is only recomputed when a thread finishes a scan, so it
+    * freezes while parked. Gated in the collector so /summary and the
+    * Prometheus gauges inherit it. */
+   s->hashrate  = api_ctl_mining_parked() ? 0. : (double)global_hashrate;
    s->accepted  = accepted_share_count;
    s->rejected  = rejected_share_count;
    s->solved    = solved_block_count;
@@ -157,7 +162,9 @@ bool api_collect_thread( int thr_id, struct api_thread_snapshot *t )
       return false;
    memset( t, 0, sizeof(*t) );
    t->id          = thr_id;
-   t->hashrate    = thr_hashrates[ thr_id ];
+   /* cpu-miner.c already zeroes thr_hashrates[] as each thread parks; gated
+    * anyway to cover the window before a thread reaches its park point. */
+   t->hashrate    = api_ctl_mining_parked() ? 0. : thr_hashrates[ thr_id ];
    t->have_shares = api_get_thread_shares( thr_id, &t->accepted, &t->rejected );
    return true;
 }
@@ -189,8 +196,13 @@ void api_collect_pool( struct api_pool_snapshot *p )
     * not collected cannot leak. */
    get_currentalgo( p->algo, sizeof(p->algo) );
 
-   p->stratum   = have_stratum;
-   p->connected = have_stratum ? ( stratum.curl != NULL ) : true;
+   p->stratum      = have_stratum;
+   p->have_session = api_get_pool_session_s( &p->session_s );
+
+   /* Not stratum.curl: it stays non-NULL across a drop, because the disconnect
+    * paths defer stratum_disconnect() to the reset handler. The session flag is
+    * cleared where the disconnect is counted. getwork/GBT is always up. */
+   p->connected = have_stratum ? p->have_session : true;
 
    /* Global counters, not per-pool: with one pool they are the same numbers.
     * Do not add a per-pool accumulator, it would diverge the moment failover
@@ -235,8 +247,8 @@ void api_collect_system( struct api_system_snapshot *s )
    s->cpu_fan_pct   = -1;
 }
 
-/* Instruction sets this build can use, as one string to match
- * docs/openapi.yaml's Device.cpu.features. */
+/* Instruction sets this build can use, collected space-separated and split
+ * into docs/openapi.yaml's Device.cpu.features array at JSON build time. */
 static void collect_features( char *out, size_t len )
 {
    const struct { bool have; const char *name; } f[] = {
@@ -266,7 +278,8 @@ void api_collect_device( struct api_device_snapshot *d )
    d->cpu_temp      = cpu_temp( 0 );
    d->cpu_clock_khz = cpu_clock( 0 );
    d->cpu_fan_pct   = -1;
-   d->hashrate      = (double)global_hashrate;
+   /* Same rule as the summary collector: parked reports 0. */
+   d->hashrate      = api_ctl_mining_parked() ? 0. : (double)global_hashrate;
    collect_features( d->features, sizeof(d->features) );
 }
 
@@ -412,6 +425,34 @@ static json_t *jstr_or_null( const char *s )
    return ( s && *s ) ? json_string( s ) : json_null();
 }
 
+/* Space-separated feature list -> JSON array of strings. The contract types
+ * Device.cpu.features as an array so a client never has to guess a separator;
+ * null, not [], when nothing was detected. */
+static json_t *jfeatures_or_null( const char *s )
+{
+   if ( !s || !*s ) return json_null();
+
+   json_t *arr = json_array();
+   if ( !arr ) return json_null();
+
+   /* json_stringn is jansson 2.7+; compat/jansson is 2.6, so the fallback
+    * build needs a bounded copy rather than a counted constructor. */
+   for ( const char *p = s; *p; )
+   {
+      const char *end = strchr( p, ' ' );
+      size_t n = end ? (size_t)( end - p ) : strlen( p );
+      char name[ 32 ];
+      if ( n && n < sizeof(name) )
+      {
+         memcpy( name, p, n );
+         name[n] = 0;
+         json_array_append_new( arr, json_string( name ) );
+      }
+      p = end ? end + 1 : p + n;
+   }
+   return arr;
+}
+
 json_t *api_build_miner_json( void )
 {
    json_t *m = json_object();
@@ -554,8 +595,11 @@ json_t *api_build_pool_json( int index, bool active,
    /* Not tracked here, so null rather than 0: 0 would be a measurement. */
    json_object_set_new( o, "ping_ms",          json_null() );
    json_object_set_new( o, "wait_time_s",      json_null() );
-   json_object_set_new( o, "uptime_s",         json_null() );
    json_object_set_new( o, "last_share_age_s", json_null() );
+   /* Pool session length, not the process uptime: separate fields so both can
+    * be queried. null while disconnected; 0 would claim "connected just now". */
+   json_object_set_new( o, "session_s", p->have_session
+                        ? json_integer( (json_int_t)p->session_s ) : json_null() );
    return o;
 }
 
@@ -696,7 +740,7 @@ json_t *api_build_device_json( int id, const struct api_device_snapshot *d )
     * wrong on every machine without SMT. */
    json_object_set_new( c, "cores",    json_null() );
    json_object_set_new( c, "threads",  jint_or_null( d->threads, d->threads > 0 ) );
-   json_object_set_new( c, "features", jstr_or_null( d->features ) );
+   json_object_set_new( c, "features", jfeatures_or_null( d->features ) );
    json_object_set_new( o, "cpu", c );
    return o;
 }

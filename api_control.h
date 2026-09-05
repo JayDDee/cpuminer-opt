@@ -91,6 +91,10 @@ bool        api_ctl_enabled( void );
 ctl_state_t api_ctl_get_state( void );
 void        api_ctl_get_status( struct ctl_status *out );
 
+/* Paused, stopped or mid-mutation. Every hashrate surface reports 0 while this
+ * is true -- docs/api-rest.md section 6.1. Safe when control is off. */
+bool        api_ctl_mining_parked( void );
+
 /* Should this thread be hashing right now? Called by the mining loop, which
  * parks itself when the answer is false -- that is how a thread acknowledges
  * a pending mutation. */

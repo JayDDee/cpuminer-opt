@@ -479,10 +479,15 @@ int api_http_serve_prefixed(int sock, const char *prefix, size_t prefixlen,
 	json_t *out = NULL;
 	status = r->handler(&req, ctx, &out, errmsg, sizeof(errmsg));
 
-	if (status >= 400) {
-		if (out) json_decref(out);
+	/* A handler that fails without a body gets the uniform error envelope. One
+	 * that supplies its own keeps it: /health answers 503 carrying
+	 * {"status":"degraded","reasons":[...]}, which this used to discard.
+	 *
+	 * Safe because /health is the only handler that returns >= 400 with a body:
+	 * every other path leaves *out NULL, ctl_reply() included. Re-audit the route
+	 * table if that stops holding. */
+	if (status >= 400 && !out)
 		return send_error(sock, status, errmsg[0] ? errmsg : NULL, cfg);
-	}
 
 	char *body = out ? json_dumps(out, req.pretty ? JSON_INDENT(2) : JSON_COMPACT) : NULL;
 	if (out) json_decref(out);

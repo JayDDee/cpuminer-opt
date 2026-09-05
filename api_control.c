@@ -30,7 +30,7 @@ extern struct stratum_ctx stratum;
 /* CLI, api_control.c owns the defaults so an unset option cannot mean 0. */
 int  opt_api_control              = 0;
 int  opt_api_control_min_interval = 15;
-int  opt_api_control_park_timeout = 10000;
+int  opt_api_control_park_timeout = 30000;
 
 static pthread_mutex_t ctl_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -105,6 +105,11 @@ static bool wait_gen( volatile uint64_t *acks, uint64_t want, int wait_ms )
 bool api_ctl_enabled( void ) { return opt_api_control != 0; }
 
 ctl_state_t api_ctl_get_state( void ) { return ctl_state; }
+
+/* Any non-RUNNING state means no thread is hashing: park_all() always follows
+ * enter_state( CTL_SWITCHING ), so this covers paused, stopped and switching.
+ * ctl_state stays CTL_RUNNING when control is disabled, so no extra guard. */
+bool api_ctl_mining_parked( void ) { return ctl_state != CTL_RUNNING; }
 
 /* Called from the mining loop. Also the acknowledgement: a thread that reports
  * "do not run" has, by returning from here, stopped hashing. */

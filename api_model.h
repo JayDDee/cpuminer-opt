@@ -88,6 +88,8 @@ struct api_pool_snapshot
    char     algo[64];
    uint32_t accepted, rejected, stale, solved;
    uint32_t disconnects;         /* unintentional only */
+   uint32_t session_s;           /* this pool session, NOT process uptime */
+   bool     have_session;        /* false => report null, never 0 */
    bool     stratum;             /* false = getwork/GBT */
    bool     connected;
    double   diff;

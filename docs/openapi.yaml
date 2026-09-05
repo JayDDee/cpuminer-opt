@@ -2,10 +2,12 @@ openapi: 3.1.0
 
 # Machine-readable form of docs/api-rest.md. That document is the authority;
 # this file must not add, rename or contradict anything in it. Both files are
-# byte-identical in the GPU and CPU miner repositories and are covered by
-# docs/api-rest.sha256 (see api/tests/check-docs-sync.sh).
+# byte-identical in the GPU and CPU miner repositories; keeping them so is a
+# maintainer process and needs no action from a consumer of this file.
 #
-# Status: specification. No miner implements this yet.
+# Status: specification. Read the capability list from `GET /api/v1/` to learn
+# what a given miner and configuration actually serve — implementations are
+# expected to answer `501` for the rest rather than hide the route.
 #
 # `/metrics` is Prometheus text exposition, so only its media type is described
 # here; the metric names, types and labels live in the Markdown reference
@@ -534,6 +536,7 @@ paths:
       requestBody: { $ref: '#/components/requestBodies/WaitMs' }
       responses:
         '200': { $ref: '#/components/responses/ControlResult' }
+        '202': { $ref: '#/components/responses/ControlAccepted' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
@@ -546,6 +549,7 @@ paths:
       requestBody: { $ref: '#/components/requestBodies/WaitMs' }
       responses:
         '200': { $ref: '#/components/responses/ControlResult' }
+        '202': { $ref: '#/components/responses/ControlAccepted' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
@@ -560,6 +564,7 @@ paths:
       requestBody: { $ref: '#/components/requestBodies/WaitMs' }
       responses:
         '200': { $ref: '#/components/responses/ControlResult' }
+        '202': { $ref: '#/components/responses/ControlAccepted' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
@@ -680,6 +685,29 @@ components:
                       state:  { $ref: '#/components/schemas/ControlStateName' }
                       epoch:  { type: integer }
                       parked: { type: integer }
+    ControlAccepted:
+      description: |
+        Accepted but not complete within `wait_ms`. The mutation is still
+        running; poll `/control/state` until `state` leaves `switching`, then
+        read `epoch` (advanced = applied) and `last_error`. `wait_ms: 0`
+        always takes this path.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                required: [result]
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      state:  { $ref: '#/components/schemas/ControlStateName' }
+                      epoch:  { type: integer }
+                      parked: { type: integer }
+                      poll:
+                        type: string
+                        description: Path to poll, supplied so a client need not build it.
     BadRequest:
       description: Malformed path, query or body; wrong JSON type; missing required field.
       content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
@@ -862,7 +890,12 @@ components:
           properties:
             cores:    { type: [integer, "null"] }
             threads:  { type: [integer, "null"] }
-            features: { type: [string, "null"] }
+            features:
+              type: [array, "null"]
+              items: { type: string }
+              description: |
+                Instruction-set features, one per element. An array rather than
+                a delimited string so a client never has to guess a separator.
 
     System:
       type: object
@@ -901,7 +934,7 @@ components:
         ping_ms:          { type: [integer, "null"] }
         disconnects:      { type: [integer, "null"] }
         wait_time_s:      { type: [integer, "null"] }
-        uptime_s:         { type: [integer, "null"] }
+        session_s:        { type: [integer, "null"] }
         last_share_age_s: { type: [integer, "null"] }
 
     Health:
@@ -920,7 +953,12 @@ components:
       required: [name, type, tier]
       properties:
         name: { type: string }
-        type: { type: string, enum: [int, string, float, bool] }
+        type:
+          type: string
+          enum: [int, string, int_list, float_list]
+          description: |
+            The list types are comma-separated and positional, one entry per
+            device; a single value applies to every device.
         tier:
           type: string
           enum: [fast, slow]

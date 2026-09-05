@@ -1174,6 +1174,26 @@ static uint32_t pool_disconnect_count = 0;
 
 uint32_t api_get_pool_disconnects( void ) { return pool_disconnect_count; }
 
+// Start of the current pool session, for /pools[].session_s. 0 = not connected,
+// reported as null rather than 0. Set where the connection is established and
+// cleared where it drops, so a reconnect restarts the clock. Distinct from the
+// process uptime reported as uptime_s.
+static time_t pool_session_start = 0;
+
+void api_set_pool_session_open( bool open )
+{
+   pool_session_start = open ? time( NULL ) : 0;
+}
+
+bool api_get_pool_session_s( uint32_t *out )
+{
+   if ( !pool_session_start ) return false;
+   double d = difftime( time( NULL ), pool_session_start );
+   if ( d < 0. ) d = 0.;          // clock stepped backwards
+   *out = (uint32_t) d;
+   return true;
+}
+
 bool api_get_thread_shares( int thr_id, uint32_t *accepted, uint32_t *rejected )
 {
    if ( !thr_share_counts || thr_id < 0 || thr_id >= opt_n_threads )
@@ -3340,6 +3360,7 @@ static void *stratum_thread(void *userdata )
 // sometimes stratum connects but doesn't immediately send a job, wait for one.
 //            stratum_down = false;
             applog(LOG_BLUE,"Stratum connection established" );
+            api_set_pool_session_open( true );
             if ( stratum.new_job )   // prime first job
             {
                /* RandomX: the dataset must match the job's seed_hash before
@@ -3376,6 +3397,7 @@ static void *stratum_thread(void *userdata )
 //            applog(LOG_WARNING, "Stratum connection interrupted");
 //            stratum_disconnect( &stratum );
             pool_disconnect_count++;
+            api_set_pool_session_open( false );
             stratum_need_reset = true;
          }
       }
@@ -3383,6 +3405,7 @@ static void *stratum_thread(void *userdata )
       {
          applog(LOG_ERR, "Stratum connection timeout");
          pool_disconnect_count++;
+         api_set_pool_session_open( false );
          stratum_need_reset = true;
 //         stratum_disconnect( &stratum );
       }

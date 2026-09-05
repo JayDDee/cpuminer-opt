@@ -615,6 +615,71 @@ static bool api_request_is_ws_upgrade(const char *buf, int len)
 	return strstr(tmp, "Sec-WebSocket-Key") != NULL;
 }
 
+/* Exact-match --api-token check for a WebSocket upgrade.
+ *
+ * A substring test on "Bearer <token>" would accept "Bearer <token>EXTRA", which
+ * the REST router refuses (api_http.c compares the parsed value), so the header
+ * is parsed and the value compared. An over-long value is refused rather than
+ * compared truncated. */
+static bool api_ws_token_ok(const char *buf, int len)
+{
+	char tmp[SOCK_REC_BUFSZ + 1];
+	int n = len < SOCK_REC_BUFSZ ? len : SOCK_REC_BUFSZ;
+	const char *p;
+
+	if (!opt_api_token || !*opt_api_token)
+		return true;
+	if (n < 0) return false;
+
+	memcpy(tmp, buf, (size_t) n);
+	tmp[n] = '\0';
+
+	for (p = tmp; *p; ) {
+		const char *eol = strpbrk(p, "\r\n");
+		size_t llen = eol ? (size_t) (eol - p) : strlen(p);
+
+		if (llen > 14 && strncasecmp(p, "Authorization:", 14) == 0) {
+			const char *v = p + 14;
+			size_t vlen;
+			char val[288];
+
+			while (v < p + llen && (*v == ' ' || *v == '\t')) v++;
+			vlen = (size_t) (p + llen - v);
+			if (vlen <= 7 || strncasecmp(v, "Bearer ", 7) != 0)
+				return false;
+			v += 7; vlen -= 7;
+			while (vlen && (*v == ' ' || *v == '\t')) { v++; vlen--; }
+			while (vlen && (v[vlen-1] == ' ' || v[vlen-1] == '\t')) vlen--;
+			if (vlen >= sizeof(val))
+				return false;          /* absurd length: refuse, never truncate */
+			memcpy(val, v, vlen);
+			val[vlen] = '\0';
+			return strcmp(val, opt_api_token) == 0;
+		}
+		p = eol ? eol + 1 : p + llen;
+	}
+	return false;
+}
+
+/* A refused upgrade answers: silence is indistinguishable from a network stall,
+ * and this port already answers 401 for a missing REST token (contract 4). */
+static void api_send_early_error(SOCKETTYPE c, int status, const char *msg)
+{
+	api_http_config cfg;
+	char *body;
+
+	memset(&cfg, 0, sizeof(cfg));
+	cfg.token = opt_api_token;
+	cfg.cors = opt_api_cors != NULL;
+
+	body = api_http_error_body(&cfg, status, msg);
+	if (!body)
+		return;
+	api_http_send((int) c, status, NULL, body, strlen(body), &cfg);
+	free(body);
+}
+
+
 static void api_serve_http(SOCKETTYPE c, const char *prefix, size_t prefixlen)
 {
 	api_http_config cfg;
@@ -919,14 +984,14 @@ static void api()
 				 * block below rewrites it. Upgrades only: a plain `summary|` is
 				 * the legacy protocol, which --api-mode leaves unchanged in
 				 * `binary` and `both`. */
-				if (opt_api_token && *opt_api_token
-				    && strstr(buf, "Sec-WebSocket-Key")) {
-					char want[320];
-					snprintf(want, sizeof(want), "Bearer %s", opt_api_token);
-					if (!strstr(buf, want)) {
-						buf[0] = '\0';
-						n = 0;
-					}
+				if (n > 0 && api_request_is_ws_upgrade(buf, n)
+				    && !api_ws_token_ok(buf, n)) {
+					applog(LOG_WARNING, "API: websocket upgrade from %s refused"
+						" (missing or invalid token)", connectaddr);
+					api_send_early_error(c, 401, "missing or invalid token");
+					buf[0] = '\0';
+					n = 0;
+					answered = true;
 				}
 
 				if ((msg = strstr(buf, "GET /")) && strlen(msg) > 5) {
@@ -977,8 +1042,10 @@ static void api()
 
 				/* Silence here is indistinguishable from a stall or a dead miner.
 				 * Same string as the sibling miner: one dashboard talks to both.
-				 * Not over a WebSocket, which expects a frame. */
-				if (!matched && !wskey)
+				 * Not over a WebSocket, which expects a frame, and not when an earlier
+				 * gate already answered -- a refused upgrade sends 401 and must not be
+				 * followed by a second reply on the same socket. */
+				if (!matched && !wskey && !answered)
 					send_result(c, (char*) "ERR=unknown command|");
 			}
 		}
