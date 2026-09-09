@@ -68,13 +68,20 @@ static inline uint64_t k12_hash_tail( const unsigned char *h )
    return v;
 }
 
+/* --benchmark has no pool and so never gets a job. K12 is a sponge: its cost
+ * grows with input length, so a synthetic blob has to be a representative
+ * length or the number means nothing. This dialect carries a CryptoNote
+ * block-hashing blob, ~76 bytes; the banner states it so a benchmark is never
+ * silently compared against a job of another size. */
+#define K12_BENCH_BLOB_LEN 76
+
 int scanhash_k12( struct work *work, uint32_t max_nonce,
                   uint64_t *hashes_done, struct thr_info *mythr )
 {
    unsigned char blob[RX_BLOB_MAX] __attribute__ ((aligned (16)));
    unsigned char hash[32]          __attribute__ ((aligned (16)));
-   const size_t   blob_len = work->rx_blob_len;
-   const uint64_t target   = work->rx_target;
+   size_t   blob_len = work->rx_blob_len;
+   uint64_t target   = work->rx_target;
    uint32_t *nonceptr = work->data + RX_NONCE_WORD;
    uint32_t  n = *nonceptr;
    const uint32_t first_nonce = n;
@@ -82,12 +89,31 @@ int scanhash_k12( struct work *work, uint32_t max_nonce,
 
    if ( !work->rx_work || blob_len < RX_NONCE_OFFSET + 4 || !target )
    {
-      /* No job yet (or a malformed one). Sleep rather than spin; the miner
-       * loop calls us again as soon as g_work is refreshed. This is also why
-       * --benchmark cannot work for this algo. */
-      usleep( 20000 );
-      *hashes_done = 0;
-      return 0;
+      if ( !opt_benchmark )
+      {
+         /* No job yet (or a malformed one). Sleep rather than spin; the miner
+          * loop calls us again as soon as g_work is refreshed. */
+         usleep( 20000 );
+         *hashes_done = 0;
+         return 0;
+      }
+      /* Hash a synthetic blob instead of idling. target 0 leaves every digest
+       * above it, so the submit path -- which needs a real job_id and would
+       * reach the pool -- is never entered. */
+      blob_len = K12_BENCH_BLOB_LEN;
+      target   = 0;
+      if ( !thr_id )
+      {
+         static bool noted = false;
+         if ( !noted )
+         {
+            applog( LOG_NOTICE, "k12: benchmarking a synthetic %d-byte blob "
+                                "(no pool, so no job); a real job's rate "
+                                "tracks its own blob length",
+                    K12_BENCH_BLOB_LEN );
+            noted = true;
+         }
+      }
    }
 
    memcpy( blob, work->data, blob_len );

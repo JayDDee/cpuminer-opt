@@ -621,10 +621,23 @@ else
 endif
 
 cpuminer_LDFLAGS = @LDFLAGS@
-# RandomX sources, or a stub satisfying the seven entry points cpu-miner.c and
-# util.c reference, so neither file needs an #ifdef. rx_algo_is_randomx()
-# answers false in the stub, so those call sites take the bitcoin-stratum path
-# and the remaining stubs are never reached.
+
+# K12 is NOT conditional on RandomX, even though it borrows that dialect's
+# stratum and panthera's seed hook borrows KangarooTwelve. register_k12_algo()
+# is called unconditionally from algo-gate-api.c and refuses at RUNTIME when
+# rx_stratum_available() says the dialect is absent, which is the whole point
+# of the stub below -- so these must always be compiled or --disable-randomx
+# fails to link on register_k12_algo.
+cpuminer_SOURCES += \
+  algo/k12/k12-gate.c \
+  algo/k12/KangarooTwelve.c \
+  algo/k12/KeccakP-1600-reference.c \
+  algo/k12/KeccakSpongeWidth1600.c
+
+# RandomX sources, or a stub satisfying the entry points the shared code and
+# k12 reference, so no caller needs an #ifdef. rx_algo_uses_monero_stratum()
+# and rx_stratum_available() answer false in the stub, so those call sites take
+# the bitcoin-stratum path and the remaining stubs are never reached.
 if HAVE_RANDOMX
 cpuminer_SOURCES += \
   algo/randomx/randomx-gate.c \
@@ -633,10 +646,6 @@ cpuminer_SOURCES += \
   algo/randomx/randomx-variant.c \
   algo/randomx/randomx-core.c \
   algo/randomx/panthera-seed.c \
-  algo/k12/k12-gate.c \
-  algo/k12/KangarooTwelve.c \
-  algo/k12/KeccakP-1600-reference.c \
-  algo/k12/KeccakSpongeWidth1600.c \
   algo/randomx/randomx-kat.c
 else
 cpuminer_SOURCES += algo/randomx/randomx-stub.c

@@ -1323,9 +1323,13 @@ void report_summary_log( bool force )
          else
             sprintf( tempstr, "%d C", curr_temp );
 
+         /* Fold in this reading BEFORE printing, or "max" is the maximum of
+          * every earlier report and excludes the one on the same line -- which
+          * reads as nonsense whenever the temperature is still climbing, most
+          * visibly on the first report of a run: "curr 48 C max 38". */
+         if ( curr_temp > hi_temp ) hi_temp = curr_temp;
          applog( LOG_NOTICE,"CPU temp: curr %s max %d, Freq: %.3f/%.3f GHz",
                  tempstr, hi_temp, lo_freq / 1e6, hi_freq / 1e6 );
-         if ( curr_temp > hi_temp ) hi_temp = curr_temp;
          if ( ( opt_max_temp > 0.0 ) && ( curr_temp > opt_max_temp ) )
             restart_threads();
          prev_temp = curr_temp;
@@ -2732,13 +2736,24 @@ static void *miner_thread( void *userdata )
    // nominal startng values
    int64_t max64 = 20;
    thr_hashrates[thr_id] = 20;
+   bool was_parked = false;
    while (1)
    {
        uint64_t hashes_done;
        struct timeval tv_start, tv_end, diff;
        int nonce_found = 0;
 
-       if ( have_stratum ) 
+       /* Re-derive every pass, NOT once before the loop: a runtime algo switch
+        * can move the nonce. verus keeps it at word 30 (equihash-style
+        * header), almost everything else at 19, so a stale pointer has this
+        * loop reading one word while scanhash and get_new_work write another.
+        * It must be refreshed here, above the exhausted-range test: on stratum
+        * a stale pointer makes that test fire every pass, so each one
+        * regenerates work and then scans a single nonce -- a ~20x hashrate
+        * drop with no shares, and only ever after a switch. */
+       nonceptr = work.data + algo_gate.nonce_index;
+
+       if ( have_stratum )
        {
           while ( unlikely( stratum_down ) )
              sleep( 1 );
@@ -2798,9 +2813,21 @@ static void *miner_thread( void *userdata )
           // sequences the two phases around the gate swap.
           api_ctl_thread_service( thr_id );
 
+          /* 0 while parked so the reported total excludes this thread. It
+           * must not survive into the first scan after resuming: max64 is
+           * opt_scantime * this, and 0 clamps to a single-nonce scan. */
           thr_hashrates[thr_id] = 0.;
+          was_parked = true;
           usleep( 100000 );
           continue;
+       }
+
+       if ( unlikely( was_parked ) )
+       {
+          /* Same nominal seed the thread started with, so the first scan
+           * after a switch sizes its range the way the first scan ever did. */
+          thr_hashrates[thr_id] = 20;
+          was_parked = false;
        }
 
        if ( unlikely( !wanna_mine( thr_id ) ) )
@@ -3318,6 +3345,17 @@ static void *stratum_thread(void *userdata )
           {
 	          free( stratum.url );
 	          stratum.url = strdup( rpc_url );
+             /* Drop the session id with the pool that issued it. It is sent
+              * in mining.subscribe to ask for that subscription back, so
+              * carrying it across asks a DIFFERENT server to resume a session
+              * it never issued. Most ignore it and assign a fresh extranonce1,
+              * which is why this hid for so long; one that honours the request
+              * hands back the old pool's extranonce1 and the two sessions then
+              * share a nonce space -- stale or duplicate shares, on some pools
+              * only. Reconnecting to the SAME pool still resumes, which is
+              * what the id is for. */
+             free( stratum.session_id );
+             stratum.session_id = NULL;
 	          applog(LOG_BLUE, "Connection changed to %s", short_url);
           }
           else 

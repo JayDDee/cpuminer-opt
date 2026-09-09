@@ -31,6 +31,22 @@ static inline uint64_t rx_hash_tail( const unsigned char *h )
    return v;
 }
 
+/* --benchmark inputs. The blob length is representative of what this dialect
+ * carries (a CryptoNote block-hashing blob, ~76 bytes) rather than exact: for
+ * RandomX the program is what costs, so the rate barely moves with it, but the
+ * banner states it anyway. The seed only has to exist -- the dataset's content
+ * does not change the rate -- so any fixed 32 bytes serve; ascending ones so no
+ * question of a degenerate all-zero input arises. */
+#define RX_BENCH_BLOB_LEN 76
+
+static const unsigned char rx_bench_seed[32] =
+{
+   0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+   0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+   0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+   0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
+};
+
 /* -------------------------------------------------------------- scanhash */
 
 int scanhash_randomx( struct work *work, uint32_t max_nonce,
@@ -39,8 +55,8 @@ int scanhash_randomx( struct work *work, uint32_t max_nonce,
    const int thr_id = mythr->id;
    unsigned char blob[RX_BLOB_MAX] __attribute__ ((aligned (16)));
    unsigned char hash[32]          __attribute__ ((aligned (16)));
-   const size_t  blob_len = work->rx_blob_len;
-   const uint64_t target  = work->rx_target;
+   size_t   blob_len = work->rx_blob_len;
+   uint64_t target   = work->rx_target;
    uint32_t n, found_nonce = 0;
    bool found;
    randomx_vm *vm;
@@ -51,11 +67,45 @@ int scanhash_randomx( struct work *work, uint32_t max_nonce,
 
    if ( !work->rx_work || blob_len < RX_NONCE_OFFSET + 4 || !target )
    {
-      /* No RandomX job yet (or a malformed one). Sleep rather than spin: the
-       * miner loop calls us again as soon as g_work is refreshed. */
-      usleep( 20000 );
-      *hashes_done = 0;
-      return 0;
+      if ( !opt_benchmark )
+      {
+         /* No RandomX job yet (or a malformed one). Sleep rather than spin:
+          * the miner loop calls us again as soon as g_work is refreshed. */
+         usleep( 20000 );
+         *hashes_done = 0;
+         return 0;
+      }
+      /* --benchmark has no pool, so no job AND no seed_hash. Synthesize both:
+       * a representative blob, and a fixed seed, without which there is no
+       * cache or dataset and rx_vm_get() below has nothing to hand out.
+       * target 0 leaves every digest above it, so the submit path -- which
+       * needs a real job_id -- is never entered.
+       *
+       * Only thread 0 seeds. rx_seed_update() is idempotent but is written
+       * for the single stratum thread, and the rebuild is expensive; the
+       * other threads take the reseed-pending sleep below until it is done. */
+      blob_len = RX_BENCH_BLOB_LEN;
+      target   = 0;
+      if ( !thr_id )
+      {
+         static bool seeded = false;
+         if ( !seeded )
+         {
+            applog( LOG_NOTICE, "%s: benchmarking a synthetic %d-byte blob on "
+                                "a fixed seed (no pool, so no job) -- building "
+                                "the dataset now",
+                    algo_names[ opt_algo ], RX_BENCH_BLOB_LEN );
+            if ( !rx_seed_update( rx_bench_seed ) )
+            {
+               applog( LOG_ERR, "%s: could not build the benchmark dataset",
+                       algo_names[ opt_algo ] );
+               usleep( 100000 );
+               *hashes_done = 0;
+               return 0;
+            }
+            seeded = true;
+         }
+      }
    }
 
    memcpy( blob, work->data, blob_len );

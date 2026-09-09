@@ -87,3 +87,19 @@ bool rx_stratum_parse_response( json_t *val, bool *accepted,
    (void)val; (void)accepted; (void)reason;
    return false;
 }
+
+/* Never called, but register_k12_algo() takes their addresses for the gate
+ * before it can discover the dialect is missing, and taking an address needs
+ * the symbol at link time. It refuses on rx_stratum_available() above, so the
+ * gate it would have populated is discarded. */
+void rx_get_new_work( struct work *work, struct work *g_work,
+                      int thr_id, uint32_t *end_nonce_ptr )
+{
+   (void)work; (void)g_work; (void)thr_id; (void)end_nonce_ptr;
+}
+
+void rx_build_stratum_request( char *req, struct work *work,
+                               struct stratum_ctx *sctx )
+{
+   (void)req; (void)work; (void)sctx;
+}
