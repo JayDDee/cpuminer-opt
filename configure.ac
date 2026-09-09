@@ -25,7 +25,8 @@ AC_PROG_RANLIB
 AC_PROG_CXX
 
 dnl algo/randomx links the RandomX core twice -- once stock, once with a
-dnl variant's constants -- and renames the second copy's symbols with objcopy.
+dnl variant's constants. The second copy's C++ namespace is renamed by the
+dnl compiler and its C symbols by objcopy (algo/randomx/prefix-syms.sh).
 dnl AC_CHECK_TOOL, not AC_CHECK_PROG: a cross build must use the target's
 dnl binutils (x86_64-w64-mingw32-objcopy), or the host tools silently fail to
 dnl rewrite a PE archive.

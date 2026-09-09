@@ -25,7 +25,8 @@ endif
 
 endif
 
-EXTRA_DIST = example-cfg.json nomacro.pl
+# config-template.json is the config example; there is no example-cfg.json.
+EXTRA_DIST = config-template.json nomacro.pl algo/randomx/prefix-syms.sh
 
 SUBDIRS = compat
 
@@ -135,10 +136,14 @@ if HAVE_RANDOMX_VARIANTS
 # with config/wow.h injected.
 #
 # Both copies define the randomx_* C API and the entire randomx:: C++
-# namespace, so the variant copy is run through prefix-syms.sh, which renames
-# every symbol it DEFINES to rxwow_*. randomx-core.c then binds the prefixed
-# names into a function table. Anything that talks to a core goes through that
-# table; randomx-kat.c deliberately does not, because its vectors are rx/0's.
+# namespace, so the variant copy is made private in two steps:
+#   - the -D flags below rename the C++ namespace at COMPILE time, which is
+#     the only way that works for the ~620 mangled names: they are COMDATs,
+#     and a COMDAT cannot be renamed afterwards (prefix-syms.sh explains).
+#   - prefix-syms.sh then prefixes the rest, which live in ordinary sections.
+# randomx-core.c binds the prefixed API into a function table. Anything that
+# talks to a core goes through that table; randomx-kat.c deliberately does
+# not, because its vectors are rx/0's.
 #
 # _raw archives are the compiler's output; the prefixed ones are what link.
 noinst_LIBRARIES += librandomx_wow_raw.a
@@ -148,7 +153,15 @@ librandomx_wow_raw_a_CFLAGS    = $(RANDOMX_CORE_CFLAGS)
 librandomx_wow_raw_a_CXXFLAGS  = $(RANDOMX_CORE_CXXFLAGS)
 librandomx_wow_raw_a_CCASFLAGS = $(RANDOMX_CORE_CPPFLAGS) $(RANDOMX_WOW_CONFIG)
 
-RANDOMX_WOW_CONFIG = -include $(top_srcdir)/algo/randomx/config/wow.h
+# Five tokens, not one: the namespace, plus the four opaque C API types, which
+# are declared in the GLOBAL namespace and so are not covered by it. Miss one
+# and prefix-syms.sh refuses to continue. Applied via CPPFLAGS and CCASFLAGS
+# so the rename reaches the C++, the C and the .S alike.
+RANDOMX_NS_WOW = -Drandomx=rxwow -Drandomx_vm=rxwow_vm \
+  -Drandomx_cache=rxwow_cache -Drandomx_dataset=rxwow_dataset \
+  -Drandomx_flags=rxwow_flags
+RANDOMX_WOW_CONFIG = -include $(top_srcdir)/algo/randomx/config/wow.h \
+  $(RANDOMX_NS_WOW)
 RANDOMX_PREFIX_SYMS = $(top_srcdir)/algo/randomx/prefix-syms.sh
 RANDOMX_VARIANT_DEFINES = -DRANDOMX_HAVE_WOW_CORE
 
@@ -167,8 +180,16 @@ librandomx_graft_raw_a_CFLAGS    = $(RANDOMX_CORE_CFLAGS)
 librandomx_graft_raw_a_CXXFLAGS  = $(RANDOMX_CORE_CXXFLAGS)
 librandomx_graft_raw_a_CCASFLAGS = $(RANDOMX_CORE_CPPFLAGS) $(RANDOMX_GRAFT_CONFIG)
 
-RANDOMX_GRAFT_CONFIG = -include $(top_srcdir)/algo/randomx/config/graft.h
-RANDOMX_ARQ_CONFIG   = -include $(top_srcdir)/algo/randomx/config/arq.h
+RANDOMX_NS_GRAFT = -Drandomx=rxgrft -Drandomx_vm=rxgrft_vm \
+  -Drandomx_cache=rxgrft_cache -Drandomx_dataset=rxgrft_dataset \
+  -Drandomx_flags=rxgrft_flags
+RANDOMX_NS_ARQ   = -Drandomx=rxarq -Drandomx_vm=rxarq_vm \
+  -Drandomx_cache=rxarq_cache -Drandomx_dataset=rxarq_dataset \
+  -Drandomx_flags=rxarq_flags
+RANDOMX_GRAFT_CONFIG = -include $(top_srcdir)/algo/randomx/config/graft.h \
+  $(RANDOMX_NS_GRAFT)
+RANDOMX_ARQ_CONFIG   = -include $(top_srcdir)/algo/randomx/config/arq.h \
+  $(RANDOMX_NS_ARQ)
 
 librandomx_graft.a: librandomx_graft_raw.a $(RANDOMX_PREFIX_SYMS)
 	$(AM_V_GEN)$(SHELL) $(RANDOMX_PREFIX_SYMS) $< $@ rxgrft_ "$(NM)" "$(OBJCOPY)"
@@ -204,7 +225,11 @@ librandomx_panthera_raw_a_CFLAGS    = $(RANDOMX_CORE_CFLAGS)
 librandomx_panthera_raw_a_CXXFLAGS  = $(RANDOMX_CORE_CXXFLAGS)
 librandomx_panthera_raw_a_CCASFLAGS = $(RANDOMX_CORE_CPPFLAGS) $(RANDOMX_PAN_CONFIG)
 
-RANDOMX_PAN_CONFIG   = -include $(top_srcdir)/algo/randomx/config/panthera.h
+RANDOMX_NS_PAN = -Drandomx=rxpan -Drandomx_vm=rxpan_vm \
+  -Drandomx_cache=rxpan_cache -Drandomx_dataset=rxpan_dataset \
+  -Drandomx_flags=rxpan_flags
+RANDOMX_PAN_CONFIG   = -include $(top_srcdir)/algo/randomx/config/panthera.h \
+  $(RANDOMX_NS_PAN)
 
 librandomx_panthera.a: librandomx_panthera_raw.a $(RANDOMX_PREFIX_SYMS)
 	$(AM_V_GEN)$(SHELL) $(RANDOMX_PREFIX_SYMS) $< $@ rxpan_ "$(NM)" "$(OBJCOPY)"
@@ -608,7 +633,8 @@ cpuminer_SOURCES += \
   algo/randomx/randomx-variant.c \
   algo/randomx/randomx-core.c \
   algo/randomx/panthera-seed.c \
-  algo/k12/k12-gate.c \n  algo/k12/KangarooTwelve.c \
+  algo/k12/k12-gate.c \
+  algo/k12/KangarooTwelve.c \
   algo/k12/KeccakP-1600-reference.c \
   algo/k12/KeccakSpongeWidth1600.c \
   algo/randomx/randomx-kat.c
@@ -624,11 +650,13 @@ cpuminer_LDADD	= libcurvehash_secp256k1.a $(RANDOMX_LIBS) $(EXTRA_LIBS) @LIBCURL
 # in cpu-miner.c cannot do this -- make does not recompile that file when some
 # other one changes.
 EXTRA_cpuminer_DEPENDENCIES = build-stamp.$(OBJEXT)
+# The .a.* glob catches prefix-syms.sh's scratch files, which it removes on
+# success but leaves behind when it refuses to continue.
 CLEANFILES = build-stamp.c build-stamp.$(OBJEXT) \
-  librandomx_wow.a librandomx_wow.a.syms \
-  librandomx_graft.a librandomx_graft.a.syms \
-  librandomx_arq.a librandomx_arq.a.syms \
-  librandomx_panthera.a librandomx_panthera.a.syms
+  librandomx_wow.a librandomx_wow.a.* \
+  librandomx_graft.a librandomx_graft.a.* \
+  librandomx_arq.a librandomx_arq.a.* \
+  librandomx_panthera.a librandomx_panthera.a.*
 
 build-stamp.c: $(cpuminer_OBJECTS) libcurvehash_secp256k1.a $(RANDOMX_LIBS)
 	$(AM_V_GEN)printf 'const char build_stamp_date[] = "%s";\n' \

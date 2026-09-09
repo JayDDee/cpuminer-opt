@@ -379,6 +379,38 @@ void blake2b_8x64_final( blake2b_8x64_ctx *ctx, void *out )
    casti_m512i( out, 3 ) = ctx->h[3];
 }
 
+// Same contract as the 4x64 pair below: a digest_length other than the 32
+// hardcoded above, and a final emitting all 8 state words (64 B per lane).
+int blake2b_8x64_init_len( blake2b_8x64_ctx *ctx, size_t outlen )
+{
+   if ( outlen == 0 || outlen > 64 ) return -1;
+   blake2b_8x64_init( ctx );
+   ctx->h[0] = _mm512_xor_si512( ctx->h[0],
+         v512_64( 0x01010020 ^ ( 0x01010000 | (uint64_t)outlen ) ) );
+   ctx->outlen = outlen;
+   return 0;
+}
+
+void blake2b_8x64_final_full( blake2b_8x64_ctx *ctx, void *out )
+{
+   size_t c = ctx->c >> 3;
+
+   ctx->t[0] += ctx->c;
+   if ( ctx->t[0] < ctx->c )
+      ctx->t[1]++;
+
+   while ( ctx->c < 128 )
+   {
+      ctx->b[c++] = m512_zero;
+      ctx->c += 8;
+   }
+
+   blake2b_8x64_compress( ctx, 1 );           // final block flag = 1
+
+   for ( int i = 0; i < 8; i++ )
+      casti_m512i( out, i ) = ctx->h[i];
+}
+
 #endif   // AVX512
 
 // AVX2
@@ -543,6 +575,42 @@ void blake2b_4x64_final( blake2b_4x64_ctx *ctx, void *out )
    casti_m256i( out, 1 ) = ctx->h[1];
    casti_m256i( out, 2 ) = ctx->h[2];
    casti_m256i( out, 3 ) = ctx->h[3];
+}
+
+// For callers needing a digest_length other than the 32 the pair above
+// hardcodes, and all 8 state words (64 B per lane) out, as argon2's
+// blake2b_long() chain does. The 32-byte API above is untouched.
+//
+// The parameter block for unkeyed sequential BLAKE2b is 0x01010000 | outlen,
+// and init() already XORed in the outlen-32 form, so XOR the difference.
+int blake2b_4x64_init_len( blake2b_4x64_ctx *ctx, size_t outlen )
+{
+   if ( outlen == 0 || outlen > 64 ) return -1;
+   blake2b_4x64_init( ctx );
+   ctx->h[0] = _mm256_xor_si256( ctx->h[0],
+         v256_64( 0x01010020 ^ ( 0x01010000 | (uint64_t)outlen ) ) );
+   ctx->outlen = outlen;
+   return 0;
+}
+
+void blake2b_4x64_final_full( blake2b_4x64_ctx *ctx, void *out )
+{
+   size_t c = ctx->c >> 3;
+
+   ctx->t[0] += ctx->c;
+   if ( ctx->t[0] < ctx->c )
+      ctx->t[1]++;
+
+   while ( ctx->c < 128 )
+   {
+      ctx->b[c++] = m256_zero;
+      ctx->c += 8;
+   }
+
+   blake2b_4x64_compress( ctx, 1 );           // final block flag = 1
+
+   for ( int i = 0; i < 8; i++ )
+      casti_m256i( out, i ) = ctx->h[i];
 }
 
 #endif  // AVX2
