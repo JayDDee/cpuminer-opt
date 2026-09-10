@@ -66,9 +66,22 @@ bool lyra2z330_thread_init()
    return lyra2z330_wholeMatrix;
 }
 
+/* Its own free rather than the family one: this matrix is static to this file,
+ * and at 330 rows it is by far the largest of them. */
+static void lyra2z330_thread_free( int thr_id )
+{
+   (void)thr_id;
+   if ( lyra2z330_wholeMatrix )
+   {
+      mm_free( lyra2z330_wholeMatrix );
+      lyra2z330_wholeMatrix = NULL;
+   }
+}
+
 bool register_lyra2z330_algo( algo_gate_t* gate )
 {
   gate->optimizations = SSE2_OPT | AVX2_OPT | NEON_OPT;
+  gate->miner_thread_free = (void*)&lyra2z330_thread_free;
   gate->miner_thread_init = (void*)&lyra2z330_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z330;
   gate->hash       = (void*)&lyra2z330_hash;

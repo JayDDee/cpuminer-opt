@@ -661,6 +661,8 @@ HAVE_APPLE_FALSE
 HAVE_APPLE_TRUE
 MINGW_FALSE
 MINGW_TRUE
+HAVE_ASM_HWCAP_FALSE
+HAVE_ASM_HWCAP_TRUE
 ARCH_ARM64_FALSE
 ARCH_ARM64_TRUE
 ARCH_x86_64_FALSE
@@ -672,6 +674,12 @@ HAVE_WINDOWS_TRUE
 WANT_JANSSON_FALSE
 WANT_JANSSON_TRUE
 ALLOCA
+HAVE_RANDOMX_VARIANTS_FALSE
+HAVE_RANDOMX_VARIANTS_TRUE
+HAVE_RANDOMX_FALSE
+HAVE_RANDOMX_TRUE
+OBJCOPY
+NM
 am__fastdepCXX_FALSE
 am__fastdepCXX_TRUE
 CXXDEPMODE
@@ -794,6 +802,8 @@ enable_option_checking
 enable_silent_rules
 enable_maintainer_mode
 enable_dependency_tracking
+enable_randomx
+enable_randomx_variants
 enable_assembly
 with_curl
 '
@@ -1448,6 +1458,11 @@ Optional Features:
                           do not reject slow dependency extractors
   --disable-dependency-tracking
                           speeds up one-time build
+  --disable-randomx       omit RandomX entirely: Monero rx/0 and all coin
+                          variants
+  --disable-randomx-variants
+                          keep Monero rx/0 but omit the coin variants (rx/wow,
+                          rx/graft, rx/arq)
   --disable-assembly      disable assembly-language routines
 
 Optional Packages:
@@ -3719,6 +3734,8 @@ fi
   MAINT=$MAINTAINER_MODE_TRUE
 
 
+
+cxxflags_user_set=${CXXFLAGS+set}
 
 
 
@@ -6033,6 +6050,257 @@ fi
 
 
 
+if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}nm", so it can be a program name with args.
+set dummy ${ac_tool_prefix}nm; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_prog_NM+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  if test -n "$NM"; then
+  ac_cv_prog_NM="$NM" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_prog_NM="${ac_tool_prefix}nm"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+NM=$ac_cv_prog_NM
+if test -n "$NM"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $NM" >&5
+printf "%s\n" "$NM" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+fi
+if test -z "$ac_cv_prog_NM"; then
+  ac_ct_NM=$NM
+  # Extract the first word of "nm", so it can be a program name with args.
+set dummy nm; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_prog_ac_ct_NM+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  if test -n "$ac_ct_NM"; then
+  ac_cv_prog_ac_ct_NM="$ac_ct_NM" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_prog_ac_ct_NM="nm"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+ac_ct_NM=$ac_cv_prog_ac_ct_NM
+if test -n "$ac_ct_NM"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_ct_NM" >&5
+printf "%s\n" "$ac_ct_NM" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+  if test "x$ac_ct_NM" = x; then
+    NM="nm"
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
+printf "%s\n" "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
+ac_tool_warned=yes ;;
+esac
+    NM=$ac_ct_NM
+  fi
+else
+  NM="$ac_cv_prog_NM"
+fi
+
+if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}objcopy", so it can be a program name with args.
+set dummy ${ac_tool_prefix}objcopy; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_prog_OBJCOPY+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  if test -n "$OBJCOPY"; then
+  ac_cv_prog_OBJCOPY="$OBJCOPY" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_prog_OBJCOPY="${ac_tool_prefix}objcopy"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+OBJCOPY=$ac_cv_prog_OBJCOPY
+if test -n "$OBJCOPY"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $OBJCOPY" >&5
+printf "%s\n" "$OBJCOPY" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+fi
+if test -z "$ac_cv_prog_OBJCOPY"; then
+  ac_ct_OBJCOPY=$OBJCOPY
+  # Extract the first word of "objcopy", so it can be a program name with args.
+set dummy objcopy; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_prog_ac_ct_OBJCOPY+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  if test -n "$ac_ct_OBJCOPY"; then
+  ac_cv_prog_ac_ct_OBJCOPY="$ac_ct_OBJCOPY" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_prog_ac_ct_OBJCOPY="objcopy"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+ac_ct_OBJCOPY=$ac_cv_prog_ac_ct_OBJCOPY
+if test -n "$ac_ct_OBJCOPY"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_ct_OBJCOPY" >&5
+printf "%s\n" "$ac_ct_OBJCOPY" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+  if test "x$ac_ct_OBJCOPY" = x; then
+    OBJCOPY="objcopy"
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
+printf "%s\n" "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
+ac_tool_warned=yes ;;
+esac
+    OBJCOPY=$ac_ct_OBJCOPY
+  fi
+else
+  OBJCOPY="$ac_cv_prog_OBJCOPY"
+fi
+
+
+# Check whether --enable-randomx was given.
+if test ${enable_randomx+y}
+then :
+  enableval=$enable_randomx;
+else $as_nop
+  enable_randomx=yes
+fi
+
+
+# Check whether --enable-randomx-variants was given.
+if test ${enable_randomx_variants+y}
+then :
+  enableval=$enable_randomx_variants;
+else $as_nop
+  enable_randomx_variants=yes
+fi
+
+
+if test "x$enable_randomx" = "xno"
+then :
+  enable_randomx_variants=no
+fi
+
+ if test "x$enable_randomx" = "xyes"; then
+  HAVE_RANDOMX_TRUE=
+  HAVE_RANDOMX_FALSE='#'
+else
+  HAVE_RANDOMX_TRUE='#'
+  HAVE_RANDOMX_FALSE=
+fi
+
+ if test "x$enable_randomx_variants" = "xyes"; then
+  HAVE_RANDOMX_VARIANTS_TRUE=
+  HAVE_RANDOMX_VARIANTS_FALSE='#'
+else
+  HAVE_RANDOMX_VARIANTS_TRUE='#'
+  HAVE_RANDOMX_VARIANTS_FALSE=
+fi
+
+if test "x$enable_randomx" = "xyes"
+then :
+
+printf "%s\n" "#define USE_RANDOMX 1" >>confdefs.h
+
+fi
+
 ac_header= ac_cache=
 for ac_item in $ac_header_c_list
 do
@@ -6158,6 +6426,19 @@ then :
 
 fi
 
+
+       for ac_header in asm/hwcap.h
+do :
+  ac_fn_c_check_header_compile "$LINENO" "asm/hwcap.h" "ac_cv_header_asm_hwcap_h" "$ac_includes_default"
+if test "x$ac_cv_header_asm_hwcap_h" = xyes
+then :
+  printf "%s\n" "#define HAVE_ASM_HWCAP_H 1" >>confdefs.h
+ have_asm_hwcap=yes
+else $as_nop
+  have_asm_hwcap=no
+fi
+
+done
 # sys/sysctl.h requires sys/types.h on FreeBSD
 # sys/sysctl.h requires sys/param.h on OpenBSD
 ac_fn_c_check_header_compile "$LINENO" "sys/sysctl.h" "ac_cv_header_sys_sysctl_h" "#include <sys/types.h>
@@ -6512,6 +6793,120 @@ case $target in
     ;;
 esac
 
+# The ARMv8 crypto extension is selected at compile time only: the hardware AES
+# and SHA-256 paths are gated on __ARM_FEATURE_AES/__ARM_FEATURE_SHA2 with no
+# runtime fallback, so a build with no arch flag silently drops all of them.
+# Add one when the CPU has the extension and the user has not already chosen a
+# -march/-mcpu. Only /proc/cpuinfo may enable +crypto: a flag that merely
+# compiles proves nothing about the CPU, and guessing wrong is a SIGILL.
+if test x$have_arm64 = xtrue; then
+  arm_user_arch=no
+  case " $CFLAGS $CXXFLAGS " in
+    *" -march="*|*" -mcpu="*) arm_user_arch=yes ;;
+  esac
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking aarch64 architecture flags" >&5
+printf %s "checking aarch64 architecture flags... " >&6; }
+  if test x$arm_user_arch = xyes; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: set in CFLAGS/CXXFLAGS, unchanged" >&5
+printf "%s\n" "set in CFLAGS/CXXFLAGS, unchanged" >&6; }
+  elif test x$cross_compiling = xyes; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: none, cross compiling: pass CFLAGS=-march=..." >&5
+printf "%s\n" "none, cross compiling: pass CFLAGS=-march=..." >&6; }
+  else
+    arm_feat=`grep -m1 -i '^Features' /proc/cpuinfo 2>/dev/null`
+    arm_cands=
+    case $arm_feat in
+      *aes*pmull*|*pmull*aes*)
+        case $arm_feat in
+          *sha3*) arm_cands="-march=armv8-a+crypto+sha3" ;;
+        esac
+        arm_cands="$arm_cands -march=armv8-a+crypto"
+        ;;
+    esac
+    arm_arch=
+    arm_save_cflags="$CFLAGS"
+    for arm_cand in $arm_cands; do
+      CFLAGS="$arm_save_cflags $arm_cand"
+            cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#if !defined(__ARM_FEATURE_AES) || !defined(__ARM_FEATURE_SHA2)
+#error arch flag did not enable the crypto extension
+#endif
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  arm_arch="$arm_cand"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+      test -n "$arm_arch" && break
+    done
+    CFLAGS="$arm_save_cflags"
+    if test -n "$arm_arch"; then
+      CFLAGS="$CFLAGS $arm_arch"
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $arm_arch" >&5
+printf "%s\n" "$arm_arch" >&6; }
+    else
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: none, no ARM crypto extension reported: pass CFLAGS=-march=... to override" >&5
+printf "%s\n" "none, no ARM crypto extension reported: pass CFLAGS=-march=... to override" >&6; }
+    fi
+  fi
+fi
+
+# Mirror the ISA-selecting flags from CFLAGS into CXXFLAGS.
+#
+# Every build script here sets CFLAGS only, as does the aarch64 block above --
+# harmless while dummy.cpp was the only C++ file. But the vendored RandomX core
+# is C++ and its hardware-AES and SIMD paths are compile-time gated on __AES__ /
+# __AVX2__ / __ARM_FEATURE_AES, so without this a `CFLAGS=-march=native` build
+# compiles the whole RandomX VM at the baseline ISA, with no warning anywhere.
+# One place to be right, and it covers a hand-rolled CFLAGS=... ./configure too.
+#
+# Skipped if CXXFLAGS already names an ISA: the user has chosen, and a silent
+# append could contradict them.
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether to mirror ISA flags from CFLAGS into CXXFLAGS" >&5
+printf %s "checking whether to mirror ISA flags from CFLAGS into CXXFLAGS... " >&6; }
+cxx_has_isa=no
+case " $CXXFLAGS " in
+  *" -march="*|*" -mcpu="*|*" -mtune="*|*" -m64"*|*" -m32"*) cxx_has_isa=yes ;;
+  *" -maes"*|*" -mavx"*|*" -msse"*|*" -mssse3"*)             cxx_has_isa=yes ;;
+esac
+if test x$cxx_has_isa = xyes; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, CXXFLAGS already selects an ISA" >&5
+printf "%s\n" "no, CXXFLAGS already selects an ISA" >&6; }
+else
+  cxx_isa_flags=
+  for cxx_cf in $CFLAGS; do
+    case $cxx_cf in
+      -march=*|-mcpu=*|-mtune=*|-m32|-m64) cxx_isa_flags="$cxx_isa_flags $cxx_cf" ;;
+      -maes|-mavx*|-msse*|-mssse3|-mpclmul|-msha|-mvaes|-mbmi*|-mfma|-mpopcnt) \
+        cxx_isa_flags="$cxx_isa_flags $cxx_cf" ;;
+      -mno-*) cxx_isa_flags="$cxx_isa_flags $cxx_cf" ;;
+      -O*)
+                                if test x$cxxflags_user_set != xset; then
+          cxx_isa_flags="$cxx_isa_flags $cxx_cf"
+        fi
+        ;;
+    esac
+  done
+  if test -n "$cxx_isa_flags"; then
+    CXXFLAGS="$CXXFLAGS$cxx_isa_flags"
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes:$cxx_isa_flags" >&5
+printf "%s\n" "yes:$cxx_isa_flags" >&6; }
+  else
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, CFLAGS selects no ISA either" >&5
+printf "%s\n" "no, CFLAGS selects no ISA either" >&6; }
+  fi
+fi
+
 PTHREAD_FLAGS="-pthread"
 WS2_LIBS=""
 
@@ -6816,6 +7211,14 @@ else
   ARCH_ARM64_FALSE=
 fi
 
+ if test x$have_asm_hwcap = xyes; then
+  HAVE_ASM_HWCAP_TRUE=
+  HAVE_ASM_HWCAP_FALSE='#'
+else
+  HAVE_ASM_HWCAP_TRUE='#'
+  HAVE_ASM_HWCAP_FALSE=
+fi
+
  if test "x$OS" = "xWindows_NT"; then
   MINGW_TRUE=
   MINGW_FALSE='#'
@@ -7017,6 +7420,14 @@ if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCXX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${HAVE_RANDOMX_TRUE}" && test -z "${HAVE_RANDOMX_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_RANDOMX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_RANDOMX_VARIANTS_TRUE}" && test -z "${HAVE_RANDOMX_VARIANTS_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_RANDOMX_VARIANTS\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${WANT_JANSSON_TRUE}" && test -z "${WANT_JANSSON_FALSE}"; then
   as_fn_error $? "conditional \"WANT_JANSSON\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -7035,6 +7446,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ARCH_ARM64_TRUE}" && test -z "${ARCH_ARM64_FALSE}"; then
   as_fn_error $? "conditional \"ARCH_ARM64\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_ASM_HWCAP_TRUE}" && test -z "${HAVE_ASM_HWCAP_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_ASM_HWCAP\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${MINGW_TRUE}" && test -z "${MINGW_FALSE}"; then

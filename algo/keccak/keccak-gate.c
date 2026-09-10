@@ -99,3 +99,33 @@ bool register_sha3d_algo( algo_gate_t* gate )
   return true;
 };
 
+// SHA3T  -  triple SHA3-256  (BitcoinIII / BC3, Fjarcode / FJAR)
+
+bool register_sha3t_algo( algo_gate_t* gate )
+{
+  // SHA3 (FIPS 202) padding, not Keccak. Set before the self-test, which
+  // hashes through the same cores.
+  hard_coded_eb = 6;
+  // No gen_merkle_root override: unlike sha3d, sha3t coins use sha256d for the
+  // merkle root, which is the gate default. See sha3t.c.
+  gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
+#if defined (SHA3T_8WAY)
+  if ( !sha3t_8way_self_test() ) return false;
+  gate->scanhash  = (void*)&scanhash_sha3t_8way;
+  gate->hash      = (void*)&sha3t_hash_8way;
+#elif defined (SHA3T_4WAY)
+  if ( !sha3t_4way_self_test() ) return false;
+  gate->scanhash  = (void*)&scanhash_sha3t_4way;
+  gate->hash      = (void*)&sha3t_hash_4way;
+#elif defined (SHA3T_2WAY)
+  if ( !sha3t_2way_self_test() ) return false;
+  gate->scanhash  = (void*)&scanhash_sha3t_2x64;
+  gate->hash      = (void*)&sha3t_hash_2x64;
+#else
+  if ( !sha3t_self_test() ) return false;
+  gate->scanhash  = (void*)&scanhash_sha3t;
+  gate->hash      = (void*)&sha3t_hash;
+#endif
+  return true;
+};
+

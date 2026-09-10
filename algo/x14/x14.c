@@ -16,7 +16,7 @@
 #include "algo/shabal/sph_shabal.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/simd-hash-2way.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/fugue/fugue-aesni.h"
@@ -30,7 +30,7 @@
 typedef struct {
    sph_blake512_context blake;
    sph_bmw512_context bmw;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_groestl       groestl;
    hashState_echo          echo;
    hashState_fugue         fugue;
@@ -56,7 +56,7 @@ void init_x14_ctx()
 {
    sph_blake512_init( &x14_ctx.blake );
    sph_bmw512_init( &x14_ctx.bmw );
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_groestl( &x14_ctx.groestl, 64 );
    init_echo( &x14_ctx.echo, 512 );
    fugue512_Init( &x14_ctx.fugue, 512 );
@@ -87,7 +87,7 @@ void x14hash(void *output, const void *input)
     sph_bmw512( &ctx.bmw, (const void*) hash, 64 );
     sph_bmw512_close( &ctx.bmw, hash );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     update_and_final_groestl( &ctx.groestl, (char*)hash,
                                       (const char*)hash, 512 );
 #else
@@ -113,7 +113,7 @@ void x14hash(void *output, const void *input)
 
     simd512_ctx( &ctx.simd, hash, hash, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     update_final_echo ( &ctx.echo, (BitSequence *)hash,
                              (const BitSequence *)hash, 512 );
 #else
@@ -124,7 +124,7 @@ void x14hash(void *output, const void *input)
     sph_hamsi512(&ctx.hamsi, hash, 64);
     sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     fugue512_Update( &ctx.fugue, hash, 512 );
     fugue512_Final( &ctx.fugue, hash );
 #else

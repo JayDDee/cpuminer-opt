@@ -10,7 +10,7 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "algo/groestl/sph_groestl.h"
@@ -28,7 +28,7 @@ void jha_hash(void *output, const void *input)
 {
 	uint8_t _ALIGN(128) hash[64];
 
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_groestl      ctx_groestl;
 #else
 	sph_groestl512_context ctx_groestl;
@@ -47,7 +47,7 @@ void jha_hash(void *output, const void *input)
 	{
 	   if (hash[0] & 0x01)
       {
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
          init_groestl( &ctx_groestl, 64 );
          update_and_final_groestl( &ctx_groestl, (char*)hash,
                                               (char*)hash, 512 );

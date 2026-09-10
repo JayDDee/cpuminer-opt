@@ -310,6 +310,264 @@ void sha256_4x32_final_rounds( v128_t *state_out, const v128_t *data,
    v128_store( state_out + 7,  H );
 }
 
+// sha256csm 4x32 variants. See the note on the 16x32 pair below for why the
+// stock helpers cannot be reused: they assume W[12] == 0. Purely additive.
+
+void sha256csm_4x32_prehash_3rounds( v128_t *state_mid, v128_t *X,
+                                     const v128_t *W, const v128_t *state_in )
+{
+   v128_t A, B, C, D, E, F, G, H, T1;
+
+   X[ 0] = v128_add32( SSG2_0( W[ 1] ), W[ 0] );
+   X[ 1] = v128_add32( v128_add32( SSG2_1( W[15] ), SSG2_0( W[ 2] ) ), W[ 1] );
+   X[ 2] = v128_add32( SSG2_1( X[ 0] ), W[ 2] );
+   // csm: W[19] takes W[12]; SSG2_0(W[4]) is zero here
+   X[ 3] = v128_add32( SSG2_1( X[ 1] ), W[12] );
+   X[ 4] = SSG2_0( W[15] );
+   X[ 5] = v128_add32( SSG2_0( X[ 0] ), W[15] );
+   X[ 6] = v128_add32( SSG2_0( X[ 1] ), X[ 0] );
+
+   A = v128_load( state_in     );
+   B = v128_load( state_in + 1 );
+   C = v128_load( state_in + 2 );
+   D = v128_load( state_in + 3 );
+   E = v128_load( state_in + 4 );
+   F = v128_load( state_in + 5 );
+   G = v128_load( state_in + 6 );
+   H = v128_load( state_in + 7 );
+
+   v128_t X_xor_Y, Y_xor_Z = v128_xor( B, C );
+
+   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  0, 0 );
+   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  1, 0 );
+   SHA256_4X32_ROUND( G, H, A, B, C, D, E, F,  2, 0 );
+
+   // round 3 part 1, avoid nonces W[3]
+   T1 = v128_add4_32( E, BSG2_1(B), CHs(B, C, D), v128_32( K256[3] ) );
+   A = v128_add32( A, T1 );
+   E = v128_add32( T1, v128_add32( BSG2_0(F), MAJs(F, G, H) ) );
+
+   v128_store( state_mid    , A );
+   v128_store( state_mid + 1, B );
+   v128_store( state_mid + 2, C );
+   v128_store( state_mid + 3, D );
+   v128_store( state_mid + 4, E );
+   v128_store( state_mid + 5, F );
+   v128_store( state_mid + 6, G );
+   v128_store( state_mid + 7, H );
+}
+
+void sha256csm_4x32_final_rounds( v128_t *state_out, const v128_t *data,
+          const v128_t *state_in, const v128_t *state_mid, const v128_t *X )
+{
+   v128_t A, B, C, D, E, F, G, H;
+   v128_t W[16];
+
+   v128_memcpy( W, data, 16 );
+
+   A = v128_load( state_mid     );
+   B = v128_load( state_mid + 1 );
+   C = v128_load( state_mid + 2 );
+   D = v128_load( state_mid + 3 );
+   E = v128_load( state_mid + 4 );
+   F = v128_load( state_mid + 5 );
+   G = v128_load( state_mid + 6 );
+   H = v128_load( state_mid + 7 );
+
+   v128_t X_xor_Y, Y_xor_Z = v128_xor( F, G );
+
+   // round 3 part 2, add nonces
+   A = v128_add32( A, W[3] );
+   E = v128_add32( E, W[3] );
+
+   // csm: W[4] is zero, W[12] is the padding bit
+   SHA256_4X32_ROUND_NOMSG( E, F, G, H, A, B, C, D,  4, 0 );
+   SHA256_4X32_ROUND_NOMSG( D, E, F, G, H, A, B, C,  5, 0 );
+   SHA256_4X32_ROUND_NOMSG( C, D, E, F, G, H, A, B,  6, 0 );
+   SHA256_4X32_ROUND_NOMSG( B, C, D, E, F, G, H, A,  7, 0 );
+   SHA256_4X32_ROUND_NOMSG( A, B, C, D, E, F, G, H,  8, 0 );
+   SHA256_4X32_ROUND_NOMSG( H, A, B, C, D, E, F, G,  9, 0 );
+   SHA256_4X32_ROUND_NOMSG( G, H, A, B, C, D, E, F, 10, 0 );
+   SHA256_4X32_ROUND_NOMSG( F, G, H, A, B, C, D, E, 11, 0 );
+   SHA256_4X32_ROUND(       E, F, G, H, A, B, C, D, 12, 0 );
+   SHA256_4X32_ROUND_NOMSG( D, E, F, G, H, A, B, C, 13, 0 );
+   SHA256_4X32_ROUND_NOMSG( C, D, E, F, G, H, A, B, 14, 0 );
+   SHA256_4X32_ROUND(       B, C, D, E, F, G, H, A, 15, 0 );
+
+   W[ 0] = X[ 0];
+   W[ 1] = X[ 1];
+   W[ 2] = v128_add32( X[ 2], SSG2_0( W[ 3] ) );
+   W[ 3] = v128_add32( X[ 3], W[ 3] );
+   W[ 4] = SSG2_1( W[ 2] );                        // csm: W[4] term is 0
+   W[ 5] = SSG2_1( W[ 3] );
+   W[ 6] = v128_add32( W[15], SSG2_1( W[ 4] ) );
+   W[ 7] = v128_add32( X[ 0], SSG2_1( W[ 5] ) );
+   W[ 8] = v128_add32( X[ 1], SSG2_1( W[ 6] ) );
+   W[ 9] = v128_add32( SSG2_1( W[ 7] ), W[ 2] );
+   W[10] = v128_add32( SSG2_1( W[ 8] ), W[ 3] );
+   // csm: W[27] picks up SSG2_0(W[12]), W[28] picks up W[12]
+   W[11] = v128_add32( v128_add32( SSG2_1( W[ 9] ), W[ 4] ),
+                       v128_32( 0x11002000 ) );
+   W[12] = v128_add32( v128_add32( SSG2_1( W[10] ), W[ 5] ),
+                       v128_32( 0x80000000 ) );
+   W[13] = v128_add32( SSG2_1( W[11] ), W[ 6] );
+   W[14] = v128_add32( X[ 4], v128_add32( SSG2_1( W[12] ), W[ 7] ) );
+   W[15] = v128_add32( X[ 5], v128_add32( SSG2_1( W[13] ), W[ 8] ) );
+
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
+
+   W[ 0] = v128_add32( X[ 6], v128_add32( SSG2_1( W[14] ), W[ 9] ) );
+   W[ 1] = SHA256_4X32_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   W[ 2] = SHA256_4X32_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
+   W[ 3] = SHA256_4X32_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
+   W[ 4] = SHA256_4X32_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
+   W[ 5] = SHA256_4X32_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
+   W[ 6] = SHA256_4X32_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
+   W[ 7] = SHA256_4X32_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
+   W[ 8] = SHA256_4X32_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
+   W[ 9] = SHA256_4X32_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
+   W[10] = SHA256_4X32_MEXP( W[ 8], W[ 3], W[11], W[10] );
+   W[11] = SHA256_4X32_MEXP( W[ 9], W[ 4], W[12], W[11] );
+   W[12] = SHA256_4X32_MEXP( W[10], W[ 5], W[13], W[12] );
+   W[13] = SHA256_4X32_MEXP( W[11], W[ 6], W[14], W[13] );
+   W[14] = SHA256_4X32_MEXP( W[12], W[ 7], W[15], W[14] );
+   W[15] = SHA256_4X32_MEXP( W[13], W[ 8], W[ 0], W[15] );
+
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
+   SHA256_4X32_MSG_EXPANSION( W );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
+
+   A = v128_add32( A, v128_load( state_in     ) );
+   B = v128_add32( B, v128_load( state_in + 1 ) );
+   C = v128_add32( C, v128_load( state_in + 2 ) );
+   D = v128_add32( D, v128_load( state_in + 3 ) );
+   E = v128_add32( E, v128_load( state_in + 4 ) );
+   F = v128_add32( F, v128_load( state_in + 5 ) );
+   G = v128_add32( G, v128_load( state_in + 6 ) );
+   H = v128_add32( H, v128_load( state_in + 7 ) );
+
+   v128_store( state_out    ,  A );
+   v128_store( state_out + 1,  B );
+   v128_store( state_out + 2,  C );
+   v128_store( state_out + 3,  D );
+   v128_store( state_out + 4,  E );
+   v128_store( state_out + 5,  F );
+   v128_store( state_out + 6,  G );
+   v128_store( state_out + 7,  H );
+}
+
+// Definitive-loser abort at 4x32. Runs to round 60, tests the deciding word,
+// and completes rounds 61-63 only when a lane can still win.
+//
+// The lane verdict uses a store plus scalar compares rather than the 8x32
+// version's movmask: there is no v128_movmask_32, and with 4 lanes unsigned
+// scalar comparison is both cheap and free of the sign-flip workaround AVX2
+// needs. Note H is final after round 60 in this rotation -- rounds 61-63
+// write into G, F and E -- so no part-1/part-2 round split is required.
+int sha256_4x32_transform_le_short( v128_t *state_out, const v128_t *data,
+                            const v128_t *state_in, const uint32_t *target )
+{
+   v128_t A, B, C, D, E, F, G, H;
+   v128_t W[16];   v128_memcpy( W, data, 16 );
+   uint32_t lane7[4] __attribute__ ((aligned (16)));
+   const uint32_t t7 = target[7];
+
+   A = v128_load( state_in   );
+   B = v128_load( state_in+1 );
+   C = v128_load( state_in+2 );
+   D = v128_load( state_in+3 );
+   E = v128_load( state_in+4 );
+   F = v128_load( state_in+5 );
+   G = v128_load( state_in+6 );
+   H = v128_load( state_in+7 );
+
+   v128_t X_xor_Y, Y_xor_Z = v128_xor( B, C );
+
+   // rounds 0 to 15, ignore zero padding W[9..14]
+   SHA256_4X32_ROUND(       A, B, C, D, E, F, G, H,  0, 0 );
+   SHA256_4X32_ROUND(       H, A, B, C, D, E, F, G,  1, 0 );
+   SHA256_4X32_ROUND(       G, H, A, B, C, D, E, F,  2, 0 );
+   SHA256_4X32_ROUND(       F, G, H, A, B, C, D, E,  3, 0 );
+   SHA256_4X32_ROUND(       E, F, G, H, A, B, C, D,  4, 0 );
+   SHA256_4X32_ROUND(       D, E, F, G, H, A, B, C,  5, 0 );
+   SHA256_4X32_ROUND(       C, D, E, F, G, H, A, B,  6, 0 );
+   SHA256_4X32_ROUND(       B, C, D, E, F, G, H, A,  7, 0 );
+   SHA256_4X32_ROUND(       A, B, C, D, E, F, G, H,  8, 0 );
+   SHA256_4X32_ROUND_NOMSG( H, A, B, C, D, E, F, G,  9, 0 );
+   SHA256_4X32_ROUND_NOMSG( G, H, A, B, C, D, E, F, 10, 0 );
+   SHA256_4X32_ROUND_NOMSG( F, G, H, A, B, C, D, E, 11, 0 );
+   SHA256_4X32_ROUND_NOMSG( E, F, G, H, A, B, C, D, 12, 0 );
+   SHA256_4X32_ROUND_NOMSG( D, E, F, G, H, A, B, C, 13, 0 );
+   SHA256_4X32_ROUND_NOMSG( C, D, E, F, G, H, A, B, 14, 0 );
+   SHA256_4X32_ROUND(       B, C, D, E, F, G, H, A, 15, 0 );
+
+   SHA256_4X32_MSG_EXPANSION( W );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
+   SHA256_4X32_MSG_EXPANSION( W );
+   SHA256_4X32_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
+
+   // rounds 48 to 60 mexp; W[13..15] are deferred until a lane survives
+   W[ 0] = SHA256_4X32_MEXP( W[14], W[ 9], W[ 1], W[ 0] );
+   W[ 1] = SHA256_4X32_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   W[ 2] = SHA256_4X32_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
+   W[ 3] = SHA256_4X32_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
+   W[ 4] = SHA256_4X32_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
+   W[ 5] = SHA256_4X32_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
+   W[ 6] = SHA256_4X32_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
+   W[ 7] = SHA256_4X32_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
+   W[ 8] = SHA256_4X32_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
+   W[ 9] = SHA256_4X32_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
+   W[10] = SHA256_4X32_MEXP( W[ 8], W[ 3], W[11], W[10] );
+   W[11] = SHA256_4X32_MEXP( W[ 9], W[ 4], W[12], W[11] );
+   W[12] = SHA256_4X32_MEXP( W[10], W[ 5], W[13], W[12] );
+
+   Y_xor_Z = v128_xor( B, C );
+
+   // Rounds 48 to 60. Ordinary rounds -- no part-1/part-2 split is needed:
+   // in this rotation rounds 61-63 write their results into G, F and E, so
+   // H is already final after round 60 and state_out[7] can be tested now.
+   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  0, 48 );
+   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  1, 48 );
+   SHA256_4X32_ROUND( G, H, A, B, C, D, E, F,  2, 48 );
+   SHA256_4X32_ROUND( F, G, H, A, B, C, D, E,  3, 48 );
+   SHA256_4X32_ROUND( E, F, G, H, A, B, C, D,  4, 48 );
+   SHA256_4X32_ROUND( D, E, F, G, H, A, B, C,  5, 48 );
+   SHA256_4X32_ROUND( C, D, E, F, G, H, A, B,  6, 48 );
+   SHA256_4X32_ROUND( B, C, D, E, F, G, H, A,  7, 48 );
+   SHA256_4X32_ROUND( A, B, C, D, E, F, G, H,  8, 48 );
+   SHA256_4X32_ROUND( H, A, B, C, D, E, F, G,  9, 48 );
+   SHA256_4X32_ROUND( G, H, A, B, C, D, E, F, 10, 48 );
+   SHA256_4X32_ROUND( F, G, H, A, B, C, D, E, 11, 48 );
+   SHA256_4X32_ROUND( E, F, G, H, A, B, C, D, 12, 48 );
+
+   // The deciding word is final. Bail only when no lane can still win.
+   v128_store( (v128_t*)lane7,
+               v128_bswap32( v128_add32( v128_load( state_in+7 ), H ) ) );
+   if ( likely( ( lane7[0] > t7 ) & ( lane7[1] > t7 )
+              & ( lane7[2] > t7 ) & ( lane7[3] > t7 ) ) )
+      return 0;
+
+   // Rounds 61 to 63
+   W[13] = SHA256_4X32_MEXP( W[11], W[ 6], W[14], W[13] );
+   W[14] = SHA256_4X32_MEXP( W[12], W[ 7], W[15], W[14] );
+   W[15] = SHA256_4X32_MEXP( W[13], W[ 8], W[ 0], W[15] );
+
+   SHA256_4X32_ROUND( D, E, F, G, H, A, B, C, 13, 48 );
+   SHA256_4X32_ROUND( C, D, E, F, G, H, A, B, 14, 48 );
+   SHA256_4X32_ROUND( B, C, D, E, F, G, H, A, 15, 48 );
+
+   state_out[0] = v128_add32( v128_load( state_in   ), A );
+   state_out[1] = v128_add32( v128_load( state_in+1 ), B );
+   state_out[2] = v128_add32( v128_load( state_in+2 ), C );
+   state_out[3] = v128_add32( v128_load( state_in+3 ), D );
+   state_out[4] = v128_add32( v128_load( state_in+4 ), E );
+   state_out[5] = v128_add32( v128_load( state_in+5 ), F );
+   state_out[6] = v128_add32( v128_load( state_in+6 ), G );
+   state_out[7] = v128_add32( v128_load( state_in+7 ), H );
+
+   return 1;
+}
+
 void sha256_4x32_init( sha256_4x32_context *sc )
 {
    sc->count_high = sc->count_low = 0;
@@ -697,6 +955,159 @@ void sha256_8x32_final_rounds( __m256i *state_out, const __m256i *data,
    SHA256_8WAY_MEXP_16ROUNDS( W );
    SHA256_8WAY_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
    
+   A = _mm256_add_epi32( A, _mm256_load_si256( state_in     ) );
+   B = _mm256_add_epi32( B, _mm256_load_si256( state_in + 1 ) );
+   C = _mm256_add_epi32( C, _mm256_load_si256( state_in + 2 ) );
+   D = _mm256_add_epi32( D, _mm256_load_si256( state_in + 3 ) );
+   E = _mm256_add_epi32( E, _mm256_load_si256( state_in + 4 ) );
+   F = _mm256_add_epi32( F, _mm256_load_si256( state_in + 5 ) );
+   G = _mm256_add_epi32( G, _mm256_load_si256( state_in + 6 ) );
+   H = _mm256_add_epi32( H, _mm256_load_si256( state_in + 7 ) );
+
+   _mm256_store_si256( state_out    ,  A );
+   _mm256_store_si256( state_out + 1,  B );
+   _mm256_store_si256( state_out + 2,  C );
+   _mm256_store_si256( state_out + 3,  D );
+   _mm256_store_si256( state_out + 4,  E );
+   _mm256_store_si256( state_out + 5,  F );
+   _mm256_store_si256( state_out + 6,  G );
+   _mm256_store_si256( state_out + 7,  H );
+}
+
+// sha256csm 8x32 variants. Same four deltas as the 4x32 and 16x32 pairs.
+// Purely additive; no function above is modified.
+
+void sha256csm_8x32_prehash_3rounds( __m256i *state_mid, __m256i *X,
+                                     const __m256i *W, const __m256i *state_in )
+{
+   __m256i A, B, C, D, E, F, G, H, T1;
+
+   X[ 0] = _mm256_add_epi32( SSG2_0x( W[ 1] ), W[ 0] );
+   X[ 1] = _mm256_add_epi32( _mm256_add_epi32( SSG2_1x( W[15] ),
+                             SSG2_0x( W[ 2] ) ), W[ 1] );
+   X[ 2] = _mm256_add_epi32( SSG2_1x( X[ 0] ), W[ 2] );
+   // csm: W[19] takes W[12]; SSG2_0(W[4]) is zero here
+   X[ 3] = _mm256_add_epi32( SSG2_1x( X[ 1] ), W[12] );
+   X[ 4] = SSG2_0x( W[15] );
+   X[ 5] = _mm256_add_epi32( SSG2_0x( X[ 0] ), W[15] );
+   X[ 6] = _mm256_add_epi32( SSG2_0x( X[ 1] ), X[ 0] );
+
+   A = _mm256_load_si256( state_in     );
+   B = _mm256_load_si256( state_in + 1 );
+   C = _mm256_load_si256( state_in + 2 );
+   D = _mm256_load_si256( state_in + 3 );
+   E = _mm256_load_si256( state_in + 4 );
+   F = _mm256_load_si256( state_in + 5 );
+   G = _mm256_load_si256( state_in + 6 );
+   H = _mm256_load_si256( state_in + 7 );
+
+   __m256i X_xor_Y, Y_xor_Z = _mm256_xor_si256( B, C );
+
+   SHA256_8WAY_ROUND( A, B, C, D, E, F, G, H,  0, 0 );
+   SHA256_8WAY_ROUND( H, A, B, C, D, E, F, G,  1, 0 );
+   SHA256_8WAY_ROUND( G, H, A, B, C, D, E, F,  2, 0 );
+
+   // round 3 part 1, avoid nonces W[3]
+   T1 = mm256_add4_32( E, BSG2_1x(B), CHx(B, C, D),
+                       v256_32( K256[3] ) );
+   A = _mm256_add_epi32( A, T1 );
+   E = _mm256_add_epi32( T1, _mm256_add_epi32( BSG2_0x(F),
+                                               MAJx(F, G, H) ) );
+
+   _mm256_store_si256( state_mid    , A );
+   _mm256_store_si256( state_mid + 1, B );
+   _mm256_store_si256( state_mid + 2, C );
+   _mm256_store_si256( state_mid + 3, D );
+   _mm256_store_si256( state_mid + 4, E );
+   _mm256_store_si256( state_mid + 5, F );
+   _mm256_store_si256( state_mid + 6, G );
+   _mm256_store_si256( state_mid + 7, H );
+}
+
+void sha256csm_8x32_final_rounds( __m256i *state_out, const __m256i *data,
+          const __m256i *state_in, const __m256i *state_mid, const __m256i *X )
+{
+   __m256i A, B, C, D, E, F, G, H;
+   __m256i W[16];
+
+   memcpy_256( W, data, 16 );
+
+   A = _mm256_load_si256( state_mid     );
+   B = _mm256_load_si256( state_mid + 1 );
+   C = _mm256_load_si256( state_mid + 2 );
+   D = _mm256_load_si256( state_mid + 3 );
+   E = _mm256_load_si256( state_mid + 4 );
+   F = _mm256_load_si256( state_mid + 5 );
+   G = _mm256_load_si256( state_mid + 6 );
+   H = _mm256_load_si256( state_mid + 7 );
+
+   __m256i X_xor_Y, Y_xor_Z = _mm256_xor_si256( F, G );
+
+   // round 3 part 2, add nonces
+   A = _mm256_add_epi32( A, W[3] );
+   E = _mm256_add_epi32( E, W[3] );
+
+   // csm: W[4] is zero, W[12] is the padding bit
+   SHA256_8WAY_ROUND_NOMSG( E, F, G, H, A, B, C, D,  4, 0 );
+   SHA256_8WAY_ROUND_NOMSG( D, E, F, G, H, A, B, C,  5, 0 );
+   SHA256_8WAY_ROUND_NOMSG( C, D, E, F, G, H, A, B,  6, 0 );
+   SHA256_8WAY_ROUND_NOMSG( B, C, D, E, F, G, H, A,  7, 0 );
+   SHA256_8WAY_ROUND_NOMSG( A, B, C, D, E, F, G, H,  8, 0 );
+   SHA256_8WAY_ROUND_NOMSG( H, A, B, C, D, E, F, G,  9, 0 );
+   SHA256_8WAY_ROUND_NOMSG( G, H, A, B, C, D, E, F, 10, 0 );
+   SHA256_8WAY_ROUND_NOMSG( F, G, H, A, B, C, D, E, 11, 0 );
+   SHA256_8WAY_ROUND(       E, F, G, H, A, B, C, D, 12, 0 );
+   SHA256_8WAY_ROUND_NOMSG( D, E, F, G, H, A, B, C, 13, 0 );
+   SHA256_8WAY_ROUND_NOMSG( C, D, E, F, G, H, A, B, 14, 0 );
+   SHA256_8WAY_ROUND(       B, C, D, E, F, G, H, A, 15, 0 );
+
+   W[ 0] = X[ 0];
+   W[ 1] = X[ 1];
+   W[ 2] = _mm256_add_epi32( X[ 2], SSG2_0x( W[ 3] ) );
+   W[ 3] = _mm256_add_epi32( X[ 3], W[ 3] );
+   W[ 4] = SSG2_1x( W[ 2] );                       // csm: W[4] term is 0
+   W[ 5] = SSG2_1x( W[ 3] );
+   W[ 6] = _mm256_add_epi32( W[15], SSG2_1x( W[ 4] ) );
+   W[ 7] = _mm256_add_epi32( X[ 0], SSG2_1x( W[ 5] ) );
+   W[ 8] = _mm256_add_epi32( X[ 1], SSG2_1x( W[ 6] ) );
+   W[ 9] = _mm256_add_epi32( SSG2_1x( W[ 7] ), W[ 2] );
+   W[10] = _mm256_add_epi32( SSG2_1x( W[ 8] ), W[ 3] );
+   // csm: W[27] picks up SSG2_0(W[12]), W[28] picks up W[12]
+   W[11] = _mm256_add_epi32( _mm256_add_epi32( SSG2_1x( W[ 9] ), W[ 4] ),
+                             v256_32( 0x11002000 ) );
+   W[12] = _mm256_add_epi32( _mm256_add_epi32( SSG2_1x( W[10] ), W[ 5] ),
+                             v256_32( 0x80000000 ) );
+   W[13] = _mm256_add_epi32( SSG2_1x( W[11] ), W[ 6] );
+   W[14] = _mm256_add_epi32( X[ 4], _mm256_add_epi32( SSG2_1x( W[12] ),
+                                                      W[ 7] ) );
+   W[15] = _mm256_add_epi32( X[ 5], _mm256_add_epi32( SSG2_1x( W[13] ),
+                                                      W[ 8] ) );
+
+   SHA256_8WAY_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
+
+   W[ 0] = _mm256_add_epi32( X[ 6], _mm256_add_epi32( SSG2_1x( W[14] ),
+                                                      W[ 9] ) );
+   W[ 1] = SHA256_8WAY_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   W[ 2] = SHA256_8WAY_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
+   W[ 3] = SHA256_8WAY_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
+   W[ 4] = SHA256_8WAY_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
+   W[ 5] = SHA256_8WAY_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
+   W[ 6] = SHA256_8WAY_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
+   W[ 7] = SHA256_8WAY_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
+   W[ 8] = SHA256_8WAY_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
+   W[ 9] = SHA256_8WAY_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
+   W[10] = SHA256_8WAY_MEXP( W[ 8], W[ 3], W[11], W[10] );
+   W[11] = SHA256_8WAY_MEXP( W[ 9], W[ 4], W[12], W[11] );
+   W[12] = SHA256_8WAY_MEXP( W[10], W[ 5], W[13], W[12] );
+   W[13] = SHA256_8WAY_MEXP( W[11], W[ 6], W[14], W[13] );
+   W[14] = SHA256_8WAY_MEXP( W[12], W[ 7], W[15], W[14] );
+   W[15] = SHA256_8WAY_MEXP( W[13], W[ 8], W[ 0], W[15] );
+
+   SHA256_8WAY_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
+
+   SHA256_8WAY_MEXP_16ROUNDS( W );
+   SHA256_8WAY_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
+
    A = _mm256_add_epi32( A, _mm256_load_si256( state_in     ) );
    B = _mm256_add_epi32( B, _mm256_load_si256( state_in + 1 ) );
    C = _mm256_add_epi32( C, _mm256_load_si256( state_in + 2 ) );
@@ -1245,6 +1656,172 @@ void sha256_16x32_final_rounds( __m512i *state_out, const __m512i *data,
    G = _mm512_add_epi32( G, _mm512_load_si512( state_in + 6 ) );
    H = _mm512_add_epi32( H, _mm512_load_si512( state_in + 7 ) );
    
+   _mm512_store_si512( state_out    ,  A );
+   _mm512_store_si512( state_out + 1,  B );
+   _mm512_store_si512( state_out + 2,  C );
+   _mm512_store_si512( state_out + 3,  D );
+   _mm512_store_si512( state_out + 4,  E );
+   _mm512_store_si512( state_out + 5,  F );
+   _mm512_store_si512( state_out + 6,  G );
+   _mm512_store_si512( state_out + 7,  H );
+}
+
+// sha256csm variants of the two functions above. csm zero-extends the header
+// to 112 bytes, moving the padding bit from W[4] to W[12] and the bit count to
+// 0x380. The stock functions are specialised on W[12] == 0 and drop schedule
+// terms that are non-zero for csm, so they cannot be reused. Four things
+// differ; everything else is line-for-line identical:
+//
+//   prehash  X[3] carries W[12] instead of SSG2_0(W[4])   (W[4] is 0 here)
+//   round  4 becomes NOMSG        (W[4]  == 0)
+//   round 12 becomes a real round (W[12] == 0x80000000)
+//   W[27] += SSG2_0(0x80000000) = 0x11002000, W[28] += 0x80000000
+//
+// Here rather than in sha256csm.c because the round macros and K256 are
+// file-local. Purely additive: no function above is modified.
+
+void sha256csm_16x32_prehash_3rounds( __m512i *state_mid, __m512i *X,
+                                      const __m512i *W, const __m512i *state_in )
+{
+   __m512i A, B, C, D, E, F, G, H, T1;
+
+   // rounds 16 to 32 mexp part 1
+   X[ 0] = _mm512_add_epi32( SSG2_0x16( W[ 1] ), W[ 0] );
+   X[ 1] = _mm512_add_epi32( _mm512_add_epi32( SSG2_1x16( W[15] ),
+                             SSG2_0x16( W[ 2] ) ), W[ 1] );
+   X[ 2] = _mm512_add_epi32( SSG2_1x16( X[ 0] ), W[ 2] );
+   // csm: W[19] = SSG2_1(W[17]) + W[12] + SSG2_0(W[4]) + W[3], and W[4] == 0
+   X[ 3] = _mm512_add_epi32( SSG2_1x16( X[ 1] ), W[12] );
+   X[ 4] = SSG2_0x16( W[15] );
+   X[ 5] = _mm512_add_epi32( SSG2_0x16( X[ 0] ), W[15] );
+
+   // round 32 mexp part 1
+   X[ 6] = _mm512_add_epi32( SSG2_0x16( X[ 1] ), X[ 0] );
+
+   A = _mm512_load_si512( state_in     );
+   B = _mm512_load_si512( state_in + 1 );
+   C = _mm512_load_si512( state_in + 2 );
+   D = _mm512_load_si512( state_in + 3 );
+   E = _mm512_load_si512( state_in + 4 );
+   F = _mm512_load_si512( state_in + 5 );
+   G = _mm512_load_si512( state_in + 6 );
+   H = _mm512_load_si512( state_in + 7 );
+
+   // rounds 0 to 2
+   SHA256_16WAY_ROUND( A, B, C, D, E, F, G, H,  0, 0 );
+   SHA256_16WAY_ROUND( H, A, B, C, D, E, F, G,  1, 0 );
+   SHA256_16WAY_ROUND( G, H, A, B, C, D, E, F,  2, 0 );
+
+   // round 3 part 1, avoid nonces W[3]
+   T1 = mm512_add4_32( E, BSG2_1x16(B), CHx16(B, C, D),
+                       v512_32( K256[3] ) );
+   A = _mm512_add_epi32( A, T1 );
+   E = _mm512_add_epi32( T1, _mm512_add_epi32( BSG2_0x16(F),
+                                               MAJx16(F, G, H) ) );
+
+   _mm512_store_si512( state_mid    , A );
+   _mm512_store_si512( state_mid + 1, B );
+   _mm512_store_si512( state_mid + 2, C );
+   _mm512_store_si512( state_mid + 3, D );
+   _mm512_store_si512( state_mid + 4, E );
+   _mm512_store_si512( state_mid + 5, F );
+   _mm512_store_si512( state_mid + 6, G );
+   _mm512_store_si512( state_mid + 7, H );
+}
+
+void sha256csm_16x32_final_rounds( __m512i *state_out, const __m512i *data,
+          const __m512i *state_in, const __m512i *state_mid, const __m512i *X )
+{
+   __m512i A, B, C, D, E, F, G, H;
+   __m512i W[16];
+
+   memcpy_512( W, data, 16 );
+
+   A = _mm512_load_si512( state_mid     );
+   B = _mm512_load_si512( state_mid + 1 );
+   C = _mm512_load_si512( state_mid + 2 );
+   D = _mm512_load_si512( state_mid + 3 );
+   E = _mm512_load_si512( state_mid + 4 );
+   F = _mm512_load_si512( state_mid + 5 );
+   G = _mm512_load_si512( state_mid + 6 );
+   H = _mm512_load_si512( state_mid + 7 );
+
+   // round 3 part 2, add nonces
+   A = _mm512_add_epi32( A, W[3] );
+   E = _mm512_add_epi32( E, W[3] );
+
+   // rounds 4 to 15. csm zero padding is W[4..11] and W[13..14];
+   // W[12] is the 0x80000000 padding bit, so round 12 is a real round.
+   SHA256_16WAY_ROUND_NOMSG( E, F, G, H, A, B, C, D,  4, 0 );
+   SHA256_16WAY_ROUND_NOMSG( D, E, F, G, H, A, B, C,  5, 0 );
+   SHA256_16WAY_ROUND_NOMSG( C, D, E, F, G, H, A, B,  6, 0 );
+   SHA256_16WAY_ROUND_NOMSG( B, C, D, E, F, G, H, A,  7, 0 );
+   SHA256_16WAY_ROUND_NOMSG( A, B, C, D, E, F, G, H,  8, 0 );
+   SHA256_16WAY_ROUND_NOMSG( H, A, B, C, D, E, F, G,  9, 0 );
+   SHA256_16WAY_ROUND_NOMSG( G, H, A, B, C, D, E, F, 10, 0 );
+   SHA256_16WAY_ROUND_NOMSG( F, G, H, A, B, C, D, E, 11, 0 );
+   SHA256_16WAY_ROUND      ( E, F, G, H, A, B, C, D, 12, 0 );
+   SHA256_16WAY_ROUND_NOMSG( D, E, F, G, H, A, B, C, 13, 0 );
+   SHA256_16WAY_ROUND_NOMSG( C, D, E, F, G, H, A, B, 14, 0 );
+   SHA256_16WAY_ROUND      ( B, C, D, E, F, G, H, A, 15, 0 );
+
+   // rounds 16 to 31 mexp part 2, add nonces.
+   W[ 0] = X[ 0];
+   W[ 1] = X[ 1];
+   W[ 2] = _mm512_add_epi32( X[ 2], SSG2_0x16( W[ 3] ) );
+   W[ 3] = _mm512_add_epi32( X[ 3], W[ 3] );
+   W[ 4] = SSG2_1x16( W[ 2] );                        // csm: W[4] term is 0
+   W[ 5] = SSG2_1x16( W[ 3] );
+   W[ 6] = _mm512_add_epi32( W[15], SSG2_1x16( W[ 4] ) );
+   W[ 7] = _mm512_add_epi32( X[ 0], SSG2_1x16( W[ 5] ) );
+   W[ 8] = _mm512_add_epi32( X[ 1], SSG2_1x16( W[ 6] ) );
+   W[ 9] = _mm512_add_epi32( SSG2_1x16( W[ 7] ), W[ 2] );
+   W[10] = _mm512_add_epi32( SSG2_1x16( W[ 8] ), W[ 3] );
+   // csm: W[27] picks up SSG2_0(W[12]), W[28] picks up W[12]
+   W[11] = _mm512_add_epi32( _mm512_add_epi32( SSG2_1x16( W[ 9] ), W[ 4] ),
+                             v512_32( 0x11002000 ) );
+   W[12] = _mm512_add_epi32( _mm512_add_epi32( SSG2_1x16( W[10] ), W[ 5] ),
+                             v512_32( 0x80000000 ) );
+   W[13] = _mm512_add_epi32( SSG2_1x16( W[11] ), W[ 6] );
+   W[14] = _mm512_add_epi32( X[ 4], _mm512_add_epi32( SSG2_1x16( W[12] ),
+                                                      W[ 7] ) );
+   W[15] = _mm512_add_epi32( X[ 5], _mm512_add_epi32( SSG2_1x16( W[13] ),
+                                                      W[ 8] ) );
+
+   SHA256_16WAY_16ROUNDS( A, B, C, D, E, F, G, H, 16 );
+
+   // rounds 32 to 63
+   W[ 0] = _mm512_add_epi32( X[ 6], _mm512_add_epi32( SSG2_1x16( W[14] ),
+                                                      W[ 9] ) );
+   W[ 1] = SHA256_16WAY_MEXP( W[15], W[10], W[ 2], W[ 1] );
+   W[ 2] = SHA256_16WAY_MEXP( W[ 0], W[11], W[ 3], W[ 2] );
+   W[ 3] = SHA256_16WAY_MEXP( W[ 1], W[12], W[ 4], W[ 3] );
+   W[ 4] = SHA256_16WAY_MEXP( W[ 2], W[13], W[ 5], W[ 4] );
+   W[ 5] = SHA256_16WAY_MEXP( W[ 3], W[14], W[ 6], W[ 5] );
+   W[ 6] = SHA256_16WAY_MEXP( W[ 4], W[15], W[ 7], W[ 6] );
+   W[ 7] = SHA256_16WAY_MEXP( W[ 5], W[ 0], W[ 8], W[ 7] );
+   W[ 8] = SHA256_16WAY_MEXP( W[ 6], W[ 1], W[ 9], W[ 8] );
+   W[ 9] = SHA256_16WAY_MEXP( W[ 7], W[ 2], W[10], W[ 9] );
+   W[10] = SHA256_16WAY_MEXP( W[ 8], W[ 3], W[11], W[10] );
+   W[11] = SHA256_16WAY_MEXP( W[ 9], W[ 4], W[12], W[11] );
+   W[12] = SHA256_16WAY_MEXP( W[10], W[ 5], W[13], W[12] );
+   W[13] = SHA256_16WAY_MEXP( W[11], W[ 6], W[14], W[13] );
+   W[14] = SHA256_16WAY_MEXP( W[12], W[ 7], W[15], W[14] );
+   W[15] = SHA256_16WAY_MEXP( W[13], W[ 8], W[ 0], W[15] );
+
+   SHA256_16WAY_16ROUNDS( A, B, C, D, E, F, G, H, 32 );
+   SHA256_MEXP_16WAY_16ROUNDS( W );
+   SHA256_16WAY_16ROUNDS( A, B, C, D, E, F, G, H, 48 );
+
+   A = _mm512_add_epi32( A, _mm512_load_si512( state_in     ) );
+   B = _mm512_add_epi32( B, _mm512_load_si512( state_in + 1 ) );
+   C = _mm512_add_epi32( C, _mm512_load_si512( state_in + 2 ) );
+   D = _mm512_add_epi32( D, _mm512_load_si512( state_in + 3 ) );
+   E = _mm512_add_epi32( E, _mm512_load_si512( state_in + 4 ) );
+   F = _mm512_add_epi32( F, _mm512_load_si512( state_in + 5 ) );
+   G = _mm512_add_epi32( G, _mm512_load_si512( state_in + 6 ) );
+   H = _mm512_add_epi32( H, _mm512_load_si512( state_in + 7 ) );
+
    _mm512_store_si512( state_out    ,  A );
    _mm512_store_si512( state_out + 1,  B );
    _mm512_store_si512( state_out + 2,  C );

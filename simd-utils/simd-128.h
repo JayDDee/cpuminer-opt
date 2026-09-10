@@ -87,6 +87,14 @@
 #define v128_mulw32                    _mm_mul_epu32
 #define v128_mulw16                    _mm_mul_epu16
 
+// Multiply bytes and horizontally add adjacent pairs into 16-bit lanes:
+//   r[k] = a[2k] * b[2k] + a[2k+1] * b[2k+1]
+// 16 byte multiplies per instruction. Note the signedness asymmetry PMADDUBSW
+// has: `a` is treated as UNSIGNED bytes, `b` as SIGNED, and the 16-bit result
+// saturates. Callers must keep b <= 127 and each pair sum in range, which is
+// free when both operands are small (heavyhash's are 0..15). SSSE3 or better.
+#define v128_maddw8                    _mm_maddubs_epi16
+
 // signed compare
 #define v128_cmpeq64                   _mm_cmpeq_epi64
 #define v128_cmpeq32                   _mm_cmpeq_epi32

@@ -1440,26 +1440,47 @@ extern int scanhash_scrypt( struct work *work, uint32_t max_nonce,
 	return 0;
 }
 
+// Which allocator supplied scratchbuf: the pointer does not say, and the two
+// need different frees (munmap vs _mm_free).
+static __thread bool scratchbuf_huge = false;
+
 bool scrypt_miner_thread_init( int thr_id )
 {
    scratchbuf = malloc_hugepages( scratchbuf_size );
    if ( scratchbuf )
    {
+      scratchbuf_huge = true;
       if ( opt_debug )
          applog( LOG_NOTICE, "Thread %u is using huge pages", thr_id );
    }
    else
-       scratchbuf = mm_malloc( scratchbuf_size, 128 );
-   
+   {
+      scratchbuf_huge = false;
+      scratchbuf = mm_malloc( scratchbuf_size, 128 );
+   }
+
    if ( scratchbuf ) return true;
-   
+
    applog( LOG_ERR, "Thread %u: Scrypt buffer allocation failed", thr_id );
    return false;
+}
+
+void scrypt_miner_thread_free( int thr_id )
+{
+   if ( !scratchbuf ) return;
+   /* mm_free, not _mm_free: the allocation used mm_malloc, and on aarch64
+    * miner.h maps that pair to plain malloc/free with no <mm_malloc.h> at
+    * all -- so _mm_free here does not compile off x86. */
+   if ( scratchbuf_huge ) free_hugepages( scratchbuf, scratchbuf_size );
+   else                   mm_free( scratchbuf );
+   scratchbuf = NULL;
+   scratchbuf_huge = false;
 }
 
 bool register_scrypt_algo( algo_gate_t* gate )
 {
    gate->miner_thread_init =(void*)&scrypt_miner_thread_init;
+   gate->miner_thread_free =(void*)&scrypt_miner_thread_free;
    gate->scanhash         = (void*)&scanhash_scrypt;
    opt_target_factor = 65536.0;
    opt_param_n = opt_param_n ? opt_param_n : 1024;

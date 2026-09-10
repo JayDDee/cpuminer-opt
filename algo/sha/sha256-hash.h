@@ -140,6 +140,13 @@ void sha256_16x32_final_rounds( __m512i *state_out, const __m512i *data,
 int sha256_16x32_transform_le_short( __m512i *state_out, const __m512i *data,
                             const __m512i *state_in, const uint32_t *target );
 
+// sha256csm: padding bit at W[12], bit count 0x380. The two functions above
+// are specialised on W[12] == 0 and are not reusable here.
+void sha256csm_16x32_prehash_3rounds( __m512i *state_mid, __m512i *X,
+                                  const __m512i *W, const __m512i *state_in );
+void sha256csm_16x32_final_rounds( __m512i *state_out, const __m512i *data,
+        const __m512i *state_in, const __m512i *state_mid, const __m512i *X );
+
 #define sha256_16way_context               sha256_16x32_context
 #define sha256_16way_init                  sha256_16x32_init
 #define sha256_16way_update                sha256_16x32_update
@@ -180,6 +187,12 @@ void sha256_8x32_final_rounds( __m256i *state_out, const __m256i *data,
 int sha256_8x32_transform_le_short( __m256i *state_out, const __m256i *data,
                              const __m256i *state_in, const uint32_t *target );
 
+// sha256csm: padding bit at W[12]. The helpers above assume W[12] == 0.
+void sha256csm_8x32_prehash_3rounds( __m256i *state_mid, __m256i *X,
+                                 const __m256i *W, const __m256i *state_in );
+void sha256csm_8x32_final_rounds( __m256i *state_out, const __m256i *data,
+        const __m256i *state_in, const __m256i *state_mid, const __m256i *X );
+
 #endif  // AVX2
 
 #if defined(__SSE2__) || defined(__ARM_NEON)
@@ -207,6 +220,12 @@ void sha256_4x32_final_rounds( v128_t *state_out, const v128_t *data,
         const v128_t *state_in, const v128_t *state_mid, const v128_t *X );
 int sha256_4x32_transform_le_short( v128_t *state_out, const v128_t *data,
                             const v128_t *state_in, const uint32_t *target );
+
+// sha256csm: padding bit at W[12]. The helpers above assume W[12] == 0.
+void sha256csm_4x32_prehash_3rounds( v128_t *state_mid, v128_t *X,
+                                  const v128_t *W, const v128_t *state_in );
+void sha256csm_4x32_final_rounds( v128_t *state_out, const v128_t *data,
+        const v128_t *state_in, const v128_t *state_mid, const v128_t *X );
 
 #endif // SSE2 || NEON
 #endif // SHA256_HASH_H__

@@ -374,6 +374,13 @@ int x16r_8way_hash_generic( void* output, const void* input, int thrid,
             }
             else
             {
+#if defined(FUGUE_4X128)
+               // Only i != 0 is batchable; i == 0 resumes the prehash context.
+               fugue512_4x128_full( &ctx.fugue4, hash0, hash1, hash2, hash3,
+                                                 in0, in1, in2, in3, size );
+               fugue512_4x128_full( &ctx.fugue4, hash4, hash5, hash6, hash7,
+                                                 in4, in5, in6, in7, size );
+#else
                fugue512_full( &ctx.fugue, hash0, in0, size );
                fugue512_full( &ctx.fugue, hash1, in1, size );
                fugue512_full( &ctx.fugue, hash2, in2, size );
@@ -382,6 +389,7 @@ int x16r_8way_hash_generic( void* output, const void* input, int thrid,
                fugue512_full( &ctx.fugue, hash5, in5, size );
                fugue512_full( &ctx.fugue, hash6, in6, size );
                fugue512_full( &ctx.fugue, hash7, in7, size );
+#endif
             }
          break;
          case SHABAL:
@@ -836,10 +844,17 @@ int x16r_4way_hash_generic( void* output, const void* input, int thrid,
              }
              else
              {
+#if defined(FUGUE_2X128)
+                fugue512_2x128_full( &ctx.fugue2, hash0, hash1,
+                                                  in0, in1, size );
+                fugue512_2x128_full( &ctx.fugue2, hash2, hash3,
+                                                  in2, in3, size );
+#else
                 fugue512_full( &ctx.fugue, hash0, in0, size );
                 fugue512_full( &ctx.fugue, hash1, in1, size );
                 fugue512_full( &ctx.fugue, hash2, in2, size );
                 fugue512_full( &ctx.fugue, hash3, in3, size );
+#endif
              }
          break;
          case SHABAL:

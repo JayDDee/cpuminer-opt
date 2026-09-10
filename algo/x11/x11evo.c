@@ -12,7 +12,7 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/shavite/sph_shavite.h"
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #else
@@ -24,7 +24,7 @@
 #include "algo/luffa/luffa_for_sse2.h"
 
 typedef struct {
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     hashState_echo          echo;
     hashState_groestl       groestl;
 #else
@@ -46,7 +46,7 @@ static x11evo_ctx_holder x11evo_ctx __attribute__ ((aligned (64)));
 
 void init_x11evo_ctx()
 {
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
      init_echo( &x11evo_ctx.echo, 512 );
      init_groestl( &x11evo_ctx.groestl, 64 );
 #else
@@ -102,7 +102,7 @@ void x11evo_hash( void *state, const void *input )
 	      sph_bmw512_close( &ctx.bmw, (char*)hash );
 	      break;
 	   case 2:
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
          update_and_final_groestl( &ctx.groestl, (char*)hash,
                                         (const char*)hash, 512 );
 #else
@@ -136,7 +136,7 @@ void x11evo_hash( void *state, const void *input )
          simd512_ctx( &ctx.simd, hash, hash, 64 );
     break;
 	    case 10:
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
          update_final_echo( &ctx.echo, (char*)hash,
                                  (const char*)hash, 512 );
 #else

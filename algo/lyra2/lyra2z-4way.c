@@ -442,19 +442,39 @@ int scanhash_lyra2z( struct work *work, uint32_t max_nonce,
 
 #endif
 
+/* Frees whichever matrix THIS build compiled: the LYRA2Z_* widths are macros
+ * private to this file, so lyra2-gate.c cannot pick the right one. */
+static void lyra2z_thread_free_gate( int thr_id )
+{
+   (void)thr_id;
+#if defined(LYRA2Z_16WAY)
+   if ( lyra2z_16way_matrix ) { mm_free( lyra2z_16way_matrix ); lyra2z_16way_matrix = NULL; }
+#elif defined(LYRA2Z_8WAY)
+   if ( lyra2z_8way_matrix )  { mm_free( lyra2z_8way_matrix );  lyra2z_8way_matrix = NULL; }
+#elif defined(LYRA2Z_4WAY)
+   if ( lyra2z_4way_matrix )  { mm_free( lyra2z_4way_matrix );  lyra2z_4way_matrix = NULL; }
+#else
+   if ( lyra2z_matrix )       { mm_free( lyra2z_matrix );       lyra2z_matrix = NULL; }
+#endif
+}
+
 bool register_lyra2z_algo( algo_gate_t* gate )
 {
 #if defined(LYRA2Z_16WAY)
+  gate->miner_thread_free = (void*)&lyra2z_thread_free_gate;
   gate->miner_thread_init = (void*)&lyra2z_16way_thread_init;
   gate->scanhash          = (void*)&scanhash_lyra2z_16way;
 #elif defined(LYRA2Z_8WAY)
+  gate->miner_thread_free = (void*)&lyra2z_thread_free_gate;
   gate->miner_thread_init = (void*)&lyra2z_8way_thread_init;
   gate->scanhash          = (void*)&scanhash_lyra2z_8way;
 #elif defined(LYRA2Z_4WAY)
+  gate->miner_thread_free = (void*)&lyra2z_thread_free_gate;
   gate->miner_thread_init = (void*)&lyra2z_4way_thread_init;
   gate->scanhash          = (void*)&scanhash_lyra2z_4way;
   gate->hash              = (void*)&lyra2z_4way_hash;
 #else
+  gate->miner_thread_free = (void*)&lyra2z_thread_free_gate;
   gate->miner_thread_init = (void*)&lyra2z_thread_init;
   gate->scanhash          = (void*)&scanhash_lyra2z;
   gate->hash              = (void*)&lyra2z_hash;

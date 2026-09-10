@@ -34,7 +34,7 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "algo/groestl/sph_groestl.h"
@@ -51,7 +51,7 @@ static void zr5hash(void *state, const void *input)
 {
    char hash[128] __attribute__((aligned(64)));
    sph_blake512_context    ctx_blake;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_groestl       ctx_groestl;
 #else
    sph_groestl512_context  ctx_groestl;
@@ -87,7 +87,7 @@ static const int arrOrder[][4] =
             sph_blake512_close( &ctx_blake, hash );
 		      break;
          case 1:
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             init_groestl( &ctx_groestl, 64 );
             update_and_final_groestl( &ctx_groestl, (char*)hash,
                                                (const char*)hash, 512 );

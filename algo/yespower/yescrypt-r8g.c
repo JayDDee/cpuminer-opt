@@ -81,7 +81,10 @@ bool register_yescryptr8g_algo( algo_gate_t* gate )
   pk_buffer_size      = 26;
   opt_sapling         = true;
   opt_target_factor   = 65536.0;
-  return true;
+  // Shares yespower_hash with the rest of the family. Its own parameters
+  // (v0.5, N=2048, r=8, personalized with the header itself) are KAT vector 1
+  // -- upstream's BSTY case -- so the family self-test covers this build too.
+  return yespower_gate_self_test();
  };
 
 

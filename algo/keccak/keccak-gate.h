@@ -20,6 +20,23 @@
   #define SHA3D_2WAY 1
 #endif
 
+// NOTE: Narrower NEON arm than the sha3d/keccak ladders above, deliberately.
+// Without the ARMv8.2 SHA3 extension the 2x64 NEON path loses to scalar: NEON
+// has no 64-bit rotate, so v128_rol64 is a shift plus SLI (destructive,
+// 2-cycle, single-issue), while scalar folds a 1-cycle ROR into the XOR
+// (EOR Xd,Xn,Xm,ROR #n). Measured on RK3588S: scalar +35% on in-order A55,
+// +3% on A76, +12% device-wide. FEAT_SHA3 should swing it back (EOR3, BCAX),
+// so gate on the extension, not on "is this ARM". x86 SSE2 keeps 2x64.
+#if defined(SIMD512)
+  #define SHA3T_8WAY 1
+#elif defined(__AVX2__)
+  #define SHA3T_4WAY 1
+#elif defined(__SSE2__)
+  #define SHA3T_2WAY 1
+#elif defined(__ARM_NEON) && defined(__ARM_FEATURE_SHA3)
+  #define SHA3T_2WAY 1
+#endif
+
 extern int hard_coded_eb;
 
 #if defined(KECCAK_8WAY)
@@ -70,6 +87,40 @@ int scanhash_sha3d_2x64( struct work *work, uint32_t max_nonce,
 
 void sha3d_hash( void *state, const void *input );
 int scanhash_sha3d( struct work *work, uint32_t max_nonce,
+                    uint64_t *hashes_done, struct thr_info *mythr );
+
+#endif
+
+// sha3t: scalar hash and KAT anchor are always available; the batched
+// self-tests use them as differential oracle.
+void sha3t_hash( void *state, const void *input );
+bool sha3t_kat_check( void );
+bool sha3t_self_test( void );
+
+#if defined(SHA3T_8WAY)
+
+void sha3t_hash_8way( void *state, const void *input );
+int scanhash_sha3t_8way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
+bool sha3t_8way_self_test( void );
+
+#elif defined(SHA3T_4WAY)
+
+void sha3t_hash_4way( void *state, const void *input );
+int scanhash_sha3t_4way( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
+bool sha3t_4way_self_test( void );
+
+#elif defined(SHA3T_2WAY)
+
+void sha3t_hash_2x64( void *state, const void *input );
+int scanhash_sha3t_2x64( struct work *work, uint32_t max_nonce,
+                         uint64_t *hashes_done, struct thr_info *mythr );
+bool sha3t_2way_self_test( void );
+
+#else
+
+int scanhash_sha3t( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr );
 
 #endif

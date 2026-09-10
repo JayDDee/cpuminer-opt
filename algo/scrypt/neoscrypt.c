@@ -1133,3 +1133,180 @@ bool register_neoscrypt_algo( algo_gate_t* gate )
 };
 
 
+
+// ------------------------------------------------ neoscrypt-xaya (CHI, ROD)
+//
+// Xaya's stand-alone PoW hashes a FAKE 80-byte pure header committing to the
+// real block: powdata.cpp initFakeHeader() does SetNull() then
+// hashMerkleRoot = block.GetHash(). Consensus constrains only that field, so
+// the pool chooses the rest. Neoscrypt cannot be merge-mined.
+//
+// The pool carries the real pure header in the coinbase fields -- coinb1 is 74
+// bytes and extranonce2 is 2, so coinb1+xn1+xn2 is exactly 80, the merkle
+// branch is empty and prevhash is all zeros -- so the ordinary merkle step
+// already yields block.GetHash() and the standard build already produces the
+// fake header. Two deltas against plain neoscrypt, and no others:
+//
+//   1. the merkle words carry an extra byte swap
+//   2. the header is NOT run through set_work_data_big_endian, so the submit
+//      and getwork paths use the little-endian helpers
+//   3. every word of the header, the nonce included, is byte-swapped on the
+//      way into neoscrypt; work->data itself is left alone so the submit path
+//      still reports the values the pool sent
+//
+// All three are consensus-relevant and none is detectable offline: the pool
+// only ever answers with a rejected share.
+
+void neoscrypt_xaya_build_extraheader( struct work *work,
+                                       struct stratum_ctx *sctx )
+{
+   std_build_extraheader( work, sctx );
+
+   // The one header delta: the committed block hash goes in byte-swapped per
+   // word relative to every other coin in this tree.
+   for ( int i = 9; i <= 16; i++ )
+      work->data[i] = bswap_32( work->data[i] );
+
+   // -D dump of the exact bytes scanhash will hand to neoscrypt, so the
+   // assembled image can be diffed against a known-good implementation's for
+   // the same job instead of being reasoned about.
+   if ( opt_debug )
+   {
+      char hex[ 20*8 + 1 ];
+      for ( int i = 0; i < 20; i++ )
+         sprintf( hex + i*8, "%08x", bswap_32( work->data[i] ) );
+      applog( LOG_DEBUG, "xaya image : %s", hex );
+      char xn[ 33 ];
+      bin2hex( xn, work->xnonce2, work->xnonce2_len > 16 ? 16
+                                                         : work->xnonce2_len );
+      applog( LOG_DEBUG, "xaya job   : %s xnonce2 %s",
+              work->job_id ? work->job_id : "?", xn );
+   }
+}
+
+// Xaya mainnet genesis, whose fake header is fully determined by
+// chainparams.cpp (nNonce 482087, nBits 0x1e0ffff0, and the asserted block
+// hash it commits to). The digest has to clear that block's own nBits, so the
+// vector pins the byte order as well as the engine.
+static const uint8_t neoscrypt_xaya_kat_image[80] =
+{
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x7a, 0x4c, 0x46, 0x51, 0xec, 0x70, 0x7e, 0xc4, 0x6f, 0xd7, 0x0a, 0x5c,
+   0xa8, 0xde, 0xf2, 0x62, 0xc9, 0x92, 0x0b, 0x63, 0xf4, 0x93, 0x82, 0x6a,
+   0xe5, 0xf5, 0x0c, 0x42, 0xe5, 0x06, 0x2d, 0x76, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x5b, 0x27,
+};
+
+static const uint8_t neoscrypt_xaya_kat_digest[32] =
+{
+   0x8c, 0xa4, 0x14, 0x86, 0xb8, 0x60, 0x9d, 0x27, 0xaf, 0x16, 0x7b, 0x2b,
+   0xa6, 0xec, 0x6d, 0xa1, 0x57, 0x58, 0x1a, 0x41, 0x55, 0xe9, 0xba, 0xfc,
+   0x59, 0x6b, 0x61, 0xe5, 0xb2, 0x0a, 0x00, 0x00,
+};
+
+// nBits 0x1e0ffff0 expanded, little-endian as the digest is compared.
+static const uint8_t neoscrypt_xaya_kat_target[32] =
+{
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0xf0, 0xff, 0x0f, 0x00, 0x00,
+};
+
+static bool neoscrypt_xaya_self_test( void )
+{
+   uint8_t out[32], out2[32], alt[80];
+
+   neoscrypt( out, neoscrypt_xaya_kat_image );
+   if ( memcmp( out, neoscrypt_xaya_kat_digest, 32 ) )
+   {
+      applog( LOG_ERR, "neoscrypt-xaya self-test FAILED: wrong digest" );
+      return false;
+   }
+
+   for ( int i = 31; i >= 0; i-- )
+   {
+      if ( out[i] > neoscrypt_xaya_kat_target[i] )
+      {
+         applog( LOG_ERR,
+                 "neoscrypt-xaya self-test FAILED: digest misses nBits" );
+         return false;
+      }
+      if ( out[i] < neoscrypt_xaya_kat_target[i] ) break;
+   }
+
+   // The committed block hash and the nonce must both reach the digest.
+   memcpy( alt, neoscrypt_xaya_kat_image, 80 );
+   alt[36] ^= 0x01;
+   neoscrypt( out2, alt );
+   if ( !memcmp( out2, out, 32 ) )
+   {
+      applog( LOG_ERR,
+              "neoscrypt-xaya self-test FAILED: block hash not hashed" );
+      return false;
+   }
+
+   memcpy( alt, neoscrypt_xaya_kat_image, 80 );
+   alt[79] ^= 0x01;
+   neoscrypt( out2, alt );
+   if ( !memcmp( out2, out, 32 ) )
+   {
+      applog( LOG_ERR, "neoscrypt-xaya self-test FAILED: nonce not hashed" );
+      return false;
+   }
+
+   applog( LOG_NOTICE, "neoscrypt-xaya self-test PASSED (neoscrypt engine,"
+                       " Xaya genesis vector)" );
+   return true;
+}
+
+// Same shape as scanhash_neoscrypt, but neoscrypt is handed the word-swap of
+// work->data rather than work->data itself.
+int scanhash_neoscrypt_xaya( struct work *work, uint32_t max_nonce,
+                             uint64_t *hashes_done, struct thr_info *mythr )
+{
+   uint32_t _ALIGN(64) hdr[20];
+   uint32_t _ALIGN(64) hash[8];
+   uint32_t *pdata = work->data;
+   uint32_t *ptarget = work->target;
+   const uint32_t Htarg = ptarget[7];
+   const uint32_t first_nonce = pdata[19];
+   uint32_t n = first_nonce;
+   const int thr_id = mythr->id;
+
+   for ( int k = 0; k < 19; k++ )
+      be32enc( &hdr[k], pdata[k] );
+
+   while ( n < max_nonce && !work_restart[thr_id].restart )
+   {
+      be32enc( &hdr[19], n );
+      neoscrypt( (uint8_t*)hash, (uint8_t*)hdr );
+
+      if ( hash[7] <= Htarg && fulltest_le( hash, ptarget ) )
+      {
+         pdata[19] = n;
+         submit_solution( work, hash, mythr );
+      }
+      n++;
+   }
+
+   *hashes_done = n - first_nonce;
+   pdata[19] = n;
+   return 0;
+}
+
+bool register_neoscrypt_xaya_algo( algo_gate_t* gate )
+{
+  gate->optimizations         = SSE2_OPT;
+  gate->scanhash              = (void*)&scanhash_neoscrypt_xaya;
+  gate->hash                  = (void*)&neoscrypt;
+  gate->build_extraheader     = (void*)&neoscrypt_xaya_build_extraheader;
+  gate->build_stratum_request = (void*)&std_le_build_stratum_request;
+  gate->work_decode           = (void*)&std_le_work_decode;
+  gate->submit_getwork_result = (void*)&std_le_submit_getwork_result;
+  gate->get_work_data_size    = (void*)&neoscrypt_get_work_data_size;
+  // set_work_data_endian stays at the default no-op, unlike plain neoscrypt.
+  opt_target_factor = 65536.0;
+  return neoscrypt_xaya_self_test();
+};

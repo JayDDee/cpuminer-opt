@@ -20,7 +20,7 @@
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/sha/sph_sha2.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/fugue/fugue-aesni.h"
@@ -47,7 +47,7 @@ typedef struct {
         sph_whirlpool_context   whirlpool;
         sph_sha512_context      sha512;
         sph_haval256_5_context  haval;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_echo          echo;
         hashState_groestl       groestl;
         hashState_fugue         fugue;
@@ -75,7 +75,7 @@ void init_xevan_ctx()
         sph_whirlpool_init( &xevan_ctx.whirlpool );
         sph_sha512_init( &xevan_ctx.sha512 );
         sph_haval256_5_init(&xevan_ctx.haval);
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         init_groestl( &xevan_ctx.groestl, 64 );
         init_echo( &xevan_ctx.echo, 512 );
         fugue512_Init( &xevan_ctx.fugue, 512 );
@@ -100,7 +100,7 @@ int xevan_hash(void *output, const void *input, int thr_id )
    sph_bmw512(&ctx.bmw, hash, dataLen);
    sph_bmw512_close(&ctx.bmw, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                                      (const char*)hash, dataLen*8 );
 #else
@@ -126,7 +126,7 @@ int xevan_hash(void *output, const void *input, int thr_id )
 
    simd512_ctx( &ctx.simd, hash, hash, dataLen );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    update_final_echo( &ctx.echo, (BitSequence *) hash,
                            (const BitSequence *) hash, dataLen*8 );
 #else
@@ -137,7 +137,7 @@ int xevan_hash(void *output, const void *input, int thr_id )
    sph_hamsi512(&ctx.hamsi, hash, dataLen);
    sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    fugue512_Update( &ctx.fugue, hash, dataLen*8 );
    fugue512_Final( &ctx.fugue, hash ); 
 #else
@@ -167,7 +167,7 @@ int xevan_hash(void *output, const void *input, int thr_id )
    sph_bmw512(&ctx.bmw, hash, dataLen);
    sph_bmw512_close(&ctx.bmw, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                               (const BitSequence*)hash, dataLen*8 );
 #else
@@ -200,7 +200,7 @@ int xevan_hash(void *output, const void *input, int thr_id )
 //                         (const BitSequence *)hash, dataLen*8 );
 //#endif
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    update_final_echo( &ctx.echo, (BitSequence *) hash,
                            (const BitSequence *) hash, dataLen*8 );
 #else
@@ -211,7 +211,7 @@ int xevan_hash(void *output, const void *input, int thr_id )
    sph_hamsi512(&ctx.hamsi, hash, dataLen);
    sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    fugue512_Update( &ctx.fugue, hash, dataLen*8 );
    fugue512_Final( &ctx.fugue, hash );   
 #else

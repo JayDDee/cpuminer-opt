@@ -136,6 +136,12 @@ int ( *hash )     ( void*, const void*, int );
 // other initialization specific to miner threads.
 bool ( *miner_thread_init )     ( int );
 
+// Counterpart to the above: free this thread's algo buffers. Runs ON the
+// owning thread, so it can reach __thread pointers nothing else can.
+// Must be idempotent (thread exit, algo switch, rolled-back switch): NULL the
+// pointers and let the next init or lazy allocation remake them.
+void ( *miner_thread_free )     ( int );
+
 // Get thread local copy of blockheader with unique nonce.
 void ( *get_new_work )          ( struct work*, struct work*, int, uint32_t* );
 
@@ -177,6 +183,12 @@ set_t optimizations;
 
 int  ( *get_work_data_size )     ();
 
+/* Per-thread workspace requirement in bytes.  Returns 0 for algos that
+ * use only stack/small TLS (the default).  Memory-hard algos (equihash,
+ * yespower, scrypt large-N) set this so the thread-count auto-cap can
+ * prevent OOM when -t is not explicitly specified.                        */
+size_t ( *get_workspace_size )   ();
+
 int  ntime_index;
 int  nbits_index;
 int  nonce_index;            // use with caution, see warning below
@@ -193,6 +205,7 @@ void do_nothing();
 bool return_true();
 bool return_false();
 void *return_null();
+size_t return_zero();     /* default get_workspace_size — no extra memory */
 void algo_not_tested();
 void algo_not_implemented();
 void four_way_not_tested();
@@ -211,6 +224,33 @@ void four_way_not_tested();
 #define STD_NONCE_INDEX 19   // 32 bit offset
 #define STD_WORK_DATA_SIZE 128
 #define STD_WORK_CMP_SIZE 76
+
+/* Equihash 200/9 — 140-byte block header layout (word offsets):
+ *   words  0    : version  (4 B)
+ *   words  1-8  : prevhash (32 B)
+ *   words  9-16 : merkleroot (32 B)
+ *   words 17-24 : reserved  (32 B)
+ *   word  25    : ntime     (4 B)
+ *   word  26    : nbits     (4 B)
+ *   words 27-34 : nonce     (32 B)
+ */
+#define EQH_NTIME_INDEX      25
+#define EQH_NBITS_INDEX      26
+/* The 32-byte nonce spans words 27-34 (bytes 108-139):
+ *   bytes 108..111         = extranonce1 (pool, placed by build_extraheader)
+ *   bytes 112..(132-1)     = extranonce2
+ *   bytes 132..139         = miner iteration counter (uint64, set in scanhash)
+ *
+ * nonce_index MUST point at the iteration counter (word 33 = byte 132), NOT at
+ * the start of the nonce. std_get_new_work() writes the per-thread nonce range
+ * start to work->data[nonce_index]; if that pointed at byte 108 it would clobber
+ * the extranonce1 every time work is refreshed, so the header we solve would
+ * carry xn1=0 while the pool rebuilds it with the real extranonce1 -> every
+ * share rejected as "Invalid share". Pointing it at the iteration counter is
+ * harmless because scanhash_equihash overwrites that uint64 on every call.     */
+#define EQH_NONCE_INDEX      33   /* word 33 = byte 132 = miner iter counter */
+#define EQH_WORK_DATA_SIZE  140
+#define EQH_WORK_CMP_SIZE   108   /* bytes 0-107: version+prevhash+merkle+reserved */
 
 //#define JR2_NONCE_INDEX 39  // 8 bit offset
 

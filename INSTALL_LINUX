@@ -5,8 +5,8 @@ https://github.com/JayDDee/cpuminer-opt/wiki/Compiling-from-source
 1. Requirements:
 ---------------
 
-Intel Core2 or newer, or AMD Steamroller or newer CPU. ARM CPUs are not
-supported.
+Intel Core2 or newer, or AMD Steamroller or newer CPU, or an aarch64 (ARMv8)
+CPU with NEON.
 64 bit Linux operating system. Apple is not supported.
 
 2. Building on linux prerequisites:
@@ -91,6 +91,75 @@ $ CFLAGS="-O3 -march=native -Wall" ./configure --with-curl
 $ make -j n
 
 n is the number of threads.
+
+Reducing the binary for a small device
+--------------------------------------
+
+Two opt-outs, both enabled by default so a normal build is unaffected:
+
+  ./configure --with-curl --disable-randomx-variants
+      Keeps Monero rx/0, omits the coin variants (rx/wow, rx/graft, rx/arq).
+      Each of those needs its own compiled copy of the RandomX core.
+
+  ./configure --with-curl --disable-randomx
+      Omits RandomX entirely, rx/0 included. Implies the above.
+
+Asking for an omitted algo then reports which flag removed it, rather than
+failing obscurely.
+
+Measured on x86-64, gcc 11.4, -O3 -march=native:
+
+                          as built    stripped
+  default                 9366608     4727632
+  --disable-randomx-variants  5673560     4304496     -413 KB stripped
+  --disable-randomx       4263904     4123672     -590 KB stripped
+
+Note what that says: stripping is the far bigger lever. "strip cpuminer", or
+"make install-strip", takes the default build from 9366608 to 4727632 -- about
+4.4 MB, roughly seven times what removing all of RandomX saves. Strip first,
+and only then consider dropping algorithms.
+
+Also note the real constraint on a small device is usually RAM, not flash:
+RandomX needs a 2080 MiB dataset in fast mode, or a 256 MiB cache in light
+mode at roughly a fifth of the speed. If the device cannot spare that,
+--disable-randomx removes an algorithm it could not have run anyway.
+
+On aarch64 configure adds "-march=armv8-a+crypto" by itself when building
+natively on a CPU that reports the crypto extension and no -march or -mcpu is
+already present in CFLAGS. "+crypto" enables the hardware AES and SHA2 paths;
+without it the algorithms that require them are compiled out, which costs 23%
+on minotaur and over 3x on verus.
+
+Nothing is added when cross compiling, or when the CPU does not report the
+extension (a Cortex-A53 or A72 for instance), because these paths are selected
+at compile time with no runtime fallback and the wrong flag is a SIGILL rather
+than a slow build. In those cases, and to select a more specific target, use
+build-armv8.sh or pass the flags manually, for example
+CFLAGS="-O3 -march=armv8-a+crypto -Wall -flax-vector-conversions".
+
+
+4b. Build on Termux (Android, aarch64)
+--------------------------------------
+
+Termux has clang and no gcc. Install the dependencies once:
+
+$ pkg install -y clang make autoconf automake libtool binutils libcurl libgmp
+
+jansson is not needed, configure falls back to the bundled copy in
+compat/jansson. Then:
+
+$ bash build-termux.sh
+
+That script sets CC=clang and CXX=clang++ (both matter -- dummy.cpp in
+cpuminer_SOURCES makes automake link with the C++ driver), and picks the arch
+flag by probing -mcpu=native first and otherwise deriving one from the features
+the kernel reports in /proc/cpuinfo. Override it with, for example
+
+$ ARCH_CFLAGS="-march=armv8-a+crypto" bash build-termux.sh
+
+Android notes: run termux-wake-lock so the miner is not suspended, and note that
+thread N is pinned to cpu N by default, so on a big.LITTLE SoC set --cpu-affinity
+to keep the miner on the big cores.
 
 5. Start mining.
 ----------------

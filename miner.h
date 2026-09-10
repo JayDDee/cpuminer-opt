@@ -326,7 +326,10 @@ struct thr_api {
 #define JSON_RPC_QUIET_404	(1 << 1)
 #define JSON_RPC_IGNOREERR  (1 << 2)
 
-#define JSON_BUF_LEN 512
+/* Equihash submit needs ~3000 chars (64-char nonce + 2694-char solution).
+ * Keep 512 as default but algo gates may allocate their own buffer. */
+#define JSON_BUF_LEN     512
+#define JSON_BUF_LEN_EQH 3200
 
 #define CL_N    "\x1B[0m"
 #define CL_RED  "\x1B[31m"
@@ -440,6 +443,13 @@ void   cpu_brand_string( char* s );
 float cpu_temp( int core );
 */
 
+uint64_t available_system_memory(void);  // bytes currently free for new allocs
+
+// Threads of a ws-bytes-each algo that fit in free RAM (20% margin kept).
+// Returns `want` when there is no workspace or free RAM is unknowable;
+// *avail_out is the figure used, 0 meaning "could not tell".
+int workspace_thread_fit( size_t ws, int want, uint64_t *avail_out );
+
 struct work
 {
    uint32_t target[8] __attribute__ ((aligned (64)));
@@ -456,6 +466,30 @@ struct work
 	unsigned char *xnonce2;
    bool sapling;
    bool stale;
+   /* Equihash: holds the current valid solution (1344 bytes for 200/9).
+    * Set by scanhash_equihash before calling submit_solution. */
+   unsigned char *equihash_solution;
+   uint16_t       equihash_solution_len;
+   // Veil SHA256Dv: pool-supplied stage-1 midstate/merkle and the 64-bit nonce.
+   bool          veil_sha256dv;
+   unsigned char veil_midstate_be[32];
+   unsigned char veil_merkle_be[32];
+   uint32_t      veil_ntime;
+   uint32_t      veil_nonce_hi;
+   uint32_t      veil_nonce_lo;
+   // Odocrypt: pool-supplied epoch key ("odokey" notify field). 0 = derive
+   // from nTime (nTime - nTime % shapechange).
+   uint32_t      odokey;
+   /* RandomX / Monero stratum: data[] holds the pool's hashing blob verbatim,
+    * not an 80-byte bitcoin header, so ntime_index / nbits_index / the merkle
+    * machinery do not apply. The nonce is 4 LE bytes at blob offset 39.
+    * rx_target is the pool's 64-bit target, compared against the last 8 bytes
+    * of the hash; target[8] is filled only for the shared reporting code. */
+   bool          rx_work;
+   size_t        rx_blob_len;
+   uint64_t      rx_target;
+   unsigned char rx_seed_hash[32];
+   unsigned char rx_result[32];   /* the winning hash, submitted verbatim */
 } __attribute__ ((aligned (WORK_ALIGNMENT)));
 
 struct stratum_job
@@ -474,13 +508,55 @@ struct stratum_job
 	unsigned char ntime[4];
 	double diff;
    bool clean;
-   // for x16rt-veil
+   /* x16rt-veil; also the 64-byte tenth notify parameter shared by phi2 and
+    * EqPay (hashStateRoot then hashUTXORoot). */
    unsigned char extra[64];
+   /* Equihash Stratum: fields sent directly by pool (no coinbase building)  */
+   unsigned char merkleroot[32];
+   unsigned char reserved[32];    /* "finalsaplingroot" in newer pools      */
+   bool is_equihash;
+   /* Extended Equihash notify params[8] and params[9]:
+    *   eq_params  e.g. "200_9", "144_5", "96_5"
+    *   eq_personal e.g. "ZcashPoW", "BgoldPoW"  (8 chars, pool-sent)     */
+   char eq_params[16];
+   char eq_personal[16];
+   /* VerusHash: the pool supplies the 1344-byte solution as notify param[8]
+    * (the miner varies only its last 15 bytes, so it is a template, not a
+    * solved solution as with equihash). Plus the exact 32-byte target from
+    * mining.set_target -- used verbatim rather than round-tripped through
+    * difficulty, which loses precision. */
+   unsigned char verus_solution[2048];   /* padded to the required size */
+   uint16_t      verus_solution_len;
+   bool          has_verus_solution;
+   uint32_t      raw_target[8];
+   bool          has_raw_target;
    unsigned char denom10[32];
    unsigned char denom100[32];
    unsigned char denom1000[32];
    unsigned char denom10000[32];
    unsigned char proofoffullnode[32];
+   // Veil SHA256Dv job fields (bespoke notify, see stratum_notify_sha256dv).
+   bool          veil_sha256dv;
+   unsigned char veil_midstate_be[32];
+   unsigned char veil_merkle_be[32];
+   uint32_t      veil_ntime;
+   uint32_t      veil_nonce_hi;
+   // Odocrypt epoch key from the "odokey" notify field (0 if absent).
+   uint32_t      odokey;
+
+   /* RandomX / Monero stratum "job" notification, and the job embedded in the
+    * "login" result. No coinbase, merkle or extranonce -- see struct work.
+    * next_seed_hash is the next epoch's key, sent ahead of the boundary and
+    * empty most of the time; the pre-warm signal for a background rebuild. */
+   bool          rx_job;
+   /* Must be >= RX_BLOB_MAX (algo/randomx/randomx-gate.h), which checks it.
+    * Panthera's blob is 140 bytes, well past a Monero blob's 76. */
+   unsigned char rx_blob[176];
+   size_t        rx_blob_len;
+   uint64_t      rx_target;
+   unsigned char rx_seed_hash[32];
+   unsigned char rx_next_seed_hash[32];
+   bool          rx_has_next_seed;
 
 } __attribute__ ((aligned (64)));
 
@@ -507,7 +583,11 @@ struct stratum_ctx {
 	pthread_mutex_t work_lock;
 
    int block_height;
-   bool new_job;  
+   bool new_job;
+
+   /* RandomX: session id from the "login" result; every "submit" carries it.
+    * Note some pools also put an unrelated "id" inside the job object. */
+   char *rx_rpc_id;
 } __attribute__ ((aligned (64)));
 
 bool stratum_socket_full(struct stratum_ctx *sctx, int timeout);
@@ -515,6 +595,8 @@ bool stratum_send_line(struct stratum_ctx *sctx, char *s);
 char *stratum_recv_line(struct stratum_ctx *sctx);
 bool stratum_connect(struct stratum_ctx *sctx, const char *url);
 void stratum_disconnect(struct stratum_ctx *sctx);
+/* Unblock a stratum thread waiting in select(); see util.c. */
+void stratum_wake(struct stratum_ctx *sctx);
 bool stratum_subscribe(struct stratum_ctx *sctx);
 bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *pass);
 bool stratum_handle_method(struct stratum_ctx *sctx, const char *s);
@@ -524,6 +606,16 @@ bool stratum_suggest_difficulty( struct stratum_ctx *sctx, double diff );
 extern bool aes_ni_supported;
 extern char *rpc_user;
 extern char *short_url;
+
+// --api-mode. docs/api-rest.md section 2: `binary` is the default so that an
+// upgrade changes nothing; `both` decides per connection from the first bytes.
+#define API_MODE_BINARY 0
+#define API_MODE_HTTP   1
+#define API_MODE_BOTH   2
+extern int   opt_api_mode;
+extern char *opt_api_token;
+extern char *opt_api_cors;
+extern int   opt_api_http_port;
 
 struct thread_q;
 
@@ -587,20 +679,33 @@ enum algos {
         ALGO_ARGON2D1000,
         ALGO_ARGON2D16000,
         ALGO_ARGON2D4096,
-        ALGO_AXIOM,       
+        ALGO_ARGON2ID1024,
+        ALGO_AXIOM,
+        ALGO_BALLOON,
         ALGO_BLAKE,       
         ALGO_BLAKE2B,
         ALGO_BLAKE2S,     
         ALGO_BLAKECOIN,
         ALGO_BMW,        
         ALGO_BMW512,
-        ALGO_C11,         
+        ALGO_C11,
+        ALGO_CURVEHASH,      /* Pulsar (PLSR) — secp256k1 chain     */
         ALGO_DEEP,
         ALGO_DMD_GR,
-        ALGO_GROESTL,     
+        ALGO_EQUIHASH,       /* 200/9 — ZCash, Horizen, Komodo     */
+        ALGO_EQUIHASH96,     /*  96/5 — small memory variant       */
+        ALGO_EQUIHASH125,    /* 125/4 — Flux / ZelCash             */
+        ALGO_EQUIHASH144,    /* 144/5 — Bitcoin Gold (BTG)         */
+        ALGO_EQUIHASH192,    /* 192/7 — ZeroClassic                */
+        ALGO_FLEX,           /* Kylacoin / Lyncoin                 */
+        ALGO_GHOSTRIDER,
+        ALGO_GROESTL,
+        ALGO_HEAVYHASH,      /* Optical Bitcoin (OBTC), Ursula (URSA) */
         ALGO_HEX,
         ALGO_HMQ1725,
+        ALGO_HOOHASHV110,    /* PePePoW                            */
         ALGO_JHA,
+        ALGO_K12,            /* KangarooTwelve                     */
         ALGO_KECCAK,
         ALGO_KECCAKC,
         ALGO_LBRY,
@@ -611,37 +716,56 @@ enum algos {
         ALGO_LYRA2Z,
         ALGO_LYRA2Z330,
         ALGO_M7M,
+        ALGO_MEGABTX,        /* BitCore (BTX)                      */
+        ALGO_MEGAMEC,        /* Megacoin (MEC)                     */
+        ALGO_MIKE,           /* VKAX, FortuneBlock (FTB)           */
         ALGO_MINOTAUR,
         ALGO_MINOTAURX,
         ALGO_MYR_GR,      
         ALGO_NEOSCRYPT,
-        ALGO_NIST5,       
-        ALGO_PENTABLAKE,  
+        ALGO_NEOSCRYPT_XAYA,
+        ALGO_NIST5,
+        ALGO_ODO,
+        ALGO_PANTHERA,
+        ALGO_PENTABLAKE,
         ALGO_PHI1612,
         ALGO_PHI2,
         ALGO_POLYTIMOS,
         ALGO_POWER2B,
         ALGO_QUARK,
-        ALGO_QUBIT,       
+        ALGO_QUBIT,
+        ALGO_RANDOMX,
+        ALGO_RANDOMX_ARQ,
+        ALGO_RANDOMX_GRAFT,
+        ALGO_RANDOMX_SFX,
+        ALGO_RANDOMX_WOW,
+        ALGO_RINHASH,
         ALGO_SCRYPT,
+        ALGO_SHA256CSM,
         ALGO_SHA256D,
         ALGO_SHA256DT,
+        ALGO_SHA256DV,
         ALGO_SHA256Q,
         ALGO_SHA256T,
         ALGO_SHA3D,
+        ALGO_SHA3T,
         ALGO_SHA512256D,
         ALGO_SKEIN,       
         ALGO_SKEIN2,      
         ALGO_SKUNK,
+        ALGO_SKYDOGE,
         ALGO_SONOA,
+        ALGO_SOTERG,
         ALGO_TIMETRAVEL,
         ALGO_TIMETRAVEL10,
         ALGO_TRIBUS,
         ALGO_VANILLA,
         ALGO_VELTOR,
         ALGO_VERTHASH,
+        ALGO_VERUS,
         ALGO_WHIRLPOOL,
         ALGO_WHIRLPOOLX,
+        ALGO_WHIRLPOOLX2,
         ALGO_X11,
         ALGO_X11EVO,         
         ALGO_X11GOST,
@@ -668,7 +792,14 @@ enum algos {
         ALGO_YESCRYPTR16,
         ALGO_YESCRYPTR32,
         ALGO_YESPOWER,
+        ALGO_YESPOWERADVC,
+        ALGO_YESPOWEREQPAY,
+        ALGO_YESPOWERLTNCG,
+        ALGO_YESPOWERMGPC,
         ALGO_YESPOWERR16,
+        ALGO_YESPOWERSUGAR,
+        ALGO_YESPOWERTIDE,
+        ALGO_YESPOWERURX,
         ALGO_YESPOWER_B2B,
         ALGO_ZR5,
         ALGO_COUNT
@@ -684,7 +815,9 @@ static const char* const algo_names[] = {
         "argon2d1000",
         "argon2d16000",
         "argon2d4096",
+        "argon2id1024",
         "axiom",
+        "balloon",
         "blake",
         "blake2b",
         "blake2s",
@@ -692,12 +825,23 @@ static const char* const algo_names[] = {
         "bmw",
         "bmw512",
         "c11",
+        "curvehash",
         "deep",
         "dmd-gr",
+        "equihash",
+        "equihash96",
+        "equihash125",
+        "equihash144",
+        "equihash192",
+        "flex",
+        "ghostrider",
         "groestl",
+        "heavyhash",
         "hex",
         "hmq1725",
+        "hoohashv110",
         "jha",
+        "k12",
         "keccak",
         "keccakc",
         "lbry",
@@ -708,11 +852,17 @@ static const char* const algo_names[] = {
         "lyra2z",
         "lyra2z330",
         "m7m",
+        "megabtx",
+        "megamec",
+        "mike",
         "minotaur",
         "minotaurx",
         "myr-gr",
         "neoscrypt",
+        "neoscrypt-xaya",
         "nist5",
+        "odo",
+        "panthera",
         "pentablake",
         "phi1612",
         "phi2",
@@ -720,25 +870,38 @@ static const char* const algo_names[] = {
         "power2b",
         "quark",
         "qubit",
+        "randomx",
+        "randomx-arq",
+        "randomx-graft",
+        "randomx-sfx",
+        "randomx-wow",
+        "rinhash",
         "scrypt",
+        "sha256csm",
         "sha256d",
         "sha256dt",
+        "sha256dv",
         "sha256q",
         "sha256t",
         "sha3d",
+        "sha3t",
         "sha512256d",
         "skein",
         "skein2",
         "skunk",
+        "skydoge",
         "sonoa",
+        "soterg",
         "timetravel",
         "timetravel10",
         "tribus",
         "vanilla",
         "veltor",
         "verthash",
+        "verus",
         "whirlpool",
         "whirlpoolx",
+        "whirlpoolx2",
         "x11",
         "x11evo",
         "x11gost",
@@ -765,7 +928,14 @@ static const char* const algo_names[] = {
         "yescryptr16",
         "yescryptr32",
         "yespower",
+        "yespoweradvc",
+        "yespowereqpay",
+        "yespowerltncg",
+        "yespowermgpc",
         "yespowerr16",
+        "yespowersugar",
+        "yespowertide",
+        "yespowerurx",
         "yespower-b2b",
         "zr5",
         "\0"
@@ -819,6 +989,7 @@ extern bool opt_randomize;
 extern bool allow_mininginfo;
 extern pthread_rwlock_t g_work_lock;
 extern time_t g_work_time;
+
 extern bool opt_stratum_stats;
 extern int num_cpus;
 extern int num_cpugroups;
@@ -846,7 +1017,9 @@ Options:\n\
                           argon2d1000\n\
                           argon2d16000\n\
                           argon2d4096\n\
+                          argon2id1024  Bitweb (WEB)\n\
                           axiom         Shabal-256 MemoHash\n\
+                          balloon       Mateable (MTBC)\n\
                           blake         blake256r14 (SFR)\n\
                           blake2b       Blake2b 256\n\
                           blake2s       Blake-2 S\n\
@@ -854,13 +1027,27 @@ Options:\n\
                           bmw           BMW 256\n\
                           bmw512        BMW 512\n\
                           c11           Chaincoin\n\
+                          curvehash     Pulsar (PLSR), alias curve\n\
                           deep          Deepcoin (DCN)\n\
                           dmd-gr        Diamond\n\
+                          equihash      Zcash/ZEC, Horizen/ZEN, Komodo/KMD (200/9, ~210 MB)\n\
+                            Aliases: zcash, zec, zen, horizen, komodo\n\
+                          equihash96    Equihash 96/5 (~7 MB)\n\
+                          equihash144   Bitcoin Gold/BTG (144/5, ~2.2 GB)\n\
+                            Aliases: btg, bitcoingold\n\
+                          equihash192   ZeroClassic (192/7, ~3 GB)\n\
+                          equihash125   Flux/ZelCash (125/4, ~4 GB)\n\
+                            Aliases: flux, zelcash, zel\n\
+                          flex          Kylacoin\n\
+                          ghostrider    Raptoreum (RTM)\n\
                           groestl       Groestl coin\n\
+                          heavyhash     Optical Bitcoin (OBTC), Ursula (URSA)\n\
                           hex           x16r-hex\n\
                           hmq1725       Espers\n\
+                          hoohashv110   PepePow\n\
                           jha           jackppot (Jackpotcoin)\n\
                           keccak        Maxcoin\n\
+                          k12           KangarooTwelve\n\
                           keccakc       Creative Coin\n\
                           lbry          LBC, LBRY Credits\n\
                           lyra2h        Hppcoin\n\
@@ -870,11 +1057,16 @@ Options:\n\
                           lyra2z\n\
                           lyra2z330     Lyra2 330 rows\n\
                           m7m           Magi (XMG)\n\
+                          megabtx       Mega-BTX, BitCore (BTX)\n\
+                          megamec       Mega-MEC, Megacoin (MEC)\n\
+                          mike          VKAX, FortuneBlock (FTB)\n\
                           myr-gr        Myriad-Groestl\n\
                           minotaur\n\
                           minotaurx\n\
                           neoscrypt     NeoScrypt(128, 2, 1)\n\
                           nist5         Nist5\n\
+                          odo           Odocrypt, DigiByte (DGB)\n\
+                          panthera      Scala (XLA)\n\
                           pentablake    5 x blake512\n\
                           phi1612       phi\n\
                           phi2\n\
@@ -882,27 +1074,40 @@ Options:\n\
                           power2b       MicroBitcoin (MBC)\n\
                           quark         Quark\n\
                           qubit         Qubit\n\
+                          randomx       Monero (XMR), rx/0\n\
+                          randomx-arq   ArQmA (ARQ), rx/arq\n\
+                          randomx-graft Graft (GRFT), rx/graft\n\
+                          randomx-sfx   Safex Cash (SFX), rx/sfx\n\
+                          randomx-wow   Wownero (WOW), rx/wow\n\
+                          rinhash       RinCoin (RIN)\n\
                           scrypt        scrypt(1024, 1, 1) (default)\n\
                           scrypt:N      scrypt(N, 1, 1)\n\
                           scryptn2      scrypt(1048576, 1,1)\n\
+                          sha256csm     SHA-256d over a 112-byte header, Galleoncoin (GALE)\n\
                           sha256d       Double SHA-256\n\
                           sha256dt      Modified sha256d (Novo)\n\
+                          sha256dv      SHA-256D Veil\n\
                           sha256q       Quad SHA-256, Pyrite (PYE)\n\
                           sha256t       Triple SHA-256, Onecoin (OC)\n\
                           sha3d         Double Keccak256 (BSHA3)\n\
+                          sha3t         Triple SHA3-256, BitcoinIII (BC3), Fjarcode (FJAR)\n\
                           sha512256d    Double SHA-512 (Radiant)\n\
                           skein         Skein+Sha (Skeincoin)\n\
                           skein2        Double Skein (Woodcoin)\n\
                           skunk         Signatum (SIGT)\n\
+                          skydoge       SkyDoge\n\
                           sonoa         Sono\n\
+                          soterg        Soteria (SOTER)\n\
                           timetravel    timeravel8, Machinecoin (MAC)\n\
                           timetravel10  Bitcore (BTX)\n\
                           tribus        Denarius (DNR)\n\
                           vanilla       blake256r8vnl (VCash)\n\
                           veltor\n\
                           verthash\n\
+                          verus         VerusHash 2.2 (Verus Coin)\n\
                           whirlpool\n\
                           whirlpoolx\n\
+                          whirlpoolx2   CapStash (CAP)\n\
                           x11           Dash\n\
                           x11evo        Revolvercoin (XRE)\n\
                           x11gost       sib (SibCoin)\n\
@@ -975,7 +1180,13 @@ Options:\n\
       --cpu-affinity    set process affinity to cpu core(s), mask 0x3 for cores 0 and 1\n\
       --cpu-priority    set process priority (default: 0 idle, 2 normal to 5 highest) (deprecated)\n\
   -b, --api-bind=address[:port]   IP address for the miner API, default port is 4048)\n\
+                        the address is also the only one accepted; use\n\
+                        0.0.0.0 to accept the network\n\
       --api-remote      allow remote control\n\
+      --api-mode=MODE   API protocol: binary (default), http, or both\n\
+      --api-token=TOK   require 'Authorization: Bearer TOK' on every REST route\n\
+      --api-cors=ORIGIN send Access-Control-Allow-Origin and answer OPTIONS\n\
+      --api-http-port=N with --api-mode=both, serve REST on its own port\n\
       --max-temp=N      only mine if cpu temp is less than specified value (linux)\n\
       --max-rate=N[KMG] only mine if net hashrate is less than specified value\n\
       --max-diff=N      only mine if net difficulty is less than specified value\n\
@@ -1003,6 +1214,17 @@ static struct option const options[] = {
         { "algo", 1, NULL, 'a' },
         { "api-bind", 1, NULL, 'b' },
         { "api-remote", 0, NULL, 1030 },
+        // REST API, docs/api-rest.md. 1067-1069 are RESERVED for the control
+        // API (--api-control, --api-control-min-interval,
+        // --api-control-park-timeout) and deliberately not registered yet: an
+        // option that parses but gates nothing is worse than a missing one.
+        { "api-mode", 1, NULL, 1063 },
+        { "api-token", 1, NULL, 1064 },
+        { "api-cors", 1, NULL, 1065 },
+        { "api-http-port", 1, NULL, 1066 },
+        { "api-control", 0, NULL, 1067 },
+        { "api-control-min-interval", 1, NULL, 1068 },
+        { "api-control-park-timeout", 1, NULL, 1069 },
         { "background", 0, NULL, 'B' },
         { "benchmark", 0, NULL, 1005 },
         { "cputest", 0, NULL, 1006 },

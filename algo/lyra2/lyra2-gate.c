@@ -79,6 +79,7 @@ bool register_lyra2rev3_algo( algo_gate_t* gate )
   gate->hash      = (void*)&lyra2rev3_hash;
 #endif
   gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&lyra2rev3_thread_init;
   opt_target_factor = 256.0;
   return true;
@@ -120,6 +121,7 @@ bool register_lyra2rev2_algo( algo_gate_t* gate )
   gate->hash      = (void*)&lyra2rev2_hash;
 #endif
   gate->optimizations = SSE2_OPT | AVX2_OPT | AVX512_OPT;
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&lyra2rev2_thread_init;
   opt_target_factor = 256.0;
   return true;
@@ -131,18 +133,22 @@ bool register_lyra2rev2_algo( algo_gate_t* gate )
 bool register_lyra2z_algo( algo_gate_t* gate )
 {
 #if defined(LYRA2Z_16WAY)
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&lyra2z_16way_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z_16way;
 //  gate->hash       = (void*)&lyra2z_16way_hash;
 #elif defined(LYRA2Z_8WAY)
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&lyra2z_8way_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z_8way;
 //  gate->hash       = (void*)&lyra2z_8way_hash;
 #elif defined(LYRA2Z_4WAY)
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&lyra2z_4way_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z_4way;
   gate->hash       = (void*)&lyra2z_4way_hash;
 #else
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&lyra2z_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2z;
   gate->hash       = (void*)&lyra2z_hash;
@@ -158,10 +164,12 @@ bool register_lyra2z_algo( algo_gate_t* gate )
 bool register_lyra2h_algo( algo_gate_t* gate )
 {
 #ifdef LYRA2H_4WAY
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&lyra2h_4way_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2h_4way;
   gate->hash       = (void*)&lyra2h_4way_hash;
 #else
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&lyra2h_thread_init;
   gate->scanhash   = (void*)&scanhash_lyra2h;
   gate->hash       = (void*)&lyra2h_hash;
@@ -180,6 +188,7 @@ bool register_allium_algo( algo_gate_t* gate )
 #elif defined (ALLIUM_8WAY)
   gate->scanhash  = (void*)&scanhash_allium_8way;
 #else
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&init_allium_ctx;
   gate->scanhash  = (void*)&scanhash_allium;
   gate->hash      = (void*)&allium_hash;
@@ -236,4 +245,37 @@ bool register_phi2_algo( algo_gate_t* gate )
    gate->scanhash           = (void*)&scanhash_phi2;
 #endif
    return true;
+}
+
+/* One free for the whole lyra2 family.
+ *
+ * Each registration allocates exactly one of these matrices and the rest stay
+ * NULL, so a single function serves every lyra2 gate without knowing which
+ * variant is running. The 4/8/16-way matrices live in their own translation
+ * units; they are declared here rather than in a header because nothing else
+ * has any business touching them. Idempotent: pointers are cleared. */
+
+/* LYRA2H_4WAY is decided in lyra2-gate.h, so this file can see it. The
+ * LYRA2Z_* widths are NOT -- they are defined privately inside lyra2z-4way.c,
+ * which is why lyra2z frees its own matrix there instead of here. A free must
+ * live in the same translation unit as the allocation whenever the width is a
+ * file-local macro. */
+#if defined(LYRA2H_4WAY)
+extern __thread uint64_t* lyra2h_4way_matrix;
+#else
+extern __thread uint64_t* lyra2h_matrix;
+#endif
+
+void lyra2_thread_free( int thr_id )
+{
+   (void)thr_id;
+   #define LYRA2_FREE( p )  do { if ( p ) { mm_free( p ); (p) = NULL; } } while (0)
+   LYRA2_FREE( l2v3_wholeMatrix );
+   LYRA2_FREE( l2v2_wholeMatrix );
+#if defined(LYRA2H_4WAY)
+   LYRA2_FREE( lyra2h_4way_matrix );
+#else
+   LYRA2_FREE( lyra2h_matrix );
+#endif
+   #undef LYRA2_FREE
 }

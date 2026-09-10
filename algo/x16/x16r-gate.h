@@ -27,6 +27,7 @@
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/fugue/fugue-aesni.h"
 #endif
+#include "algo/fugue/fugue-hash-4way.h"
 
 //#if defined (__AVX2__)
   #include "algo/bmw/bmw-hash-4way.h"
@@ -135,6 +136,9 @@ union _x16r_8way_context_overlay
     simd_4way_context       simd;
     hamsi512_8x64_context   hamsi;
     hashState_fugue         fugue;
+#if defined(FUGUE_4X128)
+    fugue512_4x128_context  fugue4;
+#endif
     shabal512_8x32_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_8x64_context     sha512;
@@ -189,6 +193,9 @@ union _x16r_4way_context_overlay
     simd_2way_context       simd;
     hamsi512_4x64_context   hamsi;
     hashState_fugue         fugue;
+#if defined(FUGUE_2X128)
+    fugue512_2x128_context  fugue2;
+#endif
     shabal512_4x32_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_4x64_context     sha512;

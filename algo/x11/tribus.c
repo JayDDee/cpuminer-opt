@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include "algo/jh//sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/echo/aes_ni/hash_api.h"
 #else
   #include "algo/echo/sph_echo.h"
@@ -17,7 +17,7 @@
 typedef struct {
     sph_jh512_context     jh;
     sph_keccak512_context keccak;
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     hashState_echo        echo;
 #else
     sph_echo512_context   echo;
@@ -30,7 +30,7 @@ bool tribus_thread_init()
 {
    sph_jh512_init( &tribus_ctx.jh );
    sph_keccak512_init( &tribus_ctx.keccak );
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &tribus_ctx.echo, 512 );
 #else
    sph_echo512_init( &tribus_ctx.echo );
@@ -50,7 +50,7 @@ void tribus_hash(void *state, const void *input)
      sph_keccak512( &ctx.keccak, (const void*) hash, 64 );
      sph_keccak512_close( &ctx.keccak, (void*) hash );
 
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
      update_final_echo( &ctx.echo, (BitSequence *) hash,
                         (const BitSequence *) hash, 512 );
 #else

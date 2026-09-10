@@ -42,6 +42,14 @@
 
 #include "simd-utils.h"
 
+/* Enable this file's AVX-512 path (salsa shuffle via _mm512_permutexvar_epi32,
+ * ternlog XORs). The macro was previously defined nowhere, so the code was
+ * dead in every build. Bit-exact; worth ~1.5% on the small-r variants and
+ * nothing on the large ones. -DYP_NO_AVX512 reverts. */
+#if defined(SIMD512) && !defined(YP_NO_AVX512)
+#define YESPOWER_USE_AVX512 1
+#endif
+
 #ifndef _YESPOWER_OPT_C_PASS_
 #define _YESPOWER_OPT_C_PASS_ 1
 #endif
@@ -77,11 +85,21 @@
 #define restrict
 #endif
 
-#ifdef __SSE__
+#if defined(__SSE__)
 #define PREFETCH(x, hint) _mm_prefetch((const char *)(x), (hint));
+#elif defined(__aarch64__) && !defined(YP_NO_ARM_PREFETCH)
+/* Upstream gates PREFETCH on __SSE__ alone, so aarch64 lost both of blockmix's
+ * prefetches. `hint` is never expanded, so _MM_HINT_T0 not existing here is
+ * fine. Used on the v1.0 pass ONLY: on v0.5 it is a large loss that grows with
+ * r, up to ~1.9x on yescryptr32. Worth ~8% on one isolated core and less
+ * device-wide. The pass test lives at the use sites, since this block sits in
+ * the `_YESPOWER_OPT_C_PASS_ == 1` section and so is only ever seen with the
+ * pass fixed at 1, while the use sites compile twice. */
+#define PREFETCH(x, hint) __builtin_prefetch((const void *)(x), 0, 3);
 #else
 #undef PREFETCH
 #endif
+
 
 typedef union
 {
@@ -574,16 +592,13 @@ typedef struct {
 
 #define DECL_SMASK2REG uint64_t Smask2reg = Smask2;
 
-/*
-#define FORCE_REGALLOC_1 \
-	__asm__("" : "=a" (x), "+d" (Smask2reg), "+S" (S0), "+D" (S1));
-#define FORCE_REGALLOC_2 \
-	__asm__("" : : "c" (lo));
-*/
-
+// FORCE_REGALLOC_1/2 are defined below, outside this pass-1-only section,
+// because their value has to differ between the two passes.
 #define PWXFORM_SIMD(X) { \
 	uint64_t x; \
+	FORCE_REGALLOC_1 \
 	uint32_t lo = x = EXTRACT64(X) & Smask2reg; \
+	FORCE_REGALLOC_2 \
 	uint32_t hi = x >> 32; \
 	X = v128_mulw32( v128_shuflr32(X), X ); \
 	X = v128_add64( X, *(v128_t *)(S0 + lo) ); \
@@ -641,6 +656,28 @@ typedef struct {
 #undef Smask2
 #define Smask2 Smask2_1_0
 
+#endif
+
+// Upstream pins x, Smask2reg, S0, S1 and lo to fixed registers inside
+// PWXFORM_SIMD: empty asm that emits nothing and only constrains the
+// allocator. On for the v0.5 pass always, and for v1.0 only where 512-bit
+// vectors exist -- it gains on v0.5 and on AVX-512 v1.0, and loses on v1.0
+// without them.
+//
+// It must be defined HERE, outside the `_YESPOWER_OPT_C_PASS_ == 1` section:
+// that section is skipped on the pass-2 self-include but its macros persist,
+// so defining it in there would leave pass 2 using the pass-1 asm.
+#undef FORCE_REGALLOC_1
+#undef FORCE_REGALLOC_2
+#if defined(__x86_64__) && defined(__GNUC__) && !defined(__ICC) \
+    && ( _YESPOWER_OPT_C_PASS_ == 1 || defined(SIMD512) )
+#define FORCE_REGALLOC_1 \
+	__asm__("" : "=a" (x), "+d" (Smask2reg), "+S" (S0), "+D" (S1));
+#define FORCE_REGALLOC_2 \
+	__asm__("" : : "c" (lo));
+#else
+#define FORCE_REGALLOC_1 /* empty */
+#define FORCE_REGALLOC_2 /* empty */
 #endif
 
 /**
@@ -711,7 +748,8 @@ static uint32_t blockmix_xor( const salsa20_blk_t *restrict Bin1,
 	/* Convert count of 128-byte blocks to max index of 64-byte block */
 	r = r * 2 - 1;
 
-#ifdef PREFETCH
+/* aarch64: v1.0 pass only; on v0.5 these cost up to 1.9x. */
+#if defined(PREFETCH) && ( !defined(__aarch64__) || _YESPOWER_OPT_C_PASS_ > 1 )
 	PREFETCH(&Bin2[r], _MM_HINT_T0)
 	for (i = 0; i < r; i++) {
 		PREFETCH(&Bin2[i], _MM_HINT_T0)
@@ -765,7 +803,8 @@ static uint32_t blockmix_xor_save( salsa20_blk_t *restrict Bin1out,
 	/* Convert count of 128-byte blocks to max index of 64-byte block */
 	r = r * 2 - 1;
 
-#ifdef PREFETCH
+/* aarch64: v1.0 pass only; on v0.5 these cost up to 1.9x. */
+#if defined(PREFETCH) && ( !defined(__aarch64__) || _YESPOWER_OPT_C_PASS_ > 1 )
 	PREFETCH(&Bin2[r], _MM_HINT_T0)
 	for (i = 0; i < r; i++) {
 		PREFETCH(&Bin2[i], _MM_HINT_T0)
@@ -864,6 +903,11 @@ static void smix1(uint8_t *B, size_t r, uint32_t N,
 		uint32_t m = (n < N / 2) ? n : (N - 1 - n);
 		for (i = 1; i < m; i += 2) {
 			Y = X + s;
+			/* Do not add a prefetch here. This is not a sequential fill:
+			 * the V[j] read is pseudo-random, already prefetched inside
+			 * blockmix_xor, and its index is that call's return value. Only
+			 * the output block is known ahead, and prefetching it for write
+			 * measured a loss on both arches (x86 and aarch64, every variant). */
 			j &= n - 1;
 			j += i - 1;
 			V_j = &V[j * s];
@@ -936,12 +980,13 @@ static void smix2(uint8_t *B, size_t r, uint32_t N, uint32_t Nloop,
 		} while (Nloop -= 2);
 #if _YESPOWER_OPT_C_PASS_ == 1
 	} else {
-		do {
-			const salsa20_blk_t * V_j = &V[j * s];
-			j = blockmix_xor(X, V_j, Y, r, ctx) & (N - 1);
-			V_j = &V[j * s];
-			j = blockmix_xor(Y, V_j, X, r, ctx) & (N - 1);
-		} while (Nloop -= 2);
+		/* Upstream 1.0.1 simplified this case: smix() passes a literal 2, so the
+		 * generic do/while ran exactly one iteration and the trailing mask of an
+		 * already-dead j was overhead. */
+		const salsa20_blk_t *V_j = &V[j * s];
+		j = blockmix_xor(X, V_j, Y, r, ctx) & (N - 1);
+		V_j = &V[j * s];
+		blockmix_xor(Y, V_j, X, r, ctx);
 	}
 #endif
 
@@ -1092,6 +1137,13 @@ int yespower(yespower_local_t *local,
 
       if ( work_restart[thrid].restart ) return 0;
 
+      /* CONSENSUS. Do not "fix" this into `if (pers) { ... }`. With
+       * pers == NULL, src/srclen are still the 80-byte header, so this
+       * personalizes with the header itself -- upstream's BSTY convention, and
+       * what `-a yescrypt` has always computed. Gating it on `pers` matches
+       * upstream's unpersonalized test vector and yespower-ref.c, and a live
+       * pool rejects every share. The reference is therefore NOT a valid
+       * oracle for v0.5 + pers == NULL; yespower-kat.h pins the real digest. */
       if ( pers )
       {
          src = pers;
@@ -1100,7 +1152,6 @@ int yespower(yespower_local_t *local,
 
       HMAC_SHA256_Buf( dst, sizeof(*dst), src, srclen, sha256 );
       SHA256_Buf( sha256, sizeof(sha256), (uint8_t *)dst );
-      
    }
    else
    {
@@ -1138,19 +1189,31 @@ int yespower(yespower_local_t *local,
  *
  * Return 0 on success; or -1 on error.
  */
+/* File scope rather than function scope so yespower_tls_free() can reach them:
+ * the region is up to 16 MB (yescryptr32) and must be released on an algo
+ * switch, which only the owning thread can do. */
+static __thread int yespower_tls_initialized = 0;
+static __thread yespower_local_t yespower_tls_local;
+
 int yespower_tls(const uint8_t *src, size_t srclen,
     const yespower_params_t *params, yespower_binary_t *dst, int thrid )
 {
-	static __thread int initialized = 0;
-	static __thread yespower_local_t local;
-
-	if (!initialized) {
-		if (yespower_init_local(&local))
+	if (!yespower_tls_initialized) {
+		if (yespower_init_local(&yespower_tls_local))
 			return -1;
-		initialized = 1;
+		yespower_tls_initialized = 1;
 	}
 
-	return yespower( &local, src, srclen, params, dst, thrid );
+	return yespower( &yespower_tls_local, src, srclen, params, dst, thrid );
+}
+
+/* Idempotent: the next yespower_tls() re-initialises the region. */
+void yespower_tls_free( void )
+{
+	if (!yespower_tls_initialized)
+		return;
+	yespower_free_local(&yespower_tls_local);
+	yespower_tls_initialized = 0;
 }
 
 int yespower_init_local(yespower_local_t *local)

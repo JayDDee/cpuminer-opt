@@ -34,3 +34,15 @@ void *malloc_hugepages( size_t size )
 #endif
 }
 
+void free_hugepages( void *p, size_t size )
+{
+#if !(defined(MAP_HUGETLB) && defined(MAP_ANON))
+   (void)p; (void)size;
+#else
+   const size_t hugepage_mask = (size_t)HUGEPAGE_SIZE_2M - 1;
+   if ( !p ) return;
+   // Same rounding as the allocation, or munmap leaves a tail mapped.
+   munmap( p, ( size + hugepage_mask ) & (~hugepage_mask) );
+#endif
+}
+

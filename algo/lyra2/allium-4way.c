@@ -719,6 +719,7 @@ bool register_allium_algo( algo_gate_t* gate )
 #elif defined (ALLIUM_4WAY)
   gate->scanhash  = (void*)&scanhash_allium_4way;
 #else
+  gate->miner_thread_free = (void*)&lyra2_thread_free;
   gate->miner_thread_init = (void*)&init_allium_ctx;
   gate->scanhash  = (void*)&scanhash_allium;
   gate->hash      = (void*)&allium_hash;

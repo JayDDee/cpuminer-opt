@@ -12,7 +12,7 @@
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "algo/groestl/sph_groestl.h"
@@ -30,7 +30,7 @@ typedef struct {
         sph_keccak512_context   keccak;
         hashState_luffa         luffa;
         cubehashParam           cube;
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_groestl       groestl;
 #else
         sph_groestl512_context  groestl;
@@ -49,7 +49,7 @@ void init_tt8_ctx()
         sph_keccak512_init( &tt_ctx.keccak );
         init_luffa( &tt_ctx.luffa, 512 );
         cubehashInit( &tt_ctx.cube, 512, 16, 32 );
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         init_groestl( &tt_ctx.groestl, 64 );
 #else
         sph_groestl512_init( &tt_ctx.groestl );
@@ -112,7 +112,7 @@ void timetravel_hash(void *output, const void *input)
         }
         break;
      case 2:
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
            update_and_final_groestl( &ctx.groestl, (char*)hashB,
                                     (char*)hashA, dataLen*8 );
 #else
@@ -245,7 +245,9 @@ int scanhash_timetravel( struct work *work, uint32_t max_nonce,
            sph_bmw512( &tt_mid.bmw, endiandata, 64 );
            break;
         case 2:
-#ifndef __AES__
+/* must match the guard on the context type above: with ARM AES the member is a
+ * hashState_groestl and there is no midstate to take. */
+#if !defined(__AES__) && !defined(__ARM_FEATURE_AES)
            memcpy( &tt_mid.groestl, &tt_ctx.groestl, sizeof(tt_mid.groestl ) );
            sph_groestl512( &tt_mid.groestl, endiandata, 64 );
 #endif

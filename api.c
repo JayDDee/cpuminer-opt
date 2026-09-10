@@ -33,6 +33,10 @@
 #include "algo/sha/sha1-hash.h"
 
 #include "miner.h"
+#include "api_model.h"
+#include "api_http.h"
+#include "api_routes.h"
+#include "api_control.h"
 #include "sysinfos.c"
 #ifndef WIN32
 # include <errno.h>
@@ -54,6 +58,9 @@
 # define INVINETADDR INADDR_NONE
 # define CLOSESOCKET closesocket
 # define in_addr_t uint32_t
+/* winsock reports through WSAGetLastError(), not errno, so there is no useful
+ * strerror() here. Only used in ignored-failure debug logs. */
+# define SOCKERRMSG "winsock error"
 #endif
 
 #define GROUP(g) (toupper(g))
@@ -93,6 +100,11 @@ static char *buffer = NULL;
 static time_t startup = 0;
 static int bye = 0;
 
+/* NOT an allow-list despite the name: --api-bind stores one IP here and it
+ * serves as both the bind address and the whole access list, so
+ *   0.0.0.0:P  allows everyone, <addr>:P allows ONLY <addr>, absent = 127.0.0.1.
+ * The cgminer list syntax setup_ipaccess() parses is unreachable. ccminer's
+ * --api-allow is a different thing. */
 extern char *opt_api_allow;
 extern int opt_api_listen; /* port */
 extern int opt_api_remote;
@@ -103,28 +115,23 @@ extern double global_hashrate;
 
 #define cpu_threads opt_n_threads
 
-#define USE_MONITORING
+/* No USE_MONITORING gate here: the temp/fan/clock reads live in api_model.c,
+ * where a #define in this file cannot reach them. */
 extern float cpu_temp(int);
 extern uint32_t cpu_clock(int);
-//extern int cpu_fanpercent(void);
 
 /***************************************************************/
 
 static void cpustatus(int thr_id)
 {
-   if ( thr_id >= 0 && thr_id < opt_n_threads )
-   {
-//      struct cpu_info *cpu = &thr_info[thr_id].cpu;
-      char buf[512]; *buf = '\0';
-      char units[4] = {0};
-      double hashrate = thr_hashrates[thr_id];
+   struct api_thread_snapshot t;
+   char buf[512]; *buf = '\0';
 
-      scale_hash_for_display ( &hashrate, units );
-      snprintf( buf, sizeof(buf), "CPU=%d;%sH/s=%.2f|", thr_id, units,
-                hashrate );
-      // append to buffer
-      strcat( buffer, buf );
-   }
+   if ( !api_collect_thread( thr_id, &t ) )
+      return;
+   api_format_thread_binary( buf, sizeof(buf), &t );
+   // append to buffer
+   strcat( buffer, buf );
 }
 
 /*****************************************************************************/
@@ -134,42 +141,11 @@ static void cpustatus(int thr_id)
 */
 static char *getsummary( char *params )
 {
-   char algo[64]; *algo = '\0';
-   time_t ts = time(NULL);
-   double uptime = difftime(ts, startup);
-   double accps = (60.0 * accepted_share_count) / (uptime ? uptime : 1.0);
-   double diff = net_diff > 0. ? net_diff : stratum_diff;
-   char diff_str[16];
-   double hrate = (double)global_hashrate;
-   struct cpu_info cpu = { 0 };
-#ifdef USE_MONITORING
-   cpu.has_monitoring = true;
-   cpu.cpu_temp = cpu_temp(0);
-   cpu.cpu_fan = cpu_fanpercent();
-   cpu.cpu_clock = cpu_clock(0);
-#endif
+   struct api_summary_snapshot s;
 
-   get_currentalgo(algo, sizeof(algo));
-
-   // if diff is integer don't display decimals
-   if ( diff == trunc( diff ) )
-       sprintf( diff_str, "%.0f", diff);
-   else
-       sprintf( diff_str, "%.6f", diff);
-
+   api_collect_summary( &s );
    *buffer = '\0';
-   sprintf( buffer,
-	  "NAME=%s;VER=%s;API=%s;"
-          "ALGO=%s;CPUS=%d;URL=%s;"
-          "HS=%.2f;KHS=%.2f;ACC=%d;REJ=%d;SOL=%d;"
-          "ACCMN=%.3f;DIFF=%s;TEMP=%.1f;FAN=%d;FREQ=%d;"
-          "UPTIME=%.0f;TS=%u|",
-           PACKAGE_NAME, PACKAGE_VERSION, APIVERSION,
-           algo, opt_n_threads, short_url,
-	   hrate, hrate/1000.0, accepted_share_count, rejected_share_count,
-		                                      solved_block_count,
-           accps, diff_str, cpu.cpu_temp, cpu.cpu_fan, cpu.cpu_clock,
-	   uptime, (uint32_t) ts);
+   api_format_summary_binary( buffer, MYBUFSIZ, &s );
    return buffer;
 }
 
@@ -194,8 +170,11 @@ static bool check_remote_access(void)
 
 /**
  * Change pool url (see --url parameter)
- * seturl|stratum+tcp://XeVrkPrWB7pDbdFLfKhF1Z3xpqhsx6wkH3:X@stratum+tcp://mine.xpool.ca:1131|
- * seturl|stratum+tcp://Danila.1:X@pool.ipominer.com:3335|
+ * seturl|stratum+tcp://user:pass@host:port|
+ *
+ * Note: the argument reaches parse_arg('o'), which exits the process on an
+ * unrecognised scheme or a url with no host. POST /api/v1/pools/url validates
+ * before calling it; this command does not.
  */
 extern bool stratum_need_reset;
 static char *remote_seturl(char *params)
@@ -276,7 +255,9 @@ static size_t base64_encode(const uchar *indata, size_t insize, char *outptr, si
 
 	outbuf = output = (char*)calloc(1, inlen * 4 / 3 + 4);
 	if (outbuf == NULL) {
-		return -1;
+		/* 0, not -1: the return type is size_t, so -1 was SIZE_MAX -- a
+		 * "success" of absurd length to any caller that checked. */
+		return 0;
 	}
 
 	while (inlen > 0) {
@@ -319,16 +300,70 @@ static size_t base64_encode(const uchar *indata, size_t insize, char *outptr, si
 			break;
 		output += 4; len += 4;
 	}
-	len = snprintf(outptr, len, "%s", outbuf);
-	// todo: seems to be missing on linux
-	if (strlen(outptr) == 27)
-		strcat(outptr, "=");
+	/* The size argument is the DESTINATION size, not the encoded length --
+	 * passing the latter truncated the final character on every call. */
+	len = snprintf(outptr, outlen, "%s", outbuf);
 	free(outbuf);
 
 	return len;
 }
 
-//#include "compat/curl-for-windows/openssl/openssl/crypto/sha/sha.h"
+/* SHA-1 for the WebSocket handshake, RFC 3174. Not redundant: sph_sha1_full()
+ * fails the FIPS 180-1 vectors, which made Sec-WebSocket-Accept wrong. api.c
+ * is its only caller and no mining path uses SHA-1, so replace the call here
+ * rather than touch a vendored primitive. Once per connection; speed is
+ * irrelevant. */
+static void api_sha1( uchar out[20], const void *msg, size_t len )
+{
+	uint32_t h[5] = { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0 };
+	const uchar *m = (const uchar*) msg;
+	uint64_t bits = (uint64_t) len * 8;
+	size_t total = len + 1 + 8;
+	size_t padded = ((total + 63) / 64) * 64;
+	uchar *buf = (uchar*) calloc( 1, padded );
+	if ( !buf ) { memset( out, 0, 20 ); return; }
+
+	memcpy( buf, m, len );
+	buf[len] = 0x80;
+	for ( int i = 0; i < 8; i++ )
+		buf[padded - 1 - i] = (uchar) ( bits >> (8 * i) );
+
+	for ( size_t off = 0; off < padded; off += 64 )
+	{
+		uint32_t w[80], a, b, c, d, e;
+		for ( int i = 0; i < 16; i++ )
+			w[i] = ( (uint32_t)buf[off + i*4    ] << 24 )
+			     | ( (uint32_t)buf[off + i*4 + 1] << 16 )
+			     | ( (uint32_t)buf[off + i*4 + 2] <<  8 )
+			     |   (uint32_t)buf[off + i*4 + 3];
+		for ( int i = 16; i < 80; i++ )
+		{
+			uint32_t v = w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16];
+			w[i] = ( v << 1 ) | ( v >> 31 );
+		}
+		a = h[0]; b = h[1]; c = h[2]; d = h[3]; e = h[4];
+		for ( int i = 0; i < 80; i++ )
+		{
+			uint32_t f, k;
+			if      ( i < 20 ) { f = (b & c) | (~b & d);            k = 0x5A827999; }
+			else if ( i < 40 ) { f = b ^ c ^ d;                     k = 0x6ED9EBA1; }
+			else if ( i < 60 ) { f = (b & c) | (b & d) | (c & d);   k = 0x8F1BBCDC; }
+			else               { f = b ^ c ^ d;                     k = 0xCA62C1D6; }
+			uint32_t t = ( (a << 5) | (a >> 27) ) + f + e + k + w[i];
+			e = d; d = c; c = ( b << 30 ) | ( b >> 2 ); b = a; a = t;
+		}
+		h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e;
+	}
+	free( buf );
+
+	for ( int i = 0; i < 5; i++ )
+	{
+		out[i*4    ] = (uchar) ( h[i] >> 24 );
+		out[i*4 + 1] = (uchar) ( h[i] >> 16 );
+		out[i*4 + 2] = (uchar) ( h[i] >>  8 );
+		out[i*4 + 3] = (uchar)   h[i];
+	}
+}
 
 /* websocket handshake (tested in Chrome) */
 static int websocket_handshake(SOCKETTYPE c, char *result, char *clientkey)
@@ -341,12 +376,17 @@ static int websocket_handshake(SOCKETTYPE c, char *result, char *clientkey)
 	if (opt_protocol)
 		applog(LOG_DEBUG, "clientkey: %s", clientkey);
 
-	sprintf(inpkey, "%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", clientkey);
+	/* clientkey is the client's Sec-WebSocket-Key, so it must be bounded. A
+	 * truncated key would hash to the wrong accept value, so fail instead. */
+	if (snprintf(inpkey, sizeof(inpkey),
+	             "%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", clientkey)
+	    >= (int) sizeof(inpkey))
+		return -1;
 
 	// SHA-1 test from rfc, returns in base64 "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
 	//sprintf(inpkey, "dGhlIHNhbXBsZSBub25jZQ==258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 
-   sph_sha1_full( sha1, inpkey, strlen(inpkey) );
+   api_sha1( sha1, inpkey, strlen(inpkey) );
 
 	base64_encode(sha1, 20, seckey, sizeof(seckey));
 
@@ -395,7 +435,9 @@ static int websocket_handshake(SOCKETTYPE c, char *result, char *clientkey)
 		// WebSocket Frame - Header + Data
 		memcpy(p, hd, frames);
 		memcpy(p + frames, result, (size_t)datalen);
-		send(c, (const char*)data, (int) (strlen(answer) + frames + (size_t)datalen + 1), 0);
+		/* Header + payload, nothing more: sending one byte past the payload
+		 * appends the calloc'd NUL and corrupts a following frame. */
+		send(c, (const char*)data, (int) (handlen + frames + (size_t)datalen), 0);
 		free(data);
 	}
 	return 0;
@@ -519,6 +561,190 @@ static bool check_connect(struct sockaddr_in *cli, char **connectaddr, char *gro
 	return addrok;
 }
 
+/* Bound a stalled client on an ACCEPTED socket, not the listener: the API is
+ * one thread on a blocking accept(), so a silent peer stalls everyone. Failure
+ * is non-fatal, leaving the old unbounded behaviour. */
+static void set_sock_timeouts(SOCKETTYPE sock)
+{
+#ifdef WIN32
+	DWORD tv = API_HTTP_SOCK_TIMEOUT_S * 1000;   /* winsock wants milliseconds */
+#else
+	struct timeval tv;
+	tv.tv_sec  = API_HTTP_SOCK_TIMEOUT_S;
+	tv.tv_usec = 0;
+#endif
+	if (SOCKETFAIL(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)(&tv), sizeof(tv))))
+		applog(LOG_DEBUG, "API setsockopt SO_RCVTIMEO failed (ignored): %s", SOCKERRMSG);
+	if (SOCKETFAIL(setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char *)(&tv), sizeof(tv))))
+		applog(LOG_DEBUG, "API setsockopt SO_SNDTIMEO failed (ignored): %s", SOCKERRMSG);
+}
+
+/* ---- REST dispatch (docs/api-rest.md section 2) ------------------------- */
+
+static bool api_mode_serves_http(void)
+{
+	return opt_api_mode == API_MODE_HTTP || opt_api_mode == API_MODE_BOTH;
+}
+
+/* A request line starting with a known method: a superset of the old `GET /`
+ * sniff, so `both` mode cannot misroute a POST. Tests the method rather than
+ * "HTTP/" so misdetection fails closed. */
+static bool api_request_is_http(const char *buf, int len)
+{
+	static const char *verbs[] = {
+		"GET ", "POST ", "HEAD ", "OPTIONS ", "PUT ", "DELETE ", "PATCH "
+	};
+	for (size_t i = 0; i < ARRAY_SIZE(verbs); i++) {
+		int l = (int) strlen(verbs[i]);
+		if (len >= l && strncmp(buf, verbs[i], l) == 0)
+			return true;
+	}
+	return false;
+}
+
+/* The WebSocket upgrade goes to the legacy handler in EVERY mode, so
+ * api/websocket.htm keeps working. It is HTTP-shaped, so it must be excluded
+ * explicitly, before the REST router claims it. */
+static bool api_request_is_ws_upgrade(const char *buf, int len)
+{
+	char tmp[SOCK_REC_BUFSZ + 1];
+	int n = len < SOCK_REC_BUFSZ ? len : SOCK_REC_BUFSZ;
+	if (n < 0) return false;
+	memcpy(tmp, buf, (size_t) n);
+	tmp[n] = '\0';
+	return strstr(tmp, "Sec-WebSocket-Key") != NULL;
+}
+
+/* Exact-match --api-token check for a WebSocket upgrade.
+ *
+ * A substring test on "Bearer <token>" would accept "Bearer <token>EXTRA", which
+ * the REST router refuses (api_http.c compares the parsed value), so the header
+ * is parsed and the value compared. An over-long value is refused rather than
+ * compared truncated. */
+static bool api_ws_token_ok(const char *buf, int len)
+{
+	char tmp[SOCK_REC_BUFSZ + 1];
+	int n = len < SOCK_REC_BUFSZ ? len : SOCK_REC_BUFSZ;
+	const char *p;
+
+	if (!opt_api_token || !*opt_api_token)
+		return true;
+	if (n < 0) return false;
+
+	memcpy(tmp, buf, (size_t) n);
+	tmp[n] = '\0';
+
+	for (p = tmp; *p; ) {
+		const char *eol = strpbrk(p, "\r\n");
+		size_t llen = eol ? (size_t) (eol - p) : strlen(p);
+
+		if (llen > 14 && strncasecmp(p, "Authorization:", 14) == 0) {
+			const char *v = p + 14;
+			size_t vlen;
+			char val[288];
+
+			while (v < p + llen && (*v == ' ' || *v == '\t')) v++;
+			vlen = (size_t) (p + llen - v);
+			if (vlen <= 7 || strncasecmp(v, "Bearer ", 7) != 0)
+				return false;
+			v += 7; vlen -= 7;
+			while (vlen && (*v == ' ' || *v == '\t')) { v++; vlen--; }
+			while (vlen && (v[vlen-1] == ' ' || v[vlen-1] == '\t')) vlen--;
+			if (vlen >= sizeof(val))
+				return false;          /* absurd length: refuse, never truncate */
+			memcpy(val, v, vlen);
+			val[vlen] = '\0';
+			return strcmp(val, opt_api_token) == 0;
+		}
+		p = eol ? eol + 1 : p + llen;
+	}
+	return false;
+}
+
+/* A refused upgrade answers: silence is indistinguishable from a network stall,
+ * and this port already answers 401 for a missing REST token (contract 4). */
+static void api_send_early_error(SOCKETTYPE c, int status, const char *msg)
+{
+	api_http_config cfg;
+	char *body;
+
+	memset(&cfg, 0, sizeof(cfg));
+	cfg.token = opt_api_token;
+	cfg.cors = opt_api_cors != NULL;
+
+	body = api_http_error_body(&cfg, status, msg);
+	if (!body)
+		return;
+	api_http_send((int) c, status, NULL, body, strlen(body), &cfg);
+	free(body);
+}
+
+
+static void api_serve_http(SOCKETTYPE c, const char *prefix, size_t prefixlen)
+{
+	api_http_config cfg;
+	api_ctx ctx;
+	size_t nroutes = 0;
+	const api_route *routes = api_routes_get(&nroutes);
+	char *miner_json = api_routes_miner_json_str();
+
+	memset(&cfg, 0, sizeof(cfg));
+	memset(&ctx, 0, sizeof(ctx));
+	cfg.token = opt_api_token;
+	cfg.cors  = opt_api_cors != NULL;
+	/* The write gate is --api-remote, not the group letter: opt_api_allow is
+	 * the bind address here despite its name, so the group machinery it feeds
+	 * is vestigial (docs/api-rest.md section 10). */
+	/* --api-control promotes a write-privileged source to control, so the
+	 * control verbs need BOTH flags. Without --api-control the transport
+	 * answers 403 before the handler runs (docs/api-rest.md section 4). */
+	cfg.control_enabled = api_ctl_enabled();
+	cfg.granted = opt_api_remote
+	              ? ( cfg.control_enabled ? API_PRIV_CONTROL : API_PRIV_WRITE )
+	              : API_PRIV_READ;
+	cfg.miner_json = miner_json;
+
+	api_http_serve_prefixed((int) c, prefix, prefixlen, routes, nroutes,
+		&ctx, &cfg);
+
+	free(miner_json);
+
+	/* /quit only sets a flag, so its 200 is on the wire before the miner is
+	 * told to stop (docs/api-rest.md section 6.10). */
+	if (ctx.quit_requested)
+		bye = 1;
+}
+
+/* Extra listener for --api-http-port, kept separate from the main bind block
+ * below and its 61-second retry loop. INVSOCK on failure: keep mining on the
+ * single sniffing port rather than refuse to start. */
+static SOCKETTYPE open_extra_listener(const char *addr, unsigned short port)
+{
+	struct sockaddr_in serv;
+	SOCKETTYPE s = socket(AF_INET, SOCK_STREAM, 0);
+	int optval = 1;
+
+	if (s == INVSOCK)
+		return INVSOCK;
+
+	memset(&serv, 0, sizeof(serv));
+	serv.sin_family = AF_INET;
+	serv.sin_addr.s_addr = inet_addr(addr);
+	serv.sin_port = htons(port);
+#ifndef WIN32
+	setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (void *)(&optval), sizeof(optval));
+#endif
+	if (SOCKETFAIL(bind(s, (struct sockaddr *)(&serv), sizeof(serv)))
+	 || SOCKETFAIL(listen(s, QUEUE))) {
+		applog(LOG_WARNING, "REST API port %d unavailable (%s) - "
+			"falling back to protocol sniffing on port %d",
+			port, strerror(errno), (int) opt_api_listen);
+		CLOSESOCKET(s);
+		return INVSOCK;
+	}
+	return s;
+}
+
 static void api()
 {
 	const char *addr = opt_api_allow;
@@ -537,8 +763,13 @@ static void api()
 	char *result;
 	char *params;
 	int i;
+	bool serve_http = false;
 
 	SOCKETTYPE *apisock;
+	/* Optional HTTP-only listener (--api-http-port), and whichever of the two
+	 * a given connection arrived on. */
+	SOCKETTYPE httpsock = INVSOCK;
+	SOCKETTYPE listener;
 	if (!opt_api_listen && opt_debug) {
 		applog(LOG_DEBUG, "API disabled");
 		return;
@@ -548,6 +779,15 @@ static void api()
 		setup_ipaccess();
 		if (ips == 0) {
 			applog(LOG_WARNING, "API not running (no valid IPs specified)%s", UNAVAILABLE);
+		}
+		/* A specific bind address is also the only one accepted, which reads
+		 * as a dead API from every other host. */
+		else if (strcmp(opt_api_allow, ALLIP4) != 0
+		         && strcmp(opt_api_allow, localaddr) != 0) {
+			applog(LOG_WARNING, "API bound to %s, which is also the only "
+			                    "address accepted -- use --api-bind 0.0.0.0:%d "
+			                    "to accept the network", opt_api_allow,
+			                    (int) opt_api_listen);
 		}
 	}
 
@@ -619,18 +859,64 @@ static void api()
 
 	buffer = (char *) calloc(1, MYBUFSIZ + 1);
 
+	/* A second listener that speaks HTTP and nothing else, so a deployment
+	 * need not rely on sniffing. Only meaningful in `both` mode: in `http`
+	 * mode the main port is already HTTP-only. */
+	if (opt_api_http_port && opt_api_mode == API_MODE_BOTH)
+		httpsock = open_extra_listener(addr, (unsigned short) opt_api_http_port);
+
+	if (api_mode_serves_http()) {
+		applog(LOG_INFO, "REST API on http://%s:%d/api/v1/ (%s)", addr,
+			httpsock != INVSOCK ? opt_api_http_port : (int) port,
+			opt_api_token ? "token" : "no token");
+		/* The token is the only thing in front of /quit once --api-remote
+		 * is on, so say it out loud. */
+		if (opt_api_remote && !opt_api_token)
+			applog(LOG_WARNING, "REST API write access (--api-remote) is enabled "
+				"without --api-token");
+	} else if (opt_api_token || opt_api_cors || opt_api_http_port) {
+		applog(LOG_WARNING, "--api-token/--api-cors/--api-http-port ignored: "
+			"--api-mode is binary");
+	}
+
 	counter = 0;
 	while (bye == 0) {
+		bool http_only = false;
+		bool answered  = false;   /* the REST layer already replied */
 		counter++;
 
+		if (httpsock != INVSOCK) {
+			/* Two listeners, one thread: wait on both rather than block on
+			 * one while the other has a client queued. */
+			fd_set rd;
+			SOCKETTYPE hi = *apisock > httpsock ? *apisock : httpsock;
+			FD_ZERO(&rd);
+			FD_SET((int)*apisock, &rd);
+			FD_SET((int)httpsock, &rd);
+			if (select((int)hi + 1, &rd, NULL, NULL, NULL) < 0) {
+				if (errno == EINTR)
+					continue;
+				applog(LOG_ERR, "API select failed (%s)%s", strerror(errno),
+					UNAVAILABLE);
+				break;
+			}
+			listener = FD_ISSET((int)httpsock, &rd) ? httpsock : *apisock;
+			http_only = ( listener == httpsock );
+		}
+		else
+			listener = *apisock;
+
 		clisiz = sizeof(cli);
-		if (SOCKETFAIL(c = accept((SOCKETTYPE)*apisock, (struct sockaddr *)(&cli), &clisiz))) {
+		if (SOCKETFAIL(c = accept((SOCKETTYPE)listener, (struct sockaddr *)(&cli), &clisiz))) {
 			applog(LOG_ERR, "API failed (%s)%s", strerror(errno), UNAVAILABLE);
 			CLOSESOCKET(*apisock);
+			if (httpsock != INVSOCK) CLOSESOCKET(httpsock);
 			free(apisock);
 			free(buffer);
 			return;
 		}
+
+		set_sock_timeouts(c);
 
 		addrok = check_connect(&cli, &connectaddr, &group);
 		if (opt_debug && opt_protocol)
@@ -645,21 +931,69 @@ static void api()
 			fail = SOCKETFAIL(n);
 			if (fail)
 				buf[0] = '\0';
-			else if (n > 0 && buf[n-1] == '\n') {
-				/* telnet compat \r\n */
+			if (n >= 0)
+				buf[n] = '\0';
+
+			/* Decided on the RAW bytes, before anything else touches them.
+			 * --api-http-port moves REST to its own listener and the main port
+			 * goes back to binary: "instead of", not "as well as" (section 2). */
+			serve_http = !fail && n > 0
+			           && ( http_only
+			                || ( api_mode_serves_http() && httpsock == INVSOCK ) )
+			           && api_request_is_http(buf, n)
+			           && !api_request_is_ws_upgrade(buf, n);
+
+			if (serve_http) {
+				api_serve_http(c, buf, (size_t) n);
+					answered = true;
+			}
+			/* On an http-only port a binary command is a client error: answer
+			 * 400 rather than run it. WebSocket upgrades are exempt in every
+			 * mode, being a third protocol. */
+			else if (!fail && n > 0
+			      && !api_request_is_ws_upgrade(buf, n)
+			      && ( http_only
+			           || ( opt_api_mode == API_MODE_HTTP && httpsock == INVSOCK ) )) {
+				static const char body[] =
+					"{\"error\":{\"code\":\"bad_request\",\"message\":"
+					"\"this port speaks HTTP only (--api-mode)\",\"status\":400}}";
+				api_http_send((int) c, 400, NULL, body, sizeof(body) - 1, NULL);
+					answered = true;
+			}
+
+			if (!fail && !answered && n > 0 && buf[n-1] == '\n') {
+				/* telnet compat. Must run AFTER the dispatch above: it would
+				 * eat the "\r\n\r\n" ending an HTTP header block, and the
+				 * parser then waits forever -- GET hangs, POST with a body
+				 * does not. */
 				buf[n-1] = '\0'; n--;
 				if (n > 0 && buf[n-1] == '\r')
 					buf[n-1] = '\0';
-			}
-			if (n >= 0)
 				buf[n] = '\0';
+			}
 
 			//if (opt_debug && opt_protocol && n > 0)
 			//	applog(LOG_DEBUG, "API: recv command: (%d) '%s'+char(%x)", n, buf, buf[n-1]);
 
-			if (!fail) {
+			if (!fail && !answered) {
 				char *msg = NULL;
-				/* Websocket requests compat. */
+				/* Websocket compat runs a command lifted from the URL through the
+				 * legacy table, so `GET /quit` executes `quit` without reaching
+				 * the REST router's privilege or token check -- --api-token has
+				 * to cover it (section 4). Checked on the RAW buffer, before the
+				 * block below rewrites it. Upgrades only: a plain `summary|` is
+				 * the legacy protocol, which --api-mode leaves unchanged in
+				 * `binary` and `both`. */
+				if (n > 0 && api_request_is_ws_upgrade(buf, n)
+				    && !api_ws_token_ok(buf, n)) {
+					applog(LOG_WARNING, "API: websocket upgrade from %s refused"
+						" (missing or invalid token)", connectaddr);
+					api_send_early_error(c, 401, "missing or invalid token");
+					buf[0] = '\0';
+					n = 0;
+					answered = true;
+				}
+
 				if ((msg = strstr(buf, "GET /")) && strlen(msg) > 5) {
 					char cmd[256] = { 0 };
 					sscanf(&msg[5], "%s\n", cmd);
@@ -687,13 +1021,15 @@ static void api()
 				if (opt_debug && opt_protocol && n > 0)
 					applog(LOG_DEBUG, "API: exec command %s(%s)", buf, params);
 
+				bool matched = false;
 				for (i = 0; i < CMDMAX; i++) {
-					if (strcmp(buf, cmds[i].name) == 0) {
+					if (strcmp(buf, cmds[i].name) == 0 && strlen(buf)) {
 						if (params && strlen(params)) {
 							// remove possible trailing |
 							if (params[strlen(params) - 1] == '|')
 								params[strlen(params) - 1] = '\0';
 						}
+						matched = true;
 						result = (cmds[i].func)(params);
 						if (wskey) {
 							websocket_handshake(c, result, wskey);
@@ -703,12 +1039,27 @@ static void api()
 						break;
 					}
 				}
-				CLOSESOCKET(c);
+
+				/* Silence here is indistinguishable from a stall or a dead miner.
+				 * Same string as the sibling miner: one dashboard talks to both.
+				 * Not over a WebSocket, which expects a frame, and not when an earlier
+				 * gate already answered -- a refused upgrade sends 401 and must not be
+				 * followed by a second reply on the same socket. */
+				if (!matched && !wskey && !answered)
+					send_result(c, (char*) "ERR=unknown command|");
 			}
 		}
+
+		/* Every path, not just the one that answered: a rejected address or a
+		 * failed recv() used to leak the descriptor, and the timeout above
+		 * makes a failed recv routine. websocket_handshake() does not close,
+		 * so this is exactly one close per accept. */
+		CLOSESOCKET(c);
 	}
 
 	CLOSESOCKET(*apisock);
+	if (httpsock != INVSOCK)
+		CLOSESOCKET(httpsock);
 	free(apisock);
 	free(buffer);
 }
@@ -719,6 +1070,7 @@ void *api_thread(void *userdata)
 	struct thr_info *mythr = (struct thr_info*)userdata;
 
 	startup = time(NULL);
+	api_model_set_start_time(startup);
 	api();
 	tq_freeze(mythr->q);
 

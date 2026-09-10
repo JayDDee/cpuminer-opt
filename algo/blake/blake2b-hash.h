@@ -29,6 +29,11 @@ void blake2b_8x64_update( blake2b_8x64_ctx *ctx, const void *input,
                           size_t inlen );
 void blake2b_8x64_final( blake2b_8x64_ctx *ctx, void *out );
 
+// See the 4x64 pair below. digest_length other than 32, and a final emitting
+// all 8 state words (64 B per lane, still interleaved).
+int blake2b_8x64_init_len( blake2b_8x64_ctx *ctx, size_t outlen );
+void blake2b_8x64_final_full( blake2b_8x64_ctx *ctx, void *out );
+
 #endif
 
 #if defined(__AVX2__)
@@ -46,6 +51,11 @@ int blake2b_4x64_init( blake2b_4x64_ctx *ctx );
 void blake2b_4x64_update( blake2b_4x64_ctx *ctx, const void *input,
                           size_t inlen );
 void blake2b_4x64_final( blake2b_4x64_ctx *ctx, void *out );
+
+// digest_length other than 32, and a final that emits all 8 state words
+// (64 B per lane, still interleaved), as argon2's blake2b_long chain needs.
+int blake2b_4x64_init_len( blake2b_4x64_ctx *ctx, size_t outlen );
+void blake2b_4x64_final_full( blake2b_4x64_ctx *ctx, void *out );
 
 #endif
 

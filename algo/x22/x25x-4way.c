@@ -20,6 +20,7 @@
 #include "algo/shavite/sph_shavite.h"
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/fugue/fugue-aesni.h"
+#include "algo/fugue/fugue-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/tiger/sph_tiger.h"
 #include "algo/lyra2/lyra2.h"
@@ -73,6 +74,9 @@ union _x25x_8way_ctx_overlay
     simd_4way_context       simd;
     hamsi512_8x64_context   hamsi;
     hashState_fugue         fugue;
+    #if defined(FUGUE_4X128)
+    fugue512_4x128_context  fugue4;
+    #endif
     shabal512_8x32_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_8x64_context     sha512;
@@ -307,6 +311,12 @@ int x25x_8way_hash( void *output, const void *input, int thrid )
    dintrlv_8x64_512( hash0[11], hash1[11], hash2[11], hash3[11],
                      hash4[11], hash5[11], hash6[11], hash7[11], vhash );
    
+   #if defined(FUGUE_4X128)
+   fugue512_4x128_full( &ctx.fugue4, hash0[12], hash1[12], hash2[12], hash3[12],
+                                     hash0[11], hash1[11], hash2[11], hash3[11], 64 );
+   fugue512_4x128_full( &ctx.fugue4, hash4[12], hash5[12], hash6[12], hash7[12],
+                                     hash4[11], hash5[11], hash6[11], hash7[11], 64 );
+   #else
    fugue512_full( &ctx.fugue, hash0[12], hash0[11], 64 );
    fugue512_full( &ctx.fugue, hash1[12], hash1[11], 64 );
    fugue512_full( &ctx.fugue, hash2[12], hash2[11], 64 );
@@ -315,6 +325,7 @@ int x25x_8way_hash( void *output, const void *input, int thrid )
    fugue512_full( &ctx.fugue, hash5[12], hash5[11], 64 );
    fugue512_full( &ctx.fugue, hash6[12], hash6[11], 64 );
    fugue512_full( &ctx.fugue, hash7[12], hash7[11], 64 );
+   #endif
 
    intrlv_8x32_512( vhash, hash0[12], hash1[12], hash2[12], hash3[12],
                            hash4[12], hash5[12], hash6[12], hash7[12] );
@@ -623,6 +634,9 @@ union _x25x_4way_ctx_overlay
     simd_2way_context       simd;
     hamsi512_4x64_context   hamsi;
     hashState_fugue         fugue;
+    #if defined(FUGUE_2X128)
+    fugue512_2x128_context  fugue2;
+    #endif
     shabal512_4x32_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_4x64_context     sha512;
@@ -753,10 +767,17 @@ int x25x_4way_hash( void *output, const void *input, int thrid )
    hamsi512_4x64_close( &ctx.hamsi, vhash );
    dintrlv_4x64_512( hash0[11], hash1[11], hash2[11], hash3[11], vhash );
 
+   #if defined(FUGUE_2X128)
+   fugue512_2x128_full( &ctx.fugue2, hash0[12], hash1[12],
+                                     hash0[11], hash1[11], 64 );
+   fugue512_2x128_full( &ctx.fugue2, hash2[12], hash3[12],
+                                     hash2[11], hash3[11], 64 );
+   #else
    fugue512_full( &ctx.fugue, hash0[12], hash0[11], 64 );
    fugue512_full( &ctx.fugue, hash1[12], hash1[11], 64 );
    fugue512_full( &ctx.fugue, hash2[12], hash2[11], 64 );
    fugue512_full( &ctx.fugue, hash3[12], hash3[11], 64 );
+   #endif
 
    intrlv_4x32_512( vhash, hash0[12], hash1[12], hash2[12], hash3[12] );
 

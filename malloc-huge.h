@@ -20,5 +20,11 @@
 // Attempt to allocate memory backed by 2 MiB pages, returns NULL on failure.
 void *malloc_hugepages( size_t size );
 
+// Release a block from malloc_hugepages(). This is mmap'd memory, NOT malloc'd:
+// free() on it is undefined. Pass the ORIGINAL requested size, the page
+// rounding is repeated here. Callers must remember which allocator they got
+// their block from -- the pointer does not say.
+void free_hugepages( void *p, size_t size );
+
 #endif
 

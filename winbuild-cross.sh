@@ -3,129 +3,122 @@
 # Script for building Windows binaries release package using mingw.
 # Requires a custom mingw environment, not intended for users.
 #
-# Compiles Windows EXE files for selected CPU architectures, copies them
-# as well as some DLLs that aren't available in most Windows environments
+# Compiles Windows EXE files for selected CPU architectures and copies them
 # into a release folder ready to be zipped and uploaded.
+#
+# Builds are STATIC: the .exe imports only OS-provided DLLs, so nothing has to
+# be shipped alongside it.
+#
+# Usage:
+#   ./winbuild-cross.sh              build every target
+#   ./winbuild-cross.sh avx512-sha-vaes   build just one (name as in release/)
+#
+# Prerequisites, once:
+#   - mingw-w64 cross toolchain
+#   - libcurl cross-built static into $LOCAL_LIB/curl
+#     (--with-schannel --with-zlib --disable-shared -> Windows-native TLS,
+#      so there is no OpenSSL DLL to ship)
+#   - GMP cross-built into $LOCAL_LIB/gmp (-lgmp is unconditional in
+#     Makefile.am; no distro ships a mingw build of it)
 
-# define some local variables
+set -u
 
-export LOCAL_LIB="$HOME/usr/lib"
-export CONFIGURE_ARGS="--with-curl=$LOCAL_LIB/curl --host=x86_64-w64-mingw32"
-export MINGW_LIB="/usr/x86_64-w64-mingw32/lib"
-# set correct gcc version
-export GCC_MINGW_LIB="/usr/lib/gcc/x86_64-w64-mingw32/9.3-win32"
-# used by GCC
-export LDFLAGS="-L$LOCAL_LIB/curl/lib/.libs -L$LOCAL_LIB/gmp/.libs"
-export DEFAULT_CFLAGS="-maes -O3 -Wall"
-export DEFAULT_CFLAGS_OLD="-O3 -Wall"
+# Overridable so the cross-deps can live somewhere a home tidy-up will not eat
+# them, e.g. LOCAL_LIB=~/cpuminer-opt/winbuild/lib. Default unchanged.
+export LOCAL_LIB="${LOCAL_LIB:-$HOME/usr/lib}"
+export CURL_PREFIX="$LOCAL_LIB/curl"
+CROSS=x86_64-w64-mingw32
 
-# make link to local gmp header file.
-ln -s $LOCAL_LIB/gmp/gmp.h ./gmp.h
+# ---------------------------------------------------------------- toolchain
+#
+# --build is MANDATORY under WSL. Interop lets Linux execute the .exe that
+# configure just built, so autoconf concludes it is NOT cross compiling and
+# then fails in confusing ways. build-armv8.sh passes --build for the same
+# reason.
+export CONFIGURE_ARGS="--with-curl=$CURL_PREFIX --host=$CROSS --build=x86_64-pc-linux-gnu"
 
-# make release directory and copy selected DLLs.
+# libcurl here is static, so curl.h must NOT declare its symbols dllimport.
+# Without -DCURL_STATICLIB the link dies on undefined __imp_curl_easy_init and
+# friends -- that error means this flag is missing, nothing else.
+#
+# -I$LOCAL_LIB/gmp picks up the cross-built gmp.h (m7m needs GMP).
+export DEFAULT_CFLAGS="-maes -O3 -Wall -DCURL_STATICLIB -I$LOCAL_LIB/gmp"
+export DEFAULT_CFLAGS_OLD="-O3 -Wall -DCURL_STATICLIB -I$LOCAL_LIB/gmp"
 
-rm -rf release > /dev/null
-mkdir release
+# -static, or the .exe needs zlib1.dll, libwinpthread-1.dll and
+# libgcc_s_seh-1.dll, none of which a stock Windows has. Linking them in costs
+# ~65 KB and removes the whole shipping problem.
+export LDFLAGS="-static -L$LOCAL_LIB/gmp/.libs"
 
-cp README.txt release/
-cp README.md release/
-cp RELEASE_NOTES release/
-cp verthash-help.txt release/
-cp $MINGW_LIB/zlib1.dll release/
-cp $MINGW_LIB/libwinpthread-1.dll release/
-cp $GCC_MINGW_LIB/libstdc++-6.dll release/
-cp $GCC_MINGW_LIB/libgcc_s_seh-1.dll release/
-cp $LOCAL_LIB/curl/lib/.libs/libcurl-4.dll release/
+# A static libcurl does not pull its own dependencies, so name them. Ask
+# curl-config rather than hardcoding: the set depends on how curl was built
+# (schannel vs openssl, zlib or not).
+#   -> -lsecur32 -lbcrypt -ladvapi32 -lcrypt32 -lz -lws2_32 -liphlpapi
+if [ -x "$CURL_PREFIX/bin/curl-config" ]; then
+   export LIBS="$( "$CURL_PREFIX/bin/curl-config" --static-libs \
+                   | sed 's|[^ ]*libcurl\.a||' )"
+else
+   echo "ERROR: $CURL_PREFIX/bin/curl-config not found." >&2
+   echo "       Cross-build a static libcurl into $CURL_PREFIX first:" >&2
+   echo "       ./configure --host=$CROSS --build=x86_64-pc-linux-gnu \\" >&2
+   echo "                   --with-schannel --with-zlib --disable-shared" >&2
+   exit 1
+fi
 
-# Start building...
+# ------------------------------------------------------------------- build
+
+TARGET="${1:-all}"
+JOBS="${JOBS:-$(nproc)}"        # JOBS=4 to leave the box usable while building
+
+mkdir -p release
+cp README.txt README.md RELEASE_NOTES verthash-help.txt release/
+
+# $1 = release name, $2 = -march/-mtune flags, $3 = flag set
+build() {
+   local name="$1" arch="$2" base="$3"
+
+   if [ "$TARGET" != "all" ] && [ "$TARGET" != "$name" ]; then
+      return 0
+   fi
+   echo "=== building cpuminer-$name"
+
+   make distclean > /dev/null 2>&1 || true
+   rm -f config.status
+   CFLAGS="$arch $base" ./configure $CONFIGURE_ARGS > /dev/null || return 1
+   make -j"$JOBS" || return 1
+   $CROSS-strip -s cpuminer.exe          # host strip cannot handle PE
+   mv cpuminer.exe "release/cpuminer-$name.exe"
+}
+
+./autogen.sh || echo done
 
 # AVX512 SHA VAES: Intel Core Icelake, Rocketlake
-./clean-all.sh || echo clean
-rm -f config.status
-./autogen.sh || echo done
-CFLAGS="-march=icelake-client $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
-make -j 8
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-avx512-sha-vaes.exe
-
-# AVX512 AES: Intel Core HEDT Slylake-X, Cascadelake 
-make clean || echo clean
-rm -f config.status
-CFLAGS="-march=skylake-avx512 $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
-make -j 8
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-avx512.exe
-
+build avx512-sha-vaes "-march=icelake-client" "$DEFAULT_CFLAGS"
+# AVX512 AES: Intel Core HEDT Skylake-X, Cascadelake
+build avx512          "-march=skylake-avx512" "$DEFAULT_CFLAGS"
 # AVX2 SHA VAES: Intel Alderlake, AMD Zen3
-make clean || echo done
-rm -f config.status
-CFLAGS="-mavx2 -msha -mvaes $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
-make -j 8
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-avx2-sha-vaes.exe
-
+build avx2-sha-vaes   "-mavx2 -msha -mvaes"   "$DEFAULT_CFLAGS"
 # AVX2 AES SHA: AMD Zen1
-make clean || echo clean
-rm -f config.status
-CFLAGS="-march=znver1 $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
-make -j 8
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-avx2-sha.exe
-
+build avx2-sha        "-march=znver1"         "$DEFAULT_CFLAGS"
 # AVX2 AES: Intel Core Haswell, Skylake, Kabylake, Coffeelake, Cometlake
-make clean || echo clean
-rm -f config.status
-CFLAGS="-march=core-avx2 $DEFAULT_CFLAGS" ./configure $CONFIGURE_ARGS
-make -j 8
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-avx2.exe
-
+build avx2            "-march=core-avx2"      "$DEFAULT_CFLAGS"
 # AVX AES: Intel Sandybridge, Ivybridge
-make clean || echo clean
-rm -f config.status
-CFLAGS="-march=corei7-avx -maes $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS 
-make -j 8
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-avx.exe
-
+build avx             "-march=corei7-avx -maes" "$DEFAULT_CFLAGS_OLD"
 # SSE4.2 AES: Intel Westmere
-make clean || echo clean
-rm -f config.status
-CFLAGS="-march=westmere -maes $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
-make -j 8
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-aes-sse42.exe
-
-# Nehalem SSE4.2
-#make clean || echo clean
-#rm -f config.status
-#CFLAGS="$DEFAULT_CFLAGS_OLD -march=corei7" ./configure $CONFIGURE_ARGS
-#make 
-#strip -s cpuminer.exe
-#mv cpuminer.exe release/cpuminer-sse42.exe
-
-# Core2 SSSE3
-#make clean || echo clean
-#rm -f config.status
-#CFLAGS="$DEFAULT_CFLAGS_OLD -march=core2" ./configure $CONFIGURE_ARGS
-#make 
-#strip -s cpuminer.exe
-#mv cpuminer.exe release/cpuminer-ssse3.exe
-#make clean || echo clean
-
+build aes-sse42       "-march=westmere -maes" "$DEFAULT_CFLAGS_OLD"
 # Generic SSE2
-make clean || echo clean
-rm -f config.status
-CFLAGS="-msse2 $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
-make -j 8
-strip -s cpuminer.exe
-mv cpuminer.exe release/cpuminer-sse2.exe
-#make clean || echo clean
+build sse2            "-msse2"                "$DEFAULT_CFLAGS_OLD"
 
-# Native with CPU groups ennabled
-#make clean || echo clean
-#rm -f config.status
-#CFLAGS="-march=native $DEFAULT_CFLAGS_OLD" ./configure $CONFIGURE_ARGS
-#make -j 8
-#strip -s cpuminer.exe
+echo
+echo "=== release/"
+ls -l release/*.exe 2>/dev/null
 
+# Verify a build the way a user would run it: with a stripped PATH. Git Bash
+# ships its own zlib1.dll in mingw64/bin, so a dynamically-linked .exe runs
+# fine from a developer prompt and fails for everyone else.
+#
+#   env -i PATH="C:\\Windows\\System32" SYSTEMROOT="C:\\Windows" \
+#       ./cpuminer.exe -a curvehash --benchmark -t 2
+#
+# With -static the only imports should be OS-provided:
+#   ADVAPI32 bcrypt CRYPT32 IPHLPAPI KERNEL32 msvcrt Secur32 USER32 WS2_32

@@ -1,0 +1,1071 @@
+openapi: 3.1.0
+
+# Machine-readable form of docs/api-rest.md. That document is the authority;
+# this file must not add, rename or contradict anything in it. Both files are
+# byte-identical in the GPU and CPU miner repositories; keeping them so is a
+# maintainer process and needs no action from a consumer of this file.
+#
+# Status: specification. Read the capability list from `GET /api/v1/` to learn
+# what a given miner and configuration actually serve — implementations are
+# expected to answer `501` for the rest rather than hide the route.
+#
+# `/metrics` is Prometheus text exposition, so only its media type is described
+# here; the metric names, types and labels live in the Markdown reference
+# because OpenAPI cannot express them.
+
+info:
+  title: Miner REST API
+  version: "1.0"
+  summary: One control and monitoring contract implemented by a GPU miner and a CPU miner.
+  description: |
+    Identical paths, verbs, field names and error model on both miners. Where one
+    cannot serve a resource it answers `501 not_implemented` on the same path
+    rather than `404`, so a client sees a capability flip and never a route
+    appearing or disappearing.
+
+    Clients branch on `miner.kind` (`gpu` / `cpu`) and on the capability list
+    from `GET /api/v1/`. `miner.name` is a free-form identifier and must not be
+    used for capability decisions.
+  license:
+    name: GPL-3.0-or-later
+
+servers:
+  - url: http://{host}:{port}
+    variables:
+      host: { default: "127.0.0.1" }
+      port: { default: "4068" }
+
+security:
+  - bearerAuth: []
+  - {}          # no token required when --api-token is unset
+
+tags:
+  - name: discovery
+  - name: read
+  - name: write
+  - name: control
+  - name: metrics
+
+paths:
+  /api/v1/:
+    get:
+      tags: [discovery]
+      operationId: getIndex
+      summary: Capability discovery — the only endpoint a client should hardcode.
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: Miner identity and the capabilities this build serves.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [index]
+                    properties:
+                      index: { $ref: '#/components/schemas/Index' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/summary:
+    get:
+      tags: [read]
+      operationId: getSummary
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: Aggregate miner state.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [summary]
+                    properties:
+                      summary: "{ $ref: '#/components/schemas/Summary' }"
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/threads:
+    get:
+      tags: [read]
+      operationId: getThreads
+      parameters:
+        - name: id
+          in: query
+          description: Restrict the reply to one thread.
+          schema: { type: integer, minimum: 0 }
+        - $ref: '#/components/parameters/pretty'
+      responses:
+        '200':
+          description: One entry per mining thread.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [threads]
+                    properties:
+                      threads:
+                        type: array
+                        items: { $ref: '#/components/schemas/Thread' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/devices:
+    get:
+      tags: [read]
+      operationId: getDevices
+      description: |
+        The expensive route — it queries the vendor telemetry libraries. Poll
+        `/summary` or `/health` instead when only rates are needed.
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: One entry per device. A `cpu` miner returns exactly one.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [devices]
+                    properties:
+                      devices:
+                        type: array
+                        items: { $ref: '#/components/schemas/Device' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/devices/{id}:
+    get:
+      tags: [read]
+      operationId: getDevice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 0 }
+        - $ref: '#/components/parameters/pretty'
+      responses:
+        '200':
+          description: One device.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [device]
+                    properties:
+                      device: { $ref: '#/components/schemas/Device' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/system:
+    get:
+      tags: [read]
+      operationId: getSystem
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: Host and driver information.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [system]
+                    properties:
+                      system: { $ref: '#/components/schemas/System' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/pools:
+    get:
+      tags: [read]
+      operationId: getPools
+      parameters:
+        - name: index
+          in: query
+          description: Alias for `/pools/{n}`.
+          schema: { type: integer, minimum: 0 }
+        - $ref: '#/components/parameters/pretty'
+      responses:
+        '200':
+          description: |
+            Pool array. On a `cpu` miner the array always has length 1, so only
+            index `0` exists. Passwords are never returned.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [pools]
+                    properties:
+                      pools:
+                        type: array
+                        items: { $ref: '#/components/schemas/Pool' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/pools/{n}:
+    get:
+      tags: [read]
+      operationId: getPool
+      parameters:
+        - name: n
+          in: path
+          required: true
+          schema: { type: integer, minimum: 0 }
+        - $ref: '#/components/parameters/pretty'
+      responses:
+        '200':
+          description: One pool.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [pool]
+                    properties:
+                      pool: { $ref: '#/components/schemas/Pool' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/health:
+    get:
+      tags: [read]
+      operationId: getHealth
+      description: |
+        Cheap enough to poll every 5 s — no vendor telemetry calls. A
+        deliberately stopped miner is `200` with `mining: false`; a
+        manager-initiated stop is not a fault.
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: Healthy.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [health]
+                    properties:
+                      health: { $ref: '#/components/schemas/Health' }
+        '503':
+          description: Degraded — `status` is `degraded` and `reasons` is populated.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [health]
+                    properties:
+                      health: { $ref: '#/components/schemas/Health' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/history:
+    get:
+      tags: [read]
+      operationId: getHistory
+      description: Scan records per thread. `501` on a `cpu` miner.
+      parameters:
+        - name: thread
+          in: query
+          schema: { type: integer, minimum: 0 }
+        - name: limit
+          in: query
+          description: Capped at 50.
+          schema: { type: integer, minimum: 1, maximum: 50, default: 50 }
+        - $ref: '#/components/parameters/pretty'
+      responses:
+        '200':
+          description: Scan history.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [history]
+                    properties:
+                      history:
+                        type: array
+                        items: { $ref: '#/components/schemas/HistoryRecord' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
+
+  /api/v1/scanlog:
+    get:
+      tags: [read]
+      operationId: getScanlog
+      description: Debug builds only. `501` on a `cpu` miner.
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: Hash log.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [scanlog]
+                    properties:
+                      scanlog:
+                        type: array
+                        items: { $ref: '#/components/schemas/ScanlogRecord' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
+
+  /api/v1/meminfo:
+    get:
+      tags: [read]
+      operationId: getMeminfo
+      description: The miner's own bookkeeping allocations. `501` on a `cpu` miner.
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: Memory bookkeeping.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [meminfo]
+                    properties:
+                      meminfo: { $ref: '#/components/schemas/Meminfo' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
+
+  /api/v1/config:
+    get:
+      tags: [read]
+      operationId: getConfig
+      description: |
+        Effective options after config file and command line, with credentials
+        masked (`user`, `pass`, and any userinfo inside a URL).
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: Effective configuration.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [config]
+                    properties:
+                      config: { type: object }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/algos:
+    get:
+      tags: [read]
+      operationId: getAlgos
+      description: |
+        The authoritative, machine-readable list of algorithms this build can
+        switch to and the parameters each accepts. Do not hardcode it: it
+        differs between miners and between builds.
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: Supported algorithms.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [algos]
+                    properties:
+                      algos:
+                        type: array
+                        items: { $ref: '#/components/schemas/Algo' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/pools/switch:
+    post:
+      tags: [write]
+      operationId: switchPool
+      description: Requires write privilege. `501` on a `cpu` miner by design — it has no pool array.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              oneOf:
+                - required: [index]
+                - required: [next]
+              properties:
+                index: { type: integer, minimum: 0 }
+                next: { type: boolean }
+      responses:
+        '200':
+          description: Switched.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [result]
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          ok: { type: boolean }
+                          active: { type: integer }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
+
+  /api/v1/pools/url:
+    post:
+      tags: [write]
+      operationId: setPoolUrl
+      description: |
+        The handler assembles whatever internal form the miner needs, so clients
+        never build a packed string.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:  { type: string, examples: ["stratum+tcp://host:3333"] }
+                user: { type: string }
+                pass: { type: string }
+      responses:
+        '200':
+          description: Applied.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [result]
+                    properties:
+                      result: { type: object, properties: { ok: { type: boolean } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+
+  /api/v1/quit:
+    post:
+      tags: [write]
+      operationId: quit
+      description: |
+        Terminates the process. The `200` is flushed before the shutdown flag is
+        acted on. This is not a stop verb — nothing can restart the miner
+        afterwards; use `/control/stop` for a reversible stop.
+      responses:
+        '200':
+          description: Shutting down.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [result]
+                    properties:
+                      result: { type: object, properties: { ok: { type: boolean } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/control/state:
+    get:
+      tags: [control]
+      operationId: getControlState
+      description: Read privilege — a manager is expected to poll this.
+      parameters: [{ $ref: '#/components/parameters/pretty' }]
+      responses:
+        '200':
+          description: Current control state.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [control]
+                    properties:
+                      control: { $ref: '#/components/schemas/ControlState' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/control/start:
+    post:
+      tags: [control]
+      operationId: controlStart
+      description: |
+        From `stopped` this reconnects, re-subscribes and re-authorises, so it
+        takes seconds and can fail. Returns when the state flag is set, not when
+        hashing has ramped up.
+      requestBody: { $ref: '#/components/requestBodies/WaitMs' }
+      responses:
+        '200': { $ref: '#/components/responses/ControlResult' }
+        '202': { $ref: '#/components/responses/ControlAccepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/v1/control/pause:
+    post:
+      tags: [control]
+      operationId: controlPause
+      description: Frees device resources and keeps the pool connection alive.
+      requestBody: { $ref: '#/components/requestBodies/WaitMs' }
+      responses:
+        '200': { $ref: '#/components/responses/ControlResult' }
+        '202': { $ref: '#/components/responses/ControlAccepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/v1/control/stop:
+    post:
+      tags: [control]
+      operationId: controlStop
+      description: |
+        As `pause`, and additionally drops the pool connection. Deliberate stops
+        are not counted as pool faults.
+      requestBody: { $ref: '#/components/requestBodies/WaitMs' }
+      responses:
+        '200': { $ref: '#/components/responses/ControlResult' }
+        '202': { $ref: '#/components/responses/ControlAccepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/v1/control/profile:
+    post:
+      tags: [control]
+      operationId: controlProfile
+      description: |
+        One atomic change of algorithm, parameters, pool and run state. If any
+        step fails, all are rolled back and the response is `409`; a
+        half-switched miner is never a possible outcome.
+
+        `algo` and `pool` must be sent together — an `algo` without a `pool` is
+        `400`, because mining algorithm X against a pool expecting Y produces
+        100% rejected shares while every other metric looks healthy.
+
+        Legal bodies: `algo`+`pool` (± `params`, `run`); `pool` alone to
+        re-target the same algorithm; `params` alone to retune; `run` alone as a
+        synonym for start/pause.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfileRequest' }
+      responses:
+        '200':
+          description: Applied. Body is the resulting `/control/state`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [control]
+                    properties:
+                      control: { $ref: '#/components/schemas/ControlState' }
+        '202':
+          description: |
+            Accepted but not complete — a slow parameter could not finish inside
+            `wait_ms`. Poll `/control/state` until `state` leaves `switching`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [control]
+                    properties:
+                      control: { $ref: '#/components/schemas/ControlState' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /metrics:
+    get:
+      tags: [metrics]
+      operationId: getMetrics
+      description: |
+        Prometheus text exposition. Read privilege; when `--api-token` is set it
+        is required here too. Metric names, types and labels are documented in
+        docs/api-rest.md — OpenAPI cannot express them.
+      responses:
+        '200':
+          description: Prometheus exposition format.
+          content:
+            text/plain:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Set with `--api-token`. When set it is required on every route, reads and
+        `/metrics` included — hashrate and pool identity are exactly what an
+        intruder would want.
+
+  parameters:
+    pretty:
+      name: pretty
+      in: query
+      required: false
+      description: Indent the JSON response.
+      schema: { type: integer, enum: [1] }
+
+  requestBodies:
+    WaitMs:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              wait_ms: { type: integer, minimum: 0, examples: [10000] }
+
+  responses:
+    ControlResult:
+      description: The resulting control state.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                required: [result]
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      state:  { $ref: '#/components/schemas/ControlStateName' }
+                      epoch:  { type: integer }
+                      parked: { type: integer }
+    ControlAccepted:
+      description: |
+        Accepted but not complete within `wait_ms`. The mutation is still
+        running; poll `/control/state` until `state` leaves `switching`, then
+        read `epoch` (advanced = applied) and `last_error`. `wait_ms: 0`
+        always takes this path.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                required: [result]
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      state:  { $ref: '#/components/schemas/ControlStateName' }
+                      epoch:  { type: integer }
+                      parked: { type: integer }
+                      poll:
+                        type: string
+                        description: Path to poll, supplied so a client need not build it.
+    BadRequest:
+      description: Malformed path, query or body; wrong JSON type; missing required field.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    Unauthorized:
+      description: "Missing or incorrect token. Carries `WWW-Authenticate: Bearer`."
+      headers:
+        WWW-Authenticate:
+          schema: { type: string }
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    Forbidden:
+      description: Unprivileged source, or a `/control/*` route without `--api-control`.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    NotFound:
+      description: Unknown route, or index out of range.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    MethodNotAllowed:
+      description: Known path, wrong verb. Carries `Allow`.
+      headers:
+        Allow:
+          schema: { type: string }
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    Conflict:
+      description: A control mutation is already in progress, or one could not complete.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    PayloadTooLarge:
+      description: Body over 8 KiB.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    TooManyRequests:
+      description: Control mutation inside `--api-control-min-interval`.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    NotImplemented:
+      description: This miner cannot serve this route.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+    InternalError:
+      description: Handler failure.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } }
+
+  schemas:
+
+    Miner:
+      type: object
+      description: Present on every response, including errors.
+      required: [name, version, api_version, kind]
+      properties:
+        name:
+          type: string
+          description: |
+            Free-form implementation identifier, for logs and dashboards only.
+            Never branch on it — branch on `kind`.
+        version:     { type: string }
+        api_version: { type: string, description: "Contract revision, not the miner version.", examples: ["1.0"] }
+        kind:        { type: string, enum: [gpu, cpu] }
+
+    Envelope:
+      type: object
+      required: [miner]
+      properties:
+        miner: { $ref: '#/components/schemas/Miner' }
+
+    Error:
+      type: object
+      required: [code, message, status]
+      properties:
+        code:
+          type: string
+          description: Stable machine-readable code. Clients branch on this, never on `message`.
+          enum: [bad_request, unauthorized, forbidden, not_found, method_not_allowed,
+                 conflict, payload_too_large, too_many_requests, not_implemented, internal_error]
+        message: { type: string, description: Human-readable prose. Not stable. }
+        status:  { type: integer }
+
+    ErrorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          required: [error]
+          properties:
+            error: { $ref: '#/components/schemas/Error' }
+
+    Index:
+      type: object
+      required: [capabilities, links]
+      properties:
+        capabilities:
+          type: array
+          description: |
+            Derived from the server's route table and the `--api-control` gate,
+            so it cannot drift from actual behaviour. A capability absent here
+            answers `501` (or `403` for control) if called.
+          items: { type: string }
+        links:
+          type: object
+          additionalProperties: { type: string }
+
+    Shares:
+      type: object
+      properties:
+        accepted:         { type: [integer, "null"] }
+        rejected:         { type: [integer, "null"] }
+        stale:            { type: [integer, "null"] }
+        solved:           { type: [integer, "null"] }
+        accepted_per_min: { type: [number, "null"] }
+
+    Summary:
+      type: object
+      properties:
+        algo:            { type: string }
+        uptime_s:        { type: integer }
+        timestamp:       { type: integer, description: Unix seconds. }
+        hashrate_hs:     { type: [number, "null"] }
+        hashrate_avg_hs: { type: [number, "null"] }
+        devices:         { type: integer, description: "GPU count when kind is gpu, CPU count when cpu." }
+        threads:         { type: integer }
+        shares:          { $ref: '#/components/schemas/Shares' }
+        difficulty:
+          type: object
+          properties:
+            pool:       { type: [number, "null"] }
+            network:    { type: [number, "null"] }
+            best_share: { type: [number, "null"] }
+        network:
+          type: object
+          properties:
+            hashrate_hs: { type: [number, "null"] }
+        pools:
+          type: object
+          properties:
+            count:       { type: integer }
+            active:      { type: integer }
+            wait_time_s: { type: [integer, "null"] }
+
+    Thread:
+      type: object
+      properties:
+        id:          { type: integer }
+        device_id:   { type: integer, description: Indexes into /devices. }
+        hashrate_hs: { type: [number, "null"] }
+        accepted:    { type: [integer, "null"], description: "null on a cpu miner until per-thread accounting lands." }
+        rejected:    { type: [integer, "null"] }
+        hw_errors:   { type: [integer, "null"] }
+        intensity:   { type: [number, "null"], description: "GPU launch intensity; null on a cpu miner." }
+        throughput:  { type: [integer, "null"], description: "null on a cpu miner." }
+
+    Device:
+      type: object
+      description: |
+        A common shell plus exactly one typed sub-object. Clients must tolerate
+        either sub-object being absent.
+      properties:
+        id:                     { type: integer }
+        type:                   { type: string, enum: [gpu, cpu] }
+        name:                   { type: string }
+        temp_c:                 { type: [number, "null"] }
+        fan_pct:                { type: [integer, "null"] }
+        fan_rpm:                { type: [integer, "null"] }
+        clock_mhz:              { type: [integer, "null"] }
+        mem_clock_mhz:          { type: [integer, "null"] }
+        power_mw:               { type: [integer, "null"] }
+        power_limit_mw:         { type: [integer, "null"] }
+        hashrate_hs:            { type: [number, "null"] }
+        hashrate_per_watt_khs:  { type: [number, "null"] }
+        gpu:
+          type: object
+          properties:
+            bus_id:              { type: [integer, "null"] }
+            sm:                  { type: [integer, "null"], description: Compute capability x10. }
+            mem_bytes:           { type: [integer, "null"] }
+            pstate:              { type: [string, "null"] }
+            base_clock_mhz:      { type: [integer, "null"] }
+            base_mem_clock_mhz:  { type: [integer, "null"] }
+            vendor_id:           { type: [string, "null"] }
+            device_id:           { type: [string, "null"] }
+            serial:              { type: [string, "null"] }
+            bios:                { type: [string, "null"] }
+            nvml_id:             { type: [integer, "null"] }
+            nvapi_id:            { type: [integer, "null"] }
+            monitoring:          { type: [boolean, "null"] }
+        cpu:
+          type: object
+          properties:
+            cores:    { type: [integer, "null"] }
+            threads:  { type: [integer, "null"] }
+            features:
+              type: [array, "null"]
+              items: { type: string }
+              description: |
+                Instruction-set features, one per element. An array rather than
+                a delimited string so a client never has to guess a separator.
+
+    System:
+      type: object
+      properties:
+        os:            { type: string }
+        driver:        { type: [string, "null"], description: "GPU driver version on a gpu miner, null on a cpu miner." }
+        cpus:          { type: [integer, "null"] }
+        cpu_temp_c:    { type: [number, "null"] }
+        cpu_clock_mhz: { type: [integer, "null"] }
+        cpu_fan_pct:   { type: [integer, "null"], description: "null where no CPU fan sensor is implemented." }
+
+    Pool:
+      type: object
+      description: The password is never returned by any endpoint.
+      properties:
+        index:            { type: integer }
+        active:           { type: boolean }
+        name:             { type: [string, "null"] }
+        url:              { type: [string, "null"] }
+        user:             { type: [string, "null"] }
+        algo:             { type: [string, "null"] }
+        shares:           { $ref: '#/components/schemas/Shares' }
+        type:             { type: string, enum: [stratum, getwork] }
+        status:           { type: string, enum: [connected, disconnected] }
+        stale:            { type: [integer, "null"], description: "null on a cpu miner." }
+        difficulty:       { type: [number, "null"] }
+        best_share:       { type: [number, "null"] }
+        job:
+          type: object
+          description: Current stratum job. The binary API exposed these as JOB/H/N2SZ/N2.
+          properties:
+            id:               { type: [string, "null"] }
+            height:           { type: [integer, "null"] }
+            extranonce2_size: { type: integer }
+            extranonce2:      { type: [string, "null"] }
+        ping_ms:          { type: [integer, "null"] }
+        disconnects:      { type: [integer, "null"] }
+        wait_time_s:      { type: [integer, "null"] }
+        session_s:        { type: [integer, "null"] }
+        last_share_age_s: { type: [integer, "null"] }
+
+    Health:
+      type: object
+      properties:
+        status:         { type: string, enum: [ok, degraded] }
+        mining:         { type: boolean }
+        pool_connected: { type: [boolean, "null"] }
+        devices_ok:     { type: integer }
+        reasons:
+          type: array
+          items: { type: string }
+
+    AlgoParam:
+      type: object
+      required: [name, type, tier]
+      properties:
+        name: { type: string }
+        type:
+          type: string
+          enum: [int, string, int_list, float_list]
+          description: |
+            The list types are comma-separated and positional, one entry per
+            device; a single value applies to every device.
+        tier:
+          type: string
+          enum: [fast, slow]
+          description: |
+            A slow parameter cannot complete inside a request; the mutation
+            answers `202` and the client polls `/control/state`.
+
+    Algo:
+      type: object
+      required: [name, params]
+      properties:
+        name: { type: string }
+        params:
+          type: array
+          items: { $ref: '#/components/schemas/AlgoParam' }
+
+    HistoryRecord:
+      type: object
+      description: One scan record. hashrate_hs is H/s; the binary API reported kH/s.
+      properties:
+        thread_id:   { type: integer }
+        device_id:   { type: integer }
+        height:      { type: integer }
+        hashrate_hs: { type: number }
+        difficulty:  { type: number }
+        hashcount:   { type: integer }
+        found:       { type: boolean }
+        id:          { type: integer, description: Monotonic record id. }
+        timestamp:   { type: integer }
+
+    ScanlogRecord:
+      type: object
+      description: One entry of the nonce-range hash log. Debug builds only.
+      properties:
+        height:        { type: integer }
+        pool_index:    { type: integer }
+        job_id:        { type: integer }
+        nonce_id:      { type: integer }
+        share_diff:    { type: number }
+        nonce:         { type: integer }
+        scanned_from:  { type: integer }
+        scanned_to:    { type: integer }
+        scanned_count: { type: integer }
+        submitted:     { type: boolean }
+        timestamp:     { type: integer }
+
+    Meminfo:
+      type: object
+      description: The miner's own bookkeeping allocations, not device or process memory.
+      properties:
+        stats_records:   { type: integer }
+        stats_bytes:     { type: integer }
+        hashlog_records: { type: integer }
+        hashlog_bytes:   { type: integer }
+        total_bytes:     { type: integer }
+
+    ControlStateName:
+      type: string
+      enum: [running, paused, stopped, switching]
+
+    ControlState:
+      type: object
+      properties:
+        state:  { $ref: '#/components/schemas/ControlStateName' }
+        epoch:
+          type: integer
+          description: |
+            Increments once per accepted mutation. The reliable way to tell "my
+            change took effect" from "the state happens to look right". No-ops
+            do not advance it.
+        since_s:           { type: integer }
+        algo:              { type: [string, "null"] }
+        params:            { type: object, additionalProperties: true }
+        pool:
+          type: object
+          properties:
+            index: { type: [integer, "null"] }
+            url:   { type: [string, "null"] }
+            user:  { type: [string, "null"] }
+        pool_connected:    { type: [boolean, "null"], description: "null for getwork/GBT." }
+        threads_total:     { type: integer }
+        threads_parked:    { type: integer }
+        switch_count:      { type: integer }
+        last_switch_age_s: { type: [integer, "null"] }
+        min_interval_s:    { type: integer }
+        ready_for_switch:
+          type: boolean
+          description: false while the anti-flap interval is unexpired — check it to avoid a 429.
+        last_error:        { type: [string, "null"] }
+
+    ProfileRequest:
+      type: object
+      minProperties: 1
+      description: |
+        `algo` requires `pool`. See the endpoint description for the legal
+        combinations.
+      properties:
+        algo:    { type: string }
+        params:  { type: object, additionalProperties: true }
+        pool:
+          type: object
+          required: [url]
+          properties:
+            url:  { type: string }
+            user: { type: string }
+            pass: { type: string }
+        run:     { type: boolean }
+        wait_ms: { type: integer, minimum: 0 }
+      dependentRequired:
+        algo: [pool]

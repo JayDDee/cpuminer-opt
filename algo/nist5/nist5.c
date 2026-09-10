@@ -10,7 +10,7 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
 #include "algo/skein/sph_skein.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "algo/groestl/sph_groestl.h"
@@ -20,7 +20,7 @@ void nist5hash(void *output, const void *input)
 {
    uint32_t hash[16] __attribute__((aligned(64)));
    sph_blake512_context    ctx_blake;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_groestl       ctx_groestl;
 #else
    sph_groestl512_context  ctx_groestl;
@@ -33,7 +33,7 @@ void nist5hash(void *output, const void *input)
    sph_blake512( &ctx_blake, input, 80 );
    sph_blake512_close( &ctx_blake, hash );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_groestl( &ctx_groestl, 64 );
    update_and_final_groestl( &ctx_groestl, (char*)hash,
                                      (const char*)hash, 512 );

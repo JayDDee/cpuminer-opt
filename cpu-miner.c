@@ -46,6 +46,145 @@
 #include <windows.h>
 #endif
 
+/* -- available_system_memory() -------------------------------------------
+ * Returns bytes of physical memory currently available for new allocations.
+ * Returns 0 on any failure; callers must treat 0 as "unknown, skip cap".
+ *
+ * Defined here (not in sysinfos.c) because sysinfos.c is #include'd into
+ * multiple translation units; putting it here ensures exactly one definition.
+ */
+uint64_t available_system_memory(void)
+{
+#if defined(WIN32) || defined(_WIN64)
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if ( GlobalMemoryStatusEx(&ms) )
+        return (uint64_t)ms.ullAvailPhys;
+    return 0;
+
+#elif defined(__linux__)
+    /* MemAvailable (kernel 3.14+) is the most accurate; fall back to MemFree */
+    FILE *f = fopen("/proc/meminfo", "r");
+    if (!f) return 0;
+    uint64_t avail = 0, freemem = 0;
+    char line[128];
+    while ( fgets(line, sizeof(line), f) ) {
+        unsigned long long kb;
+        if ( sscanf(line, "MemAvailable: %llu kB", &kb) == 1 ) {
+            avail = (uint64_t)kb * 1024ULL;
+            break;
+        }
+        if ( sscanf(line, "MemFree: %llu kB", &kb) == 1 )
+            freemem = (uint64_t)kb * 1024ULL;
+    }
+    fclose(f);
+    if ( !avail ) avail = freemem;
+
+    /* -- Container awareness (LXC / Docker / k8s) -------------------------
+     * /proc/meminfo reports the HOST's memory inside a container unless lxcfs
+     * (or similar) is mounted over it, so the figure above can be many times
+     * the memory this process may actually use. Take the tighter of the two by
+     * consulting the cgroup limit. Reported by a user running equihash192 in
+     * LXC: 12 threads x 3.7 GB was never capped because the host had the RAM,
+     * and the container OOMed instead.                                      */
+    {
+        static const char *lim_paths[] = {
+            "/sys/fs/cgroup/memory.max",                      /* cgroup v2 */
+            "/sys/fs/cgroup/memory/memory.limit_in_bytes",    /* cgroup v1 */
+            NULL };
+        static const char *use_paths[] = {
+            "/sys/fs/cgroup/memory.current",
+            "/sys/fs/cgroup/memory/memory.usage_in_bytes",
+            NULL };
+
+        for ( int i = 0; lim_paths[i]; i++ )
+        {
+            FILE *lf = fopen( lim_paths[i], "r" );
+            if ( !lf ) continue;
+            char buf[64];
+            uint64_t limit = 0;
+            if ( fgets( buf, sizeof(buf), lf ) )
+            {
+                /* cgroup v2 writes the literal "max" when unlimited; v1 uses a
+                 * sentinel near UINT64_MAX. Either way: no meaningful limit.  */
+                unsigned long long v;
+                if ( sscanf( buf, "%llu", &v ) == 1 && v < (1ULL << 62) )
+                    limit = (uint64_t)v;
+            }
+            fclose( lf );
+            if ( !limit ) continue;
+
+            uint64_t used = 0;
+            FILE *uf = fopen( use_paths[i], "r" );
+            if ( uf )
+            {
+                char ubuf[64];
+                unsigned long long u;
+                if ( fgets( ubuf, sizeof(ubuf), uf )
+                     && sscanf( ubuf, "%llu", &u ) == 1 )
+                    used = (uint64_t)u;
+                fclose( uf );
+            }
+            uint64_t cg_avail = ( used < limit ) ? limit - used : 0;
+            if ( !avail || cg_avail < avail ) avail = cg_avail;
+            break;
+        }
+    }
+    return avail;
+
+#elif defined(__APPLE__)
+    uint64_t page_size = (uint64_t)getpagesize();
+    FILE *f = popen("vm_stat", "r");
+    if (!f) return 0;
+    uint64_t free_pages = 0, inactive_pages = 0;
+    char line[128];
+    while ( fgets(line, sizeof(line), f) ) {
+        unsigned long long n;
+        if ( sscanf(line, "Pages free: %llu.", &n) == 1 )     free_pages     = n;
+        if ( sscanf(line, "Pages inactive: %llu.", &n) == 1 ) inactive_pages = n;
+    }
+    pclose(f);
+    return (free_pages + inactive_pages) * page_size;
+
+#else
+    return 0;
+#endif
+}
+
+/* -- workspace_thread_fit() ------------------------------------------------
+ * How many threads of a `ws`-bytes-per-thread algorithm fit in the memory that
+ * is free right now, keeping the same 20 % margin the startup cap uses. Never
+ * returns more than `want`.
+ *
+ * Returns 0 when not even one thread fits - equihash 125/4 wants 5.8 GB, so on
+ * a 4 GB board that is the honest answer. Callers that must run something
+ * anyway (startup) clamp to 1 themselves; callers that can decline (the runtime
+ * switch) should decline, since 1 thread that does not fit is still an OOM kill.
+ *
+ * Returns `want` unchanged when there is nothing to decide - no workspace, or a
+ * platform that will not say how much memory is free - because guessing is
+ * worse than not capping. `*avail_out` receives the figure used (0 when it is
+ * unknown), which is how a caller tells "it fits" from "we cannot tell".
+ *
+ * Shared by startup below and by the runtime algo switch (api_control.c). The
+ * switch is the path that needs it most: the startup cap runs once, under
+ * whatever algo was selected then, so switching from a no-workspace algo to
+ * equihash 144/5 (3.1 GB/thread) used to inherit the old thread count and get
+ * the process OOM-killed with no miner-side error at all.                    */
+int workspace_thread_fit( size_t ws, int want, uint64_t *avail_out )
+{
+    if ( avail_out ) *avail_out = 0;
+    if ( ws == 0 || want <= 0 ) return want;
+
+    uint64_t avail = available_system_memory();
+    if ( avail_out ) *avail_out = avail;
+    if ( avail == 0 ) return want;
+
+    uint64_t usable = (uint64_t)( (double)avail * 0.80 );
+    int      cap    = (int)( usable / ws );
+    return cap < want ? cap : want;
+}
+
 #ifdef _MSC_VER
 #include <stdint.h>
 #else
@@ -71,6 +210,12 @@
 #include "miner.h"
 #include "algo-gate-api.h"
 #include "algo/sha/sha256-hash.h"
+#include "algo/randomx/randomx-gate.h"   /* Monero stratum dialect */
+#include "api_model.h"   // api_history_add(), called when a scan returns
+#include "api_control.h" // api_ctl_thread_should_run(), the parking protocol
+#if defined(__GLIBC__)
+#include <malloc.h>   // malloc_trim() after releasing algo buffers
+#endif
 
 #ifdef WIN32
 #include "compat/winansi.h"
@@ -117,6 +262,7 @@ char* opt_param_key = NULL;
 int opt_param_n = 0;
 int opt_param_r = 0;
 int opt_n_threads = 0;
+static bool opt_n_threads_set = false;   /* true when -t was explicitly given */
 bool opt_sapling = false;
 static uint64_t opt_affinity = 0xFFFFFFFFFFFFFFFFULL;  // default, use all cores
 int opt_priority = 0;  // deprecated
@@ -175,6 +321,35 @@ uint64_t net_blocks = 0;
 uint32_t opt_work_size = 0;
 bool     opt_bell = false;
 
+/* Difficulty scales. Internal difficulty uses the Bitcoin difficulty-1 base
+ * (target = 2**224 / diff, see diff_to_hash), so the expected number of hashes
+ * to reach a difficulty is always diff_internal * 2**32. opt_target_factor
+ * only converts internal difficulty to the units the pool reports and must
+ * never appear in a hash count. Which globals are in which scale:
+ *   pool scale: net_diff, stratum_diff, work->sharediff, share_stats.*_diff
+ *   internal  : work->targetdiff, last_targetdiff                          */
+static inline double pool_diff_to_internal( double diff )
+{
+   return opt_target_factor > 0. ? diff / opt_target_factor : diff;
+}
+
+// Format a difficulty as a human-readable string with a k/M/G/T/P suffix
+// instead of exponential notation (e.g. 170100 -> "170.10k", 2.26e6 -> "2.26M").
+static const char *format_diff( char *buf, size_t bufsz, double d )
+{
+   if ( d == 0.0 )      snprintf( buf, bufsz, "0" );
+   // %.4g switches to exponential (e.g. 3.78e-06) once d < 1e-4; use fixed
+   // notation for sub-unity diffs so small shares read as 0.00000378.
+   else if ( d < 1.0 )  snprintf( buf, bufsz, "%.8f", d );
+   else if ( d < 1e3 )  snprintf( buf, bufsz, "%.4g",  d );
+   else if ( d < 1e6 )  snprintf( buf, bufsz, "%.2fk", d / 1e3  );
+   else if ( d < 1e9 )  snprintf( buf, bufsz, "%.2fM", d / 1e6  );
+   else if ( d < 1e12 ) snprintf( buf, bufsz, "%.2fG", d / 1e9  );
+   else if ( d < 1e15 ) snprintf( buf, bufsz, "%.2fT", d / 1e12 );
+   else                 snprintf( buf, bufsz, "%.2fP", d / 1e15 );
+   return buf;
+}
+
 // conditional mining
 bool *conditional_state = NULL;
 //bool conditional_state[MAX_CPUS] = { 0 };
@@ -188,7 +363,15 @@ char *opt_api_allow = NULL;
 int opt_api_listen = 0;
 int opt_api_remote = 0;
 const char *default_api_allow = "127.0.0.1";
-int default_api_listen = 4048; 
+int default_api_listen = 4048;
+// Generated per link by build-stamp.c; see Makefile.am.
+extern const char build_stamp_date[];
+// REST API (docs/api-rest.md section 2). Default binary, so an upgrade changes
+// nothing about how the port behaves.
+int   opt_api_mode      = API_MODE_BINARY;
+char *opt_api_token     = NULL;
+char *opt_api_cors      = NULL;
+int   opt_api_http_port = 0;
 
   pthread_mutex_t applog_lock;
   pthread_mutex_t stats_lock;
@@ -206,6 +389,12 @@ static uint32_t last_block_height = 0;
 static double   highest_share = 0;   // highest accepted share diff
 static double   lowest_share = 9e99; // lowest accepted share diff
 static double   last_targetdiff = 0.;
+
+// The REST API reports this as difficulty.best_share. An accessor rather than
+// un-static-ing the counter: api_model.c is a second TU, and putting a name
+// this generic into the link namespace is how collisions start.
+double api_get_best_share( void ) { return highest_share; }
+
 #if !(defined(__WINDOWS__) || defined(_WIN64) || defined(_WIN32) || defined(__APPLE__))
 static uint32_t hi_temp = 0;
 static uint32_t prev_temp = 0;
@@ -220,6 +409,7 @@ static char const short_options[] =
 
 static struct work g_work __attribute__ ((aligned (64))) = {{ 0 }};
 time_t g_work_time = 0;
+
 pthread_rwlock_t g_work_lock;
 static bool   submit_old = false;
 char*  lp_id;
@@ -262,7 +452,13 @@ static inline void drop_policy(void)
 }
 
 #ifdef __BIONIC__
-#define pthread_setaffinity_np(tid,sz,s) {} /* only do process affinity */
+/* bionic (Android, Termux) has no pthread_setaffinity_np. sched_setaffinity does
+ * take a thread id though, and affine_to_cpu() runs on the very thread it is
+ * binding, so this is equivalent -- and unlike the previous no-op it makes
+ * --cpu-affinity work, which matters on the big.LITTLE SoCs Android runs on. */
+#include <sys/syscall.h>
+#define pthread_setaffinity_np(tid,sz,s) \
+   sched_setaffinity( syscall( __NR_gettid ), sz, s )
 #endif
 
 static void affine_to_cpu( struct thr_info *thr )
@@ -367,6 +563,7 @@ void work_free(struct work *w)
 	if (w->workid) free(w->workid);
 	if (w->job_id) free(w->job_id);
 	if (w->xnonce2) free(w->xnonce2);
+   if (w->equihash_solution) free(w->equihash_solution);
 }
 
 void work_copy(struct work *dest, const struct work *src)
@@ -382,6 +579,11 @@ void work_copy(struct work *dest, const struct work *src)
 		dest->xnonce2 = (uchar*) malloc(src->xnonce2_len);
 		memcpy(dest->xnonce2, src->xnonce2, src->xnonce2_len);
 	}
+   if (src->equihash_solution && src->equihash_solution_len) {
+      dest->equihash_solution = (uchar*) malloc(src->equihash_solution_len);
+      memcpy(dest->equihash_solution, src->equihash_solution,
+             src->equihash_solution_len);
+   }
 }
 
 int std_get_work_data_size() { return STD_WORK_DATA_SIZE; }
@@ -433,10 +635,10 @@ static bool work_decode( const json_t *val, struct work *work )
         return false;
 
     // many of these aren't used solo.
-    net_diff =
-    work->targetdiff = 
-    stratum_diff =
+    work->targetdiff =
     last_targetdiff = hash_to_diff( work->target );
+    net_diff =
+    stratum_diff = work->targetdiff * opt_target_factor;
     work->sharediff = 0;
     algo_gate.decode_extra_data( work, &net_blocks );
 
@@ -884,7 +1086,8 @@ static bool gbt_work_decode( const json_t *val, struct work *work )
    // reverse the bytes in target
    casti_v128( work->target, 0 ) = v128_bswap128( casti_v128( target, 1 ) );
    casti_v128( work->target, 1 ) = v128_bswap128( casti_v128( target, 0 ) );
-   net_diff = work->targetdiff = hash_to_diff( work->target );
+   work->targetdiff = hash_to_diff( work->target );
+   net_diff = work->targetdiff * opt_target_factor;   // pool scale, display
 
    tmp = json_object_get( val, "workid" );
    if ( tmp )
@@ -956,9 +1159,56 @@ const long double exp96  = EXP32 * EXP32 * EXP32;                 // 2**96
 const long double exp128 = EXP32 * EXP32 * EXP32 * EXP32;         // 2**128
 const long double exp160 = EXP32 * EXP32 * EXP32 * EXP32 * EXP16; // 2**160
 
+// Per-thread share attribution. The pool answers long after the submitting
+// thread has moved on, so the thread id rides along in the share_stats ring
+// and is credited when the reply arrives. Read by the REST API
+// (threads[].accepted / .rejected); guarded by stats_lock.
+struct thr_shares { uint32_t accepted; uint32_t rejected; uint32_t submitted; };
+static struct thr_shares *thr_share_counts = NULL;
+
+// Unintentional pool disconnects only: a reset requested by seturl or by the
+// REST API is not a fault and must not show up in pool-health alerting.
+// Counted where the connection actually failed, not in the reset handler that
+// serves both cases.
+static uint32_t pool_disconnect_count = 0;
+
+uint32_t api_get_pool_disconnects( void ) { return pool_disconnect_count; }
+
+// Start of the current pool session, for /pools[].session_s. 0 = not connected,
+// reported as null rather than 0. Set where the connection is established and
+// cleared where it drops, so a reconnect restarts the clock. Distinct from the
+// process uptime reported as uptime_s.
+static time_t pool_session_start = 0;
+
+void api_set_pool_session_open( bool open )
+{
+   pool_session_start = open ? time( NULL ) : 0;
+}
+
+bool api_get_pool_session_s( uint32_t *out )
+{
+   if ( !pool_session_start ) return false;
+   double d = difftime( time( NULL ), pool_session_start );
+   if ( d < 0. ) d = 0.;          // clock stepped backwards
+   *out = (uint32_t) d;
+   return true;
+}
+
+bool api_get_thread_shares( int thr_id, uint32_t *accepted, uint32_t *rejected )
+{
+   if ( !thr_share_counts || thr_id < 0 || thr_id >= opt_n_threads )
+      return false;
+   pthread_mutex_lock( &stats_lock );
+   *accepted = thr_share_counts[ thr_id ].accepted;
+   *rejected = thr_share_counts[ thr_id ].rejected;
+   pthread_mutex_unlock( &stats_lock );
+   return true;
+}
+
 struct share_stats_t
 {
    int share_count;
+   int thr_id;
    struct timeval submit_time;
    double net_diff;
    double share_diff;
@@ -972,6 +1222,52 @@ struct share_stats_t
 static struct share_stats_t share_stats[ s_stats_size ] = {{0}};
 static int s_get_ptr = 0, s_put_ptr = 0;
 static struct timeval last_submit_time = {0};
+
+// Drop everything describing the run that just ended, on a control algo switch:
+// hashrates differ by orders of magnitude between algorithms and share counts
+// belong to the pool that issued them.
+//
+// Unlocked by design -- the caller switches only with every miner thread parked
+// (api_control.c). Do not call it from elsewhere without revisiting that.
+//
+// Process-lifetime figures are deliberately left alone; api_model.c carries them
+// across the reset.
+void api_reset_session_stats( void )
+{
+   submitted_share_count = 0;
+   accepted_share_count  = 0;
+   rejected_share_count  = 0;
+   stale_share_count     = 0;
+   solved_block_count    = 0;
+   stratum_errors        = 0;
+
+   submit_sum = accept_sum = reject_sum = stale_sum = solved_sum = 0;
+   norm_diff_sum   = 0.;
+   highest_share   = 0.;
+   lowest_share    = 9e99;
+   last_targetdiff = 0.;
+
+   // The in-flight ring is deliberately not wiped: a share can still be waiting
+   // on its ack, and dropping its record loses the accounting. It self-clears.
+   // last_submit_time is set to now rather than zeroed -- share_result
+   // subtracts it, so a zero reports an interval of the whole unix epoch.
+   gettimeofday( &last_submit_time, NULL );
+
+   // Without this the reported hashrate keeps the old algorithm's magnitude
+   // until every thread has finished a scan.
+   if ( thr_hashrates )
+      for ( int i = 0; i < opt_n_threads; i++ )
+         thr_hashrates[i] = 0.;
+   global_hashrate = 0.;
+   total_hashes    = 0.;
+   gettimeofday( &total_hashes_time, NULL );
+
+   gettimeofday( &session_start, NULL );
+   gettimeofday( &five_min_start, NULL );
+   session_first_block = 0;
+
+   api_history_reset();
+}
 
 static inline int stats_ptr_incr( int p )
 {
@@ -1027,9 +1323,13 @@ void report_summary_log( bool force )
          else
             sprintf( tempstr, "%d C", curr_temp );
 
+         /* Fold in this reading BEFORE printing, or "max" is the maximum of
+          * every earlier report and excludes the one on the same line -- which
+          * reads as nonsense whenever the temperature is still climbing, most
+          * visibly on the first report of a run: "curr 48 C max 38". */
+         if ( curr_temp > hi_temp ) hi_temp = curr_temp;
          applog( LOG_NOTICE,"CPU temp: curr %s max %d, Freq: %.3f/%.3f GHz",
                  tempstr, hi_temp, lo_freq / 1e6, hi_freq / 1e6 );
-         if ( curr_temp > hi_temp ) hi_temp = curr_temp;
          if ( ( opt_max_temp > 0.0 ) && ( curr_temp > opt_max_temp ) )
             restart_threads();
          prev_temp = curr_temp;
@@ -1196,8 +1496,15 @@ static int share_result( int result, struct work *work,
       gettimeofday( &ack_time, NULL );
       timeval_subtract( &latency_tv, &ack_time, &my_stats.submit_time );
       latency = ( latency_tv.tv_sec * 1e3  + latency_tv.tv_usec / 1e3 );
-      timeval_subtract( &et, &my_stats.submit_time, &last_submit_time );
-      share_time = (double)et.tv_sec + ( (double)et.tv_usec / 1e6 );
+      // First share of a run: nothing to measure from, and without this the
+      // interval comes out as the whole unix epoch.
+      if ( last_submit_time.tv_sec )
+      {
+         timeval_subtract( &et, &my_stats.submit_time, &last_submit_time );
+         share_time = (double)et.tv_sec + ( (double)et.tv_usec / 1e6 );
+      }
+      else
+         share_time = 0.;
       memcpy( &last_submit_time, &my_stats.submit_time,
               sizeof last_submit_time );
    }
@@ -1253,6 +1560,17 @@ static int share_result( int result, struct work *work,
    // update global counters for summary report
    pthread_mutex_lock( &stats_lock );
 
+   // Credit the thread that submitted this share. Only when the ring actually
+   // had the record: on overflow my_stats is zeroed, and thr_id 0 would then
+   // be a wrong answer rather than a missing one. A stale share is counted
+   // neither accepted nor rejected here, matching the global counters.
+   if ( thr_share_counts && my_stats.submit_time.tv_sec
+        && my_stats.thr_id >= 0 && my_stats.thr_id < opt_n_threads )
+   {
+      if ( result )      thr_share_counts[ my_stats.thr_id ].accepted++;
+      else if ( !stale ) thr_share_counts[ my_stats.thr_id ].rejected++;
+   }
+
    for ( int i = 0; i < opt_n_threads; i++ )
        hashrate += thr_hashrates[i];
    global_hashrate = hashrate;
@@ -1260,7 +1578,9 @@ static int share_result( int result, struct work *work,
    if ( likely( result ) )
    {
       accept_sum++;
-      norm_diff_sum += my_stats.target_diff;
+      // sess_hrate converts this sum to a hash count, so accumulate it in the
+      // same internal scale as target_diff in report_summary_log.
+      norm_diff_sum += pool_diff_to_internal( my_stats.target_diff );
       if ( solved ) solved_sum++;
    }
    else
@@ -1285,9 +1605,15 @@ static int share_result( int result, struct work *work,
    }
 
    const char *bell = !result && opt_bell ? &ASCII_BELL : "";
-   applog( LOG_INFO, "%s%d %s%s %s%s %s%s %s%s%s, %.3f sec (%dms)",
+   // One-liner: fold the former separate "Submitted Diff/Block/Job" line into
+   // the result line so each share is a single compact entry.
+   char sdiff[32];
+   format_diff( sdiff, sizeof sdiff, my_stats.share_diff );
+   applog( LOG_INFO,
+           "%s%d %s%s %s%s %s%s %s%s%s, Diff %s, Block %u, Job %s, %.3f sec (%dms)",
            bell, my_stats.share_count, acol, ares, scol, sres, rcol, rres,
-           bcol, bres, use_colors ? CL_N : "", share_time, latency );
+           bcol, bres, use_colors ? CL_N : "", sdiff, my_stats.height,
+           my_stats.job_id, share_time, latency );
    if ( unlikely( !( opt_quiet || result || stale ) ) )
    {
       applog2( LOG_INFO, "%sReject reason: %s", bell, reason ? reason : "" );
@@ -1310,6 +1636,7 @@ void std_le_build_stratum_request( char *req, struct work *work )
    bin2hex( ntimestr, (char*)(&ntime), sizeof(uint32_t) );
    bin2hex( noncestr, (char*)(&nonce), sizeof(uint32_t) );
    xnonce2str = abin2hex( work->xnonce2, work->xnonce2_len );
+
    snprintf( req, JSON_BUF_LEN, json_submit_req, rpc_user, work->job_id,
              xnonce2str, ntimestr, noncestr );
    free( xnonce2str );
@@ -1331,7 +1658,27 @@ void std_be_build_stratum_request( char *req, struct work *work )
    free( xnonce2str );
 }
 
-static const char *json_getwork_req = 
+// Veil SHA256Dv mining.submit: reuses the 5-slot json_submit_req template but
+// carries (nonce_hi, ntime, nonce_lo) in place of (xnonce2, ntime, nonce).
+void veil_sha256dv_build_stratum_request( char *req, struct work *work )
+{
+   uint32_t ntime_enc, nonce_hi_enc, nonce_lo_enc;
+   char ntimestr[9], nonce_hi_str[9], nonce_lo_str[9];
+
+   le32enc( &ntime_enc,    work->veil_ntime );
+   le32enc( &nonce_hi_enc, work->veil_nonce_hi );
+   le32enc( &nonce_lo_enc, work->veil_nonce_lo );
+
+   bin2hex( ntimestr,     (char*)&ntime_enc,    sizeof(uint32_t) );
+   bin2hex( nonce_hi_str, (char*)&nonce_hi_enc, sizeof(uint32_t) );
+   bin2hex( nonce_lo_str, (char*)&nonce_lo_enc, sizeof(uint32_t) );
+
+   snprintf( req, JSON_BUF_LEN, json_submit_req, rpc_user,
+             work->job_id ? work->job_id : "",
+             nonce_hi_str, ntimestr, nonce_lo_str );
+}
+
+static const char *json_getwork_req =
   "{\"method\": \"getwork\", \"params\": [\"%s\"], \"id\":4}\r\n";
 
 bool std_le_submit_getwork_result( CURL *curl, struct work *work )
@@ -1440,10 +1787,19 @@ static bool submit_upstream_work( CURL *curl, struct work *work )
 {
    if ( have_stratum )
    {
-       char req[JSON_BUF_LEN];
+       /* Equihash solutions are large (~800+ hex chars for solution alone).
+        * Use heap allocation so solution-heavy algos don't smash the stack. */
+       char *req = (char *)malloc( JSON_BUF_LEN_EQH );
+       if ( !req )
+       {
+          applog(LOG_ERR, "submit_upstream_work: OOM allocating req buffer");
+          return false;
+       }
        stratum.sharediff = work->sharediff;
        algo_gate.build_stratum_request( req, work, &stratum );
-       if ( unlikely( !stratum_send_line( &stratum, req ) ) )
+       bool send_ok = stratum_send_line( &stratum, req );
+       free( req );
+       if ( unlikely( !send_ok ) )
        {
           applog(LOG_ERR, "submit_upstream_work stratum_send_line failed");
           return false;
@@ -1581,16 +1937,22 @@ start:
       if ( work->height > last_block_height )
       {
          last_block_height = work->height;
-         last_targetdiff = net_diff;
+         last_targetdiff = pool_diff_to_internal( net_diff );
 
-         applog( LOG_BLUE, "New Block %d, Tx %d, Net Diff %.5g, Ntime %08x",
-                             work->height, work->tx_count, net_diff,
+         char db[24];
+         applog( LOG_BLUE, "New Block %d, Tx %d, Net Diff %s, Ntime %08x",
+                             work->height, work->tx_count,
+                             format_diff( db, sizeof db, net_diff ),
                              bswap_32( work->data[ algo_gate.ntime_index ] ) );
       }
       else if ( memcmp( work->data, g_work.data, algo_gate.work_cmp_size ) )
-         applog( LOG_BLUE, "New Work: Block %d, Tx %d, Net Diff %.5g, Ntime %08x",
-                             work->height, work->tx_count, net_diff,
+      {
+         char db[24];
+         applog( LOG_BLUE, "New Work: Block %d, Tx %d, Net Diff %s, Ntime %08x",
+                             work->height, work->tx_count,
+                             format_diff( db, sizeof db, net_diff ),
                              bswap_32( work->data[ algo_gate.ntime_index ] ) );
+      }
       else
         new_work = false;
 
@@ -1600,7 +1962,7 @@ start:
          {
             double miner_hr = 0.;
             double net_hr = net_hashrate;
-            double nd = net_diff * exp32;
+            double nd = pool_diff_to_internal( net_diff ) * exp32;
             char net_hr_units[4] = {0};
             char miner_hr_units[4] = {0};
             char net_ttf[32];
@@ -1819,17 +2181,21 @@ err_out:
 	return false;
 }
 
-static void update_submit_stats( struct work *work, const void *hash )
+static void update_submit_stats( struct work *work, const void *hash,
+                                 int thr_id )
 {
    pthread_mutex_lock( &stats_lock );
 
    submitted_share_count++;
    share_stats[ s_put_ptr ].share_count = submitted_share_count;
+   share_stats[ s_put_ptr ].thr_id = thr_id;
+   if ( thr_share_counts && thr_id >= 0 && thr_id < opt_n_threads )
+      thr_share_counts[ thr_id ].submitted++;
    gettimeofday( &share_stats[ s_put_ptr ].submit_time, NULL );
    share_stats[ s_put_ptr ].share_diff = work->sharediff;
    share_stats[ s_put_ptr ].net_diff = net_diff;
    share_stats[ s_put_ptr ].stratum_diff = stratum_diff;
-   share_stats[ s_put_ptr ].target_diff = work->targetdiff;
+   share_stats[ s_put_ptr ].target_diff = work->targetdiff * opt_target_factor;
    share_stats[ s_put_ptr ].height = work->height; 
    if ( have_stratum )
       strncpy( share_stats[ s_put_ptr ].job_id, work->job_id, 30 );
@@ -1844,11 +2210,45 @@ bool submit_solution( struct work *work, const void *hash,
 // Job went stale during hashing of a valid share.
 //   if ( !opt_quiet && work_restart[ thr->id ].restart )
 //      applog( LOG_INFO, CL_LBL "Share may be stale, submitting anyway..." CL_N );
-   
-   work->sharediff = hash_to_diff( hash );
+
+   // Veil SHA256Dv submits a bespoke mining.submit directly over Stratum
+   // (nonce_hi / ntime / nonce_lo) rather than going through submit_work.
+   if ( work->veil_sha256dv )
+   {
+      work->sharediff = hash_to_diff( hash );
+      update_submit_stats( work, hash, thr->id );
+
+      char req[JSON_BUF_LEN];
+      veil_sha256dv_build_stratum_request( req, work );
+      if ( !stratum_send_line( &stratum, req ) )
+      {
+         applog( LOG_WARNING, "%d VEIL failed to submit share",
+                 submitted_share_count );
+         return false;
+      }
+
+      if ( !opt_quiet )
+         applog( LOG_INFO,
+                 "%d VEIL Submitted nonce_hi=%08x nonce_lo=%08x Diff %.5g Job %s",
+                 submitted_share_count, work->veil_nonce_hi, work->veil_nonce_lo,
+                 work->sharediff, work->job_id ? work->job_id : "(null)" );
+      return true;
+   }
+
+
+   /* Display/stats difficulty in pool scale. opt_target_factor is 1.0 for
+    * normal algos (no change) and EQH_DIFF_SCALE for equihash, matching the
+    * scaling applied to net_diff and the displayed targetdiff. Without this
+    * equihash shares were reported ~16.7M x too small (internal scale).     */
+   /* Monero share difficulty is 0xFFFF..FF / (last 8 bytes of the hash, little
+    * endian). hash_to_diff uses the bitcoin difficulty-1 base and reads the
+    * hash big endian, so it would report a different scale entirely;
+    * scanhash_randomx has already computed the right value. */
+   if ( !work->rx_work )
+      work->sharediff = hash_to_diff( hash ) * opt_target_factor;
    if ( likely( submit_work( thr, work ) ) )
    {
-     update_submit_stats( work, hash );
+     update_submit_stats( work, hash, thr->id );
 
      if unlikely( !have_stratum && !have_longpoll )
      {   // solo, block solved, force getwork
@@ -1862,9 +2262,12 @@ bool submit_solution( struct work *work, const void *hash,
      {
         if ( have_stratum )
         {
-           applog( LOG_INFO, "%d Submitted Diff %.5g, Block %d, Job %s",
-                   submitted_share_count, work->sharediff, work->height,
-                   work->job_id );
+           // Submit details are folded into the single result line in
+           // share_result(); keep the standalone line for debug only.
+           if ( opt_debug )
+              applog( LOG_INFO, "%d Submitted Diff %.5g, Block %d, Job %s",
+                      submitted_share_count, work->sharediff, work->height,
+                      work->job_id );
            if ( opt_debug && opt_extranonce )
            {
               unsigned char *xnonce2str = abin2hex( work->xnonce2,
@@ -1873,7 +2276,7 @@ bool submit_solution( struct work *work, const void *hash,
               free( xnonce2str );
            }
         }
-        else
+        else if ( opt_debug )
            applog( LOG_INFO, "%d Submitted Diff %.5g, Block %d, Ntime %08x",
                    submitted_share_count, work->sharediff, work->height,
                    work->data[ algo_gate.ntime_index ] );
@@ -2011,26 +2414,146 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
    
    free( g_work->job_id );
    g_work->job_id = strdup( sctx->job.job_id );
-   g_work->xnonce2_len = sctx->xnonce2_size;
-   g_work->xnonce2 = (uchar*) realloc( g_work->xnonce2, sctx->xnonce2_size );
    g_work->height = sctx->block_height;
    g_work->targetdiff = sctx->job.diff
                            / ( opt_target_factor * opt_diff_factor );
+
+   g_work->odokey = sctx->job.odokey;   // Odocrypt epoch key (0 if not sent)
+
+   g_work->rx_work = sctx->job.rx_job;
+   if ( g_work->rx_work )
+   {
+      /* RandomX: the pool sends a finished hashing blob and an exact 64-bit
+       * target, so none of the coinbase/merkle/extranonce path applies. */
+      rx_stratum_gen_work( sctx, g_work );
+      g_work_time = time(NULL);
+      restart_threads();
+      pthread_rwlock_unlock( &g_work_lock );
+
+      pthread_mutex_lock( &stats_lock );
+      double rxhr = 0.;
+      for ( int i = 0; i < opt_n_threads; i++ )
+         rxhr += thr_hashrates[i];
+      global_hashrate = rxhr;
+      pthread_mutex_unlock( &stats_lock );
+
+      char rdb[24];
+      if ( stratum_diff != sctx->job.diff )
+         applog( LOG_BLUE, "New Stratum Diff %s, Block %d, Job %s",
+                 format_diff( rdb, sizeof rdb, sctx->job.diff ),
+                 sctx->block_height, g_work->job_id );
+      else if ( last_block_height != sctx->block_height )
+         applog( LOG_BLUE, "New Block %d, Job %s", sctx->block_height,
+                 g_work->job_id );
+      else if ( opt_debug )
+         applog( LOG_INFO, "RandomX work: Block %d, Job %s, target %016llx",
+                 sctx->block_height, g_work->job_id ? g_work->job_id : "(null)",
+                 (unsigned long long)g_work->rx_target );
+
+      /* Same bookkeeping as the tail of the bitcoin path below: the periodic
+       * report derives its share hashrate from last_targetdiff, so skipping
+       * these leaves that column reading zero. */
+      if ( ( stratum_diff != sctx->job.diff )
+        || ( last_block_height != sctx->block_height ) )
+      {
+         if ( unlikely( !session_first_block ) )
+            session_first_block = sctx->block_height;
+         last_block_height = sctx->block_height;
+         stratum_diff      = sctx->job.diff;
+         last_targetdiff   = g_work->targetdiff;
+         if ( lowest_share < last_targetdiff * opt_target_factor )
+            lowest_share = 9e99;
+      }
+
+      pthread_mutex_unlock( &sctx->work_lock );
+      return;
+   }
+
+   g_work->veil_sha256dv = sctx->job.veil_sha256dv;
+   if ( g_work->veil_sha256dv )
+   {
+      /* Veil SHA256Dv: the pool supplies the stage-1 midstate and merkle, so
+       * there is no coinbase/extranonce to build. A new job seeds the nonce_hi
+       * base; a re-notify of the same job advances it by opt_n_threads so the
+       * thread ranges stay disjoint.                                          */
+      if ( new_job )
+      {
+         memcpy( g_work->veil_midstate_be, sctx->job.veil_midstate_be, 32 );
+         memcpy( g_work->veil_merkle_be,   sctx->job.veil_merkle_be,   32 );
+         g_work->veil_ntime    = sctx->job.veil_ntime;
+         g_work->veil_nonce_hi = sctx->job.veil_nonce_hi;
+      }
+      else
+         g_work->veil_nonce_hi += (uint32_t)opt_n_threads;
+
+      g_work->xnonce2_len = 0;
+      g_work->data[0] =  (uint32_t)sctx->job.version[0]
+                      | ( (uint32_t)sctx->job.version[1] << 8 )
+                      | ( (uint32_t)sctx->job.version[2] << 16 )
+                      | ( (uint32_t)sctx->job.version[3] << 24 );
+      uint32_t nbits_le = le32dec( sctx->job.nbits );
+      g_work->data[ algo_gate.nbits_index ] = nbits_le;
+      net_diff = nbits_to_diff( nbits_le ) * opt_target_factor;
+   }
+   else
+   {
+   g_work->xnonce2_len = sctx->xnonce2_size;
+   g_work->xnonce2 = (uchar*) realloc( g_work->xnonce2, sctx->xnonce2_size );
    memcpy( g_work->xnonce2, sctx->job.xnonce2, sctx->xnonce2_size );
    algo_gate.build_extraheader( g_work, sctx );
-   net_diff = nbits_to_diff( g_work->data[ algo_gate.nbits_index ] );
+   /* nbits_to_diff uses the Bitcoin difficulty-1 base; opt_target_factor then
+    * converts to the pool's scale (1 for standard algos, EQH_DIFF_SCALE for
+    * equihash, putting net_diff in stratum_diff's units).
+    * It also wants the exponent in the compact word's low byte. Equihash and
+    * verus keep the raw little-endian header bytes, exponent high, so swap for
+    * the diff calc only -- otherwise nbits_to_diff takes its slow path and
+    * returns 0, displaying net_diff as 0. Header bytes stay untouched. */
+   uint32_t nbits_word = g_work->data[ algo_gate.nbits_index ];
+   if ( opt_algo == ALGO_EQUIHASH    || opt_algo == ALGO_EQUIHASH96  ||
+        opt_algo == ALGO_EQUIHASH125 || opt_algo == ALGO_EQUIHASH144 ||
+        opt_algo == ALGO_EQUIHASH192 || opt_algo == ALGO_VERUS )
+      nbits_word = bswap_32( nbits_word );
+   net_diff = nbits_to_diff( nbits_word ) * opt_target_factor;
    algo_gate.set_work_data_endian( g_work );
-   diff_to_hash( g_work->target, g_work->targetdiff );
+   }
+   if ( opt_algo == ALGO_VERUS )
+   {
+      /* The pool supplies the solution template; the miner varies only its
+       * last 15 bytes (see algo/verus). Deep-copied by work_copy and freed by
+       * work_free, same ownership as the equihash solver's buffer. */
+      if ( sctx->job.has_verus_solution )
+      {
+         const uint16_t vlen = sctx->job.verus_solution_len;
+         if ( !g_work->equihash_solution )
+            g_work->equihash_solution = (uchar*) malloc( 2048 );
+         if ( g_work->equihash_solution && vlen )
+         {
+            memcpy( g_work->equihash_solution, sctx->job.verus_solution, vlen );
+            g_work->equihash_solution_len = vlen;
+         }
+      }
+      else
+         g_work->equihash_solution_len = 0;
+   }
+
+   /* Verus: use the pool's exact 32-byte target from mining.set_target.
+    * diff_to_hash reproduces only the top 128 bits, which can leave the target
+    * looser than the pool's and cause avoidable rejects. */
+   if ( opt_algo == ALGO_VERUS && sctx->job.has_raw_target )
+      memcpy( g_work->target, sctx->job.raw_target, 32 );
+   else
+      diff_to_hash( g_work->target, g_work->targetdiff );
 
    g_work_time = time(NULL);
    restart_threads();
    pthread_rwlock_unlock( &g_work_lock );
 
    // Pre increment extranonce2 in case of being called again before receiving
-   // a new job
-   for ( int t = 0;
-         t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] );
-         t++ );
+   // a new job (Veil SHA256Dv has no extranonce).
+   if ( !g_work->veil_sha256dv )
+      for ( int t = 0;
+            t < sctx->xnonce2_size && !( ++sctx->job.xnonce2[t] );
+            t++ );
 
    pthread_mutex_unlock( &sctx->work_lock );
 
@@ -2043,25 +2566,34 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
 
    pthread_mutex_unlock( &stats_lock );
 
+   char db[24];
    if ( stratum_diff != sctx->job.diff )
-      applog( LOG_BLUE, "New Stratum Diff %g, Block %d, Tx %d, Job %s",
-                        sctx->job.diff, sctx->block_height,
+      applog( LOG_BLUE, "New Stratum Diff %s, Block %d, Tx %d, Job %s",
+                        format_diff( db, sizeof db, sctx->job.diff ),
+                        sctx->block_height,
                         sctx->job.merkle_count, g_work->job_id );
    else if ( last_block_height != sctx->block_height )
-      applog( LOG_BLUE, "New Block %d, Tx %d, Netdiff %.5g, Job %s",
+      applog( LOG_BLUE, "New Block %d, Tx %d, Netdiff %s, Job %s",
                         sctx->block_height, sctx->job.merkle_count,
-                        net_diff, g_work->job_id );
+                        format_diff( db, sizeof db, net_diff ), g_work->job_id );
    else if ( g_work->job_id && new_job )
-      applog( LOG_BLUE, "New Work: Block %d, Tx %d, Netdiff %.5g, Job %s",
+      applog( LOG_BLUE, "New Work: Block %d, Tx %d, Netdiff %s, Job %s",
                          sctx->block_height, sctx->job.merkle_count,
-                         net_diff, g_work->job_id );
+                         format_diff( db, sizeof db, net_diff ), g_work->job_id );
    else if ( opt_debug )
    {
-      unsigned char *xnonce2str = bebin2hex( g_work->xnonce2,
-                                             g_work->xnonce2_len );
-      applog( LOG_INFO, "Extranonce2 0x%s, Block %d, Job %s",
-                        xnonce2str, sctx->block_height, g_work->job_id );
-      free( xnonce2str );
+      if ( g_work->veil_sha256dv )
+         applog( LOG_INFO, "VEIL SHA256Dv work: Block %d, Job %s, nonce_hi=%08x",
+                 sctx->block_height, g_work->job_id ? g_work->job_id : "(null)",
+                 g_work->veil_nonce_hi );
+      else
+      {
+         unsigned char *xnonce2str = bebin2hex( g_work->xnonce2,
+                                                g_work->xnonce2_len );
+         applog( LOG_INFO, "Extranonce2 0x%s, Block %d, Job %s",
+                           xnonce2str, sctx->block_height, g_work->job_id );
+         free( xnonce2str );
+      }
    }
 
    // Update data and calculate new estimates.
@@ -2073,18 +2605,29 @@ static void stratum_gen_work( struct stratum_ctx *sctx, struct work *g_work )
       last_block_height = stratum.block_height;
       stratum_diff      = sctx->job.diff;
       last_targetdiff   = g_work->targetdiff;
-      if ( lowest_share < last_targetdiff )
+      // lowest_share comes from work->sharediff, which is pool scale.
+      if ( lowest_share < last_targetdiff * opt_target_factor )
          lowest_share = 9e99;
     }
 
     if ( new_job && !opt_quiet )
     {
-       applog2( LOG_INFO, "Diff: Net %.5g, Stratum %.5g, Target %.5g",
-                          net_diff, stratum_diff, g_work->targetdiff );
+       /* targetdiff is stored in internal scale (for diff_to_hash).
+        * Multiply by opt_target_factor to display in pool scale.
+        * net_diff is already scaled above. stratum_diff is pool scale. */
+       char dn[24], ds[24], dt[24];
+       applog2( LOG_INFO, "Diff: Net %s, Stratum %s, Target %s",
+                          format_diff( dn, sizeof dn, net_diff ),
+                          format_diff( ds, sizeof ds, stratum_diff ),
+                          format_diff( dt, sizeof dt,
+                                       g_work->targetdiff * opt_target_factor ) );
 
        if ( likely( hr > 0. ) )
        {
-          double nd = net_diff * exp32;
+          /* TTF is a hash count: it needs internal difficulty, so undo the
+           * pool scaling applied to net_diff above. targetdiff is already
+           * internal.                                                       */
+          double nd = pool_diff_to_internal( net_diff ) * exp32;
           char hr_units[4] = {0};
           char block_ttf[32];
           char share_ttf[32];
@@ -2193,13 +2736,24 @@ static void *miner_thread( void *userdata )
    // nominal startng values
    int64_t max64 = 20;
    thr_hashrates[thr_id] = 20;
+   bool was_parked = false;
    while (1)
    {
        uint64_t hashes_done;
        struct timeval tv_start, tv_end, diff;
        int nonce_found = 0;
 
-       if ( have_stratum ) 
+       /* Re-derive every pass, NOT once before the loop: a runtime algo switch
+        * can move the nonce. verus keeps it at word 30 (equihash-style
+        * header), almost everything else at 19, so a stale pointer has this
+        * loop reading one word while scanhash and get_new_work write another.
+        * It must be refreshed here, above the exhausted-range test: on stratum
+        * a stale pointer makes that test fire every pass, so each one
+        * regenerates work and then scans a single nonce -- a ~20x hashrate
+        * drop with no shares, and only ever after a switch. */
+       nonceptr = work.data + algo_gate.nonce_index;
+
+       if ( have_stratum )
        {
           while ( unlikely( stratum_down ) )
              sleep( 1 );
@@ -2246,6 +2800,36 @@ static void *miner_thread( void *userdata )
        pthread_rwlock_unlock( &g_work_lock );
 
        // conditional mining
+       // Parked by the control API: report the thread as idle and poll. The
+       // acknowledgement IS the call -- api_ctl_thread_should_run() records
+       // that this thread has stopped hashing, which is what a mutation waits
+       // for. Separate from wanna_mine() below on purpose: that one is the
+       // temperature/difficulty gate, and a manager-requested stop is not a
+       // fault (docs/api-rest.md section 6.6).
+       if ( unlikely( !api_ctl_thread_should_run( thr_id ) ) )
+       {
+          // Free and re-allocate this thread's algo buffers while parked: they
+          // are __thread, so only this thread can do it, and the control layer
+          // sequences the two phases around the gate swap.
+          api_ctl_thread_service( thr_id );
+
+          /* 0 while parked so the reported total excludes this thread. It
+           * must not survive into the first scan after resuming: max64 is
+           * opt_scantime * this, and 0 clamps to a single-nonce scan. */
+          thr_hashrates[thr_id] = 0.;
+          was_parked = true;
+          usleep( 100000 );
+          continue;
+       }
+
+       if ( unlikely( was_parked ) )
+       {
+          /* Same nominal seed the thread started with, so the first scan
+           * after a switch sizes its range the way the first scan ever did. */
+          thr_hashrates[thr_id] = 20;
+          was_parked = false;
+       }
+
        if ( unlikely( !wanna_mine( thr_id ) ) )
        {
           restart_threads();
@@ -2286,11 +2870,12 @@ static void *miner_thread( void *userdata )
 
        // Select nonce range based on max64, the estimated number of hashes
        // to meet the desired scan time.
-       // Initial value arbitrarilly set to 1000 just to get
-       // a sample hashrate for the next time.
+       // For fast algos (SHA256d etc.) max64 is millions; for slow algos
+       // (equihash ~0.03 Sol/s) it rounds to 0 - use 1 not 1000 as the
+       // minimum so slow algos do 1 iteration per call, not 1000.
        uint32_t work_nonce = *nonceptr;
        if ( max64 <= 0)
-          max64 = 1000;
+          max64 = 1;
        if ( work_nonce + max64 > end_nonce )
           max_nonce = end_nonce;
        else
@@ -2299,6 +2884,11 @@ static void *miner_thread( void *userdata )
        // init time
        hashes_done = 0;
        gettimeofday( (struct timeval *) &tv_start, NULL );
+
+       // A share is submitted from inside scanhash, so the only way this loop
+       // can tell whether the scan found one is to watch its own counter.
+       uint32_t submitted_before = thr_share_counts
+                                 ? thr_share_counts[thr_id].submitted : 0;
 
        // Scan for nonce
        nonce_found = algo_gate.scanhash( &work, max_nonce, &hashes_done,
@@ -2316,6 +2906,51 @@ static void *miner_thread( void *userdata )
           hashes_done / ( diff.tv_sec + diff.tv_usec * 1e-6 );
           pthread_mutex_unlock( &stats_lock );
        }
+
+#ifdef API_DEV_FREETEST
+       // TEST SCAFFOLD, not shipped. Simulates what a runtime algo switch will
+       // do to each thread -- free, then reallocate -- so a missing or wrong
+       // miner_thread_free shows up as RSS climbing instead of staying flat.
+       {
+          static __thread int cycles = 0;
+          // Same binary does control and treatment: without the cycling, RSS
+          // still climbs as pages are first touched, and that would read as a
+          // leak. FREETEST=0 measures that baseline.
+          static __thread int enabled = -1;
+          if ( enabled < 0 )
+          {
+             const char *e = getenv( "FREETEST" );
+             enabled = ( !e || *e != '0' );
+          }
+          if ( ++cycles % 4 == 0 )
+          {
+             if ( enabled )
+             {
+                algo_gate.miner_thread_free( thr_id );
+#if defined(__GLIBC__)
+                if ( getenv( "FREETRIM" ) ) malloc_trim( 0 );
+#endif
+                if ( !algo_gate.miner_thread_init( thr_id ) )
+                   applog( LOG_ERR, "freetest: re-init failed on thread %d", thr_id );
+             }
+             if ( thr_id == 0 )
+             {
+                FILE *f = fopen( "/proc/self/status", "r" );
+                char l[128];
+                while ( f && fgets( l, sizeof(l), f ) )
+                   if ( !strncmp( l, "VmRSS:", 6 ) )
+                   { applog( LOG_NOTICE, "freetest cycle %d %s", cycles, l ); break; }
+                if ( f ) fclose( f );
+             }
+          }
+       }
+#endif
+
+       // One record per scan for GET /api/v1/history.
+       api_history_add( thr_id, work.height, thr_hashrates[thr_id],
+                        work.targetdiff * opt_target_factor, hashes_done,
+                        thr_share_counts
+                        && thr_share_counts[thr_id].submitted != submitted_before );
 
        // This code is deprecated, scanhash should never return true.
        // This remains as a backup in case some old implementations still exist.
@@ -2402,6 +3037,9 @@ static void *miner_thread( void *userdata )
    }  // miner_thread loop
 
 out:
+	// Release this thread's algo buffers on the thread that owns them: they
+	// are __thread pointers, so no other thread can reach them.
+	algo_gate.miner_thread_free( thr_id );
 	tq_freeze(mythr->q);
 	return NULL;
 }
@@ -2582,6 +3220,21 @@ static bool stratum_handle_response( char *buf )
    res_val = json_object_get( val, "result" );
    if ( !res_val ) { /* now what? */ }
 
+   if ( rx_algo_uses_monero_stratum( opt_algo ) )
+   {
+      /* Monero answers a submit with result:{"status":"OK"} and
+       * error:{"code":..,"message":..}, which neither json_is_true(result) nor
+       * json_array_get(error,1) below can read. */
+      bool accepted = false;
+      const char *reason = NULL;
+      if ( rx_stratum_parse_response( val, &accepted, &reason ) )
+      {
+         share_result( accepted, NULL, reason );
+         ret = true;
+      }
+      goto out;
+   }
+
    id_val = json_object_get( val, "id" );
 	if ( !id_val || json_is_null(id_val) )
 		goto out;
@@ -2692,6 +3345,17 @@ static void *stratum_thread(void *userdata )
           {
 	          free( stratum.url );
 	          stratum.url = strdup( rpc_url );
+             /* Drop the session id with the pool that issued it. It is sent
+              * in mining.subscribe to ask for that subscription back, so
+              * carrying it across asks a DIFFERENT server to resume a session
+              * it never issued. Most ignore it and assign a fresh extranonce1,
+              * which is why this hid for so long; one that honours the request
+              * hands back the old pool's extranonce1 and the two sessions then
+              * share a nonce space -- stale or duplicate shares, on some pools
+              * only. Reconnecting to the SAME pool still resumes, which is
+              * what the id is for. */
+             free( stratum.session_id );
+             stratum.session_id = NULL;
 	          applog(LOG_BLUE, "Connection changed to %s", short_url);
           }
           else 
@@ -2708,9 +3372,15 @@ static void *stratum_thread(void *userdata )
          pthread_rwlock_wrlock( &g_work_lock );
          g_work_time = 0;
          pthread_rwlock_unlock( &g_work_lock );
-         if ( !stratum_connect( &stratum, stratum.url )
-              || !stratum_subscribe( &stratum )
-              || !stratum_authorize( &stratum, rpc_user, rpc_pass ) )
+         /* RandomX speaks the Monero stratum: a single "login" carrying the
+          * first job, instead of subscribe + authorize. */
+         bool connected = stratum_connect( &stratum, stratum.url );
+         if ( connected )
+            connected = rx_algo_uses_monero_stratum( opt_algo )
+                      ? rx_stratum_login( &stratum, rpc_user, rpc_pass )
+                      : (    stratum_subscribe( &stratum )
+                          && stratum_authorize( &stratum, rpc_user, rpc_pass ) );
+         if ( !connected )
          {
             stratum_disconnect( &stratum );
             if (opt_retries >= 0 && ++failures > opt_retries)
@@ -2728,10 +3398,22 @@ static void *stratum_thread(void *userdata )
 // sometimes stratum connects but doesn't immediately send a job, wait for one.
 //            stratum_down = false;
             applog(LOG_BLUE,"Stratum connection established" );
+            api_set_pool_session_open( true );
             if ( stratum.new_job )   // prime first job
             {
-               stratum_down = false;
-               stratum_gen_work( &stratum, &g_work );
+               /* RandomX: the dataset must match the job's seed_hash before
+                * any thread hashes. Nothing is running yet at this point. */
+               if ( rx_algo_uses_monero_stratum( opt_algo )
+                    && !rx_stratum_prepare_seed( &stratum ) )
+               {
+                  applog( LOG_ERR, "RandomX: dataset init failed" );
+                  stratum_need_reset = true;
+               }
+               else
+               {
+                  stratum_gen_work( &stratum, &g_work );
+                  stratum_down = false;   // only after g_work holds the new job
+               }
             }
          }
       }
@@ -2741,7 +3423,9 @@ static void *stratum_thread(void *userdata )
       {
          if ( likely( s = stratum_recv_line( &stratum ) ) )
          {
-            stratum_down = false;
+            // Not cleared here: the first line after a reconnect is usually
+            // set_difficulty, and releasing the miners on it lets them hash the
+            // previous pool's g_work. Cleared below, once a job is installed.
             if ( likely( !stratum_handle_method( &stratum, s ) ) )
                stratum_handle_response( s );
             free( s );
@@ -2750,12 +3434,16 @@ static void *stratum_thread(void *userdata )
          {
 //            applog(LOG_WARNING, "Stratum connection interrupted");
 //            stratum_disconnect( &stratum );
+            pool_disconnect_count++;
+            api_set_pool_session_open( false );
             stratum_need_reset = true;
          }
       }
       else
       {
          applog(LOG_ERR, "Stratum connection timeout");
+         pool_disconnect_count++;
+         api_set_pool_session_open( false );
          stratum_need_reset = true;
 //         stratum_disconnect( &stratum );
       }
@@ -2804,7 +3492,27 @@ static void *stratum_thread(void *userdata )
          } // stratum_keepalive
 
          if ( stratum.new_job && !stratum_need_reset )
-            stratum_gen_work( &stratum, &g_work );
+         {
+            /* RandomX: a seed_hash change rebuilds the dataset under its write
+             * lock. Miners hold the read lock across a scanhash call and then
+             * want g_work_lock, so the rebuild must run here -- after
+             * restart_threads() and before stratum_gen_work takes g_work_lock.
+             * Inside stratum_gen_work it deadlocks. */
+            if ( rx_algo_uses_monero_stratum( opt_algo ) )
+            {
+               restart_threads();
+               if ( !rx_stratum_prepare_seed( &stratum ) )
+               {
+                  applog( LOG_ERR, "RandomX: dataset rebuild failed" );
+                  stratum_need_reset = true;
+               }
+            }
+            if ( !stratum_need_reset )
+            {
+               stratum_gen_work( &stratum, &g_work );
+               stratum_down = false;
+            }
+         }
 
       } // stratum_need_reset
    }  // loop
@@ -2929,12 +3637,16 @@ static bool cpu_capability( bool display_only )
      cpu_brand_string( cpu_brand );
      printf( "CPU: %s\n", cpu_brand );
 
-     // Build
-     printf( "SW built on " __DATE__
+     // Build. build_stamp_date comes from the generated build-stamp.c, which is
+     // rewritten on every relink; __DATE__ here would report whenever this file
+     // last happened to be recompiled. See Makefile.am.
+     printf( "SW built on %s", build_stamp_date );
      #if defined(__clang__)
-        " with CLANG-%d.%d.%d", __clang_major__, __clang_minor__, __clang_patchlevel__ );
+        printf( " with CLANG-%d.%d.%d", __clang_major__, __clang_minor__,
+                __clang_patchlevel__ );
      #elif defined(__GNUC__)
-        " with GCC-%d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__ );
+        printf( " with GCC-%d.%d.%d", __GNUC__, __GNUC_MINOR__,
+                __GNUC_PATCHLEVEL__ );
      #endif
 
      // OS
@@ -3100,6 +3812,43 @@ void parse_arg(int key, char *arg )
 	case 1030: // api-remote
 		opt_api_remote = 1;
 		break;
+	case 1063: // api-mode
+		if      ( !strcasecmp( arg, "binary" ) ) opt_api_mode = API_MODE_BINARY;
+		else if ( !strcasecmp( arg, "http" ) )   opt_api_mode = API_MODE_HTTP;
+		else if ( !strcasecmp( arg, "both" ) )   opt_api_mode = API_MODE_BOTH;
+		else
+		{
+			fprintf( stderr, "unknown api mode -- '%s'\n", arg );
+			show_usage_and_exit(1);
+		}
+		break;
+	case 1064: // api-token
+		free( opt_api_token );
+		opt_api_token = strdup( arg );
+		break;
+	case 1065: // api-cors
+		free( opt_api_cors );
+		opt_api_cors = strdup( arg );
+		break;
+	case 1067: // api-control
+		opt_api_control = 1;
+		break;
+	case 1068: // api-control-min-interval
+		v = atoi( arg );
+		if ( v < 0 ) show_usage_and_exit(1);
+		opt_api_control_min_interval = v;
+		break;
+	case 1069: // api-control-park-timeout
+		v = atoi( arg );
+		if ( v < 0 ) show_usage_and_exit(1);
+		opt_api_control_park_timeout = v;
+		break;
+	case 1066: // api-http-port
+		v = atoi( arg );
+		if ( v < 0 || v > 65535 )
+			show_usage_and_exit(1);
+		opt_api_http_port = v;
+		break;
 	case 'B':  // background
 		opt_background = true;
 		use_colors = false;
@@ -3173,6 +3922,7 @@ void parse_arg(int key, char *arg )
 		if (v < 0 || v > 9999) /* sanity check */
 			show_usage_and_exit(1);
 		opt_n_threads = v;
+		opt_n_threads_set = true;
 		break;
 	case 'u':  // user
 		free(rpc_user);
@@ -3593,6 +4343,70 @@ int main(int argc, char *argv[])
    // optimizations but no logging, second part does any logging.   
    if ( !register_algo_gate( opt_algo, &algo_gate ) )  exit(1);
 
+   /* Auto-cap thread count for memory-intensive algorithms.
+    * Only runs when the user did NOT explicitly pass -t.
+    * Leaves 20 % of available memory as a safety margin.                  */
+   if ( !opt_n_threads_set ) {
+      size_t ws = algo_gate.get_workspace_size();
+      if ( ws > 0 ) {
+         uint64_t avail = 0;
+         int      cap   = workspace_thread_fit( ws, opt_n_threads, &avail );
+         if ( avail > 0 && cap < 1 ) {
+            /* Not even one thread fits. Start anyway with one - refusing to
+             * run is worse than letting the operator see it try - but say so
+             * plainly, because the likely next event is an OOM kill.        */
+            applog( LOG_WARNING,
+               "Available RAM %.0f MB but %s needs %.0f MB for a single "
+               "thread. Starting 1 thread; expect heavy swapping or an OOM "
+               "kill. This machine cannot mine %s.",
+               avail / (1024.0*1024.0), algo_names[ opt_algo ],
+               ws    / (1024.0*1024.0), algo_names[ opt_algo ] );
+            cap = 1;
+         }
+         if ( avail > 0 ) {
+            if ( cap < opt_n_threads ) {
+               applog( LOG_WARNING,
+                  "Available RAM %.0f MB, per-thread workspace %.0f MB - "
+                  "capping threads %d -> %d to prevent OOM.  "
+                  "Use -t to override.",
+                  avail  / (1024.0 * 1024.0),
+                  ws     / (1024.0 * 1024.0),
+                  opt_n_threads, cap );
+               opt_n_threads = cap;
+            } else {
+               applog( LOG_INFO,
+                  "Memory check: %.0f MB available, %.0f MB/thread - "
+                  "%d thread(s) OK",
+                  avail / (1024.0 * 1024.0),
+                  ws    / (1024.0 * 1024.0),
+                  opt_n_threads );
+            }
+         }
+      }
+   }
+   else
+   {
+      /* -t was given explicitly, so the cap above is deliberately skipped.
+       * Still warn if the request cannot fit - silently reserving more than
+       * RAM looks exactly like a memory leak to the user (equihash192 at
+       * 4.2 GB/thread x 12 = 50 GB), and inside a container it ends in an
+       * OOM kill rather than an allocation failure.                        */
+      size_t ws = algo_gate.get_workspace_size();
+      if ( ws > 0 )
+      {
+         uint64_t avail = available_system_memory();
+         uint64_t need  = (uint64_t)ws * (uint64_t)opt_n_threads;
+         if ( avail > 0 && need > avail )
+            applog( LOG_WARNING,
+               "-t %d requests %.1f GB (%.0f MB/thread) but only %.1f GB is "
+               "available - expect heavy swapping or an OOM kill. This is a "
+               "reservation, not a leak: RSS climbs until every thread's "
+               "workspace is touched. Drop -t to let it auto-cap.",
+               opt_n_threads, need / (1024.0*1024.0*1024.0),
+               ws / (1024.0*1024.0), avail / (1024.0*1024.0*1024.0) );
+      }
+   }
+
    if ( !check_cpu_capability() ) exit(1);
    
 	if ( !opt_benchmark )
@@ -3777,6 +4591,13 @@ int main(int argc, char *argv[])
 	thr_hashrates = (double *) calloc(opt_n_threads, sizeof(double));
 	if (!thr_hashrates)
 		return 1;
+	thr_share_counts = (struct thr_shares *) calloc(opt_n_threads,
+	                                                sizeof(*thr_share_counts));
+	if (!thr_share_counts)
+		return 1;
+	// Needs opt_n_threads, so it cannot run any earlier: it sizes the parking
+	// acknowledgement array the control API waits on.
+	api_ctl_init();
 
 	/* init workio thread info */
 	work_thr_id = opt_n_threads;

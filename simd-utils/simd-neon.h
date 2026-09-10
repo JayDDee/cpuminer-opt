@@ -72,6 +72,19 @@
 #define v128_mulw32( v1, v0 ) \
    vmull_u32( vmovn_u64( v1 ), vmovn_u64( v0 ) )
 
+// Byte multiply with pairwise horizontal add into 16-bit lanes, the shape of
+// x86's PMADDUBSW:  r[k] = a[2k] * b[2k] + a[2k+1] * b[2k+1]
+// NEON has no single instruction for it, so this is three: two widening
+// multiplies and a pairwise add. Both operands are unsigned here, unlike the
+// x86 form, and nothing saturates.
+// NOTE: provided for portability of the name, not because it is the fast way to do
+// a byte matrix product on NEON: plain C over a uint8 matrix auto-vectorizes to
+// UMULL/UMLAL (or UDOT with FEAT_DotProd) and measured faster than any
+// hand-written pairing here. See algo/heavyhash/heavyhash.c.
+#define v128_maddw8( a, b ) \
+   vpaddq_u16( vmull_u8( vget_low_u8( a ), vget_low_u8( b ) ), \
+               vmull_high_u8( a, b ) )
+
 // compare
 #define v128_cmpeq64                  vceqq_u64
 #define v128_cmpeq32                  vceqq_u32
@@ -187,21 +200,27 @@
 // vzipq_u32 can do hi & lo and return uint32x4x2, no 64 bit version.
 
 // AES
+//
+// AES and PMULL64 are separate parts of the optional ARMv8 crypto extension and
+// are guarded separately; treating them as one flag would silently pick the
+// wrong path on a core with only one. Cores with neither (Cortex-A53/A72: Pi 3,
+// Pi 4, RK3328...) get the bit exact but ~4x slower emulations from
+// simd-neon-aes.h / simd-neon-clmul.h, flagged by V128_AES_EMULATED and
+// V128_PMULL_EMULATED so consumers can report it.
+//
+// FORCE_V128_AES_EMU / FORCE_V128_PMULL_EMU emulate even where the hardware
+// exists, which is the only way to test these paths on a machine that has it.
+
+#if ( defined(__ARM_FEATURE_AES) || defined(__ARM_FEATURE_CRYPTO) ) \
+      && !defined(FORCE_V128_AES_EMU)
 
 // xor key with result after encryption, x86_64 format.
 #define v128_aesencxor( v, k ) \
    v128_xor( vaesmcq_u8( vaeseq_u8( v, v128_zero ) ), k )
-// default is x86_64 format.
-#define v128_aesenc v128_aesencxor
 
 // xor key with v before encryption, arm64 format.
 #define v128_xoraesenc( v, k ) \
    vaesmcq_u8( vaeseq_u8( v, k ) )
-
-// xor v with k_in before encryption then xor the result with k_out afterward.
-// Uses the applicable optimization based on the target.
-#define v128_xoraesencxor( v, k_in, k_out ) \
-   v128_xor( v128_xoraesenc( v, k_in ), k_out )
 
 #define v128_aesenc_nokey( v ) \
    vaesmcq_u8( vaeseq_u8( v, v128_zero ) )
@@ -223,6 +242,62 @@
 
 #define v128_aesdeclast_nokey( v ) \
     vaesdq_u8( v, v128_zero )
+
+#else
+
+#include "simd-neon-aes.h"
+#define V128_AES_EMULATED 1
+
+// The emulation is x86_64 shaped, so here it is the arm64 form that costs a xor.
+#define v128_aesencxor( v, k )        v128_aes_emu_enc( v, k )
+#define v128_xoraesenc( v, k )        v128_aes_emu_enc( v128_xor( v, k ), \
+                                                        v128_zero )
+#define v128_aesenc_nokey( v )        v128_aes_emu_enc( v, v128_zero )
+#define v128_aesenclast( v, k )       v128_aes_emu_enclast( v, k )
+#define v128_aesenclast_nokey( v )    v128_aes_emu_enclast( v, v128_zero )
+
+// No v128_aesdec*, see simd-neon-aes.h.
+
+#endif
+
+// default is x86_64 format.
+#define v128_aesenc v128_aesencxor
+
+// xor v with k_in before encryption then xor the result with k_out afterward.
+// Uses the applicable optimization based on the target.
+#define v128_xoraesencxor( v, k_in, k_out ) \
+   v128_xor( v128_xoraesenc( v, k_in ), k_out )
+
+// Carryless multiply of one 64 bit half of each operand, naming the halves
+// instead of exposing x86's imm8 selector. VerusHash keeps its own x86 shaped
+// mapping in algo/verus/verus-neon.h to leave the vendored sources unmodified.
+#if ( defined(__ARM_FEATURE_PMULL) || defined(__ARM_FEATURE_CRYPTO) ) \
+      && !defined(FORCE_V128_PMULL_EMU)
+
+#define V128_PMULL_HW( a, b, la, lb ) \
+   vreinterpretq_u32_p128( vmull_p64( \
+      (poly64_t)vgetq_lane_u64( vreinterpretq_u64_u32( a ), la ), \
+      (poly64_t)vgetq_lane_u64( vreinterpretq_u64_u32( b ), lb ) ) )
+
+#define v128_pmull_ll( a, b )         V128_PMULL_HW( a, b, 0, 0 )
+#define v128_pmull_hh( a, b )         V128_PMULL_HW( a, b, 1, 1 )
+#define v128_pmull_lh( a, b )         V128_PMULL_HW( a, b, 0, 1 )
+
+#else
+
+#include "simd-neon-clmul.h"
+#define V128_PMULL_EMULATED 1
+
+#define V128_PMULL_EMU( a, b, la, lb ) \
+   vreinterpretq_u32_u8( v128_pmull_emu( \
+      vreinterpret_p8_u64( vget_##la##_u64( vreinterpretq_u64_u32( a ) ) ), \
+      vreinterpret_p8_u64( vget_##lb##_u64( vreinterpretq_u64_u32( b ) ) ) ) )
+
+#define v128_pmull_ll( a, b )         V128_PMULL_EMU( a, b, low,  low  )
+#define v128_pmull_hh( a, b )         V128_PMULL_EMU( a, b, high, high )
+#define v128_pmull_lh( a, b )         V128_PMULL_EMU( a, b, low,  high )
+
+#endif
 
 
 typedef union

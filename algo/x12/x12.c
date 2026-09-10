@@ -18,7 +18,7 @@
 #include "algo/hamsi/sph_hamsi.h"
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/simd-hash-2way.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
@@ -30,7 +30,7 @@ typedef struct {
    sph_skein512_context    skein;
    sph_jh512_context       jh;
    sph_keccak512_context   keccak;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_groestl       groestl;
    hashState_echo          echo;
 #else
@@ -53,7 +53,7 @@ void init_x12_ctx()
         sph_skein512_init( &x12_ctx.skein);
         sph_jh512_init( &x12_ctx.jh);
         sph_keccak512_init( &x12_ctx.keccak);
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         init_echo( &x12_ctx.echo, 512 );
         init_groestl (&x12_ctx.groestl, 64 );
 #else
@@ -90,7 +90,7 @@ void x12hash(void *output, const void *input)
 
    simd512_ctx( &ctx.simd, hash, hashB, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    update_final_echo ( &ctx.echo, (BitSequence *)hashB,
                             (const BitSequence *)hash, 512 );
 #else
@@ -98,7 +98,7 @@ void x12hash(void *output, const void *input)
    sph_echo512_close(&ctx.echo, hashB);
 #endif
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
 #else
