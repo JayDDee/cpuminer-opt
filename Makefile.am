@@ -132,6 +132,7 @@ cpuminer_SOURCES = \
   algo/lyra2/lyra2h.c \
   algo/lyra2/lyra2h-4way.c \
   algo/lyra2/allium-4way.c \
+  algo/lyra2/allium-lyra2.c \
   algo/lyra2/phi2-4way.c \
   algo/lyra2/phi2.c \
   algo/m7m/m7m.c \

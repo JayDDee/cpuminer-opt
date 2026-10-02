@@ -1,4 +1,9 @@
+/* Allium pipeline with a fixed-parameter Lyra2 specialization.
+ * GPL-2.0; see COPYING.
+ */
+
 #include "lyra2-gate.h"
+#include "allium-lyra2.h"
 #include <memory.h>
 #include "algo/blake/blake256-hash.h"
 #include "algo/keccak/keccak-hash-4way.h"
@@ -59,6 +64,8 @@ static void allium_16way_hash( void *state, const void *midstate_vars,
    uint32_t hash14[8] __attribute__ ((aligned (32)));
    uint32_t hash15[8] __attribute__ ((aligned (32)));
    allium_16way_ctx_holder ctx __attribute__ ((aligned (64)));
+   uint64_t lyra2_2way_scratch[ALLIUM_LYRA2_2WAY_MATRIX_WORDS]
+      __attribute__ ((aligned (64)));
 
    blake256_16x32_final_rounds_le( vhash, midstate_vars, midhash, block, 14 );
 
@@ -83,28 +90,28 @@ static void allium_16way_hash( void *state, const void *midstate_vars,
                  vhashB, 256 );
 
    intrlv_2x256( vhash, hash0, hash1, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash0, hash1, vhash, 256 );
    intrlv_2x256( vhash, hash2, hash3, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash2, hash3, vhash, 256 );
    intrlv_2x256( vhash, hash4, hash5, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash4, hash5, vhash, 256 );
    intrlv_2x256( vhash, hash6, hash7, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash6, hash7, vhash, 256 );
    intrlv_2x256( vhash, hash8, hash9, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash8, hash9, vhash, 256 );
    intrlv_2x256( vhash, hash10, hash11, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash10, hash11, vhash, 256 );
    intrlv_2x256( vhash, hash12, hash13, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash12, hash13, vhash, 256 );
    intrlv_2x256( vhash, hash14, hash15, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash14, hash15, vhash, 256 );
 
    intrlv_4x128( vhashA, hash0, hash1, hash2, hash3, 256 );
@@ -124,28 +131,28 @@ static void allium_16way_hash( void *state, const void *midstate_vars,
    dintrlv_4x128( hash12, hash13, hash14, hash15, vhashB, 256 );
 
    intrlv_2x256( vhash, hash0, hash1, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash0, hash1, vhash, 256 );
    intrlv_2x256( vhash, hash2, hash3, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash2, hash3, vhash, 256 );
    intrlv_2x256( vhash, hash4, hash5, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash4, hash5, vhash, 256 );
    intrlv_2x256( vhash, hash6, hash7, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash6, hash7, vhash, 256 );
    intrlv_2x256( vhash, hash8, hash9, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash8, hash9, vhash, 256 );
    intrlv_2x256( vhash, hash10, hash11, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash10, hash11, vhash, 256 );
    intrlv_2x256( vhash, hash12, hash13, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash12, hash13, vhash, 256 );
    intrlv_2x256( vhash, hash14, hash15, 256 );
-   LYRA2RE_2WAY( vhash, 32, vhash, 32, 1, 8, 8 );
+   LYRA2RE_2WAY_ALLIUM( vhash, lyra2_2way_scratch );
    dintrlv_2x256( hash14, hash15, vhash, 256 );
 
    intrlv_8x64( vhashA, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
@@ -227,6 +234,7 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
    const __m512i sixteen = _mm512_set1_epi32( 16 );
 
    if ( bench ) ( (uint32_t*)ptarget )[7] = 0x0000ff;
+   const uint32_t target_hi = ptarget[7];
 
    // Prehash first block.
    blake256_transform_le( phash, pdata, 512, 0, 14 );
@@ -256,11 +264,15 @@ int scanhash_allium_16way( struct work *work, uint32_t max_nonce,
    do {
      allium_16way_hash( hash, midstate_vars, block0_hash, block_buf );
 
-     for ( int lane = 0; lane < 16; lane++ ) 
-     if ( unlikely( valid_hash( hash+(lane<<3), ptarget ) && !bench ) )
+     for ( int lane = 0; lane < 16; lane++ )
      {
-        pdata[19] = n + lane;
-        submit_solution( work, hash+(lane<<3), mythr );
+        uint32_t *lane_hash = hash + (lane<<3);
+        if ( unlikely( !bench && lane_hash[7] <= target_hi
+                    && valid_hash( lane_hash, ptarget ) ) )
+        {
+           pdata[19] = n + lane;
+           submit_solution( work, lane_hash, mythr );
+        }
      }
      block_buf[ 3] = _mm512_add_epi32( block_buf[ 3], sixteen ); 
      n += 16;
@@ -297,6 +309,8 @@ static void allium_8way_hash( void *hash, const void *midstate_vars,
    uint64_t *hash6 = (uint64_t*)hash+24;
    uint64_t *hash7 = (uint64_t*)hash+28;
    allium_8way_ctx_holder ctx __attribute__ ((aligned (64))); 
+   uint64_t lyra2_scratch[ALLIUM_LYRA2_MATRIX_WORDS]
+      __attribute__ ((aligned (64)));
 
    blake256_8x32_final_rounds_le( vhashA, midstate_vars, midhash, block, 14 );
 
@@ -315,14 +329,14 @@ static void allium_8way_hash( void *hash, const void *midstate_vars,
    dintrlv_4x64( hash0, hash1, hash2, hash3, vhashA, 256 );
    dintrlv_4x64( hash4, hash5, hash6, hash7, vhashB, 256 );
 
-   LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
-   LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
-   LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
-   LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
-   LYRA2RE( hash4, 32, hash4, 32, hash4, 32, 1, 8, 8 );
-   LYRA2RE( hash5, 32, hash5, 32, hash5, 32, 1, 8, 8 );
-   LYRA2RE( hash6, 32, hash6, 32, hash6, 32, 1, 8, 8 );
-   LYRA2RE( hash7, 32, hash7, 32, hash7, 32, 1, 8, 8 );
+   LYRA2RE_ALLIUM( hash0, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash1, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash2, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash3, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash4, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash5, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash6, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash7, lyra2_scratch );
 
    intrlv_2x128( vhashA, hash0, hash1, 256 );
    intrlv_2x128( vhashB, hash2, hash3, 256 );
@@ -338,14 +352,14 @@ static void allium_8way_hash( void *hash, const void *midstate_vars,
    dintrlv_2x128( hash4, hash5, vhashA, 256 );
    dintrlv_2x128( hash6, hash7, vhashB, 256 );
 
-   LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
-   LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
-   LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
-   LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
-   LYRA2RE( hash4, 32, hash4, 32, hash4, 32, 1, 8, 8 );
-   LYRA2RE( hash5, 32, hash5, 32, hash5, 32, 1, 8, 8 );
-   LYRA2RE( hash6, 32, hash6, 32, hash6, 32, 1, 8, 8 );
-   LYRA2RE( hash7, 32, hash7, 32, hash7, 32, 1, 8, 8 );
+   LYRA2RE_ALLIUM( hash0, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash1, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash2, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash3, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash4, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash5, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash6, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash7, lyra2_scratch );
 
    intrlv_4x64( vhashA, hash0, hash1, hash2, hash3, 256 );
    intrlv_4x64( vhashB, hash4, hash5, hash6, hash7, 256 );
@@ -405,6 +419,7 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
    };
    uint32_t *pdata = work->data;
    uint64_t *ptarget = (uint64_t*)work->target;
+   const uint64_t target_hi = ptarget[3];
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 8;
    uint32_t n = first_nonce;
@@ -441,7 +456,8 @@ int scanhash_allium_8way( struct work *work, uint32_t max_nonce,
      for ( int lane = 0; lane < 8; lane++ )
      {
         const uint64_t *lane_hash = hash + (lane<<2);
-        if ( unlikely( valid_hash( lane_hash, ptarget ) && !bench ) )
+        if ( unlikely( !bench && lane_hash[3] <= target_hi
+                     && valid_hash( lane_hash, ptarget ) ) )
         {
            pdata[19] = n + lane;
            submit_solution( work, lane_hash, mythr );
@@ -482,6 +498,8 @@ static void allium_4way_hash( void *hash, const void *midstate_vars,
    uint64_t *hash2 = (uint64_t*)hash+ 8;
    uint64_t *hash3 = (uint64_t*)hash+12;
    allium_4way_ctx_holder ctx __attribute__ ((aligned (64)));
+   uint64_t lyra2_scratch[ALLIUM_LYRA2_MATRIX_WORDS]
+      __attribute__ ((aligned (64)));
 
    blake256_4x32_final_rounds_le( vhashA, midstate_vars, midhash, block, 14 );
    dintrlv_4x32( hash0, hash1, hash2, hash3, vhashA, 256 );
@@ -497,20 +515,20 @@ static void allium_4way_hash( void *hash, const void *midstate_vars,
    keccak256_2x64_close( &ctx.keccak, vhashA );
    dintrlv_2x64( hash2, hash3, vhashA, 256 );
 
-   LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
-   LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
-   LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
-   LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
+   LYRA2RE_ALLIUM( hash0, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash1, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash2, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash3, lyra2_scratch );
 
    cubehash_full( &ctx.cube, hash0, 256, hash0, 32 );
    cubehash_full( &ctx.cube, hash1, 256, hash1, 32 );
    cubehash_full( &ctx.cube, hash2, 256, hash2, 32 );
    cubehash_full( &ctx.cube, hash3, 256, hash3, 32 );
 
-   LYRA2RE( hash0, 32, hash0, 32, hash0, 32, 1, 8, 8 );
-   LYRA2RE( hash1, 32, hash1, 32, hash1, 32, 1, 8, 8 );
-   LYRA2RE( hash2, 32, hash2, 32, hash2, 32, 1, 8, 8 );
-   LYRA2RE( hash3, 32, hash3, 32, hash3, 32, 1, 8, 8 );
+   LYRA2RE_ALLIUM( hash0, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash1, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash2, lyra2_scratch );
+   LYRA2RE_ALLIUM( hash3, lyra2_scratch );
 
    intrlv_2x64( vhashA, hash0, hash1, 256 );
    skein256_2x64_init( &ctx.skein );
@@ -558,6 +576,7 @@ int scanhash_allium_4way( struct work *work, uint32_t max_nonce,
    };
    uint32_t *pdata = work->data;
    uint64_t *ptarget = (uint64_t*)work->target;
+   const uint64_t target_hi = ptarget[3];
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 4;
    uint32_t n = first_nonce;
@@ -596,7 +615,8 @@ int scanhash_allium_4way( struct work *work, uint32_t max_nonce,
      for ( int lane = 0; lane < 4; lane++ )
      {
         const uint64_t *lane_hash = hash + (lane<<2);
-        if ( unlikely( valid_hash( lane_hash, ptarget ) && !bench ) )
+        if ( unlikely( !bench && lane_hash[3] <= target_hi
+                     && valid_hash( lane_hash, ptarget ) ) )
         {
            pdata[19] = n + lane;
            submit_solution( work, lane_hash, mythr );
@@ -648,6 +668,8 @@ void allium_hash(void *state, const void *input)
 {
     uint32_t hash[8] __attribute__ ((aligned (64)));
     allium_ctx_holder ctx __attribute__ ((aligned (32)));
+    uint64_t lyra2_scratch[ALLIUM_LYRA2_MATRIX_WORDS]
+       __attribute__ ((aligned (64)));
 
     memcpy( &ctx, &allium_ctx, sizeof(allium_ctx) );
     blake256_update( &ctx.blake, input + 64, 16 );
@@ -656,11 +678,11 @@ void allium_hash(void *state, const void *input)
     sph_keccak256( &ctx.keccak, hash, 32 );
     sph_keccak256_close( &ctx.keccak, hash );
 
-    LYRA2RE( hash, 32, hash, 32, hash, 32, 1, 8, 8 );
+    LYRA2RE_ALLIUM( hash, lyra2_scratch );
 
     cubehashUpdateDigest( &ctx.cube, (byte*)hash, (const byte*)hash, 32 );
 
-    LYRA2RE( hash, 32, hash, 32, hash, 32, 1, 8, 8 );
+    LYRA2RE_ALLIUM( hash, lyra2_scratch );
 
     sph_skein256( &ctx.skein, hash, 32 );
     sph_skein256_close( &ctx.skein, hash );
@@ -688,6 +710,7 @@ int scanhash_allium( struct work *work, uint32_t max_nonce,
 
     if ( opt_benchmark )
         ptarget[7] = 0x3ffff;
+    const uint32_t target_hi = ptarget[7];
 
     for ( int i = 0; i < 19; i++ )
         edata[i] = bswap_32( pdata[i] );
@@ -698,7 +721,8 @@ int scanhash_allium( struct work *work, uint32_t max_nonce,
     do {
         edata[19] = nonce;
         allium_hash( hash, edata );
-        if ( valid_hash( hash, ptarget ) && !opt_benchmark )
+        if ( !opt_benchmark && hash[7] <= target_hi
+             && valid_hash( hash, ptarget ) )
         {
             pdata[19] = bswap_32( nonce );
             submit_solution( work, hash, mythr );
@@ -710,8 +734,44 @@ int scanhash_allium( struct work *work, uint32_t max_nonce,
     return 0;
 }
 
+
+/*
+ * Full-pipeline consensus oracle.
+ *
+ * Expected output is a known Allium reference vector for the
+ * 80-byte input 00..4f.
+ */
+static bool allium_consensus_selftest(void)
+{
+    static const uint8_t expected[32] = {
+        0x44,0x6c,0x01,0xd1,0x8f,0x90,0x6d,0x31,
+        0xeb,0x89,0x91,0x9c,0xc1,0xb1,0xdb,0x3b,
+        0xdd,0x46,0xa8,0xe0,0xa5,0x54,0x58,0x20,
+        0x49,0x27,0x7e,0x72,0x82,0x63,0x73,0x2d
+    };
+    uint8_t input[80] __attribute__ ((aligned (64)));
+    uint8_t output[32] __attribute__ ((aligned (64)));
+
+    for (int i = 0; i < 80; ++i)
+        input[i] = (uint8_t)i;
+
+    if (!init_allium_ctx())
+        return false;
+
+    blake256_init(&allium_ctx.blake);
+    blake256_update(&allium_ctx.blake, input, 64);
+    allium_hash(output, input);
+
+    return memcmp(output, expected, sizeof(expected)) == 0;
+}
+
 bool register_allium_algo( algo_gate_t* gate )
 {
+  if ( !LYRA2RE_ALLIUM_selftest() ) return false;
+  if ( !allium_consensus_selftest() ) return false;
+#if defined(SIMD512)
+  if ( !LYRA2RE_2WAY_ALLIUM_selftest() ) return false;
+#endif
 #if defined (ALLIUM_16WAY)
   gate->scanhash  = (void*)&scanhash_allium_16way;
 #elif defined (ALLIUM_8WAY)
