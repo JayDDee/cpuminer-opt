@@ -22,6 +22,7 @@
 #include "algo/echo/aes_ni/hash_api.h"
 #include "algo/hamsi/hamsi-hash-4way.h"
 #include "algo/fugue/fugue-aesni.h"
+#include "algo/fugue/fugue-hash-4way.h"
 #include "algo/shabal/shabal-hash-4way.h"
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/haval/haval-hash-4way.h"
@@ -471,6 +472,9 @@ union _x17_8way_context_overlay
     simd_4way_context       simd;
     hamsi512_8x64_context   hamsi;
     hashState_fugue         fugue;
+#if defined(FUGUE_4X128)
+    fugue512_4x128_context  fugue4;
+#endif
     shabal512_8x32_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_8x64_context     sha512;
@@ -613,6 +617,12 @@ int x17_8x64_hash( void *state, const void *input, int thr_id )
      dintrlv_8x64_512( hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7,
                        vhash );
 
+#if defined(FUGUE_4X128)
+     fugue512_4x128_full( &ctx.fugue4, hash0, hash1, hash2, hash3,
+                                       hash0, hash1, hash2, hash3, 64 );
+     fugue512_4x128_full( &ctx.fugue4, hash4, hash5, hash6, hash7,
+                                       hash4, hash5, hash6, hash7, 64 );
+#else
      fugue512_full( &ctx.fugue, hash0, hash0, 64 );
      fugue512_full( &ctx.fugue, hash1, hash1, 64 );
      fugue512_full( &ctx.fugue, hash2, hash2, 64 );
@@ -621,6 +631,7 @@ int x17_8x64_hash( void *state, const void *input, int thr_id )
      fugue512_full( &ctx.fugue, hash5, hash5, 64 );
      fugue512_full( &ctx.fugue, hash6, hash6, 64 );
      fugue512_full( &ctx.fugue, hash7, hash7, 64 );
+#endif
 
      intrlv_8x32_512( vhash, hash0, hash1, hash2, hash3, hash4, hash5, hash6,
                       hash7 );
@@ -731,6 +742,9 @@ union _x17_4way_context_overlay
     simd_2way_context       simd;
     hamsi512_4x64_context   hamsi;
     hashState_fugue         fugue;
+#if defined(FUGUE_2X128)
+    fugue512_2x128_context  fugue2;
+#endif
     shabal512_4x32_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_4x64_context     sha512;
@@ -836,10 +850,15 @@ int x17_4x64_hash( void *state, const void *input, int thr_id )
 
      dintrlv_4x64_512( hash0, hash1, hash2, hash3, vhash );
 
+#if defined(FUGUE_2X128)
+     fugue512_2x128_full( &ctx.fugue2, hash0, hash1, hash0, hash1, 64 );
+     fugue512_2x128_full( &ctx.fugue2, hash2, hash3, hash2, hash3, 64 );
+#else
      fugue512_full( &ctx.fugue, hash0, hash0, 64 );
      fugue512_full( &ctx.fugue, hash1, hash1, 64 );
      fugue512_full( &ctx.fugue, hash2, hash2, 64 );
      fugue512_full( &ctx.fugue, hash3, hash3, 64 );
+#endif
 
      intrlv_4x32_512( vhash, hash0, hash1, hash2, hash3 );
 

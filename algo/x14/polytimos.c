@@ -11,7 +11,7 @@
 #include "algo/fugue//sph_fugue.h"
 #include "algo/shabal/sph_shabal.h"
 #include "algo/gost/sph_gost.h"
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/echo/aes_ni/hash_api.h"
 #endif
   #include "algo/luffa/luffa_for_sse2.h"
@@ -19,7 +19,7 @@
 typedef struct {
 	sph_skein512_context    skein;
    sph_shabal512_context   shabal;
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    hashState_echo          echo;
 #else
 	sph_echo512_context		echo;
@@ -35,7 +35,7 @@ void init_polytimos_ctx()
 {
 	sph_skein512_init(&poly_ctx.skein);
    sph_shabal512_init(&poly_ctx.shabal);
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &poly_ctx.echo, 512 );
 #else
    sph_echo512_init(&poly_ctx.echo);
@@ -57,7 +57,7 @@ void polytimos_hash(void *output, const void *input)
 	sph_shabal512(&ctx.shabal, hashA, 64);
 	sph_shabal512_close(&ctx.shabal, hashA);
 
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     update_final_echo ( &ctx.echo, (BitSequence *)hashA,
                              (const BitSequence *)hashA, 512 );
 #else

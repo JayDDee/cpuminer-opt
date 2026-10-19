@@ -20,7 +20,7 @@
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/simd/simd-hash-2way.h"
 #include "algo/sha/sph_sha2.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/groestl/aes_ni/hash-groestl.h"
   #include "algo/fugue/fugue-aesni.h"
@@ -34,7 +34,7 @@
 typedef struct {
         sph_blake512_context    blake;
         sph_bmw512_context      bmw;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_echo          echo;
         hashState_groestl       groestl;
         hashState_fugue         fugue;
@@ -63,7 +63,7 @@ void init_sonoa_ctx()
 {
         sph_blake512_init( &sonoa_ctx.blake);
         sph_bmw512_init( &sonoa_ctx.bmw);
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         init_echo( &sonoa_ctx.echo, 512 );
         init_groestl( &sonoa_ctx.groestl, 64 );
         fugue512_Init( &sonoa_ctx.fugue, 512 );
@@ -97,7 +97,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 	sph_bmw512(&ctx.bmw, hash, 64);
 	sph_bmw512_close(&ctx.bmw, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                                      (const char*)hash, 512 );
 #else
@@ -123,7 +123,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 
    simd512_ctx( &ctx.simd, hash, hash, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
 #else
@@ -138,7 +138,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_bmw512(&ctx.bmw, hash, 64);
    sph_bmw512_close(&ctx.bmw, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_groestl( &ctx.groestl, 64 );
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                                      (const char*)hash, 512 );
@@ -172,7 +172,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 
    simd512_ctx( &ctx.simd, hash, hash, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &ctx.echo, 512 );
    update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
@@ -192,7 +192,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_bmw512(&ctx.bmw, hash, 64);
    sph_bmw512_close(&ctx.bmw, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_groestl( &ctx.groestl, 64 );
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                                      (const char*)hash, 512 );
@@ -226,7 +226,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 
    simd512_ctx( &ctx.simd, hash, hash, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &ctx.echo, 512 );
    update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
@@ -240,7 +240,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_hamsi512(&ctx.hamsi, hash, 64);
    sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    fugue512_Update( &ctx.fugue, hash, 512 );
    fugue512_Final( &ctx.fugue, hash ); 
 #else   
@@ -255,7 +255,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_bmw512(&ctx.bmw, hash, 64);
    sph_bmw512_close(&ctx.bmw, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_groestl( &ctx.groestl, 64 );
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
@@ -289,7 +289,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 
    simd512_ctx( &ctx.simd, hash, hash, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &ctx.echo, 512 );
    update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
@@ -303,7 +303,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_hamsi512(&ctx.hamsi, hash, 64);
    sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     fugue512_full( &ctx.fugue, hash, hash, 64 );
 #else
     sph_fugue512_full( &ctx.fugue, hash, hash, 64 );
@@ -316,7 +316,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_hamsi512(&ctx.hamsi, hash, 64);
    sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &ctx.echo, 512 );
    update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
@@ -341,7 +341,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 	sph_shabal512(&ctx.shabal, hash, 64);
    sph_shabal512_close(&ctx.shabal, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_groestl( &ctx.groestl, 64 );
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
@@ -375,7 +375,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 
    simd512_ctx( &ctx.simd, hash, hash, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &ctx.echo, 512 );
    update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
@@ -389,7 +389,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_hamsi512(&ctx.hamsi, hash, 64);
    sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     fugue512_full( &ctx.fugue, hash, hash, 64 );
 #else
     sph_fugue512_full( &ctx.fugue, hash, hash, 64 );
@@ -408,7 +408,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_bmw512(&ctx.bmw, hash, 64);
    sph_bmw512_close(&ctx.bmw, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_groestl( &ctx.groestl, 64 );
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
@@ -442,7 +442,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 
    simd512_ctx( &ctx.simd, hash, hash, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &ctx.echo, 512 );
    update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
@@ -456,7 +456,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_hamsi512(&ctx.hamsi, hash, 64);
    sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     fugue512_full( &ctx.fugue, hash, hash, 64 );
 #else
     sph_fugue512_full( &ctx.fugue, hash, hash, 64 );
@@ -483,7 +483,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_bmw512(&ctx.bmw, hash, 64);
    sph_bmw512_close(&ctx.bmw, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_groestl( &ctx.groestl, 64 );
    update_and_final_groestl( &ctx.groestl, (char*)hash,
                                   (const char*)hash, 512 );
@@ -517,7 +517,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
 
    simd512_ctx( &ctx.simd, hash, hash, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &ctx.echo, 512 );
    update_final_echo ( &ctx.echo, (BitSequence *)hash,
                             (const BitSequence *)hash, 512 );
@@ -531,7 +531,7 @@ int sonoa_hash( void *state, const void *input, int thr_id )
    sph_hamsi512(&ctx.hamsi, hash, 64);
    sph_hamsi512_close(&ctx.hamsi, hash);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     fugue512_full( &ctx.fugue, hash, hash, 64 );
 #else
     sph_fugue512_full( &ctx.fugue, hash, hash, 64 );

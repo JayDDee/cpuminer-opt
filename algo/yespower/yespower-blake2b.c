@@ -91,6 +91,14 @@
 #include <xmmintrin.h>
 #endif
 
+/* The SIMD body below is written against simd-utils, so it compiles on NEON
+ * as well as SSE2; without this the whole vector path fell to the scalar
+ * #else arms on aarch64. simd-utils.h pulls in whichever intrinsics the
+ * target needs, so it stands in for the x86 includes above. */
+#if defined(__ARM_NEON)
+#include "simd-utils.h"
+#endif
+
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -102,89 +110,12 @@
 #include <sys/mman.h>
 #endif
 
-#define HUGEPAGE_THRESHOLD      (12 * 1024 * 1024)
-
-#ifdef __x86_64__
-#define HUGEPAGE_SIZE           (2 * 1024 * 1024)
-#else
-#undef HUGEPAGE_SIZE
-#endif
-
-static void *alloc_region(yespower_region_t *region, size_t size)
-{
-    size_t base_size = size;
-    uint8_t *base, *aligned;
-#ifdef MAP_ANON
-    int flags =
-#ifdef MAP_NOCORE
-        MAP_NOCORE |
-#endif
-        MAP_ANON | MAP_PRIVATE;
-#if defined(MAP_HUGETLB) && defined(HUGEPAGE_SIZE)
-    size_t new_size = size;
-    const size_t hugepage_mask = (size_t)HUGEPAGE_SIZE - 1;
-    if (size >= HUGEPAGE_THRESHOLD && size + hugepage_mask >= size) {
-        flags |= MAP_HUGETLB;
-/*
- * Linux's munmap() fails on MAP_HUGETLB mappings if size is not a multiple of
- * huge page size, so let's round up to huge page size here.
- */
-        new_size = size + hugepage_mask;
-        new_size &= ~hugepage_mask;
-    }
-    base = mmap(NULL, new_size, PROT_READ | PROT_WRITE, flags, -1, 0);
-    if (base != MAP_FAILED) {
-        base_size = new_size;
-    } else if (flags & MAP_HUGETLB) {
-        flags &= ~MAP_HUGETLB;
-        base = mmap(NULL, size, PROT_READ | PROT_WRITE, flags, -1, 0);
-    }
-
-#else
-    base = mmap(NULL, size, PROT_READ | PROT_WRITE, flags, -1, 0);
-#endif
-    if (base == MAP_FAILED)
-        base = NULL;
-    aligned = base;
-#elif defined(HAVE_POSIX_MEMALIGN)
-    if ((errno = posix_memalign((void **)&base, 64, size)) != 0)
-        base = NULL;
-    aligned = base;
-#else
-    base = aligned = NULL;
-    if (size + 63 < size) {
-        errno = ENOMEM;
-    } else if ((base = malloc(size + 63)) != NULL) {
-        aligned = base + 63;
-        aligned -= (uintptr_t)aligned & 63;
-    }
-#endif
-    region->base = base;
-    region->aligned = aligned;
-    region->base_size = base ? base_size : 0;
-    region->aligned_size = base ? size : 0;
-    return aligned;
-}
-
-static inline void init_region(yespower_region_t *region)
-{
-    region->base = region->aligned = NULL;
-    region->base_size = region->aligned_size = 0;
-}
-
-static int free_region(yespower_region_t *region)
-{
-    if (region->base) {
-#ifdef MAP_ANON
-        if (munmap(region->base, region->base_size))
-            return -1;
-#else
-        free(region->base);
-#endif
-    }
-    init_region(region);
-    return 0;
-}
+/* The region allocator was a verbatim copy of yespower-platform.c's and had
+ * silently missed every fix the shared one received. Include it instead of
+ * re-copying: the functions are static, so this TU still gets its own copy.
+ * Kept inside the pass-1 section so the pass-2 self-include below does not
+ * redefine them. */
+#include "yespower-platform.c"
 
 #if __STDC_VERSION__ >= 199901L
 /* Have restrict */
@@ -202,8 +133,13 @@ static int free_region(yespower_region_t *region)
 #endif
 */
 
-#ifdef __SSE__
+#if defined(__SSE__)
 #define PREFETCH(x, hint) _mm_prefetch((const char *)(x), (hint));
+#elif defined(__aarch64__) && !defined(YP_NO_ARM_PREFETCH)
+/* Same gap and same fix as yespower-opt.c. Used on the v1.0 pass ONLY: these
+ * variants are v1.0 in practice, but the v0.5 pass still exists in this file
+ * and on the sibling it costs up to 1.9x. Do not widen without measuring. */
+#define PREFETCH(x, hint) __builtin_prefetch((const void *)(x), 0, 3);
 #else
 #undef PREFETCH
 #endif
@@ -211,8 +147,8 @@ static int free_region(yespower_region_t *region)
 typedef union {
     uint32_t w[16];
     uint64_t d[8];
-#ifdef __SSE2__
-    __m128i q[4];
+#if defined(__SSE2__) || defined(__ARM_NEON)
+    v128_t q[4];
 #endif
 } salsa20_blk_t;
 
@@ -249,11 +185,11 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 #undef UNCOMBINE
 }
 
-#ifdef __SSE2__
+#if defined(__SSE2__) || defined(__ARM_NEON)
 #define DECL_X \
-    __m128i X0, X1, X2, X3;
+    v128_t X0, X1, X2, X3;
 #define DECL_Y \
-    __m128i Y0, Y1, Y2, Y3;
+    v128_t Y0, Y1, Y2, Y3;
 #define READ_X(in) \
     X0 = (in).q[0]; X1 = (in).q[1]; X2 = (in).q[2]; X3 = (in).q[3];
 #define WRITE_X(out) \
@@ -272,9 +208,9 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
 #else
 
 #define ARX(out, in1, in2, s) { \
-    __m128i tmp = _mm_add_epi32(in1, in2); \
-    out = _mm_xor_si128(out, _mm_slli_epi32(tmp, s)); \
-    out = _mm_xor_si128(out, _mm_srli_epi32(tmp, 32 - s)); \
+    v128_t tmp = v128_add32(in1, in2); \
+    out = v128_xor(out, v128_sl32(tmp, s)); \
+    out = v128_xor(out, v128_sr32(tmp, 32 - s)); \
 }
 
 #endif
@@ -286,29 +222,29 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
     ARX(X3, X2, X1, 13) \
     ARX(X0, X3, X2, 18) \
     /* Rearrange data */ \
-    X1 = _mm_shuffle_epi32(X1, 0x93); \
-    X2 = _mm_shuffle_epi32(X2, 0x4E); \
-    X3 = _mm_shuffle_epi32(X3, 0x39); \
+    X1 = v128_shufll32( X1 ); \
+    X2 = v128_swap64( X2 ); \
+    X3 = v128_shuflr32( X3 ); \
     /* Operate on "rows" */ \
     ARX(X3, X0, X1, 7) \
     ARX(X2, X3, X0, 9) \
     ARX(X1, X2, X3, 13) \
     ARX(X0, X1, X2, 18) \
     /* Rearrange data */ \
-    X1 = _mm_shuffle_epi32(X1, 0x39); \
-    X2 = _mm_shuffle_epi32(X2, 0x4E); \
-    X3 = _mm_shuffle_epi32(X3, 0x93);
+    X1 = v128_shuflr32( X1 ); \
+    X2 = v128_swap64( X2 ); \
+    X3 = v128_shufll32( X3 );
 
 /**
  * Apply the Salsa20 core to the block provided in (X0 ... X3).
  */
 #define SALSA20_wrapper(out, rounds) { \
-    __m128i Z0 = X0, Z1 = X1, Z2 = X2, Z3 = X3; \
+    v128_t Z0 = X0, Z1 = X1, Z2 = X2, Z3 = X3; \
     rounds \
-    (out).q[0] = X0 = _mm_add_epi32(X0, Z0); \
-    (out).q[1] = X1 = _mm_add_epi32(X1, Z1); \
-    (out).q[2] = X2 = _mm_add_epi32(X2, Z2); \
-    (out).q[3] = X3 = _mm_add_epi32(X3, Z3); \
+    (out).q[0] = X0 = v128_add32(X0, Z0); \
+    (out).q[1] = X1 = v128_add32(X1, Z1); \
+    (out).q[2] = X2 = v128_add32(X2, Z2); \
+    (out).q[3] = X3 = v128_add32(X3, Z3); \
 }
 
 /**
@@ -327,28 +263,34 @@ static inline void salsa20_simd_unshuffle(const salsa20_blk_t *Bin,
     SALSA20_wrapper(out, SALSA20_8ROUNDS)
 
 #define XOR_X(in) \
-    X0 = _mm_xor_si128(X0, (in).q[0]); \
-    X1 = _mm_xor_si128(X1, (in).q[1]); \
-    X2 = _mm_xor_si128(X2, (in).q[2]); \
-    X3 = _mm_xor_si128(X3, (in).q[3]);
+    X0 = v128_xor(X0, (in).q[0]); \
+    X1 = v128_xor(X1, (in).q[1]); \
+    X2 = v128_xor(X2, (in).q[2]); \
+    X3 = v128_xor(X3, (in).q[3]);
 
 #define XOR_X_2(in1, in2) \
-    X0 = _mm_xor_si128((in1).q[0], (in2).q[0]); \
-    X1 = _mm_xor_si128((in1).q[1], (in2).q[1]); \
-    X2 = _mm_xor_si128((in1).q[2], (in2).q[2]); \
-    X3 = _mm_xor_si128((in1).q[3], (in2).q[3]);
+    X0 = v128_xor((in1).q[0], (in2).q[0]); \
+    X1 = v128_xor((in1).q[1], (in2).q[1]); \
+    X2 = v128_xor((in1).q[2], (in2).q[2]); \
+    X3 = v128_xor((in1).q[3], (in2).q[3]);
 
 #define XOR_X_WRITE_XOR_Y_2(out, in) \
-    (out).q[0] = Y0 = _mm_xor_si128((out).q[0], (in).q[0]); \
-    (out).q[1] = Y1 = _mm_xor_si128((out).q[1], (in).q[1]); \
-    (out).q[2] = Y2 = _mm_xor_si128((out).q[2], (in).q[2]); \
-    (out).q[3] = Y3 = _mm_xor_si128((out).q[3], (in).q[3]); \
-    X0 = _mm_xor_si128(X0, Y0); \
-    X1 = _mm_xor_si128(X1, Y1); \
-    X2 = _mm_xor_si128(X2, Y2); \
-    X3 = _mm_xor_si128(X3, Y3);
+    (out).q[0] = Y0 = v128_xor((out).q[0], (in).q[0]); \
+    (out).q[1] = Y1 = v128_xor((out).q[1], (in).q[1]); \
+    (out).q[2] = Y2 = v128_xor((out).q[2], (in).q[2]); \
+    (out).q[3] = Y3 = v128_xor((out).q[3], (in).q[3]); \
+    X0 = v128_xor(X0, Y0); \
+    X1 = v128_xor(X1, Y1); \
+    X2 = v128_xor(X2, Y2); \
+    X3 = v128_xor(X3, Y3);
 
+#if defined(__ARM_NEON)
+/* NEON has no _mm_cvtsi128_si32; lane 0 is what it reads. Same shape as
+ * yespower-opt.c's INTEGERIFY (:67-77). */
+#define INTEGERIFY vgetq_lane_u32( X0, 0 )
+#else
 #define INTEGERIFY _mm_cvtsi128_si32(X0)
+#endif
 
 #else /* !defined(__SSE2__) */
 
@@ -531,7 +473,7 @@ typedef struct {
 #define DECL_SMASK2REG /* empty */
 #define MAYBE_MEMORY_BARRIER /* empty */
 
-#ifdef __SSE2__
+#if defined(__SSE2__) || defined(__ARM_NEON)
 /*
  * (V)PSRLDQ and (V)PSHUFD have higher throughput than (V)PSRLQ on some CPUs
  * starting with Sandy Bridge.  Additionally, PSHUFD uses separate source and
@@ -552,6 +494,18 @@ typedef struct {
     _mm_srli_epi64((X), 32)
 #endif
 
+#if defined(__ARM_NEON)
+/* NEON definitions for the two macros the x86 chain below supplies.
+ * HI32: v128_mulw32 reads only lanes 0 and 2 of each operand, and shuflr32
+ * puts old lane 1 into lane 0 and old lane 3 into lane 2 -- exactly the inputs
+ * HI32 supplies -- so it is exact for that use, which is the only one left
+ * once EXTRACT64 is defined directly. Same substitution yespower-opt.c makes.
+ * The earlier x86 HI32 chain unconditionally picks its `#elif 1` arm, so undo
+ * that first. */
+#undef HI32
+#define HI32(X)         v128_shuflr32( X )
+#define EXTRACT64(X)    vgetq_lane_u64( (uint64x2_t)(X), 0 )
+#else
 #if defined(__x86_64__) && \
     __GNUC__ == 4 && __GNUC_MINOR__ < 6 && !defined(__ICC)
 #ifdef __AVX__
@@ -589,6 +543,7 @@ typedef struct {
     ((uint64_t)(uint32_t)_mm_cvtsi128_si32(X) | \
     ((uint64_t)(uint32_t)_mm_cvtsi128_si32(HI32(X)) << 32))
 #endif
+#endif  /* __ARM_NEON: HI32 / EXTRACT64 */
 
 #if defined(__x86_64__) && (defined(__AVX__) || !defined(__GNUC__))
 /* 64-bit with AVX */
@@ -660,18 +615,18 @@ static volatile uint64_t Smask2var = Smask2;
 /* 32-bit without SSE4.1 */
 #define PWXFORM_SIMD(X) { \
     uint64_t x = EXTRACT64(X) & Smask2; \
-    __m128i s0 = *(__m128i *)(S0 + (uint32_t)x); \
-    __m128i s1 = *(__m128i *)(S1 + (x >> 32)); \
-    X = _mm_mul_epu32(HI32(X), X); \
-    X = _mm_add_epi64(X, s0); \
-    X = _mm_xor_si128(X, s1); \
+    v128_t s0 = *(v128_t *)(S0 + (uint32_t)x); \
+    v128_t s1 = *(v128_t *)(S1 + (x >> 32)); \
+    X = v128_mulw32(HI32(X), X); \
+    X = v128_add64(X, s0); \
+    X = v128_xor(X, s1); \
 }
 #endif
 
 #define PWXFORM_SIMD_WRITE(X, Sw) \
     PWXFORM_SIMD(X) \
     MAYBE_MEMORY_BARRIER \
-    *(__m128i *)(Sw + w) = X; \
+    *(v128_t *)(Sw + w) = X; \
     MAYBE_MEMORY_BARRIER
 
 #define PWXFORM_ROUND \
@@ -820,7 +775,8 @@ static uint32_t blockmix_xor(const salsa20_blk_t *restrict Bin1,
     /* Convert count of 128-byte blocks to max index of 64-byte block */
     r = r * 2 - 1;
 
-#ifdef PREFETCH
+/* aarch64: v1.0 pass only -- see the PREFETCH definition. */
+#if defined(PREFETCH) && ( !defined(__aarch64__) || _YESPOWER_OPT_C_PASS_ > 1 )
     PREFETCH(&Bin2[r], _MM_HINT_T0)
     for (i = 0; i < r; i++) {
         PREFETCH(&Bin2[i], _MM_HINT_T0)
@@ -878,7 +834,8 @@ static uint32_t blockmix_xor_save(salsa20_blk_t *restrict Bin1out,
     /* Convert count of 128-byte blocks to max index of 64-byte block */
     r = r * 2 - 1;
 
-#ifdef PREFETCH
+/* aarch64: v1.0 pass only -- see the PREFETCH definition. */
+#if defined(PREFETCH) && ( !defined(__aarch64__) || _YESPOWER_OPT_C_PASS_ > 1 )
     PREFETCH(&Bin2[r], _MM_HINT_T0)
     for (i = 0; i < r; i++) {
         PREFETCH(&Bin2[i], _MM_HINT_T0)

@@ -76,6 +76,26 @@ int LYRA2Z_2WAY( uint64_t*, void *K, uint64_t kLen, const void *pwd,
 int LYRA2X_2WAY( void *K, uint64_t kLen, const void *pwd, uint64_t pwdlen,
                   uint64_t timeCost, uint64_t nRows, uint64_t nCols );
 
+/* Four lanes per 512-bit register, one lane per 128-bit sub-lane.
+ * Distinct from LYRA2RE_2WAY above, which puts ONE lane in each 256-bit half:
+ * this one takes its input interleaved 4x128, matching the 16-way path's
+ * cubehash, so Lyra2 -> cubehash -> Lyra2 needs no layout change. */
+int LYRA2RE_4WAY_AVX512( void *K, uint64_t kLen, const void *pwd,
+                         uint64_t pwdlen, uint64_t timeCost, uint64_t nRows,
+                         uint64_t nCols );
+
+#endif
+
+#if defined(__AVX2__)
+
+/* Two lanes per 256-bit register. Present whenever AVX2 is, but the
+ * definition compiles only when AVX-512's 2-way is unavailable (or
+ * LYRA2_FORCE_2WAY_AVX2 is set, which exists so an AVX-512 box can run the
+ * differential against it). */
+int LYRA2RE_2WAY_AVX2( void *K, uint64_t kLen, const void *pwd,
+                       uint64_t pwdlen, uint64_t timeCost, uint64_t nRows,
+                       uint64_t nCols );
+
 #endif
 
 #endif /* LYRA2_H_ */

@@ -71,10 +71,33 @@ static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
 /* xmm[i] will be multiplied by 2
  * xmm[j] will be lost
  * xmm[k] has to be all 0x1b */
+/* GF(2^8) doubling. Groestl's field is AES's (reduction poly 0x11B, whose low
+ * byte is the 0x1b below), so GFNI's GF2P8MULB by 2 is exactly this MUL2 in a
+ * single instruction. Verified bit-identical to the fallback over all 256 byte
+ * values. j and k are unused on the GFNI path; kept for call compatibility. */
+#if defined(__GFNI__)
+#define MUL2( i, j, k ) \
+   i = _mm_gf2p8mul_epi8( i, _mm_set1_epi8( 2 ) );
+
+#elif defined(__ARM_FEATURE_SHA3)
+
+/* BCAX computes a ^ ( b & ~c ) in one instruction, but only pays when the
+ * complement folds at compile time. k is constant here, so ~k is free; with a
+ * runtime third operand it costs an extra MVN, so this stays local to MUL2. */
+
+#define MUL2( i, j, k ) \
+  j = v128_cmpgt8( v128_zero, i ); \
+  i = v128_add8( i, i ); \
+  i = v128_xorandnot( i, v128_not( k ), j );
+
+#else
+
 #define MUL2( i, j, k ) \
   j = v128_cmpgt8( v128_zero, i ); \
   i = v128_add8( i, i ); \
   i = v128_xorand( i, j, k );
+
+#endif
 
 
 /* Yet another implementation of MixBytes.
@@ -287,6 +310,51 @@ static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
  * a0-a7 = input rows
  * b0-b7 = output rows
  */
+/* Rows 1-6 all add the same constant, and shuffle8 is a byte permutation, so
+ * shuffle8( a ^ C ) == shuffle8( a ) ^ shuffle8( C ). On ARM that shuffled
+ * constant rides in as AESE's key for free. x86's AESENCLAST XORs after the
+ * S-box, so it keeps the explicit form below.
+ *
+ * The shuffled constant is the SAME value for all six rows: the mask's high
+ * half is the P/Q interleave, not the per-row shift. One constant, not six,
+ * so the fold costs no extra live register. */
+#if defined(__ARM_FEATURE_AES)
+
+static const v128u64_t ARC_SHIFTED __attribute__ ((aligned (16))) =
+   { 0xffff000000ffff00, 0x0000ffffff0000ff };
+
+#define ROUND(i, a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
+  /* AddRoundConstant */\
+  b1 = v128_set64( 0xffffffffffffffff, 0 ); \
+  a0 = v128_xor( a0, casti_v128( round_const_l0, i ) ); \
+  a7 = v128_xor( a7, casti_v128( round_const_l7, i ) ); \
+  \
+  /* ShiftBytes + SubBytes (interleaved) */\
+  b0 = v128_xor(b0,  b0);\
+  a0 = v128_shuffle8( a0, SUBSH_MASK0 ); \
+  a0 = v128_aesenclast( a0, b0 );\
+  a1 = v128_shuffle8( a1, SUBSH_MASK1 ); \
+  a1 = v128_xoraesenclast( a1, ARC_SHIFTED );\
+  a2 = v128_shuffle8( a2, SUBSH_MASK2 ); \
+  a2 = v128_xoraesenclast( a2, ARC_SHIFTED );\
+  a3 = v128_shuffle8( a3, SUBSH_MASK3 ); \
+  a3 = v128_xoraesenclast( a3, ARC_SHIFTED );\
+  a4 = v128_shuffle8( a4, SUBSH_MASK4 ); \
+  a4 = v128_xoraesenclast( a4, ARC_SHIFTED );\
+  a5 = v128_shuffle8( a5, SUBSH_MASK5 ); \
+  a5 = v128_xoraesenclast( a5, ARC_SHIFTED );\
+  a6 = v128_shuffle8( a6, SUBSH_MASK6 ); \
+  a6 = v128_xoraesenclast( a6, ARC_SHIFTED );\
+  a7 = v128_shuffle8( a7, SUBSH_MASK7 ); \
+  a7 = v128_aesenclast( a7, b0 );\
+  \
+  /* MixBytes */\
+  MixBytes(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7);\
+\
+}
+
+#else
+
 #define ROUND(i, a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* AddRoundConstant */\
   b1 = v128_set64( 0xffffffffffffffff, 0 ); \
@@ -322,6 +390,8 @@ static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
   MixBytes(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7);\
 \
 }
+
+#endif
 
 /* 10 rounds, P and Q in parallel */
 #define ROUNDS_P_Q(){\

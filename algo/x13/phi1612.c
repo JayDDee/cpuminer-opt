@@ -11,7 +11,7 @@
 #include "algo/cubehash/cubehash_sse2.h"
 #include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/echo/aes_ni/hash_api.h"
   #include "algo/fugue/fugue-aesni.h"
 #else
@@ -24,7 +24,7 @@ typedef struct {
      sph_jh512_context       jh;
      cubehashParam           cube;
      sph_gost512_context     gost;
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
      hashState_echo          echo;
      hashState_fugue         fugue;
 #else
@@ -43,7 +43,7 @@ void init_phi1612_ctx()
      sph_jh512_init( &phi_ctx.jh );
      cubehashInit( &phi_ctx.cube, 512, 16, 32 );
      sph_gost512_init( &phi_ctx.gost );
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
      init_echo( &phi_ctx.echo, 512 );
      fugue512_Init( &phi_ctx.fugue, 512 );
 #else
@@ -74,7 +74,7 @@ void phi1612_hash(void *output, const void *input)
 
      cubehashUpdateDigest( &ctx.cube,  hash, hash, 64 );
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
      fugue512_Update( &ctx.fugue, hash, 512 ); 
      fugue512_Final( &ctx.fugue, hash ); 
 #else
@@ -85,7 +85,7 @@ void phi1612_hash(void *output, const void *input)
      sph_gost512( &ctx.gost, hash, 64 );
      sph_gost512_close( &ctx.gost, hash );
 
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
      update_final_echo ( &ctx.echo, (BitSequence *)hash,
                          (const BitSequence *)hash, 512 );
 #else

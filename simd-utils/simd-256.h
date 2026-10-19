@@ -60,6 +60,14 @@ typedef union
 
 #if defined(__AVX2__)
 
+// Multiply bytes and horizontally add adjacent pairs into 16-bit lanes:
+//   r[k] = a[2k] * b[2k] + a[2k+1] * b[2k+1]
+// 32 byte multiplies per instruction, and the pairing means one result lane per
+// pair of source columns, which removes the horizontal reduction a row-major
+// dot product needs. Same signedness asymmetry as the 128 bit form: `a` is
+// UNSIGNED, `b` is SIGNED, and the 16-bit result saturates.
+#define v256_maddw8                    _mm256_maddubs_epi16
+
 // Broadcast, ie set1, from 128 bit vector input.
 #define mm256_bcast128( v ) \
    _mm256_permute4x64_epi64( _mm256_castsi128_si256( v ), 0x44 )

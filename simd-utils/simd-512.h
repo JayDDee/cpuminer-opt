@@ -107,10 +107,29 @@ typedef union
 #define v512_64(i64)    _mm512_set1_epi64(i64)
 #define v512_32(i32)    _mm512_set1_epi32(i32)
 
-// A simple 128 bit permute, using function instead of macro avoids
-// problems if the v arg passed as an expression.
-static inline __m512i mm512_perm128( const __m512i v, const int c )
-{  return _mm512_shuffle_i64x2( v, v, c ); }
+// Byte multiply with pairwise horizontal add into 16-bit lanes:
+//   r[k] = a[2k] * b[2k] + a[2k+1] * b[2k+1]
+// 64 byte multiplies per instruction. `a` is UNSIGNED, `b` SIGNED, and the
+// 16-bit result saturates -- same asymmetry as the 128 and 256 bit forms.
+#define v512_maddw8                    _mm512_maddubs_epi16
+
+#if defined(__AVX512VNNI__)
+// Byte dot product of 4-byte groups accumulated into 32-bit lanes:
+//   r[k] = acc[k] + sum_{t<4} a[4k+t] * b[4k+t]
+// 64 byte multiplies per instruction with the accumulate built in, so no
+// separate add. `a` unsigned, `b` signed; 32-bit lanes cannot saturate for any
+// realistic byte input. This is the same shape as aarch64's UDOT, so it wants
+// the same 4-column-block layout, NOT the pairwise one v512_maddw8 uses.
+// Requires AVX512VNNI (Ice Lake / Rocket Lake and later, plus Cooper Lake).
+#define v512_dpbusd32                  _mm512_dpbusd_epi32
+#endif
+
+// A simple 128 bit permute. Must be a macro, not an inline function: clang
+// requires the control byte to be a compile time constant and rejects it as a
+// function parameter, which is why it could not build this header at all. The v
+// arg is therefore evaluated twice, so keep it side effect free -- the same
+// contract as every other macro here.
+#define mm512_perm128( v, c )  _mm512_shuffle_i64x2( v, v, c )
 
 // Broadcast 128 bit vector to all lanes of 512 bit vector.
 #define mm512_bcast128( v )    mm512_perm128( _mm512_castsi128_si512( v ), 0 )

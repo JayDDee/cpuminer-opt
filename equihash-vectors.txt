@@ -1,0 +1,38 @@
+# Equihash solver known-answer test vectors
+# ------------------------------------------------------------------------------
+# Read at startup by the equihash self-test (algo/equihash/equihash-gate.c).
+# Each line validates equihash_verify() against a REAL (block header, solution)
+# pair from the chain. A PASS proves the Blake2b personalization, hash
+# generation, ExpandArray and index packing match the canonical definition.
+#
+# Lines starting with '#' and blank lines are ignored.
+#
+# Two accepted formats (whitespace-separated):
+#
+#   <wn> <wk> <personal8> <rawblock_hex>
+#   <wn> <wk> <personal8> <header140_hex> <solution_hex>
+#
+#   wn,wk        : equihash parameters, e.g. 200 9  /  144 5  /  96 5
+#   personal8    : 8-char personalization, e.g. ZcashPoW / BitcoinZ / ZelProoW
+#   rawblock_hex : the serialized block. Only the leading header(140 B) +
+#                  compactSize + solution bytes are read; trailing transaction
+#                  data is ignored, so pasting just the first ~3000 hex chars is
+#                  enough. Slicing from the raw block avoids byte-order mistakes.
+#   header140_hex/solution_hex : alternative explicit form (280 hex header +
+#                  the raw solution hex WITHOUT the compactSize prefix).
+#
+# How to obtain a raw block (gives the safe rawblock_hex form):
+#
+#   zcash-cli    getblock <blockhash> 0      # Zcash 200/9, personal "ZcashPoW"
+#   bitcoinz-cli getblock <blockhash> 0      # BitcoinZ 144/5, personal "BitcoinZ"
+#   flux/zel:    getblock via daemon         # 125/4, personal "ZelProoW"
+#
+# or any block explorer's "raw"/"hex" view for the block.
+#
+# Example (REPLACE with a real block — this placeholder is intentionally
+# commented out so it does not produce a false FAIL):
+#
+# 144 5 BitcoinZ 04000000....<rawblockhex>....
+# 200 9 ZcashPoW 04000000....<rawblockhex>....
+144 5 BitcoinZ 04000000b03331d1ad8d8b3f8a0d4ac93d38f01b1486f61f540aed6a2644e3bcdd05000009d69184ff3d68e358af4f998ff7faa2b440744477ff1bd10fff204fa4a9e77b237af0e24edde6452ea0a91d123a3bb6de09bd23405e507daa67ea191f8a7e2f968d396a774c0c1e80000010000000000000000000000000000000000000000000000000d0c3d9016401364eb269f6b0b4383a68892030ad238bf7e098ca2b69ac7339f522f640d18e7f94f3519d1514fe570798ed69adbf770b76110d9da6be924ccbcd354d9a8634e62d9ab9c1d6d977baf18f33aa5052402e3d961e5f45914414f33d851ee13c12f37af8f0010400008085202f89010000000000000000000000000000000000000000000000000000000000000000ffffffff2203e5541b04968d396a080674bc3d000000002f7a706f6f6c2e63612f0674bc3d2f00ffffffff04409452a30300000017a9141506747cbcb4a89e1c6d37da1d8523347629397c8700ba1dd20500000017a9146c34429047366517587a6311df11545b4fa38a5c87c002da170500000017a914c85f4794945c5a546be67c87c90120d77cbdb66287004429353a0000001976a91441b79582732d06306d32dfb3183ce124b6f328ad88ac00000000000000000000000000000000000000
+192 7 ZcashPoW 040000007c4b44f0ee6e3c650db32fd8d81d94032e53531d5f76ad56fbfe2efe4f000000d330ca04715785276401153ed70607c1d2f932528a5dbfdc2edb94319ddd77a99d60a4f60bf29a6d9346b8cdb4729af1d79ae72c408a8f36bc8580d699970a41eee4ac6aed77041e8004e1a20000000000000000f704000001000000000000000000000000000000 00a69a5d9a0cc90af39a28d670567be0864d058099e54fdd460e8f6fe9b548d21f6ddfad1eb176920e2025af631c1fd2bc5c0ca8189bcf7eeee4b9fac6ca97397636028e9e647cd593a25015a47e241511f7f3f5ff257442dbef5c407b790818e69530d20128d7a525f4787a7b9f1632e49bfb4fea2e8aa38bc989422e0bea850aa08faba9031a64f7e3c4206d4373d62d376dee0a7213ea330cdf6c93e752accb5f61b847d356c51cfabf3d2152121cf6557cf1f9d95c25ef1bb382ad271ff22c595291d387204203e6f3ec4cf898bbdfd4658b723d79a741d8349d475e9530f0476992da34762094d03b9b4a377963aef0ab8e9cb6ff8a0c970530fcb377438fdafb9c8790b36f0f07371785d8f96b34c2800736b7ada7ffd9a0b11038cdc611a5a3490c0a4461ef5e23611611f260c0406c36d8da614c4178a8a1c24876b70b83d0b41c24137b1d1b85cdd4da0ffc8f9406047cdb263601e4cdafe30f2a1f927e8bf60b8734d00abc042ae1ed8367693a85e73615822eb0c2aed48f0c528a54f7a255123e3efe8cb97e1e6efeffc1

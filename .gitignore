@@ -2,6 +2,7 @@ minerd*
 cpuminer
 *.exe
 *.o
+*.a
 *.d
 gmon.out
 
@@ -26,9 +27,8 @@ config.sub
 
 mingw32-config.cache
 
-*/.dirstamp
-*/*/.dirstamp
-*/*/*/.dirstamp
+.dirstamp
+*~
 *.iml
 
 *.vcxproj.user
@@ -48,3 +48,17 @@ sign/
 sign.sh
 
 compat/curl-for-windows/
+
+# generated per link, carries the SW built on date (see Makefile.am)
+build-stamp.c
+
+# `make check` artefacts: the KAT binary plus automake's test harness output.
+# Listed by name rather than as *.log/*.trs so nothing else gets hidden.
+randomx-kat
+test-driver
+test-suite.log
+randomx-kat.log
+randomx-kat.trs
+
+# rename maps written by algo/randomx/prefix-syms.sh (also in CLEANFILES)
+*.a.syms

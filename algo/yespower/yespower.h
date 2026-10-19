@@ -137,8 +137,27 @@ extern int yespower_tls(const uint8_t *src, size_t srclen,
 extern int yespower_b2b_tls(const uint8_t *src, size_t srclen,
     const yespower_params_t *params, yespower_binary_t *dst, int thr_id);
 
+/* Release the calling thread's yespower region (up to 16 MB on yescryptr32).
+ * Idempotent; the next yespower_tls() re-initialises it. No-op in builds where
+ * yespower-opt.c compiles to nothing. */
+extern void yespower_tls_free( void );
+
 extern int yespower_tls_ref(const uint8_t *src, size_t srclen,
     const yespower_params_t *params, yespower_binary_t *dst, int thr_id);
+
+/* The region helpers above live in yespower-opt.c, which compiles to nothing
+ * unless __SSE2__ or __aarch64__. Builds without either use these instead --
+ * declared here because the self-test has to pick one at compile time. */
+extern int yespower_init_local_ref(yespower_local_t *local);
+extern int yespower_free_local_ref(yespower_local_t *local);
+extern int yespower_b2b_init_local_ref(yespower_local_t *local);
+extern int yespower_b2b_free_local_ref(yespower_local_t *local);
+
+/* Startup self-test. yespower_self_test() returns NULL on success or the name
+ * of the failing vector; yespower_gate_self_test() wraps it with logging and is
+ * what the register_*_algo functions return. See yespower-kat.h. */
+const char *yespower_self_test( void );
+bool yespower_gate_self_test( void );
 
 int yespower_hash( const char *input, char *output, int thrid );
 

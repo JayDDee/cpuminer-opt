@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
   #include "sph_groestl.h"
@@ -14,7 +14,7 @@
 
 typedef struct
 {
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     hashState_groestl groestl1, groestl2;
 #else
     sph_groestl512_context groestl1, groestl2;
@@ -26,7 +26,7 @@ static groestl_ctx_holder groestl_ctx;
 
 void init_groestl_ctx()
 {
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     init_groestl( &groestl_ctx.groestl1, 64 );
     init_groestl( &groestl_ctx.groestl2, 64 );
 #else
@@ -41,7 +41,7 @@ void groestlhash( void *output, const void *input )
      groestl_ctx_holder ctx __attribute__ ((aligned (64)));
      memcpy( &ctx, &groestl_ctx, sizeof(groestl_ctx) );
 
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
      update_and_final_groestl( &ctx.groestl1, (char*)hash,
                                (const char*)input, 640 );
 

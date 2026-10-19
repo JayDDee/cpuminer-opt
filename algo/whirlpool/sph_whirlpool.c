@@ -3429,6 +3429,215 @@ ROUND_FUN(whirlpool0, old0)
 ROUND_FUN(whirlpool1, old1)
 
 /*
+ * Precomputed-round-key API -- see sph_whirlpool.h. Purely additive: every
+ * definition above is untouched, so the plain/0/1 code paths are unchanged.
+ * Same round constants and, on targets without the 2-D table below, the same
+ * ROUND_ELT -- so those follow SPH_SMALL_FOOTPRINT_WHIRLPOOL automatically.
+ */
+
+/*
+ * The eight round tables gathered into one 2-D array -- x86 ONLY, measured.
+ *
+ * On x86-64 a table index cannot be folded into RIP-relative addressing, so
+ * under PIE each of the eight tables pins a register; one 2-D array indexed by
+ * a constant table number needs a single base instead. Worth ~1.15x there.
+ * aarch64 has 31 registers and cannot fold the displacement, so the same change
+ * is an 18% LOSS and stays off. Do not enable it elsewhere without measuring.
+ *
+ * Derived data, not a second source of truth: copied from the arrays above, and
+ * whirlpoolx2's startup self-test checks the functions that read it against the
+ * pristine one-shot core.
+ */
+#ifndef WHIRLPOOL_KEYED_2D          /* -DWHIRLPOOL_KEYED_2D=0/1 forces it */
+#if defined(__x86_64__) || defined(__i386__)
+#define WHIRLPOOL_KEYED_2D   1
+#else
+#define WHIRLPOOL_KEYED_2D   0
+#endif
+#endif
+
+const char *
+sph_whirlpool_keyed_config(void)
+{
+	/* Answered from inside this TU: a caller re-testing the selection macro in
+	 * its own would report its own fallback, not what was compiled here. */
+	return WHIRLPOOL_KEYED_2D ? "2-D table (x86)" : "8 tables";
+}
+
+#if WHIRLPOOL_KEYED_2D
+
+static sph_u64 plain_T2D[8][256] __attribute__ ((aligned (64)));
+static int plain_T2D_ready = 0;
+
+void
+sph_whirlpool_keyed_init(void)
+{
+	if (plain_T2D_ready)
+		return;
+	memcpy(plain_T2D[0], plain_T0, sizeof plain_T2D[0]);
+	memcpy(plain_T2D[1], plain_T1, sizeof plain_T2D[0]);
+	memcpy(plain_T2D[2], plain_T2, sizeof plain_T2D[0]);
+	memcpy(plain_T2D[3], plain_T3, sizeof plain_T2D[0]);
+	memcpy(plain_T2D[4], plain_T4, sizeof plain_T2D[0]);
+	memcpy(plain_T2D[5], plain_T5, sizeof plain_T2D[0]);
+	memcpy(plain_T2D[6], plain_T6, sizeof plain_T2D[0]);
+	memcpy(plain_T2D[7], plain_T7, sizeof plain_T2D[0]);
+	plain_T2D_ready = 1;
+}
+
+#else
+
+void
+sph_whirlpool_keyed_init(void)
+{
+	/* nothing to build: this target reads the eight tables directly */
+}
+
+#endif
+
+/* ROUND_ELT against the 2-D table. Table index is a literal in every use, so
+ * the t*2048 displacement folds into the instruction. */
+#if WHIRLPOOL_KEYED_2D
+#define ROUND_ELT_2D(in, i0, i1, i2, i3, i4, i5, i6, i7) \
+	( plain_T2D[0][BYTE(in ## i0, 0)] \
+	^ plain_T2D[1][BYTE(in ## i1, 1)] \
+	^ plain_T2D[2][BYTE(in ## i2, 2)] \
+	^ plain_T2D[3][BYTE(in ## i3, 3)] \
+	^ plain_T2D[4][BYTE(in ## i4, 4)] \
+	^ plain_T2D[5][BYTE(in ## i5, 5)] \
+	^ plain_T2D[6][BYTE(in ## i6, 6)] \
+	^ plain_T2D[7][BYTE(in ## i7, 7)] )
+
+#define ROUND_WENC_2D(in, out, K)   do { \
+		out ## 0 = ROUND_ELT_2D(in, 0, 7, 6, 5, 4, 3, 2, 1) ^ (K)[0]; \
+		out ## 1 = ROUND_ELT_2D(in, 1, 0, 7, 6, 5, 4, 3, 2) ^ (K)[1]; \
+		out ## 2 = ROUND_ELT_2D(in, 2, 1, 0, 7, 6, 5, 4, 3) ^ (K)[2]; \
+		out ## 3 = ROUND_ELT_2D(in, 3, 2, 1, 0, 7, 6, 5, 4) ^ (K)[3]; \
+		out ## 4 = ROUND_ELT_2D(in, 4, 3, 2, 1, 0, 7, 6, 5) ^ (K)[4]; \
+		out ## 5 = ROUND_ELT_2D(in, 5, 4, 3, 2, 1, 0, 7, 6) ^ (K)[5]; \
+		out ## 6 = ROUND_ELT_2D(in, 6, 5, 4, 3, 2, 1, 0, 7) ^ (K)[6]; \
+		out ## 7 = ROUND_ELT_2D(in, 7, 6, 5, 4, 3, 2, 1, 0) ^ (K)[7]; \
+	} while (0)
+
+#endif   /* WHIRLPOOL_KEYED_2D */
+
+/* Message words re-read for the Miyaguchi-Preneel step rather than held live
+ * across all ten rounds, which would cost eight registers. */
+#define RD_BLK(i)   sph_dec64le_aligned((const unsigned char *)blk + 8 * (i))
+
+/* Round selector, so the two keyed functions are written once. */
+#if WHIRLPOOL_KEYED_2D
+#define KEYED_WENC(in, out, K)   ROUND_WENC_2D(in, out, K)
+#define KEYED_ELT(in, a,b,c,d,e,f,g,h)   ROUND_ELT_2D(in, a,b,c,d,e,f,g,h)
+#else
+#define KEYED_WENC(in, out, K)   ROUND_WENC_ARR(plain_T, in, out, K)
+#define KEYED_ELT(in, a,b,c,d,e,f,g,h)   ROUND_ELT(plain_T, in, a,b,c,d,e,f,g,h)
+#endif
+
+#define WK_LOAD8(src)   do { \
+		kk0 = (src)[0]; kk1 = (src)[1]; kk2 = (src)[2]; kk3 = (src)[3]; \
+		kk4 = (src)[4]; kk5 = (src)[5]; kk6 = (src)[6]; kk7 = (src)[7]; \
+	} while (0)
+
+#define WK_STORE8(dst)   do { \
+		(dst)[0] = kk0; (dst)[1] = kk1; (dst)[2] = kk2; (dst)[3] = kk3; \
+		(dst)[4] = kk4; (dst)[5] = kk5; (dst)[6] = kk6; (dst)[7] = kk7; \
+	} while (0)
+
+void
+sph_whirlpool_expand_keys(sph_whirlpool_keys *wk, const sph_u64 *state)
+{
+	DECL8(kk);
+	int r;
+
+	WK_LOAD8(state);
+	WK_STORE8(wk->K[0]);
+	for (r = 0; r < 10; r ++) {
+		DECL8(tmp);
+
+		ROUND_KSCHED(plain_T, kk, tmp, plain_RC[r]);
+		TRANSFER(kk, tmp);
+		WK_STORE8(wk->K[r + 1]);
+	}
+}
+
+/* ROUND_WENC, with the key read from an array rather than eight named locals. */
+#define ROUND_WENC_ARR(table, in, out, K)   do { \
+		out ## 0 = ROUND_ELT(table, in, 0, 7, 6, 5, 4, 3, 2, 1) ^ (K)[0]; \
+		out ## 1 = ROUND_ELT(table, in, 1, 0, 7, 6, 5, 4, 3, 2) ^ (K)[1]; \
+		out ## 2 = ROUND_ELT(table, in, 2, 1, 0, 7, 6, 5, 4, 3) ^ (K)[2]; \
+		out ## 3 = ROUND_ELT(table, in, 3, 2, 1, 0, 7, 6, 5, 4) ^ (K)[3]; \
+		out ## 4 = ROUND_ELT(table, in, 4, 3, 2, 1, 0, 7, 6, 5) ^ (K)[4]; \
+		out ## 5 = ROUND_ELT(table, in, 5, 4, 3, 2, 1, 0, 7, 6) ^ (K)[5]; \
+		out ## 6 = ROUND_ELT(table, in, 6, 5, 4, 3, 2, 1, 0, 7) ^ (K)[6]; \
+		out ## 7 = ROUND_ELT(table, in, 7, 6, 5, 4, 3, 2, 1, 0) ^ (K)[7]; \
+	} while (0)
+
+void
+sph_whirlpool_compress_keyed(const sph_whirlpool_keys *wk, const void *blk,
+	const sph_u64 *state, sph_u64 *out)
+{
+	DECL8(n);
+	int r;
+
+	/* READ_DATA, then ROUND0 whitening with K[0] (== the chaining state). */
+	n0 = RD_BLK(0) ^ wk->K[0][0]; n1 = RD_BLK(1) ^ wk->K[0][1];
+	n2 = RD_BLK(2) ^ wk->K[0][2]; n3 = RD_BLK(3) ^ wk->K[0][3];
+	n4 = RD_BLK(4) ^ wk->K[0][4]; n5 = RD_BLK(5) ^ wk->K[0][5];
+	n6 = RD_BLK(6) ^ wk->K[0][6]; n7 = RD_BLK(7) ^ wk->K[0][7];
+
+	for (r = 0; r < 10; r ++) {
+		DECL8(tmp);
+
+		KEYED_WENC(n, tmp, wk->K[r + 1]);
+		TRANSFER(n, tmp);
+	}
+
+	/* Miyaguchi-Preneel, as UPDATE_STATE: state ^= cipher ^ message. */
+	out[0] = state[0] ^ n0 ^ RD_BLK(0);
+	out[1] = state[1] ^ n1 ^ RD_BLK(1);
+	out[2] = state[2] ^ n2 ^ RD_BLK(2);
+	out[3] = state[3] ^ n3 ^ RD_BLK(3);
+	out[4] = state[4] ^ n4 ^ RD_BLK(4);
+	out[5] = state[5] ^ n5 ^ RD_BLK(5);
+	out[6] = state[6] ^ n6 ^ RD_BLK(6);
+	out[7] = state[7] ^ n7 ^ RD_BLK(7);
+}
+
+sph_u64
+sph_whirlpool_keyed_fold32_msw(const sph_whirlpool_keys *wk, const void *blk,
+	const sph_u64 *state)
+{
+	DECL8(n);
+	sph_u64 c3, c7;
+	int r;
+
+	n0 = RD_BLK(0) ^ wk->K[0][0]; n1 = RD_BLK(1) ^ wk->K[0][1];
+	n2 = RD_BLK(2) ^ wk->K[0][2]; n3 = RD_BLK(3) ^ wk->K[0][3];
+	n4 = RD_BLK(4) ^ wk->K[0][4]; n5 = RD_BLK(5) ^ wk->K[0][5];
+	n6 = RD_BLK(6) ^ wk->K[0][6]; n7 = RD_BLK(7) ^ wk->K[0][7];
+
+	/* Nine full rounds. The last round cannot be pruned further than this:
+	 * every ROUND_ELT reads one byte from all eight input words, so the two
+	 * words wanted from round 10 depend on all eight of round 9's. */
+	for (r = 0; r < 9; r ++) {
+		DECL8(tmp);
+
+		KEYED_WENC(n, tmp, wk->K[r + 1]);
+		TRANSFER(n, tmp);
+	}
+
+	/* Final round, words 3 and 7 only -- two ROUND_ELT instead of eight. */
+	c3 = KEYED_ELT(n, 3, 2, 1, 0, 7, 6, 5, 4) ^ wk->K[10][3];
+	c7 = KEYED_ELT(n, 7, 6, 5, 4, 3, 2, 1, 0) ^ wk->K[10][7];
+
+	/* The message terms must not be dropped: for an 80-byte message m3^m7 is
+	 * the padding length word 0x8002000000000000, which is zero for a fold at
+	 * other offsets and so is easy to omit by analogy. */
+	return (state[3] ^ c3 ^ RD_BLK(3)) ^ (state[7] ^ c7 ^ RD_BLK(7));
+}
+
+/*
  * We want big-endian encoding of the message length, over 256 bits. BE64
  * triggers that. However, our block length is 512 bits, not 1024 bits.
  * Internally, our encoding/decoding is little-endian, which is not a

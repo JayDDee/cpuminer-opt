@@ -232,6 +232,7 @@ static inline int cpu_fanpercent()
 // ECX
 #define AVX512_VBMI_Flag         (1<< 1) 
 #define AVX512_VBMI2_Flag        (1<< 6)
+#define GFNI_Flag                (1<< 8)
 #define VAES_Flag                (1<< 9)
 #define VPCLMULQDQ_Flag          (1<<10)
 #define AVX512_VNNI_Flag         (1<<11)
@@ -815,6 +816,21 @@ static inline bool has_vaes()
        return cpu_info[ ECX_Reg ] & VAES_Flag;
    }
    return false;
+#else
+   return false;
+#endif
+}
+
+/* Not gated on AVX the way has_vaes() above is: the legacy SSE encoding of
+ * GF2P8MULB needs no VEX, so the raw CPUID bit is the honest answer to "does
+ * this CPU have GFNI". Consumers of the 256/512-bit forms carry their own
+ * AVX2/AVX512F guard. */
+static inline bool has_gfni()
+{
+#if defined(__x86_64__)
+   unsigned int cpu_info[4] = { 0 };
+   cpuid( EXTENDED_FEATURES, 0, cpu_info );
+   return cpu_info[ ECX_Reg ] & GFNI_Flag;
 #else
    return false;
 #endif

@@ -24,6 +24,9 @@ union _x16rv2_8way_context_overlay
     simd_4way_context       simd;
     hamsi512_8x64_context   hamsi;
     hashState_fugue         fugue;
+#if defined(FUGUE_4X128)
+    fugue512_4x128_context  fugue4;
+#endif
     shabal512_8x32_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_8x64_context     sha512;
@@ -437,6 +440,15 @@ int x16rv2_8way_hash( void* output, const void* input, int thrid )
             }
             else
             {
+#if defined(FUGUE_4X128)
+               // Only i != 0 is batchable; i == 0 resumes the prehash context.
+               fugue512_4x128_full( &ctx.fugue4, hash0, hash1, hash2, hash3,
+                                                 hash0, hash1, hash2, hash3,
+                                                 size );
+               fugue512_4x128_full( &ctx.fugue4, hash4, hash5, hash6, hash7,
+                                                 hash4, hash5, hash6, hash7,
+                                                 size );
+#else
                fugue512_full( &ctx.fugue, hash0, hash0, size );
                fugue512_full( &ctx.fugue, hash1, hash1, size );
                fugue512_full( &ctx.fugue, hash2, hash2, size );
@@ -445,6 +457,7 @@ int x16rv2_8way_hash( void* output, const void* input, int thrid )
                fugue512_full( &ctx.fugue, hash5, hash5, size );
                fugue512_full( &ctx.fugue, hash6, hash6, size );
                fugue512_full( &ctx.fugue, hash7, hash7, size );
+#endif
             }
          break;
          case SHABAL:
@@ -720,6 +733,9 @@ union _x16rv2_4way_context_overlay
     simd_2way_context       simd;
     hamsi512_4x64_context   hamsi;
     hashState_fugue         fugue;
+#if defined(FUGUE_2X128)
+    fugue512_2x128_context  fugue2;
+#endif
     shabal512_4x32_context  shabal;
     sph_whirlpool_context   whirlpool;
     sha512_4x64_context     sha512;
@@ -1003,10 +1019,17 @@ int x16rv2_4way_hash( void* output, const void* input, int thrid )
             }
             else
             {
+               #if defined(FUGUE_2X128)
+               fugue512_2x128_full( &ctx.fugue2, hash0, hash1,
+                                                 hash0, hash1, size );
+               fugue512_2x128_full( &ctx.fugue2, hash2, hash3,
+                                                 hash2, hash3, size );
+               #else
                fugue512_full( &ctx.fugue, hash0, hash0, size );
                fugue512_full( &ctx.fugue, hash1, hash1, size );
                fugue512_full( &ctx.fugue, hash2, hash2, size );
                fugue512_full( &ctx.fugue, hash3, hash3, size );
+               #endif
             }
          break;
          case SHABAL:

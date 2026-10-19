@@ -11,7 +11,7 @@
 #include "algo/skein/sph_skein.h"
 #include "algo/jh/sph_jh.h"
 #include "algo/keccak/sph_keccak.h"
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
  #include "algo/groestl/aes_ni/hash-groestl.h"
 #else
  #include "algo/groestl/sph_groestl.h"
@@ -20,7 +20,7 @@
 typedef struct {
     sph_blake512_context  blake;
     sph_bmw512_context    bmw;
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     hashState_groestl groestl;
 #else
     sph_groestl512_context groestl;
@@ -36,7 +36,7 @@ void init_anime_ctx()
 {
      sph_blake512_init( &anime_ctx.blake );
      sph_bmw512_init( &anime_ctx.bmw );
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     init_groestl( &anime_ctx.groestl, 64 );
 #else
      sph_groestl512_init( &anime_ctx.groestl );
@@ -61,7 +61,7 @@ void anime_hash( void *state, const void *input )
 
     if ( ( hash[0] & mask ) != 0 ) 
     {
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
        update_and_final_groestl( &ctx.groestl, (char*)hash, (char*)hash, 512 );
        reinit_groestl( &ctx.groestl );
 #else
@@ -77,7 +77,7 @@ void anime_hash( void *state, const void *input )
        sph_skein512_init( &ctx.skein );
     }
 
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     update_and_final_groestl( &ctx.groestl, (char*)hash, (char*)hash, 512 );
 #else
     sph_groestl512 ( &ctx.groestl, hash, 64 );

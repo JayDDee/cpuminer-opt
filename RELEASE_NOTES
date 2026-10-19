@@ -73,6 +73,31 @@ If not what makes it happen or not happen?
 Change Log
 ----------
 
+v2026.09 (tpfuemp fork, based on v26.1)
+
+New algos (40):
+argon2id1024, balloon, curvehash, equihash (96/5, 125/4, 144/5, 192/7,
+200/9), flex, ghostrider, heavyhash, hoohashv110, k12, megabtx, megamec,
+mike, neoscrypt-xaya, odo, panthera, randomx (rx/0, arq, graft, sfx, wow),
+rinhash, sha256csm, sha256dv, sha3t, skydoge, soterg, verus, whirlpoolx2,
+yespower coin variants (advc, eqpay, ltncg, mgpc, smt, sugar, tide, urx).
+randomx-wow is built and self-tested but not yet confirmed on a pool.
+
+Faster: curvehash 3.4x then 1.6x, heavyhash ~3.3x (ARM 4.4x), whirlpoolx2 2.5x,
+hoohashv110 ~2x, balloon 1.7x (ARM), keccak/sha3t 1.1-1.3x, fugue 1.1-1.3x
+in 9 algos, verus +14% (ARM), allium AVX2, groestl GFNI.
+ARM: hardware AES for GhostRider and the x-family, NEON paths for verus and
+yespower-b2b, automatic +crypto build flags.
+
+New: REST/JSON API with runtime algo and pool switching and Prometheus
+metrics (--api-mode=http). Windows builds are static, no DLLs needed.
+Termux (Android) build script.
+
+Fixes: argon2id addressing and alignment, rinhash duplicate shares, myr-gr
+invalid shares, stale nonce after an algo switch, API summary crash,
+cryptonote out-of-memory leak, scalar (non-SIMD) yespower build, --help algo
+list. Startup self-tests (known-answer tests) for most new algos.
+
 v26.1
 
 Fixed segfault in scrypt algo on some older CPUs.

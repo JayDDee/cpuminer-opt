@@ -7,7 +7,7 @@
 #include "algo/jh/sph_jh.h"
 #include "algo/gost/sph_gost.h"
 #include "algo/cubehash/cubehash_sse2.h"
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/echo/aes_ni/hash_api.h"
 #else
   #include "algo/echo/sph_echo.h"
@@ -16,7 +16,7 @@
 typedef struct {
      cubehashParam           cube;
      sph_jh512_context       jh;
-#if  defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
      hashState_echo          echo1;
      hashState_echo          echo2;
 #else
@@ -33,7 +33,7 @@ void init_phi2_ctx()
 {
    cubehashInit( &phi2_ctx.cube, 512, 16, 32 );
    sph_jh512_init(&phi2_ctx.jh);
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    init_echo( &phi2_ctx.echo1, 512 );
    init_echo( &phi2_ctx.echo2, 512 );
 #else
@@ -69,7 +69,7 @@ void phi2_hash(void *state, const void *input)
 	}
   	else
   	{
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
       update_final_echo ( &ctx.echo1, (BitSequence *)hash,
                           (const BitSequence *)hash, 512 );
       update_final_echo ( &ctx.echo2, (BitSequence *)hash,

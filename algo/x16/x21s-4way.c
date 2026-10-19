@@ -186,6 +186,12 @@ int scanhash_x21s_8way( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
+void x21s_8way_thread_free( int thr_id )
+{
+   (void)thr_id;
+   if ( x21s_8way_matrix ) { mm_free( x21s_8way_matrix ); x21s_8way_matrix = NULL; }
+}
+
 bool x21s_8way_thread_init()
 {
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols
@@ -338,6 +344,12 @@ int scanhash_x21s_4way( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
+void x21s_4way_thread_free( int thr_id )
+{
+   (void)thr_id;
+   if ( x21s_4way_matrix ) { mm_free( x21s_4way_matrix ); x21s_4way_matrix = NULL; }
+}
+
 bool x21s_4way_thread_init()
 {
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols
@@ -449,6 +461,12 @@ int scanhash_x21s_2x64( struct work *work, uint32_t max_nonce,
    pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
+}
+
+void x21s_2x64_thread_free( int thr_id )
+{
+   (void)thr_id;
+   if ( x21s_2x64_matrix ) { mm_free( x21s_2x64_matrix ); x21s_2x64_matrix = NULL; }
 }
 
 bool x21s_2x64_thread_init()

@@ -553,7 +553,12 @@ int yespower_b2b_ref( yespower_local_t *local, const uint8_t *src,
 	}
 */
 
-    hmac_blake2b_hash((uint8_t *)dst, B + B_size - 64, 64, init_hash, sizeof(init_hash));
+    /* B is uint32_t*, so the cast is load-bearing: without it the offset scales
+     * by 4 and reads far past the allocation (a 12 KiB overread at r=32) as
+     * well as returning a wrong digest. This file is the hash installed on
+     * builds without SSE2 or aarch64. */
+    hmac_blake2b_hash((uint8_t *)dst, (uint8_t *)B + B_size - 64, 64,
+                      init_hash, sizeof(init_hash));
    
 	/* Success! */
 	retval = 1;

@@ -32,5 +32,10 @@ bool register_argon2d4096_algo( algo_gate_t* gate );
 int scanhash_argon2d4096( struct work *work, uint32_t max_nonce,
                     uint64_t *hashes_done, struct thr_info *mythr );
 
+// Bitweb: argon2id, version = 0x13, t=3, m=1024, p=1.
+bool register_argon2id1024_algo( algo_gate_t* gate );
+
+void argon2id1024_hash( void *state, const void *input );
+
 #endif
 

@@ -1,6 +1,12 @@
 #include "x16r-gate.h"
 #include "algo/sha/sha256d.h"
 
+/* Per-width, because each matrix is static to the file that allocates it. */
+void x21s_thread_free( int );
+void x21s_8way_thread_free( int );
+void x21s_4way_thread_free( int );
+void x21s_2x64_thread_free( int );
+
 __thread char x16r_hash_order[ X16R_HASH_FUNC_COUNT + 1 ] = { 0 };
 
 void (*x16_r_s_getAlgoString) ( const uint8_t*, char* ) = NULL;
@@ -300,18 +306,22 @@ bool register_x21s_algo( algo_gate_t* gate )
   gate->scanhash          = (void*)&scanhash_x21s_8way;
   gate->hash              = (void*)&x21s_8way_hash;
   gate->miner_thread_init = (void*)&x21s_8way_thread_init;
+  gate->miner_thread_free = (void*)&x21s_8way_thread_free;
 #elif defined(X21S_4WAY)
   gate->scanhash          = (void*)&scanhash_x21s_4way;
   gate->hash              = (void*)&x21s_4way_hash;
   gate->miner_thread_init = (void*)&x21s_4way_thread_init;
+  gate->miner_thread_free = (void*)&x21s_4way_thread_free;
 #elif defined(X21S_2WAY)
   gate->scanhash          = (void*)&scanhash_x21s_2x64;
   gate->hash              = (void*)&x21s_2x64_hash;
   gate->miner_thread_init = (void*)&x21s_2x64_thread_init;
+  gate->miner_thread_free = (void*)&x21s_2x64_thread_free;
 #else
   gate->scanhash          = (void*)&scanhash_x21s;
   gate->hash              = (void*)&x21s_hash;
   gate->miner_thread_init = (void*)&x21s_thread_init;
+  gate->miner_thread_free = (void*)&x21s_thread_free;
 #endif
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | VAES_OPT
                       | NEON_OPT;

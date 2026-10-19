@@ -19,6 +19,8 @@
 #include "algo/whirlpool/sph_whirlpool.h"
 #include "algo/sha/sph_sha2.h"
 #include "algo/yespower/yespower.h"
+#include "minotaurx-kat.h"
+#include "minotaur-kat.h"
 #if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/echo/aes_ni/hash_api.h"
 #else
@@ -311,6 +313,147 @@ int scanhash_minotaur( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
+// Startup gate for minotaurx: real Pulsar mainnet headers, each asserted
+// twice -- digest exact, and under that block's own nBits target. These pin
+// the final node's yespower parameters, the personalisation string included;
+// a typo there mines well-formed digests that a pool silently rejects.
+
+// yespower() polls work_restart[thrid].restart between phases and main()
+// calloc's work_restart AFTER register_algo_gate() runs, so supply one here.
+static struct work_restart minotaurx_kat_restart[1];
+
+static void minotaurx_kat_log( const char *name, const uint32_t *got,
+                               const unsigned char *want )
+{
+   char g[65], e[65];
+   for ( int i = 0; i < 32; i++ )
+   {
+      sprintf( g + i*2, "%02x", ((const unsigned char*)got)[i] );
+      sprintf( e + i*2, "%02x", want[i] );
+   }
+   applog( LOG_ERR, "minotaurx KAT FAILED: %s", name );
+   applog( LOG_ERR, "  got:      %s", g );
+   applog( LOG_ERR, "  expected: %s", e );
+}
+
+static bool minotaurx_self_test( void )
+{
+   struct work_restart *saved_restart = work_restart;
+   uint32_t got[8]  __attribute__ ((aligned (64)));
+   uint32_t targ[8] __attribute__ ((aligned (64)));
+   unsigned char hdr[80] __attribute__ ((aligned (64)));
+   bool ok = false;
+
+   if ( !work_restart ) work_restart = minotaurx_kat_restart;
+   if ( !initialize_torture_garden() ) goto done;
+
+   for ( unsigned k = 0; k < MINOTAURX_NUM_KATS; k++ )
+   {
+      memcpy( hdr,  minotaurx_kats[k].header, 80 );
+      memcpy( targ, minotaurx_kats[k].target, 32 );
+
+      if ( !minotaur_hash( got, hdr, 0 ) )
+      {
+         applog( LOG_ERR, "minotaurx KAT %s: hash failed",
+                 minotaurx_kats[k].name );
+         goto done;
+      }
+      if ( memcmp( got, minotaurx_kats[k].digest, 32 ) )
+      {
+         minotaurx_kat_log( minotaurx_kats[k].name, got,
+                            minotaurx_kats[k].digest );
+         goto done;
+      }
+      // The chain accepted this header, so its own digest must clear its own
+      // target. Catches a digest that is self-consistently wrong end to end.
+      if ( !valid_hash( got, targ ) )
+      {
+         applog( LOG_ERR, "minotaurx KAT %s: digest over the block's target",
+                 minotaurx_kats[k].name );
+         goto done;
+      }
+   }
+
+   // Non-vacuity: one flipped nonce bit must change the digest.
+   memcpy( hdr, minotaurx_kats[0].header, 80 );
+   hdr[79] ^= 1;
+   if ( !minotaur_hash( got, hdr, 0 ) )
+   {
+      applog( LOG_ERR, "minotaurx KAT non-vacuity check: hash failed" );
+      goto done;
+   }
+   if ( !memcmp( got, minotaurx_kats[0].digest, 32 ) )
+   {
+      applog( LOG_ERR,
+              "minotaurx KAT is vacuous: altered header gave the same digest" );
+      goto done;
+   }
+
+   applog( LOG_NOTICE, "minotaurx self-test PASSED (%d real mainnet headers, "
+           "height %u to %u, digest and target)", (int)MINOTAURX_NUM_KATS,
+           minotaurx_kats[0].height,
+           minotaurx_kats[MINOTAURX_NUM_KATS-1].height );
+   ok = true;
+
+done:
+   work_restart = saved_restart;
+   return ok;
+}
+
+// Startup gate for minotaur (non-x). Anchored on Ring's genesis header, whose
+// serialization is proven by sha256d against the GENESIS_HASH chainparams
+// asserts; the digest is then checked against that block's own nBits target.
+// See minotaur-kat.h for exactly how strong that is -- weaker than the
+// minotaurx vectors, and deliberately documented as such.
+static bool minotaur_self_test( void )
+{
+   struct work_restart *saved_restart = work_restart;
+   uint32_t got[8]  __attribute__ ((aligned (64)));
+   uint32_t targ[8] __attribute__ ((aligned (64)));
+   unsigned char hdr[80] __attribute__ ((aligned (64)));
+   bool ok = false;
+
+   if ( !work_restart ) work_restart = minotaurx_kat_restart;
+   if ( !initialize_torture_garden() ) goto done;
+
+   for ( unsigned k = 0; k < MINOTAUR_NUM_KATS; k++ )
+   {
+      memcpy( hdr,  minotaur_kats[k].header, 80 );
+      memcpy( targ, minotaur_kats[k].target, 32 );
+
+      if ( !minotaur_hash( got, hdr, 0 ) )
+      {
+         // The Hamsi-skip discards a nonce when node 0 or node 21 selects
+         // Hamsi (~12% of headers). A vector that trips it can never be
+         // reproduced through this entry point, so it is unusable.
+         applog( LOG_ERR, "minotaur KAT %s: header is Hamsi-skipped, "
+                 "unusable as a vector", minotaur_kats[k].name );
+         goto done;
+      }
+      if ( !valid_hash( got, targ ) )
+      {
+         applog( LOG_ERR, "minotaur KAT %s: digest over the block's target",
+                 minotaur_kats[k].name );
+         goto done;
+      }
+      if ( memcmp( got, minotaur_kats[k].digest, 32 ) )
+      {
+         minotaurx_kat_log( minotaur_kats[k].name, got,
+                            minotaur_kats[k].digest );
+         goto done;
+      }
+   }
+
+   applog( LOG_NOTICE, "minotaur self-test PASSED (%d real block header%s, "
+           "digest and target)", (int)MINOTAUR_NUM_KATS,
+           MINOTAUR_NUM_KATS == 1 ? "" : "s" );
+   ok = true;
+
+done:
+   work_restart = saved_restart;
+   return ok;
+}
+
 // hash function has hooks for minotaurx
 bool register_minotaur_algo( algo_gate_t* gate )
 {
@@ -318,7 +461,12 @@ bool register_minotaur_algo( algo_gate_t* gate )
   gate->hash              = (void*)&minotaur_hash;
   gate->miner_thread_init = (void*)&initialize_torture_garden;
   gate->optimizations = SSE2_OPT | AES_OPT | AVX2_OPT | AVX512_OPT | NEON_OPT;
-  if ( opt_algo == ALGO_MINOTAURX ) gate->optimizations |= SHA256_OPT;
+  if ( opt_algo == ALGO_MINOTAURX )
+  {
+     gate->optimizations |= SHA256_OPT;
+     if ( !minotaurx_self_test() ) return false;
+  }
+  else if ( !minotaur_self_test() ) return false;
   return true;
 };
 

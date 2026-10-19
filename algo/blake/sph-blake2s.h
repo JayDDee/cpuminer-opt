@@ -114,6 +114,13 @@ static inline void secure_zero_memory(void *v, size_t n)
 	} blake2s_state ;
 #pragma pack(pop)
 
+	/* Upstream ships the closer at the bottom of this file but not this opener;
+	     every consumer here is C, so the stray '}' never tripped until a C++ TU
+	     pulled this header. Guarded, so a C build is unchanged. */
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 	int blake2s_compress( blake2s_state *S, const uint8_t block[64] );
 
 	// Streaming API

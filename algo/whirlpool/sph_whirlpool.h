@@ -127,6 +127,81 @@ do{ \
    sph_whirlpool_close( cc, dst ); \
 }while(0)
 
+/* ------------------------------------------------------------------------
+ * Precomputed round keys (plain WHIRLPOOL only).
+ *
+ * WHIRLPOOL's compression is a block cipher keyed by the chaining state, so a
+ * caller that hashes many messages sharing a chaining state -- a mining nonce
+ * loop, where only the last block varies -- expands the same ten round keys
+ * every time. That key schedule is half the work of a compression.
+ *
+ * Expand once with sph_whirlpool_expand_keys(), then call
+ * sph_whirlpool_compress_keyed() per message block. Bit-identical to
+ * sph_whirlpool() over the same input; the plain API is unchanged and remains
+ * the reference.
+ *
+ * Additive: no existing behaviour depends on these.
+ */
+typedef struct {
+   sph_u64 K[11][8];       /* K[0] = the chaining state, K[r+1] = round r key */
+} sph_whirlpool_keys;
+
+/**
+ * One-time setup for the two functions below. Idempotent, not thread-safe --
+ * call it once at algorithm registration, before any mining thread starts.
+ */
+void sph_whirlpool_keyed_init( void );
+
+/**
+ * Which table layout the keyed path compiled to, reported from inside its own
+ * translation unit. The choice is architecture-dependent and measured, so a
+ * build wanting to state its configuration must ask rather than re-derive it.
+ */
+const char *sph_whirlpool_keyed_config( void );
+
+/**
+ * Expand the ten round keys for a fixed chaining state.
+ *
+ * @param wk      destination
+ * @param state   the eight chaining-state words, i.e. the `state` field of an
+ *                sph_whirlpool_context after the constant prefix was hashed
+ */
+void sph_whirlpool_expand_keys( sph_whirlpool_keys *wk, const sph_u64 *state );
+
+/**
+ * Compress one 64-byte block against precomputed round keys.
+ *
+ * @param wk      round keys from sph_whirlpool_expand_keys()
+ * @param blk     the 64-byte block, padded by the caller
+ * @param state   the same chaining state the keys were expanded from
+ * @param out     the eight resulting state words (may alias `state`)
+ */
+void sph_whirlpool_compress_keyed( const sph_whirlpool_keys *wk,
+                                   const void *blk, const sph_u64 *state,
+                                   sph_u64 *out );
+
+/**
+ * Most significant 64-bit word of the offset-32 fold of one keyed compression,
+ * i.e. word 3 XOR word 7 of what sph_whirlpool_compress_keyed() would produce.
+ *
+ * For a caller that folds a 512-bit digest to 256 by XORing the two halves and
+ * then compares the result as a little-endian integer, this one word decides
+ * almost every comparison -- and only two of the final round's eight state
+ * words are needed to compute it, so the last round costs a quarter.
+ *
+ * Returns exactly `out[3] ^ out[7]`, message and chaining terms included, so a
+ * caller cannot omit them. That matters: for an 80-byte message the message
+ * contribution is the padding length word, which is easy to forget because it
+ * is zero for a fold at other offsets.
+ *
+ * @param wk      round keys from sph_whirlpool_expand_keys()
+ * @param blk     the 64-byte block, padded by the caller
+ * @param state   the chaining state the keys were expanded from
+ */
+sph_u64 sph_whirlpool_keyed_fold32_msw( const sph_whirlpool_keys *wk,
+                                        const void *blk,
+                                        const sph_u64 *state );
+
 /**
  * WHIRLPOOL-0 uses the same structure than plain WHIRLPOOL.
  */

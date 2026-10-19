@@ -7,7 +7,7 @@
 #include "lyra2.h"
 #include "algo-gate-api.h"
 #include "simd-utils.h"
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "algo/groestl/aes_ni/hash-groestl256.h"
 #endif
 
@@ -17,7 +17,7 @@ typedef struct {
         sph_blake256_context     blake;
         sph_keccak256_context    keccak;
         sph_skein256_context     skein;
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_groestl256     groestl;
 #else
         sph_groestl256_context   groestl;
@@ -32,7 +32,7 @@ void init_lyra2re_ctx()
         sph_blake256_init(&lyra2re_ctx.blake);
         sph_keccak256_init(&lyra2re_ctx.keccak);
         sph_skein256_init(&lyra2re_ctx.skein);
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         init_groestl256( &lyra2re_ctx.groestl, 32 );
 #else
         sph_groestl256_init(&lyra2re_ctx.groestl);
@@ -71,7 +71,7 @@ void lyra2re_hash(void *state, const void *input)
 	sph_skein256(&ctx.skein, hashA, 32);
 	sph_skein256_close(&ctx.skein, hashB);
 
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         update_and_final_groestl256( &ctx.groestl, hashA, hashB, 256 );
 #else
 	sph_groestl256( &ctx.groestl, hashB, 32 );

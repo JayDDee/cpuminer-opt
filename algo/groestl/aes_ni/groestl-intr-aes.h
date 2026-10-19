@@ -48,6 +48,57 @@ static const v128u64_t round_const_q[] __attribute__ ((aligned (64))) =
    { 0x8292a2b2c2d2e2f2, 0x0212223242526272 }
 };
 
+#if defined(__ARM_FEATURE_AES)
+/* AddRoundConstant folded into AESE's key. ARM only, by construction.
+ *
+ * AESE XORs its key BEFORE SubBytes, so the round constant rides in free;
+ * x86's AESENCLAST XORs AFTER the S-box, so no key can cross it. shuffle8 is
+ * a byte permutation, so shuffle8( a ^ C ) == shuffle8( a ) ^ shuffle8( C ),
+ * and the *_sh tables below hold C pre-shuffled by the mask its row receives.
+ * Those masks are parsed from SUBSH_MASK0/SUBSH_MASK6 at generation time and
+ * must never be retyped by hand.
+ *
+ * ROUNDS_P/ROUNDS_Q are duplicated whole rather than reordered, so the #else
+ * arm stays byte-for-byte the original and x86 codegen is unchanged. */
+/* Round constants pre-shuffled by the mask their row receives. */
+static const v128u64_t round_const_p_sh[] __attribute__ ((aligned (64))) =
+{
+   { 0xb0e0104070a0d000, 0x306090c0f0205080 },
+   { 0xb1e1114171a1d101, 0x316191c1f1215181 },
+   { 0xb2e2124272a2d202, 0x326292c2f2225282 },
+   { 0xb3e3134373a3d303, 0x336393c3f3235383 },
+   { 0xb4e4144474a4d404, 0x346494c4f4245484 },
+   { 0xb5e5154575a5d505, 0x356595c5f5255585 },
+   { 0xb6e6164676a6d606, 0x366696c6f6265686 },
+   { 0xb7e7174777a7d707, 0x376797c7f7275787 },
+   { 0xb8e8184878a8d808, 0x386898c8f8285888 },
+   { 0xb9e9194979a9d909, 0x396999c9f9295989 },
+   { 0xbaea1a4a7aaada0a, 0x3a6a9acafa2a5a8a },
+   { 0xbbeb1b4b7babdb0b, 0x3b6b9bcbfb2b5b8b },
+   { 0xbcec1c4c7cacdc0c, 0x3c6c9cccfc2c5c8c },
+   { 0xbded1d4d7daddd0d, 0x3d6d9dcdfd2d5d8d }
+};
+
+static const v128u64_t round_const_q_sh[] __attribute__ ((aligned (64))) =
+{
+   { 0xefbf8f5f2fffcf9f, 0x6f3f0fdfaf7f4f1f },
+   { 0xeebe8e5e2efece9e, 0x6e3e0edeae7e4e1e },
+   { 0xedbd8d5d2dfdcd9d, 0x6d3d0dddad7d4d1d },
+   { 0xecbc8c5c2cfccc9c, 0x6c3c0cdcac7c4c1c },
+   { 0xebbb8b5b2bfbcb9b, 0x6b3b0bdbab7b4b1b },
+   { 0xeaba8a5a2afaca9a, 0x6a3a0adaaa7a4a1a },
+   { 0xe9b9895929f9c999, 0x693909d9a9794919 },
+   { 0xe8b8885828f8c898, 0x683808d8a8784818 },
+   { 0xe7b7875727f7c797, 0x673707d7a7774717 },
+   { 0xe6b6865626f6c696, 0x663606d6a6764616 },
+   { 0xe5b5855525f5c595, 0x653505d5a5754515 },
+   { 0xe4b4845424f4c494, 0x643404d4a4744414 },
+   { 0xe3b3835323f3c393, 0x633303d3a3734313 },
+   { 0xe2b2825222f2c292, 0x623202d2a2724212 }
+};
+
+#endif
+
 static const v128u64_t TRANSP_MASK = { 0x0d0509010c040800, 0x0f070b030e060a02 };
 static const v128u64_t SUBSH_MASK0 = { 0x0b0e0104070a0d00, 0x0306090c0f020508 };
 static const v128u64_t SUBSH_MASK1 = { 0x0c0f0205080b0e01, 0x04070a0d00030609 };
@@ -77,11 +128,35 @@ static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
 /* xmm[i] will be multiplied by 2
  * xmm[j] will be lost
  * xmm[k] has to be all 0x1b */
+/* GF(2^8) doubling. Groestl's field is AES's (reduction poly 0x11B, whose low
+ * byte is the 0x1b below), so GFNI's GF2P8MULB by 2 is exactly this MUL2 in a
+ * single instruction. Verified bit-identical to the fallback over all 256 byte
+ * values. j and k are unused on the GFNI path; kept for call compatibility. */
+#if defined(__GFNI__)
+#define MUL2( i, j, k ) \
+   i = _mm_gf2p8mul_epi8( i, _mm_set1_epi8( 2 ) );
+
+#elif defined(__ARM_FEATURE_SHA3)
+
+/* BCAX computes a ^ ( b & ~c ) in one instruction, but only pays when the
+ * complement folds at compile time. k is constant here, so ~k is free; with a
+ * runtime third operand it costs an extra MVN, so this stays local to MUL2. */
+
+#define MUL2(i, j, k){\
+  j = v128_cmpgt8( v128_zero, i);\
+  i = v128_add8(i, i);\
+  i = v128_xorandnot( i, v128_not( k ), j );\
+} 
+
+#else
+
 #define MUL2(i, j, k){\
   j = v128_cmpgt8( v128_zero, i);\
   i = v128_add8(i, i);\
   i = v128_xorand(i, j, k );\
 } 
+
+#endif
 
  /**/
 
@@ -295,6 +370,21 @@ static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
  * a0-a7 = input rows
  * b0-b7 = output rows
  */
+#if defined(__ARM_FEATURE_AES)
+#define SUBMIX_K(a0, a1, a2, a3, a4, a5, a6, a7, k0, k1, k2, k3, k4, k5, k6, k7, b0, b1, b2, b3, b4, b5, b6, b7){\
+  a0 = v128_xoraesenclast( a0, k0 ); \
+  a1 = v128_xoraesenclast( a1, k1 ); \
+  a2 = v128_xoraesenclast( a2, k2 ); \
+  a3 = v128_xoraesenclast( a3, k3 ); \
+  a4 = v128_xoraesenclast( a4, k4 ); \
+  a5 = v128_xoraesenclast( a5, k5 ); \
+  a6 = v128_xoraesenclast( a6, k6 ); \
+  a7 = v128_xoraesenclast( a7, k7 ); \
+  MixBytes( a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7 ); \
+}
+
+#endif
+
 #define SUBMIX(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* SubBytes */\
   a0 = v128_aesenclast_nokey( a0 ); \
@@ -309,6 +399,39 @@ static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
   MixBytes( a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7 ); \
 }
 
+#if defined(__ARM_FEATURE_AES)
+#define ROUNDS_P(){\
+  u8 round_counter = 0;\
+  for(round_counter = 0; round_counter < 14; round_counter+=2) {\
+    /* AddRoundConstant P1024 */\
+     /* ShiftBytes P1024 + pre-AESENCLAST */\
+    xmm8  = v128_shuffle8( xmm8,  SUBSH_MASK0 ); \
+    xmm9  = v128_shuffle8( xmm9,  SUBSH_MASK1 ); \
+    xmm10 = v128_shuffle8( xmm10, SUBSH_MASK2 ); \
+    xmm11 = v128_shuffle8( xmm11, SUBSH_MASK3 ); \
+    xmm12 = v128_shuffle8( xmm12, SUBSH_MASK4 ); \
+    xmm13 = v128_shuffle8( xmm13, SUBSH_MASK5 ); \
+    xmm14 = v128_shuffle8( xmm14, SUBSH_MASK6 ); \
+    xmm15 = v128_shuffle8( xmm15, SUBSH_MASK7 ); \
+     /* SubBytes + MixBytes */\
+    SUBMIX_K( xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, \
+          casti_v128( round_const_p_sh, round_counter ), v128_zero, v128_zero, v128_zero, v128_zero, v128_zero, v128_zero, v128_zero, \
+          xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7 ); \
+    /* AddRoundConstant P1024 */\
+    xmm0 = v128_shuffle8( xmm0, SUBSH_MASK0 ); \
+    xmm1 = v128_shuffle8( xmm1, SUBSH_MASK1 ); \
+    xmm2 = v128_shuffle8( xmm2, SUBSH_MASK2 ); \
+    xmm3 = v128_shuffle8( xmm3, SUBSH_MASK3 ); \
+    xmm4 = v128_shuffle8( xmm4, SUBSH_MASK4 ); \
+    xmm5 = v128_shuffle8( xmm5, SUBSH_MASK5 ); \
+    xmm6 = v128_shuffle8( xmm6, SUBSH_MASK6 ); \
+    xmm7 = v128_shuffle8( xmm7, SUBSH_MASK7 ); \
+    SUBMIX_K( xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, \
+          casti_v128( round_const_p_sh, round_counter+1 ), v128_zero, v128_zero, v128_zero, v128_zero, v128_zero, v128_zero, v128_zero, \
+          xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 ); \
+  }\
+}
+#else
 #define ROUNDS_P(){\
   u8 round_counter = 0;\
   for(round_counter = 0; round_counter < 14; round_counter+=2) {\
@@ -342,7 +465,44 @@ static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
             xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 ); \
   }\
 }
+#endif
 
+#if defined(__ARM_FEATURE_AES)
+#define ROUNDS_Q(){\
+  u8 round_counter = 0;\
+  for(round_counter = 0; round_counter < 14; round_counter+=2) {\
+    /* AddRoundConstant Q1024 */\
+    /* ShiftBytes Q1024 + pre-AESENCLAST */\
+    xmm8  = v128_shuffle8( xmm8,  SUBSH_MASK1 ); \
+    xmm9  = v128_shuffle8( xmm9,  SUBSH_MASK3 ); \
+    xmm10 = v128_shuffle8( xmm10, SUBSH_MASK5 ); \
+    xmm11 = v128_shuffle8( xmm11, SUBSH_MASK7 ); \
+    xmm12 = v128_shuffle8( xmm12, SUBSH_MASK0 ); \
+    xmm13 = v128_shuffle8( xmm13, SUBSH_MASK2 ); \
+    xmm14 = v128_shuffle8( xmm14, SUBSH_MASK4 ); \
+    xmm15 = v128_shuffle8( xmm15, SUBSH_MASK6 ); \
+    /* SubBytes + MixBytes */\
+    SUBMIX_K( xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15, \
+          v128_neg1, v128_neg1, v128_neg1, v128_neg1, v128_neg1, v128_neg1, v128_neg1, casti_v128( round_const_q_sh, round_counter ), \
+          xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7 ); \
+    \
+    /* AddRoundConstant Q1024 */\
+    /* ShiftBytes Q1024 + pre-AESENCLAST */\
+    xmm0 = v128_shuffle8( xmm0, SUBSH_MASK1 ); \
+    xmm1 = v128_shuffle8( xmm1, SUBSH_MASK3 ); \
+    xmm2 = v128_shuffle8( xmm2, SUBSH_MASK5 ); \
+    xmm3 = v128_shuffle8( xmm3, SUBSH_MASK7 ); \
+    xmm4 = v128_shuffle8( xmm4, SUBSH_MASK0 ); \
+    xmm5 = v128_shuffle8( xmm5, SUBSH_MASK2 ); \
+    xmm6 = v128_shuffle8( xmm6, SUBSH_MASK4 ); \
+    xmm7 = v128_shuffle8( xmm7, SUBSH_MASK6 ); \
+    /* SubBytes + MixBytes */\
+    SUBMIX_K( xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, \
+          v128_neg1, v128_neg1, v128_neg1, v128_neg1, v128_neg1, v128_neg1, v128_neg1, casti_v128( round_const_q_sh, round_counter+1 ), \
+          xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 ); \
+  }\
+}
+#else
 #define ROUNDS_Q(){\
   u8 round_counter = 0;\
   for(round_counter = 0; round_counter < 14; round_counter+=2) {\
@@ -395,6 +555,7 @@ static const v128u32_t gr_mask __attribute__ ((aligned (16))) =
             xmm8,  xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 ); \
   }\
 }
+#endif
 
 /* Matrix Transpose
  * input is a 1024-bit state with two columns in one xmm

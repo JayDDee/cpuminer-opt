@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
   #include "aes_ni/hash-groestl.h"
 #else
   #include "sph_groestl.h"
@@ -14,7 +14,7 @@
 #include "algo/sha/sha256-hash.h"
 
 typedef struct {
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
     hashState_groestl       groestl;
 #else
     sph_groestl512_context  groestl;
@@ -25,7 +25,7 @@ myrgr_ctx_holder myrgr_ctx;
 
 void init_myrgr_ctx()
 {
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
      init_groestl ( &myrgr_ctx.groestl, 64 );
 #else
      sph_groestl512_init( &myrgr_ctx.groestl );
@@ -39,7 +39,7 @@ void myriad_hash(void *output, const void *input)
 
    uint32_t _ALIGN(32) hash[16];
 
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
    update_groestl( &ctx.groestl, (char*)input, 640 );
    final_groestl( &ctx.groestl, (char*)hash);
 #else

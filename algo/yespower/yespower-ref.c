@@ -467,9 +467,9 @@ int yespower_ref( yespower_local_t *local, const uint8_t *src, size_t srclen,
 	pwxform_ctx_t ctx;
 	uint32_t sha256[8];
 
-	/* Sanity-check parameters */
+	/* Sanity-check parameters. N >= 256 (upstream: 1024) for yespowersmt. */
 	if ((version != YESPOWER_0_5 && version != YESPOWER_1_0) ||
-	    N < 1024 || N > 512 * 1024 || r < 8 || r > 32 ||
+	    N < 256 || N > 512 * 1024 || r < 8 || r > 32 ||
 	    (N & (N - 1)) != 0 || r < rmin ||
 	    (!pers && perslen)) {
 		errno = EINVAL;

@@ -103,11 +103,23 @@ static const __m512i SUBSH_MASK7 = { 0x06090c0f0205080b, 0x0e0104070a0d0003,
 /* xmm[i] will be multiplied by 2
  * xmm[j] will be lost
  * xmm[k] has to be all 0x1b */
+#if defined(__GFNI__) && defined(__AVX512F__)
+
+/* One GF(2^8) doubling per instruction. Groestl's field is AES's 0x11B,
+ * so GF2P8MULB by 2 is exactly this MUL2, proven over all 256 values. */
+#define MUL2(i, j, k){\
+  i = _mm512_gf2p8mul_epi8( i, _mm512_set1_epi8( 2 ) );\
+}
+
+#else
+
 #define MUL2(i, j, k){\
   j = _mm512_movm_epi8( _mm512_cmpgt_epi8_mask( m512_zero, i) );\
   i = _mm512_add_epi8(i, i);\
   i = mm512_xorand( i, j, k );\
 } 
+
+#endif
 
  /**/
 
@@ -696,11 +708,23 @@ static const __m256i SUBSH_MASK7_2WAY =
 /* xmm[i] will be multiplied by 2
  * xmm[j] will be lost
  * xmm[k] has to be all 0x1b */
+#if defined(__GFNI__) && defined(__AVX2__)
+
+/* One GF(2^8) doubling per instruction. Groestl's field is AES's 0x11B,
+ * so GF2P8MULB by 2 is exactly this MUL2, proven over all 256 values. */
+#define MUL2_2WAY(i, j, k){\
+  i = _mm256_gf2p8mul_epi8( i, _mm256_set1_epi8( 2 ) );\
+}
+
+#else
+
 #define MUL2_2WAY(i, j, k){\
   j = _mm256_cmpgt_epi8( m256_zero, i );\
   i = _mm256_add_epi8(i, i);\
   i = mm256_xorand( i, j, k );\
 }
+
+#endif
 
 #define MixBytes_2way(a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7){\
   /* t_i = a_i + a_{i+1} */\

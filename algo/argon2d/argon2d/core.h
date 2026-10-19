@@ -50,7 +50,11 @@ enum argon2_core_constants {
  * Memory blocks can be copied, XORed. Internal words can be accessed by [] (no
  * bounds checking).
  */
-typedef struct block_ { uint64_t v[ARGON2_QWORDS_IN_BLOCK]; } block;
+/* aligned(64) is required: fill_segment's stack-local address_block and
+ * input_block reach fill_block's _mm512_load_si512 / _mm256_load_si256.
+ * Without it Argon2i/Argon2id segfault on AVX2 and AVX-512. */
+typedef struct block_ { uint64_t v[ARGON2_QWORDS_IN_BLOCK]; }
+    __attribute__((aligned(64))) block;
 
 /*****************Functions that work with the block******************/
 

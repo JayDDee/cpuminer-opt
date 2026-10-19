@@ -79,7 +79,7 @@ int x16r_hash_generic( void* output, const void* input, int thrid,
             sph_bmw512_close( &ctx.bmw, hash );
          break;
          case GROESTL:
-#if defined(__AES__)  // || defined(__ARM_FEATURE_AES)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             groestl512_full( &ctx.groestl, hash, in, size<<3 );
 #else
             sph_groestl512_init( &ctx.groestl );
@@ -138,7 +138,7 @@ int x16r_hash_generic( void* output, const void* input, int thrid,
             sph_simd512_close( &ctx.simd, hash );
          break;
          case ECHO:
-#if defined(__AES__)
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
             echo_full( &ctx.echo, hash, 512, in, size );
 #else
             sph_echo512_init( &ctx.echo );

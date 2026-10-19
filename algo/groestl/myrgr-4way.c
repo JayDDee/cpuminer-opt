@@ -113,27 +113,22 @@ int scanhash_myriad_8way( struct work *work, uint32_t max_nonce,
    const uint32_t first_nonce = pdata[19];
    const uint32_t last_nonce = max_nonce - 8;
    uint32_t n = first_nonce;
-   uint32_t *noncep = vdata + 64+3;   // 4*16 + 3
+   // 8x64: 64-bit unit 9 holds header words 18-19, so the nonce is the high
+   // half of each lane. Same layout myriad_8way_hash() re-interleaves from.
+   __m512i *noncev = (__m512i*)vdata + 9;
    int thr_id = mythr->id;  // thr_id arg is deprecated
 
    if ( opt_benchmark )
       ( (uint32_t*)ptarget )[7] = 0x0000ff;
 
-   mm512_bswap32_intrlv80_4x128( vdata, pdata );
+   mm512_bswap32_intrlv80_8x64( vdata, pdata );
+   *noncev = mm512_intrlv_blend_32(
+               _mm512_set_epi32( n+7, 0, n+6, 0, n+5, 0, n+4, 0,
+                                 n+3, 0, n+2, 0, n+1, 0, n  , 0 ), *noncev );
 
    do
    {
-      be32enc( noncep,    n   );
-      be32enc( noncep+ 8, n+1 );
-      be32enc( noncep+16, n+2 );
-      be32enc( noncep+24, n+3 );
-      be32enc( noncep+32, n+4 );
-      be32enc( noncep+40, n+5 );
-      be32enc( noncep+48, n+6 );
-      be32enc( noncep+64, n+7 );
-
       myriad_8way_hash( hash, vdata );
-      pdata[19] = n;
 
       for ( int lane = 0; lane < 8; lane++ )
       if ( hash7[ lane ] <= Htarg )
@@ -141,13 +136,16 @@ int scanhash_myriad_8way( struct work *work, uint32_t max_nonce,
          extr_lane_8x32( lane_hash, hash, lane, 256 );
          if ( fulltest( lane_hash, ptarget ) && !opt_benchmark )
          {
-            pdata[19] = n + lane;
+            pdata[19] = bswap_32( n + lane );
             submit_solution( work, lane_hash, mythr );
          }
       }
+      *noncev = _mm512_add_epi32( *noncev,
+                                  _mm512_set1_epi64( 0x0000000800000000 ) );
       n += 8;
    } while ( (n < last_nonce) && !work_restart[thr_id].restart);
 
+   pdata[19] = n;
    *hashes_done = n - first_nonce;
    return 0;
 }

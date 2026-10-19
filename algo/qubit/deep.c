@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include "algo/luffa/luffa_for_sse2.h" 
 #include "algo/cubehash/cubehash_sse2.h" 
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
 #include "algo/echo/aes_ni/hash_api.h"
 #else
 #include "algo/echo/sph_echo.h"
@@ -18,7 +18,7 @@ typedef struct
 {
         hashState_luffa         luffa;
         cubehashParam           cubehash;
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         hashState_echo          echo;
 #else
         sph_echo512_context echo;
@@ -32,7 +32,7 @@ void init_deep_ctx()
 {
         init_luffa( &deep_ctx.luffa, 512 );
         cubehashInit( &deep_ctx.cubehash, 512, 16, 32 );
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         init_echo( &deep_ctx.echo, 512 );
 #else
         sph_echo512_init( &deep_ctx.echo );
@@ -62,7 +62,7 @@ void deep_hash(void *output, const void *input)
         cubehashUpdateDigest( &ctx.cubehash, hash, 
                                hash,64);
 
-#ifdef __AES__
+#if defined(__AES__) || defined(__ARM_FEATURE_AES)
         update_final_echo ( &ctx.echo,  hash,
                            hash, 512);
 #else

@@ -107,8 +107,8 @@ mv cpuminer cpuminer-avx512
 # AVX2 SHA VAES: generic, zen3, alderlake...arrowlake
 make clean || echo done
 rm -f config.status
-# vaes doesn't include aes
-CFLAGS="-O3 -maes -mavx2 -msha -mvaes -Wall" ./configure --with-curl
+# vaes doesn't include aes or pclmul (verus needs pclmul)
+CFLAGS="-O3 -maes -mpclmul -mavx2 -msha -mvaes -Wall" ./configure --with-curl
 make -j $(nproc)
 strip -s cpuminer
 mv cpuminer cpuminer-avx2-sha-vaes

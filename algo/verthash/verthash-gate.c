@@ -132,6 +132,24 @@ bool register_verthash_algo( algo_gate_t* gate )
   const char *verthash_data_file = opt_data_file ? opt_data_file
                                                  : default_verthash_data_file;
   
+   /* Registration can run more than once now that the algo is switchable at
+    * runtime, and this data file is the largest allocation in the miner --
+    * gigabytes. Reload only when the path actually changed, and release the
+    * previous one first; without this, switching to verthash twice leaks the
+    * whole dataset. */
+   if ( verthashInfo.data )
+   {
+      if ( verthashInfo.fileName
+           && !strcmp( verthashInfo.fileName, verthash_data_file ) )
+      {
+         applog( LOG_DEBUG, "Verthash data already loaded from %s",
+                 verthash_data_file );
+         printf("\n");
+         return true;
+      }
+      verthash_info_free( &verthashInfo );
+   }
+
    int vhLoadResult = verthash_info_init( &verthashInfo, verthash_data_file );
    if (vhLoadResult == 0) // No Error
    {

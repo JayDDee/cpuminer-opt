@@ -47,6 +47,9 @@
 #include "elist.h"
 #include "algo-gate-api.h"
 #include "algo/sha/sha256d.h"
+#include "algo/equihash/equihash.h"   /* EQH_DIFF_SCALE */
+#include "algo/verus/verus-gate.h"    /* verus_padded_solution_size */
+#include "algo/randomx/randomx-gate.h" /* Monero stratum dialect */
 
 struct header_info {
 	char		*lp_path;
@@ -1464,6 +1467,8 @@ static bool socket_full(curl_socket_t sock, int timeout)
 	return false;
 }
 
+extern bool stratum_need_reset;   /* cpu-miner.c */
+
 bool stratum_socket_full(struct stratum_ctx *sctx, int timeout)
 {
 	return strlen(sctx->sockbuf) || socket_full(sctx->sock, timeout);
@@ -1532,7 +1537,13 @@ char *stratum_recv_line(struct stratum_ctx *sctx)
 		} while (time(NULL) - rstart < 60 && !strstr(sctx->sockbuf, "\n"));
 
 		if (!ret) {
-			applog(LOG_WARNING, "stratum_recv_line failed");
+			/* Expected when we requested the reset: stratum_wake() shuts the
+			 * read side, so a failing read is the mechanism, not a fault.
+			 * Warning level would make every pool switch look like an error. */
+			if (stratum_need_reset)
+				applog(LOG_DEBUG, "stratum read ended for a requested reset");
+			else
+				applog(LOG_WARNING, "stratum_recv_line failed");
 			goto out;
 		}
 	}
@@ -1652,6 +1663,23 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 	return true;
 }
 
+/* Make a stratum thread blocked in select() return now, so a pool change does
+ * not wait up to opt_timeout on traffic from the pool being left. Shutting the
+ * read side reports EOF at once. Not a disconnect: curl and the buffer are left
+ * to the normal reset path. */
+void stratum_wake(struct stratum_ctx *sctx)
+{
+#ifdef WIN32
+	const int how = SD_RECEIVE;
+#else
+	const int how = SHUT_RD;
+#endif
+	pthread_mutex_lock(&sctx->sock_lock);
+	if (sctx->curl && sctx->sock != CURL_SOCKET_BAD)
+		shutdown(sctx->sock, how);
+	pthread_mutex_unlock(&sctx->sock_lock);
+}
+
 void stratum_disconnect(struct stratum_ctx *sctx)
 {
 	pthread_mutex_lock(&sctx->sock_lock);
@@ -1730,6 +1758,68 @@ out:
 	return false;
 }
 
+/* Equihash extranonce parser — no extranonce2_size field.
+ *
+ * Used for two contexts that differ only in which array index holds xnonce1:
+ *
+ *   subscribe response  [null, "xnonce1"]  or  [[subs], "xnonce1"]  → xn1_idx = 1
+ *   set_extranonce      ["xnonce1"]                                  → xn1_idx = 0
+ *
+ * The 32-byte Equihash nonce layout:
+ *   xnonce1 (pool-fixed) || xnonce2 (miner-varied, bytes xn1..23)
+ *                        || iter_counter (miner loop, bytes 24..31)
+ * xnonce2_size is derived as max(0, 24 - xnonce1_size).
+ *
+ * Reference server subscribe code:
+ *   client_send_result(client, "[null,\"%s\"]", client->extranonce1);
+ */
+static bool stratum_parse_extranonce_equihash(struct stratum_ctx *sctx,
+                                               json_t *result, int xn1_idx)
+{
+    const char *xnonce1 = json_string_value(json_array_get(result, xn1_idx));
+    if (!xnonce1) {
+        applog(LOG_ERR, "Equihash extranonce: missing extranonce1 at index %d",
+               xn1_idx);
+        return false;
+    }
+
+    size_t xn1_hex_len = strlen(xnonce1);
+    if (xn1_hex_len & 1 || xn1_hex_len > 56) {
+        /* Max sensible xnonce1 is 28 bytes (hex 56 chars) — leaves 4 bytes
+         * for the miner's own nonce variation inside the 32-byte field.   */
+        applog(LOG_ERR, "Equihash extranonce: invalid extranonce1 length %zu",
+               xn1_hex_len);
+        return false;
+    }
+
+    size_t xn1_size = xn1_hex_len / 2;
+    /* xnonce2 fills bytes [xn1_size .. 23]; bytes 24-31 are the miner's
+     * iter counter set in scanhash_equihash.                              */
+    int xn2_size = 24 - (int)xn1_size;
+    if (xn2_size < 0) xn2_size = 0;
+
+    pthread_mutex_lock(&sctx->work_lock);
+    free(sctx->xnonce1);
+    sctx->xnonce1_size = xn1_size;
+    sctx->xnonce1 = (uchar *)calloc(1, xn1_size ? xn1_size : 1);
+    if (!sctx->xnonce1) {
+        pthread_mutex_unlock(&sctx->work_lock);
+        applog(LOG_ERR, "Equihash extranonce: OOM allocating extranonce1");
+        return false;
+    }
+    if (xn1_size)
+        hex2bin(sctx->xnonce1, xnonce1, xn1_size);
+    sctx->xnonce2_size = xn2_size;
+    pthread_mutex_unlock(&sctx->work_lock);
+
+    if (!opt_quiet)
+        applog(LOG_INFO,
+               "Equihash extranonce1 0x%s (%zu B), extranonce2 size %d B",
+               xnonce1, xn1_size, xn2_size);
+
+    return true;
+}
+
 bool stratum_subscribe(struct stratum_ctx *sctx)
 {
 	char *s, *sret = NULL;
@@ -1795,9 +1885,36 @@ start:
 	sctx->next_diff = 1.0;
 	pthread_mutex_unlock(&sctx->work_lock);
 
-	// sid is param 1, extranonce params are 2 and 3
-	if (!stratum_parse_extranonce(sctx, res_val, 1)) {
-		goto out;
+	/* Detect which subscribe response format the pool used:
+	 *
+	 *   Standard Stratum (3 elements):
+	 *     [ [[subs...]], "xnonce1", xn2_size ]
+	 *
+	 *   Equihash variant A — null first element (2 elements):
+	 *     [ null, "xnonce1" ]
+	 *
+	 *   Equihash variant B — subscriptions present but xn2_size absent (2 elements):
+	 *     [ [[subs...]], "xnonce1" ]
+	 *     (observed in practice: pool sends mining.set_target in subscriptions
+	 *      and omits xn2_size — xnonce2_size is inferred as 32-xnonce1_size)
+	 *
+	 * Detection: if result[0] is null OR result[2] is not a valid integer ≥ 2,
+	 * treat as equihash format.                                               */
+	{
+		json_t *elem2   = json_array_get(res_val, 2);
+		bool   has_xn2  = elem2 && json_is_integer(elem2)
+		                       && json_integer_value(elem2) >= 2;
+		bool   null_sub = json_is_null(json_array_get(res_val, 0));
+
+		if (null_sub || !has_xn2) {
+			/* xnonce1 is always at index 1 in the subscribe result array */
+			if (!stratum_parse_extranonce_equihash(sctx, res_val, 1))
+				goto out;
+		} else {
+			/* Standard: sid at index 0, extranonce params at indices 1 and 2 */
+			if (!stratum_parse_extranonce(sctx, res_val, 1))
+				goto out;
+		}
 	}
 
 	ret = true;
@@ -1960,8 +2077,267 @@ static uint32_t getblocheight(struct stratum_ctx *sctx)
 	return height;
 }
 
+/* ── Equihash Stratum notify ─────────────────────────────────────────────
+ * Equihash pools send a different mining.notify than standard Stratum:
+ *   params[0] = job_id
+ *   params[1] = version  (8-char hex, 4 bytes)
+ *   params[2] = prevhash (64-char hex, 32 bytes)
+ *   params[3] = merkleroot (64-char hex, 32 bytes) — provided directly
+ *   params[4] = reserved (64-char hex, 32 bytes)
+ *   params[5] = ntime   (8-char hex, 4 bytes)
+ *   params[6] = nbits   (8-char hex, 4 bytes)
+ *   params[7] = clean_jobs (bool)
+ * There is no coinbase or merkle branch array.
+ * ─────────────────────────────────────────────────────────────────────── */
+/*
+ * Equihash Stratum notify handler.
+ *
+ * Supports two pool formats:
+ *
+ *   8-param (legacy ZCash Stratum):
+ *     [job_id, version, prevhash, merkleroot, reserved, ntime, nbits, clean]
+ *
+ *   10-param (extended, supports variant negotiation):
+ *     [job_id, version, prevhash, merkleroot, reserved, ntime, nbits, clean,
+ *      wn_wk_str, personalization]
+ *     params[8] = e.g. "200_9" or "144_5"
+ *     params[9] = e.g. "ZcashPoW" or "BgoldPoW"  (8-char prefix only)
+ *
+ * Reference server code: sprintf(equihash_params, "%i_%i", wn, wk) and
+ * sprintf(buffer, "...params...,\"%s\",\"%s\"...", equihash_params, equihash_personalization)
+ */
+static bool stratum_notify_equihash(struct stratum_ctx *sctx, json_t *params)
+{
+    int jsize = json_array_size(params);
+
+    const char *job_id     = json_string_value(json_array_get(params, 0));
+    const char *version    = json_string_value(json_array_get(params, 1));
+    const char *prevhash   = json_string_value(json_array_get(params, 2));
+    const char *merkleroot = json_string_value(json_array_get(params, 3));
+    const char *reserved   = json_string_value(json_array_get(params, 4));
+    const char *stime      = json_string_value(json_array_get(params, 5));
+    const char *nbits      = json_string_value(json_array_get(params, 6));
+    bool clean = json_is_true(json_array_get(params, 7));
+
+    /* VerusHash: params[8] is the 1344-byte solution template (2688 hex).
+     * For equihash the same slot carries variant strings instead, so this is
+     * keyed on the algo, not on jsize. */
+    const char *verus_sol = NULL;
+    if (opt_algo == ALGO_VERUS && jsize >= 9)
+        verus_sol = json_string_value(json_array_get(params, 8));
+
+    /* Optional variant params (10-param extended format) */
+    const char *wn_wk_str = NULL;
+    const char *personal8 = NULL;
+    if (jsize >= 10) {
+        wn_wk_str = json_string_value(json_array_get(params, 8));
+        personal8 = json_string_value(json_array_get(params, 9));
+    }
+
+    if (!job_id || !version || !prevhash || !merkleroot || !reserved ||
+        !stime || !nbits ||
+        strlen(version) != 8 || strlen(prevhash) != 64 ||
+        strlen(merkleroot) != 64 || strlen(reserved) != 64 ||
+        strlen(stime) != 8 || strlen(nbits) != 8) {
+        applog(LOG_ERR, "Stratum equihash notify: invalid parameters");
+        return false;
+    }
+
+    pthread_mutex_lock(&sctx->work_lock);
+
+    /* Capture whether this is a genuinely new job BEFORE overwriting job_id —
+     * the reset check below used to compare job_id to itself (already updated),
+     * so it never fired and the xnonce2 region kept realloc garbage.          */
+    bool eq_new_job = !sctx->job.job_id || strcmp(sctx->job.job_id, job_id) != 0;
+
+    free(sctx->job.job_id);
+    sctx->job.job_id = strdup(job_id);
+
+    hex2bin(sctx->job.version,    version,    4);
+    hex2bin(sctx->job.prevhash,   prevhash,   32);
+    hex2bin(sctx->job.merkleroot, merkleroot, 32);
+    hex2bin(sctx->job.reserved,   reserved,   32);
+    hex2bin(sctx->job.ntime,      stime,      4);
+    hex2bin(sctx->job.nbits,      nbits,      4);
+
+    sctx->job.clean       = clean;
+    /* Bitcoin-stratum job: clear the Monero-dialect flag, which only
+     * rx_stratum_job() sets. Left set across a runtime algo switch it makes
+     * stratum_gen_work() build the work item as a RandomX one. */
+    sctx->job.rx_job      = false;
+    sctx->job.diff        = sctx->next_diff;
+    sctx->job.is_equihash = true;
+
+    if (opt_algo == ALGO_VERUS) {
+        /* The pool sends descriptor + PBaaS headers + extra data (281 B) and
+         * expects the padded solution back at the chain's fixed size (1344 B);
+         * see verus_padded_solution_size(). */
+        size_t hexlen = verus_sol ? strlen(verus_sol) : 0;
+        int recv = (int)(hexlen / 2);
+        int need = recv ? verus_padded_solution_size(recv) : 0;
+
+        sctx->job.has_verus_solution = false;
+        if (!verus_sol || (hexlen & 1) || recv < 8 || need > 2048) {
+            applog(LOG_ERR, "Stratum verus notify: missing or unusable solution "
+                            "(%zu hex chars)", hexlen);
+        }
+        else if (!hex2bin(sctx->job.verus_solution, verus_sol, recv)) {
+            applog(LOG_ERR, "Stratum verus notify: solution hex decode failed");
+        }
+        else {
+            memset(sctx->job.verus_solution + recv, 0, (size_t)(need - recv));
+            sctx->job.verus_solution_len = (uint16_t)need;
+            sctx->job.has_verus_solution = true;
+            applog(LOG_DEBUG, "verus solution %d B -> padded %d B (preimage %d)",
+                   recv, need, 143 + need);
+        }
+    }
+
+    /* Store variant params so build_extraheader can switch the solver. */
+    if (wn_wk_str && personal8) {
+        strncpy(sctx->job.eq_params,   wn_wk_str, 15);
+        strncpy(sctx->job.eq_personal, personal8, 15);
+        sctx->job.eq_params[15]   = '\0';
+        sctx->job.eq_personal[15] = '\0';
+        applog(LOG_BLUE, "Equihash variant: params=%s personal=%s",
+               sctx->job.eq_params, sctx->job.eq_personal);
+    } else {
+        sctx->job.eq_params[0]   = '\0';
+        sctx->job.eq_personal[0] = '\0';
+    }
+
+    /* Reuse coinbase buffer for xnonce2 (the miner-variable nonce region). */
+    sctx->job.coinbase_size = sctx->xnonce2_size;
+    sctx->job.coinbase = (uchar *)realloc(sctx->job.coinbase,
+                                          sctx->xnonce2_size ? sctx->xnonce2_size : 1);
+    sctx->job.xnonce2 = sctx->job.coinbase;
+
+    /* Reset xnonce2 on a genuinely new job (see eq_new_job above); keep it for
+     * a re-notify of the same job ID. */
+    if (eq_new_job)
+        memset(sctx->job.xnonce2, 0, sctx->xnonce2_size);
+
+    sctx->block_height = getblocheight(sctx);
+
+    pthread_mutex_unlock(&sctx->work_lock);
+    sctx->new_job = true;
+    return true;
+}
+
+/* ── Veil SHA256Dv Stratum notify ─────────────────────────────────────────
+ * Veil's SHA256Dv pool sends a bespoke 11-param mining.notify:
+ *   params[0]  = job_id        (string)
+ *   params[1]  = version       (integer)
+ *   params[2]  = midstate      (64-char hex, 32 bytes, big-endian)
+ *   params[3]  = merkle        (64-char hex, 32 bytes, big-endian)
+ *   params[4]  = (unused here)
+ *   params[5]  = ntime         (integer)
+ *   params[6]  = nbits         (8-char hex, 4 bytes)
+ *   params[7]  = nonce_hi      (integer, base high 32 bits of the 64-bit nonce)
+ *   params[8]  = clean_jobs    (bool)
+ *   params[9]  = block_height  (integer)
+ *   params[10] = tx_count      (integer)
+ * The pool has already done the SHA-256 stage-1; the miner only builds and
+ * hashes the 80-byte stage-2 buffer (see algo/sha/sha256dv.c).
+ * ───────────────────────────────────────────────────────────────────────── */
+static bool stratum_notify_sha256dv(struct stratum_ctx *sctx, json_t *params)
+{
+    if (!json_is_array(params))
+    {
+        applog(LOG_ERR, "SHA256Dv notify: params is not array");
+        return false;
+    }
+
+    int jsize = json_array_size(params);
+    if (jsize < 11)
+    {
+        applog(LOG_ERR, "SHA256Dv notify: expected 11 params, got %d", jsize);
+        return false;
+    }
+
+    json_t *j_job_id = json_array_get(params, 0);
+    json_t *j_ver    = json_array_get(params, 1);
+    json_t *j_mid    = json_array_get(params, 2);
+    json_t *j_mrk    = json_array_get(params, 3);
+    json_t *j_ntime  = json_array_get(params, 5);
+    json_t *j_nbits  = json_array_get(params, 6);
+    json_t *j_nonhi  = json_array_get(params, 7);
+    json_t *j_clean  = json_array_get(params, 8);
+    json_t *j_height = json_array_get(params, 9);
+    json_t *j_txcnt  = json_array_get(params, 10);
+
+    if (!json_is_string(j_job_id) || !json_is_integer(j_ver) ||
+        !json_is_string(j_mid)    || !json_is_string(j_mrk)  ||
+        !json_is_integer(j_ntime) || !json_is_string(j_nbits) ||
+        !json_is_integer(j_nonhi) || !json_is_boolean(j_clean) ||
+        !json_is_integer(j_height) || !json_is_integer(j_txcnt))
+    {
+        applog(LOG_ERR, "SHA256Dv notify: invalid parameters");
+        return false;
+    }
+
+    const char *job_id       = json_string_value(j_job_id);
+    const char *midstate_hex = json_string_value(j_mid);
+    const char *merkle_hex   = json_string_value(j_mrk);
+    const char *nbits_hex    = json_string_value(j_nbits);
+    uint32_t version  = (uint32_t)json_integer_value(j_ver);
+    uint32_t ntime    = (uint32_t)json_integer_value(j_ntime);
+    uint32_t nonce_hi = (uint32_t)json_integer_value(j_nonhi);
+    int      height   = (int)json_integer_value(j_height);
+    int      tx_count = (int)json_integer_value(j_txcnt);
+    bool     clean    = json_is_true(j_clean);
+
+    if (strlen(midstate_hex) != 64 || strlen(merkle_hex) != 64 ||
+        strlen(nbits_hex) != 8)
+    {
+        applog(LOG_ERR, "SHA256Dv notify: bad field length");
+        return false;
+    }
+
+    pthread_mutex_lock(&sctx->work_lock);
+
+    free(sctx->job.job_id);
+    sctx->job.job_id = strdup(job_id);
+
+    sctx->job.version[0] =  version        & 0xff;
+    sctx->job.version[1] = (version >> 8)  & 0xff;
+    sctx->job.version[2] = (version >> 16) & 0xff;
+    sctx->job.version[3] = (version >> 24) & 0xff;
+
+    hex2bin(sctx->job.veil_midstate_be, midstate_hex, 32);
+    hex2bin(sctx->job.veil_merkle_be,   merkle_hex,   32);
+    hex2bin(sctx->job.nbits,            nbits_hex,    4);
+
+    sctx->job.veil_ntime    = ntime;
+    sctx->job.veil_nonce_hi = nonce_hi;
+    sctx->job.veil_sha256dv = true;
+    sctx->job.clean         = clean;
+    /* Bitcoin-stratum job: clear the Monero-dialect flag (see above). */
+    sctx->job.rx_job        = false;
+    sctx->job.diff          = sctx->next_diff;
+
+    sctx->block_height = height;
+    sctx->work.tx_count = tx_count;
+
+    pthread_mutex_unlock(&sctx->work_lock);
+    sctx->new_job = true;
+    return true;
+}
+
 static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 {
+    /* All Equihash variants share the same notify format — dispatch to handler */
+    if (opt_algo == ALGO_EQUIHASH   || opt_algo == ALGO_EQUIHASH96  ||
+        opt_algo == ALGO_EQUIHASH125 || opt_algo == ALGO_EQUIHASH144 ||
+        opt_algo == ALGO_EQUIHASH192 ||
+        /* VerusHash shares the 8 positional params and adds a 9th (solution) */
+        opt_algo == ALGO_VERUS)
+        return stratum_notify_equihash(sctx, params);
+
+    /* Veil SHA256Dv has a bespoke notify format — dispatch to handler */
+    if (opt_algo == ALGO_SHA256DV)
+        return stratum_notify_sha256dv(sctx, params);
+
 	const char *job_id, *prevhash, *coinb1, *coinb2, *version, *nbits, *stime;
    const char *finalsaplinghash = NULL;
    const char *denom10 = NULL, *denom100 = NULL, *denom1000 = NULL,
@@ -1974,7 +2350,11 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	uchar **merkle = NULL;
 	int jsize = json_array_size(params);
    bool has_claim = ( opt_algo == ALGO_LBRY ) && ( jsize == 10 );
-   bool has_roots = ( opt_algo == ALGO_PHI2 ) && ( jsize == 10 );
+   /* A tenth parameter directly after prevhash, 64 bytes of hex. For PHI2 and
+    * for EqPay it is the pair of Qtum-style roots, hashStateRoot then
+    * hashUTXORoot, which both chains append to the block header. */
+   bool has_roots = ( opt_algo == ALGO_PHI2
+                   || opt_algo == ALGO_YESPOWEREQPAY ) && ( jsize == 10 );
    bool is_veil  = ( opt_algo == ALGO_X16RT_VEIL );
 
    job_id = json_string_value(json_array_get(params, p++));
@@ -2095,6 +2475,10 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	hex2bin( sctx->job.xnonce2 + sctx->xnonce2_size, coinb2, coinb2_size );
 	free( sctx->job.job_id );
 	sctx->job.job_id = strdup( job_id );
+	/* Bitcoin-stratum job: clear the Monero-dialect flag, which only
+	 * rx_stratum_job() sets. Left set across a runtime algo switch it makes
+	 * stratum_gen_work() build the work item as a RandomX one. */
+	sctx->job.rx_job = false;
 	hex2bin( sctx->job.prevhash, prevhash, 32 );
    if ( has_claim ) hex2bin( sctx->job.extra, extradata, 32 );
    if ( has_roots ) hex2bin( sctx->job.extra, extradata, 64 );
@@ -2135,6 +2519,79 @@ static bool stratum_set_difficulty(struct stratum_ctx *sctx, json_t *params)
 	pthread_mutex_lock(&sctx->work_lock);
 	sctx->next_diff = diff;
 	pthread_mutex_unlock(&sctx->work_lock);
+	return true;
+}
+
+/* mining.set_target — Equihash pools send a 256-bit target as a 64-char hex
+ * string instead of a floating-point difficulty.
+ *
+ * Pool encoding (server-side):
+ *   diff_to_target_equi: m = 0xFFFF0000/diff_reduced; target[k+1] = m>>8; target[k+2] = m>>40
+ *   hexlify(target, 32) → LE memory order
+ *   string_be(hex)      → byte-reversed → big-endian (MSB first) on wire
+ *
+ * Our decode:
+ *   hex2bin(raw)        → MSB first in raw[]
+ *   be32dec into tgt[]  → tgt[7] = MSW (same layout as work->target)
+ *   hash_to_diff(tgt)   → diff_internal = 1/tgt[7]  (exact round-trip via diff_to_hash)
+ *   next_diff           = diff_internal  (for correct target reconstruction)
+ *   display             = diff_internal × EQH_DIFF_SCALE  (matches pool's number)
+ */
+static bool stratum_set_target(struct stratum_ctx *sctx, json_t *params)
+{
+	const char *target_hex = json_string_value(json_array_get(params, 0));
+	if (!target_hex || strlen(target_hex) != 64) {
+		applog(LOG_ERR, "mining.set_target: invalid target");
+		return false;
+	}
+
+	/* Decode big-endian hex to raw bytes */
+	uchar raw[32];
+	if (!hex2bin(raw, target_hex, 32)) {
+		applog(LOG_ERR, "mining.set_target: hex decode failed");
+		return false;
+	}
+
+	/* Convert to uint32_t[8] with MSW at index 7 (work->target layout).
+	 * raw[0] is the most significant byte → goes to tgt[7]'s MSB.          */
+	uint32_t tgt[8];
+	for (int i = 0; i < 8; i++) {
+		int b = i * 4;
+		tgt[7 - i] = ((uint32_t)raw[b+0] << 24) | ((uint32_t)raw[b+1] << 16)
+		           | ((uint32_t)raw[b+2] <<  8) |  (uint32_t)raw[b+3];
+	}
+
+	/* Convert to diff_pool — the difficulty value the pool operator sees.
+	 * diff_pool is stored in next_diff (same as set_difficulty does).
+	 * stratum_gen_work divides by opt_target_factor (= EQH_DIFF_SCALE, set
+	 * in register_equihashXXX_algo) to get diff_internal for diff_to_hash,
+	 * so the correct share target is reconstructed automatically.           */
+	/* Keep the pool's exact target. Verus uses it verbatim (see
+	 * stratum_gen_work): round-tripping through diff_to_hash only reproduces
+	 * the top 128 bits, which can leave our target looser than the pool's. */
+	memcpy(sctx->job.raw_target, tgt, sizeof tgt);
+	sctx->job.has_raw_target = true;
+
+	double diff_internal = hash_to_diff(tgt);
+	if (diff_internal <= 0) {
+		applog(LOG_ERR, "mining.set_target: target yields zero difficulty");
+		return false;
+	}
+	/* Scale to the units the pool operator reports. This used to hardcode
+	 * EQH_DIFF_SCALE; using opt_target_factor instead is behaviour-preserving
+	 * for equihash (register_equihashXXX_algo sets it to exactly that) and lets
+	 * other set_target algos -- VerusHash -- pick their own scale. */
+	const double tgt_scale = ( opt_target_factor > 0.0 ) ? opt_target_factor
+	                                                     : EQH_DIFF_SCALE;
+	double diff_pool = diff_internal * tgt_scale;
+
+	pthread_mutex_lock(&sctx->work_lock);
+	sctx->next_diff = diff_pool;   /* pool scale — same unit as set_difficulty */
+	pthread_mutex_unlock(&sctx->work_lock);
+
+	if (!opt_quiet)
+		applog(LOG_BLUE, "Pool set target %s (diff %.5g)", target_hex, diff_pool);
+
 	return true;
 }
 
@@ -2432,8 +2889,20 @@ bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 
 	if (!strcasecmp(method, "mining.notify")) {
 		ret = stratum_notify(sctx, params);
+      // Odocrypt pools send the epoch key as a top-level "odokey" field
+      // alongside the standard notify params.
+      pthread_mutex_lock(&sctx->work_lock);
+      sctx->job.odokey =
+         (uint32_t)json_integer_value(json_object_get(val, "odokey"));
+      pthread_mutex_unlock(&sctx->work_lock);
       sctx->new_job = true;
       goto out;
+	}
+	/* Monero/RandomX pushes {"method":"job","params":{...}}: a different
+	 * protocol, not a notify variant. See algo/randomx/randomx-stratum.c. */
+	if (!strcasecmp(method, "job") && rx_algo_uses_monero_stratum(opt_algo)) {
+		ret = rx_stratum_job(sctx, params);
+		goto out;
 	}
 	if (!strcasecmp(method, "mining.ping")) { // cgminer 4.7.1+
 		if (opt_debug) applog(LOG_DEBUG, "Pool ping");
@@ -2444,8 +2913,20 @@ bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 		ret = stratum_set_difficulty(sctx, params);
 		goto out;
 	}
+	/* Equihash pools use set_target instead of set_difficulty */
+	if (!strcasecmp(method, "mining.set_target")) {
+		ret = stratum_set_target(sctx, params);
+		goto out;
+	}
 	if (!strcasecmp(method, "mining.set_extranonce")) {
-		ret = stratum_parse_extranonce(sctx, params, 0);
+		/* Equihash pools omit extranonce2_size — detect and route accordingly */
+		if (opt_algo == ALGO_EQUIHASH   || opt_algo == ALGO_EQUIHASH96  ||
+		    opt_algo == ALGO_EQUIHASH125 || opt_algo == ALGO_EQUIHASH144 ||
+		    opt_algo == ALGO_EQUIHASH192)
+			/* params[0] = new xnonce1 (no xn2_size), same as subscribe */
+			ret = stratum_parse_extranonce_equihash(sctx, params, 0);
+		else
+			ret = stratum_parse_extranonce(sctx, params, 0);
 		goto out;
 	}
 	if (!strcasecmp(method, "client.reconnect")) {

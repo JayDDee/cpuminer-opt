@@ -1,4 +1,5 @@
 #include "x11evo-gate.h"
+#include <stdio.h>   /* sprintf, in the algo-order string builder below */
 
 int s_seq = -1;
 

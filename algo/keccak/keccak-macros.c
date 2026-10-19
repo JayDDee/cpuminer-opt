@@ -1,36 +1,12 @@
-#ifdef TH_ELT
-#undef TH_ELT
+#ifdef XOR5
+#undef XOR5
 #endif
-
-#define TH_ELT(t, c0, c1, c2, c3, c4, d0, d1, d2, d3, d4)   do { \
-    DECL64(tt0); \
-    DECL64(tt1); \
-    XOR3( tt0, d0, d1, d4 ); \
-    XOR( tt1, d2, d3 ); \
-    XOR( tt0, tt0, tt1 ); \
-    ROL64( tt0, tt0, 1 ); \
-    XOR3( tt1, c0, c1, c4 ); \
-    XOR3( tt0, tt0, c2, c3 ); \
-    XOR( t, tt0, tt1 ); \
+// d = a^b^c^e^f, as two ternary-logic ops (vpternlogq / EOR3).
+#define XOR5( d, a, b, c, e, f )   do { \
+    XOR3( d, a, b, c ); \
+    XOR3( d, d, e, f ); \
 } while (0)
-/*
-#define TH_ELT(t, c0, c1, c2, c3, c4, d0, d1, d2, d3, d4)   do { \
-                DECL64(tt0); \
-                DECL64(tt1); \
-                DECL64(tt2); \
-                DECL64(tt3); \
-                XOR64(tt0, d0, d1); \
-                XOR64(tt1, d2, d3); \
-                XOR64(tt0, tt0, d4); \
-                XOR64(tt0, tt0, tt1); \
-                ROL64(tt0, tt0, 1); \
-                XOR64(tt2, c0, c1); \
-                XOR64(tt3, c2, c3); \
-                XOR64(tt0, tt0, c4); \
-                XOR64(tt2, tt2, tt3); \
-                XOR64(t, tt0, tt2); \
-        } while (0)
-*/
+
 #ifdef THETA
 #undef THETA
 #endif
@@ -38,16 +14,30 @@
         b20, b21, b22, b23, b24, b30, b31, b32, b33, b34, \
         b40, b41, b42, b43, b44) \
         do { \
+                DECL64(c0); \
+                DECL64(c1); \
+                DECL64(c2); \
+                DECL64(c3); \
+                DECL64(c4); \
                 DECL64(t0); \
                 DECL64(t1); \
                 DECL64(t2); \
                 DECL64(t3); \
                 DECL64(t4); \
-                TH_ELT(t0, b40, b41, b42, b43, b44, b10, b11, b12, b13, b14); \
-                TH_ELT(t1, b00, b01, b02, b03, b04, b20, b21, b22, b23, b24); \
-                TH_ELT(t2, b10, b11, b12, b13, b14, b30, b31, b32, b33, b34); \
-                TH_ELT(t3, b20, b21, b22, b23, b24, b40, b41, b42, b43, b44); \
-                TH_ELT(t4, b30, b31, b32, b33, b34, b00, b01, b02, b03, b04); \
+                /* Five column parities, each computed ONCE. The previous form \
+                   called a TH_ELT helper five times, which recomputed every \
+                   parity twice: 35 ops where 20 do. Identical results. */ \
+                XOR5(c0, b00, b01, b02, b03, b04); \
+                XOR5(c1, b10, b11, b12, b13, b14); \
+                XOR5(c2, b20, b21, b22, b23, b24); \
+                XOR5(c3, b30, b31, b32, b33, b34); \
+                XOR5(c4, b40, b41, b42, b43, b44); \
+                /* t_x = parity(x-1) ^ ROL( parity(x+1), 1 ) */ \
+                ROL64(t0, c1, 1); XOR64(t0, t0, c4); \
+                ROL64(t1, c2, 1); XOR64(t1, t1, c0); \
+                ROL64(t2, c3, 1); XOR64(t2, t2, c1); \
+                ROL64(t3, c4, 1); XOR64(t3, t3, c2); \
+                ROL64(t4, c0, 1); XOR64(t4, t4, c3); \
                 XOR64(b00, b00, t0); \
                 XOR64(b01, b01, t0); \
                 XOR64(b02, b02, t0); \

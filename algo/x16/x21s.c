@@ -103,6 +103,12 @@ int scanhash_x21s( struct work *work, uint32_t max_nonce,
    return 0;
 }
 
+void x21s_thread_free( int thr_id )
+{
+   (void)thr_id;
+   if ( x21s_matrix ) { mm_free( x21s_matrix ); x21s_matrix = NULL; }
+}
+
 bool x21s_thread_init()
 {
    const int64_t ROW_LEN_INT64 = BLOCK_LEN_INT64 * 4; // nCols

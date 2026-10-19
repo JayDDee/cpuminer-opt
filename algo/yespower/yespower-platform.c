@@ -24,7 +24,11 @@
 
 #define HUGEPAGE_THRESHOLD		(12 * 1024 * 1024)
 
-#ifdef __x86_64__
+/* aarch64 with the usual 4 KiB granule has the same 2 MiB PMD as x86-64; it
+ * was excluded here only because upstream never targeted it. Wrong for a
+ * 16/64 KiB granule kernel (PMD 32 MiB / 512 MiB), which then simply keeps its
+ * base pages -- i.e. the behaviour it has today anyway. */
+#if defined(__x86_64__) || defined(__aarch64__)
 #define HUGEPAGE_SIZE			(2 * 1024 * 1024)
 #else
 #undef HUGEPAGE_SIZE
@@ -52,12 +56,49 @@ static void *alloc_region(yespower_region_t *region, size_t size)
 		new_size = size + hugepage_mask;
 		new_size &= ~hugepage_mask;
 	}
-	base = mmap(NULL, new_size, PROT_READ | PROT_WRITE, flags, -1, 0);
+	/* Only attempt the reserved-huge-page mapping when it is even eligible; do
+	 * not take a plain mapping here, or the THP path below is skipped. */
+	base = MAP_FAILED;
+	if (flags & MAP_HUGETLB)
+		base = mmap(NULL, new_size, PROT_READ | PROT_WRITE, flags, -1, 0);
 	if (base != MAP_FAILED) {
 		base_size = new_size;
 
-	} else if (flags & MAP_HUGETLB) {
+	} else {
+		/* Must run whenever MAP_HUGETLB backing was not obtained, which on a
+		 * stock box is always. Keep it out of an `else if (flags & MAP_HUGETLB)`
+		 * arm: MAP_HUGETLB is only attempted above HUGEPAGE_THRESHOLD, so every
+		 * variant below that would silently keep 4 KiB pages. */
 		flags &= ~MAP_HUGETLB;
+/*
+ * MAP_HUGETLB only succeeds where pages were reserved in advance
+ * (vm.nr_hugepages), which is 0 on a stock system, so this is the path
+ * essentially every miner takes. Transparent huge pages need no privileges;
+ * take them rather than settle for 4 KiB. The kernel can only promote a
+ * 2 MiB-ALIGNED range and mmap does not guarantee one, so over-map by a huge
+ * page and align forward. Only whole huge pages are advised; the tail stays
+ * 4 KiB, which is harmless. Worth a few percent, and it also removes a large
+ * run-to-run variance caused by where the physical 4 KiB pages happen to land.
+ */
+#if defined(MADV_HUGEPAGE) && defined(HUGEPAGE_SIZE) && !defined(YP_NO_THP)
+		if (size >= (size_t)HUGEPAGE_SIZE &&
+		    size + hugepage_mask > size) {
+			size_t s2 = size + hugepage_mask;
+			base = mmap(NULL, s2, PROT_READ | PROT_WRITE, flags, -1, 0);
+			if (base != MAP_FAILED) {
+				base_size = s2;
+				aligned = (uint8_t *)(((uintptr_t)base + hugepage_mask)
+				                      & ~(uintptr_t)hugepage_mask);
+				/* Advisory: a failure here costs speed, not correctness. */
+				madvise(aligned, size & ~hugepage_mask, MADV_HUGEPAGE);
+				region->base = base;
+				region->aligned = aligned;
+				region->base_size = base_size;
+				region->aligned_size = size;
+				return aligned;
+			}
+		}
+#endif
 		base = mmap(NULL, size, PROT_READ | PROT_WRITE, flags, -1, 0);
 	}
 

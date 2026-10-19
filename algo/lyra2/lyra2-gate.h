@@ -138,6 +138,11 @@ void init_phi2_ctx();
 
 #endif
 
+
+/* Releases whichever lyra2 matrix this thread allocated; see lyra2-gate.c.
+ * Safe to register from any lyra2 variant. */
+void lyra2_thread_free( int thr_id );
+
 #endif  // LYRA2_GATE_H__
 
 
